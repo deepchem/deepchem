@@ -26,7 +26,7 @@ def test_cgcnn_regression():
       "featurizer": CGCNNFeaturizer(),
       # disable transformer
       "transformers": [],
-      "data_dir": current_dir
+      "data_dir": path.join(current_dir, "assets")
   }
   tasks, datasets, transformers = load_perovskite(**config)
   train, valid, test = datasets
@@ -62,7 +62,7 @@ def test_cgcnn_classification():
       "featurizer": CGCNNFeaturizer(),
       # disable transformer
       "transformers": [],
-      "data_dir": current_dir
+      "data_dir": path.join(current_dir, "assets")
   }
   tasks, datasets, transformers = load_mp_metallicity(**config)
   train, valid, test = datasets
@@ -104,7 +104,7 @@ def test_cgcnn_reload():
       "featurizer": CGCNNFeaturizer(),
       # disable transformer
       "transformers": [],
-      "data_dir": current_dir
+      "data_dir": path.join(current_dir, "assets")
   }
   tasks, datasets, transformers = load_mp_metallicity(**config)
   train, valid, test = datasets

@@ -814,7 +814,7 @@ def test_DAG_singletask_regression_overfit():
   # Load mini log-solubility dataset.
   featurizer = dc.feat.ConvMolFeaturizer()
   tasks = ["outcome"]
-  input_file = os.path.join(current_dir, "example_regression.csv")
+  input_file = os.path.join(current_dir, "assets/example_regression.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.create_dataset(input_file)
@@ -855,7 +855,7 @@ def test_weave_singletask_classification_overfit():
   # Load mini log-solubility dataset.
   featurizer = dc.feat.WeaveFeaturizer()
   tasks = ["outcome"]
-  input_file = os.path.join(current_dir, "example_classification.csv")
+  input_file = os.path.join(current_dir, "assets/example_classification.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.create_dataset(input_file)
@@ -891,7 +891,7 @@ def test_weave_singletask_regression_overfit():
   # Load mini log-solubility dataset.
   featurizer = dc.feat.WeaveFeaturizer()
   tasks = ["outcome"]
-  input_file = os.path.join(current_dir, "example_regression.csv")
+  input_file = os.path.join(current_dir, "assets/example_regression.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.create_dataset(input_file)
@@ -929,7 +929,7 @@ def test_MPNN_singletask_regression_overfit():
   # Load mini log-solubility dataset.
   featurizer = dc.feat.WeaveFeaturizer()
   tasks = ["outcome"]
-  input_file = os.path.join(current_dir, "example_regression.csv")
+  input_file = os.path.join(current_dir, "assets/example_regression.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.create_dataset(input_file)
@@ -970,7 +970,7 @@ def test_textCNN_singletask_classification_overfit():
 
   featurizer = dc.feat.RawFeaturizer()
   tasks = ["outcome"]
-  input_file = os.path.join(current_dir, "example_classification.csv")
+  input_file = os.path.join(current_dir, "assets/example_classification.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.create_dataset(input_file)
@@ -1010,7 +1010,7 @@ def test_textCNN_singletask_regression_overfit():
   # Load mini log-solubility dataset.
   featurizer = dc.feat.RawFeaturizer()
   tasks = ["outcome"]
-  input_file = os.path.join(current_dir, "example_regression.csv")
+  input_file = os.path.join(current_dir, "assets/example_regression.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
   dataset = loader.create_dataset(input_file)

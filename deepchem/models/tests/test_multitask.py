@@ -24,7 +24,7 @@ class TestMultitask(unittest.TestCase):
 
   def test_multitask_order(self):
     """Test that order of tasks in multitask datasets is preserved."""
-    input_file = os.path.join(self.current_dir, "multitask_example.csv")
+    input_file = os.path.join(self.current_dir, "assets/multitask_example.csv")
     tasks = [
         "task0", "task1", "task2", "task3", "task4", "task5", "task6", "task7",
         "task8", "task9", "task10", "task11", "task12", "task13", "task14",

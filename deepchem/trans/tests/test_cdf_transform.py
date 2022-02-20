@@ -12,8 +12,7 @@ def load_gaussian_cdf_data():
   features = ["feat0", "feat1"]
   featurizer = dc.feat.UserDefinedFeaturizer(features)
   tasks = ["task0", "task1"]
-  input_file = os.path.join(current_dir,
-                            "../../models/tests/gaussian_cdf_example.csv")
+  input_file = os.path.join(current_dir, "assets/gaussian_cdf_example.csv")
   loader = dc.data.UserCSVLoader(
       tasks=tasks, featurizer=featurizer, id_field="id")
   return loader.create_dataset(input_file)
