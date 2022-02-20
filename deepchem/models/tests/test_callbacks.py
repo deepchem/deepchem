@@ -8,13 +8,6 @@ try:
 except ImportError:
   from io import StringIO
 
-try:
-  import tensorflow as tf
-  has_tensorflow = True
-except:
-  has_tensorflow = False
-
-
 class TestCallbacks(unittest.TestCase):
 
   @pytest.mark.torch
