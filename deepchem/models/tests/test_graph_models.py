@@ -331,7 +331,7 @@ def test_mpnn_regression_uncertainty():
 @pytest.mark.tensorflow
 def test_dtnn_regression_model():
   current_dir = os.path.dirname(os.path.abspath(__file__))
-  input_file = os.path.join(current_dir, "example_DTNN.mat")
+  input_file = os.path.join(current_dir, "assets/example_DTNN.mat")
   dataset = scipy.io.loadmat(input_file)
   X = dataset['X']
   y = dataset['T']
