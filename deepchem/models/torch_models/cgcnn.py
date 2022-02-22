@@ -19,9 +19,9 @@ class CGCNNLayer(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
-  >>> import pymatgen as mg
-  >>> lattice = mg.Lattice.cubic(4.2)
-  >>> structure = mg.Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
+  >>> from pymatgen.core import Lattice, Structure
+  >>> lattice = Lattice.cubic(4.2)
+  >>> structure = Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
   >>> featurizer = dc.feat.CGCNNFeaturizer()
   >>> cgcnn_graph = featurizer.featurize([structure])[0]
   >>> cgcnn_graph.num_node_features
@@ -118,9 +118,9 @@ class CGCNN(nn.Module):
   Examples
   --------
   >>> import deepchem as dc
-  >>> import pymatgen as mg
-  >>> lattice = mg.Lattice.cubic(4.2)
-  >>> structure = mg.Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
+  >>> from pymatgen.core import Lattice, Structure
+  >>> lattice = Lattice.cubic(4.2)
+  >>> structure = Structure(lattice, ["Cs", "Cl"], [[0, 0, 0], [0.5, 0.5, 0.5]])
   >>> featurizer = dc.feat.CGCNNFeaturizer()
   >>> cgcnn_feat = featurizer.featurize([structure])[0]
   >>> print(type(cgcnn_feat))
