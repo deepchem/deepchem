@@ -25,17 +25,17 @@ class MEGNet(nn.Module):
   >>> import torch
   >>> from torch_geometric.data import Data as GraphData, Batch
   >>> from deepchem.models.torch_models import MEGNet
-  >>> num_nodes, num_node_features = 5, 10
-  >>> num_edges, num_edge_attrs = 5, 2
-  >>> num_global_features = 4
-  >>> node_features = torch.randn(num_nodes, num_node_features)
-  >>> edge_attrs = torch.randn(num_edges, num_edge_attrs)
+  >>> n_nodes, n_node_features = 5, 10
+  >>> n_edges, n_edge_attrs = 5, 2
+  >>> n_global_features = 4
+  >>> node_features = torch.randn(n_nodes, n_node_features)
+  >>> edge_attrs = torch.randn(n_edges, n_edge_attrs)
   >>> edge_index = torch.tensor([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]]).long()
-  >>> global_features = torch.randn(num_global_features)
+  >>> global_features = torch.randn(n_global_features)
   >>> graph = GraphData(node_features, edge_index, edge_attrs, global_features=global_features)
   >>> batch = Batch()
   >>> batch = batch.from_graph_list([graph.to_pyg_graph()])
-  >>> model = MEGNet(n_node_features=num_node_features, n_edge_features=num_edge_attrs, n_global_features=num_global_features)
+  >>> model = MEGNet(n_node_features=n_node_features, n_edge_features=n_edge_attrs, n_global_features=n_global_features)
   >>> pred = model(batch)
 
   Note
@@ -157,9 +157,32 @@ class MEGNet(nn.Module):
 
 
 class MEGNetModel(TorchModel):
-  """MEGNet Model
+  """MatErials Graph Network for Molecules and Crystals
 
+  MatErials Graph Network [1]_ are Graph Networks [2]_ which are used for property prediction
+  in molecules and crystals. The model implements multiple layers of Graph Network as 
+  MEGNetBlocks and then combines the node properties and edge properties of all nodes
+  and edges via a Set2Set layer. The combines information is used with the global
+  features of the material/molecule for property prediction tasks.
+
+  Example
+  -------
+  >>> import deepchem as dc
+  >>> from deepchem.models import MEGNetModel
+  >>> from deepchem.utils.fake_data_generator import FakeGraphGenerator as FGG
+  >>> graphs = FGG(global_features=4, num_classes=10).sample(n_graphs=20)
+  >>> model = dc.models.MEGNetModel(n_node_features=5, n_edge_features=3, n_global_features=4, n_blocks=3, is_undirected=True, residual_connection=True, mode='classification', n_classes=10, batch_size=16)
+  >>> training_loss = model.fit(graphs)
+
+  References
+  ----------
+  .. [1] Chen, Chi, et al. "Graph networks as a universal machine learning framework for molecules and crystals." Chemistry of Materials 31.9 (2019): 3564-3572.
+  .. [2] Battaglia, Peter W., et al. "Relational inductive biases, deep learning, and graph networks." arXiv preprint arXiv:1806.01261 (2018).
+  Note
+  ----
+  The model requires PyTorch-Geometric to be installed.
   """
+
   def __init__(self,
                n_node_features: int = 32,
                n_edge_features: int = 32,
@@ -172,7 +195,6 @@ class MEGNetModel(TorchModel):
                n_tasks: int = 1,
                **kwargs):
     """
-
     Parameters
     ----------
     n_node_features: int

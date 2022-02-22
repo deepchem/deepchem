@@ -676,7 +676,7 @@ class MATGenerator(nn.Module):
 class GraphNetwork(torch.nn.Module):
   """Graph Networks
 
-  A graph network takes a graph as input and returns an updated graph
+  A Graph Network [1]_ takes a graph as input and returns an updated graph
   as output. The output graph has same structure as input graph but it
   has updated node features, edge features and global state features.
 
@@ -707,8 +707,8 @@ class GraphNetwork(torch.nn.Module):
   >>> gn = GN(n_node_features=n_node_features, n_edge_features=n_edge_features, n_global_features=n_global_features)
   >>> node_features, edge_features, global_features = gn(node_features, edge_index, edge_features, global_features)
 
-  Reference
-  ---------
+  References
+  ----------
   .. [1] Battaglia et al, Relational inductive biases, deep learning, and graph networks. https://arxiv.org/abs/1806.01261 (2018)
   """
 
@@ -800,7 +800,7 @@ class GraphNetwork(torch.nn.Module):
               edge_features: Tensor,
               global_features: Tensor,
               batch: Optional[Tensor] = None) -> Tuple[Tensor, Tensor, Tensor]:
-    """Output computation for MEGNet block
+    """Output computation for a GraphNetwork
 
     Parameters
     ----------
@@ -811,9 +811,7 @@ class GraphNetwork(torch.nn.Module):
     edge_features: torch.Tensor
       Edge features of the graph, shape: :math:`(|\mathcal{E}|, F_e)`
     global_features: torch.Tensor
-      Global features of the graph, shape: :math:`(F_g, 1)`
-    where :math:`|\mathcal{V}|` and :math:`|\mathcal{E}|` denotes the number of nodes and edges in the graph,
-      :math:F_n, :math:F_e, :math:F_g denotes the number of node features, edge features and global state features respectively.
+      Global features of the graph, shape: :math:`(F_g, 1)` where, :math:`|\mathcal{V}|` and :math:`|\mathcal{E}|` denotes the number of nodes and edges in the graph, :math:`F_n`, :math:`F_e`, :math:`F_g` denotes the number of node features, edge features and global state features respectively.
     batch: torch.LongTensor (optional, default: None)
       A vector that maps each node to its respective graph identifier. The attribute is used only when more than one graph are batched together during a single forward pass.
     """
