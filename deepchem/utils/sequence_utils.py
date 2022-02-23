@@ -24,7 +24,7 @@ def hhblits(dataset_path, database=None, data_dir=None, evalue=0.001, num_iterat
   Example:
 
   >>> from deepchem.utils.sequence_utils import hhblits
-  >>> hhblits(''path/to/dataset.seq', database='uniprot20_2016_02', data_dir='path/to/data_dir', evalue=0.001, num_iterations=2, num_threads=4)
+  >>> hhblits('path/to/dataset.seq', database='uniprot20_2016_02', data_dir='path/to/data_dir', evalue=0.001, num_iterations=2, num_threads=4)
 
   The output files results.a3m amd results.hhr will be saved in the dataset directory. results.a3m is a MSA and results.hhr is a hhsuite results file.
   
@@ -94,6 +94,7 @@ def hhsearch(dataset_path, database=None, data_dir=None, evalue=0.001, num_itera
   export DEEPCHEM_DATA_DIR=<path to data directory> 
 
   Example:
+  
   >>> from deepchem.utils.sequence_utils import hhsearch
   >>> hhsearch('path/to/dataset.seq', database='uniprot20_2016_02', data_dir='path/to/data_dir', evalue=0.001, num_iterations=2, num_threads=4)
   
