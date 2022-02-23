@@ -104,7 +104,7 @@ def hhsearch(dataset_path, database=None, data_dir=None, evalue=0.001, num_itera
   dataset_path: str
     Path to multiple sequence alignment dataset. Results will be saved in this directory.
   database: str
-    Name of database to search against. Note this is not the path, but the name of the database.
+    Name of database to searcexample:h against. Note this is not the path, but the name of the database.
   data_dir: str
     Path to database directory.
   evalue: float
