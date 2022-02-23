@@ -8,7 +8,7 @@ dependencies:
   - rdkit
   - mdtraj
   - numpy>=1.21
-  - pip==20.2.*
+  - pip
   - pip:
     - pre-commit
     - biopython
@@ -20,9 +20,9 @@ dependencies:
     - pillow
     - pubchempy
     - pyGPGO
-    - pymatgen==2020.12.31
+    - pymatgen
     - simdna
     - transformers==4.6.*
-    - xgboost==1.*
+    - xgboost
     - git+https://github.com/samoturk/mol2vec
     - tensorboard

@@ -21,7 +21,8 @@ def get_dataset(mode="classification",
                 max_seq_len=20,
                 data_points=10,
                 n_tasks=5):
-  dataset_file = os.path.join(os.path.dirname(__file__), "chembl_25_small.csv")
+  dataset_file = os.path.join(
+      os.path.dirname(__file__), "assets", "chembl_25_small.csv")
 
   if featurizer == "smiles2seq":
     max_len = 250
