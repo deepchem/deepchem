@@ -1078,7 +1078,8 @@ def test_chemception_reload():
 @pytest.mark.tensorflow
 def test_smiles2vec_reload():
   """Test that smiles2vec models can be saved and reloaded."""
-  dataset_file = os.path.join(os.path.dirname(__file__), "chembl_25_small.csv")
+  dataset_file = os.path.join(
+      os.path.dirname(__file__), "assets", "chembl_25_small.csv")
   max_len = 250
   pad_len = 10
   max_seq_len = 20
@@ -1137,7 +1138,7 @@ def test_DTNN_regression_reload():
   n_tasks = 1
 
   current_dir = os.path.dirname(os.path.abspath(__file__))
-  input_file = os.path.join(current_dir, "example_DTNN.mat")
+  input_file = os.path.join(current_dir, "assets/example_DTNN.mat")
   dataset = scipy.io.loadmat(input_file)
   X = dataset['X']
   y = dataset['T']
