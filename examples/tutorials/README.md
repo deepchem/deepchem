@@ -54,7 +54,9 @@ tutorials discuss about using DeepChem for specific applications.
 * [15 Training a Generative Adversarial Network on MNIST](Training_a_Generative_Adversarial_Network_on_MNIST.ipynb)
 * [16 Distributed Multi-GPU Training of DeepChem Models with LitMatter](https://github.com/ncfrey/litmatter/blob/main/LitDeepChem.ipynb)
 * [17 Advanced model training using Hyperopt](Advanced_model_training_using_hyperopt.ipynb)
-* [18 Using Torchdiffeq in Deepchem](Using_Torchdiffeq_in_Deepchem.ipynb)
+
+
+
 
 ### Molecular Machine Learning
 * [1 Molecular Fingerprints](Molecular_Fingerprints.ipynb)
@@ -92,3 +94,5 @@ tutorials discuss about using DeepChem for specific applications.
 
 ### Physics Informed Neural Networks
 * [1 Physics Informed Neural Networks (Burgers Equation)](Physics_Informed_Neural_Networks.ipynb) 
+* [2 Introducing_JaxModel_and_PINNModel](Introducing_JaxModel_and_PINNModel.ipynb)
+* [3 About_NODE_Using_Torchdiffeq_in_Deepchem](About_NODE_Using_Torchdiffeq_in_Deepchem.ipynb)
