@@ -2,20 +2,26 @@ from logging import raiseExceptions
 import os
 import subprocess
 
+
 def system_call(command):
   """ Wrapper for system command call """
   p = subprocess.Popen([command], stdout=subprocess.PIPE, shell=True)
   return p.stdout.read()
 
-def hhblits(dataset_path, database=None, data_dir=None, evalue=0.001, num_iterations=2, num_threads=4):
-        
+
+def hhblits(dataset_path,
+            database=None,
+            data_dir=None,
+            evalue=0.001,
+            num_iterations=2,
+            num_threads=4):
   """
   Run hhblits multisequence alignment search on a dataset. This function
-  requires the hhblits binary to be installed and in the path. This function 
+  requires the hhblits binary to be installed and in the path. This function
   also requires a Hidden Markov Model reference database to be provided. Both can be
   found here: https://github.com/soedinglab/hh-suite
 
-  The database should be in the deepchem data directory or specified as an argument. 
+  The database should be in the deepchem data directory or specified as an argument.
   To set the deepchem data directory, run this command in your environment:
 
   export DEEPCHEM_DATA_DIR=<path to data directory>
@@ -26,7 +32,7 @@ def hhblits(dataset_path, database=None, data_dir=None, evalue=0.001, num_iterat
   >>> hhblits('path/to/dataset.seq', database='uniprot20_2016_02', data_dir='path/to/data_dir', evalue=0.001, num_iterations=2, num_threads=4)
 
   The output files results.a3m amd results.hhr will be saved in the dataset directory. results.a3m is a MSA and results.hhr is a hhsuite results file.
-  
+
 
   Parameters
   ----------
@@ -48,8 +54,10 @@ def hhblits(dataset_path, database=None, data_dir=None, evalue=0.001, num_iterat
   if data_dir is None:
     data_dir = os.environ['DEEPCHEM_DATA_DIR']
   if len(data_dir) == 0:
-    raiseExceptions('hhblits requires a database. Please follow the instructions here \
-    to download a database: https://github.com/soedinglab/hh-suite/wiki#hh-suite-databases') 
+    raiseExceptions(
+        'hhblits requires a database. Please follow the instructions here \
+    to download a database: https://github.com/soedinglab/hh-suite/wiki#hh-suite-databases'
+    )
 
   _, dataset_file_type = os.path.splitext(dataset_path)
 
@@ -75,28 +83,33 @@ def hhblits(dataset_path, database=None, data_dir=None, evalue=0.001, num_iterat
   else:
     raiseExceptions('Unsupported file type')
 
-  flag = system_call(command)
+  system_call(command)
 
   return os.path.join(save_dir, 'results.a3m')
 
-def hhsearch(dataset_path, database=None, data_dir=None, evalue=0.001, num_iterations=2, num_threads=4):
-        
+
+def hhsearch(dataset_path,
+             database=None,
+             data_dir=None,
+             evalue=0.001,
+             num_iterations=2,
+             num_threads=4):
   """
   Run hhsearch multisequence alignment search on a dataset. This function
-  requires the hhblits binary to be installed and in the path. This function 
+  requires the hhblits binary to be installed and in the path. This function
   also requires a Hidden Markov Model reference database to be provided. Both can be
   found here: https://github.com/soedinglab/hh-suite
 
-  The database should be in the deepchem data directory or specified as an argument. 
+  The database should be in the deepchem data directory or specified as an argument.
   To set the deepchem data directory, run this command in your environment:
 
-  export DEEPCHEM_DATA_DIR=<path to data directory> 
+  export DEEPCHEM_DATA_DIR=<path to data directory>
 
   Example:
-  
+
   >>> from deepchem.utils.sequence_utils import hhsearch
   >>> hhsearch('path/to/dataset.seq', database='uniprot20_2016_02', data_dir='path/to/data_dir', evalue=0.001, num_iterations=2, num_threads=4)
-  
+
   The output files results.a3m amd results.hhr will be saved in the dataset directory. results.a3m is a MSA and results.hhr is a hhsuite results file.
 
   Parameters
@@ -119,9 +132,11 @@ def hhsearch(dataset_path, database=None, data_dir=None, evalue=0.001, num_itera
   if data_dir is None:
     data_dir = os.environ['DEEPCHEM_DATA_DIR']
   if len(data_dir) == 0:
-    raiseExceptions('hhblits requires a database. Please follow the instructions here \
-    to download a database: https://github.com/soedinglab/hh-suite/wiki#hh-suite-databases') 
-    
+    raiseExceptions(
+        'hhblits requires a database. Please follow the instructions here \
+    to download a database: https://github.com/soedinglab/hh-suite/wiki#hh-suite-databases'
+    )
+
   _, dataset_file_type = os.path.splitext(dataset_path)
 
   save_dir = os.path.dirname(os.path.abspath(dataset_path))
@@ -144,6 +159,6 @@ def hhsearch(dataset_path, database=None, data_dir=None, evalue=0.001, num_itera
   else:
     raiseExceptions('Unsupported file type')
 
-  flag = system_call(command)
+  system_call(command)
 
   return os.path.join(save_dir, 'results.a3m')
