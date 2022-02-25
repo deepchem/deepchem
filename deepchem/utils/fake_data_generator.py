@@ -98,7 +98,8 @@ class FakeGraphGenerator:
         labels.append(graph_label)
 
       elif self.task == 'node':
-        node_label = np.random.randint(0, self.n_classes - 1, n_nodes)
+        node_label = np.random.randint(0, self.n_classes - 1,
+                                       n_nodes).astype(np.float64)
         node_features = np.random.rand(
             n_nodes, self.n_node_features) + node_label.reshape(-1, 1)
         # For a node-prediction task, label is not added to edge features and other global features
