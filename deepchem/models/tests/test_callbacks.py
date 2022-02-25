@@ -8,6 +8,7 @@ try:
 except ImportError:
   from io import StringIO
 
+
 class TestCallbacks(unittest.TestCase):
 
   @pytest.mark.torch
@@ -56,3 +57,20 @@ class TestCallbacks(unittest.TestCase):
     valid_score = model.evaluate(valid_dataset, [metric], transformers)
     self.assertAlmostEqual(
         valid_score['mean-roc_auc_score'], max(scores), places=5)
+
+    # Make sure get_best_score() still works when save_dir is not specified
+
+    callback = dc.models.ValidationCallback(
+        valid_dataset,
+        30, [metric],
+        log,
+        save_on_minimum=False,
+        transformers=transformers)
+    model.fit(train_dataset, callbacks=callback)
+    log.seek(0)
+    scores = []
+    for line in log:
+      score = float(line.split('=')[-1])
+      scores.append(score)
+      
+    self.assertAlmostEqual(max(scores), callback.get_best_score(), places=5)
