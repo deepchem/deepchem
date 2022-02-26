@@ -1,5 +1,5 @@
 dependencies:
   - pip:
     - jax[cpu]
-    - dm-haiku==0.0.4
+    - dm-haiku
     - optax==0.0.8
