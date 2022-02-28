@@ -326,8 +326,9 @@ class MATEncoderLayer(nn.Module):
     self.self_attn = MultiHeadedMATAttention(dist_kernel, lambda_attention,
                                              lambda_distance, h, sa_hsize,
                                              sa_dropout_p, output_bias)
-    self.feed_forward = PositionwiseFeedForward(
-        d_input, d_hidden, d_output, activation, n_layers, ff_dropout_p)
+    self.feed_forward = PositionwiseFeedForward(d_input, d_hidden, d_output,
+                                                activation, n_layers,
+                                                ff_dropout_p)
     layer = SublayerConnection(size=encoder_hsize, dropout_p=encoder_dropout_p)
     self.sublayer = nn.ModuleList([layer for _ in range(2)])
     self.size = encoder_hsize
@@ -357,14 +358,13 @@ class MATEncoderLayer(nn.Module):
       Dropout probability for the self-attention layer (MultiHeadedMATAttention).
     """
     x = self.sublayer[0](x,
-                         self.self_attn(
-                             x,
-                             x,
-                             x,
-                             mask=mask,
-                             dropout_p=sa_dropout_p,
-                             adj_matrix=adj_matrix,
-                             distance_matrix=distance_matrix))
+                         self.self_attn(x,
+                                        x,
+                                        x,
+                                        mask=mask,
+                                        dropout_p=sa_dropout_p,
+                                        adj_matrix=adj_matrix,
+                                        distance_matrix=distance_matrix))
     return self.sublayer[1](x, self.feed_forward(x))
 
 
@@ -663,8 +663,8 @@ class MATGenerator(nn.Module):
       out_attn = self.att_net(out_masked)
       out_attn = out_attn.masked_fill(mask == 0, -1e9)
       out_attn = F.softmax(out_attn, dim=1)
-      out_avg_pooling = torch.matmul(
-          torch.transpose(out_attn, -1, -2), out_masked)
+      out_avg_pooling = torch.matmul(torch.transpose(out_attn, -1, -2),
+                                     out_masked)
       out_avg_pooling = out_avg_pooling.view(out_avg_pooling.size(0), -1)
 
     elif self.aggregation_type == 'contextual':
@@ -728,24 +728,23 @@ class GraphNetwork(torch.nn.Module):
     self.edge_models, self.node_models, self.global_models = torch.nn.ModuleList(
     ), torch.nn.ModuleList(), torch.nn.ModuleList()
     self.edge_models.append(
-        nn.Linear(
-            in_features=n_node_features * 2 + n_edge_features +
-            n_global_features,
-            out_features=32))
+        nn.Linear(in_features=n_node_features * 2 + n_edge_features +
+                  n_global_features,
+                  out_features=32))
     self.node_models.append(
-        nn.Linear(
-            in_features=n_node_features + n_edge_features + n_global_features,
-            out_features=32))
+        nn.Linear(in_features=n_node_features + n_edge_features +
+                  n_global_features,
+                  out_features=32))
     self.global_models.append(
-        nn.Linear(
-            in_features=n_node_features + n_edge_features + n_global_features,
-            out_features=32))
+        nn.Linear(in_features=n_node_features + n_edge_features +
+                  n_global_features,
+                  out_features=32))
 
     # Used for converting edges back to their original shape
     self.edge_dense = nn.Linear(in_features=32, out_features=n_edge_features)
     self.node_dense = nn.Linear(in_features=32, out_features=n_node_features)
-    self.global_dense = nn.Linear(
-        in_features=32, out_features=n_global_features)
+    self.global_dense = nn.Linear(in_features=32,
+                                  out_features=n_global_features)
 
   def reset_parameters(self) -> None:
     self.edge_dense.reset_parameters()
@@ -761,10 +760,9 @@ class GraphNetwork(torch.nn.Module):
   def _update_edge_features(self, node_features, edge_index, edge_features,
                             global_features, batch):
     src_index, dst_index = edge_index
-    out = torch.cat(
-        (node_features[src_index], node_features[dst_index], edge_features,
-         global_features[batch]),
-        dim=1)
+    out = torch.cat((node_features[src_index], node_features[dst_index],
+                     edge_features, global_features[batch]),
+                    dim=1)
     assert out.shape[
         1] == self.n_node_features * 2 + self.n_edge_features + self.n_global_features
     for model in self.edge_models:
@@ -790,8 +788,8 @@ class GraphNetwork(torch.nn.Module):
                               global_features, node_batch_map, edge_batch_map):
     edge_features_mean = scatter_mean(edge_features, edge_batch_map, dim=0)
     node_features_mean = scatter_mean(node_features, node_batch_map, dim=0)
-    out = torch.cat(
-        (edge_features_mean, node_features_mean, global_features), dim=1)
+    out = torch.cat((edge_features_mean, node_features_mean, global_features),
+                    dim=1)
     for model in self.global_models:
       out = model(out)
     return self.global_dense(out)
@@ -832,10 +830,12 @@ class GraphNetwork(torch.nn.Module):
     edge_features = self._update_edge_features(node_features, edge_index,
                                                edge_features, global_features,
                                                edge_batch_map)
-    node_features = self._update_node_features(
-        node_features, edge_index, edge_features, global_features, batch)
-    global_features = self._update_global_features(
-        node_features, edge_features, global_features, batch, edge_batch_map)
+    node_features = self._update_node_features(node_features, edge_index,
+                                               edge_features, global_features,
+                                               batch)
+    global_features = self._update_global_features(node_features, edge_features,
+                                                   global_features, batch,
+                                                   edge_batch_map)
 
     if self.is_undirected is True:
       # coonverting edge features to its original shape

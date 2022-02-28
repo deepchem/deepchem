@@ -16,10 +16,9 @@ def test_graphnet_layer():
   global_features = torch.randn(1, 4)
   edge_index = torch.tensor([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]]).long()
 
-  graphnet = GraphNetwork(
-      n_node_features=node_features.size(1),
-      n_edge_features=edge_features.size(1),
-      n_global_features=global_features.size(1))
+  graphnet = GraphNetwork(n_node_features=node_features.size(1),
+                          n_edge_features=edge_features.size(1),
+                          n_global_features=global_features.size(1))
 
   assert repr(
       graphnet
@@ -39,14 +38,16 @@ def test_graphnet_layer():
   edge_index = torch.tensor([[0], [1]]).long()
 
   torch.manual_seed(12345)
-  graphnet1 = GraphNetwork(
-      n_node_features=2, n_edge_features=2, n_global_features=1)
+  graphnet1 = GraphNetwork(n_node_features=2,
+                           n_edge_features=2,
+                           n_global_features=1)
   out_node1, out_edge1, out_global1 = graphnet1(node_features, edge_index,
                                                 edge_features, global_features)
 
   torch.manual_seed(12345)
-  graphnet2 = GraphNetwork(
-      n_node_features=2, n_edge_features=2, n_global_features=1)
+  graphnet2 = GraphNetwork(n_node_features=2,
+                           n_edge_features=2,
+                           n_global_features=1)
   out_node2, out_edge2, out_global2 = graphnet2(node_features, edge_index,
                                                 edge_features, global_features)
 
@@ -66,15 +67,14 @@ def test_graphnet_for_graphs_in_batch():
     raise ImportError("Tests require pytorch geometric to be installed")
 
   n_node_features, n_edge_features, n_global_features = 3, 4, 5
-  fgg = FakeGraphGenerator(
-      min_nodes=8,
-      max_nodes=12,
-      n_node_features=n_node_features,
-      avg_degree=10,
-      n_edge_features=n_edge_features,
-      n_classes=2,
-      task='graph',
-      z=n_global_features)
+  fgg = FakeGraphGenerator(min_nodes=8,
+                           max_nodes=12,
+                           n_node_features=n_node_features,
+                           avg_degree=10,
+                           n_edge_features=n_edge_features,
+                           n_classes=2,
+                           task='graph',
+                           z=n_global_features)
   graphs = fgg.sample(n_graphs=10)
 
   graphnet = GraphNetwork(n_node_features, n_edge_features, n_global_features)
