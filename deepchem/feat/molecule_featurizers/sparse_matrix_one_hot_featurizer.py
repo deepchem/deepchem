@@ -52,6 +52,7 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
                 log_every_n: int = 1000,
                 **kwargs) -> np.ndarray:
     """Featurize strings.
+
     Parameters
     ----------
     datapoints: list
@@ -64,18 +65,17 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
 
   def _featurize(self, datapoint: Any, **kwargs):
     """ Use parent method of base clase Featurizer.
-      Parameters
-      ----------
-      datapoint : list of string
-          string to be converted to a sparse one hot matrix.
 
+    Parameters
+    ----------
+    datapoint : list of string
+        string to be converted to a sparse one hot matrix.
 
-      Returns
-      -------
-      TYPE
-          scipy sparse matrix
-
-      """
+    Returns
+    -------
+    scipy sparse matrix
+      A scipy sparse matrix of the one hot representation of the given string.
+    """
     # Featurize str data
     if isinstance(datapoint, (str, np.str_)):
       sequence = np.array(list(datapoint)).reshape(-1, 1)

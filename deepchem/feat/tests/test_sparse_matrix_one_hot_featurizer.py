@@ -25,6 +25,7 @@ class TestSparseMatrixOneHotFeaturizer(unittest.TestCase):
     sequence = "MMMQLA"
     encodings = featurizer.featurize([sequence])
     featurizer.untransform(encodings[0])
+    assert out == "MMMQLA"
 
   def test_sparsemat_arbitrary_arbitrary_charset(self):
     """
