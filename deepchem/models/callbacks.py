@@ -2,7 +2,6 @@
 Callback functions that can be invoked while fitting a KerasModel.
 """
 import sys
-from deepchem.models.torch_models import TorchModel
 
 
 class ValidationCallback(object):
@@ -98,7 +97,3 @@ class ValidationCallback(object):
       # Log data to Wandb
       data = {'eval/' + k: v for k, v in scores.items()}
       model.wandb_logger.log_data(data, step, dataset_id=id(self.dataset))
-
-    # For torch models, need to set model back to train mode after eval
-    if isinstance(model, TorchModel):
-      model.model.train()
