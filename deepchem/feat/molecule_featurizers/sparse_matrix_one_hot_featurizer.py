@@ -100,5 +100,5 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
     string = ""
     invers_trans = self.ohe.inverse_transform(one_hot_vectors)
     for one_hot in invers_trans:
-      string += str(one_hot)
+      string += one_hot[0]
     return string
