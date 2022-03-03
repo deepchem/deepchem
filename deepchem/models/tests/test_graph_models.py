@@ -353,3 +353,17 @@ def test_dtnn_regression_model():
   pred = model.predict(dataset)
   mean_rel_error = np.mean(np.abs(1 - pred / y))
   assert mean_rel_error < 0.1
+
+@pytest.mark.tensorflow
+def test_graph_predict():
+  model = dc.models.GraphConvModel(np.random.randint(1, 100), batch_size=100, mode='classification')    
+  mols = []
+  tasks, all_dataset, transformers = load_delaney(featurizer='GraphConv')
+  train, valid, test = all_dataset
+  molecules=train.id[:np.random.randint(2, 100)]
+  for X, y, w, id in train.itersamples():
+    mols.append(id)
+  feat = dc.feat.ConvMolFeaturizer()   
+  X = feat.featurize(mols)         
+  model.predict(dc.data.NumpyDataset(X))
+  
