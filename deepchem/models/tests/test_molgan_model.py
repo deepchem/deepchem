@@ -85,7 +85,7 @@ class test_molgan_model(unittest.TestCase):
     This is something that needs to be addressed in future releases.
     """
 
-    input_file = os.path.join(self.current_dir, "molgan_example.csv")
+    input_file = os.path.join(self.current_dir, "assets/molgan_example.csv")
     data = pd.read_csv(input_file)
     molecules = list(data['Molecule'])
     feat = MolGanFeaturizer()

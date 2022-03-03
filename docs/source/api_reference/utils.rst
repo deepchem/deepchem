@@ -222,3 +222,12 @@ represnted in the IPython repl.
 .. autofunction:: deepchem.utils.debug_utils.get_max_print_size
 
 .. autofunction:: deepchem.utils.debug_utils.set_max_print_size
+
+Fake Data Generator
+-------------------
+
+The utilities here are used to generate random sample data which can be
+used for testing model architectures or other purposes.
+
+.. autoclass:: deepchem.utils.fake_data_generator.FakeGraphGenerator
+  :members:

@@ -8,4 +8,4 @@ dependencies:
     - torchvision==0.10.0+cu111
     - torch-scatter
     - torch-sparse
-    - torch-geometric==1.7.1
+    - torch-geometric

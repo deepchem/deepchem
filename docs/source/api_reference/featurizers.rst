@@ -223,6 +223,13 @@ OneHotFeaturizer
   :members:
   :inherited-members:
 
+SparseMatrixOneHotFeaturizer
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.SparseMatrixOneHotFeaturizer
+  :members:
+  :inherited-members:
+
 RawFeaturizer
 ^^^^^^^^^^^^^
 
