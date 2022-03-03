@@ -22,25 +22,25 @@ class TestSeq(unittest.TestCase):
   def test_hhsearch(self):
     seq_utils.hhsearch(
         self.dataset_file, database=self.database_name, data_dir=self.data_dir)
-    with open('data/results.a3m', 'r') as f:
+    with open('./data/results.a3m', 'r') as f:
       resultsline = next(f)
-    with open('data/example.hhr', 'r') as g:
+    with open('./data/example.hhr', 'r') as g:
       hhrline = next(g)
 
     assert hhrline[0:5] == 'Query'
     assert resultsline[0:5] == '>seq0'
-    os.remove('data/results.a3m')
-    os.remove('data/example.hhr')
+    os.remove('./data/results.a3m')
+    os.remove('./data/example.hhr')
 
   def test_hhblits(self):
     seq_utils.hhsearch(
         self.dataset_file, database=self.database_name, data_dir=self.data_dir)
-    with open('data/results.a3m', 'r') as f:
+    with open('./data/results.a3m', 'r') as f:
       resultsline = next(f)
-    with open('data/example.hhr', 'r') as g:
+    with open('./data/example.hhr', 'r') as g:
       hhrline = next(g)
 
     assert hhrline[0:5] == 'Query'
     assert resultsline[0:5] == '>seq0'
-    os.remove('data/results.a3m')
-    os.remove('data/example.hhr')
+    os.remove('./data/results.a3m')
+    os.remove('./data/example.hhr')
