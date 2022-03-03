@@ -360,7 +360,7 @@ def test_graph_predict():
   mols = []
   tasks, all_dataset, transformers = load_delaney(featurizer='GraphConv')
   train, valid, test = all_dataset
-  molecules=train.id[:np.random.randint(2, 100)]
+  molecules=train[:np.random.randint(2, 100)]
   for X, y, w, id in train.itersamples():
     mols.append(id)
   feat = dc.feat.ConvMolFeaturizer()   
