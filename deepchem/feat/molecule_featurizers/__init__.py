@@ -9,7 +9,6 @@ from deepchem.feat.molecule_featurizers.maccs_keys_fingerprint import MACCSKeysF
 from deepchem.feat.molecule_featurizers.mordred_descriptors import MordredDescriptors
 from deepchem.feat.molecule_featurizers.mol2vec_fingerprint import Mol2VecFingerprint
 from deepchem.feat.molecule_featurizers.one_hot_featurizer import OneHotFeaturizer
-from deepchem.feat.molecule_featurizers.sparse_matrix_one_hot_featurizer import SparseMatrixOneHotFeaturizer
 from deepchem.feat.molecule_featurizers.pubchem_fingerprint import PubChemFingerprint
 from deepchem.feat.molecule_featurizers.raw_featurizer import RawFeaturizer
 from deepchem.feat.molecule_featurizers.rdkit_descriptors import RDKitDescriptors
