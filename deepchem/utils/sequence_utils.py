@@ -51,7 +51,7 @@ def hhblits(dataset_path,
   Examples
   --------
   >>> from deepchem.utils.sequence_utils import hhblits
-  >>> hhblits('path/to/dataset.seq', database='uniprot20_2016_02', data_dir='path/to/data_dir', evalue=0.001, num_iterations=2, num_threads=4)
+  >>> hhblits('test/data/example.fasta', database='example_db', data_dir='test/data/', evalue=0.001, num_iterations=2, num_threads=4)
 
   """
 
@@ -112,7 +112,7 @@ def hhsearch(dataset_path,
   Examples
   --------
   >>> from deepchem.utils.sequence_utils import hhsearch
-  >>> hhsearch('path/to/dataset.seq', database='uniprot20_2016_02', data_dir='path/to/data_dir', evalue=0.001, num_iterations=2, num_threads=4)
+  >>> hhsearch('test/data/example.fasta', database='example_db', data_dir='test/data/', evalue=0.001, num_iterations=2, num_threads=4)
 
   Parameters
   ----------
