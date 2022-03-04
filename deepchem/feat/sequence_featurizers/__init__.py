@@ -1,1 +1,1 @@
-from deepchem.feat.sequence_featurizers.sparse_matrix_one_hot_featurizer import OneHotFeaturizer
+from deepchem.feat.sequence_featurizers.sparse_matrix_one_hot_featurizer import SparseMatrixOneHotFeaturizer
