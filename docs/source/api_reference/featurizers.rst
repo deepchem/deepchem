@@ -223,17 +223,23 @@ OneHotFeaturizer
   :members:
   :inherited-members:
 
-SparseMatrixOneHotFeaturizer
-^^^^^^^^^^^^^^^^
-
-.. autoclass:: deepchem.feat.SparseMatrixOneHotFeaturizer
-  :members:
-  :inherited-members:
-
 RawFeaturizer
 ^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.RawFeaturizer
+  :members:
+  :inherited-members:
+
+
+Sequence Featurizers
+-------------------------------
+
+These featurizers work with aminoacids and nucleotides sequences.
+
+SparseMatrixOneHotFeaturizer
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.SparseMatrixOneHotFeaturizer
   :members:
   :inherited-members:
 
