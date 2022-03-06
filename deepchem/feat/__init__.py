@@ -30,6 +30,7 @@ from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
 from deepchem.feat.molecule_featurizers import PagtnMolGraphFeaturizer
 from deepchem.feat.molecule_featurizers import MolGanFeaturizer
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
+from deepchem.feat.molecule_featurizers import SparseMatrixOneHotFeaturizer
 from deepchem.feat.molecule_featurizers import PubChemFingerprint
 from deepchem.feat.molecule_featurizers import RawFeaturizer
 from deepchem.feat.molecule_featurizers import RDKitDescriptors
