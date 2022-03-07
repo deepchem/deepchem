@@ -359,4 +359,4 @@ def test_graph_predict():
   y = [0, 1]
   feat = dc.feat.ConvMolFeaturizer()
   X = feat.featurize(mols)
-  assert model.predict(dc.data.NumpyDataset(X, y)) == True
+  assert (model.predict(dc.data.NumpyDataset(X, y))).all() == True
