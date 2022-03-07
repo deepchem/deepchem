@@ -350,23 +350,22 @@ def test_dtnn_regression_model():
 
 @pytest.mark.tensorflow
 def test_graph_predict():
-<<<<<<< Updated upstream
-  model = dc.models.GraphConvModel(np.random.randint(1, 100), batch_size=100, mode='classification')    
+  model = dc.models.GraphConvModel(np.random.randint(1, 100),
+                                   batch_size=100,
+                                   mode='classification')
   mols = []
   tasks, all_dataset, transformers = load_delaney(featurizer='GraphConv')
   train, valid, test = all_dataset
-  molecules=train[:np.random.randint(2, 100)]
+  molecules = train[:np.random.randint(2, 100)]
   for X, y, w, id in train.itersamples():
     mols.append(id)
-  feat = dc.feat.ConvMolFeaturizer()   
-  X = feat.featurize(mols)         
+  feat = dc.feat.ConvMolFeaturizer()
+  X = feat.featurize(mols)
   model.predict(dc.data.NumpyDataset(X))
-  
-=======
+
   model = dc.models.GraphConvModel(12, batch_size=50, mode='classification')
   mols = ["CCCCC", "CCCCCCCCC"]
   y = [0, 1]
   feat = dc.feat.ConvMolFeaturizer()
   X = feat.featurize(mols)
   assert model.predict(dc.data.NumpyDataset(X, y)) == True
->>>>>>> Stashed changes
