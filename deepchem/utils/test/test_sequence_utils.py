@@ -20,8 +20,9 @@ class TestSeq(unittest.TestCase):
     self.data_dir = os.path.join(current_dir, 'data')
 
   def test_hhsearch(self):
-    seq_utils.hhsearch(
-        self.dataset_file, database=self.database_name, data_dir=self.data_dir)
+    seq_utils.hhsearch(self.dataset_file,
+                       database=self.database_name,
+                       data_dir=self.data_dir)
     results_file = os.path.join(self.data_dir, 'results.a3m')
     hhr_file = os.path.join(self.data_dir, 'example.hhr')
     with open(results_file, 'r') as f:
@@ -35,8 +36,9 @@ class TestSeq(unittest.TestCase):
     os.remove(hhr_file)
 
   def test_hhblits(self):
-    seq_utils.hhsearch(
-        self.dataset_file, database=self.database_name, data_dir=self.data_dir)
+    seq_utils.hhsearch(self.dataset_file,
+                       database=self.database_name,
+                       data_dir=self.data_dir)
     results_file = os.path.join(self.data_dir, 'results.a3m')
     hhr_file = os.path.join(self.data_dir, 'example.hhr')
     with open(results_file, 'r') as f:

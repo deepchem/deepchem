@@ -52,6 +52,7 @@ def hhblits(dataset_path,
   --------
   >>> from deepchem.utils.sequence_utils import hhblits
   >>> hhblits('test/data/example.fasta', database='example_db', data_dir='test/data/', evalue=0.001, num_iterations=2, num_threads=4)
+  test/data/example.a3m
 
   """
 
@@ -88,8 +89,6 @@ def hhblits(dataset_path,
     raiseExceptions('Unsupported file type')
 
   system_call(command)
-
-  return os.path.join(save_dir, 'results.a3m')
 
 
 def hhsearch(dataset_path,
@@ -169,5 +168,3 @@ def hhsearch(dataset_path,
     raiseExceptions('Unsupported file type')
 
   system_call(command)
-
-  return os.path.join(save_dir, 'results.a3m')
