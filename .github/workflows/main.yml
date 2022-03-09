@@ -147,15 +147,15 @@ jobs:
       shell: bash -l {0}
       run: |
         mypy -p deepchem
-    - name: Doctest
-      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
+    - name: Doctest Linux
+      if: runner.os == 'Linux'
       shell: bash -l {0}
-      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem
-      # These tests are handled by new CI runs
-      #- name: PyTest
-      #  if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
-      #  shell: bash -l {0}
-      #  run: pytest -v -m "not slow and not jax and not torch and not tensorflow" --cov=deepchem --cov-report=xml deepchem
+      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem --doctest-continue-on-failure
+    - name: Doctest Windows
+      if: runner.os == 'Windows'
+      # Seperate test avoiding Jax in windows since Jax is not supported in Windows
+      shell: bash -l {0}
+      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --ignore-glob='deepchem/models/jax_models/*' --doctest-modules deepchem --doctest-continue-on-failure
     - name: Upload coverage to Codecov
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       uses: codecov/codecov-action@v1
