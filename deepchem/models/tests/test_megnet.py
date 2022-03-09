@@ -6,8 +6,14 @@ import tempfile
 import numpy as np
 import deepchem as dc
 from deepchem.utils.fake_data_generator import FakeGraphGenerator as FGG
-from deepchem.models.torch_models import MEGNetModel
 
+try:
+  from deepchem.models.torch_models import MEGNetModel
+  # When pytest runs without pytorch in the environment (ex: as in tensorflow workflow),
+  # the above import raises a ModuleNotFoundError. It is safe to ignore it
+  # since the below tests only run in an environment with pytorch installed.
+except ModuleNotFoundError:
+  pass
 
 @pytest.mark.torch
 def test_megnet_overfit():
