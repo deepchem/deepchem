@@ -128,7 +128,7 @@ jobs:
       id: install
       shell: bash -l {0}
       run: pip install -e .
-    - name: Yapf (version 0.22.0)
+    - name: Yapf (version 0.32.0)
       id: yapf
       # on Windows, yapf raise the strange error..., so ignore
       if: runner.os == 'Linux' || runner.os == 'macOS'
