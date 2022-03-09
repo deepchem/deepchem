@@ -9,11 +9,6 @@ from deepchem.models.losses import Loss, L2Loss, SparseSoftmaxCrossEntropy
 from deepchem.models.torch_models.layers import GraphNetwork as GN
 from deepchem.models.torch_models import TorchModel
 
-try:
-  from torch_geometric.data import Batch as PyGBatch
-except ModuleNotFoundError:
-  raise ImportError("This module requires pytorch geometric")
-
 
 class MEGNet(nn.Module):
   """MatErials Graph Network
@@ -116,11 +111,11 @@ class MEGNet(nn.Module):
     elif self.mode == 'classification':
       self.out = nn.Linear(in_features=16, out_features=n_tasks * n_classes)
 
-  def forward(self, pyg_batch: PyGBatch):
+  def forward(self, pyg_batch):
     """
     Parameters
     ----------
-    pyg_batch: PyGBatch
+    pyg_batch: torch_geometric.data.Batch
       A pytorch-geometric batch of graphs where node attributes are stores
       as pyg_batch['x'], edge_index in pyg_batch['edge_index'], edge features
       in pyg_batch['edge_attr'], global features in pyg_batch['global_features']
