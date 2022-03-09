@@ -2,6 +2,7 @@
 Tests for Docking
 """
 import os
+import platform
 import unittest
 import pytest
 import logging
@@ -11,6 +12,8 @@ from deepchem.feat import ComplexFeaturizer
 from deepchem.models import Model
 from deepchem.dock.pose_generation import PoseGenerator
 
+
+IS_WINDOWS = platform.system() == 'Windows'
 
 class TestDocking(unittest.TestCase):
   """
@@ -28,6 +31,7 @@ class TestDocking(unittest.TestCase):
     vpg = dc.dock.VinaPoseGenerator()
     dc.dock.Docker(vpg)
 
+  @unittest.skipIf(IS_WINDOWS, "vina is not supported in windows")
   @pytest.mark.slow
   def test_docker_dock(self):
     """Test that Docker can dock."""
@@ -43,6 +47,7 @@ class TestDocking(unittest.TestCase):
     # Check only one output since num_modes==1
     assert len(list(docked_outputs)) == 1
 
+  @unittest.skipIf(IS_WINDOWS, "vina is not supported in windows")
   @pytest.mark.slow
   def test_docker_pose_generator_scores(self):
     """Test that Docker can get scores from pose_generator."""
@@ -61,6 +66,7 @@ class TestDocking(unittest.TestCase):
     assert len(docked_outputs) == 1
     assert len(docked_outputs[0]) == 2
 
+  @unittest.skipIf(IS_WINDOWS, "vina is not supported in windows")
   @pytest.mark.slow
   def test_docker_specified_pocket(self):
     """Test that Docker can dock into spec. pocket."""
@@ -79,6 +85,7 @@ class TestDocking(unittest.TestCase):
     # Check returned files exist
     assert len(list(docked_outputs)) == 1
 
+  @unittest.skipIf(IS_WINDOWS, "vina is not supported in windows")
   @pytest.mark.slow
   def test_pocket_docker_dock(self):
     """Test that Docker can find pockets and dock dock."""

@@ -33,6 +33,7 @@ class TestPoseGeneration(unittest.TestCase):
     pocket_finder = dc.dock.ConvexHullPocketFinder()
     dc.dock.VinaPoseGenerator(pocket_finder=pocket_finder)
 
+  @unittest.skipIf(IS_WINDOWS, "vina is not supported in windows")
   @pytest.mark.slow
   def test_vina_poses_and_scores(self):
     """Test that VinaPoseGenerator generates poses and scores
@@ -91,6 +92,7 @@ class TestPoseGeneration(unittest.TestCase):
     assert isinstance(protein, Chem.Mol)
     assert isinstance(ligand, Chem.Mol)
 
+  @unittest.skipIf(IS_WINDOWS, "vina is not supported in windows")
   @pytest.mark.slow
   def test_vina_poses_no_scores(self):
     """Test that VinaPoseGenerator generates poses.
@@ -119,6 +121,7 @@ class TestPoseGeneration(unittest.TestCase):
     assert isinstance(protein, Chem.Mol)
     assert isinstance(ligand, Chem.Mol)
 
+  @unittest.skipIf(IS_WINDOWS, "vina is not supported in windows")
   @pytest.mark.slow
   def test_vina_pose_specified_centroid(self):
     """Test that VinaPoseGenerator creates pose files with specified centroid/box dims.
@@ -152,6 +155,7 @@ class TestPoseGeneration(unittest.TestCase):
     assert isinstance(protein, Chem.Mol)
     assert isinstance(ligand, Chem.Mol)
 
+  @unittest.skipIf(IS_WINDOWS, "vina is not supported in windows")
   @pytest.mark.slow
   def test_pocket_vina_poses(self):
     """Test that VinaPoseGenerator creates pose files.
