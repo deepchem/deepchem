@@ -2,6 +2,8 @@ from logging import raiseExceptions
 import os
 import subprocess
 
+from Bio import SeqIO
+from deepchem import datasets
 
 def system_call(command):
   """ Wrapper for system command call """
@@ -90,6 +92,9 @@ def hhblits(dataset_path,
 
   system_call(command)
 
+  msa_path = os.path.join(save_dir, 'results.a3m')
+
+  return msa_path #adjust doctest to reflect this change
 
 def hhsearch(dataset_path,
              database=None,
@@ -168,3 +173,24 @@ def hhsearch(dataset_path,
     raiseExceptions('Unsupported file type')
 
   system_call(command)
+
+  msa_path = os.path.join(save_dir, 'results.a3m')
+
+  return msa_path #adjust doctest to reflect this change
+
+def MSA_to_dataset(msa_path):
+  #return dataset object of results 
+  #results = NumpyDataset.load_from_disk(os.path.join(save_dir, 'results.a3m'))
+  #disk dataset must be stored in csv with .x, .y, .ids columns
+  #diskdataset = datasets.DiskDataset.create_dataset(shard_generator: Iterable[Batch])
+
+  #return results as x=sequence, y=[], ids = id?
+
+  with open(msa_path, 'r') as f:
+    sequences = []
+    for record in SeqIO.parse(f, 'fasta'):
+      seq = []
+      for res in record.seq.tostring():
+          seq.append(res)
+      sequences.append(seq)
+    return sequences
