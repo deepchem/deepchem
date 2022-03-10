@@ -108,7 +108,7 @@ class GraphData:
     if self.edge_features is not None:
       edge_features_str = str(list(self.edge_features.shape))
     else:
-      edge_features_str = typing.cast(str, None)
+      edge_features_str = None
 
     out = "%s(node_features=%s, edge_index=%s, edge_features=%s" % (
         cls, node_features_str, edge_index_str, edge_features_str)
