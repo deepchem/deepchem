@@ -199,7 +199,7 @@ class ComplexFeaturizer(Featurizer):
 
     # Find a successful featurization
     try:
-      i = np.argmax([f.shape[0] for f in features])
+      i = int(np.argmax([f.shape[0] for f in features]))
       dtype = features[i].dtype
       shape = features[i].shape
       dummy_array = np.zeros(shape, dtype=dtype)
