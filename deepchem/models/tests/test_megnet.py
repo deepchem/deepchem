@@ -15,28 +15,27 @@ try:
 except ModuleNotFoundError:
   pass
 
+
 @pytest.mark.torch
 def test_megnet_overfit():
-  fgg = FGG(
-      avg_n_nodes=10,
-      n_node_features=5,
-      avg_degree=4,
-      n_edge_features=3,
-      global_features=4,
-      num_classes=5,
-      task='graph')
+  fgg = FGG(avg_n_nodes=10,
+            n_node_features=5,
+            avg_degree=4,
+            n_edge_features=3,
+            global_features=4,
+            num_classes=5,
+            task='graph')
   graphs = fgg.sample(n_graphs=100)
 
-  model = MEGNetModel(
-      n_node_features=5,
-      n_edge_features=3,
-      n_global_features=4,
-      n_blocks=3,
-      is_undirected=True,
-      residual_connection=True,
-      mode='classification',
-      n_classes=5,
-      batch_size=16)
+  model = MEGNetModel(n_node_features=5,
+                      n_edge_features=3,
+                      n_global_features=4,
+                      n_blocks=3,
+                      is_undirected=True,
+                      residual_connection=True,
+                      mode='classification',
+                      n_classes=5,
+                      batch_size=16)
   metric = dc.metrics.Metric(dc.metrics.accuracy_score, mode="classification")
 
   model.fit(graphs, nb_epoch=100)
@@ -46,25 +45,23 @@ def test_megnet_overfit():
 
 @pytest.mark.torch
 def test_megnet_classification():
-  fgg = FGG( 
-      avg_n_nodes=10,
-      n_node_features=5,
-      avg_degree=4,
-      n_edge_features=3,
-      global_features=4,
-      num_classes=10)
+  fgg = FGG(avg_n_nodes=10,
+            n_node_features=5,
+            avg_degree=4,
+            n_edge_features=3,
+            global_features=4,
+            num_classes=10)
   graphs = fgg.sample(n_graphs=200)
 
-  model = MEGNetModel(
-      n_node_features=5,
-      n_edge_features=3,
-      n_global_features=4,
-      n_blocks=3,
-      is_undirected=True,
-      residual_connection=True,
-      mode='classification',
-      n_classes=10,
-      batch_size=16)
+  model = MEGNetModel(n_node_features=5,
+                      n_edge_features=3,
+                      n_global_features=4,
+                      n_blocks=3,
+                      is_undirected=True,
+                      residual_connection=True,
+                      mode='classification',
+                      n_classes=10,
+                      batch_size=16)
   metric = dc.metrics.Metric(dc.metrics.accuracy_score, mode="classification")
 
   model.fit(graphs, nb_epoch=50)
@@ -81,42 +78,39 @@ def test_megnet_regression():
 
 @pytest.mark.torch
 def test_megnet_reload():
-  fgg = FGG(
-      avg_n_nodes=10,
-      n_node_features=5,
-      avg_degree=4,
-      n_edge_features=3,
-      global_features=4,
-      num_classes=3)
+  fgg = FGG(avg_n_nodes=10,
+            n_node_features=5,
+            avg_degree=4,
+            n_edge_features=3,
+            global_features=4,
+            num_classes=3)
   graphs = fgg.sample(n_graphs=10)
   test_graphs = fgg.sample(n_graphs=10)
 
   model_dir = tempfile.mkdtemp()
-  model = MEGNetModel(
-      n_node_features=5,
-      n_edge_features=3,
-      n_global_features=4,
-      n_blocks=3,
-      is_undirected=True,
-      residual_connection=True,
-      mode='classification',
-      n_classes=3,
-      batch_size=16,
-      model_dir=model_dir)
+  model = MEGNetModel(n_node_features=5,
+                      n_edge_features=3,
+                      n_global_features=4,
+                      n_blocks=3,
+                      is_undirected=True,
+                      residual_connection=True,
+                      mode='classification',
+                      n_classes=3,
+                      batch_size=16,
+                      model_dir=model_dir)
 
   model.fit(graphs, nb_epoch=10)
 
-  reloaded_model = MEGNetModel(
-      n_node_features=5,
-      n_edge_features=3,
-      n_global_features=4,
-      n_blocks=3,
-      is_undirected=True,
-      residual_connection=True,
-      mode='classification',
-      n_classes=3,
-      batch_size=16,
-      model_dir=model_dir)
+  reloaded_model = MEGNetModel(n_node_features=5,
+                               n_edge_features=3,
+                               n_global_features=4,
+                               n_blocks=3,
+                               is_undirected=True,
+                               residual_connection=True,
+                               mode='classification',
+                               n_classes=3,
+                               batch_size=16,
+                               model_dir=model_dir)
   reloaded_model.restore()
   orig_predict = model.predict(test_graphs)
   reloaded_predict = reloaded_model.predict(test_graphs)

@@ -95,16 +95,17 @@ class MEGNet(nn.Module):
     self.mode = mode
     self.n_classes = n_classes
 
-    self.set2set_nodes = Set2Set(
-        in_channels=n_node_features, processing_steps=3, num_layers=1)
-    self.set2set_edges = Set2Set(
-        in_channels=n_edge_features, processing_steps=3, num_layers=1)
+    self.set2set_nodes = Set2Set(in_channels=n_node_features,
+                                 processing_steps=3,
+                                 num_layers=1)
+    self.set2set_edges = Set2Set(in_channels=n_edge_features,
+                                 processing_steps=3,
+                                 num_layers=1)
 
     self.dense = nn.Sequential(
-        nn.Linear(
-            in_features=2 * n_node_features + 2 * n_edge_features +
-            n_global_features,
-            out_features=32), nn.Linear(in_features=32, out_features=16))
+        nn.Linear(in_features=2 * n_node_features + 2 * n_edge_features +
+                  n_global_features,
+                  out_features=32), nn.Linear(in_features=32, out_features=16))
 
     if self.mode == 'regression':
       self.out = nn.Linear(in_features=16, out_features=n_tasks)
@@ -213,24 +214,25 @@ class MEGNetModel(TorchModel):
     kwargs: Dict
       kwargs supported by TorchModel
     """
-    model = MEGNet(
-        n_node_features=n_node_features,
-        n_edge_features=n_edge_features,
-        n_global_features=n_global_features,
-        n_blocks=n_blocks,
-        is_undirected=is_undirected,
-        residual_connection=residual_connection,
-        mode=mode,
-        n_classes=n_classes,
-        n_tasks=n_tasks)
+    model = MEGNet(n_node_features=n_node_features,
+                   n_edge_features=n_edge_features,
+                   n_global_features=n_global_features,
+                   n_blocks=n_blocks,
+                   is_undirected=is_undirected,
+                   residual_connection=residual_connection,
+                   mode=mode,
+                   n_classes=n_classes,
+                   n_tasks=n_tasks)
     if mode == 'regression':
       loss: Loss = L2Loss()
       output_types = ['prediction']
     elif mode == 'classification':
       loss = SparseSoftmaxCrossEntropy()
       output_types = ['prediction', 'loss']
-    super(MEGNetModel, self).__init__(
-        model, loss=loss, output_types=output_types, **kwargs)
+    super(MEGNetModel, self).__init__(model,
+                                      loss=loss,
+                                      output_types=output_types,
+                                      **kwargs)
 
   def _prepare_batch(self, batch):
     """Creates batch data for MEGNet model
@@ -257,7 +259,7 @@ class MEGNetModel(TorchModel):
     pyg_batch = Batch()
     pyg_batch = pyg_batch.from_data_list(graph_list)
 
-    _, labels, weights = super(MEGNetModel, self)._prepare_batch(([], labels,
-                                                                  weights))
+    _, labels, weights = super(MEGNetModel, self)._prepare_batch(
+        ([], labels, weights))
 
     return pyg_batch, labels, weights
