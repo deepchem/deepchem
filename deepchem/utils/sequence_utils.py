@@ -3,7 +3,7 @@ import os
 import subprocess
 
 from Bio import SeqIO
-from deepchem import datasets
+
 
 def system_call(command):
   """ Wrapper for system command call """
@@ -179,18 +179,18 @@ def hhsearch(dataset_path,
   return msa_path #adjust doctest to reflect this change
 
 def MSA_to_dataset(msa_path):
-  #return dataset object of results 
-  #results = NumpyDataset.load_from_disk(os.path.join(save_dir, 'results.a3m'))
-  #disk dataset must be stored in csv with .x, .y, .ids columns
-  #diskdataset = datasets.DiskDataset.create_dataset(shard_generator: Iterable[Batch])
+  #return dataset object of MSA results 
 
-  #return results as x=sequence, y=[], ids = id?
+  from deepchem.data.datasets import NumpyDataset #circular import??
 
   with open(msa_path, 'r') as f:
+    ids = []
     sequences = []
     for record in SeqIO.parse(f, 'fasta'):
+      ids.append(record.id)
       seq = []
-      for res in record.seq.tostring():
+      for res in record:
           seq.append(res)
       sequences.append(seq)
-    return sequences
+    dataset = NumpyDataset(X = sequences, ids = ids)
+    return dataset
