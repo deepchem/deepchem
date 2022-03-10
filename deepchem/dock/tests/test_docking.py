@@ -12,8 +12,8 @@ from deepchem.feat import ComplexFeaturizer
 from deepchem.models import Model
 from deepchem.dock.pose_generation import PoseGenerator
 
-
 IS_WINDOWS = platform.system() == 'Windows'
+
 
 class TestDocking(unittest.TestCase):
   """
@@ -38,11 +38,10 @@ class TestDocking(unittest.TestCase):
     # We provide no scoring model so the docker won't score
     vpg = dc.dock.VinaPoseGenerator()
     docker = dc.dock.Docker(vpg)
-    docked_outputs = docker.dock(
-        (self.protein_file, self.ligand_file),
-        exhaustiveness=1,
-        num_modes=1,
-        out_dir="/tmp")
+    docked_outputs = docker.dock((self.protein_file, self.ligand_file),
+                                 exhaustiveness=1,
+                                 num_modes=1,
+                                 out_dir="/tmp")
 
     # Check only one output since num_modes==1
     assert len(list(docked_outputs)) == 1
@@ -54,12 +53,11 @@ class TestDocking(unittest.TestCase):
     # We provide no scoring model so the docker won't score
     vpg = dc.dock.VinaPoseGenerator()
     docker = dc.dock.Docker(vpg)
-    docked_outputs = docker.dock(
-        (self.protein_file, self.ligand_file),
-        exhaustiveness=1,
-        num_modes=1,
-        out_dir="/tmp",
-        use_pose_generator_scores=True)
+    docked_outputs = docker.dock((self.protein_file, self.ligand_file),
+                                 exhaustiveness=1,
+                                 num_modes=1,
+                                 out_dir="/tmp",
+                                 use_pose_generator_scores=True)
 
     # Check only one output since num_modes==1
     docked_outputs = list(docked_outputs)
@@ -74,13 +72,12 @@ class TestDocking(unittest.TestCase):
     logging.basicConfig(level=logging.INFO)
     vpg = dc.dock.VinaPoseGenerator()
     docker = dc.dock.Docker(vpg)
-    docked_outputs = docker.dock(
-        (self.protein_file, self.ligand_file),
-        centroid=(10, 10, 10),
-        box_dims=(10, 10, 10),
-        exhaustiveness=1,
-        num_modes=1,
-        out_dir="/tmp")
+    docked_outputs = docker.dock((self.protein_file, self.ligand_file),
+                                 centroid=(10, 10, 10),
+                                 box_dims=(10, 10, 10),
+                                 exhaustiveness=1,
+                                 num_modes=1,
+                                 out_dir="/tmp")
 
     # Check returned files exist
     assert len(list(docked_outputs)) == 1
@@ -94,12 +91,11 @@ class TestDocking(unittest.TestCase):
     pocket_finder = dc.dock.ConvexHullPocketFinder()
     vpg = dc.dock.VinaPoseGenerator(pocket_finder=pocket_finder)
     docker = dc.dock.Docker(vpg)
-    docked_outputs = docker.dock(
-        (self.protein_file, self.ligand_file),
-        exhaustiveness=1,
-        num_modes=1,
-        num_pockets=1,
-        out_dir="/tmp")
+    docked_outputs = docker.dock((self.protein_file, self.ligand_file),
+                                 exhaustiveness=1,
+                                 num_modes=1,
+                                 num_pockets=1,
+                                 out_dir="/tmp")
 
     # Check returned files exist
     assert len(list(docked_outputs)) == 1

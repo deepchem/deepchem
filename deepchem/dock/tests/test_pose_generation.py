@@ -49,12 +49,11 @@ class TestPoseGeneration(unittest.TestCase):
 
     vpg = dc.dock.VinaPoseGenerator(pocket_finder=None)
     with tempfile.TemporaryDirectory() as tmp:
-      poses, scores = vpg.generate_poses(
-          (protein_file, ligand_file),
-          exhaustiveness=1,
-          num_modes=1,
-          out_dir=tmp,
-          generate_scores=True)
+      poses, scores = vpg.generate_poses((protein_file, ligand_file),
+                                         exhaustiveness=1,
+                                         num_modes=1,
+                                         out_dir=tmp,
+                                         generate_scores=True)
 
     assert len(poses) == 1
     assert len(scores) == 1
@@ -79,11 +78,10 @@ class TestPoseGeneration(unittest.TestCase):
 
     gpg = dc.dock.GninaPoseGenerator()
     with tempfile.TemporaryDirectory() as tmp:
-      poses, scores = gpg.generate_poses(
-          (protein_file, ligand_file),
-          exhaustiveness=1,
-          num_modes=1,
-          out_dir=tmp)
+      poses, scores = gpg.generate_poses((protein_file, ligand_file),
+                                         exhaustiveness=1,
+                                         num_modes=1,
+                                         out_dir=tmp)
 
     assert len(poses) == 1
     assert len(scores) == 1
@@ -108,12 +106,11 @@ class TestPoseGeneration(unittest.TestCase):
 
     vpg = dc.dock.VinaPoseGenerator(pocket_finder=None)
     with tempfile.TemporaryDirectory() as tmp:
-      poses = vpg.generate_poses(
-          (protein_file, ligand_file),
-          exhaustiveness=1,
-          num_modes=1,
-          out_dir=tmp,
-          generate_scores=False)
+      poses = vpg.generate_poses((protein_file, ligand_file),
+                                 exhaustiveness=1,
+                                 num_modes=1,
+                                 out_dir=tmp,
+                                 generate_scores=False)
 
     assert len(poses) == 1
     protein, ligand = poses[0]
@@ -139,14 +136,13 @@ class TestPoseGeneration(unittest.TestCase):
     box_dims = np.array([51.354, 51.243, 55.608])
     vpg = dc.dock.VinaPoseGenerator(pocket_finder=None)
     with tempfile.TemporaryDirectory() as tmp:
-      poses, scores = vpg.generate_poses(
-          (protein_file, ligand_file),
-          centroid=centroid,
-          box_dims=box_dims,
-          exhaustiveness=1,
-          num_modes=1,
-          out_dir=tmp,
-          generate_scores=True)
+      poses, scores = vpg.generate_poses((protein_file, ligand_file),
+                                         centroid=centroid,
+                                         box_dims=box_dims,
+                                         exhaustiveness=1,
+                                         num_modes=1,
+                                         out_dir=tmp,
+                                         generate_scores=True)
 
     assert len(poses) == 1
     assert len(scores) == 1
@@ -173,13 +169,12 @@ class TestPoseGeneration(unittest.TestCase):
     convex_finder = dc.dock.ConvexHullPocketFinder()
     vpg = dc.dock.VinaPoseGenerator(pocket_finder=convex_finder)
     with tempfile.TemporaryDirectory() as tmp:
-      poses, scores = vpg.generate_poses(
-          (protein_file, ligand_file),
-          exhaustiveness=1,
-          num_modes=1,
-          num_pockets=2,
-          out_dir=tmp,
-          generate_scores=True)
+      poses, scores = vpg.generate_poses((protein_file, ligand_file),
+                                         exhaustiveness=1,
+                                         num_modes=1,
+                                         num_pockets=2,
+                                         out_dir=tmp,
+                                         generate_scores=True)
 
     assert len(poses) == 2
     assert len(scores) == 2
