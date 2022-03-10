@@ -848,7 +848,10 @@ class LogTransformer(Transformer):
             z[:, j] = z[:, j]
         return z
     elif self.transform_y:
-      num_tasks = len(z[0])
+      if np.isscalar(z[0]):
+        num_tasks = 1
+      else:
+        num_tasks = len(z[0])
       if self.tasks is None:
         return np.exp(z) - 1
       else:

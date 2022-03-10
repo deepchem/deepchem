@@ -12,6 +12,8 @@ def test_log_trans_1D():
   trans = dc.trans.LogTransformer(transform_y=True)
   log_dataset = trans.transform(dataset)
   assert np.isclose(np.log(y + 1), log_dataset.y).all()
+  untrans_y = trans.untransform(log_dataset.y)
+  assert np.isclose(untrans_y, y).all()
 
 
 def load_feat_multitask_data():
