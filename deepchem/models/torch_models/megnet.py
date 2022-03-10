@@ -17,19 +17,19 @@ class MEGNet(nn.Module):
 
   Example
   -------
-  >>> import torch
-  >>> from torch_geometric.data import Data as GraphData, Batch
-  >>> from deepchem.models.torch_models import MEGNet
+  >>> import numpy as np
+  >>> from torch_geometric.data import Batch
+  >>> from deepchem.feat import GraphData
   >>> n_nodes, n_node_features = 5, 10
   >>> n_edges, n_edge_attrs = 5, 2
   >>> n_global_features = 4
-  >>> node_features = torch.randn(n_nodes, n_node_features)
-  >>> edge_attrs = torch.randn(n_edges, n_edge_attrs)
-  >>> edge_index = torch.tensor([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]]).long()
-  >>> global_features = torch.randn(n_global_features)
+  >>> node_features = np.random.randn(n_nodes, n_node_features)
+  >>> edge_attrs = np.random.randn(n_edges, n_edge_attrs)
+  >>> edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=np.int64)
+  >>> global_features = np.random.randn(1, n_global_features)
   >>> graph = GraphData(node_features, edge_index, edge_attrs, global_features=global_features)
   >>> batch = Batch()
-  >>> batch = batch.from_graph_list([graph.to_pyg_graph()])
+  >>> batch = batch.from_data_list([graph.to_pyg_graph()])
   >>> model = MEGNet(n_node_features=n_node_features, n_edge_features=n_edge_attrs, n_global_features=n_global_features)
   >>> pred = model(batch)
 
@@ -155,7 +155,7 @@ class MEGNetModel(TorchModel):
   """MatErials Graph Network for Molecules and Crystals
 
   MatErials Graph Network [1]_ are Graph Networks [2]_ which are used for property prediction
-  in molecules and crystals. The model implements multiple layers of Graph Network as 
+  in molecules and crystals. The model implements multiple layers of Graph Network as
   MEGNetBlocks and then combines the node properties and edge properties of all nodes
   and edges via a Set2Set layer. The combines information is used with the global
   features of the material/molecule for property prediction tasks.
