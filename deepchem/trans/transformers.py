@@ -337,8 +337,9 @@ class MinMaxTransformer(Transformer):
       if len(dataset.y.shape) > 1:
         assert len(self.y_min) == dataset.y.shape[1]
 
-    super(MinMaxTransformer, self).__init__(
-        transform_X=transform_X, transform_y=transform_y, dataset=dataset)
+    super(MinMaxTransformer, self).__init__(transform_X=transform_X,
+                                            transform_y=transform_y,
+                                            dataset=dataset)
 
   def transform_array(
       self, X: np.ndarray, y: np.ndarray, w: np.ndarray,
@@ -494,11 +495,10 @@ class NormalizationTransformer(Transformer):
       self.grad = np.reshape(true_grad, (true_grad.shape[0], -1, 3))
       self.ydely_means = ydely_means
 
-    super(NormalizationTransformer, self).__init__(
-        transform_X=transform_X,
-        transform_y=transform_y,
-        transform_w=transform_w,
-        dataset=dataset)
+    super(NormalizationTransformer, self).__init__(transform_X=transform_X,
+                                                   transform_y=transform_y,
+                                                   transform_w=transform_w,
+                                                   dataset=dataset)
 
   def transform_array(
       self, X: np.ndarray, y: np.ndarray, w: np.ndarray,
@@ -591,8 +591,8 @@ class NormalizationTransformer(Transformer):
 
       grad_means = self.y_means[1:]
       energy_var = self.y_stds[0]
-      grad_var = 1 / energy_var * (
-          self.ydely_means - self.y_means[0] * self.y_means[1:])
+      grad_var = 1 / energy_var * (self.ydely_means -
+                                   self.y_means[0] * self.y_means[1:])
       energy = tasks[:, 0]
       transformed_grad = []
 
@@ -657,8 +657,9 @@ class ClippingTransformer(Transformer):
     ValueError
       if `transform_w` is set.
     """
-    super(ClippingTransformer, self).__init__(
-        transform_X=transform_X, transform_y=transform_y, dataset=dataset)
+    super(ClippingTransformer, self).__init__(transform_X=transform_X,
+                                              transform_y=transform_y,
+                                              dataset=dataset)
 
     self.x_max = x_max
     self.y_max = y_max
@@ -765,8 +766,9 @@ class LogTransformer(Transformer):
       raise ValueError("Can only transform only one of X and y")
     self.features = features
     self.tasks = tasks
-    super(LogTransformer, self).__init__(
-        transform_X=transform_X, transform_y=transform_y, dataset=dataset)
+    super(LogTransformer, self).__init__(transform_X=transform_X,
+                                         transform_y=transform_y,
+                                         dataset=dataset)
 
   def transform_array(
       self, X: np.ndarray, y: np.ndarray, w: np.ndarray,
@@ -806,7 +808,10 @@ class LogTransformer(Transformer):
           else:
             X[:, j] = X[:, j]
     if self.transform_y:
-      num_tasks = len(y[0])
+      if np.isscalar(y[0]):
+        num_tasks = 1
+      else:
+        num_tasks = len(y[0])
       if self.tasks is None:
         y = np.log(y + 1)
       else:
@@ -915,8 +920,8 @@ class BalancingTransformer(Transformer):
 
   def __init__(self, dataset: Dataset):
     # BalancingTransformer can only transform weights.
-    super(BalancingTransformer, self).__init__(
-        transform_w=True, dataset=dataset)
+    super(BalancingTransformer, self).__init__(transform_w=True,
+                                               dataset=dataset)
 
     # Compute weighting factors from dataset.
     y = dataset.y
@@ -1056,10 +1061,10 @@ class FlatteningTransformer(Transformer):
           "Transformer is an abstract superclass and cannot be directly instantiated. You probably want to instantiate a concrete subclass instead."
       )
     self.transform_X = True
-    self.transform_y = (
-        dataset.get_shape()[1] != tuple())  # iff y passed, then transform it
-    self.transform_w = (
-        dataset.get_shape()[2] != tuple())  # iff w passed, then transform it
+    self.transform_y = (dataset.get_shape()[1] != tuple()
+                       )  # iff y passed, then transform it
+    self.transform_w = (dataset.get_shape()[2] != tuple()
+                       )  # iff w passed, then transform it
     self.transform_ids = True
 
   def transform_array(
@@ -1089,9 +1094,8 @@ class FlatteningTransformer(Transformer):
     idstrans: np.ndarray
       Transformed array of ids
     """
-    ids = np.repeat(
-        ids, [len(i) for i in X],
-        axis=0)  # each fragment should recieve parent mol id
+    ids = np.repeat(ids, [len(i) for i in X],
+                    axis=0)  # each fragment should recieve parent mol id
     if self.transform_y:
       y = np.repeat(
           y, [len(i) for i in X], axis=0
@@ -1155,8 +1159,8 @@ class CDFTransformer(Transformer):
     bins: int, optional (default 2)
       Number of bins to use when computing histogram.
     """
-    super(CDFTransformer, self).__init__(
-        transform_X=transform_X, transform_y=transform_y)
+    super(CDFTransformer, self).__init__(transform_X=transform_X,
+                                         transform_y=transform_y)
     self.bins = bins
     if transform_y:
       if dataset is None:
@@ -1314,8 +1318,8 @@ class PowerTransformer(Transformer):
     powers: list[int], optional (default `[1]`)
       The list of powers of features/labels to compute.
     """
-    super(PowerTransformer, self).__init__(
-        transform_X=transform_X, transform_y=transform_y)
+    super(PowerTransformer, self).__init__(transform_X=transform_X,
+                                           transform_y=transform_y)
     self.powers = powers
 
   def transform_array(
@@ -1634,8 +1638,8 @@ class IRVTransformer(Transformer):
       if values_np[count, 0] == 1:
         features.append(
             np.concatenate([
-                values_np[count, 1:(self.K + 1)],
-                top_labels_np[count, 1:(self.K + 1)]
+                values_np[count, 1:(self.K + 1)], top_labels_np[count,
+                                                                1:(self.K + 1)]
             ]))
         # highest similarity is 1: target is in the reference
         # use the following K points
@@ -1667,9 +1671,9 @@ class IRVTransformer(Transformer):
     n_features = X_target.shape[1]
     logger.info('start similarity calculation')
     time1 = time.time()
-    similarity = IRVTransformer.matrix_mul(X_target, np.transpose(
-        self.X)) / (n_features - IRVTransformer.matrix_mul(
-            1 - X_target, np.transpose(1 - self.X)))
+    similarity = IRVTransformer.matrix_mul(X_target, np.transpose(self.X)) / (
+        n_features -
+        IRVTransformer.matrix_mul(1 - X_target, np.transpose(1 - self.X)))
     time2 = time.time()
     logger.info('similarity calculation takes %i s' % (time2 - time1))
     for i in range(self.n_tasks):
@@ -1696,8 +1700,8 @@ class IRVTransformer(Transformer):
         partial_result = np.matmul(
             X1[X1_id * shard_size:min((X1_id + 1) *
                                       shard_size, X1_shape[0]), :],
-            X2[:, X2_id * shard_size:min((X2_id + 1) *
-                                         shard_size, X2_shape[1])])
+            X2[:,
+               X2_id * shard_size:min((X2_id + 1) * shard_size, X2_shape[1])])
         # calculate matrix multiplicatin on slices
         if result.size == 1:
           result = partial_result
@@ -1737,8 +1741,8 @@ class IRVTransformer(Transformer):
     X_trans = []
     for count in range(X_length // 5000 + 1):
       X_trans.append(
-          self.X_transform(
-              dataset.X[count * 5000:min((count + 1) * 5000, X_length), :]))
+          self.X_transform(dataset.X[count * 5000:min((count + 1) *
+                                                      5000, X_length), :]))
     X = np.concatenate(X_trans, axis=0)
     if out_dir is None:
       return NumpyDataset(X, dataset.y, dataset.w, ids=None)
@@ -2209,8 +2213,8 @@ class FeaturizationTransformer(Transformer):
     if featurizer is None:
       raise ValueError("featurizer must be specified.")
     self.featurizer = featurizer
-    super(FeaturizationTransformer, self).__init__(
-        transform_X=True, dataset=dataset)
+    super(FeaturizationTransformer, self).__init__(transform_X=True,
+                                                   dataset=dataset)
 
   def transform_array(
       self, X: np.ndarray, y: np.ndarray, w: np.ndarray,
@@ -2403,11 +2407,13 @@ class DataTransforms(object):
       The shifted image.
     """
     if len(self.Image.shape) == 2:
-      return scipy.ndimage.shift(
-          self.Image, [height, width], order=order, mode=mode)
+      return scipy.ndimage.shift(self.Image, [height, width],
+                                 order=order,
+                                 mode=mode)
     if len(self.Image.shape == 3):
-      return scipy.ndimage.shift(
-          self.Image, [height, width, 0], order=order, mode=mode)
+      return scipy.ndimage.shift(self.Image, [height, width, 0],
+                                 order=order,
+                                 mode=mode)
 
   def gaussian_noise(self, mean=0, std=25.5):
     """Adds gaussian noise to the image
