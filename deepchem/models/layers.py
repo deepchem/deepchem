@@ -974,6 +974,7 @@ def cosine_dist(x, y):
   `y` are each of shape `(n,p)`, where each element in `x` and `y` is the same, then
   the output tensor would be a tensor of shape `(n,n)` with 1 in every entry.
 
+  >>> import numpy as np
   >>> import tensorflow as tf
   >>> import deepchem.models.layers as layers
   >>> x = tf.ones((6, 4), dtype=tf.dtypes.float32, name=None)
@@ -985,8 +986,8 @@ def cosine_dist(x, y):
   always be 1. The output tensor will be of shape (6,6).
 
   >>> diff = cos_sim_same - tf.ones((6, 6), dtype=tf.dtypes.float32, name=None)
-  >>> tf.reduce_sum(diff) == 0 # True
-  <tf.Tensor: shape=(), dtype=bool, numpy=True>
+  >>> np.allclose(0.0, tf.reduce_sum(diff).numpy(), atol=1e-05)
+  True
   >>> cos_sim_same.shape
   TensorShape([6, 6])
 
@@ -1005,8 +1006,8 @@ def cosine_dist(x, y):
   shape of the input tensors are both of shape `(256,512)`, the output tensor will
   be of shape `(256,256)`.
 
-  >>> tf.reduce_sum(cos_sim_orth) == 0 # True
-  <tf.Tensor: shape=(), dtype=bool, numpy=True>
+  >>> np.allclose(0.0, tf.reduce_sum(cos_sim_orth).numpy(), atol=1e-05)
+  True
   >>> cos_sim_orth.shape
   TensorShape([256, 256])
 
