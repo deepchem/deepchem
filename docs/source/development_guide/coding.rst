@@ -43,7 +43,7 @@ YAPF is run on every pull request to make sure the formatting is correct, so if
 you forget to do this the continuous integration system will remind you.
 Because different versions of YAPF can produce different results, it is
 essential to use the same version that is being run on CI.  At present, that
-is 0.22.  We periodically update it to newer versions.
+is 0.32.  We periodically update it to newer versions.
 
 Linting
 -------
