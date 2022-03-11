@@ -181,7 +181,10 @@ def hhsearch(dataset_path,
 def MSA_to_dataset(msa_path):
   #return dataset object of MSA results 
 
-  from deepchem.data.datasets import NumpyDataset #circular import??
+  #memory usage might be an issue here
+  #maybe use diskdataset
+
+  from deepchem.data.datasets import NumpyDataset #NumpyDataset depends on utils, so imported here to prevent circular import
 
   with open(msa_path, 'r') as f:
     ids = []

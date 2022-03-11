@@ -1,6 +1,7 @@
 from deepchem.feat import OneHotFeaturizer
 
-class SequenceFeaturizer(Featurizer):
+class PFMFeaturizer(Featurizer):
+    #need to make abstract class
     """
     Encodes a probability frequency matrix for a given multiple sequence alignment
 
@@ -10,7 +11,7 @@ class SequenceFeaturizer(Featurizer):
     >>> from deepchem.utils.sequence_utils import MSA_to_dataset
     >>> msa_path = hhsearch('deepchem/utils/test/data/example.fasta', database='example_db', data_dir='deepchem/utils/test/data/', evalue=0.001, num_iterations=2, num_threads=4)
     >>> dataset = MSA_to_dataset(msa_path)
-    >>> featurizer = SequenceFeaturizer()
+    >>> featurizer = PFMFeaturizer()
     >>> pfm = featurizer.featurize(dataset)
     
     """
@@ -32,7 +33,7 @@ class SequenceFeaturizer(Featurizer):
         pfm: np.ndarray
             Probability frequency matrix for the set of sequences.    
         """
-        one_hot_encoder = OneHotFeaturizer()
+        one_hot_encoder = OneHotFeaturizer() #sparse matrix one hot featurizer?
         sequences = dataset.X
         sequences_one_hot = one_hot_encoder.featurize(sequences)
 
