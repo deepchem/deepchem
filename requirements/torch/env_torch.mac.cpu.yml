@@ -1,13 +1,10 @@
 channels:
   - pytorch
 dependencies:
-  - pytorch
-  - torchvision
+  - pytorch==1.10.*
   - pip:
     - -f https://data.pyg.org/whl/torch-1.10.0+cpu.html
-    - dgl==0.6.*
+    - dgl
     - torch-scatter
     - torch-sparse
-    - torch-cluster
-    - torch-spline-conv
     - torch-geometric
