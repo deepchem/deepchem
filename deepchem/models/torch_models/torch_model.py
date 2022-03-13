@@ -571,47 +571,49 @@ class TorchModel(Model):
             'This model cannot compute other outputs since no other output_types were specified.'
         )
     self._ensure_built()
-    self.model.eval()
-    for batch in generator:
-      inputs, labels, weights = batch
-      inputs, _, _ = self._prepare_batch((inputs, None, None))
+    with torch.no_grad():
+      self.model.eval()
+      for batch in generator:
+        inputs, labels, weights = batch
+        inputs, _, _ = self._prepare_batch((inputs, None, None))
 
-      # Invoke the model.
-      if isinstance(inputs, list) and len(inputs) == 1:
-        inputs = inputs[0]
-      output_values = self.model(inputs)
-      if isinstance(output_values, torch.Tensor):
-        output_values = [output_values]
-      output_values = [t.detach().cpu().numpy() for t in output_values]
+        # Invoke the model.
+        if isinstance(inputs, list) and len(inputs) == 1:
+          inputs = inputs[0]
+        output_values = self.model(inputs)
+        if isinstance(output_values, torch.Tensor):
+          output_values = [output_values]
+        output_values = [t.detach().cpu().numpy() for t in output_values]
 
-      # Apply tranformers and record results.
-      if uncertainty:
-        var = [output_values[i] for i in self._variance_outputs]
-        if variances is None:
-          variances = [var]
-        else:
-          for i, t in enumerate(var):
-            variances[i].append(t)
-      access_values = []
-      if other_output_types:
-        access_values += self._other_outputs
-      elif self._prediction_outputs is not None:
-        access_values += self._prediction_outputs
+        # Apply tranformers and record results.
+        if uncertainty:
+          var = [output_values[i] for i in self._variance_outputs]
+          if variances is None:
+            variances = [var]
+          else:
+            for i, t in enumerate(var):
+              variances[i].append(t)
+        access_values = []
+        if other_output_types:
+          access_values += self._other_outputs
+        elif self._prediction_outputs is not None:
+          access_values += self._prediction_outputs
 
-      if len(access_values) > 0:
-        output_values = [output_values[i] for i in access_values]
+        if len(access_values) > 0:
+          output_values = [output_values[i] for i in access_values]
 
-      if len(transformers) > 0:
-        if len(output_values) > 1:
-          raise ValueError(
-              "predict() does not support Transformers for models with multiple outputs."
-          )
-        elif len(output_values) == 1:
-          output_values = [undo_transforms(output_values[0], transformers)]
-      if results is None:
-        results = [[] for i in range(len(output_values))]
-      for i, t in enumerate(output_values):
-        results[i].append(t)
+        if len(transformers) > 0:
+          if len(output_values) > 1:
+            raise ValueError(
+                "predict() does not support Transformers for models with multiple outputs."
+            )
+          elif len(output_values) == 1:
+            output_values = [undo_transforms(output_values[0], transformers)]
+        if results is None:
+          results = [[] for i in range(len(output_values))]
+        for i, t in enumerate(output_values):
+          results[i].append(t)
+    self.model.train()
 
     # Concatenate arrays to create the final results.
     final_results = []
