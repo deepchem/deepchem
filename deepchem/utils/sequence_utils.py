@@ -52,7 +52,6 @@ def hhblits(dataset_path,
   --------
   >>> from deepchem.utils.sequence_utils import hhblits
   >>> hhblits('test/data/example.fasta', database='example_db', data_dir='test/data/', evalue=0.001, num_iterations=2, num_threads=4)
-  test/data/example.a3m
 
   """
 
