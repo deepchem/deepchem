@@ -350,13 +350,9 @@ def test_dtnn_regression_model():
 
 @pytest.mark.tensorflow
 def test_graph_predict():
-  model = dc.models.GraphConvModel(np.random.randint(1, 100),
-                                   batch_size=100,
-                                   mode='classification')
 
   model = dc.models.GraphConvModel(12, batch_size=50, mode='classification')
   mols = ["CCCCC", "CCCCCCCCC"]
-  y = [0, 1]
   feat = dc.feat.ConvMolFeaturizer()
   X = feat.featurize(mols)
-  assert (model.predict(dc.data.NumpyDataset(X, y))).all() == True
+  assert (model.predict(dc.data.NumpyDataset(X))).all() == True
