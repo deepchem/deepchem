@@ -1,7 +1,6 @@
 name: deepchem
 channels:
   - conda-forge
-  - bioconda
   - defaults
 dependencies:
   - openmm
