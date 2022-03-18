@@ -4,6 +4,18 @@ import pandas as pd
 import numpy as np
 
 
+def test_log_trans_1D():
+  """Test in 1D case without explicit task variable."""
+  X = np.random.rand(10, 10)
+  y = np.random.rand(10)
+  dataset = dc.data.NumpyDataset(X, y)
+  trans = dc.trans.LogTransformer(transform_y=True)
+  log_dataset = trans.transform(dataset)
+  assert np.isclose(np.log(y + 1), log_dataset.y).all()
+  untrans_y = trans.untransform(log_dataset.y)
+  assert np.isclose(untrans_y, y).all()
+
+
 def load_feat_multitask_data():
   """Load example with numerical features, tasks."""
   current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -11,8 +23,9 @@ def load_feat_multitask_data():
   featurizer = dc.feat.UserDefinedFeaturizer(features)
   tasks = ["task0", "task1", "task2", "task3", "task4", "task5"]
   input_file = os.path.join(current_dir, "assets/feat_multitask_example.csv")
-  loader = dc.data.UserCSVLoader(
-      tasks=tasks, featurizer=featurizer, id_field="id")
+  loader = dc.data.UserCSVLoader(tasks=tasks,
+                                 featurizer=featurizer,
+                                 id_field="id")
   return loader.create_dataset(input_file)
 
 
@@ -23,8 +36,9 @@ def load_solubility_data():
   tasks = ["log-solubility"]
   input_file = os.path.join(current_dir,
                             "../../models/tests/assets/example.csv")
-  loader = dc.data.CSVLoader(
-      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  loader = dc.data.CSVLoader(tasks=tasks,
+                             feature_field="smiles",
+                             featurizer=featurizer)
 
   return loader.create_dataset(input_file)
 
@@ -32,8 +46,8 @@ def load_solubility_data():
 def test_y_log_transformer():
   """Tests logarithmic data transformer."""
   solubility_dataset = load_solubility_data()
-  log_transformer = dc.trans.LogTransformer(
-      transform_y=True, dataset=solubility_dataset)
+  log_transformer = dc.trans.LogTransformer(transform_y=True,
+                                            dataset=solubility_dataset)
   X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
                   solubility_dataset.w, solubility_dataset.ids)
   solubility_dataset = log_transformer.transform(solubility_dataset)
@@ -57,8 +71,8 @@ def test_y_log_transformer():
 def test_X_log_transformer():
   """Tests logarithmic data transformer."""
   solubility_dataset = load_solubility_data()
-  log_transformer = dc.trans.LogTransformer(
-      transform_X=True, dataset=solubility_dataset)
+  log_transformer = dc.trans.LogTransformer(transform_X=True,
+                                            dataset=solubility_dataset)
   X, y, w, ids = (solubility_dataset.X, solubility_dataset.y,
                   solubility_dataset.w, solubility_dataset.ids)
   solubility_dataset = log_transformer.transform(solubility_dataset)
@@ -92,8 +106,9 @@ def test_y_log_transformer_select():
     tiid = dfe.columns.get_loc(task) - dfe.columns.get_loc(first_task)
     tid = np.concatenate((tid, np.array([tiid])))
   tasks = tid.astype(int)
-  log_transformer = dc.trans.LogTransformer(
-      transform_y=True, tasks=tasks, dataset=multitask_dataset)
+  log_transformer = dc.trans.LogTransformer(transform_y=True,
+                                            tasks=tasks,
+                                            dataset=multitask_dataset)
   X, y, w, ids = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w,
                   multitask_dataset.ids)
   multitask_dataset = log_transformer.transform(multitask_dataset)
@@ -127,8 +142,9 @@ def test_X_log_transformer_select():
     fiid = dfe.columns.get_loc(feature) - dfe.columns.get_loc(first_feature)
     fid = np.concatenate((fid, np.array([fiid])))
   features = fid.astype(int)
-  log_transformer = dc.trans.LogTransformer(
-      transform_X=True, features=features, dataset=multitask_dataset)
+  log_transformer = dc.trans.LogTransformer(transform_X=True,
+                                            features=features,
+                                            dataset=multitask_dataset)
   X, y, w, ids = (multitask_dataset.X, multitask_dataset.y, multitask_dataset.w,
                   multitask_dataset.ids)
   multitask_dataset = log_transformer.transform(multitask_dataset)
