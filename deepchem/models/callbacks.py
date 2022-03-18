@@ -8,9 +8,10 @@ class ValidationCallback(object):
   """Performs validation while training a KerasModel.
 
   This is a callback that can be passed to fit().  It periodically computes a
-  set of metrics over a validation set and writes them to a file.  In addition,
-  it can save the best model parameters found so far to a directory on disk,
-  updating them every time it finds a new best validation score.
+  set of metrics over a validation set, writes them to a file, and keeps track
+  of the best score. In addition, it can save the best model parameters found
+  so far to a directory on disk, updating them every time it finds a new best
+  validation score.
 
   If Tensorboard logging is enabled on the KerasModel, the metrics are also
   logged to Tensorboard.  This only happens when validation coincides with a
@@ -86,14 +87,27 @@ class ValidationCallback(object):
       for key in scores:
         model._log_scalar_to_tensorboard(key, scores[key],
                                          model.get_global_step())
-    if self.save_dir is not None:
-      score = scores[self.metrics[self.save_metric].name]
-      if not self.save_on_minimum:
-        score = -score
-      if self._best_score is None or score < self._best_score:
+    score = scores[self.metrics[self.save_metric].name]
+    if not self.save_on_minimum:
+      score = -score
+    if self._best_score is None or score < self._best_score:
+      self._best_score = score
+      if self.save_dir is not None:
         model.save_checkpoint(model_dir=self.save_dir)
-        self._best_score = score
     if model.wandb_logger is not None:
       # Log data to Wandb
       data = {'eval/' + k: v for k, v in scores.items()}
       model.wandb_logger.log_data(data, step, dataset_id=id(self.dataset))
+
+  def get_best_score(self):
+    """This getter returns the best score evaluated on the validation set.
+
+    Returns
+    -------
+    float
+      The best score.
+    """
+    if self.save_on_minimum:
+      return self._best_score
+    else:
+      return -self._best_score
