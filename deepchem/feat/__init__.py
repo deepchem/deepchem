@@ -14,6 +14,7 @@ from deepchem.feat.base_classes import DummyFeaturizer
 
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.graph_features import WeaveFeaturizer
+from deepchem.feat.graph_data import GraphData
 from deepchem.feat.binding_pocket_features import BindingPocketFeaturizer
 
 # molecule featurizers
@@ -29,6 +30,7 @@ from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
 from deepchem.feat.molecule_featurizers import PagtnMolGraphFeaturizer
 from deepchem.feat.molecule_featurizers import MolGanFeaturizer
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
+from deepchem.feat.molecule_featurizers import SparseMatrixOneHotFeaturizer
 from deepchem.feat.molecule_featurizers import PubChemFingerprint
 from deepchem.feat.molecule_featurizers import RawFeaturizer
 from deepchem.feat.molecule_featurizers import RDKitDescriptors

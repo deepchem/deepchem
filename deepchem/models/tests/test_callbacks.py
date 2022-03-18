@@ -8,12 +8,6 @@ try:
 except ImportError:
   from io import StringIO
 
-try:
-  import tensorflow as tf
-  has_tensorflow = True
-except:
-  has_tensorflow = False
-
 
 class TestCallbacks(unittest.TestCase):
 
@@ -30,13 +24,12 @@ class TestCallbacks(unittest.TestCase):
     metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean)
     log = StringIO()
     save_dir = tempfile.mkdtemp()
-    callback = dc.models.ValidationCallback(
-        valid_dataset,
-        30, [metric],
-        log,
-        save_dir=save_dir,
-        save_on_minimum=False,
-        transformers=transformers)
+    callback = dc.models.ValidationCallback(valid_dataset,
+                                            30, [metric],
+                                            log,
+                                            save_dir=save_dir,
+                                            save_on_minimum=False,
+                                            transformers=transformers)
     model.fit(train_dataset, callbacks=callback)
 
     # Parse the log to pull out the AUC scores.
@@ -50,12 +43,34 @@ class TestCallbacks(unittest.TestCase):
     # The last reported score should match the current performance of the model.
 
     valid_score = model.evaluate(valid_dataset, [metric], transformers)
-    self.assertAlmostEqual(
-        valid_score['mean-roc_auc_score'], scores[-1], places=5)
+    self.assertAlmostEqual(valid_score['mean-roc_auc_score'],
+                           scores[-1],
+                           places=5)
+
+    # The highest recorded score should match get_best_score().
+
+    self.assertAlmostEqual(max(scores), callback.get_best_score(), places=5)
 
     # Reload the save model and confirm that it matches the best logged score.
 
     model.restore(model_dir=save_dir)
     valid_score = model.evaluate(valid_dataset, [metric], transformers)
-    self.assertAlmostEqual(
-        valid_score['mean-roc_auc_score'], max(scores), places=5)
+    self.assertAlmostEqual(valid_score['mean-roc_auc_score'],
+                           max(scores),
+                           places=5)
+
+    # Make sure get_best_score() still works when save_dir is not specified
+
+    callback = dc.models.ValidationCallback(valid_dataset,
+                                            30, [metric],
+                                            log,
+                                            save_on_minimum=False,
+                                            transformers=transformers)
+    model.fit(train_dataset, callbacks=callback)
+    log.seek(0)
+    scores = []
+    for line in log:
+      score = float(line.split('=')[-1])
+      scores.append(score)
+
+    self.assertTrue(abs(max(scores) - callback.get_best_score()) < 0.05)
