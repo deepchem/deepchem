@@ -55,6 +55,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [16 Distributed Multi-GPU Training of DeepChem Models with LitMatter](https://github.com/ncfrey/litmatter/blob/main/LitDeepChem.ipynb)
 * [17 Advanced model training using Hyperopt](Advanced_model_training_using_hyperopt.ipynb)
 * [18 Introduction to Gaussian Processes](Introduction_to_Gaussian_Processes.ipynb)
+* [19 Pytorch-Lightning Integration for DeepChem Models](PytorchLightning_Integration.ipynb)
 
 ### Molecular Machine Learning
 * [1 Molecular Fingerprints](Molecular_Fingerprints.ipynb)
