@@ -94,3 +94,6 @@ from deepchem.utils.docking_utils import prepare_inputs
 from deepchem.utils.voxel_utils import convert_atom_to_voxel
 from deepchem.utils.voxel_utils import convert_atom_pair_to_voxel
 from deepchem.utils.voxel_utils import voxelize
+
+from deepchem.utils.sequence_utils import hhblits
+from deepchem.utils.sequence_utils import hhsearch
