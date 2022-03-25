@@ -31,6 +31,10 @@ Molecule Featurizers
 
 These featurizers work with datasets of molecules.
 
+All featurizers are based on an abstract parent class (:code:`dc.feat.Featurizer`). This is used to create abstract base classes for a few general types of featurization, including (:code:`MolecularFeaturizer`), (:code:`MaterialCompositionFeaturizer`), etc. 
+
+The specific featurizer classes are then created from these above classes. For example, :code:`ConvMolFeaturizer`, :code:`WeaveFeaturizer`, :code:`MolGraphConvFeaturizer` etc, which often transform members into “data classes”, such as (:code:`GraphData`), (:code:`ConvMol`), (:code:`WeaveMol`) etc.
+
 Graph Convolution Featurizers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
