@@ -32,16 +32,19 @@ class GraphData:
   >>> import numpy as np
   >>> node_features = np.random.rand(5, 10)
   >>> edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=np.int64)
-  >>> graph = GraphData(node_features=node_features, edge_index=edge_index)
+  >>> edge_features = np.random.rand(5, 5)
+  >>> global_features = np.random.random(5)
+  >>> graph = GraphData(node_features, edge_index, edge_features, z=global_features)
+  >>> graph
+  GraphData(node_features=[5, 10], edge_index=[2, 5], edge_features=[5, 5], z=[5])
   """
 
-  def __init__(
-      self,
-      node_features: np.ndarray,
-      edge_index: np.ndarray,
-      edge_features: Optional[np.ndarray] = None,
-      node_pos_features: Optional[np.ndarray] = None,
-  ):
+  def __init__(self,
+               node_features: np.ndarray,
+               edge_index: np.ndarray,
+               edge_features: Optional[np.ndarray] = None,
+               node_pos_features: Optional[np.ndarray] = None,
+               **kwargs):
     """
     Parameters
     ----------
@@ -53,6 +56,8 @@ class GraphData:
       Edge feature matrix with shape [num_edges, num_edge_features]
     node_pos_features: np.ndarray, optional (default None)
       Node position matrix with shape [num_nodes, num_dimensions].
+    kwargs: optional
+      Additional attributes and their values
     """
     # validate params
     if isinstance(node_features, np.ndarray) is False:
@@ -86,10 +91,32 @@ class GraphData:
     self.edge_index = edge_index
     self.edge_features = edge_features
     self.node_pos_features = node_pos_features
+    self.kwargs = kwargs
     self.num_nodes, self.num_node_features = self.node_features.shape
     self.num_edges = edge_index.shape[1]
     if self.edge_features is not None:
       self.num_edge_features = self.edge_features.shape[1]
+
+    for key, value in self.kwargs.items():
+      setattr(self, key, value)
+
+  def __repr__(self) -> str:
+    """Returns a string containing the printable representation of the object"""
+    cls = self.__class__.__name__
+    node_features_str = str(list(self.node_features.shape))
+    edge_index_str = str(list(self.edge_index.shape))
+    if self.edge_features is not None:
+      edge_features_str = str(list(self.edge_features.shape))
+    else:
+      edge_features_str = None
+
+    out = "%s(node_features=%s, edge_index=%s, edge_features=%s" % (
+        cls, node_features_str, edge_index_str, edge_features_str)
+    # Adding shapes of kwargs
+    for key, value in self.kwargs.items():
+      out += (', ' + key + '=' + str(list(value.shape)))
+    out += ')'
+    return out
 
   def to_pyg_graph(self):
     """Convert to PyTorch Geometric graph data instance
@@ -116,12 +143,15 @@ class GraphData:
     node_pos_features = self.node_pos_features
     if node_pos_features is not None:
       node_pos_features = torch.from_numpy(self.node_pos_features).float()
-
+    kwargs = {}
+    for key, value in self.kwargs.items():
+      kwargs[key] = torch.from_numpy(value).float()
     return Data(
         x=torch.from_numpy(self.node_features).float(),
         edge_index=torch.from_numpy(self.edge_index).long(),
         edge_attr=edge_features,
-        pos=node_pos_features)
+        pos=node_pos_features,
+        **kwargs)
 
   def to_dgl_graph(self, self_loop: bool = False):
     """Convert to DGL graph data instance

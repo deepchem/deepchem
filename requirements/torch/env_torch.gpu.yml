@@ -1,11 +1,11 @@
 dependencies:
   - pip:
-    - -f https://download.pytorch.org/whl/torch_stable.html
-    - -f https://pytorch-geometric.com/whl/torch-1.9.0+cu111.html
+    - -f https://download.pytorch.org/whl/cu113/torch_stable.html
+    - -f https://data.pyg.org/whl/torch-1.11.0+cu113.html
     - -f https://data.dgl.ai/wheels/repo.html
     - dgl-cu111
-    - torch==1.9.0+cu111
-    - torchvision==0.10.0+cu111
+    - torch==1.11.0+cu113
+    - torchvision==0.11.0+cu113
     - torch-scatter
     - torch-sparse
-    - torch-geometric==1.7.1
+    - torch-geometric

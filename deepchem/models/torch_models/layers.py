@@ -1,12 +1,18 @@
 import math
 import numpy as np
-from typing import Any, Tuple
+from typing import Any, Tuple, Optional
 try:
   import torch
+  from torch import Tensor
   import torch.nn as nn
   import torch.nn.functional as F
-except:
-  raise ImportError('These classes require Torch to be installed.')
+except ModuleNotFoundError:
+  raise ImportError('These classes require PyTorch to be installed.')
+
+try:
+  from torch_scatter import scatter_mean
+except ModuleNotFoundError:
+  pass
 
 
 class ScaleNorm(nn.Module):
@@ -320,8 +326,9 @@ class MATEncoderLayer(nn.Module):
     self.self_attn = MultiHeadedMATAttention(dist_kernel, lambda_attention,
                                              lambda_distance, h, sa_hsize,
                                              sa_dropout_p, output_bias)
-    self.feed_forward = PositionwiseFeedForward(
-        d_input, d_hidden, d_output, activation, n_layers, ff_dropout_p)
+    self.feed_forward = PositionwiseFeedForward(d_input, d_hidden, d_output,
+                                                activation, n_layers,
+                                                ff_dropout_p)
     layer = SublayerConnection(size=encoder_hsize, dropout_p=encoder_dropout_p)
     self.sublayer = nn.ModuleList([layer for _ in range(2)])
     self.size = encoder_hsize
@@ -351,14 +358,13 @@ class MATEncoderLayer(nn.Module):
       Dropout probability for the self-attention layer (MultiHeadedMATAttention).
     """
     x = self.sublayer[0](x,
-                         self.self_attn(
-                             x,
-                             x,
-                             x,
-                             mask=mask,
-                             dropout_p=sa_dropout_p,
-                             adj_matrix=adj_matrix,
-                             distance_matrix=distance_matrix))
+                         self.self_attn(x,
+                                        x,
+                                        x,
+                                        mask=mask,
+                                        dropout_p=sa_dropout_p,
+                                        adj_matrix=adj_matrix,
+                                        distance_matrix=distance_matrix))
     return self.sublayer[1](x, self.feed_forward(x))
 
 
@@ -657,11 +663,191 @@ class MATGenerator(nn.Module):
       out_attn = self.att_net(out_masked)
       out_attn = out_attn.masked_fill(mask == 0, -1e9)
       out_attn = F.softmax(out_attn, dim=1)
-      out_avg_pooling = torch.matmul(
-          torch.transpose(out_attn, -1, -2), out_masked)
+      out_avg_pooling = torch.matmul(torch.transpose(out_attn, -1, -2),
+                                     out_masked)
       out_avg_pooling = out_avg_pooling.view(out_avg_pooling.size(0), -1)
 
     elif self.aggregation_type == 'contextual':
       out_avg_pooling = x
 
     return self.proj(out_avg_pooling)
+
+
+class GraphNetwork(torch.nn.Module):
+  """Graph Networks
+
+  A Graph Network [1]_ takes a graph as input and returns an updated graph
+  as output. The output graph has same structure as input graph but it
+  has updated node features, edge features and global state features.
+
+  Parameters
+  ----------
+  n_node_features: int
+    Number of features in a node
+  n_edge_features: int
+    Number of features in a edge
+  n_global_features: int
+    Number of global features
+  is_undirected: bool, optional (default True)
+    Directed or undirected graph
+  residual_connection: bool, optional (default True)
+    If True, the layer uses a residual connection during training
+
+  Example
+  -------
+  >>> import torch
+  >>> from deepchem.models.torch_models.layers import GraphNetwork as GN
+  >>> n_nodes, n_node_features = 5, 10
+  >>> n_edges, n_edge_features = 5, 2
+  >>> n_global_features = 4
+  >>> node_features = torch.randn(n_nodes, n_node_features)
+  >>> edge_features = torch.randn(n_edges, n_edge_features)
+  >>> edge_index = torch.tensor([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]]).long()
+  >>> global_features = torch.randn(1, n_global_features)
+  >>> gn = GN(n_node_features=n_node_features, n_edge_features=n_edge_features, n_global_features=n_global_features)
+  >>> node_features, edge_features, global_features = gn(node_features, edge_index, edge_features, global_features)
+
+  References
+  ----------
+  .. [1] Battaglia et al, Relational inductive biases, deep learning, and graph networks. https://arxiv.org/abs/1806.01261 (2018)
+  """
+
+  def __init__(self,
+               n_node_features: int = 32,
+               n_edge_features: int = 32,
+               n_global_features: int = 32,
+               is_undirected: bool = True,
+               residual_connection: bool = True):
+    super().__init__()
+    self.n_node_features = n_node_features
+    self.n_edge_features = n_edge_features
+    self.n_global_features = n_global_features
+    self.is_undirected = is_undirected
+    self.residual_connection = residual_connection
+
+    self.edge_models, self.node_models, self.global_models = torch.nn.ModuleList(
+    ), torch.nn.ModuleList(), torch.nn.ModuleList()
+    self.edge_models.append(
+        nn.Linear(in_features=n_node_features * 2 + n_edge_features +
+                  n_global_features,
+                  out_features=32))
+    self.node_models.append(
+        nn.Linear(in_features=n_node_features + n_edge_features +
+                  n_global_features,
+                  out_features=32))
+    self.global_models.append(
+        nn.Linear(in_features=n_node_features + n_edge_features +
+                  n_global_features,
+                  out_features=32))
+
+    # Used for converting edges back to their original shape
+    self.edge_dense = nn.Linear(in_features=32, out_features=n_edge_features)
+    self.node_dense = nn.Linear(in_features=32, out_features=n_node_features)
+    self.global_dense = nn.Linear(in_features=32,
+                                  out_features=n_global_features)
+
+  def reset_parameters(self) -> None:
+    self.edge_dense.reset_parameters()
+    self.node_dense.reset_parameters()
+    self.global_dense.reset_parameters()
+    for i in range(0, len(self.edge_models)):
+      self.edge_models[i].reset_parameters()
+    for i in range(0, len(self.node_models)):
+      self.node_models[i].reset_parameters()
+    for i in range(0, len(self.global_models)):
+      self.global_models[i].reset_parameters()
+
+  def _update_edge_features(self, node_features, edge_index, edge_features,
+                            global_features, batch):
+    src_index, dst_index = edge_index
+    out = torch.cat((node_features[src_index], node_features[dst_index],
+                     edge_features, global_features[batch]),
+                    dim=1)
+    assert out.shape[
+        1] == self.n_node_features * 2 + self.n_edge_features + self.n_global_features
+    for model in self.edge_models:
+      out = model(out)
+    return self.edge_dense(out)
+
+  def _update_node_features(self, node_features, edge_index, edge_features,
+                            global_features, batch):
+
+    src_index, dst_index = edge_index
+    # Compute mean edge features for each node by dst_index (each node
+    # receives information from edges which have that node as its destination,
+    # hence the computation uses dst_index to aggregate information)
+    edge_features_mean_by_node = scatter_mean(edge_features, dst_index, dim=0)
+    out = torch.cat(
+        (node_features, edge_features_mean_by_node, global_features[batch]),
+        dim=1)
+    for model in self.node_models:
+      out = model(out)
+    return self.node_dense(out)
+
+  def _update_global_features(self, node_features, edge_features,
+                              global_features, node_batch_map, edge_batch_map):
+    edge_features_mean = scatter_mean(edge_features, edge_batch_map, dim=0)
+    node_features_mean = scatter_mean(node_features, node_batch_map, dim=0)
+    out = torch.cat((edge_features_mean, node_features_mean, global_features),
+                    dim=1)
+    for model in self.global_models:
+      out = model(out)
+    return self.global_dense(out)
+
+  def forward(self,
+              node_features: Tensor,
+              edge_index: Tensor,
+              edge_features: Tensor,
+              global_features: Tensor,
+              batch: Optional[Tensor] = None) -> Tuple[Tensor, Tensor, Tensor]:
+    """Output computation for a GraphNetwork
+
+    Parameters
+    ----------
+    node_features: torch.Tensor
+      Input node features of shape :math:`(|\mathcal{V}|, F_n)`
+    edge_index: torch.Tensor
+      Edge indexes of shape :math:`(2, |\mathcal{E}|)`
+    edge_features: torch.Tensor
+      Edge features of the graph, shape: :math:`(|\mathcal{E}|, F_e)`
+    global_features: torch.Tensor
+      Global features of the graph, shape: :math:`(F_g, 1)` where, :math:`|\mathcal{V}|` and :math:`|\mathcal{E}|` denotes the number of nodes and edges in the graph, :math:`F_n`, :math:`F_e`, :math:`F_g` denotes the number of node features, edge features and global state features respectively.
+    batch: torch.LongTensor (optional, default: None)
+      A vector that maps each node to its respective graph identifier. The attribute is used only when more than one graph are batched together during a single forward pass.
+    """
+    if batch is None:
+      batch = node_features.new_zeros(node_features.size(0), dtype=torch.int64)
+
+    node_features_copy, edge_features_copy, global_features_copy = node_features, edge_features, global_features
+    if self.is_undirected is True:
+      # holding bi-directional edges in case of undirected graphs
+      edge_index = torch.cat((edge_index, edge_index.flip([0])), dim=1)
+      edge_features_len = edge_features.shape[0]
+      edge_features = torch.cat((edge_features, edge_features), dim=0)
+    edge_batch_map = batch[edge_index[0]]
+    edge_features = self._update_edge_features(node_features, edge_index,
+                                               edge_features, global_features,
+                                               edge_batch_map)
+    node_features = self._update_node_features(node_features, edge_index,
+                                               edge_features, global_features,
+                                               batch)
+    global_features = self._update_global_features(node_features, edge_features,
+                                                   global_features, batch,
+                                                   edge_batch_map)
+
+    if self.is_undirected is True:
+      # coonverting edge features to its original shape
+      split = torch.split(edge_features, (edge_features_len, edge_features_len))
+      edge_features = (split[0] + split[1]) / 2
+
+    if self.residual_connection:
+      edge_features += edge_features_copy
+      node_features += node_features_copy
+      global_features += global_features_copy
+
+    return node_features, edge_features, global_features
+
+  def __repr__(self) -> str:
+    return (
+        f'{self.__class__.__name__}(n_node_features={self.n_node_features}, n_edge_features={self.n_edge_features}, n_global_features={self.n_global_features}, is_undirected={self.is_undirected}, residual_connection={self.residual_connection})'
+    )

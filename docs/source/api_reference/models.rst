@@ -521,6 +521,11 @@ LCNNModel
 .. autoclass:: deepchem.models.LCNNModel
   :members:
 
+MEGNetModel
+-----------
+
+.. autoclass:: deepchem.models.MEGNetModel
+  :members:
 
 Jax Models
 ==============
@@ -538,6 +543,6 @@ JaxModel
 PinnModel
 ----------
 
-.. autoclass:: deepchem.models.PinnModel
+.. autoclass:: deepchem.models.PINNModel
   :members:
 
