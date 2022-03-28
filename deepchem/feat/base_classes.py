@@ -499,7 +499,3 @@ class DummyFeaturizer(Featurizer):
     """
     return np.asarray(datapoints)
 
-class SequenceFeaturizer(Featurizer):
-  """Abstract class for calculating  features for a sequence."""
-
-  # def featurize(self,

@@ -1,17 +1,17 @@
-from deepchem.feat import OneHotFeaturizer
+from deepchem.feat.molecule_featurizers import sparse_matrix_one_hot_featurizer
 
-class PFMFeaturizer(SequenceFeaturizer):
+class PFMFeaturizer(Featurizer):
     """
     Encodes a probability frequency matrix for a given multiple sequence alignment
 
     Examples
     --------
-    >>> from deepchem.feat import SequenceFeaturizer
-    >>> from deepchem.utils.sequence_utils import MSA_to_dataset
-    >>> msa_path = hhsearch('deepchem/utils/test/data/example.fasta', database='example_db', data_dir='deepchem/utils/test/data/', evalue=0.001, num_iterations=2, num_threads=4)
-    >>> dataset = MSA_to_dataset(msa_path)
+    >>> from deepchem.feat import PFMFeaturizer
+    >>> msa = NumpyDataset(X=['ABC','BCD'], ids=['seq1','seq2'])
     >>> featurizer = PFMFeaturizer()
-    >>> pfm = featurizer.featurize(dataset)
+    >>> pfm = featurizer.featurize(msa)
+    >>> pfm.shape[0]
+    (4,3)
     
     """
     def __init__(self):
