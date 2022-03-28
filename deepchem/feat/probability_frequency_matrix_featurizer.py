@@ -1,7 +1,6 @@
 from deepchem.feat import OneHotFeaturizer
 
-class PFMFeaturizer(Featurizer):
-    #need to make abstract class
+class PFMFeaturizer(SequenceFeaturizer):
     """
     Encodes a probability frequency matrix for a given multiple sequence alignment
 
