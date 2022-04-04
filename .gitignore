@@ -106,3 +106,4 @@ datasets/qm8.csv
 .vscode/
 env.yml
 .python-version
+.spyproject/

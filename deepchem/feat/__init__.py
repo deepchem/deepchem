@@ -30,13 +30,15 @@ from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
 from deepchem.feat.molecule_featurizers import PagtnMolGraphFeaturizer
 from deepchem.feat.molecule_featurizers import MolGanFeaturizer
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
-from deepchem.feat.molecule_featurizers import SparseMatrixOneHotFeaturizer
 from deepchem.feat.molecule_featurizers import PubChemFingerprint
 from deepchem.feat.molecule_featurizers import RawFeaturizer
 from deepchem.feat.molecule_featurizers import RDKitDescriptors
 from deepchem.feat.molecule_featurizers import SmilesToImage
 from deepchem.feat.molecule_featurizers import SmilesToSeq, create_char_to_idx
 from deepchem.feat.molecule_featurizers import MATFeaturizer
+
+# sequences featurizers
+from deepchem.feat.sequence_featurizers import SparseMatrixOneHotFeaturizer
 
 # complex featurizers
 from deepchem.feat.complex_featurizers import RdkitGridFeaturizer

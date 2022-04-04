@@ -1,5 +1,5 @@
 import unittest
-from deepchem.feat.molecule_featurizers import SparseMatrixOneHotFeaturizer
+from deepchem.feat.sequence_featurizers import SparseMatrixOneHotFeaturizer
 
 
 class TestSparseMatrixOneHotFeaturizer(unittest.TestCase):
