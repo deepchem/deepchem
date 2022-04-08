@@ -3,6 +3,7 @@ import os
 import subprocess
 
 from Bio import SeqIO
+import numpy as np
 
 
 def system_call(command):
@@ -179,10 +180,9 @@ def hhsearch(dataset_path,
   return msa_path #adjust doctest to reflect this change
 
 def MSA_to_dataset(msa_path):
-  #return dataset object of MSA results 
-
-  #memory usage might be an issue here
-  #maybe use diskdataset
+  """
+  Convert a multiple sequence alignment to a NumpyDataset object.
+  """
 
   from deepchem.data.datasets import NumpyDataset #NumpyDataset depends on utils, so imported here to prevent circular import
 
@@ -197,3 +197,15 @@ def MSA_to_dataset(msa_path):
       sequences.append(seq)
     dataset = NumpyDataset(X = sequences, ids = ids)
     return dataset
+
+def PFM_to_PPM(pfm): 
+    """
+    Calculate position probability matrix from a position frequency matrix
+    """
+    ppm = pfm.copy()
+    for col in range(ppm.shape[1]): 
+        total_count = np.sum(ppm[:,col])
+        if total_count > 0:
+        # Calculate frequency
+            ppm[:, col] = ppm[:, col]/total_count
+    return ppm

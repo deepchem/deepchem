@@ -1,33 +1,41 @@
 import numpy as np
-# from deepchem.feat.molecule_featurizers import SparseMatrixOneHotFeaturizer
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
+from deepchem.feat.molecule_featurizers import SparseMatrixOneHotFeaturizer
+
 from deepchem.utils.molecule_feature_utils import one_hot_encode
 from deepchem.feat.base_classes import Featurizer
 from typing import List, Optional
 
-CHARSET = [ #centralize charset somewhere? Import from SparseMatrixOneHotFeaturizer?
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R',
-    'S', 'T', 'V', 'W', 'Y', 'X', 'Z', 'U', 'O'
+CHARSET = [
+    'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R',
+    'S', 'T', 'V', 'W', 'Y', 'X', 'Z', 'B', 'U', 'O'
 ]
 
-class PFMFeaturizer(Featurizer): #position frequency matrix not normalized, position probability matrix is normalized
+class PFMFeaturizer(Featurizer): 
     """
     Encodes a list position frequency matrices for a given list of multiple sequence alignments
+
+    The default character set is 25 amino acids. If you want to use a different character set, such as nucleotides, simply pass in 
+    a list of character strings in the featurizer constructor.
+
+    The max_length parameter is the maximum length of the sequences to be featurized. If you want to featurize longer sequences, modify the
+    max_length parameter in the featurizer constructor.
 
     Examples
     --------
     >>> from deepchem.feat.sequence_featurizers import PFMFeaturizer
     >>> msa = NumpyDataset(X=[['ABC','BCD'],['AAA','AAB'], ids=[['seq01','seq02'],['seq11','seq12'])
     >>> seqs = msa.X
-    >>> featurizer = PFMFeaturizer()
+    >>> featurizer = PFMFeaturizer() #try max_length=3
     >>> pfm = featurizer.featurize(seqs)
-    >>> pfm.shape[0]
-    (25,3)
+    >>> pfm.shape
+    (2, 26, 100)
     
     """
     def __init__(self,
-               charset: List[str] = CHARSET): #default charset for amino acids? Make required argument?
-               #max_length? 25? 100?
+               charset: List[str] = CHARSET,
+               max_length: Optional[int] = 100):
+               
         """Initialize featurizer.
 
         Parameters
@@ -40,32 +48,33 @@ class PFMFeaturizer(Featurizer): #position frequency matrix not normalized, posi
         if len(charset) != len(set(charset)):
             raise ValueError("All values in charset must be unique.")
         self.charset = charset
-        # self.max_length = max_length
-        # self.ohe = OneHotFeaturizer(charset = CHARSET)
-        self.ohe = SparseMatrixOneHotFeaturizer()
+        self.max_length = max_length
+        self.ohe = OneHotFeaturizer(charset = CHARSET, max_length = max_length)
 
-    def _featurize(self, datapoint): #datapoint is entire msa, not a single sequence
+    def _featurize(self, datapoint): 
         """Featurize a multisequence alignment into a position frequency matrix
+
+        Use dc.utils.sequence_utils.hhblits or dc.utils.sequence_utils.hhsearch to create a multiple sequence alignment from a fasta file.
 
         Parameters
         ----------
-        dataset: dc.data.Dataset
-            Dataset to featurize.
+        datapoint: numy.ndarray
+            MSA to featurize. A list of sequences which have been aligned and padded to the same length.
 
         Returns
         -------
         pfm: np.ndarray
             Position frequency matrix for the set of sequences.    
+
+        add documentation for unknown_set row
         """
-        # one_hot_encoder = OneHotFeaturizer() #self.ohe
-        # seq_one_hot = self.ohe.featurize(datapoint)
-        seqs_one_hot = np.array([one_hot_encode(seq, self.charset, include_unknown_set=False) for seq in datapoint])
-        # PNET: sequences_one_hot = [[to_one_hot(sequence[i]) for i in range(len(sequence))] for sequence in sequences]
-        #need entire dataset encoded before making pfm
-        pfm = np.sum(np.array(seqs_one_hot), axis=1)
-        for i, res_freq in enumerate(pfm):
-            total_count = np.sum(res_freq)
-            if total_count > 0:
-            # Calculate frequency
-                pfm[i, :] = pfm[i, :]/total_count
+
+        seq_one_hot = self.ohe.featurize(datapoint) #remove the unknown set row
+
+        seq_one_hot_array = np.transpose(np.array(seq_one_hot), (0,2,1)) #swap rows and columns to make rows the characters, columns the positions
+
+        pfm = np.sum(seq_one_hot_array, axis=0)
+
         return pfm
+
+
