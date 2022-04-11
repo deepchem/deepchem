@@ -62,6 +62,6 @@ class TestSeq(unittest.TestCase):
     print(dataset.X)
     assert dataset.ids[0] == 'seq0'
     assert dataset.ids[1] == 'seq1'
-    bool_arr = dataset.X[0] == ['X','Y']
+    bool_arr = dataset.X[0] == ['X', 'Y']
     assert bool_arr.all()
     os.remove(results_file)

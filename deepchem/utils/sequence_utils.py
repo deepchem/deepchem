@@ -1,9 +1,7 @@
 from logging import raiseExceptions
 import os
 import subprocess
-
 from Bio import SeqIO
-import numpy as np
 
 
 def system_call(command):
@@ -54,8 +52,7 @@ def hhblits(dataset_path,
   Examples
   --------
   >>> from deepchem.utils.sequence_utils import hhblits
-  >>> hhblits('test/data/example.fasta', database='example_db', data_dir='test/data/', evalue=0.001, num_iterations=2, num_threads=4)
-  test/data/example.a3m
+  >>> msa_path = hhblits('test/data/example.fasta', database='example_db', data_dir='test/data/', evalue=0.001, num_iterations=2, num_threads=4)
 
   """
 
@@ -95,7 +92,8 @@ def hhblits(dataset_path,
 
   msa_path = os.path.join(save_dir, 'results.a3m')
 
-  return msa_path #adjust doctest to reflect this change
+  return msa_path
+
 
 def hhsearch(dataset_path,
              database=None,
@@ -117,7 +115,7 @@ def hhsearch(dataset_path,
   Examples
   --------
   >>> from deepchem.utils.sequence_utils import hhsearch
-  >>> hhsearch('test/data/example.fasta', database='example_db', data_dir='test/data/', evalue=0.001, num_iterations=2, num_threads=4)
+  >>> msa_path = hhsearch('test/data/example.fasta', database='example_db', data_dir='test/data/', evalue=0.001, num_iterations=2, num_threads=4)
 
   Parameters
   ----------
@@ -177,14 +175,15 @@ def hhsearch(dataset_path,
 
   msa_path = os.path.join(save_dir, 'results.a3m')
 
-  return msa_path #adjust doctest to reflect this change
+  return msa_path
+
 
 def MSA_to_dataset(msa_path):
   """
   Convert a multiple sequence alignment to a NumpyDataset object.
   """
 
-  from deepchem.data.datasets import NumpyDataset #NumpyDataset depends on utils, so imported here to prevent circular import
+  from deepchem.data.datasets import NumpyDataset  # NumpyDataset depends on utils, so imported here to prevent circular import
 
   with open(msa_path, 'r') as f:
     ids = []
@@ -193,8 +192,7 @@ def MSA_to_dataset(msa_path):
       ids.append(record.id)
       seq = []
       for res in record:
-          seq.append(res)
+        seq.append(res)
       sequences.append(seq)
-    dataset = NumpyDataset(X = sequences, ids = ids)
+    dataset = NumpyDataset(X=sequences, ids=ids)
     return dataset
-
