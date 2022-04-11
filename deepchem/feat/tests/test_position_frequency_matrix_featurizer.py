@@ -1,10 +1,6 @@
 import unittest
-
 import numpy as np
-
-from deepchem.feat.sequence_featurizers.position_frequency_matrix_featurizer import PFMFeaturizer
-from deepchem.feat.sequence_featurizers.position_frequency_matrix_featurizer import CHARSET
-
+from deepchem.feat.sequence_featurizers.position_frequency_matrix_featurizer import PFMFeaturizer, CHARSET, PFM_to_PPM
 
 class TestPFMFeaturizer(unittest.TestCase):
   """
@@ -19,7 +15,7 @@ class TestPFMFeaturizer(unittest.TestCase):
     self.max_length = 100
   def test_PFMFeaturizer_arbitrary(self):
     """
-    Test shape of PFM for simple MSA.
+    Test PFM featurizer for simple MSA.
     """
     pfm = self.featurizer.featurize(self.msa)
     assert pfm.shape == (2, len(CHARSET) + 1, self.max_length)
