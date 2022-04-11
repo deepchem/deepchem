@@ -65,6 +65,3 @@ class TestSeq(unittest.TestCase):
     bool_arr = dataset.X[0] == ['X','Y']
     assert bool_arr.all()
     os.remove(results_file)
-
-if __name__ == '__main__':
-  unittest.main()

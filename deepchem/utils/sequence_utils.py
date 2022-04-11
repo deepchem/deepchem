@@ -198,14 +198,3 @@ def MSA_to_dataset(msa_path):
     dataset = NumpyDataset(X = sequences, ids = ids)
     return dataset
 
-def PFM_to_PPM(pfm): 
-    """
-    Calculate position probability matrix from a position frequency matrix
-    """
-    ppm = pfm.copy()
-    for col in range(ppm.shape[1]): 
-        total_count = np.sum(ppm[:,col])
-        if total_count > 0:
-        # Calculate frequency
-            ppm[:, col] = ppm[:, col]/total_count
-    return ppm
