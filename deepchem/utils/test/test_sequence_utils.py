@@ -50,3 +50,21 @@ class TestSeq(unittest.TestCase):
     assert resultsline[0:5] == '>seq0'
     os.remove(results_file)
     os.remove(hhr_file)
+
+  def test_MSA_to_dataset(self):
+    seq_utils.hhsearch(self.dataset_file,
+                       database=self.database_name,
+                       data_dir=self.data_dir)
+    results_file = os.path.join(self.data_dir, 'results.a3m')
+    msa_path = results_file
+    dataset = seq_utils.MSA_to_dataset(msa_path)
+    print(dataset.ids[0])
+    print(dataset.X)
+    assert dataset.ids[0] == 'seq0'
+    assert dataset.ids[1] == 'seq1'
+    bool_arr = dataset.X[0] == ['X','Y']
+    assert bool_arr.all()
+    os.remove(results_file)
+
+if __name__ == '__main__':
+  unittest.main()

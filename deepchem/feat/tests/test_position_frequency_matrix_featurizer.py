@@ -14,7 +14,8 @@ class TestPFMFeaturizer(unittest.TestCase):
     """
     Test shape of PFM for simple MSA.
     """
+    default_max_length = 100
     msa = np.array([['ABC', 'BCD'], ['AAA', 'AAB']])
-    featurizer = PFMFeaturizer()
+    featurizer = PFMFeaturizer(max_length=default_max_length)
     pfm = featurizer.featurize(msa)
-    assert pfm.shape == (2, len(CHARSET) + 1, self.max_length)
+    assert pfm.shape == (2, len(CHARSET) + 1, default_max_length)

@@ -21,12 +21,14 @@ class PFMFeaturizer(Featurizer):
     The max_length parameter is the maximum length of the sequences to be featurized. If you want to featurize longer sequences, modify the
     max_length parameter in the featurizer constructor.
 
+    The final row in the position frequency matrix is the unknown set, if there are any characters which are not included in the charset.
+
     Examples
     --------
     >>> from deepchem.feat.sequence_featurizers import PFMFeaturizer
     >>> msa = NumpyDataset(X=[['ABC','BCD'],['AAA','AAB'], ids=[['seq01','seq02'],['seq11','seq12'])
     >>> seqs = msa.X
-    >>> featurizer = PFMFeaturizer() #try max_length=3
+    >>> featurizer = PFMFeaturizer()
     >>> pfm = featurizer.featurize(seqs)
     >>> pfm.shape
     (2, 26, 100)
@@ -64,12 +66,11 @@ class PFMFeaturizer(Featurizer):
         Returns
         -------
         pfm: np.ndarray
-            Position frequency matrix for the set of sequences.    
+            Position frequency matrix for the set of sequences with the rows corresponding to the unique characters and the columns corresponding to the position in the alignment.
 
-        add documentation for unknown_set row
         """
 
-        seq_one_hot = self.ohe.featurize(datapoint) #remove the unknown set row
+        seq_one_hot = self.ohe.featurize(datapoint)
 
         seq_one_hot_array = np.transpose(np.array(seq_one_hot), (0,2,1)) #swap rows and columns to make rows the characters, columns the positions
 
