@@ -126,7 +126,8 @@ class AdaGrad(Optimizer):
   def __init__(self,
                learning_rate: Union[float, LearningRateSchedule] = 0.001,
                initial_accumulator_value: float = 0.1,
-               epsilon: float = 1e-07):
+               epsilon: float = 1e-07,
+               **kwargs):
     """Construct an AdaGrad optimizer.
     Parameters
     ----------
@@ -141,6 +142,7 @@ class AdaGrad(Optimizer):
     super(AdaGrad, self).__init__(learning_rate)
     self.initial_accumulator_value = initial_accumulator_value
     self.epsilon = epsilon
+    self.kwargs = kwargs
 
   def _create_tf_optimizer(self, global_step):
     import tensorflow as tf
@@ -151,7 +153,8 @@ class AdaGrad(Optimizer):
     return tf.keras.optimizers.Adagrad(
         learning_rate=learning_rate,
         initial_accumulator_value=self.initial_accumulator_value,
-        epsilon=self.epsilon)
+        epsilon=self.epsilon,
+        **self.kwargs)
 
   def _create_pytorch_optimizer(self, params):
     import torch
@@ -163,7 +166,7 @@ class AdaGrad(Optimizer):
         params,
         lr,
         initial_accumulator_value=self.initial_accumulator_value,
-        eps=self.epsilon)
+        eps=self.epsilon, **self.kwargs)
 
   def _create_jax_optimizer(self):
     import optax
@@ -190,7 +193,8 @@ class Adam(Optimizer):
                learning_rate: Union[float, LearningRateSchedule] = 0.001,
                beta1: float = 0.9,
                beta2: float = 0.999,
-               epsilon: float = 1e-08):
+               epsilon: float = 1e-08,
+               **kwargs):
     """Construct an Adam optimizer.
 
     Parameters
@@ -208,6 +212,7 @@ class Adam(Optimizer):
     self.beta1 = beta1
     self.beta2 = beta2
     self.epsilon = epsilon
+    self.kwargs = kwargs
 
   def _create_tf_optimizer(self, global_step):
     import tensorflow as tf
@@ -219,7 +224,8 @@ class Adam(Optimizer):
         learning_rate=learning_rate,
         beta_1=self.beta1,
         beta_2=self.beta2,
-        epsilon=self.epsilon)
+        epsilon=self.epsilon,
+        **self.kwargs)
 
   def _create_pytorch_optimizer(self, params):
     import torch
@@ -227,7 +233,8 @@ class Adam(Optimizer):
       lr = self.learning_rate.initial_rate
     else:
       lr = self.learning_rate
-    return torch.optim.Adam(params, lr, (self.beta1, self.beta2), self.epsilon)
+    return torch.optim.Adam(params, lr, (self.beta1, self.beta2), 
+    self.epsilon, **self.kwargs)
 
   def _create_jax_optimizer(self):
     import optax
@@ -274,6 +281,7 @@ class SparseAdam(Optimizer):
     self.beta1 = beta1
     self.beta2 = beta2
     self.epsilon = epsilon
+    self.kwargs = kwargs
 
   def _create_tf_optimizer(self, global_step):
     import tensorflow as tf
@@ -286,7 +294,8 @@ class SparseAdam(Optimizer):
         learning_rate=learning_rate,
         beta_1=self.beta1,
         beta_2=self.beta2,
-        epsilon=self.epsilon)
+        epsilon=self.epsilon,
+        **self.kwargs)
 
   def _create_pytorch_optimizer(self, params):
     import torch
@@ -311,7 +320,8 @@ class AdamW(Optimizer):
                beta1: float = 0.9,
                beta2: float = 0.999,
                epsilon: float = 1e-08,
-               amsgrad: bool = False):
+               amsgrad: bool = False,
+               **kwargs):
     """Construct an AdamW optimizer.
     Parameters
     ----------
@@ -334,6 +344,7 @@ class AdamW(Optimizer):
     self.beta2 = beta2
     self.epsilon = epsilon
     self.amsgrad = amsgrad
+    self.kwargs = kwargs
 
   def _create_tf_optimizer(self, global_step):
     import tensorflow as tf
@@ -348,7 +359,8 @@ class AdamW(Optimizer):
         beta_1=self.beta1,
         beta_2=self.beta2,
         epsilon=self.epsilon,
-        amsgrad=self.amsgrad)
+        amsgrad=self.amsgrad,
+        **self.kwargs)
 
   def _create_pytorch_optimizer(self, params):
     import torch
@@ -385,7 +397,8 @@ class RMSProp(Optimizer):
                learning_rate: Union[float, LearningRateSchedule] = 0.001,
                momentum: float = 0.0,
                decay: float = 0.9,
-               epsilon: float = 1e-10):
+               epsilon: float = 1e-10,
+               **kwargs):
     """Construct an RMSProp Optimizer.
 
         Parameters
@@ -403,6 +416,7 @@ class RMSProp(Optimizer):
     self.momentum = momentum
     self.decay = decay
     self.epsilon = epsilon
+    self.kwargs = kwargs
 
   def _create_tf_optimizer(self, global_step):
     import tensorflow as tf
@@ -414,7 +428,8 @@ class RMSProp(Optimizer):
         learning_rate=learning_rate,
         momentum=self.momentum,
         rho=self.decay,
-        epsilon=self.epsilon)
+        epsilon=self.epsilon,
+        **self.kwargs)
 
   def _create_pytorch_optimizer(self, params):
     import torch
@@ -423,7 +438,8 @@ class RMSProp(Optimizer):
     else:
       lr = self.learning_rate
     return torch.optim.RMSprop(
-        params, lr, alpha=self.decay, eps=self.epsilon, momentum=self.momentum)
+        params, lr, alpha=self.decay, eps=self.epsilon, 
+        momentum=self.momentum, **self.kwargs)
 
   def _create_jax_optimizer(self):
     import optax
@@ -448,7 +464,8 @@ class RMSProp(Optimizer):
 class GradientDescent(Optimizer):
   """The gradient descent optimization algorithm."""
 
-  def __init__(self, learning_rate: Union[float, LearningRateSchedule] = 0.001):
+  def __init__(self, learning_rate: Union[float, LearningRateSchedule] = 0.001,
+  **kwargs):
     """Construct a gradient descent optimizer.
 
     Parameters
@@ -458,13 +475,15 @@ class GradientDescent(Optimizer):
     """
     super(GradientDescent, self).__init__(learning_rate)
 
+    self.kwargs = kwargs
+
   def _create_tf_optimizer(self, global_step):
     import tensorflow as tf
     if isinstance(self.learning_rate, LearningRateSchedule):
       learning_rate = self.learning_rate._create_tf_tensor(global_step)
     else:
       learning_rate = self.learning_rate
-    return tf.keras.optimizers.SGD(learning_rate=learning_rate)
+    return tf.keras.optimizers.SGD(learning_rate=learning_rate, **self.kwargs)
 
   def _create_pytorch_optimizer(self, params):
     import torch
@@ -472,7 +491,7 @@ class GradientDescent(Optimizer):
       lr = self.learning_rate.initial_rate
     else:
       lr = self.learning_rate
-    return torch.optim.SGD(params, lr)
+    return torch.optim.SGD(params, lr, **self.kwargs)
 
   def _create_jax_optimizer(self):
     import optax
