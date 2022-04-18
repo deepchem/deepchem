@@ -1,7 +1,7 @@
 from logging import raiseExceptions
 import os
 import subprocess
-from Bio import SeqIO
+from bio import SeqIO
 
 
 def system_call(command):
