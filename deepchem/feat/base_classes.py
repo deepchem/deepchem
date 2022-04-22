@@ -498,4 +498,3 @@ class DummyFeaturizer(Featurizer):
       the datapoints.
     """
     return np.asarray(datapoints)
-
