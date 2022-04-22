@@ -68,6 +68,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [8 Large Scale Chemical Screens](Large_Scale_Chemical_Screens.ipynb)
 * [9 Introduction to Molecular Attention Transformer](Introduction_to_Molecular_Attention_Transformer.ipynb)
 * [10 Generating Molecules with MolGAN](Generating_molecules_with_MolGAN.ipynb)
+* [11 Introduction to GROVER](Introduction_to_GROVER.ipynb)
 
 ### Modeling Proteins
 * [1 Protein Deep Learning](Protein_Deep_Learning.ipynb)
