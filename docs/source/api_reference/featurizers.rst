@@ -404,6 +404,19 @@ References:
 .. _`RXN Mapper: Unsupervised Attention-Guided Atom-Mapping`: https://chemrxiv.org/articles/Unsupervised_Attention-Guided_Atom-Mapping/12298559
 .. _`Molecular Transformer: Unsupervised Attention-Guided Atom-Mapping`: https://pubs.acs.org/doi/10.1021/acscentsci.9b00576
 
+Sequence Featurizers
+---------------------
+
+PFMFeaturizer
+^^^^^^^^^^^^^
+
+The :code:`dc.feat.PFMFeaturizer` module implements a featurizer for position frequency matrices. 
+This takes in a list of multisequence alignments and returns a list of position frequency matrices.
+
+.. autoclass:: deepchem.feat.sequence_featurizers.PFMFeaturizer
+  :members:
+
+
 Other Featurizers
 -----------------
 
@@ -498,3 +511,4 @@ This featurizer can take a pair of PDB or SDF files which contain ligand molecul
 
 .. autoclass:: deepchem.feat.ComplexFeaturizer
   :members:
+

@@ -132,14 +132,18 @@ class AtomicConvModel(KerasModel):
     complex_nbrs_z = Input(shape=(complex_num_atoms, max_num_neighbors))
     complex_z = Input(shape=(complex_num_atoms,))
 
-    self._frag1_conv = AtomicConvolution(
-        atom_types=self.atom_types, radial_params=rp,
-        boxsize=None)([frag1_X, frag1_nbrs, frag1_nbrs_z])
+    self._frag1_conv = AtomicConvolution(atom_types=self.atom_types,
+                                         radial_params=rp,
+                                         boxsize=None)([
+                                             frag1_X, frag1_nbrs, frag1_nbrs_z
+                                         ])
     flattened1 = Flatten()(self._frag1_conv)
 
-    self._frag2_conv = AtomicConvolution(
-        atom_types=self.atom_types, radial_params=rp,
-        boxsize=None)([frag2_X, frag2_nbrs, frag2_nbrs_z])
+    self._frag2_conv = AtomicConvolution(atom_types=self.atom_types,
+                                         radial_params=rp,
+                                         boxsize=None)([
+                                             frag2_X, frag2_nbrs, frag2_nbrs_z
+                                         ])
     flattened2 = Flatten()(self._frag2_conv)
 
     self._complex_conv = AtomicConvolution(
@@ -178,12 +182,11 @@ class AtomicConvModel(KerasModel):
       layer = prev_layer
       if next_activation is not None:
         layer = Activation(next_activation)(layer)
-      layer = Dense(
-          size,
-          kernel_initializer=tf.keras.initializers.TruncatedNormal(
-              stddev=weight_stddev),
-          bias_initializer=tf.constant_initializer(value=bias_const),
-          kernel_regularizer=regularizer)(layer)
+      layer = Dense(size,
+                    kernel_initializer=tf.keras.initializers.TruncatedNormal(
+                        stddev=weight_stddev),
+                    bias_initializer=tf.constant_initializer(value=bias_const),
+                    kernel_regularizer=regularizer)(layer)
       if dropout > 0.0:
         layer = Dropout(rate=dropout)(layer)
       if residual and prev_size == size:
@@ -195,23 +198,25 @@ class AtomicConvModel(KerasModel):
       if next_activation is not None:
         prev_layer = Activation(activation_fn)(prev_layer)
     self.neural_fingerprint = prev_layer
-    output = Reshape((n_tasks, 1))(Dense(
-        n_tasks,
-        kernel_initializer=tf.keras.initializers.TruncatedNormal(
-            stddev=weight_init_stddevs[-1]),
-        bias_initializer=tf.constant_initializer(
-            value=bias_init_consts[-1]))(prev_layer))
+    output = Reshape(
+        (n_tasks,
+         1))(Dense(n_tasks,
+                   kernel_initializer=tf.keras.initializers.TruncatedNormal(
+                       stddev=weight_init_stddevs[-1]),
+                   bias_initializer=tf.constant_initializer(
+                       value=bias_init_consts[-1]))(prev_layer))
     loss: Union[dc.models.losses.Loss, LossFn]
 
-    model = tf.keras.Model(
-        inputs=[
-            frag1_X, frag1_nbrs, frag1_nbrs_z, frag1_z, frag2_X, frag2_nbrs,
-            frag2_nbrs_z, frag2_z, complex_X, complex_nbrs, complex_nbrs_z,
-            complex_z
-        ],
-        outputs=output)
-    super(AtomicConvModel, self).__init__(
-        model, L2Loss(), batch_size=batch_size, **kwargs)
+    model = tf.keras.Model(inputs=[
+        frag1_X, frag1_nbrs, frag1_nbrs_z, frag1_z, frag2_X, frag2_nbrs,
+        frag2_nbrs_z, frag2_z, complex_X, complex_nbrs, complex_nbrs_z,
+        complex_z
+    ],
+                           outputs=output)
+    super(AtomicConvModel, self).__init__(model,
+                                          L2Loss(),
+                                          batch_size=batch_size,
+                                          **kwargs)
 
   def default_generator(self,
                         dataset,
@@ -222,18 +227,14 @@ class AtomicConvModel(KerasModel):
     batch_size = self.batch_size
 
     def replace_atom_types(z):
-
-      def place_holder(i):
-        if i in self.atom_types:
-          return i
-        return -1
-
-      return np.array([place_holder(x) for x in z])
+      np.putmask(z, np.isin(z, list(self.atom_types), invert=True), -1)
+      return z
 
     for epoch in range(epochs):
       for ind, (F_b, y_b, w_b, ids_b) in enumerate(
-          dataset.iterbatches(
-              batch_size, deterministic=True, pad_batches=pad_batches)):
+          dataset.iterbatches(batch_size,
+                              deterministic=True,
+                              pad_batches=pad_batches)):
         N = self.complex_num_atoms
         N_1 = self.frag1_num_atoms
         N_2 = self.frag2_num_atoms
