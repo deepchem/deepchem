@@ -1,7 +1,6 @@
 from logging import raiseExceptions
 import os
 import subprocess
-from bio import SeqIO
 
 
 def system_call(command):
@@ -184,6 +183,7 @@ def MSA_to_dataset(msa_path):
   """
 
   from deepchem.data.datasets import NumpyDataset  # NumpyDataset depends on utils, so imported here to prevent circular import
+  from Bio import SeqIO
 
   with open(msa_path, 'r') as f:
     ids = []
