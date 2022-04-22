@@ -123,6 +123,8 @@ Genomic Utilities
 
 .. autofunction:: deepchem.utils.sequence_utils.hhsearch
 
+.. autofunction:: deepchem.utils.sequence_utils.MSA_to_dataset
+
 
 Geometry Utilities
 ------------------
