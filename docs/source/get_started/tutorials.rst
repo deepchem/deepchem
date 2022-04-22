@@ -147,7 +147,7 @@ splitting using molecular scaffolds.
 Model Training and Evaluating
 -----------------------------
 
-The :code:`dc.models` conteins an extensive collection of models for scientific applications. 
+The :code:`dc.models` contains an extensive collection of models for scientific applications. 
 Most of all models inherits  :code:`dc.models.Model` and we can train them by just calling :code:`fit` method.
 You don't need to care about how to use specific framework APIs.
 We'll show you the example about the usage of models.
