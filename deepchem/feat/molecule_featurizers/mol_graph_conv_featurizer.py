@@ -227,10 +227,30 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
         features += 2 * [_construct_bond_feature(bond)]
       bond_features = np.asarray(features, dtype=float)
 
+    # load_sdf_files returns pos as strings but user can also specify
+    # numpy arrays for atom coordinates
+    pos = []
+    if 'pos_x' in kwargs and 'pos_y' in kwargs and 'pos_z' in kwargs: 
+      if isinstance(kwargs['pos_x'], str):
+        pos_x = eval(kwargs['pos_x'])
+      elif isinstance(kwargs['pos_x'], np.ndarray):
+        pos_x = kwargs['pos_x']
+      if isinstance(kwargs['pos_y'], str):
+        pos_y = eval(kwargs['pos_y'])
+      elif isinstance(kwargs['pos_y'], np.ndarray):
+        pos_y = kwargs['pos_y']
+      if isinstance(kwargs['pos_z'], str):
+        pos_z = eval(kwargs['pos_z'])
+      elif isinstance(kwargs['pos_z'], np.ndarray):
+        pos_z = kwargs['pos_z']
+
+      for x, y, z in zip(pos_x, pos_y, pos_z):
+        pos.append([x, y, z])
     return GraphData(
         node_features=atom_features,
         edge_index=np.asarray([src, dest], dtype=int),
-        edge_features=bond_features)
+        edge_features=bond_features,
+        pos=np.asarray(pos))
 
 
 class PagtnMolGraphFeaturizer(MolecularFeaturizer):

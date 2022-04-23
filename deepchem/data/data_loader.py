@@ -874,7 +874,11 @@ class SDFLoader(DataLoader):
       Boolean values indicating successful featurization for corresponding
       sample in the source.
     """
-    features = [elt for elt in self.featurizer(shard[self.mol_field])]
+    pos_cols = ['pos_x', 'pos_y', 'pos_z']
+    if set(pos_cols).issubset(shard.columns):
+      features = [elt for elt in self.featurizer(shard[self.mol_field], pos_x=shard['pos_x'], pos_y=shard['pos_y'], pos_z=shard['pos_z'])]
+    else:
+      features = [elt for elt in self.featurizer(shard[self.mol_field])]
     valid_inds = np.array(
         [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
     features = [

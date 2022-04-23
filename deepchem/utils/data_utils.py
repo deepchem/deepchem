@@ -249,10 +249,11 @@ def load_sdf_files(input_files: List[str],
 
   df_rows = []
   for input_file in input_files:
-    # Tasks are either in .sdf.csv file or in the .sdf file itself
+    # Tasks are either in .sdf.csv file or in the .sdf file itself for QM9 dataset
     has_csv = os.path.isfile(input_file + ".csv")
     # Structures are stored in .sdf file
     logger.info("Reading structures from %s." % input_file)
+
     suppl = Chem.SDMolSupplier(str(input_file), clean_mols, False, False)
     for ind, mol in enumerate(suppl):
       if mol is None:
@@ -262,15 +263,24 @@ def load_sdf_files(input_files: List[str],
       if not has_csv:  # Get task targets from .sdf file
         for task in tasks:
           df_row.append(mol.GetProp(str(task)))
+
+      N = mol.GetNumAtoms()
+      pos = suppl.GetItemText(ind).split('\n')[4:4 + N]
+      pos = [[float(x) for x in line.split()[:3]] for line in pos]
+      pos_x, pos_y, pos_z = zip(*pos)
+      df_row.append(str(pos_x))
+      df_row.append(str(pos_y))
+      df_row.append(str(pos_z))
       df_rows.append(df_row)
+
       if shard_size is not None and len(df_rows) == shard_size:
         if has_csv:
-          mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol'))
+          mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol', 'pos_x', 'pos_y', 'pos_z'))
           raw_df = next(load_csv_files([input_file + ".csv"], shard_size=None))
           yield pd.concat([mol_df, raw_df], axis=1, join='inner')
         else:
           mol_df = pd.DataFrame(
-              df_rows, columns=('mol_id', 'smiles', 'mol') + tuple(tasks))
+              df_rows, columns=('mol_id', 'smiles', 'mol', 'pos_x', 'pos_y', 'pos_z') + tuple(tasks))
           yield mol_df
         # Reset aggregator
         df_rows = []
@@ -278,12 +288,12 @@ def load_sdf_files(input_files: List[str],
     # Handle final leftovers for this file
     if len(df_rows) > 0:
       if has_csv:
-        mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol'))
+        mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol', 'pos_x', 'pos_y', 'pos_z'))
         raw_df = next(load_csv_files([input_file + ".csv"], shard_size=None))
         yield pd.concat([mol_df, raw_df], axis=1, join='inner')
       else:
         mol_df = pd.DataFrame(
-            df_rows, columns=('mol_id', 'smiles', 'mol') + tuple(tasks))
+            df_rows, columns=('mol_id', 'smiles', 'mol', 'pos_x', 'pos_y', 'pos_z') + tuple(tasks))
         yield mol_df
       df_rows = []
 
