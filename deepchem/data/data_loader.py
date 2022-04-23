@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 
 from deepchem.utils.typing import OneOrMany
-from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files
+from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files, unzip_file
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
@@ -795,10 +795,8 @@ class SDFLoader(DataLoader):
         processed_files.append(input_file)
       elif extension == ".zip":
         zip_dir = tempfile.mkdtemp()
-        zip_ref = zipfile.ZipFile(input_file, 'r')
-        zip_ref.extractall(path=zip_dir)
-        zip_ref.close()
-        zip_files = [os.path.join(zip_dir, name) for name in zip_ref.namelist()]
+        unzip_file(input_file, zip_dir)
+        zip_files = [os.path.join(zip_dir, name) for name in os.listdir(zip_dir)]
         for zip_file in zip_files:
           _, extension = os.path.splitext(zip_file)
           extension = extension.lower()

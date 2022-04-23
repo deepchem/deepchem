@@ -23,7 +23,6 @@ from deepchem.models.tensorflow_models.vina_model import compute_closest_neighbo
 from deepchem.models.tensorflow_models.vina_model import get_cells_for_atoms
 from deepchem.models.tensorflow_models.vina_model import compute_neighbor_list
 import deepchem.utils.rdkit_util as rdkit_util
-from deepchem.utils.save import load_sdf_files
 from deepchem.utils import pad_array
 
 
