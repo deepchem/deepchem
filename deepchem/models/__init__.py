@@ -42,6 +42,7 @@ try:
   from deepchem.models.torch_models import LCNN, LCNNModel
   from deepchem.models.torch_models import Pagtn, PagtnModel
   from deepchem.models.fcnet import MultitaskRegressor, MultitaskClassifier, MultitaskFitTransformRegressor
+  from deepchem.models.torch_models import MEGNetModel
 except ModuleNotFoundError:
   pass
 

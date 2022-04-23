@@ -17,8 +17,7 @@ def load_sparse_multitask_dataset():
       "task1", "task2", "task3", "task4", "task5", "task6", "task7", "task8",
       "task9"
   ]
-  input_file = os.path.join(current_dir,
-                            "../../models/tests/sparse_multitask_example.csv")
+  input_file = os.path.join(current_dir, "assets/sparse_multitask_example.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
   return loader.create_dataset(input_file)
@@ -34,7 +33,7 @@ def load_multitask_data():
       "task15", "task16"
   ]
   input_file = os.path.join(current_dir,
-                            "../../models/tests/multitask_example.csv")
+                            "../../models/tests/assets/multitask_example.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
   return loader.create_dataset(input_file)
@@ -45,7 +44,8 @@ def load_solubility_data():
   current_dir = os.path.dirname(os.path.abspath(__file__))
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["log-solubility"]
-  input_file = os.path.join(current_dir, "../../models/tests/example.csv")
+  input_file = os.path.join(current_dir,
+                            "../../models/tests/assets/example.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
 
@@ -58,8 +58,7 @@ def load_butina_data():
   featurizer = dc.feat.CircularFingerprint(size=1024)
   tasks = ["task"]
   # task_type = "regression"
-  input_file = os.path.join(current_dir,
-                            "../../models/tests/butina_example.csv")
+  input_file = os.path.join(current_dir, "assets/butina_example.csv")
   loader = dc.data.CSVLoader(
       tasks=tasks, feature_field="smiles", featurizer=featurizer)
 

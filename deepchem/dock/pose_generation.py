@@ -200,8 +200,9 @@ class GninaPoseGenerator(PoseGenerator):
     if not ligand_file.endswith('.sdf'):
       raise ValueError('Ligand file must be in .sdf format.')
 
-    protein_mol = load_molecule(
-        protein_file, calc_charges=True, add_hydrogens=True)
+    protein_mol = load_molecule(protein_file,
+                                calc_charges=True,
+                                add_hydrogens=True)
     ligand_name = os.path.basename(ligand_file).split(".")[0]
 
     # Define locations of log and output files
@@ -211,13 +212,12 @@ class GninaPoseGenerator(PoseGenerator):
 
     # Write GNINA conf file
     conf_file = os.path.join(out_dir, "conf.txt")
-    write_gnina_conf(
-        protein_filename=protein_file,
-        ligand_filename=ligand_file,
-        conf_filename=conf_file,
-        num_modes=num_modes,
-        exhaustiveness=exhaustiveness,
-        **kwargs)
+    write_gnina_conf(protein_filename=protein_file,
+                     ligand_filename=ligand_file,
+                     conf_filename=conf_file,
+                     num_modes=num_modes,
+                     exhaustiveness=exhaustiveness,
+                     **kwargs)
 
     # Run GNINA
     args = [
@@ -259,7 +259,9 @@ class VinaPoseGenerator(PoseGenerator):
 
   Note
   ----
-  This class requires RDKit and vina to be installed.
+  This class requires RDKit and vina to be installed. As on 9-March-22,
+  Vina is not available on Windows. Hence, this utility is currently
+  available only on Ubuntu and MacOS.
   """
 
   def __init__(self, pocket_finder: Optional[BindingPocketFinder] = None):
@@ -372,8 +374,9 @@ class VinaPoseGenerator(PoseGenerator):
     protein_name = os.path.basename(protein_file).split(".")[0]
     protein_hyd = os.path.join(out_dir, "%s_hyd.pdb" % protein_name)
     protein_pdbqt = os.path.join(out_dir, "%s.pdbqt" % protein_name)
-    protein_mol = load_molecule(
-        protein_file, calc_charges=True, add_hydrogens=True)
+    protein_mol = load_molecule(protein_file,
+                                calc_charges=True,
+                                add_hydrogens=True)
     write_molecule(protein_mol[1], protein_hyd, is_protein=True)
     write_molecule(protein_mol[1], protein_pdbqt, is_protein=True)
 
@@ -403,8 +406,9 @@ class VinaPoseGenerator(PoseGenerator):
           dimensions.append(np.array((x_box, y_box, z_box)))
 
     if num_pockets is not None:
-      logger.info("num_pockets = %d so selecting this many pockets for docking."
-                  % num_pockets)
+      logger.info(
+          "num_pockets = %d so selecting this many pockets for docking." %
+          num_pockets)
       centroids = centroids[:num_pockets]
       dimensions = dimensions[:num_pockets]
 
@@ -412,28 +416,28 @@ class VinaPoseGenerator(PoseGenerator):
     ligand_name = os.path.basename(ligand_file).split(".")[0]
     ligand_pdbqt = os.path.join(out_dir, "%s.pdbqt" % ligand_name)
 
-    ligand_mol = load_molecule(
-        ligand_file, calc_charges=True, add_hydrogens=True)
+    ligand_mol = load_molecule(ligand_file,
+                               calc_charges=True,
+                               add_hydrogens=True)
     write_molecule(ligand_mol[1], ligand_pdbqt)
 
     docked_complexes = []
     all_scores = []
     vpg = Vina(sf_name='vina', cpu=cpu, seed=0, no_refine=False, verbosity=1)
-    for i, (protein_centroid, box_dims) in enumerate(
-        zip(centroids, dimensions)):
+    for i, (protein_centroid, box_dims) in enumerate(zip(centroids,
+                                                         dimensions)):
       logger.info("Docking in pocket %d/%d" % (i + 1, len(centroids)))
       logger.info("Docking with center: %s" % str(protein_centroid))
       logger.info("Box dimensions: %s" % str(box_dims))
       # Write Vina conf file
       conf_file = os.path.join(out_dir, "conf.txt")
-      write_vina_conf(
-          protein_pdbqt,
-          ligand_pdbqt,
-          protein_centroid,
-          box_dims,
-          conf_file,
-          num_modes=num_modes,
-          exhaustiveness=exhaustiveness)
+      write_vina_conf(protein_pdbqt,
+                      ligand_pdbqt,
+                      protein_centroid,
+                      box_dims,
+                      conf_file,
+                      num_modes=num_modes,
+                      exhaustiveness=exhaustiveness)
 
       # Define locations of output files
       out_pdbqt = os.path.join(out_dir, "%s_docked.pdbqt" % ligand_name)
@@ -443,16 +447,14 @@ class VinaPoseGenerator(PoseGenerator):
       vpg.set_ligand_from_file(ligand_pdbqt)
 
       vpg.compute_vina_maps(center=protein_centroid, box_size=box_dims)
-      vpg.dock(
-          exhaustiveness=exhaustiveness,
-          n_poses=num_modes,
-          min_rmsd=min_rmsd,
-          max_evals=max_evals)
-      vpg.write_poses(
-          out_pdbqt,
-          n_poses=num_modes,
-          energy_range=energy_range,
-          overwrite=True)
+      vpg.dock(exhaustiveness=exhaustiveness,
+               n_poses=num_modes,
+               min_rmsd=min_rmsd,
+               max_evals=max_evals)
+      vpg.write_poses(out_pdbqt,
+                      n_poses=num_modes,
+                      energy_range=energy_range,
+                      overwrite=True)
 
       ligands, scores = load_docked_ligands(out_pdbqt)
       docked_complexes += [(protein_mol[1], ligand) for ligand in ligands]
