@@ -279,8 +279,13 @@ def load_sdf_files(input_files: List[str],
           raw_df = next(load_csv_files([input_file + ".csv"], shard_size=None))
           yield pd.concat([mol_df, raw_df], axis=1, join='inner')
         else:
+          # Note: Here, the order of columns is based on the order in which the values
+          # are appended to `df_row`. Since pos_x, pos_y, pos_z are appended after appending
+          # tasks above, they occur after `tasks` here.
+          # FIXME Ideally, we should use something like a dictionary here to keep it independent
+          # of column ordering.
           mol_df = pd.DataFrame(
-              df_rows, columns=('mol_id', 'smiles', 'mol', 'pos_x', 'pos_y', 'pos_z') + tuple(tasks))
+              df_rows, columns=('mol_id', 'smiles', 'mol') + tuple(tasks) + ('pos_x', 'pos_y', 'pos_z'))
           yield mol_df
         # Reset aggregator
         df_rows = []
@@ -293,7 +298,7 @@ def load_sdf_files(input_files: List[str],
         yield pd.concat([mol_df, raw_df], axis=1, join='inner')
       else:
         mol_df = pd.DataFrame(
-            df_rows, columns=('mol_id', 'smiles', 'mol', 'pos_x', 'pos_y', 'pos_z') + tuple(tasks))
+            df_rows, columns=('mol_id', 'smiles', 'mol') + tuple(tasks) + ('pos_x', 'pos_y', 'pos_z'))
         yield mol_df
       df_rows = []
 
