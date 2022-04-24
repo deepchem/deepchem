@@ -13,7 +13,7 @@ class TestVinaUtils(unittest.TestCase):
   def setUp(self):
     # TODO test more formats for ligand
     self.current_dir = os.path.dirname(os.path.realpath(__file__))
-    self.docked_ligands = os.path.join(self.current_dir, 'data',
+    self.docked_ligands = os.path.join(self.current_dir, 'assets',
                                        '1jld_ligand_docked.pdbqt')
 
   def test_load_docked_ligand(self):
@@ -37,7 +37,7 @@ class TestVinaUtils(unittest.TestCase):
     os.remove('conf.txt')
 
   def test_read_gnina_log(self):
-    log_file = os.path.join(self.current_dir, 'data', 'gnina_log.txt')
+    log_file = os.path.join(self.current_dir, 'assets', 'gnina_log.txt')
     scores = docking_utils.read_gnina_log(log_file)
     assert np.array_equal(
         scores, np.array([[-4.37, 0.6392, 4.336], [-3.56, 0.6202, 4.162]]))

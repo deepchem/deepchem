@@ -38,7 +38,7 @@ class TestSeq(unittest.TestCase):
 
   def test_encode_fasta_sequence(self):
     # Test it's possible to load a sequence with an aribrary alphabet from a fasta file.
-    fname = os.path.join(self.current_dir, "./data/example.fasta")
+    fname = os.path.join(self.current_dir, "./assets/example.fasta")
 
     encoded_seqs = dc.utils.genomics_utils.encode_bio_sequence(
         fname, letters=LETTERS)
@@ -51,7 +51,7 @@ class TestSeq(unittest.TestCase):
     np.testing.assert_array_equal(expected, encoded_seqs)
 
   def test_encode_fastq_sequence(self):
-    fname = os.path.join(self.current_dir, "./data/example.fastq")
+    fname = os.path.join(self.current_dir, "./assets/example.fastq")
 
     encoded_seqs = dc.utils.genomics_utils.encode_bio_sequence(
         fname, file_type="fastq", letters=LETTERS)
