@@ -275,7 +275,9 @@ def load_sdf_files(input_files: List[str],
 
       if shard_size is not None and len(df_rows) == shard_size:
         if has_csv:
-          mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol', 'pos_x', 'pos_y', 'pos_z'))
+          mol_df = pd.DataFrame(df_rows,
+                                columns=('mol_id', 'smiles', 'mol', 'pos_x',
+                                         'pos_y', 'pos_z'))
           raw_df = next(load_csv_files([input_file + ".csv"], shard_size=None))
           yield pd.concat([mol_df, raw_df], axis=1, join='inner')
         else:
@@ -284,8 +286,9 @@ def load_sdf_files(input_files: List[str],
           # tasks above, they occur after `tasks` here.
           # FIXME Ideally, we should use something like a dictionary here to keep it independent
           # of column ordering.
-          mol_df = pd.DataFrame(
-              df_rows, columns=('mol_id', 'smiles', 'mol') + tuple(tasks) + ('pos_x', 'pos_y', 'pos_z'))
+          mol_df = pd.DataFrame(df_rows,
+                                columns=('mol_id', 'smiles', 'mol') +
+                                tuple(tasks) + ('pos_x', 'pos_y', 'pos_z'))
           yield mol_df
         # Reset aggregator
         df_rows = []
@@ -293,12 +296,15 @@ def load_sdf_files(input_files: List[str],
     # Handle final leftovers for this file
     if len(df_rows) > 0:
       if has_csv:
-        mol_df = pd.DataFrame(df_rows, columns=('mol_id', 'smiles', 'mol', 'pos_x', 'pos_y', 'pos_z'))
+        mol_df = pd.DataFrame(df_rows,
+                              columns=('mol_id', 'smiles', 'mol', 'pos_x',
+                                       'pos_y', 'pos_z'))
         raw_df = next(load_csv_files([input_file + ".csv"], shard_size=None))
         yield pd.concat([mol_df, raw_df], axis=1, join='inner')
       else:
-        mol_df = pd.DataFrame(
-            df_rows, columns=('mol_id', 'smiles', 'mol') + tuple(tasks) + ('pos_x', 'pos_y', 'pos_z'))
+        mol_df = pd.DataFrame(df_rows,
+                              columns=('mol_id', 'smiles', 'mol') +
+                              tuple(tasks) + ('pos_x', 'pos_y', 'pos_z'))
         yield mol_df
       df_rows = []
 
@@ -327,8 +333,8 @@ def load_csv_files(input_files: List[str],
     else:
       logger.info("About to start loading CSV from %s" % input_file)
       for df in pd.read_csv(input_file, chunksize=shard_size):
-        logger.info(
-            "Loading shard %d of size %s." % (shard_num, str(shard_size)))
+        logger.info("Loading shard %d of size %s." %
+                    (shard_num, str(shard_size)))
         df = df.replace(np.nan, str(""), regex=True)
         shard_num += 1
         yield df
@@ -361,10 +367,12 @@ def load_json_files(input_files: List[str],
       yield pd.read_json(input_file, orient='records', lines=True)
     else:
       logger.info("About to start loading json from %s." % input_file)
-      for df in pd.read_json(
-          input_file, orient='records', chunksize=shard_size, lines=True):
-        logger.info(
-            "Loading shard %d of size %s." % (shard_num, str(shard_size)))
+      for df in pd.read_json(input_file,
+                             orient='records',
+                             chunksize=shard_size,
+                             lines=True):
+        logger.info("Loading shard %d of size %s." %
+                    (shard_num, str(shard_size)))
         df = df.replace(np.nan, str(""), regex=True)
         shard_num += 1
         yield df
@@ -519,9 +527,11 @@ def load_from_disk(filename: str) -> Any:
     raise ValueError("Unrecognized filetype for %s" % filename)
 
 
-def load_dataset_from_disk(save_dir: str) -> Tuple[bool, Optional[Tuple[
-    "dc.data.DiskDataset", "dc.data.DiskDataset", "dc.data.DiskDataset"]], List[
-        "dc.trans.Transformer"]]:
+def load_dataset_from_disk(
+    save_dir: str
+) -> Tuple[bool, Optional[Tuple["dc.data.DiskDataset", "dc.data.DiskDataset",
+                                "dc.data.DiskDataset"]],
+           List["dc.trans.Transformer"]]:
   """Loads MoleculeNet train/valid/test/transformers from disk.
 
   Expects that data was saved using `save_dataset_to_disk` below. Expects the
@@ -571,9 +581,10 @@ def load_dataset_from_disk(save_dir: str) -> Tuple[bool, Optional[Tuple[
   return loaded, all_dataset, transformers
 
 
-def save_dataset_to_disk(
-    save_dir: str, train: "dc.data.DiskDataset", valid: "dc.data.DiskDataset",
-    test: "dc.data.DiskDataset", transformers: List["dc.trans.Transformer"]):
+def save_dataset_to_disk(save_dir: str, train: "dc.data.DiskDataset",
+                         valid: "dc.data.DiskDataset",
+                         test: "dc.data.DiskDataset",
+                         transformers: List["dc.trans.Transformer"]):
   """Utility used by MoleculeNet to save train/valid/test datasets.
 
   This utility function saves a train/valid/test split of a dataset along

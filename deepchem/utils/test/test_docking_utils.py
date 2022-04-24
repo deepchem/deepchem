@@ -46,8 +46,9 @@ class TestVinaUtils(unittest.TestCase):
     pdbid = '3cyx'
     ligand_smiles = 'CC(C)(C)NC(O)C1CC2CCCCC2C[NH+]1CC(O)C(CC1CCCCC1)NC(O)C(CC(N)O)NC(O)C1CCC2CCCCC2N1'
 
-    protein, ligand = docking_utils.prepare_inputs(
-        pdbid, ligand_smiles, pdb_name=pdbid)
+    protein, ligand = docking_utils.prepare_inputs(pdbid,
+                                                   ligand_smiles,
+                                                   pdb_name=pdbid)
 
     assert np.isclose(protein.GetNumAtoms(), 1510, atol=3)
     assert np.isclose(ligand.GetNumAtoms(), 124, atol=3)

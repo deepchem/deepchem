@@ -74,17 +74,21 @@ class TestMolGraphConvFeaturizer(unittest.TestCase):
 
   def test_featurizer_with_pos_kwargs(self):
     # Test featurizer with atom 3-D coordinates as kwargs
-    smiles = ["C1=CC=CN=C1", "CC"] 
+    smiles = ["C1=CC=CN=C1", "CC"]
     pos_x = [np.random.randn(6), np.random.randn(2)]
     pos_y, pos_z = pos_x, pos_x
     featurizer = MolGraphConvFeaturizer()
-    graph_feat = featurizer.featurize(smiles, pos_x=pos_x, pos_y=pos_y, pos_z=pos_z)
+    graph_feat = featurizer.featurize(smiles,
+                                      pos_x=pos_x,
+                                      pos_y=pos_y,
+                                      pos_z=pos_z)
 
     assert len(graph_feat) == 2
     assert graph_feat[0].num_nodes == 6
     assert graph_feat[0].pos.shape == (6, 3)
-    assert graph_feat[1].num_nodes == 2 
+    assert graph_feat[1].num_nodes == 2
     assert graph_feat[1].pos.shape == (2, 3)
+
 
 class TestPagtnMolGraphConvFeaturizer(unittest.TestCase):
 

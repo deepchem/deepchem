@@ -40,8 +40,8 @@ class TestSeq(unittest.TestCase):
     # Test it's possible to load a sequence with an aribrary alphabet from a fasta file.
     fname = os.path.join(self.current_dir, "./assets/example.fasta")
 
-    encoded_seqs = dc.utils.genomics_utils.encode_bio_sequence(
-        fname, letters=LETTERS)
+    encoded_seqs = dc.utils.genomics_utils.encode_bio_sequence(fname,
+                                                               letters=LETTERS)
     expected = np.expand_dims(
         np.array([
             [[1, 0], [0, 1], [0, 0]],
