@@ -1,11 +1,13 @@
 import unittest
+import os
 from deepchem.utils.data_utils import load_sdf_files
 
 
 class TestFileLoading(unittest.TestCase):
 
   def test_load_sdf_files(self):
-    file_path = ['assets/gdb9_small.sdf']
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    file_path = [os.path.join(current_dir, 'assets', 'gdb9_small.sdf')]
     for df in load_sdf_files(file_path):
       break
     df_shape = (2, 6)

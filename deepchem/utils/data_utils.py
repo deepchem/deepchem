@@ -254,7 +254,10 @@ def load_sdf_files(input_files: List[str],
     # Structures are stored in .sdf file
     logger.info("Reading structures from %s." % input_file)
 
-    suppl = Chem.SDMolSupplier(str(input_file), clean_mols, False, False)
+    suppl = Chem.SDMolSupplier(str(input_file),
+                               sanitize=clean_mols,
+                               removeHs=False,
+                               strictParsing=False)
     for ind, mol in enumerate(suppl):
       if mol is None:
         continue
@@ -264,10 +267,9 @@ def load_sdf_files(input_files: List[str],
         for task in tasks:
           df_row.append(mol.GetProp(str(task)))
 
-      N = mol.GetNumAtoms()
-      pos = suppl.GetItemText(ind).split('\n')[4:4 + N]
-      pos = [[float(x) for x in line.split()[:3]] for line in pos]
-      pos_x, pos_y, pos_z = zip(*pos)
+      conf = mol.GetConformer()
+      positions = conf.GetPositions()
+      pos_x, pos_y, pos_z = zip(*positions)
       df_row.append(str(pos_x))
       df_row.append(str(pos_y))
       df_row.append(str(pos_z))
