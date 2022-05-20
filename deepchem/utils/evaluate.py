@@ -3,6 +3,7 @@ Utility functions to evaluate models on datasets.
 """
 import csv
 import logging
+import warnings
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
@@ -131,7 +132,9 @@ def relative_difference(x: np.ndarray, y: np.ndarray) -> np.ndarray:
   z: np.ndarray
     We will have `z == np.abs(x-y) / np.abs(max(x, y))`.
   """
-  warnings.warn("Directly use `(x - y) / np.abs(y)` or `np.isclose`, `np.allclose` for testing tolerance", FutureWarning)
+  warnings.warn(
+      "Directly use `(x - y) / np.abs(y)` or `np.isclose`, `np.allclose` for testing tolerance",
+      FutureWarning)
   z = (x - y) / abs(y)
   return z
 
@@ -307,14 +310,13 @@ class Evaluator(object):
 
     # Compute multitask metrics
     for metric in metrics:
-      results = metric.compute_metric(
-          y,
-          y_pred,
-          w,
-          per_task_metrics=per_task_metrics,
-          n_tasks=n_tasks,
-          n_classes=n_classes,
-          use_sample_weights=use_sample_weights)
+      results = metric.compute_metric(y,
+                                      y_pred,
+                                      w,
+                                      per_task_metrics=per_task_metrics,
+                                      n_tasks=n_tasks,
+                                      n_classes=n_classes,
+                                      use_sample_weights=use_sample_weights)
       if per_task_metrics:
         multitask_scores[metric.name], computed_metrics = results
         all_task_scores[metric.name] = computed_metrics
@@ -476,13 +478,12 @@ class GeneratorEvaluator(object):
 
     # Compute multitask metrics
     for metric in metrics:
-      results = metric.compute_metric(
-          y_true,
-          y_pred,
-          w,
-          per_task_metrics=per_task_metrics,
-          n_classes=n_classes,
-          use_sample_weights=use_sample_weights)
+      results = metric.compute_metric(y_true,
+                                      y_pred,
+                                      w,
+                                      per_task_metrics=per_task_metrics,
+                                      n_classes=n_classes,
+                                      use_sample_weights=use_sample_weights)
       if per_task_metrics:
         multitask_scores[metric.name], computed_metrics = results
         all_task_scores[metric.name] = computed_metrics
