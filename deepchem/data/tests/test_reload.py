@@ -6,6 +6,7 @@ __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
 import os
+import math
 import logging
 import unittest
 import deepchem as dc
@@ -43,12 +44,9 @@ class TestReload(unittest.TestCase):
             frac_test=frac_test, frac_valid=frac_valid)
     # Do an approximate comparison since splits are sometimes slightly off from
     # the exact fraction.
-    assert dc.utils.evaluate.relative_difference(
-        len(train_dataset), frac_train * len(dataset)) < 1e-3
-    assert dc.utils.evaluate.relative_difference(
-        len(valid_dataset), frac_valid * len(dataset)) < 1e-3
-    assert dc.utils.evaluate.relative_difference(
-        len(test_dataset), frac_test * len(dataset)) < 1e-3
+    assert math.isclose(len(train_dataset), frac_train * len(dataset), rel_tol = 1e-3) == True
+    assert math.isclose(len(valid_dataset), frac_valid * len(dataset), rel_tol = 1e-3) == True
+    assert math.isclose(len(test_dataset), frac_test * len(dataset), rel_tol = 1e-3) == True
 
     # TODO(rbharath): Transformers don't play nice with reload! Namely,
     # reloading will cause the transform to be reapplied. This is undesirable in

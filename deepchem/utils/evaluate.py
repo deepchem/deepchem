@@ -131,7 +131,8 @@ def relative_difference(x: np.ndarray, y: np.ndarray) -> np.ndarray:
   z: np.ndarray
     We will have `z == np.abs(x-y) / np.abs(max(x, y))`.
   """
-  z = np.abs(x - y) / np.abs(max(x, y))
+  warnings.warn("Directly use `(x - y) / np.abs(y)` or `np.isclose`, `np.allclose` for testing tolerance", FutureWarning)
+  z = (x - y) / abs(y)
   return z
 
 
