@@ -73,3 +73,4 @@ try:
   from deepchem.models.IRV import TensorflowMultitaskIRVClassifier
 except ModuleNotFoundError:
   pass
+
