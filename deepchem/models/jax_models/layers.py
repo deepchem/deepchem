@@ -2,6 +2,10 @@ import logging
 try:
   import jax.numpy as jnp
   import haiku as hk
+  import numpy as np
+
+  from typing import Optional
+
 except:
   raise ImportError('These classes require Jax and Haiku to be installed.')
 
@@ -99,3 +103,71 @@ class Linear(hk.Module):
       output += bias
 
     return output
+
+
+def layer_norm(arr: jnp.ndarray, name: Optional[str] = None) -> jnp.ndarray:
+  """
+  Implementation of LayerNorm
+  
+  Parameters
+  ----------
+  
+  Inputs:
+    arr   : jnp.ndarray
+            input matrix
+    name  : str, optional
+            name of layer
+  
+  Returns:
+            jnp.ndarray
+            the array, normalized
+  
+  """
+  return hk.LayerNorm(
+      axis=-1, create_scale=True, create_offset=True, name=name)(arr)
+
+
+class SelfAttention(hk.MultiHeadAttention):
+  '''
+  Implementation of Self Attention as per Attention is All you need Paper : https://arxiv.org/abs/1706.03762
+  '''
+
+  def __call__(self,
+      q: jnp.ndarray,
+      k: Optional[jnp.ndarray] = None,
+      v: Optional[jnp.ndarray] = None,
+      mask: Optional[jnp.ndarray] = None) -> jnp.ndarray:
+    '''
+    Parameters
+    ----------
+    Inputs:
+      q    :   jnp.ndarray
+               Standard query parameter for attention
+      k    :   jnp.ndarray [Optional Parameter]
+               Standard key parameter for attention
+      v    :   jnp.ndarray [Optional Parameter]
+               Standard value parameter for attention
+      mask :   jnp.ndarray [Optional Parameter]
+               Attention Mask
+
+    Returns
+    -------
+               jnp.ndarray
+               output of shape [..., num_output]
+    '''
+
+    if k is None:
+      k = q
+
+    if v is None:
+      v = q
+
+    seq_length = q.shape[0]
+    causal_mask = np.tril(np.ones((seq_length, seq_length)))
+
+    if mask is None:
+      mask = causal_mask
+    else:
+      mask = causal_mask * mask
+
+    return super().__call__(q, k, v, mask)
