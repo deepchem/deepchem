@@ -30,8 +30,8 @@ try:
   from deepchem.models.atomic_conv import AtomicConvModel
   from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
 except ModuleNotFoundError as e:
-  logger.warning(f'Skipped loading some Tensorflow models, missing a dependency. {e}')
-
+  logger.warning(
+      f'Skipped loading some Tensorflow models, missing a dependency. {e}')
 
 # scikit-learn model
 from deepchem.models.sklearn_models import SklearnModel
@@ -49,7 +49,8 @@ try:
   from deepchem.models.fcnet import MultitaskRegressor, MultitaskClassifier, MultitaskFitTransformRegressor
   from deepchem.models.torch_models import MEGNetModel
 except ModuleNotFoundError as e:
-  logger.warning(f'Skipped loading some PyTorch models, missing a dependency. {e}')
+  logger.warning(
+      f'Skipped loading some PyTorch models, missing a dependency. {e}')
 
 # Jax models
 try:
@@ -73,4 +74,3 @@ try:
   from deepchem.models.IRV import TensorflowMultitaskIRVClassifier
 except ModuleNotFoundError:
   pass
-
