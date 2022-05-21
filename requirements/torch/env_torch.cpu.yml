@@ -1,11 +1,11 @@
 dependencies:
   - pip:
-    - -f https://download.pytorch.org/whl/torch_stable.html
-    - -f https://pytorch-geometric.com/whl/torch-1.9.0+cpu.html
-    - dgl==0.6.*
-    - torch==1.9.0+cpu
-    - torchvision==0.10.0+cpu
+    - -f https://download.pytorch.org/whl/cpu/torch_stable.html
+    - -f https://data.pyg.org/whl/torch-1.11.0+cpu.html
+    - -f https://data.dgl.ai/wheels/repo.html
+    - dgl
+    - torch==1.11.0+cpu
+    - torchvision==0.12.0+cpu
     - torch-scatter
     - torch-sparse
-    - transformers==4.6.*
     - torch-geometric

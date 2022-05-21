@@ -1,0 +1,2 @@
+# flake8: noqa
+from deepchem.feat.sequence_featurizers.position_frequency_matrix_featurizer import PFMFeaturizer

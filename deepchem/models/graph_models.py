@@ -242,9 +242,8 @@ class WeaveModel(KerasModel):
     # Final atom-layer convolution. Note this differs slightly from the paper
     # since we use a tanh activation as default. This seems necessary for numerical
     # stability.
-    dense1 = Dense(
-        self.n_graph_feat,
-        activation=final_conv_activation_fn)(weave_layer_ind_A)
+    dense1 = Dense(self.n_graph_feat,
+                   activation=final_conv_activation_fn)(weave_layer_ind_A)
     if batch_normalize:
       dense1 = BatchNormalization(**batch_normalize_kwargs)(dense1)
     weave_gather = layers.WeaveGather(
@@ -290,13 +289,15 @@ class WeaveModel(KerasModel):
       outputs = [output]
       output_types = ['prediction']
       loss = L2Loss()
-    model = tf.keras.Model(
-        inputs=[
-            atom_features, pair_features, pair_split, atom_split, atom_to_pair
-        ],
-        outputs=outputs)
-    super(WeaveModel, self).__init__(
-        model, loss, output_types=output_types, batch_size=batch_size, **kwargs)
+    model = tf.keras.Model(inputs=[
+        atom_features, pair_features, pair_split, atom_split, atom_to_pair
+    ],
+                           outputs=outputs)
+    super(WeaveModel, self).__init__(model,
+                                     loss,
+                                     output_types=output_types,
+                                     batch_size=batch_size,
+                                     **kwargs)
 
   def compute_features_on_batch(self, X_b):
     """Compute tensors that will be input into the model from featurized representation.
@@ -359,8 +360,9 @@ class WeaveModel(KerasModel):
       # pair features
       pair_feat.append(mol.get_pair_features())
 
-    return (np.concatenate(atom_feat, axis=0), np.concatenate(
-        pair_feat, axis=0), np.array(pair_split), np.array(atom_split),
+    return (np.concatenate(atom_feat, axis=0), np.concatenate(pair_feat,
+                                                              axis=0),
+            np.array(pair_split), np.array(atom_split),
             np.concatenate(atom_to_pair, axis=0))
 
   def default_generator(
@@ -391,14 +393,15 @@ class WeaveModel(KerasModel):
     """
 
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+      for (X_b, y_b, w_b,
+           ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                         deterministic=deterministic,
+                                         pad_batches=pad_batches):
         if y_b is not None:
           if self.mode == 'classification':
-            y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
-                -1, self.n_tasks, self.n_classes)
+            y_b = to_one_hot(y_b.flatten(),
+                             self.n_classes).reshape(-1, self.n_tasks,
+                                                     self.n_classes)
         inputs = self.compute_features_on_batch(X_b)
         yield (inputs, [y_b], [w_b])
 
@@ -474,36 +477,37 @@ class DTNNModel(KerasModel):
         n_embedding=self.n_embedding)(atom_number)
     if self.dropout > 0.0:
       dtnn_embedding = Dropout(rate=self.dropout)(dtnn_embedding)
-    dtnn_layer1 = layers.DTNNStep(
-        n_embedding=self.n_embedding, n_distance=self.n_distance)([
-            dtnn_embedding, distance, distance_membership_i,
-            distance_membership_j
-        ])
+    dtnn_layer1 = layers.DTNNStep(n_embedding=self.n_embedding,
+                                  n_distance=self.n_distance)([
+                                      dtnn_embedding, distance,
+                                      distance_membership_i,
+                                      distance_membership_j
+                                  ])
     if self.dropout > 0.0:
       dtnn_layer1 = Dropout(rate=self.dropout)(dtnn_layer1)
-    dtnn_layer2 = layers.DTNNStep(
-        n_embedding=self.n_embedding, n_distance=self.n_distance)([
-            dtnn_layer1, distance, distance_membership_i, distance_membership_j
-        ])
+    dtnn_layer2 = layers.DTNNStep(n_embedding=self.n_embedding,
+                                  n_distance=self.n_distance)([
+                                      dtnn_layer1, distance,
+                                      distance_membership_i,
+                                      distance_membership_j
+                                  ])
     if self.dropout > 0.0:
       dtnn_layer2 = Dropout(rate=self.dropout)(dtnn_layer2)
-    dtnn_gather = layers.DTNNGather(
-        n_embedding=self.n_embedding,
-        layer_sizes=[self.n_hidden],
-        n_outputs=self.n_tasks,
-        output_activation=self.output_activation)(
-            [dtnn_layer2, atom_membership])
+    dtnn_gather = layers.DTNNGather(n_embedding=self.n_embedding,
+                                    layer_sizes=[self.n_hidden],
+                                    n_outputs=self.n_tasks,
+                                    output_activation=self.output_activation)(
+                                        [dtnn_layer2, atom_membership])
     if self.dropout > 0.0:
       dtnn_gather = Dropout(rate=self.dropout)(dtnn_gather)
 
     n_tasks = self.n_tasks
     output = Dense(n_tasks)(dtnn_gather)
-    model = tf.keras.Model(
-        inputs=[
-            atom_number, distance, atom_membership, distance_membership_i,
-            distance_membership_j
-        ],
-        outputs=[output])
+    model = tf.keras.Model(inputs=[
+        atom_number, distance, atom_membership, distance_membership_i,
+        distance_membership_j
+    ],
+                           outputs=[output])
     super(DTNNModel, self).__init__(model, L2Loss(), **kwargs)
 
   def compute_features_on_batch(self, X_b):
@@ -539,8 +543,8 @@ class DTNNModel(KerasModel):
 
     atom_number = np.concatenate(atom_number).astype(np.int32)
     distance = np.concatenate(distance, axis=0)
-    gaussian_dist = np.exp(
-        -np.square(distance - self.steps) / (2 * self.step_size**2))
+    gaussian_dist = np.exp(-np.square(distance - self.steps) /
+                           (2 * self.step_size**2))
     gaussian_dist = gaussian_dist.astype(np.float32)
     atom_mem = np.concatenate(atom_membership).astype(np.int32)
     dist_mem_i = np.concatenate(distance_membership_i).astype(np.int32)
@@ -557,10 +561,10 @@ class DTNNModel(KerasModel):
                         deterministic=True,
                         pad_batches=True):
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+      for (X_b, y_b, w_b,
+           ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                         deterministic=deterministic,
+                                         pad_batches=pad_batches):
         yield (self.compute_features_on_batch(X_b), [y_b], [w_b])
 
 
@@ -658,16 +662,15 @@ class DAGModel(KerasModel):
     calculation_masks = Input(shape=(self.max_atoms,), dtype=tf.bool)
     membership = Input(shape=tuple(), dtype=tf.int32)
     n_atoms = Input(shape=tuple(), dtype=tf.int32)
-    dag_layer1 = layers.DAGLayer(
-        n_graph_feat=self.n_graph_feat,
-        n_atom_feat=self.n_atom_feat,
-        max_atoms=self.max_atoms,
-        layer_sizes=self.layer_sizes,
-        dropout=self.dropout,
-        batch_size=batch_size)([
-            atom_features, parents, calculation_orders, calculation_masks,
-            n_atoms
-        ])
+    dag_layer1 = layers.DAGLayer(n_graph_feat=self.n_graph_feat,
+                                 n_atom_feat=self.n_atom_feat,
+                                 max_atoms=self.max_atoms,
+                                 layer_sizes=self.layer_sizes,
+                                 dropout=self.dropout,
+                                 batch_size=batch_size)([
+                                     atom_features, parents, calculation_orders,
+                                     calculation_masks, n_atoms
+                                 ])
     dag_gather = layers.DAGGather(
         n_graph_feat=self.n_graph_feat,
         n_outputs=self.n_outputs,
@@ -677,8 +680,8 @@ class DAGModel(KerasModel):
     n_tasks = self.n_tasks
     if self.mode == 'classification':
       n_classes = self.n_classes
-      logits = Reshape((n_tasks,
-                        n_classes))(Dense(n_tasks * n_classes)(dag_gather))
+      logits = Reshape(
+          (n_tasks, n_classes))(Dense(n_tasks * n_classes)(dag_gather))
       output = Softmax()(logits)
       outputs = [output, logits]
       output_types = ['prediction', 'loss']
@@ -719,8 +722,11 @@ class DAGModel(KerasModel):
             n_atoms  #, dropout_switch
         ],
         outputs=outputs)
-    super(DAGModel, self).__init__(
-        model, loss, output_types=output_types, batch_size=batch_size, **kwargs)
+    super(DAGModel, self).__init__(model,
+                                   loss,
+                                   output_types=output_types,
+                                   batch_size=batch_size,
+                                   **kwargs)
 
   def default_generator(self,
                         dataset,
@@ -730,14 +736,15 @@ class DAGModel(KerasModel):
                         pad_batches=True):
     """Convert a dataset into the tensors needed for learning"""
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+      for (X_b, y_b, w_b,
+           ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                         deterministic=deterministic,
+                                         pad_batches=pad_batches):
 
         if y_b is not None and self.mode == 'classification':
-          y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
-              -1, self.n_tasks, self.n_classes)
+          y_b = to_one_hot(y_b.flatten(),
+                           self.n_classes).reshape(-1, self.n_tasks,
+                                                   self.n_classes)
 
         atoms_per_mol = [mol.get_num_atoms() for mol in X_b]
         n_atoms = sum(atoms_per_mol)
@@ -827,8 +834,8 @@ class _GraphConvKerasModel(tf.keras.Model):
     ]
     self.graph_pools = [layers.GraphPool() for _ in graph_conv_layers]
     self.dense = Dense(dense_layer_size, activation=tf.nn.relu)
-    self.graph_gather = layers.GraphGather(
-        batch_size=batch_size, activation_fn=tf.nn.tanh)
+    self.graph_gather = layers.GraphGather(batch_size=batch_size,
+                                           activation_fn=tf.nn.tanh)
     self.trim = TrimGraphOutput()
     if self.mode == 'classification':
       self.reshape_dense = Dense(n_tasks * n_classes)
@@ -952,17 +959,16 @@ class GraphConvModel(KerasModel):
     self.n_classes = n_classes
     self.batch_size = batch_size
     self.uncertainty = uncertainty
-    model = _GraphConvKerasModel(
-        n_tasks,
-        graph_conv_layers=graph_conv_layers,
-        dense_layer_size=dense_layer_size,
-        dropout=dropout,
-        mode=mode,
-        number_atom_features=number_atom_features,
-        n_classes=n_classes,
-        batch_normalize=batch_normalize,
-        uncertainty=uncertainty,
-        batch_size=batch_size)
+    model = _GraphConvKerasModel(n_tasks,
+                                 graph_conv_layers=graph_conv_layers,
+                                 dense_layer_size=dense_layer_size,
+                                 dropout=dropout,
+                                 mode=mode,
+                                 number_atom_features=number_atom_features,
+                                 n_classes=n_classes,
+                                 batch_normalize=batch_normalize,
+                                 uncertainty=uncertainty,
+                                 batch_size=batch_size)
     if mode == "classification":
       output_types = ['prediction', 'loss', 'embedding']
       loss: Union[Loss, LossFn] = SoftmaxCrossEntropy()
@@ -987,8 +993,11 @@ class GraphConvModel(KerasModel):
       else:
         output_types = ['prediction', 'embedding']
         loss = L2Loss()
-    super(GraphConvModel, self).__init__(
-        model, loss, output_types=output_types, batch_size=batch_size, **kwargs)
+    super(GraphConvModel, self).__init__(model,
+                                         loss,
+                                         output_types=output_types,
+                                         batch_size=batch_size,
+                                         **kwargs)
 
   def default_generator(self,
                         dataset,
@@ -997,13 +1006,15 @@ class GraphConvModel(KerasModel):
                         deterministic=True,
                         pad_batches=True):
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
-        if y_b is not None and self.mode == 'classification':
-          y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
-              -1, self.n_tasks, self.n_classes)
+      for (X_b, y_b, w_b,
+           ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                         deterministic=deterministic,
+                                         pad_batches=pad_batches):
+        if y_b is not None and self.mode == 'classification' and not (
+            mode == 'predict'):
+          y_b = to_one_hot(y_b.flatten(),
+                           self.n_classes).reshape(-1, self.n_tasks,
+                                                   self.n_classes)
         multiConvMol = ConvMol.agglomerate_mols(X_b)
         n_samples = np.array(X_b.shape[0])
         inputs = [
@@ -1097,9 +1108,10 @@ class MPNNModel(KerasModel):
 
     atom_embeddings = Dense(self.n_hidden)(message_passing)
 
-    mol_embeddings = layers.SetGather(
-        self.M, batch_size,
-        n_hidden=self.n_hidden)([atom_embeddings, atom_split])
+    mol_embeddings = layers.SetGather(self.M,
+                                      batch_size,
+                                      n_hidden=self.n_hidden)(
+                                          [atom_embeddings, atom_split])
 
     dense1 = Dense(2 * self.n_hidden, activation=tf.nn.relu)(mol_embeddings)
 
@@ -1140,13 +1152,15 @@ class MPNNModel(KerasModel):
         outputs = [output]
         output_types = ['prediction']
         loss = L2Loss()
-    model = tf.keras.Model(
-        inputs=[
-            atom_features, pair_features, atom_split, atom_to_pair, n_samples
-        ],
-        outputs=outputs)
-    super(MPNNModel, self).__init__(
-        model, loss, output_types=output_types, batch_size=batch_size, **kwargs)
+    model = tf.keras.Model(inputs=[
+        atom_features, pair_features, atom_split, atom_to_pair, n_samples
+    ],
+                           outputs=outputs)
+    super(MPNNModel, self).__init__(model,
+                                    loss,
+                                    output_types=output_types,
+                                    batch_size=batch_size,
+                                    **kwargs)
 
   def default_generator(self,
                         dataset,
@@ -1155,16 +1169,17 @@ class MPNNModel(KerasModel):
                         deterministic=True,
                         pad_batches=True):
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+      for (X_b, y_b, w_b,
+           ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                         deterministic=deterministic,
+                                         pad_batches=pad_batches):
 
         n_samples = np.array(X_b.shape[0])
         X_b = pad_features(self.batch_size, X_b)
         if y_b is not None and self.mode == 'classification':
-          y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
-              -1, self.n_tasks, self.n_classes)
+          y_b = to_one_hot(y_b.flatten(),
+                           self.n_classes).reshape(-1, self.n_tasks,
+                                                   self.n_classes)
 
         atom_feat = []
         pair_feat = []
@@ -1246,9 +1261,8 @@ class DAGTensorGraph(DAGModel):
 
   def __init__(self, *args, **kwargs):
 
-    warnings.warn(
-        TENSORGRAPH_DEPRECATION.format("DAGTensorGraph", "DAGModel"),
-        FutureWarning)
+    warnings.warn(TENSORGRAPH_DEPRECATION.format("DAGTensorGraph", "DAGModel"),
+                  FutureWarning)
 
     super(DAGModel, self).__init__(*args, **kwargs)
 
