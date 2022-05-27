@@ -34,12 +34,13 @@ def get_dataset(mode='classification', featurizer='GraphConv', num_tasks=2):
 
   if mode == 'classification':
     y = np.random.randint(0, 2, size=(data_points, len(tasks)))
-    metric = dc.metrics.Metric(
-        dc.metrics.roc_auc_score, np.mean, mode="classification")
+    metric = dc.metrics.Metric(dc.metrics.roc_auc_score,
+                               np.mean,
+                               mode="classification")
   else:
     y = np.random.normal(size=(data_points, len(tasks)))
-    metric = dc.metrics.Metric(
-        dc.metrics.mean_absolute_error, mode="regression")
+    metric = dc.metrics.Metric(dc.metrics.mean_absolute_error,
+                               mode="regression")
 
   ds = NumpyDataset(train.X[:data_points], y, w, train.ids[:data_points])
 
@@ -53,11 +54,10 @@ def test_graph_conv_model():
                                                      'GraphConv')
 
   batch_size = 10
-  model = GraphConvModel(
-      len(tasks),
-      batch_size=batch_size,
-      batch_normalize=False,
-      mode='classification')
+  model = GraphConvModel(len(tasks),
+                         batch_size=batch_size,
+                         batch_normalize=False,
+                         mode='classification')
 
   model.fit(dataset, nb_epoch=20)
   scores = model.evaluate(dataset, [metric], transformers)
@@ -72,11 +72,10 @@ def test_neural_fingerprint_retrieval():
   fp_size = 3
 
   batch_size = 50
-  model = GraphConvModel(
-      len(tasks),
-      batch_size=batch_size,
-      dense_layer_size=3,
-      mode='classification')
+  model = GraphConvModel(len(tasks),
+                         batch_size=batch_size,
+                         dense_layer_size=3,
+                         mode='classification')
 
   model.fit(dataset, nb_epoch=1)
   neural_fingerprints = model.predict_embedding(dataset)
@@ -90,11 +89,10 @@ def test_graph_conv_regression_model():
   tasks, dataset, transformers, metric = get_dataset('regression', 'GraphConv')
 
   batch_size = 10
-  model = GraphConvModel(
-      len(tasks),
-      batch_size=batch_size,
-      batch_normalize=False,
-      mode='regression')
+  model = GraphConvModel(len(tasks),
+                         batch_size=batch_size,
+                         batch_normalize=False,
+                         mode='regression')
 
   model.fit(dataset, nb_epoch=100)
   scores = model.evaluate(dataset, [metric], transformers)
@@ -106,13 +104,12 @@ def test_graph_conv_regression_uncertainty():
   tasks, dataset, transformers, metric = get_dataset('regression', 'GraphConv')
 
   batch_size = 10
-  model = GraphConvModel(
-      len(tasks),
-      batch_size=batch_size,
-      batch_normalize=False,
-      mode='regression',
-      dropout=0.1,
-      uncertainty=True)
+  model = GraphConvModel(len(tasks),
+                         batch_size=batch_size,
+                         batch_normalize=False,
+                         mode='regression',
+                         dropout=0.1,
+                         uncertainty=True)
 
   model.fit(dataset, nb_epoch=100)
 
@@ -130,17 +127,17 @@ def test_graph_conv_regression_uncertainty():
 def test_graph_conv_model_no_task():
   tasks, dataset, _, __ = get_dataset('classification', 'GraphConv')
   batch_size = 10
-  model = GraphConvModel(
-      len(tasks),
-      batch_size=batch_size,
-      batch_normalize=False,
-      mode='classification')
+  model = GraphConvModel(len(tasks),
+                         batch_size=batch_size,
+                         batch_normalize=False,
+                         mode='classification')
   model.fit(dataset, nb_epoch=20)
   # predict datset with no y (ensured by tasks = [])
   bace_url = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/bace.csv"
   dc.utils.data_utils.download_url(url=bace_url, name="bace_tmp.csv")
-  loader = dc.data.CSVLoader(
-      tasks=[], smiles_field='mol', featurizer=dc.feat.ConvMolFeaturizer())
+  loader = dc.data.CSVLoader(tasks=[],
+                             smiles_field='mol',
+                             featurizer=dc.feat.ConvMolFeaturizer())
   td = loader.featurize(
       os.path.join(dc.utils.data_utils.get_data_dir(), "bace_tmp.csv"))
   model.predict(td)
@@ -148,8 +145,9 @@ def test_graph_conv_model_no_task():
 
 @pytest.mark.tensorflow
 def test_graph_conv_atom_features():
-  tasks, dataset, transformers, metric = get_dataset(
-      'regression', 'Raw', num_tasks=1)
+  tasks, dataset, transformers, metric = get_dataset('regression',
+                                                     'Raw',
+                                                     num_tasks=1)
 
   atom_feature_name = 'feature'
   y = []
@@ -165,11 +163,10 @@ def test_graph_conv_atom_features():
   X = featurizer.featurize(dataset.X)
   dataset = dc.data.NumpyDataset(X, np.array(y))
   batch_size = 50
-  model = GraphConvModel(
-      len(tasks),
-      number_atom_features=featurizer.feature_length(),
-      batch_size=batch_size,
-      mode='regression')
+  model = GraphConvModel(len(tasks),
+                         number_atom_features=featurizer.feature_length(),
+                         batch_size=batch_size,
+                         mode='regression')
 
   model.fit(dataset, nb_epoch=1)
   y_pred1 = model.predict(dataset)
@@ -186,11 +183,10 @@ def test_dag_model():
   transformer = dc.trans.DAGTransformer(max_atoms=max_atoms)
   dataset = transformer.transform(dataset)
 
-  model = DAGModel(
-      len(tasks),
-      max_atoms=max_atoms,
-      mode='classification',
-      learning_rate=0.001)
+  model = DAGModel(len(tasks),
+                   max_atoms=max_atoms,
+                   mode='classification',
+                   learning_rate=0.001)
 
   model.fit(dataset, nb_epoch=30)
   scores = model.evaluate(dataset, [metric], transformers)
@@ -209,8 +205,10 @@ def test_dag_regression_model():
   transformer = dc.trans.DAGTransformer(max_atoms=max_atoms)
   dataset = transformer.transform(dataset)
 
-  model = DAGModel(
-      len(tasks), max_atoms=max_atoms, mode='regression', learning_rate=0.003)
+  model = DAGModel(len(tasks),
+                   max_atoms=max_atoms,
+                   mode='regression',
+                   learning_rate=0.003)
 
   model.fit(dataset, nb_epoch=100)
   scores = model.evaluate(dataset, [metric], transformers)
@@ -230,15 +228,14 @@ def test_dag_regression_uncertainty():
   transformer = dc.trans.DAGTransformer(max_atoms=max_atoms)
   dataset = transformer.transform(dataset)
 
-  model = DAGModel(
-      len(tasks),
-      max_atoms=max_atoms,
-      mode='regression',
-      learning_rate=0.003,
-      batch_size=batch_size,
-      use_queue=False,
-      dropout=0.05,
-      uncertainty=True)
+  model = DAGModel(len(tasks),
+                   max_atoms=max_atoms,
+                   mode='regression',
+                   learning_rate=0.003,
+                   batch_size=batch_size,
+                   use_queue=False,
+                   dropout=0.05,
+                   uncertainty=True)
 
   model.fit(dataset, nb_epoch=750)
 
@@ -261,15 +258,14 @@ def test_dag_regression_uncertainty():
 def test_mpnn_model():
   tasks, dataset, transformers, metric = get_dataset('classification', 'Weave')
 
-  model = MPNNModel(
-      len(tasks),
-      mode='classification',
-      n_hidden=75,
-      n_atom_feat=75,
-      n_pair_feat=14,
-      T=1,
-      M=1,
-      learning_rate=0.0005)
+  model = MPNNModel(len(tasks),
+                    mode='classification',
+                    n_hidden=75,
+                    n_atom_feat=75,
+                    n_pair_feat=14,
+                    T=1,
+                    M=1,
+                    learning_rate=0.0005)
 
   model.fit(dataset, nb_epoch=150)
   scores = model.evaluate(dataset, [metric], transformers)
@@ -282,15 +278,14 @@ def test_mpnn_regression_model():
   tasks, dataset, transformers, metric = get_dataset('regression', 'Weave')
 
   batch_size = 10
-  model = MPNNModel(
-      len(tasks),
-      mode='regression',
-      n_hidden=75,
-      n_atom_feat=75,
-      n_pair_feat=14,
-      T=1,
-      M=1,
-      batch_size=batch_size)
+  model = MPNNModel(len(tasks),
+                    mode='regression',
+                    n_hidden=75,
+                    n_atom_feat=75,
+                    n_pair_feat=14,
+                    T=1,
+                    M=1,
+                    batch_size=batch_size)
 
   model.fit(dataset, nb_epoch=60)
   scores = model.evaluate(dataset, [metric], transformers)
@@ -303,17 +298,16 @@ def test_mpnn_regression_uncertainty():
   tasks, dataset, transformers, metric = get_dataset('regression', 'Weave')
 
   batch_size = 10
-  model = MPNNModel(
-      len(tasks),
-      mode='regression',
-      n_hidden=75,
-      n_atom_feat=75,
-      n_pair_feat=14,
-      T=1,
-      M=1,
-      dropout=0.1,
-      batch_size=batch_size,
-      uncertainty=True)
+  model = MPNNModel(len(tasks),
+                    mode='regression',
+                    n_hidden=75,
+                    n_atom_feat=75,
+                    n_pair_feat=14,
+                    T=1,
+                    M=1,
+                    dropout=0.1,
+                    batch_size=batch_size,
+                    uncertainty=True)
 
   model.fit(dataset, nb_epoch=40)
 
@@ -339,12 +333,11 @@ def test_dtnn_regression_model():
   dataset = dc.data.NumpyDataset(X, y, w, ids=None)
   n_tasks = y.shape[1]
 
-  model = dc.models.DTNNModel(
-      n_tasks,
-      n_embedding=20,
-      n_distance=100,
-      learning_rate=1.0,
-      mode="regression")
+  model = dc.models.DTNNModel(n_tasks,
+                              n_embedding=20,
+                              n_distance=100,
+                              learning_rate=1.0,
+                              mode="regression")
 
   # Fit trained model
   model.fit(dataset, nb_epoch=250)
@@ -353,3 +346,13 @@ def test_dtnn_regression_model():
   pred = model.predict(dataset)
   mean_rel_error = np.mean(np.abs(1 - pred / y))
   assert mean_rel_error < 0.1
+
+
+@pytest.mark.tensorflow
+def test_graph_predict():
+
+  model = dc.models.GraphConvModel(12, batch_size=50, mode='classification')
+  mols = ["CCCCC", "CCCCCCCCC"]
+  feat = dc.feat.ConvMolFeaturizer()
+  X = feat.featurize(mols)
+  assert (model.predict(dc.data.NumpyDataset(X))).all() == True
