@@ -15,9 +15,9 @@ class TestSeq(unittest.TestCase):
 
   def setUp(self):
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    self.dataset_file = os.path.join(current_dir, 'data/example.fasta')
+    self.dataset_file = os.path.join(current_dir, 'assets/example.fasta')
     self.database_name = 'example_db'
-    self.data_dir = os.path.join(current_dir, 'data')
+    self.data_dir = os.path.join(current_dir, 'assets')
 
   def test_hhsearch(self):
     seq_utils.hhsearch(self.dataset_file,

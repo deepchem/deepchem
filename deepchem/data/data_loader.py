@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 
 from deepchem.utils.typing import OneOrMany
-from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files
+from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files, unzip_file
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
@@ -507,8 +507,8 @@ class UserCSVLoader(CSVLoader):
     shard[feature_fields] = shard[feature_fields].apply(pd.to_numeric)
     X_shard = shard[feature_fields].to_numpy()
     time2 = time.time()
-    logger.info(
-        "TIMING: user specified processing took %0.3f s" % (time2 - time1))
+    logger.info("TIMING: user specified processing took %0.3f s" %
+                (time2 - time1))
     return (X_shard, np.ones(len(X_shard), dtype=bool))
 
 
@@ -795,10 +795,10 @@ class SDFLoader(DataLoader):
         processed_files.append(input_file)
       elif extension == ".zip":
         zip_dir = tempfile.mkdtemp()
-        zip_ref = zipfile.ZipFile(input_file, 'r')
-        zip_ref.extractall(path=zip_dir)
-        zip_ref.close()
-        zip_files = [os.path.join(zip_dir, name) for name in zip_ref.namelist()]
+        unzip_file(input_file, zip_dir)
+        zip_files = [
+            os.path.join(zip_dir, name) for name in os.listdir(zip_dir)
+        ]
         for zip_file in zip_files:
           _, extension = os.path.splitext(zip_file)
           extension = extension.lower()
@@ -850,11 +850,10 @@ class SDFLoader(DataLoader):
     Iterator[pd.DataFrame]
       Iterator over shards
     """
-    return load_sdf_files(
-        input_files=input_files,
-        clean_mols=self.sanitize,
-        tasks=self.tasks,
-        shard_size=shard_size)
+    return load_sdf_files(input_files=input_files,
+                          clean_mols=self.sanitize,
+                          tasks=self.tasks,
+                          shard_size=shard_size)
 
   def _featurize_shard(self,
                        shard: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
@@ -876,7 +875,16 @@ class SDFLoader(DataLoader):
       Boolean values indicating successful featurization for corresponding
       sample in the source.
     """
-    features = [elt for elt in self.featurizer(shard[self.mol_field])]
+    pos_cols = ['pos_x', 'pos_y', 'pos_z']
+    if set(pos_cols).issubset(shard.columns):
+      features = [
+          elt for elt in self.featurizer(shard[self.mol_field],
+                                         pos_x=shard['pos_x'],
+                                         pos_y=shard['pos_y'],
+                                         pos_z=shard['pos_z'])
+      ]
+    else:
+      features = [elt for elt in self.featurizer(shard[self.mol_field])]
     valid_inds = np.array(
         [1 if np.array(elt).size > 0 else 0 for elt in features], dtype=bool)
     features = [
@@ -953,8 +961,8 @@ class FASTALoader(DataLoader):
     if isinstance(featurizer, UserDefinedFeaturizer):  # User defined featurizer
       self.user_specified_features = featurizer.feature_fields
     elif featurizer is None:  # Default featurizer
-      featurizer = OneHotFeaturizer(
-          charset=["A", "C", "T", "G"], max_length=None)
+      featurizer = OneHotFeaturizer(charset=["A", "C", "T", "G"],
+                                    max_length=None)
 
     # Set self.featurizer
     self.featurizer = featurizer
@@ -1158,16 +1166,17 @@ class ImageLoader(DataLoader):
 
     if in_memory:
       if data_dir is None:
-        return NumpyDataset(
-            load_image_files(image_files), y=labels, w=weights, ids=image_files)
+        return NumpyDataset(load_image_files(image_files),
+                            y=labels,
+                            w=weights,
+                            ids=image_files)
       else:
-        dataset = DiskDataset.from_numpy(
-            load_image_files(image_files),
-            y=labels,
-            w=weights,
-            ids=image_files,
-            tasks=self.tasks,
-            data_dir=data_dir)
+        dataset = DiskDataset.from_numpy(load_image_files(image_files),
+                                         y=labels,
+                                         w=weights,
+                                         ids=image_files,
+                                         tasks=self.tasks,
+                                         data_dir=data_dir)
         if shard_size is not None:
           dataset.reshard(shard_size)
         return dataset
@@ -1311,8 +1320,8 @@ class InMemoryLoader(DataLoader):
 
   # FIXME: Signature of "_featurize_shard" incompatible with supertype "DataLoader"
   def _featurize_shard(  # type: ignore[override]
-      self, shard: List, global_index: int
-  ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+      self, shard: List, global_index: int) -> Tuple[np.ndarray, np.ndarray,
+                                                     np.ndarray, np.ndarray]:
     """Featurizes a shard of an input data.
 
     Parameters

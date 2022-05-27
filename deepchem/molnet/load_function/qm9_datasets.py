@@ -23,9 +23,10 @@ class _QM9Loader(_MolnetLoader):
       dc.utils.data_utils.download_url(url=GDB9_URL, dest_dir=self.data_dir)
       dc.utils.data_utils.untargz_file(
           os.path.join(self.data_dir, "gdb9.tar.gz"), self.data_dir)
-    loader = dc.data.SDFLoader(
-        tasks=self.tasks, featurizer=self.featurizer, sanitize=True)
-    return loader.create_dataset(dataset_file, shard_size=8192)
+    loader = dc.data.SDFLoader(tasks=self.tasks,
+                               featurizer=self.featurizer,
+                               sanitize=True)
+    return loader.create_dataset(dataset_file, shard_size=4096)
 
 
 def load_qm9(
