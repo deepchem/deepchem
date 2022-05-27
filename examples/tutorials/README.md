@@ -54,9 +54,8 @@ tutorials discuss about using DeepChem for specific applications.
 * [15 Training a Generative Adversarial Network on MNIST](Training_a_Generative_Adversarial_Network_on_MNIST.ipynb)
 * [16 Distributed Multi-GPU Training of DeepChem Models with LitMatter](https://github.com/ncfrey/litmatter/blob/main/LitDeepChem.ipynb)
 * [17 Advanced model training using Hyperopt](Advanced_model_training_using_hyperopt.ipynb)
-
-
-
+* [18 Introduction to Gaussian Processes](Introduction_to_Gaussian_Processes.ipynb)
+* [19 Pytorch-Lightning Integration for DeepChem Models](PytorchLightning_Integration.ipynb)
 
 ### Molecular Machine Learning
 * [1 Molecular Fingerprints](Molecular_Fingerprints.ipynb)
@@ -69,6 +68,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [8 Large Scale Chemical Screens](Large_Scale_Chemical_Screens.ipynb)
 * [9 Introduction to Molecular Attention Transformer](Introduction_to_Molecular_Attention_Transformer.ipynb)
 * [10 Generating Molecules with MolGAN](Generating_molecules_with_MolGAN.ipynb)
+* [11 Introduction to GROVER](Introduction_to_GROVER.ipynb)
 
 ### Modeling Proteins
 * [1 Protein Deep Learning](Protein_Deep_Learning.ipynb)
@@ -82,12 +82,12 @@ tutorials discuss about using DeepChem for specific applications.
 
 ### Bioinformatics
 * [1 Introduction to BioInformatics](Introduction_to_Bioinformatics.ipynb)
-* [2 Multisequence Alignments](Multisequence_Alignments.ipynb) 
+* [2 Multisequence Alignments](Multisequence_Alignments.ipynb)
 
 ### Material Science
 * [1 Introduction to Material Science](Introduction_To_Material_Science.ipynb)
 
-### Machine Learning Methods 
+### Machine Learning Methods
 * [1 Using Reinforcement Learning to Play Pong](Using_Reinforcement_Learning_to_Play_Pong.ipynb)
 * [2 Introduction to Model Interpretability](Introduction_to_Model_Interpretability.ipynb)
 * [3 Uncertainty in Deep Learning](Uncertainty_In_Deep_Learning.ipynb)

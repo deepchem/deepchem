@@ -292,7 +292,10 @@ class MolecularFeaturizer(Featurizer):
           new_order = rdmolfiles.CanonicalRankAtoms(mol)
           mol = rdmolops.RenumberAtoms(mol, new_order)
 
-        features.append(self._featurize(mol, **kwargs))
+        kwargs_per_datapoint = {}
+        for key in kwargs.keys():
+          kwargs_per_datapoint[key] = kwargs[key][i]
+        features.append(self._featurize(mol, **kwargs_per_datapoint))
       except Exception as e:
         if isinstance(mol, Chem.rdchem.Mol):
           mol = Chem.MolToSmiles(mol)

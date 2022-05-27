@@ -61,30 +61,23 @@ or
 conda install -c conda-forge deepchem
 ```
 
-### Nightly build version
-The nightly version is built by the HEAD of DeepChem. It can be installed using
-
-```bash
-pip install --pre deepchem
-```
-
 Deepchem provides support for tensorflow, pytorch, jax and each require
 a individual pip Installation.
 
 For using models with tensorflow dependencies, you install using
 
 ```bash
-pip install --pre deepchem[tensorflow]
+pip install deepchem[tensorflow]
 ```
 For using models with torch dependencies, you install using
 
 ```bash
-pip install --pre deepchem[torch]
+pip install deepchem[torch]
 ```
 For using models with jax dependencies, you install using
 
 ```bash
-pip install --pre deepchem[jax]
+pip install deepchem[jax]
 ```
 If GPU support is required, then make sure CUDA is installed and then install the desired deep learning framework using the links below before installing deepchem
 
@@ -95,6 +88,13 @@ If GPU support is required, then make sure CUDA is installed and then install th
 In `zsh` square brackets are used for globbing/pattern matching. This means you
 need to escape the square brackets in the above installation. You can do so
 by including the dependencies in quotes like `pip install --pre 'deepchem[jax]'`
+
+### Nightly build version
+The nightly version is built by the HEAD of DeepChem. It can be installed using
+
+```bash
+pip install --pre deepchem
+```
 
 ### Docker
 
