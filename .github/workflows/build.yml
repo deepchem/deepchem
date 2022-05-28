@@ -23,10 +23,10 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         python-version: [3.8]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Cache pip modules for Linux
       if: runner.os == 'Linux'
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**') }}
@@ -34,7 +34,7 @@ jobs:
           ${{ runner.os }}-pip-
     - name: Cache pip modules for MacOS
       if: runner.os == 'macOS'
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/Library/Caches/pip
         key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/**') }}
@@ -73,9 +73,9 @@ jobs:
       matrix:
         python-version: [3.8]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Cache pip packages for Windows
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~\AppData\Local\pip\Cache
         key: ${{ matrix.os }}-pip-${{ hashFiles('env.*.yml') }}
