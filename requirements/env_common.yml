@@ -5,11 +5,11 @@ channels:
 dependencies:
   - openmm
   - pdbfixer
-  - rdkit
-  - mdtraj
-  - numpy>=1.21
   - pip
   - pip:
+    - numpy
+    - rdkit-pypi
+    - mdtraj
     - pre-commit
     - biopython
     - dgllife==0.2.8
