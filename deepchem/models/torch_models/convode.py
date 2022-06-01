@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchdiffeq
+import deepchem.models.torch_model import TorchModel
+from deepchem.models.losses import L2Loss
 
 
 class Encoder(nn.Module):
@@ -91,6 +93,17 @@ class ConvODEAutoEncoder(nn.Module):
     #print(f"X.SHAPE {x.shape}")
     return x
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(device)
-model = ConvODEAutoEncoder()
+
+class ConvODEAutoEncoderModel(TorchModel):
+
+  def __init__(self):
+    model = ConvODEAutoEncoder()
+    loss = L2Loss()
+    output_types = ['prediction']
+
+    super(ConvODEAutoEncoderModel, self).__init__(
+      model, loss= loss, output_types=output_types, **kwargs)
+
+  def _prepare_batch(self, batch):
+    pass
+    
