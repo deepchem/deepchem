@@ -6,6 +6,7 @@ __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
 import os
+import math
 import logging
 import unittest
 import deepchem as dc
@@ -29,8 +30,9 @@ class TestReload(unittest.TestCase):
         'MUV-852', 'MUV-600', 'MUV-810', 'MUV-712', 'MUV-737', 'MUV-858',
         'MUV-713', 'MUV-733', 'MUV-652', 'MUV-466', 'MUV-832'
     ]
-    loader = dc.data.CSVLoader(
-        tasks=MUV_tasks, feature_field="smiles", featurizer=featurizer)
+    loader = dc.data.CSVLoader(tasks=MUV_tasks,
+                               feature_field="smiles",
+                               featurizer=featurizer)
     dataset = loader.create_dataset(dataset_file)
     assert len(dataset) == len(raw_dataset)
 
@@ -43,12 +45,15 @@ class TestReload(unittest.TestCase):
             frac_test=frac_test, frac_valid=frac_valid)
     # Do an approximate comparison since splits are sometimes slightly off from
     # the exact fraction.
-    assert dc.utils.evaluate.relative_difference(
-        len(train_dataset), frac_train * len(dataset)) < 1e-3
-    assert dc.utils.evaluate.relative_difference(
-        len(valid_dataset), frac_valid * len(dataset)) < 1e-3
-    assert dc.utils.evaluate.relative_difference(
-        len(test_dataset), frac_test * len(dataset)) < 1e-3
+    assert math.isclose(len(train_dataset),
+                        frac_train * len(dataset),
+                        rel_tol=1e-3)
+    assert math.isclose(len(valid_dataset),
+                        frac_valid * len(dataset),
+                        rel_tol=1e-3)
+    assert math.isclose(len(test_dataset),
+                        frac_test * len(dataset),
+                        rel_tol=1e-3)
 
     # TODO(rbharath): Transformers don't play nice with reload! Namely,
     # reloading will cause the transform to be reapplied. This is undesirable in
@@ -68,8 +73,8 @@ class TestReload(unittest.TestCase):
     dataset_file = os.path.join(current_dir,
                                 "../../../datasets/mini_muv.csv.gz")
     logger.info("Running experiment for first time without reload.")
-    (len_train, len_valid, len_test) = self._run_muv_experiment(
-        dataset_file, reload)
+    (len_train, len_valid,
+     len_test) = self._run_muv_experiment(dataset_file, reload)
 
     logger.info("Running experiment for second time with reload.")
     reload = True
@@ -86,8 +91,8 @@ class TestReload(unittest.TestCase):
     dataset_file = os.path.join(current_dir,
                                 "../../../datasets/mini_muv.csv.gz")
     logger.info("Running experiment for first time with reload.")
-    (len_train, len_valid, len_test) = self._run_muv_experiment(
-        dataset_file, reload)
+    (len_train, len_valid,
+     len_test) = self._run_muv_experiment(dataset_file, reload)
 
     logger.info("Running experiment for second time with reload.")
     (len_reload_train, len_reload_valid,

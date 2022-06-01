@@ -2,12 +2,16 @@
 Gathers all models in one place for convenient imports
 """
 # flake8: noqa
+import logging
+
 from deepchem.models.models import Model
 from deepchem.models.multitask import SingletaskToMultitask
 from deepchem.models.wandblogger import WandbLogger
 from deepchem.models.callbacks import ValidationCallback
 
-# Tensorflow Depedency Models
+logger = logging.getLogger(__name__)
+
+# Tensorflow Dependency Models
 try:
   from deepchem.models.keras_model import KerasModel
 
@@ -25,8 +29,9 @@ try:
   from deepchem.models.text_cnn import TextCNNModel
   from deepchem.models.atomic_conv import AtomicConvModel
   from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
-except ModuleNotFoundError:
-  pass
+except ModuleNotFoundError as e:
+  logger.warning(
+      f'Skipped loading some Tensorflow models, missing a dependency. {e}')
 
 # scikit-learn model
 from deepchem.models.sklearn_models import SklearnModel
@@ -43,15 +48,16 @@ try:
   from deepchem.models.torch_models import Pagtn, PagtnModel
   from deepchem.models.fcnet import MultitaskRegressor, MultitaskClassifier, MultitaskFitTransformRegressor
   from deepchem.models.torch_models import MEGNetModel
-except ModuleNotFoundError:
-  pass
+except ModuleNotFoundError as e:
+  logger.warning(
+      f'Skipped loading some PyTorch models, missing a dependency. {e}')
 
 # Jax models
 try:
   from deepchem.models.jax_models import JaxModel
   from deepchem.models.jax_models import PINNModel
-except ModuleNotFoundError:
-  pass
+except ModuleNotFoundError as e:
+  logger.warning(f'Skipped loading some Jax models, missing a dependency. {e}')
 
 #####################################################################################
 # Compatibility imports for renamed XGBoost models. Remove below with DeepChem 3.0.
