@@ -19,3 +19,4 @@ from deepchem.feat.molecule_featurizers.mol_graph_conv_featurizer import MolGrap
 from deepchem.feat.molecule_featurizers.mol_graph_conv_featurizer import PagtnMolGraphFeaturizer
 from deepchem.feat.molecule_featurizers.molgan_featurizer import MolGanFeaturizer
 from deepchem.feat.molecule_featurizers.mat_featurizer import MATFeaturizer
+import deepchem.feat.molecule_featurizers.dmpnn_featurizer
