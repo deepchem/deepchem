@@ -1,0 +1,22 @@
+Introduction to DFT (Kohn Sham) :
+- solving many body schrodinger's equations
+- Self Consistent: initial guess (density)-potential energy values- solve eqns-wave fns- new density values
+- 
+Input: Creating a Mole Object: 
+(Solvation Model)
+- define atomic structure- Hellman Feyman Vibrations are used. 
+- Define Integral gradient 
+
+mol = pyscf.M(
+    atom = 'H 0 0 0; F 0 0 1.1',  # in Angstrom
+    basis = '631g',
+    symmetry = True,
+)
+
+Periodic Boundary Conditions and Exchange Correlation Functional (xc)
+mf = mol.KS() #Kohn-Sham (instance of dft class)
+mf.xc = 'pbe'
+mf.kernel()
+
+#analyze ground state energies and muliken charges
+mf.analyze() 
