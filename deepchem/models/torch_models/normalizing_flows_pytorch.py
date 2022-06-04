@@ -20,7 +20,7 @@ class Affine(nn.Module):
   (inputs).
 
   Normalizing Flow transformations must be bijective in order to compute
-  the logartihm of jacobian's determinat. For this reason, transformations
+  the logartihm of jacobian's determinant. For this reason, transformations
   must perform a forward and inverse pass.
 
   """
@@ -31,7 +31,7 @@ class Affine(nn.Module):
       Parameters
       ----------
       dim: int
-        Value of the Nth dimenssion of the dataset.
+        Value of the Nth dimension of the dataset.
 
       """
 
