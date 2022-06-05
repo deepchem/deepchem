@@ -1,4 +1,5 @@
 from torch import nn as nn
+from deepchem.models.torch_models.layers import ConvODEEncoderLayer, ConvODEDecoderLayer, SystemDynamics, ODEBlock
 
 class ConvODEAutoEncoder(nn.Module):
   """
@@ -35,21 +36,3 @@ class ConvODEAutoEncoder(nn.Module):
     x = self._system_dynamics_ode_block(x)
     x = self.decoder(x)
     return x
-<<<<<<< HEAD
-
-
-class ConvODEAutoEncoderModel(TorchModel):
-
-  def __init__(self):
-    model = ConvODEAutoEncoder()
-    loss = L2Loss()
-    output_types = ['prediction']
-
-    super(ConvODEAutoEncoderModel, self).__init__(
-      model, loss= loss, output_types=output_types, **kwargs)
-
-  def _prepare_batch(self, batch):
-    pass
-    
-=======
->>>>>>> a7cc48e3 (moved ode layers to layers.py)
