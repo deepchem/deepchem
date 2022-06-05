@@ -6,6 +6,7 @@ try:
   from torch import Tensor
   import torch.nn as nn
   import torch.nn.functional as F
+  from torchdiffeq import odeint_adjoint as odeint
 except ModuleNotFoundError:
   raise ImportError('These classes require PyTorch to be installed.')
 
@@ -851,3 +852,138 @@ class GraphNetwork(torch.nn.Module):
     return (
         f'{self.__class__.__name__}(n_node_features={self.n_node_features}, n_edge_features={self.n_edge_features}, n_global_features={self.n_global_features}, is_undirected={self.is_undirected}, residual_connection={self.residual_connection})'
     )
+
+
+class ConvODEEncoderLayer(nn.Module):
+  """
+  The convolutional encoder as defined in Convolutional ODE paper
+  """
+
+  def __init__(self, encoder: nn.Module = None, dim: int = 32):
+    """
+    Parameters
+    ----------
+
+    encoder: nn.Module
+      User Specified Encoder Block, can be passed while initializing
+    dim: int
+      Output dimension for the Encoder
+    """
+    super(ConvODEEncoderLayer, self).__init__()
+
+    self._encoder = None
+    if isinstance(encoder, nn.Module):
+      self._encoder = encoder
+
+    self.conv1 = nn.Conv2d(3, 16, 3, 2)
+    self.conv2 = nn.Conv2d(16, dim, 3, 2)
+
+  def forward(self, x):
+    """
+    Parameters
+    ----------
+    x: torch.Tensor
+      Input Tensor
+
+    Returns
+    -------
+    torch.Tensor
+    """
+
+    if self._encoder is not None:
+      out = self._encoder(x)
+    else:
+      out = F.relu(self.conv1(x))
+      out = F.relu(self.conv2(out))
+
+    return out
+
+
+class SystemDynamics(nn.Module):
+  """
+  An auto encoder neural network that defines the dynamics of the system
+  Input and output dimensions must be same
+  """
+
+  def __init__(self, dim: int = 32):
+    """
+    Parameter
+    ---------
+
+    """
+    super(SystemDynamics, self).__init__()
+
+    self.layer1 = nn.Sequential(nn.Conv2d(dim, 48, 7), nn.Conv2d(48, 64, 5),
+                                nn.Conv2d(64, 32, 5), nn.Conv2d(32, 16, 5))
+
+    self.layer2 = nn.Sequential(nn.ConvTranspose2d(16, 32, 5),
+                                nn.ConvTranspose2d(32, 64, 5),
+                                nn.ConvTranspose2d(64, 48, 5),
+                                nn.ConvTranspose2d(48, dim, 7))
+
+  def forward(self, t, x):
+    out = self.layer2(self.layer1(x))
+    return out
+
+
+class ODEBlock(nn.Module):
+  """
+  A wrapper over SystemDynamics Neural Network f, wires f with the rest of model
+  """
+
+  def __init__(self, system_dynamics: nn.Module):
+    super(ODEBlock, self).__init__()
+    self._system_dynamics = system_dynamics
+    self.int_time = torch.Tensor([0, 1]).float()
+
+  def forward(self, x):
+    self.int_time = self.int_time.type_as(x)
+    out = odeint(self._system_dynamics, x, self.int_time)
+    return out[1]
+
+
+class ConvODEDecoderLayer(nn.Module):
+  """
+  Decoder network as defined in the paper
+  """
+
+  def __init__(self, decoder: nn.Module = None, dim: int = 32):
+    """
+
+    Parameters
+    ----------
+    decoder: nn.Module
+      User Specified Decoder Block
+    dim: int
+      Input Dimension for decoder
+
+    Returns
+    -------
+    torch.Tensor
+    """
+    super(ConvODEDecoderLayer, self).__init__()
+
+    self._decoder = None
+    if isinstance(decoder, nn.Module):
+      self._decoder = decoder
+
+    self.layer = nn.Sequential(
+        nn.ConvTranspose2d(dim, 16, 3, 2),
+        nn.ConvTranspose2d(16, 3, 3, 2),
+    )
+
+  def forward(self, x):
+    """
+    Parameter
+    ---------
+    x: torch.Tensor
+      input for the decoder stage
+
+    Returns
+    -------
+    torch.Tensor
+    """
+    if self._decoder is not None:
+      return self._decoder(x)
+
+    return self.layer(x)
