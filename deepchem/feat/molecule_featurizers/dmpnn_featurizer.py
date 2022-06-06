@@ -12,6 +12,8 @@ from deepchem.utils.molecule_feature_utils import get_atom_total_num_Hs_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_hybridization_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_is_in_aromatic_one_hot
 
+from deepchem.feat.graph_features import bond_features as b_Feats
+
 
 class GraphConvConstants(object):
   """
@@ -32,6 +34,7 @@ class GraphConvConstants(object):
       ATOM_FEATURES_HYBRIDIZATION) + 1 + 2
   # len(choices) +1 and len(ATOM_FEATURES_HYBRIDIZATION) +1 to include room for unknown set
   # + 2 at end for is_in_aromatic and mass
+  BOND_FDIM = 14
 
 
 def get_atomic_num_one_hot(atom: RDKitAtom,
@@ -100,9 +103,9 @@ def get_atom_mass(atom: RDKitAtom) -> List[float]:
   return [atom.GetMass() * 0.01]
 
 
-def atom_features(
-    atom: Chem.rdchem.Atom,
-    functional_groups: List[int] = None) -> List[Union[bool, int, float]]:
+def atom_features(atom: Chem.rdchem.Atom,
+                  functional_groups: List[int] = None,
+                  only_atom_num: bool = False) -> List[Union[bool, int, float]]:
   """Helper method used to compute atom feature vector.
 
   Deepchem already contains an atom_features function, however we are defining a new one here due to the need to handle features specific to DMPNN.
@@ -114,11 +117,13 @@ def atom_features(
   functional_groups: List[int]
     A k-hot vector indicating the functional groups the atom belongs to.
     Default value is None
+  only_atom_num: bool
+    Toggle to build a feature vector for an atom containing only the atom number information.
 
   Returns
   -------
   features: List[Union[bool, int, float]]
-    An list of atom features.
+    A list of atom features.
 
   Examples
   --------
@@ -134,6 +139,15 @@ def atom_features(
 
   if atom is None:
     features: List[Union[bool, int, float]] = [0] * GraphConvConstants.ATOM_FDIM
+
+  elif only_atom_num:
+    features = []
+    features += get_atomic_num_one_hot(
+        atom, GraphConvConstants.ATOM_FEATURES['atomic_num'])
+    features += [0] * (
+        GraphConvConstants.ATOM_FDIM - GraphConvConstants.MAX_ATOMIC_NUM - 1
+    )  # set other features to zero
+
   else:
     features = []
     features += get_atomic_num_one_hot(
@@ -155,3 +169,35 @@ def atom_features(
     if functional_groups is not None:
       features += functional_groups
   return features
+
+
+def bond_features(bond: Chem.rdchem.Bond) -> List[Union[bool, int, float]]:
+  """wrapper function for bond_features() already available in deepchem, used to compute bond feature vector.
+
+  Parameters
+  ----------
+  bond: rdkit.Chem.rdchem.Bond
+    Bond to compute features on.
+
+  Returns
+  -------
+  features: List[Union[bool, int, float]]
+    A list of bond features.
+
+  Examples
+  --------
+  >>> from rdkit import Chem
+  >>> mol = Chem.MolFromSmiles('CC')
+  >>> bond = mol.GetBondWithIdx(0)
+  >>> b_features = dc.feat.molecule_featurizers.dmpnn_featurizer.bond_features(bond)
+  >>> type(b_features)
+  <class 'list'>
+  >>> len(b_features)
+  14
+  """
+  if bond is None:
+    b_features: List[Union[bool, int, float]] = [1] + [0] * (GraphConvConstants.BOND_FDIM - 1)
+
+  else:
+    b_features = b_Feats(bond, use_dmpnn_bond_feat=True)
+  return b_features
