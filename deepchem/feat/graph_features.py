@@ -8,6 +8,7 @@ from deepchem.data import DiskDataset
 import logging
 from typing import Optional, List, Tuple, Union, Iterable
 from deepchem.utils.typing import RDKitMol, RDKitAtom
+from deepchem.utils.molecule_feature_utils import one_hot_encode
 
 
 def one_of_k_encoding(x, allowable_set):
@@ -388,7 +389,7 @@ def atom_features(atom,
     return np.array(results)
 
 
-def bond_features(bond, use_chirality=False):
+def bond_features(bond, use_chirality=False, use_dmpnn_bond_feat=False):
   """Helper method used to compute bond feature vectors.
 
   Many different featurization methods compute bond features
@@ -400,6 +401,8 @@ def bond_features(bond, use_chirality=False):
     Bond to compute features on.
   use_chirality: bool, optional
     If true, use chirality information.
+  use_dmpnn_bond_feat: bool, optional
+    If true, return features for DMPNN model
   
   Note
   ----
@@ -410,6 +413,9 @@ def bond_features(bond, use_chirality=False):
   bond_feats: np.ndarray
     Array of bond features. This is a 1-D array of length 6 if `use_chirality`
     is `False` else of length 10 with chirality encoded.
+  
+  bond_feats: List[Union[bool, int, float]]
+    List of bond features returned if `use_dmpnn_bond_feat` is `True`.
 
   Examples
   --------
@@ -441,6 +447,14 @@ def bond_features(bond, use_chirality=False):
   if use_chirality:
     bond_feats = bond_feats + one_of_k_encoding_unk(
         str(bond.GetStereo()), GraphConvConstants.possible_bond_stereo)
+
+  if use_dmpnn_bond_feat:
+    bond_feats.insert(0, 0)
+    stereo = one_hot_encode(int(bond.GetStereo()), list(range(6)), True)
+    stereo = [int(feature) for feature in stereo]
+    bond_feats = bond_feats + stereo
+    return bond_feats
+
   return np.array(bond_feats)
 
 
