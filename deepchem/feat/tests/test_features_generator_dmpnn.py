@@ -2,7 +2,7 @@
 Test for bond feature vector generator and reactions mapping
 """
 
-from deepchem.feat.molecule_featurizers.dmpnn_featurizer import bond_features
+from deepchem.feat.molecule_featurizers.dmpnn_featurizer import bond_features, map_reac_to_prod
 from rdkit import Chem
 import pytest
 import numpy as np
@@ -53,3 +53,37 @@ def test_bond_features(example_smiles_n_b_features):
     req_f = np.array(example_smiles_n_b_features[smiles])
     assert k.shape == req_f.shape
     assert b_f == example_smiles_n_b_features[smiles]
+
+
+def test_reaction_mapping():
+  """
+  Test for map_reac_to_prod() function
+  """
+
+  def mappings(r_smile, p_smile):
+    """
+    Function to return mappings based on given reactant and product smiles
+    """
+    r_mol = Chem.MolFromSmiles(r_smile)
+    p_mol = Chem.MolFromSmiles(p_smile)
+    return map_reac_to_prod(r_mol, p_mol)
+
+  # both reactant and product are null
+  r_smile = ''
+  p_smile = ''
+  assert mappings(r_smile, p_smile) == ({}, [], [])
+
+  # reactant is null
+  r_smile = ''
+  p_smile = '[H:6][CH2:1][CH:2]=[CH:3][CH:4]=[CH2:5]'
+  assert mappings(r_smile, p_smile) == ({}, [0, 1, 2, 3, 4], [])
+
+  # product is null
+  r_smile = '[CH2:1]=[CH:2][CH:3]=[CH:4][CH2:5][H:6]'
+  p_smile = ''
+  assert mappings(r_smile, p_smile) == ({}, [], [0, 1, 2, 3, 4])
+
+  # valid reaction: [CH2:1]=[CH:2][CH:3]=[CH:4][CH2:5][H:6]>> [H:6][CH2:1][CH:2]=[CH:3][CH:4]=[CH2:5]
+  r_smile = '[CH2:1]=[CH:2][CH:3]=[CH:4][CH2:5][H:6]'
+  p_smile = '[H:6][CH2:1][CH:2]=[CH:3][CH:4]=[CH2:5]'
+  assert mappings(r_smile, p_smile) == ({0: 0, 1: 1, 2: 2, 3: 3, 4: 4}, [], [])

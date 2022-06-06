@@ -1,7 +1,7 @@
 # flake8: noqa
 
 from rdkit import Chem
-from typing import List, Union, Dict
+from typing import List, Tuple, Union, Dict, Set
 import deepchem as dc
 from deepchem.utils.typing import RDKitAtom
 
@@ -196,8 +196,59 @@ def bond_features(bond: Chem.rdchem.Bond) -> List[Union[bool, int, float]]:
   14
   """
   if bond is None:
-    b_features: List[Union[bool, int, float]] = [1] + [0] * (GraphConvConstants.BOND_FDIM - 1)
+    b_features: List[Union[
+        bool, int, float]] = [1] + [0] * (GraphConvConstants.BOND_FDIM - 1)
 
   else:
     b_features = b_Feats(bond, use_dmpnn_bond_feat=True)
   return b_features
+
+
+def map_reac_to_prod(
+    mol_reac: Chem.Mol,
+    mol_prod: Chem.Mol) -> Tuple[Dict[int, int], List[int], List[int]]:
+  """
+  Function to build a dictionary of mapping atom indices in the reactants to the products.
+
+  Parameters
+  ----------
+  mol_reac: Chem.Mol
+  An RDKit molecule of the reactants.
+
+  mol_prod: Chem.Mol
+  An RDKit molecule of the products.
+
+  Returns
+  -------
+  mappings: Tuple[Dict[int,int],List[int],List[int]]
+  A tuple containing a dictionary of corresponding reactant and product atom indices,
+  list of atom ids of product not part of the mapping and
+  list of atom ids of reactant not part of the mapping
+  """
+  only_prod_ids: List[int] = []
+  prod_map_to_id: Dict[int, int] = {}
+  mapnos_reac: Set[int] = set(
+      [atom.GetAtomMapNum() for atom in mol_reac.GetAtoms()])
+  for atom in mol_prod.GetAtoms():
+    mapno = atom.GetAtomMapNum()
+    if (mapno > 0):
+      prod_map_to_id[mapno] = atom.GetIdx()
+      if (mapno not in mapnos_reac):
+        only_prod_ids.append(atom.GetIdx())
+    else:
+      only_prod_ids.append(atom.GetIdx())
+  only_reac_ids: List[int] = []
+  reac_id_to_prod_id: Dict[int, int] = {}
+  for atom in mol_reac.GetAtoms():
+    mapno = atom.GetAtomMapNum()
+    if (mapno > 0):
+      try:
+        reac_id_to_prod_id[atom.GetIdx()] = prod_map_to_id[mapno]
+      except KeyError:
+        only_reac_ids.append(atom.GetIdx())
+    else:
+      only_reac_ids.append(atom.GetIdx())
+  mappings: Tuple[Dict[int, int], List[int],
+                  List[int]] = (reac_id_to_prod_id, only_prod_ids,
+                                only_reac_ids)
+  return mappings
