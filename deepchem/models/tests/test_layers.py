@@ -704,3 +704,17 @@ def test_mat_generator():
   result = layer(input_ar, mask)
   output_ar = torch.tensor([-1.4436])
   assert torch.allclose(result, output_ar, rtol=1e-4)
+
+
+@pytest.mark.torch
+def test_ConvODEEncoderLayer():
+  from deepchem.models.torch_models.layers import ConvODEEncoderLayer
+
+  _encoder = ConvODEEncoderLayer()
+  x = torch.rand(1,3,224,224)
+  y = _encoder(x)
+  assert list(y.shape) == [1,32,55,55], "Output Shape doesn't match expected shape"
+
+  x = torch.rand(1,3,16,16)
+  y = _encoder(x)
+  assert list(y.shape) == [1,32,3,3], "Output Shape doesn't match expected shape"
