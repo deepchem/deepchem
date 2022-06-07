@@ -30,7 +30,7 @@ class _PerovskiteLoader(_MolnetLoader):
 
 
 def load_perovskite(
-    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.CGCNNFeaturizer(),
+    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.DummyFeaturizer(),
     splitter: Union[dc.splits.Splitter, str, None] = 'random',
     transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
     reload: bool = True,
