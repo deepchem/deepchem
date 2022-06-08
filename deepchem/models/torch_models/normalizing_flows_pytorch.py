@@ -57,7 +57,7 @@ class Affine(nn.Module):
     self.scale = nn.Parameter(torch.zeros(self.dim))
     self.shift = nn.Parameter(torch.zeros(self.dim))
 
-  def forward(self, x: Sequence) -> Tuple[float]:
+  def forward(self, x: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Performs a transformation between two different distributions. This
     particular transformation represents the following function:
@@ -73,7 +73,7 @@ class Affine(nn.Module):
 
     return y, log_det_jacobian
 
-  def inverse(self, y: Sequence) -> Tuple[float]:
+  def inverse(self, y: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Performs a transformation between two different distributions.
     This transformation represents the bacward pass of the function
@@ -86,6 +86,6 @@ class Affine(nn.Module):
 
     x = (y - self.shift) / torch.exp(self.scale)
     det_jacobian = 1 / torch.exp(self.scale.sum())
-    inverse_log_det_jacobian = torch.ones(y.shape[0]) * torch.log(det_jacobian)
+    inverse_log_det_jacobian = torch.ones(x.shape[0]) * torch.log(det_jacobian)
 
     return x, inverse_log_det_jacobian
