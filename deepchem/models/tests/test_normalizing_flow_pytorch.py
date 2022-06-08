@@ -18,6 +18,18 @@ except:
 @unittest.skipIf(not has_torch, 'torch is not installed')
 @pytest.mark.torch
 def test_Affine():
+  """
+  This test should evaluate if the transformation its being applied
+  correctly. When computing the logarithm of the determinant jacobian matrix
+  the result must be zero for any distribution as input when performing the
+  first forward and inverse pass (initialized). This is the expected
+  behavior because nothing is learned yet.
+
+  input shape: (samples, dim)
+  output shape: (samples, dim)
+
+  """
+
   dim = 2
   samples = 96
   data = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
