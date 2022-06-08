@@ -1,7 +1,7 @@
 # flake8: noqa
 
 from rdkit import Chem
-from typing import List, Tuple, Union, Dict, Set
+from typing import List, Tuple, Union, Dict, Set, Sequence
 import deepchem as dc
 from deepchem.utils.typing import RDKitAtom
 
@@ -103,9 +103,10 @@ def get_atom_mass(atom: RDKitAtom) -> List[float]:
   return [atom.GetMass() * 0.01]
 
 
-def atom_features(atom: Chem.rdchem.Atom,
-                  functional_groups: List[int] = None,
-                  only_atom_num: bool = False) -> List[Union[bool, int, float]]:
+def atom_features(
+    atom: Chem.rdchem.Atom,
+    functional_groups: List[int] = None,
+    only_atom_num: bool = False) -> Sequence[Union[bool, int, float]]:
   """Helper method used to compute atom feature vector.
 
   Deepchem already contains an atom_features function, however we are defining a new one here due to the need to handle features specific to DMPNN.
@@ -122,7 +123,7 @@ def atom_features(atom: Chem.rdchem.Atom,
 
   Returns
   -------
-  features: List[Union[bool, int, float]]
+  features: Sequence[Union[bool, int, float]]
     A list of atom features.
 
   Examples
@@ -138,7 +139,8 @@ def atom_features(atom: Chem.rdchem.Atom,
   """
 
   if atom is None:
-    features: List[Union[bool, int, float]] = [0] * GraphConvConstants.ATOM_FDIM
+    features: Sequence[Union[bool, int,
+                             float]] = [0] * GraphConvConstants.ATOM_FDIM
 
   elif only_atom_num:
     features = []
@@ -171,7 +173,7 @@ def atom_features(atom: Chem.rdchem.Atom,
   return features
 
 
-def bond_features(bond: Chem.rdchem.Bond) -> List[Union[bool, int, float]]:
+def bond_features(bond: Chem.rdchem.Bond) -> Sequence[Union[bool, int, float]]:
   """wrapper function for bond_features() already available in deepchem, used to compute bond feature vector.
 
   Parameters
@@ -181,7 +183,7 @@ def bond_features(bond: Chem.rdchem.Bond) -> List[Union[bool, int, float]]:
 
   Returns
   -------
-  features: List[Union[bool, int, float]]
+  features: Sequence[Union[bool, int, float]]
     A list of bond features.
 
   Examples
@@ -196,11 +198,11 @@ def bond_features(bond: Chem.rdchem.Bond) -> List[Union[bool, int, float]]:
   14
   """
   if bond is None:
-    b_features: List[Union[
+    b_features: Sequence[Union[
         bool, int, float]] = [1] + [0] * (GraphConvConstants.BOND_FDIM - 1)
 
   else:
-    b_features = b_Feats(bond, use_dmpnn_bond_feat=True)
+    b_features = [0] + b_Feats(bond, use_extended_chirality=True)
   return b_features
 
 

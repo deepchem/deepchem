@@ -389,7 +389,7 @@ def atom_features(atom,
     return np.array(results)
 
 
-def bond_features(bond, use_chirality=False, use_dmpnn_bond_feat=False):
+def bond_features(bond, use_chirality=False, use_extended_chirality=False):
   """Helper method used to compute bond feature vectors.
 
   Many different featurization methods compute bond features
@@ -401,8 +401,8 @@ def bond_features(bond, use_chirality=False, use_dmpnn_bond_feat=False):
     Bond to compute features on.
   use_chirality: bool, optional
     If true, use chirality information.
-  use_dmpnn_bond_feat: bool, optional
-    If true, return features for DMPNN model
+  use_extended_chirality: bool, optional
+    If true, use chirality information with upto 6 different types.
   
   Note
   ----
@@ -414,8 +414,8 @@ def bond_features(bond, use_chirality=False, use_dmpnn_bond_feat=False):
     Array of bond features. This is a 1-D array of length 6 if `use_chirality`
     is `False` else of length 10 with chirality encoded.
   
-  bond_feats: List[Union[bool, int, float]]
-    List of bond features returned if `use_dmpnn_bond_feat` is `True`.
+  bond_feats: Sequence[Union[bool, int, float]]
+    List of bond features returned if `use_extended_chirality` is `True`.
 
   Examples
   --------
@@ -448,8 +448,7 @@ def bond_features(bond, use_chirality=False, use_dmpnn_bond_feat=False):
     bond_feats = bond_feats + one_of_k_encoding_unk(
         str(bond.GetStereo()), GraphConvConstants.possible_bond_stereo)
 
-  if use_dmpnn_bond_feat:
-    bond_feats.insert(0, 0)
+  if use_extended_chirality:
     stereo = one_hot_encode(int(bond.GetStereo()), list(range(6)), True)
     stereo = [int(feature) for feature in stereo]
     bond_feats = bond_feats + stereo
