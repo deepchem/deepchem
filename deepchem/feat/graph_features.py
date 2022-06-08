@@ -795,7 +795,7 @@ class ConvMolFeaturizer(MolecularFeaturizer):
                             for (is_valid, elt) in zip(l, m)
                             if is_valid]
                            for (l, m) in zip(valid_frag_inds, features)
-                           if any(l)])
+                           if any(l)], dtype=object)
     return features
 
   def _get_atom_properties(self, atom):
