@@ -9,7 +9,7 @@ import unittest
 try:
   import torch
   from torch.distributions import MultivariateNormal
-  from deepchem.models.torch_models.normalizing_flows_pytorch import Affine
+  from deepchem.models.torch_models.layers import Affine
   has_torch = True
 except:
   has_torch = False
@@ -21,9 +21,9 @@ def test_Affine():
   """
   This test should evaluate if the transformation its being applied
   correctly. When computing the logarithm of the determinant jacobian matrix
-  the result must be zero for any distribution as input when performing the
-  first forward and inverse pass (initialized). This is the expected
-  behavior because nothing is learned yet.
+  the result must be zero for any distribution when performing the first forward
+  and inverse pass (initialized). This is the expected
+  behavior since nothing is being learned yet.
 
   input shape: (samples, dim)
   output shape: (samples, dim)
