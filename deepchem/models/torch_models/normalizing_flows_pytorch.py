@@ -1,5 +1,4 @@
-"""
-Normalizing flows for transforming probability distributions using PyTorch.
+"""Normalizing flows for transforming probability distributions using PyTorch.
 """
 
 import logging
@@ -25,19 +24,18 @@ class Affine(nn.Module):
 
   Example
   --------
-  >>>
-  >> import deepchem as dc
-  >> from deepchem.models.torch_models import Affine
-  >> import torch
-  >> from torch.distributions import MultivariateNormal
-  >> # initialize the transformation layer's parameters
-  >> dim = 2
-  >> transforms = Affine(2)
-  >> # formward pass based on a distribution
-  >> distribution = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
-  >> transforms.forward(distribution)
-  >> # inverse pass based on a distribution
-  >> transforms.inverse(distribution)
+  >>> import deepchem as dc
+  >>> from deepchem.models.torch_models import Affine
+  >>> import torch
+  >>> from torch.distributions import MultivariateNormal
+  >>> # initialize the transformation layer's parameters
+  >>> dim = 2
+  >>> transforms = Affine(2)
+  >>> # formward pass based on a distribution
+  >>> distribution = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
+  >>> transforms.forward(distribution)
+  >>> # inverse pass based on a distribution
+  >>> transforms.inverse(distribution)
 
   """
 
@@ -47,7 +45,7 @@ class Affine(nn.Module):
     Parameters
     ----------
     dim: int
-    Value of the Nth dimension of the dataset.
+      Value of the Nth dimension of the dataset.
 
     """
 
@@ -57,13 +55,14 @@ class Affine(nn.Module):
     self.shift = nn.Parameter(torch.zeros(self.dim))
 
   def forward(self, x: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
-    """
-    Performs a transformation between two different distributions. This
+    """Performs a transformation between two different distributions. This
     particular transformation represents the following function:
-    y = x*exp(a) + b, where a is scale parameter and b performs a shift.
+    y = x * exp(a) + b, where a is scale parameter and b performs a shift.
     This class also returns the logarithm of the jacobians determinant
     which is useful when invert a transformation and compute the
     probability of the transformation.
+    input shape: (samples, dim)
+    output shape: (samples, dim)
     """
 
     y = torch.exp(self.scale) * x + self.shift
@@ -73,14 +72,15 @@ class Affine(nn.Module):
     return y, log_det_jacobian
 
   def inverse(self, y: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
-    """
-    Performs a transformation between two different distributions.
+    """Performs a transformation between two different distributions.
     This transformation represents the bacward pass of the function
-    mention before. Its mathematical representation is x = (y -b)/ exp(a)
+    mention before. Its mathematical representation is x = (y - b) / exp(a)
     , where "a" is scale parameter and "b" performs a shift. This class
     also returns the logarithm of the jacobians determinant which is
     useful when invert a transformation and compute the probability of
     the transformation.
+    input shape: (samples, dim)
+    output shape: (samples, dim)
     """
 
     x = (y - self.shift) / torch.exp(self.scale)
