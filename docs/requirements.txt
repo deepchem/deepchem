@@ -1,10 +1,10 @@
 pandas
 scikit-learn
-sphinx>=3.2,<4
-sphinx_rtd_theme>=0.5,<1
-tensorflow>=2.4
+sphinx
+sphinx_rtd_theme
+tensorflow
 transformers>=4.6.*
-torch>=1.8.1
+torch
 jax
 dm-haiku
 optax

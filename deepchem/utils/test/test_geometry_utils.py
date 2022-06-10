@@ -55,8 +55,8 @@ class TestGeometryUtils(unittest.TestCase):
     distance = compute_pairwise_distances(coords1, coords2)
     self.assertEqual(distance.shape, (n1, n2))
     self.assertTrue((distance >= 0).all())
-    # random coords between 0 and 1, so the max possible distance in sqrt(2)
-    self.assertTrue((distance <= 2.0**0.5).all())
+    # random coords between 0 and 1, so the max possible distance in sqrt(3)
+    self.assertTrue((distance <= 3.0**0.5).all())
 
     # check if correct distance metric was used
     coords1 = np.array([[0, 0, 0], [1, 0, 0]])
