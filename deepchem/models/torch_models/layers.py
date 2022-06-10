@@ -878,9 +878,11 @@ class Affine(nn.Module):
   >>> # forward pass based on a given distribution
   >>> distribution = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
   >>> tensor = distribution.sample(torch.Size((samples, dim)))
-  >>> transforms.forward(tensor)
+  >>> len(transforms.forward(tensor))
+  >>> 2
   >>> # inverse pass based on a distribution
-  >>> transforms.inverse(tensor)
+  >>> len(transforms.inverse(tensor))
+  >>> 2
 
   """
 
