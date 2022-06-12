@@ -84,7 +84,7 @@ class CNN(KerasModel):
       where the final element corresponds to the dense layer.  Alternatively this
       may be a single value instead of a list, in which case the same value is used
       for every layer.
-    bias_init_consts: list or loat
+    bias_init_consts: list or float
       the value to initialize the biases in each layer to.  The length of this
       list should equal len(layer_filters)+1, where the final element corresponds
       to the dense layer.  Alternatively this may be a single value instead of a
