@@ -119,15 +119,23 @@ jobs:
         fi;
         cd ..
         cp requirements/env.yml env.yml
-    - name: Install all dependencies
-      uses: conda-incubator/setup-miniconda@v2
+    - name: Install all dependencies using micromamba
+      uses: mamba-org/provision-with-micromamba@main
       with:
-        miniconda-version: "latest"
-        auto-update-conda: true
-        activate-environment: deepchem
-        channels: conda-forge,defaults
-        python-version: ${{ matrix.python-version }}
         environment-file: env.yml
+        environment-name: deepchem
+        channels: conda-forge,defaults
+        extra-specs: python=${{ matrix.python-version }}
+
+#    - name: Install all dependencies using conda
+#      uses: conda-incubator/setup-miniconda@v2
+#      with:
+#        miniconda-version: "latest"
+#        auto-update-conda: true
+#        activate-environment: deepchem
+#        channels: conda-forge,defaults
+#        python-version: ${{ matrix.python-version }}
+#        environment-file: env.yml
     - name: Install DeepChem
       id: install
       shell: bash -l {0}
