@@ -6,7 +6,6 @@ try:
   from torch import Tensor
   import torch.nn as nn
   import torch.nn.functional as F
-  from torchdiffeq import odeint_adjoint as odeint
 except ModuleNotFoundError:
   raise ImportError('These classes require PyTorch to be installed.')
 
@@ -14,6 +13,11 @@ try:
   from torch_scatter import scatter_mean
 except ModuleNotFoundError:
   pass
+
+try:
+  from collections.abc import Sequence as SequenceCollection
+except:
+  from collections import Sequence as SequenceCollection
 
 
 class ScaleNorm(nn.Module):
@@ -854,29 +858,124 @@ class GraphNetwork(torch.nn.Module):
     )
 
 
-class ConvODEEncoderLayer(nn.Module):
+class ConvEncoderLayer(nn.Module):
+  """A 1,2, or  dimensional convolutional network for Convolutional Neural ODE Model
+
+  This encoder Layer consists of the following sequence of layers:
+
+  - A configurable number of convolutional layers
+  - A global pooling layer (either max pool or average pool)
+
+  Examples
+  --------
+  >>> from deepchem.models.torch_models.layers import ConvEncoderLayer
+  >>> import deepchem as dc
+  >>> encoder = ConvEncoderLayer(layer_filters=[3,16,8,32,16], conv_dim=3, kernel_size=4)
+  >>> x = torch.ones(3,224,224,224)
+  >>> y = encoder(x)
+  >>> y = tensor([1.2733, 0.0000, 0.1453, 0.8308, 0.0000, -0.0000, 0.7857, -0.0000, 1.2164,
+        0.0000, 0.4958, -0.0000, 0.5518, -0.0000, 0.0726, -0.0000],
+       grad_fn=<ReshapeAliasBackward0>)
+
   """
-  The convolutional encoder as defined in Convolutional ODE paper
-  """
 
-  def __init__(self, encoder: nn.Module = None, dim: int = 32):
-    """
-    Parameters
-    ----------
+  def __init__(self,
+               conv_dim,
+               layer_filters=[100],
+               kernel_size=5,
+               strides=1,
+               dropouts=0.5,
+               activation_fns=nn.ReLU,
+               pool_type='max',
+               padding='valid',
+               dtype=None,
+               device="cpu",
+               ):
+    """Create a Convolutional Encoder
 
-    encoder: nn.Module
-      User Specified Encoder Block, can be passed while initializing
-    dim: int
-      Output dimension for the Encoder
-    """
-    super(ConvODEEncoderLayer, self).__init__()
+      Parameters
+      ----------
+      conv_dims: int
+        the number of dimensions to apply convolutions over (1,2, or 3)
+      layer_filters: list
+        The number of output filters for each convolutional layer in the network.
+        The length of this list determines number of layers
+      kernel_size: int, tuple, or list
+        a list giving the shape of the convolutional kernel for each layer. Each
+        element may be either an int (use the same kernel width for every dimension)
+        or a tuple (the kernel width along each dimension). Alternatively this may
+        be a single int or tuple instead of a list, in which case the same kernel
+        shape is used for every layer.
+      strides: int, tuple, or list
+        a list giving the stride applications of the kernel for each layer. Each
+        element may be either an int (use the same stride width for every dimension)
+        or a tuple (the kernel width along each dimension). Alternatively this may be
+        a single int or tuple instead of a list, in which case the same stride used
+        for every layer.
+      pool_type: str
+        the type of pooling layer to use, either 'max' or 'average'
+      padding: str
+        the type of padding to use for convolutional layers, either 'valid' or 'same'
+      """
 
-    self._encoder = None
-    if isinstance(encoder, nn.Module):
-      self._encoder = encoder
+    super(ConvEncoderLayer, self).__init__()
 
-    self.conv1 = nn.Conv2d(3, 16, 3, 2)
-    self.conv2 = nn.Conv2d(16, dim, 3, 2)
+    if conv_dim not in (1, 2, 3):
+      raise ValueError('Number of dimensions must be 1,2 or 3')
+
+    self.conv_dim = conv_dim
+
+    n_layers = len(layer_filters)
+
+    if not isinstance(kernel_size, list):
+      kernel_size = [kernel_size] * n_layers
+
+    if not isinstance(strides, SequenceCollection):
+      strides = [strides] * n_layers
+
+    if not isinstance(dropouts, SequenceCollection):
+      dropouts = [dropouts] * n_layers
+
+    if not isinstance(activation_fns, SequenceCollection):
+      activation_fns = [activation_fns] * n_layers
+
+    ConvLayer = (nn.Conv1d, nn.Conv2d, nn.Conv3d)[self.conv_dim - 1]
+
+    if pool_type == 'average':
+      PoolLayer = (nn.AvgPool1d, nn.AvgPool2d, nn.AvgPool3d)[self.conv_dim - 1]
+
+    elif pool_type == 'max':
+      PoolLayer = (nn.MaxPool1d, nn.MaxPool2d, nn.MaxPool3d)[self.conv_dim - 1]
+
+    else:
+      raise ValueError("pool_type must be either 'average' or 'max'")
+
+    self.layers = nn.ModuleList()
+
+    for input_shape, out_shape, size, stride, dropout, activation_fn in zip(
+            layer_filters, layer_filters[1:], kernel_size, strides, dropouts, activation_fns):
+      convblock = nn.Sequential()
+
+      convblock.append(ConvLayer(
+        in_channels=input_shape,
+        out_channels=out_shape,
+        kernel_size=size,
+        stride=stride,
+        padding=padding,
+        dilation=1,
+        groups=1,
+        bias=True,
+        device=device,
+        dtype=dtype
+      ))
+
+      in_shape = out_shape
+
+      convblock.append(nn.Dropout(dropout))
+      convblock.append(activation_fn())
+      convblock.append(PoolLayer(size))
+
+      self.layers.append(convblock)
 
   def forward(self, x):
     """
@@ -888,13 +987,12 @@ class ConvODEEncoderLayer(nn.Module):
     Returns
     -------
     torch.Tensor
+      The tensor to be feeded into ODEBlock,
+      The length of this tensor is equal to ODE Input Dimension
     """
 
-    if self._encoder is not None:
-      out = self._encoder(x)
-    else:
-      out = F.relu(self.conv1(x))
-      out = F.relu(self.conv2(out))
+    out = x
 
+    for i in range(len(self.layers)):
+      out = self.layers[i](out)
     return out
-
