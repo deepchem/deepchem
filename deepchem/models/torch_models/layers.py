@@ -995,4 +995,6 @@ class ConvEncoderLayer(nn.Module):
 
     for i in range(len(self.layers)):
       out = self.layers[i](out)
+    batch_size, out_len = out.shape[:2]
+    out = out.view(batch_size, out_len)
     return out
