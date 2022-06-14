@@ -1,10 +1,7 @@
 import math
 import numpy as np
-<<<<<<< HEAD
-from typing import Any, Tuple, List, Optional
-=======
-from typing import Any, Tuple, Optional, Sequence
->>>>>>> 05fe1b186ec154e18de9aa1b110e9258dc484e21
+from typing import Any, Tuple, List, Sequence, Optional
+
 try:
   import torch
   from torch import Tensor
@@ -862,7 +859,6 @@ class GraphNetwork(torch.nn.Module):
     )
 
 
-<<<<<<< HEAD
 class ConvEncoderLayer(nn.Module):
   """A 1,2, or  dimensional convolutional network for Convolutional Neural ODE Model
 
