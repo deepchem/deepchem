@@ -2,7 +2,7 @@ Contibuting to DeepChem as a Scientist
 ======================================
 
 The scientific community in many ways is quite traditional.
-Students typically learn in apprenticeship from from advisors who
+Students typically learn in apprenticeship from advisors who
 teach a small number of students directly. This system has endured
 for centuries and allows for expert scientists to teach their ways of
 thinking to new students.
