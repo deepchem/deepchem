@@ -148,6 +148,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.GraphNetwork
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.Affine
+  :members: 
+
 Jax Layers
 ----------
 
