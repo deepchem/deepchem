@@ -886,7 +886,6 @@ class ConvEncoderLayer(nn.Module):
                activation_fns: Optional[nn.Module or List[nn.Module]] = nn.ReLU,
                pool_type: Optional[str] = 'max',
                padding: Optional[str] = 'valid') -> None:
-
     """Create a Convolutional Encoder
 
       Parameters
@@ -949,19 +948,19 @@ class ConvEncoderLayer(nn.Module):
     self.layers = nn.ModuleList()
 
     for in_shape, out_shape, size, stride, dropout, activation_fn in zip(
-            layer_filters, layer_filters[1:], kernel_size, strides, dropouts, activation_fns):
+        layer_filters, layer_filters[1:], kernel_size, strides, dropouts,
+        activation_fns):
       convblock = nn.Sequential()
 
-      convblock.append(ConvLayer(
-        in_channels=in_shape,
-        out_channels=out_shape,
-        kernel_size=size,
-        stride=stride,
-        padding=padding,
-        dilation=1,
-        groups=1,
-        bias=True
-      ))
+      convblock.append(
+          ConvLayer(in_channels=in_shape,
+                    out_channels=out_shape,
+                    kernel_size=size,
+                    stride=stride,
+                    padding=padding,
+                    dilation=1,
+                    groups=1,
+                    bias=True))
 
       convblock.append(nn.Dropout(dropout))
       convblock.append(activation_fn())
@@ -969,8 +968,7 @@ class ConvEncoderLayer(nn.Module):
 
       self.layers.append(convblock)
 
-  def forward(self,
-              x: torch.Tensor) -> torch.Tensor:
+  def forward(self, x: torch.Tensor) -> torch.Tensor:
     """
     Parameters
     ----------
@@ -993,6 +991,7 @@ class ConvEncoderLayer(nn.Module):
     out = out.view(batch_size, out_len)
 
     return out
+
 
 class Affine(nn.Module):
   """Class which performs the Affine transformation.
