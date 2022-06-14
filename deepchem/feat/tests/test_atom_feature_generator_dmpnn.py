@@ -83,6 +83,20 @@ def test_atom_features_none():
   assert f_atom == req_f
 
 
+def test_atom_features_only_atom_num():
+  """
+  Test for atom_features() when only_atom_num is True
+  """
+  smiles = 'C'
+  m = Chem.MolFromSmiles(smiles)
+  atom = m.GetAtoms()[0]
+  features = atom_features(atom, only_atom_num=True)
+  req_f = list(np.zeros((133,), dtype=int))
+  req_f[5] = 1
+  assert len(features) == len(req_f)
+  assert features == req_f
+
+
 def test_atom_features(example_smiles_n_features):
   """
   Test for atom_features() function
