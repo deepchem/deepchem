@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from typing import Any, Tuple, Optional
+from typing import Any, Tuple, List, Optional
 try:
   import torch
   from torch import Tensor
@@ -868,54 +868,49 @@ class ConvEncoderLayer(nn.Module):
 
   Examples
   --------
-  >>> from deepchem.models.torch_models.layers import ConvEncoderLayer
-  >>> import deepchem as dc
-  >>> encoder = ConvEncoderLayer(layer_filters=[3,16,8,32,16], conv_dim=3, kernel_size=4)
-  >>> x = torch.ones(3,224,224,224)
+  >>> encoder = ConvEncoderLayer(layer_filters=[3,16,8,32,16], conv_dim=2, kernel_size=3)
+  >>> x = torch.ones(5,3,224,224)
   >>> y = encoder(x)
-  >>> y = tensor([1.2733, 0.0000, 0.1453, 0.8308, 0.0000, -0.0000, 0.7857, -0.0000, 1.2164,
-        0.0000, 0.4958, -0.0000, 0.5518, -0.0000, 0.0726, -0.0000],
-       grad_fn=<ReshapeAliasBackward0>)
+  >>> y.shape
+  torch.Size([5,16])
 
   """
 
   def __init__(self,
-               conv_dim,
-               layer_filters=[100],
-               kernel_size=5,
-               strides=1,
-               dropouts=0.5,
-               activation_fns=nn.ReLU,
-               pool_type='max',
-               padding='valid',
-               dtype=None,
-               device="cpu",
-               ):
+               conv_dim: int,
+               layer_filters: List[int],
+               kernel_size: Optional[int or List[int]] = 5,
+               strides: Optional[int or List[int]] = 1,
+               dropouts: Optional[int or List[int]] = 0.5,
+               activation_fns: Optional[nn.Module or List[nn.Module]] = nn.ReLU,
+               pool_type: Optional[str] = 'max',
+               padding: Optional[str] = 'valid') -> None:
+
     """Create a Convolutional Encoder
 
       Parameters
       ----------
-      conv_dims: int
-        the number of dimensions to apply convolutions over (1,2, or 3)
-      layer_filters: list
+      conv_dim: int
+        The number of dimensions to apply convolutions over (1,2 or 3)
+      layer_filters: List[int]
         The number of output filters for each convolutional layer in the network.
-        The length of this list determines number of layers
-      kernel_size: int, tuple, or list
-        a list giving the shape of the convolutional kernel for each layer. Each
+        the length of this list determines number of layers
+      kernel_size: Optional[int or List[int]]
+        A list giving the shape of the convolutional kernel for each layer. Each
         element may be either an int (use the same kernel width for every dimension)
         or a tuple (the kernel width along each dimension). Alternatively this may
         be a single int or tuple instead of a list, in which case the same kernel
         shape is used for every layer.
-      strides: int, tuple, or list
-        a list giving the stride applications of the kernel for each layer. Each
+      strides: Optional[int or List[int]]
+        A list giving the stride applications of the kernel for each layer. Each
         element may be either an int (use the same stride width for every dimension)
         or a tuple (the kernel width along each dimension). Alternatively this may be
         a single int or tuple instead of a list, in which case the same stride used
         for every layer.
-      pool_type: str
-        the type of pooling layer to use, either 'max' or 'average'
-      padding: str
-        the type of padding to use for convolutional layers, either 'valid' or 'same'
+      pool_type: Optional[str]
+        The type of pooling layer to use, either 'max' or 'average'
+      padding: Optional[str]
+        The type of padding to use for convolutional layers, either 'valid' or 'same'
       """
 
     super(ConvEncoderLayer, self).__init__()
@@ -952,24 +947,21 @@ class ConvEncoderLayer(nn.Module):
 
     self.layers = nn.ModuleList()
 
-    for input_shape, out_shape, size, stride, dropout, activation_fn in zip(
+    for in_shape, out_shape, size, stride, dropout, activation_fn in zip(
             layer_filters, layer_filters[1:], kernel_size, strides, dropouts, activation_fns):
       convblock = nn.Sequential()
 
       convblock.append(ConvLayer(
-        in_channels=input_shape,
+        in_channels=in_shape,
         out_channels=out_shape,
         kernel_size=size,
         stride=stride,
         padding=padding,
         dilation=1,
         groups=1,
-        bias=True,
-        device=device,
-        dtype=dtype
+        bias=True
       ))
 
-      in_shape = out_shape
 
       convblock.append(nn.Dropout(dropout))
       convblock.append(activation_fn())
@@ -977,7 +969,8 @@ class ConvEncoderLayer(nn.Module):
 
       self.layers.append(convblock)
 
-  def forward(self, x):
+  def forward(self,
+              x: torch.Tensor) -> torch.Tensor:
     """
     Parameters
     ----------
@@ -987,12 +980,16 @@ class ConvEncoderLayer(nn.Module):
     Returns
     -------
     torch.Tensor
-      The tensor to be feeded into ODEBlock,
-      The length of this tensor is equal to ODE Input Dimension
+      The tensor to be fed into ODEBlock,
+      the length of this tensor is equal to ODE Input Dimension
     """
 
     out = x
 
     for i in range(len(self.layers)):
       out = self.layers[i](out)
+
+    batch_size, out_len = out.shape[:2]
+    out = out.view(batch_size, out_len)
+
     return out

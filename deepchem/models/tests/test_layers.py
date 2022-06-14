@@ -707,14 +707,15 @@ def test_mat_generator():
 
 
 @pytest.mark.torch
-def test_ConvEncoderLayer():
+def test_conv_encoder_layer():
   """Test invoking ConvEncoderLayer"""
-  torch.manual_seed(0)
 
   from deepchem.models.torch_models.layers import ConvEncoderLayer
 
-  encoder = ConvEncoderLayer(layer_filters=[3,16,8,32,16],dims=2,kernel_size=4)
+  torch.manual_seed(0)
+
+  encoder = ConvEncoderLayer(layer_filters=[3, 16, 8, 32, 16], conv_dim=2, kernel_size=3)
   x = torch.ones(1, 3, 224, 224)
   y = encoder(x)
-  assert list(y.shape) == [16], "Output Shape doesn't match expected shape"
 
+  assert y.shape == (1, 16)
