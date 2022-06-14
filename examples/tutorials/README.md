@@ -79,6 +79,7 @@ tutorials discuss about using DeepChem for specific applications.
 
 ### Quantum Chemistry
 * [1 Exploring Quantum Chemistry with GDB1k](Exploring_Quantum_Chemistry_with_GDB1k.ipynb)
+* [2 Finding ground state energy of molecules with DeepQMC](DeepQMC_tutorial.ipynb)
 
 ### Bioinformatics
 * [1 Introduction to BioInformatics](Introduction_to_Bioinformatics.ipynb)
