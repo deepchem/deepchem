@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from typing import Any, Tuple, List, Sequence, Optional
+from typing import Any, Tuple, List, Sequence, Union, Optional
 
 try:
   import torch
@@ -860,9 +860,10 @@ class GraphNetwork(torch.nn.Module):
 
 
 class ConvEncoderLayer(nn.Module):
-  """A 1,2, or  dimensional convolutional network for Convolutional Neural ODE Model
+  """A 1, 2, or 3 dimensional Convolutional Neural Network for Convolutional Neural ODE Model
+  Encodes input into high dimentional space which serves as input to ODEBlock
 
-  This encoder Layer consists of the following sequence of layers:
+  This Encoder Layer consists of the following sequence of layers:
 
   - A configurable number of convolutional layers
   - A global pooling layer (either max pool or average pool)
@@ -880,10 +881,10 @@ class ConvEncoderLayer(nn.Module):
   def __init__(self,
                conv_dim: int,
                layer_filters: List[int],
-               kernel_size: Optional[int or List[int]] = 5,
-               strides: Optional[int or List[int]] = 1,
-               dropouts: Optional[int or List[int]] = 0.5,
-               activation_fns: Optional[nn.Module or List[nn.Module]] = nn.ReLU,
+               kernel_size: Optional[Union[int, List[int]]] = 5,
+               strides: Optional[Union[int, List[int]]] = 1,
+               dropouts: Optional[Union[int, List[int]]] = 0.5,
+               activation_fns: Optional[Union[nn.Module, List[nn.Module]]] = nn.ReLU,
                pool_type: Optional[str] = 'max',
                padding: Optional[str] = 'valid') -> None:
     """Create a Convolutional Encoder
@@ -891,22 +892,26 @@ class ConvEncoderLayer(nn.Module):
       Parameters
       ----------
       conv_dim: int
-        The number of dimensions to apply convolutions over (1,2 or 3)
+        The number of dimensions to apply convolutions over (1, 2 or 3)
       layer_filters: List[int]
         The number of output filters for each convolutional layer in the network.
         the length of this list determines number of layers
-      kernel_size: Optional[int or List[int]]
-        A list giving the shape of the convolutional kernel for each layer. Each
+      kernel_size: Optional[Union[int, List[int]]]
+        The shape of the convolutional kernel for each layer. Each
         element may be either an int (use the same kernel width for every dimension)
         or a tuple (the kernel width along each dimension). Alternatively this may
         be a single int or tuple instead of a list, in which case the same kernel
         shape is used for every layer.
-      strides: Optional[int or List[int]]
-        A list giving the stride applications of the kernel for each layer. Each
+      strides: Optional[Union[int, List[int]]]
+        The stride applications of the kernel for each layer. Each
         element may be either an int (use the same stride width for every dimension)
         or a tuple (the kernel width along each dimension). Alternatively this may be
         a single int or tuple instead of a list, in which case the same stride used
         for every layer.
+      dropouts: Optional[Union[int, List[int]]]
+        Dropout values to be applied on each layer
+      activation_fns: Optional[Union[nn.Module, List[nn.Module]]]
+        Activation function to be applied on each layer
       pool_type: Optional[str]
         The type of pooling layer to use, either 'max' or 'average'
       padding: Optional[str]
@@ -916,7 +921,7 @@ class ConvEncoderLayer(nn.Module):
     super(ConvEncoderLayer, self).__init__()
 
     if conv_dim not in (1, 2, 3):
-      raise ValueError('Number of dimensions must be 1,2 or 3')
+      raise ValueError('Number of dimensions must be 1, 2 or 3')
 
     self.conv_dim = conv_dim
 
@@ -979,7 +984,7 @@ class ConvEncoderLayer(nn.Module):
     -------
     torch.Tensor
       The tensor to be fed into ODEBlock,
-      the length of this tensor is equal to ODE Input Dimension
+      the length of this tensor is equal to ODEBlock Input Dimension
     """
 
     out = x
