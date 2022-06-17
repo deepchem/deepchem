@@ -11,7 +11,8 @@ class NormalizingFlow(nn.Module):
   (VAE) because of ease in sampling by applying invertible transformations
   (Frey, Gadepally, & Ramsundar, 2022)."""
 
-  def __init__(self, transform: Sequence, base_distribution: torch.Tensor, dim: int) -> None:
+  def __init__(self, transform: Sequence, base_distribution,
+               dim: int) -> None:
     """This class considers a transformation, or a composition of transformations
     functions (layers), between a base distribuiton and a target distribution.
 
@@ -32,7 +33,7 @@ class NormalizingFlow(nn.Module):
     self.transforms = nn.ModuleList(transform)
     self.base_distribution = base_distribution
 
-  def log_prob(self, inputs: Sequence) -> torch.Tensor:
+  def log_prob(self, inputs: torch.Tensor) -> torch.Tensor:
     """This method computes the probabilty of the inputs when
     transformation/transformations are applied.
 
@@ -41,8 +42,8 @@ class NormalizingFlow(nn.Module):
     """
     log_prob = torch.zeros(inputs.shape[0])
     for biject in reversed(self.transforms):
-        inputs, inverse_log_det_jacobian = biject.inverse(inputs)
-        log_prob += inverse_log_det_jacobian
+      inputs, inverse_log_det_jacobian = biject.inverse(inputs)
+      log_prob += inverse_log_det_jacobian
 
     return log_prob
 
@@ -55,11 +56,11 @@ class NormalizingFlow(nn.Module):
     output shape: (n_samples, dim)
     log_prob shape: (n_samples)
     """
-    outputs = self.base_distribution.sample((n_samples, ))
+    outputs = self.base_distribution.sample((n_samples,))
     log_prob = self.base_distribution.log_prob(outputs)
 
     for biject in self.transforms:
-        outputs, log_det_jacobian = biject.forward(outputs)
-        log_prob += log_det_jacobian
+      outputs, log_det_jacobian = biject.forward(outputs)
+      log_prob += log_det_jacobian
 
     return outputs, log_prob
