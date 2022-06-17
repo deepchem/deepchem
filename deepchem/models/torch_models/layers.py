@@ -908,6 +908,7 @@ class Affine(nn.Module):
     This class also returns the logarithm of the jacobians determinant
     which is useful when invert a transformation and compute the
     probability of the transformation.
+
     input shape: (samples, dim)
     output shape: (samples, dim)
     """
@@ -926,6 +927,7 @@ class Affine(nn.Module):
     also returns the logarithm of the jacobians determinant which is
     useful when invert a transformation and compute the probability of
     the transformation.
+
     input shape: (samples, dim)
     output shape: (samples, dim)
     """
