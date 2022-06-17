@@ -11,8 +11,7 @@ class NormalizingFlow(nn.Module):
   (VAE) because of ease in sampling by applying invertible transformations
   (Frey, Gadepally, & Ramsundar, 2022)."""
 
-  def __init__(self, transform: Sequence, base_distribution,
-               dim: int) -> None:
+  def __init__(self, transform: Sequence, base_distribution, dim: int) -> None:
     """This class considers a transformation, or a composition of transformations
     functions (layers), between a base distribuiton and a target distribution.
 
