@@ -47,63 +47,63 @@ read off what's needed to train the model from the table below.
 | :code:`MPNNModel`                      | Classifier/| :code:`WeaveMol`     |                        | :code:`WeaveFeaturizer`                                        | :code:`fit`          |
 |                                        | Regressor  |                      |                        |                                                                |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
-| :code:`MultitaskClassifier`            | Classifier | Vector of            |                        | :code:`CircularFingerprint`,                                   | :code:`fit`          | 
+| :code:`MultitaskClassifier`            | Classifier | Vector of            |                        | :code:`CircularFingerprint`,                                   | :code:`fit`          |
 |                                        |            | shape :code:`(N,)`   |                        | :code:`RDKitDescriptors`,                                      |                      |
 |                                        |            |                      |                        | :code:`CoulombMatrixEig`,                                      |                      |
 |                                        |            |                      |                        | :code:`RdkitGridFeaturizer`,                                   |                      |
 |                                        |            |                      |                        | :code:`BindingPocketFeaturizer`,                               |                      |
 |                                        |            |                      |                        | :code:`ElementPropertyFingerprint`,                            |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
-| :code:`MultitaskRegressor`             | Regressor  | Vector of            |                        | :code:`CircularFingerprint`,                                   | :code:`fit`          | 
+| :code:`MultitaskRegressor`             | Regressor  | Vector of            |                        | :code:`CircularFingerprint`,                                   | :code:`fit`          |
 |                                        |            | shape :code:`(N,)`   |                        | :code:`RDKitDescriptors`,                                      |                      |
 |                                        |            |                      |                        | :code:`CoulombMatrixEig`,                                      |                      |
 |                                        |            |                      |                        | :code:`RdkitGridFeaturizer`,                                   |                      |
 |                                        |            |                      |                        | :code:`BindingPocketFeaturizer`,                               |                      |
 |                                        |            |                      |                        | :code:`ElementPropertyFingerprint`,                            |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
-| :code:`MultitaskFitTransformRegressor` | Regressor  | Vector of            | Any                    | :code:`CircularFingerprint`,                                   | :code:`fit`          | 
+| :code:`MultitaskFitTransformRegressor` | Regressor  | Vector of            | Any                    | :code:`CircularFingerprint`,                                   | :code:`fit`          |
 |                                        |            | shape :code:`(N,)`   |                        | :code:`RDKitDescriptors`,                                      |                      |
 |                                        |            |                      |                        | :code:`CoulombMatrixEig`,                                      |                      |
 |                                        |            |                      |                        | :code:`RdkitGridFeaturizer`,                                   |                      |
 |                                        |            |                      |                        | :code:`BindingPocketFeaturizer`,                               |                      |
 |                                        |            |                      |                        | :code:`ElementPropertyFingerprint`,                            |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
-| :code:`MultitaskIRVClassifier`         | Classifier | Vector of            | :code:`IRVTransformer` | :code:`CircularFingerprint`,                                   | :code:`fit`          | 
+| :code:`MultitaskIRVClassifier`         | Classifier | Vector of            | :code:`IRVTransformer` | :code:`CircularFingerprint`,                                   | :code:`fit`          |
 |                                        |            | shape :code:`(N,)`   |                        | :code:`RDKitDescriptors`,                                      |                      |
 |                                        |            |                      |                        | :code:`CoulombMatrixEig`,                                      |                      |
 |                                        |            |                      |                        | :code:`RdkitGridFeaturizer`,                                   |                      |
 |                                        |            |                      |                        | :code:`BindingPocketFeaturizer`,                               |                      |
 |                                        |            |                      |                        | :code:`ElementPropertyFingerprint`,                            |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
-| :code:`ProgressiveMultitaskClassifier` | Classifier | Vector of            |                        | :code:`CircularFingerprint`,                                   | :code:`fit`          | 
+| :code:`ProgressiveMultitaskClassifier` | Classifier | Vector of            |                        | :code:`CircularFingerprint`,                                   | :code:`fit`          |
 |                                        |            | shape :code:`(N,)`   |                        | :code:`RDKitDescriptors`,                                      |                      |
 |                                        |            |                      |                        | :code:`CoulombMatrixEig`,                                      |                      |
 |                                        |            |                      |                        | :code:`RdkitGridFeaturizer`,                                   |                      |
 |                                        |            |                      |                        | :code:`BindingPocketFeaturizer`,                               |                      |
 |                                        |            |                      |                        | :code:`ElementPropertyFingerprint`,                            |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
-| :code:`ProgressiveMultitaskRegressor`  | Regressor  | Vector of            |                        | :code:`CircularFingerprint`,                                   | :code:`fit`          | 
+| :code:`ProgressiveMultitaskRegressor`  | Regressor  | Vector of            |                        | :code:`CircularFingerprint`,                                   | :code:`fit`          |
 |                                        |            | shape :code:`(N,)`   |                        | :code:`RDKitDescriptors`,                                      |                      |
 |                                        |            |                      |                        | :code:`CoulombMatrixEig`,                                      |                      |
 |                                        |            |                      |                        | :code:`RdkitGridFeaturizer`,                                   |                      |
 |                                        |            |                      |                        | :code:`BindingPocketFeaturizer`,                               |                      |
 |                                        |            |                      |                        | :code:`ElementPropertyFingerprint`,                            |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
-| :code:`RobustMultitaskClassifier`      | Classifier | Vector of            |                        | :code:`CircularFingerprint`,                                   | :code:`fit`          | 
+| :code:`RobustMultitaskClassifier`      | Classifier | Vector of            |                        | :code:`CircularFingerprint`,                                   | :code:`fit`          |
 |                                        |            | shape :code:`(N,)`   |                        | :code:`RDKitDescriptors`,                                      |                      |
 |                                        |            |                      |                        | :code:`CoulombMatrixEig`,                                      |                      |
 |                                        |            |                      |                        | :code:`RdkitGridFeaturizer`,                                   |                      |
 |                                        |            |                      |                        | :code:`BindingPocketFeaturizer`,                               |                      |
 |                                        |            |                      |                        | :code:`ElementPropertyFingerprint`,                            |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
-| :code:`RobustMultitaskRegressor`       | Regressor  | Vector of            |                        | :code:`CircularFingerprint`,                                   | :code:`fit`          | 
+| :code:`RobustMultitaskRegressor`       | Regressor  | Vector of            |                        | :code:`CircularFingerprint`,                                   | :code:`fit`          |
 |                                        |            | shape :code:`(N,)`   |                        | :code:`RDKitDescriptors`,                                      |                      |
 |                                        |            |                      |                        | :code:`CoulombMatrixEig`,                                      |                      |
 |                                        |            |                      |                        | :code:`RdkitGridFeaturizer`,                                   |                      |
 |                                        |            |                      |                        | :code:`BindingPocketFeaturizer`,                               |                      |
 |                                        |            |                      |                        | :code:`ElementPropertyFingerprint`,                            |                      |
 +----------------------------------------+------------+----------------------+------------------------+----------------------------------------------------------------+----------------------+
-| :code:`ScScoreModel`                   | Classifier | Vector of            |                        | :code:`CircularFingerprint`,                                   | :code:`fit`          | 
+| :code:`ScScoreModel`                   | Classifier | Vector of            |                        | :code:`CircularFingerprint`,                                   | :code:`fit`          |
 |                                        |            | shape :code:`(N,)`   |                        | :code:`RDKitDescriptors`,                                      |                      |
 |                                        |            |                      |                        | :code:`CoulombMatrixEig`,                                      |                      |
 |                                        |            |                      |                        | :code:`RdkitGridFeaturizer`,                                   |                      |
@@ -525,6 +525,12 @@ MEGNetModel
 -----------
 
 .. autoclass:: deepchem.models.MEGNetModel
+  :members:
+
+MATModel
+--------
+
+.. autoclass:: deepchem.models.torch_models.MATModel
   :members:
 
 Jax Models
