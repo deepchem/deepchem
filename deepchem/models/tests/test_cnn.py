@@ -141,7 +141,7 @@ class TestCNN(unittest.TestCase):
 
 
 @pytest.mark.torch
-def test_conv_encoder_layer():
+def test_cnn_torch():
   """Test invoking ConvEncoderLayer"""
 
   from deepchem.models.torch_models.cnn import CNN
