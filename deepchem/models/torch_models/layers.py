@@ -935,3 +935,54 @@ class Affine(nn.Module):
     inverse_log_det_jacobian = torch.ones(x.shape[0]) * torch.log(det_jacobian)
 
     return x, inverse_log_det_jacobian
+
+
+import torchdiffeq
+
+class f(nn.Module):
+  def __init__(self, dim=0):
+    super(f, self).__init__()
+    
+    self.conv1 = nn.Conv2d(32,48,7)
+    self.conv2 = nn.Conv2d(48,64,5)
+    self.conv3 = nn.Conv2d(64,32,5)
+    self.conv4 = nn.Conv2d(32,16,5)
+
+    self.layer = nn.Sequential(
+        nn.ConvTranspose2d(16,32,5),
+        nn.ConvTranspose2d(32,64,5),
+        nn.ConvTranspose2d(64,48,5),
+        nn.ConvTranspose2d(48,32,7)
+    )
+
+  def forward(self, t, x):
+    out = self.conv1(x)
+    #print(f"CONV1 {out.shape}")
+    out = self.conv2(out)
+    #print(f"CONV2 {out.shape}")
+    out = self.conv3(out)
+    #print(f"CONV3 {out.shape}")
+    out = F.dropout(out)
+    #print(f"Dropout {out.shape}")
+    
+    out = self.conv4(out)
+    #print(f"CONV4 shape {out.shape}")
+    out = self.layer(out)
+    #print(f"Deconv.shape {out.shape}")
+    return out
+
+
+class ODEBlock(nn.Module):
+
+  def __init__(self, f):
+    super(ODEBlock, self).__init__()
+    self.f = f
+    self.int_time = torch.Tensor([0,1]).float()
+
+  def forward(self,x):
+    self.int_time = self.int_time.type_as(x)
+    out = torchdiffeq.odeint_adjoint(self.f, x, self.int_time)
+    #print(f"out[1].shape {out[1].shape}")
+    return out[1]
+
+
