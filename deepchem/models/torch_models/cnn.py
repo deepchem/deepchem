@@ -1,4 +1,3 @@
-from turtle import forward
 import torch
 import torch.nn as nn
 from typing import List, Union, Optional
