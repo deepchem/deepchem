@@ -137,3 +137,21 @@ class TestCNN(unittest.TestCase):
     pred, std = model.predict_uncertainty(dataset)
     assert np.mean(np.abs(y - pred)) < 0.3
     assert noise < np.mean(std) < 1.0
+
+
+
+@pytest.mark.torch
+def test_conv_encoder_layer():
+  """Test invoking ConvEncoderLayer"""
+
+  from deepchem.models.torch_models.cnn import CNN
+
+  torch.manual_seed(0)
+
+  encoder = CNN(layer_filters=[3, 16, 8, 32, 16],
+                             conv_dim=2,
+                             kernel_size=3)
+  x = torch.ones(1, 3, 224, 224)
+  y = encoder(x)
+
+  assert y.shape == (1, 16)
