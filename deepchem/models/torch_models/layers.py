@@ -935,3 +935,16 @@ class Affine(nn.Module):
     inverse_log_det_jacobian = torch.ones(x.shape[0]) * torch.log(det_jacobian)
 
     return x, inverse_log_det_jacobian
+
+
+class Decoder(nn.Module):
+
+  def __init__(self):
+    super(Decoder, self).__init__()
+    self.layer = nn.Sequential(
+        nn.ConvTranspose2d(32,16,3,2),
+        nn.ConvTranspose2d(16,3,3,2),
+    )
+  
+  def forward(self, x):
+    return self.layer(x)
