@@ -35,7 +35,7 @@ class NormalizingFlow(nn.Module):
 
   """
 
-  def __init__(self, transform: Sequence, base_distribution: torch.Tensor, dim: int) -> None:
+  def __init__(self, transform: Sequence, base_distribution, dim: int) -> None:
     """This class considers a transformation, or a composition of transformations
     functions (layers), between a base distribution and a target distribution.
 
