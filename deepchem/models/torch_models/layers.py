@@ -14,6 +14,11 @@ try:
 except ModuleNotFoundError:
   pass
 
+try:
+  import torchdiffeq
+except ModuleNotFoundError:
+  pass
+
 
 class ScaleNorm(nn.Module):
   """Apply Scale Normalization to input.
@@ -937,52 +942,60 @@ class Affine(nn.Module):
     return x, inverse_log_det_jacobian
 
 
-import torchdiffeq
 
-class f(nn.Module):
-  def __init__(self, dim=0):
-    super(f, self).__init__()
+class LinearDynamics(nn.Module):
+  def __init__(self,layer_filters: List[int]=[32]):
+    super(LinearDynamics, self).__init__()
+
+    n_layers = len(layer_filters) - 1
+
+    self.model = nn.ModuleList()
+    for in_dim, out_dim in zip(layer_filters, layer_filters[1:]):
+      self.model.append(nn.Linear(in_dim, out_dim))
+
+    for in_dim, out_dim in zip(layer_filters[-1::-1], layer_filters[-2::-1]):
+      self.model.append(nn.Linear(in_dim, out_dim))
+
+  def forward(self, t:torch.Tensor, x:torch.Tensor):
+    for layer in self.model:
+      x = layer(x)
+    return x
+  
+class ConvolutionalDynamics(nn.Module):
+  def __init__(self, layer_filters: List[int], conv_dim=2, kernel_sizes: Optional[Union[int,List[int]]] = 5,):
+    super(ConvolutionalDynamics, self).__init__()
+
+    n_layers = len(layer_filters) - 1
+    self.conv_dim = conv_dim
+    if isinstance(kernel_sizes, int):
+      kernel_sizes = [kernel_sizes] * n_layers
+
+    ConvLayer = (nn.Conv1d, nn.Conv2d, nn.Conv3d)[self.conv_dim - 1]
+    ConvTransposeLayer = (nn.ConvTranspose1d, nn.ConvTranspose2d, nn.ConvTranspose3d)[self.conv_dim-1]
     
-    self.conv1 = nn.Conv2d(32,48,7)
-    self.conv2 = nn.Conv2d(48,64,5)
-    self.conv3 = nn.Conv2d(64,32,5)
-    self.conv4 = nn.Conv2d(32,16,5)
+    self.model = nn.ModuleList()
+    for in_dim, out_dim, kernel_size in zip(layer_filters, layer_filters[1:], kernel_sizes):
+      self.model.append(ConvLayer(in_dim, out_dim, kernel_size))
 
-    self.layer = nn.Sequential(
-        nn.ConvTranspose2d(16,32,5),
-        nn.ConvTranspose2d(32,64,5),
-        nn.ConvTranspose2d(64,48,5),
-        nn.ConvTranspose2d(48,32,7)
-    )
+    for in_dim, out_dim, kernel_size in zip(layer_filters[-1::-1], layer_filters[-2::-1], kernel_sizes[::-1]):
+      self.model.append(ConvTransposeLayer(in_dim, out_dim, kernel_size))
 
   def forward(self, t, x):
-    out = self.conv1(x)
-    #print(f"CONV1 {out.shape}")
-    out = self.conv2(out)
-    #print(f"CONV2 {out.shape}")
-    out = self.conv3(out)
-    #print(f"CONV3 {out.shape}")
-    out = F.dropout(out)
-    #print(f"Dropout {out.shape}")
-    
-    out = self.conv4(out)
-    #print(f"CONV4 shape {out.shape}")
-    out = self.layer(out)
-    #print(f"Deconv.shape {out.shape}")
-    return out
+    for layer in self.model:
+      x = layer(x)
+    return x
 
-
-class ODEBlock(nn.Module):
+class ODELayer(nn.Module):
 
   def __init__(self, f):
-    super(ODEBlock, self).__init__()
+    super(ODELayer, self).__init__()
     self.f = f
     self.int_time = torch.Tensor([0,1]).float()
 
   def forward(self,x):
     self.int_time = self.int_time.type_as(x)
     out = torchdiffeq.odeint_adjoint(self.f, x, self.int_time)
-    #print(f"out[1].shape {out[1].shape}")
+    
     return out[1]
-
-
+  
+  
