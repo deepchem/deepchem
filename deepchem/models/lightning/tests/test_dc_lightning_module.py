@@ -1,14 +1,19 @@
 import unittest
 import deepchem as dc
 from deepchem.models import MultitaskClassifier
-import pytorch_lightning as pl
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from deepchem.lightning.dc_lightning_module import DCLightningModule
+from deepchem.models.lightning.dc_lightning_module import DCLightningModule
+
+try:
+  import pytorch_lightning as pl  # noqa
+  PYTORCH_LIGHTNING_IMPORT_FAILED = False
+except ImportError:
+  PYTORCH_LIGHTNING_IMPORT_FAILED = True
 
 
-class MolnetDataset(torch.utils.data.Dataset):
+class TestDataset(torch.utils.data.Dataset):
 
   def __init__(self, dataset):
     self._samples = dataset
@@ -26,7 +31,7 @@ class MolnetDataset(torch.utils.data.Dataset):
     )
 
 
-class MolnetDatasetBatch:
+class TestDatasetBatch:
 
   def __init__(self, batch):
     X = [np.array([b[0] for b in batch])]
@@ -36,15 +41,16 @@ class MolnetDatasetBatch:
 
 
 def collate_dataset_wrapper(batch):
-  return MolnetDatasetBatch(batch)
+  return TestDatasetBatch(batch)
 
 
 class TestDCLightningModule(unittest.TestCase):
 
+  @unittest.skipIf(PYTORCH_LIGHTNING_IMPORT_FAILED,
+                   'PyTorch Lightning is not installed')
   def test_multitask_classifier(self):
-    tasks, datasets, _ = dc.molnet.load_hiv(featurizer='ECFP',
-                                            splitter='scaffold')
-    train_dataset, _, _ = datasets
+    tasks, datasets, _ = dc.molnet.load_clintox()
+    _, valid_dataset, _ = datasets
 
     model = MultitaskClassifier(n_tasks=len(tasks),
                                 n_features=1024,
@@ -52,10 +58,10 @@ class TestDCLightningModule(unittest.TestCase):
                                 dropouts=0.2,
                                 learning_rate=0.0001)
 
-    train_dataloader = DataLoader(MolnetDataset(train_dataset),
+    valid_dataloader = DataLoader(TestDataset(valid_dataset),
                                   batch_size=64,
                                   collate_fn=collate_dataset_wrapper)
 
     lightning_module = DCLightningModule(model)
     trainer = pl.Trainer(max_epochs=1)
-    trainer.fit(lightning_module, train_dataloader)
+    trainer.fit(lightning_module, valid_dataloader)
