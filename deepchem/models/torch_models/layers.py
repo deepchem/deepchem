@@ -999,7 +999,7 @@ class InteratomicL2Distances(nn.Module):
     coords, nbr_list = (torch.tensor(inputs[0]), torch.tensor(inputs[1]))
     N_atoms, M_nbrs, ndim = self.N_atoms, self.M_nbrs, self.ndim
     # Shape (N_atoms, M_nbrs, ndim)
-    nbr_coords = coords[nbr_list]
+    nbr_coords = coords[nbr_list.long()]
     # Shape (N_atoms, M_nbrs, ndim)
     tiled_coords = torch.tile(torch.reshape(coords, (N_atoms, 1, ndim)),
                               (1, M_nbrs, 1))
