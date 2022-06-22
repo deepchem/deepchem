@@ -976,7 +976,7 @@ class InteratomicL2Distances(nn.Module):
 
   def __repr__(self) -> str:
     return (
-        f'{self.__class__.__name__}(N_atoms={self.N_atoms}, M_nbrs={self.M_mbrs}, ndim={self.ndim})'
+        f'{self.__class__.__name__}(N_atoms={self.N_atoms}, M_nbrs={self.M_nbrs}, ndim={self.ndim})'
     )
 
   def forward(
