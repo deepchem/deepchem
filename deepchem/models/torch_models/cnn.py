@@ -185,19 +185,6 @@ class CNN(nn.Module):
               
       self.layers.append(PoolLayer(size))
 
-      self.classifier = nn.Sequential()
-      if mode is "classification":
-        self.classifier.append(nn.Linear(layer_filters[-1], n_tasks * n_classes))
-        self.classifier.append(Reshape((n_tasks, n_classes)))
-        
-      else:
-        self.regressor = nn.Sequential()
-
-        self.regressor.append(nn.Linear(layer_filters[-1], n_tasks))
-        self.regressor.append(Reshape((n_tasks, 1)))
-
-        
-        
 
   def forward(self, x: torch.Tensor):
     """
