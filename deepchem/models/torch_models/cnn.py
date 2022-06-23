@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
 from typing import List, Union, Optional
 try:
   from collections.abc import Sequence as SequenceCollection
@@ -48,36 +50,70 @@ class CNN(nn.Module):
                uncertainty : Optional[bool] = False,
                residual : Optional[bool] = False,
                padding: Optional[str] = 'valid') -> None:
-    """Create a CNN
-
-      Parameters
-      ----------
-      conv_dim: int
-        The number of dimensions to apply convolutions over (1, 2 or 3)
-      layer_filters: List[int]
-        The number of output filters for each convolutional layer in the network.
-        the length of this list determines number of layers
-      kernel_size: Optional[Union[int, List[int]]]
-        The shape of the convolutional kernel for each layer. Each
-        element may be either an int (use the same kernel width for every dimension)
-        or a tuple (the kernel width along each dimension). Alternatively this may
-        be a single int or tuple instead of a list, in which case the same kernel
-        shape is used for every layer.
-      strides: Optional[Union[int, List[int]]]
-        The stride applications of the kernel for each layer. Each
-        element may be either an int (use the same stride width for every dimension)
-        or a tuple (the kernel width along each dimension). Alternatively this may be
-        a single int or tuple instead of a list, in which case the same stride used
-        for every layer.
-      dropouts: Optional[Union[int, List[int]]]
-        Dropout values to be applied on each layer
-      activation_fns: Optional[Union[nn.Module, List[nn.Module]]]
-        Activation function to be applied on each layer
-      pool_type: Optional[str]
-        The type of pooling layer to use, either 'max' or 'average'
-      padding: Optional[str]
-        The type of padding to use for convolutional layers, either 'valid' or 'same'
-      """
+    """Create a CNN.
+    In addition to the following arguments, this class also accepts
+    all the keyword arguments from TensorGraph.
+    Parameters
+    ----------
+    n_tasks: int
+      number of tasks
+    n_features: int
+      number of features
+    dims: int
+      the number of dimensions to apply convolutions over (1, 2, or 3)
+    layer_filters: list
+      the number of output filters for each convolutional layer in the network.
+      The length of this list determines the number of layers.
+    kernel_size: int, tuple, or list
+      a list giving the shape of the convolutional kernel for each layer.  Each
+      element may be either an int (use the same kernel width for every dimension)
+      or a tuple (the kernel width along each dimension).  Alternatively this may
+      be a single int or tuple instead of a list, in which case the same kernel
+      shape is used for every layer.
+    strides: int, tuple, or list
+      a list giving the stride between applications of the  kernel for each layer.
+      Each element may be either an int (use the same stride for every dimension)
+      or a tuple (the stride along each dimension).  Alternatively this may be a
+      single int or tuple instead of a list, in which case the same stride is
+      used for every layer.
+    weight_init_stddevs: list or float
+      the standard deviation of the distribution to use for weight initialization
+      of each layer.  The length of this list should equal len(layer_filters)+1,
+      where the final element corresponds to the dense layer.  Alternatively this
+      may be a single value instead of a list, in which case the same value is used
+      for every layer.
+    bias_init_consts: list or loat
+      the value to initialize the biases in each layer to.  The length of this
+      list should equal len(layer_filters)+1, where the final element corresponds
+      to the dense layer.  Alternatively this may be a single value instead of a
+      list, in which case the same value is used for every layer.
+    weight_decay_penalty: float
+      the magnitude of the weight decay penalty to use
+    weight_decay_penalty_type: str
+      the type of penalty to use for weight decay, either 'l1' or 'l2'
+    dropouts: list or float
+      the dropout probablity to use for each layer.  The length of this list should equal len(layer_filters).
+      Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
+    activation_fns: list or object
+      the Tensorflow activation function to apply to each layer.  The length of this list should equal
+      len(layer_filters).  Alternatively this may be a single value instead of a list, in which case the
+      same value is used for every layer.
+    pool_type: str
+      the type of pooling layer to use, either 'max' or 'average'
+    mode: str
+      Either 'classification' or 'regression'
+    n_classes: int
+      the number of classes to predict (only used in classification mode)
+    uncertainty: bool
+      if True, include extra outputs and loss terms to enable the uncertainty
+      in outputs to be predicted
+    residual: bool
+      if True, the model will be composed of pre-activation residual blocks instead
+      of a simple stack of convolutional layers.
+    padding: str
+      the type of padding to use for convolutional layers, either 'valid' or 'same'
+    """
+ 
 
     super(CNN, self).__init__()
 
@@ -87,29 +123,26 @@ class CNN(nn.Module):
     if mode not in ['classification', 'regression']:
       raise ValueError("mode must be either 'classification' or 'regression'")
 
-    if residual and padding.lower() != 'same':
-      raise ValueError("Residual blocks can only be used when padding is 'same'")
-
     self.n_tasks = n_tasks
     self.n_features = n_features
     self.conv_dim = conv_dim
     self.mode = mode
     self.n_classes = n_classes
     self.uncertainty = uncertainty
-
-    n_layers = len(layer_filters)
-
+    self.mode = mode
+    self.layer_filters = layer_filters
+    n_layers = len(layer_filters) - 1
     if not isinstance(kernel_size, list):
       kernel_size = [kernel_size] * n_layers
-
     if not isinstance(strides, SequenceCollection):
       strides = [strides] * n_layers
-
     if not isinstance(dropouts, SequenceCollection):
       dropouts = [dropouts] * n_layers
-
     if not isinstance(activation_fns, SequenceCollection):
       activation_fns = [activation_fns] * n_layers
+
+    #No weight decay penalty,
+    #No explicit regularization
 
     if uncertainty:
       if mode!= 'regression':
@@ -128,12 +161,12 @@ class CNN(nn.Module):
 
     self.layers = nn.ModuleList()
 
+    #prev filters = in_shape
     for in_shape, out_shape, size, stride, dropout, activation_fn in zip(
         layer_filters, layer_filters[1:], kernel_size, strides, dropouts,
         activation_fns):
-      convblock = nn.Sequential()
-
-      convblock.append(
+      
+      self.layers.append(
           ConvLayer(in_channels=in_shape,
                     out_channels=out_shape,
                     kernel_size=size,
@@ -142,18 +175,31 @@ class CNN(nn.Module):
                     dilation=1,
                     groups=1,
                     bias=True))
+      
       if dropout>0.0:
-        convblock.append(nn.Dropout(dropout))
+        self.layers.append(nn.Dropout(dropout))
 
-      if mode == 'classification':
-        logits = Reshape((n_tasks,1))
+      # residual cut how ?
+      if activation_fn is not None:
+        self.layers.append(activation_fn())
+              
+      self.layers.append(PoolLayer(size))
 
-      convblock.append(activation_fn())
-      convblock.append(PoolLayer(size))
+      self.classifier = nn.Sequential()
+      if mode is "classification":
+        self.classifier.append(nn.Linear(layer_filters[-1], n_tasks * n_classes))
+        self.classifier.append(Reshape((n_tasks, n_classes)))
+        
+      else:
+        self.regressor = nn.Sequential()
 
-      self.layers.append(convblock)
+        self.regressor.append(nn.Linear(layer_filters[-1], n_tasks))
+        self.regressor.append(Reshape((n_tasks, 1)))
 
-  def forward(self, x: torch.Tensor) -> torch.Tensor:
+        
+        
+
+  def forward(self, x: torch.Tensor):
     """
     Parameters
     ----------
@@ -167,12 +213,30 @@ class CNN(nn.Module):
       the length of this tensor is equal to ODEBlock Input Dimension
     """
 
-    out = x
+    for layer in self.layers:
+      x = layer(x)
+    
+    outputs, output_types = x, None
+    x = Reshape(-1)(x)
+    if self.mode is "classification":
+      logits = nn.Linear(x.shape[0], self.n_tasks * self.n_classes)(x)
+      logits = Reshape(self.n_tasks, self.n_classes)(logits)
+      output = F.softmax(logits)
+      outputs = [output, logits]
+      output_types = ['prediction','loss']
+    else:
+      output = nn.Linear(x.shape[0], self.n_tasks)(x)
+      output = Reshape(self.n_tasks, 1)(output)
 
-    for i in range(len(self.layers)):
-      out = self.layers[i](out)
+      if self.uncertainty:
+        
+        log_var = Reshape(self.n_tasks, 1)(nn.Linear(x.shape[0], self.n_tasks)(x))
+        print(f"z = {log_var.shape}")
+        var = torch.exp(log_var)
+        outputs = [output, var, output, log_var]
+        output_types = ['prediction', 'variance', 'loss', 'loss']
+      else:
+        outputs = [output]
+        output_types = ["prediction"]
 
-    batch_size, out_len = out.shape[:2]
-    out = out.view(batch_size, out_len)
-
-    return out
+    return outputs, output_types
