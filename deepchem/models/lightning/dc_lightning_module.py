@@ -1,6 +1,5 @@
-import torch
-
 try:
+  import torch
   import pytorch_lightning as pl  # noqa
   PYTORCH_LIGHTNING_IMPORT_FAILED = False
 except ImportError:

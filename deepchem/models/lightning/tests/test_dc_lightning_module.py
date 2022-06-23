@@ -1,12 +1,12 @@
 import unittest
 import deepchem as dc
-from deepchem.models import MultitaskClassifier
 import numpy as np
-import torch
-from torch.utils.data import DataLoader
-from deepchem.models.lightning.dc_lightning_module import DCLightningModule
 
 try:
+  from deepchem.models import MultitaskClassifier
+  import torch
+  from torch.utils.data import DataLoader
+  from deepchem.models.lightning.dc_lightning_module import DCLightningModule
   import pytorch_lightning as pl  # noqa
   PYTORCH_LIGHTNING_IMPORT_FAILED = False
 except ImportError:
