@@ -26,8 +26,8 @@ class NormalizingFlow(nn.Module):
   >>> # initialize normalizing flow model
   >>> model = NormalizingFlow(transforms, distribution, dim)
   >>> # evaluate the log_prob when applying the transformation layers
-  >>> tensor = distribution.sample(torch.Size((samples, dim)))
-  >>> len(model.log_prob(tensor))
+  >>> input = distribution.sample(torch.Size((samples, dim)))
+  >>> len(model.log_prob(input))
   96
   >>> # evaluates the the sampling method and its log_prob
   >>> len(model.sample(samples))
@@ -57,11 +57,22 @@ class NormalizingFlow(nn.Module):
     self.base_distribution = base_distribution
 
   def log_prob(self, inputs: torch.Tensor) -> torch.Tensor:
-    """This method computes the probabilty of the inputs when
+    """This method computes the probability of the inputs when
     transformation/transformations are applied.
 
-    inputs shape: (samples, dim)
-    log_prob shape: (samples, dim)
+    Parameters
+    ----------
+    inputs: torch.Tensor
+      Tensor used to evaluate the log_prob computation of the learned
+      distribution.
+      shape: (samples, dim)
+
+    Returns
+    -------
+    log_prob: torch.Tensor
+      This tensor contains the value of the log probability computed.
+      shape: (samples)
+
     """
     log_prob = torch.zeros(inputs.shape[0])
     for biject in reversed(self.transforms):
@@ -75,9 +86,20 @@ class NormalizingFlow(nn.Module):
     Besides the outputs (sampling), this method returns the logarithm of
     probability to obtain the outputs at the base distribution.
 
-    n_samples shape: (samples)
-    output shape: (n_samples, dim)
-    log_prob shape: (n_samples)
+    Parameters
+    ----------
+    n_samples: int
+      Number of samples to select from the transformed distribution
+
+    Returns
+    -------
+    sample: tuple
+      This tuple contains a two torch.Tensor objects. The first represents
+      a sampling of the learned distribution when transformations had been
+      applied. The secong torc.Tensor is the computation of log probabilities
+      of the transformed distribution.
+      shape: ((samples, dim), (samples))
+
     """
     outputs = self.base_distribution.sample((n_samples,))
     log_prob = self.base_distribution.log_prob(outputs)

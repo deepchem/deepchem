@@ -47,7 +47,9 @@ def test_Affine():
   assert np.array_equal(inverse_log_det_jacobian, zeros)
 
 
-def test_Normalizing_Flow_Pytorch():
+@unittest.skipIf(not has_torch, 'torch is not installed')
+@pytest.mark.torch
+def test_normalizing_flow_pytorch():
   """
   This test aims to evaluate if the normalizingFlow model is being applied
   correctly. That is if the sampling, and its log_prob, are being computed
