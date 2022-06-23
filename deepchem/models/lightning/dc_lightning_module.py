@@ -72,8 +72,11 @@ class DCLightningModule(pl.LightningModule):
     """
     batch = batch.batch_list
     inputs, labels, weights = self.dc_model._prepare_batch(batch)
+    if isinstance(inputs, list):
+      assert len(inputs) == 1
+      inputs = inputs[0]
 
-    outputs = self.pt_model(inputs[0])
+    outputs = self.pt_model(inputs)
 
     if isinstance(outputs, torch.Tensor):
       outputs = [outputs]
