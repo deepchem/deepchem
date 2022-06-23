@@ -76,21 +76,6 @@ class CNN(nn.Module):
       or a tuple (the stride along each dimension).  Alternatively this may be a
       single int or tuple instead of a list, in which case the same stride is
       used for every layer.
-    weight_init_stddevs: list or float
-      the standard deviation of the distribution to use for weight initialization
-      of each layer.  The length of this list should equal len(layer_filters)+1,
-      where the final element corresponds to the dense layer.  Alternatively this
-      may be a single value instead of a list, in which case the same value is used
-      for every layer.
-    bias_init_consts: list or loat
-      the value to initialize the biases in each layer to.  The length of this
-      list should equal len(layer_filters)+1, where the final element corresponds
-      to the dense layer.  Alternatively this may be a single value instead of a
-      list, in which case the same value is used for every layer.
-    weight_decay_penalty: float
-      the magnitude of the weight decay penalty to use
-    weight_decay_penalty_type: str
-      the type of penalty to use for weight decay, either 'l1' or 'l2'
     dropouts: list or float
       the dropout probablity to use for each layer.  The length of this list should equal len(layer_filters).
       Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
