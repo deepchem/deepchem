@@ -706,3 +706,29 @@ def test_mat_generator():
   result = layer(input_ar, mask)
   output_ar = torch.tensor([-1.4436])
   assert torch.allclose(result, output_ar, rtol=1e-4)
+
+  
+@pytest.mark.torch
+def test_linear_dynamics():
+  from deepchem.models.torch_models.layers import LinearDynamics
+  
+  x = torch.ones(4,)
+  model = LinearDynamics([4,8,16,32])
+  y = model(x, x)
+  assert x.shape == y.shape
+  
+@pytest.mark.torch
+def test_convolutional_dynamics():
+  from deepchem.models.torch_models.layers import ConvolutionalDynamics
+  x = torch.ones(3,224,224)
+  model = ConvolutionalDynamics([3,8,16,32])
+  y = model(x, x)
+  assert x.shape == y.shape
+  
+@pytest.mark.torch
+def test_ode_layer():
+  from deepchem.models.torch_models.layers import LinearDynamics
+  model = ODELayer(LinearDynamics([4,8,16,32]))
+  x = torch.ones(4)
+  y = model(torch.ones(4))
+  assert x.shape == y.shape

@@ -14,6 +14,11 @@ try:
 except ModuleNotFoundError:
   pass
 
+try:
+  import torchdiffeq
+except ModuleNotFoundError:
+  pass
+
 
 class ScaleNorm(nn.Module):
   """Apply Scale Normalization to input.
@@ -935,3 +940,44 @@ class Affine(nn.Module):
     inverse_log_det_jacobian = torch.ones(x.shape[0]) * torch.log(det_jacobian)
 
     return x, inverse_log_det_jacobian
+
+
+class ConvolutionalDynamics(nn.Module):
+  def __init__(self, layer_filters: List[int], conv_dim=2, kernel_sizes: Optional[Union[int,List[int]]] = 5,):
+    super(ConvolutionalDynamics, self).__init__()
+
+    n_layers = len(layer_filters) - 1
+    self.conv_dim = conv_dim
+    if isinstance(kernel_sizes, int):
+      kernel_sizes = [kernel_sizes] * n_layers
+
+    ConvLayer = (nn.Conv1d, nn.Conv2d, nn.Conv3d)[self.conv_dim - 1]
+    ConvTransposeLayer = (nn.ConvTranspose1d, nn.ConvTranspose2d, nn.ConvTranspose3d)[self.conv_dim-1]
+    
+    self.model = nn.ModuleList()
+    for in_dim, out_dim, kernel_size in zip(layer_filters, layer_filters[1:], kernel_sizes):
+      self.model.append(ConvLayer(in_dim, out_dim, kernel_size))
+
+    for in_dim, out_dim, kernel_size in zip(layer_filters[-1::-1], layer_filters[-2::-1], kernel_sizes[::-1]):
+      self.model.append(ConvTransposeLayer(in_dim, out_dim, kernel_size))
+
+  def forward(self, t, x):
+    for layer in self.model:
+      x = layer(x)
+    return x
+
+
+class ODELayer(nn.Module):
+
+  def __init__(self, f):
+    super(ODELayer, self).__init__()
+    self.f = f
+    self.int_time = torch.Tensor([0,1]).float()
+
+  def forward(self,x):
+    self.int_time = self.int_time.type_as(x)
+    out = torchdiffeq.odeint_adjoint(self.f, x, self.int_time)
+    
+    return out[1]
+  
+  
