@@ -942,25 +942,6 @@ class Affine(nn.Module):
     return x, inverse_log_det_jacobian
 
 
-
-class LinearDynamics(nn.Module):
-  def __init__(self,layer_filters: List[int]=[32]):
-    super(LinearDynamics, self).__init__()
-
-    n_layers = len(layer_filters) - 1
-
-    self.model = nn.ModuleList()
-    for in_dim, out_dim in zip(layer_filters, layer_filters[1:]):
-      self.model.append(nn.Linear(in_dim, out_dim))
-
-    for in_dim, out_dim in zip(layer_filters[-1::-1], layer_filters[-2::-1]):
-      self.model.append(nn.Linear(in_dim, out_dim))
-
-  def forward(self, t:torch.Tensor, x:torch.Tensor):
-    for layer in self.model:
-      x = layer(x)
-    return x
-  
 class ConvolutionalDynamics(nn.Module):
   def __init__(self, layer_filters: List[int], conv_dim=2, kernel_sizes: Optional[Union[int,List[int]]] = 5,):
     super(ConvolutionalDynamics, self).__init__()
@@ -984,6 +965,7 @@ class ConvolutionalDynamics(nn.Module):
     for layer in self.model:
       x = layer(x)
     return x
+
 
 class ODELayer(nn.Module):
 
