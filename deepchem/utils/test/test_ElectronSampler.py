@@ -1,9 +1,9 @@
 """
-Test for MCMC.py
+Test for ElectronSampler.py
 """
 
 import numpy as np
-from deepchem.utils.ElectronSampler import MCMC
+from deepchem.utils.ElectronSampler import ElectronSampler
 
 
 def f(x):
@@ -12,7 +12,7 @@ def f(x):
 
 
 def test_mean():
-  distribution = MCMC(np.array([[1, 1, 3], [3, 2, 3]]), f)
+  distribution = ElectronSampler(np.array([[1, 1, 3], [3, 2, 3]]), f)
   x1 = np.array([[[[1, 2, 3]]], [[[4, 5, 6]]]])
   mean = distribution.harmonic_mean(x1)
   assert (mean == np.array([[[[1.3333333333333333]]],
@@ -23,7 +23,7 @@ def test_log_prob():
   x1 = np.array([[[[1, 2, 3]]], [[[4, 5, 6]]]])
   x2 = np.array([[[[10, 6, 4]]], [[[2, 1, 7]]]])
   sigma = np.full(np.shape(x1), 1)
-  distribution = MCMC(np.array([[1, 1, 3], [3, 2, 3]]), f)
+  distribution = ElectronSampler(np.array([[1, 1, 3], [3, 2, 3]]), f)
   move_probability = distribution.log_prob_gaussian(x1, x2, sigma)
   assert (move_probability == np.array([-49, -10.5])).all()
 
@@ -31,10 +31,10 @@ def test_log_prob():
 def test_steps():
 
   # test for gauss_initialize_position
-  distribution = MCMC(np.array([[1, 1, 3], [3, 2, 3]]),
-                      f,
-                      batch_no=2,
-                      steps=1000)
+  distribution = ElectronSampler(np.array([[1, 1, 3], [3, 2, 3]]),
+                                 f,
+                                 batch_no=2,
+                                 steps=1000)
   distribution.gauss_initialize_position(np.array([[1], [2]]))
   assert ((distribution.x - np.array([[[[1, 1, 3]], [[3, 2, 3]], [[3, 2, 3]]],
                                       [[[1, 1, 3]], [[3, 2, 3]], [[3, 2, 3]]]]))
@@ -46,22 +46,22 @@ def test_steps():
   assert ((distribution.x - x1) != 0).all()
 
   # testing asymmetric simultaneous_move
-  distribution = MCMC(np.array([[1, 1, 3], [3, 2, 3]]),
-                      f,
-                      batch_no=2,
-                      steps=1000,
-                      symmetric=False)
+  distribution = ElectronSampler(np.array([[1, 1, 3], [3, 2, 3]]),
+                                 f,
+                                 batch_no=2,
+                                 steps=1000,
+                                 symmetric=False)
   distribution.gauss_initialize_position(np.array([[1], [2]]))
   x1 = distribution.x
   distribution.move(asymmetric_func=distribution.harmonic_mean)
   assert ((distribution.x - x1) != 0).all()
 
   # testing symmetric single_move
-  distribution = MCMC(np.array([[1, 1, 3], [3, 2, 3]]),
-                      f,
-                      batch_no=2,
-                      steps=1000,
-                      simultaneous=False)
+  distribution = ElectronSampler(np.array([[1, 1, 3], [3, 2, 3]]),
+                                 f,
+                                 batch_no=2,
+                                 steps=1000,
+                                 simultaneous=False)
   distribution.gauss_initialize_position(np.array([[1], [2]]))
   x1 = distribution.x
   distribution.move(index=1)
@@ -69,12 +69,12 @@ def test_steps():
   assert ((distribution.x[:, 2, :, :] - x1[:, 2, :, :]) == 0).all()
 
   # testing asymmetric single_move
-  distribution = MCMC(np.array([[1, 1, 3], [3, 2, 3]]),
-                      f,
-                      batch_no=2,
-                      steps=1000,
-                      simultaneous=False,
-                      symmetric=False)
+  distribution = ElectronSampler(np.array([[1, 1, 3], [3, 2, 3]]),
+                                 f,
+                                 batch_no=2,
+                                 steps=1000,
+                                 simultaneous=False,
+                                 symmetric=False)
   distribution.gauss_initialize_position(np.array([[1], [2]]))
   x1 = distribution.x
   distribution.move(asymmetric_func=distribution.harmonic_mean, index=1)

@@ -2,7 +2,7 @@ import numpy as np
 from typing import Optional, Callable
 
 
-class MCMC:
+class ElectronSampler:
   """
   This class enables to initialize electron's position using gauss distribution around a nucleus and update using Markov Chain Monte-Carlo(MCMC) moves.
 
@@ -22,39 +22,40 @@ class MCMC:
 
   Example
   -------
-  >>> from deepchem.utils.ElectronSampler import MCMC
+  >>> from deepchem.utils.ElectronSampler import ElectronSampler
   >>> def test_f(x):
   ...	#dummy function which can be passed as the parameter f. f gives the log probability
   ...	return 2*np.log(np.random.uniform(low=0,high=1.0,size=np.shape(x)[0]))
-  >>> distribution=MCMC(central_value=[[1,1,3],[3,2,3]]],f=test_f,seed=0,batch_no=2,steps=1000,)
-  >>> distrubution.gauss_initialize_position([[1],[2]])
-  >>> distribution.x
-  [[[[1.00626135 0.98291809 2.9489402 ]]
+  >>> distribution=ElectronSampler(central_value=np.array([[1,1,3],[3,2,3]]),f=test_f,seed=0,batch_no=2,steps=1000,)
+  >>> distribution.gauss_initialize_position(np.array([[1],[2]]))
+  >> print(distribution.x)
+  [[[[1.03528105 1.00800314 3.01957476]]
 
-    [[3.04539509 1.97091269 3.00091517]]
+    [[3.01900177 1.99697286 2.99793562]]
 
-    [[2.99625632 2.03065558 3.02938718]]]
+    [[3.00821197 2.00288087 3.02908547]]]
 
 
-   [[[1.01307237 1.01728872 2.9851567 ]]
+   [[[1.04481786 1.03735116 2.98045444]]
 
-    [[3.00309895 2.00756325 2.98224429]]
+    [[3.01522075 2.0024335  3.00887726]]
 
-    [[2.96038407 1.99304176 3.00312698]]]]
+    [[3.00667349 2.02988158 2.99589683]]]]
   >>> distribution.move()
-  >>> ditribution.x
-  [[[[-0.08888387  1.24021524  2.77555481]]
+  0.5115
+  >> print(distribution.x)
+  [[[[-0.32441754  1.23330263  2.67927645]]
 
-    [[ 3.34737279  2.27259311  3.52041236]]
+    [[ 3.42250997  2.23617126  3.55806632]]
 
-    [[ 3.26025284  1.71305735  3.1379624 ]]]
+    [[ 3.37491385  1.54374006  3.13575241]]]
 
 
-   [[[ 0.43672637  0.96475675  3.7220207 ]]
+   [[[ 0.49067726  1.03987841  3.70277884]]
 
-    [[ 3.30810994  1.58044327  2.56373753]]
+    [[ 3.5631939   1.68703947  2.5685874 ]]
 
-    [[ 2.63144407  1.89442955  3.62751124]]]]
+    [[ 2.84560249  1.73998364  3.41274181]]]]
   """
 
   def __init__(self,
@@ -171,7 +172,7 @@ class MCMC:
            stddev: float = 0.02,
            asymmetric_func: Optional[Callable[[np.ndarray], np.ndarray]] = None,
            index: Optional[int] = None) -> float:
-    """Performs Metropolis-Hasting move for self.x(electrons). The type of moves to be followed -(simultaneous or single-elctron, symmetric or asymmetric) have been specified when calling the class.
+    """Performs Metropolis-Hasting move for self.x(electrons). The type of moves to be followed -(simultaneous or single-electron, symmetric or asymmetric) have been specified when calling the class.
     The self.x array is replaced with a new array at the end of each step containing the new electron's positions.
 
     Parameters:
