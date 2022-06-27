@@ -87,7 +87,7 @@ def test_normalizing_flow_pytorch():
   zeros = np.zeros((samples,))
 
   # Assert errors for sample method
-  assert np.not_equal(log_prob_, zeros)
+  assert log_prob_.any()
 
   # Assert errors for log_prob method
   assert np.array_equal(log_prob, zeros)
