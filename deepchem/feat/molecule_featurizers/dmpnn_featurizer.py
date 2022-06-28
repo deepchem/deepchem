@@ -128,6 +128,7 @@ def atom_features(
 
   Examples
   --------
+  >>> import deepchem as dc
   >>> from rdkit import Chem
   >>> mol = Chem.MolFromSmiles('C')
   >>> atom = mol.GetAtoms()[0]
@@ -188,6 +189,7 @@ def bond_features(bond: RDKitBond) -> Sequence[Union[bool, int, float]]:
 
   Examples
   --------
+  >>> import deepchem as dc
   >>> from rdkit import Chem
   >>> mol = Chem.MolFromSmiles('CC')
   >>> bond = mol.GetBondWithIdx(0)
