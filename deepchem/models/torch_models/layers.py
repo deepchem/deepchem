@@ -1,6 +1,7 @@
 import math
 import numpy as np
-from typing import Any, Tuple, Optional, Sequence
+from typing import Any, Tuple, Optional, Sequence, List, Union
+
 try:
   import torch
   from torch import Tensor
@@ -935,3 +936,72 @@ class Affine(nn.Module):
     inverse_log_det_jacobian = torch.ones(x.shape[0]) * torch.log(det_jacobian)
 
     return x, inverse_log_det_jacobian
+
+
+class InteratomicL2Distances(nn.Module):
+  """Compute (squared) L2 Distances between atoms given neighbors.
+
+  This class is the pytorch implementation of the original InteratomicL2Distances layer implemented in Keras.
+  Pairwise distance (L2) is calculated between input atoms, given the number of neighbors to consider, along with the number of descriptors for every atom.
+
+  Examples
+  --------
+  >>> atoms = 5
+  >>> neighbors = 2
+  >>> coords = np.random.rand(atoms, 3)
+  >>> neighbor_list = np.random.randint(0, atoms, size=(atoms, neighbors))
+  >>> layer = InteratomicL2Distances(atoms, neighbors, 3)
+  >>> result = np.array(layer([coords, neighbor_list]))
+  >>> result.shape
+  (5, 2)
+
+  """
+
+  def __init__(self, N_atoms: int, M_nbrs: int, ndim: int, **kwargs):
+    """Constructor for this layer.
+
+    Parameters
+    ----------
+    N_atoms: int
+      Number of atoms in the system total.
+    M_nbrs: int
+      Number of neighbors to consider when computing distances.
+    n_dim:  int
+      Number of descriptors for each atom.
+    """
+    super(InteratomicL2Distances, self).__init__(**kwargs)
+    self.N_atoms = N_atoms
+    self.M_nbrs = M_nbrs
+    self.ndim = ndim
+
+  def __repr__(self) -> str:
+    return (
+        f'{self.__class__.__name__}(N_atoms={self.N_atoms}, M_nbrs={self.M_nbrs}, ndim={self.ndim})'
+    )
+
+  def forward(
+      self, inputs: List[Union[torch.Tensor,
+                               List[Union[int, float]]]]) -> torch.Tensor:
+    """Invokes this layer.
+
+    Parameters
+    ----------
+    inputs: list
+      Should be of form `inputs=[coords, nbr_list]` where `coords` is a
+      tensor of shape `(None, N, 3)` and `nbr_list` is a list.
+
+    Returns
+    -------
+    Tensor of shape `(N_atoms, M_nbrs)` with interatomic distances.
+    """
+    if len(inputs) != 2:
+      raise ValueError("InteratomicDistances requires coords,nbr_list")
+    coords, nbr_list = (torch.tensor(inputs[0]), torch.tensor(inputs[1]))
+    N_atoms, M_nbrs, ndim = self.N_atoms, self.M_nbrs, self.ndim
+    # Shape (N_atoms, M_nbrs, ndim)
+    nbr_coords = coords[nbr_list.long()]
+    # Shape (N_atoms, M_nbrs, ndim)
+    tiled_coords = torch.tile(torch.reshape(coords, (N_atoms, 1, ndim)),
+                              (1, M_nbrs, 1))
+    # Shape (N_atoms, M_nbrs)
+    return torch.sum((tiled_coords - nbr_coords)**2, dim=2)
