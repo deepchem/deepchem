@@ -54,8 +54,7 @@ class CNN(nn.Module):
                  padding: Optional[Union[str, Union[int, Tuple[int]]]] = 'valid') -> None:
 
         """Create a CNN.
-        In addition to the following arguments, this class also accepts
-        all the keyword arguments from TensorGraph.
+      
         Parameters
         ----------
         n_tasks: int
@@ -83,7 +82,7 @@ class CNN(nn.Module):
           the dropout probablity to use for each layer.  The length of this list should equal len(layer_filters).
           Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
         activation_fns: list or object
-          the Tensorflow activation function to apply to each layer.  The length of this list should equal
+          the activation function to apply to each layer.  The length of this list should equal
           len(layer_filters).  Alternatively this may be a single value instead of a list, in which case the
           same value is used for every layer.
         pool_type: str
@@ -123,7 +122,7 @@ class CNN(nn.Module):
         n_layers = len(layer_filters)
 
         # PyTorch layers require input and output channels as parameter
-        # multiply, layer_filters, if only one layer with two to make the model creating loop below work
+        # if only one layer to make the model creating loop below work, multiply layer_filters wutg 2
         if len(layer_filters) == 1:
             layer_filters = layer_filters * 2
 
