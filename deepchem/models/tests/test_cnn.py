@@ -25,14 +25,13 @@ class TestCNN(unittest.TestCase):
     dataset = dc.data.NumpyDataset(X, y)
 
     regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
-    model = dc.models.CNN(
-        n_tasks,
-        n_features,
-        dims=1,
-        dropouts=0,
-        kernel_size=3,
-        mode='regression',
-        learning_rate=0.003)
+    model = dc.models.CNN(n_tasks,
+                          n_features,
+                          dims=1,
+                          dropouts=0,
+                          kernel_size=3,
+                          mode='regression',
+                          learning_rate=0.003)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=200)
@@ -54,14 +53,13 @@ class TestCNN(unittest.TestCase):
     dataset = dc.data.NumpyDataset(X, y)
 
     classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
-    model = dc.models.CNN(
-        n_tasks,
-        n_features,
-        dims=2,
-        dropouts=0,
-        kernel_size=3,
-        mode='classification',
-        learning_rate=0.003)
+    model = dc.models.CNN(n_tasks,
+                          n_features,
+                          dims=2,
+                          dropouts=0,
+                          kernel_size=3,
+                          mode='classification',
+                          learning_rate=0.003)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
@@ -84,17 +82,16 @@ class TestCNN(unittest.TestCase):
     dataset = dc.data.NumpyDataset(X, y)
 
     classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
-    model = dc.models.CNN(
-        n_tasks,
-        n_features,
-        dims=1,
-        dropouts=0,
-        layer_filters=[30] * 10,
-        kernel_size=3,
-        mode='classification',
-        padding='same',
-        residual=True,
-        learning_rate=0.003)
+    model = dc.models.CNN(n_tasks,
+                          n_features,
+                          dims=1,
+                          dropouts=0,
+                          layer_filters=[30] * 10,
+                          kernel_size=3,
+                          mode='classification',
+                          padding='same',
+                          residual=True,
+                          learning_rate=0.003)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
@@ -113,22 +110,20 @@ class TestCNN(unittest.TestCase):
 
     np.random.seed(123)
     X = np.random.randn(n_samples, 10, n_features)
-    y = np.sum(
-        X, axis=(1, 2)) + np.random.normal(
-            scale=noise, size=(n_samples,))
+    y = np.sum(X, axis=(1, 2)) + np.random.normal(scale=noise,
+                                                  size=(n_samples,))
     y = np.reshape(y, (n_samples, n_tasks))
     dataset = dc.data.NumpyDataset(X, y)
 
-    model = dc.models.CNN(
-        n_tasks,
-        n_features,
-        dims=1,
-        dropouts=0.1,
-        kernel_size=3,
-        pool_type='average',
-        mode='regression',
-        learning_rate=0.005,
-        uncertainty=True)
+    model = dc.models.CNN(n_tasks,
+                          n_features,
+                          dims=1,
+                          dropouts=0.1,
+                          kernel_size=3,
+                          pool_type='average',
+                          mode='regression',
+                          learning_rate=0.005,
+                          uncertainty=True)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=300)
@@ -138,26 +133,31 @@ class TestCNN(unittest.TestCase):
     assert np.mean(np.abs(y - pred)) < 0.3
     assert noise < np.mean(std) < 1.0
 
-
-
 @pytest.mark.torch
 def test_cnn_torch():
-    
-    from deepchem.models.torch_models.cnn import CNN
-    torch.manual_seed(0)
-    
-    n_tasks = 5
-    n_features = 8
-    n_classes = 7
-    batch_size = 2
-    mode = 'classification'
-    model = CNN(n_tasks=n_tasks, n_features=n_features, dims=2, dropouts=[0.5, 0.2, 0.4, 0.7],
-                layer_filters=[3, 8, 8, 16], kernel_size=3, n_classes=n_classes, mode=mode, uncertainty=False)
 
-    x = torch.Tensor(batch_size, 8, 224, 224)
-    y = model(x)
+  from deepchem.models.torch_models.cnn import CNN
+  torch.manual_seed(0)
 
-    # output_type for classification = [output, logits]
-    assert len(y) == 2
-    assert y[0].shape == (batch_size, n_tasks, n_classes)
-    assert y[0].shape == y[1].shape
+  n_tasks = 5
+  n_features = 8
+  n_classes = 7
+  batch_size = 2
+  mode = 'classification'
+  model = CNN(n_tasks=n_tasks,
+              n_features=n_features,
+              dims=2,
+              dropouts=[0.5, 0.2, 0.4, 0.7],
+              layer_filters=[3, 8, 8, 16],
+              kernel_size=3,
+              n_classes=n_classes,
+              mode=mode,
+              uncertainty=False)
+
+  x = torch.Tensor(batch_size, 8, 224, 224)
+  y = model(x)
+
+  # output_type for classification = [output, logits]
+  assert len(y) == 2
+  assert y[0].shape == (batch_size, n_tasks, n_classes)
+  assert y[0].shape == y[1].shape
