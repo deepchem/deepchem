@@ -133,6 +133,7 @@ class TestCNN(unittest.TestCase):
     assert np.mean(np.abs(y - pred)) < 0.3
     assert noise < np.mean(std) < 1.0
 
+
 @pytest.mark.torch
 def test_cnn_torch():
 
