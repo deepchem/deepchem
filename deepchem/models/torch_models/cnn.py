@@ -219,14 +219,10 @@ class CNN(nn.Module):
       logits = nn.Linear(x.shape[1], self.n_tasks * self.n_classes)(x)
       logits = logits.view(batch_size, self.n_tasks, self.n_classes)
       output = F.softmax(logits, dim=1)
-
       outputs = [output, logits]
-      assert logits.shape == (batch_size, self.n_tasks, self.n_classes)
 
     else:
-
       output = nn.Linear(x.shape[1], self.n_tasks)(x)
-      print(output.shape)
       output = output.view(batch_size, self.n_tasks)
 
       if self.uncertainty:

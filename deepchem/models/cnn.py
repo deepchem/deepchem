@@ -171,7 +171,7 @@ class CNN(KerasModel):
                    layers.GlobalAveragePooling3D)[dims - 1]
     elif pool_type == 'max':
       PoolLayer = (layers.GlobalMaxPool1D, layers.GlobalMaxPool2D,
-                   layers.GlobalMaxPool2D)[dims - 1]
+                   layers.GlobalMaxPool3D)[dims - 1]
     else:
       raise ValueError('pool_type must be either "average" or "max"')
     for filters, size, stride, weight_stddev, bias_const, dropout, activation_fn in zip(
