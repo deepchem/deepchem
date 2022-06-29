@@ -1,5 +1,9 @@
-import torch
 import pytest
+try:
+  import torch
+  has_pytorch = True
+except:
+  has_pytorch = False
 
 
 @pytest.mark.torch
@@ -23,7 +27,7 @@ def test_cnn_torch():
               mode=mode,
               uncertainty=False)
 
-  x = torch.Tensor(batch_size, 8, 224, 224)
+  x = torch.ones(batch_size, 8, 224, 224)
   y = model(x)
 
   # output_type for classification = [output, logits]
