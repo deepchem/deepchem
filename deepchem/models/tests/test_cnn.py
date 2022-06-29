@@ -136,7 +136,7 @@ class TestCNN(unittest.TestCase):
 @pytest.mark.torch
 def test_cnn_torch():
 
-  from deepchem.models.torch_models.cnn import CNN
+  from deepchem.models.torch_models import CNN
   torch.manual_seed(0)
 
   n_tasks = 5
