@@ -94,7 +94,7 @@ class CNN(KerasModel):
     weight_decay_penalty_type: str
       the type of penalty to use for weight decay, either 'l1' or 'l2'
     dropouts: list or float
-      the dropout probability to use for each layer.  The length of this list should equal len(layer_filters).
+      the dropout probablity to use for each layer.  The length of this list should equal len(layer_filters).
       Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
     activation_fns: list or object
       the Tensorflow activation function to apply to each layer.  The length of this list should equal
@@ -171,7 +171,7 @@ class CNN(KerasModel):
                    layers.GlobalAveragePooling3D)[dims - 1]
     elif pool_type == 'max':
       PoolLayer = (layers.GlobalMaxPool1D, layers.GlobalMaxPool2D,
-                   layers.GlobalMaxPool3D)[dims - 1]
+                   layers.GlobalMaxPool2D)[dims - 1]
     else:
       raise ValueError('pool_type must be either "average" or "max"')
     for filters, size, stride, weight_stddev, bias_const, dropout, activation_fn in zip(
