@@ -55,7 +55,7 @@ class InteratomicL2Distances(tf.keras.layers.Layer):
     config['ndim'] = self.ndim
     return config
 
-  def call(self, inputs):
+  def call(self, inputs: List):
     """Invokes this layer.
 
     Parameters

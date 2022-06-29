@@ -1,9 +1,12 @@
 FROM ubuntu:18.04
 
+# Prep install and update
+RUN apt-get update && apt-get install -y apt-transport-https
+
 # Install some utilities
-RUN apt-get update && \
-    apt-get install -y -q wget git libxrender1 libsm6 bzip2 && \
-    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+RUN apt-get update
+RUN apt-get install -y -q wget git libxrender1 libsm6 bzip2
+RUN rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Install miniconda
 RUN MINICONDA="Miniconda3-latest-Linux-x86_64.sh" && \

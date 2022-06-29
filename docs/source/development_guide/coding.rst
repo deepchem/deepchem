@@ -163,7 +163,7 @@ and then run the test as follows:
   conda create -n tf-test python=3.8
   conda activate tf-test
   pip install conda-merge
-  conda-merge requirements/tensorflow/env_tensorflow.yml env.test.yml > env.yml
+  conda-merge requirements/tensorflow/env_tensorflow.yml requirements/env_test.yml > env.yml
   conda env update --file env.yml --prune
   pytest -v -m 'tensorflow' deepchem
 
@@ -175,7 +175,7 @@ and then run the tests as follows:
   conda create -n pytorch-test python=3.8
   conda activate pytorch-test
   pip install conda-merge
-  conda-merge requirements/torch/env_torch.yml requirements/torch/env_torch.cpu.yml env.test.yml > env.yml
+  conda-merge requirements/torch/env_torch.yml requirements/torch/env_torch.cpu.yml requirements/env_test.yml > env.yml
   conda env update --file env.yml --prune
   pytest -v -m 'torch' deepchem
 
