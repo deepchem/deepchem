@@ -203,8 +203,8 @@ class CNN(KerasModel):
       prev_layer = Activation(activation_fn)(prev_layer)
     prev_layer = PoolLayer()(prev_layer)
     if mode == 'classification':
-      logits = Reshape((n_tasks,
-                        n_classes))(Dense(n_tasks * n_classes)(prev_layer))
+      logits = Reshape(
+          (n_tasks, n_classes))(Dense(n_tasks * n_classes)(prev_layer))
       output = Softmax()(logits)
       outputs = [output, logits]
       output_types = ['prediction', 'loss']
@@ -243,14 +243,15 @@ class CNN(KerasModel):
                         deterministic=True,
                         pad_batches=True):
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+      for (X_b, y_b, w_b,
+           ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                         deterministic=deterministic,
+                                         pad_batches=pad_batches):
         if self.mode == 'classification':
           if y_b is not None:
-            y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
-                -1, self.n_tasks, self.n_classes)
+            y_b = to_one_hot(y_b.flatten(),
+                             self.n_classes).reshape(-1, self.n_tasks,
+                                                     self.n_classes)
         if mode == 'predict':
           dropout = np.array(0.0)
         else:
