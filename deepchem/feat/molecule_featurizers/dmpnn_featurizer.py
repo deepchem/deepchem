@@ -1,8 +1,5 @@
-# flake8: noqa
-
 import numpy as np
 from typing import List, Tuple, Union, Dict, Set, Sequence
-import deepchem as dc
 from deepchem.utils.typing import RDKitAtom, RDKitMol, RDKitBond
 
 from deepchem.utils.molecule_feature_utils import one_hot_encode
