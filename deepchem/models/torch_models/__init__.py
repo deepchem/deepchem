@@ -1,4 +1,5 @@
 # flake8:noqa
+import imp
 from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.torch_models.attentivefp import AttentiveFP, AttentiveFPModel
 from deepchem.models.torch_models.cgcnn import CGCNN, CGCNNModel
@@ -9,3 +10,4 @@ from deepchem.models.torch_models.lcnn import LCNN, LCNNModel
 from deepchem.models.torch_models.pagtn import Pagtn, PagtnModel
 from deepchem.models.torch_models.mat import MAT, MATModel
 from deepchem.models.torch_models.megnet import MEGNetModel
+from deepchem.models.torch_models.cnn import CNN
