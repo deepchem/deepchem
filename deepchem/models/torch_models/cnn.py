@@ -223,6 +223,7 @@ class CNN(nn.Module):
 
     else:
       output = nn.Linear(x.shape[1], self.n_tasks)(x)
+
       output = output.view(batch_size, self.n_tasks)
 
       if self.uncertainty:
