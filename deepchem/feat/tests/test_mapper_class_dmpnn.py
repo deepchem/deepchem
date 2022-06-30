@@ -36,7 +36,7 @@ class TestMapperDMPNN(unittest.TestCase):
                          dtype=float)
 
     # mapping from atom index to atom features | initial input is a zero padding
-    f_atoms_zero_padded = np.asarray([[0] * atom_fdim], dtype=float)
+    f_atoms_zero_padded = np.zeros((1, atom_fdim))
     f_atoms_zero_padded = np.concatenate((f_atoms_zero_padded, f_atoms), axis=0)
     return f_atoms_zero_padded
 
@@ -85,7 +85,7 @@ class TestMapperDMPNN(unittest.TestCase):
 
   def test_mapper_ring(self):
     """
-    Test 'C1=CC=CN=C1' in _MapperDMPNN (benezene ring)
+    Test 'C1=CC=CC=C1' in _MapperDMPNN (benezene ring)
     """
     mapper = _MapperDMPNN(self.mol[3], self.concat_fdim, self.features[3])
     assert mapper.num_atoms == 6
