@@ -7,6 +7,7 @@ import logging
 import deepchem as dc
 from deepchem.utils.typing import RDKitAtom, RDKitMol, RDKitBond
 
+from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.feat.molecule_featurizers.circular_fingerprint import CircularFingerprint
 
 from deepchem.utils.molecule_feature_utils import one_hot_encode
@@ -41,7 +42,9 @@ class GraphConvConstants(object):
   # len(choices) +1 and len(ATOM_FEATURES_HYBRIDIZATION) +1 to include room for unknown set
   # + 2 at end for is_in_aromatic and mass
   BOND_FDIM = 14
-  FEATURE_GENERATORS = {
+
+  # dictionary of available feature generators
+  FEATURE_GENERATORS: Dict[str, MolecularFeaturizer] = {
       "morgan": CircularFingerprint(radius=2, size=2048, sparse=False)
   }
 
