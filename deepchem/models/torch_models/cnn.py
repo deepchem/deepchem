@@ -11,7 +11,7 @@ except:
   from collections import Sequence as SequenceCollection
 
 
-class CNN(nn.Module):
+class TorchCNN(nn.Module):
   """A 1, 2, or 3 dimensional convolutional network for either regression or classification.
     The network consists of the following sequence of layers:
     - A configurable number of convolutional layers
@@ -100,7 +100,7 @@ class CNN(nn.Module):
           the padding to use for convolutional layers, either 'valid' or 'same'
         """
 
-    super(CNN, self).__init__()
+    super(TorchCNN, self).__init__()
 
     if dims not in (1, 2, 3):
       raise ValueError('Number of dimensions must be 1, 2 or 3')

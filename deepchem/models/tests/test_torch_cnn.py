@@ -1,6 +1,7 @@
 import pytest
 try:
   import torch
+  from deepchem.models.torch_models import CNN
   has_pytorch = True
 except:
   has_pytorch = False
