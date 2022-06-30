@@ -1,9 +1,13 @@
 # flake8: noqa
 
 from rdkit import Chem
+import numpy as np
 from typing import List, Tuple, Union, Dict, Set, Sequence
+import logging
 import deepchem as dc
-from deepchem.utils.typing import RDKitAtom
+from deepchem.utils.typing import RDKitAtom, RDKitMol, RDKitBond
+
+from deepchem.feat.molecule_featurizers.circular_fingerprint import CircularFingerprint
 
 from deepchem.utils.molecule_feature_utils import one_hot_encode
 from deepchem.utils.molecule_feature_utils import get_atom_total_degree_one_hot
@@ -13,6 +17,8 @@ from deepchem.utils.molecule_feature_utils import get_atom_hybridization_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_is_in_aromatic_one_hot
 
 from deepchem.feat.graph_features import bond_features as b_Feats
+
+logger = logging.getLogger(__name__)
 
 
 class GraphConvConstants(object):
@@ -35,6 +41,9 @@ class GraphConvConstants(object):
   # len(choices) +1 and len(ATOM_FEATURES_HYBRIDIZATION) +1 to include room for unknown set
   # + 2 at end for is_in_aromatic and mass
   BOND_FDIM = 14
+  FEATURE_GENERATORS = {
+      "morgan": CircularFingerprint(radius=2, size=2048, sparse=False)
+  }
 
 
 def get_atomic_num_one_hot(atom: RDKitAtom,
@@ -254,3 +263,63 @@ def map_reac_to_prod(
                   List[int]] = (reac_id_to_prod_id, only_prod_ids,
                                 only_reac_ids)
   return mappings
+
+
+def generate_global_features(mol: RDKitMol,
+                             features_generators: List[str]) -> np.ndarray:
+  """
+  Helper function for generating global features for a RDKit mol based on the given list of feature generators to be used.
+
+  Parameters
+  ----------
+  mol: RDKitMol
+    RDKit molecule to be featurized
+  features_generators: List[str]
+    List of names of the feature generators to be used featurization
+
+  Returns
+  -------
+  global_features_array: np.ndarray
+    Array of global features
+
+  Examples
+  --------
+  >>> from rdkit import Chem
+  >>> mol = Chem.MolFromSmiles('C')
+  >>> features_generators = ['morgan']
+  >>> global_features = dc.feat.molecule_featurizers.dmpnn_featurizer.generate_global_features(mol, features_generators)
+  >>> type(global_features)
+  <class 'numpy.ndarray'>
+  >>> len(global_features)
+  2048
+  >>> nonzero_features_indicies = global_features.nonzero()[0]
+  >>> nonzero_features_indicies
+  array([1264])
+  >>> global_features[nonzero_features_indicies[0]]
+  1.0
+  """
+  global_features: List[np.ndarray] = []
+  available_generators = GraphConvConstants.FEATURE_GENERATORS
+
+  for generator in features_generators:
+    if generator in available_generators:
+      global_featurizer = available_generators[generator]
+      if mol.GetNumHeavyAtoms() > 0:
+        global_features.extend(global_featurizer.featurize(mol)[0])
+      # for H2
+      elif mol.GetNumHeavyAtoms() == 0:
+        # not all features are equally long, so used methane as dummy molecule to determine length
+        global_features.extend(
+            np.zeros(
+                len(global_featurizer.featurize(Chem.MolFromSmiles('C'))[0])))
+    else:
+      logger.warning(f"{generator} generator is not available in DMPNN")
+
+  global_features_array: np.ndarray = np.asarray(global_features)
+
+  # Fix nans in features
+  replace_token = 0
+  global_features_array = np.where(np.isnan(global_features_array),
+                                   replace_token, global_features_array)
+
+  return global_features_array
