@@ -76,6 +76,7 @@ setup(
         'scikit-learn',
         'scipy',
         'rdkit-pypi',
+        'einops'
     ],
     extras_require=extras,
     python_requires='>=3.7,<3.10')
