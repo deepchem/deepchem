@@ -457,9 +457,8 @@ def bond_features(bond, use_chirality=False, use_extended_chirality=False):
   return np.array(bond_feats)
 
 
-def max_pair_distance_pairs(mol: RDKitMol,
-                            max_pair_distance: Optional[int] = None
-                           ) -> np.ndarray:
+def max_pair_distance_pairs(
+    mol: RDKitMol, max_pair_distance: Optional[int] = None) -> np.ndarray:
   """Helper method which finds atom pairs within max_pair_distance graph distance.
 
   This helper method is used to find atoms which are within max_pair_distance
@@ -604,9 +603,8 @@ def pair_features(
             "Malformed molecule with bonds not in specified graph distance.")
       else:
         n = mapping[(int(a1), int(a2))]
-      features[n, :bt_len] = np.asarray(bond_features_map[tuple(sorted(
-          (a1, a2)))],
-                                        dtype=float)
+      features[n, :bt_len] = np.asarray(
+          bond_features_map[tuple(sorted((a1, a2)))], dtype=float)
     for ring in rings:
       if a1 in ring:
         for a2 in ring:
@@ -623,10 +621,8 @@ def pair_features(
     # graph distance between two atoms
     if graph_distance:
       # distance is a matrix of 1-hot encoded distances for all atoms
-      distance = find_distance(a1,
-                               num_atoms,
-                               bond_adj_list,
-                               max_distance=max_distance)
+      distance = find_distance(
+          a1, num_atoms, bond_adj_list, max_distance=max_distance)
       for a2 in range(num_atoms):
         if (int(a1), int(a2)) not in mapping:
           # For ring pairs outside max pairs distance continue
@@ -647,9 +643,7 @@ def pair_features(
   return features, pair_edges
 
 
-def find_distance(a1: RDKitAtom,
-                  num_atoms: int,
-                  bond_adj_list,
+def find_distance(a1: RDKitAtom, num_atoms: int, bond_adj_list,
                   max_distance=7) -> np.ndarray:
   """Computes distances from provided atom.
 
@@ -774,11 +768,11 @@ class ConvMolFeaturizer(MolecularFeaturizer):
     self.atom_properties = list(atom_properties)
     self.per_atom_fragmentation = per_atom_fragmentation
 
-  def featurize(self,
-                datapoints: Union[RDKitMol, str, Iterable[RDKitMol],
-                                  Iterable[str]],
-                log_every_n: int = 1000,
-                **kwargs) -> np.ndarray:
+  def featurize(
+      self,
+      datapoints: Union[RDKitMol, str, Iterable[RDKitMol], Iterable[str]],
+      log_every_n: int = 1000,
+      **kwargs) -> np.ndarray:
     """
     Override parent: aim is to add handling atom-depleted molecules featurization
 
@@ -801,8 +795,8 @@ class ConvMolFeaturizer(MolecularFeaturizer):
           'Molecules is being phased out as a parameter, please pass "datapoints" instead.'
       )
 
-    features = super(ConvMolFeaturizer, self).featurize(datapoints,
-                                                        log_every_n=1000)
+    features = super(ConvMolFeaturizer, self).featurize(
+        datapoints, log_every_n=1000)
     if self.per_atom_fragmentation:
       # create temporary valid ids serving to filter out failed featurizations from every sublist
       # of features (i.e. every molecules' frags list), and also totally failed sublists.
@@ -811,8 +805,11 @@ class ConvMolFeaturizer(MolecularFeaturizer):
           True if np.array(elt).size > 0 else False for elt in f
       ] for f in features]
       features = np.array(
-          [[elt for (is_valid, elt) in zip(l, m) if is_valid
-           ] for (l, m) in zip(valid_frag_inds, features) if any(l)],
+          [[elt
+            for (is_valid, elt) in zip(l, m)
+            if is_valid]
+           for (l, m) in zip(valid_frag_inds, features)
+           if any(l)],
           dtype=object)
     return features
 
@@ -874,9 +871,10 @@ class ConvMolFeaturizer(MolecularFeaturizer):
 
     # Get the node features
     idx_nodes = [(a.GetIdx(),
-                  np.concatenate(
-                      (atom_features(a, use_chirality=self.use_chirality),
-                       self._get_atom_properties(a)))) for a in mol.GetAtoms()]
+                  np.concatenate((atom_features(
+                      a, use_chirality=self.use_chirality),
+                                  self._get_atom_properties(a))))
+                 for a in mol.GetAtoms()]
 
     idx_nodes.sort()  # Sort by ind to ensure same order as rd_kit
     idx, nodes = list(zip(*idx_nodes))
@@ -1015,9 +1013,10 @@ class WeaveFeaturizer(MolecularFeaturizer):
     """Encodes mol as a WeaveMol object."""
     # Atom features
     idx_nodes = [(a.GetIdx(),
-                  atom_features(a,
-                                explicit_H=self.explicit_H,
-                                use_chirality=self.use_chirality))
+                  atom_features(
+                      a,
+                      explicit_H=self.explicit_H,
+                      use_chirality=self.use_chirality))
                  for a in mol.GetAtoms()]
     idx_nodes.sort()  # Sort by ind to ensure same order as rd_kit
     idx, nodes = list(zip(*idx_nodes))
@@ -1039,11 +1038,12 @@ class WeaveFeaturizer(MolecularFeaturizer):
       bond_adj_list[bond[1]].append(bond[0])
 
     # Calculate pair features
-    pairs, pair_edges = pair_features(mol,
-                                      bond_features_map,
-                                      bond_adj_list,
-                                      bt_len=self.bt_len,
-                                      graph_distance=self.graph_distance,
-                                      max_pair_distance=self.max_pair_distance)
+    pairs, pair_edges = pair_features(
+        mol,
+        bond_features_map,
+        bond_adj_list,
+        bt_len=self.bt_len,
+        graph_distance=self.graph_distance,
+        max_pair_distance=self.max_pair_distance)
 
     return WeaveMol(nodes, pairs, pair_edges)

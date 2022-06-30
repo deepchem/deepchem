@@ -94,8 +94,8 @@ class TestUpdatedMolecularFeaturizer(unittest.TestCase):
     featurizer = DummyTestClass()
     datapoint_atoms_order = featurizer.featurize(
         self.smile)  # should be canonical mapping
-    assert (datapoint_atoms_order == np.asarray([self.canonical_atoms_order
-                                                ])).all()
+    assert (datapoint_atoms_order == np.asarray(
+        [self.canonical_atoms_order])).all()
 
   def test_with_canonical_order(self):
     """
@@ -104,8 +104,8 @@ class TestUpdatedMolecularFeaturizer(unittest.TestCase):
     featurizer = DummyTestClass2(use_original_atoms_order=False)
     datapoint_atoms_order = featurizer.featurize(
         self.smile)  # should be canonical mapping
-    assert (datapoint_atoms_order == np.asarray([self.canonical_atoms_order
-                                                ])).all()
+    assert (datapoint_atoms_order == np.asarray(
+        [self.canonical_atoms_order])).all()
 
   def test_with_original_order(self):
     """
@@ -114,8 +114,8 @@ class TestUpdatedMolecularFeaturizer(unittest.TestCase):
     featurizer = DummyTestClass2(use_original_atoms_order=True)
     datapoint_atoms_order = featurizer.featurize(
         self.smile)  # should be canonical mapping
-    assert (datapoint_atoms_order == np.asarray([self.original_atoms_order
-                                                ])).all()
+    assert (datapoint_atoms_order == np.asarray(
+        [self.original_atoms_order])).all()
 
   def test_on_derived_featurizers(self):
     """
