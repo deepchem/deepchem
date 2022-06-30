@@ -37,45 +37,40 @@ def _get_version():
     raise ValueError('`__version__` not defined in `deepchem/__init__.py`')
 
 
-setup(
-    name='deepchem',
-    version=_get_version(),
-    url='https://github.com/deepchem/deepchem',
-    maintainer='DeepChem contributors',
-    classifiers=[
-        'Development Status :: 4 - Beta',
-        'Environment :: Console',
-        'Intended Audience :: Developers',
-        'Intended Audience :: Information Technology',
-        'License :: OSI Approved :: MIT License',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-    ],
-    license='MIT',
-    description='Deep learning models for drug discovery, \
+setup(name='deepchem',
+      version=_get_version(),
+      url='https://github.com/deepchem/deepchem',
+      maintainer='DeepChem contributors',
+      classifiers=[
+          'Development Status :: 4 - Beta',
+          'Environment :: Console',
+          'Intended Audience :: Developers',
+          'Intended Audience :: Information Technology',
+          'License :: OSI Approved :: MIT License',
+          'Operating System :: OS Independent',
+          'Programming Language :: Python :: 3.7',
+          'Programming Language :: Python :: 3.8',
+          'Programming Language :: Python :: 3.9',
+      ],
+      license='MIT',
+      description='Deep learning models for drug discovery, \
         quantum chemistry, and the life sciences.',
-    keywords=[
-        'deepchem',
-        'chemistry',
-        'biology',
-        'materials-science',
-        'life-science',
-        'drug-discovery',
-    ],
-    packages=find_packages(exclude=["*.tests"]),
-    project_urls={
-        'Documentation': 'https://deepchem.readthedocs.io/en/latest/',
-        'Source': 'https://github.com/deepchem/deepchem',
-    },
-    install_requires=[
-        'joblib',
-        'numpy>=1.21',
-        'pandas',
-        'scikit-learn',
-        'scipy',
-        'rdkit-pypi',
-    ],
-    extras_require=extras,
-    python_requires='>=3.7,<3.10')
+      keywords=[
+          'deepchem', 'chemistry', 'biology', 'materials-science',
+          'life-science', 'drug-discovery', 'einops'
+      ],
+      packages=find_packages(exclude=["*.tests"]),
+      project_urls={
+          'Documentation': 'https://deepchem.readthedocs.io/en/latest/',
+          'Source': 'https://github.com/deepchem/deepchem',
+      },
+      install_requires=[
+          'joblib',
+          'numpy>=1.21',
+          'pandas',
+          'scikit-learn',
+          'scipy',
+          'rdkit-pypi',
+      ],
+      extras_require=extras,
+      python_requires='>=3.7,<3.10')
