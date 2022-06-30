@@ -17,14 +17,14 @@ def test_cnn_torch():
   batch_size = 2
   mode = 'classification'
   model = TorchCNN(n_tasks=n_tasks,
-              n_features=n_features,
-              dims=2,
-              dropouts=[0.5, 0.2, 0.4, 0.7],
-              layer_filters=[3, 8, 8, 16],
-              kernel_size=3,
-              n_classes=n_classes,
-              mode=mode,
-              uncertainty=False)
+                   n_features=n_features,
+                   dims=2,
+                   dropouts=[0.5, 0.2, 0.4, 0.7],
+                   layer_filters=[3, 8, 8, 16],
+                   kernel_size=3,
+                   n_classes=n_classes,
+                   mode=mode,
+                   uncertainty=False)
 
   x = torch.ones(batch_size, 8, 224, 224)
   y = model(x)

@@ -341,8 +341,8 @@ class Dataset(object):
   def __repr__(self) -> str:
     """Convert self to REPL print representation."""
     threshold = dc.utils.get_print_threshold()
-    task_str = np.array2string(
-        np.array(self.get_task_names()), threshold=threshold)
+    task_str = np.array2string(np.array(self.get_task_names()),
+                               threshold=threshold)
     X_shape, y_shape, w_shape, _ = self.get_shape()
     if self.__len__() < dc.utils.get_max_print_size():
       id_str = np.array2string(self.ids, threshold=threshold)
@@ -435,7 +435,8 @@ class Dataset(object):
     """
     raise NotImplementedError()
 
-  def get_statistics(self, X_stats: bool = True,
+  def get_statistics(self,
+                     X_stats: bool = True,
                      y_stats: bool = True) -> Tuple[np.ndarray, ...]:
     """Compute and return statistics of this dataset.
 
@@ -839,8 +840,9 @@ class NumpyDataset(Dataset):
           w_batch = dataset._w[perm_indices]
           ids_batch = dataset._ids[perm_indices]
           if pad_batches:
-            (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
-                batch_size, X_batch, y_batch, w_batch, ids_batch)
+            (X_batch, y_batch, w_batch,
+             ids_batch) = pad_batch(batch_size, X_batch, y_batch, w_batch,
+                                    ids_batch)
           batch_idx += 1
           yield (X_batch, y_batch, w_batch, ids_batch)
 
@@ -950,11 +952,10 @@ class NumpyDataset(Dataset):
     except:
       raise ImportError("This method requires PyTorch to be installed.")
 
-    pytorch_ds = _TorchNumpyDataset(
-        numpy_dataset=self,
-        epochs=epochs,
-        deterministic=deterministic,
-        batch_size=batch_size)
+    pytorch_ds = _TorchNumpyDataset(numpy_dataset=self,
+                                    epochs=epochs,
+                                    deterministic=deterministic,
+                                    batch_size=batch_size)
     return pytorch_ds
 
   @staticmethod
@@ -1232,8 +1233,9 @@ class DiskDataset(Dataset):
       tasks_filename, metadata_filename = self._get_metadata_filename()
       with open(tasks_filename) as fin:
         tasks = json.load(fin)
-      metadata_df = pd.read_csv(
-          metadata_filename, compression='gzip', dtype=object)
+      metadata_df = pd.read_csv(metadata_filename,
+                                compression='gzip',
+                                dtype=object)
       metadata_df = metadata_df.where((pd.notnull(metadata_df)), None)
       return tasks, metadata_df
     except Exception:
@@ -1370,7 +1372,8 @@ class DiskDataset(Dataset):
     DiskDataset._save_metadata(self.metadata_df, self.data_dir, self.tasks)
     self._cached_shards = None
 
-  def move(self, new_data_dir: str,
+  def move(self,
+           new_data_dir: str,
            delete_if_exists: Optional[bool] = True) -> None:
     """Moves dataset to new directory.
 
@@ -1492,8 +1495,9 @@ class DiskDataset(Dataset):
       # Handle spillover from last shard
       yield (X_next, y_next, w_next, ids_next)
 
-    resharded_dataset = DiskDataset.create_dataset(
-        generator(), data_dir=reshard_dir, tasks=self.tasks)
+    resharded_dataset = DiskDataset.create_dataset(generator(),
+                                                   data_dir=reshard_dir,
+                                                   tasks=self.tasks)
     shutil.rmtree(self.data_dir)
     shutil.move(reshard_dir, self.data_dir)
     # Should have updated to non-legacy metadata
@@ -1792,8 +1796,9 @@ class DiskDataset(Dataset):
           newx, newy, neww, newids = transformer.transform_array(X, y, w, ids)
           yield (newx, newy, neww, newids)
 
-      dataset = DiskDataset.create_dataset(
-          generator(), data_dir=out_dir, tasks=tasks)
+      dataset = DiskDataset.create_dataset(generator(),
+                                           data_dir=out_dir,
+                                           tasks=tasks)
     time2 = time.time()
     logger.info("TIMING: transforming took %0.3f s" % (time2 - time1))
     return dataset
@@ -1846,11 +1851,10 @@ class DiskDataset(Dataset):
     except:
       raise ImportError("This method requires PyTorch to be installed.")
 
-    pytorch_ds = _TorchDiskDataset(
-        disk_dataset=self,
-        epochs=epochs,
-        deterministic=deterministic,
-        batch_size=batch_size)
+    pytorch_ds = _TorchDiskDataset(disk_dataset=self,
+                                   epochs=epochs,
+                                   deterministic=deterministic,
+                                   batch_size=batch_size)
     return pytorch_ds
 
   @staticmethod
@@ -1955,8 +1959,9 @@ class DiskDataset(Dataset):
         else:
           yield (dataset.X, dataset.y, dataset.w, dataset.ids)
 
-    merged_dataset = DiskDataset.create_dataset(
-        generator(), data_dir=merge_dir, tasks=merge_tasks)
+    merged_dataset = DiskDataset.create_dataset(generator(),
+                                                data_dir=merge_dir,
+                                                tasks=merge_tasks)
 
     # we must reshard the dataset to have a uniform size
     # choose the smallest shard size
@@ -1965,7 +1970,8 @@ class DiskDataset(Dataset):
 
     return merged_dataset
 
-  def subset(self, shard_nums: Sequence[int],
+  def subset(self,
+             shard_nums: Sequence[int],
              subset_dir: Optional[str] = None) -> "DiskDataset":
     """Creates a subset of the original dataset on disk.
 
@@ -1995,8 +2001,9 @@ class DiskDataset(Dataset):
         X, y, w, ids = self.get_shard(shard_num)
         yield (X, y, w, ids)
 
-    return DiskDataset.create_dataset(
-        generator(), data_dir=subset_dir, tasks=tasks)
+    return DiskDataset.create_dataset(generator(),
+                                      data_dir=subset_dir,
+                                      tasks=tasks)
 
   def sparse_shuffle(self) -> None:
     """Shuffling that exploits data sparsity to shuffle large datasets.
@@ -2163,8 +2170,8 @@ class DiskDataset(Dataset):
     else:
       w = None
 
-    ids = np.array(
-        load_from_disk(os.path.join(self.data_dir, row['ids'])), dtype=object)
+    ids = np.array(load_from_disk(os.path.join(self.data_dir, row['ids'])),
+                   dtype=object)
 
     # Try to cache this shard for later use.  Since the normal usage pattern is
     # a series of passes through the whole dataset, there's no point doing
@@ -2201,8 +2208,8 @@ class DiskDataset(Dataset):
     if self._cached_shards is not None and self._cached_shards[i] is not None:
       return self._cached_shards[i].ids
     row = self.metadata_df.iloc[i]
-    return np.array(
-        load_from_disk(os.path.join(self.data_dir, row['ids'])), dtype=object)
+    return np.array(load_from_disk(os.path.join(self.data_dir, row['ids'])),
+                    dtype=object)
 
   def get_shard_y(self, i: int) -> np.ndarray:
     """Retrieves the labels for the i-th shard from disk.
@@ -2352,8 +2359,8 @@ class DiskDataset(Dataset):
       if not output_numpy_dataset:
         return DiskDataset.create_dataset([], data_dir=select_dir)
       else:
-        return NumpyDataset(
-            np.array([]), np.array([]), np.array([]), np.array([]))
+        return NumpyDataset(np.array([]), np.array([]), np.array([]),
+                            np.array([]))
 
     N = len(indices)
     tasks = self.get_task_names()
@@ -2367,8 +2374,8 @@ class DiskDataset(Dataset):
       start = 0
       select_shard_num = 0
       while start < N:
-        logger.info(
-            "Constructing selection output shard %d" % (select_shard_num + 1))
+        logger.info("Constructing selection output shard %d" %
+                    (select_shard_num + 1))
         end = min(start + select_shard_size, N)
         select_shard_indices = indices[start:end]
         sorted_indices = np.array(sorted(select_shard_indices)).astype(int)
@@ -2453,8 +2460,9 @@ class DiskDataset(Dataset):
         select_shard_num += 1
 
     if not output_numpy_dataset:
-      return DiskDataset.create_dataset(
-          generator(), data_dir=select_dir, tasks=tasks)
+      return DiskDataset.create_dataset(generator(),
+                                        data_dir=select_dir,
+                                        tasks=tasks)
     else:
       X, y, w, ids = next(generator())
       return NumpyDataset(X, y, w, ids)
@@ -2777,8 +2785,9 @@ class ImageDataset(Dataset):
           w_batch = dataset._w[perm_indices]
           ids_batch = dataset._ids[perm_indices]
           if pad_batches:
-            (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
-                batch_size, X_batch, y_batch, w_batch, ids_batch)
+            (X_batch, y_batch, w_batch,
+             ids_batch) = pad_batch(batch_size, X_batch, y_batch, w_batch,
+                                    ids_batch)
           batch_idx += 1
           yield (X_batch, y_batch, w_batch, ids_batch)
 
@@ -2815,8 +2824,10 @@ class ImageDataset(Dataset):
       Iterator which yields tuples of four numpy arrays `(X, y, w, ids)`.
     """
     n_samples = self._X_shape[0]
-    return ((self._get_image(self._X, i), self._get_image(self._y, i),
-             self._w[i], self._ids[i]) for i in range(n_samples))
+    return ((self._get_image(self._X,
+                             i), self._get_image(self._y,
+                                                 i), self._w[i], self._ids[i])
+            for i in range(n_samples))
 
   def transform(
       self,
@@ -2865,6 +2876,7 @@ class ImageDataset(Dataset):
     ImageDataset
       A selected ImageDataset object
     """
+    X: Union[np.ndarray, List[str]]
     if isinstance(self._X, np.ndarray):
       X = self._X[indices]
     else:
@@ -2912,11 +2924,10 @@ class ImageDataset(Dataset):
     except:
       raise ValueError("This method requires PyTorch to be installed.")
 
-    pytorch_ds = _TorchImageDataset(
-        image_dataset=self,
-        epochs=epochs,
-        deterministic=deterministic,
-        batch_size=batch_size)
+    pytorch_ds = _TorchImageDataset(image_dataset=self,
+                                    epochs=epochs,
+                                    deterministic=deterministic,
+                                    batch_size=batch_size)
     return pytorch_ds
 
 

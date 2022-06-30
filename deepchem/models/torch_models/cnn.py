@@ -25,7 +25,7 @@ class TorchCNN(nn.Module):
     simple convolution layer will be used even if residual=True.
     Examples
     --------
-    >>> model = CNN(n_tasks=5, n_features=8, dims=2, layer_filters=[3,8,8,16], kernel_size=3, n_classes = 7, mode='classification', uncertainty=False)
+    >>> model = TorchCNN(n_tasks=5, n_features=8, dims=2, layer_filters=[3,8,8,16], kernel_size=3, n_classes = 7, mode='classification', uncertainty=False)
     >>> x = torch.ones(2, 8, 224, 224)
     >>> y = model(x)
     >>> type(y)
