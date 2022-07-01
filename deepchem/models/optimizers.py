@@ -215,11 +215,10 @@ class Adam(Optimizer):
       learning_rate = self.learning_rate._create_tf_tensor(global_step)
     else:
       learning_rate = self.learning_rate
-    return tf.keras.optimizers.Adam(
-        learning_rate=learning_rate,
-        beta_1=self.beta1,
-        beta_2=self.beta2,
-        epsilon=self.epsilon)
+    return tf.keras.optimizers.Adam(learning_rate=learning_rate,
+                                    beta_1=self.beta1,
+                                    beta_2=self.beta2,
+                                    epsilon=self.epsilon)
 
   def _create_pytorch_optimizer(self, params):
     import torch
@@ -282,11 +281,10 @@ class SparseAdam(Optimizer):
       learning_rate = self.learning_rate._create_tf_tensor(global_step)
     else:
       learning_rate = self.learning_rate
-    return tfa.optimizers.LazyAdam(
-        learning_rate=learning_rate,
-        beta_1=self.beta1,
-        beta_2=self.beta2,
-        epsilon=self.epsilon)
+    return tfa.optimizers.LazyAdam(learning_rate=learning_rate,
+                                   beta_1=self.beta1,
+                                   beta_2=self.beta2,
+                                   epsilon=self.epsilon)
 
   def _create_pytorch_optimizer(self, params):
     import torch
@@ -342,13 +340,12 @@ class AdamW(Optimizer):
       learning_rate = self.learning_rate._create_tf_tensor(global_step)
     else:
       learning_rate = self.learning_rate
-    return tfa.optimizers.AdamW(
-        weight_decay=self.weight_decay,
-        learning_rate=learning_rate,
-        beta_1=self.beta1,
-        beta_2=self.beta2,
-        epsilon=self.epsilon,
-        amsgrad=self.amsgrad)
+    return tfa.optimizers.AdamW(weight_decay=self.weight_decay,
+                                learning_rate=learning_rate,
+                                beta_1=self.beta1,
+                                beta_2=self.beta2,
+                                epsilon=self.epsilon,
+                                amsgrad=self.amsgrad)
 
   def _create_pytorch_optimizer(self, params):
     import torch
@@ -371,8 +368,10 @@ class AdamW(Optimizer):
       last_process = optax.scale(-1.0 * lr)
 
     process.append(
-        optax.scale_by_adam(
-            b1=self.beta1, b2=self.beta2, eps=self.epsilon, eps_root=0.0))
+        optax.scale_by_adam(b1=self.beta1,
+                            b2=self.beta2,
+                            eps=self.epsilon,
+                            eps_root=0.0))
     process.append(optax.add_decayed_weights(self.weight_decay, None))
     process.append(last_process)
     return optax.chain(*process)
@@ -410,11 +409,10 @@ class RMSProp(Optimizer):
       learning_rate = self.learning_rate._create_tf_tensor(global_step)
     else:
       learning_rate = self.learning_rate
-    return tf.keras.optimizers.RMSprop(
-        learning_rate=learning_rate,
-        momentum=self.momentum,
-        rho=self.decay,
-        epsilon=self.epsilon)
+    return tf.keras.optimizers.RMSprop(learning_rate=learning_rate,
+                                       momentum=self.momentum,
+                                       rho=self.decay,
+                                       epsilon=self.epsilon)
 
   def _create_pytorch_optimizer(self, params):
     import torch
@@ -422,8 +420,11 @@ class RMSProp(Optimizer):
       lr = self.learning_rate.initial_rate
     else:
       lr = self.learning_rate
-    return torch.optim.RMSprop(
-        params, lr, alpha=self.decay, eps=self.epsilon, momentum=self.momentum)
+    return torch.optim.RMSprop(params,
+                               lr,
+                               alpha=self.decay,
+                               eps=self.epsilon,
+                               momentum=self.momentum)
 
   def _create_jax_optimizer(self):
     import optax
@@ -437,8 +438,9 @@ class RMSProp(Optimizer):
       last_process = optax.scale(-1.0 * lr)
 
     process.append(
-        optax.scale_by_rms(
-            decay=self.decay, eps=self.epsilon, initial_scale=0.0))
+        optax.scale_by_rms(decay=self.decay,
+                           eps=self.epsilon,
+                           initial_scale=0.0))
     if self.momentum is not None or self.momentum != 0.0:
       process.append(optax.trace(decay=self.momentum, nesterov=False))
     process.append(last_process)
@@ -535,11 +537,10 @@ class ExponentialDecay(LearningRateSchedule):
 
   def _create_jax_schedule(self):
     import optax
-    return optax.exponential_decay(
-        init_value=self.initial_rate,
-        transition_steps=self.decay_steps,
-        decay_rate=self.decay_rate,
-        staircase=self.staircase)
+    return optax.exponential_decay(init_value=self.initial_rate,
+                                   transition_steps=self.decay_steps,
+                                   decay_rate=self.decay_rate,
+                                   staircase=self.staircase)
 
 
 class PolynomialDecay(LearningRateSchedule):
@@ -592,11 +593,10 @@ class PolynomialDecay(LearningRateSchedule):
 
   def _create_jax_schedule(self):
     import optax
-    return optax.polynomial_schedule(
-        init_value=self.initial_rate,
-        end_value=self.final_rate,
-        power=self.power,
-        transition_steps=self.decay_steps)
+    return optax.polynomial_schedule(init_value=self.initial_rate,
+                                     end_value=self.final_rate,
+                                     power=self.power,
+                                     transition_steps=self.decay_steps)
 
 
 class LinearCosineDecay(LearningRateSchedule):
@@ -648,10 +648,9 @@ class LinearCosineDecay(LearningRateSchedule):
 
   def _create_jax_schedule(self):
     import optax
-    return optax.cosine_decay_schedule(
-        init_value=self.initial_rate,
-        decay_steps=self.decay_steps,
-        alpha=self.alpha)
+    return optax.cosine_decay_schedule(init_value=self.initial_rate,
+                                       decay_steps=self.decay_steps,
+                                       alpha=self.alpha)
 
 
 class PiecewiseConstantSchedule(LearningRateSchedule):
@@ -678,3 +677,25 @@ class PiecewiseConstantSchedule(LearningRateSchedule):
     return optax.piecewise_constant_schedule(
         init_value=self.initial_rate,
         boundaries_and_scales=self.boundaries_and_scales)
+
+
+class KFAC(Optimizer):
+  """The Second order gradient optimiation algorithm which uses an approximation to calculate the inverse of the Fischer matrrix"""
+
+  def __init__(self, initial_rate: float = 0.1, epsilon: float = 0.1):
+    """
+    Parameters
+    ----------
+    initial_rate : float (default 0.1)
+      initial learning rate
+    epsilon: float (default 0.1)
+      A parameter for the K-FAC algorithm 
+    """
+
+  def _create_pytorch_optimizer(self, params):
+    from deepchem.torch_models.kfac_optimizer import KFACOptimizer
+    if isinstance(self.learning_rate, LearningRateSchedule):
+      lr = self.learning_rate.initial_rate
+    else:
+      lr = self.learning_rate
+    return KFACOptimizer(params, lr)
