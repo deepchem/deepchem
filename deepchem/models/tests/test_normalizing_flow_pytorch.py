@@ -10,6 +10,7 @@ try:
   import torch
   from torch.distributions import MultivariateNormal
   from deepchem.models.torch_models.layers import Affine
+  from deepchem.models.torch_models.normalizing_flows_pytorch import NormalizingFlow
   has_torch = True
 except:
   has_torch = False
@@ -44,3 +45,49 @@ def test_Affine():
 
   assert np.array_equal(log_det_jacobian, zeros)
   assert np.array_equal(inverse_log_det_jacobian, zeros)
+
+
+@unittest.skipIf(not has_torch, 'torch is not installed')
+@pytest.mark.torch
+def test_normalizing_flow_pytorch():
+  """
+  This test aims to evaluate if the normalizingFlow model is being applied
+  correctly. That is if the sampling, and its log_prob, are being computed
+  after performing the transformation layers. Also, if log_prob of an input
+  tensor have consistency with the NormalizingFlow model.
+
+  NormalizingFlow:
+    sample:
+      input shape: (samples)
+      output shape: ((samples, dim), (samples))
+
+    log_prob: Method used to learn parameter (optimizing loop)
+      input shape: (samples)
+      output shape: (samples)
+
+  """
+
+  dim = 2
+  samples = 96
+  base_distribution = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
+  tensor = base_distribution.sample(torch.Size((samples, dim)))
+  transformation = [Affine(dim)]
+  model = NormalizingFlow(transformation, base_distribution, dim)
+
+  # Test sampling method
+  sampling, log_prob_ = model.sample(samples)
+
+  # Test log_prob method (this method is used when inverse pass)
+  # Output must be a Nth zero array since nothing is being learned yet
+  log_prob = model.log_prob(tensor)
+
+  # Featurize to assert for tests
+  log_prob_ = log_prob_.detach().numpy()
+  log_prob = log_prob.detach().numpy()
+  zeros = np.zeros((samples,))
+
+  # Assert errors for sample method
+  assert log_prob_.any()
+
+  # Assert errors for log_prob method
+  assert np.array_equal(log_prob, zeros)

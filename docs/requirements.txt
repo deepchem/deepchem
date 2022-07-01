@@ -9,3 +9,4 @@ jax
 dm-haiku
 optax
 einops
+rdkit-pypi
