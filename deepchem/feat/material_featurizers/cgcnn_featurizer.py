@@ -1,7 +1,9 @@
 import os
 import json
+import logging
 import numpy as np
 from typing import Tuple
+from urllib.error import URLError
 
 from deepchem.utils.data_utils import download_url, get_data_dir
 from deepchem.utils.typing import PymatgenStructure
@@ -73,7 +75,12 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
 
     # load atom_init.json
     data_dir = get_data_dir()
-    download_url(ATOM_INIT_JSON_URL, data_dir)
+    try:
+      download_url(ATOM_INIT_JSON_URL, data_dir)
+    except URLError:
+      logging.warning(
+          "Skipping CGCNNFeaturizer initialization due to network error.")
+      return
     atom_init_json_path = os.path.join(data_dir, 'atom_init.json')
     with open(atom_init_json_path, 'r') as f:
       atom_init_json = json.load(f)
@@ -190,7 +197,7 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
     filt = np.arange(0, self.radius + self.step, self.step)
 
     # Increase dimension of distance tensor and apply filter
-    expanded_distances = np.exp(
-        -(distances[..., np.newaxis] - filt)**2 / self.step**2)
+    expanded_distances = np.exp(-(distances[..., np.newaxis] - filt)**2 /
+                                self.step**2)
 
     return expanded_distances

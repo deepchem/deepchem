@@ -1,8 +1,5 @@
-# flake8: noqa
-
 import numpy as np
 from typing import List, Tuple, Union, Dict, Set, Sequence
-import deepchem as dc
 from deepchem.utils.typing import RDKitAtom, RDKitMol, RDKitBond
 
 from deepchem.utils.molecule_feature_utils import one_hot_encode
@@ -128,6 +125,7 @@ def atom_features(
 
   Examples
   --------
+  >>> import deepchem as dc
   >>> from rdkit import Chem
   >>> mol = Chem.MolFromSmiles('C')
   >>> atom = mol.GetAtoms()[0]
@@ -188,6 +186,7 @@ def bond_features(bond: RDKitBond) -> Sequence[Union[bool, int, float]]:
 
   Examples
   --------
+  >>> import deepchem as dc
   >>> from rdkit import Chem
   >>> mol = Chem.MolFromSmiles('CC')
   >>> bond = mol.GetBondWithIdx(0)
