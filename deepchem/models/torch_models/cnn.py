@@ -13,30 +13,35 @@ except:
 
 class TorchCNN(nn.Module):
   """A 1, 2, or 3 dimensional convolutional network for either regression or classification.
-    The network consists of the following sequence of layers:
-    - A configurable number of convolutional layers
-    - A global pooling layer (either max pool or average pool)
-    - A final dense layer to compute the output
-    It optionally can compose the model from pre-activation residual blocks, as
-    described in https://arxiv.org/abs/1603.05027, rather than a simple stack of
-    convolution layers.  This often leads to easier training, especially when using a
-    large number of layers.  Note that residual blocks can only be used when
-    successive layers have the same output shape.  Wherever the output shape changes, a
-    simple convolution layer will be used even if residual=True.
-    Examples
-    --------
-    >>> model = TorchCNN(n_tasks=5, n_features=8, dims=2, layer_filters=[3,8,8,16], kernel_size=3, n_classes = 7, mode='classification', uncertainty=False)
-    >>> x = torch.ones(2, 8, 224, 224)
-    >>> y = model(x)
-    >>> type(y)
-    <class 'list'>
-    >>> len(y)
-    2
-    >>> for tensor in y:
-    ...    print(tensor.shape)
-    torch.Size([2, 5, 7])
-    torch.Size([2, 5, 7])
-    """
+
+  The network consists of the following sequence of layers:
+
+  - A configurable number of convolutional layers
+  - A global pooling layer (either max pool or average pool)
+  - A final fully connected layer to compute the output
+
+  It optionally can compose the model from pre-activation residual blocks, as
+  described in https://arxiv.org/abs/1603.05027, rather than a simple stack of
+  convolution layers.  This often leads to easier training, especially when using a
+  large number of layers.  Note that residual blocks can only be used when
+  successive layers have the same output shape.  Wherever the output shape changes, a
+  simple convolution layer will be used even if residual=True.
+
+  Examples
+  --------
+  >>> model = TorchCNN(n_tasks=5, n_features=8, dims=2, layer_filters=[3,8,8,16], kernel_size=3, n_classes = 7, mode='classification', uncertainty=False)
+  >>> x = torch.ones(2, 8, 224, 224)
+  >>> y = model(x)
+  >>> type(y)
+  <class 'list'>
+  >>> len(y)
+  2
+  >>> for tensor in y:
+  ...    print(tensor.shape)
+  torch.Size([2, 5, 7])
+  torch.Size([2, 5, 7])
+
+  """
 
   def __init__(self,
                n_tasks: int,
@@ -54,51 +59,52 @@ class TorchCNN(nn.Module):
                residual: bool = False,
                padding: Union[int, str] = 'valid') -> None:
     """Create a CNN.
-        Parameters
-        ----------
-        n_tasks: int
-          number of tasks
-        n_features: int
-          number of features
-        dims: int
-          the number of dimensions to apply convolutions over (1, 2, or 3)
-        layer_filters: list
-          the number of output filters for each convolutional layer in the network.
-          The length of this list determines the number of layers.
-        kernel_size: int, tuple, or list
-          a list giving the shape of the convolutional kernel for each layer.  Each
-          element may be either an int (use the same kernel width for every dimension)
-          or a tuple (the kernel width along each dimension).  Alternatively this may
-          be a single int or tuple instead of a list, in which case the same kernel
-          shape is used for every layer.
-        strides: int, tuple, or list
-          a list giving the stride between applications of the  kernel for each layer.
-          Each element may be either an int (use the same stride for every dimension)
-          or a tuple (the stride along each dimension).  Alternatively this may be a
-          single int or tuple instead of a list, in which case the same stride is
-          used for every layer.
-        dropouts: list or float
-          the dropout probability to use for each layer.  The length of this list should equal len(layer_filters).
-          Alternatively this may be a single value instead of a list, in which case the same value is used for every layer
-        activation_fns: list or object
-          the torch activation function to apply to each layer. The length of this list should equal
-          len(layer_filters).  Alternatively this may be a single value instead of a list, in which case the
-          same value is used for every layer.
-        pool_type: str
-          the type of pooling layer to use, either 'max' or 'average'
-        mode: str
-          Either 'classification' or 'regression'
-        n_classes: int
-          the number of classes to predict (only used in classification mode)
-        uncertainty: bool
-          if True, include extra outputs and loss terms to enable the uncertainty
-          in outputs to be predicted
-        residual: bool
-          if True, the model will be composed of pre-activation residual blocks instead
-          of a simple stack of convolutional layers.
-        padding: str, int or tuple
-          the padding to use for convolutional layers, either 'valid' or 'same'
-        """
+
+    Parameters
+    ----------
+    n_tasks: int
+      number of tasks
+    n_features: int
+      number of features
+    dims: int
+      the number of dimensions to apply convolutions over (1, 2, or 3)
+    layer_filters: list
+      the number of output filters for each convolutional layer in the network.
+      The length of this list determines the number of layers.
+    kernel_size: int, tuple, or list
+      a list giving the shape of the convolutional kernel for each layer.  Each
+      element may be either an int (use the same kernel width for every dimension)
+      or a tuple (the kernel width along each dimension).  Alternatively this may
+      be a single int or tuple instead of a list, in which case the same kernel
+      shape is used for every layer.
+    strides: int, tuple, or list
+      a list giving the stride between applications of the  kernel for each layer.
+      Each element may be either an int (use the same stride for every dimension)
+      or a tuple (the stride along each dimension).  Alternatively this may be a
+      single int or tuple instead of a list, in which case the same stride is
+      used for every layer.
+    dropouts: list or float
+      the dropout probability to use for each layer.  The length of this list should equal len(layer_filters).
+      Alternatively this may be a single value instead of a list, in which case the same value is used for every layer
+    activation_fns: list or object
+      the torch activation function to apply to each layer. The length of this list should equal
+      len(layer_filters).  Alternatively this may be a single value instead of a list, in which case the
+      same value is used for every layer.
+    pool_type: str
+      the type of pooling layer to use, either 'max' or 'average'
+    mode: str
+      Either 'classification' or 'regression'
+    n_classes: int
+      the number of classes to predict (only used in classification mode)
+    uncertainty: bool
+      if True, include extra outputs and loss terms to enable the uncertainty
+      in outputs to be predicted
+    residual: bool
+      if True, the model will be composed of pre-activation residual blocks instead
+      of a simple stack of convolutional layers.
+    padding: str, int or tuple
+      the padding to use for convolutional layers, either 'valid' or 'same'
+    """
 
     super(TorchCNN, self).__init__()
 
@@ -182,16 +188,16 @@ class TorchCNN(nn.Module):
 
   def forward(self, x: torch.Tensor) -> List[Any]:
     """
-        Parameters
-        ----------
-        x: torch.Tensor
-          Input Tensor
-        Returns
-        -------
-        torch.Tensor
-          The tensor to be fed into ODEBlock,
-          the length of this tensor is equal to ODEBlock Input Dimension
-        """
+    Parameters
+    ----------
+    x: torch.Tensor
+      Input Tensor
+
+    Returns
+    -------
+    torch.Tensor
+      Output as per use case : regression/classification
+    """
     prev_layer = x
 
     for layer in self.layers:
@@ -203,6 +209,11 @@ class TorchCNN(nn.Module):
 
     outputs = []
     batch_size = x.shape[0]
+
+    # the output of the model is a n dimensional tensor where n = dims + 1, and the required output
+    # in case of classification should be of shape (batch_size, n_tasks, n_classes) and for regression
+    # without uncertainty it should be (batch_size, n_tasks), so rearrangement of n dimensional tensor
+    # to required dimension is needed which can be achieved neatly using einops.rearrange
 
     pattern = ("b c h -> b (c h)", "b c h w -> b (c h w)",
                "b c h w a -> b (c h w a)")[self.dims - 1]

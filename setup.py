@@ -69,8 +69,12 @@ setup(name='deepchem',
           'Source': 'https://github.com/deepchem/deepchem',
       },
       install_requires=[
-          'joblib', 'numpy>=1.21', 'pandas', 'scikit-learn', 'scipy',
-          'rdkit-pypi', 'einops'
+          'joblib',
+          'numpy>=1.21',
+          'pandas',
+          'scikit-learn',
+          'scipy',
+          'rdkit-pypi',
       ],
       extras_require=extras,
       python_requires='>=3.7,<3.10')
