@@ -209,7 +209,7 @@ class TorchCNN(nn.Module):
     outputs = []
     batch_size = x.shape[0]
 
-    x = torch.reshape(x, (batch_size, -1)
+    x = torch.reshape(x, (batch_size, -1))
 
     if self.mode == "classification":
 
