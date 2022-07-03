@@ -682,20 +682,19 @@ class PiecewiseConstantSchedule(LearningRateSchedule):
 class KFAC(Optimizer):
   """The Second order gradient optimiation algorithm which uses an approximation to calculate the inverse of the Fischer matrrix"""
 
-  def __init__(self, initial_rate: float = 0.1, epsilon: float = 0.1):
+  def __init__(self, **kwargs):
     """
     Parameters
     ----------
-    initial_rate : float (default 0.1)
-      initial learning rate
-    epsilon: float (default 0.1)
-      A parameter for the K-FAC algorithm 
+    **kwargs: 
     """
+    self.kwargs=**kwargs
 
   def _create_pytorch_optimizer(self, params):
     from deepchem.torch_models.kfac_optimizer import KFACOptimizer
+    self.kwargs['params']=params
     if isinstance(self.learning_rate, LearningRateSchedule):
       lr = self.learning_rate.initial_rate
     else:
       lr = self.learning_rate
-    return KFACOptimizer(params, lr)
+    return KFACOptimizer([**self.kwargs])

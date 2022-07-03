@@ -275,7 +275,7 @@ class TestOptimizers(unittest.TestCase):
   @pytest.mark.torch
   def test_KFAC(self):
     """test creating a KFAC optimizer"""
-    rate = optimizers.KFAC(initial_rate=0.1, decay_steps=10000)
+    rate = optimizers.KFAC(learning_rate=0.1, Tinv=50)
     params = [torch.nn.Parameter(torch.Tensor([1.0]))]
     torchopt = rate._create_pytorch_optimizer(params)
     assert isinstance(torchopt, KFACOptimizer)
