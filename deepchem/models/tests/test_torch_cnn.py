@@ -1,7 +1,7 @@
 import pytest
 try:
   import torch
-  from deepchem.models import TorchCNN
+  from deepchem.models import CNN
   has_pytorch = True
 except:
   has_pytorch = False
@@ -16,7 +16,7 @@ def test_cnn1d_torch():
   n_classes = 7
   batch_size = 2
   mode = 'classification'
-  model = TorchCNN(n_tasks=n_tasks,
+  model = CNN(n_tasks=n_tasks,
                    n_features=n_features,
                    dims=1,
                    dropouts=[0.5, 0.2, 0.4, 0.7],
@@ -44,7 +44,7 @@ def test_cnn2d_torch():
   n_classes = 7
   batch_size = 2
   mode = 'classification'
-  model = TorchCNN(n_tasks=n_tasks,
+  model = CNN(n_tasks=n_tasks,
                    n_features=n_features,
                    dims=2,
                    dropouts=[0.5, 0.2, 0.4, 0.7],
@@ -72,7 +72,7 @@ def test_cnn3d_torch():
   n_classes = 7
   batch_size = 2
   mode = 'classification'
-  model = TorchCNN(n_tasks=n_tasks,
+  model = CNN(n_tasks=n_tasks,
                    n_features=n_features,
                    dims=3,
                    dropouts=[0.5, 0.2, 0.4, 0.7],
