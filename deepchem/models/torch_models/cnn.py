@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from einops import rearrange
 
 from typing import List, Union, Any, Type
 
@@ -210,14 +209,7 @@ class TorchCNN(nn.Module):
     outputs = []
     batch_size = x.shape[0]
 
-    # the output of the model is a n dimensional tensor where n = dims + 1, and the required output
-    # in case of classification should be of shape (batch_size, n_tasks, n_classes) and for regression
-    # without uncertainty it should be (batch_size, n_tasks), so rearrangement of n dimensional tensor
-    # to required dimension is needed which can be achieved neatly using einops.rearrange
-
-    pattern = ("b c h -> b (c h)", "b c h w -> b (c h w)",
-               "b c h w a -> b (c h w a)")[self.dims - 1]
-    x = rearrange(x, pattern)
+    x = torch.reshape(x, (batch_size, -1)
 
     if self.mode == "classification":
 
