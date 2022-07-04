@@ -652,7 +652,7 @@ class DMPNNFeaturizer(MolecularFeaturizer):
     concat_fdim: int = atom_fdim + bond_fdim
 
     # get global features
-    global_features: np.ndarray = None
+    global_features: np.ndarray = np.empty(0)
     if self.features_generators is not None:
       global_features = generate_global_features(datapoint,
                                                  self.features_generators)
