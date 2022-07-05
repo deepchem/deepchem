@@ -13,7 +13,7 @@ class TestDMPNNFeaturizer(unittest.TestCase):
     """
     Set up tests.
     """
-    self.smiles = ["C1=CC=CN=C1", "O=C(NCc1cc(OC)c(O)cc1)CCCC/C=C/C(C)C"]
+    self.smiles = ["C1=CC=CN=C1", "O=C(NCc1cc(OC)c(O)cc1)CCCC/C=C/C(C)C", "C"]
     self.features_generators = ['morgan']
     self.edge_index_orignal_order = [
         self.get_edge_index_original_order(smiles) for smiles in self.smiles
@@ -44,7 +44,7 @@ class TestDMPNNFeaturizer(unittest.TestCase):
     """
     featurizer = DMPNNFeaturizer()
     graph_feat = featurizer.featurize(self.smiles)
-    assert len(graph_feat) == 2
+    assert len(graph_feat) == 3
 
     # assert "C1=CC=CN=C1"
     assert graph_feat[0].num_nodes == 6
@@ -73,8 +73,22 @@ class TestDMPNNFeaturizer(unittest.TestCase):
         44 + 1, GraphConvConstants.ATOM_FDIM + GraphConvConstants.BOND_FDIM)
     assert len(graph_feat[1].mapping) == 44 + 1
 
-    assert not (graph_feat[0].edge_index
-                == self.edge_index_orignal_order[0]).all()
+    assert not (graph_feat[1].edge_index
+                == self.edge_index_orignal_order[1]).all()
+
+    # assert "C"
+    assert graph_feat[2].num_nodes == 1
+    assert graph_feat[2].num_node_features == GraphConvConstants.ATOM_FDIM
+    assert graph_feat[2].node_features.shape == (1,
+                                                 GraphConvConstants.ATOM_FDIM)
+    assert graph_feat[2].node_features_zero_padded.shape == (
+        1 + 1, GraphConvConstants.ATOM_FDIM)
+    assert graph_feat[2].num_edges == 0
+    assert graph_feat[2].concatenated_features_zero_padded.shape == (
+        1, GraphConvConstants.ATOM_FDIM + GraphConvConstants.BOND_FDIM)
+    assert len(graph_feat[2].mapping) == 1
+
+    assert (graph_feat[2].edge_index == self.edge_index_orignal_order[2]).all()
 
   def test_featurizer_with_original_atoms_ordering(self):
     """
@@ -82,7 +96,7 @@ class TestDMPNNFeaturizer(unittest.TestCase):
     """
     featurizer = DMPNNFeaturizer(use_original_atom_ranks=True)
     graph_feat = featurizer.featurize(self.smiles)
-    assert len(graph_feat) == 2
+    assert len(graph_feat) == 3
 
     # assert "C1=CC=CN=C1"
     assert graph_feat[0].num_nodes == 6
@@ -110,7 +124,21 @@ class TestDMPNNFeaturizer(unittest.TestCase):
         44 + 1, GraphConvConstants.ATOM_FDIM + GraphConvConstants.BOND_FDIM)
     assert len(graph_feat[1].mapping) == 44 + 1
 
-    assert (graph_feat[0].edge_index == self.edge_index_orignal_order[0]).all()
+    assert (graph_feat[1].edge_index == self.edge_index_orignal_order[1]).all()
+
+    # assert "C"
+    assert graph_feat[2].num_nodes == 1
+    assert graph_feat[2].num_node_features == GraphConvConstants.ATOM_FDIM
+    assert graph_feat[2].node_features.shape == (1,
+                                                 GraphConvConstants.ATOM_FDIM)
+    assert graph_feat[2].node_features_zero_padded.shape == (
+        1 + 1, GraphConvConstants.ATOM_FDIM)
+    assert graph_feat[2].num_edges == 0
+    assert graph_feat[2].concatenated_features_zero_padded.shape == (
+        1, GraphConvConstants.ATOM_FDIM + GraphConvConstants.BOND_FDIM)
+    assert len(graph_feat[2].mapping) == 1
+
+    assert (graph_feat[2].edge_index == self.edge_index_orignal_order[2]).all()
 
   def test_featurizer_with_adding_hs(self):
     """
@@ -118,7 +146,7 @@ class TestDMPNNFeaturizer(unittest.TestCase):
     """
     featurizer = DMPNNFeaturizer(is_adding_hs=True)
     graph_feat = featurizer.featurize(self.smiles)
-    assert len(graph_feat) == 2
+    assert len(graph_feat) == 3
 
     # assert "C1=CC=CN=C1"
     assert graph_feat[0].num_nodes == 11
@@ -148,13 +176,29 @@ class TestDMPNNFeaturizer(unittest.TestCase):
     assert not (graph_feat[1].edge_index
                 == self.edge_index_orignal_order_with_hs[1]).all()
 
+    # assert "C"
+    assert graph_feat[2].num_nodes == 5
+    assert graph_feat[2].num_node_features == GraphConvConstants.ATOM_FDIM
+    assert graph_feat[2].node_features.shape == (5,
+                                                 GraphConvConstants.ATOM_FDIM)
+    assert graph_feat[2].node_features_zero_padded.shape == (
+        5 + 1, GraphConvConstants.ATOM_FDIM)
+    assert graph_feat[2].num_edges == 8
+    assert graph_feat[2].concatenated_features_zero_padded.shape == (
+        8 + 1, GraphConvConstants.ATOM_FDIM + GraphConvConstants.BOND_FDIM)
+    assert len(graph_feat[2].mapping) == 8 + 1
+
+    # for single C atom with hs, edge_index for original order is equal to edge_index for canonical order
+    assert (graph_feat[2].edge_index == self.edge_index_orignal_order_with_hs[2]
+           ).all()
+
   def test_featurizer_with_global_features(self):
     """
     Test for featurization of 2 smiles using `DMPNNFeaturizer` class with a given list of `features_generators`.
     """
     featurizer = DMPNNFeaturizer(features_generators=self.features_generators)
     graph_feat = featurizer.featurize(self.smiles)
-    assert len(graph_feat) == 2
+    assert len(graph_feat) == 3
 
     # assert "C1=CC=CN=C1"
     assert graph_feat[0].num_nodes == 6
@@ -194,6 +238,25 @@ class TestDMPNNFeaturizer(unittest.TestCase):
     nonzero_features_indicies = graph_feat[1].global_features.nonzero()[0]
     assert len(nonzero_features_indicies) == 45
 
+    # assert "C"
+    assert graph_feat[2].num_nodes == 1
+    assert graph_feat[2].num_node_features == GraphConvConstants.ATOM_FDIM
+    assert graph_feat[2].node_features.shape == (1,
+                                                 GraphConvConstants.ATOM_FDIM)
+    assert graph_feat[2].node_features_zero_padded.shape == (
+        1 + 1, GraphConvConstants.ATOM_FDIM)
+    assert graph_feat[2].num_edges == 0
+    assert graph_feat[2].concatenated_features_zero_padded.shape == (
+        1, GraphConvConstants.ATOM_FDIM + GraphConvConstants.BOND_FDIM)
+    assert len(graph_feat[2].mapping) == 1
+
+    assert (graph_feat[2].edge_index == self.edge_index_orignal_order[2]).all()
+
+    assert len(graph_feat[2].global_features
+              ) == 2048  # for `morgan` features generator
+    nonzero_features_indicies = graph_feat[2].global_features.nonzero()[0]
+    assert len(nonzero_features_indicies) == 1
+
   def test_featurizer_with_adding_hs_and_global_features(self):
     """
     Test for featurization of 2 smiles using `DMPNNFeaturizer` class with `is_adding_hs` set to `True` and a given list of `features_generators`.
@@ -201,7 +264,7 @@ class TestDMPNNFeaturizer(unittest.TestCase):
     featurizer = DMPNNFeaturizer(is_adding_hs=True,
                                  features_generators=self.features_generators)
     graph_feat = featurizer.featurize(self.smiles)
-    assert len(graph_feat) == 2
+    assert len(graph_feat) == 3
 
     # assert "C1=CC=CN=C1"
     assert graph_feat[0].num_nodes == 11
@@ -240,3 +303,24 @@ class TestDMPNNFeaturizer(unittest.TestCase):
               ) == 2048  # for `morgan` features generator
     nonzero_features_indicies = graph_feat[1].global_features.nonzero()[0]
     assert len(nonzero_features_indicies) == 57
+
+    # assert "C"
+    assert graph_feat[2].num_nodes == 5
+    assert graph_feat[2].num_node_features == GraphConvConstants.ATOM_FDIM
+    assert graph_feat[2].node_features.shape == (5,
+                                                 GraphConvConstants.ATOM_FDIM)
+    assert graph_feat[2].node_features_zero_padded.shape == (
+        5 + 1, GraphConvConstants.ATOM_FDIM)
+    assert graph_feat[2].num_edges == 8
+    assert graph_feat[2].concatenated_features_zero_padded.shape == (
+        8 + 1, GraphConvConstants.ATOM_FDIM + GraphConvConstants.BOND_FDIM)
+    assert len(graph_feat[2].mapping) == 8 + 1
+
+    # for single C atom with hs, edge_index for original order is equal to edge_index for canonical order
+    assert (graph_feat[2].edge_index == self.edge_index_orignal_order_with_hs[2]
+           ).all()
+
+    assert len(graph_feat[2].global_features
+              ) == 2048  # for `morgan` features generator
+    nonzero_features_indicies = graph_feat[2].global_features.nonzero()[0]
+    assert len(nonzero_features_indicies) == 4
