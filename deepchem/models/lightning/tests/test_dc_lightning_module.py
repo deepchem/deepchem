@@ -65,10 +65,11 @@ class TestDCLightningModule(unittest.TestCase):
     trainer.fit(lightning_module, valid_dataloader)
 
   @unittest.skipIf(PYTORCH_LIGHTNING_IMPORT_FAILED,
-                   'PyTorch Lightning is not installed')                 
+                   'PyTorch Lightning is not installed')
   def test_gcn_model(self):
 
     class TestGCNDataset(torch.utils.data.Dataset):
+
       def __init__(self, smiles, labels):
         assert len(smiles) == len(labels)
         featurizer = dc.feat.MolGraphConvFeaturizer()
@@ -93,7 +94,6 @@ class TestDCLightningModule(unittest.TestCase):
         w = [np.array([b[2] for b in batch])]
         self.batch_list = [X, y, w]
 
-
     def collate_gcn_dataset_wrapper(batch):
       return TestGCNDatasetBatch(batch)
 
@@ -113,4 +113,4 @@ class TestDCLightningModule(unittest.TestCase):
 
     lightning_module = DCLightningModule(model)
     trainer = pl.Trainer(max_epochs=1)
-    trainer.fit(lightning_module, train_dataloader)  
+    trainer.fit(lightning_module, train_dataloader)
