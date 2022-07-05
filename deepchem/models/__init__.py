@@ -48,7 +48,7 @@ try:
   from deepchem.models.torch_models import Pagtn, PagtnModel
   from deepchem.models.fcnet import MultitaskRegressor, MultitaskClassifier, MultitaskFitTransformRegressor
   from deepchem.models.torch_models import MEGNetModel
-  from deepchem.models.torch_models import CNN
+  from deepchem.models.torch_models import CNN, CNNModel
 except ModuleNotFoundError as e:
   logger.warning(
       f'Skipped loading some PyTorch models, missing a dependency. {e}')

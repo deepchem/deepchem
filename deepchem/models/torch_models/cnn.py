@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from deepchem.models.torch_models.torch_model import TorchModel
+from deepchem.models.losses import L2Loss
+from deepchem.metrics import to_one_hot
 
 from typing import List, Union, Any, Type
 
@@ -232,3 +235,134 @@ class CNN(nn.Module):
         outputs = [output]
 
     return outputs
+
+
+class CNNModel(TorchModel):
+
+  def __init__(self,
+               n_tasks: int,
+               n_features: int,
+               dims: int,
+               layer_filters: List[int] = [100],
+               kernel_size: Union[int, List[int]] = 5,
+               strides: Union[int, List[int]] = 1,
+               dropouts: Union[float, List[float]] = 0.5,
+               activation_fns=nn.ReLU,
+               pool_type: str = 'max',
+               mode: str = 'classification',
+               n_classes: int = 2,
+               uncertainty: bool = False,
+               residual: bool = False,
+               padding: Union[int, str] = 'valid',
+               **kwargs) -> None:
+    """TorchModel wrapper for CNN
+
+      Parameters
+    ----------
+    n_tasks: int
+      number of tasks
+    n_features: int
+      number of features
+    dims: int
+      the number of dimensions to apply convolutions over (1, 2, or 3)
+    layer_filters: list
+      the number of output filters for each convolutional layer in the network.
+      The length of this list determines the number of layers.
+    kernel_size: int, tuple, or list
+      a list giving the shape of the convolutional kernel for each layer.  Each
+      element may be either an int (use the same kernel width for every dimension)
+      or a tuple (the kernel width along each dimension).  Alternatively this may
+      be a single int or tuple instead of a list, in which case the same kernel
+      shape is used for every layer.
+    strides: int, tuple, or list
+      a list giving the stride between applications of the  kernel for each layer.
+      Each element may be either an int (use the same stride for every dimension)
+      or a tuple (the stride along each dimension).  Alternatively this may be a
+      single int or tuple instead of a list, in which case the same stride is
+      used for every layer.
+    dropouts: list or float
+      the dropout probability to use for each layer.  The length of this list should equal len(layer_filters).
+      Alternatively this may be a single value instead of a list, in which case the same value is used for every layer
+    activation_fns: list or object
+      the torch activation function to apply to each layer. The length of this list should equal
+      len(layer_filters).  Alternatively this may be a single value instead of a list, in which case the
+      same value is used for every layer.
+    pool_type: str
+      the type of pooling layer to use, either 'max' or 'average'
+    mode: str
+      Either 'classification' or 'regression'
+    n_classes: int
+      the number of classes to predict (only used in classification mode)
+    uncertainty: bool
+      if True, include extra outputs and loss terms to enable the uncertainty
+      in outputs to be predicted
+    residual: bool
+      if True, the model will be composed of pre-activation residual blocks instead
+      of a simple stack of convolutional layers.
+    padding: str, int or tuple
+      the padding to use for convolutional layers, either 'valid' or 'same'
+    """
+    self.mode = mode
+    self.n_classes = n_classes
+    self.n_tasks = n_tasks
+
+    self.model = CNN(n_tasks=n_tasks,
+                     n_features=n_features,
+                     dims=dims,
+                     layer_filters=layer_filters,
+                     kernel_size=kernel_size,
+                     strides=strides,
+                     dropouts=dropouts,
+                     activation_fns=activation_fns,
+                     pool_type=pool_type,
+                     mode=mode,
+                     n_classes=n_classes,
+                     uncertainty=uncertainty,
+                     residual=residual,
+                     padding=padding)
+
+    if uncertainty:
+
+      def loss(outputs, labels, weights):
+
+        diff = labels[0] - outputs[0]
+
+        return torch.mean(diff**2 / torch.exp(outputs[1]) + outputs[1])
+
+    else:
+      loss = L2Loss()
+
+    if self.mode == 'classification':
+      output_types = ['prediction', 'loss']
+    else:
+      if uncertainty:
+        output_types = ['prediction', 'variance', 'loss', 'loss']
+      else:
+        output_types = ["prediction"]
+
+    super(CNNModel, self).__init__(self.model,
+                                   loss=loss,
+                                   output_types=output_types,
+                                   **kwargs)
+
+  def default_generator(self,
+                        dataset,
+                        epochs=1,
+                        mode='fit',
+                        deterministic=True,
+                        pad_batches=True):
+
+    for epoch in range(epochs):
+
+      for (X_b, y_b, w_b,
+           ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                         deterministic=deterministic,
+                                         pad_batches=pad_batches):
+
+        if self.mode == 'classification':
+          if y_b is not None:
+            y_b = to_one_hot(y_b.flatten(),
+                             self.n_classes).reshape(-1, self.n_tasks,
+                                                     self.n_classes)
+
+        yield ([X_b], [y_b], [w_b])
