@@ -14,15 +14,14 @@ class DCLightningModule(pl.LightningModule):
   >>> from deepchem.models import MultitaskClassifier
   >>> import numpy as np
   >>> import torch
+  >>> import pytorch_lightning as pl
   >>> from torch.utils.data import DataLoader
   >>> from deepchem.models.lightning.dc_lightning_module
   ...   import DCLightningModule
   >>> model = MultitaskClassifier(params)
-  >>> valid_dataloader = DataLoader(test_dataset)
   >>> lightning_module = DCLightningModule(model)
   >>> trainer = pl.Trainer(max_epochs=1)
-  >>> trainer.fit(lightning_module, valid_dataloader)
-
+  TODO: Add dataloader and fit, once datasetmodule is ready
   The lightning module is a wrapper over deepchem's torch model.
   This module directly works with pytorch lightning trainer
   which runs training for multiple epochs and also is responsible
