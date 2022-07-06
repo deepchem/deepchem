@@ -69,7 +69,9 @@ class GraphData:
       raise ValueError('edge_index.dtype must contains integers.')
     elif edge_index.shape[0] != 2:
       raise ValueError('The shape of edge_index is [2, num_edges].')
-    elif np.max(edge_index) >= len(node_features):
+
+    # np.max() method works only for a non-empty array, so size of the array should be non-zero
+    elif (edge_index.size != 0) and (np.max(edge_index) >= len(node_features)):
       raise ValueError('edge_index contains the invalid node number.')
 
     if edge_features is not None:
