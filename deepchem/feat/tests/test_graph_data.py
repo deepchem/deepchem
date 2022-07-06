@@ -20,12 +20,11 @@ class TestGraph(unittest.TestCase):
     # z is kwargs
     z = np.random.random(5)
 
-    graph = GraphData(
-        node_features=node_features,
-        edge_index=edge_index,
-        edge_features=edge_features,
-        node_pos_features=node_pos_features,
-        z=z)
+    graph = GraphData(node_features=node_features,
+                      edge_index=edge_index,
+                      edge_features=edge_features,
+                      node_pos_features=node_pos_features,
+                      z=z)
 
     assert graph.num_nodes == num_nodes
     assert graph.num_node_features == num_node_features
@@ -97,13 +96,12 @@ class TestGraph(unittest.TestCase):
     ]
 
     graph_list = [
-        GraphData(
-            node_features=np.random.random_sample((num_nodes_list[i],
-                                                   num_node_features)),
-            edge_index=edge_index_list[i],
-            edge_features=np.random.random_sample((num_edge_list[i],
-                                                   num_edge_features)),
-            node_pos_features=None) for i in range(len(num_edge_list))
+        GraphData(node_features=np.random.random_sample(
+            (num_nodes_list[i], num_node_features)),
+                  edge_index=edge_index_list[i],
+                  edge_features=np.random.random_sample(
+                      (num_edge_list[i], num_edge_features)),
+                  node_pos_features=None) for i in range(len(num_edge_list))
     ]
     batch = BatchGraphData(graph_list)
 
@@ -112,3 +110,22 @@ class TestGraph(unittest.TestCase):
     assert batch.num_edges == sum(num_edge_list)
     assert batch.num_edge_features == num_edge_features
     assert batch.graph_index.shape == (sum(num_nodes_list),)
+
+  @pytest.mark.torch
+  def test_graph_data_single_atom_mol(self):
+    """
+    Test for graph data when no edges in the graph (example: single atom mol)
+    """
+    num_nodes, num_node_features = 1, 32
+    num_edges = 0
+    node_features = np.random.random_sample((num_nodes, num_node_features))
+    edge_index = np.empty((2, 0), dtype=int)
+
+    graph = GraphData(node_features=node_features, edge_index=edge_index)
+
+    assert graph.num_nodes == num_nodes
+    assert graph.num_node_features == num_node_features
+    assert graph.num_edges == num_edges
+    assert str(
+        graph
+    ) == 'GraphData(node_features=[1, 32], edge_index=[2, 0], edge_features=None)'
