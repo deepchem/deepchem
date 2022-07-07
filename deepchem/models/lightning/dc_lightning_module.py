@@ -45,12 +45,9 @@ class DCLightningModule(pl.LightningModule):
 
     Parameters
     ----------
-    batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-      The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-    batch_idx (``int``): Integer displaying index of this batch
-    optimizer_idx (``int``): When using multiple optimizers, this argument will also be present.
-    hiddens (``Any``): Passed in if
-      :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
+    batch: A tensor, tuple or list.
+    batch_idx: Integer displaying index of this batch
+    optimizer_idx: When using multiple optimizers, this argument will also be present.
 
     Returns
     -------
