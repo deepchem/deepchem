@@ -141,7 +141,9 @@ class CircularFingerprint(MolecularFeaturizer):
             useChirality=self.chiral,
             useBondTypes=self.bonds,
             useFeatures=self.features)
-        fp = np.zeros((1,))
+        fp = np.zeros(
+            (self.size,), dtype=float
+        )  # initialise numpy array of zeros (shape: (required size,))
         DataStructs.ConvertToNumpyArray(fp_sparse, fp)
       else:
         fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(
