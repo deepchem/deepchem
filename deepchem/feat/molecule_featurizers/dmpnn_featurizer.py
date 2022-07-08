@@ -503,6 +503,109 @@ class DMPNNFeaturizer(MolecularFeaturizer):
   The default node(atom) and edge(bond) representations are based on
   `Analyzing Learned Molecular Representations for Property Prediction paper <https://arxiv.org/pdf/1904.01561.pdf>`_.
 
+  ----------------------------------------------------------------------------------------------------------------------------------------------
+
+  Working of DMPNN algorithm:
+
+  Let the diagram given below represent a molecule containing 5 atoms (nodes) and 4 bonds (edges):-
+
+  |   1 --- 2 --- 3
+  |   |     |
+  |   5     4
+
+  Let the bonds from atoms 1->2 ('B[12]') and 2->1 ('B[21]') be considered as 2 different bonds.
+  Hence, by considering the same for all atoms, the total number of bonds = 8.
+
+  Let:
+  - a1, a2, a3, a4, a5 => atom features
+  - h1, h2, h3, h4, h5 => hidden states of atoms
+  - b12, b21, b23, b32, b24, b42, b15, b51 => bond features bonds
+  - (0)h12, (0)h21, (0)h23, (0)h32, (0)h24, (0)h42, (0)h15, (0)h51 => initial hidden states of bonds
+
+  The hidden state of every bond is a function of the concatenated feature vector which contains
+  concatenation of the 'features of initial atom of the bond' and 'bond features'.
+
+  Example: (0)h21 = func(concat(a2, b21))
+
+  The DMPNN model has 2 phases, message-passing phase and read-out phase.
+  The goal of the message-passing phase is to generate 'hidden states of all the atoms in the molecule'.
+
+  The hidden state of an atom is a function of concatenation of 'atom features and messages (at T depth)'.
+  Depth refers to the number of iterations in the message passing phase (here, T iterations).
+  After each iteration, the hidden states of the bonds are updated.
+
+  A message is a sum of 'hidden states of bonds coming to the atom (at T depth)'
+
+  Example: h1 = func(concat(a1, m1))
+           Here, `m1` refers to the message coming to the atom.
+
+           m1 = (T-1)h21 + (T-1)h51 (hidden state of bond 2->1 + hidden state of bond 5->1)(at T depth)
+
+           for, depth T = 2:
+             - the hidden states of the bonds @ 1st iteration will be => (0)h21, (0)h51
+             - the hidden states of the bonds @ 2nd iteration will be => (1)h21, (1)h51
+
+  The hidden states of the bonds @ 1st iteration are already know.
+  For hidden states of the bonds @ 2nd iteration, we follow the criterion that:
+  - "hidden state of the bond is a function of 'initial hidden state of bond' and 'messages coming to that bond in that iteration'"
+
+  Example: (1)h21 = func( (0)h21 , (1)m21 )
+           Here, '(1)m21' refers to the messages coming to that bond 2->1 in that 2nd iteration
+
+  Messages coming to a bond in an iteration is
+   'a sum of hidden states of bonds (from previous iteration) coming to this bond'.
+
+  Example: (1)m21 = (0)h32 + (0)h42   |   2 <--- 3
+                                      |   ^
+                                      |   |
+                                      |   4
+
+  Hence, now h1 = func(
+                       concat(
+                              a1,
+                              [
+                               func( (0)h21 , (0)h32 + (0)h42 ) +
+                               func( (0)h51 , 0 ))
+                              ]
+                             )
+                      )
+  Similarly, h2, h3, h4 and h5 are calculated.
+  Next,all atom hidden states are concatenated to make a feature vector of the molecule:
+    mol_features = [h1, h2, h3, h4, h5]
+
+  Next in read-out phase, the mol_features is passed into feed-forward neural network to get the task-based prediction.
+
+  ----------------------------------------------------------------------------------------------------------------------------------------------
+
+  This class uses `f_ini_atoms_bonds_zero_padded` (equivalent to `concat(a2, b21)`) to get
+  hidden state of the bonds referred by the respective indices in the array.
+
+  This class uses 'mapping' which maps bond index to 'array of indices of the bonds'
+  incoming at the initial atom of the bond (reverse bonds are not considered).
+
+  Hence for example,
+                                   B0    B1     B2      B3      B4      B5      B6      B7      B8
+  f_ini_atoms_bonds_zero_padded = [h0, (0)h12, (0)h21, (0)h23, (0)h32, (0)h24, (0)h42, (0)h15, (0)h51]
+
+  Note: h0 is an empty array of the same size as other hidden states of bond states.
+
+               B0     B1      B2      B3    B4     B5     B6     B7    B8
+  mapping = [ [0,0] [0,B8] [B4,B6] [B1,B6] [0,0] [B1,B4] [0,0] [B2,0] [0,0] ]
+
+  Note: One can observe that b2 is also an incoming bond for b1, but its the reverse bond of b1,
+        so its replaced with 0 in the mapping.
+
+  Later, the encoder will map the concatenated features from the `f_ini_atoms_bonds_zero_padded`
+  to `mapping` in each iteration upto Tth iteration.
+
+  Next the encoder will sum-up the concat features within same bond index.
+
+                m0          (1)m12         (1)m21           (1)m23         (1)m32       (1)m24        (1)m42      (1)m15      (1)m51
+  Example: [ [h0 + h0] [h0 + (0)h51] [(0)h32 + (0)h42] [(0)h12 + (0)h42] [h0 + h0] [(0)h12 + (0)h32] [h0 + h0] [(0)h21 + h0] [h0 + h0] ]
+
+  Hence, this is how, encoder can get messages for message-passing steps.
+  ----------------------------------------------------------------------------------------------------------------------------------------------
+
   The default node representation are constructed by concatenating the following values,
   and the feature length is 133.
 
