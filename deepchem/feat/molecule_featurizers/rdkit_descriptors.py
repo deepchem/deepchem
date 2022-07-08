@@ -27,6 +27,16 @@ class RDKitDescriptors(MolecularFeaturizer):
   (The implementation for normalization is based on `RDKit2DNormalized()` method
   in 'descriptastorus' library.)
 
+  The neural network architecture requires that the features are appropriately scaled to prevent
+  features with large ranges from dominating smaller ranged features, as well as preventing
+  issues where features in the training set are not drawn from the same sample distribution as
+  features in the testing set. To prevent these issues, a large sample of molecules is used to fit
+  cumulative density functions (CDFs) to all features.
+
+  CDFs were used as opposed to simpler scaling algorithms mainly because CDFs have the useful
+  property that 'each value has the same meaning: the percentage of the population observed below
+  the raw feature value.'
+
   Warning: Currently, the normalizing cdf parameters are not available for BCUT2D descriptors.
   (BCUT2D_MWHI, BCUT2D_MWLOW, BCUT2D_CHGHI, BCUT2D_CHGLO, BCUT2D_LOGPHI, BCUT2D_LOGPLOW, BCUT2D_MRHI, BCUT2D_MRLOW)
 
