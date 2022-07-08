@@ -22,7 +22,7 @@ class ElectronSampler:
 
   Example
   -------
-  >>> from deepchem.utils.ElectronSampler import ElectronSampler
+  >>> from deepchem.utils.electron_sampler import ElectronSampler
   >>> def test_f(x):
   ...	#dummy function which can be passed as the parameter f. f gives the log probability
   ...	return 2*np.log(np.random.uniform(low=0,high=1.0,size=np.shape(x)[0]))
