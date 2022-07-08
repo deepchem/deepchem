@@ -1,8 +1,15 @@
 import math
 from typing import Tuple
 
-import torch
-import torch.optim as optim
+from attr import has
+
+try:
+  import torch
+  import torch.optim as optim
+  has_torch = True
+
+except ModuleNotFoundError:
+  has_torch = False
 
 class KFACOptimizer(optim.Optimizer):
   """"
