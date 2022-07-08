@@ -108,7 +108,7 @@ class GraphData:
     if self.edge_features is not None:
       edge_features_str = str(list(self.edge_features.shape))
     else:
-      edge_features_str = None
+      edge_features_str = "None"
 
     out = "%s(node_features=%s, edge_index=%s, edge_features=%s" % (
         cls, node_features_str, edge_index_str, edge_features_str)
@@ -146,12 +146,11 @@ class GraphData:
     kwargs = {}
     for key, value in self.kwargs.items():
       kwargs[key] = torch.from_numpy(value).float()
-    return Data(
-        x=torch.from_numpy(self.node_features).float(),
-        edge_index=torch.from_numpy(self.edge_index).long(),
-        edge_attr=edge_features,
-        pos=node_pos_features,
-        **kwargs)
+    return Data(x=torch.from_numpy(self.node_features).float(),
+                edge_index=torch.from_numpy(self.edge_index).long(),
+                edge_attr=edge_features,
+                pos=node_pos_features,
+                **kwargs)
 
   def to_dgl_graph(self, self_loop: bool = False):
     """Convert to DGL graph data instance
@@ -177,9 +176,8 @@ class GraphData:
     src = self.edge_index[0]
     dst = self.edge_index[1]
 
-    g = dgl.graph(
-        (torch.from_numpy(src).long(), torch.from_numpy(dst).long()),
-        num_nodes=self.num_nodes)
+    g = dgl.graph((torch.from_numpy(src).long(), torch.from_numpy(dst).long()),
+                  num_nodes=self.num_nodes)
     g.ndata['x'] = torch.from_numpy(self.node_features).float()
 
     if self.node_pos_features is not None:

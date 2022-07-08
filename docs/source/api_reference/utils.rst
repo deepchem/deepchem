@@ -237,3 +237,13 @@ used for testing model architectures or other purposes.
 
 .. autoclass:: deepchem.utils.fake_data_generator.FakeGraphGenerator
   :members:
+
+ElectronSampler
+-------------------
+
+The utilities here are used to sample electrons in a given molecule
+and update it using monte carlo methods, which can be used for methods
+like Variational Monte Carlo, etc.
+
+.. autoclass:: deepchem.utils.ElectronSampler.ElectronSampler
+  :members:
