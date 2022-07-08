@@ -276,10 +276,15 @@ class TestOptimizers(unittest.TestCase):
   @pytest.mark.torch
   def test_KFAC(self):
     """test creating a KFAC optimizer"""
-    rate = optimizers.KFAC(learning_rate=0.1, Tinv=50)
+    tasks, datasets, transformers = dc.molnet.load_delaney(featurizer='ECFP', splitter='random')
+    train_dataset, valid_dataset, test_dataset = datasets
+    metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
     pytorch_model = torch.nn.Sequential(
     torch.nn.Linear(1024, 1000),
     torch.nn.ReLU(),
     torch.nn.Dropout(0.5),
     torch.nn.Linear(1000, 1))
-    model = dc.models.TorchModel(pytorch_model, dc.models.losses.L2Loss(),optimizers=optimizers.KFAC(model=pytorch_model,learning_rate=0.1, Tinv=50))
+    model = dc.models.TorchModel(pytorch_model, dc.models.losses.L2Loss(),optimizers=optimizers.KFAC(learning_rate=0.1, Tinv=50))
+    loss = model.fit(train_dataset, nb_epoch=500)
+    print('training set score:', model.evaluate(train_dataset, [metric]))
+    print('test set score:', model.evaluate(test_dataset, [metric]))

@@ -17,7 +17,7 @@ from deepchem.data import Dataset, NumpyDataset
 from deepchem.metrics import Metric
 from deepchem.models.losses import Loss
 from deepchem.models.models import Model
-from deepchem.models.optimizers import Adam, Optimizer, LearningRateSchedule
+from deepchem.models.optimizers import KFAC, Adam, Optimizer, LearningRateSchedule
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
@@ -274,7 +274,11 @@ class TorchModel(Model):
       return
     self._built = True
     self._global_step = 0
-    self._pytorch_optimizer = self.optimizer._create_pytorch_optimizer(
+    if isinstance(self.optimizer, KFAC):
+      self._pytorch_optimizer = self.optimizer._create_pytorch_optimizer(
+        self.model)
+    else:
+      self._pytorch_optimizer = self.optimizer._create_pytorch_optimizer(
         self.model.parameters())
     if isinstance(self.optimizer.learning_rate, LearningRateSchedule):
       self._lr_schedule = self.optimizer.learning_rate._create_pytorch_schedule(
