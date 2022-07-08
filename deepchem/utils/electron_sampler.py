@@ -28,6 +28,7 @@ class ElectronSampler:
   ...	return 2*np.log(np.random.uniform(low=0,high=1.0,size=np.shape(x)[0]))
   >>> distribution=ElectronSampler(central_value=np.array([[1,1,3],[3,2,3]]),f=test_f,seed=0,batch_no=2,steps=1000,)
   >>> distribution.gauss_initialize_position(np.array([[1],[2]]))
+  
   >> print(distribution.x)
   [[[[1.03528105 1.00800314 3.01957476]]
 
@@ -43,6 +44,7 @@ class ElectronSampler:
     [[3.00667349 2.02988158 2.99589683]]]]
   >>> distribution.move()
   0.5115
+  
   >> print(distribution.x)
   [[[[-0.32441754  1.23330263  2.67927645]]
 
