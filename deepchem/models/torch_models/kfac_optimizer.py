@@ -17,7 +17,7 @@ class KFACOptimizer(optim.Optimizer):
   """
 
   def __init__(self,
-               model:torch.model,
+               model:torch.nn.Module,
                lr: float = 0.001,
                momentum: float = 0.9,
                stat_decay: float = 0.95,
@@ -31,7 +31,7 @@ class KFACOptimizer(optim.Optimizer):
     """
     Parameters:
     -----------
-    model: torch.model
+    model: torch.nn.Module
     The model to be optimized.
     lr: float
     Learning rate for the optimizer.
@@ -92,7 +92,7 @@ class KFACOptimizer(optim.Optimizer):
   def try_contiguous(self,x: torch.Tensor) -> torch.Tensor:
     """
     x: torch.Tensor
-    The input tensor to be contiguous.
+    The input tensor to be made contiguous in memory, if it is not so.
     """
     if not x.is_contiguous():
       x = x.contiguous()
@@ -100,10 +100,11 @@ class KFACOptimizer(optim.Optimizer):
     return x
 
 
-  def _extract_patches(self,x: Tuple[int, int, int, int], kernel_size: Tuple[int, int],
+  def _extract_patches(self,x: torch.Tensor, kernel_size: Tuple[int, int],
                      stride: Tuple[int, int],
-                     padding: Tuple[int, int]) -> Tuple[int, int, int, int]:
+                     padding: Tuple[int, int]) -> torch.Tensor:
     """
+    
     Parameters:
     -----------
     x: Tuple[int, int, int, int]
@@ -123,6 +124,21 @@ class KFACOptimizer(optim.Optimizer):
     return x
   
   def ComputeCovA(self, a: torch.Tensor , layer: torch.nn.Module) -> torch.Tensor:
+    """
+    Compute the covariance matrix of the A matrix (the output of each layer).
+    
+    Parameters:
+    -----------
+    a: torch.Tensor
+    It is the output of the layer for which the covariance matrix should be calculated.
+    layer: torch.nn.Module
+    It specifies the type of layer from which the output of the layer is taken.
+    
+    Returns:
+    --------
+    torch.Tensor
+    The covariance matrix of the A matrix.
+    """
     if isinstance(layer, torch.linear):
       batch_size = a.size(0)
       if layer.bias is not None:
@@ -140,6 +156,21 @@ class KFACOptimizer(optim.Optimizer):
     return a.t() @ (a / batch_size)
 
   def ComputeCovG(self, g:torch.Tensor, layer:torch.nn.Module) -> torch.Tensor:
+    """
+    Compute the covariance matrix of the G matrix (the gradient of the layer).
+    
+    Parameters:
+    -----------
+    g: torch.Tensor
+    It is the gradient of the layer for which the covariance matrix should be calculated.
+    layer: torch.nn.Module
+    It specifies the type of layer from which the output of the layer is taken.
+    
+    Returns:
+    --------
+    torch.Tensor
+    The covariance matrix of the G matrix.
+    """
     if isinstance(layer, torch.linear):
       batch_size = g.size(0)
       if self.batch_averaged:
@@ -162,6 +193,9 @@ class KFACOptimizer(optim.Optimizer):
       return cov_g
 
   def _save_input(self, module:str, input: torch.Tensor):
+    """
+    Saves the input of the layer.
+    """
     if torch.is_grad_enabled() and self.steps % self.TCov == 0:
       aa = self.ComputeCovA(input[0].data, module)
       # Initialize buffers

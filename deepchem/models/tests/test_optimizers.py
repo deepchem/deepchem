@@ -1,6 +1,7 @@
+import deepchem as dc
 import deepchem.models.optimizers as optimizers
-from deepchem.torch_models.kfac_optimizer import KFACOptimizer
 import unittest
+from deepchem.models.torch_models import kfac_optimizer
 import pytest
 
 try:
@@ -276,6 +277,9 @@ class TestOptimizers(unittest.TestCase):
   def test_KFAC(self):
     """test creating a KFAC optimizer"""
     rate = optimizers.KFAC(learning_rate=0.1, Tinv=50)
-    params = [torch.nn.Parameter(torch.Tensor([1.0]))]
-    torchopt = rate._create_pytorch_optimizer(params)
-    assert isinstance(torchopt, KFACOptimizer)
+    pytorch_model = torch.nn.Sequential(
+    torch.nn.Linear(1024, 1000),
+    torch.nn.ReLU(),
+    torch.nn.Dropout(0.5),
+    torch.nn.Linear(1000, 1))
+    model = dc.models.TorchModel(pytorch_model, dc.models.losses.L2Loss(),optimizers=optimizers.KFAC(model=pytorch_model,learning_rate=0.1, Tinv=50))
