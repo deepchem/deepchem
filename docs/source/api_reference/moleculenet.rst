@@ -169,10 +169,6 @@ QM7 Datasets
 
 .. autofunction:: deepchem.molnet.load_qm7
 
-.. autofunction:: deepchem.molnet.load_qm7_from_mat
-
-.. autofunction:: deepchem.molnet.load_qm7b_from_mat
-
 QM8 Datasets
 ------------
 
