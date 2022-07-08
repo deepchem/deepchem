@@ -9,20 +9,24 @@ try:
 except ModuleNotFoundError:
   has_pytorch = False
 
-class KFACOptimizer(optim.Optimizer):
+
+class KFAC_Optimizer(optim.Optimizer):
   """"
   This class implement the second order optimizer - KFAC, which uses Kronecker factor products of inputs and the gradients to
   get the approximate inverse fisher matrix, which is used to update the model parameters. Presently this optimizer works only
-  on liner and 2D convolution layers. If you want to know more details about KFAC, please check the paper [1]_.
-
+  on liner and 2D convolution layers. If you want to know more details about KFAC, please check the paper [1]_ and [2]_.
+  
   References:
   -----------
-  Martens, James, and Roger Grosse. Optimizing Neural Networks with Kronecker-Factored Approximate Curvature.
+  [1] Martens, James, and Roger Grosse. Optimizing Neural Networks with Kronecker-Factored Approximate Curvature.
   arXiv:1503.05671, arXiv, 7 June 2020. arXiv.org, http://arxiv.org/abs/1503.05671.
+  
+  [2] Grosse, Roger, and James Martens. A Kronecker-Factored Approximate Fisher Matrix for Convolution Layers. 
+  arXiv:1602.01407, arXiv, 23 May 2016. arXiv.org, http://arxiv.org/abs/1602.01407.
   """
 
   def __init__(self,
-               model:torch.nn.Module,
+               model: torch.nn.Module,
                lr: float = 0.001,
                momentum: float = 0.9,
                stat_decay: float = 0.95,
@@ -32,7 +36,7 @@ class KFACOptimizer(optim.Optimizer):
                TCov: int = 10,
                TInv: int = 100,
                batch_averaged: bool = True,
-               mean:bool=False):
+               mean: bool = False):
     """
     Parameters:
     -----------
@@ -91,11 +95,16 @@ class KFACOptimizer(optim.Optimizer):
     self.kl_clip = kl_clip
     self.TCov = TCov
     self.TInv = TInv
-    
-    self.mean=mean
 
-  def try_contiguous(self,x: torch.Tensor) -> torch.Tensor:
+    self.mean = mean
+
+  def try_contiguous(self, x: torch.Tensor) -> torch.Tensor:
     """
+    Checks the memory layout of the input tensor and changes it to
+    contiguous type 
+    
+    Parameters:
+    -----------
     x: torch.Tensor
     The input tensor to be made contiguous in memory, if it is not so.
     """
@@ -104,31 +113,41 @@ class KFACOptimizer(optim.Optimizer):
 
     return x
 
-
-  def _extract_patches(self,x: torch.Tensor, kernel_size: Tuple[int, int],
-                     stride: Tuple[int, int],
-                     padding: Tuple[int, int]) -> torch.Tensor:
+  def _extract_patches(self, x: torch.Tensor, kernel_size: Tuple[int, int],
+                       stride: Tuple[int, int],
+                       padding: Tuple[int, int]) -> torch.Tensor:
     """
+    Extract patches of a given size from the input tensor given. Used in calculating
+    the matrices for the kronecker product in the case of 2d Convolutions.
     
     Parameters:
     -----------
-    x: Tuple[int, int, int, int]
-    The input feature maps.  (batch_size, in_c, h, w)
-    :param kernel_size: the kernel size of the conv filter (tuple of two elements)
-    :param stride: the stride of conv operation  (tuple of two elements)
-    :param padding: number of paddings. be a tuple of two elements
-    :return: (batch_size, out_h, out_w, in_c*kh*kw)
+    x: torch.Tensor
+    The input feature maps. with the size of (batch_size, in_c, h, w)
+    kernel_size: Tuple[int, int]
+    the kernel size of the conv filter.
+    stride: Tuple[int, int]
+    the stride of conv operation.
+    padding: Tuple[int, int]
+    number of paddings. be a tuple of two elements
+    
+    Return:
+    -------
+    torch.Tensor:
+    Extracted patches with shape (batch_size, out_h, out_w, in_c*kh*kw)
     """
     if padding[0] + padding[1] > 0:
       x = torch.pad(x, (padding[1], padding[1], padding[0],
-                      padding[0])).data  # Actually check dims
+                        padding[0])).data  # Actually check dims
       x = x.unfold(2, kernel_size[0], stride[0])
       x = x.unfold(3, kernel_size[1], stride[1])
       x = x.transpose_(1, 2).transpose_(2, 3).contiguous()
-      x = x.view(x.size(0), x.size(1), x.size(2), x.size(3) * x.size(4) * x.size(5))
+      x = x.view(x.size(0), x.size(1), x.size(2),
+                 x.size(3) * x.size(4) * x.size(5))
     return x
-  
-  def ComputeCovA(self, a: torch.Tensor , layer: torch.nn.Module) -> torch.Tensor:
+
+  def ComputeCovA(self, a: torch.Tensor,
+                  layer: torch.nn.Module) -> torch.Tensor:
     """
     Compute the covariance matrix of the A matrix (the output of each layer).
     
@@ -152,7 +171,8 @@ class KFACOptimizer(optim.Optimizer):
 
     elif isinstance(self, layer, torch.Conv2d):
       batch_size = a.size(0)
-      a = self._extract_patches(a, layer.kernel_size, layer.stride, layer.padding)
+      a = self._extract_patches(a, layer.kernel_size, layer.stride,
+                                layer.padding)
       spatial_size = a.size(1) * a.size(2)
       a = a.view(-1, a.size(-1))
       if layer.bias is not None:
@@ -160,7 +180,8 @@ class KFACOptimizer(optim.Optimizer):
       a = a / spatial_size
     return a.t() @ (a / batch_size)
 
-  def ComputeCovG(self, g:torch.Tensor, layer:torch.nn.Module) -> torch.Tensor:
+  def ComputeCovG(self, g: torch.Tensor,
+                  layer: torch.nn.Module) -> torch.Tensor:
     """
     Compute the covariance matrix of the G matrix (the gradient of the layer).
     
@@ -197,7 +218,7 @@ class KFACOptimizer(optim.Optimizer):
 
       return cov_g
 
-  def _save_input(self, module:str, input: torch.Tensor):
+  def _save_input(self, module: str, input: torch.Tensor):
     """
     Saves the input of the layer.
     """
@@ -208,7 +229,8 @@ class KFACOptimizer(optim.Optimizer):
         self.m_aa[module] = torch.diag(aa.new(aa.size(0)).fill_(1))
       self.m_aa[module] *= self.stat_decay + aa * (1 - self.stat_decay)
 
-  def _save_grad_output(self, module: str, grad_input:torch.Tensor, grad_output:torch.Tensor):
+  def _save_grad_output(self, module: str, grad_input: torch.Tensor,
+                        grad_output: torch.Tensor):
     # Accumulate statistics for Fisher matrices
     if self.acc_stats and self.steps % self.TCov == 0:
       gg = self.ComputeCovG(grad_output[0].data, module, self.batch_averaged)

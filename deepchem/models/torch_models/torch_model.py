@@ -1,9 +1,5 @@
 import numpy as np
-try:
-  import torch
-  has_pytorch = True
-except ModuleNotFoundError:
-  has_pytorch = False
+import torch
 try:
   import torch.utils.tensorboard
   _has_tensorboard = True

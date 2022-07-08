@@ -1,7 +1,6 @@
 import deepchem as dc
 import deepchem.models.optimizers as optimizers
 import unittest
-from deepchem.models.torch_models import kfac_optimizer
 import pytest
 
 try:

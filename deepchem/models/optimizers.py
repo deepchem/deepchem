@@ -691,10 +691,10 @@ class KFAC(Optimizer):
     self.kwargs = kwargs
 
   def _create_pytorch_optimizer(self, model):
-    from deepchem.models.torch_models.kfac_optimizer import KFACOptimizer
+    from deepchem.models.torch_models.kfac_optimizer import KFAC_Optimizer
     self.kwargs['model'] = model
     if isinstance(self.learning_rate, LearningRateSchedule):
       self.kwargs['lr'] = self.learning_rate.initial_rate
     else:
       self.kwargs['lr'] = self.learning_rate
-    return KFACOptimizer([self.kwargs])
+    return KFAC_Optimizer([self.kwargs])
