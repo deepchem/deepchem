@@ -12,7 +12,7 @@ tf.random.set_seed(123)
 import deepchem as dc
 
 # Load Tox21 dataset
-tasks, datasets, transformers = dc.molnet.load_qm7_from_mat(
+tasks, datasets, transformers = dc.molnet.load_qm7(
     featurizer='GraphConv', move_mean=True)
 train_dataset, valid_dataset, test_dataset = datasets
 
