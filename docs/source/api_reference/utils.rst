@@ -245,5 +245,5 @@ The utilities here are used to sample electrons in a given molecule
 and update it using monte carlo methods, which can be used for methods
 like Variational Monte Carlo, etc.
 
-.. autoclass:: deepchem.utils.ElectronSampler.MCMC
+.. autoclass:: deepchem.utils.ElectronSampler.ElectronSampler
   :members:
