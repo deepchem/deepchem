@@ -13,7 +13,7 @@ except:
   from collections import Sequence as SequenceCollection
 
 
-class CNN(nn.Module):
+class CNNModule(nn.Module):
   """A 1, 2, or 3 dimensional convolutional network for either regression or classification.
 
   The network consists of the following sequence of layers:
@@ -31,7 +31,7 @@ class CNN(nn.Module):
 
   Examples
   --------
-  >>> model = CNN(n_tasks=5, n_features=8, dims=2, layer_filters=[3,8,8,16], kernel_size=3, n_classes = 7, mode='classification', uncertainty=False)
+  >>> model = CNNModule(n_tasks=5, n_features=8, dims=2, layer_filters=[3,8,8,16], kernel_size=3, n_classes = 7, mode='classification', uncertainty=False)
   >>> x = torch.ones(2, 8, 224, 224)
   >>> y = model(x)
   >>> type(y)
@@ -108,7 +108,7 @@ class CNN(nn.Module):
       the padding to use for convolutional layers, either 'valid' or 'same'
     """
 
-    super(CNN, self).__init__()
+    super(CNNModule, self).__init__()
 
     if dims not in (1, 2, 3):
       raise ValueError('Number of dimensions must be 1, 2 or 3')
@@ -237,7 +237,7 @@ class CNN(nn.Module):
     return outputs
 
 
-class CNNModel(TorchModel):
+class CNN(TorchModel):
 
   def __init__(self,
                n_tasks: int,
@@ -306,20 +306,20 @@ class CNNModel(TorchModel):
     self.n_classes = n_classes
     self.n_tasks = n_tasks
 
-    self.model = CNN(n_tasks=n_tasks,
-                     n_features=n_features,
-                     dims=dims,
-                     layer_filters=layer_filters,
-                     kernel_size=kernel_size,
-                     strides=strides,
-                     dropouts=dropouts,
-                     activation_fns=activation_fns,
-                     pool_type=pool_type,
-                     mode=mode,
-                     n_classes=n_classes,
-                     uncertainty=uncertainty,
-                     residual=residual,
-                     padding=padding)
+    self.model = CNNModule(n_tasks=n_tasks,
+                           n_features=n_features,
+                           dims=dims,
+                           layer_filters=layer_filters,
+                           kernel_size=kernel_size,
+                           strides=strides,
+                           dropouts=dropouts,
+                           activation_fns=activation_fns,
+                           pool_type=pool_type,
+                           mode=mode,
+                           n_classes=n_classes,
+                           uncertainty=uncertainty,
+                           residual=residual,
+                           padding=padding)
 
     if uncertainty:
 
@@ -340,10 +340,10 @@ class CNNModel(TorchModel):
       else:
         output_types = ["prediction"]
 
-    super(CNNModel, self).__init__(self.model,
-                                   loss=loss,
-                                   output_types=output_types,
-                                   **kwargs)
+    super(CNN, self).__init__(self.model,
+                              loss=loss,
+                              output_types=output_types,
+                              **kwargs)
 
   def default_generator(self,
                         dataset,
@@ -361,8 +361,7 @@ class CNNModel(TorchModel):
 
         if self.mode == 'classification':
           if y_b is not None:
-            y_b = to_one_hot(y_b.flatten(),
-                             self.n_classes).reshape(-1, self.n_tasks,
-                                                     self.n_classes)
+            y_b = to_one_hot(y_b.flatten(), self.n_classes)\
+                .reshape(-1, self.n_tasks, self.n_classes)
 
         yield ([X_b], [y_b], [w_b])
