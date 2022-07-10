@@ -1,3 +1,4 @@
+from haiku import Linear
 import deepchem as dc
 import deepchem.models.optimizers as optimizers
 import unittest
@@ -275,15 +276,57 @@ class TestOptimizers(unittest.TestCase):
   @pytest.mark.torch
   def test_KFAC(self):
     """test creating a KFAC optimizer"""
-    tasks, datasets, transformers = dc.molnet.load_delaney(featurizer='ECFP', splitter='random')
-    train_dataset, valid_dataset, test_dataset = datasets
+    import torch
+    import numpy as np
+
+    np.random.seed(123)
+    """linear layers test"""
+
+    n_samples = 10
+    n_features = 100
+    n_tasks = 1
+
+    X = np.random.rand(n_samples, n_features)
+    y = np.random.randint(2, size=(n_samples, n_tasks)).astype(np.float32)
+    dataset = dc.data.NumpyDataset(X, y)
     metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
-    pytorch_model = torch.nn.Sequential(
-    torch.nn.Linear(1024, 1000),
-    torch.nn.ReLU(),
-    torch.nn.Dropout(0.5),
-    torch.nn.Linear(1000, 1))
-    model = dc.models.TorchModel(pytorch_model, dc.models.losses.L2Loss(),optimizers=optimizers.KFAC(learning_rate=0.1, Tinv=50))
-    loss = model.fit(train_dataset, nb_epoch=500)
-    print('training set score:', model.evaluate(train_dataset, [metric]))
-    print('test set score:', model.evaluate(test_dataset, [metric]))
+    pytorch_model = torch.nn.Sequential(torch.nn.Linear(n_features, 50),
+                                        torch.nn.ReLU(), torch.nn.Linear(50, 1))
+    model = dc.models.TorchModel(pytorch_model,
+                                 dc.models.losses.L2Loss(),
+                                 optimizers=optimizers.KFAC(model=pytorch_model,
+                                                            learning_rate=0.1,
+                                                            Tinv=50))
+    model.fit(dataset, nb_epoch=100)
+
+    scores = model.evaluate(dataset, [metric])
+    assert scores[metric.name] > 0.9
+    """Conv2d layers test"""
+    n_samples = 10
+    n_features = 3
+    n_tasks = 1
+
+    X = np.random.rand(n_samples, 10, 10, n_features)
+    y = np.random.randint(2, size=(n_samples, n_tasks)).astype(np.float32)
+    dataset = dc.data.NumpyDataset(X, y)
+
+    metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
+    model = torch.nn.Sequential(
+        torch.nn.Conv2d(n_features, 32, kernel_size=3, padding=1),
+        torch.nn.Conv2d(32, 64, kernel_size=3, padding=1),
+        torch.nn.Linear(64 * 10 * 10, 20), torch.nn.ReLU(),
+        torch.nn.Linear(20, n_tasks))
+    model = dc.models.TorchModel(pytorch_model,
+                                 dc.models.losses.L2Loss(),
+                                 optimizers=optimizers.KFAC(model=pytorch_model,
+                                                            learning_rate=0.003,
+                                                            Tinv=50))
+    # Fit trained model
+    model.fit(
+        dataset,
+        nb_epoch=100,
+    )
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [metric])
+    assert scores[metric.name] > 0.9

@@ -17,7 +17,7 @@ from deepchem.data import Dataset, NumpyDataset
 from deepchem.metrics import Metric
 from deepchem.models.losses import Loss
 from deepchem.models.models import Model
-from deepchem.models.optimizers import KFAC, Adam, Optimizer, LearningRateSchedule
+from deepchem.models.optimizers import Adam, Optimizer, LearningRateSchedule
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.evaluate import GeneratorEvaluator
 
@@ -222,16 +222,15 @@ class TorchModel(Model):
       self.wandb_logger.setup()
 
     # Update config with KerasModel params
-    wandb_logger_config = dict(
-        loss=loss,
-        output_types=output_types,
-        batch_size=batch_size,
-        model_dir=model_dir,
-        learning_rate=learning_rate,
-        optimizer=optimizer,
-        tensorboard=tensorboard,
-        log_frequency=log_frequency,
-        regularization_loss=regularization_loss)
+    wandb_logger_config = dict(loss=loss,
+                               output_types=output_types,
+                               batch_size=batch_size,
+                               model_dir=model_dir,
+                               learning_rate=learning_rate,
+                               optimizer=optimizer,
+                               tensorboard=tensorboard,
+                               log_frequency=log_frequency,
+                               regularization_loss=regularization_loss)
     wandb_logger_config.update(**kwargs)
 
     if self.wandb_logger is not None:
@@ -274,11 +273,7 @@ class TorchModel(Model):
       return
     self._built = True
     self._global_step = 0
-    if isinstance(self.optimizer, KFAC):
-      self._pytorch_optimizer = self.optimizer._create_pytorch_optimizer(
-        self.model)
-    else:
-      self._pytorch_optimizer = self.optimizer._create_pytorch_optimizer(
+    self._pytorch_optimizer = self.optimizer._create_pytorch_optimizer(
         self.model.parameters())
     if isinstance(self.optimizer.learning_rate, LearningRateSchedule):
       self._lr_schedule = self.optimizer.learning_rate._create_pytorch_schedule(
@@ -336,10 +331,11 @@ class TorchModel(Model):
     The average loss over the most recent checkpoint interval
    """
     return self.fit_generator(
-        self.default_generator(
-            dataset, epochs=nb_epoch,
-            deterministic=deterministic), max_checkpoints_to_keep,
-        checkpoint_interval, restore, variables, loss, callbacks, all_losses)
+        self.default_generator(dataset,
+                               epochs=nb_epoch,
+                               deterministic=deterministic),
+        max_checkpoints_to_keep, checkpoint_interval, restore, variables, loss,
+        callbacks, all_losses)
 
   def fit_generator(self,
                     generator: Iterable[Tuple[Any, Any, Any]],
@@ -445,8 +441,8 @@ class TorchModel(Model):
       should_log = (current_step % self.log_frequency == 0)
       if should_log:
         avg_loss = float(avg_loss) / averaged_batches
-        logger.info(
-            'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
+        logger.info('Ending global_step %d: Average loss %g' %
+                    (current_step, avg_loss))
         if all_losses is not None:
           all_losses.append(avg_loss)
         # Capture the last avg_loss in case of return since we're resetting to 0 now
@@ -467,8 +463,8 @@ class TorchModel(Model):
     # Report final results.
     if averaged_batches > 0:
       avg_loss = float(avg_loss) / averaged_batches
-      logger.info(
-          'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
+      logger.info('Ending global_step %d: Average loss %g' %
+                  (current_step, avg_loss))
       if all_losses is not None:
         all_losses.append(avg_loss)
       last_avg_loss = avg_loss
@@ -520,14 +516,14 @@ class TorchModel(Model):
     """
     self._ensure_built()
     dataset = NumpyDataset(X, y, w)
-    return self.fit(
-        dataset,
-        nb_epoch=1,
-        max_checkpoints_to_keep=max_checkpoints_to_keep,
-        checkpoint_interval=self._global_step + 2 if checkpoint else 0,
-        variables=variables,
-        loss=loss,
-        callbacks=callbacks)
+    return self.fit(dataset,
+                    nb_epoch=1,
+                    max_checkpoints_to_keep=max_checkpoints_to_keep,
+                    checkpoint_interval=self._global_step +
+                    2 if checkpoint else 0,
+                    variables=variables,
+                    loss=loss,
+                    callbacks=callbacks)
 
   def _predict(self, generator: Iterable[Tuple[Any, Any, Any]],
                transformers: List[Transformer], uncertainty: bool,
@@ -656,10 +652,10 @@ class TorchModel(Model):
     """
     return self._predict(generator, transformers, False, output_types)
 
-  def predict_on_batch(self,
-                       X: np.typing.ArrayLike,
-                       transformers: List[Transformer] = []
-                      ) -> OneOrMany[np.ndarray]:
+  def predict_on_batch(
+      self,
+      X: np.typing.ArrayLike,
+      transformers: List[Transformer] = []) -> OneOrMany[np.ndarray]:
     """Generates predictions for input samples, processing samples in a batch.
 
     Parameters
@@ -678,8 +674,10 @@ class TorchModel(Model):
     dataset = NumpyDataset(X=X, y=None)
     return self.predict(dataset, transformers)
 
-  def predict_uncertainty_on_batch(self, X: Sequence, masks: int = 50
-                                  ) -> OneOrMany[Tuple[np.ndarray, np.ndarray]]:
+  def predict_uncertainty_on_batch(
+      self,
+      X: Sequence,
+      masks: int = 50) -> OneOrMany[Tuple[np.ndarray, np.ndarray]]:
     """
     Predict the model's outputs, along with the uncertainty in each one.
 
@@ -731,10 +729,12 @@ class TorchModel(Model):
     a NumPy array of the model produces a single output, or a list of arrays
     if it produces multiple outputs
     """
-    generator = self.default_generator(
-        dataset, mode='predict', pad_batches=False)
-    return self.predict_on_generator(
-        generator, transformers=transformers, output_types=output_types)
+    generator = self.default_generator(dataset,
+                                       mode='predict',
+                                       pad_batches=False)
+    return self.predict_on_generator(generator,
+                                     transformers=transformers,
+                                     output_types=output_types)
 
   def predict_embedding(self, dataset: Dataset) -> OneOrMany[np.ndarray]:
     """
@@ -752,12 +752,15 @@ class TorchModel(Model):
     a NumPy array of the embeddings model produces, or a list
     of arrays if it produces multiple embeddings
     """
-    generator = self.default_generator(
-        dataset, mode='predict', pad_batches=False)
+    generator = self.default_generator(dataset,
+                                       mode='predict',
+                                       pad_batches=False)
     return self._predict(generator, [], False, ['embedding'])
 
-  def predict_uncertainty(self, dataset: Dataset, masks: int = 50
-                         ) -> OneOrMany[Tuple[np.ndarray, np.ndarray]]:
+  def predict_uncertainty(
+      self,
+      dataset: Dataset,
+      masks: int = 50) -> OneOrMany[Tuple[np.ndarray, np.ndarray]]:
     """
     Predict the model's outputs, along with the uncertainty in each one.
 
@@ -785,8 +788,9 @@ class TorchModel(Model):
     sum_sq_pred: List[np.ndarray] = []
     sum_var: List[np.ndarray] = []
     for i in range(masks):
-      generator = self.default_generator(
-          dataset, mode='uncertainty', pad_batches=False)
+      generator = self.default_generator(dataset,
+                                         mode='uncertainty',
+                                         pad_batches=False)
       results = self._predict(generator, [], True, None)
       if len(sum_pred) == 0:
         for p, v in results:
@@ -949,10 +953,10 @@ class TorchModel(Model):
     ([inputs], [outputs], [weights])
     """
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+      for (X_b, y_b, w_b,
+           ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                         deterministic=deterministic,
+                                         pad_batches=pad_batches):
         yield ([X_b], [y_b], [w_b])
 
   def save_checkpoint(self,
@@ -1164,8 +1168,8 @@ class TorchModel(Model):
 
     if assignment_map is None:
       logger.info("No assignment map provided. Creating custom assignment map.")
-      assignment_map = self._create_assignment_map(
-          source_model=source_model, include_top=include_top)
+      assignment_map = self._create_assignment_map(source_model=source_model,
+                                                   include_top=include_top)
 
     for source_var, dest_var in assignment_map.items():
       assert source_var.shape == dest_var.shape
