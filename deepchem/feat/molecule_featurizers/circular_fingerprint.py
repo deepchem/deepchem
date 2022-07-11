@@ -55,7 +55,8 @@ class CircularFingerprint(MolecularFeaturizer):
                bonds: bool = True,
                features: bool = False,
                sparse: bool = False,
-               smiles: bool = False):
+               smiles: bool = False,
+               is_counts_based: bool = False):
     """
     Parameters
     ----------
@@ -76,6 +77,8 @@ class CircularFingerprint(MolecularFeaturizer):
     smiles: bool, optional (default False)
       Whether to calculate SMILES strings for fragment IDs (only applicable
       when calculating sparse fingerprints).
+    is_counts_based: bool, optional (default False)
+      Whether to generates a counts-based fingerprint.
     """
     self.radius = radius
     self.size = size
@@ -84,6 +87,7 @@ class CircularFingerprint(MolecularFeaturizer):
     self.features = features
     self.sparse = sparse
     self.smiles = smiles
+    self.is_counts_based = is_counts_based
 
   def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """Calculate circular fingerprint.
@@ -99,7 +103,7 @@ class CircularFingerprint(MolecularFeaturizer):
       A numpy array of circular fingerprint.
     """
     try:
-      from rdkit import Chem
+      from rdkit import Chem, DataStructs
       from rdkit.Chem import rdMolDescriptors
     except ModuleNotFoundError:
       raise ImportError("This class requires RDKit to be installed.")
@@ -110,13 +114,12 @@ class CircularFingerprint(MolecularFeaturizer):
       )
     if self.sparse:
       info: Dict = {}
-      fp = rdMolDescriptors.GetMorganFingerprint(
-          datapoint,
-          self.radius,
-          useChirality=self.chiral,
-          useBondTypes=self.bonds,
-          useFeatures=self.features,
-          bitInfo=info)
+      fp = rdMolDescriptors.GetMorganFingerprint(datapoint,
+                                                 self.radius,
+                                                 useChirality=self.chiral,
+                                                 useBondTypes=self.bonds,
+                                                 useFeatures=self.features,
+                                                 bitInfo=info)
       fp = fp.GetNonzeroElements()  # convert to a dict
 
       # generate SMILES for fragments
@@ -130,14 +133,27 @@ class CircularFingerprint(MolecularFeaturizer):
           fp_smiles[fragment_id] = {'smiles': smiles, 'count': count}
         fp = fp_smiles
     else:
-      fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(
-          datapoint,
-          self.radius,
-          nBits=self.size,
-          useChirality=self.chiral,
-          useBondTypes=self.bonds,
-          useFeatures=self.features)
-      fp = np.asarray(fp, dtype=float)
+      if self.is_counts_based:
+        fp_sparse = rdMolDescriptors.GetHashedMorganFingerprint(
+            datapoint,
+            self.radius,
+            nBits=self.size,
+            useChirality=self.chiral,
+            useBondTypes=self.bonds,
+            useFeatures=self.features)
+        fp = np.zeros(
+            (self.size,), dtype=float
+        )  # initialise numpy array of zeros (shape: (required size,))
+        DataStructs.ConvertToNumpyArray(fp_sparse, fp)
+      else:
+        fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(
+            datapoint,
+            self.radius,
+            nBits=self.size,
+            useChirality=self.chiral,
+            useBondTypes=self.bonds,
+            useFeatures=self.features)
+        fp = np.asarray(fp, dtype=float)
     return fp
 
   def __hash__(self):
