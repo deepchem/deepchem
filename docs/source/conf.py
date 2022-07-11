@@ -88,12 +88,6 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-html_context = {
-    'css_files': [
-        '_static/theme_overrides.css',  # override wide tables in RTD theme
-    ],
-}
-
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 html_logo = '_static/logo.png'
