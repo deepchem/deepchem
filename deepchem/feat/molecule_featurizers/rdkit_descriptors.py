@@ -202,7 +202,8 @@ class RDKitDescriptors(MolecularFeaturizer):
     -------------------------------------------------------------------------------
     """
     # get sequence of descriptor names and normalization parameters from DescriptorsNormalizationParameters class
-    parameters: Sequence[Union[str, Sequence[Union[str, Tuple[float], float]]]]
+    parameters: Sequence[Union[str, Sequence[Union[str, Sequence[float],
+                                                   float]]]]
     parameters = DNP.desc_norm_params.items()
 
     for desc_name, (distribution_name, params, minV, maxV, avg,

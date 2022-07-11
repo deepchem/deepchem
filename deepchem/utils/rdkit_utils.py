@@ -714,14 +714,16 @@ class DescriptorsNormalizationParameters:
   A class for holding a dictionary of 200 RDKit descriptors and the corresponding distribution functions (based on `scipy.stats` module nomenclature)
   and associated parameters required for creating normalized descriptor functions.
 
-  (The distribution functions and parameters data was collected from the source code of 'descriptastorus' library)
+  (The distribution functions and parameters data was collected from the source code of 'descriptastorus' library.
+  Link to the source of the parameters:
+  https://github.com/bp-kelley/descriptastorus/blob/baed6a56d63dd27c1bc5f6924a7c9e0d48594012/descriptastorus/descriptors/dists.py)
   """
   try:
     from math import inf
   except ImportError:
     inf = float('Inf')
 
-  desc_norm_params: Dict[str, Sequence[Union[str, Tuple[float], float]]]
+  desc_norm_params: Dict[str, Sequence[Union[str, Sequence[float], float]]]
 
   desc_norm_params = {
       'VSA_EState1': ('betaprime', (0.12979362790686721, 2.0084510281921832,
