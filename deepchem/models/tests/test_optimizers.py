@@ -1,4 +1,3 @@
-from haiku import Linear
 import deepchem as dc
 import deepchem.models.optimizers as optimizers
 import unittest
@@ -280,47 +279,26 @@ class TestOptimizers(unittest.TestCase):
     import numpy as np
 
     np.random.seed(123)
-    """linear layers test"""
-
+    # Conv2d and Linear layers test(CNN classification)
     n_samples = 10
-    n_features = 100
+    n_features = 10
     n_tasks = 1
 
-    X = np.random.rand(n_samples, n_features)
-    y = np.random.randint(2, size=(n_samples, n_tasks)).astype(np.float32)
-    dataset = dc.data.NumpyDataset(X, y)
-    metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
-    pytorch_model = torch.nn.Sequential(torch.nn.Linear(n_features, 50),
-                                        torch.nn.ReLU(), torch.nn.Linear(50, 1))
-    model = dc.models.TorchModel(pytorch_model,
-                                 dc.models.losses.L2Loss(),
-                                 optimizers=optimizers.KFAC(model=pytorch_model,
-                                                            learning_rate=0.1,
-                                                            Tinv=50))
-    model.fit(dataset, nb_epoch=100)
-
-    scores = model.evaluate(dataset, [metric])
-    assert scores[metric.name] > 0.9
-    """Conv2d layers test"""
-    n_samples = 10
-    n_features = 3
-    n_tasks = 1
-
-    X = np.random.rand(n_samples, 10, 10, n_features)
+    X = np.random.rand(n_samples, 1, n_features, n_features)
     y = np.random.randint(2, size=(n_samples, n_tasks)).astype(np.float32)
     dataset = dc.data.NumpyDataset(X, y)
 
     metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
     model = torch.nn.Sequential(
-        torch.nn.Conv2d(n_features, 32, kernel_size=3, padding=1),
-        torch.nn.Conv2d(32, 64, kernel_size=3, padding=1),
-        torch.nn.Linear(64 * 10 * 10, 20), torch.nn.ReLU(),
+        torch.nn.Conv2d(1, 32, kernel_size=3, padding=1),
+        torch.nn.Conv2d(32, 64, kernel_size=3, padding=1), torch.nn.Flatten(),
+        torch.nn.Linear(64 * n_features * n_features, 20), torch.nn.ReLU(),
         torch.nn.Linear(20, n_tasks))
-    model = dc.models.TorchModel(pytorch_model,
+    model = dc.models.TorchModel(model,
                                  dc.models.losses.L2Loss(),
-                                 optimizers=optimizers.KFAC(model=pytorch_model,
+                                 optimizers=optimizers.KFAC(model=model,
                                                             learning_rate=0.003,
-                                                            Tinv=50))
+                                                            Tinv=10))
     # Fit trained model
     model.fit(
         dataset,

@@ -1,5 +1,5 @@
 import math
-from typing import Optional, Callable, Dict, Tuple
+from typing import Optional, Callable, Dict, Tuple, List
 try:
   import torch
   import torch.optim as optim
@@ -38,27 +38,27 @@ class KFAC_Optimizer(optim.Optimizer):
     Parameters:
     -----------
     model: torch.nn.Module
-    The model to be optimized.
+      The model to be optimized.
     lr: float (default: 0.001)
-    Learning rate for the optimizer.
+      Learning rate for the optimizer.
     momentum: float (default: 0.9)
-    Momentum for the optimizer.
+      Momentum for the optimizer.
     stat_decay: float (default: 0.95)
-    Decay rate for the update of covariance matrix with mean.
+      Decay rate for the update of covariance matrix with mean.
     damping: float (default: 0.001)
-    damping factor for the update of covariance matrix.
+      damping factor for the update of covariance matrix.
     kl_clip: float (default: 0.001)
-    Clipping value for the update of covariance matrix.
+      Clipping value for the update of covariance matrix.
     weight_decay: float (default: 0)
-    weight decay for the optimizer.
+      weight decay for the optimizer.
     Tcov: int (default: 10)
-    The number of steps to update the covariance matrix.
+      The number of steps to update the covariance matrix.
     Tinv: int (default: 100)
-    The number of steps to calculate the inverse of covariance matrix.
+      The number of steps to calculate the inverse of covariance matrix.
     batch_averaged: bool (default: True)
-    States whether to use batch averaged covariance matrix.
+      States whether to use batch averaged covariance matrix.
     mean: bool (default: False)
-    States whether to use mean centered covariance matrix.
+      States whether to use mean centered covariance matrix.
     """
 
     if lr < 0.0:
@@ -76,17 +76,19 @@ class KFAC_Optimizer(optim.Optimizer):
 
     self.known_modules = {'Linear', 'Conv2d'}
 
-    self.modules = []
-    self.grad_outputs = {}
+    self.modules: List[torch.nn.Module] = []
 
     self.model = model
     self._prepare_model()
 
     self.steps = 0
 
-    self.m_aa, self.m_gg = {}, {}
-    self.Q_a, self.Q_g = {}, {}
-    self.d_a, self.d_g = {}, {}
+    self.m_aa: Dict[torch.nn.Module, torch.Tensor] = {}
+    self.m_gg: Dict[torch.nn.Module, torch.Tensor] = {}
+    self.Q_a: Dict[torch.nn.Module, torch.Tensor] = {}
+    self.Q_g: Dict[torch.nn.Module, torch.Tensor] = {}
+    self.d_a: Dict[torch.nn.Module, torch.Tensor] = {}
+    self.d_g: Dict[torch.nn.Module, torch.Tensor] = {}
     self.stat_decay = stat_decay
 
     self.kl_clip = kl_clip
@@ -101,41 +103,41 @@ class KFAC_Optimizer(optim.Optimizer):
     Parameters:
     -----------
     x: torch.Tensor
-    The input tensor to be made contiguous in memory, if it is not so.
+      The input tensor to be made contiguous in memory, if it is not so.
     Return:
     -------
     torch.Tensor
-    Tensor with contiguous memory
+      Tensor with contiguous memory
     """
     if not x.is_contiguous():
       x = x.contiguous()
 
     return x
 
-  def _extract_patches(self, x: torch.Tensor, kernel_size: Tuple[int, int],
-                       stride: Tuple[int, int],
-                       padding: Tuple[int, int]) -> torch.Tensor:
+  def _extract_patches(self, x: torch.Tensor, kernel_size: Tuple[int, ...],
+                       stride: Tuple[int, ...],
+                       padding: Tuple[int, ...]) -> torch.Tensor:
     """
     Extract patches of a given size from the input tensor given. Used in calculating
     the matrices for the kronecker product in the case of 2d Convolutions.
     Parameters:
     -----------
     x: torch.Tensor
-    The input feature maps. with the size of (batch_size, in_c, h, w)
-    kernel_size: Tuple[int, int]
-    the kernel size of the conv filter.
-    stride: Tuple[int, int]
-    the stride of conv operation.
-    padding: Tuple[int, int]
-    number of paddings. be a tuple of two elements
+      The input feature maps. with the size of (batch_size, in_c, h, w)
+    kernel_size: Tuple[int, ...]
+      the kernel size of the conv filter.
+    stride: Tuple[int, ...]
+      the stride of conv operation.
+    padding: Tuple[int, ...]
+      number of paddings. be a tuple of two elements
     Return:
     -------
     torch.Tensor:
-    Extracted patches with shape (batch_size, out_h, out_w, in_c*kh*kw)
+      Extracted patches with shape (batch_size, out_h, out_w, in_c*kh*kw)
     """
     if padding[0] + padding[1] > 0:
-      x = torch.pad(x, (padding[1], padding[1], padding[0],
-                        padding[0])).data  # Actually check dims
+      x = torch.nn.functional.pad(x, (padding[1], padding[1], padding[0],
+                                      padding[0])).data  # Actually check dims
       x = x.unfold(2, kernel_size[0], stride[0])
       x = x.unfold(3, kernel_size[1], stride[1])
       x = x.transpose_(1, 2).transpose_(2, 3).contiguous()
@@ -150,21 +152,20 @@ class KFAC_Optimizer(optim.Optimizer):
     Parameters:
     -----------
     a: torch.Tensor
-    It is the output of the layer for which the covariance matrix should be calculated.
+      It is the output of the layer for which the covariance matrix should be calculated.
     layer: torch.nn.Module
-    It specifies the type of layer from which the output of the layer is taken.
+      It specifies the type of layer from which the output of the layer is taken.
     Returns:
     --------
     torch.Tensor
-    The covariance matrix of the A matrix.
+      The covariance matrix of the A matrix.
     """
-    if isinstance(layer, torch.linear):
+    if isinstance(layer, torch.nn.Linear):
       batch_size = a.size(0)
       if layer.bias is not None:
         a = torch.cat([a, a.new(a.size(0), 1).fill_(1)], 1)
-      return a.t() @ (a / batch_size)
 
-    elif isinstance(self, layer, torch.Conv2d):
+    elif isinstance(layer, torch.nn.Conv2d):
       batch_size = a.size(0)
       a = self._extract_patches(a, layer.kernel_size, layer.stride,
                                 layer.padding)
@@ -173,6 +174,7 @@ class KFAC_Optimizer(optim.Optimizer):
       if layer.bias is not None:
         a = torch.cat([a, a.new(a.size(0), 1).fill_(1)], 1)
       a = a / spatial_size
+
     return a.t() @ (a / batch_size)
 
   def ComputeCovG(self, g: torch.Tensor,
@@ -182,23 +184,22 @@ class KFAC_Optimizer(optim.Optimizer):
     Parameters:
     -----------
     g: torch.Tensor
-    It is the gradient of the layer for which the covariance matrix should be calculated.
+      It is the gradient of the layer for which the covariance matrix should be calculated.
     layer: torch.nn.Module
-    It specifies the type of layer from which the output of the layer is taken.
+      It specifies the type of layer from which the output of the layer is taken.
     Returns:
     --------
     torch.Tensor
-    The covariance matrix of the G matrix.
+      The covariance matrix of the G matrix.
     """
-    if isinstance(layer, torch.linear):
+    if isinstance(layer, torch.nn.Linear):
       batch_size = g.size(0)
       if self.batch_averaged:
         cov_g = g.t() @ (g * batch_size)
       else:
         cov_g = g.t() @ (g / batch_size)
-      return cov_g
 
-    elif isinstance(layer, torch.Conv2d):
+    elif isinstance(layer, torch.nn.Conv2d):
       spatial_size = g.size(2) * g.size(3)
       batch_size = g.shape[0]
       g = g.transpose(1, 2).transpose(2, 3)
@@ -209,7 +210,7 @@ class KFAC_Optimizer(optim.Optimizer):
       g = g * spatial_size
       cov_g = g.t() @ (g / g.size(0))
 
-      return cov_g
+    return cov_g
 
   def _save_input(self, module: torch.nn.Module, input: torch.Tensor):
     """
@@ -217,11 +218,11 @@ class KFAC_Optimizer(optim.Optimizer):
     Parameters:
     -----------
     module: torch.nn.Module
-    specifies the layer for which the input should be taken
+      specifies the layer for which the input should be taken
     input: torch.Tensor
-    the input matrix which should get updated
+      the input matrix which should get updated
     """
-    if torch.is_grad_enabled() and self.steps % self.TCov == 0:
+    if self.steps % self.TCov == 0:
       aa = self.ComputeCovA(input[0].data, module)
       # Initialize buffers
       if self.steps == 0:
@@ -235,13 +236,13 @@ class KFAC_Optimizer(optim.Optimizer):
     Parameters:
     -----------
     module: torch.nn.Module
-    specifies the layer for which the gradient should be taken
+      specifies the layer for which the gradient should be taken
     input: torch.Tensor
-    the gradient matrix which should get updated
+      the gradient matrix which should get updated
     """
     # Accumulate statistics for Fisher matrices
-    if self.acc_stats and self.steps % self.TCov == 0:
-      gg = self.ComputeCovG(grad_output[0].data, module, self.batch_averaged)
+    if self.steps % self.TCov == 0:
+      gg = self.ComputeCovG(grad_output[0].data, module)
       # Initialize buffers
       if self.steps == 0:
         self.m_gg[module] = torch.diag(gg.new(gg.size(0)).fill_(1))
@@ -253,16 +254,12 @@ class KFAC_Optimizer(optim.Optimizer):
     to calculate gradients at every step.
     """
     count = 0
-    print(self.model)
-    print("=> We keep following layers in KFAC. ")
     for module in self.model.modules():
       classname = module.__class__.__name__
-      # print('=> We keep following layers in KFAC. <=')
       if classname in self.known_modules:
         self.modules.append(module)
         module.register_forward_pre_hook(self._save_input)
         module.register_backward_hook(self._save_grad_output)
-        print('(%s): %s' % (count, module))
         count += 1
 
   def _update_inv(self, m: torch.nn.Module):
@@ -271,7 +268,7 @@ class KFAC_Optimizer(optim.Optimizer):
     Parameter:
     ----------
     m: torch.nn.Module
-    This is the layer for which the eigen decomposition should be done on.
+      This is the layer for which the eigen decomposition should be done on.
     """
     eps = 1e-10  # for numerical stability
 
@@ -296,39 +293,43 @@ class KFAC_Optimizer(optim.Optimizer):
     Parameter:
     ----------
     m: torch.nn.Module
-    the layer for which the gradient must be calculated
+      the layer for which the gradient must be calculated
     classname: str
-    The type of the layer - 'Conv2d' or 'Linear'
+      The type of the layer - 'Conv2d' or 'Linear'
     Return:
     -------
     torch.tensor
-    a matrix form of the gradient. it should be a [output_dim, input_dim] matrix.
+      a matrix form of the gradient. it should be a [output_dim, input_dim] matrix.
     """
     if classname == 'Conv2d':
       p_grad_mat = m.weight.grad.data.view(m.weight.grad.data.size(0),
                                            -1)  # n_filters * (in_c * kw * kh)
-    else:
+    elif classname == 'Linear':
       p_grad_mat = m.weight.grad.data
+    else:
+      raise NotImplementedError(
+          "KFAC optimizer currently support only Linear and Conv2d layers")
+
     if m.bias is not None:
       p_grad_mat = torch.cat([p_grad_mat, m.bias.grad.data.view(-1, 1)], 1)
     return p_grad_mat
 
   def _get_natural_grad(self, m: torch.nn.Module, p_grad_mat: torch.Tensor,
-                        damping: float) -> torch.Tensor:
+                        damping: float) -> List[torch.Tensor]:
     """
     This function returns the product of inverse of the fisher matrix and the weights gradient.
     Parameters:
     -----------
     m: torch.nn.Module
-    Specifies the layer for which the calculation must be done on.
+      Specifies the layer for which the calculation must be done on.
     p_grad_mat: torch.Tensor
-    the gradients in matrix form
+      the gradients in matrix form
     damping: float
-    the damping factor for the calculation
+      the damping factor for the calculation
     Return:
     -------
     torch.Tensor
-    the product of inverse of the fisher matrix and the weights gradient.
+      the product of inverse of the fisher matrix and the weights gradient.
     """
     # p_grad_mat is of output_dim * input_dim
     # inv((ss')) p_grad_mat inv(aa') = [ Q_g (1/R_g) Q_g^T ] @ p_grad_mat @ [Q_a (1/R_a) Q_a^T]
@@ -347,15 +348,16 @@ class KFAC_Optimizer(optim.Optimizer):
     return v
 
   def _kl_clip_and_update_grad(self, updates: Dict[torch.nn.Module,
-                                                   torch.Tensor], lr: float):
+                                                   List[torch.Tensor]],
+                               lr: float):
     """
     Performs clipping on the updates matrix, if the value is large. Then final value is updated in the backwards gradient data
     Parameters:
     -----------
     updates: dict
-    A dicitonary containing the product of gradient and fisher inverse of each layer.
+      A dicitonary containing the product of gradient and fisher inverse of each layer.
     lr: float
-    learning rate of the optimizer
+      learning rate of the optimizer
     """
     # do kl clip
     vg_sum = 0
@@ -381,11 +383,12 @@ class KFAC_Optimizer(optim.Optimizer):
     Parameters:
     -----------
     closure: Callable, optional(default: None)
-    an optional customizable function to be passed which can be used to clear the gradients and other compute loss for every step.
+      an optional customizable function to be passed which can be used to clear the gradients and other compute loss for every step.
     """
     for group in self.param_groups:
       weight_decay = group['weight_decay']
       momentum = group['momentum']
+      lr = group['lr']
 
       for p in group['params']:
         if p.grad is None:
@@ -400,10 +403,10 @@ class KFAC_Optimizer(optim.Optimizer):
             buf.mul_(momentum).add_(d_p)
           else:
             buf = param_state['momentum_buffer']
-            buf.mul_(momentum).add_(1, d_p)
+            buf.mul_(momentum).add_(d_p)
           d_p = buf
 
-        p.data.add_(-group['lr'], d_p)
+        torch.add(p.data, -lr, d_p, out=p.data)
 
   def step(self, closure: Optional[Callable] = None):
     """
@@ -411,7 +414,7 @@ class KFAC_Optimizer(optim.Optimizer):
     Parameters:
     -----------
     closure: Callable, optional(default: None)
-    an optional customizable function to be passed which can be used to clear the gradients and other compute loss for every step.
+      an optional customizable function to be passed which can be used to clear the gradients and other compute loss for every step.
     """
     group = self.param_groups[0]
     lr = group['lr']

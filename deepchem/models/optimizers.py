@@ -687,27 +687,27 @@ class KFAC(Optimizer):
     Parameters:
     -----------
     model: torch.nn.Module
-    The model to be optimized.
+      The model to be optimized.
     lr: float (default: 0.001)
-    Learning rate for the optimizer.
+      Learning rate for the optimizer.
     momentum: float (default: 0.9)
-    Momentum for the optimizer.
+      Momentum for the optimizer.
     stat_decay: float (default: 0.95)
-    Decay rate for the update of covariance matrix with mean.
+      Decay rate for the update of covariance matrix with mean.
     damping: float (default: 0.001)
-    damping factor for the update of covariance matrix.
+      damping factor for the update of covariance matrix.
     kl_clip: float (default: 0.001)
-    Clipping value for the update of covariance matrix.
+      Clipping value for the update of covariance matrix.
     weight_decay: float (default: 0)
-    weight decay for the optimizer.
+      weight decay for the optimizer.
     Tcov: int (default: 10)
-    The number of steps to update the covariance matrix.
+      The number of steps to update the covariance matrix.
     Tinv: int (default: 100)
-    The number of steps to calculate the inverse of covariance matrix.
+      The number of steps to calculate the inverse of covariance matrix.
     batch_averaged: bool (default: True)
-    States whether to use batch averaged covariance matrix.
+      States whether to use batch averaged covariance matrix.
     mean: bool (default: False)
-    States whether to use mean centered covariance matrix.
+      States whether to use mean centered covariance matrix.
     """
     self.kwargs = kwargs
 
