@@ -13,6 +13,7 @@
 import os
 import sys
 import inspect
+
 sys.path.insert(0, os.path.abspath('../..'))
 
 import sphinx_rtd_theme  # noqa
@@ -45,11 +46,11 @@ extensions = [
 # Options for autodoc directives
 autodoc_default_options = {
     'member-order':
-    'bysource',
+        'bysource',
     'special-members':
-    True,
+        True,
     'exclude-members':
-    '__repr__, __str__, __weakref__, __hash__, __eq__, __call__, __dict__',
+        '__repr__, __str__, __weakref__, __hash__, __eq__, __call__, __dict__',
 }
 
 # How to represents typehints
@@ -87,12 +88,6 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
-
-html_context = {
-    'css_files': [
-        '_static/theme_overrides.css',  # override wide tables in RTD theme
-    ],
-}
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
