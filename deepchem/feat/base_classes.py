@@ -91,7 +91,7 @@ class Featurizer(object):
     --------
     >>> import deepchem as dc
     >>> dc.feat.CircularFingerprint(size=1024, radius=4)
-    CircularFingerprint[radius=4, size=1024, chiral=False, bonds=True, features=False, sparse=False, smiles=False]
+    CircularFingerprint[radius=4, size=1024, chiral=False, bonds=True, features=False, sparse=False, smiles=False, is_counts_based=False]
     >>> dc.feat.CGCNNFeaturizer()
     CGCNNFeaturizer[radius=8.0, max_neighbors=12, step=0.2]
     """
