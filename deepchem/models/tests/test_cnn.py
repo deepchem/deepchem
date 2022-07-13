@@ -161,67 +161,64 @@ def test_2d_cnn_classification():
 
 @flaky
 @pytest.mark.torch
-def test_residual_cnn_classification(self):
-    """Test that a residual CNN can overfit simple classification datasets."""
-    n_samples = 10
-    n_features = 3
-    n_tasks = 1
+def test_residual_cnn_classification():
+  """Test that a residual CNN can overfit simple classification datasets."""
+  n_samples = 10
+  n_features = 3
+  n_tasks = 1
 
-    np.random.seed(123)
-    X = np.random.rand(n_samples, n_features, 10)
-    y = np.random.randint(2, size=(n_samples, n_tasks)).astype(np.float32)
-    dataset = dc.data.NumpyDataset(X, y)
+  np.random.seed(123)
+  X = np.random.rand(n_samples, n_features, 10)
+  y = np.random.randint(2, size=(n_samples, n_tasks)).astype(np.float32)
+  dataset = dc.data.NumpyDataset(X, y)
 
-    classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
-    model = dc.models.CNN(
-        n_tasks,
-        n_features,
-        dims=1,
-        dropouts=0,
-        layer_filters=[30] * 10,
-        kernel_size=3,
-        mode='classification',
-        padding='same',
-        residual=True,
-        learning_rate=0.003)
+  classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
+  model = dc.models.CNN(n_tasks,
+                        n_features,
+                        dims=1,
+                        dropouts=0,
+                        layer_filters=[30] * 10,
+                        kernel_size=3,
+                        mode='classification',
+                        padding='same',
+                        residual=True,
+                        learning_rate=0.003)
 
-    # Fit trained model
-    model.fit(dataset, nb_epoch=100)
+  # Fit trained model
+  model.fit(dataset, nb_epoch=100)
 
-    # Eval model on train
-    scores = model.evaluate(dataset, [classification_metric])
-    assert scores[classification_metric.name] > 0.9
+  # Eval model on train
+  scores = model.evaluate(dataset, [classification_metric])
+  assert scores[classification_metric.name] > 0.9
+
 
 @pytest.mark.torch
-def test_cnn_regression_uncertainty(self):
-    """Test computing uncertainty for a CNN regression model."""
-    n_samples = 10
-    n_features = 2
-    n_tasks = 1
-    noise = 0.1
+def test_cnn_regression_uncertainty():
+  """Test computing uncertainty for a CNN regression model."""
+  n_samples = 10
+  n_features = 2
+  n_tasks = 1
+  noise = 0.1
 
-    np.random.seed(123)
-    X = np.random.randn(n_samples, n_features, 10)
-    y = np.sum(
-        X, axis=(1, 2)) + np.random.normal(
-            scale=noise, size=(n_samples,))
-    y = np.reshape(y, (n_samples, n_tasks))
-    dataset = dc.data.NumpyDataset(X, y)
+  np.random.seed(123)
+  X = np.random.randn(n_samples, n_features, 10)
+  y = np.sum(X, axis=(1, 2)) + np.random.normal(scale=noise, size=(n_samples,))
+  y = np.reshape(y, (n_samples, n_tasks))
+  dataset = dc.data.NumpyDataset(X, y)
 
-    model = dc.models.CNN(
-        n_tasks,
-        n_features,
-        dims=1,
-        dropouts=0.1,
-        kernel_size=3,
-        pool_type='average',
-        mode='regression',
-        learning_rate=0.005,
-        uncertainty=True)
+  model = dc.models.CNN(n_tasks,
+                        n_features,
+                        dims=1,
+                        dropouts=0.1,
+                        kernel_size=3,
+                        pool_type='average',
+                        mode='regression',
+                        learning_rate=0.005,
+                        uncertainty=True)
 
-    # Fit trained model
-    model.fit(dataset, nb_epoch=300)
+  # Fit trained model
+  model.fit(dataset, nb_epoch=300)
 
-    # Predict the output and uncertainty.
-    pred, std = model.predict_uncertainty(dataset)
-    assert np.mean(np.abs(y - pred)) < 0.
+  # Predict the output and uncertainty.
+  pred, std = model.predict_uncertainty(dataset)
+  assert np.mean(np.abs(y - pred)) < 0.
