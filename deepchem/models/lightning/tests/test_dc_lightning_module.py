@@ -4,9 +4,9 @@ import numpy as np
 
 try:
   from deepchem.models import GCNModel, MultitaskClassifier
-  import torch
-  from torch.utils.data import DataLoader
   from deepchem.models.lightning.dc_lightning_module import DCLightningModule
+  from deepchem.models.lightning.dc_lightning_dataset_module import DCLightningDatasetModule, collate_dataset_wrapper
+  from deepchem.metrics import to_one_hot
   import pytorch_lightning as pl  # noqa
   PYTORCH_LIGHTNING_IMPORT_FAILED = False
 except ImportError:
@@ -23,29 +23,15 @@ class TestDCLightningModule(unittest.TestCase):
 
       def __init__(self, batch):
         X = [np.array([b[0] for b in batch])]
-        y = [np.array([b[1] for b in batch])]
+        y = [
+            np.array(
+                [to_one_hot(b[1].flatten(), 2).reshape(2, 2) for b in batch])
+        ]
         w = [np.array([b[2] for b in batch])]
         self.batch_list = [X, y, w]
 
     def collate_dataset_wrapper(batch):
       return TestMultitaskDatasetBatch(batch)
-
-    class TestMultitaskDataset(torch.utils.data.Dataset):
-
-      def __init__(self, dataset):
-        self._samples = dataset
-
-      def __len__(self):
-        return len(self._samples)
-
-      def __getitem__(self, index):
-        y = np.zeros((1, 2))
-        y[0, int(self._samples.y[index][0])] = 1.0
-        return (
-            self._samples.X[index],
-            y,
-            self._samples.w[index],
-        )
 
     tasks, datasets, _ = dc.molnet.load_clintox()
     _, valid_dataset, _ = datasets
@@ -56,46 +42,15 @@ class TestDCLightningModule(unittest.TestCase):
                                 dropouts=0.2,
                                 learning_rate=0.0001)
 
-    valid_dataloader = DataLoader(TestMultitaskDataset(valid_dataset),
-                                  batch_size=64,
-                                  collate_fn=collate_dataset_wrapper)
-
+    molnet_dataloader = DCLightningDatasetModule(valid_dataset, 64,
+                                                 collate_dataset_wrapper)
     lightning_module = DCLightningModule(model)
     trainer = pl.Trainer(max_epochs=1)
-    trainer.fit(lightning_module, valid_dataloader)
+    trainer.fit(lightning_module, molnet_dataloader)
 
   @unittest.skipIf(PYTORCH_LIGHTNING_IMPORT_FAILED,
                    'PyTorch Lightning is not installed')
   def test_gcn_model(self):
-
-    class TestGCNDataset(torch.utils.data.Dataset):
-
-      def __init__(self, smiles, labels):
-        assert len(smiles) == len(labels)
-        featurizer = dc.feat.MolGraphConvFeaturizer()
-        X = featurizer.featurize(smiles)
-        self._samples = dc.data.NumpyDataset(X=X, y=labels)
-
-      def __len__(self):
-        return len(self._samples)
-
-      def __getitem__(self, index):
-        return (
-            self._samples.X[index],
-            self._samples.y[index],
-            self._samples.w[index],
-        )
-
-    class TestGCNDatasetBatch:
-
-      def __init__(self, batch):
-        X = [np.array([b[0] for b in batch])]
-        y = [np.array([b[1] for b in batch])]
-        w = [np.array([b[2] for b in batch])]
-        self.batch_list = [X, y, w]
-
-    def collate_gcn_dataset_wrapper(batch):
-      return TestGCNDatasetBatch(batch)
 
     train_smiles = [
         "C1CCC1", "CCC", "C1CCC1", "CCC", "C1CCC1", "CCC", "C1CCC1", "CCC",
@@ -107,10 +62,14 @@ class TestDCLightningModule(unittest.TestCase):
                      n_tasks=1,
                      batch_size=2,
                      learning_rate=0.001)
-    train_dataloader = DataLoader(TestGCNDataset(train_smiles, train_labels),
-                                  batch_size=100,
-                                  collate_fn=collate_gcn_dataset_wrapper)
+
+    featurizer = dc.feat.MolGraphConvFeaturizer()
+    X = featurizer.featurize(train_smiles)
+    sample = dc.data.NumpyDataset(X=X, y=train_labels)
+
+    smiles_datasetmodule = DCLightningDatasetModule(sample, 2,
+                                                    collate_dataset_wrapper)
 
     lightning_module = DCLightningModule(model)
     trainer = pl.Trainer(max_epochs=1)
-    trainer.fit(lightning_module, train_dataloader)
+    trainer.fit(lightning_module, smiles_datasetmodule)
