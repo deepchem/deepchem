@@ -188,6 +188,10 @@ class CNNModule(nn.Module):
       self.layers.append(PoolLayer(size))
       in_shape = out_shape
 
+    self.classifier_ffn = nn.LazyLinear(self.n_tasks * self.n_classes)
+    self.regressor_ffn1 = nn.LazyLinear(self.n_tasks)
+    self.regressor_ffn2 = nn.LazyLinear(self.n_tasks)
+
   def forward(self, x: torch.Tensor) -> List[Any]:
     """
     Parameters
@@ -216,17 +220,17 @@ class CNNModule(nn.Module):
 
     if self.mode == "classification":
 
-      logits = nn.Linear(x.shape[1], self.n_tasks * self.n_classes)(x)
+      logits = self.classifier_ffn(x)
       logits = logits.view(batch_size, self.n_tasks, self.n_classes)
       output = F.softmax(logits, dim=1)
       outputs = [output, logits]
 
     else:
-      output = nn.Linear(x.shape[1], self.n_tasks)(x)
+      output = self.regressor_ffn1(x)
       output = output.view(batch_size, self.n_tasks)
 
       if self.uncertainty:
-        log_var = (nn.Linear(x.shape[1], self.n_tasks)(x))
+        log_var = self.regressor_ffn2(x)
         log_var = log_var.view(batch_size, self.n_tasks, 1)
         var = torch.exp(log_var)
         outputs = [output, var, output, log_var]
