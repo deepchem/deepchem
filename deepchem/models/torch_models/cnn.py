@@ -5,7 +5,7 @@ from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.losses import L2Loss
 from deepchem.metrics import to_one_hot
 
-from typing import List, Union, Any, Type
+from typing import List, Union, Any, Type, Callable
 
 try:
   from collections.abc import Sequence as SequenceCollection
@@ -324,6 +324,8 @@ class CNN(TorchModel):
                            uncertainty=uncertainty,
                            residual=residual,
                            padding=padding)
+
+    loss : Union[L2Loss, Callable[[Any, Any, Any], Any]]
 
     if uncertainty:
 
