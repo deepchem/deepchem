@@ -164,8 +164,8 @@ def test_2d_cnn_classification():
 def test_residual_cnn_classification():
   """Test that a residual CNN can overfit simple classification datasets."""
   n_samples = 10
-  n_features = 3
-  n_tasks = 1
+  n_features = 8
+  n_tasks = 5
 
   np.random.seed(123)
   X = np.random.rand(n_samples, n_features, 10)
@@ -177,15 +177,15 @@ def test_residual_cnn_classification():
                         n_features,
                         dims=1,
                         dropouts=0,
-                        layer_filters=[30] * 10,
+                        layer_filters=[100] * 3,
                         kernel_size=3,
                         mode='classification',
                         padding='same',
                         residual=True,
-                        learning_rate=0.003)
+                        learning_rate=0.001)
 
   # Fit trained model
-  model.fit(dataset, nb_epoch=100)
+  model.fit(dataset, nb_epoch=200)
 
   # Eval model on train
   scores = model.evaluate(dataset, [classification_metric])
@@ -200,7 +200,7 @@ def test_cnn_regression_uncertainty():
   n_tasks = 1
   noise = 0.1
 
-  np.random.seed(123)
+  np.random.seed(1)
   X = np.random.randn(n_samples, n_features, 10)
   y = np.sum(X, axis=(1, 2)) + np.random.normal(scale=noise, size=(n_samples,))
   y = np.reshape(y, (n_samples, n_tasks))
@@ -221,4 +221,4 @@ def test_cnn_regression_uncertainty():
 
   # Predict the output and uncertainty.
   pred, std = model.predict_uncertainty(dataset)
-  assert np.mean(np.abs(y - pred)) < 0.
+  assert np.mean(np.abs(y - pred)) < 0.1

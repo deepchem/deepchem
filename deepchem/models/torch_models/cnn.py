@@ -156,12 +156,13 @@ class CNNModule(nn.Module):
 
     PoolLayer: Type
     if pool_type == 'average':
-      PoolLayer = (nn.AvgPool1d, nn.AvgPool2d, nn.AvgPool3d)[self.dims - 1]
+        PoolLayer = (F.avg_pool1d, F.avg_pool2d, F.avg_pool3d)[self.dims - 1]
     elif pool_type == 'max':
-      PoolLayer = (nn.MaxPool1d, nn.MaxPool2d, nn.MaxPool3d)[self.dims - 1]
+        PoolLayer = (F.max_pool1d, F.max_pool2d, F.max_pool3d)[self.dims - 1]
     else:
-      raise ValueError("pool_type must be either 'average' or 'max'")
+        raise ValueError("pool_type must be either 'average' or 'max'")
 
+    self.PoolLayer = PoolLayer
     self.layers = nn.ModuleList()
 
     in_shape = n_features
@@ -185,7 +186,6 @@ class CNNModule(nn.Module):
       if activation_fn is not None:
         self.layers.append(activation_fn())
 
-      self.layers.append(PoolLayer(size))
       in_shape = out_shape
 
     self.classifier_ffn = nn.LazyLinear(self.n_tasks * self.n_classes)
@@ -212,6 +212,8 @@ class CNNModule(nn.Module):
       if self.residual and layer.in_channels == layer.out_channels:
         x = x + prev_layer
       prev_layer = x
+
+    x = self.PoolLayer(x, kernel_size=x.size()[2:])
 
     outputs = []
     batch_size = x.shape[0]
