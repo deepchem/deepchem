@@ -170,7 +170,9 @@ class CNNModule(nn.Module):
     for out_shape, size, stride, dropout, activation_fn in zip(
         layer_filters, kernel_size, strides, dropouts, activation_fns):
 
-      self.layers.append(
+      block = nn.Sequential()
+
+      block.append(
           ConvLayer(in_channels=in_shape,
                     out_channels=out_shape,
                     kernel_size=size,
@@ -181,10 +183,12 @@ class CNNModule(nn.Module):
                     bias=True))
 
       if dropout > 0.0:
-        self.layers.append(nn.Dropout(dropout))
+        block.append(nn.Dropout(dropout))
 
       if activation_fn is not None:
-        self.layers.append(activation_fn())
+        block.append(activation_fn())
+
+      self.layers.append(block)
 
       in_shape = out_shape
 
@@ -206,10 +210,10 @@ class CNNModule(nn.Module):
     """
     prev_layer = x
 
-    for layer in self.layers:
-      x = layer(x)
+    for block in self.layers:
+      x = block(x)
       # residual blocks can only be used when successive layers have the same output shape
-      if self.residual and layer.in_channels == layer.out_channels:
+      if self.residual and x.shape[1] == prev_layer.shape[1]:
         x = x + prev_layer
       prev_layer = x
 

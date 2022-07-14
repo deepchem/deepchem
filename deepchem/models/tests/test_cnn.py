@@ -221,4 +221,4 @@ def test_cnn_regression_uncertainty():
 
   # Predict the output and uncertainty.
   pred, std = model.predict_uncertainty(dataset)
-  assert np.mean(np.abs(y - pred)) < 0.1
+  assert np.mean(np.abs(y - pred)) < 0.2
