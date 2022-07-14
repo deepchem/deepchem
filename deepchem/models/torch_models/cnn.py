@@ -156,11 +156,11 @@ class CNNModule(nn.Module):
 
     PoolLayer: Type
     if pool_type == 'average':
-        PoolLayer = (F.avg_pool1d, F.avg_pool2d, F.avg_pool3d)[self.dims - 1]
+      PoolLayer = (F.avg_pool1d, F.avg_pool2d, F.avg_pool3d)[self.dims - 1]
     elif pool_type == 'max':
-        PoolLayer = (F.max_pool1d, F.max_pool2d, F.max_pool3d)[self.dims - 1]
+      PoolLayer = (F.max_pool1d, F.max_pool2d, F.max_pool3d)[self.dims - 1]
     else:
-        raise ValueError("pool_type must be either 'average' or 'max'")
+      raise ValueError("pool_type must be either 'average' or 'max'")
 
     self.PoolLayer = PoolLayer
     self.layers = nn.ModuleList()
@@ -331,7 +331,7 @@ class CNN(TorchModel):
                            residual=residual,
                            padding=padding)
 
-    loss : Union[L2Loss, Callable[[Any, Any, Any], Any]]
+    loss: Union[L2Loss, Callable[[Any, Any, Any], Any]]
 
     if uncertainty:
 
