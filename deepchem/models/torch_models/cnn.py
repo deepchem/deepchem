@@ -154,7 +154,6 @@ class CNNModule(nn.Module):
     # Python tuples use 0 based indexing, dims defines number of dimension for convolutional operation
     ConvLayer = (nn.Conv1d, nn.Conv2d, nn.Conv3d)[self.dims - 1]
 
-    PoolLayer: Type
     if pool_type == 'average':
       PoolLayer = (F.avg_pool1d, F.avg_pool2d, F.avg_pool3d)[self.dims - 1]
     elif pool_type == 'max':
