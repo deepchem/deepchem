@@ -1,9 +1,9 @@
 """
-Test for ElectronSampler.py
+Test for electron_sampler.py
 """
 
 import numpy as np
-from deepchem.utils.ElectronSampler import ElectronSampler
+from deepchem.utils.electron_sampler import ElectronSampler
 
 
 def f(x):
