@@ -249,7 +249,8 @@ def test_1d_cnn_regression_reload():
               dropouts=0.,
               kernel_size=3,
               mode='regression',
-              learning_rate=0.003)
+              learning_rate=0.003,
+              model_dir=model_dir)
 
   # Fit trained model
   model.fit(dataset, nb_epoch=200)
