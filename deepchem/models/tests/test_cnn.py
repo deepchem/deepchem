@@ -224,6 +224,7 @@ def test_cnn_regression_uncertainty():
   pred, std = model.predict_uncertainty(dataset)
   assert np.mean(np.abs(y - pred)) < 0.2
 
+  
 @pytest.mark.torch
 def test_1d_cnn_regression_reload():
   """Test that a 2D CNN can overfit simple regression datasets."""
