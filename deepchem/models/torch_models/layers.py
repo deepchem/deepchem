@@ -913,7 +913,7 @@ class Affine(nn.Module):
     ----------
     input shape: (samples, dim)
     output shape: (samples, dim)
-    
+
     """
 
     y = torch.exp(self.scale) * x + self.shift
@@ -1013,9 +1013,10 @@ class InteratomicL2Distances(nn.Module):
     # Shape (N_atoms, M_nbrs)
     return torch.sum((tiled_coords - nbr_coords)**2, dim=2)
 
+
 class RealNVPLayer(nn.Module):
   """Real NVP Transformation Layer
-  
+
   This class class is a constructor transformation layer used on a
   NormalizingFLow model.  The Real Non-Preserving-Volumen (Real NVP) is a type
   of normalizing flow layer which gives advantages over this mainly because an
@@ -1064,7 +1065,7 @@ class RealNVPLayer(nn.Module):
 
   def forward(self, x: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
     """Forward pass.
-    
+
     This particular transformation is represented by the following function:
     y = x + (1 - x) * exp( s(x)) + t(x), where t and s needs an activation
     function. This class also returns the logarithm of the jacobians
@@ -1077,11 +1078,11 @@ class RealNVPLayer(nn.Module):
     output shape: (samples, dim)
 
     """
-    x_mask = x*self.mask
+    x_mask = x * self.mask
     s = self.s_func(x_mask) * self.scale
     t = self.t_func(x_mask)
 
-    y = x_mask + (1 - self.mask) * (x*torch.exp(s) + t)
+    y = x_mask + (1 - self.mask) * (x * torch.exp(s) + t)
 
     log_det_jacobian = ((1 - self.mask) * s).sum(-1)
     return y, log_det_jacobian
@@ -1103,7 +1104,7 @@ class RealNVPLayer(nn.Module):
     s = self.s_func(y_mask) * self.scale
     t = self.t_func(y_mask)
 
-    x = y_mask + (1-self.mask)*(y - t)*torch.exp(-s)
+    x = y_mask + (1 - self.mask) * (y - t) * torch.exp(- s)
 
     inverse_log_det_jacobian = ((1 - self.mask) * -s).sum(-1)
 
