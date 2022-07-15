@@ -925,62 +925,6 @@ def test_textCNN_classification_reload():
 
 
 @pytest.mark.tensorflow
-def test_1d_cnn_regression_reload():
-  """Test that a 1D CNN can reload."""
-  n_samples = 10
-  n_features = 3
-  n_tasks = 1
-
-  np.random.seed(123)
-  X = np.random.rand(n_samples, 10, n_features)
-  y = np.random.randint(2, size=(n_samples, n_tasks)).astype(np.float32)
-  dataset = dc.data.NumpyDataset(X, y)
-
-  regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
-  model_dir = tempfile.mkdtemp()
-
-  model = dc.models.CNN(
-      n_tasks,
-      n_features,
-      dims=1,
-      dropouts=0,
-      kernel_size=3,
-      mode='regression',
-      learning_rate=0.003,
-      model_dir=model_dir)
-
-  # Fit trained model
-  model.fit(dataset, nb_epoch=200)
-
-  # Eval model on train
-  scores = model.evaluate(dataset, [regression_metric])
-  assert scores[regression_metric.name] < 0.1
-
-  # Reload trained model
-  reloaded_model = dc.models.CNN(
-      n_tasks,
-      n_features,
-      dims=1,
-      dropouts=0,
-      kernel_size=3,
-      mode='regression',
-      learning_rate=0.003,
-      model_dir=model_dir)
-  reloaded_model.restore()
-
-  # Check predictions match on random sample
-  Xpred = np.random.rand(n_samples, 10, n_features)
-  predset = dc.data.NumpyDataset(Xpred)
-  origpred = model.predict(predset)
-  reloadpred = reloaded_model.predict(predset)
-  assert np.all(origpred == reloadpred)
-
-  # Eval model on train
-  scores = reloaded_model.evaluate(dataset, [regression_metric])
-  assert scores[regression_metric.name] < 0.1
-
-
-@pytest.mark.tensorflow
 def test_graphconvmodel_reload():
   featurizer = dc.feat.ConvMolFeaturizer()
   tasks = ["outcome"]
