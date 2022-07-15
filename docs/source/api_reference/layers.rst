@@ -149,6 +149,9 @@ Torch Layers
   :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.Affine
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.RealNVPLayer
   :members: 
 
 Jax Layers

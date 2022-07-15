@@ -403,6 +403,12 @@ MATModel
 .. autoclass:: deepchem.models.torch_models.MATModel
   :members:
 
+NormalizingFlowModel
+--------------------
+
+.. autoclass:: deepchem.models.torch_models.NormalizingFlow
+  :members:
+
 Jax Models
 ==============
 
