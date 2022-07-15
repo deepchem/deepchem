@@ -22,7 +22,7 @@ dependencies:
     - pyGPGO
     - pymatgen
     - simdna
-    - transformers==4.6.*
+    - transformers==4.10.*
     - xgboost
     - git+https://github.com/samoturk/mol2vec
     - tb-nightly # @arunppsg shift to tensorboard stable version once tb 2.9.1 is released

@@ -1,10 +1,14 @@
 pandas
 scikit-learn
-sphinx
-sphinx_rtd_theme
+# Make sure that sphinx, sphinx_rtd_theme versions are pinned, otherwise
+# readthedocs uses its default version of sphinx (1.8.5) which may lead to
+# build fails.
+sphinx>=4.0,<5.0
+sphinx_rtd_theme>=1.0
 tensorflow
 transformers>=4.6.*
 torch
 jax
 dm-haiku
 optax
+rdkit-pypi

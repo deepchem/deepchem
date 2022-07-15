@@ -148,11 +148,11 @@ jobs:
       run: |
         mypy -p deepchem
     - name: Doctest Linux
-      if: runner.os == 'Linux'
+      if: ${{ (runner.os == 'Linux') && always() }}
       shell: bash -l {0}
       run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem --doctest-continue-on-failure
     - name: Doctest Windows
-      if: runner.os == 'Windows'
+      if: ${{ (runner.os == 'Windows') && always() }}
       # Seperate test avoiding Jax in windows since Jax is not supported in Windows
       shell: bash -l {0}
       run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --ignore-glob='deepchem/models/jax_models/*' --doctest-modules deepchem --doctest-continue-on-failure

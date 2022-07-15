@@ -68,7 +68,7 @@ Losses
 
 .. autoclass:: deepchem.models.losses.SquaredHingeLoss
   :members:
-  
+
 .. autoclass:: deepchem.models.losses.PoissonLoss
   :members:
 
@@ -113,7 +113,7 @@ Optimizers
 
 .. autoclass:: deepchem.models.optimizers.AdamW
   :members:
-  
+
 .. autoclass:: deepchem.models.optimizers.SparseAdam
   :members:
 
@@ -310,14 +310,14 @@ for any application requiring a probabilistic model with these capabilities, e.g
 
 .. autoclass:: deepchem.models.normalizing_flows.NormalizingFlowModel
   :members:
-  
+
 
 PyTorch Models
 ==============
 
 DeepChem supports the use of `PyTorch`_ to build deep learning models.
 
-.. _`PyTorch`: https://pytorch.org/ 
+.. _`PyTorch`: https://pytorch.org/
 
 TorchModel
 ----------
@@ -407,6 +407,20 @@ NormalizingFlowModel
 --------------------
 
 .. autoclass:: deepchem.models.torch_models.NormalizingFlow
+=======
+PyTorch Lightning Models
+==============
+
+DeepChem supports the use of `PyTorch-Lightning`_ to build PyTorch models.
+
+.. _`PyTorch-Lightning`: https://www.pytorchlightning.ai/
+
+DCLightningModule
+----------
+
+You can wrap an arbitrary :code:`TorchModel` in a :code:`DCLightningModule` object.
+
+.. autoclass:: deepchem.models.DCLightningModule
   :members:
 
 Jax Models
@@ -414,7 +428,7 @@ Jax Models
 
 DeepChem supports the use of `Jax`_ to build deep learning models.
 
-.. _`Jax`: https://github.com/google/jax 
+.. _`Jax`: https://github.com/google/jax
 
 JaxModel
 ----------
@@ -427,4 +441,3 @@ PinnModel
 
 .. autoclass:: deepchem.models.PINNModel
   :members:
-
