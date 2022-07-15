@@ -273,7 +273,7 @@ def test_1d_cnn_regression_reload():
   reloaded_model.restore()
 
   # Check predictions match on random sample
-  Xpred = np.random.rand(n_samples, 10, n_features)
+  Xpred = np.random.rand(n_samples, n_features, 10)
   predset = dc.data.NumpyDataset(Xpred)
   origpred = model.predict(predset)
   reloadpred = reloaded_model.predict(predset)
