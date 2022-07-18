@@ -669,7 +669,7 @@ class DMPNNFeaturizer(MolecularFeaturizer):
     edge_index: np.ndarray = self._construct_bond_index(datapoint)
 
     # get global features
-    global_features: np.ndarray = None
+    global_features: np.ndarray = np.empty(0)
     if self.features_generators is not None:
       global_features = generate_global_features(datapoint,
                                                  self.features_generators)
