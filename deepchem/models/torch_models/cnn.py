@@ -55,8 +55,6 @@ class CNNModule(nn.Module):
                strides: OneOrMany[int] = 1,
                weight_init_stddevs: OneOrMany[float] = 0.02,
                bias_init_consts: OneOrMany[float] = 1.0,
-               weight_decay_penalty: float = 0.0,
-               weight_decay_penalty_type: str = 'l2',
                dropouts: OneOrMany[float] = 0.5,
                activation_fns=nn.ReLU,
                pool_type: str = 'max',
@@ -101,10 +99,6 @@ class CNNModule(nn.Module):
       list should equal len(layer_filters)+1, where the final element corresponds
       to the dense layer.  Alternatively this may be a single value instead of a
       list, in which case the same value is used for every layer.
-    weight_decay_penalty: float
-      the magnitude of the weight decay penalty to use
-    weight_decay_penalty_type: str
-      the type of penalty to use for weight decay, either 'l1' or 'l2'
     dropouts: list or float
       the dropout probability to use for each layer.  The length of this list should equal len(layer_filters).
       Alternatively this may be a single value instead of a list, in which case the same value is used for every layer
@@ -191,16 +185,24 @@ class CNNModule(nn.Module):
     in_shape = n_features
 
     for out_shape, size, stride, weight_stddev, bias_const, dropout, activation_fn in zip(
-                layer_filters, kernel_size, strides, weight_init_stddevs, bias_init_consts, dropouts,
-                activation_fns):
+        layer_filters, kernel_size, strides, weight_init_stddevs,
+        bias_init_consts, dropouts, activation_fns):
 
       block = nn.Sequential()
 
-      layer = ConvLayer(in_channels=in_shape, out_channels=out_shape, kernel_size=size,
-                          stride=stride, padding=padding, dilation=1, groups=1, bias=True)
+      layer = ConvLayer(in_channels=in_shape,
+                        out_channels=out_shape,
+                        kernel_size=size,
+                        stride=stride,
+                        padding=padding,
+                        dilation=1,
+                        groups=1,
+                        bias=True)
 
       nn.init.normal_(layer.weight, 0, weight_stddev)
-      nn.init.constant_(layer.bias, bias_const)
+      
+      layer_bias : torch.Tensor = layer.bias
+      nn.init.constant_(layer_bias, bias_const)
 
       block.append(layer)
 
@@ -290,7 +292,7 @@ class CNN(TorchModel):
                uncertainty: bool = False,
                residual: bool = False,
                padding: Union[int, str] = 'valid',
-               **kwargs) -> None:           
+               **kwargs) -> None:
     """TorchModel wrapper for CNN
 
       Parameters
@@ -365,8 +367,6 @@ class CNN(TorchModel):
                            strides=strides,
                            weight_init_stddevs=weight_init_stddevs,
                            bias_init_consts=bias_init_consts,
-                           weight_decay_penalty=weight_decay_penalty,
-                           weight_decay_penalty_type=weight_decay_penalty_type,
                            dropouts=dropouts,
                            activation_fns=activation_fns,
                            pool_type=pool_type,
@@ -381,9 +381,11 @@ class CNN(TorchModel):
     if weight_decay_penalty != 0:
       weights = [layer.weight for layer in self.model.layers]
       if weight_decay_penalty_type == 'l1':
-        regularization_loss = lambda: weight_decay_penalty * torch.sum(torch.stack([torch.abs(w).sum() for w in weights]))
+        regularization_loss = lambda: weight_decay_penalty * torch.sum(
+            torch.stack([torch.abs(w).sum() for w in weights]))
       else:
-        regularization_loss = lambda: weight_decay_penalty * torch.sum(torch.stack([torch.square(w).sum() for w in weights]))
+        regularization_loss = lambda: weight_decay_penalty * torch.sum(
+            torch.stack([torch.square(w).sum() for w in weights]))
     else:
       regularization_loss = None
 
