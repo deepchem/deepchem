@@ -91,7 +91,7 @@ def test_featurizer_ring(test_parameters):
     else:
       assert len(nonzero_features_indicies) == 9
   else:
-    assert graph_feat[0].global_features is None
+    assert graph_feat[0].global_features.size == 0
 
   if use_original_atom_ranks:
     assert (graph_feat[0].edge_index == edge_index_orignal_order[0]).all()
@@ -144,7 +144,7 @@ def test_featurizer_general_case(test_parameters):
     else:
       assert len(nonzero_features_indicies) == 6
   else:
-    assert graph_feat[1].global_features is None
+    assert graph_feat[1].global_features.size == 0
 
   if use_original_atom_ranks:
     assert (graph_feat[1].edge_index == edge_index_orignal_order[1]).all()
@@ -196,7 +196,7 @@ def test_featurizer_single_atom(test_parameters):
     else:
       assert len(nonzero_features_indicies) == 1
   else:
-    assert graph_feat[2].global_features is None
+    assert graph_feat[2].global_features.size == 0
 
   if use_original_atom_ranks:
     assert (graph_feat[2].edge_index == edge_index_orignal_order[2]).all()
