@@ -5,7 +5,8 @@ from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.losses import L2Loss
 from deepchem.metrics import to_one_hot
 
-from typing import List, Union, Any, Type, Callable
+from typing import List, Union, Any, Type, Callable, Optional
+from deepchem.utils.typing import OneOrMany
 
 try:
   from collections.abc import Sequence as SequenceCollection
@@ -50,9 +51,13 @@ class CNNModule(nn.Module):
                n_features: int,
                dims: int,
                layer_filters: List[int] = [100],
-               kernel_size: Union[int, List[int]] = 5,
-               strides: Union[int, List[int]] = 1,
-               dropouts: Union[float, List[float]] = 0.5,
+               kernel_size: OneOrMany[int] = 5,
+               strides: OneOrMany[int] = 1,
+               weight_init_stddevs : OneOrMany[float]=0.02,
+               bias_init_consts : OneOrMany[float]=1.0,
+               weight_decay_penalty : float=0.0,
+               weight_decay_penalty_type : str='l2',  
+               dropouts: OneOrMany[float] = 0.5,
                activation_fns=nn.ReLU,
                pool_type: str = 'max',
                mode: str = 'classification',
@@ -85,13 +90,28 @@ class CNNModule(nn.Module):
       or a tuple (the stride along each dimension).  Alternatively this may be a
       single int or tuple instead of a list, in which case the same stride is
       used for every layer.
+    weight_init_stddevs: list or float
+      the standard deviation of the distribution to use for weight initialization
+      of each layer.  The length of this list should equal len(layer_filters)+1,
+      where the final element corresponds to the dense layer.  Alternatively this
+      may be a single value instead of a list, in which case the same value is used
+      for every layer.
+    bias_init_consts: list or loat
+      the value to initialize the biases in each layer to.  The length of this
+      list should equal len(layer_filters)+1, where the final element corresponds
+      to the dense layer.  Alternatively this may be a single value instead of a
+      list, in which case the same value is used for every layer.
+    weight_decay_penalty: float
+      the magnitude of the weight decay penalty to use
+    weight_decay_penalty_type: str
+      the type of penalty to use for weight decay, either 'l1' or 'l2'
     dropouts: list or float
       the dropout probability to use for each layer.  The length of this list should equal len(layer_filters).
       Alternatively this may be a single value instead of a list, in which case the same value is used for every layer
     activation_fns: list or object
       the torch activation function to apply to each layer. The length of this list should equal
       len(layer_filters).  Alternatively this may be a single value instead of a list, in which case the
-      same value is used for every layer.
+      same value is used for every layer, nn.ReLU by default
     pool_type: str
       the type of pooling layer to use, either 'max' or 'average'
     mode: str
@@ -133,7 +153,7 @@ class CNNModule(nn.Module):
     if len(layer_filters) == 1:
       layer_filters = layer_filters * 2
 
-    if not isinstance(kernel_size, list):
+    if not isinstance(kernel_size, SequenceCollection):
       kernel_size = [kernel_size] * n_layers
     if not isinstance(strides, SequenceCollection):
       strides = [strides] * n_layers
@@ -141,6 +161,11 @@ class CNNModule(nn.Module):
       dropouts = [dropouts] * n_layers
     if not isinstance(activation_fns, SequenceCollection):
       activation_fns = [activation_fns] * n_layers
+    if not isinstance(weight_init_stddevs, SequenceCollection):
+      weight_init_stddevs = [weight_init_stddevs] * n_layers
+    if not isinstance(bias_init_consts, SequenceCollection):
+      bias_init_consts = [bias_init_consts] * n_layers
+
 
     if uncertainty:
 
@@ -166,20 +191,25 @@ class CNNModule(nn.Module):
 
     in_shape = n_features
 
-    for out_shape, size, stride, dropout, activation_fn in zip(
-        layer_filters, kernel_size, strides, dropouts, activation_fns):
+    for out_shape, size, stride, weight_stddev, bias_const, dropout, activation_fn in zip(
+                layer_filters, kernel_size, strides, weight_init_stddevs, bias_init_consts, dropouts,
+                activation_fns):
 
       block = nn.Sequential()
 
-      block.append(
-          ConvLayer(in_channels=in_shape,
+      layer = ConvLayer(in_channels=in_shape,
                     out_channels=out_shape,
                     kernel_size=size,
                     stride=stride,
                     padding=padding,
                     dilation=1,
                     groups=1,
-                    bias=True))
+                    bias=True)
+      
+      nn.init.normal_(layer.weight, 0, weight_stddev)
+      nn.init.constant_(layer.bias, bias_const)
+      
+      block.append(layer)
 
       if dropout > 0.0:
         block.append(nn.Dropout(dropout))
@@ -253,8 +283,12 @@ class CNN(TorchModel):
                n_features: int,
                dims: int,
                layer_filters: List[int] = [100],
-               kernel_size: Union[int, List[int]] = 5,
-               strides: Union[int, List[int]] = 1,
+               kernel_size: OneOrMany[int] = 5,
+               strides: OneOrMany[int] = 1,
+               weight_init_stddevs : OneOrMany[float]=0.02,
+               bias_init_consts : OneOrMany[float]=1.0,
+               weight_decay_penalty :float=0.0,
+               weight_decay_penalty_type : str='l2',
                dropouts: Union[float, List[float]] = 0.5,
                activation_fns=nn.ReLU,
                pool_type: str = 'max',
@@ -264,6 +298,7 @@ class CNN(TorchModel):
                residual: bool = False,
                padding: Union[int, str] = 'valid',
                **kwargs) -> None:
+               
     """TorchModel wrapper for CNN
 
       Parameters
@@ -289,13 +324,28 @@ class CNN(TorchModel):
       or a tuple (the stride along each dimension).  Alternatively this may be a
       single int or tuple instead of a list, in which case the same stride is
       used for every layer.
+    weight_init_stddevs: list or float
+      the standard deviation of the distribution to use for weight initialization
+      of each layer.  The length of this list should equal len(layer_filters)+1,
+      where the final element corresponds to the dense layer.  Alternatively this
+      may be a single value instead of a list, in which case the same value is used
+      for every layer.
+    bias_init_consts: list or loat
+      the value to initialize the biases in each layer to.  The length of this
+      list should equal len(layer_filters)+1, where the final element corresponds
+      to the dense layer.  Alternatively this may be a single value instead of a
+      list, in which case the same value is used for every layer.
+    weight_decay_penalty: float
+      the magnitude of the weight decay penalty to use
+    weight_decay_penalty_type: str
+      the type of penalty to use for weight decay, either 'l1' or 'l2'
     dropouts: list or float
       the dropout probability to use for each layer.  The length of this list should equal len(layer_filters).
       Alternatively this may be a single value instead of a list, in which case the same value is used for every layer
     activation_fns: list or object
       the torch activation function to apply to each layer. The length of this list should equal
       len(layer_filters).  Alternatively this may be a single value instead of a list, in which case the
-      same value is used for every layer.
+      same value is used for every layer, nn.ReLU by default
     pool_type: str
       the type of pooling layer to use, either 'max' or 'average'
     mode: str
@@ -321,6 +371,10 @@ class CNN(TorchModel):
                            layer_filters=layer_filters,
                            kernel_size=kernel_size,
                            strides=strides,
+                           weight_init_stddevs=weight_init_stddevs,
+                           bias_init_consts=bias_init_consts,
+                           weight_decay_penalty=weight_decay_penalty,
+                           weight_decay_penalty_type=weight_decay_penalty_type,
                            dropouts=dropouts,
                            activation_fns=activation_fns,
                            pool_type=pool_type,
@@ -329,6 +383,17 @@ class CNN(TorchModel):
                            uncertainty=uncertainty,
                            residual=residual,
                            padding=padding)
+
+    regularization_loss: Optional[Callable]
+
+    if weight_decay_penalty != 0:
+      weights = [layer.weight for layer in self.model.layers]
+      if weight_decay_penalty_type == 'l1':
+        regularization_loss = lambda: weight_decay_penalty * torch.sum(torch.stack([torch.abs(w).sum() for w in weights]))
+      else:
+        regularization_loss = lambda: weight_decay_penalty * torch.sum(torch.stack([torch.square(w).sum() for w in weights]))
+    else:
+      regularization_loss = None
 
     loss: Union[L2Loss, Callable[[Any, Any, Any], Any]]
 
@@ -354,6 +419,7 @@ class CNN(TorchModel):
     super(CNN, self).__init__(self.model,
                               loss=loss,
                               output_types=output_types,
+                              regularization_loss=regularization_loss,
                               **kwargs)
 
   def default_generator(self,
