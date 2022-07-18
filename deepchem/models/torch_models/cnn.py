@@ -200,8 +200,8 @@ class CNNModule(nn.Module):
                         bias=True)
 
       nn.init.normal_(layer.weight, 0, weight_stddev)
-      
-      layer_bias : torch.Tensor = layer.bias
+
+      layer_bias: torch.Tensor = layer.bias
       nn.init.constant_(layer_bias, bias_const)
 
       block.append(layer)
