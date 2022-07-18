@@ -5,7 +5,7 @@ from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.losses import L2Loss
 from deepchem.metrics import to_one_hot
 
-from typing import List, Union, Any, Type, Callable, Optional
+from typing import List, Union, Any, Callable, Optional
 from deepchem.utils.typing import OneOrMany
 
 try:
@@ -53,10 +53,10 @@ class CNNModule(nn.Module):
                layer_filters: List[int] = [100],
                kernel_size: OneOrMany[int] = 5,
                strides: OneOrMany[int] = 1,
-               weight_init_stddevs : OneOrMany[float]=0.02,
-               bias_init_consts : OneOrMany[float]=1.0,
-               weight_decay_penalty : float=0.0,
-               weight_decay_penalty_type : str='l2',  
+               weight_init_stddevs: OneOrMany[float] = 0.02,
+               bias_init_consts: OneOrMany[float] = 1.0,
+               weight_decay_penalty: float = 0.0,
+               weight_decay_penalty_type: str = 'l2',
                dropouts: OneOrMany[float] = 0.5,
                activation_fns=nn.ReLU,
                pool_type: str = 'max',
@@ -166,7 +166,6 @@ class CNNModule(nn.Module):
     if not isinstance(bias_init_consts, SequenceCollection):
       bias_init_consts = [bias_init_consts] * n_layers
 
-
     if uncertainty:
 
       if mode != 'regression':
@@ -197,18 +196,12 @@ class CNNModule(nn.Module):
 
       block = nn.Sequential()
 
-      layer = ConvLayer(in_channels=in_shape,
-                    out_channels=out_shape,
-                    kernel_size=size,
-                    stride=stride,
-                    padding=padding,
-                    dilation=1,
-                    groups=1,
-                    bias=True)
-      
+      layer = ConvLayer(in_channels=in_shape, out_channels=out_shape, kernel_size=size,
+                          stride=stride, padding=padding, dilation=1, groups=1, bias=True)
+
       nn.init.normal_(layer.weight, 0, weight_stddev)
       nn.init.constant_(layer.bias, bias_const)
-      
+
       block.append(layer)
 
       if dropout > 0.0:
@@ -285,10 +278,10 @@ class CNN(TorchModel):
                layer_filters: List[int] = [100],
                kernel_size: OneOrMany[int] = 5,
                strides: OneOrMany[int] = 1,
-               weight_init_stddevs : OneOrMany[float]=0.02,
-               bias_init_consts : OneOrMany[float]=1.0,
-               weight_decay_penalty :float=0.0,
-               weight_decay_penalty_type : str='l2',
+               weight_init_stddevs: OneOrMany[float] = 0.02,
+               bias_init_consts: OneOrMany[float] = 1.0,
+               weight_decay_penalty: float = 0.0,
+               weight_decay_penalty_type: str = 'l2',
                dropouts: Union[float, List[float]] = 0.5,
                activation_fns=nn.ReLU,
                pool_type: str = 'max',
@@ -297,8 +290,7 @@ class CNN(TorchModel):
                uncertainty: bool = False,
                residual: bool = False,
                padding: Union[int, str] = 'valid',
-               **kwargs) -> None:
-               
+               **kwargs) -> None:           
     """TorchModel wrapper for CNN
 
       Parameters
