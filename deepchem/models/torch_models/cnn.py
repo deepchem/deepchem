@@ -6,7 +6,7 @@ from deepchem.models.losses import L2Loss
 from deepchem.metrics import to_one_hot
 
 from typing import List, Union, Any, Callable, Optional
-from deepchem.utils.typing import OneOrMany
+from deepchem.utils.typing import OneOrMany, ActivationFn
 from deepchem.utils.pytorch_utils import get_activation
 
 try:
@@ -57,7 +57,7 @@ class CNNModule(nn.Module):
                weight_init_stddevs: OneOrMany[float] = 0.02,
                bias_init_consts: OneOrMany[float] = 1.0,
                dropouts: OneOrMany[float] = 0.5,
-               activation_fns: OneOrMany[str] = 'relu',
+               activation_fns: OneOrMany[ActivationFn] = 'relu',
                pool_type: str = 'max',
                mode: str = 'classification',
                n_classes: int = 2,
@@ -288,7 +288,7 @@ class CNN(TorchModel):
                weight_decay_penalty: float = 0.0,
                weight_decay_penalty_type: str = 'l2',
                dropouts: Union[float, List[float]] = 0.5,
-               activation_fns: OneOrMany[str] = 'relu',
+               activation_fns: OneOrMany[ActivationFn] = 'relu',
                pool_type: str = 'max',
                mode: str = 'classification',
                n_classes: int = 2,
