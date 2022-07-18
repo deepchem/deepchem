@@ -69,6 +69,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [9 Introduction to Molecular Attention Transformer](Introduction_to_Molecular_Attention_Transformer.ipynb)
 * [10 Generating Molecules with MolGAN](Generating_molecules_with_MolGAN.ipynb)
 * [11 Introduction to GROVER](Introduction_to_GROVER.ipynb)
+* [12 Retrosynthetic predictions using AiZynthFinder](Retrosynthetic_predictions_using_AiZynthFinder.ipynb)
 
 ### Modeling Proteins
 * [1 Protein Deep Learning](Protein_Deep_Learning.ipynb)
