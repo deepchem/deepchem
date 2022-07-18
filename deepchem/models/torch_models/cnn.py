@@ -7,6 +7,7 @@ from deepchem.metrics import to_one_hot
 
 from typing import List, Union, Any, Callable, Optional
 from deepchem.utils.typing import OneOrMany
+from deepchem.utils.pytorch_utils import get_activation
 
 try:
   from collections.abc import Sequence as SequenceCollection
@@ -56,7 +57,7 @@ class CNNModule(nn.Module):
                weight_init_stddevs: OneOrMany[float] = 0.02,
                bias_init_consts: OneOrMany[float] = 1.0,
                dropouts: OneOrMany[float] = 0.5,
-               activation_fns=nn.ReLU,
+               activation_fns: OneOrMany[str] = 'relu',
                pool_type: str = 'max',
                mode: str = 'classification',
                n_classes: int = 2,
@@ -160,6 +161,8 @@ class CNNModule(nn.Module):
     if not isinstance(bias_init_consts, SequenceCollection):
       bias_init_consts = [bias_init_consts] * n_layers
 
+    self.activation_fns = [get_activation(f) for f in activation_fns]
+
     if uncertainty:
 
       if mode != 'regression':
@@ -184,9 +187,9 @@ class CNNModule(nn.Module):
 
     in_shape = n_features
 
-    for out_shape, size, stride, weight_stddev, bias_const, dropout, activation_fn in zip(
+    for out_shape, size, stride, weight_stddev, bias_const, dropout in zip(
         layer_filters, kernel_size, strides, weight_init_stddevs,
-        bias_init_consts, dropouts, activation_fns):
+        bias_init_consts, dropouts):
 
       block = nn.Sequential()
 
@@ -208,9 +211,6 @@ class CNNModule(nn.Module):
 
       if dropout > 0.0:
         block.append(nn.Dropout(dropout))
-
-      if activation_fn is not None:
-        block.append(activation_fn())
 
       self.layers.append(block)
 
@@ -234,11 +234,14 @@ class CNNModule(nn.Module):
     """
     prev_layer = x
 
-    for block in self.layers:
+    for block, activation_fn in zip(self.layers, self.activation_fns):
       x = block(x)
       # residual blocks can only be used when successive layers have the same output shape
       if self.residual and x.shape[1] == prev_layer.shape[1]:
         x = x + prev_layer
+
+      x = activation_fn(x)
+
       prev_layer = x
 
     x = self.PoolLayer(x, kernel_size=x.size()[2:])
@@ -285,7 +288,7 @@ class CNN(TorchModel):
                weight_decay_penalty: float = 0.0,
                weight_decay_penalty_type: str = 'l2',
                dropouts: Union[float, List[float]] = 0.5,
-               activation_fns=nn.ReLU,
+               activation_fns: OneOrMany[str] = 'relu',
                pool_type: str = 'max',
                mode: str = 'classification',
                n_classes: int = 2,
