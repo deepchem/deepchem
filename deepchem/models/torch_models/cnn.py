@@ -103,10 +103,10 @@ class CNNModule(nn.Module):
     dropouts: list or float
       the dropout probability to use for each layer.  The length of this list should equal len(layer_filters).
       Alternatively this may be a single value instead of a list, in which case the same value is used for every layer
-    activation_fns: list or object
+    activation_fns: str or list
       the torch activation function to apply to each layer. The length of this list should equal
       len(layer_filters).  Alternatively this may be a single value instead of a list, in which case the
-      same value is used for every layer, nn.ReLU by default
+      same value is used for every layer, 'relu' by default
     pool_type: str
       the type of pooling layer to use, either 'max' or 'average'
     mode: str
@@ -339,10 +339,10 @@ class CNN(TorchModel):
     dropouts: list or float
       the dropout probability to use for each layer.  The length of this list should equal len(layer_filters).
       Alternatively this may be a single value instead of a list, in which case the same value is used for every layer
-    activation_fns: list or object
+    activation_fns: str or list
       the torch activation function to apply to each layer. The length of this list should equal
       len(layer_filters).  Alternatively this may be a single value instead of a list, in which case the
-      same value is used for every layer, nn.ReLU by default
+      same value is used for every layer, 'relu' by default
     pool_type: str
       the type of pooling layer to use, either 'max' or 'average'
     mode: str
