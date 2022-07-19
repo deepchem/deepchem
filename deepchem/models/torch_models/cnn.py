@@ -154,7 +154,8 @@ class CNNModule(nn.Module):
       strides = [strides] * n_layers
     if not isinstance(dropouts, SequenceCollection):
       dropouts = [dropouts] * n_layers
-    if not isinstance(activation_fns, SequenceCollection):
+    if isinstance(activation_fns,
+                  str) or not isinstance(activation_fns, SequenceCollection):
       activation_fns = [activation_fns] * n_layers
     if not isinstance(weight_init_stddevs, SequenceCollection):
       weight_init_stddevs = [weight_init_stddevs] * n_layers
@@ -204,8 +205,7 @@ class CNNModule(nn.Module):
 
       nn.init.normal_(layer.weight, 0, weight_stddev)
 
-      layer_bias: torch.Tensor = layer.bias
-      nn.init.constant_(layer_bias, bias_const)
+      nn.init.constant_(layer.bias, bias_const)
 
       block.append(layer)
 
@@ -287,7 +287,7 @@ class CNN(TorchModel):
                bias_init_consts: OneOrMany[float] = 1.0,
                weight_decay_penalty: float = 0.0,
                weight_decay_penalty_type: str = 'l2',
-               dropouts: Union[float, List[float]] = 0.5,
+               dropouts: OneOrMany[float] = 0.5,
                activation_fns: OneOrMany[ActivationFn] = 'relu',
                pool_type: str = 'max',
                mode: str = 'classification',
