@@ -47,6 +47,8 @@ class CNNModule(nn.Module):
 
   """
 
+  bias: torch.Tensor
+
   def __init__(self,
                n_tasks: int,
                n_features: int,
