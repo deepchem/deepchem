@@ -81,6 +81,13 @@ PagtnMolGraphFeaturizer
   :members:
   :inherited-members:
 
+DMPNNFeaturizer
+**********************
+
+.. autoclass:: deepchem.feat.DMPNNFeaturizer
+  :members:
+  :inherited-members:
+
 Utilities
 *********
 
