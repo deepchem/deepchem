@@ -206,7 +206,7 @@ class CNNModule(nn.Module):
       nn.init.normal_(layer.weight, 0, weight_stddev)
 
       if layer.bias is not None:
-        layer.bias = torch.full(layer.bias.shape, bias_const)
+        layer.bias = nn.Parameter(torch.full(layer.bias.shape, bias_const))
 
       block.append(layer)
 
