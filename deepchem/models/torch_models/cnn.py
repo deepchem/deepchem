@@ -47,8 +47,6 @@ class CNNModule(nn.Module):
 
   """
 
-  bias: torch.Tensor
-
   def __init__(self,
                n_tasks: int,
                n_features: int,
@@ -207,7 +205,8 @@ class CNNModule(nn.Module):
 
       nn.init.normal_(layer.weight, 0, weight_stddev)
 
-      nn.init.constant_(layer.bias, bias_const)
+      if layer.bias is not None:
+        layer.bias = torch.full(layer.bias.shape, bias_const)
 
       block.append(layer)
 
