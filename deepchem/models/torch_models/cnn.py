@@ -227,6 +227,8 @@ class CNNModule(nn.Module):
     torch.Tensor
       Output as per use case : regression/classification
     """
+    x = torch.transpose(x, 1, -1)  # n h w c -> n c h w
+
     prev_layer = x
 
     for layer, dropout, activation_fn in zip(self.layers, self.dropouts,

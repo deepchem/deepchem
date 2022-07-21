@@ -266,6 +266,12 @@ WGAN
 .. autoclass:: deepchem.models.WGAN
   :members:
 
+CNNModule
+---
+
+.. autoclass:: deepchem.models.CNNModule
+  :members:
+
 CNN
 ---
 
