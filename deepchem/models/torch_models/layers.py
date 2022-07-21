@@ -1030,13 +1030,14 @@ class RealNVPLayer(nn.Module):
   >>> from deepchem.models.torch_models.layers import RealNVPLayer
   >>> layers = 4
   >>> hidden_size = 16
-  >>> mask = nn.fucntional(torch.tensor([i % 2 for i in range(num_layer)])).float()
+  >>> mask = nn.functional(torch.tensor([i % 2 for i in range(num_layer)])).float()
 
   References
   ----------
   .. [1] Stimper, V., Schölkopf, B., & Hernández-Lobato, J. M. (2021). Resampling Base
   Distributions of Normalizing Flows. (2017). Retrieved from http://arxiv.org/abs/2110.15828
   """
+
   def __init__(self, mask: torch.Tensor, hidden_size: int) -> None:
     """
     Parameters
@@ -1053,15 +1054,21 @@ class RealNVPLayer(nn.Module):
     self.mask = nn.Parameter(mask, requires_grad=False)
     self.dim = len(mask)
 
-    self.s_func = nn.Sequential(nn.Linear(in_features=self.dim, out_features=hidden_size), nn.LeakyReLU(),
-                                nn.Linear(in_features=hidden_size, out_features=hidden_size), nn.LeakyReLU(),
-                                nn.Linear(in_features=hidden_size, out_features=self.dim))
+    self.s_func = nn.Sequential(
+        nn.Linear(in_features=self.dim, out_features=hidden_size),
+        nn.LeakyReLU(),
+        nn.Linear(in_features=hidden_size, out_features=hidden_size),
+        nn.LeakyReLU(), nn.Linear(in_features=hidden_size,
+                                  out_features=self.dim))
 
     self.scale = nn.Parameter(torch.Tensor(self.dim))
 
-    self.t_func = nn.Sequential(nn.Linear(in_features=self.dim, out_features=hidden_size), nn.LeakyReLU(),
-                                nn.Linear(in_features=hidden_size, out_features=hidden_size), nn.LeakyReLU(),
-                                nn.Linear(in_features=hidden_size, out_features=self.dim))
+    self.t_func = nn.Sequential(
+        nn.Linear(in_features=self.dim, out_features=hidden_size),
+        nn.LeakyReLU(),
+        nn.Linear(in_features=hidden_size, out_features=hidden_size),
+        nn.LeakyReLU(), nn.Linear(in_features=hidden_size,
+                                  out_features=self.dim))
 
   def forward(self, x: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
     """Forward pass.
