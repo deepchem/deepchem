@@ -19,6 +19,12 @@ try:
 except:
   has_tensorflow = False
 
+try:
+  import torch
+  has_torch = True
+except:
+  has_torch = False
+
 
 def test_sklearn_classifier_reload():
   """Test that trained model can be reloaded correctly."""
