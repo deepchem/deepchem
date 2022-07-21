@@ -241,7 +241,8 @@ class CNNModule(nn.Module):
       if self.training and dropout > 0.0:
         x = F.dropout(x, p=dropout)
 
-      x = activation_fn(x)
+      if activation_fn is not None:
+        x = activation_fn(x)
 
       prev_layer = x
 
