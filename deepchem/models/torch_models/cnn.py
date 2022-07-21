@@ -162,6 +162,7 @@ class CNNModule(nn.Module):
     if not isinstance(bias_init_consts, SequenceCollection):
       bias_init_consts = [bias_init_consts] * n_layers
 
+    self.dropouts = dropouts
     self.activation_fns = [get_activation(f) for f in activation_fns]
 
     if uncertainty:
@@ -188,11 +189,9 @@ class CNNModule(nn.Module):
 
     in_shape = n_features
 
-    for out_shape, size, stride, weight_stddev, bias_const, dropout in zip(
+    for out_shape, size, stride, weight_stddev, bias_const in zip(
         layer_filters, kernel_size, strides, weight_init_stddevs,
-        bias_init_consts, dropouts):
-
-      block = nn.Sequential()
+        bias_init_consts):
 
       layer = ConvLayer(in_channels=in_shape,
                         out_channels=out_shape,
@@ -208,12 +207,7 @@ class CNNModule(nn.Module):
       if layer.bias is not None:
         layer.bias = nn.Parameter(torch.full(layer.bias.shape, bias_const))
 
-      block.append(layer)
-
-      if dropout > 0.0:
-        block.append(nn.Dropout(dropout))
-
-      self.layers.append(block)
+      self.layers.append(layer)
 
       in_shape = out_shape
 
@@ -235,11 +229,15 @@ class CNNModule(nn.Module):
     """
     prev_layer = x
 
-    for block, activation_fn in zip(self.layers, self.activation_fns):
-      x = block(x)
+    for layer, dropout, activation_fn in zip(self.layers, self.dropouts,
+                                             self.activation_fns):
+      x = layer(x)
       # residual blocks can only be used when successive layers have the same output shape
       if self.residual and x.shape[1] == prev_layer.shape[1]:
         x = x + prev_layer
+
+      if self.training and dropout > 0.0:
+        x = F.dropout(x, p=dropout)
 
       x = activation_fn(x)
 
@@ -256,7 +254,7 @@ class CNNModule(nn.Module):
 
       logits = self.classifier_ffn(x)
       logits = logits.view(batch_size, self.n_tasks, self.n_classes)
-      output = F.softmax(logits, dim=1)
+      output = F.softmax(logits, dim=2)
       outputs = [output, logits]
 
     else:

@@ -2876,10 +2876,8 @@ class ImageDataset(Dataset):
     ImageDataset
       A selected ImageDataset object
     """
-
     X: Union[List[str], np.ndarray]
     y: Union[List[str], np.ndarray]
-
     if isinstance(self._X, np.ndarray):
       X = self._X[indices]
     else:
