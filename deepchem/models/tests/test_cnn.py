@@ -1,8 +1,8 @@
+import deepchem as dc
 import numpy as np
 import pytest
 import unittest
 from flaky import flaky
-import deepchem as dc
 try:
   import torch
   has_torch = True
