@@ -208,7 +208,7 @@ class CNNModule(nn.Module):
 
       block.append(layer)
 
-      block.append(nn.Dropout(dropout=dropout))
+      block.append(nn.Dropout(dropout))
 
       self.layers.append(block)
 
