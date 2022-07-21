@@ -35,12 +35,12 @@ class CNNModule(nn.Module):
   --------
   >>> model = CNNModule(n_tasks=5, n_features=8, dims=2, layer_filters=[3,8,8,16], kernel_size=3, n_classes = 7, mode='classification', uncertainty=False)
   >>> x = torch.ones(2, 8, 224, 224)
-  >>> y = model(x)
-  >>> type(y)
+  >>> x = model(x)
+  >>> type(x)
   <class 'list'>
-  >>> len(y)
+  >>> len(x)
   2
-  >>> for tensor in y:
+  >>> for tensor in x:
   ...    print(tensor.shape)
   torch.Size([2, 5, 7])
   torch.Size([2, 5, 7])
