@@ -1,6 +1,6 @@
 import numpy as np
 from deepchem.feat import GraphData
-from typing import List, Sequence
+from typing import List, Sequence, Optional
 
 
 class _MapperDMPNN:
@@ -83,9 +83,11 @@ class _MapperDMPNN:
     self.num_bonds: int = graph.num_edges
     self.num_bond_features: int = graph.num_edge_features
     self.atom_features: np.ndarray = graph.node_features
-    self.bond_features: np.ndarray = graph.edge_features
+    self.bond_features: Optional[np.ndarray] = graph.edge_features
     self.bond_index: np.ndarray = graph.edge_index
-    self.global_features: np.ndarray = graph.global_features
+    self.global_features: np.ndarray = graph.global_features  # type: ignore
+    # mypy check is ignored for global_features as it is not a default attribute
+    # of GraphData. It is created during runtime using **kwargs.
 
     # mapping from bond index to the index of the atom (where the bond is coming from)
     self.bond_to_ini_atom: np.ndarray
