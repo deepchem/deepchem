@@ -240,12 +240,12 @@ class CNNModule(nn.Module):
       if self.residual and x.shape[1] == prev_layer.shape[1]:
         x = x + prev_layer
 
-      x = self.PoolLayer(x, kernel_size=x.size()[2:])
-
       if activation_fn is not None:
         x = activation_fn(x)
 
       prev_layer = x
+
+    x = self.PoolLayer(x, kernel_size=x.size()[2:])
 
     outputs = []
     batch_size = x.shape[0]
