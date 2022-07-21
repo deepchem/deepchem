@@ -237,12 +237,12 @@ class CNNModule(nn.Module):
       if self.training and dropout > 0.0:
         x = F.dropout(x, p=dropout)
 
+      x = self.PoolLayer(x, kernel_size=x.size()[2:])
+
       if activation_fn is not None:
         x = activation_fn(x)
 
       prev_layer = x
-
-    x = self.PoolLayer(x, kernel_size=x.size()[2:])
 
     outputs = []
     batch_size = x.shape[0]
