@@ -3010,3 +3010,4 @@ class Databag(object):
       for tup in zip(*iterators):
         m_d = {key_order[i]: tup[i][0] for i in range(len(key_order))}
         yield m_d
+        
