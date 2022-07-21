@@ -22,12 +22,12 @@ class TestDCLightningModule(unittest.TestCase):
     class TestMultitaskDatasetBatch:
 
       def __init__(self, batch):
-        X = [np.array([b[0] for b in batch])]
+        X = [batch[0]]
         y = [
             np.array(
-                [to_one_hot(b[1].flatten(), 2).reshape(2, 2) for b in batch])
+                [to_one_hot(b.flatten(), 2).reshape(2, 2) for b in batch[1]])
         ]
-        w = [np.array([b[2] for b in batch])]
+        w = [batch[2]]
         self.batch_list = [X, y, w]
 
     def collate_dataset_wrapper(batch):
@@ -42,7 +42,7 @@ class TestDCLightningModule(unittest.TestCase):
                                 dropouts=0.2,
                                 learning_rate=0.0001)
 
-    molnet_dataloader = DCLightningDatasetModule(valid_dataset, 64,
+    molnet_dataloader = DCLightningDatasetModule(valid_dataset, 6,
                                                  collate_dataset_wrapper)
     lightning_module = DCLightningModule(model)
     trainer = pl.Trainer(max_epochs=1)
