@@ -837,7 +837,7 @@ class GraphNetwork(torch.nn.Module):
 
     if self.is_undirected is True:
       # coonverting edge features to its original shape
-      split = torch.split(edge_features, (edge_features_len, edge_features_len))
+      split = torch.split(edge_features, [edge_features_len, edge_features_len])
       edge_features = (split[0] + split[1]) / 2
 
     if self.residual_connection:
