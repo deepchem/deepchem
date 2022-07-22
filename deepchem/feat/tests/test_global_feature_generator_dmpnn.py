@@ -35,10 +35,10 @@ class TestGlobalFeatureGenerator(unittest.TestCase):
                                                self.feature_generators[1])
     assert len(global_features) == 2048
 
-    nonzero_features_indicies = global_features.nonzero()[0]
-    assert len(nonzero_features_indicies) == 1
-    assert nonzero_features_indicies[0] == 1264
-    assert global_features[nonzero_features_indicies[0]] == 1.0
+    nonzero_features_indices = global_features.nonzero()[0]
+    assert len(nonzero_features_indices) == 1
+    assert nonzero_features_indices[0] == 1264
+    assert global_features[nonzero_features_indices[0]] == 1.0
 
   def test_generator_morgan_with_invalid_name(self):
     """
@@ -48,10 +48,10 @@ class TestGlobalFeatureGenerator(unittest.TestCase):
                                                self.feature_generators[2])
     assert len(global_features) == 2048
 
-    nonzero_features_indicies = global_features.nonzero()[0]
-    assert len(nonzero_features_indicies) == 1
-    assert nonzero_features_indicies[0] == 1264
-    assert global_features[nonzero_features_indicies[0]] == 1.0
+    nonzero_features_indices = global_features.nonzero()[0]
+    assert len(nonzero_features_indices) == 1
+    assert nonzero_features_indices[0] == 1264
+    assert global_features[nonzero_features_indices[0]] == 1.0
 
   def test_generator_morgan_twice(self):
     """
@@ -61,12 +61,12 @@ class TestGlobalFeatureGenerator(unittest.TestCase):
                                                self.feature_generators[3])
     assert len(global_features) == 4096
 
-    nonzero_features_indicies = global_features.nonzero()[0]
-    assert len(nonzero_features_indicies) == 2
-    assert nonzero_features_indicies[0] == 1264
-    assert nonzero_features_indicies[1] == 1264 + 2048
-    assert global_features[nonzero_features_indicies[0]] == 1.0
-    assert global_features[nonzero_features_indicies[1]] == 1.0
+    nonzero_features_indices = global_features.nonzero()[0]
+    assert len(nonzero_features_indices) == 2
+    assert nonzero_features_indices[0] == 1264
+    assert nonzero_features_indices[1] == 1264 + 2048
+    assert global_features[nonzero_features_indices[0]] == 1.0
+    assert global_features[nonzero_features_indices[1]] == 1.0
 
   def test_generator_hydrogen(self):
     """
@@ -84,9 +84,9 @@ class TestGlobalFeatureGenerator(unittest.TestCase):
                                                self.feature_generators[4])
     assert len(global_features) == 2048
 
-    nonzero_features_indicies = global_features.nonzero()[0]
-    assert len(nonzero_features_indicies) == 24
-    assert nonzero_features_indicies[0] == 389
+    nonzero_features_indices = global_features.nonzero()[0]
+    assert len(nonzero_features_indices) == 24
+    assert nonzero_features_indices[0] == 389
     # number of indices where feature count is more than 1
     assert len(np.where(global_features > 1.0)[0]) == 8
 
