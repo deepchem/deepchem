@@ -1030,7 +1030,8 @@ class RealNVPLayer(nn.Module):
   >>> from deepchem.models.torch_models.layers import RealNVPLayer
   >>> layers = 4
   >>> hidden_size = 16
-  >>> mask = nn.functional(torch.tensor([i % 2 for i in range(num_layer)])).float()
+  >>> mask = nn.functional.one_hot(torch.tensor([i % 2 for i in range(layers)])).float()
+  >>> rnvp_model = RealNVPLayer(mask, hidden_size)
 
   References
   ----------
