@@ -1007,3 +1007,75 @@ class InteratomicL2Distances(nn.Module):
                               (1, M_nbrs, 1))
     # Shape (N_atoms, M_nbrs)
     return torch.sum((tiled_coords - nbr_coords)**2, dim=2)
+
+
+class DMPNNFeedForward(PositionwiseFeedForward):
+  """DMPNNFeedForward is a layer used to define the feed-forward (FFN) algorithm for the Directed Message Passing Neural Network (D-MPNN) [1]_
+
+  The output tensors from DMPNN encoder layer are passed to a fully connected feed-forward network which applies two linear transformations and the given activation function.
+
+  Note: In this FFN, dropout is applied to the input tensor, before passing it to the input layer.
+
+  References
+  ----------
+  .. [1] Analyzing Learned Molecular Representations for Property Prediction https://arxiv.org/pdf/1904.01561.pdf
+
+  Examples
+  --------
+  >>> from deepchem.models.torch_models.layers import DMPNNFeedForward
+  >>> feed_fwd_layer = DMPNNFeedForward(d_input = 2, d_hidden = 2, d_output = 2, activation = 'relu', n_layers = 1, dropout_p = 0.1)
+  >>> input_tensor = torch.tensor([[1., 2.], [5., 6.]])
+  >>> output_tensor = feed_fwd_layer(input_tensor)
+  """
+
+  def __init__(self,
+               d_input: int = 2048,
+               d_hidden: int = 300,
+               d_output: int = 0,
+               activation: str = 'relu',
+               n_layers: int = 2,
+               dropout_p: float = 0.0):
+    """Initialize a DMPNNFeedForward layer.
+
+    Parameters
+    ----------
+    d_input: int
+      Size of input layer.
+    d_hidden: int (same as d_input if d_output = 0)
+      Size of hidden layer.
+    d_output: int (same as d_input if d_output = 0)
+      Size of output layer.
+    activation: str
+      Activation function to be used. Can choose between 'relu' for ReLU, 'leakyrelu' for LeakyReLU, 'prelu' for PReLU,
+      'tanh' for TanH, 'selu' for SELU, 'elu' for ELU and 'linear' for linear activation.
+    n_layers: int
+      Number of layers.
+    dropout_p: float
+      Dropout probability.
+    """
+    super(DMPNNFeedForward, self).__init__(d_input, d_hidden, d_output,
+                                           activation, n_layers, dropout_p)
+
+  def forward(self, x: torch.Tensor) -> torch.Tensor:
+    """Output Computation for the DMPNNFeedForward layer.
+
+    The forward function for DMPNNFeedForward layer is different from that of PositionwiseFeedForward layer
+    as in this case, the dropout is applied to the input tensor before passing it to the input layer.
+
+    Parameters
+    ----------
+    x: torch.Tensor
+      Input tensor.
+    """
+
+    if not self.n_layers:
+      return x
+
+    if self.n_layers == 1:
+      return self.linears[0](self.dropout_p[0](x))
+
+    else:
+      x = self.dropout_p[0](x)
+      for i in range(self.n_layers - 1):
+        x = self.dropout_p[i](self.activation(self.linears[i](x)))
+      return self.linears[-1](x)

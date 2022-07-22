@@ -722,3 +722,19 @@ def test_torch_interatomic_l2_distances():
       delta = coords[atom] - coords[neighbor_list[atom, neighbor]]
       dist2 = np.dot(delta, delta)
       assert np.allclose(dist2, result[atom, neighbor])
+
+
+@pytest.mark.torch
+def test_dmpnn_feed_forward():
+  """Test invoking DMPNNFeedForward."""
+  torch.manual_seed(0)
+  input_ar = torch.tensor([[1., 2.], [5., 6.]])
+  layer = torch_layers.DMPNNFeedForward(d_input=2,
+                                        d_hidden=2,
+                                        d_output=2,
+                                        activation='relu',
+                                        n_layers=1,
+                                        dropout_p=0.0)
+  result = layer(input_ar)
+  output_ar = torch.tensor([[0.4810, -1.4331], [1.9771, -5.8426]])
+  assert torch.allclose(result, output_ar, rtol=1e-4)
