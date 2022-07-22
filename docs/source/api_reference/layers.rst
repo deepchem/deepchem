@@ -149,7 +149,10 @@ Torch Layers
   :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.Affine
-  :members: 
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.DMPNNFeedForward
+  :members:
 
 Jax Layers
 ----------
