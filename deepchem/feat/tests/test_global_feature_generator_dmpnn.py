@@ -13,10 +13,11 @@ class TestGlobalFeatureGenerator(unittest.TestCase):
     """
     Set up tests.
     """
-    smiles_list = ["C", "[H]"]
+    smiles_list = ["C", "[H]", 'CC(=O)OC1=CC=CC=C1C(=O)O']
     self.mol = [Chem.MolFromSmiles(smiles) for smiles in smiles_list]
     self.feature_generators = [[''], ['morgan'], ['morgan', ''],
-                               ['morgan', 'morgan']]
+                               ['morgan', 'morgan'], ['morgan_count'],
+                               ['rdkit_desc'], ['rdkit_desc_normalized']]
 
   def test_generator_invalid_name(self):
     """
@@ -74,3 +75,42 @@ class TestGlobalFeatureGenerator(unittest.TestCase):
     global_features = generate_global_features(self.mol[1],
                                                self.feature_generators[2])
     assert (global_features == np.zeros(2048)).all()
+
+  def test_generator_morgan_count(self):
+    """
+    Test for generator when 'morgan_count' feature generator is provided
+    """
+    global_features = generate_global_features(self.mol[2],
+                                               self.feature_generators[4])
+    assert len(global_features) == 2048
+
+    nonzero_features_indicies = global_features.nonzero()[0]
+    assert len(nonzero_features_indicies) == 24
+    assert nonzero_features_indicies[0] == 389
+    # number of indices where feature count is more than 1
+    assert len(np.where(global_features > 1.0)[0]) == 8
+
+  def test_generator_rdkit_desc(self):
+    """
+    Test for generator when 'rdkit_desc' feature generator is provided
+    """
+    global_features = generate_global_features(self.mol[2],
+                                               self.feature_generators[5])
+    assert len(global_features) == 200
+    index_for_ExactMolWt = 7
+    assert np.allclose(global_features[index_for_ExactMolWt], 180, atol=0.1)
+
+  def test_generator_rdkit_desc_normalized(self):
+    """
+    Test for generator when 'rdkit_desc_normalized' feature generator is provided
+    """
+    global_features = generate_global_features(self.mol[2],
+                                               self.feature_generators[6])
+    assert len(global_features) == 200
+
+    # no normalized feature value should be greater than 1.0
+    assert len(np.where(global_features > 1.0)[0]) == 0
+    index_for_ExactMolWt = 7
+    assert np.allclose(global_features[index_for_ExactMolWt],
+                       0.0098,
+                       atol=0.0001)

@@ -7,6 +7,7 @@ from deepchem.utils.typing import RDKitAtom, RDKitMol, RDKitBond
 from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.feat.graph_data import GraphData
 from deepchem.feat.molecule_featurizers.circular_fingerprint import CircularFingerprint
+from deepchem.feat.molecule_featurizers.rdkit_descriptors import RDKitDescriptors
 
 from deepchem.utils.molecule_feature_utils import one_hot_encode
 from deepchem.utils.molecule_feature_utils import get_atom_total_degree_one_hot
@@ -43,7 +44,17 @@ class GraphConvConstants(object):
 
   # dictionary of available feature generators
   FEATURE_GENERATORS: Dict[str, MolecularFeaturizer] = {
-      "morgan": CircularFingerprint(radius=2, size=2048, sparse=False)
+      "morgan":
+          CircularFingerprint(radius=2, size=2048, sparse=False),
+      "morgan_count":
+          CircularFingerprint(radius=2,
+                              size=2048,
+                              sparse=False,
+                              is_counts_based=True),
+      "rdkit_desc":
+          RDKitDescriptors(use_bcut2d=False),
+      "rdkit_desc_normalized":
+          RDKitDescriptors(use_bcut2d=False, is_normalized=True)
   }
 
 
