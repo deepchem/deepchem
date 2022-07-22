@@ -14,7 +14,8 @@ except:
 
 # Set up tests.
 smiles_list = ["C", "CC", "CCC", "C1=CC=CC=C1"]
-featurizer = DMPNNFeaturizer(use_original_atom_ranks=['morgan'])
+featurizer = DMPNNFeaturizer(use_original_atom_ranks=True,
+                             features_generators=['morgan'])
 graphs = featurizer.featurize(smiles_list)
 benezene_mapping: np.ndarray = np.asarray([[-1, 10], [-1, 3], [0, -1], [-1, 5],
                                            [2, -1], [-1, 7], [4, -1], [-1, 9],
