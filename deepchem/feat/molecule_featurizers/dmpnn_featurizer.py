@@ -316,7 +316,7 @@ class _MapperDMPNN:
     self.f_ini_atoms_bonds_zero_padded: np.ndarray = np.asarray(
         [[0] * (self.concat_fdim)], dtype=float)
 
-    # mapping from atom index to list of indicies of incoming bonds
+    # mapping from atom index to list of indices of incoming bonds
     self.atom_to_incoming_bonds: List[List[int]] = [
         [] for i in range(self.num_atoms + 1)
     ]
@@ -425,7 +425,7 @@ class _MapperDMPNN:
   def _modify_based_on_max_bonds(self):
     """
     Method to make number of incoming bonds equal to maximum number of bonds.
-    This is done by appending zeros to fill remaining space at each atom indicies.
+    This is done by appending zeros to fill remaining space at each atom indices.
     """
     max_num_bonds: int = max(
         1,
@@ -440,7 +440,7 @@ class _MapperDMPNN:
 
   def _replace_rev_bonds(self):
     """
-    Method to replace the reverse bond indicies with zeros.
+    Method to replace the reverse bond indices with zeros.
     """
     for count, i in enumerate(self.b2revb):
       self.mapping[count][np.where(self.mapping[count] == i)] = 0
@@ -474,10 +474,10 @@ def generate_global_features(mol: RDKitMol,
   <class 'numpy.ndarray'>
   >>> len(global_features)
   2048
-  >>> nonzero_features_indicies = global_features.nonzero()[0]
-  >>> nonzero_features_indicies
+  >>> nonzero_features_indices = global_features.nonzero()[0]
+  >>> nonzero_features_indices
   array([1264])
-  >>> global_features[nonzero_features_indicies[0]]
+  >>> global_features[nonzero_features_indices[0]]
   1.0
   """
   global_features: List[np.ndarray] = []
