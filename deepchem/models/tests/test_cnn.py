@@ -100,6 +100,7 @@ class TestCNN(unittest.TestCase):
     scores = model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > 0.9
 
+  @flaky
   @pytest.mark.torch
   def test_cnn_regression_uncertainty(self):
     """Test computing uncertainty for a CNN regression model."""

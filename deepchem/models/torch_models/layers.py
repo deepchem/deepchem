@@ -42,14 +42,13 @@ class CNNModule(nn.Module):
 
   Examples
   --------
-  >>> model = CNNModule(n_tasks=5, n_features=8, dims=2, layer_filters=[3,8,8,16], kernel_size=3, n_classes = 7, mode='classification', uncertainty=False)
+  >>> model = CNNModule(n_tasks=5, n_features=8, dims=2, layer_filters=[3,8,8,16], kernel_size=2, n_classes = 7, mode='classification', uncertainty=False, padding='same')
   >>> x = torch.ones(2, 224, 224, 8)
   >>> x = model(x)
   >>> for tensor in x:
   ...    print(tensor.shape)
   torch.Size([2, 5, 7])
   torch.Size([2, 5, 7])
-
   """
 
   def __init__(self,

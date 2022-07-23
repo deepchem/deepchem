@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 import deepchem as dc
 from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.losses import L2Loss
@@ -28,19 +29,17 @@ class CNN(TorchModel):
 
   Examples
   --------
-  >>> import numpy as np
-  >>> import deepchem as dc
   >>> n_samples = 10
   >>> n_features = 3
   >>> n_tasks = 1
   >>> np.random.seed(123)
   >>> X = np.random.rand(n_samples, 10, n_features)
-  >>> y = np.random.rand(2, size=(n_samples, n_tasks)).astype(np.float32)
-  >>> dataset = dc.data.NumpyDataset(X, y)
+  >>> y = np.random.randint(2, size=(n_samples, n_tasks)).astype(np.float32)
+  >>> dataset: dc.data.Dataset = dc.data.NumpyDataset(X, y)
   >>> regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
   >>> model = CNN(n_tasks, n_features, dims=1, kernel_size=3, mode='regression')
-  >>> model.fit(dataset, nb_epoch=200)
-  
+  >>> avg_loss = model.fit(dataset, nb_epoch=200)
+
   """
 
   def __init__(self,
