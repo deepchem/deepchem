@@ -166,6 +166,7 @@ class CNN(TorchModel):
       def loss(outputs, labels, weights):
         diff = labels[0] - outputs[0]
         return torch.mean(diff**2 / torch.exp(outputs[1]) + outputs[1])
+        
     else:
       loss = L2Loss()
 

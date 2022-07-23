@@ -2,6 +2,8 @@ import math
 import numpy as np
 from typing import Any, Tuple, Optional, Sequence, List, Union
 
+from torch import dropout
+
 try:
   import torch
   from torch import Tensor
@@ -167,6 +169,7 @@ class CNNModule(nn.Module):
       bias_init_consts = [bias_init_consts] * n_layers
 
     self.activation_fns = [get_activation(f) for f in activation_fns]
+    self.dropouts = dropouts
 
     if uncertainty:
 
@@ -192,8 +195,8 @@ class CNNModule(nn.Module):
 
     in_shape = n_features
 
-    for out_shape, size, stride, dropout, weight_stddev, bias_const in zip(
-        layer_filters, kernel_size, strides, dropouts, weight_init_stddevs,
+    for out_shape, size, stride, weight_stddev, bias_const in zip(
+        layer_filters, kernel_size, strides, weight_init_stddevs,
         bias_init_consts):
 
       block = nn.Sequential()
@@ -215,8 +218,6 @@ class CNNModule(nn.Module):
         layer.bias = nn.Parameter(torch.full(layer.bias.shape, bias_const))
 
       block.append(layer)
-
-      block.append(nn.Dropout(dropout))
 
       self.layers.append(block)
 
@@ -242,8 +243,13 @@ class CNNModule(nn.Module):
 
     prev_layer = x
 
-    for layer, activation_fn in zip(self.layers, self.activation_fns):
+    for layer, activation_fn, dropout in zip(self.layers, self.activation_fns,
+                                             self.dropouts):
       x = layer(x)
+
+      if self.training and dropout > 0.0:
+        x = F.dropout(x, p=dropout)
+
       # residual blocks can only be used when successive layers have the same output shape
       if self.residual and x.shape[1] == prev_layer.shape[1]:
         x = x + prev_layer
