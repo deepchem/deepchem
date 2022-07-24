@@ -27,24 +27,20 @@ except:
 
 
 class CNNModule(nn.Module):
-  """A 1, 2, or 3 dimensional convolutional network, which can be reused as a layer
-
-  The network consists of the following sequence of sub-layers:
-
+  """A 1, 2, or 3 dimensional convolutional network for either regression or classification.
+  The network consists of the following sequence of layers:
   - A configurable number of convolutional layers
   - A global pooling layer (either max pool or average pool)
   - A final fully connected layer to compute the output
-
   It optionally can compose the model from pre-activation residual blocks, as
   described in https://arxiv.org/abs/1603.05027, rather than a simple stack of
   convolution layers.  This often leads to easier training, especially when using a
   large number of layers.  Note that residual blocks can only be used when
   successive layers have the same output shape.  Wherever the output shape changes, a
   simple convolution layer will be used even if residual=True.
-
   Examples
   --------
-  >>> model = CNNModule(n_tasks=5, n_features=8, dims=2, layer_filters=[3,8,8,16], kernel_size=2, n_classes = 7, mode='classification', uncertainty=False, padding='same')
+  >>> model = CNNModule(n_tasks=5, n_features=8, dims=2, layer_filters=[3,8,8,16], kernel_size=3, n_classes = 7, mode='classification', uncertainty=False)
   >>> x = torch.ones(2, 224, 224, 8)
   >>> x = model(x)
   >>> for tensor in x:
@@ -71,7 +67,6 @@ class CNNModule(nn.Module):
                residual: bool = False,
                padding: Union[int, str] = 'valid') -> None:
     """Create a CNN.
-
     Parameters
     ----------
     n_tasks: int
@@ -101,7 +96,7 @@ class CNNModule(nn.Module):
       where the final element corresponds to the dense layer.  Alternatively this
       may be a single value instead of a list, in which case the same value is used
       for every layer.
-    bias_init_consts: list or loat
+    bias_init_consts: list or float
       the value to initialize the biases in each layer to.  The length of this
       list should equal len(layer_filters)+1, where the final element corresponds
       to the dense layer.  Alternatively this may be a single value instead of a
@@ -169,7 +164,6 @@ class CNNModule(nn.Module):
       bias_init_consts = [bias_init_consts] * n_layers
 
     self.activation_fns = [get_activation(f) for f in activation_fns]
-    self.dropouts = dropouts
 
     if uncertainty:
 
@@ -195,8 +189,8 @@ class CNNModule(nn.Module):
 
     in_shape = n_features
 
-    for out_shape, size, stride, weight_stddev, bias_const in zip(
-        layer_filters, kernel_size, strides, weight_init_stddevs,
+    for out_shape, size, stride, dropout, weight_stddev, bias_const in zip(
+        layer_filters, kernel_size, strides, dropouts, weight_init_stddevs,
         bias_init_consts):
 
       block = nn.Sequential()
@@ -219,13 +213,15 @@ class CNNModule(nn.Module):
 
       block.append(layer)
 
+      block.append(nn.Dropout(dropout))
+
       self.layers.append(block)
 
       in_shape = out_shape
 
     self.classifier_ffn = nn.LazyLinear(self.n_tasks * self.n_classes)
-    self.regressor_ffn1 = nn.LazyLinear(self.n_tasks)
-    self.regressor_ffn2 = nn.LazyLinear(self.n_tasks)
+    self.output_layer = nn.LazyLinear(self.n_tasks)
+    self.uncertainty_layer = nn.LazyLinear(self.n_tasks)
 
   def forward(self, x: torch.Tensor) -> List[Any]:
     """
@@ -233,7 +229,6 @@ class CNNModule(nn.Module):
     ----------
     x: torch.Tensor
       Input Tensor
-
     Returns
     -------
     torch.Tensor
@@ -243,23 +238,18 @@ class CNNModule(nn.Module):
 
     prev_layer = x
 
-    for layer, activation_fn, dropout in zip(self.layers, self.activation_fns,
-                                             self.dropouts):
+    for layer, activation_fn in zip(self.layers, self.activation_fns):
       x = layer(x)
-
-      if self.training and dropout > 0.0:
-        x = F.dropout(x, p=dropout)
-
       # residual blocks can only be used when successive layers have the same output shape
       if self.residual and x.shape[1] == prev_layer.shape[1]:
         x = x + prev_layer
-
-      x = self.PoolLayer(x, kernel_size=x.size()[2:])
 
       if activation_fn is not None:
         x = activation_fn(x)
 
       prev_layer = x
+
+    x = self.PoolLayer(x, kernel_size=x.size()[2:])
 
     outputs = []
     batch_size = x.shape[0]
@@ -274,15 +264,14 @@ class CNNModule(nn.Module):
       outputs = [output, logits]
 
     else:
-      output = self.regressor_ffn1(x)
+      output = self.output_layer(x)
       output = output.view(batch_size, self.n_tasks)
 
       if self.uncertainty:
-        log_var = self.regressor_ffn2(x)
+        log_var = self.uncertainty_layer(x)
         log_var = log_var.view(batch_size, self.n_tasks, 1)
         var = torch.exp(log_var)
         outputs = [output, var, output, log_var]
-
       else:
         outputs = [output]
 

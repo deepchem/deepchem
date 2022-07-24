@@ -93,7 +93,7 @@ class CNN(TorchModel):
       where the final element corresponds to the dense layer.  Alternatively this
       may be a single value instead of a list, in which case the same value is used
       for every layer.
-    bias_init_consts: list or loat
+    bias_init_consts: list or float
       the value to initialize the biases in each layer to.  The length of this
       list should equal len(layer_filters)+1, where the final element corresponds
       to the dense layer.  Alternatively this may be a single value instead of a
@@ -166,7 +166,7 @@ class CNN(TorchModel):
       def loss(outputs, labels, weights):
         diff = labels[0] - outputs[0]
         return torch.mean(diff**2 / torch.exp(outputs[1]) + outputs[1])
-        
+
     else:
       loss = L2Loss()
 
