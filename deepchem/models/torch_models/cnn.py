@@ -4,11 +4,12 @@ import torch.nn.functional as F
 import numpy as np
 import deepchem as dc
 from deepchem.models.torch_models.torch_model import TorchModel
-from deepchem.models.losses import L2Loss
+from deepchem.models.torch_models.layers import CNNModule
+from deepchem.models.losses import L2Loss, Loss
 from deepchem.metrics import to_one_hot
 
 from typing import List, Union, Any, Callable, Optional
-from deepchem.utils.typing import OneOrMany, ActivationFn
+from deepchem.utils.typing import OneOrMany, ActivationFn, LossFn
 
 
 class CNN(TorchModel):
@@ -128,23 +129,22 @@ class CNN(TorchModel):
     self.n_classes = n_classes
     self.n_tasks = n_tasks
 
-    self.model = dc.models.torch_models.CNNModule(
-        n_tasks=n_tasks,
-        n_features=n_features,
-        dims=dims,
-        layer_filters=layer_filters,
-        kernel_size=kernel_size,
-        strides=strides,
-        weight_init_stddevs=weight_init_stddevs,
-        bias_init_consts=bias_init_consts,
-        dropouts=dropouts,
-        activation_fns=activation_fns,
-        pool_type=pool_type,
-        mode=mode,
-        n_classes=n_classes,
-        uncertainty=uncertainty,
-        residual=residual,
-        padding=padding)
+    self.model = CNNModule(n_tasks=n_tasks,
+                           n_features=n_features,
+                           dims=dims,
+                           layer_filters=layer_filters,
+                           kernel_size=kernel_size,
+                           strides=strides,
+                           weight_init_stddevs=weight_init_stddevs,
+                           bias_init_consts=bias_init_consts,
+                           dropouts=dropouts,
+                           activation_fns=activation_fns,
+                           pool_type=pool_type,
+                           mode=mode,
+                           n_classes=n_classes,
+                           uncertainty=uncertainty,
+                           residual=residual,
+                           padding=padding)
 
     regularization_loss: Optional[Callable]
 
@@ -159,7 +159,7 @@ class CNN(TorchModel):
     else:
       regularization_loss = None
 
-    loss: Union[L2Loss, Callable[[Any, Any, Any], Any]]
+    loss: Union[L2Loss, LossFn]
 
     if uncertainty:
 
