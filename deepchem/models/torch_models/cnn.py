@@ -39,7 +39,7 @@ class CNN(TorchModel):
   >>> dataset: dc.data.Dataset = dc.data.NumpyDataset(X, y)
   >>> regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
   >>> model = CNN(n_tasks, n_features, dims=1, kernel_size=3, mode='regression')
-  >>> avg_loss = model.fit(dataset, nb_epoch=200)
+  >>> avg_loss = model.fit(dataset, nb_epoch=10)
 
   """
 
