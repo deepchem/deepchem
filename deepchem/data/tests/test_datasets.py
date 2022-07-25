@@ -8,6 +8,8 @@ import os
 import numpy as np
 import pytest
 import deepchem as dc
+import pandas as pd
+import tempfile
 
 try:
   import torch  # noqa
@@ -773,6 +775,33 @@ def test_dataframe():
 
   dataset3 = dc.data.Dataset.from_dataframe(
       df, X=['X2', 'X4'], y='w', w=['y', 'X1'])
+  np.testing.assert_array_equal(dataset.X[:, (1, 3)], dataset3.X)
+  np.testing.assert_array_equal(dataset.w, dataset3.y)
+  np.testing.assert_array_equal(
+      np.stack([dataset.y[:, 0], dataset.X[:, 0]], axis=1), dataset3.w)
+
+
+def test_to_csv():
+  """Test converting between Dataset and CSV"""
+  tmpdir = tempfile.TemporaryDirectory()
+  csv_path = os.path.join(tmpdir.name, 'tmp.csv')
+
+  dataset = load_solubility_data()
+  dataset.reshard(2)
+  dataset.to_csv(csv_path)
+
+  df = pd.read_csv(csv_path)
+  dataset2 = dc.data.Dataset.from_dataframe(df)
+  np.testing.assert_array_equal(dataset.X, dataset2.X)
+  np.testing.assert_array_equal(dataset.y, dataset2.y)
+  np.testing.assert_array_equal(dataset.w, dataset2.w)
+  np.testing.assert_array_equal(dataset.ids, dataset2.ids)
+
+  # Try specifying particular columns
+  dataset3 = dc.data.Dataset.from_dataframe(df,
+                                            X=['X2', 'X4'],
+                                            y='w',
+                                            w=['y', 'X1'])
   np.testing.assert_array_equal(dataset.X[:, (1, 3)], dataset3.X)
   np.testing.assert_array_equal(dataset.w, dataset3.y)
   np.testing.assert_array_equal(

@@ -3,6 +3,7 @@ Contains wrapper class for datasets.
 """
 import json
 import os
+import csv
 import math
 import random
 import logging
@@ -692,6 +693,47 @@ class Dataset(object):
     else:
       ids_val = None
     return NumpyDataset(X_val, y_val, w_val, ids_val)
+
+  def to_csv(self, path: str) -> None:
+    """Write object to a comma-seperated values (CSV) file
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> X = np.random.rand(10, 10)
+    >>> dataset = dc.data.DiskDataset.from_numpy(X)
+    >>> dataset.to_csv('out.csv')  # doctest: +SKIP
+
+    Parameters
+    ----------
+    path: str
+      File path or object
+
+    Returns
+    -------
+    None
+    """
+    columns = []
+    X_shape, y_shape, w_shape, id_shape = self.get_shape()
+    if X_shape[1] == 1:
+      columns.append('X')
+    else:
+      columns.extend([f'X{i+1}' for i in range(X_shape[1])])
+    if y_shape[1] == 1:
+      columns.append('y')
+    else:
+      columns.extend([f'y{i+1}' for i in range(y_shape[1])])
+    if w_shape[1] == 1:
+      columns.append('w')
+    else:
+      columns.extend([f'w{i+1}' for i in range(w_shape[1])])
+    columns.append('ids')
+    with open(path, 'w', newline='') as csvfile:
+      writer = csv.writer(csvfile)
+      writer.writerow(columns)
+      for (x, y, w, ids) in self.itersamples():
+        writer.writerow(list(x) + list(y) + list(w) + [ids])
+    return None
 
 
 class NumpyDataset(Dataset):
