@@ -7,6 +7,7 @@ import zipfile
 import time
 import logging
 import warnings
+import allel
 from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator
 
 import pandas as pd
@@ -20,7 +21,6 @@ from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 from deepchem.utils.genomics_utils import encode_bio_sequence
 
 logger = logging.getLogger(__name__)
-
 
 def _convert_df_to_numpy(df: pd.DataFrame,
                          tasks: List[str]) -> Tuple[np.ndarray, np.ndarray]:
@@ -56,7 +56,6 @@ def _convert_df_to_numpy(df: pd.DataFrame,
     w[missing] = 0
 
   return y.astype(float), w.astype(float)
-
 
 class DataLoader(object):
   """Handles loading/featurizing of data from disk.
@@ -264,7 +263,6 @@ class DataLoader(object):
     """
     raise NotImplementedError
 
-
 class CSVLoader(DataLoader):
   """
   Creates `Dataset` objects from input CSV files.
@@ -419,7 +417,6 @@ class CSVLoader(DataLoader):
     ]
     return np.array(features), valid_inds
 
-
 class UserCSVLoader(CSVLoader):
   """
   Handles loading of CSV files with user-defined features.
@@ -510,7 +507,6 @@ class UserCSVLoader(CSVLoader):
     logger.info("TIMING: user specified processing took %0.3f s" %
                 (time2 - time1))
     return (X_shard, np.ones(len(X_shard), dtype=bool))
-
 
 class JsonLoader(DataLoader):
   """
@@ -710,7 +706,6 @@ class JsonLoader(DataLoader):
     ]
     return np.array(features), valid_inds
 
-
 class SDFLoader(DataLoader):
   """Creates a `Dataset` object from SDF input files.
 
@@ -892,7 +887,6 @@ class SDFLoader(DataLoader):
     ]
     return np.array(features), valid_inds
 
-
 class FASTALoader(DataLoader):
   """Handles loading of FASTA files.
 
@@ -1050,6 +1044,189 @@ class FASTALoader(DataLoader):
 
     return DiskDataset.create_dataset(shard_generator(), data_dir)
 
+class VCFLoader(DataLoader):
+  """Handles loading of VCF files.
+  VCF files are commonly used to hold very large sequence data. This
+  class provides convenience files to load VCF data.
+  """
+
+  def __init__(self,
+              featurizer = Optional[featurizer] = None,
+              fields = None,
+               ):
+    """Initialize VCFLoader.
+    Parameters
+    ----------
+    Parameters
+    ----------
+    featurizer: Featurizer (default: None)
+      The Featurizer to be used for the loaded FASTA data.
+      If featurizer is None and legacy is True, the original featurization
+      logic is used, creating a one hot encoding of all included FASTA strings
+      of shape
+      (number of FASTA sequences, number of channels + 1, sequence length, 1).
+      If featurizer is None and legacy is False, the featurizer is initialized
+      as a OneHotFeaturizer object with charset ("A", "C", "T", "G") and
+      max_length = None.
+
+    fields: list[str] (default None) as column names in the dataset.
+      List of field names to be extracted from file. Each name can be prefixed with
+      'variants'.
+   """
+    
+    if fields is not None:
+      print('fields: ' , fields)
+      # calldata/GT must be in fields
+      assert 'calldata/GT' in fields, "Genotype data not included in the list of fields."
+    # Set self.fields
+    self.fields = fields
+    
+
+    if featurizer:
+      warnings.warn(
+          """
+                    Featurizer must process data along axis >= 1 (and not axis 0)
+                    for numpy variant data as human samples per variant are always along axis other 
+                    than axis 0 (usually axis 1) .
+                    """, )
+      self.featurizer = featurizer
+    else:
+      self.featurizer = None
+
+  def _get_shards(self, 
+                  input_files: List[str],
+                  n_samples: Optional[int] = None,
+                  shard_size: Optional[int]= 70000) -> Iterator:
+    """Defines a generator which returns data for each shard
+    Parameters
+    ----------
+    input_files: List[str]
+      List of file names to process
+    n_samples:  int, optional
+      The number of samples to extract from each variant in the data
+    shard_size: int, optional
+      The size of a shard of data to process at a time. Here, shard_size is equal to the
+      number of variants to fetch. You can think of them as number of rows to get from the 
+      full dataset.
+    Returns
+    -------
+    Iterator
+      Iterator over shards
+    """
+    
+    return load_vcf_files(input_files, n_samples, self.fields, shard_size)
+
+  def create_dataset(self,
+                     input_files: OneOrMany[str],
+                     data_dir: Optional[str] = None,
+                     n_samples: Optional[int] = None,
+                     shard_size: Optional[int] = None,
+                     ) -> DiskDataset:
+    """Creates a `Dataset` from input VCF files.
+    Parameters
+    ----------
+    input_files: List[str]
+      List of vcf files.
+    n_samples: Optional[int]
+      Number of human samples to extract from data.
+    data_dir: str, optional (default None)
+      Name of directory where featurized data is stored.
+    shard_size: int, optional (default None)
+      For now, this argument is ignored and each VCF file gets its
+      own shard.
+    Returns
+    -------
+    DiskDataset
+      A `DiskDataset` object containing an array of string data
+      from `input_files`.
+    """
+    if isinstance(input_files, str):
+      input_files = [input_files]
+
+    def shard_generator():
+      for shard_num, shard in enumerate(self._get_shards(input_files, n_samples, shard_size)):
+        time1 = time.time()
+        # Read and process files in shards and store data in an array, return the variants and data_samples (X)
+        variants_features , X = _process(shard)
+        
+        if self.featurizer:
+          X = self.featurizer(X)
+        ids = np.arange(variants_features.shape[0])
+        time2 = time.time()
+        logger.info("TIMING: processing shard %d took %0.3f s" %
+                    (shard_num, time2 - time1))
+        # (X, y , w, ids)
+        yield X, None, variants_features, ids
+
+
+    def _process(batch: Dict) -> Tuple:
+      """
+      Create a numpy array of extracted vcf data. The processing of the data was simplified to 
+      the most common use case (i.e use of the calldata Genotype (GT) data alongside the 
+      variant fields ['CHROM', 'POS', 'REF', 'ALT'] ).
+      This is done because most of the other calldata reflects depth, quality or probability of 
+      the extracted Genotype Data so, they are seldom used in analysis. They also have different data shapes.
+      batch: Dict[field_names[str] : values [np.ndarray]]
+
+      Returns: tuple(variants_features[np.ndarray], data_array[np.ndarray])
+              variants_features.shape == (n_rows, len(fields), 1)
+              data_array.shape == (n_rows, len(human_samples), 2)
+      """
+    
+      # pre-set first_field variable to True. If the first field has been looped over its set to False
+      first_field = True
+      for field_name in batch.keys():
+        # Only attend to fields that start with variants
+        if field_name.startswith('variants'): 
+          field = batch[field_name]
+          # if its the first field in the item list
+          if first_field:  
+            # If each row has more than 1 element (column), remove the redundant element columns           
+            if len(field.shape) > 1:
+              # Remove redundant columns
+              for i in range(field.shape[1]-1,-1,-1):
+                  if np.all(field[:,i]== ''):
+                      field = field[:,:i]
+            # if the field is empty after removing the redundant columns, move to the next field.
+            if field.size == 0:
+                continue
+            elif len(field.shape) > 1:
+                # If the field still has more than one element(columns), change shape as below:
+                # Get shape of the field
+                n_rows, n_columns = field.shape
+                # Reshape into (number of rows, number of columns, 1)
+                variants_features = field.reshape(n_rows, n_columns, 1)
+                # Change variable to false
+                first_field = False
+            else:
+                # if there is just one element per row, then change shape and assign to the file_array variable.
+                # Reshape == (number of rows, 1,1)
+                variants_features = field.reshape(-1,1,1)
+                first_field= False
+            
+          else: # Repeat process as above
+            if len(field.shape) > 1:
+              for i in range(field.shape[1]-1,-1,-1):
+                    if np.all(field[:,i]== ''):
+                        field = field[:,:i]
+            if field.size == 0:
+              continue
+            elif len(field.shape) > 1:   
+              # Concatenated the field values to the file_array along the first dimension   
+              variants_features = np.concatenate((variants_features, np.expand_dims(field, axis=-1)), axis=1)
+              
+            else:         
+              # Concatenate the field values to the variants along the first dimension         
+              variants_features = np.concatenate((variants_features, field.reshape(-1,1,1)),axis=1)
+               
+        else: #If no variant
+          if field_name == 'calldata/GT':
+            # Extract genotype data only
+            data_array = batch[field_name]
+   
+      return variants_features, data_array
+
+    return DiskDataset.create_dataset(shard_generator(), data_dir)
 
 class ImageLoader(DataLoader):
   """Handles loading of image files.
@@ -1182,7 +1359,6 @@ class ImageLoader(DataLoader):
         return dataset
     else:
       return ImageDataset(image_files, y=labels, w=weights, ids=image_files)
-
 
 class InMemoryLoader(DataLoader):
   """Facilitate Featurization of In-memory objects.
@@ -1373,3 +1549,4 @@ class InMemoryLoader(DataLoader):
       ids.append(entry_id)
     X = np.concatenate(features, axis=0)
     return X, np.array(labels), np.array(weights), np.array(ids)
+
