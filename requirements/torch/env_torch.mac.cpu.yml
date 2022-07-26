@@ -8,3 +8,4 @@ dependencies:
     - torch-scatter
     - torch-sparse
     - torch-geometric
+    - pytorch-lightning 
