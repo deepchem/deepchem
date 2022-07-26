@@ -657,6 +657,23 @@ def test_position_wise_feed_forward():
 
 
 @pytest.mark.torch
+def test_position_wise_feed_forward_dropout_at_input():
+  """Test invoking PositionwiseFeedForward."""
+  torch.manual_seed(0)
+  input_ar = torch.tensor([[1., 2.], [5., 6.]])
+  layer = torch_layers.PositionwiseFeedForward(d_input=2,
+                                               d_hidden=2,
+                                               d_output=2,
+                                               activation='relu',
+                                               n_layers=1,
+                                               dropout_p=0.0,
+                                               dropout_at_input_no_act=True)
+  result = layer(input_ar)
+  output_ar = torch.tensor([[0.4810, -1.4331], [1.9771, -5.8426]])
+  assert torch.allclose(result, output_ar, rtol=1e-4)
+
+
+@pytest.mark.torch
 def test_sub_layer_connection():
   """Test invoking SublayerConnection."""
   torch.manual_seed(0)
