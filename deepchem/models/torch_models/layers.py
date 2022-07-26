@@ -1112,7 +1112,7 @@ class RealNVPLayer(nn.Module):
     s = self.s_func(y_mask) * self.scale
     t = self.t_func(y_mask)
 
-    x = y_mask + (1 - self.mask) * (y - t) * torch.exp(- s)
+    x = y_mask + (1 - self.mask) * (y - t) * torch.exp(-s)
 
     inverse_log_det_jacobian = ((1 - self.mask) * -s).sum(-1)
 
