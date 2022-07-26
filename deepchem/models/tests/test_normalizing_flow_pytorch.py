@@ -5,11 +5,14 @@ import pytest
 import numpy as np
 
 import unittest
+from numpy.testing import assert_almost_equal
 
 try:
   import torch
+  import torch.nn as nn
+  import torch.nn.functional as F
   from torch.distributions import MultivariateNormal
-  from deepchem.models.torch_models.layers import Affine
+  from deepchem.models.torch_models.layers import Affine, RealNVPLayer
   from deepchem.models.torch_models.normalizing_flows_pytorch import NormalizingFlow
   has_torch = True
 except:
@@ -91,3 +94,45 @@ def test_normalizing_flow_pytorch():
 
   # Assert errors for log_prob method
   assert np.array_equal(log_prob, zeros)
+
+@unittest.skipIf(not has_torch, 'torch is not installed')
+@pytest.mark.torch
+def test_RealNVPLayer():
+  """
+  This test should evaluate if the transformation its being applied
+  correctly. When computing the logarithm of the determinant jacobian matrix
+  the result must be zero for any distribution when performing the first forward
+  and inverse pass (initialized). This is the expected
+  behavior since nothing is being learned yet.
+
+  input shape: (samples, dim)
+  output shape: (samples, dim)
+
+  """
+
+  dim = 2
+  samples = 96
+  data = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
+  tensor = data.sample(torch.Size((samples, dim)))
+  zeros = np.zeros((samples, dim))
+
+  layers = 4
+  hidden_size = 16
+  masks = F.one_hot(torch.tensor([i % 2 for i in range(layers)])).float()
+  layers = nn.ModuleList([RealNVPLayer(mask, hidden_size) for mask in masks])
+
+  
+  for layer in layers:
+    _, log_det_jacobian = layer.forward(tensor)
+    log_det_jacobian = log_det_jacobian.detach().numpy()
+    assert_almost_equal(log_det_jacobian, zeros)
+
+
+
+  # # The first pass of the transformation should be 0
+  # log_det_jacobian = log_det_jacobian.detach().numpy()
+  # inverse_log_det_jacobian = inverse_log_det_jacobian.detach().numpy()
+  # zeros = np.zeros((samples,))
+
+  
+  # assert np.array_equal(inverse_log_det_jacobian, zeros)
