@@ -38,7 +38,7 @@ class CNNModule(nn.Module):
   simple convolution layer will be used even if residual=True.
   Examples
   --------
-  >>> model = CNNModule(n_tasks=5, n_features=8, dims=2, layer_filters=[3,8,8,16], kernel_size=3, n_classes = 7, mode='classification', uncertainty=False)
+  >>> model = CNNModule(n_tasks=5, n_features=8, dims=2, layer_filters=[3,8,8,16], kernel_size=3, n_classes = 7, mode='classification', uncertainty=False, padding='same')
   >>> x = torch.ones(2, 224, 224, 8)
   >>> x = model(x)
   >>> for tensor in x:
@@ -216,7 +216,7 @@ class CNNModule(nn.Module):
     self.output_layer = nn.LazyLinear(self.n_tasks)
     self.uncertainty_layer = nn.LazyLinear(self.n_tasks)
 
-  def forward(self, inputs: List[torch.Tensor]) -> List[Any]:
+  def forward(self, inputs: OneOrMany[torch.Tensor]) -> List[Any]:
     """
     Parameters
     ----------
@@ -227,7 +227,10 @@ class CNNModule(nn.Module):
     torch.Tensor
       Output as per use case : regression/classification
     """
-    x, dropout_switch = inputs
+    if isinstance(inputs, torch.Tensor):
+      x, dropout_switch = inputs, None
+    else:
+      x, dropout_switch = inputs
 
     x = torch.transpose(x, 1, -1)  # n h w c -> n c h w
 
