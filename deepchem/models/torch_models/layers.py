@@ -162,6 +162,7 @@ class CNNModule(nn.Module):
       bias_init_consts = [bias_init_consts] * n_layers
 
     self.activation_fns = [get_activation(f) for f in activation_fns]
+    self.dropouts = dropouts
 
     if uncertainty:
 
@@ -187,11 +188,9 @@ class CNNModule(nn.Module):
 
     in_shape = n_features
 
-    for out_shape, size, stride, dropout, weight_stddev, bias_const in zip(
-        layer_filters, kernel_size, strides, dropouts, weight_init_stddevs,
+    for out_shape, size, stride, weight_stddev, bias_const in zip(
+        layer_filters, kernel_size, strides, weight_init_stddevs,
         bias_init_consts):
-
-      block = nn.Sequential()
 
       layer = ConvLayer(in_channels=in_shape,
                         out_channels=out_shape,
@@ -209,11 +208,7 @@ class CNNModule(nn.Module):
       if layer.bias is not None:
         layer.bias = nn.Parameter(torch.full(layer.bias.shape, bias_const))
 
-      block.append(layer)
-
-      block.append(nn.Dropout(dropout))
-
-      self.layers.append(block)
+      self.layers.append(layer)
 
       in_shape = out_shape
 
@@ -221,7 +216,7 @@ class CNNModule(nn.Module):
     self.output_layer = nn.LazyLinear(self.n_tasks)
     self.uncertainty_layer = nn.LazyLinear(self.n_tasks)
 
-  def forward(self, x: torch.Tensor) -> List[Any]:
+  def forward(self, inputs: List[torch.Tensor]) -> List[Any]:
     """
     Parameters
     ----------
@@ -232,12 +227,19 @@ class CNNModule(nn.Module):
     torch.Tensor
       Output as per use case : regression/classification
     """
+    x, dropout_switch = inputs
+
     x = torch.transpose(x, 1, -1)  # n h w c -> n c h w
 
     prev_layer = x
 
-    for layer, activation_fn in zip(self.layers, self.activation_fns):
+    for layer, activation_fn, dropout in zip(self.layers, self.activation_fns,
+                                             self.dropouts):
       x = layer(x)
+
+      if dropout > 0. and dropout_switch:
+        x = F.dropout(x, dropout)
+
       # residual blocks can only be used when successive layers have the same output shape
       if self.residual and x.shape[1] == prev_layer.shape[1]:
         x = x + prev_layer

@@ -1,14 +1,12 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
 import deepchem as dc
 from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.torch_models.layers import CNNModule
-from deepchem.models.losses import L2Loss, Loss
+from deepchem.models.losses import L2Loss
 from deepchem.metrics import to_one_hot
 
-from typing import List, Union, Any, Callable, Optional
+from typing import List, Union, Callable, Optional
 from deepchem.utils.typing import OneOrMany, ActivationFn, LossFn
 
 
@@ -203,4 +201,6 @@ class CNN(TorchModel):
             y_b = to_one_hot(y_b.flatten(), self.n_classes)\
                 .reshape(-1, self.n_tasks, self.n_classes)
 
-        yield ([X_b], [y_b], [w_b])
+        dropout = np.array(0.) if mode == 'predict' else np.array(1.)
+
+        yield ([X_b, dropout], [y_b], [w_b])
