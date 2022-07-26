@@ -2,7 +2,7 @@
 Implementation of KFAC, a second order optimizer, in PyTorch.
 """
 import math
-from typing import Optional, Callable, Dict, Tuple, List
+from typing import Optional, Callable, Dict, Tuple, List, Union
 try:
   import torch
   import torch.optim as optim
@@ -120,9 +120,10 @@ class KFACOptimizer(optim.Optimizer):
 
     return x
 
-  def _extract_patches(self, x: torch.Tensor, kernel_size: Tuple[int, ...],
-                       stride: Tuple[int, ...],
-                       padding: Tuple[int, ...]) -> torch.Tensor:
+  def _extract_patches(
+      self, x: torch.Tensor, kernel_size: Tuple[int, ...],
+      stride: Tuple[int, ...], padding: Union[int, str,
+                                              Tuple[int, ...]]) -> torch.Tensor:
     """
     Extract patches of a given size from the input tensor given. Used in calculating
     the matrices for the kronecker product in the case of 2d Convolutions.
@@ -135,7 +136,7 @@ class KFACOptimizer(optim.Optimizer):
       the kernel size of the conv filter.
     stride: Tuple[int, ...]
       the stride of conv operation.
-    padding: Tuple[int, ...]
+    padding: Union[int, str, Tuple[int, ...]]
       number of paddings. be a tuple of two elements
 
     Return:
@@ -143,14 +144,24 @@ class KFACOptimizer(optim.Optimizer):
     torch.Tensor:
       Extracted patches with shape (batch_size, out_h, out_w, in_c*kh*kw)
     """
-    if padding[0] + padding[1] > 0:
-      x = torch.nn.functional.pad(x, (padding[1], padding[1], padding[0],
-                                      padding[0])).data  # Actually check dims
-      x = x.unfold(2, kernel_size[0], stride[0])
-      x = x.unfold(3, kernel_size[1], stride[1])
-      x = x.transpose_(1, 2).transpose_(2, 3).contiguous()
-      x = x.view(x.size(0), x.size(1), x.size(2),
-                 x.size(3) * x.size(4) * x.size(5))
+    if isinstance(padding, tuple):
+      if padding[0] + padding[1] > 0:
+        x = torch.nn.functional.pad(x, (padding[1], padding[1], padding[0],
+                                        padding[0])).data  # Actually check dims
+    elif isinstance(padding, int):
+      if padding > 0:
+        x = torch.nn.functional.pad(x,
+                                    (padding, padding, padding, padding)).data
+    elif isinstance(padding, str):
+      if padding == 'VALID':
+        pad = int((kernel_size[0] - 1) / 2)
+        x = torch.nn.functional.pad(x, (pad, pad, pad, pad)).data
+
+    x = x.unfold(2, kernel_size[0], stride[0])
+    x = x.unfold(3, kernel_size[1], stride[1])
+    x = x.transpose_(1, 2).transpose_(2, 3).contiguous()
+    x = x.view(x.size(0), x.size(1), x.size(2),
+               x.size(3) * x.size(4) * x.size(5))
     return x
 
   def compute_cov_a(self, a: torch.Tensor,
@@ -326,7 +337,10 @@ class KFACOptimizer(optim.Optimizer):
           "KFAC optimizer currently support only Linear and Conv2d layers")
 
     if m.bias is not None:
-      p_grad_mat = torch.cat([p_grad_mat, m.bias.grad.data.view(-1, 1)], 1)
+      if isinstance(m.bias.grad.data, torch.Tensor):
+        p_grad_mat = torch.cat([p_grad_mat, m.bias.grad.data.view(-1, 1)], 1)
+      else:
+        raise TypeError("bias.grad.data should be a Tensor")
     return p_grad_mat
 
   def _get_natural_grad(self, m: torch.nn.Module, p_grad_mat: torch.Tensor,
@@ -339,7 +353,7 @@ class KFACOptimizer(optim.Optimizer):
     m: torch.nn.Module
       Specifies the layer for which the calculation must be done on.
     p_grad_mat: torch.Tensor
-      the gradients in matrix form
+      the gradients in matrix form isinstance(m.weight.grad.data, torch.Tensor) and i
     damping: float
       the damping factor for the calculation
 
@@ -356,9 +370,14 @@ class KFACOptimizer(optim.Optimizer):
     if m.bias is not None:
       # we always put gradient w.r.t weight in [0]
       # and w.r.t bias in [1]
-      v = [a[:, :-1], a[:, -1:]]
-      v[0] = v[0].view(m.weight.grad.data.size())
-      v[1] = v[1].view(m.bias.grad.data.size())
+      if isinstance(m.weight.grad.data, torch.Tensor) and isinstance(
+          m.bias.grad.data, torch.Tensor):
+        v = [a[:, :-1], a[:, -1:]]
+        v[0] = v[0].view(m.weight.grad.data.size())
+        v[1] = v[1].view(m.bias.grad.data.size())
+      else:
+        raise TypeError(
+            "weight.grad.data and bias.grad.data should be a Tensor")
     else:
       v = [a.view(m.weight.grad.data.size())]
 
@@ -388,11 +407,17 @@ class KFACOptimizer(optim.Optimizer):
 
     for m in self.modules:
       v = updates[m]
-      m.weight.grad.data.copy_(v[0])
-      m.weight.grad.data.mul_(nu)
+      if isinstance(m.weight.grad.data, torch.Tensor):
+        m.weight.grad.data.copy_(v[0])
+        m.weight.grad.data.mul_(nu)
+      else:
+        raise TypeError("weight.grad.data should be a Tensor")
       if m.bias is not None:
-        m.bias.grad.data.copy_(v[1])
-        m.bias.grad.data.mul_(nu)
+        if isinstance(m.bias.grad.data, torch.Tensor):
+          m.bias.grad.data.copy_(v[1])
+          m.bias.grad.data.mul_(nu)
+        else:
+          raise TypeError("bias.grad.data should be a Tensor")
 
   def _step(self, closure: Optional[Callable] = None):
     """
