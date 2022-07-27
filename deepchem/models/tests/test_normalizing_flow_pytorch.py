@@ -124,4 +124,4 @@ def test_RealNVPLayer():
   for layer in layers:
     _, log_det_jacobian = layer.forward(tensor)
     log_det_jacobian = log_det_jacobian.detach().numpy()
-    assert np.isclose(log_det_jacobian, zeros).any()
+    assert np.isclose(log_det_jacobian, zeros, rtol=1e-01).any()
