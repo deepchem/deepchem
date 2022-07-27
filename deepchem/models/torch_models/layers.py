@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from typing import Any, Tuple, Optional, Sequence, List, Union
+from typing import Any, Tuple, Optional, Sequence, List, Union, Callable
 
 try:
   import torch
@@ -1005,3 +1005,33 @@ class InteratomicL2Distances(nn.Module):
                               (1, M_nbrs, 1))
     # Shape (N_atoms, M_nbrs)
     return torch.sum((tiled_coords - nbr_coords)**2, dim=2)
+
+
+class Lambda(nn.Module):
+  """This layer is analogous to tf.keras.layers.Lambda
+  It wraps function in nn.Module enabling pure functional operations to be performed
+  on Torch layers
+  """
+
+  def __init__(self, lambda_func: Callable):
+    """Constructor of this layer
+
+    Parameters
+    ----------
+    lambda_func: Callable
+      lambda function, to be wrapped in nn.Module
+    
+    """
+    super(Lambda, self).__init__()
+    self.lambda_func = lambda_func
+
+  def forward(self, x):
+    """
+    Invokes this layer
+    
+    Parameters
+    ----------
+    x : torch.Tensor
+      The output tensor of previous layer on which function is to be called upon
+    """
+    return self.lambda_func(x)

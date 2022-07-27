@@ -4,22 +4,12 @@ import torch.nn.functional as F
 import numpy as np
 import deepchem as dc
 from deepchem.models.torch_models import TorchModel
-from typing import Callable
+from deepchem.models.torch_models.layers import Lambda
 
 
 def _list_or_tensor(inputs):
 
   return inputs[0] if len(inputs) == 1 else inputs
-
-
-class LambdaLayer(nn.Module):
-
-  def __init__(self, lambda_func: Callable):
-    super(LambdaLayer, self).__init__()
-    self.lambda_func = lambda_func
-
-  def forward(self, x):
-    return self.lambda_func(x)
 
 
 class GAN(nn.Module):
@@ -99,10 +89,9 @@ class GAN(nn.Module):
     return discriminator(inputs + self.conditional_input_layers)
 
   def create_generator_loss(self, discrim_output):
-    return LambdaLayer(lambda x: -torch.mean(torch.log(x + 1e-10)))(
-        discrim_output)
+    return Lambda(lambda x: -torch.mean(torch.log(x + 1e-10)))(discrim_output)
 
   def create_discriminator_loss(self, discrim_output_train, discrim_output_gen):
-    return LambdaLayer(lambda x: -torch.mean(
+    return Lambda(lambda x: -torch.mean(
         torch.log(x[0] + 1e-10) + torch.log(1 - x[1] + 1e-10)))(
             [discrim_output_train, discrim_output_gen])
