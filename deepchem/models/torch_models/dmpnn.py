@@ -1,4 +1,10 @@
 import numpy as np
+
+import torch
+import torch.nn as nn
+from deepchem.models.torch_models import layers
+from deepchem.models.torch_models import TorchModel
+
 from deepchem.feat import GraphData
 from typing import List, Sequence, Optional
 
@@ -212,3 +218,111 @@ class _MapperDMPNN:
 
     for count, i in enumerate(b2revb):
       self.mapping[count][np.where(self.mapping[count] == i)] = -1
+
+
+class DMPNN(nn.Module):
+  """
+  """
+
+  def __init__(self,
+               mode='regression',
+               n_classes=3,
+               n_tasks=1,
+               number_of_molecules=1,
+               global_features_size=0,
+               device=torch.device('cpu'),
+               use_default_fdim=True,
+               atom_fdim=133,
+               bond_fdim=14,
+               enc_hidden=300,
+               depth=3,
+               bias=False,
+               enc_activation='relu',
+               enc_dropout_p=0.0,
+               aggregation='mean',
+               aggregation_norm=100,
+               encoder_wts_shared=False,
+               ffn_hidden: int = 300,
+               ffn_activation: str = 'relu',
+               ffn_layers: int = 3,
+               ffn_dropout_p: float = 0.0,
+               ffn_dropout_at_input_no_act: bool = True):
+    """
+    """
+    super(DMPNN, self).__init__()
+    self.mode = mode
+    self.n_classes = n_classes
+    self.n_tasks = n_tasks
+    self.device = device
+
+    # get encoders
+    def get_encoder():
+      return layers.DMPNNEncoderLayer(use_default_fdim=use_default_fdim,
+                                      atom_fdim=atom_fdim,
+                                      bond_fdim=bond_fdim,
+                                      d_hidden=enc_hidden,
+                                      depth=depth,
+                                      bias=bias,
+                                      activation=enc_activation,
+                                      dropout_p=enc_dropout_p,
+                                      aggregation=aggregation,
+                                      aggregation_norm=aggregation_norm)
+
+    if encoder_wts_shared:
+      self.encoders = nn.ModuleList([get_encoder()] * number_of_molecules)
+    else:
+      self.encoders = nn.ModuleList(
+          [get_encoder() for _ in range(number_of_molecules)])
+
+    # get input size for ffn
+    ffn_input = (enc_hidden + global_features_size) * number_of_molecules
+
+    # get output size for ffn
+    if self.mode == 'regression' or 'classification':
+      ffn_output = self.n_tasks
+    elif self.mode == 'multiclass':
+      ffn_output = self.n_tasks * self.n_classes
+
+    # get ffn
+    self.ffn = layers.PositionwiseFeedForward(
+        d_input=ffn_input,
+        d_hidden=ffn_hidden,
+        d_output=ffn_output,
+        activation=ffn_activation,
+        n_layers=ffn_layers,
+        dropout_p=ffn_dropout_p,
+        dropout_at_input_no_act=ffn_dropout_at_input_no_act)
+
+  def forward(self, data):
+    """
+    """
+    # implementation for a single molecule
+    atom_features = torch.from_numpy(data[0]).float().to(self.device)
+    f_ini_atoms_bonds = torch.from_numpy(data[1]).float().to(self.device)
+    atom_to_incoming_bonds = torch.from_numpy(data[2]).to(self.device)
+    mapping = torch.from_numpy(data[3]).to(self.device)
+    global_features = torch.from_numpy(data[4]).float().to(self.device)
+
+    encodings = self.encoders[0](atom_features, f_ini_atoms_bonds,
+                                 atom_to_incoming_bonds, mapping,
+                                 global_features)
+    output = self.ffn(encodings)
+
+    if self.mode == 'regression':
+      output = output
+    elif self.mode == 'classification':
+      output = nn.functional.sigmoid(output)
+    elif self.mode == 'multiclass':
+      output = output.view(-1, self.n_tasks, self.n_classes)
+      output = nn.functional.softmax(dim=2)
+
+    return output
+
+
+class DMPNNModel(TorchModel):
+  """
+  TODO: implement torch model class for DMPNN
+  """
+
+  def __init__(self):
+    return NotImplementedError

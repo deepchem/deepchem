@@ -426,9 +426,13 @@ class PositionwiseFeedForward(nn.Module):
   Each layer in the MAT encoder contains a fully connected feed-forward network which applies two linear transformations and the given activation function.
   This is done in addition to the SublayerConnection module.
 
+  Note: This modified version of `PositionwiseFeedForward` class contains `dropout_at_input_no_act` condition to facilitate its use in defining
+        the feed-forward (FFN) algorithm for the Directed Message Passing Neural Network (D-MPNN) [2]_
+
   References
   ----------
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+  .. [2] Analyzing Learned Molecular Representations for Property Prediction https://arxiv.org/pdf/1904.01561.pdf
 
   Examples
   --------
@@ -444,7 +448,8 @@ class PositionwiseFeedForward(nn.Module):
                d_output: int = 1024,
                activation: str = 'leakyrelu',
                n_layers: int = 1,
-               dropout_p: float = 0.0):
+               dropout_p: float = 0.0,
+               dropout_at_input_no_act: bool = False):
     """Initialize a PositionwiseFeedForward layer.
 
     Parameters
@@ -462,8 +467,12 @@ class PositionwiseFeedForward(nn.Module):
       Number of layers.
     dropout_p: float
       Dropout probability.
+    dropout_at_input_no_act: bool
+      If true, dropout is applied on the input tensor. For single layer, it is not passed to an activation function.
     """
     super(PositionwiseFeedForward, self).__init__()
+
+    self.dropout_at_input_no_act: bool = dropout_at_input_no_act
 
     if activation == 'relu':
       self.activation: Any = nn.ReLU()
@@ -514,9 +523,14 @@ class PositionwiseFeedForward(nn.Module):
       return x
 
     if self.n_layers == 1:
-      return self.dropout_p[0](self.activation(self.linears[0](x)))
+      if self.dropout_at_input_no_act:
+        return self.linears[0](self.dropout_p[0](x))
+      else:
+        return self.dropout_p[0](self.activation(self.linears[0](x)))
 
     else:
+      if self.dropout_at_input_no_act:
+        x = self.dropout_p[0](x)
       for i in range(self.n_layers - 1):
         x = self.dropout_p[i](self.activation(self.linears[i](x)))
       return self.linears[-1](x)
