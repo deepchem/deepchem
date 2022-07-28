@@ -5,10 +5,12 @@ from typing import List, Sequence, Optional
 
 class _MapperDMPNN:
   """
-  This class is a helper class for DMPNNModel class to generate concatenated feature vector and mapping.
+  This class is a helper class for DMPNNModel class to generate concatenated feature vector and mappings.
 
   `self.f_ini_atoms_bonds` is the concatenated feature vector which contains
   concatenation of initial atom and bond features.
+
+  `self.atom_to_incoming_bonds` is mapping from atom index to list of indicies of incoming bonds.
 
   `self.mapping` is the mapping that maps bond index to 'array of indices of the bonds'
   incoming at the initial atom of the bond (excluding the reverse bonds)
@@ -46,6 +48,18 @@ class _MapperDMPNN:
 
     (Note: f(-1) is a zero array of the same size as other concatenated features.)
 
+  `atom_to_incoming_bonds` is mapping from atom index to list of indicies of incoming bonds.
+
+                   B3          B1
+    Example: 'A2' ----> 'A0' <---- 'A1', for A0 => [B1, B3]
+
+  Hence,
+                                 A0        A1        A2
+    atom_to_incoming_bonds = [ [B1,B3] [B0,B(-1)] [B2,B(-1)] ]
+
+    (Note: Here, maximum number of incoming bonds is 2. So, -1 index is added to all those cases
+           where number of incoming bonds is less than maximum. In this case, its for A1 and A2.)
+
   To get mapping, first find indices of the bonds, incoming at the initial atom of the bond.
 
     Example: for bond B0, B1 and B3 are coming towards atom 0.
@@ -62,13 +76,16 @@ class _MapperDMPNN:
   To get the required mapping, reverse bond indices are replaced with -1
   and extra space in the array elements is filled with -1, to get a uniform array.
 
+  The mapping is also padded with -1 at the end, so that the length of `mapping` is
+  equal to the length of `f_ini_atoms_bonds`.
+
   Hence,
-                    B0          B1          B2            B3
-    mapping = [ [B(-1),B3] [B(-1),B(-1)] [B1,B(-1)] [B(-1),B(-1)] ]
+                    B0          B1          B2            B3          B(-1)
+    mapping = [ [B(-1),B3] [B(-1),B(-1)] [B1,B(-1)] [B(-1),B(-1)] [B(-1),B(-1)] ]
 
     OR
 
-    mapping = [[-1, 3], [-1, -1], [1, -1], [-1, -1]]
+    mapping = [[-1, 3], [-1, -1], [1, -1], [-1, -1], [-1, -1]]
   """
 
   def __init__(self, graph: GraphData):
@@ -95,6 +112,9 @@ class _MapperDMPNN:
     # mapping from bond index to concat(in_atom, bond) features
     self.f_ini_atoms_bonds: np.ndarray = np.empty(0)
 
+    # mapping from atom index to list of indicies of incoming bonds
+    self.atom_to_incoming_bonds: np.ndarray
+
     # mapping which maps bond index to 'array of indices of the bonds' incoming at the initial atom of the bond (excluding the reverse bonds)
     self.mapping: np.ndarray = np.empty(0)
 
@@ -102,19 +122,28 @@ class _MapperDMPNN:
       self.bond_to_ini_atom = np.empty(0)
       self.f_ini_atoms_bonds = np.zeros(
           (1, self.num_atom_features + self.num_bond_features))
+
+      self.atom_to_incoming_bonds = np.asarray([[-1]], dtype=int)
       self.mapping = np.asarray([[-1]], dtype=int)
 
     else:
       self.bond_to_ini_atom = self.bond_index[0]
       self._get_f_ini_atoms_bonds()  # its zero padded at the end
-      self._generate_mapping()
+
+      self.atom_to_incoming_bonds = self._get_atom_to_incoming_bonds()
+      self._generate_mapping()  # its padded with -1 at the end
 
   @property
   def values(self) -> Sequence[np.ndarray]:
     """
-    Returns the required mappings
+    Returns the required mappings:
+    - atom features
+    - concat features (atom + bond)
+    - atom to incoming bonds mapping
+    - mapping
+    - global features
     """
-    return self.f_ini_atoms_bonds, self.mapping, self.global_features
+    return self.atom_features, self.f_ini_atoms_bonds, self.atom_to_incoming_bonds, self.mapping, self.global_features
 
   def _get_f_ini_atoms_bonds(self):
     """
@@ -132,16 +161,17 @@ class _MapperDMPNN:
     incoming at the initial atom of the bond (reverse bonds are not considered).
 
     Steps:
-    - Generate `atom_to_incoming_bonds` matrix.
-    - Get mapping based on `atom_to_incoming_bonds` and `self.bond_to_ini_atom`.
+    - Get mapping based on `self.atom_to_incoming_bonds` and `self.bond_to_ini_atom`.
     - Replace reverse bond indices with -1.
+    - Pad the mapping with -1.
     """
-    # mapping from atom index to list of indicies of incoming bonds
-    atom_to_incoming_bonds = self._get_atom_to_incoming_bonds()
 
     # get mapping which maps bond index to 'array of indices of the bonds' incoming at the initial atom of the bond
-    self.mapping = atom_to_incoming_bonds[self.bond_to_ini_atom]
+    self.mapping = self.atom_to_incoming_bonds[self.bond_to_ini_atom]
     self._replace_rev_bonds()
+
+    # padded with -1 at the end
+    self.mapping = np.pad(self.mapping, ((0, 1), (0, 0)), constant_values=-1)
 
   def _get_atom_to_incoming_bonds(self) -> np.ndarray:
     """
