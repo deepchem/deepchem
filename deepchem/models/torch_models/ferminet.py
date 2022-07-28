@@ -2,19 +2,17 @@
 Implementation of the Ferminet class in pytorch
 """
 
-from typing import List
-import torch
+from typing import List, Optional
 import torch.nn as nn
-import torch.nn.functional as F
-import pyscf
 from rdkit import Chem
 import numpy as np
 
-from deepchem.models.torch_models import TorchModel
-import deepchem.models.optimizers as optim
+# from deepchem.models.torch_models import TorchModel
+# import deepchem.models.optimizers as optim
 from deepchem.utils.electron_sampler import ElectronSampler
 
 # TODO look for the loss function(Hamiltonian)
+
 
 class Ferminet(nn.Module):
   """A deep-learning based Variational Monte Carlo method for calculating the ab-initio
@@ -30,7 +28,7 @@ class Ferminet(nn.Module):
     This method is based on the following paper:
     """
 
-  def __init__(self, nucleon_coordinates: List[str, List[int]]):
+  def __init__(self, nucleon_coordinates: List[str, List[float, float, float]]):
     """
     Parameters:
     -----------
@@ -46,9 +44,16 @@ class Ferminet(nn.Module):
     # TODO replace this function with forward pass of the model in future
     return 2 * np.log(np.random.uniform(low=0, high=1.0, size=np.shape(x)[0]))
 
-  def prepare_input_stream(self):
+  def prepare_input_stream(
+      self,
+      seed_no: Optional[int] = None,
+  ):
     """Prepares the one-electron and two-electron input stream for the model.
-    
+    Parameters:
+    -----------
+    seed_no: int, optional (default None)
+      Random seed to use for electron initialization.
+
     Returns:
     --------
     one_electron_vector: numpy.ndarray
@@ -64,27 +69,35 @@ class Ferminet(nn.Module):
     nucleons = []
 
     for i in self.nucleon_coordinates:
-      mol=Chem.MolFromSmiles(i[0])
+      mol = Chem.MolFromSmiles(i[0])
       for j in mol.GetAtoms():
-        nucleons.append(j.GetAtomicNum()-j.GetFormalCharge())
+        no_electrons.append(j.GetAtomicNum() - j.GetFormalCharge())
       nucleons.append(i[1])
 
     electron_no = np.array(no_electrons)
     nuceleon_pos = np.array(nucleons)
 
     molecule = ElectronSampler(
-        central_value=nucleons, seed=0, f=self.test_f,
-        steps=1000, seed=0)  # sample the electrons using the electron sampler
+        central_value=nuceleon_pos, seed=seed_no, f=self.test_f,
+        steps=1000)  # sample the electrons using the electron sampler
     molecule.gauss_initialize_position(
-        no_electrons)  # initialize the position of the electrons
+        electron_no)  # initialize the position of the electrons
 
-    self.one_electron_vector=molecule.x-nucleons
-    self.one_electron_distance=np.linalg.norm(self.one_electron_vector,axis=-1)
+    self.one_electron_vector = molecule.x - nuceleon_pos
 
-    shape=np.shape(nucleons)
-    self.two_electron_vector=nucleons-nucleons.reshape([shape[0], shape[2], 1, 3])
-    self.two_electron_distance=np.linalg.norm(self.two_electron_vector,axis=-1)
-    
+    shape = np.shape(molecule.x)
+    self.two_electron_vector = molecule.x.reshape([shape[0], 1, shape[1], 3
+                                                  ]) - molecule.x
+
+    self.one_electron_vector = self.one_electron_vector[0, :, :, :]
+    self.two_electron_vector = self.two_electron_vector[0, :, :, :]
+
+    self.one_electron_distance = np.linalg.norm(self.one_electron_vector,
+                                                axis=-1)
+    self.two_electron_distance = np.linalg.norm(self.two_electron_vector,
+                                                axis=-1)
+
+
 # TODO """
 # def loss():
 # """Calculate the loss."""
