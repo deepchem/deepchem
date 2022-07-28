@@ -708,6 +708,40 @@ def test_mat_generator():
 
 
 @pytest.mark.torch
+def test_dmpnn_encoder_layer():
+  """Test invoking DMPNNEncoderLayer."""
+  torch.manual_seed(0)
+
+  input_smile = "CC"
+  feat = dc.feat.DMPNNFeaturizer(features_generators=['morgan'])
+  graph = feat.featurize(input_smile)
+
+  from deepchem.models.torch_models.dmpnn import _MapperDMPNN
+  mapper = _MapperDMPNN(graph[0])
+  atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features = mapper.values
+
+  atom_features = torch.from_numpy(atom_features).float()
+  f_ini_atoms_bonds = torch.from_numpy(f_ini_atoms_bonds).float()
+  atom_to_incoming_bonds = torch.from_numpy(atom_to_incoming_bonds)
+  mapping = torch.from_numpy(mapping)
+  global_features = torch.from_numpy(global_features).float()
+
+  layer = torch_layers.DMPNNEncoderLayer(d_hidden=2)
+  assert layer.W_i.__repr__(
+  ) == 'Linear(in_features=147, out_features=2, bias=False)'
+  assert layer.W_h.__repr__(
+  ) == 'Linear(in_features=2, out_features=2, bias=False)'
+  assert layer.W_o.__repr__(
+  ) == 'Linear(in_features=135, out_features=2, bias=True)'
+
+  output = layer(atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds,
+                 mapping, global_features)
+  readout_output = torch.tensor([[0.1116, 0.0470]])
+  assert output.shape == torch.Size([1, 2 + 2048])
+  assert torch.allclose(output[0][:2], readout_output, atol=1e-4)
+
+
+@pytest.mark.torch
 def test_torch_interatomic_l2_distances():
   """Test Invoking the torch equivalent of InteratomicL2Distances"""
   atoms = 5

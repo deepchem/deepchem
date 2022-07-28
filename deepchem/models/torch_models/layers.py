@@ -940,6 +940,106 @@ class Affine(nn.Module):
     return x, inverse_log_det_jacobian
 
 
+class DMPNNEncoderLayer(nn.Module):
+  """
+  """
+  def __init__(self, use_default_fdim=True, atom_fdim=133, bond_fdim=14, d_hidden=300, depth=3, bias=False, activation='relu', dropout_p=0.0, aggregation='mean', aggregation_norm=100):
+    """
+    """
+    super(DMPNNEncoderLayer, self).__init__()
+
+    if use_default_fdim:
+      from deepchem.feat.molecule_featurizers.dmpnn_featurizer import GraphConvConstants
+      self.atom_fdim = GraphConvConstants.ATOM_FDIM
+      self.concat_fdim = GraphConvConstants.ATOM_FDIM + GraphConvConstants.BOND_FDIM
+    else:
+      self.atom_fdim = atom_fdim
+      self.concat_fdim = atom_fdim + bond_fdim
+
+    self.depth = depth
+    self.aggregation = aggregation
+    self.aggregation_norm = aggregation_norm
+
+    if activation == 'relu':
+      self.activation = nn.ReLU()
+
+    elif activation == 'leakyrelu':
+      self.activation = nn.LeakyReLU(0.1)
+
+    elif activation == 'prelu':
+      self.activation = nn.PReLU()
+
+    elif activation == 'tanh':
+      self.activation = nn.Tanh()
+
+    elif activation == 'selu':
+      self.activation = nn.SELU()
+
+    elif activation == 'elu':
+      self.activation = nn.ELU()
+
+    self.dropout = nn.Dropout(dropout_p)
+
+    # Input
+    self.W_i = nn.Linear(self.concat_fdim, d_hidden, bias=bias)
+        
+    # Shared weight matrix across depths (default):
+      # For messages hidden states
+    self.W_h = nn.Linear(d_hidden, d_hidden, bias=bias)
+
+      # For atom hidden states
+    self.W_o = nn.Linear(self.atom_fdim + d_hidden, d_hidden)
+
+  def _get_updated_atoms_hidden_state(self, atom_features, h_message, atom_to_incoming_bonds):
+    """
+    """
+    messages_to_atoms = h_message[atom_to_incoming_bonds].sum(1) # num_atoms x hidden_size
+    atoms_hidden_states = self.W_o(torch.cat((atom_features, messages_to_atoms), 1))  # num_atoms x hidden_size
+    atoms_hidden_states = self.activation(atoms_hidden_states)  # num_atoms x hidden_size
+    atoms_hidden_states = self.dropout(atoms_hidden_states)  # num_atoms x hidden_size
+    return atoms_hidden_states  # num_atoms x hidden_size
+
+  def _readout(self, atoms_hidden_states):
+    """
+    """
+    if self.aggregation == 'mean':
+        mol_vec = atoms_hidden_states.sum(dim=0) / len(atoms_hidden_states)
+    elif self.aggregation == 'sum':
+        mol_vec = atoms_hidden_states.sum(dim=0)
+    elif self.aggregation == 'norm':
+        mol_vec = atoms_hidden_states.sum(dim=0) / self.aggregation_norm
+    else:
+      raise Exception("Invalid aggregation")
+    molecule_hidden_state = mol_vec.view(1, -1)
+    return molecule_hidden_state  # num_molecules x hidden_size
+
+  def forward(self, atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features) -> torch.Tensor:
+    """
+    """
+    input = self.W_i(f_ini_atoms_bonds)  # num_bonds x hidden_size
+    message = self.activation(input) # num_bonds x hidden_size
+
+    for _ in range(1, self.depth):
+      message = message[mapping].sum(1)  # num_bonds x hidden_size
+      h_message = input + self.W_h(message) # num_bonds x hidden_size
+      h_message = self.activation(h_message) # num_bonds x hidden_size
+      h_message = self.dropout(h_message) # num_bonds x hidden_size
+
+    # num_atoms x hidden_size
+    atoms_hidden_states = self._get_updated_atoms_hidden_state(atom_features, h_message, atom_to_incoming_bonds)
+
+    # num_molecules x hidden_size
+    output = self._readout(atoms_hidden_states)
+
+    # concat global features
+    if global_features.size != 0 :
+      if len(global_features.shape) == 1:
+        global_features = global_features.view(1, -1)
+      output = torch.cat([output, global_features], dim=1)
+    
+    return output
+
+
 class InteratomicL2Distances(nn.Module):
   """Compute (squared) L2 Distances between atoms given neighbors.
 
