@@ -1096,8 +1096,17 @@ class RealNVPLayer(nn.Module):
 
     Parameters
     ----------
-    input shape: (samples, dim)
-    output shape: (samples, dim)
+    x : Sequence
+      Tensor sample with the initial distribution data which will pass into
+      the normalizing algorithm
+
+    Returns
+    -------
+    y : torch.Tensor
+      Transformed tensor according to Real NVP layer with the shape of 'x'.
+    log_det_jacobian : torch.Tensor
+      Tensor which represents the info about the deviation of the initial
+      and target distribution.
 
     """
     x_mask = x * self.mask
@@ -1118,8 +1127,17 @@ class RealNVPLayer(nn.Module):
 
     Parameters
     ----------
-    input shape: (samples, dim)
-    output shape: (samples, dim)
+    y : Sequence
+      Tensor sample with transformed distribution data which will be used in
+      the normalizing algorithm inverse pass.
+
+    Returns
+    -------
+    x : torch.Tensor
+      Transformed tensor according to Real NVP layer with the shape of 'y'.
+    inverse_log_det_jacobian : torch.Tensor
+      Tensor which represents the information of the deviation of the initial
+      and target distribution.
 
     """
     y_mask = y * self.mask
