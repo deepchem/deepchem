@@ -94,7 +94,7 @@ class CNN(KerasModel):
     weight_decay_penalty_type: str
       the type of penalty to use for weight decay, either 'l1' or 'l2'
     dropouts: list or float
-      the dropout probablity to use for each layer.  The length of this list should equal len(layer_filters).
+      the dropout probability to use for each layer.  The length of this list should equal len(layer_filters).
       Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
     activation_fns: list or object
       the Tensorflow activation function to apply to each layer.  The length of this list should equal
@@ -171,7 +171,7 @@ class CNN(KerasModel):
                    layers.GlobalAveragePooling3D)[dims - 1]
     elif pool_type == 'max':
       PoolLayer = (layers.GlobalMaxPool1D, layers.GlobalMaxPool2D,
-                   layers.GlobalMaxPool2D)[dims - 1]
+                   layers.GlobalMaxPool3D)[dims - 1]
     else:
       raise ValueError('pool_type must be either "average" or "max"')
     for filters, size, stride, weight_stddev, bias_const, dropout, activation_fn in zip(
@@ -203,8 +203,8 @@ class CNN(KerasModel):
       prev_layer = Activation(activation_fn)(prev_layer)
     prev_layer = PoolLayer()(prev_layer)
     if mode == 'classification':
-      logits = Reshape((n_tasks,
-                        n_classes))(Dense(n_tasks * n_classes)(prev_layer))
+      logits = Reshape(
+          (n_tasks, n_classes))(Dense(n_tasks * n_classes)(prev_layer))
       output = Softmax()(logits)
       outputs = [output, logits]
       output_types = ['prediction', 'loss']
@@ -243,14 +243,15 @@ class CNN(KerasModel):
                         deterministic=True,
                         pad_batches=True):
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+      for (X_b, y_b, w_b,
+           ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                         deterministic=deterministic,
+                                         pad_batches=pad_batches):
         if self.mode == 'classification':
           if y_b is not None:
-            y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
-                -1, self.n_tasks, self.n_classes)
+            y_b = to_one_hot(y_b.flatten(),
+                             self.n_classes).reshape(-1, self.n_tasks,
+                                                     self.n_classes)
         if mode == 'predict':
           dropout = np.array(0.0)
         else:

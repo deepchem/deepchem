@@ -1,6 +1,7 @@
 import deepchem as dc
 import numpy as np
 import pytest
+
 try:
   import tensorflow as tf
   import deepchem.models.layers as layers
@@ -127,8 +128,8 @@ def test_weave_layer():
   mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
   featurizer = dc.feat.WeaveFeaturizer()
   mols = featurizer.featurize(mols)
-  weave = layers.WeaveLayer(
-      init=tf.keras.initializers.TruncatedNormal(stddev=0.03))
+  weave = layers.WeaveLayer(init=tf.keras.initializers.TruncatedNormal(
+      stddev=0.03))
   atom_feat = []
   pair_feat = []
   atom_to_pair = []
@@ -193,11 +194,10 @@ def test_weave_gather():
   assert np.array(outputs[1]).shape == (11 * 75,)
 
   # Try with compression
-  gather = layers.WeaveGather(
-      batch_size=2,
-      n_input=75,
-      gaussian_expand=True,
-      compress_post_gaussian_expansion=True)
+  gather = layers.WeaveGather(batch_size=2,
+                              n_input=75,
+                              gaussian_expand=True,
+                              compress_post_gaussian_expansion=True)
   # Outputs should be [mol1_vec, mol2_vec)
   outputs = gather(inputs)
   assert len(outputs) == 2
@@ -391,7 +391,8 @@ def test_weighted_linear_combo():
   layer = layers.WeightedLinearCombo()
   result = layer([input1, input2])
   assert len(layer.trainable_variables) == 2
-  expected = input1 * layer.trainable_variables[0] + input2 * layer.trainable_variables[1]
+  expected = input1 * layer.trainable_variables[
+      0] + input2 * layer.trainable_variables[1]
   assert np.allclose(result, expected)
 
 
@@ -420,8 +421,8 @@ def test_atomic_convolution():
   dimensions = 3
   params = [[5.0, 2.0, 0.5], [10.0, 2.0, 0.5]]
   input1 = np.random.rand(batch_size, max_atoms, dimensions).astype(np.float32)
-  input2 = np.random.randint(
-      max_atoms, size=(batch_size, max_atoms, max_neighbors))
+  input2 = np.random.randint(max_atoms,
+                             size=(batch_size, max_atoms, max_neighbors))
   input3 = np.random.randint(1, 10, size=(batch_size, max_atoms, max_neighbors))
   layer = layers.AtomicConvolution(radial_params=params)
   result = layer([input1, input2, input3])
@@ -558,10 +559,12 @@ def test_DAG_layer():
   max_atoms = 50
   layer_sizes = [100]
   atom_features = np.random.rand(batch_size, n_atom_feat)
-  parents = np.random.randint(
-      0, max_atoms, size=(batch_size, max_atoms, max_atoms))
-  calculation_orders = np.random.randint(
-      0, batch_size, size=(batch_size, max_atoms))
+  parents = np.random.randint(0,
+                              max_atoms,
+                              size=(batch_size, max_atoms, max_atoms))
+  calculation_orders = np.random.randint(0,
+                                         batch_size,
+                                         size=(batch_size, max_atoms))
   calculation_masks = np.random.randint(0, 2, size=(batch_size, max_atoms))
   # Recall that the DAG layer expects a MultiConvMol as input,
   # so the "batch" is a pooled set of atoms from all the
@@ -569,11 +572,10 @@ def test_DAG_layer():
   # This means that n_atoms is the batch-size
   n_atoms = batch_size
   #dropout_switch = False
-  layer = layers.DAGLayer(
-      n_graph_feat=n_graph_feat,
-      n_atom_feat=n_atom_feat,
-      max_atoms=max_atoms,
-      layer_sizes=layer_sizes)
+  layer = layers.DAGLayer(n_graph_feat=n_graph_feat,
+                          n_atom_feat=n_atom_feat,
+                          max_atoms=max_atoms,
+                          layer_sizes=layer_sizes)
   outputs = layer([
       atom_features,
       parents,
@@ -597,11 +599,10 @@ def test_DAG_gather():
   n_outputs = 75
   max_atoms = 50
   layer_sizes = [100]
-  layer = layers.DAGGather(
-      n_graph_feat=n_graph_feat,
-      n_outputs=n_outputs,
-      max_atoms=max_atoms,
-      layer_sizes=layer_sizes)
+  layer = layers.DAGGather(n_graph_feat=n_graph_feat,
+                           n_outputs=n_outputs,
+                           max_atoms=max_atoms,
+                           layer_sizes=layer_sizes)
   atom_features = np.random.rand(batch_size, n_atom_feat)
   membership = np.sort(np.random.randint(0, batch_size, size=(batch_size)))
   outputs = layer([atom_features, membership])
@@ -628,13 +629,12 @@ def test_multi_headed_mat_attention():
   adj = torch.tensor(out[0].adjacency_matrix).float().unsqueeze(0)
   dist = torch.tensor(out[0].distance_matrix).float().unsqueeze(0)
   mask = torch.sum(torch.abs(node), dim=-1) != 0
-  layer = torch_layers.MultiHeadedMATAttention(
-      dist_kernel='softmax',
-      lambda_attention=0.33,
-      lambda_distance=0.33,
-      h=16,
-      hsize=1024,
-      dropout_p=0.0)
+  layer = torch_layers.MultiHeadedMATAttention(dist_kernel='softmax',
+                                               lambda_attention=0.33,
+                                               lambda_distance=0.33,
+                                               h=16,
+                                               hsize=1024,
+                                               dropout_p=0.0)
   op = torch_layers.MATEmbedding()(node)
   output = layer(op, op, op, mask, adj, dist)
   assert (output.shape == (1, 3, 1024))
@@ -645,15 +645,31 @@ def test_position_wise_feed_forward():
   """Test invoking PositionwiseFeedForward."""
   torch.manual_seed(0)
   input_ar = torch.tensor([[1., 2.], [5., 6.]])
-  layer = torch_layers.PositionwiseFeedForward(
-      d_input=2,
-      d_hidden=2,
-      d_output=2,
-      activation='relu',
-      n_layers=1,
-      dropout_p=0.0)
+  layer = torch_layers.PositionwiseFeedForward(d_input=2,
+                                               d_hidden=2,
+                                               d_output=2,
+                                               activation='relu',
+                                               n_layers=1,
+                                               dropout_p=0.0)
   result = layer(input_ar)
   output_ar = torch.tensor([[0.4810, 0.0000], [1.9771, 0.0000]])
+  assert torch.allclose(result, output_ar, rtol=1e-4)
+
+
+@pytest.mark.torch
+def test_position_wise_feed_forward_dropout_at_input():
+  """Test invoking PositionwiseFeedForward."""
+  torch.manual_seed(0)
+  input_ar = torch.tensor([[1., 2.], [5., 6.]])
+  layer = torch_layers.PositionwiseFeedForward(d_input=2,
+                                               d_hidden=2,
+                                               d_output=2,
+                                               activation='relu',
+                                               n_layers=1,
+                                               dropout_p=0.0,
+                                               dropout_at_input_no_act=True)
+  result = layer(input_ar)
+  output_ar = torch.tensor([[0.4810, -1.4331], [1.9771, -5.8426]])
   assert torch.allclose(result, output_ar, rtol=1e-4)
 
 
@@ -706,3 +722,20 @@ def test_mat_generator():
   result = layer(input_ar, mask)
   output_ar = torch.tensor([-1.4436])
   assert torch.allclose(result, output_ar, rtol=1e-4)
+
+
+@pytest.mark.torch
+def test_torch_interatomic_l2_distances():
+  """Test Invoking the torch equivalent of InteratomicL2Distances"""
+  atoms = 5
+  neighbors = 2
+  coords = np.random.rand(atoms, 3)
+  neighbor_list = np.random.randint(0, atoms, size=(atoms, neighbors))
+  layer = torch_layers.InteratomicL2Distances(atoms, neighbors, 3)
+  result = layer([coords, neighbor_list])
+  assert result.shape == (atoms, neighbors)
+  for atom in range(atoms):
+    for neighbor in range(neighbors):
+      delta = coords[atom] - coords[neighbor_list[atom, neighbor]]
+      dist2 = np.dot(delta, delta)
+      assert np.allclose(dist2, result[atom, neighbor])
