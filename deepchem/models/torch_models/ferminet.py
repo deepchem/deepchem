@@ -39,7 +39,7 @@ class Ferminet:
     Parameters:
     -----------
     nucleon_coordinates:  List[List]
-      A dictionary containing nucleon coordinates as the values with the keys as the element's symbol.
+      A list containing nucleon coordinates as the values with the keys as the element's symbol.
     seed_no: int, optional (default None)
       Random seed to use for electron initialization.
     batch_number: int, optional (default 10)
@@ -75,31 +75,32 @@ class Ferminet:
     nucleons = []
 
     for i in self.nucleon_coordinates:
-      mol = Chem.MolFromSmiles(i[0])
+      mol = Chem.MolFromSmiles('[' + i[0] + ']')
       for j in mol.GetAtoms():
+        self.charge.append(j.GetAtomicNum())
         no_electrons.append([j.GetAtomicNum() - j.GetFormalCharge()])
       nucleons.append(i[1])
 
-    electron_no = np.array(no_electrons)
-    nuceleon_pos = np.array(nucleons)
+    self.electron_no = np.array(no_electrons)
+    self.nucleon_pos = np.array(nucleons)
 
     molecule = ElectronSampler(
         batch_no=self.batch_number,
-        central_value=nuceleon_pos,
+        central_value=self.nucleon_pos,
         seed=self.seed_no,
         f=self.test_f,
         steps=1000)  # sample the electrons using the electron sampler
     molecule.gauss_initialize_position(
-        electron_no)  # initialize the position of the electrons
+        self.electron_no)  # initialize the position of the electrons
 
-    self.one_electron_vector = molecule.x - nuceleon_pos
+    self.one_electron_vector: np.ndarray = molecule.x - self.nucleon_pos
 
     shape = np.shape(molecule.x)
     self.two_electron_vector: np.ndarray = molecule.x.reshape(
         [shape[0], 1, shape[1], 3]) - molecule.x
 
-    self.one_electron_vector: np.ndarray = self.one_electron_vector[0, :, :, :]
-    self.two_electron_vector: np.ndarray = self.two_electron_vector[0, :, :, :]
+    self.one_electron_vector = self.one_electron_vector[0, :, :, :]
+    self.two_electron_vector = self.two_electron_vector[0, :, :, :]
 
     self.one_electron_distance: np.ndarray = np.linalg.norm(
         self.one_electron_vector, axis=-1)
