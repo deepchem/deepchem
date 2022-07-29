@@ -81,25 +81,25 @@ class Ferminet:
       nucleons.append(i[1])
 
     electron_no = np.array(no_electrons)
-    nuceleon_pos = np.array(nucleons)
+    nucleon_pos = np.array(nucleons)
 
     molecule = ElectronSampler(
         batch_no=self.batch_number,
-        central_value=nuceleon_pos,
+        central_value=nucleon_pos,
         seed=self.seed_no,
         f=self.test_f,
         steps=1000)  # sample the electrons using the electron sampler
     molecule.gauss_initialize_position(
         electron_no)  # initialize the position of the electrons
 
-    self.one_electron_vector = molecule.x - nuceleon_pos
+    self.one_electron_vector: np.ndarray = molecule.x - nucleon_pos
 
     shape = np.shape(molecule.x)
     self.two_electron_vector: np.ndarray = molecule.x.reshape(
         [shape[0], 1, shape[1], 3]) - molecule.x
 
-    self.one_electron_vector: np.ndarray = self.one_electron_vector[0, :, :, :]
-    self.two_electron_vector: np.ndarray = self.two_electron_vector[0, :, :, :]
+    self.one_electron_vector = self.one_electron_vector[0, :, :, :]
+    self.two_electron_vector = self.two_electron_vector[0, :, :, :]
 
     self.one_electron_distance: np.ndarray = np.linalg.norm(
         self.one_electron_vector, axis=-1)
