@@ -84,6 +84,7 @@ tutorials discuss about using DeepChem for specific applications.
 ### Bioinformatics
 * [1 Introduction to BioInformatics](Introduction_to_Bioinformatics.ipynb)
 * [2 Multisequence Alignments](Multisequence_Alignments.ipynb)
+* [3 Deep Probabilistic Analysis of Single-Cell Omics Data](Deep_probabilistic_analysis_of_single-cell_omics_data.ipynb)
 
 ### Material Science
 * [1 Introduction to Material Science](Introduction_To_Material_Science.ipynb)
