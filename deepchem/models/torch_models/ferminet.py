@@ -73,9 +73,10 @@ class Ferminet:
 
     no_electrons = []
     nucleons = []
+    self.charge: List[List] = []
 
     for i in self.nucleon_coordinates:
-      mol = Chem.MolFromSmiles('['+i[0]+']')
+      mol = Chem.MolFromSmiles('[' + i[0] + ']')
       for j in mol.GetAtoms():
         self.charge.append(j.GetAtomicNum())
         no_electrons.append([j.GetAtomicNum() - j.GetFormalCharge()])
@@ -83,6 +84,9 @@ class Ferminet:
 
     self.electron_no = np.array(no_electrons)
     self.nucleon_pos = np.array(nucleons)
+
+    spin = np.sum(self.electron_no) % 2
+    self.up_spin: int = (spin + np.sum(self.electron_no)) // 2
 
     molecule = ElectronSampler(
         batch_no=self.batch_number,
@@ -93,19 +97,36 @@ class Ferminet:
     molecule.gauss_initialize_position(
         self.electron_no)  # initialize the position of the electrons
 
-    self.one_electron_vector: np.ndarray = molecule.x - self.nucleon_pos
+    one_electron_vector = molecule.x - self.nucleon_pos
 
     shape = np.shape(molecule.x)
-    self.two_electron_vector: np.ndarray = molecule.x.reshape(
-        [shape[0], 1, shape[1], 3]) - molecule.x
+    two_electron_vector = molecule.x.reshape([shape[0], 1, shape[1], 3
+                                             ]) - molecule.x
 
-    self.one_electron_vector = self.one_electron_vector[0, :, :, :]
-    self.two_electron_vector = self.two_electron_vector[0, :, :, :]
+    one_electron_vector = one_electron_vector[0, :, :, :]
+    two_electron_vector = two_electron_vector[0, :, :, :]
 
-    self.one_electron_distance: np.ndarray = np.linalg.norm(
-        self.one_electron_vector, axis=-1)
-    self.two_electron_distance: np.ndarray = np.linalg.norm(
-        self.two_electron_vector, axis=-1)
+    self.one_electron_distance: np.ndarray = np.linalg.norm(one_electron_vector,
+                                                            axis=-1)
+    self.two_electron_distance: np.ndarray = np.linalg.norm(two_electron_vector,
+                                                            axis=-1)
+
+    one_shape = np.shape(self.one_electron_distance)
+    self.one_electron: np.ndarray = np.block(
+        one_electron_vector,
+        self.one_electron_distance.reshape(1, one_shape[0], one_shape[1], 1))
+    two_shape = np.shape(self.two_electron_distance)
+    self.two_electron: np.ndarray = np.block(
+        two_electron_vector,
+        self.two_electron_distance.reshape(1, two_shape[0], two_shape[1], 1))
+
+    self.one_electron_up: np.ndarray = one_electron_vector[:self.up_spin, :, :]
+    self.one_electron_down: np.ndarray = one_electron_vector[
+        self.up_spin:, :, :]
+
+    self.two_electron_up: np.ndarray = two_electron_vector[:self.up_spin, :, :]
+    self.two_electron_down: np.ndarray = two_electron_vector[
+        self.up_spin:, :, :]
 
   def calculate_potential(self,):
     """Calculates the potential energy of the system, required for the hamiltonian.
@@ -116,9 +137,10 @@ class Ferminet:
       The potential energy of the system.
     """
     # electron-nuclear potential energy
-    electron_nuclear=-1/self.one_electron_distance*self.charge
-    # 
+    electron_nuclear = -1 / self.one_electron_distance * self.charge
+    #
     pass
+
 
 # TODO """
 # def loss():
