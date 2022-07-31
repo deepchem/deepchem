@@ -3,6 +3,7 @@ Implementation of the Ferminet class in pytorch
 """
 
 from typing import List, Optional
+from typing_extensions import reveal_type
 # import torch.nn as nn
 from rdkit import Chem
 import numpy as np
@@ -46,33 +47,35 @@ class Ferminet:
       Number of batches of the electron's positions to be initialized.
 
     """
-    super(Ferminet, self).__init__()
+    # super(Ferminet, self).__init__()
 
     self.nucleon_coordinates = nucleon_coordinates
     self.seed_no = seed_no
     self.batch_number = batch_number
 
-  def test_f(x):
+  def test_f(x: np.ndarray) -> np.ndarray:
     # dummy function which can be passed as the parameter f. f gives the log probability
     # TODO replace this function with forward pass of the model in future
     return 2 * np.log(np.random.uniform(low=0, high=1.0, size=np.shape(x)[0]))
 
-  def prepare_input_stream(self,):
+  def prepare_input_stream(self,) -> np.ndarray:
     """Prepares the one-electron and two-electron input stream for the model.
 
     Returns:
     --------
-    one_electron_vector: numpy.ndarray
-      The one-electron input stream containing the distance vector between the electron and nucleus coordinates.
-    one_electron_distance: numpy.ndarray
-      The one-electron input stream containing the distance between the electron and nucleus coordinates.
-    two_electron_vector: numpy.ndarray
-      The two-electron input stream containing the distance vector between all the electrons coordinates.
-    two_electron_distance: numpy.ndarray
+    one_electron_up: numpy.ndarray
+      numpy array containing one-electron coordinates and distances for the up spin electrons.
+    one_electron_down: numpy.ndarray
+      numpy array containing one-electron coordinates and distances for the down spin electrons
+    two_electron_up: numpy.ndarray
+      numpy array containing two-electron coordinates and distances for the up spin electrons
+    two_electron_down: numpy.ndarray
+      numpy array containing two-electron coordinates and distances for the down spin electrons
     """
 
     no_electrons = []
     nucleons = []
+    self.charge: List = []
 
     for i in self.nucleon_coordinates:
       mol = Chem.MolFromSmiles('[' + i[0] + ']')
@@ -81,8 +84,11 @@ class Ferminet:
         no_electrons.append([j.GetAtomicNum() - j.GetFormalCharge()])
       nucleons.append(i[1])
 
-    self.electron_no = np.array(no_electrons)
-    self.nucleon_pos = np.array(nucleons)
+    self.electron_no: np.ndarray = np.array(no_electrons)
+    self.nucleon_pos: np.ndarray = np.array(nucleons)
+
+    spin = np.sum(self.electron_no) % 2
+    self.up_spin: int = (spin + np.sum(self.electron_no)) // 2
 
     molecule = ElectronSampler(
         batch_no=self.batch_number,
@@ -93,36 +99,34 @@ class Ferminet:
     molecule.gauss_initialize_position(
         self.electron_no)  # initialize the position of the electrons
 
-    self.one_electron_vector: np.ndarray = molecule.x - self.nucleon_pos
+    one_electron_vector = molecule.x - self.nucleon_pos
 
     shape = np.shape(molecule.x)
-    self.two_electron_vector: np.ndarray = molecule.x.reshape(
-        [shape[0], 1, shape[1], 3]) - molecule.x
+    two_electron_vector = molecule.x.reshape([shape[0], 1, shape[1], 3
+                                             ]) - molecule.x
 
-    self.one_electron_vector = self.one_electron_vector[0, :, :, :]
-    self.two_electron_vector = self.two_electron_vector[0, :, :, :]
+    one_electron_vector = one_electron_vector[0, :, :, :]
+    two_electron_vector = two_electron_vector[0, :, :, :]
 
-    self.one_electron_distance: np.ndarray = np.linalg.norm(
-        self.one_electron_vector, axis=-1)
-    self.two_electron_distance: np.ndarray = np.linalg.norm(
-        self.two_electron_vector, axis=-1)
+    self.one_electron_distance: np.ndarray = np.linalg.norm(one_electron_vector,
+                                                            axis=-1)
+    self.two_electron_distance: np.ndarray = np.linalg.norm(two_electron_vector,
+                                                            axis=-1)
 
+    # concatenating distance and vectors arrays
+    one_shape = np.shape(self.one_electron_distance)
+    one_distance = self.one_electron_distance.reshape(1, one_shape[0],
+                                                      one_shape[1], 1)
+    one_electron = np.block([one_electron_vector, one_distance])
+    two_shape = np.shape(self.two_electron_distance)
+    two_distance = self.two_electron_distance.reshape(1, two_shape[0],
+                                                      two_shape[1], 1)
+    two_electron = np.block([two_electron_vector, two_distance])
 
-# TODO """
-# def loss():
-# """Calculate the loss."""
-# pass
+    one_electron_up = one_electron[:self.up_spin, :, :]
+    one_electron_down = one_electron[self.up_spin:, :, :]
 
-# def scf():
-# "" Perform the SCF calculation."""
-# pass
+    two_electron_up = two_electron[:self.up_spin, :, :]
+    two_electron_down = two_electron_vector[self.up_spin:, :, :]
 
-# def pretrain():
-# """ Perform the pretraining.
-# """
-# pass
-
-# def forward(self, x):
-# """ Forward pass of the model.
-# """
-# pass
+    return one_electron_up, one_electron_down, two_electron_up, two_electron_down
