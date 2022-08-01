@@ -1399,7 +1399,7 @@ class NeighborList(nn.Module):
     ]
 
     padded_closest_nbrs = [
-        torch.topk(-padded_dist, k=self.M_nbrs)[1]
+        torch.topk(padded_dist, k=self.M_nbrs, largest=False)[1]
         for padded_dist in padded_dists
     ]
 
@@ -1498,10 +1498,9 @@ class NeighborList(nn.Module):
     # Shape (n_cells, N_atoms)
     coords_norm = torch.reshape(coords_vec, (n_cells, N_atoms))
 
-    # Find k atoms closest to this cell. Notice negative sign since
-    # tf.nn.top_k returns *largest* not smallest.
+    # Find k atoms closest to this cell.
     # Tensor of shape (n_cells, M_nbrs)
-    closest_inds = torch.topk(-coords_norm, k=M_nbrs)[1]
+    closest_inds = torch.topk(coords_norm, k=M_nbrs, largest=False)[1]
 
     return closest_inds
 
@@ -1531,7 +1530,7 @@ class NeighborList(nn.Module):
     coords_vec = torch.sum((tiled_coords - tiled_cells)**2, dim=-1)
     coords_norm = torch.reshape(coords_vec, (N_atoms, n_cells))
 
-    closest_inds = torch.topk(-coords_norm, k=1)[1]
+    closest_inds = torch.topk(coords_norm, k=1, largest=False)[1]
 
     return closest_inds
 
@@ -1569,7 +1568,7 @@ class NeighborList(nn.Module):
 
     coords_vec = torch.sum((tiled_centers - tiled_cells)**2, dim=-1)
     coords_norm = torch.reshape(coords_vec, (n_cells, n_cells))
-    closest_inds = torch.topk(-coords_norm, k=n_nbr_cells)[1]
+    closest_inds = torch.topk(coords_norm, k=n_nbr_cells, largest=False)[1]
 
     return closest_inds
 
