@@ -739,3 +739,20 @@ def test_torch_interatomic_l2_distances():
       delta = coords[atom] - coords[neighbor_list[atom, neighbor]]
       dist2 = np.dot(delta, delta)
       assert np.allclose(dist2, result[atom, neighbor])
+
+
+@pytest.mark.torch
+def test_torch_neighbor_list():
+  """Test invoking the Torch equivalent of NeighborList."""
+  N_atoms = 5
+  start = 0
+  stop = 12
+  nbr_cutoff = 3
+  ndim = 3
+  M_nbrs = 2
+  coords = start + np.random.rand(N_atoms, ndim) * (stop - start)
+  coords = torch.from_numpy(coords).type(torch.FloatTensor)
+  layer = torch_layers.NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop)
+  result = layer(coords)
+  print(result)
+  assert result.shape == (N_atoms, M_nbrs)
