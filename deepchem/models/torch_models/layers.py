@@ -1300,7 +1300,8 @@ class NeighborList(nn.Module):
   TODO(rbharath): Make this layer support batching.
   """
 
-  def __init__(self, N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop, **kwargs):
+  def __init__(self, N_atoms: int, M_nbrs: int, ndim: int,
+               nbr_cutoff: Union[int, float], start: int, stop: int, **kwargs):
     """
     Parameters
     ----------
@@ -1311,8 +1312,12 @@ class NeighborList(nn.Module):
     ndim: int
       Dimensionality of space atoms live in. (Typically 3D, but sometimes will
       want to use higher dimensional descriptors for atoms).
-    nbr_cutoff: float
+    nbr_cutoff: int or float
       Length in Angstroms (?) at which atom boxes are gridded.
+    start: int
+      Start of range for the box in which the locations of all grid points will be calculated in `self.get_cells()`.
+    stop: int
+      End of range for the box in which the locations of all grid points will be calculated in `self.get_cells()`.
     """
     super(NeighborList, self).__init__(**kwargs)
     self.N_atoms = N_atoms
