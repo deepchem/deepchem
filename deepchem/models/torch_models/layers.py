@@ -1537,7 +1537,7 @@ class NeighborList(nn.Module):
 
   def _get_num_nbrs(self) -> int:
     """Get number of neighbors in current dimensionality space."""
-    return 3 ** self.ndim
+    return 3**self.ndim
 
   def get_neighbor_cells(self, cells: torch.Tensor) -> torch.Tensor:
     """Compute neighbors of cells in grid.

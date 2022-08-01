@@ -752,6 +752,7 @@ def test_torch_neighbor_list():
   M_nbrs = 2
   coords = start + np.random.rand(N_atoms, ndim) * (stop - start)
   coords = torch.from_numpy(coords).to(torch.float)
-  layer = torch_layers.NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop)
+  layer = torch_layers.NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
+                                    stop)
   result = layer(coords)
   assert result.shape == (N_atoms, M_nbrs)
