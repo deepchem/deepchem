@@ -1381,7 +1381,7 @@ class NeighborList(nn.Module):
 
     # Add phantom atoms that exist far outside the box
     coord_padding = torch.full((self.M_nbrs, self.ndim),
-                               2 * self.stop).type(torch.FloatTensor)
+                               2 * self.stop).to(torch.float)
     padded_nbr_coords = [
         torch.cat([nbr_coord, coord_padding], 0) for nbr_coord in nbr_coords
     ]
@@ -1592,4 +1592,4 @@ class NeighborList(nn.Module):
     return torch.reshape(
         torch.permute(torch.stack(torch.meshgrid(*mesh_args, indexing='xy')),
                       tuple(range(self.ndim, -1, -1))),
-        (self.n_cells, self.ndim)).type(torch.FloatTensor)
+        (self.n_cells, self.ndim)).to(torch.float)
