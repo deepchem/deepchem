@@ -1308,11 +1308,11 @@ class CombineMeanStd(nn.Module):
 
     Parameters
     ----------
-    training_only: bool
+    training_only: bool, optional (default False).
       if True, noise is only generated during training.  During
       prediction, the output is simply equal to the first input (that
       is, the mean of the distribution used during training).
-    noise_epsilon: float
+    noise_epsilon: float, optional (default 1.0).
       The noise is scaled by this factor
     """
     super(CombineMeanStd, self).__init__(**kwargs)
@@ -1329,7 +1329,7 @@ class CombineMeanStd(nn.Module):
     inputs: Sequence[ArrayLike]
       First element are the means for the random generated numbers.
       Second element are the standard deviations for the random generated numbers.
-    training: bool
+    training: bool, optional (default True).
       Specifies whether to generate noise.
       Noise is only added when training.
 
