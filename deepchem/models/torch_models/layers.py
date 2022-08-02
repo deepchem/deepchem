@@ -1326,9 +1326,9 @@ class CombineMeanStd(nn.Module):
 
     Parameters
     ----------
-    inputs: Sequence[Sequence]
-      First element should be a sequence of means for the random generated numbers.
-      Second element should be a sequence of standard deviations for the random generated numbers.
+    inputs: Sequence[ArrayLike]
+      First element are the means for the random generated numbers.
+      Second element are the standard deviations for the random generated numbers.
     training: bool
       Specifies whether to generate noise.
       Noise is only added when training.
