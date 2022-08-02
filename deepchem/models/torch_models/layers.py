@@ -1330,6 +1330,11 @@ class NeighborList(nn.Module):
     self.start = start
     self.stop = stop
 
+  def __repr__(self) -> str:
+    return (
+        f'{self.__class__.__name__}(N_atoms={self.N_atoms}, M_nbrs={self.M_nbrs}, ndim={self.ndim}, n_cells={self.n_cells}, nbr_cutoff={self.nbr_cutoff}, start={self.start}, stop={self.stop})'
+    )
+
   def forward(self, inputs: torch.Tensor) -> torch.Tensor:
     """Invokes this layer.
 
