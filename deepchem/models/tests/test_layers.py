@@ -748,6 +748,7 @@ def test_torch_weighted_linear_combo():
   input2 = np.random.rand(5, 10).astype(np.float32)
   layer = torch_layers.WeightedLinearCombo(len([input1, input2]))
   result = layer([input1, input2])
+  print(result)
   assert len(layer.input_weights) == 2
   expected = torch.Tensor(input1) * layer.input_weights[0] + torch.Tensor(
       input2) * layer.input_weights[1]

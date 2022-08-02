@@ -1290,13 +1290,24 @@ class InteratomicL2Distances(nn.Module):
 
 class WeightedLinearCombo(nn.Module):
   """
-  Compute a weighted linear combination of input layers, where the weight variables are trained.\
+  Compute a weighted linear combination of input layers, where the weight variables are trained.
 
-  Usage:
+  Examples
+  --------
   >>> input1 = np.random.rand(5, 10).astype(np.float32)
   >>> input2 = np.random.rand(5, 10).astype(np.float32)
   >>> layer = WeightedLinearCombo(len([input1, input2]))
   >>> result = layer([input1, input2])
+  tensor([[ 0.2021, -0.0095,  0.1145, -0.0107,  0.0446,  0.2312, -0.0193,  0.3791,
+           -0.2172,  0.1306],
+          [-0.0306, -0.0417, -0.3841, -0.0774, -0.1062,  0.0621, -0.4452,  0.0349,
+           -0.1362, -0.0903],
+          [ 0.2528, -0.2111, -0.3988, -0.3361,  0.1011,  0.0168,  0.1725, -0.1203,
+            0.0168,  0.1813],
+          [-0.0876, -0.3951, -0.2428,  0.1295, -0.2501, -0.2113, -0.1498,  0.4504,
+           -0.4356, -0.3318],
+          [-0.1620, -0.0914,  0.0267,  0.4014, -0.0177, -0.2404,  0.0594, -0.1569,
+           -0.0816, -0.3527]], grad_fn=<AddBackward0>) # random
   """
 
   def __init__(self, num_inputs: int, std: float = 0.3, **kwargs):
