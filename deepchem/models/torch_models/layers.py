@@ -1295,7 +1295,7 @@ class WeightedLinearCombo(nn.Module):
   Usage:
   >>> input1 = np.random.rand(5, 10).astype(np.float32)
   >>> input2 = np.random.rand(5, 10).astype(np.float32)
-  >>> layer = torch_layers.WeightedLinearCombo(len([input1, input2]))
+  >>> layer = WeightedLinearCombo(len([input1, input2]))
   >>> result = layer([input1, input2])
   """
 

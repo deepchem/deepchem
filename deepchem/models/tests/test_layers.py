@@ -743,7 +743,7 @@ def test_torch_interatomic_l2_distances():
 
 @pytest.mark.torch
 def test_torch_weighted_linear_combo():
-  """Test invoking WeightedLinearCombo."""
+  """Test invoking the Torch equivalent of WeightedLinearCombo."""
   input1 = np.random.rand(5, 10).astype(np.float32)
   input2 = np.random.rand(5, 10).astype(np.float32)
   layer = torch_layers.WeightedLinearCombo(len([input1, input2]))
