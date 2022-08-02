@@ -1319,6 +1319,11 @@ class CombineMeanStd(nn.Module):
     self.training_only = training_only
     self.noise_epsilon = noise_epsilon
 
+  def __repr__(self) -> str:
+    return (
+        f'{self.__class__.__name__}(training_only={self.training_only}, noise_epsilon={self.noise_epsilon})'
+    )
+
   def forward(self,
               inputs: Sequence[ArrayLike],
               training: bool = True) -> torch.Tensor:
