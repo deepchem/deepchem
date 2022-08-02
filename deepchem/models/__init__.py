@@ -48,6 +48,7 @@ try:
   from deepchem.models.fcnet import MultitaskRegressor, MultitaskClassifier, MultitaskFitTransformRegressor
   from deepchem.models.torch_models import MEGNetModel
   from deepchem.models.torch_models import CNN
+  from deepchem.models.lightning import DCLightningModule, DCLightningDatasetModule
 except ModuleNotFoundError as e:
   logger.warning(
       f'Skipped loading some PyTorch models, missing a dependency. {e}')
