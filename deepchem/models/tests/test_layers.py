@@ -739,3 +739,16 @@ def test_torch_interatomic_l2_distances():
       delta = coords[atom] - coords[neighbor_list[atom, neighbor]]
       dist2 = np.dot(delta, delta)
       assert np.allclose(dist2, result[atom, neighbor])
+
+
+@pytest.mark.torch
+def test_torch_weighted_linear_combo():
+  """Test invoking WeightedLinearCombo."""
+  input1 = np.random.rand(5, 10).astype(np.float32)
+  input2 = np.random.rand(5, 10).astype(np.float32)
+  layer = torch_layers.WeightedLinearCombo(len([input1, input2]))
+  result = layer([input1, input2])
+  assert len(layer.input_weights) == 2
+  expected = torch.Tensor(input1) * layer.input_weights[0] + torch.Tensor(
+      input2) * layer.input_weights[1]
+  assert torch.allclose(result, expected)

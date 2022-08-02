@@ -15,7 +15,7 @@ try:
 except ModuleNotFoundError:
   pass
 
-from deepchem.utils.typing import OneOrMany, ActivationFn
+from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
 from deepchem.utils.pytorch_utils import get_activation
 
 try:
@@ -1286,3 +1286,62 @@ class InteratomicL2Distances(nn.Module):
                               (1, M_nbrs, 1))
     # Shape (N_atoms, M_nbrs)
     return torch.sum((tiled_coords - nbr_coords)**2, dim=2)
+
+
+class WeightedLinearCombo(nn.Module):
+  """
+  Compute a weighted linear combination of input layers, where the weight variables are trained.\
+
+  Usage:
+  >>> input1 = np.random.rand(5, 10).astype(np.float32)
+  >>> input2 = np.random.rand(5, 10).astype(np.float32)
+  >>> layer = torch_layers.WeightedLinearCombo(len([input1, input2]))
+  >>> result = layer([input1, input2])
+  """
+
+  def __init__(self, num_inputs: int, std: float = 0.3, **kwargs):
+    """
+
+    Parameters
+    ----------
+    num_inputs: int
+      Number of inputs given to `self.forward()`
+      This is used to initialize the correct amount of weight variables to be trained.
+    std: float
+      The standard deviation for the normal distribution that is used to initialize the trainable weights.
+    """
+    super(WeightedLinearCombo, self).__init__(**kwargs)
+    self.num_inputs = num_inputs
+    self.std = std
+    self.input_weights = nn.Parameter(torch.empty(self.num_inputs))
+    nn.init.normal_(self.input_weights, std=std)
+
+  def __repr__(self):
+    return (
+        f'{self.__class__.__name__}(num_inputs={self.num_inputs}, std={self.std}, input_weights={self.input_weights})'
+    )
+
+  def forward(
+      self, inputs: Sequence[Union[ArrayLike,
+                                   torch.Tensor]]) -> Optional[torch.Tensor]:
+    """
+
+    Parameters
+    ----------
+    inputs: Sequence[Union[ArrayLike, torch.Tensor]]
+      The initial input layers.
+      The length must be the same as `self.num_inputs`.
+
+    Returns
+    -------
+    out_tensor: torch.Tensor or None
+      The tensor containing the weighted linear combination.
+    """
+    out_tensor = None
+    for in_tensor, w in zip(inputs, self.input_weights):
+      in_tensor = torch.FloatTensor(in_tensor)
+      if out_tensor is None:
+        out_tensor = w * in_tensor
+      else:
+        out_tensor += w * in_tensor
+    return out_tensor
