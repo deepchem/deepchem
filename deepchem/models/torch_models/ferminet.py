@@ -2,8 +2,7 @@
 Implementation of the Ferminet class in pytorch
 """
 
-from typing import List, Optional
-from typing_extensions import reveal_type
+from typing import List, Optional, Any, Tuple
 # import torch.nn as nn
 from rdkit import Chem
 import numpy as np
@@ -13,6 +12,12 @@ import numpy as np
 from deepchem.utils.electron_sampler import ElectronSampler
 
 # TODO look for the loss function(Hamiltonian)
+
+
+def test_f(x: np.ndarray) -> np.ndarray:
+  # dummy function which can be passed as the parameter f. f gives the log probability
+  # TODO replace this function with forward pass of the model in future
+  return 2 * np.log(np.random.uniform(low=0, high=1.0, size=np.shape(x)[0]))
 
 
 class Ferminet:
@@ -32,33 +37,34 @@ class Ferminet:
     arXiv, 13 Nov. 2020. arXiv.org, http://arxiv.org/abs/2011.07125.
     """
 
-  def __init__(self,
-               nucleon_coordinates: List[List],
-               seed_no: Optional[int] = None,
-               batch_number: int = 10):
+  def __init__(
+      self,
+      nucleon_coordinates: List[List],
+      spin: int,
+      seed: Optional[int] = None,
+      batch_no: int = 10,
+  ):
     """
     Parameters:
     -----------
     nucleon_coordinates:  List[List]
       A list containing nucleon coordinates as the values with the keys as the element's symbol.
+    spin: int
+      The total spin of the molecule system.
     seed_no: int, optional (default None)
       Random seed to use for electron initialization.
-    batch_number: int, optional (default 10)
+    batch_no: int, optional (default 10)
       Number of batches of the electron's positions to be initialized.
 
     """
     # super(Ferminet, self).__init__()
 
     self.nucleon_coordinates = nucleon_coordinates
-    self.seed_no = seed_no
-    self.batch_number = batch_number
+    self.seed = seed
+    self.batch_no = batch_no
+    self.spin = spin
 
-  def test_f(x: np.ndarray) -> np.ndarray:
-    # dummy function which can be passed as the parameter f. f gives the log probability
-    # TODO replace this function with forward pass of the model in future
-    return 2 * np.log(np.random.uniform(low=0, high=1.0, size=np.shape(x)[0]))
-
-  def prepare_input_stream(self,) -> np.ndarray:
+  def prepare_input_stream(self,) -> Tuple[Any, Any, Any, Any]:
     """Prepares the one-electron and two-electron input stream for the model.
 
     Returns:
@@ -77,33 +83,42 @@ class Ferminet:
     nucleons = []
     self.charge: List = []
 
+    table = Chem.GetPeriodicTable()
+    ionic_charge = 0
     for i in self.nucleon_coordinates:
-      mol = Chem.MolFromSmiles('[' + i[0] + ']')
-      for j in mol.GetAtoms():
-        self.charge.append(j.GetAtomicNum())
-        no_electrons.append([j.GetAtomicNum() - j.GetFormalCharge()])
+      if i[0][-1] == '+':
+        ionic_charge = i[0][-2]
+        i[0] = i[0][:-2]
+
+      elif i[0][-1] == '-':
+        ionic_charge = -i[0][-2]
+        i[0] = i[0][:-2]
+      atomic_num = table.GetAtomicNumber(i[0])
+      self.charge.append(atomic_num)
+      no_electrons.append([atomic_num - ionic_charge])
       nucleons.append(i[1])
 
     self.electron_no: np.ndarray = np.array(no_electrons)
     self.nucleon_pos: np.ndarray = np.array(nucleons)
 
-    spin = np.sum(self.electron_no) % 2
-    self.up_spin: int = (spin + np.sum(self.electron_no)) // 2
+    total_electrons = np.sum(self.electron_no)
+    self.up_spin = (total_electrons + self.spin) // 2
+    self.down_spin = (total_electrons - self.spin) // 2
 
-    molecule = ElectronSampler(
-        batch_no=self.batch_number,
+    self.molecule: ElectronSampler = ElectronSampler(
+        batch_no=self.batch_no,
         central_value=self.nucleon_pos,
-        seed=self.seed_no,
-        f=self.test_f,
+        seed=self.seed,
+        f=test_f,
         steps=1000)  # sample the electrons using the electron sampler
-    molecule.gauss_initialize_position(
+    self.molecule.gauss_initialize_position(
         self.electron_no)  # initialize the position of the electrons
 
-    one_electron_vector = molecule.x - self.nucleon_pos
+    one_electron_vector = self.molecule.x - self.nucleon_pos
 
-    shape = np.shape(molecule.x)
-    two_electron_vector = molecule.x.reshape([shape[0], 1, shape[1], 3
-                                             ]) - molecule.x
+    shape = np.shape(self.molecule.x)
+    two_electron_vector = self.molecule.x.reshape([shape[0], 1, shape[1], 3
+                                                  ]) - self.molecule.x
 
     one_electron_vector = one_electron_vector[0, :, :, :]
     two_electron_vector = two_electron_vector[0, :, :, :]
@@ -123,10 +138,10 @@ class Ferminet:
                                                       two_shape[1], 1)
     two_electron = np.block([two_electron_vector, two_distance])
 
-    one_electron_up = one_electron[:self.up_spin, :, :]
-    one_electron_down = one_electron[self.up_spin:, :, :]
+    one_electron_up = one_electron[:, :self.up_spin, :]
+    one_electron_down = one_electron[:, self.up_spin:, :]
 
-    two_electron_up = two_electron[:self.up_spin, :, :]
-    two_electron_down = two_electron_vector[self.up_spin:, :, :]
+    two_electron_up = two_electron[:, :self.up_spin, :]
+    two_electron_down = two_electron[:, self.up_spin:, :]
 
     return one_electron_up, one_electron_down, two_electron_up, two_electron_down

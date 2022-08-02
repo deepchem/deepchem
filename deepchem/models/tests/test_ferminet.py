@@ -15,7 +15,7 @@ def test_prepare_input_stream():
   # test for the prepare_input_stream function of Ferminet class
 
   h2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
-  molecule = Ferminet(h2_molecule, seed_no=0, batch_number=1)
+  molecule = Ferminet(h2_molecule, spin=0, seed=0, batch_no=1)
   one_up, one_down, two_up, two_down = molecule.prepare_input_stream()
 
   assert np.allclose(
@@ -41,13 +41,16 @@ def test_prepare_input_stream():
                  ]]]))
   assert np.shape(molecule.one_electron_distance) == (2, 2)
   assert np.allclose(
-      two_up == np.array([[[0.0, 0.0, 0.0, 0.0],
-                           [
-                               0.009536817064675872, 0.02934801563565488,
-                               0.7088796827203571, 0.7095510280981839
-                           ]]]))
-  assert np.allclose(two_down == np.array([[[
-      -0.009536817064675872, -0.02934801563565488, -0.7088796827203571,
-      0.7095510280981839
-  ], [0.0, 0.0, 0.0, 0.0]]]))
+      two_up,
+      np.array([[[0.0, 0.0, 0.0, 0.0],
+                 [
+                     0.009536817064675872, 0.02934801563565488,
+                     0.7088796827203571, 0.7095510280981839
+                 ]]]))
+  assert np.allclose(
+      two_down,
+      np.array([[[
+          -0.009536817064675872, -0.02934801563565488, -0.7088796827203571,
+          0.7095510280981839
+      ], [0.0, 0.0, 0.0, 0.0]]]))
   assert np.shape(molecule.two_electron_distance) == (2, 2)
