@@ -818,6 +818,11 @@ def test_to_csv():
   np.testing.assert_array_equal(
       np.stack([dataset.y[:, 0], dataset.X[:, 0]], axis=1), dataset3.w)
 
+  x = np.array([np.random.randn(2, 3), np.random.randn(2, 3)])
+  dataset = dc.data.NumpyDataset(X=x, y=np.array([[1], [2]]))
+  with pytest.raises(AssertionError):
+    dataset.to_csv(csv_path)
+
 
 def test_to_str():
   """Tests to string representation of Dataset."""

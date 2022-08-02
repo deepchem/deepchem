@@ -715,6 +715,10 @@ class Dataset(object):
     """
     columns = []
     X_shape, y_shape, w_shape, id_shape = self.get_shape()
+    assert len(
+        X_shape) == 2, "dataset's X values should be scalar or 1-D arrays"
+    assert len(
+        y_shape) == 2, "dataset's y values should be scalar or 1-D arrays"
     if X_shape[1] == 1:
       columns.append('X')
     else:
