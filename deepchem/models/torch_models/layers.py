@@ -1289,8 +1289,7 @@ class InteratomicL2Distances(nn.Module):
 
 
 class WeightedLinearCombo(nn.Module):
-  """
-  Compute a weighted linear combination of input layers, where the weight variables are trained.
+  """Compute a weighted linear combination of input layers, where the weight variables are trained.
 
   Examples
   --------
