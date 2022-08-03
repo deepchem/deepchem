@@ -230,7 +230,6 @@ class DMPNN(nn.Module):
                n_tasks=1,
                number_of_molecules=1,
                global_features_size=0,
-               device=torch.device('cpu'),
                use_default_fdim=True,
                atom_fdim=133,
                bond_fdim=14,
@@ -253,7 +252,6 @@ class DMPNN(nn.Module):
     self.mode = mode
     self.n_classes = n_classes
     self.n_tasks = n_tasks
-    self.device = device
 
     # get encoders
     def get_encoder():
@@ -297,11 +295,11 @@ class DMPNN(nn.Module):
     """
     """
     # implementation for a single molecule
-    atom_features = torch.from_numpy(data[0]).float().to(self.device)
-    f_ini_atoms_bonds = torch.from_numpy(data[1]).float().to(self.device)
-    atom_to_incoming_bonds = torch.from_numpy(data[2]).to(self.device)
-    mapping = torch.from_numpy(data[3]).to(self.device)
-    global_features = torch.from_numpy(data[4]).float().to(self.device)
+    atom_features = torch.from_numpy(data[0]).float()
+    f_ini_atoms_bonds = torch.from_numpy(data[1]).float()
+    atom_to_incoming_bonds = torch.from_numpy(data[2])
+    mapping = torch.from_numpy(data[3])
+    global_features = torch.from_numpy(data[4]).float()
 
     encodings = self.encoders[0](atom_features, f_ini_atoms_bonds,
                                  atom_to_incoming_bonds, mapping,
@@ -311,10 +309,12 @@ class DMPNN(nn.Module):
     if self.mode == 'regression':
       output = output
     elif self.mode == 'classification':
-      output = nn.functional.sigmoid(output)
-    elif self.mode == 'multiclass':
-      output = output.view(-1, self.n_tasks, self.n_classes)
-      output = nn.functional.softmax(dim=2)
+      if self.n_tasks == 1:
+        output = output.view(-1, self.n_classes)
+        output = nn.functional.softmax(dim=1)
+      else:
+        output = output.view(-1, self.n_tasks, self.n_classes)
+        output = nn.functional.softmax(dim=2)
 
     return output
 

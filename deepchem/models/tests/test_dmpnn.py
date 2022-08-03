@@ -32,5 +32,5 @@ def test_dmpnn_regression():
   output = model(data)
   assert output.shape == torch.Size([number_of_molecules, number_of_tasks])
 
-  required_output = torch.tensor([[-0.0273, 0.0002]])
+  required_output = torch.tensor([[0.0044, -0.0572]])
   assert torch.allclose(output[0], required_output, atol=1e-4)

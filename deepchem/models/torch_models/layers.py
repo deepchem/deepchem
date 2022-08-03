@@ -956,23 +956,164 @@ class Affine(nn.Module):
 
 class DMPNNEncoderLayer(nn.Module):
   """
+  Encoder layer for use in the Directed Message Passing Neural Network (D-MPNN) [1]_.
+
+  The role of the DMPNNEncoderLayer class is to generate molecule encodings in following steps:
+  - Message passing phase
+  - Get new atom hidden states and readout phase
+  - Concatenate the global features
+
+  The Message passing phase:
+  Let the diagram given below represent a molecule containing 5 atoms (nodes) and 4 bonds (edges):-
+
+  |   1 --- 2 --- 3
+  |   |     |
+  |   5     4
+
+  Let the bonds from atoms 1->2 ('B[12]') and 2->1 ('B[21]') be considered as 2 different bonds.
+  Hence, by considering the same for all atoms, the total number of bonds = 8.
+
+  Let:
+  - a1, a2, a3, a4, a5 => atom features
+  - h1, h2, h3, h4, h5 => hidden states of atoms
+  - b12, b21, b23, b32, b24, b42, b15, b51 => bond features bonds
+  - (0)h12, (0)h21, (0)h23, (0)h32, (0)h24, (0)h42, (0)h15, (0)h51 => initial hidden states of bonds
+
+  The hidden state of every bond is a function of the concatenated feature vector which contains
+  concatenation of the 'features of initial atom of the bond' and 'bond features'.
+
+  Example: (0)h21 = func(concat(a2, b21))  # here func is `self.W_i`
+
+  The goal of the message-passing phase is to generate 'hidden states of all the atoms in the molecule'.
+
+  The hidden state of an atom is a function of concatenation of 'atom features and messages (at T depth)'.
+  Depth refers to the number of iterations in the message passing phase (here, T iterations).
+  After each iteration, the hidden states of the bonds are updated.
+
+  A message is a sum of 'hidden states of bonds coming to the atom (at T depth)'
+
+  Example: h1 = func(concat(a1, m1))  # here func is `self.W_h`
+           Here, `m1` refers to the message coming to the atom.
+
+           m1 = (T-1)h21 + (T-1)h51 (hidden state of bond 2->1 + hidden state of bond 5->1)(at T depth)
+
+           for, depth T = 2:
+             - the hidden states of the bonds @ 1st iteration will be => (0)h21, (0)h51
+             - the hidden states of the bonds @ 2nd iteration will be => (1)h21, (1)h51
+
+  The hidden states of the bonds @ 1st iteration are already know.
+  For hidden states of the bonds @ 2nd iteration, we follow the criterion that:
+  - "hidden state of the bond is a function of 'initial hidden state of bond' and 'messages coming to that bond in that iteration'"
+
+  Example: (1)h21 = func( (0)h21 , (1)m21 )
+           Here, '(1)m21' refers to the messages coming to that bond 2->1 in that 2nd iteration
+
+  Messages coming to a bond in an iteration is
+   'a sum of hidden states of bonds (from previous iteration) coming to this bond'.
+
+  Example: (1)m21 = (0)h32 + (0)h42   |   2 <--- 3
+                                      |   ^
+                                      |   |
+                                      |   4
+
+  Hence, now h1 = func(
+                       concat(
+                              a1,
+                              [
+                               func( (0)h21 , (0)h32 + (0)h42 ) +
+                               func( (0)h51 , 0 ))
+                              ]
+                             )
+                      )
+  Similarly, h2, h3, h4 and h5 are calculated.
+
+  Hence for example,
+                         B0      B1      B2      B3      B4      B5      B6      B7      B8
+  f_ini_atoms_bonds = [(0)h12, (0)h21, (0)h23, (0)h32, (0)h24, (0)h42, (0)h15, (0)h51, h(-1)]
+
+  Note: h(-1) is an empty array of the same size as other hidden states of bond states.
+
+                B0      B1      B2      B3      B4      B5      B6      B7       B8
+  mapping = [ [-1,B7] [B3,B5] [B0,B5] [-1,-1] [B0,B3] [-1,-1] [B1,-1] [-1,-1]  [-1,-1] ]
+
+  Later, the encoder will map the concatenated features from the `f_ini_atoms_bonds`
+  to `mapping` in each iteration upto Tth iteration.
+
+  Next the encoder will sum-up the concat features within same bond index.
+
+                  (1)m12           (1)m21           (1)m23              (1)m32          (1)m24           (1)m42           (1)m15          (1)m51          m(-1)
+  Example: [ [h(-1) + (0)h51] [(0)h32 + (0)h42] [(0)h12 + (0)h42] [h(-1) + h(-1)] [(0)h12 + (0)h32] [h(-1) + h(-1)] [(0)h21 + h(-1)] [h(-1) + h(-1)]  [h(-1) + h(-1)] ]
+
+  Hence, this is how, encoder can get messages for message-passing steps.
+
+  Next,all atom hidden states are concatenated to make a feature vector of the molecule:
+    mol_features = [[h1, h2, h3, h4, h5]]
+  
+
+  References
+  ----------
+  .. [1] Analyzing Learned Molecular Representations for Property Prediction https://arxiv.org/pdf/1904.01561.pdf
+
+  Examples
+  --------
+
   """
-  def __init__(self, use_default_fdim=True, atom_fdim=133, bond_fdim=14, d_hidden=300, depth=3, bias=False, activation='relu', dropout_p=0.0, aggregation='mean', aggregation_norm=100):
-    """
+
+  def __init__(self,
+               use_default_fdim: bool = True,
+               atom_fdim: int = 133,
+               bond_fdim: int = 14,
+               d_hidden: int = 300,
+               depth: int = 3,
+               bias: bool = False,
+               activation: str = 'relu',
+               dropout_p: float = 0.0,
+               aggregation: str = 'mean',
+               aggregation_norm: Union[int, float] = 100):
+    """Initialize a DMPNNEncoderLayer layer.
+
+    Parameters
+    ----------
+    use_default_fdim: bool
+      If `True`, self.atom_fdim and self.bond_fdim are initialized using values from the GraphConvConstants class.
+      If `False`, self.atom_fdim and self.bond_fdim are initialized from the values provided.
+    atom_fdim: int
+      Dimension of atom feature vector.
+    bond_fdim: int
+      Dimension of bond feature vector.
+    d_hidden: int
+      Size of hidden layer in the encoder layer.
+    depth: int
+      No of message passing steps.
+    bias: bool
+      If `True`, dense layers will use bias vectors.
+    activation: str
+      Activation function to be used in the encoder layer.
+      Can choose between 'relu' for ReLU, 'leakyrelu' for LeakyReLU, 'prelu' for PReLU,
+      'tanh' for TanH, 'selu' for SELU, and 'elu' for ELU.
+    dropout_p: float
+      Dropout probability for the encoder layer.
+    aggregation: str
+      Aggregation type to be used in the encoder layer.
+      Can choose between 'mean', 'sum', and 'norm'.
+    aggregation_norm: Union[int, float]
+      Value required if `aggregation` type is 'norm'.
     """
     super(DMPNNEncoderLayer, self).__init__()
 
     if use_default_fdim:
       from deepchem.feat.molecule_featurizers.dmpnn_featurizer import GraphConvConstants
-      self.atom_fdim = GraphConvConstants.ATOM_FDIM
-      self.concat_fdim = GraphConvConstants.ATOM_FDIM + GraphConvConstants.BOND_FDIM
+      self.atom_fdim: int = GraphConvConstants.ATOM_FDIM
+      self.concat_fdim: int = GraphConvConstants.ATOM_FDIM + GraphConvConstants.BOND_FDIM
     else:
       self.atom_fdim = atom_fdim
       self.concat_fdim = atom_fdim + bond_fdim
 
-    self.depth = depth
-    self.aggregation = aggregation
-    self.aggregation_norm = aggregation_norm
+    self.depth: int = depth
+    self.aggregation: str = aggregation
+    self.aggregation_norm: Union[int, float] = aggregation_norm
+
+    self.activation: nn.modules.activation.Module
 
     if activation == 'relu':
       self.activation = nn.ReLU()
@@ -992,66 +1133,135 @@ class DMPNNEncoderLayer(nn.Module):
     elif activation == 'elu':
       self.activation = nn.ELU()
 
-    self.dropout = nn.Dropout(dropout_p)
+    self.dropout: float = nn.Dropout(dropout_p)
 
     # Input
-    self.W_i = nn.Linear(self.concat_fdim, d_hidden, bias=bias)
-        
+    self.W_i: nn.modules.Linear = nn.Linear(self.concat_fdim,
+                                            d_hidden,
+                                            bias=bias)
+
     # Shared weight matrix across depths (default):
-      # For messages hidden states
-    self.W_h = nn.Linear(d_hidden, d_hidden, bias=bias)
+    # For messages hidden states
+    self.W_h: nn.modules.Linear = nn.Linear(d_hidden, d_hidden, bias=bias)
 
-      # For atom hidden states
-    self.W_o = nn.Linear(self.atom_fdim + d_hidden, d_hidden)
+    # For atom hidden states
+    self.W_o: nn.modules.Linear = nn.Linear(self.atom_fdim + d_hidden, d_hidden)
 
-  def _get_updated_atoms_hidden_state(self, atom_features, h_message, atom_to_incoming_bonds):
+  def _get_updated_atoms_hidden_state(
+      self, atom_features: torch.Tensor, h_message: torch.Tensor,
+      atom_to_incoming_bonds: torch.Tensor) -> torch.Tensor:
     """
+    Method to compute atom hidden states.
+
+    Parameters
+    ----------
+    atom_features: torch.Tensor
+      Tensor containing atoms features.
+    h_message: torch.Tensor
+      Tensor containing hidden states of messages.
+    atom_to_incoming_bonds: torch.Tensor
+      Tensor containing mapping from atom index to list of indicies of incoming bonds.
+    
+    Returns
+    -------
+    atoms_hidden_states: torch.Tensor
+      Tensor containing atom hidden states.
     """
-    messages_to_atoms = h_message[atom_to_incoming_bonds].sum(1) # num_atoms x hidden_size
-    atoms_hidden_states = self.W_o(torch.cat((atom_features, messages_to_atoms), 1))  # num_atoms x hidden_size
-    atoms_hidden_states = self.activation(atoms_hidden_states)  # num_atoms x hidden_size
-    atoms_hidden_states = self.dropout(atoms_hidden_states)  # num_atoms x hidden_size
+    messages_to_atoms: torch.Tensor = h_message[atom_to_incoming_bonds].sum(
+        1)  # num_atoms x hidden_size
+    atoms_hidden_states: torch.Tensor = self.W_o(
+        torch.cat((atom_features, messages_to_atoms),
+                  1))  # num_atoms x hidden_size
+    atoms_hidden_states = self.activation(
+        atoms_hidden_states)  # num_atoms x hidden_size
+    atoms_hidden_states = self.dropout(
+        atoms_hidden_states)  # num_atoms x hidden_size
     return atoms_hidden_states  # num_atoms x hidden_size
 
-  def _readout(self, atoms_hidden_states):
+  def _readout(self, atoms_hidden_states: torch.Tensor) -> torch.Tensor:
     """
+    Method to execute the readout phase. (compute molecule encodings from atom hidden states)
+
+    Parameters
+    ----------
+    atoms_hidden_states: torch.Tensor
+      Tensor containing atom hidden states.
+
+    Returns
+    -------
+    molecule_hidden_state: torch.Tensor
+      Tensor containing molecule encodings.
     """
     if self.aggregation == 'mean':
-        mol_vec = atoms_hidden_states.sum(dim=0) / len(atoms_hidden_states)
+      mol_vec: torch.Tensor = atoms_hidden_states.sum(
+          dim=0) / len(atoms_hidden_states)
     elif self.aggregation == 'sum':
-        mol_vec = atoms_hidden_states.sum(dim=0)
+      mol_vec = atoms_hidden_states.sum(dim=0)
     elif self.aggregation == 'norm':
-        mol_vec = atoms_hidden_states.sum(dim=0) / self.aggregation_norm
+      mol_vec = atoms_hidden_states.sum(dim=0) / self.aggregation_norm
     else:
       raise Exception("Invalid aggregation")
-    molecule_hidden_state = mol_vec.view(1, -1)
+    molecule_hidden_state: torch.Tensor = mol_vec.view(1, -1)
     return molecule_hidden_state  # num_molecules x hidden_size
 
-  def forward(self, atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features) -> torch.Tensor:
+  def forward(self, atom_features: torch.Tensor,
+              f_ini_atoms_bonds: torch.Tensor,
+              atom_to_incoming_bonds: torch.Tensor, mapping: torch.Tensor,
+              global_features: torch.Tensor) -> torch.Tensor:
     """
+    Output computation for the DMPNNEncoderLayer.
+
+    Steps:
+    - Get original bond hidden states from concatenation of initial atom and bond features. (`input`)
+    - Get initial messages hidden states. (`message`)
+    - Execute message passing step for `self.depth - 1` iterations.
+    - Get atom hidden states using atom features and message hidden states.
+    - Get molecule encodings.
+    - Concatenate global molecular features and molecule encodings.
+
+    Parameters
+    ----------
+    atom_features: torch.Tensor
+      Tensor containing atoms features.
+    f_ini_atoms_bonds: torch.Tensor
+      Tensor containing concatenated feature vector which contains concatenation of initial atom and bond features.
+    atom_to_incoming_bonds: torch.Tensor
+      Tensor containing mapping from atom index to list of indicies of incoming bonds.
+    mapping: torch.Tensor
+      Tensor containing the mapping that maps bond index to 'array of indices of the bonds' 
+      incoming at the initial atom of the bond (excluding the reverse bonds).
+    global_features: torch.Tensor
+      Tensor containing molecule features.
+    
+    Returns
+    -------
+    output: torch.Tensor
+      Tensor containing the encodings of the molecules.
     """
-    input = self.W_i(f_ini_atoms_bonds)  # num_bonds x hidden_size
-    message = self.activation(input) # num_bonds x hidden_size
+    input: torch.Tensor = self.W_i(f_ini_atoms_bonds)  # num_bonds x hidden_size
+    message: torch.Tensor = self.activation(input)  # num_bonds x hidden_size
 
     for _ in range(1, self.depth):
       message = message[mapping].sum(1)  # num_bonds x hidden_size
-      h_message = input + self.W_h(message) # num_bonds x hidden_size
-      h_message = self.activation(h_message) # num_bonds x hidden_size
-      h_message = self.dropout(h_message) # num_bonds x hidden_size
+      h_message: torch.Tensor = input + self.W_h(
+          message)  # num_bonds x hidden_size
+      h_message = self.activation(h_message)  # num_bonds x hidden_size
+      h_message = self.dropout(h_message)  # num_bonds x hidden_size
 
     # num_atoms x hidden_size
-    atoms_hidden_states = self._get_updated_atoms_hidden_state(atom_features, h_message, atom_to_incoming_bonds)
+    atoms_hidden_states: torch.Tensor = self._get_updated_atoms_hidden_state(
+        atom_features, h_message, atom_to_incoming_bonds)
 
     # num_molecules x hidden_size
-    output = self._readout(atoms_hidden_states)
+    output: torch.Tensor = self._readout(atoms_hidden_states)
 
     # concat global features
-    if global_features.size != 0 :
+    if global_features.size != 0:
       if len(global_features.shape) == 1:
         global_features = global_features.view(1, -1)
       output = torch.cat([output, global_features], dim=1)
-    
-    return output
+
+    return output  # num_molecules x hidden_size
 
 
 class InteratomicL2Distances(nn.Module):
