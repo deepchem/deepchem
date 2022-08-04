@@ -739,3 +739,41 @@ def test_torch_interatomic_l2_distances():
       delta = coords[atom] - coords[neighbor_list[atom, neighbor]]
       dist2 = np.dot(delta, delta)
       assert np.allclose(dist2, result[atom, neighbor])
+
+
+@pytest.mark.torch
+def test_torch_switched_dropout():
+  """Test invoking the Torch equivalent of SwitchedDropout"""
+  inputs = torch.ones((5, 5))
+  rate = 0.5
+
+  for perform_dropout in [
+      torch.tensor(1),
+      torch.tensor(1.0),
+      torch.tensor(True), 1, 1.0, True
+  ]:
+    layer = torch_layers.SwitchedDropout(rate)
+    dropout_result = layer([inputs, perform_dropout])
+    # Check whether every non-dropped element has been scaled by (1 / (1 - rate)).
+    assert torch.equal(torch.sum(dropout_result),
+                       torch.count_nonzero(dropout_result) * (1 / (1 - rate)))
+
+    # Drop every element by setting drop rate to 1.
+    layer = torch_layers.SwitchedDropout(1)
+    full_dropout_result = layer([inputs, perform_dropout])
+    assert torch.equal(torch.zeros((5, 5)), full_dropout_result)
+
+    # Drop no element by setting drop rate to 0.
+    layer = torch_layers.SwitchedDropout(0)
+    zero_rate_dropout_result = layer([inputs, perform_dropout])
+    assert torch.equal(inputs, zero_rate_dropout_result)
+
+  # Check whether no drop-out is performed.
+  for perform_dropout in [
+      torch.tensor(0),
+      torch.tensor(0.0),
+      torch.tensor(False), 0, 0.0, False
+  ]:
+    layer = torch_layers.SwitchedDropout(rate)
+    non_dropout_result = layer([inputs, perform_dropout])
+    assert torch.equal(inputs, non_dropout_result)

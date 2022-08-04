@@ -1286,3 +1286,86 @@ class InteratomicL2Distances(nn.Module):
                               (1, M_nbrs, 1))
     # Shape (N_atoms, M_nbrs)
     return torch.sum((tiled_coords - nbr_coords)**2, dim=2)
+
+
+class SwitchedDropout(nn.Module):
+  """Apply dropout based on input.
+
+  The normal Dropout layer in Torch will only perform drop-out while training.
+  This layer functions almost identical to `torch.nn.Dropout()` except it can also
+  perform drop-out during prediction.
+
+  Examples
+  --------
+  >>> inputs = torch.ones((5, 5))
+  >>> rate = 0.5
+  >>> layer = SwitchedDropout(rate)
+  >>> result = layer([inputs, True])
+  >>> result
+  tensor([[2., 0., 2., 0., 0.],
+          [2., 2., 2., 2., 2.],
+          [0., 0., 2., 0., 2.],
+          [2., 2., 2., 0., 0.],
+          [0., 2., 0., 2., 2.]]) #random
+  """
+
+  def __init__(self, rate: float, **kwargs):
+    """Initialize this layer.
+
+    Parameters
+    ----------
+    rate: float
+      The probability that an element will be dropped.
+    """
+    super(SwitchedDropout, self).__init__(**kwargs)
+    self.rate = rate
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(rate={self.rate})')
+
+  def forward(
+      self, inputs: Sequence[Union[torch.Tensor, bool, float]]) -> torch.Tensor:
+    """Invoke this layer.
+
+    Parameters
+    ----------
+    inputs: Sequence
+      The first element is a Tensor containing the elements.
+      The second element must be a bool, number or a Tensor containing one of the previous types, indicating whether to perform drop-out.
+      If the second element is of type number or a Tensor containing a number, it must be logically equivalent to 0 or 1.
+
+    Returns
+    -------
+    torch.Tensor
+      Same shape as the elements from the first input
+
+    Raises
+    ------
+    ValueError
+      If `inputs` is of a length other than 2.
+    TypeError
+      If the first element is not a Tensor.
+      If the second element is not a boolean, number or Tensor.
+      If the second element does not represent 0 or 1.
+    """
+    if len(inputs) != 2:
+      raise ValueError(
+          "SwitchedDropout requires a sequence of length 2 containing [elements, perform_drop]."
+      )
+
+    if type(inputs[0]) != torch.Tensor:
+      raise TypeError("The first element must be a Tensor.")
+
+    if type(inputs[1]) not in [bool, float, int, torch.Tensor]:
+      raise TypeError(
+          "The second element must be a boolean, number or a Tensor.")
+
+    if inputs[1] not in [
+        0, 0.0, False,
+        torch.tensor(0), 1, 1.0, True,
+        torch.Tensor(1)
+    ]:
+      raise ValueError("The second element does not represent 0 or 1.")
+
+    rate = self.rate * inputs[1]
+    return nn.functional.dropout(inputs[0], p=rate)
