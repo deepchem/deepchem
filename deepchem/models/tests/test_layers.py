@@ -777,3 +777,21 @@ def test_torch_switched_dropout():
     layer = torch_layers.SwitchedDropout(rate)
     non_dropout_result = layer([inputs, perform_dropout])
     assert torch.equal(inputs, non_dropout_result)
+
+  # Check that a TypeError gets raised when first input is not a Tensor.
+  with pytest.raises(TypeError):
+    torch_layers.SwitchedDropout(rate)([0, torch.tensor(True)])
+
+  # Check that a TypeError gets raised when second input is not of appropriate type.
+  with pytest.raises(TypeError):
+    torch_layers.SwitchedDropout(rate)([inputs, [1]])
+
+  # Check that a ValueError gets raised when second input is not logically equivalent to 0 or 1.
+  with pytest.raises(ValueError):
+    torch_layers.SwitchedDropout(rate)([inputs, -1])
+
+  # Check that a ValueError gets raised when inputs if not of correct length.
+  with pytest.raises(ValueError):
+    torch_layers.SwitchedDropout(rate)(
+        [inputs, torch.tensor(True),
+         torch.tensor(True)])
