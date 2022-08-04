@@ -266,12 +266,6 @@ WGAN
 .. autoclass:: deepchem.models.WGAN
   :members:
 
-CNN
----
-
-.. autoclass:: deepchem.models.CNN
-  :members:
-
 TextCNNModel
 ------------
 
@@ -325,6 +319,12 @@ TorchModel
 You can wrap an arbitrary :code:`torch.nn.Module` in a :code:`TorchModel` object.
 
 .. autoclass:: deepchem.models.TorchModel
+  :members:
+
+CNN
+---
+
+.. autoclass:: deepchem.models.CNN
   :members:
 
 MultitaskRegressor

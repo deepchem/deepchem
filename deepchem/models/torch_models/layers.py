@@ -15,6 +15,271 @@ try:
 except ModuleNotFoundError:
   pass
 
+from deepchem.utils.typing import OneOrMany, ActivationFn
+from deepchem.utils.pytorch_utils import get_activation
+
+try:
+  from collections.abc import Sequence as SequenceCollection
+except:
+  from collections import Sequence as SequenceCollection
+
+
+class CNNModule(nn.Module):
+  """A 1, 2, or 3 dimensional convolutional network for either regression or classification.
+  The network consists of the following sequence of layers:
+  - A configurable number of convolutional layers
+  - A global pooling layer (either max pool or average pool)
+  - A final fully connected layer to compute the output
+  It optionally can compose the model from pre-activation residual blocks, as
+  described in https://arxiv.org/abs/1603.05027, rather than a simple stack of
+  convolution layers.  This often leads to easier training, especially when using a
+  large number of layers.  Note that residual blocks can only be used when
+  successive layers have the same output shape.  Wherever the output shape changes, a
+  simple convolution layer will be used even if residual=True.
+  Examples
+  --------
+  >>> model = CNNModule(n_tasks=5, n_features=8, dims=2, layer_filters=[3,8,8,16], kernel_size=3, n_classes = 7, mode='classification', uncertainty=False, padding='same')
+  >>> x = torch.ones(2, 224, 224, 8)
+  >>> x = model(x)
+  >>> for tensor in x:
+  ...    print(tensor.shape)
+  torch.Size([2, 5, 7])
+  torch.Size([2, 5, 7])
+  """
+
+  def __init__(self,
+               n_tasks: int,
+               n_features: int,
+               dims: int,
+               layer_filters: List[int] = [100],
+               kernel_size: OneOrMany[int] = 5,
+               strides: OneOrMany[int] = 1,
+               weight_init_stddevs: OneOrMany[float] = 0.02,
+               bias_init_consts: OneOrMany[float] = 1.0,
+               dropouts: OneOrMany[float] = 0.5,
+               activation_fns: OneOrMany[ActivationFn] = 'relu',
+               pool_type: str = 'max',
+               mode: str = 'classification',
+               n_classes: int = 2,
+               uncertainty: bool = False,
+               residual: bool = False,
+               padding: Union[int, str] = 'valid') -> None:
+    """Create a CNN.
+    Parameters
+    ----------
+    n_tasks: int
+      number of tasks
+    n_features: int
+      number of features
+    dims: int
+      the number of dimensions to apply convolutions over (1, 2, or 3)
+    layer_filters: list
+      the number of output filters for each convolutional layer in the network.
+      The length of this list determines the number of layers.
+    kernel_size: int, tuple, or list
+      a list giving the shape of the convolutional kernel for each layer.  Each
+      element may be either an int (use the same kernel width for every dimension)
+      or a tuple (the kernel width along each dimension).  Alternatively this may
+      be a single int or tuple instead of a list, in which case the same kernel
+      shape is used for every layer.
+    strides: int, tuple, or list
+      a list giving the stride between applications of the  kernel for each layer.
+      Each element may be either an int (use the same stride for every dimension)
+      or a tuple (the stride along each dimension).  Alternatively this may be a
+      single int or tuple instead of a list, in which case the same stride is
+      used for every layer.
+    weight_init_stddevs: list or float
+      the standard deviation of the distribution to use for weight initialization
+      of each layer.  The length of this list should equal len(layer_filters)+1,
+      where the final element corresponds to the dense layer.  Alternatively this
+      may be a single value instead of a list, in which case the same value is used
+      for every layer.
+    bias_init_consts: list or float
+      the value to initialize the biases in each layer to.  The length of this
+      list should equal len(layer_filters)+1, where the final element corresponds
+      to the dense layer.  Alternatively this may be a single value instead of a
+      list, in which case the same value is used for every layer.
+    dropouts: list or float
+      the dropout probability to use for each layer.  The length of this list should equal len(layer_filters).
+      Alternatively this may be a single value instead of a list, in which case the same value is used for every layer
+    activation_fns: str or list
+      the torch activation function to apply to each layer. The length of this list should equal
+      len(layer_filters).  Alternatively this may be a single value instead of a list, in which case the
+      same value is used for every layer, 'relu' by default
+    pool_type: str
+      the type of pooling layer to use, either 'max' or 'average'
+    mode: str
+      Either 'classification' or 'regression'
+    n_classes: int
+      the number of classes to predict (only used in classification mode)
+    uncertainty: bool
+      if True, include extra outputs and loss terms to enable the uncertainty
+      in outputs to be predicted
+    residual: bool
+      if True, the model will be composed of pre-activation residual blocks instead
+      of a simple stack of convolutional layers.
+    padding: str, int or tuple
+      the padding to use for convolutional layers, either 'valid' or 'same'
+    """
+
+    super(CNNModule, self).__init__()
+
+    if dims not in (1, 2, 3):
+      raise ValueError('Number of dimensions must be 1, 2 or 3')
+
+    if mode not in ['classification', 'regression']:
+      raise ValueError("mode must be either 'classification' or 'regression'")
+
+    self.n_tasks = n_tasks
+    self.n_features = n_features
+    self.dims = dims
+    self.mode = mode
+    self.n_classes = n_classes
+    self.uncertainty = uncertainty
+    self.mode = mode
+    self.layer_filters = layer_filters
+    self.residual = residual
+
+    n_layers = len(layer_filters)
+
+    # PyTorch layers require input and output channels as parameter
+    # if only one layer to make the model creating loop below work, multiply layer_filters wutg 2
+    if len(layer_filters) == 1:
+      layer_filters = layer_filters * 2
+
+    if not isinstance(kernel_size, SequenceCollection):
+      kernel_size = [kernel_size] * n_layers
+    if not isinstance(strides, SequenceCollection):
+      strides = [strides] * n_layers
+    if not isinstance(dropouts, SequenceCollection):
+      dropouts = [dropouts] * n_layers
+    if isinstance(activation_fns,
+                  str) or not isinstance(activation_fns, SequenceCollection):
+      activation_fns = [activation_fns] * n_layers
+    if not isinstance(weight_init_stddevs, SequenceCollection):
+      weight_init_stddevs = [weight_init_stddevs] * n_layers
+    if not isinstance(bias_init_consts, SequenceCollection):
+      bias_init_consts = [bias_init_consts] * n_layers
+
+    self.activation_fns = [get_activation(f) for f in activation_fns]
+    self.dropouts = dropouts
+
+    if uncertainty:
+
+      if mode != 'regression':
+        raise ValueError("Uncertainty is only supported in regression mode")
+
+      if any(d == 0.0 for d in dropouts):
+        raise ValueError(
+            'Dropout must be included in every layer to predict uncertainty')
+
+    # Python tuples use 0 based indexing, dims defines number of dimension for convolutional operation
+    ConvLayer = (nn.Conv1d, nn.Conv2d, nn.Conv3d)[self.dims - 1]
+
+    if pool_type == 'average':
+      PoolLayer = (F.avg_pool1d, F.avg_pool2d, F.avg_pool3d)[self.dims - 1]
+    elif pool_type == 'max':
+      PoolLayer = (F.max_pool1d, F.max_pool2d, F.max_pool3d)[self.dims - 1]
+    else:
+      raise ValueError("pool_type must be either 'average' or 'max'")
+
+    self.PoolLayer = PoolLayer
+    self.layers = nn.ModuleList()
+
+    in_shape = n_features
+
+    for out_shape, size, stride, weight_stddev, bias_const in zip(
+        layer_filters, kernel_size, strides, weight_init_stddevs,
+        bias_init_consts):
+
+      layer = ConvLayer(in_channels=in_shape,
+                        out_channels=out_shape,
+                        kernel_size=size,
+                        stride=stride,
+                        padding=padding,
+                        dilation=1,
+                        groups=1,
+                        bias=True)
+
+      nn.init.normal_(layer.weight, 0, weight_stddev)
+
+      # initializing layer bias with nn.init gives mypy typecheck error
+      # using the following workaround
+      if layer.bias is not None:
+        layer.bias = nn.Parameter(torch.full(layer.bias.shape, bias_const))
+
+      self.layers.append(layer)
+
+      in_shape = out_shape
+
+    self.classifier_ffn = nn.LazyLinear(self.n_tasks * self.n_classes)
+    self.output_layer = nn.LazyLinear(self.n_tasks)
+    self.uncertainty_layer = nn.LazyLinear(self.n_tasks)
+
+  def forward(self, inputs: OneOrMany[torch.Tensor]) -> List[Any]:
+    """
+    Parameters
+    ----------
+    x: torch.Tensor
+      Input Tensor
+    Returns
+    -------
+    torch.Tensor
+      Output as per use case : regression/classification
+    """
+    if isinstance(inputs, torch.Tensor):
+      x, dropout_switch = inputs, None
+    else:
+      x, dropout_switch = inputs
+
+    x = torch.transpose(x, 1, -1)  # n h w c -> n c h w
+
+    prev_layer = x
+
+    for layer, activation_fn, dropout in zip(self.layers, self.activation_fns,
+                                             self.dropouts):
+      x = layer(x)
+
+      if dropout > 0. and dropout_switch:
+        x = F.dropout(x, dropout)
+
+      # residual blocks can only be used when successive layers have the same output shape
+      if self.residual and x.shape[1] == prev_layer.shape[1]:
+        x = x + prev_layer
+
+      if activation_fn is not None:
+        x = activation_fn(x)
+
+      prev_layer = x
+
+    x = self.PoolLayer(x, kernel_size=x.size()[2:])
+
+    outputs = []
+    batch_size = x.shape[0]
+
+    x = torch.reshape(x, (batch_size, -1))
+
+    if self.mode == "classification":
+
+      logits = self.classifier_ffn(x)
+      logits = logits.view(batch_size, self.n_tasks, self.n_classes)
+      output = F.softmax(logits, dim=2)
+      outputs = [output, logits]
+
+    else:
+      output = self.output_layer(x)
+      output = output.view(batch_size, self.n_tasks)
+
+      if self.uncertainty:
+        log_var = self.uncertainty_layer(x)
+        log_var = log_var.view(batch_size, self.n_tasks, 1)
+        var = torch.exp(log_var)
+        outputs = [output, var, output, log_var]
+      else:
+        outputs = [output]
+
+    return outputs
+
 
 class ScaleNorm(nn.Module):
   """Apply Scale Normalization to input.
@@ -426,9 +691,13 @@ class PositionwiseFeedForward(nn.Module):
   Each layer in the MAT encoder contains a fully connected feed-forward network which applies two linear transformations and the given activation function.
   This is done in addition to the SublayerConnection module.
 
+  Note: This modified version of `PositionwiseFeedForward` class contains `dropout_at_input_no_act` condition to facilitate its use in defining
+        the feed-forward (FFN) algorithm for the Directed Message Passing Neural Network (D-MPNN) [2]_
+
   References
   ----------
   .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+  .. [2] Analyzing Learned Molecular Representations for Property Prediction https://arxiv.org/pdf/1904.01561.pdf
 
   Examples
   --------
@@ -444,7 +713,8 @@ class PositionwiseFeedForward(nn.Module):
                d_output: int = 1024,
                activation: str = 'leakyrelu',
                n_layers: int = 1,
-               dropout_p: float = 0.0):
+               dropout_p: float = 0.0,
+               dropout_at_input_no_act: bool = False):
     """Initialize a PositionwiseFeedForward layer.
 
     Parameters
@@ -462,8 +732,12 @@ class PositionwiseFeedForward(nn.Module):
       Number of layers.
     dropout_p: float
       Dropout probability.
+    dropout_at_input_no_act: bool
+      If true, dropout is applied on the input tensor. For single layer, it is not passed to an activation function.
     """
     super(PositionwiseFeedForward, self).__init__()
+
+    self.dropout_at_input_no_act: bool = dropout_at_input_no_act
 
     if activation == 'relu':
       self.activation: Any = nn.ReLU()
@@ -514,9 +788,14 @@ class PositionwiseFeedForward(nn.Module):
       return x
 
     if self.n_layers == 1:
-      return self.dropout_p[0](self.activation(self.linears[0](x)))
+      if self.dropout_at_input_no_act:
+        return self.linears[0](self.dropout_p[0](x))
+      else:
+        return self.dropout_p[0](self.activation(self.linears[0](x)))
 
     else:
+      if self.dropout_at_input_no_act:
+        x = self.dropout_p[0](x)
       for i in range(self.n_layers - 1):
         x = self.dropout_p[i](self.activation(self.linears[i](x)))
       return self.linears[-1](x)

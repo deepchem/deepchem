@@ -1,3 +1,4 @@
+import deepchem as dc
 import deepchem.models.optimizers as optimizers
 import unittest
 import pytest
@@ -170,8 +171,9 @@ class TestOptimizers(unittest.TestCase):
   @pytest.mark.tensorflow
   def test_exponential_decay_tf(self):
     """Test creating an optimizer with an exponentially decaying learning rate."""
-    rate = optimizers.ExponentialDecay(
-        initial_rate=0.001, decay_rate=0.99, decay_steps=10000)
+    rate = optimizers.ExponentialDecay(initial_rate=0.001,
+                                       decay_rate=0.99,
+                                       decay_steps=10000)
     opt = optimizers.Adam(learning_rate=rate)
     global_step = tf.Variable(0)
     tfopt = opt._create_tf_optimizer(global_step)
@@ -179,8 +181,9 @@ class TestOptimizers(unittest.TestCase):
   @pytest.mark.torch
   def test_exponential_decay_pytorch(self):
     """Test creating an optimizer with an exponentially decaying learning rate."""
-    rate = optimizers.ExponentialDecay(
-        initial_rate=0.001, decay_rate=0.99, decay_steps=10000)
+    rate = optimizers.ExponentialDecay(initial_rate=0.001,
+                                       decay_rate=0.99,
+                                       decay_steps=10000)
     opt = optimizers.Adam(learning_rate=rate)
     params = [torch.nn.Parameter(torch.Tensor([1.0]))]
     torchopt = opt._create_pytorch_optimizer(params)
@@ -190,8 +193,9 @@ class TestOptimizers(unittest.TestCase):
   def test_exponential_decay_jax(self):
     """Test creating an optimizer with an exponentially decaying learning rate."""
     import optax
-    rate = optimizers.ExponentialDecay(
-        initial_rate=0.001, decay_rate=0.99, decay_steps=10000)
+    rate = optimizers.ExponentialDecay(initial_rate=0.001,
+                                       decay_rate=0.99,
+                                       decay_steps=10000)
     opt = optimizers.Adam(learning_rate=rate)
     jaxopt = opt._create_jax_optimizer()
     assert isinstance(jaxopt, optax.GradientTransformation)
@@ -199,8 +203,9 @@ class TestOptimizers(unittest.TestCase):
   @pytest.mark.tensorflow
   def test_polynomial_decay_tf(self):
     """Test creating an optimizer with a polynomially decaying learning rate."""
-    rate = optimizers.PolynomialDecay(
-        initial_rate=0.001, final_rate=0.0001, decay_steps=10000)
+    rate = optimizers.PolynomialDecay(initial_rate=0.001,
+                                      final_rate=0.0001,
+                                      decay_steps=10000)
     opt = optimizers.Adam(learning_rate=rate)
     global_step = tf.Variable(0)
     tfopt = opt._create_tf_optimizer(global_step)
@@ -208,8 +213,9 @@ class TestOptimizers(unittest.TestCase):
   @pytest.mark.torch
   def test_polynomial_decay_pytorch(self):
     """Test creating an optimizer with a polynomially decaying learning rate."""
-    rate = optimizers.PolynomialDecay(
-        initial_rate=0.001, final_rate=0.0001, decay_steps=10000)
+    rate = optimizers.PolynomialDecay(initial_rate=0.001,
+                                      final_rate=0.0001,
+                                      decay_steps=10000)
     opt = optimizers.Adam(learning_rate=rate)
     params = [torch.nn.Parameter(torch.Tensor([1.0]))]
     torchopt = opt._create_pytorch_optimizer(params)
@@ -219,8 +225,9 @@ class TestOptimizers(unittest.TestCase):
   def test_polynomial_decay_jax(self):
     """Test creating an optimizer with a polynomially decaying learning rate."""
     import optax
-    rate = optimizers.PolynomialDecay(
-        initial_rate=0.001, final_rate=0.0001, decay_steps=10000)
+    rate = optimizers.PolynomialDecay(initial_rate=0.001,
+                                      final_rate=0.0001,
+                                      decay_steps=10000)
     opt = optimizers.Adam(learning_rate=rate)
     jaxopt = opt._create_jax_optimizer()
     assert isinstance(jaxopt, optax.GradientTransformation)
@@ -255,13 +262,49 @@ class TestOptimizers(unittest.TestCase):
   def test_PieceWise_decay_jax(self):
     """test creating an optimizer with a PeiceWise constant decay to the learning rate"""
     import optax
-    rate = optimizers.PiecewiseConstantSchedule(
-        initial_rate=0.1,
-        boundaries_and_scales={
-            5000: 0.1,
-            10000: 0.1,
-            15000: 0.1
-        })
+    rate = optimizers.PiecewiseConstantSchedule(initial_rate=0.1,
+                                                boundaries_and_scales={
+                                                    5000: 0.1,
+                                                    10000: 0.1,
+                                                    15000: 0.1
+                                                })
     opt = optimizers.Adam(learning_rate=rate)
     jaxopt = opt._create_jax_optimizer()
     assert isinstance(jaxopt, optax.GradientTransformation)
+
+  @pytest.mark.torch
+  def test_KFAC(self):
+    """test creating a KFAC optimizer"""
+    import torch
+    import numpy as np
+
+    np.random.seed(123)
+    # Conv2d and Linear layers test(CNN classification)
+    n_samples = 10
+    n_features = 10
+    n_tasks = 1
+
+    X = np.random.rand(n_samples, 1, n_features, n_features)
+    y = np.random.randint(2, size=(n_samples, n_tasks)).astype(np.float32)
+    dataset = dc.data.NumpyDataset(X, y)
+
+    metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
+    model = torch.nn.Sequential(
+        torch.nn.Conv2d(1, 32, kernel_size=3, padding=1),
+        torch.nn.Conv2d(32, 64, kernel_size=3, padding=1), torch.nn.Flatten(),
+        torch.nn.Linear(64 * n_features * n_features, 20), torch.nn.ReLU(),
+        torch.nn.Linear(20, n_tasks))
+    model = dc.models.TorchModel(model,
+                                 dc.models.losses.L2Loss(),
+                                 optimizers=optimizers.KFAC(model=model,
+                                                            learning_rate=0.003,
+                                                            Tinv=10))
+    # Fit trained model
+    model.fit(
+        dataset,
+        nb_epoch=100,
+    )
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [metric])
+    assert scores[metric.name] > 0.9

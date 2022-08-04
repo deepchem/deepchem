@@ -25,7 +25,6 @@ try:
   from deepchem.models.seqtoseq import SeqToSeq
   from deepchem.models.gan import GAN, WGAN
   from deepchem.models.molgan import BasicMolGANModel
-  from deepchem.models.cnn import CNN
   from deepchem.models.text_cnn import TextCNNModel
   from deepchem.models.atomic_conv import AtomicConvModel
   from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
@@ -48,6 +47,7 @@ try:
   from deepchem.models.torch_models import Pagtn, PagtnModel
   from deepchem.models.fcnet import MultitaskRegressor, MultitaskClassifier, MultitaskFitTransformRegressor
   from deepchem.models.torch_models import MEGNetModel
+  from deepchem.models.torch_models import CNN
 except ModuleNotFoundError as e:
   logger.warning(
       f'Skipped loading some PyTorch models, missing a dependency. {e}')
