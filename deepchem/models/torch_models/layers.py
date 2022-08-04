@@ -1374,5 +1374,4 @@ class SwitchedDropout(nn.Module):
     ]:
       raise ValueError("The second element does not represent 0 or 1.")
 
-    rate = float(self.rate * inputs[1])
-    return nn.functional.dropout(inputs[0], p=rate)
+    return nn.functional.dropout(inputs[0], p=self.rate, training=bool(inputs[1]))
