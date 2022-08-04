@@ -1306,7 +1306,14 @@ class SwitchedDropout(nn.Module):
           [2., 2., 2., 2., 2.],
           [0., 0., 2., 0., 2.],
           [2., 2., 2., 0., 0.],
-          [0., 2., 0., 2., 2.]]) #random
+          [0., 2., 0., 2., 2.]])  #random
+
+  Invoking SwitchedDropout with a Tensor holding a float, equivalent to False, indicating to not perform drop-out.
+  The expected result would be identical to the first input.
+
+  >>> result = layer([inputs, torch.tensor(0.0)])
+  >>> torch.equal(inputs, result)
+  True
   """
 
   def __init__(self, rate: float, **kwargs):
@@ -1367,5 +1374,5 @@ class SwitchedDropout(nn.Module):
     ]:
       raise ValueError("The second element does not represent 0 or 1.")
 
-    rate = self.rate * inputs[1]
+    rate = float(self.rate * inputs[1])
     return nn.functional.dropout(inputs[0], p=rate)
