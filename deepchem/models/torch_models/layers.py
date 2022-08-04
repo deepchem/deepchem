@@ -962,8 +962,7 @@ class DMPNNEncoderLayer(nn.Module):
   - Message passing phase
   - Get new atom hidden states and readout phase
   - Concatenate the global features
-
-  The Message passing phase:
+  ----------------------------------------------------------------------------------------------------------
   Let the diagram given below represent a molecule containing 5 atoms (nodes) and 4 bonds (edges):-
 
   |   1 --- 2 --- 3
@@ -982,8 +981,9 @@ class DMPNNEncoderLayer(nn.Module):
   The hidden state of every bond is a function of the concatenated feature vector which contains
   concatenation of the 'features of initial atom of the bond' and 'bond features'.
 
-  Example: (0)h21 = func(concat(a2, b21))  # here func is `self.W_i`
-
+  Example: (0)h21 = func1(concat(a2, b21))  # here func1 is `self.W_i`
+  ------------------------------------------------------------------------------------------------------------
+  The Message passing phase:
   The goal of the message-passing phase is to generate 'hidden states of all the atoms in the molecule'.
 
   The hidden state of an atom is a function of concatenation of 'atom features and messages (at T depth)'.
@@ -992,7 +992,7 @@ class DMPNNEncoderLayer(nn.Module):
 
   A message is a sum of 'hidden states of bonds coming to the atom (at T depth)'
 
-  Example: h1 = func(concat(a1, m1))  # here func is `self.W_h`
+  Example: h1 = func3(concat(a1, m1))  # here func3 is `self.W_o`
            Here, `m1` refers to the message coming to the atom.
 
            m1 = (T-1)h21 + (T-1)h51 (hidden state of bond 2->1 + hidden state of bond 5->1)(at T depth)
@@ -1003,9 +1003,10 @@ class DMPNNEncoderLayer(nn.Module):
 
   The hidden states of the bonds @ 1st iteration are already know.
   For hidden states of the bonds @ 2nd iteration, we follow the criterion that:
-  - "hidden state of the bond is a function of 'initial hidden state of bond' and 'messages coming to that bond in that iteration'"
+  - "hidden state of the bond is a function of 'initial hidden state of bond'
+    and 'messages coming to that bond in that iteration'"
 
-  Example: (1)h21 = func( (0)h21 , (1)m21 )
+  Example: (1)h21 = func2( (0)h21 , (1)m21 )  # here func2 is `self.W_h`
            Here, '(1)m21' refers to the messages coming to that bond 2->1 in that 2nd iteration
 
   Messages coming to a bond in an iteration is
@@ -1016,18 +1017,8 @@ class DMPNNEncoderLayer(nn.Module):
                                       |   |
                                       |   4
 
-  Hence, now h1 = func(
-                       concat(
-                              a1,
-                              [
-                               func( (0)h21 , (0)h32 + (0)h42 ) +
-                               func( (0)h51 , 0 ))
-                              ]
-                             )
-                      )
-  Similarly, h2, h3, h4 and h5 are calculated.
+  Computing the messages:
 
-  Hence for example,
                          B0      B1      B2      B3      B4      B5      B6      B7      B8
   f_ini_atoms_bonds = [(0)h12, (0)h21, (0)h23, (0)h32, (0)h24, (0)h42, (0)h15, (0)h51, h(-1)]
 
@@ -1045,10 +1036,31 @@ class DMPNNEncoderLayer(nn.Module):
   Example: [ [h(-1) + (0)h51] [(0)h32 + (0)h42] [(0)h12 + (0)h42] [h(-1) + h(-1)] [(0)h12 + (0)h32] [h(-1) + h(-1)] [(0)h21 + h(-1)] [h(-1) + h(-1)]  [h(-1) + h(-1)] ]
 
   Hence, this is how, encoder can get messages for message-passing steps.
+  ---------------------------------------------------------------------------------------------------------------
+  Get new atom hidden states and readout phase:
+
+  Hence, now h1 = func3(
+                       concat(
+                              a1,
+                              [
+                               func2( (0)h21 , (0)h32 + (0)h42 ) +
+                               func2( (0)h51 , 0 ))
+                              ]
+                             )
+                      )
+  Similarly, h2, h3, h4 and h5 are calculated.
 
   Next,all atom hidden states are concatenated to make a feature vector of the molecule:
-    mol_features = [[h1, h2, h3, h4, h5]]
-  
+    mol_encodings = [[h1, h2, h3, h4, h5]]
+  ----------------------------------------------------------------------------------------------------------------
+  Concatenate the global features:
+
+  Let, global_features = [[gf1, gf2, gf3]]
+    This array contains molecule level features. In this case, it contains 3 global features.
+
+  Hence after concatenation,
+    mol_encodings = [[h1, h2, h3, h4, h5, gf1, gf2, gf3]] # final output of the encoder
+  ----------------------------------------------------------------------------------------------------------------
 
   References
   ----------
@@ -1056,7 +1068,25 @@ class DMPNNEncoderLayer(nn.Module):
 
   Examples
   --------
+  >>> from rdkit import Chem
+  >>> import torch
+  >>> import deepchem as dc
+  >>> input_smile = "CC"
+  >>> feat = dc.feat.DMPNNFeaturizer(features_generators=['morgan'])
+  >>> graph = feat.featurize(input_smile)
 
+  >>> from deepchem.models.torch_models.dmpnn import _MapperDMPNN
+  >>> mapper = _MapperDMPNN(graph[0])
+  >>> atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features = mapper.values
+
+  >>> atom_features = torch.from_numpy(atom_features).float()
+  >>> f_ini_atoms_bonds = torch.from_numpy(f_ini_atoms_bonds).float()
+  >>> atom_to_incoming_bonds = torch.from_numpy(atom_to_incoming_bonds)
+  >>> mapping = torch.from_numpy(mapping)
+  >>> global_features = torch.from_numpy(global_features).float()
+
+  >>> layer = DMPNNEncoderLayer(d_hidden=2)
+  >>> output = layer(atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features)
   """
 
   def __init__(self,
@@ -1113,10 +1143,8 @@ class DMPNNEncoderLayer(nn.Module):
     self.aggregation: str = aggregation
     self.aggregation_norm: Union[int, float] = aggregation_norm
 
-    self.activation: nn.modules.activation.Module
-
     if activation == 'relu':
-      self.activation = nn.ReLU()
+      self.activation: nn.modules.activation.Module = nn.ReLU()
 
     elif activation == 'leakyrelu':
       self.activation = nn.LeakyReLU(0.1)
@@ -1133,19 +1161,19 @@ class DMPNNEncoderLayer(nn.Module):
     elif activation == 'elu':
       self.activation = nn.ELU()
 
-    self.dropout: float = nn.Dropout(dropout_p)
+    self.dropout: nn.modules.dropout.Module
+
+    self.dropout = nn.Dropout(dropout_p)
 
     # Input
-    self.W_i: nn.modules.Linear = nn.Linear(self.concat_fdim,
-                                            d_hidden,
-                                            bias=bias)
+    self.W_i: nn.Linear = nn.Linear(self.concat_fdim, d_hidden, bias=bias)
 
     # Shared weight matrix across depths (default):
     # For messages hidden states
-    self.W_h: nn.modules.Linear = nn.Linear(d_hidden, d_hidden, bias=bias)
+    self.W_h: nn.Linear = nn.Linear(d_hidden, d_hidden, bias=bias)
 
     # For atom hidden states
-    self.W_o: nn.modules.Linear = nn.Linear(self.atom_fdim + d_hidden, d_hidden)
+    self.W_o: nn.Linear = nn.Linear(self.atom_fdim + d_hidden, d_hidden)
 
   def _get_updated_atoms_hidden_state(
       self, atom_features: torch.Tensor, h_message: torch.Tensor,
@@ -1161,7 +1189,7 @@ class DMPNNEncoderLayer(nn.Module):
       Tensor containing hidden states of messages.
     atom_to_incoming_bonds: torch.Tensor
       Tensor containing mapping from atom index to list of indicies of incoming bonds.
-    
+
     Returns
     -------
     atoms_hidden_states: torch.Tensor
@@ -1228,11 +1256,11 @@ class DMPNNEncoderLayer(nn.Module):
     atom_to_incoming_bonds: torch.Tensor
       Tensor containing mapping from atom index to list of indicies of incoming bonds.
     mapping: torch.Tensor
-      Tensor containing the mapping that maps bond index to 'array of indices of the bonds' 
+      Tensor containing the mapping that maps bond index to 'array of indices of the bonds'
       incoming at the initial atom of the bond (excluding the reverse bonds).
     global_features: torch.Tensor
       Tensor containing molecule features.
-    
+
     Returns
     -------
     output: torch.Tensor
