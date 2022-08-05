@@ -54,3 +54,6 @@ def test_prepare_input_stream():
           0.7095510280981839
       ], [0.0, 0.0, 0.0, 0.0]]]))
   assert np.shape(molecule.two_electron_distance) == (2, 2)
+
+  potential = molecule.calculate_potential()
+  assert np.allclose(potential, -40.5568845023)
