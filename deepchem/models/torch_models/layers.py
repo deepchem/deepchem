@@ -1289,30 +1289,37 @@ class InteratomicL2Distances(nn.Module):
 
 
 class AtomicConvolution(nn.Module):
+  """Implements the Atomic Convolutional transform, introduced in
+
+  Gomes, Joseph, et al. "Atomic convolutional networks for predicting
+  protein-ligand binding affinity." arXiv preprint arXiv:1703.10603
+  (2017).
+
+  At a high level, this transform performs a graph convolution
+  on the nearest neighbors graph in 3D space.
+  """
 
   def __init__(self,
-               atom_types=None,
-               radial_params=list(),
-               box_size=None,
+               atom_types: Union[ArrayLike, torch.Tensor] = None,
+               radial_params: Union[ArrayLike, torch.Tensor] = list(),
+               box_size: Union[ArrayLike, torch.Tensor] = None,
                **kwargs):
     """Initialize this layer.
 
     Parameters
     ----------
-    atom_types : Sequence, optional
+    atom_types : Union[ArrayLike, torch.Tensor], optional
       List of atom types.
-    radial_params : Sequence, optional
+    radial_params : Union[ArrayLike, torch.Tensor], optional
       List of radial params.
-    box_size : torch.Tensor, optional
-      Length must be equal to the dimensionality.
+    box_size : Union[ArrayLike, torch.Tensor], optional
+      Length must be equal to the number of features.
     """
-    if box_size is not None and type(box_size) is not torch.Tensor:
-      raise TypeError("box_size must be of type `torch.Tensor`")
 
     super(AtomicConvolution, self).__init__(**kwargs)
     self.atom_types = atom_types
     self.radial_params = radial_params
-    self.box_size = box_size
+    self.box_size = torch.tensor(box_size) if box_size is not None else None
 
     vars = []
     for i in range(3):
@@ -1344,6 +1351,11 @@ class AtomicConvolution(nn.Module):
     -------
     torch.Tensor of shape (B, N, l)
       Output of atomic convolution layer.
+
+    Raises
+    ------
+    ValueError
+      When the length of `inputs` is not equal to 3.
     """
     if len(inputs) != 3:
       raise ValueError(f"`inputs` has to be of length 3, got: {len(inputs)}")
@@ -1378,7 +1390,8 @@ class AtomicConvolution(nn.Module):
     return F.batch_norm(layer, mean, var)
 
   def distance_tensor(self, X: torch.Tensor, Nbrs: torch.Tensor,
-                      box_size: torch.Tensor, B: int, N: int, M: int, d: int):
+                      box_size: Union[torch.Tensor, None], B: int, N: int, M: int,
+                      d: int) -> torch.Tensor:
     """Calculate distance tensor for a batch of molecules.
 
     B, N, M, d = batch_size, max_num_atoms, max_num_neighbors, num_features
@@ -1390,7 +1403,7 @@ class AtomicConvolution(nn.Module):
     Nbrs : torch.Tensor of shape (B, N, M)
       Neighbor list.
     box_size : torch.Tensor
-      Length must be equal `d`.
+      Length must be equal to `d`.
     B : int
       Batch size
     N : int
@@ -1402,12 +1415,16 @@ class AtomicConvolution(nn.Module):
 
     Returns
     -------
+    torch.Tensor of shape (B, N, M, d)
+      Coordinates/features distance tensor.
 
+    Raises
+    ------
+    ValueError
+      When the length of `box_size` is not equal to `d`.
     """
     if box_size is not None and len(box_size) != d:
-      raise ValueError(f"""
-      Length of `box_size` must be equal to `d`.
-      Expected {d}, got {len(box_size)}""")
+      raise ValueError("Length of `box_size` must be equal to `d`")
 
     flat_neighbors = torch.reshape(Nbrs, (-1, N * M))
     neighbor_coords = torch.stack([X[b, flat_neighbors[b]] for b in range(B)])
@@ -1475,7 +1492,6 @@ class AtomicConvolution(nn.Module):
     torch.Tensor of shape (B, N, M)
       Radial cutoff matrix.
     """
-    print(rc, rc.shape)
     T = 0.5 * (torch.cos(np.pi * R / rc) + 1)
     E = torch.zeros_like(T)
     cond = torch.less_equal(R, rc)
@@ -1486,6 +1502,8 @@ class AtomicConvolution(nn.Module):
                                rs: torch.Tensor,
                                re: torch.Tensor) -> torch.Tensor:
     """Calculate a radial symmetry function.
+
+    B, N, M, l = batch_size, max_num_atoms, max_num_neighbors, length of radial_params
 
     Parameters
     ----------
