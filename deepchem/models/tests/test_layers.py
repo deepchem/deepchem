@@ -424,8 +424,9 @@ def test_atomic_convolution():
   input2 = np.random.randint(max_atoms,
                              size=(batch_size, max_atoms, max_neighbors))
   input3 = np.random.randint(1, 10, size=(batch_size, max_atoms, max_neighbors))
-  layer = layers.AtomicConvolution(radial_params=params)
+  layer = layers.AtomicConvolution(radial_params=params, boxsize=[0.0, 0.0])
   result = layer([input1, input2, input3])
+  print(result)
   assert result.shape == (batch_size, max_atoms, len(params))
   assert len(layer.trainable_variables) == 3
 
@@ -739,3 +740,42 @@ def test_torch_interatomic_l2_distances():
       delta = coords[atom] - coords[neighbor_list[atom, neighbor]]
       dist2 = np.dot(delta, delta)
       assert np.allclose(dist2, result[atom, neighbor])
+
+@pytest.mark.torch
+def test_torch_atomic_convolution():
+  """Test invoking the Torch equivalent of AtomicConvolution"""
+  batch_size = 4
+  max_atoms = 5
+  max_neighbors = 2
+  dimensions = 3
+  radial_params = [[5.0, 2.0, 0.5], [10.0, 2.0, 0.5]]
+  input1 = np.random.rand(batch_size, max_atoms, dimensions).astype(np.float32)
+  input2 = np.random.randint(max_atoms,
+                             size=(batch_size, max_atoms, max_neighbors))
+  input3 = np.random.randint(1, 10, size=(batch_size, max_atoms, max_neighbors))
+
+  layer = torch_layers.AtomicConvolution(radial_params=radial_params)
+  result = layer([input1, input2, input3])
+  assert result.shape == (batch_size, max_atoms, len(radial_params))
+
+  # Check that layer has three trainable parameters.
+  assert len(list(layer.parameters())) == 3
+
+  # Check that `box_size` must be of type `torch.Tensor`.
+  with pytest.raises(TypeError):
+    box_size = [1.0, 1.0, 1.0]
+
+    torch_layers.AtomicConvolution(box_size=box_size)
+
+  with pytest.raises(ValueError):
+    # Check when `box_size` is of wrong dimensionality.
+    dimensions = 2
+    box_size = torch.tensor([1.0, 1.0, 1.0])
+    input1 = np.random.rand(batch_size, max_atoms, dimensions).astype(np.float32)
+
+    layer = torch_layers.AtomicConvolution(radial_params=radial_params, box_size=box_size)
+    _ = layer([input1, input2, input3])
+
+    # Check when `inputs` is of wrong length.
+    layer = torch_layers.AtomicConvolution(radial_params=radial_params)
+    _ = layer([input1, input2])

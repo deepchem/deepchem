@@ -15,7 +15,7 @@ try:
 except ModuleNotFoundError:
   pass
 
-from deepchem.utils.typing import OneOrMany, ActivationFn
+from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
 from deepchem.utils.pytorch_utils import get_activation
 
 try:
@@ -1286,3 +1286,223 @@ class InteratomicL2Distances(nn.Module):
                               (1, M_nbrs, 1))
     # Shape (N_atoms, M_nbrs)
     return torch.sum((tiled_coords - nbr_coords)**2, dim=2)
+
+
+class AtomicConvolution(nn.Module):
+
+  def __init__(self,
+               atom_types=None,
+               radial_params=list(),
+               box_size=None,
+               **kwargs):
+    """Initialize this layer.
+
+    Parameters
+    ----------
+    atom_types : Sequence, optional
+      List of atom types.
+    radial_params : Sequence, optional
+      List of radial params.
+    box_size : torch.Tensor, optional
+      Length must be equal to the dimensionality.
+    """
+    if box_size is not None and type(box_size) is not torch.Tensor:
+      raise TypeError("box_size must be of type `torch.Tensor`")
+
+    super(AtomicConvolution, self).__init__(**kwargs)
+    self.atom_types = atom_types
+    self.radial_params = radial_params
+    self.box_size = box_size
+
+    vars = []
+    for i in range(3):
+      val = np.array([p[i] for p in self.radial_params]).reshape((-1, 1, 1, 1))
+      vars.append(torch.tensor(val, dtype=torch.float))
+    self.rc = nn.Parameter(vars[0])
+    self.rs = nn.Parameter(vars[1])
+    self.re = nn.Parameter(vars[2])
+
+  def __repr__(self):
+    return (
+        f'{self.__class__.__name__}(atom_types={self.atom_types}, radial_params={self.radial_params}, box_size={self.box_size}, rc={self.rc}, rs={self.rs}, re={self.re})'
+    )
+
+  def forward(self, inputs: Sequence[Union[ArrayLike,
+                                           torch.Tensor]]) -> torch.Tensor:
+    """Invoke this layer.
+
+    B, N, M, d = batch_size, max_num_atoms, max_num_neighbors, num_features
+
+    Parameters
+    ----------
+    inputs: Sequence[Union[ArrayLike, torch.Tensor]]
+      First input are the coordinates/features, of shape (B, N, d)
+      Second input is the neighbor list, of shape (B, N, M)
+      Third input are the atomic numbers of neighbor atoms, of shape (B, N, M)
+
+    Returns
+    -------
+    torch.Tensor of shape (B, N, l)
+      Output of atomic convolution layer.
+    """
+    if len(inputs) != 3:
+      raise ValueError(f"`inputs` has to be of length 3, got: {len(inputs)}")
+
+    X = torch.tensor(inputs[0])
+    Nbrs = torch.tensor(inputs[1], dtype=torch.int64)
+    Nbrs_Z = torch.tensor(inputs[2])
+
+    B, N, d = X.shape
+    M = Nbrs.shape[-1]
+
+    D = self.distance_tensor(X, Nbrs, self.box_size, B, N, M, d)
+    R = self.distance_matrix(D)
+    R = torch.unsqueeze(R, 0)
+    rsf = self.radial_symmetry_function(R, self.rc, self.rs, self.re)
+
+    if not self.atom_types:
+      cond = torch.not_equal(Nbrs_Z, 0).to(torch.float).reshape((1, -1, N, M))
+      layer = torch.sum(cond * rsf, 3)
+    else:
+      sym = []
+      for i in range(len(self.atom_types)):
+        cond = torch.eq(Nbrs_Z, self.atom_types[i]).to(torch.float).reshape(
+            (1, -1, N, M))
+        sym.append(torch.sum(cond * rsf, 3))
+      layer = torch.concat(sym, 0)
+
+    layer = torch.permute(layer, [1, 2, 0])
+    var, mean = torch.var_mean(layer, [0, 2])
+    var, mean = var.detach(), mean.detach()
+
+    return F.batch_norm(layer, mean, var)
+
+  def distance_tensor(self, X: torch.Tensor, Nbrs: torch.Tensor,
+                      box_size: torch.Tensor, B: int, N: int, M: int, d: int):
+    """Calculate distance tensor for a batch of molecules.
+
+    B, N, M, d = batch_size, max_num_atoms, max_num_neighbors, num_features
+
+    Parameters
+    ----------
+    X : torch.Tensor of shape (B, N, d)
+      Coordinates/features.
+    Nbrs : torch.Tensor of shape (B, N, M)
+      Neighbor list.
+    box_size : torch.Tensor
+      Length must be equal `d`.
+    B : int
+      Batch size
+    N : int
+      Maximum number of atoms
+    M : int
+      Maximum number of neighbors
+    d : int
+      Number of features
+
+    Returns
+    -------
+
+    """
+    if box_size is not None and len(box_size) != d:
+      raise ValueError(f"""
+      Length of `box_size` must be equal to `d`.
+      Expected {d}, got {len(box_size)}""")
+
+    flat_neighbors = torch.reshape(Nbrs, (-1, N * M))
+    neighbor_coords = torch.stack([X[b, flat_neighbors[b]] for b in range(B)])
+    neighbor_coords = torch.reshape(neighbor_coords, (-1, N, M, d))
+    D = neighbor_coords - torch.unsqueeze(X, 2)
+    if box_size is not None:
+      box_size = torch.reshape(box_size, (1, 1, 1, d))
+      D -= torch.round(D / box_size) * box_size
+
+    return D
+
+  def distance_matrix(self, D: torch.Tensor) -> torch.Tensor:
+    """Calculate a distance matrix, given a distance tensor.
+
+    B, N, M, d = batch_size, max_num_atoms, max_num_neighbors, num_features
+
+    Parameters
+    ----------
+    D : torch.Tensor of shape (B, N, M, d)
+      Distance tensor
+
+    Returns
+    -------
+    torch.Tensor of shape (B, N, M)
+      Distance matrix.
+    """
+    return torch.sqrt(torch.sum(torch.mul(D, D), 3))
+
+  def gaussian_distance_matrix(self, R: torch.Tensor, rs: torch.Tensor,
+                               re: torch.Tensor) -> torch.Tensor:
+    """Calculate a Gaussian distance matrix.
+
+    B, N, M, l = batch_size, max_num_atoms, max_num_neighbors, length of radial_params
+
+    Parameters
+    ----------
+    R : torch.Tensor of shape (B, N, M)
+      Distance matrix.
+    rs : torch.Tensor of shape (l, 1, 1, 1)
+      Gaussian distance matrix mean.
+    re : torch.Tensor of shape (l, 1, 1, 1)
+      Gaussian distance matrix width.
+
+    Returns
+    -------
+    torch.Tensor of shape (B, N, M)
+      Gaussian distance matrix.
+    """
+    return torch.exp(-re * (R - rs)**2)
+
+  def radial_cutoff(self, R: torch.Tensor, rc: torch.Tensor) -> torch.Tensor:
+    """Calculate a radial cut-off matrix.
+
+    B, N, M, l = batch_size, max_num_atoms, max_num_neighbors, length of radial_params
+
+    Parameters
+    ----------
+    R : torch.Tensor of shape (B, N, M)
+      Distance matrix.
+    rc : torch.Tensor of shape (l, 1, 1, 1)
+      Interaction cutoff (in angstrom).
+
+    Returns
+    -------
+    torch.Tensor of shape (B, N, M)
+      Radial cutoff matrix.
+    """
+    print(rc, rc.shape)
+    T = 0.5 * (torch.cos(np.pi * R / rc) + 1)
+    E = torch.zeros_like(T)
+    cond = torch.less_equal(R, rc)
+    FC = torch.where(cond, T, E)
+    return FC
+
+  def radial_symmetry_function(self, R: torch.Tensor, rc: torch.Tensor,
+                               rs: torch.Tensor,
+                               re: torch.Tensor) -> torch.Tensor:
+    """Calculate a radial symmetry function.
+
+    Parameters
+    ----------
+    R : torch.Tensor of shape (B, N, M)
+      Distance matrix.
+    rc : torch.Tensor of shape (l, 1, 1, 1)
+      Interaction cutoff (in angstrom).
+    rs : torch.Tensor of shape (l, 1, 1, 1)
+      Gaussian distance matrix mean.
+    re : torch.Tensor of shape (l, 1, 1, 1)
+      Gaussian distance matrix width.
+    Returns
+    -------
+    torch.Tensor of shape (B, N, M)
+      Pre-summation radial symmetry function.
+    """
+    K = self.gaussian_distance_matrix(R, rs, re)
+    FC = self.radial_cutoff(R, rc)
+
+    return torch.mul(K, FC)
