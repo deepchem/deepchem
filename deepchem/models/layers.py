@@ -1947,7 +1947,6 @@ class AtomicConvolution(tf.keras.layers.Layer):
     retval: tf.Tensor of shape (B, N, M)
       Radial symmetry function (before summation)
     """
-    print(rc, rs, e)
     K = self.gaussian_distance_matrix(R, rs, e)
     FC = self.radial_cutoff(R, rc)
     return tf.multiply(K, FC)
@@ -1969,7 +1968,6 @@ class AtomicConvolution(tf.keras.layers.Layer):
     FC [B, N, M]: tf.Tensor
       Radial cutoff matrix.
     """
-    print(rc.get_shape())
     T = 0.5 * (tf.cos(np.pi * R / (rc)) + 1)
     E = tf.zeros_like(T)
     cond = tf.less_equal(R, rc)

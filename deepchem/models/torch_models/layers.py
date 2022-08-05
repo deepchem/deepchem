@@ -1390,8 +1390,8 @@ class AtomicConvolution(nn.Module):
     return F.batch_norm(layer, mean, var)
 
   def distance_tensor(self, X: torch.Tensor, Nbrs: torch.Tensor,
-                      box_size: Union[torch.Tensor, None], B: int, N: int, M: int,
-                      d: int) -> torch.Tensor:
+                      box_size: Union[torch.Tensor, None], B: int, N: int,
+                      M: int, d: int) -> torch.Tensor:
     """Calculate distance tensor for a batch of molecules.
 
     B, N, M, d = batch_size, max_num_atoms, max_num_neighbors, num_features
