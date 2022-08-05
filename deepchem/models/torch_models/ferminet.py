@@ -2,7 +2,7 @@
 Implementation of the Ferminet class in pytorch
 """
 
-from typing import List, Optional
+from typing import List, Optional, Any, Tuple
 # import torch.nn as nn
 from rdkit import Chem
 import numpy as np
@@ -12,6 +12,12 @@ import numpy as np
 from deepchem.utils.electron_sampler import ElectronSampler
 
 # TODO look for the loss function(Hamiltonian)
+
+
+def test_f(x: np.ndarray) -> np.ndarray:
+  # dummy function which can be passed as the parameter f. f gives the log probability
+  # TODO replace this function with forward pass of the model in future
+  return 2 * np.log(np.random.uniform(low=0, high=1.0, size=np.shape(x)[0]))
 
 
 class Ferminet:
@@ -31,77 +37,88 @@ class Ferminet:
     arXiv, 13 Nov. 2020. arXiv.org, http://arxiv.org/abs/2011.07125.
     """
 
-  def __init__(self,
-               nucleon_coordinates: List[List],
-               seed_no: Optional[int] = None,
-               batch_number: int = 10):
+  def __init__(
+      self,
+      nucleon_coordinates: List[List],
+      spin: int,
+      seed: Optional[int] = None,
+      batch_no: int = 10,
+  ):
     """
     Parameters:
     -----------
     nucleon_coordinates:  List[List]
       A list containing nucleon coordinates as the values with the keys as the element's symbol.
+    spin: int
+      The total spin of the molecule system.
     seed_no: int, optional (default None)
       Random seed to use for electron initialization.
-    batch_number: int, optional (default 10)
+    batch_no: int, optional (default 10)
       Number of batches of the electron's positions to be initialized.
 
     """
-    super(Ferminet, self).__init__()
+    # super(Ferminet, self).__init__()
 
     self.nucleon_coordinates = nucleon_coordinates
-    self.seed_no = seed_no
-    self.batch_number = batch_number
+    self.seed = seed
+    self.batch_no = batch_no
+    self.spin = spin
 
-  def test_f(x):
-    # dummy function which can be passed as the parameter f. f gives the log probability
-    # TODO replace this function with forward pass of the model in future
-    return 2 * np.log(np.random.uniform(low=0, high=1.0, size=np.shape(x)[0]))
-
-  def prepare_input_stream(self,):
+  def prepare_input_stream(self,) -> Tuple[Any, Any, Any, Any]:
     """Prepares the one-electron and two-electron input stream for the model.
 
     Returns:
     --------
-    one_electron_vector: numpy.ndarray
-      The one-electron input stream containing the distance vector between the electron and nucleus coordinates.
-    one_electron_distance: numpy.ndarray
-      The one-electron input stream containing the distance between the electron and nucleus coordinates.
-    two_electron_vector: numpy.ndarray
-      The two-electron input stream containing the distance vector between all the electrons coordinates.
-    two_electron_distance: numpy.ndarray
+    one_electron_up: numpy.ndarray
+      numpy array containing one-electron coordinates and distances for the up spin electrons.
+    one_electron_down: numpy.ndarray
+      numpy array containing one-electron coordinates and distances for the down spin electrons
+    two_electron_up: numpy.ndarray
+      numpy array containing two-electron coordinates and distances for the up spin electrons
+    two_electron_down: numpy.ndarray
+      numpy array containing two-electron coordinates and distances for the down spin electrons
     """
 
     no_electrons = []
     nucleons = []
-    self.charge: List[List] = []
+    self.charge: List = []
 
+    table = Chem.GetPeriodicTable()
+    ionic_charge = 0
     for i in self.nucleon_coordinates:
-      mol = Chem.MolFromSmiles('[' + i[0] + ']')
-      for j in mol.GetAtoms():
-        self.charge.append(j.GetAtomicNum())
-        no_electrons.append([j.GetAtomicNum() - j.GetFormalCharge()])
+      if i[0][-1] == '+':
+        ionic_charge = i[0][-2]
+        i[0] = i[0][:-2]
+
+      elif i[0][-1] == '-':
+        ionic_charge = -i[0][-2]
+        i[0] = i[0][:-2]
+      atomic_num = table.GetAtomicNumber(i[0])
+      self.charge.append(atomic_num)
+      no_electrons.append([atomic_num - ionic_charge])
       nucleons.append(i[1])
 
-    self.electron_no = np.array(no_electrons)
-    self.nucleon_pos = np.array(nucleons)
+    self.electron_no: np.ndarray = np.array(no_electrons)
+    self.nucleon_pos: np.ndarray = np.array(nucleons)
 
-    spin = np.sum(self.electron_no) % 2
-    self.up_spin: int = (spin + np.sum(self.electron_no)) // 2
+    total_electrons = np.sum(self.electron_no)
+    self.up_spin = (total_electrons + self.spin) // 2
+    self.down_spin = (total_electrons - self.spin) // 2
 
-    molecule = ElectronSampler(
-        batch_no=self.batch_number,
+    self.molecule: ElectronSampler = ElectronSampler(
+        batch_no=self.batch_no,
         central_value=self.nucleon_pos,
-        seed=self.seed_no,
-        f=self.test_f,
+        seed=self.seed,
+        f=test_f,
         steps=1000)  # sample the electrons using the electron sampler
-    molecule.gauss_initialize_position(
+    self.molecule.gauss_initialize_position(
         self.electron_no)  # initialize the position of the electrons
 
-    one_electron_vector = molecule.x - self.nucleon_pos
+    one_electron_vector = self.molecule.x - self.nucleon_pos
 
-    shape = np.shape(molecule.x)
-    two_electron_vector = molecule.x.reshape([shape[0], 1, shape[1], 3
-                                             ]) - molecule.x
+    shape = np.shape(self.molecule.x)
+    two_electron_vector = self.molecule.x.reshape([shape[0], 1, shape[1], 3
+                                                  ]) - self.molecule.x
 
     one_electron_vector = one_electron_vector[0, :, :, :]
     two_electron_vector = two_electron_vector[0, :, :, :]
@@ -111,52 +128,49 @@ class Ferminet:
     self.two_electron_distance: np.ndarray = np.linalg.norm(two_electron_vector,
                                                             axis=-1)
 
+    # concatenating distance and vectors arrays
     one_shape = np.shape(self.one_electron_distance)
-    self.one_electron: np.ndarray = np.block(
-        one_electron_vector,
-        self.one_electron_distance.reshape(1, one_shape[0], one_shape[1], 1))
+    one_distance = self.one_electron_distance.reshape(1, one_shape[0],
+                                                      one_shape[1], 1)
+    one_electron = np.block([one_electron_vector, one_distance])
     two_shape = np.shape(self.two_electron_distance)
-    self.two_electron: np.ndarray = np.block(
-        two_electron_vector,
-        self.two_electron_distance.reshape(1, two_shape[0], two_shape[1], 1))
+    two_distance = self.two_electron_distance.reshape(1, two_shape[0],
+                                                      two_shape[1], 1)
+    two_electron = np.block([two_electron_vector, two_distance])
 
-    self.one_electron_up: np.ndarray = one_electron_vector[:self.up_spin, :, :]
-    self.one_electron_down: np.ndarray = one_electron_vector[
-        self.up_spin:, :, :]
+    one_electron_up = one_electron[:, :self.up_spin, :]
+    one_electron_down = one_electron[:, self.up_spin:, :]
 
-    self.two_electron_up: np.ndarray = two_electron_vector[:self.up_spin, :, :]
-    self.two_electron_down: np.ndarray = two_electron_vector[
-        self.up_spin:, :, :]
+    two_electron_up = two_electron[:, :self.up_spin, :]
+    two_electron_down = two_electron[:, self.up_spin:, :]
 
-  def calculate_potential(self,):
-    """Calculates the potential energy of the system, required for the hamiltonian.
+    return one_electron_up, one_electron_down, two_electron_up, two_electron_down
+
+  def calculate_potential(self,) -> Any:
+    """Calculates the potential of the molecule system system for to calculate the hamiltonian loss.
 
     Returns:
     --------
-    potential_energy: np.ndarray
+    potential: Any
       The potential energy of the system.
     """
-    # electron-nuclear potential energy
-    electron_nuclear = -1 / self.one_electron_distance * self.charge
-    #
-    pass
+    nuclear_charge = np.array(self.charge)
 
+    # electron-nuclear potential
+    electron_nuclear_potential = -1 * np.sum(nuclear_charge *
+                                             (1 / self.one_electron_distance))
 
-# TODO """
-# def loss():
-# """Calculate the loss."""
-# pass
+    # electron-electron potential
+    electron_electron_potential = np.sum(
+        np.tril(1 / self.two_electron_distance, -1))
 
-# def scf():
-# "" Perform the SCF calculation."""
-# pass
+    # nuclear-nuclear potential
+    pos_shape = np.shape(self.nucleon_pos)
+    charge_shape = np.shape(nuclear_charge)
+    nuclear_nuclear_potential = np.sum(
+        nuclear_charge * nuclear_charge.reshape(charge_shape[0], 1) * np.tril(
+            1 / np.linalg((self.nucleon_pos.reshape(pos_shape[0], 1, 3)) -
+                          self.nucleon_pos,
+                          axis=-1), -1))
 
-# def pretrain():
-# """ Perform the pretraining.
-# """
-# pass
-
-# def forward(self, x):
-# """ Forward pass of the model.
-# """
-# pass
+    return electron_nuclear_potential + electron_electron_potential + nuclear_nuclear_potential
