@@ -1224,108 +1224,150 @@ class DMPNNEncoderLayer(nn.Module):
   Encoder layer for use in the Directed Message Passing Neural Network (D-MPNN) [1]_.
 
   The role of the DMPNNEncoderLayer class is to generate molecule encodings in following steps:
+
   - Message passing phase
   - Get new atom hidden states and readout phase
   - Concatenate the global features
-  ----------------------------------------------------------------------------------------------------------
+
+
   Let the diagram given below represent a molecule containing 5 atoms (nodes) and 4 bonds (edges):-
 
-  |   1 --- 2 --- 3
-  |   |     |
-  |   5     4
+  |   1 --- 5
+  |   |
+  |   2 --- 4
+  |   |
+  |   3
 
-  Let the bonds from atoms 1->2 ('B[12]') and 2->1 ('B[21]') be considered as 2 different bonds.
+  Let the bonds from atoms 1->2 (**B[12]**) and 2->1 (**B[21]**) be considered as 2 different bonds.
   Hence, by considering the same for all atoms, the total number of bonds = 8.
 
   Let:
-  - a1, a2, a3, a4, a5 => atom features
-  - h1, h2, h3, h4, h5 => hidden states of atoms
-  - b12, b21, b23, b32, b24, b42, b15, b51 => bond features bonds
-  - (0)h12, (0)h21, (0)h23, (0)h32, (0)h24, (0)h42, (0)h15, (0)h51 => initial hidden states of bonds
+
+  - **atom features** : ``a1, a2, a3, a4, a5``
+  - **hidden states of atoms** : ``h1, h2, h3, h4, h5``
+  - **bond features bonds** : ``b12, b21, b23, b32, b24, b42, b15, b51``
+  - **initial hidden states of bonds** : ``(0)h12, (0)h21, (0)h23, (0)h32, (0)h24, (0)h42, (0)h15, (0)h51``
 
   The hidden state of every bond is a function of the concatenated feature vector which contains
-  concatenation of the 'features of initial atom of the bond' and 'bond features'.
+  concatenation of the **features of initial atom of the bond** and **bond features**.
 
-  Example: (0)h21 = func1(concat(a2, b21))  # here func1 is `self.W_i`
-  ------------------------------------------------------------------------------------------------------------
-  The Message passing phase:
-  The goal of the message-passing phase is to generate 'hidden states of all the atoms in the molecule'.
+  Example: ``(0)h21 = func1(concat(a2, b21))``
 
-  The hidden state of an atom is a function of concatenation of 'atom features and messages (at T depth)'.
-  Depth refers to the number of iterations in the message passing phase (here, T iterations).
-  After each iteration, the hidden states of the bonds are updated.
+  .. note::
+     Here func1 is ``self.W_i``
 
-  A message is a sum of 'hidden states of bonds coming to the atom (at T depth)'
+  **The Message passing phase**
 
-  Example: h1 = func3(concat(a1, m1))  # here func3 is `self.W_o`
-           Here, `m1` refers to the message coming to the atom.
+  The goal of the message-passing phase is to generate **hidden states of all the atoms in the molecule**.
 
-           m1 = (T-1)h21 + (T-1)h51 (hidden state of bond 2->1 + hidden state of bond 5->1)(at T depth)
+  The hidden state of an atom is **a function of concatenation of atom features and messages (at T depth)**.
 
-           for, depth T = 2:
-             - the hidden states of the bonds @ 1st iteration will be => (0)h21, (0)h51
-             - the hidden states of the bonds @ 2nd iteration will be => (1)h21, (1)h51
+  A message is a sum of **hidden states of bonds coming to the atom (at T depth)**.
 
-  The hidden states of the bonds @ 1st iteration are already know.
-  For hidden states of the bonds @ 2nd iteration, we follow the criterion that:
-  - "hidden state of the bond is a function of 'initial hidden state of bond'
-    and 'messages coming to that bond in that iteration'"
+  .. note::
+     Depth refers to the number of iterations in the message passing phase (here, T iterations). After each iteration, the hidden states of the bonds are updated.
 
-  Example: (1)h21 = func2( (0)h21 , (1)m21 )  # here func2 is `self.W_h`
-           Here, '(1)m21' refers to the messages coming to that bond 2->1 in that 2nd iteration
 
-  Messages coming to a bond in an iteration is
-   'a sum of hidden states of bonds (from previous iteration) coming to this bond'.
+  Example:
+    ``h1 = func3(concat(a1, m1))``
 
-  Example: (1)m21 = (0)h32 + (0)h42   |   2 <--- 3
-                                      |   ^
-                                      |   |
-                                      |   4
+  .. note::
+     Here func3 is ``self.W_o``.
 
-  Computing the messages:
+     `m1` refers to the message coming to the atom.
 
-                         B0      B1      B2      B3      B4      B5      B6      B7      B8
-  f_ini_atoms_bonds = [(0)h12, (0)h21, (0)h23, (0)h32, (0)h24, (0)h42, (0)h15, (0)h51, h(-1)]
+  ``m1 = (T-1)h21 + (T-1)h51``
+  (hidden state of bond 2->1 + hidden state of bond 5->1) (at T depth)
 
-  Note: h(-1) is an empty array of the same size as other hidden states of bond states.
+  for, depth T = 2:
 
-                B0      B1      B2      B3      B4      B5      B6      B7       B8
-  mapping = [ [-1,B7] [B3,B5] [B0,B5] [-1,-1] [B0,B3] [-1,-1] [B1,-1] [-1,-1]  [-1,-1] ]
+    - the hidden states of the bonds @ 1st iteration will be => (0)h21, (0)h51
+    - the hidden states of the bonds @ 2nd iteration will be => (1)h21, (1)h51
 
-  Later, the encoder will map the concatenated features from the `f_ini_atoms_bonds`
-  to `mapping` in each iteration upto Tth iteration.
+  The hidden states of the bonds in 1st iteration are already know.
+  For hidden states of the bonds in 2nd iteration, we follow the criterion that:
+
+  - hidden state of the bond is a function of **initial hidden state of bond**
+    and **messages coming to that bond in that iteration**
+
+  Example:
+    ``(1)h21 = func2( (0)h21 , (1)m21 )``
+
+  .. note::
+     Here func2 is ``self.W_h``.
+
+     `(1)m21` refers to the messages coming to that bond 2->1 in that 2nd iteration.
+
+  Messages coming to a bond in an iteration is **a sum of hidden states of bonds (from previous iteration) coming to this bond**.
+
+  Example:
+    ``(1)m21 = (0)h32 + (0)h42``
+
+  |   2 <--- 3
+  |   ^
+  |   |
+  |   4
+
+  **Computing the messages**
+
+  .. code-block:: python
+
+                             B0      B1      B2      B3      B4      B5      B6      B7      B8
+      f_ini_atoms_bonds = [(0)h12, (0)h21, (0)h23, (0)h32, (0)h24, (0)h42, (0)h15, (0)h51, h(-1)]
+
+
+  .. note::
+     h(-1) is an empty array of the same size as other hidden states of bond states.
+
+  .. code-block:: python
+
+                    B0      B1      B2      B3      B4      B5      B6      B7       B8
+      mapping = [ [-1,B7] [B3,B5] [B0,B5] [-1,-1] [B0,B3] [-1,-1] [B1,-1] [-1,-1]  [-1,-1] ]
+
+  Later, the encoder will map the concatenated features from the ``f_ini_atoms_bonds``
+  to ``mapping`` in each iteration upto Tth iteration.
 
   Next the encoder will sum-up the concat features within same bond index.
 
-                  (1)m12           (1)m21           (1)m23              (1)m32          (1)m24           (1)m42           (1)m15          (1)m51          m(-1)
-  Example: [ [h(-1) + (0)h51] [(0)h32 + (0)h42] [(0)h12 + (0)h42] [h(-1) + h(-1)] [(0)h12 + (0)h32] [h(-1) + h(-1)] [(0)h21 + h(-1)] [h(-1) + h(-1)]  [h(-1) + h(-1)] ]
+  .. code-block:: python
 
-  Hence, this is how, encoder can get messages for message-passing steps.
-  ---------------------------------------------------------------------------------------------------------------
-  Get new atom hidden states and readout phase:
+                      (1)m12           (1)m21           (1)m23              (1)m32          (1)m24           (1)m42           (1)m15          (1)m51            m(-1)
+      message = [ [h(-1) + (0)h51] [(0)h32 + (0)h42] [(0)h12 + (0)h42] [h(-1) + h(-1)] [(0)h12 + (0)h32] [h(-1) + h(-1)] [(0)h21 + h(-1)] [h(-1) + h(-1)]  [h(-1) + h(-1)] ]
 
-  Hence, now h1 = func3(
-                       concat(
-                              a1,
-                              [
-                               func2( (0)h21 , (0)h32 + (0)h42 ) +
-                               func2( (0)h51 , 0 ))
-                              ]
-                             )
-                      )
+  Hence, this is how encoder can get messages for message-passing steps.
+
+  **Get new atom hidden states and readout phase**
+
+  Hence now for h1:
+
+  .. code-block:: python
+
+      h1 = func3(
+                  concat(
+                         a1,
+                         [
+                          func2( (0)h21 , (0)h32 + (0)h42 ) +
+                          func2( (0)h51 , 0               )
+                         ]
+                        )
+                 )
+
   Similarly, h2, h3, h4 and h5 are calculated.
 
-  Next,all atom hidden states are concatenated to make a feature vector of the molecule:
-    mol_encodings = [[h1, h2, h3, h4, h5]]
-  ----------------------------------------------------------------------------------------------------------------
-  Concatenate the global features:
+  Next, all atom hidden states are concatenated to make a feature vector of the molecule:
 
-  Let, global_features = [[gf1, gf2, gf3]]
-    This array contains molecule level features. In this case, it contains 3 global features.
+    ``mol_encodings = [[h1, h2, h3, h4, h5]]``
+
+  **Concatenate the global features**
+
+  Let,
+  ``global_features = [[gf1, gf2, gf3]]``
+    This array contains molecule level features. In case of this example, it contains 3 global features.
 
   Hence after concatenation,
-    mol_encodings = [[h1, h2, h3, h4, h5, gf1, gf2, gf3]] # final output of the encoder
-  ----------------------------------------------------------------------------------------------------------------
+
+  ``mol_encodings = [[h1, h2, h3, h4, h5, gf1, gf2, gf3]]``
+    (Final output of the encoder)
 
   References
   ----------
@@ -1339,17 +1381,14 @@ class DMPNNEncoderLayer(nn.Module):
   >>> input_smile = "CC"
   >>> feat = dc.feat.DMPNNFeaturizer(features_generators=['morgan'])
   >>> graph = feat.featurize(input_smile)
-
   >>> from deepchem.models.torch_models.dmpnn import _MapperDMPNN
   >>> mapper = _MapperDMPNN(graph[0])
   >>> atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features = mapper.values
-
   >>> atom_features = torch.from_numpy(atom_features).float()
   >>> f_ini_atoms_bonds = torch.from_numpy(f_ini_atoms_bonds).float()
   >>> atom_to_incoming_bonds = torch.from_numpy(atom_to_incoming_bonds)
   >>> mapping = torch.from_numpy(mapping)
   >>> global_features = torch.from_numpy(global_features).float()
-
   >>> layer = DMPNNEncoderLayer(d_hidden=2)
   >>> output = layer(atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features)
   """
@@ -1370,8 +1409,8 @@ class DMPNNEncoderLayer(nn.Module):
     Parameters
     ----------
     use_default_fdim: bool
-      If `True`, self.atom_fdim and self.bond_fdim are initialized using values from the GraphConvConstants class.
-      If `False`, self.atom_fdim and self.bond_fdim are initialized from the values provided.
+      If ``True``, ``self.atom_fdim`` and ``self.bond_fdim`` are initialized using values from the GraphConvConstants class.
+      If ``False``, ``self.atom_fdim`` and ``self.bond_fdim`` are initialized from the values provided.
     atom_fdim: int
       Dimension of atom feature vector.
     bond_fdim: int
@@ -1381,7 +1420,7 @@ class DMPNNEncoderLayer(nn.Module):
     depth: int
       No of message passing steps.
     bias: bool
-      If `True`, dense layers will use bias vectors.
+      If ``True``, dense layers will use bias vectors.
     activation: str
       Activation function to be used in the encoder layer.
       Can choose between 'relu' for ReLU, 'leakyrelu' for LeakyReLU, 'prelu' for PReLU,
@@ -1503,9 +1542,10 @@ class DMPNNEncoderLayer(nn.Module):
     Output computation for the DMPNNEncoderLayer.
 
     Steps:
-    - Get original bond hidden states from concatenation of initial atom and bond features. (`input`)
-    - Get initial messages hidden states. (`message`)
-    - Execute message passing step for `self.depth - 1` iterations.
+
+    - Get original bond hidden states from concatenation of initial atom and bond features. (``input``)
+    - Get initial messages hidden states. (``message``)
+    - Execute message passing step for ``self.depth - 1`` iterations.
     - Get atom hidden states using atom features and message hidden states.
     - Get molecule encodings.
     - Concatenate global molecular features and molecule encodings.
