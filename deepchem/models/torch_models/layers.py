@@ -1376,7 +1376,7 @@ class AtomicConvolution(nn.Module):
       cond = torch.not_equal(Nbrs_Z, 0).to(torch.float).reshape((1, -1, N, M))
       layer = torch.sum(cond * rsf, 3)
     else:
-      # Calculate radial symmetry for each atom type in `atom_types`.
+      # Sum the pairwise-interactions between atoms that are of `atom_type` and its neighbors for each atom type in `atom_types`.
       symmetries = []
       for atom_type in self.atom_types:
         cond = torch.eq(Nbrs_Z, atom_type).to(torch.float).reshape(
