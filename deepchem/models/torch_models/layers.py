@@ -1338,7 +1338,7 @@ class AtomicConvolution(nn.Module):
                                            torch.Tensor]]) -> torch.Tensor:
     """Invoke this layer.
 
-    B, N, M, d = batch_size, max_num_atoms, max_num_neighbors, num_features
+    B, N, M, d, l = batch_size, max_num_atoms, max_num_neighbors, num_features, len(radial_params) * len(atom_types)
 
     Parameters
     ----------
@@ -1376,12 +1376,13 @@ class AtomicConvolution(nn.Module):
       cond = torch.not_equal(Nbrs_Z, 0).to(torch.float).reshape((1, -1, N, M))
       layer = torch.sum(cond * rsf, 3)
     else:
-      sym = []
-      for i in range(len(self.atom_types)):
-        cond = torch.eq(Nbrs_Z, self.atom_types[i]).to(torch.float).reshape(
+      # Calculate radial symmetry for each atom type in `atom_types`.
+      symmetries = []
+      for atom_type in self.atom_types:
+        cond = torch.eq(Nbrs_Z, atom_type).to(torch.float).reshape(
             (1, -1, N, M))
-        sym.append(torch.sum(cond * rsf, 3))
-      layer = torch.concat(sym, 0)
+        symmetries.append(torch.sum(cond * rsf, 3))
+      layer = torch.concat(symmetries, 0)
 
     layer = torch.permute(layer, [1, 2, 0])
     var, mean = torch.var_mean(layer, [0, 2])
@@ -1457,7 +1458,7 @@ class AtomicConvolution(nn.Module):
                                re: torch.Tensor) -> torch.Tensor:
     """Calculate a Gaussian distance matrix.
 
-    B, N, M, l = batch_size, max_num_atoms, max_num_neighbors, length of radial_params
+    B, N, M, l = batch_size, max_num_atoms, max_num_neighbors, len(radial_params)
 
     Parameters
     ----------
@@ -1478,7 +1479,7 @@ class AtomicConvolution(nn.Module):
   def radial_cutoff(self, R: torch.Tensor, rc: torch.Tensor) -> torch.Tensor:
     """Calculate a radial cut-off matrix.
 
-    B, N, M, l = batch_size, max_num_atoms, max_num_neighbors, length of radial_params
+    B, N, M, l = batch_size, max_num_atoms, max_num_neighbors, len(radial_params)
 
     Parameters
     ----------
@@ -1496,6 +1497,7 @@ class AtomicConvolution(nn.Module):
     E = torch.zeros_like(T)
     cond = torch.less_equal(R, rc)
     FC = torch.where(cond, T, E)
+
     return FC
 
   def radial_symmetry_function(self, R: torch.Tensor, rc: torch.Tensor,
@@ -1503,7 +1505,7 @@ class AtomicConvolution(nn.Module):
                                re: torch.Tensor) -> torch.Tensor:
     """Calculate a radial symmetry function.
 
-    B, N, M, l = batch_size, max_num_atoms, max_num_neighbors, length of radial_params
+    B, N, M, l = batch_size, max_num_atoms, max_num_neighbors, len(radial_params)
 
     Parameters
     ----------

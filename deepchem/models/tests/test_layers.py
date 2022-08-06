@@ -748,7 +748,8 @@ def test_torch_atomic_convolution():
   max_atoms = 5
   max_neighbors = 2
   dimensions = 3
-  radial_params = torch.tensor([[5.0, 2.0, 0.5], [10.0, 2.0, 0.5]])
+  radial_params = torch.tensor([[5.0, 2.0, 0.5], [10.0, 2.0, 0.5],
+                                [5.0, 1.0, 0.2]])
   input1 = np.random.rand(batch_size, max_atoms, dimensions).astype(np.float32)
   input2 = np.random.randint(max_atoms,
                              size=(batch_size, max_atoms, max_neighbors))
@@ -757,6 +758,12 @@ def test_torch_atomic_convolution():
   layer = torch_layers.AtomicConvolution(radial_params=radial_params)
   result = layer([input1, input2, input3])
   assert result.shape == (batch_size, max_atoms, len(radial_params))
+
+  atom_types = [1, 2, 8]
+  layer = torch_layers.AtomicConvolution(radial_params=radial_params,
+                                         atom_types=atom_types)
+  result = layer([input1, input2, input3])
+  assert result.shape == (batch_size, max_atoms, len(radial_params) * len(atom_types))
 
   # By setting the `box_size` to effectively zero, the result should only contain `nan`.
   box_size = [0.0, 0.0, 0.0]
