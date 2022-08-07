@@ -1327,7 +1327,7 @@ class CombineMeanStd(nn.Module):
   def forward(self,
               inputs: Sequence[ArrayLike],
               training: bool = True) -> torch.Tensor:
-    """
+    """Invoke this layer.
 
     Parameters
     ----------
