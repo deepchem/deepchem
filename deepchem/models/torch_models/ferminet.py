@@ -2,16 +2,22 @@
 Implementation of the Ferminet class in pytorch
 """
 
-from typing import List, Optional, Any, Tuple
-# import torch.nn as nn
+try:
+  import torch
+  from torch import Tensor
+  import torch.nn as nn
+  import torch.nn.functional as F
+except ModuleNotFoundError:
+  raise ImportError('These classes require PyTorch to be installed.')
+
+from typing import Callable, List, Optional, Any, Tuple
+from unittest import result
 from rdkit import Chem
 import numpy as np
 
 # from deepchem.models.torch_models import TorchModel
 # import deepchem.models.optimizers as optim
 from deepchem.utils.electron_sampler import ElectronSampler
-
-# TODO look for the loss function(Hamiltonian)
 
 
 def test_f(x: np.ndarray) -> np.ndarray:
@@ -41,6 +47,7 @@ class Ferminet:
       self,
       nucleon_coordinates: List[List],
       spin: int,
+      charge: int,
       seed: Optional[int] = None,
       batch_no: int = 10,
   ):
@@ -63,6 +70,7 @@ class Ferminet:
     self.seed = seed
     self.batch_no = batch_no
     self.spin = spin
+    self.ion_charge = charge
 
   def prepare_input_stream(self,) -> Tuple[Any, Any, Any, Any]:
     """Prepares the one-electron and two-electron input stream for the model.
@@ -82,21 +90,19 @@ class Ferminet:
     no_electrons = []
     nucleons = []
     self.charge: List = []
+    elec_neg = []
 
     table = Chem.GetPeriodicTable()
-    ionic_charge = 0
     for i in self.nucleon_coordinates:
-      if i[0][-1] == '+':
-        ionic_charge = i[0][-2]
-        i[0] = i[0][:-2]
-
-      elif i[0][-1] == '-':
-        ionic_charge = -i[0][-2]
-        i[0] = i[0][:-2]
       atomic_num = table.GetAtomicNumber(i[0])
       self.charge.append(atomic_num)
-      no_electrons.append([atomic_num - ionic_charge])
+      no_electrons.append([atomic_num])
       nucleons.append(i[1])
+    if self.charge != 0:
+      if len(self.charge) == 1:
+        no_electrons[0]-=self.ion_charge
+      if len(self.charge) == 2:
+        pass
 
     self.electron_no: np.ndarray = np.array(no_electrons)
     self.nucleon_pos: np.ndarray = np.array(nucleons)
@@ -174,3 +180,23 @@ class Ferminet:
                           axis=-1), -1))
 
     return electron_nuclear_potential + electron_electron_potential + nuclear_nuclear_potential
+
+  def local_energy(self, f: nn.Module) -> Any:
+    """Calculates the hamiltonian of the molecule system.
+
+    Returns:
+    --------
+    hamiltonian: Any
+      The hamiltonian of the system.
+    """
+    shape = np.shape(self.molecule.x)[0]
+    eye = torch.eye(shape)
+    grad = torch.autograd.grad(f, self.molecule.x)
+    jacobian_psi, hessian_psi = torch.autograd.functional.jvp(
+        grad, self.molecule.x)
+    val = 0
+    for i in range(shape):
+      val += hessian_psi(eye[i])[i]
+    result = val.sum()
+    potential = self.calculate_potential()
+    return potential - 0.5 * (result + ((jacobian_psi.sum())**2))
