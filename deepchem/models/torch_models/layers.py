@@ -1307,7 +1307,7 @@ class WeightedLinearCombo(nn.Module):
           [0.5781, 0.4686, 0.3546, 0.3058, 0.3406, 0.3248, 0.0820, 0.4484, 0.5554,
            0.5635],
           [0.1919, 0.5567, 0.5159, 0.3405, 0.4482, 0.3730, 0.3447, 0.2067, 0.4133,
-           0.2671]], grad_fn=<AddBackward0>)   # random
+           0.2671]], grad_fn=<AddBackward0>)   #random
   """
 
   def __init__(self, num_inputs: int, std: float = 0.3, **kwargs):
