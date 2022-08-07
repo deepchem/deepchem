@@ -1319,7 +1319,11 @@ class AtomicConvolution(nn.Module):
     super(AtomicConvolution, self).__init__(**kwargs)
     self.atom_types = atom_types
     self.radial_params = radial_params
-    self.box_size = torch.tensor(box_size) if box_size is not None else None
+
+    if box_size is None or isinstance(box_size, torch.Tensor):
+      self.box_size = box_size
+    else:
+      self.box_size = torch.tensor(box_size)
 
     vars = []
     for i in range(3):
