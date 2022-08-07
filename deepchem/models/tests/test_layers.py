@@ -763,7 +763,8 @@ def test_torch_atomic_convolution():
   layer = torch_layers.AtomicConvolution(radial_params=radial_params,
                                          atom_types=atom_types)
   result = layer([input1, input2, input3])
-  assert result.shape == (batch_size, max_atoms, len(radial_params) * len(atom_types))
+  assert result.shape == (batch_size, max_atoms,
+                          len(radial_params) * len(atom_types))
 
   # By setting the `box_size` to effectively zero, the result should only contain `nan`.
   box_size = [0.0, 0.0, 0.0]
