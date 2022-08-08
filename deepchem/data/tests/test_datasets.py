@@ -8,6 +8,8 @@ import os
 import numpy as np
 import pytest
 import deepchem as dc
+import pandas as pd
+import tempfile
 
 try:
   import torch  # noqa
@@ -23,8 +25,9 @@ def load_solubility_data():
   tasks = ["log-solubility"]
   input_file = os.path.join(current_dir,
                             "../../models/tests/assets/example.csv")
-  loader = dc.data.CSVLoader(
-      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  loader = dc.data.CSVLoader(tasks=tasks,
+                             feature_field="smiles",
+                             featurizer=featurizer)
 
   return loader.create_dataset(input_file)
 
@@ -40,8 +43,9 @@ def load_multitask_data():
   ]
   input_file = os.path.join(current_dir,
                             "../../models/tests/assets/multitask_example.csv")
-  loader = dc.data.CSVLoader(
-      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  loader = dc.data.CSVLoader(tasks=tasks,
+                             feature_field="smiles",
+                             featurizer=featurizer)
   return loader.create_dataset(input_file)
 
 
@@ -303,12 +307,12 @@ def test_complete_shuffle():
   np.testing.assert_equal(np.any(np.not_equal(dataset.w, res.y)), True)
   np.testing.assert_equal(np.any(np.not_equal(dataset.ids, res.ids)), True)
 
-  np.testing.assert_array_equal(
-      np.sort(dataset.X, axis=0), np.sort(res.X, axis=0))
-  np.testing.assert_array_equal(
-      np.sort(dataset.y, axis=0), np.sort(res.y, axis=0))
-  np.testing.assert_array_equal(
-      np.sort(dataset.w, axis=0), np.sort(res.w, axis=0))
+  np.testing.assert_array_equal(np.sort(dataset.X, axis=0),
+                                np.sort(res.X, axis=0))
+  np.testing.assert_array_equal(np.sort(dataset.y, axis=0),
+                                np.sort(res.y, axis=0))
+  np.testing.assert_array_equal(np.sort(dataset.w, axis=0),
+                                np.sort(res.w, axis=0))
   np.testing.assert_array_equal(np.sort(dataset.ids), np.sort(res.ids))
 
 
@@ -430,8 +434,10 @@ def test_disk_iterate_batch_size():
   X, y, _, _ = (solubility_dataset.X, solubility_dataset.y,
                 solubility_dataset.w, solubility_dataset.ids)
   batch_sizes = []
-  for X, y, _, _ in solubility_dataset.iterbatches(
-      3, epochs=2, pad_batches=False, deterministic=True):
+  for X, y, _, _ in solubility_dataset.iterbatches(3,
+                                                   epochs=2,
+                                                   pad_batches=False,
+                                                   deterministic=True):
     batch_sizes.append(len(X))
   assert [3, 3, 3, 1, 3, 3, 3, 1] == batch_sizes
 
@@ -465,8 +471,9 @@ def test_disk_pad_batches():
 
   test_Xs, test_ys, test_ws, test_ids = [], [], [], []
   for bidx, (a, b, c, d) in enumerate(
-      dataset.iterbatches(
-          batch_size=batch_size, pad_batches=True, deterministic=True)):
+      dataset.iterbatches(batch_size=batch_size,
+                          pad_batches=True,
+                          deterministic=True)):
 
     test_Xs.append(a)
     test_ys.append(b)
@@ -518,8 +525,9 @@ def test_disk_iterate_y_w_None():
 
   test_Xs, test_ids = [], []
   for bidx, (a, _, _, d) in enumerate(
-      dataset.iterbatches(
-          batch_size=batch_size, pad_batches=True, deterministic=True)):
+      dataset.iterbatches(batch_size=batch_size,
+                          pad_batches=True,
+                          deterministic=True)):
 
     test_Xs.append(a)
     test_ids.append(d)
@@ -590,8 +598,9 @@ def test_disk_iterate_batch():
     # deterministic
     test_Xs, test_ys, test_ws, test_ids = [], [], [], []
     for bidx, (a, b, c, d) in enumerate(
-        dataset.iterbatches(
-            batch_size=batch_size, pad_batches=False, deterministic=True)):
+        dataset.iterbatches(batch_size=batch_size,
+                            pad_batches=False,
+                            deterministic=True)):
 
       test_Xs.append(a)
       test_ys.append(b)
@@ -599,8 +608,8 @@ def test_disk_iterate_batch():
       test_ids.append(d)
 
     if batch_size is None:
-      for idx, (tx, ty, tw, tids) in enumerate(
-          zip(test_Xs, test_ys, test_ws, test_ids)):
+      for idx, (tx, ty, tw,
+                tids) in enumerate(zip(test_Xs, test_ys, test_ws, test_ids)):
         assert len(tx) == shard_sizes[idx]
         assert len(ty) == shard_sizes[idx]
         assert len(tw) == shard_sizes[idx]
@@ -625,8 +634,9 @@ def test_disk_iterate_batch():
     test_Xs, test_ys, test_ws, test_ids = [], [], [], []
 
     for bidx, (a, b, c, d) in enumerate(
-        dataset.iterbatches(
-            batch_size=batch_size, pad_batches=False, deterministic=False)):
+        dataset.iterbatches(batch_size=batch_size,
+                            pad_batches=False,
+                            deterministic=False)):
 
       test_Xs.append(a)
       test_ys.append(b)
@@ -644,14 +654,14 @@ def test_disk_iterate_batch():
     else:
       assert bidx == math.ceil(total_size / batch_size) - 1
 
-    np.testing.assert_array_equal(
-        np.sort(all_Xs, axis=0), np.sort(test_Xs, axis=0))
-    np.testing.assert_array_equal(
-        np.sort(all_ys, axis=0), np.sort(test_ys, axis=0))
-    np.testing.assert_array_equal(
-        np.sort(all_ws, axis=0), np.sort(test_ws, axis=0))
-    np.testing.assert_array_equal(
-        np.sort(all_ids, axis=0), np.sort(test_ids, axis=0))
+    np.testing.assert_array_equal(np.sort(all_Xs, axis=0),
+                                  np.sort(test_Xs, axis=0))
+    np.testing.assert_array_equal(np.sort(all_ys, axis=0),
+                                  np.sort(test_ys, axis=0))
+    np.testing.assert_array_equal(np.sort(all_ws, axis=0),
+                                  np.sort(test_ws, axis=0))
+    np.testing.assert_array_equal(np.sort(all_ids, axis=0),
+                                  np.sort(test_ids, axis=0))
 
 
 def test_merge():
@@ -683,8 +693,9 @@ def test_make_tf_dataset():
   X = np.random.random((100, 5))
   y = np.random.random((100, 1))
   dataset = dc.data.NumpyDataset(X, y)
-  iterator = dataset.make_tf_dataset(
-      batch_size=10, epochs=2, deterministic=True)
+  iterator = dataset.make_tf_dataset(batch_size=10,
+                                     epochs=2,
+                                     deterministic=True)
   for i, (batch_X, batch_y, batch_w) in enumerate(iterator):
     offset = (i % 10) * 10
     np.testing.assert_array_equal(X[offset:offset + 10, :], batch_X)
@@ -771,38 +782,76 @@ def test_dataframe():
 
   # Try specifying particular columns.
 
-  dataset3 = dc.data.Dataset.from_dataframe(
-      df, X=['X2', 'X4'], y='w', w=['y', 'X1'])
+  dataset3 = dc.data.Dataset.from_dataframe(df,
+                                            X=['X2', 'X4'],
+                                            y='w',
+                                            w=['y', 'X1'])
   np.testing.assert_array_equal(dataset.X[:, (1, 3)], dataset3.X)
   np.testing.assert_array_equal(dataset.w, dataset3.y)
   np.testing.assert_array_equal(
       np.stack([dataset.y[:, 0], dataset.X[:, 0]], axis=1), dataset3.w)
 
 
+def test_to_csv():
+  """Test converting between Dataset and CSV"""
+  tmpdir = tempfile.TemporaryDirectory()
+  csv_path = os.path.join(tmpdir.name, 'tmp.csv')
+
+  dataset = load_solubility_data()
+  dataset.reshard(2)
+  dataset.to_csv(csv_path)
+
+  df = pd.read_csv(csv_path)
+  dataset2 = dc.data.Dataset.from_dataframe(df)
+  np.testing.assert_array_equal(dataset.X, dataset2.X)
+  np.testing.assert_array_equal(dataset.y, dataset2.y)
+  np.testing.assert_array_equal(dataset.w, dataset2.w)
+  np.testing.assert_array_equal(dataset.ids, dataset2.ids)
+
+  # Try specifying particular columns
+  dataset3 = dc.data.Dataset.from_dataframe(df,
+                                            X=['X2', 'X4'],
+                                            y='w',
+                                            w=['y', 'X1'])
+  np.testing.assert_array_equal(dataset.X[:, (1, 3)], dataset3.X)
+  np.testing.assert_array_equal(dataset.w, dataset3.y)
+  np.testing.assert_array_equal(
+      np.stack([dataset.y[:, 0], dataset.X[:, 0]], axis=1), dataset3.w)
+
+  x = np.array([np.random.randn(2, 3), np.random.randn(2, 3)])
+  dataset = dc.data.NumpyDataset(X=x, y=np.array([[1], [2]]))
+  with pytest.raises(AssertionError):
+    dataset.to_csv(csv_path)
+
+
 def test_to_str():
   """Tests to string representation of Dataset."""
-  dataset = dc.data.NumpyDataset(
-      X=np.random.rand(5, 3), y=np.random.rand(5,), ids=np.arange(5))
+  dataset = dc.data.NumpyDataset(X=np.random.rand(5, 3),
+                                 y=np.random.rand(5,),
+                                 ids=np.arange(5))
   ref_str = '<NumpyDataset X.shape: (5, 3), y.shape: (5,), w.shape: (5,), ids: [0 1 2 3 4], task_names: [0]>'
   assert str(dataset) == ref_str
 
   # Test id shrinkage
   dc.utils.set_print_threshold(10)
-  dataset = dc.data.NumpyDataset(
-      X=np.random.rand(50, 3), y=np.random.rand(50,), ids=np.arange(50))
+  dataset = dc.data.NumpyDataset(X=np.random.rand(50, 3),
+                                 y=np.random.rand(50,),
+                                 ids=np.arange(50))
   ref_str = '<NumpyDataset X.shape: (50, 3), y.shape: (50,), w.shape: (50,), ids: [0 1 2 ... 47 48 49], task_names: [0]>'
   assert str(dataset) == ref_str
 
   # Test task shrinkage
-  dataset = dc.data.NumpyDataset(
-      X=np.random.rand(50, 3), y=np.random.rand(50, 20), ids=np.arange(50))
+  dataset = dc.data.NumpyDataset(X=np.random.rand(50, 3),
+                                 y=np.random.rand(50, 20),
+                                 ids=np.arange(50))
   ref_str = '<NumpyDataset X.shape: (50, 3), y.shape: (50, 20), w.shape: (50, 1), ids: [0 1 2 ... 47 48 49], task_names: [ 0  1  2 ... 17 18 19]>'
   assert str(dataset) == ref_str
 
   # Test max print size
   dc.utils.set_max_print_size(25)
-  dataset = dc.data.NumpyDataset(
-      X=np.random.rand(50, 3), y=np.random.rand(50,), ids=np.arange(50))
+  dataset = dc.data.NumpyDataset(X=np.random.rand(50, 3),
+                                 y=np.random.rand(50,),
+                                 ids=np.arange(50))
   ref_str = '<NumpyDataset X.shape: (50, 3), y.shape: (50,), w.shape: (50,), task_names: [0]>'
   assert str(dataset) == ref_str
 
@@ -819,8 +868,10 @@ class TestDatasets(unittest.TestCase):
     solubility_dataset = dc.data.NumpyDataset.from_DiskDataset(
         solubility_dataset)
     batch_sizes = []
-    for X, y, _, _ in solubility_dataset.iterbatches(
-        3, epochs=2, pad_batches=False, deterministic=True):
+    for X, y, _, _ in solubility_dataset.iterbatches(3,
+                                                     epochs=2,
+                                                     pad_batches=False,
+                                                     deterministic=True):
       batch_sizes.append(len(X))
     self.assertEqual([3, 3, 3, 1, 3, 3, 3, 1], batch_sizes)
 
