@@ -725,6 +725,40 @@ def test_mat_generator():
 
 
 @pytest.mark.torch
+def test_dmpnn_encoder_layer():
+  """Test invoking DMPNNEncoderLayer."""
+  torch.manual_seed(0)
+
+  input_smile = "CC"
+  feat = dc.feat.DMPNNFeaturizer(features_generators=['morgan'])
+  graph = feat.featurize(input_smile)
+
+  from deepchem.models.torch_models.dmpnn import _MapperDMPNN
+  mapper = _MapperDMPNN(graph[0])
+  atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features = mapper.values
+
+  atom_features = torch.from_numpy(atom_features).float()
+  f_ini_atoms_bonds = torch.from_numpy(f_ini_atoms_bonds).float()
+  atom_to_incoming_bonds = torch.from_numpy(atom_to_incoming_bonds)
+  mapping = torch.from_numpy(mapping)
+  global_features = torch.from_numpy(global_features).float()
+
+  layer = torch_layers.DMPNNEncoderLayer(d_hidden=2)
+  assert layer.W_i.__repr__(
+  ) == 'Linear(in_features=147, out_features=2, bias=False)'
+  assert layer.W_h.__repr__(
+  ) == 'Linear(in_features=2, out_features=2, bias=False)'
+  assert layer.W_o.__repr__(
+  ) == 'Linear(in_features=135, out_features=2, bias=True)'
+
+  output = layer(atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds,
+                 mapping, global_features)
+  readout_output = torch.tensor([[0.1116, 0.0470]])
+  assert output.shape == torch.Size([1, 2 + 2048])
+  assert torch.allclose(output[0][:2], readout_output, atol=1e-4)
+
+
+@pytest.mark.torch
 def test_torch_interatomic_l2_distances():
   """Test Invoking the torch equivalent of InteratomicL2Distances"""
   atoms = 5
@@ -754,3 +788,15 @@ def test_torch_combine_mean_std():
   assert np.allclose(result2, mean, atol=0.1)
   assert result1.shape == mean.shape and result1.shape == std.shape
   assert result2.shape == mean.shape and result2.shape == std.shape
+
+
+def test_torch_weighted_linear_combo():
+  """Test invoking the Torch equivalent of WeightedLinearCombo."""
+  input1 = np.random.rand(5, 10).astype(np.float32)
+  input2 = np.random.rand(5, 10).astype(np.float32)
+  layer = torch_layers.WeightedLinearCombo(len([input1, input2]))
+  result = layer([input1, input2])
+  assert len(layer.input_weights) == 2
+  expected = torch.Tensor(input1) * layer.input_weights[0] + torch.Tensor(
+      input2) * layer.input_weights[1]
+  assert torch.allclose(result, expected)
