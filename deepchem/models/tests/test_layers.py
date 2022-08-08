@@ -775,6 +775,7 @@ def test_torch_interatomic_l2_distances():
       assert np.allclose(dist2, result[atom, neighbor])
 
 
+@pytest.mark.torch
 def test_torch_atomic_convolution():
   """Test invoking the Torch equivalent of AtomicConvolution"""
   batch_size = 4
@@ -825,6 +826,7 @@ def test_torch_atomic_convolution():
     _ = layer([input1, input2])
 
 
+@pytest.mark.torch
 def test_torch_combine_mean_std():
   """Test invoking the Torch equivalent of CombineMeanStd."""
   mean = np.random.rand(5, 3).astype(np.float32)
@@ -839,6 +841,7 @@ def test_torch_combine_mean_std():
   assert result2.shape == mean.shape and result2.shape == std.shape
 
 
+@pytest.mark.torch
 def test_torch_weighted_linear_combo():
   """Test invoking the Torch equivalent of WeightedLinearCombo."""
   input1 = np.random.rand(5, 10).astype(np.float32)
