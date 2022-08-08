@@ -2,6 +2,8 @@ import numpy as np
 
 import torch
 import torch.nn as nn
+
+from deepchem.models.losses import Loss, L2Loss, SparseSoftmaxCrossEntropy
 from deepchem.models.torch_models import layers
 from deepchem.models.torch_models import TorchModel
 
@@ -321,8 +323,65 @@ class DMPNN(nn.Module):
 
 class DMPNNModel(TorchModel):
   """
-  TODO: implement torch model class for DMPNN
+  Directed Message Passing Neural Network
+
+  This class implements the Directed Message Passing Neural Network (D-MPNN) [1]_.
+
+  References
+  ----------
+  .. [1] Analyzing Learned Molecular Representations for Property Prediction https://arxiv.org/pdf/1904.01561.pdf
   """
 
-  def __init__(self):
-    return NotImplementedError
+  def __init__(self,
+               mode='regression',
+               n_classes=3,
+               n_tasks=1,
+               number_of_molecules=1,
+               global_features_size=0,
+               use_default_fdim=True,
+               atom_fdim=133,
+               bond_fdim=14,
+               enc_hidden=300,
+               depth=3,
+               bias=False,
+               enc_activation='relu',
+               enc_dropout_p=0.0,
+               aggregation='mean',
+               aggregation_norm=100,
+               encoder_wts_shared=False,
+               ffn_hidden: int = 300,
+               ffn_activation: str = 'relu',
+               ffn_layers: int = 3,
+               ffn_dropout_p: float = 0.0,
+               ffn_dropout_at_input_no_act: bool = True,
+               **kwargs):
+    """
+    """
+    model = DMPNN(mode=mode, n_classes=n_classes, n_tasks=n_tasks, number_of_molecules=number_of_molecules, global_features_size=global_features_size, use_default_fdim=use_default_fdim, atom_fdim=atom_fdim, bond_fdim=bond_fdim, enc_hidden=enc_hidden, depth=depth, bias=bias, enc_activation=enc_activation, enc_dropout_p=enc_dropout_p, aggregation=aggregation, aggregation_norm=aggregation_norm, encoder_wts_shared=encoder_wts_shared, ffn_hidden=ffn_hidden, ffn_activation=ffn_activation, ffn_layers=ffn_layers, ffn_dropout_p=ffn_dropout_p, ffn_dropout_at_input_no_act=ffn_dropout_at_input_no_act)
+
+    if mode == 'regression':
+      loss: Loss = L2Loss()
+      output_types = ['prediction']
+    elif mode == 'classification':
+      loss = SparseSoftmaxCrossEntropy()
+      output_types = ['prediction', 'loss']
+    super(DMPNNModel, self).__init__(model, loss=loss, output_types=output_types, **kwargs)
+
+    def default_generator(self,
+                          dataset,
+                          epochs=1,
+                          mode='fit',
+                          deterministic=True,
+                          pad_batches=False,
+                          **kwargs):
+      for epoch in range(epochs):
+        for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
+            batch_size=1,
+            deterministic=deterministic,
+            pad_batches=pad_batches):
+          
+          mapper = _MapperDMPNN(X_b)
+          atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features = mapper.values
+          inputs = [atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features]
+          yield (inputs, [y_b], [w_b])
+
