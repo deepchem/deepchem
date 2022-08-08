@@ -1673,6 +1673,22 @@ class NeighborList(nn.Module):
   think of this as a general "k-means" layer, but optimized for the
   case `k==3`.
 
+  Examples
+  --------
+  >>> N_atoms = 5
+  >>> start = 0
+  >>> stop = 12
+  >>> nbr_cutoff = 3
+  >>> ndim = 3
+  >>> M_nbrs = 2
+  >>> coords = start + np.random.rand(N_atoms, ndim) * (stop - start)
+  >>> coords = torch.as_tensor(coords, dtype=torch.float)
+  >>> layer = NeighborList(N_atoms, M_nbrs, ndim, nbr_cutoff, start,
+  ...                      stop)
+  >>> result = layer(coords)
+  >>> result.shape
+  torch.Size([5, 2])
+
   TODO(rbharath): Make this layer support batching.
   """
 
