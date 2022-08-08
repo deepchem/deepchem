@@ -1297,17 +1297,8 @@ class WeightedLinearCombo(nn.Module):
   >>> input2 = np.random.rand(5, 10).astype(np.float32)
   >>> layer = WeightedLinearCombo(len([input1, input2]))
   >>> result = layer([input1, input2])
-  >>> result
-  tensor([[0.1478, 0.3644, 0.1966, 0.2219, 0.5596, 0.2617, 0.3171, 0.2809, 0.1580,
-           0.4675],
-          [0.3841, 0.0758, 0.4309, 0.5231, 0.3144, 0.5398, 0.1666, 0.2104, 0.1634,
-           0.4360],
-          [0.4647, 0.0959, 0.1570, 0.5626, 0.1578, 0.2878, 0.4888, 0.3422, 0.3723,
-           0.5318],
-          [0.5781, 0.4686, 0.3546, 0.3058, 0.3406, 0.3248, 0.0820, 0.4484, 0.5554,
-           0.5635],
-          [0.1919, 0.5567, 0.5159, 0.3405, 0.4482, 0.3730, 0.3447, 0.2067, 0.4133,
-           0.2671]], grad_fn=<AddBackward0>)   #random
+  >>> result.shape
+  torch.Size([5, 10])
   """
 
   def __init__(self, num_inputs: int, std: float = 0.3, **kwargs):
