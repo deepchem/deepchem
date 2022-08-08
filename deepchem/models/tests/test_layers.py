@@ -776,6 +776,20 @@ def test_torch_interatomic_l2_distances():
 
 
 @pytest.mark.torch
+def test_torch_combine_mean_std():
+  """Test invoking the Torch equivalent of CombineMeanStd."""
+  mean = np.random.rand(5, 3).astype(np.float32)
+  std = np.random.rand(5, 3).astype(np.float32)
+  layer = torch_layers.CombineMeanStd(training_only=True, noise_epsilon=0.01)
+  result1 = layer([mean, std], training=False)
+  assert np.array_equal(result1, mean)  # No noise in test mode
+  result2 = layer([mean, std], training=True)
+  assert not np.array_equal(result2, mean)
+  assert np.allclose(result2, mean, atol=0.1)
+  assert result1.shape == mean.shape and result1.shape == std.shape
+  assert result2.shape == mean.shape and result2.shape == std.shape
+
+
 def test_torch_weighted_linear_combo():
   """Test invoking the Torch equivalent of WeightedLinearCombo."""
   input1 = np.random.rand(5, 10).astype(np.float32)

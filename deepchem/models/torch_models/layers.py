@@ -1664,6 +1664,71 @@ class InteratomicL2Distances(nn.Module):
     return torch.sum((tiled_coords - nbr_coords)**2, dim=2)
 
 
+class CombineMeanStd(nn.Module):
+  """Generate Gaussian noise.
+
+  This is the Torch equivalent of the original implementation using Keras.
+  """
+
+  def __init__(self,
+               training_only: bool = False,
+               noise_epsilon: float = 1.0,
+               **kwargs):
+    """Create a CombineMeanStd layer.
+
+    This layer should have two inputs with the same shape, and its
+    output also has the same shape.  Each element of the output is a
+    Gaussian distributed random number whose mean is the corresponding
+    element of the first input, and whose standard deviation is the
+    corresponding element of the second input.
+
+    Parameters
+    ----------
+    training_only: bool, optional (default False).
+      if True, noise is only generated during training.  During
+      prediction, the output is simply equal to the first input (that
+      is, the mean of the distribution used during training).
+    noise_epsilon: float, optional (default 1.0).
+      The noise is scaled by this factor
+    """
+    super(CombineMeanStd, self).__init__(**kwargs)
+    self.training_only = training_only
+    self.noise_epsilon = noise_epsilon
+
+  def __repr__(self) -> str:
+    return (
+        f'{self.__class__.__name__}(training_only={self.training_only}, noise_epsilon={self.noise_epsilon})'
+    )
+
+  def forward(self,
+              inputs: Sequence[ArrayLike],
+              training: bool = True) -> torch.Tensor:
+    """Invoke this layer.
+
+    Parameters
+    ----------
+    inputs: Sequence[ArrayLike]
+      First element are the means for the random generated numbers.
+      Second element are the standard deviations for the random generated numbers.
+    training: bool, optional (default True).
+      Specifies whether to generate noise.
+      Noise is only added when training.
+
+    Returns
+    -------
+    Tensor of Gaussian distributed random numbers: torch.Tensor
+      Same shape as the means and standard deviations from `inputs`.
+    """
+    if len(inputs) != 2:
+      raise ValueError("Must have two in_layers")
+
+    mean_parent, std_parent = torch.tensor(inputs[0]), torch.tensor(inputs[1])
+    noise_scale = torch.tensor(training or
+                               not self.training_only).to(torch.float)
+    sample_noise = torch.normal(0.0, self.noise_epsilon, mean_parent.shape)
+    return mean_parent + noise_scale * std_parent * sample_noise
+
+
 class WeightedLinearCombo(nn.Module):
   """Compute a weighted linear combination of input layers, where the weight variables are trained.
 
