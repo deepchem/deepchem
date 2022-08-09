@@ -793,6 +793,57 @@ def test_torch_neighbor_list():
 
 
 @pytest.mark.torch
+def test_torch_atomic_convolution():
+  """Test invoking the Torch equivalent of AtomicConvolution"""
+  batch_size = 4
+  max_atoms = 5
+  max_neighbors = 2
+  dimensions = 3
+  radial_params = torch.tensor([[5.0, 2.0, 0.5], [10.0, 2.0, 0.5],
+                                [5.0, 1.0, 0.2]])
+  input1 = np.random.rand(batch_size, max_atoms, dimensions).astype(np.float32)
+  input2 = np.random.randint(max_atoms,
+                             size=(batch_size, max_atoms, max_neighbors))
+  input3 = np.random.randint(1, 10, size=(batch_size, max_atoms, max_neighbors))
+
+  layer = torch_layers.AtomicConvolution(radial_params=radial_params)
+  result = layer([input1, input2, input3])
+  assert result.shape == (batch_size, max_atoms, len(radial_params))
+
+  atom_types = [1, 2, 8]
+  layer = torch_layers.AtomicConvolution(radial_params=radial_params,
+                                         atom_types=atom_types)
+  result = layer([input1, input2, input3])
+  assert result.shape == (batch_size, max_atoms,
+                          len(radial_params) * len(atom_types))
+
+  # By setting the `box_size` to effectively zero, the result should only contain `nan`.
+  box_size = [0.0, 0.0, 0.0]
+  layer = torch_layers.AtomicConvolution(radial_params=radial_params,
+                                         box_size=box_size)
+  result = layer([input1, input2, input3])
+  assert torch.all(result.isnan())
+
+  # Check that layer has three trainable parameters.
+  assert len(list(layer.parameters())) == 3
+
+  with pytest.raises(ValueError):
+    # Check when `box_size` is of wrong dimensionality.
+    dimensions = 2
+    box_size = torch.tensor([1.0, 1.0, 1.0])
+    input1 = np.random.rand(batch_size, max_atoms,
+                            dimensions).astype(np.float32)
+
+    layer = torch_layers.AtomicConvolution(radial_params=radial_params,
+                                           box_size=box_size)
+    _ = layer([input1, input2, input3])
+
+    # Check when `inputs` is of wrong length.
+    layer = torch_layers.AtomicConvolution(radial_params=radial_params)
+    _ = layer([input1, input2])
+
+
+@pytest.mark.torch
 def test_torch_combine_mean_std():
   """Test invoking the Torch equivalent of CombineMeanStd."""
   mean = np.random.rand(5, 3).astype(np.float32)
