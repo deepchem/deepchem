@@ -9,6 +9,5 @@ from deepchem.models.torch_models.lcnn import LCNN, LCNNModel
 from deepchem.models.torch_models.pagtn import Pagtn, PagtnModel
 from deepchem.models.torch_models.mat import MAT, MATModel
 from deepchem.models.torch_models.megnet import MEGNetModel
-from deepchem.models.torch_models.layers import CNNModule, CombineMeanStd
-from deepchem.models.torch_models.layers import CNNModule, WeightedLinearCombo
+from deepchem.models.torch_models.layers import CNNModule, CombineMeanStd, WeightedLinearCombo, AtomicConvolution
 from deepchem.models.torch_models.cnn import CNN
