@@ -122,6 +122,9 @@ Keras Layers
 Torch Layers
 ------------
 
+.. autoclass:: deepchem.models.torch_models.layers.CNNModule
+  :members:
+
 .. autoclass:: deepchem.models.torch_models.layers.ScaleNorm
   :members:
 
@@ -153,6 +156,9 @@ Torch Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.RealNVPLayer
   :members: 
+
+.. autoclass:: deepchem.models.torch_models.layers.DMPNNEncoderLayer
+  :members:
 
 Jax Layers
 ----------

@@ -14,6 +14,271 @@ try:
 except ModuleNotFoundError:
   pass
 
+from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
+from deepchem.utils.pytorch_utils import get_activation
+
+try:
+  from collections.abc import Sequence as SequenceCollection
+except:
+  from collections import Sequence as SequenceCollection
+
+
+class CNNModule(nn.Module):
+  """A 1, 2, or 3 dimensional convolutional network for either regression or classification.
+  The network consists of the following sequence of layers:
+  - A configurable number of convolutional layers
+  - A global pooling layer (either max pool or average pool)
+  - A final fully connected layer to compute the output
+  It optionally can compose the model from pre-activation residual blocks, as
+  described in https://arxiv.org/abs/1603.05027, rather than a simple stack of
+  convolution layers.  This often leads to easier training, especially when using a
+  large number of layers.  Note that residual blocks can only be used when
+  successive layers have the same output shape.  Wherever the output shape changes, a
+  simple convolution layer will be used even if residual=True.
+  Examples
+  --------
+  >>> model = CNNModule(n_tasks=5, n_features=8, dims=2, layer_filters=[3,8,8,16], kernel_size=3, n_classes = 7, mode='classification', uncertainty=False, padding='same')
+  >>> x = torch.ones(2, 224, 224, 8)
+  >>> x = model(x)
+  >>> for tensor in x:
+  ...    print(tensor.shape)
+  torch.Size([2, 5, 7])
+  torch.Size([2, 5, 7])
+  """
+
+  def __init__(self,
+               n_tasks: int,
+               n_features: int,
+               dims: int,
+               layer_filters: List[int] = [100],
+               kernel_size: OneOrMany[int] = 5,
+               strides: OneOrMany[int] = 1,
+               weight_init_stddevs: OneOrMany[float] = 0.02,
+               bias_init_consts: OneOrMany[float] = 1.0,
+               dropouts: OneOrMany[float] = 0.5,
+               activation_fns: OneOrMany[ActivationFn] = 'relu',
+               pool_type: str = 'max',
+               mode: str = 'classification',
+               n_classes: int = 2,
+               uncertainty: bool = False,
+               residual: bool = False,
+               padding: Union[int, str] = 'valid') -> None:
+    """Create a CNN.
+    Parameters
+    ----------
+    n_tasks: int
+      number of tasks
+    n_features: int
+      number of features
+    dims: int
+      the number of dimensions to apply convolutions over (1, 2, or 3)
+    layer_filters: list
+      the number of output filters for each convolutional layer in the network.
+      The length of this list determines the number of layers.
+    kernel_size: int, tuple, or list
+      a list giving the shape of the convolutional kernel for each layer.  Each
+      element may be either an int (use the same kernel width for every dimension)
+      or a tuple (the kernel width along each dimension).  Alternatively this may
+      be a single int or tuple instead of a list, in which case the same kernel
+      shape is used for every layer.
+    strides: int, tuple, or list
+      a list giving the stride between applications of the  kernel for each layer.
+      Each element may be either an int (use the same stride for every dimension)
+      or a tuple (the stride along each dimension).  Alternatively this may be a
+      single int or tuple instead of a list, in which case the same stride is
+      used for every layer.
+    weight_init_stddevs: list or float
+      the standard deviation of the distribution to use for weight initialization
+      of each layer.  The length of this list should equal len(layer_filters)+1,
+      where the final element corresponds to the dense layer.  Alternatively this
+      may be a single value instead of a list, in which case the same value is used
+      for every layer.
+    bias_init_consts: list or float
+      the value to initialize the biases in each layer to.  The length of this
+      list should equal len(layer_filters)+1, where the final element corresponds
+      to the dense layer.  Alternatively this may be a single value instead of a
+      list, in which case the same value is used for every layer.
+    dropouts: list or float
+      the dropout probability to use for each layer.  The length of this list should equal len(layer_filters).
+      Alternatively this may be a single value instead of a list, in which case the same value is used for every layer
+    activation_fns: str or list
+      the torch activation function to apply to each layer. The length of this list should equal
+      len(layer_filters).  Alternatively this may be a single value instead of a list, in which case the
+      same value is used for every layer, 'relu' by default
+    pool_type: str
+      the type of pooling layer to use, either 'max' or 'average'
+    mode: str
+      Either 'classification' or 'regression'
+    n_classes: int
+      the number of classes to predict (only used in classification mode)
+    uncertainty: bool
+      if True, include extra outputs and loss terms to enable the uncertainty
+      in outputs to be predicted
+    residual: bool
+      if True, the model will be composed of pre-activation residual blocks instead
+      of a simple stack of convolutional layers.
+    padding: str, int or tuple
+      the padding to use for convolutional layers, either 'valid' or 'same'
+    """
+
+    super(CNNModule, self).__init__()
+
+    if dims not in (1, 2, 3):
+      raise ValueError('Number of dimensions must be 1, 2 or 3')
+
+    if mode not in ['classification', 'regression']:
+      raise ValueError("mode must be either 'classification' or 'regression'")
+
+    self.n_tasks = n_tasks
+    self.n_features = n_features
+    self.dims = dims
+    self.mode = mode
+    self.n_classes = n_classes
+    self.uncertainty = uncertainty
+    self.mode = mode
+    self.layer_filters = layer_filters
+    self.residual = residual
+
+    n_layers = len(layer_filters)
+
+    # PyTorch layers require input and output channels as parameter
+    # if only one layer to make the model creating loop below work, multiply layer_filters wutg 2
+    if len(layer_filters) == 1:
+      layer_filters = layer_filters * 2
+
+    if not isinstance(kernel_size, SequenceCollection):
+      kernel_size = [kernel_size] * n_layers
+    if not isinstance(strides, SequenceCollection):
+      strides = [strides] * n_layers
+    if not isinstance(dropouts, SequenceCollection):
+      dropouts = [dropouts] * n_layers
+    if isinstance(activation_fns,
+                  str) or not isinstance(activation_fns, SequenceCollection):
+      activation_fns = [activation_fns] * n_layers
+    if not isinstance(weight_init_stddevs, SequenceCollection):
+      weight_init_stddevs = [weight_init_stddevs] * n_layers
+    if not isinstance(bias_init_consts, SequenceCollection):
+      bias_init_consts = [bias_init_consts] * n_layers
+
+    self.activation_fns = [get_activation(f) for f in activation_fns]
+    self.dropouts = dropouts
+
+    if uncertainty:
+
+      if mode != 'regression':
+        raise ValueError("Uncertainty is only supported in regression mode")
+
+      if any(d == 0.0 for d in dropouts):
+        raise ValueError(
+            'Dropout must be included in every layer to predict uncertainty')
+
+    # Python tuples use 0 based indexing, dims defines number of dimension for convolutional operation
+    ConvLayer = (nn.Conv1d, nn.Conv2d, nn.Conv3d)[self.dims - 1]
+
+    if pool_type == 'average':
+      PoolLayer = (F.avg_pool1d, F.avg_pool2d, F.avg_pool3d)[self.dims - 1]
+    elif pool_type == 'max':
+      PoolLayer = (F.max_pool1d, F.max_pool2d, F.max_pool3d)[self.dims - 1]
+    else:
+      raise ValueError("pool_type must be either 'average' or 'max'")
+
+    self.PoolLayer = PoolLayer
+    self.layers = nn.ModuleList()
+
+    in_shape = n_features
+
+    for out_shape, size, stride, weight_stddev, bias_const in zip(
+        layer_filters, kernel_size, strides, weight_init_stddevs,
+        bias_init_consts):
+
+      layer = ConvLayer(in_channels=in_shape,
+                        out_channels=out_shape,
+                        kernel_size=size,
+                        stride=stride,
+                        padding=padding,
+                        dilation=1,
+                        groups=1,
+                        bias=True)
+
+      nn.init.normal_(layer.weight, 0, weight_stddev)
+
+      # initializing layer bias with nn.init gives mypy typecheck error
+      # using the following workaround
+      if layer.bias is not None:
+        layer.bias = nn.Parameter(torch.full(layer.bias.shape, bias_const))
+
+      self.layers.append(layer)
+
+      in_shape = out_shape
+
+    self.classifier_ffn = nn.LazyLinear(self.n_tasks * self.n_classes)
+    self.output_layer = nn.LazyLinear(self.n_tasks)
+    self.uncertainty_layer = nn.LazyLinear(self.n_tasks)
+
+  def forward(self, inputs: OneOrMany[torch.Tensor]) -> List[Any]:
+    """
+    Parameters
+    ----------
+    x: torch.Tensor
+      Input Tensor
+    Returns
+    -------
+    torch.Tensor
+      Output as per use case : regression/classification
+    """
+    if isinstance(inputs, torch.Tensor):
+      x, dropout_switch = inputs, None
+    else:
+      x, dropout_switch = inputs
+
+    x = torch.transpose(x, 1, -1)  # n h w c -> n c h w
+
+    prev_layer = x
+
+    for layer, activation_fn, dropout in zip(self.layers, self.activation_fns,
+                                             self.dropouts):
+      x = layer(x)
+
+      if dropout > 0. and dropout_switch:
+        x = F.dropout(x, dropout)
+
+      # residual blocks can only be used when successive layers have the same output shape
+      if self.residual and x.shape[1] == prev_layer.shape[1]:
+        x = x + prev_layer
+
+      if activation_fn is not None:
+        x = activation_fn(x)
+
+      prev_layer = x
+
+    x = self.PoolLayer(x, kernel_size=x.size()[2:])
+
+    outputs = []
+    batch_size = x.shape[0]
+
+    x = torch.reshape(x, (batch_size, -1))
+
+    if self.mode == "classification":
+
+      logits = self.classifier_ffn(x)
+      logits = logits.view(batch_size, self.n_tasks, self.n_classes)
+      output = F.softmax(logits, dim=2)
+      outputs = [output, logits]
+
+    else:
+      output = self.output_layer(x)
+      output = output.view(batch_size, self.n_tasks)
+
+      if self.uncertainty:
+        log_var = self.uncertainty_layer(x)
+        log_var = log_var.view(batch_size, self.n_tasks, 1)
+        var = torch.exp(log_var)
+        outputs = [output, var, output, log_var]
+      else:
+        outputs = [output]
+
+    return outputs
+
 
 class ScaleNorm(nn.Module):
   """Apply Scale Normalization to input.
@@ -959,6 +1224,382 @@ class Affine(nn.Module):
     return x, inverse_log_det_jacobian
 
 
+class DMPNNEncoderLayer(nn.Module):
+  """
+  Encoder layer for use in the Directed Message Passing Neural Network (D-MPNN) [1]_.
+
+  The role of the DMPNNEncoderLayer class is to generate molecule encodings in following steps:
+
+  - Message passing phase
+  - Get new atom hidden states and readout phase
+  - Concatenate the global features
+
+
+  Let the diagram given below represent a molecule containing 5 atoms (nodes) and 4 bonds (edges):-
+
+  |   1 --- 5
+  |   |
+  |   2 --- 4
+  |   |
+  |   3
+
+  Let the bonds from atoms 1->2 (**B[12]**) and 2->1 (**B[21]**) be considered as 2 different bonds.
+  Hence, by considering the same for all atoms, the total number of bonds = 8.
+
+  Let:
+
+  - **atom features** : ``a1, a2, a3, a4, a5``
+  - **hidden states of atoms** : ``h1, h2, h3, h4, h5``
+  - **bond features bonds** : ``b12, b21, b23, b32, b24, b42, b15, b51``
+  - **initial hidden states of bonds** : ``(0)h12, (0)h21, (0)h23, (0)h32, (0)h24, (0)h42, (0)h15, (0)h51``
+
+  The hidden state of every bond is a function of the concatenated feature vector which contains
+  concatenation of the **features of initial atom of the bond** and **bond features**.
+
+  Example: ``(0)h21 = func1(concat(a2, b21))``
+
+  .. note::
+     Here func1 is ``self.W_i``
+
+  **The Message passing phase**
+
+  The goal of the message-passing phase is to generate **hidden states of all the atoms in the molecule**.
+
+  The hidden state of an atom is **a function of concatenation of atom features and messages (at T depth)**.
+
+  A message is a sum of **hidden states of bonds coming to the atom (at T depth)**.
+
+  .. note::
+     Depth refers to the number of iterations in the message passing phase (here, T iterations). After each iteration, the hidden states of the bonds are updated.
+
+
+  Example:
+    ``h1 = func3(concat(a1, m1))``
+
+  .. note::
+     Here func3 is ``self.W_o``.
+
+     `m1` refers to the message coming to the atom.
+
+  ``m1 = (T-1)h21 + (T-1)h51``
+  (hidden state of bond 2->1 + hidden state of bond 5->1) (at T depth)
+
+  for, depth T = 2:
+
+    - the hidden states of the bonds @ 1st iteration will be => (0)h21, (0)h51
+    - the hidden states of the bonds @ 2nd iteration will be => (1)h21, (1)h51
+
+  The hidden states of the bonds in 1st iteration are already know.
+  For hidden states of the bonds in 2nd iteration, we follow the criterion that:
+
+  - hidden state of the bond is a function of **initial hidden state of bond**
+    and **messages coming to that bond in that iteration**
+
+  Example:
+    ``(1)h21 = func2( (0)h21 , (1)m21 )``
+
+  .. note::
+     Here func2 is ``self.W_h``.
+
+     `(1)m21` refers to the messages coming to that bond 2->1 in that 2nd iteration.
+
+  Messages coming to a bond in an iteration is **a sum of hidden states of bonds (from previous iteration) coming to this bond**.
+
+  Example:
+    ``(1)m21 = (0)h32 + (0)h42``
+
+  |   2 <--- 3
+  |   ^
+  |   |
+  |   4
+
+  **Computing the messages**
+
+  .. code-block:: python
+
+                             B0      B1      B2      B3      B4      B5      B6      B7      B8
+      f_ini_atoms_bonds = [(0)h12, (0)h21, (0)h23, (0)h32, (0)h24, (0)h42, (0)h15, (0)h51, h(-1)]
+
+
+  .. note::
+     h(-1) is an empty array of the same size as other hidden states of bond states.
+
+  .. code-block:: python
+
+                    B0      B1      B2      B3      B4      B5      B6      B7       B8
+      mapping = [ [-1,B7] [B3,B5] [B0,B5] [-1,-1] [B0,B3] [-1,-1] [B1,-1] [-1,-1]  [-1,-1] ]
+
+  Later, the encoder will map the concatenated features from the ``f_ini_atoms_bonds``
+  to ``mapping`` in each iteration upto Tth iteration.
+
+  Next the encoder will sum-up the concat features within same bond index.
+
+  .. code-block:: python
+
+                      (1)m12           (1)m21           (1)m23              (1)m32          (1)m24           (1)m42           (1)m15          (1)m51            m(-1)
+      message = [ [h(-1) + (0)h51] [(0)h32 + (0)h42] [(0)h12 + (0)h42] [h(-1) + h(-1)] [(0)h12 + (0)h32] [h(-1) + h(-1)] [(0)h21 + h(-1)] [h(-1) + h(-1)]  [h(-1) + h(-1)] ]
+
+  Hence, this is how encoder can get messages for message-passing steps.
+
+  **Get new atom hidden states and readout phase**
+
+  Hence now for h1:
+
+  .. code-block:: python
+
+      h1 = func3(
+                  concat(
+                         a1,
+                         [
+                          func2( (0)h21 , (0)h32 + (0)h42 ) +
+                          func2( (0)h51 , 0               )
+                         ]
+                        )
+                 )
+
+  Similarly, h2, h3, h4 and h5 are calculated.
+
+  Next, all atom hidden states are concatenated to make a feature vector of the molecule:
+
+    ``mol_encodings = [[h1, h2, h3, h4, h5]]``
+
+  **Concatenate the global features**
+
+  Let,
+  ``global_features = [[gf1, gf2, gf3]]``
+    This array contains molecule level features. In case of this example, it contains 3 global features.
+
+  Hence after concatenation,
+
+  ``mol_encodings = [[h1, h2, h3, h4, h5, gf1, gf2, gf3]]``
+    (Final output of the encoder)
+
+  References
+  ----------
+  .. [1] Analyzing Learned Molecular Representations for Property Prediction https://arxiv.org/pdf/1904.01561.pdf
+
+  Examples
+  --------
+  >>> from rdkit import Chem
+  >>> import torch
+  >>> import deepchem as dc
+  >>> input_smile = "CC"
+  >>> feat = dc.feat.DMPNNFeaturizer(features_generators=['morgan'])
+  >>> graph = feat.featurize(input_smile)
+  >>> from deepchem.models.torch_models.dmpnn import _MapperDMPNN
+  >>> mapper = _MapperDMPNN(graph[0])
+  >>> atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features = mapper.values
+  >>> atom_features = torch.from_numpy(atom_features).float()
+  >>> f_ini_atoms_bonds = torch.from_numpy(f_ini_atoms_bonds).float()
+  >>> atom_to_incoming_bonds = torch.from_numpy(atom_to_incoming_bonds)
+  >>> mapping = torch.from_numpy(mapping)
+  >>> global_features = torch.from_numpy(global_features).float()
+  >>> layer = DMPNNEncoderLayer(d_hidden=2)
+  >>> output = layer(atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features)
+  """
+
+  def __init__(self,
+               use_default_fdim: bool = True,
+               atom_fdim: int = 133,
+               bond_fdim: int = 14,
+               d_hidden: int = 300,
+               depth: int = 3,
+               bias: bool = False,
+               activation: str = 'relu',
+               dropout_p: float = 0.0,
+               aggregation: str = 'mean',
+               aggregation_norm: Union[int, float] = 100):
+    """Initialize a DMPNNEncoderLayer layer.
+
+    Parameters
+    ----------
+    use_default_fdim: bool
+      If ``True``, ``self.atom_fdim`` and ``self.bond_fdim`` are initialized using values from the GraphConvConstants class.
+      If ``False``, ``self.atom_fdim`` and ``self.bond_fdim`` are initialized from the values provided.
+    atom_fdim: int
+      Dimension of atom feature vector.
+    bond_fdim: int
+      Dimension of bond feature vector.
+    d_hidden: int
+      Size of hidden layer in the encoder layer.
+    depth: int
+      No of message passing steps.
+    bias: bool
+      If ``True``, dense layers will use bias vectors.
+    activation: str
+      Activation function to be used in the encoder layer.
+      Can choose between 'relu' for ReLU, 'leakyrelu' for LeakyReLU, 'prelu' for PReLU,
+      'tanh' for TanH, 'selu' for SELU, and 'elu' for ELU.
+    dropout_p: float
+      Dropout probability for the encoder layer.
+    aggregation: str
+      Aggregation type to be used in the encoder layer.
+      Can choose between 'mean', 'sum', and 'norm'.
+    aggregation_norm: Union[int, float]
+      Value required if `aggregation` type is 'norm'.
+    """
+    super(DMPNNEncoderLayer, self).__init__()
+
+    if use_default_fdim:
+      from deepchem.feat.molecule_featurizers.dmpnn_featurizer import GraphConvConstants
+      self.atom_fdim: int = GraphConvConstants.ATOM_FDIM
+      self.concat_fdim: int = GraphConvConstants.ATOM_FDIM + GraphConvConstants.BOND_FDIM
+    else:
+      self.atom_fdim = atom_fdim
+      self.concat_fdim = atom_fdim + bond_fdim
+
+    self.depth: int = depth
+    self.aggregation: str = aggregation
+    self.aggregation_norm: Union[int, float] = aggregation_norm
+
+    if activation == 'relu':
+      self.activation: nn.modules.activation.Module = nn.ReLU()
+
+    elif activation == 'leakyrelu':
+      self.activation = nn.LeakyReLU(0.1)
+
+    elif activation == 'prelu':
+      self.activation = nn.PReLU()
+
+    elif activation == 'tanh':
+      self.activation = nn.Tanh()
+
+    elif activation == 'selu':
+      self.activation = nn.SELU()
+
+    elif activation == 'elu':
+      self.activation = nn.ELU()
+
+    self.dropout: nn.modules.dropout.Module = nn.Dropout(dropout_p)
+
+    # Input
+    self.W_i: nn.Linear = nn.Linear(self.concat_fdim, d_hidden, bias=bias)
+
+    # Shared weight matrix across depths (default):
+    # For messages hidden states
+    self.W_h: nn.Linear = nn.Linear(d_hidden, d_hidden, bias=bias)
+
+    # For atom hidden states
+    self.W_o: nn.Linear = nn.Linear(self.atom_fdim + d_hidden, d_hidden)
+
+  def _get_updated_atoms_hidden_state(
+      self, atom_features: torch.Tensor, h_message: torch.Tensor,
+      atom_to_incoming_bonds: torch.Tensor) -> torch.Tensor:
+    """
+    Method to compute atom hidden states.
+
+    Parameters
+    ----------
+    atom_features: torch.Tensor
+      Tensor containing atoms features.
+    h_message: torch.Tensor
+      Tensor containing hidden states of messages.
+    atom_to_incoming_bonds: torch.Tensor
+      Tensor containing mapping from atom index to list of indicies of incoming bonds.
+
+    Returns
+    -------
+    atoms_hidden_states: torch.Tensor
+      Tensor containing atom hidden states.
+    """
+    messages_to_atoms: torch.Tensor = h_message[atom_to_incoming_bonds].sum(
+        1)  # num_atoms x hidden_size
+    atoms_hidden_states: torch.Tensor = self.W_o(
+        torch.cat((atom_features, messages_to_atoms),
+                  1))  # num_atoms x hidden_size
+    atoms_hidden_states = self.activation(
+        atoms_hidden_states)  # num_atoms x hidden_size
+    atoms_hidden_states = self.dropout(
+        atoms_hidden_states)  # num_atoms x hidden_size
+    return atoms_hidden_states  # num_atoms x hidden_size
+
+  def _readout(self, atoms_hidden_states: torch.Tensor) -> torch.Tensor:
+    """
+    Method to execute the readout phase. (compute molecule encodings from atom hidden states)
+
+    Parameters
+    ----------
+    atoms_hidden_states: torch.Tensor
+      Tensor containing atom hidden states.
+
+    Returns
+    -------
+    molecule_hidden_state: torch.Tensor
+      Tensor containing molecule encodings.
+    """
+    if self.aggregation == 'mean':
+      mol_vec: torch.Tensor = atoms_hidden_states.sum(
+          dim=0) / len(atoms_hidden_states)
+    elif self.aggregation == 'sum':
+      mol_vec = atoms_hidden_states.sum(dim=0)
+    elif self.aggregation == 'norm':
+      mol_vec = atoms_hidden_states.sum(dim=0) / self.aggregation_norm
+    else:
+      raise Exception("Invalid aggregation")
+    molecule_hidden_state: torch.Tensor = mol_vec.view(1, -1)
+    return molecule_hidden_state  # num_molecules x hidden_size
+
+  def forward(self, atom_features: torch.Tensor,
+              f_ini_atoms_bonds: torch.Tensor,
+              atom_to_incoming_bonds: torch.Tensor, mapping: torch.Tensor,
+              global_features: torch.Tensor) -> torch.Tensor:
+    """
+    Output computation for the DMPNNEncoderLayer.
+
+    Steps:
+
+    - Get original bond hidden states from concatenation of initial atom and bond features. (``input``)
+    - Get initial messages hidden states. (``message``)
+    - Execute message passing step for ``self.depth - 1`` iterations.
+    - Get atom hidden states using atom features and message hidden states.
+    - Get molecule encodings.
+    - Concatenate global molecular features and molecule encodings.
+
+    Parameters
+    ----------
+    atom_features: torch.Tensor
+      Tensor containing atoms features.
+    f_ini_atoms_bonds: torch.Tensor
+      Tensor containing concatenated feature vector which contains concatenation of initial atom and bond features.
+    atom_to_incoming_bonds: torch.Tensor
+      Tensor containing mapping from atom index to list of indicies of incoming bonds.
+    mapping: torch.Tensor
+      Tensor containing the mapping that maps bond index to 'array of indices of the bonds'
+      incoming at the initial atom of the bond (excluding the reverse bonds).
+    global_features: torch.Tensor
+      Tensor containing molecule features.
+
+    Returns
+    -------
+    output: torch.Tensor
+      Tensor containing the encodings of the molecules.
+    """
+    input: torch.Tensor = self.W_i(f_ini_atoms_bonds)  # num_bonds x hidden_size
+    message: torch.Tensor = self.activation(input)  # num_bonds x hidden_size
+
+    for _ in range(1, self.depth):
+      message = message[mapping].sum(1)  # num_bonds x hidden_size
+      h_message: torch.Tensor = input + self.W_h(
+          message)  # num_bonds x hidden_size
+      h_message = self.activation(h_message)  # num_bonds x hidden_size
+      h_message = self.dropout(h_message)  # num_bonds x hidden_size
+
+    # num_atoms x hidden_size
+    atoms_hidden_states: torch.Tensor = self._get_updated_atoms_hidden_state(
+        atom_features, h_message, atom_to_incoming_bonds)
+
+    # num_molecules x hidden_size
+    output: torch.Tensor = self._readout(atoms_hidden_states)
+
+    # concat global features
+    if global_features.size != 0:
+      if len(global_features.shape) == 1:
+        global_features = global_features.view(1, -1)
+      output = torch.cat([output, global_features], dim=1)
+
+    return output  # num_molecules x hidden_size
+
+
 class InteratomicL2Distances(nn.Module):
   """Compute (squared) L2 Distances between atoms given neighbors.
 
@@ -1149,3 +1790,390 @@ class RealNVPLayer(nn.Module):
     inverse_log_det_jacobian = ((1 - self.mask) * -s).sum(-1)
 
     return x, inverse_log_det_jacobian
+
+
+class AtomicConvolution(nn.Module):
+  """Implements the Atomic Convolutional transform, introduced in
+
+  Gomes, Joseph, et al. "Atomic convolutional networks for predicting
+  protein-ligand binding affinity." arXiv preprint arXiv:1703.10603
+  (2017).
+
+  At a high level, this transform performs a graph convolution
+  on the nearest neighbors graph in 3D space.
+
+  Examples
+  --------
+  >>> batch_size = 4
+  >>> max_atoms = 5
+  >>> max_neighbors = 2
+  >>> dimensions = 3
+  >>> radial_params = torch.tensor([[5.0, 2.0, 0.5], [10.0, 2.0, 0.5],
+  ...                               [5.0, 1.0, 0.2]])
+  >>> input1 = np.random.rand(batch_size, max_atoms, dimensions).astype(np.float32)
+  >>> input2 = np.random.randint(max_atoms,
+  ...                            size=(batch_size, max_atoms, max_neighbors))
+  >>> input3 = np.random.randint(1, 10, size=(batch_size, max_atoms, max_neighbors))
+  >>> layer = AtomicConvolution(radial_params=radial_params)
+  >>> result = layer([input1, input2, input3])
+  >>> result.shape
+  torch.Size([4, 5, 3])
+  """
+
+  def __init__(self,
+               atom_types: Union[ArrayLike, torch.Tensor] = None,
+               radial_params: Union[ArrayLike, torch.Tensor] = list(),
+               box_size: Union[ArrayLike, torch.Tensor] = None,
+               **kwargs):
+    """Initialize this layer.
+
+    Parameters
+    ----------
+    atom_types : Union[ArrayLike, torch.Tensor], optional
+      List of atom types.
+    radial_params : Union[ArrayLike, torch.Tensor], optional
+      List of radial params.
+    box_size : Union[ArrayLike, torch.Tensor], optional
+      Length must be equal to the number of features.
+    """
+
+    super(AtomicConvolution, self).__init__(**kwargs)
+    self.atom_types = atom_types
+    self.radial_params = radial_params
+
+    if box_size is None or isinstance(box_size, torch.Tensor):
+      self.box_size = box_size
+    else:
+      self.box_size = torch.tensor(box_size)
+
+    vars = []
+    for i in range(3):
+      val = np.array([p[i] for p in self.radial_params]).reshape((-1, 1, 1, 1))
+      vars.append(torch.tensor(val, dtype=torch.float))
+    self.rc = nn.Parameter(vars[0])
+    self.rs = nn.Parameter(vars[1])
+    self.re = nn.Parameter(vars[2])
+
+  def __repr__(self):
+    return (
+        f'{self.__class__.__name__}(atom_types={self.atom_types}, radial_params={self.radial_params}, box_size={self.box_size}, rc={self.rc}, rs={self.rs}, re={self.re})'
+    )
+
+  def forward(self, inputs: Sequence[Union[ArrayLike,
+                                           torch.Tensor]]) -> torch.Tensor:
+    """Invoke this layer.
+
+    B, N, M, d, l = batch_size, max_num_atoms, max_num_neighbors, num_features, len(radial_params) * len(atom_types)
+
+    Parameters
+    ----------
+    inputs: Sequence[Union[ArrayLike, torch.Tensor]]
+      First input are the coordinates/features, of shape (B, N, d)
+      Second input is the neighbor list, of shape (B, N, M)
+      Third input are the atomic numbers of neighbor atoms, of shape (B, N, M)
+
+    Returns
+    -------
+    torch.Tensor of shape (B, N, l)
+      Output of atomic convolution layer.
+
+    Raises
+    ------
+    ValueError
+      When the length of `inputs` is not equal to 3.
+    """
+    if len(inputs) != 3:
+      raise ValueError(f"`inputs` has to be of length 3, got: {len(inputs)}")
+
+    X = torch.tensor(inputs[0])
+    Nbrs = torch.tensor(inputs[1], dtype=torch.int64)
+    Nbrs_Z = torch.tensor(inputs[2])
+
+    B, N, d = X.shape
+    M = Nbrs.shape[-1]
+
+    D = self.distance_tensor(X, Nbrs, self.box_size, B, N, M, d)
+    R = self.distance_matrix(D)
+    R = torch.unsqueeze(R, 0)
+    rsf = self.radial_symmetry_function(R, self.rc, self.rs, self.re)
+
+    if not self.atom_types:
+      cond = torch.not_equal(Nbrs_Z, 0).to(torch.float).reshape((1, -1, N, M))
+      layer = torch.sum(cond * rsf, 3)
+    else:
+      # Sum the pairwise-interactions between atoms that are of `atom_type` and its neighbors for each atom type in `atom_types`.
+      symmetries = []
+      for atom_type in self.atom_types:
+        cond = torch.eq(Nbrs_Z, atom_type).to(torch.float).reshape(
+            (1, -1, N, M))
+        symmetries.append(torch.sum(cond * rsf, 3))
+      layer = torch.concat(symmetries, 0)
+
+    layer = torch.permute(layer, [1, 2, 0])
+    var, mean = torch.var_mean(layer, [0, 2])
+    var, mean = var.detach(), mean.detach()
+
+    return F.batch_norm(layer, mean, var)
+
+  def distance_tensor(self, X: torch.Tensor, Nbrs: torch.Tensor,
+                      box_size: Union[torch.Tensor, None], B: int, N: int,
+                      M: int, d: int) -> torch.Tensor:
+    """Calculate distance tensor for a batch of molecules.
+
+    B, N, M, d = batch_size, max_num_atoms, max_num_neighbors, num_features
+
+    Parameters
+    ----------
+    X : torch.Tensor of shape (B, N, d)
+      Coordinates/features.
+    Nbrs : torch.Tensor of shape (B, N, M)
+      Neighbor list.
+    box_size : torch.Tensor
+      Length must be equal to `d`.
+    B : int
+      Batch size
+    N : int
+      Maximum number of atoms
+    M : int
+      Maximum number of neighbors
+    d : int
+      Number of features
+
+    Returns
+    -------
+    torch.Tensor of shape (B, N, M, d)
+      Coordinates/features distance tensor.
+
+    Raises
+    ------
+    ValueError
+      When the length of `box_size` is not equal to `d`.
+    """
+    if box_size is not None and len(box_size) != d:
+      raise ValueError("Length of `box_size` must be equal to `d`")
+
+    flat_neighbors = torch.reshape(Nbrs, (-1, N * M))
+    neighbor_coords = torch.stack([X[b, flat_neighbors[b]] for b in range(B)])
+    neighbor_coords = torch.reshape(neighbor_coords, (-1, N, M, d))
+    D = neighbor_coords - torch.unsqueeze(X, 2)
+    if box_size is not None:
+      box_size = torch.reshape(box_size, (1, 1, 1, d))
+      D -= torch.round(D / box_size) * box_size
+
+    return D
+
+  def distance_matrix(self, D: torch.Tensor) -> torch.Tensor:
+    """Calculate a distance matrix, given a distance tensor.
+
+    B, N, M, d = batch_size, max_num_atoms, max_num_neighbors, num_features
+
+    Parameters
+    ----------
+    D : torch.Tensor of shape (B, N, M, d)
+      Distance tensor
+
+    Returns
+    -------
+    torch.Tensor of shape (B, N, M)
+      Distance matrix.
+    """
+    return torch.sqrt(torch.sum(torch.mul(D, D), 3))
+
+  def gaussian_distance_matrix(self, R: torch.Tensor, rs: torch.Tensor,
+                               re: torch.Tensor) -> torch.Tensor:
+    """Calculate a Gaussian distance matrix.
+
+    B, N, M, l = batch_size, max_num_atoms, max_num_neighbors, len(radial_params)
+
+    Parameters
+    ----------
+    R : torch.Tensor of shape (B, N, M)
+      Distance matrix.
+    rs : torch.Tensor of shape (l, 1, 1, 1)
+      Gaussian distance matrix mean.
+    re : torch.Tensor of shape (l, 1, 1, 1)
+      Gaussian distance matrix width.
+
+    Returns
+    -------
+    torch.Tensor of shape (B, N, M)
+      Gaussian distance matrix.
+    """
+    return torch.exp(-re * (R - rs)**2)
+
+  def radial_cutoff(self, R: torch.Tensor, rc: torch.Tensor) -> torch.Tensor:
+    """Calculate a radial cut-off matrix.
+
+    B, N, M, l = batch_size, max_num_atoms, max_num_neighbors, len(radial_params)
+
+    Parameters
+    ----------
+    R : torch.Tensor of shape (B, N, M)
+      Distance matrix.
+    rc : torch.Tensor of shape (l, 1, 1, 1)
+      Interaction cutoff (in angstrom).
+
+    Returns
+    -------
+    torch.Tensor of shape (B, N, M)
+      Radial cutoff matrix.
+    """
+    T = 0.5 * (torch.cos(np.pi * R / rc) + 1)
+    E = torch.zeros_like(T)
+    cond = torch.less_equal(R, rc)
+    FC = torch.where(cond, T, E)
+
+    return FC
+
+  def radial_symmetry_function(self, R: torch.Tensor, rc: torch.Tensor,
+                               rs: torch.Tensor,
+                               re: torch.Tensor) -> torch.Tensor:
+    """Calculate a radial symmetry function.
+
+    B, N, M, l = batch_size, max_num_atoms, max_num_neighbors, len(radial_params)
+
+    Parameters
+    ----------
+    R : torch.Tensor of shape (B, N, M)
+      Distance matrix.
+    rc : torch.Tensor of shape (l, 1, 1, 1)
+      Interaction cutoff (in angstrom).
+    rs : torch.Tensor of shape (l, 1, 1, 1)
+      Gaussian distance matrix mean.
+    re : torch.Tensor of shape (l, 1, 1, 1)
+      Gaussian distance matrix width.
+    Returns
+    -------
+    torch.Tensor of shape (B, N, M)
+      Pre-summation radial symmetry function.
+    """
+    K = self.gaussian_distance_matrix(R, rs, re)
+    FC = self.radial_cutoff(R, rc)
+
+    return torch.mul(K, FC)
+
+
+class CombineMeanStd(nn.Module):
+  """Generate Gaussian noise.
+
+  This is the Torch equivalent of the original implementation using Keras.
+  """
+
+  def __init__(self,
+               training_only: bool = False,
+               noise_epsilon: float = 1.0,
+               **kwargs):
+    """Create a CombineMeanStd layer.
+
+    This layer should have two inputs with the same shape, and its
+    output also has the same shape.  Each element of the output is a
+    Gaussian distributed random number whose mean is the corresponding
+    element of the first input, and whose standard deviation is the
+    corresponding element of the second input.
+
+    Parameters
+    ----------
+    training_only: bool, optional (default False).
+      if True, noise is only generated during training.  During
+      prediction, the output is simply equal to the first input (that
+      is, the mean of the distribution used during training).
+    noise_epsilon: float, optional (default 1.0).
+      The noise is scaled by this factor
+    """
+    super(CombineMeanStd, self).__init__(**kwargs)
+    self.training_only = training_only
+    self.noise_epsilon = noise_epsilon
+
+  def __repr__(self) -> str:
+    return (
+        f'{self.__class__.__name__}(training_only={self.training_only}, noise_epsilon={self.noise_epsilon})'
+    )
+
+  def forward(self,
+              inputs: Sequence[ArrayLike],
+              training: bool = True) -> torch.Tensor:
+    """Invoke this layer.
+
+    Parameters
+    ----------
+    inputs: Sequence[ArrayLike]
+      First element are the means for the random generated numbers.
+      Second element are the standard deviations for the random generated numbers.
+    training: bool, optional (default True).
+      Specifies whether to generate noise.
+      Noise is only added when training.
+
+    Returns
+    -------
+    Tensor of Gaussian distributed random numbers: torch.Tensor
+      Same shape as the means and standard deviations from `inputs`.
+    """
+    if len(inputs) != 2:
+      raise ValueError("Must have two in_layers")
+
+    mean_parent, std_parent = torch.tensor(inputs[0]), torch.tensor(inputs[1])
+    noise_scale = torch.tensor(training or
+                               not self.training_only).to(torch.float)
+    sample_noise = torch.normal(0.0, self.noise_epsilon, mean_parent.shape)
+    return mean_parent + noise_scale * std_parent * sample_noise
+
+
+class WeightedLinearCombo(nn.Module):
+  """Compute a weighted linear combination of input layers, where the weight variables are trained.
+
+  Examples
+  --------
+  >>> input1 = np.random.rand(5, 10).astype(np.float32)
+  >>> input2 = np.random.rand(5, 10).astype(np.float32)
+  >>> layer = WeightedLinearCombo(len([input1, input2]))
+  >>> result = layer([input1, input2])
+  >>> result.shape
+  torch.Size([5, 10])
+  """
+
+  def __init__(self, num_inputs: int, std: float = 0.3, **kwargs):
+    """
+
+    Parameters
+    ----------
+    num_inputs: int
+      Number of inputs given to `self.forward()`
+      This is used to initialize the correct amount of weight variables to be trained.
+    std: float
+      The standard deviation for the normal distribution that is used to initialize the trainable weights.
+    """
+    super(WeightedLinearCombo, self).__init__(**kwargs)
+    self.num_inputs = num_inputs
+    self.std = std
+    self.input_weights = nn.Parameter(torch.empty(self.num_inputs))
+    nn.init.normal_(self.input_weights, std=std)
+
+  def __repr__(self):
+    return (
+        f'{self.__class__.__name__}(num_inputs={self.num_inputs}, std={self.std}, input_weights={self.input_weights})'
+    )
+
+  def forward(
+      self, inputs: Sequence[Union[ArrayLike,
+                                   torch.Tensor]]) -> Optional[torch.Tensor]:
+    """
+
+    Parameters
+    ----------
+    inputs: Sequence[Union[ArrayLike, torch.Tensor]]
+      The initial input layers.
+      The length must be the same as `self.num_inputs`.
+
+    Returns
+    -------
+    out_tensor: torch.Tensor or None
+      The tensor containing the weighted linear combination.
+    """
+    out_tensor = None
+    for in_tensor, w in zip(inputs, self.input_weights):
+      in_tensor = torch.FloatTensor(in_tensor)
+      if out_tensor is None:
+        out_tensor = w * in_tensor
+      else:
+        out_tensor += w * in_tensor
+    return out_tensor
