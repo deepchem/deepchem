@@ -122,6 +122,6 @@ def test_RealNVPLayer():
   layers = nn.ModuleList([RealNVPLayer(mask, hidden_size) for mask in masks])
 
   for layer in layers:
-    _, log_det_jacobian = layer.forward(tensor)
-    log_det_jacobian = log_det_jacobian.detach().numpy()
-    assert np.isclose(log_det_jacobian, zeros, rtol=1e-01).any()
+    _, inverse_log_det_jacobian = layer.inverse(tensor)
+    inverse_log_det_jacobian = inverse_log_det_jacobian.detach().numpy()
+    assert np.isclose(inverse_log_det_jacobian, zeros, rtol=1e-01).any()
