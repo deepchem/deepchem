@@ -1,6 +1,11 @@
 import pytest
-import torch
 import deepchem as dc
+
+try:
+  import torch
+  has_torch = True
+except:
+  has_torch = False
 
 
 @pytest.mark.torch
