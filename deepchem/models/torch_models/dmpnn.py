@@ -245,13 +245,7 @@ class DMPNN(nn.Module):
   >>> global_features = torch.from_numpy(global_features).float()
   >>> data = [atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features]
   >>> # Initialize the model
-  >>> number_of_tasks = 2
-  >>> number_of_molecules = 1
-  >>> morgan_feature_size = 2048
-  >>> model = DMPNN(mode='regression',
-                global_features_size=morgan_feature_size,
-                n_tasks=number_of_tasks,
-                number_of_molecules=number_of_molecules)
+  >>> model = DMPNN(mode='regression', global_features_size=2048, n_tasks=2)
   >>> # Get the forward call of the model for this batch.
   >>> output = model(data)
 
