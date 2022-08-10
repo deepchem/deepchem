@@ -1,6 +1,9 @@
 import numpy as np
+import torch
+import torch.nn as nn
+from deepchem.models.torch_models import layers
 from deepchem.feat import GraphData
-from typing import List, Sequence, Optional
+from typing import Union, List, Sequence, Optional
 
 
 class _MapperDMPNN:
@@ -212,3 +215,211 @@ class _MapperDMPNN:
 
     for count, i in enumerate(b2revb):
       self.mapping[count][np.where(self.mapping[count] == i)] = -1
+
+
+class DMPNN(nn.Module):
+  """
+  Directed Message Passing Neural Network
+
+  In this class, we define the various encoder layers and establish a sequential model for the Directed Message Passing Neural Network (D-MPNN) [1]_.
+  We also define the forward call of this model in the forward function.
+
+  The number of encoders created is equal to the number of molecules in each batch of featurized data.
+
+  .. note::
+     Current implementation of the DMPNN class only supports features of 1 molecule per batch.
+
+  Example
+  -------
+  >>> import deepchem as dc
+  >>> # Get data
+  >>> input_smile = "CC"
+  >>> feat = dc.feat.DMPNNFeaturizer(features_generators=['morgan'])
+  >>> graph = feat.featurize(input_smile)
+  >>> mapper = _MapperDMPNN(graph[0])
+  >>> atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features = mapper.values
+  >>> atom_features = torch.from_numpy(atom_features).float()
+  >>> f_ini_atoms_bonds = torch.from_numpy(f_ini_atoms_bonds).float()
+  >>> atom_to_incoming_bonds = torch.from_numpy(atom_to_incoming_bonds)
+  >>> mapping = torch.from_numpy(mapping)
+  >>> global_features = torch.from_numpy(global_features).float()
+  >>> data = [atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features]
+  >>> # Initialize the model
+  >>> number_of_tasks = 2
+  >>> number_of_molecules = 1
+  >>> morgan_feature_size = 2048
+  >>> model = DMPNN(mode='regression',
+                global_features_size=morgan_feature_size,
+                n_tasks=number_of_tasks,
+                number_of_molecules=number_of_molecules)
+  >>> # Get the forward call of the model for this batch.
+  >>> output = model(data)
+
+  References
+  ----------
+  .. [1] Analyzing Learned Molecular Representations for Property Prediction https://arxiv.org/pdf/1904.01561.pdf
+  """
+
+  def __init__(self,
+               mode: str = 'regression',
+               n_classes: int = 3,
+               n_tasks: int = 1,
+               number_of_molecules: int = 1,
+               global_features_size: int = 0,
+               use_default_fdim: bool = True,
+               atom_fdim: int = 133,
+               bond_fdim: int = 14,
+               enc_hidden: int = 300,
+               depth: int = 3,
+               bias: bool = False,
+               enc_activation: str = 'relu',
+               enc_dropout_p: float = 0.0,
+               aggregation: str = 'mean',
+               aggregation_norm: Union[int, float] = 100,
+               encoder_wts_shared: bool = False,
+               ffn_hidden: int = 300,
+               ffn_activation: str = 'relu',
+               ffn_layers: int = 3,
+               ffn_dropout_p: float = 0.0,
+               ffn_dropout_at_input_no_act: bool = True):
+    """
+    Initialize the DMPNN class.
+
+    Parameters
+    ----------
+    mode: str, default 'regression'
+      The model type - classification or regression.
+    n_classes: int, default 3
+      The number of classes to predict (used only in classification mode).
+    n_tasks: int, default 1
+      The number of tasks.
+    number_of_molecules: int, default 1
+      The number of molecules in a batch.
+    global_features_size: int, default 0
+      Size of the global features vector, based on the global featurizers used during featurization.
+    use_default_fdim: bool
+      If `True`, self.atom_fdim and self.bond_fdim are initialized using values from the GraphConvConstants class.
+      If `False`, self.atom_fdim and self.bond_fdim are initialized from the values provided.
+    atom_fdim: int
+      Dimension of atom feature vector.
+    bond_fdim: int
+      Dimension of bond feature vector.
+    enc_hidden: int
+      Size of hidden layer in the encoder layer.
+    depth: int
+      No of message passing steps.
+    bias: bool
+      If `True`, dense layers will use bias vectors.
+    enc_activation: str
+      Activation function to be used in the encoder layer.
+      Can choose between 'relu' for ReLU, 'leakyrelu' for LeakyReLU, 'prelu' for PReLU,
+      'tanh' for TanH, 'selu' for SELU, and 'elu' for ELU.
+    enc_dropout_p: float
+      Dropout probability for the encoder layer.
+    aggregation: str
+      Aggregation type to be used in the encoder layer.
+      Can choose between 'mean', 'sum', and 'norm'.
+    aggregation_norm: Union[int, float]
+      Value required if `aggregation` type is 'norm'.
+    encoder_wts_shared: bool
+      If `True`, all encoders are initialized with same weights.
+    ffn_hidden: int
+      Size of hidden layer in the feed-forward network layer.
+    ffn_activation: str
+      Activation function to be used in feed-forward network layer.
+      Can choose between 'relu' for ReLU, 'leakyrelu' for LeakyReLU, 'prelu' for PReLU,
+      'tanh' for TanH, 'selu' for SELU, and 'elu' for ELU.
+    ffn_layers: int
+      Number of layers in the feed-forward network layer.
+    ffn_dropout_p: float
+      Dropout probability for the feed-forward network layer.
+    ffn_dropout_at_input_no_act: bool
+      If true, dropout is applied on the input tensor. For single layer, it is not passed to an activation function.
+    """
+    super(DMPNN, self).__init__()
+    self.mode: str = mode
+    self.n_classes: int = n_classes
+    self.n_tasks: int = n_tasks
+
+    # get encoders
+    def get_encoder() -> nn.Module:
+      return layers.DMPNNEncoderLayer(use_default_fdim=use_default_fdim,
+                                      atom_fdim=atom_fdim,
+                                      bond_fdim=bond_fdim,
+                                      d_hidden=enc_hidden,
+                                      depth=depth,
+                                      bias=bias,
+                                      activation=enc_activation,
+                                      dropout_p=enc_dropout_p,
+                                      aggregation=aggregation,
+                                      aggregation_norm=aggregation_norm)
+
+    if encoder_wts_shared:
+      self.encoders: nn.ModuleList = nn.ModuleList([get_encoder()] *
+                                                   number_of_molecules)
+    else:
+      self.encoders = nn.ModuleList(
+          [get_encoder() for _ in range(number_of_molecules)])
+
+    # get input size for ffn
+    ffn_input: int = (enc_hidden + global_features_size) * number_of_molecules
+
+    # get output size for ffn
+    if self.mode == 'regression':
+      ffn_output: int = self.n_tasks
+    elif self.mode == 'classification':
+      ffn_output = self.n_tasks * self.n_classes
+
+    # get ffn
+    self.ffn: nn.Module = layers.PositionwiseFeedForward(
+        d_input=ffn_input,
+        d_hidden=ffn_hidden,
+        d_output=ffn_output,
+        activation=ffn_activation,
+        n_layers=ffn_layers,
+        dropout_p=ffn_dropout_p,
+        dropout_at_input_no_act=ffn_dropout_at_input_no_act)
+
+  def forward(self, data: List[torch.Tensor]):
+    """
+    Parameters
+    ----------
+    data: List[torch.tensor]
+      A list containing tensors for:
+
+      - atom_features
+      - f_ini_atoms_bonds
+      - atom_to_incoming_bonds
+      - mapping
+      - global_features
+
+    Returns
+    -------
+    output: torch.Tensor
+      Predictions for the graphs
+    """
+    atom_features: torch.Tensor = data[0]
+    f_ini_atoms_bonds: torch.Tensor = data[1]
+    atom_to_incoming_bonds: torch.Tensor = data[2]
+    mapping: torch.Tensor = data[3]
+    global_features: torch.Tensor = data[4]
+
+    # num_molecules x (enc_hidden + global_features_size)
+    encodings: torch.Tensor = self.encoders[0](atom_features, f_ini_atoms_bonds,
+                                               atom_to_incoming_bonds, mapping,
+                                               global_features)
+
+    # ffn_output (`self.n_tasks` or `self.n_tasks * self.n_classes`)
+    output: torch.Tensor = self.ffn(encodings)
+
+    if self.mode == 'regression':
+      output = output
+    elif self.mode == 'classification':
+      if self.n_tasks == 1:
+        output = output.view(-1, self.n_classes)
+        output = nn.functional.softmax(output, dim=1)
+      else:
+        output = output.view(-1, self.n_tasks, self.n_classes)
+        output = nn.functional.softmax(output, dim=2)
+
+    return output
