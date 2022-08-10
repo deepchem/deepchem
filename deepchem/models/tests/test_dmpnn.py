@@ -56,6 +56,7 @@ def test_dmpnn_regression():
   assert torch.allclose(output[0], required_output, atol=1e-4)
 
 
+@pytest.mark.torch
 def test_dmpnn_classification_single_task():
   """
   Test DMPNN class for classification mode with 1 task
@@ -109,6 +110,7 @@ def test_dmpnn_classification_single_task():
   assert torch.allclose(output[0], required_output, atol=1e-4)
 
 
+@pytest.mark.torch
 def test_dmpnn_classification_multi_task():
   """
   Test DMPNN class for classification mode with more than 1 task
