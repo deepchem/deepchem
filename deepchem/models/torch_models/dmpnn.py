@@ -8,7 +8,8 @@ from deepchem.models.torch_models import layers
 from deepchem.models.torch_models import TorchModel
 
 from deepchem.feat import GraphData
-from typing import Union, List, Sequence, Optional
+from deepchem.data import Dataset
+from typing import Union, List, Sequence, Optional, Iterable, Tuple
 
 
 class _MapperDMPNN:
@@ -436,28 +437,31 @@ class DMPNNModel(TorchModel):
 
   This class implements the Directed Message Passing Neural Network (D-MPNN) [1]_.
 
+  .. note::
+     Current implementation of the DMPNNModel class only supports features of 1 molecule per batch.
+
   References
   ----------
   .. [1] Analyzing Learned Molecular Representations for Property Prediction https://arxiv.org/pdf/1904.01561.pdf
   """
 
   def __init__(self,
-               mode='regression',
-               n_classes=3,
-               n_tasks=1,
-               number_of_molecules=1,
-               global_features_size=0,
-               use_default_fdim=True,
-               atom_fdim=133,
-               bond_fdim=14,
-               enc_hidden=300,
-               depth=3,
-               bias=False,
-               enc_activation='relu',
-               enc_dropout_p=0.0,
-               aggregation='mean',
-               aggregation_norm=100,
-               encoder_wts_shared=False,
+               mode: str = 'regression',
+               n_classes: int = 3,
+               n_tasks: int = 1,
+               number_of_molecules: int = 1,
+               global_features_size: int = 0,
+               use_default_fdim: bool = True,
+               atom_fdim: int = 133,
+               bond_fdim: int = 14,
+               enc_hidden: int = 300,
+               depth: int = 3,
+               bias: bool = False,
+               enc_activation: str = 'relu',
+               enc_dropout_p: float = 0.0,
+               aggregation: str = 'mean',
+               aggregation_norm: Union[int, float] = 100,
+               encoder_wts_shared: bool = False,
                ffn_hidden: int = 300,
                ffn_activation: str = 'relu',
                ffn_layers: int = 3,
@@ -465,8 +469,62 @@ class DMPNNModel(TorchModel):
                ffn_dropout_at_input_no_act: bool = True,
                **kwargs):
     """
+    Initialize the DMPNNModel class.
+
+    Parameters
+    ----------
+    mode: str, default 'regression'
+      The model type - classification or regression.
+    n_classes: int, default 3
+      The number of classes to predict (used only in classification mode).
+    n_tasks: int, default 1
+      The number of tasks.
+    number_of_molecules: int, default 1
+      The number of molecules in a batch.
+    global_features_size: int, default 0
+      Size of the global features vector, based on the global featurizers used during featurization.
+    use_default_fdim: bool
+      If `True`, self.atom_fdim and self.bond_fdim are initialized using values from the GraphConvConstants class.
+      If `False`, self.atom_fdim and self.bond_fdim are initialized from the values provided.
+    atom_fdim: int
+      Dimension of atom feature vector.
+    bond_fdim: int
+      Dimension of bond feature vector.
+    enc_hidden: int
+      Size of hidden layer in the encoder layer.
+    depth: int
+      No of message passing steps.
+    bias: bool
+      If `True`, dense layers will use bias vectors.
+    enc_activation: str
+      Activation function to be used in the encoder layer.
+      Can choose between 'relu' for ReLU, 'leakyrelu' for LeakyReLU, 'prelu' for PReLU,
+      'tanh' for TanH, 'selu' for SELU, and 'elu' for ELU.
+    enc_dropout_p: float
+      Dropout probability for the encoder layer.
+    aggregation: str
+      Aggregation type to be used in the encoder layer.
+      Can choose between 'mean', 'sum', and 'norm'.
+    aggregation_norm: Union[int, float]
+      Value required if `aggregation` type is 'norm'.
+    encoder_wts_shared: bool
+      If `True`, all encoders are initialized with same weights.
+    ffn_hidden: int
+      Size of hidden layer in the feed-forward network layer.
+    ffn_activation: str
+      Activation function to be used in feed-forward network layer.
+      Can choose between 'relu' for ReLU, 'leakyrelu' for LeakyReLU, 'prelu' for PReLU,
+      'tanh' for TanH, 'selu' for SELU, and 'elu' for ELU.
+    ffn_layers: int
+      Number of layers in the feed-forward network layer.
+    ffn_dropout_p: float
+      Dropout probability for the feed-forward network layer.
+    ffn_dropout_at_input_no_act: bool
+      If true, dropout is applied on the input tensor. For single layer, it is not passed to an activation function.
+    kwargs: Dict
+      kwargs supported by TorchModel
     """
-    model = DMPNN(mode=mode,
+    model: nn.Module = DMPNN(mode=mode,
                   n_classes=n_classes,
                   n_tasks=n_tasks,
                   number_of_molecules=number_of_molecules,
@@ -490,7 +548,7 @@ class DMPNNModel(TorchModel):
 
     if mode == 'regression':
       loss: Loss = L2Loss()
-      output_types = ['prediction']
+      output_types: str = ['prediction']
     elif mode == 'classification':
       loss = SparseSoftmaxCrossEntropy()
       output_types = ['prediction', 'loss']
@@ -500,13 +558,49 @@ class DMPNNModel(TorchModel):
                                      **kwargs)
 
   def default_generator(self,
-                        dataset,
-                        epochs=1,
-                        mode='fit',
-                        deterministic=True,
-                        pad_batches=False,
-                        **kwargs):
+                        dataset: Dataset,
+                        epochs: int = 1,
+                        mode: str = 'fit',
+                        deterministic: bool = True,
+                        pad_batches: bool = False,
+                        **kwargs) -> Iterable[Tuple[List, List, List]]:
     """
+    Create a generator that iterates batches for a dataset.
+
+    Overrides the existing ``default_generator`` method to customize how model inputs are
+    generated from the data.
+
+    Here, the ``_MapperDMPNN`` helper class is used to get required input parameters:
+
+    - atom_features
+    - f_ini_atoms_bonds
+    - atom_to_incoming_bonds
+    - mapping
+    - global_features
+
+    .. note::
+       Current implementation only supports features of 1 molecule per batch.
+
+    Parameters
+    ----------
+    dataset: Dataset
+      the data to iterate
+    epochs: int
+      the number of times to iterate over the full dataset
+    mode: str
+      allowed values are 'fit' (called during training), 'predict' (called
+      during prediction), and 'uncertainty' (called during uncertainty
+      prediction)
+    deterministic: bool
+      whether to iterate over the dataset in order, or randomly shuffle the
+      data for each epoch
+    pad_batches: bool
+      whether to pad each batch up to this model's preferred batch size
+
+    Returns
+    -------
+    a generator that iterates batches, each represented as a tuple of lists:
+    ([inputs], [outputs], [weights])
     """
     for epoch in range(epochs):
       for (X_b, y_b, w_b,
@@ -514,9 +608,27 @@ class DMPNNModel(TorchModel):
                                          deterministic=deterministic,
                                          pad_batches=pad_batches):
 
-        mapper = _MapperDMPNN(X_b[0])
+        # generate concatenated feature vector and mappings
+        mapper: _MapperDMPNN = _MapperDMPNN(X_b[0])
+
+        # atom feature matrix with shape [number of atoms, number of features]
+        atom_features: np.ndarray
+
+        # concatenated feature vector which contains concatenation of initial atom and bond features
+        f_ini_atoms_bonds: np.ndarray
+
+        # mapping from atom index to list of indicies of incoming bonds
+        atom_to_incoming_bonds: np.ndarray
+
+        # mapping that maps bond index to 'array of indices of the bonds'
+          # incoming at the initial atom of the bond (excluding the reverse bonds)
+        mapping: np.ndarray
+
+        # array of global molecular features
+        global_features: np.ndarray
+
         atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features = mapper.values
-        inputs = [
+        inputs: Sequence[np.ndarray] = [
             atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping,
             global_features
         ]
