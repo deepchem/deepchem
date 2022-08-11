@@ -11,3 +11,4 @@ from deepchem.models.torch_models.mat import MAT, MATModel
 from deepchem.models.torch_models.megnet import MEGNetModel
 from deepchem.models.torch_models.layers import CNNModule, CombineMeanStd, WeightedLinearCombo, AtomicConvolution
 from deepchem.models.torch_models.cnn import CNN
+from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
