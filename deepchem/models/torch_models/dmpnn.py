@@ -406,14 +406,16 @@ class DMPNN(nn.Module):
     # ffn_output (`self.n_tasks` or `self.n_tasks * self.n_classes`)
     output: torch.Tensor = self.ffn(encodings)
 
+    final_output: Union[torch.Tensor, Sequence[torch.Tensor]]
+
     if self.mode == 'regression':
-      output = output
+      final_output = output
     elif self.mode == 'classification':
       if self.n_tasks == 1:
         output = output.view(-1, self.n_classes)
-        output = nn.functional.softmax(output, dim=1)
+        final_output = nn.functional.softmax(output, dim=1), output
       else:
         output = output.view(-1, self.n_tasks, self.n_classes)
-        output = nn.functional.softmax(output, dim=2)
+        final_output = nn.functional.softmax(output, dim=2), output
 
-    return output
+    return final_output

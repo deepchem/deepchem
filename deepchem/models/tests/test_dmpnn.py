@@ -109,10 +109,14 @@ def test_dmpnn_classification_single_task():
 
   # get output
   output = model(data)
-  assert output.shape == torch.Size([number_of_molecules, number_of_classes])
+  assert len(output) == 2
+  assert output[0].shape == torch.Size([number_of_molecules, number_of_classes])
+  assert output[1].shape == torch.Size([number_of_molecules, number_of_classes])
 
-  required_output = torch.tensor([[0.5154, 0.4846]])
-  assert torch.allclose(output[0], required_output, atol=1e-4)
+  required_output = torch.tensor([[0.5154,
+                                   0.4846]]), torch.tensor([[0.0044, -0.0572]])
+  assert torch.allclose(output[0][0], required_output[0], atol=1e-4)
+  assert torch.allclose(output[1][0], required_output[1], atol=1e-4)
 
 
 @pytest.mark.torch
@@ -162,8 +166,14 @@ def test_dmpnn_classification_multi_task():
 
   # get output
   output = model(data)
-  assert output.shape == torch.Size(
+  assert len(output) == 2
+  assert output[0].shape == torch.Size(
+      [number_of_molecules, number_of_tasks, number_of_classes])
+  assert output[1].shape == torch.Size(
       [number_of_molecules, number_of_tasks, number_of_classes])
 
-  required_output = torch.tensor([[[0.5317, 0.4683], [0.4911, 0.5089]]])
-  assert torch.allclose(output[0], required_output, atol=1e-4)
+  required_output = torch.tensor([[[0.5317, 0.4683], [0.4911, 0.5089]]
+                                 ]), torch.tensor([[[0.0545, -0.0724],
+                                                    [0.0204, 0.0558]]])
+  assert torch.allclose(output[0][0], required_output[0], atol=1e-4)
+  assert torch.allclose(output[1][0], required_output[1], atol=1e-4)
