@@ -12,7 +12,7 @@ def f(x):
 
 
 def test_mean():
-  distribution = ElectronSampler(np.array([[1, 1, 3], [3, 2, 3]]), f, charge=0)
+  distribution = ElectronSampler(np.array([[1, 1, 3], [3, 2, 3]]), f)
   x1 = np.array([[[[1, 2, 3]]], [[[4, 5, 6]]]])
   mean = distribution.harmonic_mean(x1)
   assert (mean == np.array([[[[1.3333333333333333]]],

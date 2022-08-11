@@ -15,7 +15,7 @@ def test_prepare_input_stream():
   # test for the prepare_input_stream function of Ferminet class
 
   h2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
-  molecule = Ferminet(h2_molecule, spin=0, seed=0, batch_no=1)
+  molecule = Ferminet(h2_molecule, spin=0, charge=0, seed=0, batch_no=1)
   one_up, one_down, two_up, two_down = molecule.prepare_input_stream()
 
   assert np.allclose(
