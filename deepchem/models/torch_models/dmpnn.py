@@ -423,10 +423,10 @@ class DMPNN(nn.Module):
     elif self.mode == 'classification':
       if self.n_tasks == 1:
         output = output.view(-1, self.n_classes)
-        output = nn.functional.softmax(output, dim=1)
+        output = nn.functional.softmax(output, dim=1), output
       else:
         output = output.view(-1, self.n_tasks, self.n_classes)
-        output = nn.functional.softmax(output, dim=2)
+        output = nn.functional.softmax(output, dim=2), output
 
     return output
 
@@ -439,6 +439,10 @@ class DMPNNModel(TorchModel):
 
   .. note::
      Current implementation of the DMPNNModel class only supports features of 1 molecule per batch.
+
+  Example
+  -------
+  
 
   References
   ----------
