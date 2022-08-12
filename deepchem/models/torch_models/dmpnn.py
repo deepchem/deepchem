@@ -11,6 +11,7 @@ from deepchem.feat import GraphData
 from deepchem.data import Dataset
 from typing import Union, List, Sequence, Optional, Iterable, Tuple
 
+
 class _MapperDMPNN:
   """
   This class is a helper class for DMPNNModel class to generate concatenated feature vector and mappings.
@@ -530,31 +531,32 @@ class DMPNNModel(TorchModel):
     kwargs: Dict
       kwargs supported by TorchModel
     """
-    model: nn.Module = DMPNN(mode=mode,
-                  n_classes=n_classes,
-                  n_tasks=n_tasks,
-                  number_of_molecules=number_of_molecules,
-                  global_features_size=global_features_size,
-                  use_default_fdim=use_default_fdim,
-                  atom_fdim=atom_fdim,
-                  bond_fdim=bond_fdim,
-                  enc_hidden=enc_hidden,
-                  depth=depth,
-                  bias=bias,
-                  enc_activation=enc_activation,
-                  enc_dropout_p=enc_dropout_p,
-                  aggregation=aggregation,
-                  aggregation_norm=aggregation_norm,
-                  encoder_wts_shared=encoder_wts_shared,
-                  ffn_hidden=ffn_hidden,
-                  ffn_activation=ffn_activation,
-                  ffn_layers=ffn_layers,
-                  ffn_dropout_p=ffn_dropout_p,
-                  ffn_dropout_at_input_no_act=ffn_dropout_at_input_no_act)
+    model: nn.Module = DMPNN(
+        mode=mode,
+        n_classes=n_classes,
+        n_tasks=n_tasks,
+        number_of_molecules=number_of_molecules,
+        global_features_size=global_features_size,
+        use_default_fdim=use_default_fdim,
+        atom_fdim=atom_fdim,
+        bond_fdim=bond_fdim,
+        enc_hidden=enc_hidden,
+        depth=depth,
+        bias=bias,
+        enc_activation=enc_activation,
+        enc_dropout_p=enc_dropout_p,
+        aggregation=aggregation,
+        aggregation_norm=aggregation_norm,
+        encoder_wts_shared=encoder_wts_shared,
+        ffn_hidden=ffn_hidden,
+        ffn_activation=ffn_activation,
+        ffn_layers=ffn_layers,
+        ffn_dropout_p=ffn_dropout_p,
+        ffn_dropout_at_input_no_act=ffn_dropout_at_input_no_act)
 
     if mode == 'regression':
       loss: Loss = L2Loss()
-      output_types: str = ['prediction']
+      output_types: Sequence[str] = ['prediction']
     elif mode == 'classification':
       loss = SparseSoftmaxCrossEntropy()
       output_types = ['prediction', 'loss']
@@ -563,13 +565,14 @@ class DMPNNModel(TorchModel):
                                      output_types=output_types,
                                      **kwargs)
 
-  def default_generator(self,
-                        dataset: Dataset,
-                        epochs: int = 1,
-                        mode: str = 'fit',
-                        deterministic: bool = True,
-                        pad_batches: bool = False,
-                        **kwargs) -> Iterable[Tuple[List, List, List]]:
+  def default_generator(
+      self,
+      dataset: Dataset,
+      epochs: int = 1,
+      mode: str = 'fit',
+      deterministic: bool = True,
+      pad_batches: bool = False,
+      **kwargs) -> Iterable[Tuple[Sequence[np.ndarray], List, List]]:
     """
     Create a generator that iterates batches for a dataset.
 
@@ -627,7 +630,7 @@ class DMPNNModel(TorchModel):
         atom_to_incoming_bonds: np.ndarray
 
         # mapping that maps bond index to 'array of indices of the bonds'
-          # incoming at the initial atom of the bond (excluding the reverse bonds)
+        # incoming at the initial atom of the bond (excluding the reverse bonds)
         mapping: np.ndarray
 
         # array of global molecular features

@@ -2,6 +2,7 @@ import pytest
 import deepchem as dc
 import tempfile
 import numpy as np
+import os
 
 try:
   import torch
@@ -189,10 +190,12 @@ def test_dmpnn_model_regression():
   torch.manual_seed(0)
 
   # load sample dataset
+  dir = os.path.dirname(os.path.abspath(__file__))
+  input_file = os.path.join(dir, 'assets/freesolv_sample_5.csv')
   loader = dc.data.CSVLoader(tasks=['y'],
                              feature_field='smiles',
                              featurizer=dc.feat.DMPNNFeaturizer())
-  dataset = loader.create_dataset('assets/freesolv_sample_5.csv')
+  dataset = loader.create_dataset(input_file)
 
   # initialize the model
   from deepchem.models.torch_models.dmpnn import DMPNNModel
@@ -213,8 +216,12 @@ def test_dmpnn_model_classification():
   torch.manual_seed(0)
 
   # load sample dataset
-  loader = dc.data.CSVLoader(tasks=["outcome"], feature_field="smiles", featurizer=dc.feat.DMPNNFeaturizer())
-  dataset = loader.create_dataset('assets/example_classification.csv')
+  dir = os.path.dirname(os.path.abspath(__file__))
+  input_file = os.path.join(dir, 'assets/example_classification.csv')
+  loader = dc.data.CSVLoader(tasks=["outcome"],
+                             feature_field="smiles",
+                             featurizer=dc.feat.DMPNNFeaturizer())
+  dataset = loader.create_dataset(input_file)
 
   # initialize the model
   from deepchem.models.torch_models.dmpnn import DMPNNModel
@@ -239,10 +246,12 @@ def test_dmpnn_model_reload():
   torch.manual_seed(0)
 
   # load sample dataset
+  dir = os.path.dirname(os.path.abspath(__file__))
+  input_file = os.path.join(dir, 'assets/freesolv_sample_5.csv')
   loader = dc.data.CSVLoader(tasks=['y'],
                              feature_field='smiles',
                              featurizer=dc.feat.DMPNNFeaturizer())
-  dataset = loader.create_dataset('assets/freesolv_sample_5.csv')
+  dataset = loader.create_dataset(input_file)
 
   # initialize the model
   from deepchem.models.torch_models.dmpnn import DMPNNModel
