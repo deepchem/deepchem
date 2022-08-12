@@ -15,7 +15,7 @@ def test_prepare_input_stream():
   # test for the prepare_input_stream function of Ferminet class
 
   h2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
-  molecule = Ferminet(h2_molecule, spin=0, seed=0, batch_no=1)
+  molecule = Ferminet(h2_molecule, spin=0, charge=0, seed=0, batch_no=1)
   one_up, one_down, two_up, two_down = molecule.prepare_input_stream()
 
   assert np.allclose(
@@ -54,3 +54,11 @@ def test_prepare_input_stream():
           0.7095510280981839
       ], [0.0, 0.0, 0.0, 0.0]]]))
   assert np.shape(molecule.two_electron_distance) == (2, 2)
+
+  # ionic charge initialization test
+  ion = [['C', [0, 0, 0]], ['O', [0, 3, 0]], ['O', [1, -1, 0]],
+         ['O', [-1, -1, 0]]]  # Test ionic molecule
+  ionic_molecule = Ferminet(ion, spin=1, charge=2, seed=0, batch_no=1)
+  _, _, _, _ = ionic_molecule.prepare_input_stream()
+
+  assert (ionic_molecule.electron_no == np.array([[6], [8], [9], [9]])).all()
