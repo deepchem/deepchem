@@ -15,18 +15,31 @@ from unittest import result
 from rdkit import Chem
 import numpy as np
 
-# from deepchem.models.torch_models import TorchModel
-# import deepchem.models.optimizers as optim
+from deepchem.models.torch_models import TorchModel
+import deepchem.models.optimizers as optim
 from deepchem.utils.electron_sampler import ElectronSampler
 
-
+class FerminetModel(torch.nn.Module):
+  """ Predicts log probability of the wave function of a molecule system 
+  """
+  def __init__(self, layers,) -> None:
+    """
+    Parameters:
+    -----------
+    layers: int
+      Number of layers in the neural network
+    """
+    super(FerminetModel, self).__init__()
+    self.fermi_layer = nn.ModuleList()
+    for i in range(layers):
+      self.fermi_layer.append(nn.Linear(4, 4))
+  
 def test_f(x: np.ndarray) -> np.ndarray:
   # dummy function which can be passed as the parameter f. f gives the log probability
   # TODO replace this function with forward pass of the model in future
   return 2 * np.log(np.random.uniform(low=0, high=1.0, size=np.shape(x)[0]))
 
-
-class Ferminet:
+class Ferminet(TorchModel):
   """A deep-learning based Variational Monte Carlo method for calculating the ab-initio
     solution of a many-electron system.
 
@@ -64,7 +77,7 @@ class Ferminet:
       Number of batches of the electron's positions to be initialized.
 
     """
-    # super(Ferminet, self).__init__()
+    super(Ferminet, self).__init__()
 
     self.nucleon_coordinates = nucleon_coordinates
     self.seed = seed
@@ -98,10 +111,14 @@ class Ferminet:
       self.charge.append(atomic_num)
       no_electrons.append([atomic_num])
       nucleons.append(i[1])
+    # TODO: add csv file for the atomic electronegativity and parse it
     if self.charge != 0:
       if len(self.charge) == 1:
         no_electrons[0]-=self.ion_charge
       if len(self.charge) == 2:
+        pass # in this case, highest elctronegative atom gets the anionic charge
+      else:
+        # follows huerestic atom's electronegativity + (other atoms' electronegativity)/(0.4+distance from the atom being investigated)
         pass
 
     self.electron_no: np.ndarray = np.array(no_electrons)
@@ -175,7 +192,7 @@ class Ferminet:
     charge_shape = np.shape(nuclear_charge)
     nuclear_nuclear_potential = np.sum(
         nuclear_charge * nuclear_charge.reshape(charge_shape[0], 1) * np.tril(
-            1 / np.linalg((self.nucleon_pos.reshape(pos_shape[0], 1, 3)) -
+            1 / np.linalg.norm((self.nucleon_pos.reshape(pos_shape[0], 1, 3)) -
                           self.nucleon_pos,
                           axis=-1), -1))
 
