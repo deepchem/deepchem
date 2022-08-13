@@ -100,7 +100,7 @@ class Ferminet:
 
     self.electron_no: np.ndarray = np.array(no_electrons)
     self.charge: np.ndarray = self.electron_no.reshape(
-        np.shape(self.ion_charge)[0], 1)
+        np.shape(self.electron_no)[0],)
     self.nucleon_pos: np.ndarray = np.array(nucleons)
     electro_neg = np.array(electronegativity)
     self.inter_atom: np.ndarray = compute_pairwise_distances(
@@ -117,42 +117,44 @@ class Ferminet:
           nucleons
       ) == 2:  # for a diatomic molecule, the most electronegative atom will get the anionic charge
         electro_neg = electro_neg[electro_neg[:, 1].argsort()]
-        if self.charge > 0:
+        if self.ion_charge > 0:
           pos = electro_neg[0][0]
         else:
           pos = electro_neg[-1][0]
-        self.electron_no[pos][0] -= self.ion_charge
+        self.electron_no[int(pos)][0] -= self.ion_charge
       else:  # for a multiatomic molecule, the atom's electronegativity is averaged out with the weight sum of neighbouring atom's electronegativity and their interatomic distance
         electro_neg[:, 1] = np.sum(electro_neg[:, 1] / (1 + self.inter_atom),
                                    axis=-1)
         electro_neg = electro_neg[electro_neg[:, 1].argsort()]
         identical_pos = np.count_nonzero(electro_neg[:, 1] == electro_neg[0][1])
-        identical_neg = np.count_nonzero(
-            electro_neg[0, :] == electro_neg[-1][1])
-        if self.charge > 1 and identical_pos > 0:
+        identical_neg = np.count_nonzero(electro_neg[:,
+                                                     1] == electro_neg[-1][1])
+        if self.ion_charge > 1 and identical_pos > 1:
           per_atom_charge = self.ion_charge // identical_pos
           extra_charge = self.ion_charge % identical_pos
           pos = 0
           increment = 1
-          for i in range(self.ion_charge):
-            self.electron_no[electro_neg[pos][0]][0] -= per_atom_charge
+          for iter in range(identical_pos):
+            self.electron_no[int(electro_neg[pos][0])][0] -= per_atom_charge
             pos += increment
-          self.electron_no[electro_neg[pos - increment][0]][0] -= extra_charge
-        elif self.charge < -1 and identical_neg > 0:
-          per_atom_charge = self.ion_charge // identical_pos
-          extra_charge = self.ion_charge % identical_pos
+          self.electron_no[int(electro_neg[pos -
+                                           increment][0])][0] -= extra_charge
+        elif self.ion_charge < -1 and identical_neg > 1:
+          per_atom_charge = self.ion_charge // identical_neg
+          extra_charge = self.ion_charge % identical_neg
           pos = -1
           increment = -1
-          for i in range(self.ion_charge):
-            self.electron_no[electro_neg[pos][0]][0] -= per_atom_charge
+          for iter in range(identical_neg):
+            self.electron_no[int(electro_neg[pos][0])][0] -= per_atom_charge
             pos += increment
-          self.electron_no[electro_neg[pos - increment][0]][0] += extra_charge
+          self.electron_no[int(electro_neg[pos -
+                                           increment][0])][0] += extra_charge
         else:
           if self.ion_charge > 0:
             pos = 0
           else:
             pos = -1
-          self.electron_no[electro_neg[pos][0]][0] -= self.ion_charge
+          self.electron_no[int(electro_neg[pos][0])][0] -= self.ion_charge
 
     total_electrons = np.sum(self.electron_no)
     self.up_spin = (total_electrons + self.spin) // 2

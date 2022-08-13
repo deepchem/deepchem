@@ -58,7 +58,7 @@ def test_prepare_input_stream():
   # ionic charge initialization test
   ion = [['C', [0, 0, 0]], ['O', [0, 3, 0]], ['O', [1, -1, 0]],
          ['O', [-1, -1, 0]]]  # Test ionic molecule
-  ionic_molecule = Ferminet(ion, spin=1, charge=2, seed=0, batch_no=1)
+  ionic_molecule = Ferminet(ion, spin=1, charge=-2, seed=0, batch_no=1)
   _, _, _, _ = ionic_molecule.prepare_input_stream()
 
   assert (ionic_molecule.electron_no == np.array([[6], [8], [9], [9]])).all()
