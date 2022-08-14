@@ -55,5 +55,14 @@ def test_prepare_input_stream():
       ], [0.0, 0.0, 0.0, 0.0]]]))
   assert np.shape(molecule.two_electron_distance) == (2, 2)
 
+  # potential energy test
   potential = molecule.calculate_potential()
   assert np.allclose(potential, [-40.5568845023])
+
+  # ionic charge initialization test
+  ion = [['C', [0, 0, 0]], ['O', [0, 3, 0]], ['O', [1, -1, 0]],
+         ['O', [-1, -1, 0]]]  # Test ionic molecule
+  ionic_molecule = Ferminet(ion, spin=1, charge=-2, seed=0, batch_no=1)
+  _, _, _, _ = ionic_molecule.prepare_input_stream()
+
+  assert (ionic_molecule.electron_no == np.array([[6], [8], [9], [9]])).all()
