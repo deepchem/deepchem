@@ -1067,11 +1067,11 @@ class FASTQLoader(DataLoader):
       input_files = [input_files]
 
     def shard_generator():
-      #sharding can be added. Right now its just loading all the dataset at the same time
       for input_file in input_files:
         sequences, ids = _read_file(input_file)
         X = self.featurizer(sequences)
-        # define_ids is a flag that gets false if the ids are coming from the read_file function. If not it will add dummy ones for ids
+        # define_ids is a flag that gets false if the ids are coming from the read_file function 
+        # If not it will add dummy ones for ids
         define_ids = True
         if isinstance(ids, np.ndarray):
           if len(X)==len(ids):
@@ -1106,7 +1106,6 @@ class FASTQLoader(DataLoader):
                         sequence: np.ndarray) -> np.ndarray:
         # Handle empty sequence
         if sequence is None or len(sequence) <= 0:
-          # log attempts to add empty sequences every shard. When we use sharding we can populate it
           return np.array([])
         #appending new sequence to numpy list of sequence
         new_sequence = ''.join(sequence)
