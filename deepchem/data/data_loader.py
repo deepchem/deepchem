@@ -1050,19 +1050,19 @@ class FASTALoader(DataLoader):
 
     return DiskDataset.create_dataset(shard_generator(), data_dir)
 
+
 class FASTQLoader(DataLoader):
 
   def __init__(self):
     # One hot Encoder featurizer
     self.featurizer = OneHotFeaturizer(charset=["A", "C", "T", "G", "N"],
-                                  max_length=None)
-
+                                       max_length=None)
 
   def create_dataset(self,
                      input_files: OneOrMany[str],
                      data_dir: Optional[str] = None,
                      shard_size: Optional[int] = None) -> DiskDataset:
-    
+
     if isinstance(input_files, str):
       input_files = [input_files]
 
@@ -1070,17 +1070,18 @@ class FASTQLoader(DataLoader):
       for input_file in input_files:
         sequences, ids = _read_file(input_file)
         X = self.featurizer(sequences)
-        # define_ids is a flag that gets false if the ids are coming from the read_file function 
+        # define_ids is a flag that gets false if the ids are coming from the read_file function
         # If not it will add dummy ones for ids
         define_ids = True
         if isinstance(ids, np.ndarray):
-          if len(X)==len(ids):
+          if len(X) == len(ids):
             define_ids = False
         if define_ids:
           ids = np.ones(len(X))
         yield X, None, None, ids
 
     def _read_file(input_file: str):
+
       def _generate_sequences(fastq_file, header_mark="@") -> np.ndarray:
         sequences: np.ndarray = np.array([])
         ids: List = []
@@ -1091,10 +1092,10 @@ class FASTQLoader(DataLoader):
           if line.startswith(header_mark):  # New header line
             header_counter = 0
             sequences = _add_sequence(sequences, sequence)
-            id_ = line[1:-1] #remove header mark as well as \n
+            id_ = line[1:-1]  # remove header mark as well as \n
             ids.append(id_)
             sequence = np.array([])
-          elif header_counter==1:  # Line contains sequence in FASTQ format
+          elif header_counter == 1:  # Line contains sequence in FASTQ format
             if line[-1:] == '\n':  # Check last character in string
               line = line[0:-1]  # Remove last character
             sequence = np.append(sequence, line)
@@ -1107,7 +1108,7 @@ class FASTQLoader(DataLoader):
         # Handle empty sequence
         if sequence is None or len(sequence) <= 0:
           return np.array([])
-        #appending new sequence to numpy list of sequence
+        # appending new sequence to numpy list of sequence
         new_sequence = ''.join(sequence)
         new_sequences = np.append(sequences, new_sequence)
         return new_sequences
@@ -1116,6 +1117,7 @@ class FASTQLoader(DataLoader):
         return _generate_sequences(f)
 
     return DiskDataset.create_dataset(shard_generator(), data_dir)
+
 
 class ImageLoader(DataLoader):
   """Handles loading of image files.
