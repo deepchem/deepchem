@@ -54,8 +54,8 @@ class FerminetModel(torch.nn.Module):
     super(FerminetModel, self).__init__()
     self.fermi_layer = nn.ModuleList()
     self.fermi_layer.append(nn.Linear(
-        n_one, 20))  # TODO: Check the 2nd dimension of the linear weight
-    self.fermi_layer.append(nn.Linear(n_two, 4))
+        n_one[0], 20))  # TODO: Check the 2nd dimension of the linear weight
+    self.fermi_layer.append(nn.Linear(n_two[0], 4))
     for i in range(1, self.layers):
       self.fermi_layer.append(
           nn.Linear(n_one[i], 3 * n_one[i - 1] + 2 * n_two[i]))
@@ -104,7 +104,7 @@ class FerminetModel(torch.nn.Module):
         ) + two_down  # TODO: two_up should be replaced with corresponding elctron not whole.
 
 
-class Ferminet(TorchModel):
+class Ferminet:
   """A deep-learning based Variational Monte Carlo method for calculating the ab-initio
     solution of a many-electron system.
 
@@ -144,7 +144,7 @@ class Ferminet(TorchModel):
       Number of batches of the electron's positions to be initialized.
 
     """
-    super(Ferminet, self).__init__()
+    # super(Ferminet, self).__init__()
 
     self.nucleon_coordinates = nucleon_coordinates
     self.seed = seed
