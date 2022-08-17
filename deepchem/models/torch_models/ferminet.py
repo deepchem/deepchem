@@ -42,7 +42,7 @@ class Ferminet:
   def __init__(
       self,
       nucleon_coordinates: List[List],
-      spin: int,
+      spin: float,
       charge: int,
       seed: Optional[int] = None,
       batch_no: int = 10,
@@ -52,11 +52,11 @@ class Ferminet:
     -----------
     nucleon_coordinates:  List[List]
       A list containing nucleon coordinates as the values with the keys as the element's symbol.
-    spin: int
+    spin: float
       The total spin of the molecule system.
-    charge:int
+    charge: int
       The total charge of the molecule system.
-    seed_no: int, optional (default None)
+    seed: int, optional (default None)
       Random seed to use for electron initialization.
     batch_no: int, optional (default 10)
       Number of batches of the electron's positions to be initialized.
@@ -113,18 +113,18 @@ class Ferminet:
     if self.ion_charge != 0:
       if len(nucleons) == 1:  # for an atom, directly the charge is applied
         self.electron_no[0][0] -= self.ion_charge
-      else:  # for a multiatomic molecule, the atom's electronegativity is averaged out with the weight sum of neighbouring atom's electronegativity and their interatomic distance
+      else:  # for a multiatomic molecule, the most electronegative atom gets a charge of -1 and vice versa. The remaining charges are assigned in terms of decreasing(for anionic charge) and increasing(for cationic charge) electronegativity.
         electro_neg = electro_neg[electro_neg[:, 1].argsort()]
         if self.ion_charge > 0:
           for iter in range(self.ion_charge):
-            self.electron_no[electro_neg[iter][0]][0] -= 1
+            self.electron_no[int(electro_neg[iter][0])][0] -= 1
         else:
           for iter in range(-self.ion_charge):
-            self.electron_no[electro_neg[-1 - iter][0]][0] += 1
+            self.electron_no[int(electro_neg[-1 - iter][0])][0] += 1
 
     total_electrons = np.sum(self.electron_no)
-    self.up_spin = (total_electrons + self.spin) // 2
-    self.down_spin = (total_electrons - self.spin) // 2
+    self.up_spin = (total_electrons + 2 * self.spin) // 2
+    self.down_spin = (total_electrons - 2 * self.spin) // 2
 
     self.molecule: ElectronSampler = ElectronSampler(
         batch_no=self.batch_no,
