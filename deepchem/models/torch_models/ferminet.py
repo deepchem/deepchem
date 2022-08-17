@@ -124,7 +124,7 @@ class Ferminet:
   def __init__(
       self,
       nucleon_coordinates: List[List],
-      spin: int,
+      spin: float,
       charge: int,
       seed: Optional[int] = None,
       batch_no: int = 10,
@@ -134,7 +134,7 @@ class Ferminet:
     -----------
     nucleon_coordinates:  List[List]
       A list containing nucleon coordinates as the values with the keys as the element's symbol.
-    spin: int
+    spin: float
       The total spin of the molecule system.
     charge:int
       The total charge of the molecule system.
@@ -239,15 +239,16 @@ class Ferminet:
           self.electron_no[int(electro_neg[pos][0])][0] -= self.ion_charge
 
     total_electrons = np.sum(self.electron_no)
-    self.up_spin = (total_electrons + self.spin) // 2
-    self.down_spin = (total_electrons - self.spin) // 2
+    self.up_spin = (total_electrons + 2 * self.spin) // 2
+    self.down_spin = (total_electrons - 2 * self.spin) // 2
 
     self.molecule: ElectronSampler = ElectronSampler(
         batch_no=self.batch_no,
         central_value=self.nucleon_pos,
         seed=self.seed,
         f=test_f,
-        steps=1000)  # sample the electrons using the electron sampler
+        steps=1000
+    )  # sample the electrons using the electron sampler sample the electrons using the electron sampler sample the electrons using the electron sampler sample the electrons using the electron sampler sample the electrons using the electron sampler sample the electrons using the electron sampler sample the electrons using the electron sampler
     self.molecule.gauss_initialize_position(
         self.electron_no)  # initialize the position of the electrons
 
@@ -318,7 +319,7 @@ class Ferminet:
     """
     shape = np.shape(self.molecule.x)[0]
     eye = torch.eye(shape)
-    grad = torch.autograd.grad(f, self.molecule.x)
+    grad = torch.autograd.grad(f, self.molecule.x, retain_graph=True)
     jacobian_psi, hessian_psi = torch.autograd.functional.jvp(
         grad, self.molecule.x)
     val = 0
