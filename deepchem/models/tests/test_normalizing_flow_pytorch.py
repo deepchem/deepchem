@@ -114,7 +114,6 @@ def test_RealNVPLayer():
   samples = 96
   data = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
   tensor = data.sample(torch.Size((samples, dim)))
-  zeros = np.zeros((samples, dim))
 
   layers = 4
   hidden_size = 16
@@ -124,4 +123,4 @@ def test_RealNVPLayer():
   for layer in layers:
     _, inverse_log_det_jacobian = layer.inverse(tensor)
     inverse_log_det_jacobian = inverse_log_det_jacobian.detach().numpy()
-    assert np.isclose(inverse_log_det_jacobian, zeros, rtol=1e-01).any()
+    assert np.any(inverse_log_det_jacobian)
