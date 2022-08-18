@@ -1,5 +1,8 @@
 import pytest
 import deepchem as dc
+import tempfile
+import numpy as np
+import os
 
 try:
   import torch
@@ -177,3 +180,91 @@ def test_dmpnn_classification_multi_task():
                                                     [0.0204, 0.0558]]])
   assert torch.allclose(output[0][0], required_output[0], atol=1e-4)
   assert torch.allclose(output[1][0], required_output[1], atol=1e-4)
+
+
+@pytest.mark.torch
+def test_dmpnn_model_regression():
+  """
+  Test DMPNNModel class for regression mode
+  """
+  torch.manual_seed(0)
+
+  # load sample dataset
+  dir = os.path.dirname(os.path.abspath(__file__))
+  input_file = os.path.join(dir, 'assets/freesolv_sample_5.csv')
+  loader = dc.data.CSVLoader(tasks=['y'],
+                             feature_field='smiles',
+                             featurizer=dc.feat.DMPNNFeaturizer())
+  dataset = loader.create_dataset(input_file)
+
+  # initialize the model
+  from deepchem.models.torch_models.dmpnn import DMPNNModel
+  model = DMPNNModel()
+
+  # overfit test
+  model.fit(dataset, nb_epoch=30)
+  metric = dc.metrics.Metric(dc.metrics.mean_absolute_error, mode="regression")
+  scores = model.evaluate(dataset, [metric])
+  assert scores['mean_absolute_error'] < 0.5
+
+
+@pytest.mark.torch
+def test_dmpnn_model_classification():
+  """
+  Test DMPNNModel class for classification mode
+  """
+  torch.manual_seed(0)
+
+  # load sample dataset
+  dir = os.path.dirname(os.path.abspath(__file__))
+  input_file = os.path.join(dir, 'assets/example_classification.csv')
+  loader = dc.data.CSVLoader(tasks=["outcome"],
+                             feature_field="smiles",
+                             featurizer=dc.feat.DMPNNFeaturizer())
+  dataset = loader.create_dataset(input_file)
+
+  # initialize the model
+  from deepchem.models.torch_models.dmpnn import DMPNNModel
+
+  mode = 'classification'
+  classes = 2
+  tasks = 1
+  model = DMPNNModel(mode=mode, n_classes=classes, n_tasks=tasks)
+
+  # overfit test
+  model.fit(dataset, nb_epoch=30)
+  metric = dc.metrics.Metric(dc.metrics.accuracy_score, mode="classification")
+  scores = model.evaluate(dataset, [metric], n_classes=classes)
+  assert scores['accuracy_score'] > 0.9
+
+
+@pytest.mark.torch
+def test_dmpnn_model_reload():
+  """
+  Test DMPNNModel class for reloading the model
+  """
+  torch.manual_seed(0)
+
+  # load sample dataset
+  dir = os.path.dirname(os.path.abspath(__file__))
+  input_file = os.path.join(dir, 'assets/freesolv_sample_5.csv')
+  loader = dc.data.CSVLoader(tasks=['y'],
+                             feature_field='smiles',
+                             featurizer=dc.feat.DMPNNFeaturizer())
+  dataset = loader.create_dataset(input_file)
+
+  # initialize the model
+  from deepchem.models.torch_models.dmpnn import DMPNNModel
+  model_dir = tempfile.mkdtemp()
+  model = DMPNNModel(model_dir=model_dir)
+
+  # fit the model
+  model.fit(dataset, nb_epoch=10)
+
+  # reload the model
+  reloaded_model = DMPNNModel(model_dir=model_dir)
+  reloaded_model.restore()
+
+  orig_predict = model.predict(dataset)
+  reloaded_predict = reloaded_model.predict(dataset)
+  assert np.all(orig_predict == reloaded_predict)
