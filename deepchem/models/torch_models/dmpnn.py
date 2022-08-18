@@ -133,14 +133,14 @@ class _MapperDMPNN:
           (1, self.num_atom_features + self.num_bond_features))
 
       self.atom_to_incoming_bonds = np.asarray([[-1]], dtype=int)
-      self.mapping = np.asarray([[-1]], dtype=int)
+      # self.mapping = np.asarray([[-1]], dtype=int)
 
     else:
       self.bond_to_ini_atom = self.bond_index[0]
       self._get_f_ini_atoms_bonds()  # its zero padded at the end
 
       self.atom_to_incoming_bonds = self._get_atom_to_incoming_bonds()
-      self._generate_mapping()  # its padded with -1 at the end
+      # self._generate_mapping()  # its padded with -1 at the end
 
   @property
   def values(self) -> Sequence[np.ndarray]:
@@ -149,10 +149,11 @@ class _MapperDMPNN:
     - atom features
     - concat features (atom + bond)
     - atom to incoming bonds mapping
-    - mapping
+    - bond to intial atoms mapping
+    - bond to reverse bonds mapping
     - global features
     """
-    return self.atom_features, self.f_ini_atoms_bonds, self.atom_to_incoming_bonds, self.mapping, self.global_features
+    return self.atom_features, self.f_ini_atoms_bonds, self.atom_to_incoming_bonds, self.bond_to_ini_atom, self._get_bond_to_rev_bonds(), self.global_features
 
   def _get_f_ini_atoms_bonds(self):
     """
@@ -164,23 +165,23 @@ class _MapperDMPNN:
     # zero padded at the end
     self.f_ini_atoms_bonds = np.pad(self.f_ini_atoms_bonds, ((0, 1), (0, 0)))
 
-  def _generate_mapping(self):
-    """
-    Generate mapping, which maps bond index to 'array of indices of the bonds'
-    incoming at the initial atom of the bond (reverse bonds are not considered).
+  # def _generate_mapping(self):
+  #   """
+  #   Generate mapping, which maps bond index to 'array of indices of the bonds'
+  #   incoming at the initial atom of the bond (reverse bonds are not considered).
 
-    Steps:
-    - Get mapping based on `self.atom_to_incoming_bonds` and `self.bond_to_ini_atom`.
-    - Replace reverse bond indices with -1.
-    - Pad the mapping with -1.
-    """
+  #   Steps:
+  #   - Get mapping based on `self.atom_to_incoming_bonds` and `self.bond_to_ini_atom`.
+  #   - Replace reverse bond indices with -1.
+  #   - Pad the mapping with -1.
+  #   """
 
-    # get mapping which maps bond index to 'array of indices of the bonds' incoming at the initial atom of the bond
-    self.mapping = self.atom_to_incoming_bonds[self.bond_to_ini_atom]
-    self._replace_rev_bonds()
+  #   # get mapping which maps bond index to 'array of indices of the bonds' incoming at the initial atom of the bond
+  #   self.mapping = self.atom_to_incoming_bonds[self.bond_to_ini_atom]
+  #   self._replace_rev_bonds()
 
-    # padded with -1 at the end
-    self.mapping = np.pad(self.mapping, ((0, 1), (0, 0)), constant_values=-1)
+  #   # padded with -1 at the end
+  #   self.mapping = np.pad(self.mapping, ((0, 1), (0, 0)), constant_values=-1)
 
   def _get_atom_to_incoming_bonds(self) -> np.ndarray:
     """
@@ -207,7 +208,7 @@ class _MapperDMPNN:
 
     return np.asarray(a2b, dtype=int)
 
-  def _replace_rev_bonds(self):
+  def _get_bond_to_rev_bonds(self):
     """
     Method to get b2revb and replace the reverse bond indices with -1 in mapping.
     """
@@ -219,8 +220,9 @@ class _MapperDMPNN:
       else:
         b2revb[i] = i - 1
 
-    for count, i in enumerate(b2revb):
-      self.mapping[count][np.where(self.mapping[count] == i)] = -1
+    return b2revb
+    # for count, i in enumerate(b2revb):
+    #   self.mapping[count][np.where(self.mapping[count] == i)] = -1
 
 
 class DMPNN(nn.Module):
@@ -592,23 +594,44 @@ class DMPNNModel(TorchModel):
 
     # mapping that maps bond index to 'array of indices of the bonds'
       # incoming at the initial atom of the bond (excluding the reverse bonds)
-    mapping: np.ndarray
+    # mapping: np.ndarray
 
     # array of global molecular features
     global_features: np.ndarray
 
-    atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features = values
+    atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, bond_to_ini_atom, bond_to_rev_bonds, global_features = values
 
     atom_features = torch.from_numpy(atom_features).float()
     f_ini_atoms_bonds = torch.from_numpy(f_ini_atoms_bonds).float()
     atom_to_incoming_bonds = torch.from_numpy(atom_to_incoming_bonds)
-    mapping = torch.from_numpy(mapping)
+    bond_to_ini_atom = torch.from_numpy(bond_to_ini_atom)
+    bond_to_rev_bonds = torch.from_numpy(bond_to_rev_bonds)
     global_features = torch.from_numpy(global_features).float()
 
-    return Data(atom_features=atom_features,
+    class ModData(Data):
+      """
+      """
+      def __init__(self, *args, **kwargs):
+        """
+        """
+        super().__init__(*args, **kwargs)
+      def __inc__(self, key, value, *args, **kwargs):
+        """
+        """
+        if key in ['atom_to_incoming_bonds', 'bond_to_rev_bonds']:
+          # if value == -1:
+          #   return 0
+          return len(f_ini_atoms_bonds)
+        if key == 'bond_to_ini_atom':
+          return len(atom_features)
+        else:
+          return super().__inc__(key, value, *args, **kwargs)
+
+    return ModData(atom_features=atom_features,
                 f_ini_atoms_bonds=f_ini_atoms_bonds,
                 atom_to_incoming_bonds=atom_to_incoming_bonds,
-                mapping=mapping,
+                bond_to_ini_atom=bond_to_ini_atom,
+                bond_to_rev_bonds=bond_to_rev_bonds,
                 global_features=global_features)
 
   def _prepare_batch(self, batch):
@@ -626,9 +649,25 @@ class DMPNNModel(TorchModel):
     pyg_batch = Batch()
     pyg_batch = pyg_batch.from_data_list(graphs_list)
 
+    batch_mapping = self._get_mapping(pyg_batch)
     _, labels, weights = super(DMPNNModel, self)._prepare_batch(
         ([], labels, weights))
-    return pyg_batch, labels, weights
+    return [pyg_batch, batch_mapping], labels, weights
+
+  def _get_mapping(self, pyg_batch):
+    """
+    """
+    b_atom_to_incoming_bonds = pyg_batch['atom_to_incoming_bonds']
+    b_bond_to_ini_atom = pyg_batch['bond_to_ini_atom']
+    b_bond_to_rev_bonds = pyg_batch['bond_to_rev_bonds']
+
+    mapping = b_atom_to_incoming_bonds[b_bond_to_ini_atom]
+    for count, i in enumerate(b_bond_to_rev_bonds):
+      mapping[count][torch.where(mapping[count] == i)] = -1
+
+    # padded with -1 at the end
+    mapping = nn.functional.pad(mapping, ((0, 1), (0, 0)), mode = 'constant', value = -1)
+    return mapping
 
   def default_generator(self,
                         dataset: Dataset,
