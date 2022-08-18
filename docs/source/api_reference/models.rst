@@ -403,6 +403,12 @@ MATModel
 .. autoclass:: deepchem.models.torch_models.MATModel
   :members:
 
+DMPNNModel
+--------
+
+.. autoclass:: deepchem.models.torch_models.DMPNNModel
+  :members:
+
 PyTorch Lightning Models
 ==============
 
