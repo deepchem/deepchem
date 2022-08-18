@@ -556,7 +556,7 @@ class DMPNNModel(TorchModel):
 
     if mode == 'regression':
       loss: Loss = L2Loss()
-      output_types: Sequence[str] = ['prediction']
+      output_types: List[str] = ['prediction']
     elif mode == 'classification':
       loss = SparseSoftmaxCrossEntropy()
       output_types = ['prediction', 'loss']
@@ -572,7 +572,7 @@ class DMPNNModel(TorchModel):
       mode: str = 'fit',
       deterministic: bool = True,
       pad_batches: bool = False,
-      **kwargs) -> Iterable[Tuple[Sequence[np.ndarray], List, List]]:
+      **kwargs) -> Iterable[Tuple[List, List, List]]:
     """
     Create a generator that iterates batches for a dataset.
 
@@ -637,7 +637,7 @@ class DMPNNModel(TorchModel):
         global_features: np.ndarray
 
         atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features = mapper.values
-        inputs: Sequence[np.ndarray] = [
+        inputs: List[np.ndarray] = [
             atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping,
             global_features
         ]
