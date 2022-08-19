@@ -435,6 +435,17 @@ class DMPNNModel(TorchModel):
 
   .. note::
      Current implementation of the DMPNNModel class only supports features of 1 molecule per batch.
+  
+  The DMPNN model has 2 phases, message-passing phase and read-out phase.
+
+  - The goal of the message-passing phase is to generate 'hidden states of all the atoms in the molecule' using encoders.
+  - Next in read-out phase, the features are passed into feed-forward neural network to get the task-based prediction.
+
+  For additional information:
+  
+  - `Mapper class <https://github.com/deepchem/deepchem/blob/31676cc2497d5f2de65d648c09fc86191b594501/deepchem/models/torch_models/dmpnn.py#L10-L92>`_
+  - `Encoder layer class <https://github.com/deepchem/deepchem/blob/31676cc2497d5f2de65d648c09fc86191b594501/deepchem/models/torch_models/layers.py#L1223-L1374>`_
+  - `Feed-Forward class <https://github.com/deepchem/deepchem/blob/31676cc2497d5f2de65d648c09fc86191b594501/deepchem/models/torch_models/layers.py#L689-L700>`_
 
   Example
   -------
@@ -565,14 +576,13 @@ class DMPNNModel(TorchModel):
                                      output_types=output_types,
                                      **kwargs)
 
-  def default_generator(
-      self,
-      dataset: Dataset,
-      epochs: int = 1,
-      mode: str = 'fit',
-      deterministic: bool = True,
-      pad_batches: bool = False,
-      **kwargs) -> Iterable[Tuple[List, List, List]]:
+  def default_generator(self,
+                        dataset: Dataset,
+                        epochs: int = 1,
+                        mode: str = 'fit',
+                        deterministic: bool = True,
+                        pad_batches: bool = False,
+                        **kwargs) -> Iterable[Tuple[List, List, List]]:
     """
     Create a generator that iterates batches for a dataset.
 
