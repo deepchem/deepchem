@@ -1,13 +1,7 @@
 import os
 import unittest
-# import numpy as np
-# import deepchem as dc
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 from deepchem.data.data_loader import FASTQLoader
-# from deepchem.data import Dataset, DiskDataset
-# from deepchem.utils.typing import OneOrMany
-# from deepchem.feat import UserDefinedFeaturizer, Featurizer
-# from typing import List, Optional, Tuple, Union, Dict, Iterator
 
 
 class TestFASTQLoader(unittest.TestCase):
