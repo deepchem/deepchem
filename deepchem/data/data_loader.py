@@ -1077,11 +1077,10 @@ def load_files(input_files: List[str],
       # iterate through each line in the input file
       for num, line in enumerate(f):
         # If the number of lines iterated through is equal or less than the shard size:
-        if (shard_size is not None) and ((num + 1) - line_number <= (shard_size * 4)):
+        if (shard_size is not None) and ((num + 1) - line_number <=
+                                         (shard_size * 4)):
           # append to list
           df.append(line)
-          #print(f.tell())
-          #print(df)
         else:
           # else yield the list
           shard_num += 1
@@ -1104,8 +1103,12 @@ class FASTQLoader(DataLoader):
   This class provides convenience files to load FASTQ data and one-hot encode
   the genomic sequences for use in downstream learning tasks.
 
-  Examples
-  --------
+  Example
+  -------
+  >>> import os
+  >>> from deepchem.feat.molecule_featurizers import OneHotFeaturizer
+  >>> from deepchem.data.data_loader import FASTQLoader
+  >>> input_file = os.path.join(os.getcwd(), "sample2.fastq")
   >>> loader = FASTQLoader()
   >>> sequences = loader.create_dataset(input_file)
 
@@ -1202,7 +1205,6 @@ class FASTQLoader(DataLoader):
 
       for shard_num, shard in enumerate(
           self._get_shards(input_files, shard_size)):
-        #print(shard)
         if self.return_quality_scores:
           sequences, quality_scores = _generate_sequences(shard)
           # Featurize sequences
@@ -1225,7 +1227,6 @@ class FASTQLoader(DataLoader):
       assert len(
           shard
       ) % 4 == 0, f'Sharded length not divisible by four: Length of shard = {len(shard)}. File is possibly incomplete'
-      #fastq_file = fastq_file.readlines()
       sequences: np.ndarray = np.array([], dtype='object')
       if self.return_quality_scores:
         quality_scores: np.ndarray = np.array([], dtype='object')
