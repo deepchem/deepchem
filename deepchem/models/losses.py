@@ -63,10 +63,17 @@ class HuberLoss(Loss):
 
     def loss(output, labels):
       output, labels = _make_pytorch_shapes_consistent(output, labels)
-      return torch.nn.functional.smooth_l1_loss(
-          output, labels, reduction='none')
+      return torch.nn.functional.smooth_l1_loss(output,
+                                                labels,
+                                                reduction='none')
 
     return loss
+
+
+def l2_loss(output, labels):
+  import torch
+  output, labels = _make_pytorch_shapes_consistent(output, labels)
+  return torch.nn.functional.mse_loss(output, labels, reduction='none')
 
 
 class L2Loss(Loss):
@@ -79,13 +86,7 @@ class L2Loss(Loss):
     return tf.square(output - labels)
 
   def _create_pytorch_loss(self):
-    import torch
-
-    def loss(output, labels):
-      output, labels = _make_pytorch_shapes_consistent(output, labels)
-      return torch.nn.functional.mse_loss(output, labels, reduction='none')
-
-    return loss
+    return l2_loss
 
 
 class HingeLoss(Loss):
@@ -112,7 +113,7 @@ class HingeLoss(Loss):
 
 class SquaredHingeLoss(Loss):
   """The Squared Hinge loss function.
-  
+
   Defined as the square of the hinge loss between y_true and y_pred. The Squared Hinge Loss is differentiable.
   """
 
@@ -126,10 +127,9 @@ class SquaredHingeLoss(Loss):
 
     def loss(output, labels):
       output, labels = _make_pytorch_shapes_consistent(output, labels)
-      return torch.mean(
-          torch.pow(
-              torch.max(1 - torch.mul(labels, output), torch.tensor(0.0)), 2),
-          dim=-1)
+      return torch.mean(torch.pow(
+          torch.max(1 - torch.mul(labels, output), torch.tensor(0.0)), 2),
+                        dim=-1)
 
     return loss
 
@@ -293,20 +293,20 @@ class SparseSoftmaxCrossEntropy(Loss):
 
 class VAE_ELBO(Loss):
   """The Variational AutoEncoder loss, KL Divergence Regularize + marginal log-likelihood.
-  
+
   This losses based on _[1].
-  ELBO(Evidence lower bound) lexically replaced Variational lower bound. 
+  ELBO(Evidence lower bound) lexically replaced Variational lower bound.
   BCE means marginal log-likelihood, and KLD means KL divergence with normal distribution.
   Added hyper parameter 'kl_scale' for KLD.
-  
+
   The logvar and mu should have shape (batch_size, hidden_space).
-  The x and reconstruction_x should have (batch_size, attribute). 
+  The x and reconstruction_x should have (batch_size, attribute).
   The kl_scale should be float.
-  
+
   Examples
   --------
   Examples for calculating loss using constant tensor.
-  
+
   batch_size = 2,
   hidden_space = 2,
   num of original attribute = 3
@@ -317,20 +317,20 @@ class VAE_ELBO(Loss):
   >>> mu = np.array([[0.2,0.7],[1.2,0.4]])
   >>> x = np.array([[0.9,0.4,0.8],[0.3,0,1]])
   >>> reconstruction_x = np.array([[0.8,0.3,0.7],[0.2,0,0.9]])
-  
+
   Case tensorflow
   >>> VAE_ELBO()._compute_tf_loss(tf.constant(logvar), tf.constant(mu), tf.constant(x), tf.constant(reconstruction_x))
   <tf.Tensor: shape=(2,), dtype=float64, numpy=array([0.70165154, 0.76238271])>
-  
+
   Case pytorch
   >>> (VAE_ELBO()._create_pytorch_loss())(torch.tensor(logvar), torch.tensor(mu), torch.tensor(x), torch.tensor(reconstruction_x))
   tensor([0.7017, 0.7624], dtype=torch.float64)
-  
-  
+
+
   References
   ----------
   .. [1] Kingma, Diederik P., and Max Welling. "Auto-encoding variational bayes." arXiv preprint arXiv:1312.6114 (2013).
-  
+
   """
 
   def _compute_tf_loss(self, logvar, mu, x, reconstruction_x, kl_scale=1):
@@ -356,18 +356,18 @@ class VAE_ELBO(Loss):
 
 class VAE_KLDivergence(Loss):
   """The KL_divergence between hidden distribution and normal distribution.
-  
+
   This loss represents KL divergence losses between normal distribution(using parameter of distribution)
   based on  _[1].
-  
+
   The logvar should have shape (batch_size, hidden_space) and each term represents
-  standard deviation of hidden distribution. The mean shuold have 
+  standard deviation of hidden distribution. The mean shuold have
   (batch_size, hidden_space) and each term represents mean of hidden distribtuon.
-  
+
   Examples
   --------
   Examples for calculating loss using constant tensor.
-  
+
   batch_size = 2,
   hidden_space = 2,
   >>> import numpy as np
@@ -375,19 +375,19 @@ class VAE_KLDivergence(Loss):
   >>> import tensorflow as tf
   >>> logvar = np.array([[1.0,1.3],[0.6,1.2]])
   >>> mu = np.array([[0.2,0.7],[1.2,0.4]])
-  
+
   Case tensorflow
   >>> VAE_KLDivergence()._compute_tf_loss(tf.constant(logvar), tf.constant(mu))
   <tf.Tensor: shape=(2,), dtype=float64, numpy=array([0.17381787, 0.51425203])>
-  
+
   Case pytorch
   >>> (VAE_KLDivergence()._create_pytorch_loss())(torch.tensor(logvar), torch.tensor(mu))
   tensor([0.1738, 0.5143], dtype=torch.float64)
-  
+
   References
   ----------
   .. [1] Kingma, Diederik P., and Max Welling. "Auto-encoding variational bayes." arXiv preprint arXiv:1312.6114 (2013).
-  
+
   """
 
   def _compute_tf_loss(self, logvar, mu):
@@ -412,35 +412,35 @@ class VAE_KLDivergence(Loss):
 
 class ShannonEntropy(Loss):
   """The ShannonEntropy of discrete-distribution.
-  
+
   This loss represents shannon entropy based on _[1].
-  
+
   The inputs should have shape (batch size, num of variable) and represents
   probabilites distribution.
-  
+
   Examples
   --------
   Examples for calculating loss using constant tensor.
-  
+
   batch_size = 2,
   num_of variable = variable,
   >>> import numpy as np
   >>> import torch
   >>> import tensorflow as tf
   >>> inputs = np.array([[0.7,0.3],[0.9,0.1]])
-  
+
   Case tensorflow
   >>> ShannonEntropy()._compute_tf_loss(tf.constant(inputs))
   <tf.Tensor: shape=(2,), dtype=float64, numpy=array([0.30543215, 0.16254149])>
-  
+
   Case pytorch
   >>> (ShannonEntropy()._create_pytorch_loss())(torch.tensor(inputs))
   tensor([0.3054, 0.1625], dtype=torch.float64)
-  
+
   References
   ----------
   .. [1] Chen, Ricky Xiaofeng. "A Brief Introduction to Shannon’s Information Theory." arXiv preprint arXiv:1612.09316 (2016).
-  
+
   """
 
   def _compute_tf_loss(self, inputs):
