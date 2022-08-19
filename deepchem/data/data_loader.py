@@ -1035,7 +1035,6 @@ class FASTALoader(DataLoader):
                         sequence: np.ndarray) -> np.ndarray:
         # Handle empty sequence
         if sequence is None or len(sequence) <= 0:
-          # TODO log attempts to add empty sequences every shard
           return np.array([])
         # Annotate start/stop of sequence
         if self.auto_add_annotations:
@@ -1050,15 +1049,16 @@ class FASTALoader(DataLoader):
 
     return DiskDataset.create_dataset(shard_generator(), data_dir)
 
+
 def load_files(input_files: List[str],
                shard_size: Optional[int] = 4096) -> Iterator:
-    """Load data as Iterator.
+  """Load data as Iterator.
 
   Parameters
   ----------
   input_files: List[str]
     List of fastq filenames.
-  shard_size: int, default None
+  shard_size: int, optional (default 4096)
     Chunksize for reading fastq files.
 
   Yields
@@ -1066,41 +1066,42 @@ def load_files(input_files: List[str],
   Iterator
     Generator which yields the data which is the same shard size.
   """
-    shard_num = 0
-    for input_file in input_files:
-        logger.info("About to start loading fastq from %s." % input_file)
-        # Open index file
-        with open(input_file, 'r') as f:
-            # create an empty list to store lines in files.
-            df = []
-            line_number = 0
-            # iterate through each line in the input file
-            for num, line in enumerate(f):
-                # If the number of lines iterated through is equal or less than the shard size:
-                if (num + 1) - line_number <= (shard_size * 4):
-                    # append to list
-                    df.append(line)
-                    #print(f.tell())
-                    #print(df)
-                else:
-                    # else yield the list
-                    shard_num += 1
-                    logger.info("Loading shard %d of size %s." %
-                                (shard_num, str(shard_size)))
-                    # set the line_number variable to the last line number (num) before 'yield' was called
-                    line_number = num
-                    # yield list (shard/batch)
-                    yield df
-                    # Re-initialize list with the index line to begin a new shard.
-                    df = [line]
-            if len(df) > 0:
-                yield df
+  shard_num = 0
+  for input_file in input_files:
+    logger.info("About to start loading fastq from %s." % input_file)
+    # Open index file
+    with open(input_file, 'r') as f:
+      # create an empty list to store lines in files.
+      df = []
+      line_number = 0
+      # iterate through each line in the input file
+      for num, line in enumerate(f):
+        # If the number of lines iterated through is equal or less than the shard size:
+        if (shard_size is not None) and ((num + 1) - line_number <= (shard_size * 4)):
+          # append to list
+          df.append(line)
+          #print(f.tell())
+          #print(df)
+        else:
+          # else yield the list
+          shard_num += 1
+          logger.info("Loading shard %d of size %s." %
+                      (shard_num, str(shard_size)))
+          # set the line_number variable to the last line number (num) before 'yield' was called
+          line_number = num
+          # yield list (shard/batch)
+          yield df
+          # Re-initialize list with the index line to begin a new shard.
+          df = [line]
+      if len(df) > 0:
+        yield df
+
 
 class FASTQLoader(DataLoader):
   """Handles loading of FASTQ files.
 
-  FASTQ files are commonly used to hold very large sequence data. It is a variant of FASTA format. 
-  This class provides convenience files to load FASTQ data and one-hot encode 
+  FASTQ files are commonly used to hold very large sequence data. It is a variant of FASTA format.
+  This class provides convenience files to load FASTQ data and one-hot encode
   the genomic sequences for use in downstream learning tasks.
 
   Examples
@@ -1118,7 +1119,7 @@ class FASTQLoader(DataLoader):
                auto_add_annotations: bool = False,
                return_quality_scores: bool = False):
     """Initialize FASTQLoader.
-    
+
     Parameters
     ----------
     featurizer: Featurizer (default: None)
@@ -1150,45 +1151,45 @@ class FASTQLoader(DataLoader):
     # Set self.return_quality_scores
     self.return_quality_scores = return_quality_scores
 
-  def _get_shards(self, input_files: List[str],
-                  shard_size: Optional[int]= 4096) -> Iterator:
+  def _get_shards(self,
+                  input_files: List[str],
+                  shard_size: Optional[int] = 4096) -> Iterator:
     """Defines a generator which returns data for each shard
-    
+
     Parameters
     ----------
     input_files: List[str]
       List of file names to process
     n_samples:  int, optional
       The number of samples to extract from each variant in the data
-    shard_size: int, optional
+    shard_size: int, optional (default 4096)
       The size of a shard of data to process at a time. Here, shard_size is equal to the
-      number of variants to fetch. You can think of them as number of rows to get from the 
+      number of variants to fetch. You can think of them as number of rows to get from the
       full dataset.
-    
+
     Yields
     -------
     Iterator
       Iterator over shards
     """
-    
+
     return load_files(input_files, shard_size)
 
-  
   def create_dataset(self,
                      input_files: OneOrMany[str],
                      data_dir: Optional[str] = None,
                      shard_size: Optional[int] = 4096) -> DiskDataset:
     """Creates a `Dataset` from input FASTQ files.
     At present, FASTQ support is limited and doesn't allow for sharding.
-    
+
     Parameters
     ----------
     input_files: List[str]
       List of fastQ files.
     data_dir: str, optional (default None)
       Name of directory where featurized data is stored.
-    shard_size: int, optional (default None)
-    
+    shard_size: int, optional (default 4096)
+
     Returns
     -------
     DiskDataset
@@ -1198,9 +1199,10 @@ class FASTQLoader(DataLoader):
     if isinstance(input_files, str):
       input_files = [input_files]
 
-    def shard_generator(): 
-      
-      for shard_num, shard in enumerate(self._get_shards(input_files,  shard_size)):
+    def shard_generator():
+
+      for shard_num, shard in enumerate(
+          self._get_shards(input_files, shard_size)):
         #print(shard)
         if self.return_quality_scores:
           sequences, quality_scores = _generate_sequences(shard)
@@ -1216,34 +1218,38 @@ class FASTQLoader(DataLoader):
           ids = np.ones(len(X))
           # (X, y , w, ids)
           yield X, None, None, ids
-      
+
     def _generate_sequences(shard: List) -> OneOrMany[np.ndarray]:
       """
       Creates a numpy array of annotated FASTQ-format strings.
       """
-      assert len(shard) % 4 == 0, f'Sharded length not divisible by four: Length of shard = {len(shard)}. File is possibly incomplete'
+      assert len(
+          shard
+      ) % 4 == 0, f'Sharded length not divisible by four: Length of shard = {len(shard)}. File is possibly incomplete'
       #fastq_file = fastq_file.readlines()
       sequences: np.ndarray = np.array([], dtype='object')
       if self.return_quality_scores:
-        quality_scores: np.ndarray = np.array([],dtype='object')
-      
+        quality_scores: np.ndarray = np.array([], dtype='object')
+
       # Go through each sequence entity in the fastq_file: each sequence consists of 4 lines
       # First line : header description
       # second line : sequence
       # third line : more description usually the same as the first line
       # fourth line: quality scores of the sequence
-      for start_index in range(0, len(shard), 4):          
-        each_sequence = shard[start_index: start_index + 4]
+      for start_index in range(0, len(shard), 4):
+        each_sequence = shard[start_index:start_index + 4]
 
         # Second line : add sequence to the sequence array
-        sequences = _add_sequence(sequences, np.array([each_sequence[1].strip("\n")]))
+        sequences = _add_sequence(sequences,
+                                  np.array([each_sequence[1].strip("\n")]))
 
         # Fourth line
         if self.return_quality_scores:
-          quality_scores = _add_sequence(quality_scores, np.array([each_sequence[3].strip("\n")]))
+          quality_scores = _add_sequence(
+              quality_scores, np.array([each_sequence[3].strip("\n")]))
 
-      if self.return_quality_scores:      
-        return sequences , quality_scores
+      if self.return_quality_scores:
+        return sequences, quality_scores
       else:
         return sequences
 
@@ -1261,6 +1267,7 @@ class FASTQLoader(DataLoader):
       return new_sequences
 
     return DiskDataset.create_dataset(shard_generator(), data_dir)
+
 
 class ImageLoader(DataLoader):
   """Handles loading of image files.
