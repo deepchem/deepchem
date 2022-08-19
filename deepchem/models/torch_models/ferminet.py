@@ -27,11 +27,15 @@ def test_f(x: np.ndarray) -> np.ndarray:
   return 2 * np.log(np.random.uniform(low=0, high=1.0, size=np.shape(x)[0]))
 
 
-class FerminetModel(torch.nn.Module):
+class Ferminet(torch.nn.Module):
   """Approximates the log probability of the wave function of a molecule system using DNNs.
   """
 
   def __init__(self,
+               nucleon_pos: torch.Tensor,
+               nuclear_charge: torch.Tensor,
+               spin: tuple,
+               inter_atom: torch.Tensor,
                n_one: List = [256, 256, 256, 256],
                n_two: List = [32, 32, 32, 32],
                determinant: int = 16) -> None:
@@ -45,13 +49,19 @@ class FerminetModel(torch.nn.Module):
     determinant: int
       Number of determinants for the final solution
     """
+    super(FerminetModel, self).__init__()
     if len(n_one) != len(n_two):
       raise ValueError(
           "The number of layers in one-electron and two-electron stream should be equal"
       )
     else:
       self.layers = len(n_one)
-    super(FerminetModel, self).__init__()
+    self.nucleon_pos = nucleon_pos
+    self.determinant = determinant
+    self.spin = spin
+    self.total_electron = spin[0] + spin[1]
+    self.inter_atom = inter_atom
+    self.nuclear_charge = nuclear_charge
     self.fermi_layer = nn.ModuleList()
     self.fermi_layer.append(nn.Linear(
         n_one[0], 20))  # TODO: Check the 2nd dimension of the linear weight
@@ -61,8 +71,29 @@ class FerminetModel(torch.nn.Module):
           nn.Linear(n_one[i], 3 * n_one[i - 1] + 2 * n_two[i]))
       self.fermi_layer.append(nn.Linear(n_two[i], n_two[i - 1]))
 
-  def forward(self, one_electron_up: np.ndarray, one_electron_down: np.ndarray,
-              two_electron_up: np.ndarray, two_electron_down: np.ndarray):
+    self.w = nn.ModuleList()
+    self.g = nn.ModuleList()
+    self.pi = nn.ModuleList()
+    self.sigma = nn.ModuleList()
+    for i in range(self.determinant):
+      for j in range(self.total_electron):
+        self.w.append(
+            nn.parameter.Parameter(
+                nn.init.kaiming_uniform_(torch.Tensor(n_one[-1]))))
+        self.g.append(
+            nn.parameter.Parameter(nn.init.kaiming_uniform_(torch.Tensor(1))))
+        for k in range(nucleon_pos.size()[0]):
+          self.pi.append(
+              nn.parameter.Parameter(nn.init.kaiming_uniform_(torch.Tensor(1))))
+          self.sigma.append(
+              nn.parameter.Parameter(nn.init.kaiming_uniform_(torch.Tensor(1))))
+    self.psi_up = torch.empty((self.determinant, 1), requires_grad=True)
+    self.psi_down = torch.empty((self.determinant, 1), requires_grad=True)
+
+  def forward(
+      self,
+      molecule: torch.Tensor,
+  ):
     """
     Parameters:
     -----------
@@ -75,10 +106,35 @@ class FerminetModel(torch.nn.Module):
     two_electron_down: np.ndarray
       Numpy array containing down-spin electron's two-electron feature
     """
-    one_up = torch.from_numpy(one_electron_up)
-    one_down = torch.from_numpy(one_electron_down)
-    two_up = torch.from_numpy(two_electron_up)
-    two_down = torch.from_numpy(two_electron_down)
+    one_electron_vector = molecule - self.nucleon_pos
+
+    shape = molecule.size()
+    two_electron_vector = molecule.reshape([shape[0], 1, shape[1], 3
+                                           ]) - molecule
+
+    one_electron_vector = one_electron_vector[0, :, :, :]
+    two_electron_vector = two_electron_vector[0, :, :, :]
+
+    self.one_electron_distance: torch.Tensor = torch.linalg.norm(
+        one_electron_vector, axis=-1)
+    self.two_electron_distance: torch.Tensor = torch.linalg.norm(
+        two_electron_vector, axis=-1)
+
+    # concatenating distance and vectors arrays
+    one_shape = self.one_electron_distance.size()
+    one_distance = self.one_electron_distance.reshape(1, one_shape[0],
+                                                      one_shape[1], 1)
+    one_electron = torch.cat((one_electron_vector, one_distance))
+    two_shape = self.two_electron_distance.size()
+    two_distance = self.two_electron_distance.reshape(1, two_shape[0],
+                                                      two_shape[1], 1)
+    two_electron = torch.cat((two_electron_vector, two_distance))
+
+    one_up = one_electron[:, :self.spin[0], :]
+    one_down = one_electron[:, self.spin[0]:, :]
+
+    two_up = two_electron[:, :self.spin[0], :]
+    two_down = two_electron[:, self.spin[0]:, :]
 
     # TODO: Look into batchwise feed of input
     for i in range(0, self.layers, 2):
@@ -103,8 +159,79 @@ class FerminetModel(torch.nn.Module):
             self.fermi_layer[i + 1](two_down)
         ) + two_down  # TODO: two_up should be replaced with corresponding elctron not whole.
 
+    no_orbitals = self.spin[0] + self.spin[1]
+    for k in range(self.determinant):
+      for i in range(no_orbitals):
+        for j in range(self.spin[0]):
+          # TODO: check self.pi dimensions
+          envelope = torch.sum(
+              self.pi *
+              torch.exp(self.sigma * torch.linalg.norm(self.inter_atom[i][j]))
+          )  # TODO: Check the correct inter-atom
+          if i == 0:
+            self.psi_up[k][0] = (torch.dot(self.w[i + k], one_up[j]) +
+                                 self.g[i + k]) * envelope
+          else:
+            torch.cat(self.psi_up[k],
+                      (torch.dot(self.w[i + k], one_up[j]) + self.g[i + k]) *
+                      envelope)
+        for j in range(self.spin[1]):
+          envelope = torch.sum(
+              self.pi *
+              torch.exp(self.sigma * torch.linalg.norm(self.inter_atom[i][j]))
+          )  # TODO: Check the correct inter-atom
+          if i == 0:
+            self.psi_down[k][0] = (torch.dot(self.w[i + k], one_up[j]) +
+                                   self.g[i + k]) * envelope
+          else:
+            torch.cat(self.psi_down[k],
+                      (torch.dot(self.w[i + k], one_up[j]) + self.g[i + k]) *
+                      envelope)
 
-class Ferminet:
+    return torch.sum(torch.det(self.psi_up) * torch.det(self.psi_down))
+
+  def calculate_potential(self,) -> Any:
+    """Calculates the potential of the molecule system system for to calculate the hamiltonian loss.
+    Returns:
+    --------
+    potential: Any
+      The potential energy of the system.
+    """
+    nuclear_charge = torch(self.charge)
+
+    # electron-nuclear potential
+    electron_nuclear_potential = -1 * torch.sum(
+        self.nuclear_charge * (1 / self.one_electron_distance))
+
+    # electron-electron potential
+    electron_electron_potential = torch.sum(
+        torch.tril(1 / self.two_electron_distance, -1))
+
+    # nuclear-nuclear potential
+    pos_shape = self.nucleon_pos.size()
+    charge_shape = nuclear_charge.size()
+    nuclear_nuclear_potential = torch.sum(
+        nuclear_charge * nuclear_charge.reshape(charge_shape[0], 1) *
+        torch.tril(1 / self.inter_atom, -1))
+
+    return electron_nuclear_potential + electron_electron_potential + nuclear_nuclear_potential
+
+  def local_energy(self, output: torch.Tensor, input: torch.Tensor) -> Any:
+    """Calculates the hamiltonian of the molecule system.
+    Returns:
+    --------
+    hamiltonian: Any
+      The hamiltonian of the system.
+    """
+    jacobian = torch.autograd.grad([output], [input], retain_graph=True)
+    hessian = F.hessian(self.forward, input, retain_graph=True)
+
+    potential = self.calculate_potential()
+    return potential - 0.5 * (torch.sum(torch.diag(hessian, 0)) +
+                              torch.sum(jacobian**2))
+
+
+class FerminetModel(TorchModel):
   """A deep-learning based Variational Monte Carlo method for calculating the ab-initio
     solution of a many-electron system.
 
@@ -144,7 +271,7 @@ class Ferminet:
       Number of batches of the electron's positions to be initialized.
 
     """
-    # super(Ferminet, self).__init__()
+    super(Ferminet, self).__init__()
 
     self.nucleon_coordinates = nucleon_coordinates
     self.seed = seed
@@ -152,19 +279,8 @@ class Ferminet:
     self.spin = spin
     self.ion_charge = charge
 
-  def prepare_input_stream(self,) -> Tuple[Any, Any, Any, Any]:
+  def initialize_electrons(self,) -> Tuple[Any, Any, Any, Any]:
     """Prepares the one-electron and two-electron input stream for the model.
-
-    Returns:
-    --------
-    one_electron_up: numpy.ndarray
-      numpy array containing one-electron coordinates and distances for the up spin electrons.
-    one_electron_down: numpy.ndarray
-      numpy array containing one-electron coordinates and distances for the down spin electrons
-    two_electron_up: numpy.ndarray
-      numpy array containing two-electron coordinates and distances for the up spin electrons
-    two_electron_down: numpy.ndarray
-      numpy array containing two-electron coordinates and distances for the down spin electrons
     """
 
     no_electrons = []
@@ -188,6 +304,7 @@ class Ferminet:
     self.inter_atom: np.ndarray = compute_pairwise_distances(
         self.nucleon_pos, self.nucleon_pos)
 
+    # Initialization for ionic molecules
     if np.sum(self.electron_no) < self.ion_charge:
       raise ValueError("Given charge is not initializable")
 
@@ -195,48 +312,14 @@ class Ferminet:
     if self.ion_charge != 0:
       if len(nucleons) == 1:  # for an atom, directly the charge is applied
         self.electron_no[0][0] -= self.ion_charge
-      elif len(
-          nucleons
-      ) == 2:  # for a diatomic molecule, the most electronegative atom will get the anionic charge
+      else:  # for a multiatomic molecule, the most electronegative atom gets a charge of -1 and vice versa. The remaining charges are assigned in terms of decreasing(for anionic charge) and increasing(for cationic charge) electronegativity.
         electro_neg = electro_neg[electro_neg[:, 1].argsort()]
         if self.ion_charge > 0:
-          pos = electro_neg[0][0]
+          for iter in range(self.ion_charge):
+            self.electron_no[int(electro_neg[iter][0])][0] -= 1
         else:
-          pos = electro_neg[-1][0]
-        self.electron_no[int(pos)][0] -= self.ion_charge
-      else:  # for a multiatomic molecule, the atom's electronegativity is averaged out with the weight sum of neighbouring atom's electronegativity and their interatomic distance
-        electro_neg[:, 1] = np.sum(electro_neg[:, 1] / (1 + self.inter_atom),
-                                   axis=-1)
-        electro_neg = electro_neg[electro_neg[:, 1].argsort()]
-        identical_pos = np.count_nonzero(electro_neg[:, 1] == electro_neg[0][1])
-        identical_neg = np.count_nonzero(electro_neg[:,
-                                                     1] == electro_neg[-1][1])
-        if self.ion_charge > 1 and identical_pos > 1:
-          per_atom_charge = self.ion_charge // identical_pos
-          extra_charge = self.ion_charge % identical_pos
-          pos = 0
-          increment = 1
-          for iter in range(identical_pos):
-            self.electron_no[int(electro_neg[pos][0])][0] -= per_atom_charge
-            pos += increment
-          self.electron_no[int(electro_neg[pos -
-                                           increment][0])][0] -= extra_charge
-        elif self.ion_charge < -1 and identical_neg > 1:
-          per_atom_charge = self.ion_charge // identical_neg
-          extra_charge = self.ion_charge % identical_neg
-          pos = -1
-          increment = -1
-          for iter in range(identical_neg):
-            self.electron_no[int(electro_neg[pos][0])][0] -= per_atom_charge
-            pos += increment
-          self.electron_no[int(electro_neg[pos -
-                                           increment][0])][0] += extra_charge
-        else:
-          if self.ion_charge > 0:
-            pos = 0
-          else:
-            pos = -1
-          self.electron_no[int(electro_neg[pos][0])][0] -= self.ion_charge
+          for iter in range(-self.ion_charge):
+            self.electron_no[int(electro_neg[-1 - iter][0])][0] += 1
 
     total_electrons = np.sum(self.electron_no)
     self.up_spin = (total_electrons + 2 * self.spin) // 2
@@ -251,81 +334,3 @@ class Ferminet:
     )  # sample the electrons using the electron sampler sample the electrons using the electron sampler sample the electrons using the electron sampler sample the electrons using the electron sampler sample the electrons using the electron sampler sample the electrons using the electron sampler sample the electrons using the electron sampler
     self.molecule.gauss_initialize_position(
         self.electron_no)  # initialize the position of the electrons
-
-    one_electron_vector = self.molecule.x - self.nucleon_pos
-
-    shape = np.shape(self.molecule.x)
-    two_electron_vector = self.molecule.x.reshape([shape[0], 1, shape[1], 3
-                                                  ]) - self.molecule.x
-
-    one_electron_vector = one_electron_vector[0, :, :, :]
-    two_electron_vector = two_electron_vector[0, :, :, :]
-
-    self.one_electron_distance: np.ndarray = np.linalg.norm(one_electron_vector,
-                                                            axis=-1)
-    self.two_electron_distance: np.ndarray = np.linalg.norm(two_electron_vector,
-                                                            axis=-1)
-
-    # concatenating distance and vectors arrays
-    one_shape = np.shape(self.one_electron_distance)
-    one_distance = self.one_electron_distance.reshape(1, one_shape[0],
-                                                      one_shape[1], 1)
-    one_electron = np.block([one_electron_vector, one_distance])
-    two_shape = np.shape(self.two_electron_distance)
-    two_distance = self.two_electron_distance.reshape(1, two_shape[0],
-                                                      two_shape[1], 1)
-    two_electron = np.block([two_electron_vector, two_distance])
-
-    one_electron_up = one_electron[:, :self.up_spin, :]
-    one_electron_down = one_electron[:, self.up_spin:, :]
-
-    two_electron_up = two_electron[:, :self.up_spin, :]
-    two_electron_down = two_electron[:, self.up_spin:, :]
-
-    return one_electron_up, one_electron_down, two_electron_up, two_electron_down
-
-  def calculate_potential(self,) -> Any:
-    """Calculates the potential of the molecule system system for to calculate the hamiltonian loss.
-    Returns:
-    --------
-    potential: Any
-      The potential energy of the system.
-    """
-    nuclear_charge = np.array(self.charge)
-
-    # electron-nuclear potential
-    electron_nuclear_potential = -1 * np.sum(nuclear_charge *
-                                             (1 / self.one_electron_distance))
-
-    # electron-electron potential
-    electron_electron_potential = np.sum(
-        np.tril(1 / self.two_electron_distance, -1))
-
-    # nuclear-nuclear potential
-    pos_shape = np.shape(self.nucleon_pos)
-    charge_shape = np.shape(nuclear_charge)
-    nuclear_nuclear_potential = np.sum(
-        nuclear_charge * nuclear_charge.reshape(charge_shape[0], 1) *
-        np.tril(1 / self.inter_atom, -1))
-
-    return electron_nuclear_potential + electron_electron_potential + nuclear_nuclear_potential
-
-  def local_energy(self, f: nn.Module) -> Any:
-    """Calculates the hamiltonian of the molecule system.
-    Returns:
-    --------
-    hamiltonian: Any
-      The hamiltonian of the system.
-    """
-    shape = np.shape(self.molecule.x)[0]
-    eye = torch.eye(shape)
-    grad = torch.autograd.grad(f, self.molecule.x, retain_graph=True)
-    jacobian_psi, hessian_psi = torch.autograd.functional.jvp(
-        grad, self.molecule.x)
-    val = 0
-    for i in range(shape):
-      val += hessian_psi(eye[i])[i]
-    result = val.sum()
-    potential = self.calculate_potential()
-    return torch.from_numpy(potential) - 0.5 * (result +
-                                                ((jacobian_psi.sum())**2))
