@@ -1180,7 +1180,6 @@ class FASTQLoader(DataLoader):
                      data_dir: Optional[str] = None,
                      shard_size: Optional[int] = 4096) -> DiskDataset:
     """Creates a `Dataset` from input FASTQ files.
-    At present, FASTQ support is limited and doesn't allow for sharding.
 
     Parameters
     ----------
