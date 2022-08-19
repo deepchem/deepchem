@@ -407,7 +407,8 @@ NormalizingFlowModel
 --------------------
 
 .. autoclass:: deepchem.models.torch_models.NormalizingFlow
-=======
+
+
 PyTorch Lightning Models
 ==============
 

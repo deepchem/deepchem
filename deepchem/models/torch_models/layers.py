@@ -1190,8 +1190,17 @@ class Affine(nn.Module):
 
     Parameters
     ----------
-    input shape: (samples, dim)
-    output shape: (samples, dim)
+    x : Sequence
+      Tensor sample with the initial distribution data which will pass into
+      the normalizing flow algorithm.
+
+    Returns
+    -------
+    y : torch.Tensor
+      Transformed tensor according to Affine layer with the shape of 'x'.
+    log_det_jacobian : torch.Tensor
+      Tensor which represents the info about the deviation of the initial
+      and target distribution.
 
     """
 
@@ -1212,8 +1221,17 @@ class Affine(nn.Module):
 
     Parameters
     ----------
-    input shape: (samples, dim)
-    output shape: (samples, dim)
+    y : Sequence
+      Tensor sample with transformed distribution data which will be used in
+      the normalizing algorithm inverse pass.
+
+    Returns
+    -------
+    x : torch.Tensor
+      Transformed tensor according to Affine layer with the shape of 'y'.
+    inverse_log_det_jacobian : torch.Tensor
+      Tensor which represents the information of the deviation of the initial
+      and target distribution.
 
     """
 
@@ -1682,11 +1700,23 @@ class RealNVPLayer(nn.Module):
   -------
   >>> import torch
   >>> import torch.nn as nn
+  >>> from torch.distributions import MultivariateNormal
   >>> from deepchem.models.torch_models.layers import RealNVPLayer
+  >>> dim = 2
+  >>> samples = 96
+  >>> data = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
+  >>> tensor = data.sample(torch.Size((samples, dim)))
+
   >>> layers = 4
   >>> hidden_size = 16
-  >>> mask = nn.functional.one_hot(torch.tensor([i % 2 for i in range(layers)])).float()
-  >>> rnvp_model = RealNVPLayer(mask, hidden_size)
+  >>> masks = F.one_hot(torch.tensor([i % 2 for i in range(layers)])).float()
+  >>> layers = nn.ModuleList([RealNVPLayer(mask, hidden_size) for mask in masks])
+
+  >>> for layer in layers:
+  ...   _, inverse_log_det_jacobian = layer.inverse(tensor)
+  ...   inverse_log_det_jacobian = inverse_log_det_jacobian.detach().numpy()
+  >>> len(inverse_log_det_jacobian)
+  2
 
   References
   ----------
