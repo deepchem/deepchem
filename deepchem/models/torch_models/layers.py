@@ -1716,7 +1716,7 @@ class RealNVPLayer(nn.Module):
   ...   _, inverse_log_det_jacobian = layer.inverse(tensor)
   ...   inverse_log_det_jacobian = inverse_log_det_jacobian.detach().numpy()
   >>> len(inverse_log_det_jacobian)
-  2
+  96
 
   References
   ----------
