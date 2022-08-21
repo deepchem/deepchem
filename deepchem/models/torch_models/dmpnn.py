@@ -626,6 +626,13 @@ class DMPNNModel(TorchModel):
           return len(atom_features)
         else:
           return super().__inc__(key, value, *args, **kwargs)
+      # def __cat_dim__(self, key, value, *args, **kwargs):
+      #   """
+      #   """
+      #   if key == 'atom_to_incoming_bonds':
+      #     return 0
+      #   else:
+      #     return super().__cat_dim__(key, value, *args, **kwargs)
 
     return ModData(atom_features=atom_features,
                 f_ini_atoms_bonds=f_ini_atoms_bonds,
@@ -665,8 +672,8 @@ class DMPNNModel(TorchModel):
     for count, i in enumerate(b_bond_to_rev_bonds):
       mapping[count][torch.where(mapping[count] == i)] = -1
 
-    # padded with -1 at the end
-    mapping = nn.functional.pad(mapping, ((0, 1), (0, 0)), mode = 'constant', value = -1)
+    # padded with -1 at the end (count depends on batch size)
+    mapping = nn.functional.pad(mapping, (0, 0, 0, pyg_batch.num_graphs), mode = 'constant', value = -1)
     return mapping
 
   def default_generator(self,
@@ -720,10 +727,19 @@ class DMPNNModel(TorchModel):
                                          deterministic=deterministic,
                                          pad_batches=pad_batches):
         pyg_graphs_list = []
+
+        # maximum number of incoming bonds in the batch
+        max_num_bonds = 1
+
         for graph in X_b:
           # generate concatenated feature vector and mappings
           mapper: _MapperDMPNN = _MapperDMPNN(graph)
           pyg_graph = self._to_pyg_graph(mapper.values)
+          max_num_bonds = max(max_num_bonds, pyg_graph['atom_to_incoming_bonds'].shape[1])
           pyg_graphs_list.append(pyg_graph)
+        
+        for graph in pyg_graphs_list:
+          required_padding = max_num_bonds - graph['atom_to_incoming_bonds'].shape[1]
+          graph['atom_to_incoming_bonds'] = nn.functional.pad(graph['atom_to_incoming_bonds'], (0, required_padding, 0, 0), mode = 'constant', value = -1)
         
         yield (pyg_graphs_list, [y_b], [w_b])
