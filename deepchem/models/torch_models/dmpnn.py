@@ -639,17 +639,11 @@ class DMPNNModel(TorchModel):
 
     atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features = values
 
-    # atom_features = torch.from_numpy(atom_features).float().to(device=self.device)
-    # f_ini_atoms_bonds = torch.from_numpy(f_ini_atoms_bonds).float().to(device=self.device)
-    # atom_to_incoming_bonds = torch.from_numpy(atom_to_incoming_bonds).to(device=self.device)
-    # mapping = torch.from_numpy(mapping).to(device=self.device)
-    # global_features = torch.from_numpy(global_features).float().to(device=self.device)
-
-    atom_features = torch.from_numpy(atom_features).float()
-    f_ini_atoms_bonds = torch.from_numpy(f_ini_atoms_bonds).float()
-    atom_to_incoming_bonds = torch.from_numpy(atom_to_incoming_bonds)
-    mapping = torch.from_numpy(mapping)
-    global_features = torch.from_numpy(global_features).float()
+    atom_features = torch.from_numpy(atom_features).float().to(device=self.device)
+    f_ini_atoms_bonds = torch.from_numpy(f_ini_atoms_bonds).float().to(device=self.device)
+    atom_to_incoming_bonds = torch.from_numpy(atom_to_incoming_bonds).to(device=self.device)
+    mapping = torch.from_numpy(mapping).to(device=self.device)
+    global_features = torch.from_numpy(global_features).float().to(device=self.device)
 
     return ModData(required_inc=len(f_ini_atoms_bonds),
                 atom_features=atom_features,
