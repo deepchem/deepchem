@@ -1508,7 +1508,7 @@ class DMPNNEncoderLayer(nn.Module):
         atoms_hidden_states)  # num_atoms x hidden_size
     return atoms_hidden_states  # num_atoms x hidden_size
 
-  def _readout(self, atoms_hidden_states: torch.Tensor) -> torch.Tensor:
+  def _readout(self, atoms_hidden_states: torch.Tensor, molecules_unbatch_key: List) -> torch.Tensor:
     """
     Method to execute the readout phase. (compute molecule encodings from atom hidden states)
 
@@ -1522,22 +1522,28 @@ class DMPNNEncoderLayer(nn.Module):
     molecule_hidden_state: torch.Tensor
       Tensor containing molecule encodings.
     """
-    if self.aggregation == 'mean':
-      mol_vec: torch.Tensor = atoms_hidden_states.sum(
-          dim=0) / len(atoms_hidden_states)
-    elif self.aggregation == 'sum':
-      mol_vec = atoms_hidden_states.sum(dim=0)
-    elif self.aggregation == 'norm':
-      mol_vec = atoms_hidden_states.sum(dim=0) / self.aggregation_norm
-    else:
-      raise Exception("Invalid aggregation")
-    molecule_hidden_state: torch.Tensor = mol_vec.view(1, -1)
+    mol_vecs: List = []
+    atoms_hidden_states_split: Sequence[Tensor] = torch.split(atoms_hidden_states, molecules_unbatch_key)
+    for mol_vec in atoms_hidden_states_split:
+      if self.aggregation == 'mean':
+        mol_vec: torch.Tensor = mol_vec.sum(
+            dim=0) / len(mol_vec)
+      elif self.aggregation == 'sum':
+        mol_vec = mol_vec.sum(dim=0)
+      elif self.aggregation == 'norm':
+        mol_vec = mol_vec.sum(dim=0) / self.aggregation_norm
+      else:
+        raise Exception("Invalid aggregation")
+      mol_vecs.append(mol_vec)
+
+    molecule_hidden_state: torch.Tensor = torch.stack(mol_vecs, dim=0)
     return molecule_hidden_state  # num_molecules x hidden_size
 
   def forward(self, atom_features: torch.Tensor,
               f_ini_atoms_bonds: torch.Tensor,
               atom_to_incoming_bonds: torch.Tensor, mapping: torch.Tensor,
-              global_features: torch.Tensor) -> torch.Tensor:
+              global_features: torch.Tensor,
+              molecules_unbatch_key: List) -> torch.Tensor:
     """
     Output computation for the DMPNNEncoderLayer.
 
@@ -1584,12 +1590,12 @@ class DMPNNEncoderLayer(nn.Module):
         atom_features, h_message, atom_to_incoming_bonds)
 
     # num_molecules x hidden_size
-    output: torch.Tensor = self._readout(atoms_hidden_states)
+    output: torch.Tensor = self._readout(atoms_hidden_states, molecules_unbatch_key)
 
     # concat global features
-    if global_features.size != 0:
+    if global_features.size()[0] != 0:
       if len(global_features.shape) == 1:
-        global_features = global_features.view(1, -1)
+        global_features = global_features.view(len(output), -1)
       output = torch.cat([output, global_features], dim=1)
 
     return output  # num_molecules x hidden_size
