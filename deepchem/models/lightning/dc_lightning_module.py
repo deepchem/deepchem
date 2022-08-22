@@ -58,6 +58,7 @@ class DCLightningModule(pl.LightningModule):
     if isinstance(inputs, list):
       assert len(inputs) == 1
       inputs = inputs[0]
+    inputs = inputs.to(self.device)
 
     outputs = self.pt_model(inputs)
 
@@ -66,6 +67,9 @@ class DCLightningModule(pl.LightningModule):
 
     if self.dc_model._loss_outputs is not None:
       outputs = [outputs[i] for i in self.dc_model._loss_outputs]
+    outputs = [out.to(self.device) for out in outputs]
+    labels = [label.to(self.device) for label in labels]
+    weights = [weight.to(self.device) for weight in weights]
 
     loss_outputs = self.loss(outputs, labels, weights)
 
