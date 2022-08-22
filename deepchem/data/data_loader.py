@@ -1050,7 +1050,7 @@ class FASTALoader(DataLoader):
     return DiskDataset.create_dataset(shard_generator(), data_dir)
 
 
-def load_files(input_files: List[str],
+def _fastq_load_files(input_files: List[str],
                shard_size: Optional[int] = 4096) -> Iterator:
   """Load data as Iterator.
 
@@ -1176,7 +1176,7 @@ class FASTQLoader(DataLoader):
       Iterator over shards
     """
 
-    return load_files(input_files, shard_size)
+    return _fastq_load_files(input_files, shard_size)
 
   def create_dataset(self,
                      input_files: OneOrMany[str],
