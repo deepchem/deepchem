@@ -408,6 +408,12 @@ NormalizingFlowModel
 
 .. autoclass:: deepchem.models.torch_models.NormalizingFlow
 
+DMPNNModel
+--------
+
+.. autoclass:: deepchem.models.torch_models.DMPNNModel
+  :members:
+
 
 PyTorch Lightning Models
 ==============

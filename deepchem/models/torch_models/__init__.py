@@ -12,3 +12,4 @@ from deepchem.models.torch_models.megnet import MEGNetModel
 from deepchem.models.torch_models.normalizing_flows_pytorch import NormalizingFlow
 from deepchem.models.torch_models.layers import CNNModule, CombineMeanStd, WeightedLinearCombo, AtomicConvolution, NeighborList
 from deepchem.models.torch_models.cnn import CNN
+from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
