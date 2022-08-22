@@ -38,6 +38,82 @@ DEFAULT_BOND_STEREO_SET = ["STEREONONE", "STEREOANY", "STEREOZ", "STEREOE"]
 DEFAULT_GRAPH_DISTANCE_SET = [1, 2, 3, 4, 5, 6, 7]
 DEFAULT_ATOM_IMPLICIT_VALENCE_SET = [0, 1, 2, 3, 4, 5, 6]
 DEFAULT_ATOM_EXPLICIT_VALENCE_SET = [1, 2, 3, 4, 5, 6]
+ALLEN_ELECTRONEGATIVTY = {  # Allen scale electronegativity
+    'H': 2.3,
+    'He': 4.160,
+    'Li': 0.912,
+    'Be': 1.576,
+    'B': 2.051,
+    'C': 2.544,
+    'N': 3.066,
+    'O': 3.610,
+    'F': 4.193,
+    'Ne': 4.787,
+    'Na': 0.869,
+    'Mg': 1.293,
+    'Al': 1.613,
+    'Si': 1.916,
+    'P': 2.253,
+    'S': 2.589,
+    'Cl': 2.869,
+    'Ar': 3.242,
+    'K': 0.734,
+    'Ca': 1.034,
+    'Sc': 1.19,
+    'Ti': 1.38,
+    'V': 1.53,
+    'Cr': 1.65,
+    'Mn': 1.75,
+    'Fe': 1.80,
+    'Co': 1.84,
+    'Ni': 1.88,
+    'Cu': 1.85,
+    'Zn': 1.588,
+    'Ga': 1.756,
+    'Ge': 1.994,
+    'As': 2.211,
+    'Se': 2.424,
+    'Br': 2.685,
+    'Kr': 2.966,
+    'Rb': 0.706,
+    'Sr': 0.963,
+    'Y': 1.12,
+    'Zr': 1.32,
+    'Nb': 1.41,
+    'Mo': 1.47,
+    'Tc': 1.51,
+    'Ru': 1.54,
+    'Rh': 1.56,
+    'Pd': 1.58,
+    'Ag': 1.87,
+    'Cd': 1.521,
+    'In': 1.656,
+    'Sn': 1.824,
+    'Sb': 1.984,
+    'Te': 2.158,
+    'I': 2.359,
+    'Xe': 2.582,
+    'Cs': 0.659,
+    'Ba': 0.881,
+    'Lu': 1.09,
+    'Hf': 1.16,
+    'Ta': 1.34,
+    'W': 1.47,
+    'Re': 1.60,
+    'Os': 1.65,
+    'Ir': 1.68,
+    'Pt': 1.72,
+    'Au': 1.92,
+    'Hg': 1.765,
+    'Tl': 1.789,
+    'Pb': 1.854,
+    'Bi': 2.01,
+    'Po': 2.19,
+    'At': 2.39,
+    'Rn': 2.60,
+    'Fr': 0.67,
+    'Ra': 0.89
+}
 
 
 class _ChemicalFeaturesFactory:
@@ -237,8 +313,8 @@ def get_atom_hybridization_one_hot(
     If `include_unknown_set` is False, the length is `len(allowable_set)`.
     If `include_unknown_set` is True, the length is `len(allowable_set) + 1`.
   """
-  return one_hot_encode(
-      str(atom.GetHybridization()), allowable_set, include_unknown_set)
+  return one_hot_encode(str(atom.GetHybridization()), allowable_set,
+                        include_unknown_set)
 
 
 def get_atom_total_num_Hs_one_hot(
@@ -464,8 +540,8 @@ def get_bond_type_one_hot(bond: RDKitBond,
     If `include_unknown_set` is False, the length is `len(allowable_set)`.
     If `include_unknown_set` is True, the length is `len(allowable_set) + 1`.
   """
-  return one_hot_encode(
-      str(bond.GetBondType()), allowable_set, include_unknown_set)
+  return one_hot_encode(str(bond.GetBondType()), allowable_set,
+                        include_unknown_set)
 
 
 def get_bond_is_in_same_ring_one_hot(bond: RDKitBond) -> List[float]:
@@ -522,8 +598,8 @@ def get_bond_stereo_one_hot(bond: RDKitBond,
     If `include_unknown_set` is False, the length is `len(allowable_set)`.
     If `include_unknown_set` is True, the length is `len(allowable_set) + 1`.
   """
-  return one_hot_encode(
-      str(bond.GetStereo()), allowable_set, include_unknown_set)
+  return one_hot_encode(str(bond.GetStereo()), allowable_set,
+                        include_unknown_set)
 
 
 def get_bond_graph_distance_one_hot(
