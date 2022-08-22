@@ -15,4 +15,5 @@ TextCNNModel,`ref <https://arxiv.org/abs/1705.10843>`_,Classifier/ Regressor,,Ke
 DTNNModel,`ref <https://arxiv.org/abs/1609.08259>`_,Regressor,CoulombMatrix,Keras,
 MATModel,`ref <https://arxiv.org/abs/2002.08264>`_,Regressor,MATFeaturizer,PyTorch,
 WeaveModel,`ref <https://arxiv.org/abs/1603.00856>`_,Regressor,WeaveFeaturizer,Keras,
-BasicMolGANModel,`ref <https://arxiv.org/abs/1805.11973>`_,Generator,MolGanFeaturizer,Keras,fit method: :code:`fit_gan`
+BasicMolGANModel,`ref <https://arxiv.org/abs/1805.11973>`_,Generator,MolGanFeaturizer,Keras,fit method: :code:`fit_gan`,
+DMPNNModel,`ref <https://arxiv.org/pdf/1904.01561.pdf>`_,Classifier/ Regressor,DMPNNFeaturizer,PyTorch
