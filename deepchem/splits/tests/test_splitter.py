@@ -18,8 +18,9 @@ def load_sparse_multitask_dataset():
       "task9"
   ]
   input_file = os.path.join(current_dir, "assets/sparse_multitask_example.csv")
-  loader = dc.data.CSVLoader(
-      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  loader = dc.data.CSVLoader(tasks=tasks,
+                             feature_field="smiles",
+                             featurizer=featurizer)
   return loader.create_dataset(input_file)
 
 
@@ -34,8 +35,9 @@ def load_multitask_data():
   ]
   input_file = os.path.join(current_dir,
                             "../../models/tests/assets/multitask_example.csv")
-  loader = dc.data.CSVLoader(
-      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  loader = dc.data.CSVLoader(tasks=tasks,
+                             feature_field="smiles",
+                             featurizer=featurizer)
   return loader.create_dataset(input_file)
 
 
@@ -46,8 +48,9 @@ def load_solubility_data():
   tasks = ["log-solubility"]
   input_file = os.path.join(current_dir,
                             "../../models/tests/assets/example.csv")
-  loader = dc.data.CSVLoader(
-      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  loader = dc.data.CSVLoader(tasks=tasks,
+                             feature_field="smiles",
+                             featurizer=featurizer)
 
   return loader.create_dataset(input_file)
 
@@ -59,8 +62,9 @@ def load_butina_data():
   tasks = ["task"]
   # task_type = "regression"
   input_file = os.path.join(current_dir, "assets/butina_example.csv")
-  loader = dc.data.CSVLoader(
-      tasks=tasks, feature_field="smiles", featurizer=featurizer)
+  loader = dc.data.CSVLoader(tasks=tasks,
+                             feature_field="smiles",
+                             featurizer=featurizer)
 
   return loader.create_dataset(input_file)
 
@@ -78,8 +82,10 @@ class TestSplitter(unittest.TestCase):
 
     group_splitter = dc.splits.RandomGroupSplitter(groups)
 
-    train_idxs, valid_idxs, test_idxs = group_splitter.split(
-        solubility_dataset, frac_train=0.5, frac_valid=0.25, frac_test=0.25)
+    train_idxs, valid_idxs, test_idxs = group_splitter.split(solubility_dataset,
+                                                             frac_train=0.5,
+                                                             frac_valid=0.25,
+                                                             frac_test=0.25)
 
     class_ind = [-1] * 10
 
@@ -405,8 +411,8 @@ class TestSplitter(unittest.TestCase):
       task_actives = np.count_nonzero(y_present[:, task])
       target = task_actives / 2
       # The split index should partition dataset in half.
-      assert target - 1 <= np.count_nonzero(
-          y_present[train, task]) <= target + 1
+      assert target - 1 <= np.count_nonzero(y_present[train,
+                                                      task]) <= target + 1
 
   def test_random_stratified_split(self):
     """
@@ -427,8 +433,8 @@ class TestSplitter(unittest.TestCase):
     dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
 
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
-    dataset_1, dataset_2 = stratified_splitter.train_test_split(
-        dataset, frac_train=.5)
+    dataset_1, dataset_2 = stratified_splitter.train_test_split(dataset,
+                                                                frac_train=.5)
     print(dataset_1.get_shape())
     print(dataset_2.get_shape())
 
@@ -558,8 +564,8 @@ class TestSplitter(unittest.TestCase):
   def test_specified_split(self):
 
     solubility_dataset = load_solubility_data()
-    random_splitter = dc.splits.SpecifiedSplitter(
-        valid_indices=[7], test_indices=[8])
+    random_splitter = dc.splits.SpecifiedSplitter(valid_indices=[7],
+                                                  test_indices=[8])
     train_data, valid_data, test_data = \
       random_splitter.split(
         solubility_dataset)
@@ -593,3 +599,14 @@ class TestSplitter(unittest.TestCase):
     assert len(train_data) == 8
     assert len(valid_data) == 1
     assert len(test_data) == 1
+
+  def test_fingerprint_k_fold_split(self):
+    """
+    Test FingerprintSplitter.k_fold_split.
+    """
+    multitask_dataset = load_multitask_data()
+    splitter = dc.splits.FingerprintSplitter()
+    cv_folds = splitter.k_fold_split(multitask_dataset, k=3)
+    assert len(multitask_dataset) == len(cv_folds[0][0]) + len(cv_folds[0][1])
+    assert len(multitask_dataset) == len(cv_folds[1][0]) + len(cv_folds[1][1])
+    assert len(multitask_dataset) == len(cv_folds[2][0]) + len(cv_folds[2][1])
