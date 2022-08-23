@@ -1305,6 +1305,10 @@ def _split_fingerprints(fps: List, size1: int,
       DataStructs.BulkTanimotoSimilarity(fps[0], remaining_fp),
       [0] * len(remaining_fp)
   ]
+  # Return identity if no tuple to split to
+  if size2 == 0:
+    return ((list(range(len(fps)))), [])
+
   while len(remaining_fp) > 0:
     # Decide which group to assign a molecule to.
 
