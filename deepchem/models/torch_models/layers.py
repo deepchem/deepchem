@@ -1,7 +1,6 @@
 import math
 import numpy as np
 from typing import Any, Tuple, Optional, Sequence, List, Union
-
 try:
   import torch
   from torch import Tensor
@@ -1189,8 +1188,20 @@ class Affine(nn.Module):
     which is useful when invert a transformation and compute the
     probability of the transformation.
 
-    input shape: (samples, dim)
-    output shape: (samples, dim)
+    Parameters
+    ----------
+    x : Sequence
+      Tensor sample with the initial distribution data which will pass into
+      the normalizing flow algorithm.
+
+    Returns
+    -------
+    y : torch.Tensor
+      Transformed tensor according to Affine layer with the shape of 'x'.
+    log_det_jacobian : torch.Tensor
+      Tensor which represents the info about the deviation of the initial
+      and target distribution.
+
     """
 
     y = torch.exp(self.scale) * x + self.shift
@@ -1208,8 +1219,20 @@ class Affine(nn.Module):
     useful when invert a transformation and compute the probability of
     the transformation.
 
-    input shape: (samples, dim)
-    output shape: (samples, dim)
+    Parameters
+    ----------
+    y : Sequence
+      Tensor sample with transformed distribution data which will be used in
+      the normalizing algorithm inverse pass.
+
+    Returns
+    -------
+    x : torch.Tensor
+      Transformed tensor according to Affine layer with the shape of 'y'.
+    inverse_log_det_jacobian : torch.Tensor
+      Tensor which represents the information of the deviation of the initial
+      and target distribution.
+
     """
 
     x = (y - self.shift) / torch.exp(self.scale)
@@ -1662,6 +1685,141 @@ class InteratomicL2Distances(nn.Module):
                               (1, M_nbrs, 1))
     # Shape (N_atoms, M_nbrs)
     return torch.sum((tiled_coords - nbr_coords)**2, dim=2)
+
+
+class RealNVPLayer(nn.Module):
+  """Real NVP Transformation Layer
+
+  This class class is a constructor transformation layer used on a
+  NormalizingFLow model.  The Real Non-Preserving-Volumen (Real NVP) is a type
+  of normalizing flow layer which gives advantages over this mainly because an
+  ease to compute the inverse pass [1]_, this is to learn a target
+  distribution.
+
+  Example
+  -------
+  >>> import torch
+  >>> import torch.nn as nn
+  >>> from torch.distributions import MultivariateNormal
+  >>> from deepchem.models.torch_models.layers import RealNVPLayer
+  >>> dim = 2
+  >>> samples = 96
+  >>> data = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
+  >>> tensor = data.sample(torch.Size((samples, dim)))
+
+  >>> layers = 4
+  >>> hidden_size = 16
+  >>> masks = F.one_hot(torch.tensor([i % 2 for i in range(layers)])).float()
+  >>> layers = nn.ModuleList([RealNVPLayer(mask, hidden_size) for mask in masks])
+
+  >>> for layer in layers:
+  ...   _, inverse_log_det_jacobian = layer.inverse(tensor)
+  ...   inverse_log_det_jacobian = inverse_log_det_jacobian.detach().numpy()
+  >>> len(inverse_log_det_jacobian)
+  96
+
+  References
+  ----------
+  .. [1] Stimper, V., Schölkopf, B., & Hernández-Lobato, J. M. (2021). Resampling Base
+  Distributions of Normalizing Flows. (2017). Retrieved from http://arxiv.org/abs/2110.15828
+  """
+
+  def __init__(self, mask: torch.Tensor, hidden_size: int) -> None:
+    """
+    Parameters
+    -----------
+    mask: torch.Tensor
+      Tensor with zeros and ones and its size depende on the number of layers
+      and dimenssions the user request.
+    hidden_size: int
+      The size of the outputs and inputs used on the internal nodes of the
+      transformation layer.
+
+    """
+    super(RealNVPLayer, self).__init__()
+    self.mask = nn.Parameter(mask, requires_grad=False)
+    self.dim = len(mask)
+
+    self.s_func = nn.Sequential(
+        nn.Linear(in_features=self.dim, out_features=hidden_size),
+        nn.LeakyReLU(),
+        nn.Linear(in_features=hidden_size, out_features=hidden_size),
+        nn.LeakyReLU(), nn.Linear(in_features=hidden_size,
+                                  out_features=self.dim))
+
+    self.scale = nn.Parameter(torch.Tensor(self.dim))
+
+    self.t_func = nn.Sequential(
+        nn.Linear(in_features=self.dim, out_features=hidden_size),
+        nn.LeakyReLU(),
+        nn.Linear(in_features=hidden_size, out_features=hidden_size),
+        nn.LeakyReLU(), nn.Linear(in_features=hidden_size,
+                                  out_features=self.dim))
+
+  def forward(self, x: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Forward pass.
+
+    This particular transformation is represented by the following function:
+    y = x + (1 - x) * exp( s(x)) + t(x), where t and s needs an activation
+    function. This class also returns the logarithm of the jacobians
+    determinant which is useful when invert a transformation and compute
+    the probability of the transformation.
+
+    Parameters
+    ----------
+    x : Sequence
+      Tensor sample with the initial distribution data which will pass into
+      the normalizing algorithm
+
+    Returns
+    -------
+    y : torch.Tensor
+      Transformed tensor according to Real NVP layer with the shape of 'x'.
+    log_det_jacobian : torch.Tensor
+      Tensor which represents the info about the deviation of the initial
+      and target distribution.
+
+    """
+    x_mask = x * self.mask
+    s = self.s_func(x_mask) * self.scale
+    t = self.t_func(x_mask)
+
+    y = x_mask + (1 - self.mask) * (x * torch.exp(s) + t)
+
+    log_det_jacobian = ((1 - self.mask) * s).sum(-1)
+    return y, log_det_jacobian
+
+  def inverse(self, y: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
+    """ Inverse pass
+
+    This class performs the inverse of the previous method (formward).
+    Also, this metehod returns the logarithm of the jacobians determinant
+    which is useful to compute the learneable features of target distribution.
+
+    Parameters
+    ----------
+    y : Sequence
+      Tensor sample with transformed distribution data which will be used in
+      the normalizing algorithm inverse pass.
+
+    Returns
+    -------
+    x : torch.Tensor
+      Transformed tensor according to Real NVP layer with the shape of 'y'.
+    inverse_log_det_jacobian : torch.Tensor
+      Tensor which represents the information of the deviation of the initial
+      and target distribution.
+
+    """
+    y_mask = y * self.mask
+    s = self.s_func(y_mask) * self.scale
+    t = self.t_func(y_mask)
+
+    x = y_mask + (1 - self.mask) * (y - t) * torch.exp(-s)
+
+    inverse_log_det_jacobian = ((1 - self.mask) * -s).sum(-1)
+
+    return x, inverse_log_det_jacobian
 
 
 class NeighborList(nn.Module):

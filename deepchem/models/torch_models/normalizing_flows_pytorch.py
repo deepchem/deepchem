@@ -2,6 +2,8 @@
 """
 import torch
 from torch import nn
+from torch.distributions.multivariate_normal import MultivariateNormal
+from deepchem.models.torch_models.layers import RealNVPLayer
 from typing import Sequence, Tuple
 
 

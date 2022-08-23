@@ -154,6 +154,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.Affine
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.RealNVPLayer
+  :members: 
+
 .. autoclass:: deepchem.models.torch_models.layers.DMPNNEncoderLayer
   :members:
 
