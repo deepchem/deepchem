@@ -8,7 +8,7 @@ sphinx_rtd_theme>=1.0
 tensorflow
 transformers>=4.6.*
 torch
-pytorch-lightning==1.5.10
+pytorch-lightning==1.6.5
 jax
 dm-haiku
 optax
