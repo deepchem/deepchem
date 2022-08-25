@@ -18,13 +18,13 @@ def test_prepare_input_stream():
   # test for the prepare_input_stream function of Ferminet class
 
   h2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
-  molecule = Ferminet(h2_molecule, spin=0, charge=0, seed=0, batch_no=1)
+  molecule = FerminetModel(h2_molecule, spin=0, charge=0, seed=0, batch_no=1)
   molecule.initialize_electrons()
 
-  fermi = FerminetModel(torch.from_numpy(molecule.molecule.x),
-                        spin=(molecule.up_spin, molecule.down_spin),
-                        nuclear_charge=torch.from_numpy(molecule.charge),
-                        inter_atom=torch.from_numpy(molecule.inter_atom))
+  fermi = Ferminet(torch.from_numpy(molecule.molecule.x),
+                   spin=(molecule.up_spin, molecule.down_spin),
+                   nuclear_charge=torch.from_numpy(molecule.charge),
+                   inter_atom=torch.from_numpy(molecule.inter_atom))
 
   potential = fermi.calculate_potential()
   assert torch.allclose(potential, torch.tensor([-40.5568845023]))
