@@ -1109,7 +1109,7 @@ class FASTQLoader(DataLoader):
   >>> from deepchem.feat.molecule_featurizers import OneHotFeaturizer
   >>> from deepchem.data.data_loader import FASTQLoader
   >>> current_dir = os.path.dirname(os.path.abspath(__file__))
-  >>> input_file = os.path.join(current_dir, "sample1.fastq")
+  >>> input_file = os.path.join(current_dir, "tests", "sample1.fastq")
   >>> loader = FASTQLoader()
   >>> sequences = loader.create_dataset(input_file)
 
