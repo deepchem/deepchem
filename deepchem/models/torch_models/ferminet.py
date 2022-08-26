@@ -184,7 +184,9 @@ class Ferminet(torch.nn.Module):
                       (torch.dot(self.w[i + k], one_up[j]) + self.g[i + k]) *
                       envelope)
 
-    return torch.sum(torch.det(self.psi_up) * torch.det(self.psi_down))
+    psi_log = 2 * torch.log(
+        torch.sum(torch.det(self.psi_up) * torch.det(self.psi_down)))
+    return psi_log
 
   def calculate_potential(self,) -> Any:
     """Calculates the potential of the molecule system system for to calculate the hamiltonian loss.
@@ -331,5 +333,6 @@ class FerminetModel(TorchModel):
 
     super(FerminetModel, self).__init__(model=model,
                                         loss=model.local_energy,
-                                        optimizer=optim.KFAC(model, lr=0.1),
-                                        output_types=torch.Tensor)
+                                        optimizer=optim.KFAC(model=model,
+                                                             lr=0.1),
+                                        output_types=['psi_log'])
