@@ -4,13 +4,11 @@ Implementation of the Ferminet class in pytorch
 
 try:
   import torch
-  from torch import Tensor
   import torch.nn as nn
-  import torch.nn.functional as F
 except ModuleNotFoundError:
   raise ImportError('These classes require PyTorch to be installed.')
 
-from typing import List, Optional, Any, Tuple
+from typing import List, Optional, Any
 from rdkit import Chem
 import numpy as np
 from deepchem.utils.molecule_feature_utils import ALLEN_ELECTRONEGATIVTY
@@ -78,15 +76,13 @@ class Ferminet(torch.nn.Module):
     for i in range(self.determinant):
       for j in range(self.total_electron):
         self.w.append(
-            nn.parameter.Parameter(
-                nn.init.kaiming_uniform_(torch.Tensor(n_one[-1]))))
-        self.g.append(
-            nn.parameter.Parameter(nn.init.kaiming_uniform_(torch.Tensor(1))))
+            nn.parameter.Parameter(nn.init.normal(torch.Tensor(n_one[-1]))))
+        self.g.append(nn.parameter.Parameter(nn.init.normal(torch.Tensor(1))))
         for k in range(nucleon_pos.size()[0]):
-          self.pi.append(
-              nn.parameter.Parameter(nn.init.kaiming_uniform_(torch.Tensor(1))))
+          self.pi.append(nn.parameter.Parameter(nn.init.normal(
+              torch.Tensor(1))))
           self.sigma.append(
-              nn.parameter.Parameter(nn.init.kaiming_uniform_(torch.Tensor(1))))
+              nn.parameter.Parameter(nn.init.normal(torch.Tensor(1))))
     self.psi_up = torch.empty((self.determinant, 1), requires_grad=True)
     self.psi_down = torch.empty((self.determinant, 1), requires_grad=True)
 
@@ -207,7 +203,6 @@ class Ferminet(torch.nn.Module):
         torch.tril(1 / self.two_electron_distance, -1))
 
     # nuclear-nuclear potential
-    pos_shape = self.nucleon_pos.size()
     charge_shape = self.nuclear_charge.size()
     nuclear_nuclear_potential = torch.sum(
         self.nuclear_charge * self.nuclear_charge.reshape(charge_shape[0], 1) *
@@ -255,7 +250,7 @@ class FerminetModel(TorchModel):
       spin: float,
       charge: int,
       seed: Optional[int] = None,
-      batch_no: int = 10,
+      batch_no: int = 1,
   ):
     """
     Parameters:
@@ -272,17 +267,11 @@ class FerminetModel(TorchModel):
       Number of batches of the electron's positions to be initialized.
 
     """
-    super(FerminetModel, self).__init__()
-
     self.nucleon_coordinates = nucleon_coordinates
     self.seed = seed
     self.batch_no = batch_no
     self.spin = spin
     self.ion_charge = charge
-
-  def initialize_electrons(self,) -> None:
-    """Prepares the one-electron and two-electron input stream for the model.
-    """
 
     no_electrons = []
     nucleons = []
@@ -326,12 +315,21 @@ class FerminetModel(TorchModel):
     self.up_spin = (total_electrons + 2 * self.spin) // 2
     self.down_spin = (total_electrons - 2 * self.spin) // 2
 
+    model = Ferminet(nucleon_pos=torch.from_numpy(self.nucleon_pos),
+                     nuclear_charge=torch.from_numpy(self.charge),
+                     spin=(self.up_spin, self.down_spin),
+                     inter_atom=torch.from_numpy(self.inter_atom))
+
     self.molecule: ElectronSampler = ElectronSampler(
         batch_no=self.batch_no,
         central_value=self.nucleon_pos,
         seed=self.seed,
-        f=test_f,
-        steps=1000
-    )  # sample the electrons using the electron sampler sample the electrons using the electron sampler sample the electrons using the electron sampler sample the electrons using the electron sampler sample the electrons using the electron sampler sample the electrons using the electron sampler sample the electrons using the electron sampler
+        f=lambda x: model.forward(torch.from_numpy(x)),
+        steps=1000)  # sample the electrons using the electron sampler
     self.molecule.gauss_initialize_position(
         self.electron_no)  # initialize the position of the electrons
+
+    super(FerminetModel, self).__init__(model=model,
+                                        loss=model.local_energy,
+                                        optimizer=optim.KFAC(model, lr=0.1),
+                                        output_types=torch.Tensor)
