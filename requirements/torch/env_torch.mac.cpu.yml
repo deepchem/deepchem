@@ -8,4 +8,4 @@ dependencies:
     - torch-scatter
     - torch-sparse
     - torch-geometric
-    - pytorch-lightning 
+    - pytorch-lightning==1.6.5
