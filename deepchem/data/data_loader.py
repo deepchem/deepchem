@@ -1051,7 +1051,7 @@ class FASTALoader(DataLoader):
 
 
 def _fastq_load_files(input_files: List[str],
-               shard_size: Optional[int] = 4096) -> Iterator:
+                      shard_size: Optional[int] = 4096) -> Iterator:
   """Load data as Iterator.
 
   Parameters

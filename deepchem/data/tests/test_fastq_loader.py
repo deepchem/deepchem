@@ -1,6 +1,5 @@
 import os
 import unittest
-from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 from deepchem.data.data_loader import FASTQLoader
 
 
@@ -24,4 +23,3 @@ class TestFASTQLoader(unittest.TestCase):
 
     if verbose_x:  # To see the featurized version of X
       print(sequences.X)
-
