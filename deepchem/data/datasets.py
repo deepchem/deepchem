@@ -1264,6 +1264,9 @@ class DiskDataset(Dataset):
     metadata_rows = []
     time1 = time.time()
     for shard_num, (X, y, w, ids) in enumerate(shard_generator):
+      if shard_num == 0:
+        if len(tasks) == 0 and y is not None:
+          tasks = np.array([0]) if len(y.shape) < 2 else np.arange(y.shape[1])
       basename = "shard-%d" % shard_num
       metadata_rows.append(
           DiskDataset.write_data_to_disk(data_dir, basename, X, y, w, ids))
