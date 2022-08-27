@@ -149,9 +149,38 @@ class TestSplitter(unittest.TestCase):
     train_data, valid_data, test_data = \
       scaffold_splitter.train_valid_test_split(
         solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
-    assert len(train_data) == 8
-    assert len(valid_data) == 1
-    assert len(test_data) == 1
+    assert len(train_data) > 4
+    assert len(valid_data) > 0
+    assert len(test_data) > 0
+
+  def test_singletask_scaffold_split_random(self):
+    """
+    Test different seeds for singletask ScaffoldSplitter class.
+    """
+    solubility_dataset = load_solubility_data()
+    scaffold_splitter = dc.splits.ScaffoldSplitter()
+    train_data, _, _ = \
+      scaffold_splitter.train_valid_test_split(
+        solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1, seed=30)
+
+    # Changing seed should change the result at least once in five tries
+    got_different_result = False
+    for i in range(5):
+      new_train_data, _, _ = \
+        scaffold_splitter.train_valid_test_split(
+          solubility_dataset, seed=i)
+      if set(new_train_data.ids) != set(train_data.ids):
+        got_different_result = True
+        break
+    assert got_different_result
+
+    # Setting the same seed should produce the same result
+    solubility_dataset = load_solubility_data()
+    scaffold_splitter = dc.splits.ScaffoldSplitter()
+    new_train_data, _, _ = \
+      scaffold_splitter.train_valid_test_split(
+        solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1, seed=30)
+    assert set(new_train_data.ids) == set(train_data.ids)
 
   def test_singletask_fingerprint_split(self):
     """
@@ -208,10 +237,39 @@ class TestSplitter(unittest.TestCase):
     butina_splitter = dc.splits.ButinaSplitter()
     train_data, valid_data, test_data = \
       butina_splitter.train_valid_test_split(
-        solubility_dataset)
-    assert len(train_data) == 8
-    assert len(valid_data) == 1
-    assert len(test_data) == 1
+        solubility_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+    assert len(train_data) > 4
+    assert len(valid_data) > 0
+    assert len(test_data) > 0
+
+  def test_singletask_butina_split_random(self):
+    """
+    Test different seeds for singletask ButinaSplitter class.
+    """
+    solubility_dataset = load_butina_data()
+    butina_splitter = dc.splits.ButinaSplitter()
+    train_data, _, _ = \
+      butina_splitter.train_valid_test_split(
+        solubility_dataset, seed=30)
+
+    # Changing seed should change the result at least once in five tries
+    got_different_result = False
+    for i in range(5):
+      new_train_data, _, _ = \
+        butina_splitter.train_valid_test_split(
+          solubility_dataset, seed=i)
+      if set(new_train_data.ids) != set(train_data.ids):
+        got_different_result = True
+        break
+    assert got_different_result
+
+    # Setting the same seed should produce the same result
+    solubility_dataset = load_butina_data()
+    butina_splitter = dc.splits.ButinaSplitter()
+    new_train_data, _, _ = \
+      butina_splitter.train_valid_test_split(
+        solubility_dataset, seed=30)
+    assert set(train_data.ids) == set(new_train_data.ids)
 
   def test_k_fold_splitter(self):
     """
@@ -294,13 +352,12 @@ class TestSplitter(unittest.TestCase):
     scaffold_splitter = dc.splits.ScaffoldSplitter()
     ids_set = set(solubility_dataset.ids)
 
-    K = 5
+    K = 3
     fold_datasets = scaffold_splitter.k_fold_split(solubility_dataset, K)
 
     for fold in range(K):
       fold_dataset = fold_datasets[fold][1]
-      # Verify lengths is 10/k == 2
-      assert len(fold_dataset) == 2
+      assert len(fold_dataset) > 0
       # Verify that compounds in this fold are subset of original compounds
       fold_ids_set = set(fold_dataset.ids)
       assert fold_ids_set.issubset(ids_set)
@@ -435,8 +492,6 @@ class TestSplitter(unittest.TestCase):
     stratified_splitter = dc.splits.RandomStratifiedSplitter()
     dataset_1, dataset_2 = stratified_splitter.train_test_split(dataset,
                                                                 frac_train=.5)
-    print(dataset_1.get_shape())
-    print(dataset_2.get_shape())
 
     # Should have split cleanly in half (picked random seed to ensure this)
     assert len(dataset_1) == 10
@@ -557,9 +612,9 @@ class TestSplitter(unittest.TestCase):
     train_data, valid_data, test_data = \
       scaffold_splitter.train_valid_test_split(
         multitask_dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
-    assert len(train_data) == 8
-    assert len(valid_data) == 1
-    assert len(test_data) == 1
+    assert len(train_data) > 4
+    assert len(valid_data) > 0
+    assert len(test_data) > 0
 
   def test_specified_split(self):
 

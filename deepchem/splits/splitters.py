@@ -2,7 +2,6 @@
 Contains an abstract base class that supports chemically aware data splits.
 """
 import inspect
-import os
 import random
 import tempfile
 import itertools
@@ -10,9 +9,7 @@ import logging
 from typing import Any, Dict, List, Iterator, Optional, Sequence, Tuple
 
 import numpy as np
-import pandas as pd
 
-import deepchem as dc
 from deepchem.data import Dataset, DiskDataset
 from deepchem.utils import get_print_threshold
 
@@ -917,7 +914,7 @@ class MolecularWeightSplitter(Splitter):
     frac_test: float, optional (default 0.1)
       The fraction of data to be used for the test split.
     seed: int, optional (default None)
-      Random seed to use.
+      Random seed to use (ignored since this algorithm is deterministic).
     log_every_n: int, optional (default None)
       Log every n examples (not currently used).
 
@@ -1053,6 +1050,65 @@ class MaxMinSplitter(Splitter):
     return sorted(list(trainSet)), sorted(list(validSet)), sorted(list(testSet))
 
 
+def _select_clusters(index_clusters: List[List[int]], total_train: int,
+                     total_val: int,
+                     total_test: int) -> Tuple[List[int], List[int], List[int]]:
+  """Randomly selects clusters of indices for train, validation and test sets
+
+  Some molecular splitters start with clustering molecules and then select whole
+  clusters to train, validation or test datasets. This function takes a
+  list of clusters where each cluster is a list of indices, and randomly selects
+  these clusters for train, validation or test. We can not divide clusters, so
+  we can only set the desired size of datasets. Real sizes may vary.
+
+  Parameters
+  ----------
+  scaffold_sets: List[List[int]]
+    List of clusters. Each element is a list of indices.
+  total_train: int
+    Expected size of train dataset
+  total_val: int
+    Expected size of validation dataset
+  total_test: int
+    Expected size of test dataset
+
+  Returns
+  -------
+  Tuple: (List, List, List)
+    Tuple of train, validation and test dataset indices
+  """
+  # Sorting helps make dataset sizes closer to the expected.
+  index_clusters = sorted(index_clusters, key=lambda x: len(x), reverse=True)
+
+  train = []
+  val = []
+  test = []
+
+  free_datasets = []
+  if total_train > 0:
+    free_datasets.append('train')
+  if total_val > 0:
+    free_datasets.append('val')
+  if total_test > 0:
+    free_datasets.append('test')
+
+  for index_cluster in index_clusters:
+    target_dataset = np.random.choice(free_datasets)
+    if target_dataset == 'train':
+      train.extend(index_cluster)
+      if len(train) >= total_train:
+        free_datasets.remove('train')
+    if target_dataset == 'val':
+      val.extend(index_cluster)
+      if len(val) >= total_val:
+        free_datasets.remove('val')
+    if target_dataset == 'test':
+      test.extend(index_cluster)
+      if len(test) >= total_test:
+        free_datasets.remove('test')
+  return train, val, test
+
+
 class ButinaSplitter(Splitter):
   """Class for doing data splits based on the butina clustering of a bulk tanimoto
   fingerprint matrix.
@@ -1120,10 +1176,11 @@ class ButinaSplitter(Splitter):
     except ModuleNotFoundError:
       raise ImportError("This function requires RDKit to be installed.")
 
+    if seed is not None:
+      np.random.seed(seed)
+
     logger.info("Performing butina clustering with cutoff of", self.cutoff)
-    mols = []
-    for ind, smiles in enumerate(dataset.ids):
-      mols.append(Chem.MolFromSmiles(smiles))
+    mols = [Chem.MolFromSmiles(smiles) for smiles in dataset.ids]
     fps = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 1024) for x in mols]
 
     # calcaulate scaffold sets
@@ -1137,23 +1194,16 @@ class ButinaSplitter(Splitter):
                                        nfps,
                                        self.cutoff,
                                        isDistData=True)
-    scaffold_sets = sorted(scaffold_sets, key=lambda x: -len(x))
 
-    train_cutoff = frac_train * len(dataset)
-    valid_cutoff = (frac_train + frac_valid) * len(dataset)
-    train_inds: List[int] = []
-    valid_inds: List[int] = []
-    test_inds: List[int] = []
+    expected_train_size = int(round(frac_train * len(dataset)))
+    expected_val_size = int(round(frac_valid * len(dataset)))
+    expected_test_size = len(dataset) - (expected_train_size +
+                                         expected_val_size)
 
-    logger.info("About to sort in scaffold sets")
-    for scaffold_set in scaffold_sets:
-      if len(train_inds) + len(scaffold_set) > train_cutoff:
-        if len(train_inds) + len(valid_inds) + len(scaffold_set) > valid_cutoff:
-          test_inds += scaffold_set
-        else:
-          valid_inds += scaffold_set
-      else:
-        train_inds += scaffold_set
+    train_inds, valid_inds, test_inds = _select_clusters(
+        scaffold_sets, expected_train_size, expected_val_size,
+        expected_test_size)
+
     return train_inds, valid_inds, test_inds
 
 
@@ -1264,8 +1314,8 @@ class FingerprintSplitter(Splitter):
 
     # Split into two groups: training set and everything else.
 
-    train_size = int(frac_train * len(dataset))
-    valid_size = int(frac_valid * len(dataset))
+    train_size = int(round(frac_train * len(dataset)))
+    valid_size = int(round(frac_valid * len(dataset)))
     test_size = len(dataset) - train_size - valid_size
     train_inds, test_valid_inds = _split_fingerprints(fps, train_size,
                                                       valid_size + test_size)
@@ -1360,8 +1410,6 @@ class ScaffoldSplitter(Splitter):
   ... dataset = dc.data.DiskDataset.from_numpy(X=Xs,y=Ys,w=np.zeros(len(data_test)),ids=data_test)
   >>> scaffoldsplitter = dc.splits.ScaffoldSplitter()
   >>> train,test = scaffoldsplitter.train_test_split(dataset)
-  >>> train
-  <DiskDataset X.shape: (5,), y.shape: (5,), w.shape: (5,), ids: ['CC(C)Cl' 'CCC(C)CO' 'CCCCCCCO' 'CCCCCCCC(=O)OC' 'C1CCCCCC1'], task_names: [0]>
 
   References
   ----------
@@ -1408,28 +1456,25 @@ class ScaffoldSplitter(Splitter):
       Each indices is a list of integers.
     """
     np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
-    scaffold_sets = self.generate_scaffolds(dataset)
 
-    train_cutoff = frac_train * len(dataset)
-    valid_cutoff = (frac_train + frac_valid) * len(dataset)
-    train_inds: List[int] = []
-    valid_inds: List[int] = []
-    test_inds: List[int] = []
+    if seed is not None:
+      np.random.seed(seed)
 
-    logger.info("About to sort in scaffold sets")
-    for scaffold_set in scaffold_sets:
-      if len(train_inds) + len(scaffold_set) > train_cutoff:
-        if len(train_inds) + len(valid_inds) + len(scaffold_set) > valid_cutoff:
-          test_inds += scaffold_set
-        else:
-          valid_inds += scaffold_set
-      else:
-        train_inds += scaffold_set
+    scaffold_sets = self.generate_scaffolds(dataset, log_every_n)
+
+    expected_train_size = int(round(frac_train * len(dataset)))
+    expected_valid_size = int(round(frac_valid * len(dataset)))
+    expected_test_size = len(
+        dataset) - expected_train_size - expected_valid_size
+    train_inds, valid_inds, test_inds = _select_clusters(
+        scaffold_sets, expected_train_size, expected_valid_size,
+        expected_test_size)
+
     return train_inds, valid_inds, test_inds
 
   def generate_scaffolds(self,
                          dataset: Dataset,
-                         log_every_n: int = 1000) -> List[List[int]]:
+                         log_every_n: Optional[int] = 1000) -> List[List[int]]:
     """Returns all scaffolds from the dataset.
 
     Parameters
@@ -1450,99 +1495,14 @@ class ScaffoldSplitter(Splitter):
 
     logger.info("About to generate scaffolds")
     for ind, smiles in enumerate(dataset.ids):
-      if ind % log_every_n == 0:
-        logger.info("Generating scaffold %d/%d" % (ind, data_len))
+      if log_every_n is not None:
+        if ind % log_every_n == 0:
+          logger.info("Generating scaffold %d/%d" % (ind, data_len))
       scaffold = _generate_scaffold(smiles)
       if scaffold not in scaffolds:
         scaffolds[scaffold] = [ind]
       else:
         scaffolds[scaffold].append(ind)
 
-    # Sort from largest to smallest scaffold sets
-    scaffolds = {key: sorted(value) for key, value in scaffolds.items()}
-    scaffold_sets = [
-        scaffold_set for (scaffold, scaffold_set) in sorted(
-            scaffolds.items(), key=lambda x: (len(x[1]), x[1][0]), reverse=True)
-    ]
+    scaffold_sets = list(scaffolds.values())
     return scaffold_sets
-
-
-#################################################################
-# Not well supported splitters
-#################################################################
-
-
-class TimeSplitterPDBbind(Splitter):
-
-  def __init__(self, ids: Sequence[int], year_file: Optional[str] = None):
-    """
-    Parameters
-    ----------
-    ids: Sequence[int]
-      The PDB ids to be selected
-    year_file: str, optional (default None)
-      The filepath for the PDBBind year selection
-    """
-    self.ids = ids
-    self.year_file = year_file
-
-  def split(
-      self,
-      dataset: Dataset,
-      frac_train: float = 0.8,
-      frac_valid: float = 0.1,
-      frac_test: float = 0.1,
-      seed: Optional[int] = None,
-      log_every_n: Optional[int] = None
-  ) -> Tuple[List[int], List[int], List[int]]:
-    """
-    Splits protein-ligand pairs in PDBbind into train/validation/test in time order.
-
-    Parameters
-    ----------
-    dataset: Dataset
-      Dataset to be split.
-    frac_train: float, optional (default 0.8)
-      The fraction of data to be used for the training split.
-    frac_valid: float, optional (default 0.1)
-      The fraction of data to be used for the validation split.
-    frac_test: float, optional (default 0.1)
-      The fraction of data to be used for the test split.
-    seed: int, optional (default None)
-      Random seed to use.
-    log_every_n: int, optional (default None)
-      Log every n examples (not currently used).
-
-    Returns
-    -------
-    Tuple[List[int], List[int], List[int]]
-      A tuple of train indices, valid indices, and test indices.
-      Each indices is a list of integers.
-    """
-    if self.year_file is None:
-      try:
-        data_dir = os.environ['DEEPCHEM_DATA_DIR']
-        self.year_file = os.path.join(data_dir, 'pdbbind_year.csv')
-        if not os.path.exists(self.year_file):
-          dc.utils.download_url(
-              'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/pdbbind_year.csv',
-              dest_dir=data_dir)
-      except:
-        raise ValueError("Time description file should be specified")
-    df = pd.read_csv(self.year_file, header=None)
-    self.years = {}
-    for i in range(df.shape[0]):
-      self.years[df[0][i]] = int(df[1][i])
-    np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
-    num_datapoints = len(dataset)
-    assert len(self.ids) == num_datapoints
-    train_cutoff = int(frac_train * num_datapoints)
-    valid_cutoff = int((frac_train + frac_valid) * num_datapoints)
-    indices = range(num_datapoints)
-    data_year = [self.years[self.ids[i]] for i in indices]
-    new_indices = [
-        pair[0] for pair in sorted(zip(indices, data_year), key=lambda x: x[1])
-    ]
-
-    return (new_indices[:train_cutoff], new_indices[train_cutoff:valid_cutoff],
-            new_indices[valid_cutoff:])
