@@ -57,10 +57,8 @@ def test_dmpnn_regression():
   model = DMPNN(mode='regression',
                 global_features_size=morgan_feature_size,
                 n_tasks=number_of_tasks,
-                number_of_molecules=number_of_molecules,
                 encoder_wts_shared=True)
 
-  # assert len(model.encoders) == 1
   assert model.shared_wts_encoder.__repr__(
   ) == 'DMPNNEncoderLayer(\n  (activation): ReLU()\n  (dropout): Dropout(p=0.0, inplace=False)\n  (W_i): Linear(in_features=147, out_features=300, bias=False)\n'\
        '  (W_h): Linear(in_features=300, out_features=300, bias=False)\n  (W_o): Linear(in_features=433, out_features=300, bias=True)\n)'
@@ -125,10 +123,8 @@ def test_dmpnn_classification_single_task():
                 n_classes=number_of_classes,
                 global_features_size=morgan_feature_size,
                 n_tasks=number_of_tasks,
-                number_of_molecules=number_of_molecules,
                 encoder_wts_shared=True)
 
-  # assert len(model.encoders) == 1
   assert model.shared_wts_encoder.__repr__(
   ) == 'DMPNNEncoderLayer(\n  (activation): ReLU()\n  (dropout): Dropout(p=0.0, inplace=False)\n  (W_i): Linear(in_features=147, out_features=300, bias=False)\n  (W_h): Linear(in_features=300, out_features=300, bias=False)\n'\
        '  (W_o): Linear(in_features=433, out_features=300, bias=True)\n)'
@@ -196,10 +192,8 @@ def test_dmpnn_classification_multi_task():
                 n_classes=number_of_classes,
                 global_features_size=morgan_feature_size,
                 n_tasks=number_of_tasks,
-                number_of_molecules=number_of_molecules,
                 encoder_wts_shared=True)
 
-  # assert len(model.encoders) == 1
   assert model.shared_wts_encoder.__repr__(
   ) == 'DMPNNEncoderLayer(\n  (activation): ReLU()\n  (dropout): Dropout(p=0.0, inplace=False)\n  (W_i): Linear(in_features=147, out_features=300, bias=False)\n  (W_h): Linear(in_features=300, out_features=300, bias=False)\n  (W_o): Linear(in_features=433, out_features=300, bias=True)\n)'
   assert model.ffn.__repr__(
@@ -238,7 +232,7 @@ def test_dmpnn_model_regression():
 
   # initialize the model
   from deepchem.models.torch_models.dmpnn import DMPNNModel
-  model = DMPNNModel()
+  model = DMPNNModel(batch_size=2, encoder_wts_shared=True)
 
   # overfit test
   model.fit(dataset, nb_epoch=30)
@@ -268,10 +262,14 @@ def test_dmpnn_model_classification():
   mode = 'classification'
   classes = 2
   tasks = 1
-  model = DMPNNModel(mode=mode, n_classes=classes, n_tasks=tasks)
+  model = DMPNNModel(mode=mode,
+                     n_classes=classes,
+                     n_tasks=tasks,
+                     batch_size=2,
+                     encoder_wts_shared=True)
 
   # overfit test
-  model.fit(dataset, nb_epoch=30)
+  model.fit(dataset, nb_epoch=50)
   metric = dc.metrics.Metric(dc.metrics.accuracy_score, mode="classification")
   scores = model.evaluate(dataset, [metric], n_classes=classes)
   assert scores['accuracy_score'] > 0.9
@@ -295,13 +293,15 @@ def test_dmpnn_model_reload():
   # initialize the model
   from deepchem.models.torch_models.dmpnn import DMPNNModel
   model_dir = tempfile.mkdtemp()
-  model = DMPNNModel(model_dir=model_dir)
+  model = DMPNNModel(model_dir=model_dir, batch_size=2, encoder_wts_shared=True)
 
   # fit the model
   model.fit(dataset, nb_epoch=10)
 
   # reload the model
-  reloaded_model = DMPNNModel(model_dir=model_dir)
+  reloaded_model = DMPNNModel(model_dir=model_dir,
+                              batch_size=2,
+                              encoder_wts_shared=True)
   reloaded_model.restore()
 
   orig_predict = model.predict(dataset)

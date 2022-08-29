@@ -8,13 +8,37 @@ from deepchem.models.torch_models import layers
 from deepchem.models.torch_models import TorchModel
 
 try:
-  from torch_geometric.data import Batch
+  from torch_geometric.data import Data, Batch
 except ModuleNotFoundError:
   raise ImportError("This model requires PyTorch Geometric to be installed.")
 
 from deepchem.feat import GraphData
 from deepchem.data import Dataset
 from typing import Union, List, Sequence, Optional, Iterable, Tuple
+
+
+class _ModData(Data):
+  """
+  Modified version of Data class of pytorch-geometric to enable batching process to
+  custom increment values in certain keys.
+  """
+
+  def __init__(self, required_inc, *args, **kwargs):
+    """
+    Initialize the _ModData class
+    """
+    super().__init__(*args, **kwargs)
+    self.required_inc = required_inc  # required increment
+
+  def __inc__(self, key, value, *args, **kwargs):
+    """
+    Modified __inc__() to increment 'atom_to_incoming_bonds' and 'mapping' keys
+    based given required increment value (example, number of bonds in the molecule)
+    """
+    if key in ['atom_to_incoming_bonds', 'mapping']:
+      return self.required_inc
+    else:
+      return super().__inc__(key, value, *args, **kwargs)
 
 
 class _MapperDMPNN:
@@ -272,7 +296,6 @@ class DMPNN(nn.Module):
                mode: str = 'regression',
                n_classes: int = 3,
                n_tasks: int = 1,
-               number_of_molecules: int = 1,
                global_features_size: int = 0,
                use_default_fdim: bool = True,
                atom_fdim: int = 133,
@@ -301,8 +324,6 @@ class DMPNN(nn.Module):
       The number of classes to predict (used only in classification mode).
     n_tasks: int, default 1
       The number of tasks.
-    number_of_molecules: int, default 1
-      The number of molecules in a batch.
     global_features_size: int, default 0
       Size of the global features vector, based on the global featurizers used during featurization.
     use_default_fdim: bool
@@ -364,7 +385,7 @@ class DMPNN(nn.Module):
       self.shared_wts_encoder: nn.Module = self._get_encoder()
 
     # get input size for ffn
-    ffn_input: int = (enc_hidden + global_features_size) * number_of_molecules
+    ffn_input: int = enc_hidden + global_features_size
 
     # get output size for ffn
     if self.mode == 'regression':
@@ -466,9 +487,6 @@ class DMPNNModel(TorchModel):
 
   This class implements the Directed Message Passing Neural Network (D-MPNN) [1]_.
 
-  .. note::
-     Current implementation of the DMPNNModel class only supports features of 1 molecule per batch.
-
   The DMPNN model has 2 phases, message-passing phase and read-out phase.
 
   - The goal of the message-passing phase is to generate 'hidden states of all the atoms in the molecule' using encoders.
@@ -500,7 +518,7 @@ class DMPNNModel(TorchModel):
                mode: str = 'regression',
                n_classes: int = 3,
                n_tasks: int = 1,
-               number_of_molecules: int = 1,
+               batch_size: int = 1,
                global_features_size: int = 0,
                use_default_fdim: bool = True,
                atom_fdim: int = 133,
@@ -530,8 +548,8 @@ class DMPNNModel(TorchModel):
       The number of classes to predict (used only in classification mode).
     n_tasks: int, default 1
       The number of tasks.
-    number_of_molecules: int, default 1
-      The number of molecules in a batch.
+    batch_size: int, default 1
+      The number of datapoints in a batch.
     global_features_size: int, default 0
       Size of the global features vector, based on the global featurizers used during featurization.
     use_default_fdim: bool
@@ -579,7 +597,6 @@ class DMPNNModel(TorchModel):
         mode=mode,
         n_classes=n_classes,
         n_tasks=n_tasks,
-        number_of_molecules=number_of_molecules,
         global_features_size=global_features_size,
         use_default_fdim=use_default_fdim,
         atom_fdim=atom_fdim,
@@ -607,7 +624,94 @@ class DMPNNModel(TorchModel):
     super(DMPNNModel, self).__init__(model,
                                      loss=loss,
                                      output_types=output_types,
+                                     batch_size=batch_size,
                                      **kwargs)
+
+  def _to_pyg_graph(self, values: Sequence[np.ndarray]) -> _ModData:
+    """
+    Convert to PyTorch Geometric graph modified data instance
+
+    .. note::
+       This method requires PyTorch Geometric to be installed.
+
+    Parameters
+    ----------
+    values: Sequence[np.ndarray]
+      Mappings from ``_MapperDMPNN`` helper class for a molecule
+
+    Returns
+    -------
+    torch_geometric.data.Data
+      Modified Graph data for PyTorch Geometric (``_ModData``)
+    """
+
+    # atom feature matrix with shape [number of atoms, number of features]
+    atom_features: np.ndarray
+
+    # concatenated feature vector which contains concatenation of initial atom and bond features
+    f_ini_atoms_bonds: np.ndarray
+
+    # mapping from atom index to list of indicies of incoming bonds
+    atom_to_incoming_bonds: np.ndarray
+
+    # mapping that maps bond index to 'array of indices of the bonds'
+    # incoming at the initial atom of the bond (excluding the reverse bonds)
+    mapping: np.ndarray
+
+    # array of global molecular features
+    global_features: np.ndarray
+
+    atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features = values
+
+    t_atom_features: torch.Tensor = torch.from_numpy(atom_features).float().to(
+        device=self.device)
+    t_f_ini_atoms_bonds: torch.Tensor = torch.from_numpy(
+        f_ini_atoms_bonds).float().to(device=self.device)
+    t_atom_to_incoming_bonds: torch.Tensor = torch.from_numpy(
+        atom_to_incoming_bonds).to(device=self.device)
+    t_mapping: torch.Tensor = torch.from_numpy(mapping).to(device=self.device)
+    t_global_features: torch.Tensor = torch.from_numpy(
+        global_features).float().to(device=self.device)
+
+    return _ModData(required_inc=len(t_f_ini_atoms_bonds),
+                    atom_features=t_atom_features,
+                    f_ini_atoms_bonds=t_f_ini_atoms_bonds,
+                    atom_to_incoming_bonds=t_atom_to_incoming_bonds,
+                    mapping=t_mapping,
+                    global_features=t_global_features)
+
+  def _prepare_batch(
+      self, batch: Tuple[List, List, List]
+  ) -> Tuple[Batch, List[torch.Tensor], List[torch.Tensor]]:
+    """
+    Method to prepare pytorch-geometric batches from inputs.
+
+    Overrides the existing ``_prepare_batch`` method to customize how model batches are
+    generated from the inputs.
+
+    .. note::
+       This method requires PyTorch Geometric to be installed.
+
+    Parameters
+    ----------
+    batch: Tuple[List, List, List]
+      batch data from ``default_generator``
+
+    Returns
+    -------
+    Tuple[Batch, List[torch.Tensor], List[torch.Tensor]]
+    """
+    graphs_list: List
+    labels: List
+    weights: List
+
+    graphs_list, labels, weights = batch
+    pyg_batch: Batch = Batch()
+    pyg_batch = pyg_batch.from_data_list(graphs_list)
+
+    _, labels, weights = super(DMPNNModel, self)._prepare_batch(
+        ([], labels, weights))
+    return pyg_batch, labels, weights
 
   def default_generator(self,
                         dataset: Dataset,
@@ -622,7 +726,7 @@ class DMPNNModel(TorchModel):
     Overrides the existing ``default_generator`` method to customize how model inputs are
     generated from the data.
 
-    Here, the ``_MapperDMPNN`` helper class is used to get required input parameters:
+    Here, the ``_MapperDMPNN`` helper class is used, for each molecule in a batch, to get required input parameters:
 
     - atom_features
     - f_ini_atoms_bonds
@@ -630,8 +734,8 @@ class DMPNNModel(TorchModel):
     - mapping
     - global_features
 
-    .. note::
-       Current implementation only supports features of 1 molecule per batch.
+    Then data from each molecule is converted to a ``_ModData`` object and stored as list of graphs.
+    The graphs are modified such that all tensors have same size in 0th dimension. (important requirement for batching)
 
     Parameters
     ----------
@@ -653,35 +757,37 @@ class DMPNNModel(TorchModel):
     -------
     a generator that iterates batches, each represented as a tuple of lists:
     ([inputs], [outputs], [weights])
+    Here, [inputs] is list of graphs.
     """
     for epoch in range(epochs):
       for (X_b, y_b, w_b,
-           ids_b) in dataset.iterbatches(batch_size=1,
+           ids_b) in dataset.iterbatches(batch_size=self.batch_size,
                                          deterministic=deterministic,
                                          pad_batches=pad_batches):
+        pyg_graphs_list: List = []
 
-        # generate concatenated feature vector and mappings
-        mapper: _MapperDMPNN = _MapperDMPNN(X_b[0])
+        # maximum number of incoming bonds in the batch
+        max_num_bonds: int = 1
 
-        # atom feature matrix with shape [number of atoms, number of features]
-        atom_features: np.ndarray
+        for graph in X_b:
+          # generate concatenated feature vector and mappings
+          mapper: _MapperDMPNN = _MapperDMPNN(graph)
+          pyg_graph: _ModData = self._to_pyg_graph(mapper.values)
+          max_num_bonds = max(max_num_bonds,
+                              pyg_graph['atom_to_incoming_bonds'].shape[1])
+          pyg_graphs_list.append(pyg_graph)
 
-        # concatenated feature vector which contains concatenation of initial atom and bond features
-        f_ini_atoms_bonds: np.ndarray
+        # pad all mappings to maximum number of incoming bonds in the batch
+        for graph in pyg_graphs_list:
+          required_padding: int = max_num_bonds - graph[
+              'atom_to_incoming_bonds'].shape[1]
+          graph['atom_to_incoming_bonds'] = nn.functional.pad(
+              graph['atom_to_incoming_bonds'], (0, required_padding, 0, 0),
+              mode='constant',
+              value=-1)
+          graph['mapping'] = nn.functional.pad(graph['mapping'],
+                                               (0, required_padding, 0, 0),
+                                               mode='constant',
+                                               value=-1)
 
-        # mapping from atom index to list of indicies of incoming bonds
-        atom_to_incoming_bonds: np.ndarray
-
-        # mapping that maps bond index to 'array of indices of the bonds'
-        # incoming at the initial atom of the bond (excluding the reverse bonds)
-        mapping: np.ndarray
-
-        # array of global molecular features
-        global_features: np.ndarray
-
-        atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features = mapper.values
-        inputs: List[np.ndarray] = [
-            atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping,
-            global_features
-        ]
-        yield (inputs, [y_b], [w_b])
+        yield (pyg_graphs_list, [y_b], [w_b])
