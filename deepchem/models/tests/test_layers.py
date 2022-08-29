@@ -736,7 +736,7 @@ def test_dmpnn_encoder_layer():
   from deepchem.models.torch_models.dmpnn import _MapperDMPNN
   mapper = _MapperDMPNN(graph[0])
   atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features = mapper.values
-  molecules_unbatch_key = len(atom_features)
+  molecules_unbatch_key = [len(atom_features)]
 
   atom_features = torch.from_numpy(atom_features).float()
   f_ini_atoms_bonds = torch.from_numpy(f_ini_atoms_bonds).float()

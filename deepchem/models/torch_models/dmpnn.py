@@ -7,6 +7,11 @@ from deepchem.models.losses import Loss, L2Loss, SparseSoftmaxCrossEntropy
 from deepchem.models.torch_models import layers
 from deepchem.models.torch_models import TorchModel
 
+try:
+  from torch_geometric.data import Batch
+except ModuleNotFoundError:
+  raise ImportError("This model requires PyTorch Geometric to be installed.")
+
 from deepchem.feat import GraphData
 from deepchem.data import Dataset
 from typing import Union, List, Sequence, Optional, Iterable, Tuple
@@ -231,14 +236,10 @@ class DMPNN(nn.Module):
   In this class, we define the various encoder layers and establish a sequential model for the Directed Message Passing Neural Network (D-MPNN) [1]_.
   We also define the forward call of this model in the forward function.
 
-  The number of encoders created is equal to the number of molecules in each batch of featurized data.
-
-  .. note::
-     Current implementation of the DMPNN class only supports features of 1 molecule per batch.
-
   Example
   -------
   >>> import deepchem as dc
+  >>> from torch_geometric.data import Data, Batch
   >>> # Get data
   >>> input_smile = "CC"
   >>> feat = dc.feat.DMPNNFeaturizer(features_generators=['morgan'])
@@ -250,11 +251,17 @@ class DMPNN(nn.Module):
   >>> atom_to_incoming_bonds = torch.from_numpy(atom_to_incoming_bonds)
   >>> mapping = torch.from_numpy(mapping)
   >>> global_features = torch.from_numpy(global_features).float()
-  >>> data = [atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features]
+  >>> data = [Data(atom_features=atom_features,\
+  f_ini_atoms_bonds=f_ini_atoms_bonds,\
+  atom_to_incoming_bonds=atom_to_incoming_bonds,\
+  mapping=mapping, global_features=global_features)]
+  >>> # Prepare batch (size 1)
+  >>> pyg_batch = Batch()
+  >>> pyg_batch = pyg_batch.from_data_list(data)
   >>> # Initialize the model
   >>> model = DMPNN(mode='regression', global_features_size=2048, n_tasks=2)
   >>> # Get the forward call of the model for this batch.
-  >>> output = model(data)
+  >>> output = model(pyg_batch)
 
   References
   ----------
@@ -341,26 +348,20 @@ class DMPNN(nn.Module):
     self.mode: str = mode
     self.n_classes: int = n_classes
     self.n_tasks: int = n_tasks
+    self.use_default_fdim: bool = use_default_fdim
+    self.atom_fdim: int = atom_fdim
+    self.bond_fdim: int = bond_fdim
+    self.enc_hidden: int = enc_hidden
+    self.depth: int = depth
+    self.bias: bool = bias
+    self.enc_activation: str = enc_activation
+    self.enc_dropout_p: float = enc_dropout_p
+    self.aggregation: str = aggregation
+    self.aggregation_norm: Union[int, float] = aggregation_norm
 
-    # get encoders
-    def get_encoder() -> nn.Module:
-      return layers.DMPNNEncoderLayer(use_default_fdim=use_default_fdim,
-                                      atom_fdim=atom_fdim,
-                                      bond_fdim=bond_fdim,
-                                      d_hidden=enc_hidden,
-                                      depth=depth,
-                                      bias=bias,
-                                      activation=enc_activation,
-                                      dropout_p=enc_dropout_p,
-                                      aggregation=aggregation,
-                                      aggregation_norm=aggregation_norm)
-
+    # get encoder (its copies will be used by all batches, hence all will have same initial weights)
     if encoder_wts_shared:
-      self.encoders: nn.ModuleList = nn.ModuleList([get_encoder()] *
-                                                   number_of_molecules)
-    else:
-      self.encoders = nn.ModuleList(
-          [get_encoder() for _ in range(number_of_molecules)])
+      self.shared_wts_encoder: nn.Module = self._get_encoder()
 
     # get input size for ffn
     ffn_input: int = (enc_hidden + global_features_size) * number_of_molecules
@@ -381,12 +382,28 @@ class DMPNN(nn.Module):
         dropout_p=ffn_dropout_p,
         dropout_at_input_no_act=ffn_dropout_at_input_no_act)
 
-  def forward(self, data: List[torch.Tensor]):
+  def _get_encoder(self) -> nn.Module:
+    """
+    Method to create DMPNN encoder layer object.
+    """
+    return layers.DMPNNEncoderLayer(use_default_fdim=self.use_default_fdim,
+                                    atom_fdim=self.atom_fdim,
+                                    bond_fdim=self.bond_fdim,
+                                    d_hidden=self.enc_hidden,
+                                    depth=self.depth,
+                                    bias=self.bias,
+                                    activation=self.enc_activation,
+                                    dropout_p=self.enc_dropout_p,
+                                    aggregation=self.aggregation,
+                                    aggregation_norm=self.aggregation_norm)
+
+  def forward(self,
+              pyg_batch: Batch) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
     """
     Parameters
     ----------
-    data: List[torch.tensor]
-      A list containing tensors for:
+    data: Batch
+      A pytorch-geometric batch containing tensors for:
 
       - atom_features
       - f_ini_atoms_bonds
@@ -394,21 +411,36 @@ class DMPNN(nn.Module):
       - mapping
       - global_features
 
+      The `molecules_unbatch_key` is also derived from the batch.
+      (List containing number of atoms in various molecules of the batch)
+
     Returns
     -------
-    output: torch.Tensor
+    output: Union[torch.Tensor, Sequence[torch.Tensor]]
       Predictions for the graphs
     """
-    atom_features: torch.Tensor = data[0]
-    f_ini_atoms_bonds: torch.Tensor = data[1]
-    atom_to_incoming_bonds: torch.Tensor = data[2]
-    mapping: torch.Tensor = data[3]
-    global_features: torch.Tensor = data[4]
+    atom_features: torch.Tensor = pyg_batch['atom_features']
+    f_ini_atoms_bonds: torch.Tensor = pyg_batch['f_ini_atoms_bonds']
+    atom_to_incoming_bonds: torch.Tensor = pyg_batch['atom_to_incoming_bonds']
+    mapping: torch.Tensor = pyg_batch['mapping']
+    global_features: torch.Tensor = pyg_batch['global_features']
+
+    # Steps to get `molecules_unbatch_key`:
+    # 1. Get the tensor containing the indices of first atoms of each molecule
+    # 2. Get the tensor containing number of atoms of each molecule
+    #     by taking the difference between consecutive indices.
+    # 3. Convert the tensor to a list.
+    molecules_unbatch_key: List = torch.diff(
+        pyg_batch._slice_dict['atom_features']).tolist()
+
+    # get encoder
+    encoder: nn.Module = self.shared_wts_encoder if hasattr(
+        self, 'shared_wts_encoder') else self._get_encoder()
 
     # num_molecules x (enc_hidden + global_features_size)
-    encodings: torch.Tensor = self.encoders[0](atom_features, f_ini_atoms_bonds,
-                                               atom_to_incoming_bonds, mapping,
-                                               global_features)
+    encodings: torch.Tensor = encoder(atom_features, f_ini_atoms_bonds,
+                                      atom_to_incoming_bonds, mapping,
+                                      global_features, molecules_unbatch_key)
 
     # ffn_output (`self.n_tasks` or `self.n_tasks * self.n_classes`)
     output: torch.Tensor = self.ffn(encodings)
