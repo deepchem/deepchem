@@ -297,6 +297,7 @@ class DMPNN(nn.Module):
                n_classes: int = 3,
                n_tasks: int = 1,
                global_features_size: int = 0,
+               n_encoders: int = 1,
                use_default_fdim: bool = True,
                atom_fdim: int = 133,
                bond_fdim: int = 14,
@@ -326,6 +327,8 @@ class DMPNN(nn.Module):
       The number of tasks.
     global_features_size: int, default 0
       Size of the global features vector, based on the global featurizers used during featurization.
+    n_encoders: int, default 1
+      Number of encoders required (equal to total number of batches)
     use_default_fdim: bool
       If `True`, self.atom_fdim and self.bond_fdim are initialized using values from the GraphConvConstants class.
       If `False`, self.atom_fdim and self.bond_fdim are initialized from the values provided.
@@ -369,6 +372,7 @@ class DMPNN(nn.Module):
     self.mode: str = mode
     self.n_classes: int = n_classes
     self.n_tasks: int = n_tasks
+    self.n_encoders: int = n_encoders
     self.use_default_fdim: bool = use_default_fdim
     self.atom_fdim: int = atom_fdim
     self.bond_fdim: int = bond_fdim
@@ -380,9 +384,13 @@ class DMPNN(nn.Module):
     self.aggregation: str = aggregation
     self.aggregation_norm: Union[int, float] = aggregation_norm
 
-    # get encoder (its copies will be used by all batches, hence all will have same initial weights)
+    # get encoders
     if encoder_wts_shared:
-      self.shared_wts_encoder: nn.Module = self._get_encoder()
+      self.encoders: nn.ModuleList = nn.ModuleList([self._get_encoder()] *
+                                                   self.n_encoders)
+    else:
+      self.encoders = nn.ModuleList(
+          [self._get_encoder() for _ in range(self.n_encoders)])
 
     # get input size for ffn
     ffn_input: int = enc_hidden + global_features_size
@@ -454,14 +462,18 @@ class DMPNN(nn.Module):
     molecules_unbatch_key: List = torch.diff(
         pyg_batch._slice_dict['atom_features']).tolist()
 
-    # get encoder
-    encoder: nn.Module = self.shared_wts_encoder if hasattr(
-        self, 'shared_wts_encoder') else self._get_encoder()
+    # get batch id
+    if pyg_batch.batch is not None:
+      batch_id: int = pyg_batch.batch
+    else:
+      batch_id = 0
 
     # num_molecules x (enc_hidden + global_features_size)
-    encodings: torch.Tensor = encoder(atom_features, f_ini_atoms_bonds,
-                                      atom_to_incoming_bonds, mapping,
-                                      global_features, molecules_unbatch_key)
+    encodings: torch.Tensor = self.encoders[batch_id](atom_features,
+                                                      f_ini_atoms_bonds,
+                                                      atom_to_incoming_bonds,
+                                                      mapping, global_features,
+                                                      molecules_unbatch_key)
 
     # ffn_output (`self.n_tasks` or `self.n_tasks * self.n_classes`)
     output: torch.Tensor = self.ffn(encodings)
@@ -520,6 +532,7 @@ class DMPNNModel(TorchModel):
                n_tasks: int = 1,
                batch_size: int = 1,
                global_features_size: int = 0,
+               n_encoders: int = 1,
                use_default_fdim: bool = True,
                atom_fdim: int = 133,
                bond_fdim: int = 14,
@@ -552,6 +565,8 @@ class DMPNNModel(TorchModel):
       The number of datapoints in a batch.
     global_features_size: int, default 0
       Size of the global features vector, based on the global featurizers used during featurization.
+    n_encoders: int, default 1
+      Number of encoders required (equal to total number of batches)
     use_default_fdim: bool
       If `True`, self.atom_fdim and self.bond_fdim are initialized using values from the GraphConvConstants class.
       If `False`, self.atom_fdim and self.bond_fdim are initialized from the values provided.
@@ -598,6 +613,7 @@ class DMPNNModel(TorchModel):
         n_classes=n_classes,
         n_tasks=n_tasks,
         global_features_size=global_features_size,
+        n_encoders=n_encoders,
         use_default_fdim=use_default_fdim,
         atom_fdim=atom_fdim,
         bond_fdim=bond_fdim,
@@ -701,13 +717,15 @@ class DMPNNModel(TorchModel):
     -------
     Tuple[Batch, List[torch.Tensor], List[torch.Tensor]]
     """
+    batch_id: int
     graphs_list: List
     labels: List
     weights: List
 
-    graphs_list, labels, weights = batch
+    [batch_id, graphs_list], labels, weights = batch
     pyg_batch: Batch = Batch()
     pyg_batch = pyg_batch.from_data_list(graphs_list)
+    pyg_batch.batch = batch_id
 
     _, labels, weights = super(DMPNNModel, self)._prepare_batch(
         ([], labels, weights))
@@ -760,10 +778,10 @@ class DMPNNModel(TorchModel):
     Here, [inputs] is list of graphs.
     """
     for epoch in range(epochs):
-      for (X_b, y_b, w_b,
-           ids_b) in dataset.iterbatches(batch_size=self.batch_size,
-                                         deterministic=deterministic,
-                                         pad_batches=pad_batches):
+      for batch_id, (X_b, y_b, w_b, ids_b) in enumerate(
+          dataset.iterbatches(batch_size=self.batch_size,
+                              deterministic=deterministic,
+                              pad_batches=pad_batches)):
         pyg_graphs_list: List = []
 
         # maximum number of incoming bonds in the batch
@@ -790,4 +808,4 @@ class DMPNNModel(TorchModel):
                                                mode='constant',
                                                value=-1)
 
-        yield (pyg_graphs_list, [y_b], [w_b])
+        yield ([batch_id, pyg_graphs_list], [y_b], [w_b])
