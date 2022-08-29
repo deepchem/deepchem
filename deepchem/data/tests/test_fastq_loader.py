@@ -12,7 +12,7 @@ class TestFASTQLoader(unittest.TestCase):
     super(TestFASTQLoader, self).setUp()
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
-  def test_fastq_one_hot(self, verbose_x=False):
+  def test_fastq_one_hot(self):
     input_file = os.path.join(self.current_dir, "sample1.fastq")
     loader = FASTQLoader()
     sequences = loader.create_dataset(input_file)
@@ -21,5 +21,3 @@ class TestFASTQLoader(unittest.TestCase):
     # Expected shape is now (4, 192, 5)
     assert sequences.X.shape == (4, 192, 5)
 
-    if verbose_x:  # To see the featurized version of X
-      print(sequences.X)
