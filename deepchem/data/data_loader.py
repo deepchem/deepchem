@@ -1035,7 +1035,6 @@ class FASTALoader(DataLoader):
                         sequence: np.ndarray) -> np.ndarray:
         # Handle empty sequence
         if sequence is None or len(sequence) <= 0:
-          # TODO log attempts to add empty sequences every shard
           return np.array([])
         # Annotate start/stop of sequence
         if self.auto_add_annotations:
@@ -1047,6 +1046,226 @@ class FASTALoader(DataLoader):
 
       with open(input_file, 'r') as f:  # Read FASTA file
         return _generate_sequences(f)
+
+    return DiskDataset.create_dataset(shard_generator(), data_dir)
+
+
+def _fastq_load_files(input_files: List[str],
+                      shard_size: Optional[int] = 4096) -> Iterator:
+  """Load data as Iterator.
+
+  Parameters
+  ----------
+  input_files: List[str]
+    List of fastq filenames.
+  shard_size: int, optional (default 4096)
+    Chunksize for reading fastq files.
+
+  Yields
+  -------
+  Iterator
+    Generator which yields the data which is the same shard size.
+  """
+  shard_num = 0
+  for input_file in input_files:
+    logger.info("About to start loading fastq from %s." % input_file)
+    # Open index file
+    with open(input_file, 'r') as f:
+      # create an empty list to store lines in files.
+      df = []
+      line_number = 0
+      # iterate through each line in the input file
+      for num, line in enumerate(f):
+        # If the number of lines iterated through is equal or less than the shard size:
+        if (shard_size is not None) and ((num + 1) - line_number <=
+                                         (shard_size * 4)):
+          # append to list
+          df.append(line)
+        else:
+          # else yield the list
+          shard_num += 1
+          logger.info("Loading shard %d of size %s." %
+                      (shard_num, str(shard_size)))
+          # set the line_number variable to the last line number (num) before 'yield' was called
+          line_number = num
+          # yield list (shard/batch)
+          yield df
+          # Re-initialize list with the index line to begin a new shard.
+          df = [line]
+      if len(df) > 0:
+        yield df
+
+
+class FASTQLoader(DataLoader):
+  """Handles loading of FASTQ files.
+
+  FASTQ files are commonly used to hold very large sequence data. It is a variant of FASTA format.
+  This class provides convenience files to load FASTQ data and one-hot encode
+  the genomic sequences for use in downstream learning tasks.
+
+  Example
+  -------
+  >>> import os
+  >>> from deepchem.feat.molecule_featurizers import OneHotFeaturizer
+  >>> from deepchem.data.data_loader import FASTQLoader
+  >>> current_dir = os.path.dirname(os.path.abspath(__file__))
+  >>> input_file = os.path.join(current_dir, "tests", "sample1.fastq")
+  >>> loader = FASTQLoader()
+  >>> sequences = loader.create_dataset(input_file)
+
+  See Also
+  --------
+  `Info on the structure of FASTQ files <https://support.illumina.com/bulletins/2016/04/fastq-files-explained.html>`
+  """
+
+  def __init__(self,
+               featurizer: Optional[Featurizer] = None,
+               auto_add_annotations: bool = False,
+               return_quality_scores: bool = False):
+    """Initialize FASTQLoader.
+
+    Parameters
+    ----------
+    featurizer: Featurizer (default: None)
+      The Featurizer to be used for the loaded FASTQ data.
+      The featurizer is initialized as a OneHotFeaturizer object with charset ("A", "C", "T", "G") and
+      max_length = None.
+    auto_add_annotations: bool (default False)
+      Whether create_dataset will automatically add [CLS] and [SEP] annotations
+      to the sequences it reads in order to assist tokenization.
+      Keep False if your FASTQ file already includes [CLS] and [SEP] annotations.
+    return_quality_scores: bool (default True)
+      returns the quality (likelihood) score of the nucleotides in the sequence.
+   """
+
+    # Set attributes
+    self.auto_add_annotations = auto_add_annotations
+
+    self.user_specified_features = None
+
+    # Handle special featurizer cases
+    if isinstance(featurizer, UserDefinedFeaturizer):  # User defined featurizer
+      self.user_specified_features = featurizer.feature_fields
+    elif featurizer is None:  # Default featurizer
+      featurizer = OneHotFeaturizer(charset=["A", "C", "T", "G"],
+                                    max_length=None)
+
+    # Set self.featurizer
+    self.featurizer = featurizer
+    # Set self.return_quality_scores
+    self.return_quality_scores = return_quality_scores
+
+  def _get_shards(self,
+                  input_files: List[str],
+                  shard_size: Optional[int] = 4096) -> Iterator:
+    """Defines a generator which returns data for each shard
+
+    Parameters
+    ----------
+    input_files: List[str]
+      List of file names to process
+    n_samples:  int, optional
+      The number of samples to extract from each variant in the data
+    shard_size: int, optional (default 4096)
+      The size of a shard of data to process at a time. Here, shard_size is equal to the
+      number of variants to fetch. You can think of them as number of rows to get from the
+      full dataset.
+
+    Yields
+    -------
+    Iterator
+      Iterator over shards
+    """
+
+    return _fastq_load_files(input_files, shard_size)
+
+  def create_dataset(self,
+                     input_files: OneOrMany[str],
+                     data_dir: Optional[str] = None,
+                     shard_size: Optional[int] = 4096) -> DiskDataset:
+    """Creates a `Dataset` from input FASTQ files.
+
+    Parameters
+    ----------
+    input_files: List[str]
+      List of fastQ files.
+    data_dir: str, optional (default None)
+      Name of directory where featurized data is stored.
+    shard_size: int, optional (default 4096)
+
+    Returns
+    -------
+    DiskDataset
+      A `DiskDataset` object containing a featurized representation of data
+      from `input_files`.
+    """
+    if isinstance(input_files, str):
+      input_files = [input_files]
+
+    def shard_generator():
+
+      for shard_num, shard in enumerate(
+          self._get_shards(input_files, shard_size)):
+        if self.return_quality_scores:
+          sequences, quality_scores = _generate_sequences(shard)
+          # Featurize sequences
+          X = self.featurizer(sequences)
+          ids = np.ones(len(X))
+          # (X, y , w, ids)
+          yield X, None, quality_scores, ids
+        else:
+          sequences = _generate_sequences(shard)
+          # Featurize sequences
+          X = self.featurizer(sequences)
+          ids = np.ones(len(X))
+          # (X, y , w, ids)
+          yield X, None, None, ids
+
+    def _generate_sequences(shard: List) -> OneOrMany[np.ndarray]:
+      """
+      Creates a numpy array of annotated FASTQ-format strings.
+      """
+      assert len(
+          shard
+      ) % 4 == 0, f'Sharded length not divisible by four: Length of shard = {len(shard)}. File is possibly incomplete'
+      sequences: np.ndarray = np.array([], dtype='object')
+      if self.return_quality_scores:
+        quality_scores: np.ndarray = np.array([], dtype='object')
+
+      # Go through each sequence entity in the fastq_file: each sequence consists of 4 lines
+      # First line : header description
+      # second line : sequence
+      # third line : more description usually the same as the first line
+      # fourth line: quality scores of the sequence
+      for start_index in range(0, len(shard), 4):
+        each_sequence = shard[start_index:start_index + 4]
+
+        # Second line : add sequence to the sequence array
+        sequences = _add_sequence(sequences,
+                                  np.array([each_sequence[1].strip("\n")]))
+
+        # Fourth line
+        if self.return_quality_scores:
+          quality_scores = _add_sequence(
+              quality_scores, np.array([each_sequence[3].strip("\n")]))
+
+      if self.return_quality_scores:
+        return sequences, quality_scores
+      else:
+        return sequences
+
+    def _add_sequence(sequences: np.ndarray,
+                      sequence: np.ndarray) -> np.ndarray:
+      # Handle empty sequence
+      if sequence is None or len(sequence) <= 0:
+        return np.array([])
+      # Annotate start/stop of sequence
+      if self.auto_add_annotations:
+        sequence = np.insert(sequence, 0, "[CLS]")
+        sequence = np.append(sequence, "[SEP]")
+      new_sequence = ''.join(sequence)
+      new_sequences = np.append(sequences, new_sequence)
+      return new_sequences
 
     return DiskDataset.create_dataset(shard_generator(), data_dir)
 

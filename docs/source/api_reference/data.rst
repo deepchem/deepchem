@@ -104,6 +104,12 @@ FASTALoader
 .. autoclass:: deepchem.data.FASTALoader
   :members: __init__, create_dataset
 
+FASTQLoader
+^^^^^^^^^^^
+
+.. autoclass:: deepchem.data.FASTQLoader
+  :members: __init__, create_dataset
+
 InMemoryLoader
 ^^^^^^^^^^^^^^
 The :code:`dc.data.InMemoryLoader` is designed to facilitate the processing of large datasets
