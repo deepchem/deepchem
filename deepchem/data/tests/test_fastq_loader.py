@@ -20,4 +20,3 @@ class TestFASTQLoader(unittest.TestCase):
     # The one-hot encoding turns base-pairs into vectors of length 5 (ATCGN).
     # Expected shape is now (4, 192, 5)
     assert sequences.X.shape == (4, 192, 5)
-
