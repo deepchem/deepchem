@@ -1607,10 +1607,18 @@ class DiskDataset(Dataset):
       # mp.dummy aliases ThreadPool to Pool
       pool = Pool(1)
 
+      import torch.distributed as dist
+
+      if dist.is_initialized():
+        world_size = dist.get_world_size()
+      else:
+        world_size = 1
+
       if batch_size is None:
         num_global_batches = num_shards
       else:
-        num_global_batches = math.ceil(dataset.get_shape()[0][0] / batch_size)
+        # num_global_batches = math.ceil(dataset.get_shape()[0][0] / batch_size)
+        num_global_batches = (dataset.get_shape()[0][0] // world_size) // batch_size
 
       for epoch in range(epochs):
         if not deterministic:
@@ -1652,13 +1660,14 @@ class DiskDataset(Dataset):
               cur_global_batch += 1
             continue
 
-          num_local_batches = math.ceil(n_shard_samples / shard_batch_size)
+          # num_local_batches = math.ceil(n_shard_samples / shard_batch_size)
+          num_local_batches = n_shard_samples // shard_batch_size
           if not deterministic:
             sample_perm = np.random.permutation(n_shard_samples)
           else:
             sample_perm = np.arange(n_shard_samples)
 
-          while cur_local_batch < num_local_batches:
+          while cur_local_batch < num_local_batches and cur_global_batch < num_global_batches:
             start = cur_local_batch * shard_batch_size
             end = min(n_shard_samples, (cur_local_batch + 1) * shard_batch_size)
 

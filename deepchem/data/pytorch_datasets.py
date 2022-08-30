@@ -87,12 +87,24 @@ class _TorchDiskDataset(torch.utils.data.IterableDataset):  # type: ignore
   def __iter__(self):
     worker_info = torch.utils.data.get_worker_info()
     n_shards = self.disk_dataset.get_number_shards()
-    if worker_info is None:
-      first_shard = 0
-      last_shard = n_shards
+
+    import torch.distributed as dist
+    if dist.is_initialized():
+      curr_process_rank = dist.get_rank()
+      world_size = dist.get_world_size()
     else:
-      first_shard = worker_info.id * n_shards // worker_info.num_workers
-      last_shard = (worker_info.id + 1) * n_shards // worker_info.num_workers
+      curr_process_rank = 0
+      world_size = 1
+    per_process_shards = n_shards // world_size
+    curr_process_first_shard = curr_process_rank * per_process_shards
+    curr_process_last_shard = (curr_process_rank + 1) * per_process_shards
+
+    if worker_info is None:
+      first_shard = curr_process_first_shard
+      last_shard = curr_process_last_shard
+    else:
+      first_shard = curr_process_first_shard + (worker_info.id * per_process_shards // worker_info.num_workers)
+      last_shard = curr_process_first_shard + ((worker_info.id + 1) * n_shards // worker_info.num_workers)
     if first_shard == last_shard:
       return
 
