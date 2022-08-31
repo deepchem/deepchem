@@ -13,3 +13,4 @@ jax
 dm-haiku
 optax
 rdkit-pypi
+torch-geometric>=2.0.4

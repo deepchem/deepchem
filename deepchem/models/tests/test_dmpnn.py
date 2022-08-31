@@ -3,7 +3,6 @@ import deepchem as dc
 import tempfile
 import numpy as np
 import os
-import math
 
 try:
   import torch
@@ -57,11 +56,9 @@ def test_dmpnn_regression():
   morgan_feature_size = 2048
   model = DMPNN(mode='regression',
                 global_features_size=morgan_feature_size,
-                n_tasks=number_of_tasks,
-                encoder_wts_shared=False)
+                n_tasks=number_of_tasks)
 
-  assert len(model.encoders) == 1
-  assert model.encoders[0].__repr__(
+  assert model.encoder.__repr__(
   ) == 'DMPNNEncoderLayer(\n  (activation): ReLU()\n  (dropout): Dropout(p=0.0, inplace=False)\n  (W_i): Linear(in_features=147, out_features=300, bias=False)\n'\
        '  (W_h): Linear(in_features=300, out_features=300, bias=False)\n  (W_o): Linear(in_features=433, out_features=300, bias=True)\n)'
   assert model.ffn.__repr__(
@@ -124,11 +121,9 @@ def test_dmpnn_classification_single_task():
   model = DMPNN(mode='classification',
                 n_classes=number_of_classes,
                 global_features_size=morgan_feature_size,
-                n_tasks=number_of_tasks,
-                encoder_wts_shared=True)
+                n_tasks=number_of_tasks)
 
-  assert len(model.encoders) == 1
-  assert model.encoders[0].__repr__(
+  assert model.encoder.__repr__(
   ) == 'DMPNNEncoderLayer(\n  (activation): ReLU()\n  (dropout): Dropout(p=0.0, inplace=False)\n  (W_i): Linear(in_features=147, out_features=300, bias=False)\n  (W_h): Linear(in_features=300, out_features=300, bias=False)\n'\
        '  (W_o): Linear(in_features=433, out_features=300, bias=True)\n)'
   assert model.ffn.__repr__(
@@ -194,11 +189,9 @@ def test_dmpnn_classification_multi_task():
   model = DMPNN(mode='classification',
                 n_classes=number_of_classes,
                 global_features_size=morgan_feature_size,
-                n_tasks=number_of_tasks,
-                encoder_wts_shared=True)
+                n_tasks=number_of_tasks)
 
-  assert len(model.encoders) == 1
-  assert model.encoders[0].__repr__(
+  assert model.encoder.__repr__(
   ) == 'DMPNNEncoderLayer(\n  (activation): ReLU()\n  (dropout): Dropout(p=0.0, inplace=False)\n  (W_i): Linear(in_features=147, out_features=300, bias=False)\n  (W_h): Linear(in_features=300, out_features=300, bias=False)\n  (W_o): Linear(in_features=433, out_features=300, bias=True)\n)'
   assert model.ffn.__repr__(
   ) == 'PositionwiseFeedForward(\n  (activation): ReLU()\n  (linears): ModuleList(\n    (0): Linear(in_features=2348, out_features=300, bias=True)\n    (1): Linear(in_features=300, out_features=300, bias=True)\n    '\
@@ -234,16 +227,9 @@ def test_dmpnn_model_regression():
                              featurizer=dc.feat.DMPNNFeaturizer())
   dataset = loader.create_dataset(input_file)
 
-  # total number of batches
-  batch_size = 2
-  total_number_of_molecules = dataset.get_shape()[0][0]
-  number_of_batches = math.ceil(total_number_of_molecules / batch_size)
-
   # initialize the model
   from deepchem.models.torch_models.dmpnn import DMPNNModel
-  model = DMPNNModel(batch_size=batch_size,
-                     n_encoders=number_of_batches,
-                     encoder_wts_shared=True)
+  model = DMPNNModel(batch_size=2)
 
   # overfit test
   model.fit(dataset, nb_epoch=30)
@@ -267,23 +253,13 @@ def test_dmpnn_model_classification():
                              featurizer=dc.feat.DMPNNFeaturizer())
   dataset = loader.create_dataset(input_file)
 
-  # total number of batches
-  batch_size = 2
-  total_number_of_molecules = dataset.get_shape()[0][0]
-  number_of_batches = math.ceil(total_number_of_molecules / batch_size)
-
   # initialize the model
   from deepchem.models.torch_models.dmpnn import DMPNNModel
 
   mode = 'classification'
   classes = 2
   tasks = 1
-  model = DMPNNModel(mode=mode,
-                     n_classes=classes,
-                     n_tasks=tasks,
-                     batch_size=batch_size,
-                     n_encoders=number_of_batches,
-                     encoder_wts_shared=True)
+  model = DMPNNModel(mode=mode, n_classes=classes, n_tasks=tasks, batch_size=2)
 
   # overfit test
   model.fit(dataset, nb_epoch=30)
@@ -307,27 +283,16 @@ def test_dmpnn_model_reload():
                              featurizer=dc.feat.DMPNNFeaturizer())
   dataset = loader.create_dataset(input_file)
 
-  # total number of batches
-  batch_size = 2
-  total_number_of_molecules = dataset.get_shape()[0][0]
-  number_of_batches = math.ceil(total_number_of_molecules / batch_size)
-
   # initialize the model
   from deepchem.models.torch_models.dmpnn import DMPNNModel
   model_dir = tempfile.mkdtemp()
-  model = DMPNNModel(model_dir=model_dir,
-                     batch_size=2,
-                     n_encoders=number_of_batches,
-                     encoder_wts_shared=False)
+  model = DMPNNModel(model_dir=model_dir, batch_size=2)
 
   # fit the model
   model.fit(dataset, nb_epoch=10)
 
   # reload the model
-  reloaded_model = DMPNNModel(model_dir=model_dir,
-                              batch_size=2,
-                              n_encoders=number_of_batches,
-                              encoder_wts_shared=False)
+  reloaded_model = DMPNNModel(model_dir=model_dir, batch_size=2)
   reloaded_model.restore()
 
   orig_predict = model.predict(dataset)
