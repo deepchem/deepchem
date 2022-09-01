@@ -118,13 +118,18 @@ class Ferminet(torch.nn.Module):
 
     # concatenating distance and vectors arrays
     one_shape = self.one_electron_distance.size()
-    one_distance = self.one_electron_distance.reshape(1, one_shape[0],
+    one_distance = self.one_electron_distance.reshape(one_shape[0],
                                                       one_shape[1], 1)
-    one_electron = torch.cat((one_electron_vector, one_distance))
+    one_electron = torch.cat(
+        (one_electron_vector, one_distance.repeat(1, 1, 3)), dim=-1)
+    one_electron = one_electron[:, :, 0:4]
+
     two_shape = self.two_electron_distance.size()
-    two_distance = self.two_electron_distance.reshape(1, two_shape[0],
+    two_distance = self.two_electron_distance.reshape(two_shape[0],
                                                       two_shape[1], 1)
-    two_electron = torch.cat((two_electron_vector, two_distance))
+    two_electron = torch.cat(
+        (two_electron_vector, two_distance.repeat(1, 1, 3)), dim=-1)
+    two_electron = two_electron[:, :, 0:4]
 
     one_up = one_electron[:, :self.spin[0], :]
     one_down = one_electron[:, self.spin[0]:, :]
