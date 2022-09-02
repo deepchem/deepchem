@@ -1,17 +1,13 @@
-import unittest
-import os
 import numpy as np
 import pytest
-import scipy
 from flaky import flaky
 
 import deepchem as dc
 from deepchem.data import NumpyDataset
 from deepchem.molnet import load_bace_classification, load_delaney
-from deepchem.feat import ConvMolFeaturizer
 try:
   import tensorflow as tf
-  from deepchem.models import GraphConvModel, DAGModel, WeaveModel, MPNNModel
+  from deepchem.models import WeaveModel
   has_tensorflow = True
 except:
   has_tensorflow = False
@@ -22,8 +18,8 @@ def get_dataset(mode='classification',
                 num_tasks=2,
                 data_points=20):
   if mode == 'classification':
-    tasks, all_dataset, transformers = load_bace_classification(
-        featurizer, reload=False)
+    tasks, all_dataset, transformers = load_bace_classification(featurizer,
+                                                                reload=False)
   else:
     tasks, all_dataset, transformers = load_delaney(featurizer, reload=False)
 
@@ -34,12 +30,13 @@ def get_dataset(mode='classification',
 
   if mode == 'classification':
     y = np.random.randint(0, 2, size=(data_points, len(tasks)))
-    metric = dc.metrics.Metric(
-        dc.metrics.roc_auc_score, np.mean, mode="classification")
+    metric = dc.metrics.Metric(dc.metrics.roc_auc_score,
+                               np.mean,
+                               mode="classification")
   else:
     y = np.random.normal(size=(data_points, len(tasks)))
-    metric = dc.metrics.Metric(
-        dc.metrics.mean_absolute_error, mode="regression")
+    metric = dc.metrics.Metric(dc.metrics.mean_absolute_error,
+                               mode="regression")
 
   ds = NumpyDataset(train.X[:data_points], y, w, train.ids[:data_points])
 
@@ -52,18 +49,17 @@ def test_compute_features_on_infinity_distance():
   featurizer = dc.feat.WeaveFeaturizer(max_pair_distance=None)
   X = featurizer(["C", "CCC"])
   batch_size = 20
-  model = WeaveModel(
-      1,
-      batch_size=batch_size,
-      mode='classification',
-      fully_connected_layer_sizes=[2000, 1000],
-      batch_normalize=True,
-      batch_normalize_kwargs={
-          "fused": False,
-          "trainable": True,
-          "renorm": True
-      },
-      learning_rate=0.0005)
+  model = WeaveModel(1,
+                     batch_size=batch_size,
+                     mode='classification',
+                     fully_connected_layer_sizes=[2000, 1000],
+                     batch_normalize=True,
+                     batch_normalize_kwargs={
+                         "fused": False,
+                         "trainable": True,
+                         "renorm": True
+                     },
+                     learning_rate=0.0005)
   atom_feat, pair_feat, pair_split, atom_split, atom_to_pair = model.compute_features_on_batch(
       X)
 
@@ -90,18 +86,17 @@ def test_compute_features_on_distance_1():
   featurizer = dc.feat.WeaveFeaturizer(max_pair_distance=1)
   X = featurizer(["C", "CCC"])
   batch_size = 20
-  model = WeaveModel(
-      1,
-      batch_size=batch_size,
-      mode='classification',
-      fully_connected_layer_sizes=[2000, 1000],
-      batch_normalize=True,
-      batch_normalize_kwargs={
-          "fused": False,
-          "trainable": True,
-          "renorm": True
-      },
-      learning_rate=0.0005)
+  model = WeaveModel(1,
+                     batch_size=batch_size,
+                     mode='classification',
+                     fully_connected_layer_sizes=[2000, 1000],
+                     batch_normalize=True,
+                     batch_normalize_kwargs={
+                         "fused": False,
+                         "trainable": True,
+                         "renorm": True
+                     },
+                     learning_rate=0.0005)
   atom_feat, pair_feat, pair_split, atom_split, atom_to_pair = model.compute_features_on_batch(
       X)
 
@@ -130,16 +125,16 @@ def test_compute_features_on_distance_1():
 @pytest.mark.slow
 @pytest.mark.tensorflow
 def test_weave_model():
-  tasks, dataset, transformers, metric = get_dataset(
-      'classification', 'Weave', data_points=10)
+  tasks, dataset, transformers, metric = get_dataset('classification',
+                                                     'Weave',
+                                                     data_points=10)
 
   batch_size = 10
-  model = WeaveModel(
-      len(tasks),
-      batch_size=batch_size,
-      mode='classification',
-      dropouts=0,
-      learning_rate=0.0001)
+  model = WeaveModel(len(tasks),
+                     batch_size=batch_size,
+                     mode='classification',
+                     dropouts=0,
+                     learning_rate=0.0001)
   model.fit(dataset, nb_epoch=250)
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.9
@@ -149,22 +144,21 @@ def test_weave_model():
 @pytest.mark.tensorflow
 def test_weave_regression_model():
   import numpy as np
-  import tensorflow as tf
   tf.random.set_seed(123)
   np.random.seed(123)
-  tasks, dataset, transformers, metric = get_dataset(
-      'regression', 'Weave', data_points=10)
+  tasks, dataset, transformers, metric = get_dataset('regression',
+                                                     'Weave',
+                                                     data_points=10)
 
   batch_size = 10
-  model = WeaveModel(
-      len(tasks),
-      batch_size=batch_size,
-      mode='regression',
-      dropouts=0,
-      learning_rate=0.00003)
+  model = WeaveModel(len(tasks),
+                     batch_size=batch_size,
+                     mode='regression',
+                     dropouts=0,
+                     learning_rate=0.00003)
   model.fit(dataset, nb_epoch=400)
   scores = model.evaluate(dataset, [metric], transformers)
-  assert scores['mean_absolute_error'] < 0.1
+  assert scores['mean_absolute_error'] < 0.2
 
 
 # def test_weave_fit_simple_infinity_distance():
@@ -202,21 +196,21 @@ def test_weave_fit_simple_distance_1():
   dataset = dc.data.NumpyDataset(X, y)
 
   batch_size = 20
-  model = WeaveModel(
-      1,
-      batch_size=batch_size,
-      mode='classification',
-      fully_connected_layer_sizes=[2000, 1000],
-      batch_normalize=True,
-      batch_normalize_kwargs={
-          "fused": False,
-          "trainable": True,
-          "renorm": True
-      },
-      learning_rate=0.0005)
+  model = WeaveModel(1,
+                     batch_size=batch_size,
+                     mode='classification',
+                     fully_connected_layer_sizes=[2000, 1000],
+                     batch_normalize=True,
+                     batch_normalize_kwargs={
+                         "fused": False,
+                         "trainable": True,
+                         "renorm": True
+                     },
+                     learning_rate=0.0005)
   model.fit(dataset, nb_epoch=200)
   transformers = []
-  metric = dc.metrics.Metric(
-      dc.metrics.roc_auc_score, np.mean, mode="classification")
+  metric = dc.metrics.Metric(dc.metrics.roc_auc_score,
+                             np.mean,
+                             mode="classification")
   scores = model.evaluate(dataset, [metric], transformers)
   assert scores['mean-roc_auc_score'] >= 0.9
