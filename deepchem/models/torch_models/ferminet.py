@@ -8,6 +8,7 @@ try:
 except ModuleNotFoundError:
   raise ImportError('These classes require PyTorch to be installed.')
 
+from itertools import tee
 from typing import List, Optional, Any
 from rdkit import Chem
 import numpy as np
@@ -133,19 +134,16 @@ class Ferminet(torch.nn.Module):
 
     one_up = one_electron[:, :self.spin[0], :]
     one_down = one_electron[:, self.spin[0]:, :]
-
-    two_up = two_electron[:, :self.spin[0], :]
-    two_down = two_electron[:, self.spin[0]:, :]
-
     # TODO: Look into batchwise feed of input
-    for i in range(0, self.layers, 2):
-      g_one_up = torch.sum(one_up.view(-1, 6), -1)
-      g_one_down = torch.sum(one_down.view(-1, 6), -1)
-      g_two_down = torch.sum(two_down.view(-1, 6), -1)
-      for electron in one_up:
-        g_two_up = torch.sum(two_up.view(-1, 6), -1)
-        f_vector = torch.cat(electron, g_one_up, g_one_down, g_two_up,
-                             g_two_down)
+    for i in range(0, self.layers):
+      g_one_up = torch.mean(one_up, dim=0)
+      g_one_down = torch.mean(one_down, dim=0)
+      for j in range(0, self.spin[0]):
+        g_two_up = torch.mean(two_electron[:self.spin[0], j, :], dim=0)
+        g_two_down = torch.mean(two_electron[self.spin[0]:, j, :], dim=0)
+        f_vector = torch.vstack(
+            (one_electron[j], g_one_up, g_one_down, g_two_up, g_two_down))
+        print(f_vector)
         one_up = torch.tanh(self.fermi_layer[i](f_vector)) + one_up
         two_up = torch.tanh(
             self.fermi_layer[i + 1](two_up)
