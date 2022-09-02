@@ -1,4 +1,4 @@
-name: Test for DeepChem Core
+name: Test for Code Formatting 
 on:
   push: # ci work when pushing master branch
     branches:
@@ -147,21 +147,7 @@ jobs:
       shell: bash -l {0}
       run: |
         mypy -p deepchem
-    - name: Doctest Linux
-      if: ${{ (runner.os == 'Linux') && always() }}
-      shell: bash -l {0}
-      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem --doctest-continue-on-failure
-    - name: Doctest Windows
-      if: ${{ (runner.os == 'Windows') && always() }}
-      # Seperate test avoiding Jax in windows since Jax is not supported in Windows
-      shell: bash -l {0}
-      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --ignore-glob='deepchem/models/jax_models/*' --doctest-modules deepchem --doctest-continue-on-failure
-    - name: Upload coverage to Codecov
-      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
-      uses: codecov/codecov-action@v1
-      with:
-        file: ./coverage.xml
-
+  
   pypi-build:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: [build]

@@ -1,4 +1,4 @@
-name: Test for DeepChem Common
+name: Unit Tests
 on:
   push: # ci work when pushing master branch
     branches:
@@ -98,13 +98,16 @@ jobs:
       run: |
         python -m pip install --upgrade pip;
         pip install conda-merge;
+        cd requirements
         if [ "$(uname)" == 'Linux' ]; then
-          conda-merge requirements/env_common.yml requirements/env_test.yml requirements/env_ubuntu.yml > env.yml
+          conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml > env.yml
         elif [  "$(uname)" == 'Darwin' ]; then
-          conda-merge requirements/env_common.yml requirements/env_test.yml requirements/env_mac.yml > env.yml
+          conda-merge env_common.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml jax/env_jax.cpu.yml > env.yml
         elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
-          conda-merge requirements/env_common.yml requirements/env_test.yml > env.yml
+          conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
         fi;
+        cd ..
+        cp requirements/env.yml env.yml
     - name: Install all dependencies
       uses: conda-incubator/setup-miniconda@v2
       with:
@@ -118,6 +121,15 @@ jobs:
       id: install
       shell: bash -l {0}
       run: pip install -e .
+    - name: Doctest Linux
+      if: ${{ (runner.os == 'Linux') && always() }}
+      shell: bash -l {0}
+      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem --doctest-continue-on-failure
+    - name: Doctest Windows
+      if: ${{ (runner.os == 'Windows') && always() }}
+      # Seperate test avoiding Jax in windows since Jax is not supported in Windows
+      shell: bash -l {0}
+      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --ignore-glob='deepchem/models/jax_models/*' --doctest-modules deepchem --doctest-continue-on-failure
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
