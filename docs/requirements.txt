@@ -14,3 +14,4 @@ dm-haiku
 optax
 rdkit-pypi
 torch-geometric>=2.0.4
+torch-sparse>=0.6.14
