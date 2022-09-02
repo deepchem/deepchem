@@ -13,3 +13,4 @@ from deepchem.models.torch_models.normalizing_flows_pytorch import NormalizingFl
 from deepchem.models.torch_models.layers import CNNModule, CombineMeanStd, WeightedLinearCombo, AtomicConvolution, NeighborList
 from deepchem.models.torch_models.cnn import CNN
 from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
+from deepchem.models.torch_models.neuralode import NeuralODE, NeuralODEModel

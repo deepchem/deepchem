@@ -49,6 +49,7 @@ try:
   from deepchem.models.torch_models import MEGNetModel
   from deepchem.models.torch_models import CNN
   from deepchem.models.torch_models import DMPNN, DMPNNModel
+  from deepchem.models.torch_models import NeuralODE, NeuralODEModel
   from deepchem.models.lightning import DCLightningModule, DCLightningDatasetModule
 except ModuleNotFoundError as e:
   logger.warning(

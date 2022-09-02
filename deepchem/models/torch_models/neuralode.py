@@ -7,7 +7,6 @@ from deepchem.models import TorchModel
 from deepchem.models.losses import L2Loss
 import tqdm
 
-
 class NeuralODE(nn.Module):
 
   def __init__(self, 
