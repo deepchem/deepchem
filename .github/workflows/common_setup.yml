@@ -14,16 +14,16 @@ jobs:
       matrix:
         python-version: [3.7, 3.8, 3.9]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Cache pip modules for Linux
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**.yml') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
     - name: Build DeepChem
@@ -47,7 +47,7 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 0
     # https://github.com/galaxyproject/tools-iuc/blob/master/.github/workflows/pr.yaml
@@ -67,7 +67,7 @@ jobs:
         echo "COMMIT_RANGE=origin/master..." >> $GITHUB_ENV
     - name: Cache pip packages for Linux
       if: runner.os == 'Linux'
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**.yml') }}
@@ -75,7 +75,7 @@ jobs:
           ${{ runner.os }}-pip-
     - name: Cache pip packages for MacOS
       if: runner.os == 'macOS'
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/Library/Caches/pip
         key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/**.yml') }}
@@ -83,14 +83,14 @@ jobs:
           ${{ runner.os }}-pip-
     - name: Cache pip packages for Windows
       if: runner.os == 'Windows'
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~\AppData\Local\pip\Cache
         key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/**.yml') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
     - name: Create env.yml
