@@ -2,12 +2,58 @@ from os import path
 from typing import Optional
 
 import numpy as np
-
+from rdkit.Chem import AllChem
 from deepchem.utils import download_url, get_data_dir, untargz_file
 from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
 
 DEFAULT_PRETRAINED_MODEL_URL = 'https://deepchemdata.s3-us-west-1.amazonaws.com/trained_models/mol2vec_model_300dim.tar.gz'
+
+
+def _mol2alt_sentence(mol, radius):
+  """Same as mol2sentence() except it only returns the alternating sentence
+    Calculates ECFP (Morgan fingerprint) and returns identifiers of substructures as 'sentence' (string).
+    Returns a tuple with 1) a list with sentence for each radius and 2) a sentence with identifiers from all radii
+    combined.
+    NOTE: Words are ALWAYS reordered according to atom order in the input mol object.
+    NOTE: Due to the way how Morgan FPs are generated, number of identifiers at each radius is smaller
+
+    Parameters
+    ----------
+    mol : rdkit.Chem.rdchem.Mol
+    radius : float
+      Fingerprint radius
+
+    Returns
+    -------
+    list
+      alternating sentence
+    combined
+    """
+  # Copied from https://github.com/samoturk/mol2vec/blob/850d944d5f48a58e26ed0264332b5741f72555aa/mol2vec/features.py#L129-L168
+  radii = list(range(int(radius) + 1))
+  info = {}
+  _ = AllChem.GetMorganFingerprint(
+      mol, radius,
+      bitInfo=info)  # info: dictionary identifier, atom_idx, radius
+
+  mol_atoms = [a.GetIdx() for a in mol.GetAtoms()]
+  dict_atoms = {x: {r: None for r in radii} for x in mol_atoms}
+
+  for element in info:
+    for atom_idx, radius_at in info[element]:
+      dict_atoms[atom_idx][
+          radius_at] = element  # {atom number: {fp radius: identifier}}
+
+  # merge identifiers alternating radius to sentence: atom 0 radius0, atom 0 radius 1, etc.
+  identifiers_alt = []
+  for atom in dict_atoms:  # iterate over atoms
+    for r in radii:  # iterate over radii
+      identifiers_alt.append(dict_atoms[atom][r])
+
+  alternating_sentence = map(str, [x for x in identifiers_alt if x])
+
+  return list(alternating_sentence)
 
 
 class Mol2VecFingerprint(MolecularFeaturizer):
@@ -71,13 +117,12 @@ class Mol2VecFingerprint(MolecularFeaturizer):
     """
     try:
       from gensim.models import word2vec
-      from mol2vec.features import mol2alt_sentence
     except ModuleNotFoundError:
       raise ImportError("This class requires mol2vec to be installed.")
 
     self.radius = radius
     self.unseen = unseen
-    self.mol2alt_sentence = mol2alt_sentence
+    self.mol2alt_sentence = _mol2alt_sentence
     if pretrain_model_path is None:
       data_dir = get_data_dir()
       pretrain_model_path = path.join(data_dir, 'mol2vec_model_300dim.pkl')
@@ -85,8 +130,8 @@ class Mol2VecFingerprint(MolecularFeaturizer):
         targz_file = path.join(data_dir, 'mol2vec_model_300dim.tar.gz')
         if not path.exists(targz_file):
           download_url(DEFAULT_PRETRAINED_MODEL_URL, data_dir)
-        untargz_file(
-            path.join(data_dir, 'mol2vec_model_300dim.tar.gz'), data_dir)
+        untargz_file(path.join(data_dir, 'mol2vec_model_300dim.tar.gz'),
+                     data_dir)
     # load pretrained models
     self.model = word2vec.Word2Vec.load(pretrain_model_path)
 
@@ -116,8 +161,8 @@ class Mol2VecFingerprint(MolecularFeaturizer):
       if unseen:
         vec.append(
             sum([
-                model.wv.get_vector(y)
-                if y in set(sentence) & keys else unseen_vec for y in sentence
+                model.wv.get_vector(y) if y in set(sentence) &
+                keys else unseen_vec for y in sentence
             ]))
       else:
         vec.append(
