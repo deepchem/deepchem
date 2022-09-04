@@ -63,7 +63,7 @@ class Ferminet(torch.nn.Module):
     self.nuclear_charge = nuclear_charge
     self.fermi_layer = nn.ModuleList()
     self.fermi_layer.append(nn.Linear(
-        n_one[0], 20))  # TODO: Check the 2nd dimension of the linear weight
+        (6, 4),1))  # TODO: Check the 2nd dimension of the linear weight
     self.fermi_layer.append(nn.Linear(n_two[0], 4))
     for i in range(1, self.layers):
       self.fermi_layer.append(
@@ -143,7 +143,7 @@ class Ferminet(torch.nn.Module):
         g_two_down = torch.mean(two_electron[self.spin[0]:, j, :], dim=0)
         f_vector = torch.vstack(
             (one_electron[j], g_one_up, g_one_down, g_two_up, g_two_down))
-        print(f_vector)
+        print(f_vector.size())
         one_up = torch.tanh(self.fermi_layer[i](f_vector)) + one_up
         two_up = torch.tanh(
             self.fermi_layer[i + 1](two_up)
