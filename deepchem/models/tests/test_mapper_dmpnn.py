@@ -104,7 +104,7 @@ def test_mapper_disconnected_compounds():
   """
   Test '[I-].[K+]' in _MapperDMPNN (disconnected compounds)
   """
-  mapper = _MapperDMPNN(graphs[0])
+  mapper = _MapperDMPNN(graphs[4])
   assert (mapper.bond_to_ini_atom == np.empty(0)).all()
   assert (mapper.atom_to_incoming_bonds == np.asarray([[-1], [-1]])).all()
   assert (mapper.mapping == np.asarray([[-1]])).all()
