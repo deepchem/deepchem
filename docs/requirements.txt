@@ -13,6 +13,6 @@ jax
 dm-haiku
 optax
 rdkit-pypi
-torch-sparse>=0.6.14 --extra-index-url https://data.pyg.org/whl/torch-1.12.0+cpu.html
+https://data.pyg.org/whl/torch-1.12.0%2Bcpu/torch_sparse-0.6.14-cp38-cp38-linux_x86_64.whl --extra-index-url https://data.pyg.org/whl/torch-1.12.0+cpu.html
 torch-scatter>=2.0.9 --extra-index-url https://data.pyg.org/whl/torch-1.12.0+cpu.html
 torch-geometric>=2.0.4
