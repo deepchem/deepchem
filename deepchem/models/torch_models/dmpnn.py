@@ -7,11 +7,7 @@ from deepchem.models.losses import Loss, L2Loss, SparseSoftmaxCrossEntropy
 from deepchem.models.torch_models import layers
 from deepchem.models.torch_models import TorchModel
 
-try:
-  from torch_geometric.data import Data, Batch
-except ModuleNotFoundError:
-  raise ModuleNotFoundError(
-      "This model requires PyTorch Geometric to be installed.")
+from torch_geometric.data import Data, Batch
 
 from deepchem.feat import GraphData
 from deepchem.data import Dataset
