@@ -16,7 +16,7 @@ jobs:
         python-version: [3.7, 3.8, 3.9]
         include:
           - os: windows-latest
-            python-version: 3.7
+            python-version: 3.8
     steps:
     - uses: actions/checkout@v3
     - name: Cache pip modules for Linux
@@ -44,6 +44,9 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: [3.7, 3.9]
+        include:
+          - os: windows-latest
+            python-version: 3.7
     env:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}

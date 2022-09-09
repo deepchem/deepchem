@@ -12,11 +12,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
-        python-version: ['3.8']
+        os: ubuntu-latest
+        python-version: ['3.7', '3.8', '3.9']
         include:
-        - os: ubuntu-latest
-          python-version: '3.9'
+        - os: windows-latest
+          python-version: ['3.8']
     steps:
     - uses: actions/checkout@v3
       # using cached dependencies to speed up workflow
