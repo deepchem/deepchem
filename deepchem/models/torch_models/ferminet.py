@@ -8,7 +8,6 @@ try:
 except ModuleNotFoundError:
   raise ImportError('These classes require PyTorch to be installed.')
 
-from itertools import tee
 from typing import List, Optional, Any
 from rdkit import Chem
 import numpy as np
@@ -26,6 +25,7 @@ def test_f(x: np.ndarray) -> np.ndarray:
   return 2 * np.log(np.random.uniform(low=0, high=1.0, size=np.shape(x)[0]))
 
 
+#TODO: model.forward should work for all iterations of the model
 class Ferminet(torch.nn.Module):
   """Approximates the log probability of the wave function of a molecule system using DNNs.
   """
@@ -61,14 +61,14 @@ class Ferminet(torch.nn.Module):
     self.total_electron = spin[0] + spin[1]
     self.inter_atom = inter_atom
     self.nuclear_charge = nuclear_charge
+    self.projection_matrix_two = nn.Linear(4, 32)
+    self.projection_matrix = nn.Linear(4 * nucleon_pos.size()[0], 256)
     self.fermi_layer = nn.ModuleList()
-    self.fermi_layer.append(nn.Linear(
-        (6, 4),1))  # TODO: Check the 2nd dimension of the linear weight
-    self.fermi_layer.append(nn.Linear(n_two[0], 4))
+    self.fermi_layer.append(nn.Linear(4 * nucleon_pos.size()[0] + 16, n_one[0]))
+    self.fermi_layer.append(nn.Linear(4, n_two[0]))
     for i in range(1, self.layers):
-      self.fermi_layer.append(
-          nn.Linear(n_one[i], 3 * n_one[i - 1] + 2 * n_two[i]))
-      self.fermi_layer.append(nn.Linear(n_two[i], n_two[i - 1]))
+      self.fermi_layer.append(nn.Linear(325, n_one[i]))
+      self.fermi_layer.append(nn.Linear(n_two[i - 1], n_two[i]))
 
     self.w = nn.ParameterList()
     self.g = nn.ParameterList()
@@ -134,29 +134,60 @@ class Ferminet(torch.nn.Module):
 
     one_up = one_electron[:, :self.spin[0], :]
     one_down = one_electron[:, self.spin[0]:, :]
+
     # TODO: Look into batchwise feed of input
-    for i in range(0, self.layers):
-      g_one_up = torch.mean(one_up, dim=0)
-      g_one_down = torch.mean(one_down, dim=0)
+    one_electron = one_electron.to(torch.float32)
+    one_up = one_up.to(torch.float32)
+    one_down = one_down.to(torch.float32)
+    two_electron = two_electron.to(torch.float32)
+    for i in range(0, self.layers, 2):
+      print(i)
+      g_one_up = torch.mean(one_up, dim=0).flatten()
+      g_one_down = torch.mean(one_down, dim=0).flatten()
       for j in range(0, self.spin[0]):
-        g_two_up = torch.mean(two_electron[:self.spin[0], j, :], dim=0)
-        g_two_down = torch.mean(two_electron[self.spin[0]:, j, :], dim=0)
+        if i == 0:
+          one_stream = one_electron[j].flatten()
+          two_stream = two_electron[j]
+        g_two_up = torch.mean(two_stream[:self.spin[0], :], dim=0).flatten()
+        g_two_down = torch.mean(two_stream[self.spin[0]:, :], dim=0).flatten()
+        #one_stack=one_stream.reshape(int((one_stream.size()[0])/g_one_up.size()[1]),g_one_up.size()[1])
+        f_vector = torch.vstack(
+            (one_stream.reshape(one_stream.size()[0],
+                                1), g_one_up.reshape(g_one_up.size()[0], 1),
+             g_one_down.reshape(g_one_down.size()[0],
+                                1), g_two_up.reshape(g_two_up.size()[0], 1),
+             g_two_down.reshape(g_two_down.size()[0], 1)))
+        print(f_vector.size())
+        f_vector = f_vector.to(torch.float32)
+        f_vector = f_vector.flatten()
+        one_stream = torch.tanh(
+            self.fermi_layer[i](f_vector)) + self.projection_matrix(one_stream)
+        two_stream = torch.tanh(
+            self.fermi_layer[i + 1](two_stream)
+        ) + self.projection_matrix_two(
+            two_stream
+        )  # TODO: two_up should be replaced with corresponding elctron not whole.
+
+      for j in range(self.spin[0], self.total_electron):
+        if i == 0:
+          one_stream = one_electron[j].reshape(
+              one_electron[j].size()[0] * one_electron[j].size()[1],)
+          two_stream = two_electron[j]
+        print(one_stream)
+        g_two_up = torch.mean(two_stream[:self.spin[0], :], dim=0)
+        g_two_down = torch.mean(two_stream[self.spin[0]:, :], dim=0)
         f_vector = torch.vstack(
             (one_electron[j], g_one_up, g_one_down, g_two_up, g_two_down))
-        print(f_vector.size())
-        one_up = torch.tanh(self.fermi_layer[i](f_vector)) + one_up
-        two_up = torch.tanh(
-            self.fermi_layer[i + 1](two_up)
-        ) + two_up  # TODO: two_up should be replaced with corresponding elctron not whole.
-      g_two_up = torch.sum(two_up.view(-1, 6), -1)
-      for electron in one_down:
-        g_two_down = torch.sum(two_down.view(-1, 6), -1)
-        f_vector = torch.cat(electron, g_one_up, g_one_down, g_two_up,
-                             g_two_down)
-        one_down = torch.tanh(self.fermi_layer[i](f_vector)) + one_down
-        two_down = torch.tanh(
-            self.fermi_layer[i + 1](two_down)
-        ) + two_down  # TODO: two_up should be replaced with corresponding elctron not whole.
+        f_vector = f_vector.to(torch.float32)
+        f_vector = f_vector.reshape(24)
+        one_up = one_up.reshape(8)
+        one_stream = torch.tanh(
+            self.fermi_layer[i](f_vector)) + self.projection_matrix(one_stream)
+        two_stream = torch.tanh(
+            self.fermi_layer[i + 1](two_stream)
+        ) + self.projection_matrix_two(
+            two_stream
+        )  # TODO: two_up should be replaced with corresponding elctron not whole.
 
     no_orbitals = self.spin[0] + self.spin[1]
     for k in range(self.determinant):
