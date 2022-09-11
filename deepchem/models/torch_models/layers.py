@@ -23,6 +23,173 @@ except:
   from collections import Sequence as SequenceCollection
 
 
+class LinearModule(nn.Module):
+  """A Flexible Linear FeedForward Network Module. The interface allows users to
+  configure the neural net in terms of number of layers, dropouts, weight initialisation
+
+  TODO : Add Usage Example
+  """
+
+  def __init__(self,
+               layer_filters: OneOrMany[nn.Module],
+               n_tasks: int = 1,
+               n_features: int = 1,
+               n_classes: int = 1,
+               mode: str = "regression",
+               dropouts: OneOrMany[float] = 0.5,
+               activation_fns: OneOrMany[ActivationFn] = 'relu',
+               weight_init_stddev: OneOrMany[float] = 0.02,
+               bias_init_consts: OneOrMany[float] = 1.0,
+               residual: bool = True,
+               ode_block: nn.Module = None,
+               enable_ffn: bool = True):
+    """Linear Feed Forward Network
+
+      TODO : Flexibility to use Convolutional/ Linear NN as modelling network
+
+      Parameters
+    ----------
+    n_tasks: int
+      number of tasks
+    n_features: int
+      number of features
+    layer_filters: list
+      the number of output filters for each linear layer in the network.
+      The length of this list determines the number of layers.
+    weight_init_stddevs: list or float
+      the standard deviation of the distribution to use for weight initialization
+      of each layer.  The length of this list should equal len(layer_filters)+1,
+      where the final element corresponds to the dense layer.  Alternatively this
+      may be a single value instead of a list, in which case the same value is used
+      for every layer.
+    bias_init_consts: list or float
+      the value to initialize the biases in each layer to.  The length of this
+      list should equal len(layer_filters)+1, where the final element corresponds
+      to the dense layer.  Alternatively this may be a single value instead of a
+      list, in which case the same value is used for every layer.
+    weight_decay_penalty: float
+      the magnitude of the weight decay penalty to use
+    weight_decay_penalty_type: str
+      the type of penalty to use for weight decay, either 'l1' or 'l2'
+    dropouts: list or float
+      the dropout probability to use for each layer.  The length of this list should equal len(layer_filters).
+      Alternatively this may be a single value instead of a list, in which case the same value is used for every layer
+    activation_fns: str or list
+      the torch activation function to apply to each layer. The length of this list should equal
+      len(layer_filters).  Alternatively this may be a single value instead of a list, in which case the
+      same value is used for every layer, 'relu' by default
+    mode: str
+      Either 'classification' or 'regression'
+    residual: bool
+      if True, the model will be composed of pre-activation residual blocks instead
+      of a simple stack of linear layers.
+    ode_block: nn.Module
+      whether to use neural ode
+
+    """
+
+    self.n_tasks = n_tasks
+    self.droputs = dropouts
+    self.ode_block = ode_block
+    self.n_classes - n_classes
+    self.residual = residual
+    self.mode = mode
+    self.enable_ffn = enable_ffn
+
+    n_layers = len(layer_filters)
+
+    if len(layer_filters) == 1:
+      layer_filters = layer_filters * 2
+    if not isinstance(dropouts, SequenceCollection):
+      dropouts = [dropouts] * n_layers
+    if isinstance(activation_fns,
+                  str) or not isinstance(activation_fns, SequenceCollection):
+      activation_fns = [activation_fns] * n_layers
+    if not isinstance(weight_init_stddevs, SequenceCollection):
+      weight_init_stddevs = [weight_init_stddevs] * n_layers
+    if not isinstance(bias_init_consts, SequenceCollection):
+      bias_init_consts = [bias_init_consts] * n_layers
+
+    self.activation_fns = [get_activation(f) for f in activation_fns]
+
+    self.net = nn.ModuleList()
+
+    in_shape = n_features
+
+    for out_shape, weight_stddev, bias_const in zip(layer_filters,
+                                                    weight_init_stddev,
+                                                    bias_init_consts):
+
+      layer = nn.Linear(in_features=in_shape, out_features=out_shape, bias=True)
+
+      nn.init.normal_(layer.weight, 0, weight_stddev)
+
+      if layer.bias is not None:
+        layer.bias = nn.Parameter(torch.full(layer.bias.shape, bias_const))
+
+      self.layer.append(layer)
+
+    self.classifier_ffn = nn.LazyLinear(self.n_tasks * self.n_classes)
+    self.output_layer = nn.LazyLinear(self.n_tasks)
+
+  def forward(self, inputs):
+    """
+    Parameters
+    ----------
+    inputs: list of torch.Tensor
+      Input Tensors
+    Returns
+    -------
+    torch.Tensor
+      Output Tensor
+    """
+
+    if isinstance(inputs, torch.Tensor):
+      x, dropout_switch = inputs, None
+    else:
+      x, dropout_switch = inputs
+
+    prev_layer = x
+
+    for layer, activation_fn, dropout in zip(self.layers, self.activation_fns,
+                                             self.dropouts):
+      x = layer(x)
+
+      if dropout > 0. and dropout_switch:
+        x = F.dropout(x, dropout)
+
+        if self.residual and x.shape[1] == prev_layer.shape[1]:
+          x = x + prev_layer
+
+        if activation_fn is not None:
+          x = self.activation_fn(x)
+
+        prev_layer = x
+
+    if self.ode_block is not None:
+      x, _ = self.ode_block(x)
+
+    outputs = x
+
+    if self.enable_ffn:
+      batch_size = x.shape[0]
+
+      if self.mode == "classification":
+
+        logits = self.classifier_ffn(x)
+        logits = logits.view(batch_size, self.n_tasks, self.n_classes)
+        output = F.softmax(logits, dim=2)
+        outputs = [output, logits]
+
+      else:
+        output = self.output_layer(x)
+        output = output.view(batch_size, self.n_tasks)
+
+        outputs = [output]
+
+    return outputs
+
+
 class CNNModule(nn.Module):
   """A 1, 2, or 3 dimensional convolutional network for either regression or classification.
   The network consists of the following sequence of layers:
@@ -219,8 +386,8 @@ class CNNModule(nn.Module):
     """
     Parameters
     ----------
-    x: torch.Tensor
-      Input Tensor
+    inputs: list of tensors
+      Input Tensors
     Returns
     -------
     torch.Tensor
