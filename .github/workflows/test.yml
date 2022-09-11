@@ -8,11 +8,15 @@ on:
       - master
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         python-version: [3.7, 3.8, 3.9]
+        include:
+          - os: windows-latest
+            python-version: 3.8
     steps:
     - uses: actions/checkout@v3
     - name: Cache pip modules for Linux
@@ -39,7 +43,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.7, 3.9]
         include:
           - os: windows-latest
             python-version: 3.7
