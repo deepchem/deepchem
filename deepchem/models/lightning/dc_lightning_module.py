@@ -1,9 +1,5 @@
-try:
-  import torch
-  import pytorch_lightning as pl  # noqa
-  PYTORCH_LIGHTNING_IMPORT_FAILED = False
-except ImportError:
-  PYTORCH_LIGHTNING_IMPORT_FAILED = True
+import torch
+import pytorch_lightning as pl  # noqa
 
 
 class DCLightningModule(pl.LightningModule):
