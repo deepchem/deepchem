@@ -225,14 +225,14 @@ class RandomHyperparamOpt(HyperparamOpt):
                                            output_transformers)
     train_score = multitask_scores[metric.name]
     logger.info("Best hyperparameters: %s" % str(best_hyperparams))
-    logger.info("train_score: %f" % train_score)
-    logger.info("validation_score: %f" % best_validation_score)
+    logger.info("best train_score: %f" % train_score)
+    logger.info("best validation_score: %f" % best_validation_score)
 
     if logdir is not None:
       with open(log_file, 'w+') as f:
         f.write("Best Hyperparameters dictionary %s\n" % str(best_hyperparams))
-        f.write("Best validation score %s" % str(train_score))
-
+        f.write("Best validation score %f\n" % best_validation_score)
+        f.write("Best train_score: %f\n" % train_score)
     return best_model, best_hyperparams, all_scores
 
   @classmethod
