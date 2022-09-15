@@ -86,7 +86,7 @@ class GridHyperparamOpt(HyperparamOpt):
       nb_epoch: int = 10,
       use_max: bool = True,
       logdir: Optional[str] = None,
-      logfile: Optional[str] = None,
+      logfile: Optional[str] = 'results.txt',
       **kwargs,
   ):
     """Perform hyperparams search according to params_dict.
@@ -158,10 +158,7 @@ class GridHyperparamOpt(HyperparamOpt):
     if logdir is not None:
       if not os.path.exists(logdir):
         os.makedirs(logdir, exist_ok=True)
-      if logfile is not None:
-        log_file = os.path.join(logdir, logfile)
-      else:
-        log_file = os.path.join(logdir, "results.txt")
+      log_file = os.path.join(logdir, logfile)
 
     for ind, hyperparameter_tuple in enumerate(
         itertools.product(*hyperparam_vals)):
@@ -210,8 +207,9 @@ class GridHyperparamOpt(HyperparamOpt):
         best_hyperparams = hyper_params
         best_model = model
 
-      logger.info("Model %d/%d, Metric %s, Validation set %s: %f" %
-                  (ind + 1, number_combinations, metric.name, ind, valid_score))
+      logger.info(
+          "Model %d/%d, Metric %s, Validation set %s: %f" %
+          (ind + 1, number_combinations, metric.name, ind, valid_score))
       logger.info("\tbest_validation_score so far: %f" % best_validation_score)
     if best_model is None:
       logger.info("No models trained correctly.")
@@ -225,10 +223,11 @@ class GridHyperparamOpt(HyperparamOpt):
                                            output_transformers)
     train_score = multitask_scores[metric.name]
     logger.info("Best hyperparameters: %s" % str(best_hyperparams))
-    logger.info("train_score: %f" % train_score)
-    logger.info("validation_score: %f" % best_validation_score)
+    logger.info("best train score: %f" % train_score)
+    logger.info("best validation score: %f" % best_validation_score)
     if logdir is not None:
       with open(log_file, 'w+') as f:
         f.write("Best Hyperparameters dictionary %s\n" % str(best_hyperparams))
-        f.write("Best validation score %s" % str(train_score))
+        f.write("Best validation score %f\n" % best_validation_score)
+        f.write("Best train_score: %f\n" % train_score)
     return best_model, best_hyperparams, all_scores
