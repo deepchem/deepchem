@@ -11,6 +11,7 @@ import sklearn.ensemble
 import os
 from scipy.stats import uniform
 
+
 class TestRandomHyperparamOpt(unittest.TestCase):
   """
   Test random hyperparameter optimization API.
@@ -26,24 +27,23 @@ class TestRandomHyperparamOpt(unittest.TestCase):
       return dc.models.SklearnModel(sklearn_model, model_dir)
 
     self.rf_model_builder = rf_model_builder
-    self.train_dataset = dc.data.NumpyDataset(
-        X=np.random.rand(50, 5), y=np.random.rand(50, 1))
-    self.valid_dataset = dc.data.NumpyDataset(
-        X=np.random.rand(20, 5), y=np.random.rand(20, 1))
+    self.train_dataset = dc.data.NumpyDataset(X=np.random.rand(50, 5),
+                                              y=np.random.rand(50, 1))
+    self.valid_dataset = dc.data.NumpyDataset(X=np.random.rand(20, 5),
+                                              y=np.random.rand(20, 1))
 
   def test_rf_hyperparam(self):
     """Test of hyperparam_opt with singletask RF ECFP regression API."""
     optimizer = dc.hyper.RandomHyperparamOpt(self.rf_model_builder)
-    sampler = uniform(loc=0, scale=0.001)
-    params_dict = {"n_estimators": [10, 100], 
-    "min_impurity_decrease": sampler}
+    sampler = uniform(loc=0, scale=0.001).rvs
+    params_dict = {"n_estimators": [10, 100], "min_impurity_decrease": sampler}
     transformers = []
     metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
-    n_search = 5
+    max_iter = 5
 
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
-        params_dict, self.train_dataset, self.valid_dataset, metric, 
-        n_search, transformers)
+        params_dict, self.train_dataset, self.valid_dataset, metric, max_iter,
+        transformers)
     valid_score = best_model.evaluate(self.valid_dataset, [metric],
                                       transformers)
 
@@ -53,19 +53,18 @@ class TestRandomHyperparamOpt(unittest.TestCase):
   def test_rf_hyperparam_min(self):
     """Test of hyperparam_opt with singletask RF ECFP regression API."""
     optimizer = dc.hyper.RandomHyperparamOpt(self.rf_model_builder)
-    sampler = uniform(loc=0, scale=0.001)
-    params_dict = {"n_estimators": [10, 100], 
-    "min_impurity_decrease": sampler}
+    sampler = uniform(loc=0, scale=0.001).rvs
+    params_dict = {"n_estimators": [10, 100], "min_impurity_decrease": sampler}
     transformers = []
     metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
-    n_search = 5
+    max_iter = 5
 
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
         params_dict,
         self.train_dataset,
         self.valid_dataset,
         metric,
-        n_search,
+        max_iter,
         transformers,
         use_max=False)
     valid_score = best_model.evaluate(self.valid_dataset, [metric],
@@ -77,12 +76,11 @@ class TestRandomHyperparamOpt(unittest.TestCase):
   def test_rf_with_logdir(self):
     """Test that using a logdir can work correctly."""
     optimizer = dc.hyper.RandomHyperparamOpt(self.rf_model_builder)
-    sampler = uniform(loc=0, scale=0.001)
-    params_dict = {"n_estimators": [10, 5], 
-    "min_impurity_decrease": sampler}
+    sampler = uniform(loc=0, scale=0.001).rvs
+    params_dict = {"n_estimators": [10, 5], "min_impurity_decrease": sampler}
     transformers = []
     metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
-    n_search = 2
+    max_iter = 2
 
     with tempfile.TemporaryDirectory() as tmpdirname:
       best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
@@ -90,41 +88,44 @@ class TestRandomHyperparamOpt(unittest.TestCase):
           self.train_dataset,
           self.valid_dataset,
           metric,
-          n_search,
+          max_iter,
           transformers,
           logdir=tmpdirname)
-      # n_search model variants, 1 results.txt file
-      assert len(os.listdir(tmpdirname)) == n_search + 1
+      # max_iter model variants, 1 results.txt file
+      assert len(os.listdir(tmpdirname)) == max_iter + 1
 
   @pytest.mark.torch
   def test_multitask_example(self):
     """Test a simple example of optimizing a multitask model with a random search."""
     # Generate dummy dataset
     np.random.seed(123)
-    train_dataset = dc.data.NumpyDataset(
-        np.random.rand(10, 3), np.zeros((10, 2)), np.ones((10, 2)),
-        np.arange(10))
-    valid_dataset = dc.data.NumpyDataset(
-        np.random.rand(5, 3), np.zeros((5, 2)), np.ones((5, 2)), np.arange(5))
+    train_dataset = dc.data.NumpyDataset(np.random.rand(10, 3),
+                                         np.zeros((10, 2)), np.ones((10, 2)),
+                                         np.arange(10))
+    valid_dataset = dc.data.NumpyDataset(np.random.rand(5, 3), np.zeros(
+        (5, 2)), np.ones((5, 2)), np.arange(5))
 
     optimizer = dc.hyper.RandomHyperparamOpt(
-        lambda **params: dc.models.MultitaskRegressor(n_tasks=2,
-                                                      n_features=3, dropouts=[0.],
-                                                      weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
-                                                      learning_rate=0.003, **params))
+        lambda **params: dc.models.MultitaskRegressor(
+            n_tasks=2,
+            n_features=3,
+            dropouts=[0.],
+            weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
+            learning_rate=0.003,
+            **params))
 
     params_dict = {"batch_size": [10, 20]}
     transformers = []
-    metric = dc.metrics.Metric(
-        dc.metrics.mean_squared_error, task_averager=np.mean)
-    n_search = 3
+    metric = dc.metrics.Metric(dc.metrics.mean_squared_error,
+                               task_averager=np.mean)
+    max_iter = 3
 
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
         params_dict,
         train_dataset,
         valid_dataset,
         metric,
-        n_search,
+        max_iter,
         transformers,
         use_max=False)
 
@@ -138,11 +139,11 @@ class TestRandomHyperparamOpt(unittest.TestCase):
     with multiple parameters to optimize."""
     # Generate dummy dataset
     np.random.seed(123)
-    train_dataset = dc.data.NumpyDataset(
-        np.random.rand(10, 3), np.zeros((10, 2)), np.ones((10, 2)),
-        np.arange(10))
-    valid_dataset = dc.data.NumpyDataset(
-        np.random.rand(5, 3), np.zeros((5, 2)), np.ones((5, 2)), np.arange(5))
+    train_dataset = dc.data.NumpyDataset(np.random.rand(10, 3),
+                                         np.zeros((10, 2)), np.ones((10, 2)),
+                                         np.arange(10))
+    valid_dataset = dc.data.NumpyDataset(np.random.rand(5, 3), np.zeros(
+        (5, 2)), np.ones((5, 2)), np.arange(5))
 
     optimizer = dc.hyper.RandomHyperparamOpt(
         lambda **params: dc.models.MultitaskRegressor(
@@ -152,13 +153,13 @@ class TestRandomHyperparamOpt(unittest.TestCase):
             weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
             **params))
 
-    sampler = uniform(loc=0.003, scale=10)
+    sampler = uniform(loc=0.003, scale=10).rvs
     params_dict = {"learning_rate": sampler, "batch_size": [10, 50]}
     # These are per-example multiplier
     transformers = []
-    metric = dc.metrics.Metric(
-        dc.metrics.mean_squared_error, task_averager=np.mean)
-    n_search = 5
+    metric = dc.metrics.Metric(dc.metrics.mean_squared_error,
+                               task_averager=np.mean)
+    max_iter = 5
 
     with tempfile.TemporaryDirectory() as tmpdirname:
       best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
@@ -166,7 +167,7 @@ class TestRandomHyperparamOpt(unittest.TestCase):
           train_dataset,
           valid_dataset,
           metric,
-          n_search,
+          max_iter,
           transformers,
           logdir=tmpdirname,
           use_max=False)
@@ -186,24 +187,27 @@ class TestRandomHyperparamOpt(unittest.TestCase):
     search with a different number of training epochs."""
     # Generate dummy dataset
     np.random.seed(123)
-    train_dataset = dc.data.NumpyDataset(
-        np.random.rand(10, 3), np.zeros((10, 2)), np.ones((10, 2)),
-        np.arange(10))
-    valid_dataset = dc.data.NumpyDataset(
-        np.random.rand(5, 3), np.zeros((5, 2)), np.ones((5, 2)), np.arange(5))
+    train_dataset = dc.data.NumpyDataset(np.random.rand(10, 3),
+                                         np.zeros((10, 2)), np.ones((10, 2)),
+                                         np.arange(10))
+    valid_dataset = dc.data.NumpyDataset(np.random.rand(5, 3), np.zeros(
+        (5, 2)), np.ones((5, 2)), np.arange(5))
 
     optimizer = dc.hyper.RandomHyperparamOpt(
-        lambda **params: dc.models.MultitaskRegressor(n_tasks=2,
-                                                      n_features=3, dropouts=[0.],
-                                                      weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
-                                                      learning_rate=0.003, **params))
+        lambda **params: dc.models.MultitaskRegressor(
+            n_tasks=2,
+            n_features=3,
+            dropouts=[0.],
+            weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
+            learning_rate=0.003,
+            **params))
 
-    n_search = 3
+    max_iter = 3
 
     params_dict = {"batch_size": [10, 20]}
     transformers = []
-    metric = dc.metrics.Metric(
-        dc.metrics.mean_squared_error, task_averager=np.mean)
+    metric = dc.metrics.Metric(dc.metrics.mean_squared_error,
+                               task_averager=np.mean)
 
     # Define nb_epoch in hyperparam_search function call
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
@@ -211,7 +215,7 @@ class TestRandomHyperparamOpt(unittest.TestCase):
         train_dataset,
         valid_dataset,
         metric,
-        n_search,
+        max_iter,
         transformers,
         nb_epoch=3,
         use_max=False)
