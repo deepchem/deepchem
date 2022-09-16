@@ -61,13 +61,14 @@ class Ferminet(torch.nn.Module):
     self.total_electron = spin[0] + spin[1]
     self.inter_atom = inter_atom
     self.nuclear_charge = nuclear_charge
-    self.projection_matrix_two = nn.Linear(4, 32)
-    self.projection_matrix = nn.Linear(4 * nucleon_pos.size()[0], 256)
+    self.projection_matrix_two = nn.Linear(4, n_two[0])
+    self.projection_matrix = nn.Linear(4 * nucleon_pos.size()[0], n_one[0])
     self.fermi_layer = nn.ModuleList()
-    self.fermi_layer.append(nn.Linear(4 * nucleon_pos.size()[0] + 16, n_one[0]))
+    self.fermi_layer.append(nn.Linear(8 * nucleon_pos.size()[0] + 8, n_one[0]))
     self.fermi_layer.append(nn.Linear(4, n_two[0]))
     for i in range(1, self.layers):
-      self.fermi_layer.append(nn.Linear(328, n_one[i]))
+      self.fermi_layer.append(
+          nn.Linear((4 * nucleon_pos.size()[0] + 64) + n_one[i - 1], n_one[i]))
       self.fermi_layer.append(nn.Linear(n_two[i - 1], n_two[i]))
 
     self.w_up = nn.ParameterList()
