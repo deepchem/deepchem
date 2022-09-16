@@ -3,7 +3,6 @@ Test for Ferminet Model.
 """
 
 import pytest
-import numpy as np
 
 try:
   import torch
@@ -29,46 +28,6 @@ def test_prepare_input_stream():
 
   potential = fermi.calculate_potential()
   assert torch.allclose(potential, torch.tensor([-40.5568845023]))
-
-  assert torch.allclose(
-      fermi.one_up,
-      torch.Tensor([[[
-          0.035281046919353284, 0.008003144167344467, 0.019574759682114785,
-          0.041133609188854975
-      ],
-                     [
-                         0.035281046919353284, 0.008003144167344467,
-                         -0.7284252403178852, 0.7293230651230344
-                     ]]]))
-
-  assert torch.allclose(
-      fermi.one_down,
-      torch.Tensor([[[
-          0.044817863984029156, 0.03735115980299935, 0.7284544424024718,
-          0.7307869899817704
-      ],
-                     [
-                         0.044817863984029156, 0.03735115980299935,
-                         -0.019545557597528185, 0.06152868349411048
-                     ]]]))
-  assert fermi.one_electron_distance.size(
-  )[0] == 2 and fermi.one_electron_distance.size()[1] == 2
-  assert torch.allclose(
-      fermi.two_up,
-      torch.Tensor([[[0.0, 0.0, 0.0, 0.0],
-                     [
-                         0.009536817064675872, 0.02934801563565488,
-                         0.7088796827203571, 0.7095510280981839
-                     ]]]))
-  assert torch.allclose(
-      fermi.two_down,
-      torch.Tensor([[[
-          -0.009536817064675872, -0.02934801563565488, -0.7088796827203571,
-          0.7095510280981839
-      ], [0.0, 0.0, 0.0, 0.0]]]))
-  assert fermi.two_electron_distance.size(
-  )[0] == 2 and fermi.two_electron_distance.size()[1] == 2
-
   # potential energy test
   # potential = molecule.calculate_potential()
   # assert np.allclose(potential, [-40.5568845023])

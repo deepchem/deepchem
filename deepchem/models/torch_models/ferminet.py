@@ -25,7 +25,7 @@ def test_f(x: np.ndarray) -> np.ndarray:
   return 2 * np.log(np.random.uniform(low=0, high=1.0, size=np.shape(x)[0]))
 
 
-#TODO: model.forward should work for all iterations of the model
+# TODO: model.forward should work for all iterations of the model
 class Ferminet(torch.nn.Module):
   """Approximates the log probability of the wave function of a molecule system using DNNs.
   """
@@ -70,22 +70,36 @@ class Ferminet(torch.nn.Module):
       self.fermi_layer.append(nn.Linear(328, n_one[i]))
       self.fermi_layer.append(nn.Linear(n_two[i - 1], n_two[i]))
 
-    self.w = nn.ParameterList()
-    self.g = nn.ParameterList()
-    self.pi = nn.ParameterList()
-    self.sigma = nn.ParameterList()
+    self.w_up = nn.ParameterList()
+    self.g_up = nn.ParameterList()
+    self.w_down = nn.ParameterList()
+    self.g_down = nn.ParameterList()
+    self.pi_up = nn.ParameterList()
+    self.sigma_up = nn.ParameterList()
+    self.pi_down = nn.ParameterList()
+    self.sigma_down = nn.ParameterList()
+
     for i in range(self.determinant):
-      for j in range(self.total_electron):
-        self.w.append(
+      for j in range(self.spin[0]):
+        self.w_up.append(
             nn.parameter.Parameter(nn.init.normal(torch.Tensor(n_one[-1]))))
-        self.g.append(nn.parameter.Parameter(nn.init.normal(torch.Tensor(1))))
+        self.g_up.append(nn.parameter.Parameter(nn.init.normal(
+            torch.Tensor(1))))
         for k in range(nucleon_pos.size()[0]):
-          self.pi.append(nn.parameter.Parameter(nn.init.normal(
-              torch.Tensor(1))))
-          self.sigma.append(
+          self.pi_up.append(
               nn.parameter.Parameter(nn.init.normal(torch.Tensor(1))))
-    self.psi_up = torch.empty((self.determinant, 1), requires_grad=True)
-    self.psi_down = torch.empty((self.determinant, 1), requires_grad=True)
+          self.sigma_up.append(
+              nn.parameter.Parameter(nn.init.normal(torch.Tensor(1))))
+      for j in range(self.spin[1]):
+        self.w_down.append(
+            nn.parameter.Parameter(nn.init.normal(torch.Tensor(n_one[-1]))))
+        self.g_down.append(
+            nn.parameter.Parameter(nn.init.normal(torch.Tensor(1))))
+        for k in range(nucleon_pos.size()[0]):
+          self.pi_down.append(
+              nn.parameter.Parameter(nn.init.normal(torch.Tensor(1))))
+          self.sigma_down.append(
+              nn.parameter.Parameter(nn.init.normal(torch.Tensor(1))))
 
   def forward(
       self,
@@ -132,13 +146,13 @@ class Ferminet(torch.nn.Module):
         (two_electron_vector, two_distance.repeat(1, 1, 3)), dim=-1)
     two_electron = two_electron[:, :, 0:4]
 
+    # TODO: Look into batchwise feed of input
     one_up = one_electron[:, :self.spin[0], :]
     one_down = one_electron[:, self.spin[0]:, :]
 
-    # TODO: Look into batchwise feed of input
-    one_electron = one_electron.to(torch.float32)
     one_up = one_up.to(torch.float32)
     one_down = one_down.to(torch.float32)
+    one_electron = one_electron.to(torch.float32)
     two_electron = two_electron.to(torch.float32)
     for i in range(0, 2 * self.layers, 2):
       g_one_up = torch.mean(one_up, dim=0).flatten()
@@ -177,37 +191,33 @@ class Ferminet(torch.nn.Module):
       one_electron = tmp_one_electron
       two_electron = tmp_two_electron
 
-    no_orbitals = self.spin[0] + self.spin[1]
-    for k in range(self.determinant):
-      for i in range(no_orbitals):
-        for j in range(self.spin[0]):
-          # TODO: check self.pi dimensions
-          envelope = torch.sum(
-              self.pi *
-              torch.exp(self.sigma * torch.linalg.norm(self.inter_atom[i][j]))
-          )  # TODO: Check the correct inter-atom
-          if i == 0:
-            self.psi_up[k][0] = (torch.dot(self.w[i + k], one_up[j]) +
-                                 self.g[i + k]) * envelope
-          else:
-            torch.cat(self.psi_up[k],
-                      (torch.dot(self.w[i + k], one_up[j]) + self.g[i + k]) *
-                      envelope)
-        for j in range(self.spin[1]):
-          envelope = torch.sum(
-              self.pi *
-              torch.exp(self.sigma * torch.linalg.norm(self.inter_atom[i][j]))
-          )  # TODO: Check the correct inter-atom
-          if i == 0:
-            self.psi_down[k][0] = (torch.dot(self.w[i + k], one_up[j]) +
-                                   self.g[i + k]) * envelope
-          else:
-            torch.cat(self.psi_down[k],
-                      (torch.dot(self.w[i + k], one_up[j]) + self.g[i + k]) *
-                      envelope)
+    self.psi_up = torch.empty((self.determinant, self.spin[0], self.spin[0]))
+    self.psi_down = torch.empty((self.determinant, self.spin[1], self.spin[1]))
+    one_up = one_electron[:self.spin[0], :]
+    one_down = one_electron[self.spin[0]:, :]
 
-    psi_log = 2 * torch.log(
-        torch.sum(torch.det(self.psi_up) * torch.det(self.psi_down)))
+    for k in range(self.determinant):
+      # spin-up orbitals
+      for i in range(self.spin[0]):
+        for j in range(self.spin[0]):
+          envelope = 0
+          for m in range(self.nucleon_pos.size()[0]):
+            envelope += self.pi_up[k + i + j + m] * torch.exp(
+                -torch.linalg.norm(self.sigma_up[k + i + j + m] *
+                                   one_electron_vector[j][m]))
+          self.psi_up[k][i][j] = (torch.dot(self.w_up[i + k], one_up[j]) +
+                                  self.g_up[i + k]) * envelope
+        # spin-down orbitals
+        for j in range(self.spin[1]):
+          envelope = 0
+          for m in range(self.nucleon_pos.size()[0]):
+            envelope += self.pi_up[k + i + j + m] * torch.exp(
+                -torch.linalg.norm(self.sigma_up[k + i + j + m] *
+                                   one_electron_vector[j][m]))
+          self.psi_down[k][i][j] = (torch.dot(self.w_down[i + k], one_down[j]) +
+                                    self.g_down[i + k]) * envelope
+    psi = torch.sum(torch.det(self.psi_up) * torch.det(self.psi_down))
+    psi_log = 2 * torch.log(torch.abs(psi))
     return psi_log
 
   def calculate_potential(self,) -> Any:
@@ -231,8 +241,9 @@ class Ferminet(torch.nn.Module):
     nuclear_nuclear_potential = torch.sum(
         self.nuclear_charge * self.nuclear_charge.reshape(charge_shape[0], 1) *
         torch.tril(1 / self.inter_atom, -1))
-
-    return electron_nuclear_potential + electron_electron_potential + nuclear_nuclear_potential
+    potential = electron_nuclear_potential + electron_electron_potential + nuclear_nuclear_potential
+    potential = potential.to(torch.float32)
+    return potential
 
   def local_energy(self, output: torch.Tensor, input: torch.Tensor) -> Any:
     """Calculates the hamiltonian of the molecule system.
