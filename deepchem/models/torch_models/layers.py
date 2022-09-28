@@ -16,6 +16,7 @@ except ModuleNotFoundError:
 
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
 from deepchem.utils.pytorch_utils import get_activation
+from torch.nn import init as initializers
 
 try:
   from collections.abc import Sequence as SequenceCollection
@@ -2152,6 +2153,106 @@ class NeighborList(nn.Module):
         torch.permute(torch.stack(torch.meshgrid(*mesh_args, indexing='xy')),
                       tuple(range(self.ndim, -1, -1))),
         (self.n_cells, self.ndim)).to(torch.float)
+
+
+class LSTMStep(nn.Module):
+  """Layer that performs a single step LSTM update.
+
+  This is the Torch equivalent of the original implementation using Keras.
+  """
+
+  def __init__(self,
+               output_dim,
+               input_dim,
+               init_fn='xavier_uniform_',
+               inner_init_fn='orthogonal_',
+               activation_fn='tanh',
+               inner_activation_fn='hardsigmoid',
+               **kwargs):
+    """
+    Parameters
+    ----------
+    output_dim: int
+      Dimensionality of output vectors.
+    input_dim: int
+      Dimensionality of input vectors.
+    init_fn: str
+      PyTorch initialization to use for W.
+    inner_init_fn: str
+      PyTorch initialization to use for U.
+    activation_fn: str
+      PyTorch activation to use for output.
+    inner_activation_fn: str
+      PyTorch activation to use for inner steps.
+    """
+
+    super(LSTMStep, self).__init__(**kwargs)
+    self.init = init_fn
+    self.inner_init = inner_init_fn
+    self.output_dim = output_dim
+    # No other forget biases supported right now.
+    self.activation = activation_fn
+    self.inner_activation = inner_activation_fn
+    self.activation_fn = get_activation(activation_fn)
+    self.inner_activation_fn = get_activation(inner_activation_fn)
+    self.input_dim = input_dim
+    self.build()
+
+  def get_config(self):
+    config = super(LSTMStep, self).get_config()
+    config['output_dim'] = self.output_dim
+    config['input_dim'] = self.input_dim
+    config['init_fn'] = self.init
+    config['inner_init_fn'] = self.inner_init
+    config['activation_fn'] = self.activation
+    config['inner_activation_fn'] = self.inner_activation
+    return config
+
+  def get_initial_states(self, input_shape):
+    return [torch.zeros(input_shape), torch.zeros(input_shape)]
+
+  def build(self):
+    """Constructs learnable weights for this layer."""
+    init = getattr(initializers, self.init)
+    inner_init = getattr(initializers, self.inner_init)
+    self.W = init(torch.empty(self.input_dim, 4 * self.output_dim))
+    self.U = inner_init(torch.empty(self.output_dim, 4 * self.output_dim))
+
+    self.b = torch.tensor(np.hstack(
+        (np.zeros(self.output_dim), np.ones(self.output_dim),
+         np.zeros(self.output_dim), np.zeros(self.output_dim))),
+                          dtype=torch.float32)
+
+  def forward(self, inputs):
+    """Execute this layer on input tensors.
+
+    Parameters
+    ----------
+    inputs: list
+      List of three tensors (x, h_tm1, c_tm1). h_tm1 means "h, t-1".
+
+    Returns
+    -------
+    list
+      Returns h, [h, c]
+    """
+    x, h_tm1, c_tm1 = inputs
+    x, h_tm1, c_tm1 = torch.tensor(x), torch.tensor(h_tm1), torch.tensor(c_tm1)
+
+    z = torch.matmul(x, self.W) + torch.matmul(h_tm1, self.U) + self.b
+
+    z0 = z[:, :self.output_dim]
+    z1 = z[:, self.output_dim:2 * self.output_dim]
+    z2 = z[:, 2 * self.output_dim:3 * self.output_dim]
+    z3 = z[:, 3 * self.output_dim:]
+
+    i = self.inner_activation_fn(z0)
+    f = self.inner_activation_fn(z1)
+    c = f * c_tm1 + i * self.activation_fn(z2)
+    o = self.inner_activation_fn(z3)
+
+    h = o * self.activation_fn(c)
+    return h, [h, c]
 
 
 class AtomicConvolution(nn.Module):

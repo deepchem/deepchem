@@ -793,6 +793,22 @@ def test_torch_neighbor_list():
 
 
 @pytest.mark.torch
+def test_torch_lstm_step():
+  """Test invoking LSTMStep."""
+  n_test = 5
+  n_feat = 10
+  y = np.random.rand(n_test, 2 * n_feat).astype(np.float32)
+  state_zero = np.random.rand(n_test, n_feat).astype(np.float32)
+  state_one = np.random.rand(n_test, n_feat).astype(np.float32)
+  layer = torch_layers.LSTMStep(n_feat, 2 * n_feat)
+  result = layer([y, state_zero, state_one])
+  h_out, h_copy_out, c_out = (result[0], result[1][0], result[1][1])
+  assert h_out.shape == (n_test, n_feat)
+  assert h_copy_out.shape == (n_test, n_feat)
+  assert c_out.shape == (n_test, n_feat)
+
+
+@pytest.mark.torch
 def test_torch_atomic_convolution():
   """Test invoking the Torch equivalent of AtomicConvolution"""
   batch_size = 4
