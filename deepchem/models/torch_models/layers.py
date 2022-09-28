@@ -2581,6 +2581,53 @@ class CombineMeanStd(nn.Module):
     return mean_parent + noise_scale * std_parent * sample_noise
 
 
+class GatedRecurrentUnit(nn.Module):
+  """ Submodule for Message Passing """
+
+  def __init__(self, n_hidden=100, init='xavier_uniform_', **kwargs):
+    super(GatedRecurrentUnit, self).__init__(**kwargs)
+    self.n_hidden = n_hidden
+    self.init = init
+    self.build()
+
+  def get_config(self):
+    config = super(GatedRecurrentUnit, self).get_config()
+    config['n_hidden'] = self.n_hidden
+    config['init'] = self.init
+    return config
+
+  def build(self):
+    n_hidden = self.n_hidden
+
+    def init(input_shape):
+      return self.add_weight(name='kernel',
+                             shape=(input_shape[0], input_shape[1]),
+                             initializer=self.init,
+                             trainable=True)
+
+    self.Wz = init([n_hidden, n_hidden])
+    self.Wr = init([n_hidden, n_hidden])
+    self.Wh = init([n_hidden, n_hidden])
+    self.Uz = init([n_hidden, n_hidden])
+    self.Ur = init([n_hidden, n_hidden])
+    self.Uh = init([n_hidden, n_hidden])
+    self.bz = torch.zeros((n_hidden,))
+    self.br = torch.zeros((n_hidden,))
+    self.bh = torch.zeros((n_hidden,))
+    self.built = True
+
+  def forward(self, inputs):
+    sigmoid = get_activation('sigmoid')
+    z = sigmoid(
+        torch.bmm(inputs[1], self.Wz) + torch.bmm(inputs[0], self.Uz) + self.bz)
+    r = sigmoid(
+        torch.bmm(inputs[1], self.Wr) + torch.bmm(inputs[0], self.Ur) + self.br)
+    tanh = get_activation('tanh')
+    h = (1 - z) * tanh(
+        torch.bmm(inputs[1], self.Wh) + torch.bmm(inputs[0] * r, self.Uh) +
+        self.bh) + z * inputs[0]
+    return h
+
 class WeightedLinearCombo(nn.Module):
   """Compute a weighted linear combination of input layers, where the weight variables are trained.
 
