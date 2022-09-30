@@ -99,11 +99,10 @@ class TestRandomHyperparamOpt(unittest.TestCase):
     """Test a simple example of optimizing a multitask model with a random search."""
     # Generate dummy dataset
     np.random.seed(123)
-    train_dataset = dc.data.NumpyDataset(np.random.rand(10, 3),
-                                         np.zeros((10, 2)), np.ones((10, 2)),
-                                         np.arange(10))
-    valid_dataset = dc.data.NumpyDataset(np.random.rand(5, 3), np.zeros(
-        (5, 2)), np.ones((5, 2)), np.arange(5))
+    train_dataset = dc.data.NumpyDataset(np.random.rand(10, 3), np.zeros(
+        (10, 2)), np.ones((10, 2)), np.arange(10))
+    valid_dataset = dc.data.NumpyDataset(np.random.rand(5, 3), np.zeros((5, 2)),
+                                         np.ones((5, 2)), np.arange(5))
 
     optimizer = dc.hyper.RandomHyperparamOpt(
         lambda **params: dc.models.MultitaskRegressor(
@@ -135,15 +134,14 @@ class TestRandomHyperparamOpt(unittest.TestCase):
 
   @pytest.mark.torch
   def test_multitask_example_multiple_params(self):
-    """Test a simple example of optimizing a multitask model with a random search 
+    """Test a simple example of optimizing a multitask model with a random search
     with multiple parameters to optimize."""
     # Generate dummy dataset
     np.random.seed(123)
-    train_dataset = dc.data.NumpyDataset(np.random.rand(10, 3),
-                                         np.zeros((10, 2)), np.ones((10, 2)),
-                                         np.arange(10))
-    valid_dataset = dc.data.NumpyDataset(np.random.rand(5, 3), np.zeros(
-        (5, 2)), np.ones((5, 2)), np.arange(5))
+    train_dataset = dc.data.NumpyDataset(np.random.rand(10, 3), np.zeros(
+        (10, 2)), np.ones((10, 2)), np.arange(10))
+    valid_dataset = dc.data.NumpyDataset(np.random.rand(5, 3), np.zeros((5, 2)),
+                                         np.ones((5, 2)), np.arange(5))
 
     optimizer = dc.hyper.RandomHyperparamOpt(
         lambda **params: dc.models.MultitaskRegressor(
@@ -183,15 +181,14 @@ class TestRandomHyperparamOpt(unittest.TestCase):
 
   @pytest.mark.torch
   def test_multitask_nb_epoch(self):
-    """Test a simple example of optimizing a multitask model with a random 
+    """Test a simple example of optimizing a multitask model with a random
     search with a different number of training epochs."""
     # Generate dummy dataset
     np.random.seed(123)
-    train_dataset = dc.data.NumpyDataset(np.random.rand(10, 3),
-                                         np.zeros((10, 2)), np.ones((10, 2)),
-                                         np.arange(10))
-    valid_dataset = dc.data.NumpyDataset(np.random.rand(5, 3), np.zeros(
-        (5, 2)), np.ones((5, 2)), np.arange(5))
+    train_dataset = dc.data.NumpyDataset(np.random.rand(10, 3), np.zeros(
+        (10, 2)), np.ones((10, 2)), np.arange(10))
+    valid_dataset = dc.data.NumpyDataset(np.random.rand(5, 3), np.zeros((5, 2)),
+                                         np.ones((5, 2)), np.arange(5))
 
     optimizer = dc.hyper.RandomHyperparamOpt(
         lambda **params: dc.models.MultitaskRegressor(
