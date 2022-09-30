@@ -82,6 +82,7 @@ class HyperparamOpt(object):
                         output_transformers: List[Transformer] = [],
                         nb_epoch: int = 10,
                         use_max: bool = True,
+                        logfile: str = 'results.txt',
                         logdir: Optional[str] = None,
                         **kwargs) -> Tuple[Model, Dict, Dict]:
     """Conduct Hyperparameter search.
@@ -119,6 +120,10 @@ class HyperparamOpt(object):
     logdir: str, optional
       The directory in which to store created models. If not set, will
       use a temporary directory.
+    logfile: str, optional (default `results.txt`)
+      Name of logfile to write results to. If specified, this must
+      be a valid file name. If not specified, results of hyperparameter
+      search will be written to `logdir/results.txt`.
 
     Returns
     -------

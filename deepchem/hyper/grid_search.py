@@ -9,10 +9,11 @@ import collections
 import logging
 from functools import reduce
 from operator import mul
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from deepchem.data import Dataset
 from deepchem.trans import Transformer
+from deepchem.models import Model
 from deepchem.metrics import Metric
 from deepchem.hyper.base_classes import HyperparamOpt
 from deepchem.hyper.base_classes import _convert_hyperparam_dict_to_filename
@@ -85,10 +86,10 @@ class GridHyperparamOpt(HyperparamOpt):
       output_transformers: List[Transformer] = [],
       nb_epoch: int = 10,
       use_max: bool = True,
+      logfile: str = 'results.txt',
       logdir: Optional[str] = None,
-      logfile: Optional[str] = 'results.txt',
       **kwargs,
-  ):
+  ) -> Tuple[Model, Dict, Dict]:
     """Perform hyperparams search according to params_dict.
 
     Each key to hyperparams_dict is a model_param. The values should
@@ -119,7 +120,7 @@ class GridHyperparamOpt(HyperparamOpt):
     logdir: str, optional
       The directory in which to store created models. If not set, will
       use a temporary directory.
-    logfile: str, optional (default None)
+    logfile: str, optional (default `results.txt`)
       Name of logfile to write results to. If specified, this is must
       be a valid file name. If not specified, results of hyperparameter
       search will be written to `logdir/results.txt`.
@@ -207,9 +208,8 @@ class GridHyperparamOpt(HyperparamOpt):
         best_hyperparams = hyper_params
         best_model = model
 
-      logger.info(
-          "Model %d/%d, Metric %s, Validation set %s: %f" %
-          (ind + 1, number_combinations, metric.name, ind, valid_score))
+      logger.info("Model %d/%d, Metric %s, Validation set %s: %f" %
+                  (ind + 1, number_combinations, metric.name, ind, valid_score))
       logger.info("\tbest_validation_score so far: %f" % best_validation_score)
     if best_model is None:
       logger.info("No models trained correctly.")

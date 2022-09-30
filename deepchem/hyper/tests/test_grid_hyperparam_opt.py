@@ -26,10 +26,10 @@ class TestGridHyperparamOpt(unittest.TestCase):
       return dc.models.SklearnModel(sklearn_model, model_dir)
 
     self.rf_model_builder = rf_model_builder
-    self.train_dataset = dc.data.NumpyDataset(
-        X=np.random.rand(50, 5), y=np.random.rand(50, 1))
-    self.valid_dataset = dc.data.NumpyDataset(
-        X=np.random.rand(20, 5), y=np.random.rand(20, 1))
+    self.train_dataset = dc.data.NumpyDataset(X=np.random.rand(50, 5),
+                                              y=np.random.rand(50, 1))
+    self.valid_dataset = dc.data.NumpyDataset(X=np.random.rand(20, 5),
+                                              y=np.random.rand(20, 1))
 
   def test_rf_hyperparam(self):
     """Test of hyperparam_opt with singletask RF ECFP regression API."""
@@ -89,22 +89,24 @@ class TestGridHyperparamOpt(unittest.TestCase):
     """Test a simple example of optimizing a multitask model with a grid search."""
     # Generate dummy dataset
     np.random.seed(123)
-    train_dataset = dc.data.NumpyDataset(
-        np.random.rand(10, 3), np.zeros((10, 2)), np.ones((10, 2)),
-        np.arange(10))
-    valid_dataset = dc.data.NumpyDataset(
-        np.random.rand(5, 3), np.zeros((5, 2)), np.ones((5, 2)), np.arange(5))
+    train_dataset = dc.data.NumpyDataset(np.random.rand(10, 3), np.zeros(
+        (10, 2)), np.ones((10, 2)), np.arange(10))
+    valid_dataset = dc.data.NumpyDataset(np.random.rand(5, 3), np.zeros((5, 2)),
+                                         np.ones((5, 2)), np.arange(5))
 
     optimizer = dc.hyper.GridHyperparamOpt(
-        lambda **params: dc.models.MultitaskRegressor(n_tasks=2,
-                                                      n_features=3, dropouts=[0.],
-                                                      weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
-                                                      learning_rate=0.003, **params))
+        lambda **params: dc.models.MultitaskRegressor(
+            n_tasks=2,
+            n_features=3,
+            dropouts=[0.],
+            weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
+            learning_rate=0.003,
+            **params))
 
     params_dict = {"batch_size": [10, 20]}
     transformers = []
-    metric = dc.metrics.Metric(
-        dc.metrics.mean_squared_error, task_averager=np.mean)
+    metric = dc.metrics.Metric(dc.metrics.mean_squared_error,
+                               task_averager=np.mean)
 
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
         params_dict,
@@ -123,11 +125,10 @@ class TestGridHyperparamOpt(unittest.TestCase):
     """Test a simple example of optimizing a multitask model with a grid search with multiple parameters to optimize."""
     # Generate dummy dataset
     np.random.seed(123)
-    train_dataset = dc.data.NumpyDataset(
-        np.random.rand(10, 3), np.zeros((10, 2)), np.ones((10, 2)),
-        np.arange(10))
-    valid_dataset = dc.data.NumpyDataset(
-        np.random.rand(5, 3), np.zeros((5, 2)), np.ones((5, 2)), np.arange(5))
+    train_dataset = dc.data.NumpyDataset(np.random.rand(10, 3), np.zeros(
+        (10, 2)), np.ones((10, 2)), np.arange(10))
+    valid_dataset = dc.data.NumpyDataset(np.random.rand(5, 3), np.zeros((5, 2)),
+                                         np.ones((5, 2)), np.arange(5))
 
     optimizer = dc.hyper.GridHyperparamOpt(
         lambda **params: dc.models.MultitaskRegressor(
@@ -140,8 +141,8 @@ class TestGridHyperparamOpt(unittest.TestCase):
     params_dict = {"learning_rate": [0.003, 0.03], "batch_size": [10, 50]}
     # These are per-example multiplier
     transformers = []
-    metric = dc.metrics.Metric(
-        dc.metrics.mean_squared_error, task_averager=np.mean)
+    metric = dc.metrics.Metric(dc.metrics.mean_squared_error,
+                               task_averager=np.mean)
 
     with tempfile.TemporaryDirectory() as tmpdirname:
       best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
@@ -167,22 +168,24 @@ class TestGridHyperparamOpt(unittest.TestCase):
     """Test a simple example of optimizing a multitask model with a grid search with a different number of training epochs."""
     # Generate dummy dataset
     np.random.seed(123)
-    train_dataset = dc.data.NumpyDataset(
-        np.random.rand(10, 3), np.zeros((10, 2)), np.ones((10, 2)),
-        np.arange(10))
-    valid_dataset = dc.data.NumpyDataset(
-        np.random.rand(5, 3), np.zeros((5, 2)), np.ones((5, 2)), np.arange(5))
+    train_dataset = dc.data.NumpyDataset(np.random.rand(10, 3), np.zeros(
+        (10, 2)), np.ones((10, 2)), np.arange(10))
+    valid_dataset = dc.data.NumpyDataset(np.random.rand(5, 3), np.zeros((5, 2)),
+                                         np.ones((5, 2)), np.arange(5))
 
     optimizer = dc.hyper.GridHyperparamOpt(
-        lambda **params: dc.models.MultitaskRegressor(n_tasks=2,
-                                                      n_features=3, dropouts=[0.],
-                                                      weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
-                                                      learning_rate=0.003, **params))
+        lambda **params: dc.models.MultitaskRegressor(
+            n_tasks=2,
+            n_features=3,
+            dropouts=[0.],
+            weight_init_stddevs=[np.sqrt(6) / np.sqrt(1000)],
+            learning_rate=0.003,
+            **params))
 
     params_dict = {"batch_size": [10, 20]}
     transformers = []
-    metric = dc.metrics.Metric(
-        dc.metrics.mean_squared_error, task_averager=np.mean)
+    metric = dc.metrics.Metric(dc.metrics.mean_squared_error,
+                               task_averager=np.mean)
 
     # Define nb_epoch in hyperparam_search function call
     best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
