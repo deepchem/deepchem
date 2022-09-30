@@ -7,36 +7,6 @@ on:
     branches:
       - master
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        python-version: [3.7, 3.8, 3.9]
-        include:
-          - os: windows-latest
-            python-version: 3.7
-    steps:
-    - uses: actions/checkout@v3
-    - name: Cache pip modules for Linux
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/torch/**') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Build DeepChem
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e '.[torch]'
-    - name: Import checking
-      run: python -c "import deepchem; import torch;"
-
   test:
     runs-on: ${{ matrix.os }}
     strategy:

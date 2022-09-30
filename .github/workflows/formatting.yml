@@ -7,40 +7,6 @@ on:
     branches:
       - master
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        python-version: ['3.7', '3.8', '3.9']
-        include:
-        - os: windows-latest
-          python-version: '3.8'
-    steps:
-    - uses: actions/checkout@v3
-      # using cached dependencies to speed up workflow
-      # ref: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
-    - name: Cache pip modules for Linux
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        # the key is used to search for cache
-        # hashFile(paths) return a single hash for the set of files that matches the path pattern
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Build DeepChem
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .
-    - name: Import checking
-      run: python -c "import deepchem"
-
   test:
     runs-on: ${{ matrix.os }}
     strategy:

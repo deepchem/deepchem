@@ -1,0 +1,63 @@
+name: Mini Build and Import Check
+on:
+  push: # ci work when pushing master branch
+    branches:
+      - master
+  pull_request: # ci work when creating a PR to master branch
+    branches:
+      - master
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.7', '3.8', '3.9']
+        include:
+        - os: windows-latest
+          python-version: '3.8'
+        install_type: ['core', 'tensorflow', 'torch', 'jax']
+        # core build is installing only deepchem without any backend
+    steps:
+    - uses: actions/checkout@v3
+      # using cached dependencies to speed up workflow
+      # ref: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
+    - name: Cache pip modules for Linux
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        # the key is used to search for cache
+        # hashFile(paths) return a single hash for the set of files that matches the path pattern
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Import DeepChem Core 
+      if: ${{ matrix.install_type == 'core' }}
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+        python -c "import deepchem;"
+    - name: Install DeepChem with Tensorflow backend
+      if: ${{ matrix.install_type == 'tensorflow' }}
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e '.[tensorflow]'
+        python -c "import tensorflow; import deepchem;"
+    - name: Import DeepChem with PyTorch backend
+      if: ${{ matrix.install_type == 'torch' }}
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e '.[torch]'
+        python -c "import torch; import deepchem;"
+    - name: Import DeepChem with Jax backend
+      # jax ci is to run only on linux and since jax is not supported in windows
+      if: ${{ matrix.install_type == 'jax' && runner.os == 'Linux' }}
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e '.[jax]'
+        python -c "import jax; import deepchem;"
