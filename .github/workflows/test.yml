@@ -13,10 +13,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.8, 3.9, 3.10, 3.11]
+        python-version: ['3.8', '3.10']
         include:
           - os: windows-latest
-            python-version: 3.8
+            python-version: '3.9'
     steps:
     - uses: actions/checkout@v3
     - name: Cache pip modules for Linux
@@ -43,10 +43,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.8, 3.10]
+        python-version: ['3.8', '3.10']
         include:
           - os: windows-latest
-            python-version: 3.
+            python-version: '3.9'
     env:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
