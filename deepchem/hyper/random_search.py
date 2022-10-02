@@ -7,7 +7,7 @@ import tempfile
 import collections
 import logging
 import itertools
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any, Callable
 
 from deepchem.data import Dataset
 from deepchem.trans import Transformer
@@ -71,7 +71,20 @@ class RandomHyperparamOpt(HyperparamOpt):
   >>> best_hyperparams  # the best hyperparameters found using random search
   {'penalty': 'l2', 'solver': 'saga'}
 
+  Parameters
+  ----------
+  model_builder: constructor function.
+    This parameter must be constructor function which returns an
+    object which is an instance of `dc.models.Model`. This function
+    must accept two arguments, `model_params` of type `dict` and
+    `model_dir`, a string specifying a path to a model directory.
+  max_iter: int
+    Maximum number of iterations to perform
   """
+
+  def __init__(self, model_builder: Callable[..., Model], max_iter: int):
+    super(RandomHyperparamOpt, self).__init__(model_builder=model_builder)
+    self.max_iter = max_iter
 
   def hyperparam_search(
       self,
@@ -79,14 +92,13 @@ class RandomHyperparamOpt(HyperparamOpt):
       train_dataset: Dataset,
       valid_dataset: Dataset,
       metric: Metric,
-      max_iter: int,
       output_transformers: List[Transformer] = [],
       nb_epoch: int = 10,
       use_max: bool = True,
       logfile: str = 'results.txt',
       logdir: Optional[str] = None,
       **kwargs,
-  ) -> Tuple[Model, Dict, Dict]:
+  ) -> Tuple[Model, Dict[str, Any], Dict[str, Any]]:
     """Perform random hyperparams search according to `params_dict`.
 
     Each key of the `params_dict` is a model_param. The
@@ -104,8 +116,6 @@ class RandomHyperparamOpt(HyperparamOpt):
       dataset used for validation (optimization on valid scores)
     metric: Metric
       metric used for evaluation
-    max_iter: int
-      Maximum number of iterations to perform
     output_transformers: list[Transformer]
       Transformers for evaluation. This argument is needed since
       `train_dataset` and `valid_dataset` may have been transformed
@@ -145,7 +155,6 @@ class RandomHyperparamOpt(HyperparamOpt):
     else:
       best_validation_score = np.inf
 
-    best_hyperparams = None
     best_model = None
     all_scores = {}
 
@@ -155,10 +164,10 @@ class RandomHyperparamOpt(HyperparamOpt):
       log_file = os.path.join(logdir, logfile)
 
     hyperparameter_combs = RandomHyperparamOpt.generate_random_hyperparam_values(
-        params_dict, max_iter)
+        params_dict, self.max_iter)
 
     for ind, model_params in enumerate(hyperparameter_combs):
-      logger.info("Fitting model %d/%d" % (ind + 1, max_iter))
+      logger.info("Fitting model %d/%d" % (ind + 1, self.max_iter))
       logger.info("hyperparameters: %s" % str(model_params))
 
       hp_str = _convert_hyperparam_dict_to_filename(model_params)
@@ -237,7 +246,8 @@ class RandomHyperparamOpt(HyperparamOpt):
     return best_model, best_hyperparams, all_scores
 
   @classmethod
-  def generate_random_hyperparam_values(cls, params_dict: Dict, n: int):
+  def generate_random_hyperparam_values(cls, params_dict: Dict,
+                                        n: int) -> List[Dict[str, Any]]:
     """Generates `n` random hyperparameter combinations of hyperparameter values
 
     Parameters
