@@ -152,7 +152,7 @@ class GridHyperparamOpt(HyperparamOpt):
       best_validation_score = -np.inf
     else:
       best_validation_score = np.inf
-    best_hyperparams = None
+
     best_model = None
     all_scores = {}
 
