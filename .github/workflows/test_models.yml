@@ -1,4 +1,4 @@
-name: Test for DeepChem Jax
+name: Test for TF and Torch Models
 on:
   push: # ci work when pushing master branch
     branches:
@@ -14,6 +14,10 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: [3.7, 3.9]
+        include:
+          - os: windows-latest
+            python-version: 3.8
+        deep_learning_backend: ['tensorflow', 'torch', 'jax']
     env:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
@@ -41,7 +45,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/jax/**') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Cache pip packages for MacOS
@@ -49,7 +53,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/Library/Caches/pip
-        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/jax/**') }}
+        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Cache pip packages for Windows
@@ -57,7 +61,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~\AppData\Local\pip\Cache
-        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/jax/**') }}
+        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Set up Python ${{ matrix.python-version }}
@@ -69,7 +73,14 @@ jobs:
       run: |
         python -m pip install --upgrade pip;
         pip install conda-merge;
-        conda-merge requirements/env_common.yml requirements/env_test.yml > env.yml
+        cd requirements
+        if [ "$(uname)" == "Linux" ]; then
+          conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml > env.yml
+        elif [ "$(uname)" == "MINGW64_NT"* ]]; then
+          conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
+        fi;
+        cd ..
+        cp requirements/env.yml env.yml
     - name: Install all dependencies
       uses: conda-incubator/setup-miniconda@v2
       with:
@@ -80,10 +91,15 @@ jobs:
         python-version: ${{ matrix.python-version }}
         environment-file: env.yml
     - name: Install DeepChem
-      id: install
-      shell: bash -l {0}
-      run: pip install -e '.[jax]'
-    - name: PyTest
-      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
-      shell: bash -l {0}
+      run: pip install -e .
+    - name: Import Check
+      run: python -c "import deepchem;"
+    - name: PyTest Tensorflow
+      if: ${{ matrix.deep_learning_backend == 'tensorflow' }}
+      run: pytest -v -m 'tensorflow' deepchem
+    - name: PyTest Torch
+      if: ${{ matrix.deep_learning_backend == 'torch' }}
+      run: pytest -v -m 'torch' deepchem
+    - name: PyTest Jax
+      if: ${{ matrix.deep_learning_backend == 'jax' && runner.os == 'Linux' }}
       run: pytest -v -m 'jax' deepchem
