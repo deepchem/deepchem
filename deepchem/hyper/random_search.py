@@ -267,34 +267,30 @@ class RandomHyperparamOpt(HyperparamOpt):
     -------
     >>> from scipy.stats import uniform
     >>> from deepchem.hyper import RandomHyperparamOpt
-    >>> n = 2
+    >>> n = 1
     >>> params_dict = {'a': [1, 2, 3], 'b': [5, 7, 8], 'c': uniform(10, 5).rvs}
     >>> RandomHyperparamOpt.generate_random_hyperparam_values(params_dict, n)
     [{'a': 3, 'b': 7, 'c': 10.619700740985433}]  # random
     """
-    iterable_hyperparams, iterable_hyperparams_keys = [], []
-    callable_hyperparams, callable_hyperparams_keys = [], []
-    for key, value in params_dict.items():
-      if isinstance(value, collections.abc.Iterable):
-        iterable_hyperparams.append(value)
-        iterable_hyperparams_keys.append(key)
-      elif callable(value):
-        callable_hyperparams.append(value)
-        callable_hyperparams_keys.append(key)
+    hyperparam_keys, hyperparam_values = [], []
+    for key, values in params_dict.items():
+      if callable(values):
+        # If callable, sample it for a maximum n times
+        values = [values() for i in range(n)]
+      hyperparam_keys.append(key)
+      hyperparam_values.append(values)
 
     hyperparam_combs = []
-    key_sequence = [*iterable_hyperparams_keys, *callable_hyperparams_keys]
-    for iterable_hyperparam_comb in itertools.product(*iterable_hyperparams):
+    for iterable_hyperparam_comb in itertools.product(*hyperparam_values):
       hyperparam_comb = list(iterable_hyperparam_comb)
-      for callable_hyperparam in callable_hyperparams:
-        hyperparam_comb.append(callable_hyperparam())
       hyperparam_combs.append(hyperparam_comb)
 
     indices = np.random.permutation(len(hyperparam_combs))[:n]
     params_subset = []
     for index in indices:
       param = {}
-      for key, hyperparam_value in zip(key_sequence, hyperparam_combs[index]):
+      for key, hyperparam_value in zip(hyperparam_keys,
+                                       hyperparam_combs[index]):
         param[key] = hyperparam_value
       params_subset.append(param)
     return params_subset
