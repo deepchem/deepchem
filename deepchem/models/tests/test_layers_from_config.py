@@ -1,14 +1,5 @@
-import os
-import unittest
 import deepchem as dc
-import numpy as np
 import pytest
-try:
-  import tensorflow as tf
-  from tensorflow.python.eager import context
-  has_tensorflow = True
-except:
-  has_tensorflow = False
 
 
 @pytest.mark.tensorflow
@@ -17,8 +8,9 @@ def test_interatomic_l2_distance():
   M_nbrs = 15
   ndim = 20
 
-  layer = dc.models.layers.InteratomicL2Distances(
-      N_atoms=N_atoms, M_nbrs=M_nbrs, ndim=ndim)
+  layer = dc.models.layers.InteratomicL2Distances(N_atoms=N_atoms,
+                                                  M_nbrs=M_nbrs,
+                                                  ndim=ndim)
   config = layer.get_config()
   layer_copied = dc.models.layers.InteratomicL2Distances.from_config(config)
 
@@ -34,11 +26,10 @@ def test_graph_conv():
   max_deg = 10,
   activation_fn = 'relu'
 
-  layer = dc.models.layers.GraphConv(
-      out_channel=out_channel,
-      min_deg=min_deg,
-      max_deg=max_deg,
-      activation_fn=activation_fn)
+  layer = dc.models.layers.GraphConv(out_channel=out_channel,
+                                     min_deg=min_deg,
+                                     max_deg=max_deg,
+                                     activation_fn=activation_fn)
   config = layer.get_config()
   layer_copied = dc.models.layers.GraphConv.from_config(config)
 
@@ -53,8 +44,8 @@ def test_graph_gather():
   batch_size = 10
   activation_fn = 'relu'
 
-  layer_copied = dc.models.layers.GraphGather(
-      batch_size=batch_size, activation_fn=activation_fn)
+  layer_copied = dc.models.layers.GraphGather(batch_size=batch_size,
+                                              activation_fn=activation_fn)
   config = layer_copied.get_config()
   layer_copied = dc.models.layers.GraphGather.from_config(config)
 
@@ -67,8 +58,8 @@ def test_graph_pool():
   min_degree = 0
   max_degree = 10
 
-  layer_copied = dc.models.layers.GraphPool(
-      min_degree=min_degree, max_degree=max_degree)
+  layer_copied = dc.models.layers.GraphPool(min_degree=min_degree,
+                                            max_degree=max_degree)
   config = layer_copied.get_config()
   layer_copied = dc.models.layers.GraphPool.from_config(config)
 
@@ -263,9 +254,10 @@ def test_ani_feat():
   atomic_number_differentiated = True
   coordinates_in_bohr = True
 
-  layer = dc.models.layers.ANIFeat(
-      max_atoms, radial_cutoff, angular_cutoff, radial_length, angular_length,
-      atom_cases, atomic_number_differentiated, coordinates_in_bohr)
+  layer = dc.models.layers.ANIFeat(max_atoms, radial_cutoff, angular_cutoff,
+                                   radial_length, angular_length, atom_cases,
+                                   atomic_number_differentiated,
+                                   coordinates_in_bohr)
   config = layer.get_config()
   layer_copied = dc.models.layers.ANIFeat.from_config(config)
 
@@ -331,10 +323,12 @@ def test_weave():
   batch_normalize = True
   batch_normalize_kwargs = {"renorm": True}
 
-  layer = dc.models.layers.WeaveLayer(
-      n_atom_input_feat, n_pair_input_feat, n_atom_output_feat,
-      n_pair_output_feat, n_hidden_AA, n_hidden_PA, n_hidden_AP, n_hidden_PP,
-      update_pair, init, activation, batch_normalize, batch_normalize_kwargs)
+  layer = dc.models.layers.WeaveLayer(n_atom_input_feat, n_pair_input_feat,
+                                      n_atom_output_feat, n_pair_output_feat,
+                                      n_hidden_AA, n_hidden_PA, n_hidden_AP,
+                                      n_hidden_PP, update_pair, init,
+                                      activation, batch_normalize,
+                                      batch_normalize_kwargs)
   config = layer.get_config()
   layer_copied = dc.models.layers.WeaveLayer.from_config(config)
 
@@ -526,6 +520,7 @@ def test_gru():
   assert layer_copied.n_hidden == layer.n_hidden
   assert layer_copied.init == layer.init
 
+
 @pytest.mark.torch
 def test_torch_gru():
   n_hidden = 100
@@ -536,6 +531,7 @@ def test_torch_gru():
 
   assert layer_copied.n_hidden == layer.n_hidden
   assert layer_copied.init == layer.init
+
 
 @pytest.mark.tensorflow
 def test_set_gather():

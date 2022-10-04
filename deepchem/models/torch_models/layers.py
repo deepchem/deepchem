@@ -2628,6 +2628,7 @@ class GatedRecurrentUnit(nn.Module):
         self.bh) + z * inputs[0]
     return h
 
+
 class WeightedLinearCombo(nn.Module):
   """Compute a weighted linear combination of input layers, where the weight variables are trained.
 
