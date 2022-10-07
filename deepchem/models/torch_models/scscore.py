@@ -16,7 +16,7 @@ class ScScore(nn.Module):
     implementation, you can set the dropout for all the hidden layers at once.
     """
     
-    def __init__(self, n_features, layer_sizes, dropout, **kwargs):
+    def __init__(self, n_features: int, layer_sizes: list, dropout: int, **kwargs) -> None:
         """
         Arguments
         """
@@ -28,7 +28,7 @@ class ScScore(nn.Module):
             self.hidden_layers.append(nn.Linear(layer_size, layer_size))
         self.output_layer = nn.Linear(layer_sizes[-1],1)
         
-    def forward(self,x):
+    def forward(self,x: torch.Tensor) -> torch.Tensor:
         x = nn.ReLU()(self.input_layer(x))
         for hidden_layer in self.hidden_layers:
             x = hidden_layer(x)
