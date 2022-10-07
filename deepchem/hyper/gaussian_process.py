@@ -4,10 +4,11 @@ Contains class for gaussian process hyperparameter optimizations.
 import os
 import logging
 import tempfile
-from typing import Dict, List, Optional, Tuple, Union, Any
+from typing import Dict, List, Optional, Tuple, Union, Any, Callable
 
 from deepchem.data import Dataset
 from deepchem.trans import Transformer
+from deepchem.models import Model
 from deepchem.metrics import Metric
 from deepchem.hyper.base_classes import HyperparamOpt
 from deepchem.hyper.base_classes import _convert_hyperparam_dict_to_filename
@@ -15,9 +16,10 @@ from deepchem.hyper.base_classes import _convert_hyperparam_dict_to_filename
 logger = logging.getLogger(__name__)
 
 
-def compute_parameter_range(params_dict: Dict,
-                            search_range: Union[int, float, Dict]
-                           ) -> Dict[str, Tuple[str, List[float]]]:
+def compute_parameter_range(
+    params_dict: Dict,
+    search_range: Union[int, float,
+                        Dict]) -> Dict[str, Tuple[str, List[float]]]:
   """Convenience Function to compute parameter search space.
 
   Parameters
@@ -129,24 +131,60 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
   >> type(best_hyperparams)
   <class 'dict'>
 
+  Parameters
+  ----------
+  model_builder: constructor function.
+    This parameter must be constructor function which returns an
+    object which is an instance of `dc.models.Model`. This function
+    must accept two arguments, `model_params` of type `dict` and
+    `model_dir`, a string specifying a path to a model directory.
+  max_iter: int, default 20
+    number of optimization trials
+  search_range: int/float/Dict (default 4)
+    The `search_range` specifies the range of parameter values to
+    search for. If `search_range` is an int/float, it is used as the
+    global search range for parameters. This creates a search
+    problem on the following space:
+
+    optimization on [initial value / search_range,
+                     initial value * search_range]
+
+    If `search_range` is a dict, it must contain the same keys as
+    for `params_dict`. In this case, `search_range` specifies a
+    per-parameter search range. This is useful in case some
+    parameters have a larger natural range than others. For a given
+    hyperparameter `hp` this would create the following search
+    range:
+
+    optimization on hp on [initial value[hp] / search_range[hp],
+                           initial value[hp] * search_range[hp]]
+
   Notes
   -----
   This class requires pyGPGO to be installed.
   """
 
-  def hyperparam_search(self,
-                        params_dict: Dict,
-                        train_dataset: Dataset,
-                        valid_dataset: Dataset,
-                        metric: Metric,
-                        output_transformers: List[Transformer] = [],
-                        nb_epoch: int = 10,
-                        use_max: bool = True,
-                        logdir: Optional[str] = None,
-                        max_iter: int = 20,
-                        search_range: Union[int, float, Dict] = 4,
-                        logfile: Optional[str] = None,
-                        **kwargs):
+  def __init__(self,
+               model_builder: Callable[..., Model],
+               max_iter: int = 20,
+               search_range: Union[int, float, Dict] = 4):
+    super(GaussianProcessHyperparamOpt,
+          self).__init__(model_builder=model_builder)
+    self.max_iter = max_iter
+    self.search_range = search_range
+
+  def hyperparam_search(
+      self,
+      params_dict: Dict,
+      train_dataset: Dataset,
+      valid_dataset: Dataset,
+      metric: Metric,
+      output_transformers: List[Transformer] = [],
+      nb_epoch: int = 10,
+      use_max: bool = True,
+      logfile: str = 'results.txt',
+      logdir: Optional[str] = None,
+      **kwargs) -> Tuple[Model, Dict[str, Any], Dict[str, Any]]:
     """Perform hyperparameter search using a gaussian process.
 
     Parameters
@@ -178,30 +216,10 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     logdir: str, optional, (default None)
       The directory in which to store created models. If not set, will
       use a temporary directory.
-    max_iter: int, (default 20)
-      number of optimization trials
-    search_range: int/float/Dict (default 4)
-      The `search_range` specifies the range of parameter values to
-      search for. If `search_range` is an int/float, it is used as the
-      global search range for parameters. This creates a search
-      problem on the following space:
-
-      optimization on [initial value / search_range,
-                       initial value * search_range]
-
-      If `search_range` is a dict, it must contain the same keys as
-      for `params_dict`. In this case, `search_range` specifies a
-      per-parameter search range. This is useful in case some
-      parameters have a larger natural range than others. For a given
-      hyperparameter `hp` this would create the following search
-      range:
-
-      optimization on hp on [initial value[hp] / search_range[hp],
-                             initial value[hp] * search_range[hp]]
-    logfile: str, optional (default None)
+    logfile: str, optional (default `results.txt`)
       Name of logfile to write results to. If specified, this is must
       be a valid file. If not specified, results of hyperparameter
-      search will be written to `logdir/.txt`.
+      search will be written to `logdir/results.txt`.
 
 
     Returns
@@ -232,7 +250,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
       log_file = os.path.join(logdir, "results.txt")
 
     # setup range
-    param_range = compute_parameter_range(params_dict, search_range)
+    param_range = compute_parameter_range(params_dict, self.search_range)
     param_keys = list(param_range.keys())
 
     # Stores all results
@@ -355,8 +373,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     gp = GaussianProcess(cov)
     acq = Acquisition(mode='ExpectedImprovement')
     gpgo = GPGO(gp, acq, optimizing_function, param_range)
-    logger.info("Max number of iteration: %i" % max_iter)
-    gpgo.run(max_iter=max_iter)
+    logger.info("Max number of iteration: %i" % self.max_iter)
+    gpgo.run(max_iter=self.max_iter)
 
     hp_opt, valid_performance_opt = gpgo.getResult()
     hyper_parameters = {}

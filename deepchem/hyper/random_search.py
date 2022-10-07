@@ -7,10 +7,11 @@ import tempfile
 import collections
 import logging
 import itertools
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple, Any, Callable
 
 from deepchem.data import Dataset
 from deepchem.trans import Transformer
+from deepchem.models import Model
 from deepchem.metrics import Metric
 from deepchem.hyper.base_classes import HyperparamOpt
 from deepchem.hyper.base_classes import _convert_hyperparam_dict_to_filename
@@ -70,7 +71,20 @@ class RandomHyperparamOpt(HyperparamOpt):
   >>> best_hyperparams  # the best hyperparameters found using random search
   {'penalty': 'l2', 'solver': 'saga'}
 
+  Parameters
+  ----------
+  model_builder: constructor function.
+    This parameter must be constructor function which returns an
+    object which is an instance of `dc.models.Model`. This function
+    must accept two arguments, `model_params` of type `dict` and
+    `model_dir`, a string specifying a path to a model directory.
+  max_iter: int
+    Maximum number of iterations to perform
   """
+
+  def __init__(self, model_builder: Callable[..., Model], max_iter: int):
+    super(RandomHyperparamOpt, self).__init__(model_builder=model_builder)
+    self.max_iter = max_iter
 
   def hyperparam_search(
       self,
@@ -78,14 +92,13 @@ class RandomHyperparamOpt(HyperparamOpt):
       train_dataset: Dataset,
       valid_dataset: Dataset,
       metric: Metric,
-      max_iter: int,
       output_transformers: List[Transformer] = [],
       nb_epoch: int = 10,
       use_max: bool = True,
+      logfile: str = 'results.txt',
       logdir: Optional[str] = None,
-      logfile: Optional[str] = 'results.txt',
       **kwargs,
-  ):
+  ) -> Tuple[Model, Dict[str, Any], Dict[str, Any]]:
     """Perform random hyperparams search according to `params_dict`.
 
     Each key of the `params_dict` is a model_param. The
@@ -103,8 +116,6 @@ class RandomHyperparamOpt(HyperparamOpt):
       dataset used for validation (optimization on valid scores)
     metric: Metric
       metric used for evaluation
-    max_iter: int
-      Maximum number of iterations to perform
     output_transformers: list[Transformer]
       Transformers for evaluation. This argument is needed since
       `train_dataset` and `valid_dataset` may have been transformed
@@ -119,7 +130,7 @@ class RandomHyperparamOpt(HyperparamOpt):
     logdir: str, optional
       The directory in which to store created models. If not set, will
       use a temporary directory.
-    logfile: str, optional (default None)
+    logfile: str, optional (default `results.txt`)
       Name of logfile to write results to. If specified, this is must
       be a valid file name. If not specified, results of hyperparameter
       search will be written to `logdir/results.txt`.
@@ -144,7 +155,6 @@ class RandomHyperparamOpt(HyperparamOpt):
     else:
       best_validation_score = np.inf
 
-    best_hyperparams = None
     best_model = None
     all_scores = {}
 
@@ -154,10 +164,10 @@ class RandomHyperparamOpt(HyperparamOpt):
       log_file = os.path.join(logdir, logfile)
 
     hyperparameter_combs = RandomHyperparamOpt.generate_random_hyperparam_values(
-        params_dict, max_iter)
+        params_dict, self.max_iter)
 
     for ind, model_params in enumerate(hyperparameter_combs):
-      logger.info("Fitting model %d/%d" % (ind + 1, max_iter))
+      logger.info("Fitting model %d/%d" % (ind + 1, self.max_iter))
       logger.info("hyperparameters: %s" % str(model_params))
 
       hp_str = _convert_hyperparam_dict_to_filename(model_params)
@@ -225,18 +235,19 @@ class RandomHyperparamOpt(HyperparamOpt):
                                            output_transformers)
     train_score = multitask_scores[metric.name]
     logger.info("Best hyperparameters: %s" % str(best_hyperparams))
-    logger.info("train_score: %f" % train_score)
-    logger.info("validation_score: %f" % best_validation_score)
+    logger.info("best train_score: %f" % train_score)
+    logger.info("best validation_score: %f" % best_validation_score)
 
     if logdir is not None:
       with open(log_file, 'w+') as f:
         f.write("Best Hyperparameters dictionary %s\n" % str(best_hyperparams))
-        f.write("Best validation score %s" % str(train_score))
-
+        f.write("Best validation score %f\n" % best_validation_score)
+        f.write("Best train_score: %f\n" % train_score)
     return best_model, best_hyperparams, all_scores
 
   @classmethod
-  def generate_random_hyperparam_values(cls, params_dict: Dict, n: int):
+  def generate_random_hyperparam_values(cls, params_dict: Dict,
+                                        n: int) -> List[Dict[str, Any]]:
     """Generates `n` random hyperparameter combinations of hyperparameter values
 
     Parameters
@@ -256,34 +267,30 @@ class RandomHyperparamOpt(HyperparamOpt):
     -------
     >>> from scipy.stats import uniform
     >>> from deepchem.hyper import RandomHyperparamOpt
-    >>> n = 2
+    >>> n = 1
     >>> params_dict = {'a': [1, 2, 3], 'b': [5, 7, 8], 'c': uniform(10, 5).rvs}
     >>> RandomHyperparamOpt.generate_random_hyperparam_values(params_dict, n)
     [{'a': 3, 'b': 7, 'c': 10.619700740985433}]  # random
     """
-    iterable_hyperparams, iterable_hyperparams_keys = [], []
-    callable_hyperparams, callable_hyperparams_keys = [], []
-    for key, value in params_dict.items():
-      if isinstance(value, collections.abc.Iterable):
-        iterable_hyperparams.append(value)
-        iterable_hyperparams_keys.append(key)
-      elif callable(value):
-        callable_hyperparams.append(value)
-        callable_hyperparams_keys.append(key)
+    hyperparam_keys, hyperparam_values = [], []
+    for key, values in params_dict.items():
+      if callable(values):
+        # If callable, sample it for a maximum n times
+        values = [values() for i in range(n)]
+      hyperparam_keys.append(key)
+      hyperparam_values.append(values)
 
     hyperparam_combs = []
-    key_sequence = [*iterable_hyperparams_keys, *callable_hyperparams_keys]
-    for iterable_hyperparam_comb in itertools.product(*iterable_hyperparams):
+    for iterable_hyperparam_comb in itertools.product(*hyperparam_values):
       hyperparam_comb = list(iterable_hyperparam_comb)
-      for callable_hyperparam in callable_hyperparams:
-        hyperparam_comb.append(callable_hyperparam())
       hyperparam_combs.append(hyperparam_comb)
 
     indices = np.random.permutation(len(hyperparam_combs))[:n]
     params_subset = []
     for index in indices:
       param = {}
-      for key, hyperparam_value in zip(key_sequence, hyperparam_combs[index]):
+      for key, hyperparam_value in zip(hyperparam_keys,
+                                       hyperparam_combs[index]):
         param[key] = hyperparam_value
       params_subset.append(param)
     return params_subset

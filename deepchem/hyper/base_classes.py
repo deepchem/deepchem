@@ -74,16 +74,18 @@ class HyperparamOpt(object):
           You probably want to instantiate a concrete subclass instead.")
     self.model_builder = model_builder
 
-  def hyperparam_search(self,
-                        params_dict: Dict,
-                        train_dataset: Dataset,
-                        valid_dataset: Dataset,
-                        metric: Metric,
-                        output_transformers: List[Transformer] = [],
-                        nb_epoch: int = 10,
-                        use_max: bool = True,
-                        logdir: Optional[str] = None,
-                        **kwargs) -> Tuple[Model, Dict, Dict]:
+  def hyperparam_search(
+      self,
+      params_dict: Dict,
+      train_dataset: Dataset,
+      valid_dataset: Dataset,
+      metric: Metric,
+      output_transformers: List[Transformer] = [],
+      nb_epoch: int = 10,
+      use_max: bool = True,
+      logfile: str = 'results.txt',
+      logdir: Optional[str] = None,
+      **kwargs) -> Tuple[Model, Dict[str, Any], Dict[str, Any]]:
     """Conduct Hyperparameter search.
 
     This method defines the common API shared by all hyperparameter
@@ -119,6 +121,10 @@ class HyperparamOpt(object):
     logdir: str, optional
       The directory in which to store created models. If not set, will
       use a temporary directory.
+    logfile: str, optional (default `results.txt`)
+      Name of logfile to write results to. If specified, this must
+      be a valid file name. If not specified, results of hyperparameter
+      search will be written to `logdir/results.txt`.
 
     Returns
     -------
