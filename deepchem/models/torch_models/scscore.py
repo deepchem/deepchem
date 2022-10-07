@@ -5,6 +5,7 @@ from deepchem.feat import CircularFingerprint
 from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.losses import L1Loss
 
+
 class ScScore(nn.Module):
     """
     ScScore paper - https://pubs.acs.org/doi/abs/10.1021/acs.jcim.7b00622
@@ -38,7 +39,11 @@ class ScScore(nn.Module):
         output = nn.Sigmoid()(output)
         return output
         
+        
 class ScScoreModel(TorchModel):
+    """
+    
+    """
     
     def __init__(self, n_features=1024, layer_sizes=[300,300,300,300,300], dropout = 0, **kwargs):
         self.n_features = n_features
