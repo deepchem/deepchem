@@ -97,8 +97,26 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Create env.yml
+    - name: Create env.yml for python < 3.10
       shell: bash
+      if: ${{ matrix.python-version != '3.10' }}
+      run: |
+        python -m pip install --upgrade pip;
+        pip install conda-merge;
+        cd requirements
+        if [ "$(uname)" == 'Linux' ]; then
+          conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml env_py310_no_support.yml >  env.yml
+        elif [  "$(uname)" == 'Darwin' ]; then
+          conda-merge env_common.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml jax/env_jax.cpu.yml env_py310_no_support.yml > env.yml
+        elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
+          conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
+        fi;
+        cd ..
+        cp requirements/env.yml env.yml
+    - name: Create env.yml for python == 3.10
+      shell: bash
+      # A special case of environment creation for python 3.10 which excludes vina
+      if: ${{ matrix.python-version == '3.10' }}
       run: |
         python -m pip install --upgrade pip;
         pip install conda-merge;
@@ -135,6 +153,11 @@ jobs:
       shell: bash -l {0}
       run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --ignore-glob='deepchem/models/jax_models/*' --doctest-modules deepchem --doctest-continue-on-failure
     - name: PyTest
-      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
+      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') &&  (matrix.python-version == '3.10') }}
+      shell: bash -l {0}
+      run: pytest -v -m "not jax and not torch and not tensorflow" --ignore='deepchem/dock/tests/test_docking.py'  --ignore='deepchem/dock/tests/test_pose_scoring.py' --ignore='deepchem/dock/tests/test_pose_scoring.py' deepchem
+    - name: PyTest
+      # A special pytest case for python 3.10 version which excludes vina
+      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') &&  (matrix.python-version != '3.10') }}
       shell: bash -l {0}
       run: pytest -v -m "not jax and not torch and not tensorflow" deepchem
