@@ -2,16 +2,19 @@ import torch
 import torch.nn as nn
 
 import numpy as np
-import torchdyn
 from torchdyn.core import NeuralODE
 from deepchem.models import TorchModel
 from deepchem.models.losses import L2Loss
 import tqdm
 
 import torch.nn.functional as F
-from deepchem.models.layers import LinearModule
 from deepchem.utils.typing import ActivationFn, OneOrMany
+from deepchem.utils.pytorch_utils import get_activation
 from typing import Iterable, Optional, Callable, Union, Generator
+try:
+  from collections.abc import Sequence as SequenceCollection
+except:
+  from collections import Sequence as SequenceCollection
 
 
 class NeuralODEModel(TorchModel):
@@ -25,22 +28,39 @@ class NeuralODEModel(TorchModel):
   - Custom Wrapper NN to NeuralODE enabling to use for deepchem tasks, and fit on deepchem 
   datasets
   
-  TODO : Add Usage Example
+  Examples
+  --------
+  >>> import deepchem as dc
+  >>> model = NeuralODEModel()
+  >>> X = np.random.rand(n_samples, 10, n_features)
+  >>> y = np.random.randint(2, size=(n_samples, n_tasks)).astype(np.float32)
+  >>> dataset = dc.data.NumpyDataset(X, y)
+  >>>
+  >>> regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
+  >>> model.fit(dataset, nb_epoch=1)
+  >>> scores = model.evaluate(dataset, [regression_metric])
 
   """
 
   def __init__(self,
                n_tasks: int,
                n_features: int,
-               vector_field_config: dict,
                layer_filters: OneOrMany[int],
+               ode_field_layer_filters: OneOrMany[int],
                weight_init_stddevs: OneOrMany[float] = 0.02,
+               ode_field_weight_init_stddevs: OneOrMany[float] = 0.02,
                bias_init_consts: OneOrMany[float] = 1.0,
+               ode_field_bias_init_consts: OneOrMany[float] = 1.0,
                weight_decay_penalty: float = 0.0,
+               ode_field_weight_decay_penalty: float = 0.0,
                weight_decay_penalty_type: str = 'l2',
+               ode_field_weight_decay_penalty_type: str = 'l2',
                dropouts: OneOrMany[float] = 0.5,
+               ode_field_dropouts: OneOrMany[float] = 0.5,
                activation_fns: OneOrMany[ActivationFn] = 'relu',
+               ode_field_activation_fns: OneOrMany[ActivationFn] = 'relu',
                residual: bool = True,
+               ode_field_residual: bool = True,
                mode: str = 'regression',
                t_span=torch.Tensor([0., 1.]),
                solver: str = 'tsit5',
@@ -130,17 +150,139 @@ class NeuralODEModel(TorchModel):
 
     """
 
-    self.n_tasks, self.n_features, self.mode = n_tasks, n_features, mode
+    self.n_tasks = n_tasks
+    self.n_features = n_features
+    self.mode = mode
+
+    class _LinearFieldImpl(nn.Module):
+        """A Flexible Linear FeedForward Network Module. The interface allows users to
+        configure the neural net in terms of number of layers, dropouts, weight initialisation
+        """
+
+        def __init__(self,
+                     layer_filters: OneOrMany[int],
+                     n_features: int = 1,
+                     dropouts: OneOrMany[float] = 0.5,
+                     activation_fns: OneOrMany[ActivationFn] = 'relu',
+                     weight_init_stddevs: OneOrMany[float] = 0.02,
+                     bias_init_consts: OneOrMany[float] = 1.0,
+                     residual: bool = True,
+                     ode_block: nn.Module = None,
+                     enable_ffn: bool = True,
+                     mode: str = 'regression'):
+
+            self.n_tasks = n_tasks
+            self.dropouts = dropouts
+            self.ode_block = ode_block
+            self.residual = residual
+            self.enable_ffn = enable_ffn
+            self.mode = mode
+
+            n_layers = len(layer_filters)
+
+            if len(layer_filters) == 1:
+                layer_filters = layer_filters * 2
+            if not isinstance(dropouts, SequenceCollection):
+                dropouts = [dropouts] * n_layers
+            if isinstance(activation_fns,
+                          str) or not isinstance(activation_fns, SequenceCollection):
+                activation_fns = [activation_fns] * n_layers
+            if not isinstance(weight_init_stddevs, SequenceCollection):
+                weight_init_stddevs = [weight_init_stddevs] * n_layers
+            if not isinstance(bias_init_consts, SequenceCollection):
+                bias_init_consts = [bias_init_consts] * n_layers
+
+            self.activation_fns = [get_activation(f) for f in activation_fns]
+            self.dropouts = dropouts
+
+            self.net = nn.ModuleList()
+
+            in_shape = n_features
+
+            for out_shape, weight_stddev, bias_const in zip(layer_filters,
+                                                            weight_init_stddevs,
+                                                            bias_init_consts):
+
+                layer = nn.Linear(in_features=in_shape, out_features=out_shape, bias=True)
+
+                nn.init.normal_(layer.weight, 0, weight_stddev)
+
+                if layer.bias is not None:
+                    layer.bias = nn.Parameter(torch.full(layer.bias.shape, bias_const))
+
+                self.layer.append(layer)
+
+            self.classifier_ffn = nn.LazyLinear(self.n_tasks * self.n_classes)
+            self.output_layer = nn.LazyLinear(self.n_tasks)
+
+            super(_LinearFieldImpl, self).__init__()
+
+        def forward(self, inputs):
+            """
+            Parameters
+            ----------
+            inputs: list of torch.Tensor
+              Input Tensors
+            Returns
+            -------
+            torch.Tensor
+              Output Tensor
+            """
+
+            if isinstance(inputs, torch.Tensor):
+                x, dropout_switch = inputs, None
+            else:
+                x, dropout_switch = inputs
+
+            prev_layer = x
+
+            for layer, activation_fn, dropout in zip(self.layers, self.activation_fns,
+                                                     self.dropouts):
+                x = layer(x)
+
+                if dropout > 0. and dropout_switch:
+                    x = F.dropout(x, dropout)
+
+                    if self.residual and x.shape[1] == prev_layer.shape[1]:
+                        x = x + prev_layer
+
+                    if activation_fn is not None:
+                        x = self.activation_fn(x)
+
+                    prev_layer = x
+
+            if self.ode_block is not None:
+                x, _ = self.ode_block(x)
+
+            outputs = x
+
+            if self.enable_ffn:
+                batch_size = x.shape[0]
+
+                if self.mode == "classification":
+
+                    logits = self.classifier_ffn(x)
+                    logits = logits.view(batch_size, self.n_tasks, self.n_classes)
+                    output = F.softmax(logits, dim=2)
+                    outputs = [output, logits]
+
+                else:
+                    output = self.output_layer(x)
+                    output = output.view(batch_size, self.n_tasks)
+
+                    outputs = [output]
+
+            return outputs
 
     # Linear Neural Network to model dynamics of system
-    self.vector_field = LinearModule(
-        n_features=vector_field_config['n_features'],
-        layer_filters=vector_field_config['layer_filters'],
-        dropouts=vector_field_config['dropouts'],
-        activation_fns=vector_field_config['activation_fns'],
-        weight_init_stddevs=vector_field_config['weight_init_stddevs'],
-        bias_init_consts=vector_field_config['bias_init_consts'],
-        residual=vector_field_config['residual'],
+    self.vector_field = _LinearFieldImpl(
+        n_features=n_features,
+        layer_filters=ode_field_layer_filters,
+        dropouts=ode_field_dropouts,
+        activation_fns=ode_field_activation_fns,
+        weight_init_stddevs=ode_field_weight_init_stddevs,
+        bias_init_consts=ode_field_bias_init_consts,
+        residual=ode_field_residual,
         ode_block=None,
         enable_ffn=False)
 
@@ -159,15 +301,15 @@ class NeuralODEModel(TorchModel):
                                 return_t_eval=return_t_eval,
                                 optimizable_params=optimizable_params)
 
-    self.model = LinearModule(n_features=n_features,
-                              layer_filters=layer_filters,
-                              dropouts=dropouts,
-                              activation_fns=activation_fns,
-                              weight_init_stddevs=weight_init_stddevs,
-                              bias_init_consts=bias_init_consts,
-                              residual=residual,
-                              ode_block=self.neural_ode,
-                              enable_ffn=True)
+    self.model = _LinearFieldImpl(n_features=n_features,
+                                  layer_filters=layer_filters,
+                                  dropouts=dropouts,
+                                  activation_fns=activation_fns,
+                                  weight_init_stddevs=weight_init_stddevs,
+                                  bias_init_consts=bias_init_consts,
+                                  residual=residual,
+                                  ode_block=self.neural_ode,
+                                  enable_ffn=True)
 
     self.t_span = t_span
 
@@ -212,7 +354,3 @@ class NeuralODEModel(TorchModel):
         else:
           dropout = np.array(1.0)
         yield ([t_b, dropout], Y_b, [w_b])
-
-  # TODO : Write custom fit method
-  def fit(self):
-    pass
