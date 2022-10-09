@@ -682,7 +682,18 @@ class PiecewiseConstantSchedule(LearningRateSchedule):
 class KFAC(Optimizer):
   """The Second order gradient optimiation algorithm which uses an approximation to calculate the inverse of the Fischer matrrix"""
 
-  def __init__(self, **kwargs):
+  def __init__(self,
+               model,
+               lr=0.001,
+               momentum=0.9,
+               stat_decay=0.95,
+               damping=1e-2,
+               kl_clip=1e-2,
+               weight_decay=0.0,
+               Tcov=1.0,
+               Tinv=1.0,
+               batch_averaged=True,
+               mean=False):
     """
     Parameters:
     -----------
@@ -698,7 +709,7 @@ class KFAC(Optimizer):
       damping factor for the update of covariance matrix.
     kl_clip: float (default: 0.001)
       Clipping value for the update of covariance matrix.
-    weight_decay: float (default: 0)
+    weight_decay: float (default: 0.0)
       weight decay for the optimizer.
     Tcov: int (default: 10)
       The number of steps to update the covariance matrix.
@@ -709,12 +720,26 @@ class KFAC(Optimizer):
     mean: bool (default: False)
       States whether to use mean centered covariance matrix.
     """
-    self.kwargs = kwargs
+    super().__init__(lr)
+    self.model = model
+    self.learning_rate = lr
+    self.momentum = momentum
+    self.stat_decay = stat_decay
+    self.damping = damping
+    self.kl_clip = kl_clip
+    self.weight_decay = weight_decay
+    self.Tcov = Tcov
+    self.Tinv = Tinv
+    self.batch_averaged = batch_averaged
+    self.mean = mean
 
   def _create_pytorch_optimizer(self):
     from deepchem.models.torch_models.kfac_optimizer import KFACOptimizer
     if isinstance(self.learning_rate, LearningRateSchedule):
-      self.kwargs['lr'] = self.learning_rate.initial_rate
+      self.learning_rate = self.learning_rate.initial_rate
     else:
-      self.kwargs['lr'] = self.learning_rate
-    return KFACOptimizer([self.kwargs])
+      self.learning_rate = self.learning_rate
+    return KFACOptimizer(self.model, self.learning_rate, self.momentum,
+                         self.stat_decay, self.damping, self.kl_clip,
+                         self.weight_decay, self.Tcov, self.Tinv,
+                         self.batch_averaged, self.mean)

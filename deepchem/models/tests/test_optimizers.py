@@ -297,7 +297,7 @@ class TestOptimizers(unittest.TestCase):
     model = dc.models.TorchModel(model,
                                  dc.models.losses.L2Loss(),
                                  optimizers=optimizers.KFAC(model=model,
-                                                            learning_rate=0.003,
+                                                            lr=0.003,
                                                             Tinv=10))
     # Fit trained model
     model.fit(
