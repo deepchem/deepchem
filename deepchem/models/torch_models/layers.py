@@ -2590,12 +2590,6 @@ class GatedRecurrentUnit(nn.Module):
     self.init = init
     self.build()
 
-  def get_config(self):
-    config = super(GatedRecurrentUnit, self).get_config()
-    config['n_hidden'] = self.n_hidden
-    config['init'] = self.init
-    return config
-
   def build(self):
     n_hidden = self.n_hidden
     init = getattr(initializers, self.init)
