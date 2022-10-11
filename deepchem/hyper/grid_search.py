@@ -9,10 +9,11 @@ import collections
 import logging
 from functools import reduce
 from operator import mul
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from deepchem.data import Dataset
 from deepchem.trans import Transformer
+from deepchem.models import Model
 from deepchem.metrics import Metric
 from deepchem.hyper.base_classes import HyperparamOpt
 from deepchem.hyper.base_classes import _convert_hyperparam_dict_to_filename
@@ -85,10 +86,10 @@ class GridHyperparamOpt(HyperparamOpt):
       output_transformers: List[Transformer] = [],
       nb_epoch: int = 10,
       use_max: bool = True,
+      logfile: str = 'results.txt',
       logdir: Optional[str] = None,
-      logfile: Optional[str] = None,
       **kwargs,
-  ):
+  ) -> Tuple[Model, Dict, Dict]:
     """Perform hyperparams search according to params_dict.
 
     Each key to hyperparams_dict is a model_param. The values should
@@ -119,7 +120,7 @@ class GridHyperparamOpt(HyperparamOpt):
     logdir: str, optional
       The directory in which to store created models. If not set, will
       use a temporary directory.
-    logfile: str, optional (default None)
+    logfile: str, optional (default `results.txt`)
       Name of logfile to write results to. If specified, this is must
       be a valid file name. If not specified, results of hyperparameter
       search will be written to `logdir/results.txt`.
@@ -151,17 +152,14 @@ class GridHyperparamOpt(HyperparamOpt):
       best_validation_score = -np.inf
     else:
       best_validation_score = np.inf
-    best_hyperparams = None
+
     best_model = None
     all_scores = {}
 
     if logdir is not None:
       if not os.path.exists(logdir):
         os.makedirs(logdir, exist_ok=True)
-      if logfile is not None:
-        log_file = os.path.join(logdir, logfile)
-      else:
-        log_file = os.path.join(logdir, "results.txt")
+      log_file = os.path.join(logdir, logfile)
 
     for ind, hyperparameter_tuple in enumerate(
         itertools.product(*hyperparam_vals)):
@@ -225,10 +223,11 @@ class GridHyperparamOpt(HyperparamOpt):
                                            output_transformers)
     train_score = multitask_scores[metric.name]
     logger.info("Best hyperparameters: %s" % str(best_hyperparams))
-    logger.info("train_score: %f" % train_score)
-    logger.info("validation_score: %f" % best_validation_score)
+    logger.info("best train score: %f" % train_score)
+    logger.info("best validation score: %f" % best_validation_score)
     if logdir is not None:
       with open(log_file, 'w+') as f:
         f.write("Best Hyperparameters dictionary %s\n" % str(best_hyperparams))
-        f.write("Best validation score %s" % str(train_score))
+        f.write("Best validation score %f\n" % best_validation_score)
+        f.write("Best train_score: %f\n" % train_score)
     return best_model, best_hyperparams, all_scores
