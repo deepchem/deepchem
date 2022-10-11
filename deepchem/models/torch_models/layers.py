@@ -2598,19 +2598,13 @@ class GatedRecurrentUnit(nn.Module):
 
   def build(self):
     n_hidden = self.n_hidden
-
-    def init(input_shape):
-      return self.add_weight(name='kernel',
-                             shape=(input_shape[0], input_shape[1]),
-                             initializer=self.init,
-                             trainable=True)
-
-    self.Wz = init([n_hidden, n_hidden])
-    self.Wr = init([n_hidden, n_hidden])
-    self.Wh = init([n_hidden, n_hidden])
-    self.Uz = init([n_hidden, n_hidden])
-    self.Ur = init([n_hidden, n_hidden])
-    self.Uh = init([n_hidden, n_hidden])
+    init = getattr(initializers, self.init)
+    self.Wz = init(torch.empty(n_hidden, n_hidden))
+    self.Wr = init(torch.empty(n_hidden, n_hidden))
+    self.Wh = init(torch.empty(n_hidden, n_hidden))
+    self.Uz = init(torch.empty(n_hidden, n_hidden))
+    self.Ur = init(torch.empty(n_hidden, n_hidden))
+    self.Uh = init(torch.empty(n_hidden, n_hidden))
     self.bz = torch.zeros((n_hidden,))
     self.br = torch.zeros((n_hidden,))
     self.bh = torch.zeros((n_hidden,))
@@ -2618,14 +2612,15 @@ class GatedRecurrentUnit(nn.Module):
 
   def forward(self, inputs):
     sigmoid = get_activation('sigmoid')
-    z = sigmoid(
-        torch.bmm(inputs[1], self.Wz) + torch.bmm(inputs[0], self.Uz) + self.bz)
-    r = sigmoid(
-        torch.bmm(inputs[1], self.Wr) + torch.bmm(inputs[0], self.Ur) + self.br)
     tanh = get_activation('tanh')
+    h_tm1, x = inputs
+    z = sigmoid(
+        torch.matmul(x, self.Wz) + torch.matmul(h_tm1, self.Uz) + self.bz)
+    r = sigmoid(
+        torch.matmul(x, self.Wr) + torch.matmul(h_tm1, self.Ur) + self.br)
     h = (1 - z) * tanh(
-        torch.bmm(inputs[1], self.Wh) + torch.bmm(inputs[0] * r, self.Uh) +
-        self.bh) + z * inputs[0]
+        torch.matmul(x, self.Wh) + torch.matmul(h_tm1 * r, self.Uh) +
+        self.bh) + z * x
     return h
 
 

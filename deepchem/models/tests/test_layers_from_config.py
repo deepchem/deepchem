@@ -521,18 +521,6 @@ def test_gru():
   assert layer_copied.init == layer.init
 
 
-@pytest.mark.torch
-def test_torch_gru():
-  n_hidden = 100
-  init = 'xavier_uniform_'
-  layer = dc.models.layers.GatedRecurrentUnit(n_hidden, init)
-  config = layer.get_config()
-  layer_copied = dc.models.layers.GatedRecurrentUnit.from_config(config)
-
-  assert layer_copied.n_hidden == layer.n_hidden
-  assert layer_copied.init == layer.init
-
-
 @pytest.mark.tensorflow
 def test_set_gather():
   M = 10

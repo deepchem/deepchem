@@ -809,6 +809,18 @@ def test_torch_lstm_step():
 
 
 @pytest.mark.torch
+def test_torch_gru():
+  n_hidden = 100
+  batch_size = 10
+  x = torch.tensor(np.random.rand(batch_size, n_hidden).astype(np.float32))
+  h_0 = torch.tensor(np.random.rand(batch_size, n_hidden).astype(np.float32))
+  init = 'xavier_uniform_'
+  layer = torch_layers.GatedRecurrentUnit(n_hidden, init)
+  y_hat = layer([x, h_0])
+  assert y_hat.shape == (batch_size, n_hidden)
+
+
+@pytest.mark.torch
 def test_torch_atomic_convolution():
   """Test invoking the Torch equivalent of AtomicConvolution"""
   batch_size = 4
