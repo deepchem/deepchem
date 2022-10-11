@@ -2588,10 +2588,6 @@ class GatedRecurrentUnit(nn.Module):
     super(GatedRecurrentUnit, self).__init__(**kwargs)
     self.n_hidden = n_hidden
     self.init = init
-    self.build()
-
-  def build(self):
-    n_hidden = self.n_hidden
     init = getattr(initializers, self.init)
     self.Wz = init(torch.empty(n_hidden, n_hidden))
     self.Wr = init(torch.empty(n_hidden, n_hidden))
@@ -2602,7 +2598,6 @@ class GatedRecurrentUnit(nn.Module):
     self.bz = torch.zeros((n_hidden,))
     self.br = torch.zeros((n_hidden,))
     self.bh = torch.zeros((n_hidden,))
-    self.built = True
 
   def forward(self, inputs):
     sigmoid = get_activation('sigmoid')
