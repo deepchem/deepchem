@@ -97,8 +97,8 @@ class GninaPoseGenerator(PoseGenerator):
   References
   ----------
   .. [1] M Ragoza, J Hochuli, E Idrobo, J Sunseri, DR Koes.
-  "Protein–Ligand Scoring with Convolutional Neural Networks."
-  Journal of chemical information and modeling (2017).
+     "Protein–Ligand Scoring with Convolutional Neural Networks."
+     Journal of chemical information and modeling (2017).
 
   Note
   ----
@@ -107,7 +107,6 @@ class GninaPoseGenerator(PoseGenerator):
   * Almost all dependencies are included in the most compatible way
     possible, which reduces performance. Build GNINA from source
     for production use.
-
   """
 
   def __init__(self):
