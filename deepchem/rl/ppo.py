@@ -176,12 +176,11 @@ class PPO(object):
     policy_model = self._policy.create_model()
     loss = PPOLoss(self.value_weight, self.entropy_weight, self.clipping_width,
                    self._action_prob_index, self._value_index)
-    model = KerasModel(
-        policy_model,
-        loss,
-        batch_size=self.max_rollout_length,
-        model_dir=model_dir,
-        optimize=self._optimizer)
+    model = KerasModel(policy_model,
+                       loss,
+                       batch_size=self.max_rollout_length,
+                       model_dir=model_dir,
+                       optimize=self._optimizer)
     model._ensure_built()
     return model
 
@@ -213,8 +212,9 @@ class PPO(object):
     if restore:
       self.restore()
     pool = Pool()
-    manager = tf.train.CheckpointManager(
-        self._checkpoint, self._model.model_dir, max_checkpoints_to_keep)
+    manager = tf.train.CheckpointManager(self._checkpoint,
+                                         self._model.model_dir,
+                                         max_checkpoints_to_keep)
     checkpoint_time = time.time()
     while step_count < total_steps:
       # Have the worker threads generate the rollouts for this iteration.
@@ -465,19 +465,17 @@ class _Worker(object):
     if not self.env.terminated:
       results = self._compute_model(
           self._create_model_inputs(self.env.state, self.rnn_states))
-      final_value = self.ppo.discount_factor * results[self.ppo.
-                                                       _value_index].numpy()[0]
+      final_value = self.ppo.discount_factor * results[
+          self.ppo._value_index].numpy()[0]
     else:
       final_value = 0.0
     values.append(final_value)
     if self.env.terminated:
       self.env.reset()
       self.rnn_states = self.ppo._policy.rnn_initial_states
-    return states, np.array(
-        actions, dtype=np.int32), np.array(
-            action_prob, dtype=np.float32), np.array(
-                rewards, dtype=np.float32), np.array(
-                    values, dtype=np.float32)
+    return states, np.array(actions, dtype=np.int32), np.array(
+        action_prob, dtype=np.float32), np.array(
+            rewards, dtype=np.float32), np.array(values, dtype=np.float32)
 
   def process_rollout(self, states, actions, action_prob, rewards, values,
                       initial_rnn_states):
@@ -494,7 +492,8 @@ class _Worker(object):
                          1] += self.ppo.discount_factor * discounted_rewards[j]
       advantages[
           j -
-          1] += self.ppo.discount_factor * self.ppo.advantage_lambda * advantages[j]
+          1] += self.ppo.discount_factor * self.ppo.advantage_lambda * advantages[
+              j]
 
     # Convert the actions to one-hot.
 

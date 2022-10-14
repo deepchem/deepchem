@@ -202,12 +202,11 @@ class A2C(object):
     else:
       loss = A2CLossDiscrete(self.value_weight, self.entropy_weight,
                              self._action_prob_index, self._value_index)
-    model = KerasModel(
-        policy_model,
-        loss,
-        batch_size=self.max_rollout_length,
-        model_dir=model_dir,
-        optimize=self._optimizer)
+    model = KerasModel(policy_model,
+                       loss,
+                       batch_size=self.max_rollout_length,
+                       model_dir=model_dir,
+                       optimize=self._optimizer)
     model._ensure_built()
 
     return model
@@ -235,8 +234,9 @@ class A2C(object):
     """
     if restore:
       self.restore()
-    manager = tf.train.CheckpointManager(
-        self._checkpoint, self._model.model_dir, max_checkpoints_to_keep)
+    manager = tf.train.CheckpointManager(self._checkpoint,
+                                         self._model.model_dir,
+                                         max_checkpoints_to_keep)
     checkpoint_time = time.time()
     self._env.reset()
     rnn_states = self._policy.rnn_initial_states
@@ -391,8 +391,8 @@ class A2C(object):
         break
       state = self._env.state
       states.append(state)
-      results = self._compute_model(
-          self._create_model_inputs(state, rnn_states))
+      results = self._compute_model(self._create_model_inputs(
+          state, rnn_states))
       results = [r.numpy() for r in results]
       value = results[self._value_index]
       rnn_states = [
@@ -415,9 +415,8 @@ class A2C(object):
     if self._env.terminated:
       self._env.reset()
       rnn_states = self._policy.rnn_initial_states
-    return states, actions, np.array(
-        rewards, dtype=np.float32), np.array(
-            values, dtype=np.float32), rnn_states
+    return states, actions, np.array(rewards, dtype=np.float32), np.array(
+        values, dtype=np.float32), rnn_states
 
   def _process_rollout(self, states, actions, rewards, values,
                        initial_rnn_states):

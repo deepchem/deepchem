@@ -111,8 +111,9 @@ class MultitaskClassifier(TorchModel):
         super(PytorchImpl, self).__init__()
         self.layers = torch.nn.ModuleList()
         prev_size = n_features
-        for size, weight_stddev, bias_const in zip(
-            layer_sizes, weight_init_stddevs, bias_init_consts):
+        for size, weight_stddev, bias_const in zip(layer_sizes,
+                                                   weight_init_stddevs,
+                                                   bias_init_consts):
           layer = torch.nn.Linear(prev_size, size)
           torch.nn.init.normal_(layer.weight, 0, weight_stddev)
           torch.nn.init.constant_(layer.bias, bias_const)
@@ -125,8 +126,9 @@ class MultitaskClassifier(TorchModel):
       def forward(self, x):
         prev_size = n_features
         next_activation = None
-        for size, layer, dropout, activation_fn, in zip(
-            layer_sizes, self.layers, dropouts, activation_fns):
+        for size, layer, dropout, activation_fn, in zip(layer_sizes,
+                                                        self.layers, dropouts,
+                                                        activation_fns):
           y = x
           if next_activation is not None:
             y = next_activation(x)
@@ -151,17 +153,19 @@ class MultitaskClassifier(TorchModel):
     if weight_decay_penalty != 0:
       weights = [layer.weight for layer in model.layers]
       if weight_decay_penalty_type == 'l1':
-        regularization_loss = lambda: weight_decay_penalty * torch.sum(torch.stack([torch.abs(w).sum() for w in weights]))
+        regularization_loss = lambda: weight_decay_penalty * torch.sum(
+            torch.stack([torch.abs(w).sum() for w in weights]))
       else:
-        regularization_loss = lambda: weight_decay_penalty * torch.sum(torch.stack([torch.square(w).sum() for w in weights]))
+        regularization_loss = lambda: weight_decay_penalty * torch.sum(
+            torch.stack([torch.square(w).sum() for w in weights]))
     else:
       regularization_loss = None
-    super(MultitaskClassifier, self).__init__(
-        model,
-        dc.models.losses.SoftmaxCrossEntropy(),
-        output_types=['prediction', 'loss', 'embedding'],
-        regularization_loss=regularization_loss,
-        **kwargs)
+    super(MultitaskClassifier,
+          self).__init__(model,
+                         dc.models.losses.SoftmaxCrossEntropy(),
+                         output_types=['prediction', 'loss', 'embedding'],
+                         regularization_loss=regularization_loss,
+                         **kwargs)
 
   def default_generator(
       self,
@@ -171,13 +175,14 @@ class MultitaskClassifier(TorchModel):
       deterministic: bool = True,
       pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+      for (X_b, y_b, w_b,
+           ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                         deterministic=deterministic,
+                                         pad_batches=pad_batches):
         if y_b is not None:
-          y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
-              -1, self.n_tasks, self.n_classes)
+          y_b = to_one_hot(y_b.flatten(),
+                           self.n_classes).reshape(-1, self.n_tasks,
+                                                   self.n_classes)
         yield ([X_b], [y_b], [w_b])
 
 
@@ -274,8 +279,9 @@ class MultitaskRegressor(TorchModel):
         super(PytorchImpl, self).__init__()
         self.layers = torch.nn.ModuleList()
         prev_size = n_features
-        for size, weight_stddev, bias_const in zip(
-            layer_sizes, weight_init_stddevs, bias_init_consts):
+        for size, weight_stddev, bias_const in zip(layer_sizes,
+                                                   weight_init_stddevs,
+                                                   bias_init_consts):
           layer = torch.nn.Linear(prev_size, size)
           torch.nn.init.normal_(layer.weight, 0, weight_stddev)
           torch.nn.init.constant_(layer.bias, bias_const)
@@ -294,8 +300,9 @@ class MultitaskRegressor(TorchModel):
         x, dropout_switch = inputs
         prev_size = n_features
         next_activation = None
-        for size, layer, dropout, activation_fn, in zip(
-            layer_sizes, self.layers, dropouts, activation_fns):
+        for size, layer, dropout, activation_fn, in zip(layer_sizes,
+                                                        self.layers, dropouts,
+                                                        activation_fns):
           y = x
           if next_activation is not None:
             y = next_activation(x)
@@ -323,9 +330,11 @@ class MultitaskRegressor(TorchModel):
     if weight_decay_penalty != 0:
       weights = [layer.weight for layer in model.layers]
       if weight_decay_penalty_type == 'l1':
-        regularization_loss = lambda: weight_decay_penalty * torch.sum(torch.stack([torch.abs(w).sum() for w in weights]))
+        regularization_loss = lambda: weight_decay_penalty * torch.sum(
+            torch.stack([torch.abs(w).sum() for w in weights]))
       else:
-        regularization_loss = lambda: weight_decay_penalty * torch.sum(torch.stack([torch.square(w).sum() for w in weights]))
+        regularization_loss = lambda: weight_decay_penalty * torch.sum(
+            torch.stack([torch.square(w).sum() for w in weights]))
     else:
       regularization_loss = None
     loss: Union[dc.models.losses.Loss, LossFn]
@@ -353,12 +362,12 @@ class MultitaskRegressor(TorchModel):
     else:
       output_types = ['prediction', 'embedding']
       loss = dc.models.losses.L2Loss()
-    super(MultitaskRegressor, self).__init__(
-        model,
-        loss,
-        output_types=output_types,
-        regularization_loss=regularization_loss,
-        **kwargs)
+    super(MultitaskRegressor,
+          self).__init__(model,
+                         loss,
+                         output_types=output_types,
+                         regularization_loss=regularization_loss,
+                         **kwargs)
 
   def default_generator(
       self,
@@ -368,10 +377,10 @@ class MultitaskRegressor(TorchModel):
       deterministic: bool = True,
       pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+      for (X_b, y_b, w_b,
+           ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                         deterministic=deterministic,
+                                         pad_batches=pad_batches):
         if mode == 'predict':
           dropout = np.array(0.0)
         else:
@@ -437,8 +446,10 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
       X_b, _, _, _ = transformer.transform_array(X_b, empty, empty, empty)
     n_features = X_b.shape[1]
     logger.info("n_features after fit_transform: %d", int(n_features))
-    super(MultitaskFitTransformRegressor, self).__init__(
-        n_tasks, n_features, batch_size=batch_size, **kwargs)
+    super(MultitaskFitTransformRegressor, self).__init__(n_tasks,
+                                                         n_features,
+                                                         batch_size=batch_size,
+                                                         **kwargs)
 
   def default_generator(
       self,
@@ -449,10 +460,10 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
       pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
     empty: np.ndarray = np.array([])
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+      for (X_b, y_b, w_b,
+           ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                         deterministic=deterministic,
+                                         pad_batches=pad_batches):
         if y_b is not None:
           y_b = y_b.reshape(-1, self.n_tasks, 1)
         if X_b is not None:
@@ -479,5 +490,6 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
           X_t = transformer.X_transform(X_t)
         yield ([X_t] + inputs[1:], labels, weights)
 
-    return super(MultitaskFitTransformRegressor, self).predict_on_generator(
-        transform_generator(), transformers, output_types)
+    return super(MultitaskFitTransformRegressor,
+                 self).predict_on_generator(transform_generator(), transformers,
+                                            output_types)

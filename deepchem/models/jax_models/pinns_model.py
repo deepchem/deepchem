@@ -154,9 +154,10 @@ class PINNModel(JaxModel):
         'PinnModel is still in active development and we could change the design of the API in the future.'
     )
     self.boundary_data = initial_data
-    super(PINNModel, self).__init__(
-        forward_fn, params, None, output_types, batch_size, learning_rate,
-        optimizer, grad_fn, update_fn, eval_fn, rng, log_frequency, **kwargs)
+    super(PINNModel,
+          self).__init__(forward_fn, params, None, output_types, batch_size,
+                         learning_rate, optimizer, grad_fn, update_fn, eval_fn,
+                         rng, log_frequency, **kwargs)
 
   def fit_generator(self,
                     generator: Iterable[Tuple[Any, Any, Any]],
@@ -171,8 +172,9 @@ class PINNModel(JaxModel):
     averaged_batches = 0
     if loss is None:
       loss = self._loss_fn
-    model_loss_fn = self._create_gradient_fn(
-        self.forward_fn, self._loss_outputs, self.boundary_data)
+    model_loss_fn = self._create_gradient_fn(self.forward_fn,
+                                             self._loss_outputs,
+                                             self.boundary_data)
     grad_update = self._create_update_fn(self.optimizer, model_loss_fn)
 
     params, opt_state = self._get_trainable_params()
@@ -193,8 +195,12 @@ class PINNModel(JaxModel):
       if isinstance(weights, list) and len(weights) == 1:
         weights = weights[0]
 
-      params, opt_state, batch_loss = grad_update(
-          params, opt_state, inputs, labels, weights, rng=rng)
+      params, opt_state, batch_loss = grad_update(params,
+                                                  opt_state,
+                                                  inputs,
+                                                  labels,
+                                                  weights,
+                                                  rng=rng)
       rng, _ = jax.random.split(rng)
       avg_loss += jax.device_get(batch_loss)
       self._global_step += 1
@@ -204,8 +210,8 @@ class PINNModel(JaxModel):
 
       if should_log:
         avg_loss = float(avg_loss) / averaged_batches
-        logger.info(
-            'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
+        logger.info('Ending global_step %d: Average loss %g' %
+                    (current_step, avg_loss))
         if all_losses is not None:
           all_losses.append(avg_loss)
         # Capture the last avg_loss in case of return since we're resetting to 0 now
@@ -218,8 +224,8 @@ class PINNModel(JaxModel):
     # Report final results.
     if averaged_batches > 0:
       avg_loss = float(avg_loss) / averaged_batches
-      logger.info(
-          'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
+      logger.info('Ending global_step %d: Average loss %g' %
+                  (current_step, avg_loss))
       if all_losses is not None:
         all_losses.append(avg_loss)
       last_avg_loss = avg_loss
@@ -284,10 +290,9 @@ class PINNModel(JaxModel):
     """
 
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, _) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+      for (X_b, y_b, w_b, _) in dataset.iterbatches(batch_size=self.batch_size,
+                                                    deterministic=deterministic,
+                                                    pad_batches=pad_batches):
         yield ([X_b], [y_b], [w_b])
 
   def _predict(self, generator: Iterable[Tuple[Any, Any, Any]],

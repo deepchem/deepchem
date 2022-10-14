@@ -118,12 +118,11 @@ class ProgressiveMultitaskRegressor(KerasModel):
             lateral_contrib, trainables = self.add_adapter(all_layers, task, i)
             task_layers.extend(trainables)
 
-        dense = Dense(
-            layer_sizes[i],
-            kernel_initializer=tf.keras.initializers.TruncatedNormal(
-                stddev=self.weight_init_stddevs[i]),
-            bias_initializer=tf.constant_initializer(
-                value=self.bias_init_consts[i]))
+        dense = Dense(layer_sizes[i],
+                      kernel_initializer=tf.keras.initializers.TruncatedNormal(
+                          stddev=self.weight_init_stddevs[i]),
+                      bias_initializer=tf.constant_initializer(
+                          value=self.bias_init_consts[i]))
         layer = dense(prev_layer)
         task_layers.append(dense)
 
@@ -136,12 +135,11 @@ class ProgressiveMultitaskRegressor(KerasModel):
         all_layers[(i, task)] = layer
 
       prev_layer = all_layers[(n_layers - 1, task)]
-      dense = Dense(
-          n_outputs,
-          kernel_initializer=tf.keras.initializers.TruncatedNormal(
-              stddev=self.weight_init_stddevs[-1]),
-          bias_initializer=tf.constant_initializer(
-              value=self.bias_init_consts[-1]))
+      dense = Dense(n_outputs,
+                    kernel_initializer=tf.keras.initializers.TruncatedNormal(
+                        stddev=self.weight_init_stddevs[-1]),
+                    bias_initializer=tf.constant_initializer(
+                        value=self.bias_init_consts[-1]))
       layer = dense(prev_layer)
       task_layers.append(dense)
 
@@ -205,11 +203,10 @@ class ProgressiveMultitaskRegressor(KerasModel):
     prev_layer = dense1(prev_layer)
     trainable_layers.append(dense1)
 
-    dense2 = Dense(
-        layer_sizes[i],
-        kernel_initializer=tf.keras.initializers.TruncatedNormal(
-            stddev=weight_init_stddev),
-        use_bias=False)
+    dense2 = Dense(layer_sizes[i],
+                   kernel_initializer=tf.keras.initializers.TruncatedNormal(
+                       stddev=weight_init_stddev),
+                   use_bias=False)
     prev_layer = dense2(prev_layer)
     trainable_layers.append(dense2)
 
@@ -224,15 +221,14 @@ class ProgressiveMultitaskRegressor(KerasModel):
           restore=False,
           **kwargs):
     for task in range(self.n_tasks):
-      self.fit_task(
-          dataset,
-          task,
-          nb_epoch=nb_epoch,
-          max_checkpoints_to_keep=max_checkpoints_to_keep,
-          checkpoint_interval=checkpoint_interval,
-          deterministic=deterministic,
-          restore=restore,
-          **kwargs)
+      self.fit_task(dataset,
+                    task,
+                    nb_epoch=nb_epoch,
+                    max_checkpoints_to_keep=max_checkpoints_to_keep,
+                    checkpoint_interval=checkpoint_interval,
+                    deterministic=deterministic,
+                    restore=restore,
+                    **kwargs)
 
   def fit_task(self,
                dataset,
@@ -247,19 +243,19 @@ class ProgressiveMultitaskRegressor(KerasModel):
     shape = dataset.get_shape()
     batch = [[np.zeros((self.batch_size,) + s[1:])] for s in shape]
     self._create_training_ops(batch)
-    generator = self.default_generator(
-        dataset, epochs=nb_epoch, deterministic=deterministic)
+    generator = self.default_generator(dataset,
+                                       epochs=nb_epoch,
+                                       deterministic=deterministic)
     variables = []
     for layer in self._task_layers[task]:
       variables += layer.trainable_variables
     loss = TaskLoss(self.model, self.create_loss(), task)
-    self.fit_generator(
-        generator,
-        max_checkpoints_to_keep,
-        checkpoint_interval,
-        restore,
-        variables=variables,
-        loss=loss)
+    self.fit_generator(generator,
+                       max_checkpoints_to_keep,
+                       checkpoint_interval,
+                       restore,
+                       variables=variables,
+                       loss=loss)
 
 
 class ProgressiveMultitaskClassifier(ProgressiveMultitaskRegressor):
@@ -286,19 +282,19 @@ class ProgressiveMultitaskClassifier(ProgressiveMultitaskRegressor):
                activation_fns=tf.nn.relu,
                **kwargs):
     n_outputs = 2
-    super(ProgressiveMultitaskClassifier, self).__init__(
-        n_tasks,
-        n_features,
-        alpha_init_stddevs=alpha_init_stddevs,
-        layer_sizes=layer_sizes,
-        weight_init_stddevs=weight_init_stddevs,
-        bias_init_consts=bias_init_consts,
-        weight_decay_penalty=weight_decay_penalty,
-        weight_decay_penalty_type=weight_decay_penalty_type,
-        dropouts=dropouts,
-        activation_fns=activation_fns,
-        n_outputs=n_outputs,
-        **kwargs)
+    super(ProgressiveMultitaskClassifier,
+          self).__init__(n_tasks,
+                         n_features,
+                         alpha_init_stddevs=alpha_init_stddevs,
+                         layer_sizes=layer_sizes,
+                         weight_init_stddevs=weight_init_stddevs,
+                         bias_init_consts=bias_init_consts,
+                         weight_decay_penalty=weight_decay_penalty,
+                         weight_decay_penalty_type=weight_decay_penalty_type,
+                         dropouts=dropouts,
+                         activation_fns=activation_fns,
+                         n_outputs=n_outputs,
+                         **kwargs)
 
   def create_loss(self):
     return SparseSoftmaxCrossEntropy()
