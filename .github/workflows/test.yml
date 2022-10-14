@@ -155,7 +155,7 @@ jobs:
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') &&  (matrix.python-version == '3.10') }}
       shell: bash -l {0}
-      run: pytest -v -m "not jax and not torch and not tensorflow" --ignore='deepchem/dock/tests/test_docking.py'  --ignore='deepchem/dock/tests/test_pose_scoring.py' --ignore='deepchem/dock/tests/test_pose_scoring.py' deepchem
+      run: pytest -v -m "not jax and not torch and not tensorflow" --ignore='deepchem/dock/tests/test_docking.py'  --ignore='deepchem/dock/tests/test_pose_scoring.py' --ignore='deepchem/dock/tests/test_pose_generation.py' deepchem
     - name: PyTest
       # A special pytest case for python 3.10 version which excludes vina
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') &&  (matrix.python-version != '3.10') }}
