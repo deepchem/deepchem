@@ -1,9 +1,6 @@
 """Advantage Actor-Critic (A2C) algorithm for reinforcement learning."""
 import time
-try:
-  from collections.abc import Sequence as SequenceCollection
-except:
-  from collections import Sequence as SequenceCollection
+from collections.abc import Sequence as SequenceCollection
 import numpy as np
 import tensorflow as tf
 

@@ -1,10 +1,7 @@
 import time
 import numpy as np
 import tensorflow as tf
-try:
-  from collections.abc import Sequence as SequenceCollection
-except:
-  from collections import Sequence as SequenceCollection
+from collections.abc import Sequence as SequenceCollection
 
 import logging
 from deepchem.metrics import to_one_hot

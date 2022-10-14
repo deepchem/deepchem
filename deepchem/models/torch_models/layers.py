@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from typing import Any, Tuple, Optional, Sequence, List, Union
+from collections.abc import Sequence as SequenceCollection
 try:
   import torch
   from torch import Tensor
@@ -17,11 +18,6 @@ except ModuleNotFoundError:
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
 from deepchem.utils.pytorch_utils import get_activation
 from torch.nn import init as initializers
-
-try:
-  from collections.abc import Sequence as SequenceCollection
-except:
-  from collections import Sequence as SequenceCollection
 
 
 class CNNModule(nn.Module):

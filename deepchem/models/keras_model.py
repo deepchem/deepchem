@@ -4,10 +4,7 @@ import time
 import logging
 import os
 
-try:
-  from collections.abc import Sequence as SequenceCollection
-except:
-  from collections import Sequence as SequenceCollection
+from collections.abc import Sequence as SequenceCollection
 
 from deepchem.data import Dataset, NumpyDataset
 from deepchem.metrics import Metric

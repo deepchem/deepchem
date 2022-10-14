@@ -4,10 +4,7 @@ import logging
 import numpy as np
 import torch
 import torch.nn.functional as F
-try:
-  from collections.abc import Sequence as SequenceCollection
-except:
-  from collections import Sequence as SequenceCollection
+from collections.abc import Sequence as SequenceCollection
 
 import deepchem as dc
 from deepchem.models.torch_models.torch_model import TorchModel

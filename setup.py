@@ -13,8 +13,7 @@ else:
 extras = {
     'jax': ['jax', 'jaxlib', 'dm-haiku', 'optax'],
     'torch': ['torch', 'torchvision', 'pytorch-lightning', 'dgl', 'dgllife'],
-    'tensorflow':
-    ['tensorflow', 'tensorflow_probability', 'tensorflow_addons'],
+    'tensorflow': ['tensorflow', 'tensorflow_probability', 'tensorflow_addons'],
 }
 
 

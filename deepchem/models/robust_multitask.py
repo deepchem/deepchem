@@ -1,9 +1,6 @@
 import numpy as np
 import tensorflow as tf
-try:
-  from collections.abc import Sequence as SequenceCollection
-except:
-  from collections import Sequence as SequenceCollection
+from collections.abc import Sequence as SequenceCollection
 
 import logging
 import deepchem as dc

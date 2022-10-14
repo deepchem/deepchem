@@ -5,10 +5,7 @@ import numpy as np
 import time
 from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
 
-try:
-  from collections.abc import Sequence as SequenceCollection
-except:
-  from collections import Sequence as SequenceCollection
+from collections.abc import Sequence as SequenceCollection
 
 from deepchem.data import Dataset
 from deepchem.models.losses import Loss
