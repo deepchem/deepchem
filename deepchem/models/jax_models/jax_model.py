@@ -1,11 +1,7 @@
 import numpy as np
 import time
 import logging
-
-try:
-  from collections.abc import Sequence as SequenceCollection
-except:
-  from collections import Sequence as SequenceCollection
+from collections.abc import Sequence as SequenceCollection
 
 from deepchem.data import Dataset, NumpyDataset
 from deepchem.metrics import Metric
@@ -264,9 +260,10 @@ class JaxModel(Model):
     [3] Adding support for output types (choosing only self._loss_outputs)
    """
     return self.fit_generator(
-        self.default_generator(
-            dataset, epochs=nb_epochs, deterministic=deterministic), loss,
-        callbacks, all_losses)
+        self.default_generator(dataset,
+                               epochs=nb_epochs,
+                               deterministic=deterministic), loss, callbacks,
+        all_losses)
 
   def fit_generator(self,
                     generator: Iterable[Tuple[Any, Any, Any]],
@@ -303,8 +300,12 @@ class JaxModel(Model):
       if isinstance(weights, list) and len(weights) == 1:
         weights = weights[0]
 
-      params, opt_state, batch_loss = grad_update(
-          params, opt_state, inputs, labels, weights, rng=rng)
+      params, opt_state, batch_loss = grad_update(params,
+                                                  opt_state,
+                                                  inputs,
+                                                  labels,
+                                                  weights,
+                                                  rng=rng)
       rng, _ = jax.random.split(rng)
       avg_loss += jax.device_get(batch_loss)
       self._global_step += 1
@@ -314,8 +315,8 @@ class JaxModel(Model):
 
       if should_log:
         avg_loss = float(avg_loss) / averaged_batches
-        logger.info(
-            'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
+        logger.info('Ending global_step %d: Average loss %g' %
+                    (current_step, avg_loss))
         if all_losses is not None:
           all_losses.append(avg_loss)
         # Capture the last avg_loss in case of return since we're resetting to 0 now
@@ -328,8 +329,8 @@ class JaxModel(Model):
     # Report final results.
     if averaged_batches > 0:
       avg_loss = float(avg_loss) / averaged_batches
-      logger.info(
-          'Ending global_step %d: Average loss %g' % (current_step, avg_loss))
+      logger.info('Ending global_step %d: Average loss %g' %
+                  (current_step, avg_loss))
       if all_losses is not None:
         all_losses.append(avg_loss)
       last_avg_loss = avg_loss
@@ -471,10 +472,10 @@ class JaxModel(Model):
     """
     return self._predict(generator, transformers, False, output_types)
 
-  def predict_on_batch(self,
-                       X: np.typing.ArrayLike,
-                       transformers: List[Transformer] = []
-                      ) -> OneOrMany[np.ndarray]:
+  def predict_on_batch(
+      self,
+      X: np.typing.ArrayLike,
+      transformers: List[Transformer] = []) -> OneOrMany[np.ndarray]:
     """Generates predictions for input samples, processing samples in a batch.
     Parameters
     ----------
@@ -492,8 +493,10 @@ class JaxModel(Model):
     dataset = NumpyDataset(X=X, y=None)
     return self.predict(dataset, transformers)
 
-  def predict_uncertainty_on_batch(self, X: Sequence, masks: int = 50
-                                  ) -> OneOrMany[Tuple[np.ndarray, np.ndarray]]:
+  def predict_uncertainty_on_batch(
+      self,
+      X: Sequence,
+      masks: int = 50) -> OneOrMany[Tuple[np.ndarray, np.ndarray]]:
 
     pass
 
@@ -522,10 +525,12 @@ class JaxModel(Model):
     a NumPy array of the model produces a single output, or a list of arrays
     if it produces multiple outputs
     """
-    generator = self.default_generator(
-        dataset, mode='predict', pad_batches=False)
-    return self.predict_on_generator(
-        generator, transformers=transformers, output_types=output_types)
+    generator = self.default_generator(dataset,
+                                       mode='predict',
+                                       pad_batches=False)
+    return self.predict_on_generator(generator,
+                                     transformers=transformers,
+                                     output_types=output_types)
 
   def get_global_step(self) -> int:
     """Get the number of steps of fitting that have been performed."""
@@ -677,8 +682,7 @@ class JaxModel(Model):
     """
 
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, _) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+      for (X_b, y_b, w_b, _) in dataset.iterbatches(batch_size=self.batch_size,
+                                                    deterministic=deterministic,
+                                                    pad_batches=pad_batches):
         yield ([X_b], [y_b], [w_b])
