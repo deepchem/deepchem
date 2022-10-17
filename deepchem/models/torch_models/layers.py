@@ -851,3 +851,73 @@ class GraphNetwork(torch.nn.Module):
     return (
         f'{self.__class__.__name__}(n_node_features={self.n_node_features}, n_edge_features={self.n_edge_features}, n_global_features={self.n_global_features}, is_undirected={self.is_undirected}, residual_connection={self.residual_connection})'
     )
+
+class AttnLSTMEmbedding(nn.Module):
+  """Implements AttnLSTM as in matching networks paper.
+  The AttnLSTM embedding adjusts two sets of vectors, the "test" and
+  "support" sets. The "support" consists of a set of evidence vectors.
+  Think of these as the small training set for low-data machine
+  learning.  The "test" consists of the queries we wish to answer with
+  the small amounts of available data. The AttnLSTMEmbdding allows us to
+  modify the embedding of the "test" set depending on the contents of
+  the "support".  The AttnLSTMEmbedding is thus a type of learnable
+  metric that allows a network to modify its internal notion of
+  distance.
+  See references [1]_ [2]_ for more details.
+  References
+  ----------
+  .. [1] Vinyals, Oriol, et al. "Matching networks for one shot learning."
+         Advances in neural information processing systems. 2016.
+  .. [2] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters:
+         Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
+  """
+
+  def __init__(self, n_test, n_support, n_feat, max_depth, **kwargs):
+    """
+    Parameters
+    ----------
+    n_support: int
+      Size of support set.
+    n_test: int
+      Size of test set.
+    n_feat: int
+      Number of features per atom
+    max_depth: int
+      Number of "processing steps" used by sequence-to-sequence for sets model.
+    """
+    super(AttnLSTMEmbedding, self).__init__(**kwargs)
+
+    self.max_depth = max_depth
+    self.n_test = n_test
+    self.n_support = n_support
+    self.n_feat = n_feat
+    n_feat = self.n_feat
+    self.lstm = LSTMStep(n_feat, 2 * n_feat)
+    self.q_init = backend.zeros([self.n_test, n_feat])
+    self.states_init = self.lstm.get_initial_states([self.n_test, n_feat])
+  
+
+  def forward(self, inputs):
+    """Execute this layer on input tensors.
+    Parameters
+    ----------
+    inputs: list
+      List of two tensors (X, Xp). X should be of shape (n_test,
+      n_feat) and Xp should be of shape (n_support, n_feat) where
+      n_test is the size of the test set, n_support that of the support
+      set, and n_feat is the number of per-atom features.
+    Returns
+    -------
+    list
+      Returns two tensors of same shape as input. Namely the output
+      shape will be [(n_test, n_feat), (n_support, n_feat)]
+    """
+    if len(inputs) != 2:
+      raise ValueError("AttnLSTMEmbedding layer must have exactly two parents")
+    # x is test set, xp is support set.
+    x, xp = inputs
+    x, xp = torch.tensor(x), torch.tensor(xp)
+    # Get initializations
+    q = self.q_init
+    states = self.states_init
+    
