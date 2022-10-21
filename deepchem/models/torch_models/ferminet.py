@@ -62,8 +62,11 @@ class Ferminet(torch.nn.Module):
     self.total_electron = spin[0] + spin[1]
     self.inter_atom = inter_atom
     self.nuclear_charge = nuclear_charge
-    self.projection_matrix_two = nn.Linear(4, n_two[0])
-    self.projection_matrix = nn.Linear(4 * nucleon_pos.size()[0], n_one[0])
+    self.epsilon = 1e-06
+    self.projection_module = nn.ModuleList()
+    self.projection_module.append(nn.Linear(4, n_two[0], bias=False))
+    self.projection_module.append(
+        nn.Linear(4 * nucleon_pos.size()[0], n_one[0], bias=False))
     self.fermi_layer = nn.ModuleList()
     self.fermi_layer.append(nn.Linear(8 * nucleon_pos.size()[0] + 8, n_one[0]))
     self.fermi_layer.append(nn.Linear(4, n_two[0]))
@@ -119,6 +122,7 @@ class Ferminet(torch.nn.Module):
     two_electron_down: np.ndarray
       Numpy array containing down-spin electron's two-electron feature
     """
+    # torch.autograd.set_detect_anomaly(True)
     self.molecule = molecule
     one_electron_vector = self.molecule - self.nucleon_pos
 
@@ -129,10 +133,12 @@ class Ferminet(torch.nn.Module):
     one_electron_vector = one_electron_vector[0, :, :, :]
     two_electron_vector = two_electron_vector[0, :, :, :]
 
-    self.one_electron_distance: torch.tensor = torch.linalg.norm(
-        one_electron_vector, axis=-1)
-    self.two_electron_distance: torch.tensor = torch.linalg.norm(
-        two_electron_vector, axis=-1)
+    self.one_electron_distance = torch.linalg.norm(one_electron_vector +
+                                                   self.epsilon,
+                                                   axis=-1)
+    self.two_electron_distance = torch.linalg.norm(two_electron_vector +
+                                                   self.epsilon,
+                                                   axis=-1)
 
     # concatenating distance and vectors arrays
     one_shape = self.one_electron_distance.size()
@@ -177,9 +183,9 @@ class Ferminet(torch.nn.Module):
         f_vector = f_vector.flatten()
         if i == 0:
           one_stream = torch.tanh(self.fermi_layer[i](
-              f_vector)) + self.projection_matrix(one_stream)
+              f_vector)) + self.projection_module[1](one_stream)
           two_stream = torch.tanh(self.fermi_layer[i + 1](
-              two_stream)) + self.projection_matrix_two(two_stream)
+              two_stream)) + self.projection_module[0](two_stream)
         else:
           one_stream = torch.tanh(self.fermi_layer[i](f_vector)) + one_stream
           two_stream = torch.tanh(
@@ -220,31 +226,38 @@ class Ferminet(torch.nn.Module):
                                     self.g_down[i + k]) * envelope
     psi = torch.sum(torch.det(self.psi_up) *
                     torch.det(self.psi_down)).to(device)
-    self.psi_log = 2 * torch.log(torch.abs(psi)).to(device)
+    self.psi_log = torch.log(torch.abs(psi)).to(device)
+    # print(self.psi_log)
     return self.psi_log
 
   def loss(self, log_psi, hamiltonian):
     """Calculates the loss of the system. """
     # TODO: change the concatenation of the hamiltonian
 
-    loss = torch.tensor([], requires_grad=True)
-    total_loss = torch.tensor([], requires_grad=True)
-    mean = np.expand_dims(hamiltonian - torch.mean(hamiltonian), axis=1)
+    # average_psi=torch.mean(log_psi).to(device)
+    loss_batch_wise = torch.tensor([], requires_grad=True).to(device)
+    # total_loss = torch.tensor([], requires_grad=True).to(device)
+    mean = (hamiltonian - torch.mean(hamiltonian)).to(device)
+    print("mean")
+    print(mean)
+    print(torch.mean(hamiltonian))
     batches = hamiltonian.size()[0]
     for i in range(batches):
-      grad_psi = torch.autograd.grad(log_psi,
+      grad_psi = torch.autograd.grad(log_psi[i],
                                      self.parameters(),
-                                     allow_unused=True)
-      for j in range(len(grad_psi)):
-        if grad_psi[j] is not None:
-          loss = torch.cat((loss,
-                            torch.tensor(torch.mean(grad_psi[j]) * mean[i],
-                                         requires_grad=True)))
-      total_loss = torch.cat(
-          (total_loss, torch.tensor([torch.mean(loss)], requires_grad=True)))
-      total_loss = torch.mean(total_loss)
-
-    return total_loss
+                                     retain_graph=True,
+                                     allow_unused=True)[0].to(device)
+      loss_batch_wise = torch.cat(
+          (loss_batch_wise, torch.tensor(torch.unsqueeze(grad_psi * mean[i],
+                                                         0))))
+    print("loss")
+    print(loss_batch_wise)
+    print("grad")
+    print(grad_psi)
+    final_loss = torch.mean(loss_batch_wise)
+    print("final")
+    print(final_loss)
+    return 2 * final_loss
 
   def calculate_potential(self,) -> Any:
     """Calculates the potential of the molecule system system for to calculate the hamiltonian loss.
@@ -254,7 +267,6 @@ class Ferminet(torch.nn.Module):
       The potential energy of the system.
     """
 
-    # electron-nuclear potential
     electron_nuclear_potential = -1 * torch.sum(
         self.nuclear_charge * (1 / self.one_electron_distance))
 
@@ -271,27 +283,28 @@ class Ferminet(torch.nn.Module):
     potential = potential.to(torch.float32)
     return potential
 
-  def local_energy(self,) -> Any:
+  def local_energy(self, mol: torch.tensor) -> Any:
     """Calculates the hamiltonian of the molecule system.
     Returns:
     --------
     hamiltonian: Any
       The hamiltonian of the system.
     """
-    jacobian = torch.autograd.functional.jacobian(self.forward,
-                                                  self.molecule,
-                                                  create_graph=True)
     hessian = torch.autograd.functional.hessian(self.forward,
-                                                self.molecule,
+                                                mol,
                                                 create_graph=True)
+    jacobian = torch.autograd.grad([self.psi_log], [self.molecule],
+                                   retain_graph=True,
+                                   allow_unused=True)[0]
 
-    print(jacobian)
-    print(hessian)
+    sum = 0.0
+    for i in range(self.molecule.size(1)):
+      for j in range(self.molecule.size(3)):
+        sum += hessian[0, i, 0, j, 0, i, 0, j]
+
     potential = self.calculate_potential()
-    total_energy = potential - 0.5 * torch.sum(torch.diag(
-        hessian, 0)) + torch.sum(torch.pow(jacobian, 2))
-    # print(total_energy)
-    return total_energy
+    total_energy = potential - 0.5 * (sum + torch.sum(torch.pow(jacobian, 2)))
+    return (total_energy).to(torch.float32)
 
   def pretraining_loss(self, hartree_mo):
     """Calculates the loss of the system during pretraining """
@@ -301,8 +314,7 @@ class Ferminet(torch.nn.Module):
     for i in range(self.spin[0]):
       for j in range(self.spin[0]):
         for k in range(self.determinant):
-          loss += (self.psi_up[k][i][j] -
-                   hartree_mo[i][j])**2  # TODO: change tensor to int
+          loss += (self.psi_up[k][i][j] - hartree_mo[i][j])**2
           p_pre *= (hartree_mo[i][j]**2 + self.psi_log
                    )  # TODO: psi_log to psi**2
     # Down-spin electrons
@@ -310,11 +322,10 @@ class Ferminet(torch.nn.Module):
       for j in range(self.spin[1]):
         for k in range(self.determinant):
           loss += (self.psi_down[k][i][j] -
-                   hartree_mo[self.spin[0] + i][self.spin[0] + j]
-                  )**2  # TODO: change tensor to int
+                   hartree_mo[self.spin[0] + i][self.spin[0] + j])**2
           p_pre *= (hartree_mo[self.spin[0] + i][self.spin[0] + j]**2 +
                     self.psi_log)  # TODO: psi_log to psi**2
-    loss = loss * 0.5 * p_pre
+    p_pre *= 0.5
     return p_pre, loss
 
 
@@ -362,7 +373,6 @@ class FerminetModel(TorchModel):
     self.batch_no = batch_no
     self.spin = spin
     self.ion_charge = charge
-    self.hamiltonian = torch.tensor([], requires_grad=True)
     self.total_psi = np.array([])
     self.pretrain = pretrain
     self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -409,20 +419,23 @@ class FerminetModel(TorchModel):
     self.up_spin = (total_electrons + 2 * self.spin) // 2
     self.down_spin = (total_electrons - 2 * self.spin) // 2
 
-    self.model = Ferminet(
-        nucleon_pos=torch.from_numpy(self.nucleon_pos).to(self.device),
-        nuclear_charge=torch.from_numpy(self.charge).to(self.device),
-        spin=(self.up_spin, self.down_spin),
-        inter_atom=torch.from_numpy(self.inter_atom).to(self.device)).to(
-            self.device)
+    nucl = torch.from_numpy(self.nucleon_pos)
+    nucl.requires_grad = True
+    charges_total = torch.from_numpy(self.charge)
+    inter = torch.from_numpy(self.inter_atom)
+    inter.requires_grad = True
+    self.model = Ferminet(nucleon_pos=nucl.to(self.device),
+                          nuclear_charge=charges_total.to(self.device),
+                          spin=(self.up_spin, self.down_spin),
+                          inter_atom=inter.to(self.device)).to(self.device)
 
     self.molecule: ElectronSampler = ElectronSampler(
         batch_no=self.batch_no,
         central_value=self.nucleon_pos,
         seed=self.seed,
         f=None,
-        steps=1000)  # sample the electrons using the electron sampler
-    self.molecule.f = lambda x: self.psi_log()
+        steps=200)  # sample the electrons using the electron sampler
+    self.molecule.f = lambda x: 2 * self.psi_log()
     self.molecule.gauss_initialize_position(
         self.electron_no)  # initialize the position of the electrons
     adam = optimizers.Adam(learning_rate=0.01)
@@ -433,29 +446,28 @@ class FerminetModel(TorchModel):
 
   def psi_log(self,) -> torch.Tensor:
     if self.pretrain:
-      self.hamiltonian = torch.tensor([], requires_grad=True).to(device)
       self.total_psi = torch.tensor([], requires_grad=True).to(device)
       psi = np.array([])
-      dataset = torch.from_numpy(np.expand_dims(self.molecule.x,
-                                                axis=1)).to(self.device)
+      self.pre_loss = torch.tensor([], requires_grad=True).to(device)
+      self.dataset = torch.from_numpy(np.expand_dims(self.molecule.x,
+                                                     axis=1)).to(self.device)
+      self.dataset.requires_grad = True
       for i in range(self.batch_no):
-        output = self.model.forward(dataset[i])
+        output = self.model.forward(self.dataset[i])
         ppre, loss = self.model.pretraining_loss(self.mo_values)
         psi = np.append(psi, torch.IntTensor.item(ppre))
-        torch.cat((self.hamiltonian, torch.unsqueeze(loss, 0)))
-      loss = torch.mean(loss)
+        self.pre_loss = torch.cat(
+            (self.pre_loss, torch.unsqueeze(loss.to(device), 0)))
     else:
-      self.hamiltonian = torch.tensor([], requires_grad=True).to(self.device)
       self.total_psi = torch.tensor([], requires_grad=True).to(self.device)
       psi = np.array([])
-      dataset = torch.from_numpy(np.expand_dims(self.molecule.x,
-                                                axis=1)).to(self.device)
+      self.dataset = torch.from_numpy(np.expand_dims(self.molecule.x,
+                                                     axis=1)).to(self.device)
+      self.dataset.requires_grad = True
       for i in range(self.batch_no):
-        output = self.model.forward(dataset[i])
+        output = self.model.forward(self.dataset[i])
         psi = np.append(psi, torch.IntTensor.item(output))
-        torch.cat((self.total_psi, output))
-        torch.cat(
-            (self.hamiltonian, torch.unsqueeze(self.model.local_energy(), 0)))
+        self.total_psi = torch.cat((self.total_psi, output.unsqueeze(0)))
     return psi
 
   def prepare_hf_solution(self,):
@@ -487,25 +499,34 @@ class FerminetModel(TorchModel):
     optimizer = self.optimizer._create_pytorch_optimizer(
         self.model.parameters())
     #pre-training
-    for i in range(10):  # number of epochs
-      self.molecule.move()
-      loss = torch.mean(self.hamiltonian)
-      loss.backward()
+    for i in range(1):  # number of epochs
+      integral = self.molecule.move()
+      loss = torch.mean(self.pre_loss * integral)
       optimizer.zero_grad()
+      loss.backward()
       optimizer.step()
       loss_full.append(loss)
     self.optimizer = optimizers.KFAC(model=self.model,
-                                     lr=0.01,
+                                     lr=0.001,
                                      Tinv=10,
                                      mean=True)
     optimizer = self.optimizer._create_pytorch_optimizer()
     self.loss = self.model.loss
     self.pretrain = False
-    for i in range(10):  # number of epochs
+    for i in range(1):  # number of epochs
       self.molecule.move()
-      loss = self.loss(self.hamiltonian, self.total_psi)
-      loss.backward()
+      self.hamiltonian = torch.tensor([], requires_grad=True).to(device)
+      for j in range(self.batch_no):
+        local_en = self.model.local_energy(self.dataset[j])
+        self.hamiltonian = torch.cat(
+            (self.hamiltonian, torch.unsqueeze(local_en, 0)))
       optimizer.zero_grad()
+      loss = self.model.loss(self.total_psi, self.hamiltonian)
+      #print("success")
+      #print(loss)
+      loss.backward()
+      #for j in self.model.parameters():
+      #print(j.grad)
       optimizer.step()
       loss_full.append(loss)
     return loss_full
