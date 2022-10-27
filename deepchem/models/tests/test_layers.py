@@ -7,14 +7,14 @@ try:
   import deepchem.models.layers as layers
   from tensorflow.python.framework import test_util
   has_tensorflow = True
-except:
+except ModuleNotFoundError:
   has_tensorflow = False
 
 try:
   import torch
   import deepchem.models.torch_models.layers as torch_layers
   has_torch = True
-except:
+except ModuleNotFoundError:
   has_torch = False
 
 
@@ -806,18 +806,6 @@ def test_torch_lstm_step():
   assert h_out.shape == (n_test, n_feat)
   assert h_copy_out.shape == (n_test, n_feat)
   assert c_out.shape == (n_test, n_feat)
-
-
-@pytest.mark.torch
-def test_torch_gru():
-  n_hidden = 100
-  batch_size = 10
-  x = torch.tensor(np.random.rand(batch_size, n_hidden).astype(np.float32))
-  h_0 = torch.tensor(np.random.rand(batch_size, n_hidden).astype(np.float32))
-  init = 'xavier_uniform_'
-  layer = torch_layers.GatedRecurrentUnit(n_hidden, init)
-  y = layer([x, h_0])
-  assert y.shape == (batch_size, n_hidden)
 
 
 @pytest.mark.torch
