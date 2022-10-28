@@ -319,6 +319,11 @@ class KFACOptimizer(optim.Optimizer):
       self.d_a[m], self.Q_a[m] = torch.symeig(self.m_aa[m] -
                                               torch.mean(self.m_aa[m]),
                                               eigenvectors=True)
+      try:
+        m_gg = self.m_gg[m]
+      except KeyError:
+        self.m_gg[m] = torch.zeros(m.in_features, m.in_features)
+
       self.d_g[m], self.Q_g[m] = torch.symeig(self.m_gg[m] -
                                               torch.mean(self.m_gg[m]),
                                               eigenvectors=True)

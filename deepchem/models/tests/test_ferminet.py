@@ -25,8 +25,8 @@ def test_prepare_input_stream():
   #               spin=(molecule.up_spin, molecule.down_spin),
   #               nuclear_charge=torch.from_numpy(molecule.charge),
   #               inter_atom=torch.from_numpy(molecule.inter_atom))
-  molecule.fit()
-
+  loss = molecule.fit()
+  print(loss)
   # molecule_input = torch.tensor(molecule.molecule.x, requires_grad=True)
   # log_psi = fermi.forward(molecule_input.to(device))
   # fermi.local_energy()

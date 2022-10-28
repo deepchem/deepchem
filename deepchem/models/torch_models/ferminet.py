@@ -64,16 +64,26 @@ class Ferminet(torch.nn.Module):
     self.nuclear_charge = nuclear_charge
     self.epsilon = 1e-06
     self.projection_module = nn.ModuleList()
-    self.projection_module.append(nn.Linear(4, n_two[0], bias=False))
     self.projection_module.append(
-        nn.Linear(4 * nucleon_pos.size()[0], n_one[0], bias=False))
+        nn.Linear(4, n_two[0], bias=False, device=device))
+    self.projection_module.append(
+        nn.Linear(4 * nucleon_pos.size()[0],
+                  n_one[0],
+                  bias=False,
+                  device=device))
     self.fermi_layer = nn.ModuleList()
-    self.fermi_layer.append(nn.Linear(8 * nucleon_pos.size()[0] + 8, n_one[0]))
-    self.fermi_layer.append(nn.Linear(4, n_two[0]))
+    self.fermi_layer.append(
+        nn.Linear(8 * nucleon_pos.size()[0] + 8,
+                  n_one[0],
+                  bias=True,
+                  device=device))
+    self.fermi_layer.append(nn.Linear(4, n_two[0], bias=True, device=device))
     for i in range(1, self.layers):
       self.fermi_layer.append(
-          nn.Linear((4 * nucleon_pos.size()[0] + 64) + n_one[i - 1], n_one[i]))
-      self.fermi_layer.append(nn.Linear(n_two[i - 1], n_two[i]))
+          nn.Linear((4 * nucleon_pos.size()[0] + 64) + n_one[i - 1],
+                    n_one[i],
+                    device=device))
+      self.fermi_layer.append(nn.Linear(n_two[i - 1], n_two[i], device=device))
 
     self.w_up = nn.ParameterList()
     self.g_up = nn.ParameterList()
@@ -139,7 +149,6 @@ class Ferminet(torch.nn.Module):
     self.two_electron_distance = torch.linalg.norm(two_electron_vector +
                                                    self.epsilon,
                                                    axis=-1)
-
     # concatenating distance and vectors arrays
     one_shape = self.one_electron_distance.size()
     one_distance = self.one_electron_distance.reshape(one_shape[0],
@@ -154,7 +163,6 @@ class Ferminet(torch.nn.Module):
     two_electron = torch.cat(
         (two_electron_vector, two_distance.repeat(1, 1, 3)), dim=-1)
     two_electron = two_electron[:, :, 0:4]
-
     one_up = one_electron[:, :self.spin[0], :]
     one_down = one_electron[:, self.spin[0]:, :]
 
@@ -207,7 +215,7 @@ class Ferminet(torch.nn.Module):
       # spin-up orbitals
       for i in range(self.spin[0]):
         for j in range(self.spin[0]):
-          envelope = 0
+          envelope = torch.tensor([0.0], requires_grad=True).to(device)
           for m in range(self.nucleon_pos.size()[0]):
             envelope += self.pi_up[k + i + j + m] * torch.exp(
                 -torch.linalg.norm(self.sigma_up[k + i + j + m] *
@@ -217,7 +225,7 @@ class Ferminet(torch.nn.Module):
         # spin-down orbitals
       for i in range(self.spin[1]):
         for j in range(self.spin[1]):
-          envelope = 0
+          envelope = torch.tensor([0.0], requires_grad=True).to(device)
           for m in range(self.nucleon_pos.size()[0]):
             envelope += self.pi_down[k + i + j + m] * torch.exp(
                 -torch.linalg.norm(self.sigma_down[k + i + j + m] *
@@ -230,7 +238,7 @@ class Ferminet(torch.nn.Module):
     # print(self.psi_log)
     return self.psi_log
 
-  def loss(self, log_psi, hamiltonian):
+  def train_loss(self, log_psi, hamiltonian):
     """Calculates the loss of the system. """
     # TODO: change the concatenation of the hamiltonian
 
@@ -248,16 +256,15 @@ class Ferminet(torch.nn.Module):
                                      retain_graph=True,
                                      allow_unused=True)[0].to(device)
       loss_batch_wise = torch.cat(
-          (loss_batch_wise, torch.tensor(torch.unsqueeze(grad_psi * mean[i],
-                                                         0))))
+          (loss_batch_wise, torch.unsqueeze(grad_psi * mean[i], 0)))
     print("loss")
     print(loss_batch_wise)
     print("grad")
     print(grad_psi)
-    final_loss = torch.mean(loss_batch_wise)
+    total_loss = 2 * torch.mean(loss_batch_wise)
     print("final")
-    print(final_loss)
-    return 2 * final_loss
+    print(total_loss)
+    return total_loss
 
   def calculate_potential(self,) -> Any:
     """Calculates the potential of the molecule system system for to calculate the hamiltonian loss.
@@ -294,10 +301,10 @@ class Ferminet(torch.nn.Module):
                                                 mol,
                                                 create_graph=True)
     jacobian = torch.autograd.grad([self.psi_log], [self.molecule],
-                                   retain_graph=True,
+                                   create_graph=True,
                                    allow_unused=True)[0]
 
-    sum = 0.0
+    sum = torch.tensor([0.0], requires_grad=True).to(device)
     for i in range(self.molecule.size(1)):
       for j in range(self.molecule.size(3)):
         sum += hessian[0, i, 0, j, 0, i, 0, j]
@@ -421,7 +428,8 @@ class FerminetModel(TorchModel):
 
     nucl = torch.from_numpy(self.nucleon_pos)
     nucl.requires_grad = True
-    charges_total = torch.from_numpy(self.charge)
+    charges_total = torch.from_numpy(self.charge.astype(float))
+    charges_total.requires_grad = True
     inter = torch.from_numpy(self.inter_atom)
     inter.requires_grad = True
     self.model = Ferminet(nucleon_pos=nucl.to(self.device),
@@ -440,7 +448,7 @@ class FerminetModel(TorchModel):
         self.electron_no)  # initialize the position of the electrons
     adam = optimizers.Adam(learning_rate=0.01)
     super(FerminetModel, self).__init__(model=self.model,
-                                        loss=self.model.pretraining_loss,
+                                        loss=self.model.train_loss,
                                         optimizer=adam,
                                         output_types=['psi_log'])
 
@@ -498,21 +506,8 @@ class FerminetModel(TorchModel):
     loss_full = []
     optimizer = self.optimizer._create_pytorch_optimizer(
         self.model.parameters())
-    #pre-training
-    for i in range(1):  # number of epochs
-      integral = self.molecule.move()
-      loss = torch.mean(self.pre_loss * integral)
-      optimizer.zero_grad()
-      loss.backward()
-      optimizer.step()
-      loss_full.append(loss)
-    self.optimizer = optimizers.KFAC(model=self.model,
-                                     lr=0.001,
-                                     Tinv=10,
-                                     mean=True)
-    optimizer = self.optimizer._create_pytorch_optimizer()
-    self.loss = self.model.loss
     self.pretrain = False
+    #pre-training
     for i in range(1):  # number of epochs
       self.molecule.move()
       self.hamiltonian = torch.tensor([], requires_grad=True).to(device)
@@ -520,13 +515,13 @@ class FerminetModel(TorchModel):
         local_en = self.model.local_energy(self.dataset[j])
         self.hamiltonian = torch.cat(
             (self.hamiltonian, torch.unsqueeze(local_en, 0)))
+      loss = self.model.train_loss(self.total_psi, self.hamiltonian)
+      print("print final loss")
+      print(loss)
       optimizer.zero_grad()
-      loss = self.model.loss(self.total_psi, self.hamiltonian)
-      #print("success")
-      #print(loss)
-      loss.backward()
-      #for j in self.model.parameters():
-      #print(j.grad)
+      loss.backward(retain_graph=True)
+      for name, param in self.model.named_parameters():
+        print(name, param.grad)
       optimizer.step()
       loss_full.append(loss)
     return loss_full
