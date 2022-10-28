@@ -36,8 +36,9 @@ class LCNNFeaturizer(MaterialStructureFeaturizer):
   `Primitive cell Format:`
 
   1. Pymatgen structure object with site_properties key value
-   - "SiteTypes" mentioning if it is a active site "A1" or spectator
-     site "S1".
+
+     * "SiteTypes" mentioning if it is a active site "A1" or spectator site "S1".
+
   2. ns , the number of spectator types elements. For "S1" its 1.
   3. na , the number of active types elements. For "A1" its 1.
   4. aos, the different species of active elements "A1".
@@ -46,9 +47,9 @@ class LCNNFeaturizer(MaterialStructureFeaturizer):
   `Data point Structure Format(Configuration of Atoms):`
 
   1. Pymatgen structure object with site_properties with following key value.
-   - "SiteTypes", mentioning if it is a active site "A1" or spectator
-     site "S1".
-   - "oss", different occupational sites. For spectator sites make it -1.
+
+     * "SiteTypes", mentioning if it is a active site "A1" or spectator site "S1".
+     * "oss", different occupational sites. For spectator sites make it -1.
 
   It is highly recommended that cells of data are directly redefined from
   the primitive cell, specifically, the relative coordinates between sites
