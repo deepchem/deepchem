@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from typing import Any, Tuple, Optional, Sequence, List, Union
+from collections.abc import Sequence as SequenceCollection
 try:
   import torch
   from torch import Tensor
@@ -17,11 +18,6 @@ except ModuleNotFoundError:
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
 from deepchem.utils.pytorch_utils import get_activation
 from torch.nn import init as initializers
-
-try:
-  from collections.abc import Sequence as SequenceCollection
-except:
-  from collections import Sequence as SequenceCollection
 
 
 class CNNModule(nn.Module):
@@ -2579,6 +2575,38 @@ class CombineMeanStd(nn.Module):
                                not self.training_only).to(torch.float)
     sample_noise = torch.normal(0.0, self.noise_epsilon, mean_parent.shape)
     return mean_parent + noise_scale * std_parent * sample_noise
+
+
+class GatedRecurrentUnit(nn.Module):
+  """ Submodule for Message Passing """
+
+  def __init__(self, n_hidden=100, init='xavier_uniform_', **kwargs):
+    super(GatedRecurrentUnit, self).__init__(**kwargs)
+    self.n_hidden = n_hidden
+    self.init = init
+    init = getattr(initializers, self.init)
+    self.Wz = init(torch.empty(n_hidden, n_hidden))
+    self.Wr = init(torch.empty(n_hidden, n_hidden))
+    self.Wh = init(torch.empty(n_hidden, n_hidden))
+    self.Uz = init(torch.empty(n_hidden, n_hidden))
+    self.Ur = init(torch.empty(n_hidden, n_hidden))
+    self.Uh = init(torch.empty(n_hidden, n_hidden))
+    self.bz = torch.zeros((n_hidden,))
+    self.br = torch.zeros((n_hidden,))
+    self.bh = torch.zeros((n_hidden,))
+
+  def forward(self, inputs):
+    sigmoid = get_activation('sigmoid')
+    tanh = get_activation('tanh')
+    h_tm1, x = inputs
+    z = sigmoid(
+        torch.matmul(x, self.Wz) + torch.matmul(h_tm1, self.Uz) + self.bz)
+    r = sigmoid(
+        torch.matmul(x, self.Wr) + torch.matmul(h_tm1, self.Ur) + self.br)
+    h = (1 - z) * tanh(
+        torch.matmul(x, self.Wh) + torch.matmul(h_tm1 * r, self.Uh) +
+        self.bh) + z * x
+    return h
 
 
 class WeightedLinearCombo(nn.Module):

@@ -98,8 +98,7 @@ class SmilesToSeq(MolecularFeaturizer):
 
   def remove_pad(self, characters: List[str]) -> List[str]:
     """Removes PAD_TOKEN from the character list."""
-    characters = characters[self.pad_len:]
-    characters = characters[:-self.pad_len]
+    characters = characters[self.pad_len:len(characters) - self.pad_len]
     chars = list()
 
     for char in characters:

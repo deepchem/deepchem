@@ -1,9 +1,6 @@
 import numpy as np
 import tensorflow as tf
-try:
-  from collections.abc import Sequence as SequenceCollection
-except:
-  from collections import Sequence as SequenceCollection
+from collections.abc import Sequence as SequenceCollection
 
 import logging
 import deepchem as dc
@@ -171,11 +168,11 @@ class RobustMultitaskClassifier(KerasModel):
     logits = Stack(axis=1)(task_outputs)
     output = tf.keras.layers.Softmax()(logits)
     model = tf.keras.Model(inputs=mol_features, outputs=[output, logits])
-    super(RobustMultitaskClassifier, self).__init__(
-        model,
-        SoftmaxCrossEntropy(),
-        output_types=['prediction', 'loss'],
-        **kwargs)
+    super(RobustMultitaskClassifier,
+          self).__init__(model,
+                         SoftmaxCrossEntropy(),
+                         output_types=['prediction', 'loss'],
+                         **kwargs)
 
   def default_generator(self,
                         dataset,
@@ -184,13 +181,14 @@ class RobustMultitaskClassifier(KerasModel):
                         deterministic=True,
                         pad_batches=True):
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+      for (X_b, y_b, w_b,
+           ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                         deterministic=deterministic,
+                                         pad_batches=pad_batches):
         if y_b is not None:
-          y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
-              -1, self.n_tasks, self.n_classes)
+          y_b = to_one_hot(y_b.flatten(),
+                           self.n_classes).reshape(-1, self.n_tasks,
+                                                   self.n_classes)
         yield ([X_b], [y_b], [w_b])
 
   def create_estimator_inputs(self, feature_columns, weight_column, features,
@@ -202,8 +200,8 @@ class RobustMultitaskClassifier(KerasModel):
       tensors[self.task_weights[0]] = tf.feature_column.input_layer(
           features, [weight_column])
     if labels is not None:
-      tensors[self.labels[0]] = tf.one_hot(
-          tf.cast(labels, tf.int32), self.n_classes)
+      tensors[self.labels[0]] = tf.one_hot(tf.cast(labels, tf.int32),
+                                           self.n_classes)
     return tensors
 
 
@@ -355,8 +353,10 @@ class RobustMultitaskRegressor(KerasModel):
 
     outputs = Stack(axis=1)(task_outputs)
     model = tf.keras.Model(inputs=mol_features, outputs=outputs)
-    super(RobustMultitaskRegressor, self).__init__(
-        model, L2Loss(), output_types=['prediction'], **kwargs)
+    super(RobustMultitaskRegressor, self).__init__(model,
+                                                   L2Loss(),
+                                                   output_types=['prediction'],
+                                                   **kwargs)
 
   def default_generator(
       self,
@@ -366,8 +366,8 @@ class RobustMultitaskRegressor(KerasModel):
       deterministic: bool = True,
       pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
     for epoch in range(epochs):
-      for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-          batch_size=self.batch_size,
-          deterministic=deterministic,
-          pad_batches=pad_batches):
+      for (X_b, y_b, w_b,
+           ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                         deterministic=deterministic,
+                                         pad_batches=pad_batches):
         yield ([X_b], [y_b], [w_b])

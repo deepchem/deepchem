@@ -84,7 +84,7 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
     else:
       raise ValueError("Datapoint is not a string")
 
-  def untransform(self, one_hot_vectors: scipy.sparse) -> str:
+  def untransform(self, one_hot_vectors: scipy.sparse.base.spmatrix) -> str:
     """Convert from one hot representation back to original string
 
     Parameters
