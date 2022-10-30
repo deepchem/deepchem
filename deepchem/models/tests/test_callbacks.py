@@ -76,3 +76,26 @@ class TestCallbacks(unittest.TestCase):
             scores.append(score)
 
         self.assertTrue(abs(max(scores) - callback.get_best_score()) < 0.05)
+
+    @pytest.mark.torch
+    def test_callback_with_multiple_classes(self):
+        n, x_shape, n_classes, n_tasks = 100, 10, 3, 2
+        X = np.random.randn(n, x_shape)
+        y = np.random.randint(low=0, high=n_classes, size=(n, n_tasks))
+
+        train_dataset = dc.data.NumpyDataset(X=X[0:int(n * 0.8)],
+                                             y=y[0:int(n * 0.8)])
+        valid_dataset = dc.data.NumpyDataset(X=X[int(n * 0.8):],
+                                             y=y[int(n * 0.8):])
+
+        metric = dc.metrics.Metric(dc.metrics.prc_auc_score)
+        validation = dc.models.ValidationCallback(valid_dataset,
+                                                  interval=10,
+                                                  metrics=[metric])
+
+        model = dc.models.MultitaskClassifier(n_tasks=n_tasks,
+                                              n_features=x_shape,
+                                              n_classes=n_classes)
+        model.fit(train_dataset, callbacks=[validation])
+        result = model.evaluate(valid_dataset, metrics=metric, n_classes=3)
+        self.assertIsNotNone(result)
