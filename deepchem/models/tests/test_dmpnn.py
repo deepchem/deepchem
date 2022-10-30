@@ -16,6 +16,11 @@ def test_dmpnn_regression():
   """
   Test DMPNN class for regression mode
   """
+  try:
+    from torch_geometric.data import Data, Batch
+  except ModuleNotFoundError:
+    raise ImportError("This test requires PyTorch Geometric to be installed.")
+
   torch.manual_seed(0)
   from deepchem.models.torch_models.dmpnn import _MapperDMPNN, DMPNN
 
@@ -34,9 +39,16 @@ def test_dmpnn_regression():
   global_features = torch.from_numpy(global_features).float()
 
   data = [
-      atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping,
-      global_features
+      Data(atom_features=atom_features,
+           f_ini_atoms_bonds=f_ini_atoms_bonds,
+           atom_to_incoming_bonds=atom_to_incoming_bonds,
+           mapping=mapping,
+           global_features=global_features)
   ]
+
+  # prepare batch (size 1)
+  pyg_batch = Batch()
+  pyg_batch = pyg_batch.from_data_list(data)
 
   # initialize the model
   number_of_tasks = 2
@@ -44,11 +56,9 @@ def test_dmpnn_regression():
   morgan_feature_size = 2048
   model = DMPNN(mode='regression',
                 global_features_size=morgan_feature_size,
-                n_tasks=number_of_tasks,
-                number_of_molecules=number_of_molecules)
+                n_tasks=number_of_tasks)
 
-  assert len(model.encoders) == 1
-  assert model.encoders[0].__repr__(
+  assert model.encoder.__repr__(
   ) == 'DMPNNEncoderLayer(\n  (activation): ReLU()\n  (dropout): Dropout(p=0.0, inplace=False)\n  (W_i): Linear(in_features=147, out_features=300, bias=False)\n'\
        '  (W_h): Linear(in_features=300, out_features=300, bias=False)\n  (W_o): Linear(in_features=433, out_features=300, bias=True)\n)'
   assert model.ffn.__repr__(
@@ -57,7 +67,7 @@ def test_dmpnn_regression():
        '(1): Dropout(p=0.0, inplace=False)\n    (2): Dropout(p=0.0, inplace=False)\n  )\n)'
 
   # get output
-  output = model(data)
+  output = model(pyg_batch)
   assert output.shape == torch.Size([number_of_molecules, number_of_tasks])
 
   required_output = torch.tensor([[0.0044, -0.0572]])
@@ -69,6 +79,11 @@ def test_dmpnn_classification_single_task():
   """
   Test DMPNN class for classification mode with 1 task
   """
+  try:
+    from torch_geometric.data import Data, Batch
+  except ModuleNotFoundError:
+    raise ImportError("This test requires PyTorch Geometric to be installed.")
+
   torch.manual_seed(0)
   from deepchem.models.torch_models.dmpnn import _MapperDMPNN, DMPNN
 
@@ -87,9 +102,16 @@ def test_dmpnn_classification_single_task():
   global_features = torch.from_numpy(global_features).float()
 
   data = [
-      atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping,
-      global_features
+      Data(atom_features=atom_features,
+           f_ini_atoms_bonds=f_ini_atoms_bonds,
+           atom_to_incoming_bonds=atom_to_incoming_bonds,
+           mapping=mapping,
+           global_features=global_features)
   ]
+
+  # prepare batch (size 1)
+  pyg_batch = Batch()
+  pyg_batch = pyg_batch.from_data_list(data)
 
   # initialize the model
   number_of_tasks = 1
@@ -99,11 +121,9 @@ def test_dmpnn_classification_single_task():
   model = DMPNN(mode='classification',
                 n_classes=number_of_classes,
                 global_features_size=morgan_feature_size,
-                n_tasks=number_of_tasks,
-                number_of_molecules=number_of_molecules)
+                n_tasks=number_of_tasks)
 
-  assert len(model.encoders) == 1
-  assert model.encoders[0].__repr__(
+  assert model.encoder.__repr__(
   ) == 'DMPNNEncoderLayer(\n  (activation): ReLU()\n  (dropout): Dropout(p=0.0, inplace=False)\n  (W_i): Linear(in_features=147, out_features=300, bias=False)\n  (W_h): Linear(in_features=300, out_features=300, bias=False)\n'\
        '  (W_o): Linear(in_features=433, out_features=300, bias=True)\n)'
   assert model.ffn.__repr__(
@@ -111,7 +131,7 @@ def test_dmpnn_classification_single_task():
        '(2): Linear(in_features=300, out_features=2, bias=True)\n  )\n  (dropout_p): ModuleList(\n    (0): Dropout(p=0.0, inplace=False)\n    (1): Dropout(p=0.0, inplace=False)\n    (2): Dropout(p=0.0, inplace=False)\n  )\n)'
 
   # get output
-  output = model(data)
+  output = model(pyg_batch)
   assert len(output) == 2
   assert output[0].shape == torch.Size([number_of_molecules, number_of_classes])
   assert output[1].shape == torch.Size([number_of_molecules, number_of_classes])
@@ -127,6 +147,11 @@ def test_dmpnn_classification_multi_task():
   """
   Test DMPNN class for classification mode with more than 1 task
   """
+  try:
+    from torch_geometric.data import Data, Batch
+  except ModuleNotFoundError:
+    raise ImportError("This test requires PyTorch Geometric to be installed.")
+
   torch.manual_seed(0)
   from deepchem.models.torch_models.dmpnn import _MapperDMPNN, DMPNN
 
@@ -145,9 +170,16 @@ def test_dmpnn_classification_multi_task():
   global_features = torch.from_numpy(global_features).float()
 
   data = [
-      atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping,
-      global_features
+      Data(atom_features=atom_features,
+           f_ini_atoms_bonds=f_ini_atoms_bonds,
+           atom_to_incoming_bonds=atom_to_incoming_bonds,
+           mapping=mapping,
+           global_features=global_features)
   ]
+
+  # prepare batch (size 1)
+  pyg_batch = Batch()
+  pyg_batch = pyg_batch.from_data_list(data)
 
   # initialize the model
   number_of_tasks = 2
@@ -157,18 +189,16 @@ def test_dmpnn_classification_multi_task():
   model = DMPNN(mode='classification',
                 n_classes=number_of_classes,
                 global_features_size=morgan_feature_size,
-                n_tasks=number_of_tasks,
-                number_of_molecules=number_of_molecules)
+                n_tasks=number_of_tasks)
 
-  assert len(model.encoders) == 1
-  assert model.encoders[0].__repr__(
+  assert model.encoder.__repr__(
   ) == 'DMPNNEncoderLayer(\n  (activation): ReLU()\n  (dropout): Dropout(p=0.0, inplace=False)\n  (W_i): Linear(in_features=147, out_features=300, bias=False)\n  (W_h): Linear(in_features=300, out_features=300, bias=False)\n  (W_o): Linear(in_features=433, out_features=300, bias=True)\n)'
   assert model.ffn.__repr__(
   ) == 'PositionwiseFeedForward(\n  (activation): ReLU()\n  (linears): ModuleList(\n    (0): Linear(in_features=2348, out_features=300, bias=True)\n    (1): Linear(in_features=300, out_features=300, bias=True)\n    '\
        '(2): Linear(in_features=300, out_features=4, bias=True)\n  )\n  (dropout_p): ModuleList(\n    (0): Dropout(p=0.0, inplace=False)\n    (1): Dropout(p=0.0, inplace=False)\n    (2): Dropout(p=0.0, inplace=False)\n  )\n)'
 
   # get output
-  output = model(data)
+  output = model(pyg_batch)
   assert len(output) == 2
   assert output[0].shape == torch.Size(
       [number_of_molecules, number_of_tasks, number_of_classes])
@@ -199,7 +229,7 @@ def test_dmpnn_model_regression():
 
   # initialize the model
   from deepchem.models.torch_models.dmpnn import DMPNNModel
-  model = DMPNNModel()
+  model = DMPNNModel(batch_size=2)
 
   # overfit test
   model.fit(dataset, nb_epoch=30)
@@ -229,7 +259,7 @@ def test_dmpnn_model_classification():
   mode = 'classification'
   classes = 2
   tasks = 1
-  model = DMPNNModel(mode=mode, n_classes=classes, n_tasks=tasks)
+  model = DMPNNModel(mode=mode, n_classes=classes, n_tasks=tasks, batch_size=2)
 
   # overfit test
   model.fit(dataset, nb_epoch=30)
@@ -256,13 +286,13 @@ def test_dmpnn_model_reload():
   # initialize the model
   from deepchem.models.torch_models.dmpnn import DMPNNModel
   model_dir = tempfile.mkdtemp()
-  model = DMPNNModel(model_dir=model_dir)
+  model = DMPNNModel(model_dir=model_dir, batch_size=2)
 
   # fit the model
   model.fit(dataset, nb_epoch=10)
 
   # reload the model
-  reloaded_model = DMPNNModel(model_dir=model_dir)
+  reloaded_model = DMPNNModel(model_dir=model_dir, batch_size=2)
   reloaded_model.restore()
 
   orig_predict = model.predict(dataset)
