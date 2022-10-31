@@ -145,7 +145,8 @@ class GraphData:
       node_pos_features = torch.from_numpy(self.node_pos_features).float()
     kwargs = {}
     for key, value in self.kwargs.items():
-      kwargs[key] = torch.from_numpy(value).float()
+      if key not in ['x','edge_index','pos','edge_attr']:
+          kwargs[key] = torch.from_numpy(value).float()
     return Data(
         x=torch.from_numpy(self.node_features).float(),
         edge_index=torch.from_numpy(self.edge_index).long(),
