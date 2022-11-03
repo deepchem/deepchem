@@ -1026,17 +1026,19 @@ class GraphConvModel(KerasModel):
 class MPNNModel(KerasModel):
   """ Message Passing Neural Network,
 
-  Message Passing Neural Networks treat graph convolutional
+  Message Passing Neural Networks [1]_ treat graph convolutional
   operations as an instantiation of a more general message
   passing schem. Recall that message passing in a graph is when
   nodes in a graph send each other "messages" and update their
   internal state as a consequence of these messages.
 
-  Ordering structures in this model are built according to [1]_
+  Ordering structures in this model are built according to [2]_
 
   References
   ----------
-  .. [1] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters: 
+  .. [1] Justin Gilmer, Samuel S. Schoenholz, Patrick F. Riley, Oriol Vinyals, George E. Dahl.
+         "Neural Message Passing for Quantum Chemistry." ICML 2017. 
+  .. [2] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters: 
          Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
   """
 
