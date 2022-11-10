@@ -1,27 +1,18 @@
 """
 Code for processing datasets using scikit-learn.
 """
+import inspect
 import logging
 from typing import List, Optional
 
 import numpy as np
 from sklearn.base import BaseEstimator
-from sklearn.cross_decomposition import PLSRegression
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.linear_model import LogisticRegression, BayesianRidge
-from sklearn.linear_model import LassoCV
-from sklearn.linear_model import ElasticNetCV
 
 from deepchem.models import Model
 from deepchem.data import Dataset
 from deepchem.trans import Transformer
 from deepchem.utils.data_utils import load_from_disk, save_to_disk
 from deepchem.utils.typing import OneOrMany
-
-NON_WEIGHTED_MODELS = [
-    LogisticRegression, PLSRegression, GaussianProcessRegressor, ElasticNetCV,
-    LassoCV, BayesianRidge
-]
 
 logger = logging.getLogger(__name__)
 
@@ -91,9 +82,13 @@ class SklearnModel(Model):
       self.use_weights = kwargs['use_weights']
     else:
       self.use_weights = True
-    for model in NON_WEIGHTED_MODELS:
-      if isinstance(self.model, model):
+
+    if self.use_weights and self.model is not None:
+      # model is None when reloading a model
+      if 'sample_weight' not in inspect.getfullargspec(self.model.fit).args:
         self.use_weights = False
+        logger.info("The model does not support training with weights."
+                    "Hence, not using weight of datapoint for training")
 
   def fit(self, dataset: Dataset) -> None:
     """Fits scikit-learn model to data.
@@ -132,7 +127,8 @@ class SklearnModel(Model):
     except AttributeError:
       return self.model.predict(X)
 
-  def predict(self, X: Dataset,
+  def predict(self,
+              X: Dataset,
               transformers: List[Transformer] = []) -> OneOrMany[np.ndarray]:
     """Makes predictions on dataset.
 

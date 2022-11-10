@@ -34,7 +34,7 @@ class RandomHyperparamOpt(HyperparamOpt):
 
   >>> import sklearn
   >>> import deepchem as dc
-  >>> optimizer = dc.hyper.RandomHyperparamOpt(lambda **p: dc.models.GraphConvModel(**p))
+  >>> optimizer = dc.hyper.RandomHyperparamOpt(lambda **p: dc.models.GraphConvModel(**p), max_iter=5)
 
   Here's a more sophisticated example that shows how to optimize only
   some parameters of a model. In this case, we have some parameters we
@@ -65,11 +65,10 @@ class RandomHyperparamOpt(HyperparamOpt):
   ...   'solver': ['liblinear', 'saga']
   ...   }
   >>> # Creating optimizer and searching over hyperparameters
-  >>> optimizer = dc.hyper.RandomHyperparamOpt(model_builder)
-  >>> best_model, best_hyperparams, all_results = \
-  optimizer.hyperparam_search(params, train_dataset, test_dataset, metric, 3)
-  >>> best_hyperparams  # the best hyperparameters found using random search
-  {'penalty': 'l2', 'solver': 'saga'}
+  >>> optimizer = dc.hyper.RandomHyperparamOpt(model_builder, max_iter=100)
+  >>> best_model, best_hyperparams, all_results = optimizer.hyperparam_search(params, train_dataset, test_dataset, metric)
+  >>> best_hyperparams['penalty'], best_hyperparams['solver']  # doctest: +SKIP
+  ('l2', 'saga')
 
   Parameters
   ----------
@@ -269,8 +268,8 @@ class RandomHyperparamOpt(HyperparamOpt):
     >>> from deepchem.hyper import RandomHyperparamOpt
     >>> n = 1
     >>> params_dict = {'a': [1, 2, 3], 'b': [5, 7, 8], 'c': uniform(10, 5).rvs}
-    >>> RandomHyperparamOpt.generate_random_hyperparam_values(params_dict, n)
-    [{'a': 3, 'b': 7, 'c': 10.619700740985433}]  # random
+    >>> RandomHyperparamOpt.generate_random_hyperparam_values(params_dict, n)  # doctest: +SKIP
+    [{'a': 3, 'b': 7, 'c': 10.619700740985433}]
     """
     hyperparam_keys, hyperparam_values = [], []
     for key, values in params_dict.items():
