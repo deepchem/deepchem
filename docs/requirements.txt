@@ -7,12 +7,12 @@ sphinx>=4.0,<5.0
 sphinx_rtd_theme>=1.0
 tensorflow
 transformers>=4.6.*
-torch
+torch==1.12.1 --extra-index-url https://download.pytorch.org/whl/cpu
 pytorch-lightning==1.6.5
 jax
 dm-haiku
 optax
-rdkit-pypi
-https://data.pyg.org/whl/torch-1.12.0%2Bcpu/torch_sparse-0.6.14-cp38-cp38-linux_x86_64.whl --extra-index-url https://data.pyg.org/whl/torch-1.12.0+cpu.html
-https://data.pyg.org/whl/torch-1.12.0%2Bcpu/torch_scatter-2.0.9-cp38-cp38-linux_x86_64.whl --extra-index-url https://data.pyg.org/whl/torch-1.12.0+cpu.html
+rdkit
+https://data.pyg.org/whl/torch-1.12.0%2Bcpu/torch_sparse-0.6.14-cp39-cp39-linux_x86_64.whl
+https://data.pyg.org/whl/torch-1.12.0%2Bcpu/torch_scatter-2.0.9-cp39-cp39-linux_x86_64.whl
 torch-geometric>=2.0.4
