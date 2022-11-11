@@ -115,7 +115,7 @@ jobs:
     - name: Install DeepChem
       id: install
       shell: bash -l {0}
-      run: pip install -e '.[torch]'
+      run: pip install -e .
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
