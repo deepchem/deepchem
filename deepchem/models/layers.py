@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tf
 import numpy as np
-try:
-  from collections.abc import Sequence as SequenceCollection
-except:
-  from collections import Sequence as SequenceCollection
+from collections.abc import Sequence as SequenceCollection
 from typing import Callable, Dict, List, Tuple
 from tensorflow.keras import activations, initializers, backend
 from tensorflow.keras.layers import Dropout, BatchNormalization, Dense, Activation

@@ -8,7 +8,7 @@ dependencies:
   - pip
   - pip:
     - numpy
-    - rdkit-pypi
+    - rdkit
     - mdtraj
     - pre-commit
     - biopython

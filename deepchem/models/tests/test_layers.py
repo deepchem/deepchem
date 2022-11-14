@@ -736,6 +736,7 @@ def test_dmpnn_encoder_layer():
   from deepchem.models.torch_models.dmpnn import _MapperDMPNN
   mapper = _MapperDMPNN(graph[0])
   atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features = mapper.values
+  molecules_unbatch_key = [len(atom_features)]
 
   atom_features = torch.from_numpy(atom_features).float()
   f_ini_atoms_bonds = torch.from_numpy(f_ini_atoms_bonds).float()
@@ -752,7 +753,7 @@ def test_dmpnn_encoder_layer():
   ) == 'Linear(in_features=135, out_features=2, bias=True)'
 
   output = layer(atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds,
-                 mapping, global_features)
+                 mapping, global_features, molecules_unbatch_key)
   readout_output = torch.tensor([[0.1116, 0.0470]])
   assert output.shape == torch.Size([1, 2 + 2048])
   assert torch.allclose(output[0][:2], readout_output, atol=1e-4)
@@ -806,6 +807,18 @@ def test_torch_lstm_step():
   assert h_out.shape == (n_test, n_feat)
   assert h_copy_out.shape == (n_test, n_feat)
   assert c_out.shape == (n_test, n_feat)
+
+
+@pytest.mark.torch
+def test_torch_gru():
+  n_hidden = 100
+  batch_size = 10
+  x = torch.tensor(np.random.rand(batch_size, n_hidden).astype(np.float32))
+  h_0 = torch.tensor(np.random.rand(batch_size, n_hidden).astype(np.float32))
+  init = 'xavier_uniform_'
+  layer = torch_layers.GatedRecurrentUnit(n_hidden, init)
+  y = layer([x, h_0])
+  assert y.shape == (batch_size, n_hidden)
 
 
 @pytest.mark.torch
