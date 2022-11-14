@@ -1,6 +1,7 @@
 from deepchem.utils.jackhmmer import Jackhmmer
 import unittest
 
+
 class TestJackhmmer(unittest.TestCase):
     """
     Test Jackhmmer  on a toy dataset
