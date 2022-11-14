@@ -48,22 +48,39 @@ class Jackhmmer:
     ):
         """Initializes the Python Jackhmmer wrapper.
 
-        Args:
-          binary_path: The path to the jackhmmer executable.
-          database_path: The path to the jackhmmer database (FASTA format).
-          n_cpu: The number of CPUs to give Jackhmmer.
-          n_iter: The number of Jackhmmer iterations.
-          e_value: The E-value, see Jackhmmer docs for more details.
-          z_value: The Z-value, see Jackhmmer docs for more details.
-          get_tblout: Whether to save tblout string.
-          filter_f1: MSV and biased composition pre-filter, set to >1.0 to turn off.
-          filter_f2: Viterbi pre-filter, set to >1.0 to turn off.
-          filter_f3: Forward pre-filter, set to >1.0 to turn off.
-          incdom_e: Domain e-value criteria for inclusion of domains in MSA/next
+        Parameters
+        ----------
+        
+        binary_path: str
+            The path to the jackhmmer executable if jackhmmer is not 
+            installed in the environment.
+        database_path: str
+            The path to the jackhmmer database (FASTA format).
+        n_cpu: int 
+            The number of CPUs to give Jackhmmer.
+        n_iter: int
+            The number of Jackhmmer iterations.
+        e_value: float
+            The E-value, see Jackhmmer docs for more details.
+        z_value: int, optional
+            The Z-value, see Jackhmmer docs for more details.
+        get_tblout: bool
+            Whether to save tblout string.
+        filter_f1: float
+            MSV and biased composition pre-filter, set to >1.0 to turn off.
+        filter_f2: float
+            Viterbi pre-filter, set to >1.0 to turn off.
+        filter_f3: float 
+            Forward pre-filter, set to >1.0 to turn off.
+        incdom_e: float, optional
+            Domain e-value criteria for inclusion of domains in MSA/next
             round.
-          dom_e: Domain e-value criteria for inclusion in tblout.
-          num_streamed_chunks: Number of database chunks to stream over.
-          streaming_callback: Callback function run after each chunk iteration with
+        dom_e: float, optional
+            Domain e-value criteria for inclusion in tblout.
+        num_streamed_chunks: int, optional
+            Number of database chunks to stream over.
+        streaming_callback: callable, optional
+            Callback function run after each chunk iteration with
             the iteration number as argument.
         """
 
