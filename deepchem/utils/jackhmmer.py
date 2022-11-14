@@ -19,10 +19,9 @@ import glob
 import logging
 import os
 import subprocess
-from deepchem.utils.typing import Any, Callable, Sequence
-from typing import Mapping, Optional
 from urllib import request
-
+from typing import Mapping, Optional
+from deepchem.utils.typing import Any, Callable, Sequence
 from deepchem.utils import contextmanagement
 
 
