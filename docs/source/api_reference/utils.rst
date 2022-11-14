@@ -125,8 +125,9 @@ Sequence Utilities
 
 .. autofunction:: deepchem.utils.sequence_utils.MSA_to_dataset
 
-.. autofunction:: deepchem.utils.jackhmmer.Jackhmmer
-
+.. autoclass:: deepchem.utils.jackhmmer.Jackhmmer
+  :members:
+  :inherited-members:
 
 Geometry Utilities
 ------------------

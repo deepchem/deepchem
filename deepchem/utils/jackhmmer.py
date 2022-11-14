@@ -26,8 +26,6 @@ from urllib import request
 from deepchem.utils import contextmanagement
 
 class Jackhmmer:
-    """Python wrapper of the Jackhmmer binary."""
-
     def __init__(
         self,
         *,
@@ -46,44 +44,52 @@ class Jackhmmer:
         num_streamed_chunks: Optional[int] = None,
         streaming_callback: Optional[Callable[[int], None]] = None,
     ):
-        """Initializes the Python Jackhmmer wrapper.
+        """Initializes the Python Jackhmmer wrapper, an interative protein search
+                program.
 
-        Parameters
-        ----------
-        
-        binary_path: str
-            The path to the jackhmmer executable if jackhmmer is not 
-            installed in the environment.
-        database_path: str
-            The path to the jackhmmer database (FASTA format).
-        n_cpu: int 
-            The number of CPUs to give Jackhmmer.
-        n_iter: int
-            The number of Jackhmmer iterations.
-        e_value: float
-            The E-value, see Jackhmmer docs for more details.
-        z_value: int, optional
-            The Z-value, see Jackhmmer docs for more details.
-        get_tblout: bool
-            Whether to save tblout string.
-        filter_f1: float
-            MSV and biased composition pre-filter, set to >1.0 to turn off.
-        filter_f2: float
-            Viterbi pre-filter, set to >1.0 to turn off.
-        filter_f3: float 
-            Forward pre-filter, set to >1.0 to turn off.
-        incdom_e: float, optional
-            Domain e-value criteria for inclusion of domains in MSA/next
-            round.
-        dom_e: float, optional
-            Domain e-value criteria for inclusion in tblout.
-        num_streamed_chunks: int, optional
-            Number of database chunks to stream over.
-        streaming_callback: callable, optional
-            Callback function run after each chunk iteration with
-            the iteration number as argument.
-        """
+                Parameters
+                ----------
+                binary_path: str
+                    The path to the jackhmmer executable if jackhmmer is not 
+                    installed in the environment.
+                database_path: str
+                    The path to the jackhmmer database (FASTA format).
+                n_cpu: int 
+                    The number of CPUs to give Jackhmmer.
+                n_iter: int
+                    The number of Jackhmmer iterations.
+                e_value: float
+                    The E-value, see Jackhmmer docs for more details.
+                z_value: int, optional
+                    The Z-value, see Jackhmmer docs for more details.
+                get_tblout: bool
+                    Whether to save tblout string.
+                filter_f1: float
+                    MSV and biased composition pre-filter, set to >1.0 to turn off.
+                filter_f2: float
+                    Viterbi pre-filter, set to >1.0 to turn off.
+                filter_f3: float 
+                    Forward pre-filter, set to >1.0 to turn off.
+                incdom_e: float, optional
+                    Domain e-value criteria for inclusion of domains in MSA/next
+                    round.
+                dom_e: float, optional
+                    Domain e-value criteria for inclusion in tblout.
+                num_streamed_chunks: int, optional
+                    Number of database chunks to stream over.
+                streaming_callback: callable, optional
+                    Callback function run after each chunk iteration with
+                    the iteration number as argument.
+                    
 
+                References
+                ----------
+                .. [1] http://eddylab.org/software/hmmer/Userguide.pdf
+                
+                Notes
+                -----
+                This class requires jackhmmer to be installed or the binary path specified.
+                """
 
         if binary_path is None:
             self.binary_path =  subprocess.run(['which', 'jackhmmer'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
@@ -205,7 +211,25 @@ class Jackhmmer:
         return raw_output
 
     def query(self, input_fasta_path: str) -> Sequence[Mapping[str, Any]]:
-        """Queries the database using Jackhmmer."""
+        """Queries the database using Jackhmmer.
+        
+        Parameters
+        ----------
+        input_fasta_path: str
+            The path to the target fasta file.
+
+        Returns
+        -------
+        chunk_output: list
+            A list of dictionaries containing the raw output of each chunk.
+            
+        Examples
+        --------
+        >>> from deepchem.utils.jackhmmer import Jackhmmer
+        >>> j = Jackhmmer(database_path='assets/test.fasta')
+        >>> result = j.query("assets/sequence.fasta")
+            
+        """
         if self.num_streamed_chunks is None:
             return [self._query_chunk(input_fasta_path, self.database_path)]
 
