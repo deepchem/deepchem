@@ -6,11 +6,11 @@ from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.losses import L1Loss
 
 
-class ScScore(nn.Module):
+class SCScore(nn.Module):
     """
-    ScScore paper - https://pubs.acs.org/doi/abs/10.1021/acs.jcim.7b00622
+    SCScore paper - https://pubs.acs.org/doi/abs/10.1021/acs.jcim.7b00622
 
-    ScScore is a FeedForward neural network with 5 hidden layers. Each hidden layer
+    SCScore is a FeedForward neural network with 5 hidden layers. Each hidden layer
     contains 300 neurons. ReLU is applied for all the hidden layers. Sigmoid is applied
     for the output layer. In the original paper, they didn't use Dropout. But in our
     implementation, you can set the dropout for all the hidden layers at once.
@@ -40,7 +40,7 @@ class ScScore(nn.Module):
         return output
         
         
-class ScScoreModel(TorchModel):
+class SCScoreModel(TorchModel):
     """
     
     """
