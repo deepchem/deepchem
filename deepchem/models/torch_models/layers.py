@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from typing import Any, Tuple, Optional, Sequence, List, Union
+from collections.abc import Sequence as SequenceCollection
 try:
   import torch
   from torch import Tensor
@@ -17,11 +18,6 @@ except ModuleNotFoundError:
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
 from deepchem.utils.pytorch_utils import get_activation
 from torch.nn import init as initializers
-
-try:
-  from collections.abc import Sequence as SequenceCollection
-except:
-  from collections import Sequence as SequenceCollection
 
 
 class CNNModule(nn.Module):
@@ -1413,8 +1409,9 @@ class DMPNNEncoderLayer(nn.Module):
   >>> atom_to_incoming_bonds = torch.from_numpy(atom_to_incoming_bonds)
   >>> mapping = torch.from_numpy(mapping)
   >>> global_features = torch.from_numpy(global_features).float()
+  >>> molecules_unbatch_key = len(atom_features)
   >>> layer = DMPNNEncoderLayer(d_hidden=2)
-  >>> output = layer(atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features)
+  >>> output = layer(atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds, mapping, global_features, molecules_unbatch_key)
   """
 
   def __init__(self,
@@ -1532,36 +1529,46 @@ class DMPNNEncoderLayer(nn.Module):
         atoms_hidden_states)  # num_atoms x hidden_size
     return atoms_hidden_states  # num_atoms x hidden_size
 
-  def _readout(self, atoms_hidden_states: torch.Tensor) -> torch.Tensor:
+  def _readout(self, atoms_hidden_states: torch.Tensor,
+               molecules_unbatch_key: List) -> torch.Tensor:
     """
-    Method to execute the readout phase. (compute molecule encodings from atom hidden states)
+    Method to execute the readout phase. (compute molecules encodings from atom hidden states)
 
     Parameters
     ----------
     atoms_hidden_states: torch.Tensor
       Tensor containing atom hidden states.
+    molecules_unbatch_key: List
+      List containing number of atoms in various molecules of a batch
 
     Returns
     -------
     molecule_hidden_state: torch.Tensor
       Tensor containing molecule encodings.
     """
-    if self.aggregation == 'mean':
-      mol_vec: torch.Tensor = atoms_hidden_states.sum(
-          dim=0) / len(atoms_hidden_states)
-    elif self.aggregation == 'sum':
-      mol_vec = atoms_hidden_states.sum(dim=0)
-    elif self.aggregation == 'norm':
-      mol_vec = atoms_hidden_states.sum(dim=0) / self.aggregation_norm
-    else:
-      raise Exception("Invalid aggregation")
-    molecule_hidden_state: torch.Tensor = mol_vec.view(1, -1)
+    mol_vecs: List = []
+    atoms_hidden_states_split: Sequence[Tensor] = torch.split(
+        atoms_hidden_states, molecules_unbatch_key)
+    mol_vec: torch.Tensor
+    for mol_vec in atoms_hidden_states_split:
+      if self.aggregation == 'mean':
+        mol_vec = mol_vec.sum(dim=0) / len(mol_vec)
+      elif self.aggregation == 'sum':
+        mol_vec = mol_vec.sum(dim=0)
+      elif self.aggregation == 'norm':
+        mol_vec = mol_vec.sum(dim=0) / self.aggregation_norm
+      else:
+        raise Exception("Invalid aggregation")
+      mol_vecs.append(mol_vec)
+
+    molecule_hidden_state: torch.Tensor = torch.stack(mol_vecs, dim=0)
     return molecule_hidden_state  # num_molecules x hidden_size
 
   def forward(self, atom_features: torch.Tensor,
               f_ini_atoms_bonds: torch.Tensor,
               atom_to_incoming_bonds: torch.Tensor, mapping: torch.Tensor,
-              global_features: torch.Tensor) -> torch.Tensor:
+              global_features: torch.Tensor,
+              molecules_unbatch_key: List) -> torch.Tensor:
     """
     Output computation for the DMPNNEncoderLayer.
 
@@ -1587,6 +1594,8 @@ class DMPNNEncoderLayer(nn.Module):
       incoming at the initial atom of the bond (excluding the reverse bonds).
     global_features: torch.Tensor
       Tensor containing molecule features.
+    molecules_unbatch_key: List
+      List containing number of atoms in various molecules of a batch
 
     Returns
     -------
@@ -1608,12 +1617,13 @@ class DMPNNEncoderLayer(nn.Module):
         atom_features, h_message, atom_to_incoming_bonds)
 
     # num_molecules x hidden_size
-    output: torch.Tensor = self._readout(atoms_hidden_states)
+    output: torch.Tensor = self._readout(atoms_hidden_states,
+                                         molecules_unbatch_key)
 
     # concat global features
-    if global_features.size != 0:
+    if global_features.size()[0] != 0:
       if len(global_features.shape) == 1:
-        global_features = global_features.view(1, -1)
+        global_features = global_features.view(len(output), -1)
       output = torch.cat([output, global_features], dim=1)
 
     return output  # num_molecules x hidden_size
@@ -2579,6 +2589,38 @@ class CombineMeanStd(nn.Module):
                                not self.training_only).to(torch.float)
     sample_noise = torch.normal(0.0, self.noise_epsilon, mean_parent.shape)
     return mean_parent + noise_scale * std_parent * sample_noise
+
+
+class GatedRecurrentUnit(nn.Module):
+  """ Submodule for Message Passing """
+
+  def __init__(self, n_hidden=100, init='xavier_uniform_', **kwargs):
+    super(GatedRecurrentUnit, self).__init__(**kwargs)
+    self.n_hidden = n_hidden
+    self.init = init
+    init = getattr(initializers, self.init)
+    self.Wz = init(torch.empty(n_hidden, n_hidden))
+    self.Wr = init(torch.empty(n_hidden, n_hidden))
+    self.Wh = init(torch.empty(n_hidden, n_hidden))
+    self.Uz = init(torch.empty(n_hidden, n_hidden))
+    self.Ur = init(torch.empty(n_hidden, n_hidden))
+    self.Uh = init(torch.empty(n_hidden, n_hidden))
+    self.bz = torch.zeros((n_hidden,))
+    self.br = torch.zeros((n_hidden,))
+    self.bh = torch.zeros((n_hidden,))
+
+  def forward(self, inputs):
+    sigmoid = get_activation('sigmoid')
+    tanh = get_activation('tanh')
+    h_tm1, x = inputs
+    z = sigmoid(
+        torch.matmul(x, self.Wz) + torch.matmul(h_tm1, self.Uz) + self.bz)
+    r = sigmoid(
+        torch.matmul(x, self.Wr) + torch.matmul(h_tm1, self.Ur) + self.br)
+    h = (1 - z) * tanh(
+        torch.matmul(x, self.Wh) + torch.matmul(h_tm1 * r, self.Uh) +
+        self.bh) + z * x
+    return h
 
 
 class WeightedLinearCombo(nn.Module):

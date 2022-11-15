@@ -13,10 +13,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.7, 3.8, 3.9]
+        python-version: ['3.8', '3.10']
         include:
           - os: windows-latest
-            python-version: 3.7
+            python-version: 3.9
     steps:
     - uses: actions/checkout@v3
     - name: Cache pip modules for Linux
@@ -43,10 +43,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.7, 3.9]
+        python-version: ['3.8', '3.10']
         include:
           - os: windows-latest
-            python-version: 3.8
+            python-version: '3.9'
     env:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
@@ -115,7 +115,7 @@ jobs:
     - name: Install DeepChem
       id: install
       shell: bash -l {0}
-      run: pip install -e '.[torch]'
+      run: pip install -e .
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}

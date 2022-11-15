@@ -1,0 +1,6 @@
+# these modules are not supported in python 3.10.
+# We should later combine remove this file 
+name: deepchem
+dependencies:
+  - pip:
+    - vina

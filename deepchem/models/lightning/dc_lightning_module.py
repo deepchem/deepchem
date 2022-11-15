@@ -72,6 +72,7 @@ class DCLightningModule(pl.LightningModule):
         sync_dist=True,
         reduce_fx="mean",
         prog_bar=True,
+        batch_size=self.dc_model.batch_size,
     )
 
     return loss_outputs

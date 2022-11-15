@@ -8,10 +8,9 @@ from tensorflow.keras.layers import Input, Dense, Reshape, Dropout, Activation, 
 import numpy as np
 import tensorflow as tf
 import itertools
-try:
-  from collections.abc import Sequence as SequenceCollection
-except:
-  from collections import Sequence as SequenceCollection
+
+from collections.abc import Sequence as SequenceCollection
+
 from typing import Sequence, Union
 from deepchem.utils.typing import ActivationFn, LossFn, OneOrMany
 from deepchem.utils.data_utils import load_from_disk, save_to_disk

@@ -4,5 +4,3 @@ channels:
   - bioconda
 dependencies:
   - hhsuite
-  - pip:
-    - vina
