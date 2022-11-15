@@ -47,7 +47,7 @@ class SCScoreModel(TorchModel):
     
     def __init__(self, n_features=1024, layer_sizes=[300,300,300,300,300], dropout = 0, **kwargs):
         self.n_features = n_features
-        model = ScScore(n_features, layer_sizes, dropout)
+        model = SCScore(n_features, layer_sizes, dropout)
         output_types = ['prediction']
-        super(ScScoreModel, self).__init__(
+        super(SCScoreModel, self).__init__(
              model, L1Loss(), output_types=output_types, **kwargs)
