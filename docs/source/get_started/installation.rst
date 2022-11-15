@@ -204,7 +204,9 @@ If you are using the Windows and the PowerShell:
 | Sometimes, PowerShell scripts can't be executed due to problems in Execution Policies.
 | In that case, you can either change the Execution policies or use the bypass argument.
 
+
 .. code-block:: ps1
+
     powershell -executionpolicy bypass -File .\scripts\install_deepchem_conda.ps1 3.7 cpu
 
 | Before activating deepchem environment, make sure conda has been initialized.
