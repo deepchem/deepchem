@@ -19,16 +19,17 @@ import glob
 import logging
 import os
 import subprocess
+import platform
 from urllib import request
-from typing import Mapping, Optional
-from deepchem.utils.typing import Any, Callable, Sequence
-from deepchem.utils import contextmanagement
+from typing import Any, Callable, Sequence, Mapping, Optional
 
+# check windows, mac, warning
+IS_WINDOWS = platform.system() == 'Windows'
 
 class Jackhmmer:
     def __init__(
         self,
-        *,
+        *, # star indicates that all following arguments must be keyword
         binary_path: str = None,
         database_path: str,
         n_cpu: int = 8,
@@ -89,6 +90,8 @@ class Jackhmmer:
       Notes
       -----
       This class requires jackhmmer to be installed or the binary path specified.
+      
+      Works on linux only.
       """
 
         if binary_path is None:
@@ -124,78 +127,78 @@ class Jackhmmer:
     def _query_chunk(self, input_fasta_path: str,
                      database_path: str) -> Mapping[str, Any]:
         """Queries the database chunk using Jackhmmer."""
-        with contextmanagement.tmpdir_manager(base_dir="/tmp") as query_tmp_dir:
-            sto_path = os.path.join(query_tmp_dir, "output.sto")
+    # with contextmanagement.tmpdir_manager(base_dir="/tmp") as query_tmp_dir:
+        query_tmp_dir = "/tmp"
+        sto_path = os.path.join(query_tmp_dir, "output.sto")
 
-            # The F1/F2/F3 are the expected proportion to pass each of the filtering
-            # stages (which get progressively more expensive), reducing these
-            # speeds up the pipeline at the expensive of sensitivity.  They are
-            # currently set very low to make querying Mgnify run in a reasonable
-            # amount of time.
-            cmd_flags = [
-                # Don't pollute stdout with Jackhmmer output.
-                "-o",
-                "/dev/null",
-                "-A",
-                sto_path,
-                "--noali",
-                "--F1",
-                str(self.filter_f1),
-                "--F2",
-                str(self.filter_f2),
-                "--F3",
-                str(self.filter_f3),
-                "--incE",
-                str(self.e_value),
-                # Report only sequences with E-values <= x in per-sequence output.
-                "-E",
-                str(self.e_value),
-                "--cpu",
-                str(self.n_cpu),
-                "-N",
-                str(self.n_iter),
-            ]
-            if self.get_tblout:
-                tblout_path = os.path.join(query_tmp_dir, "tblout.txt")
-                cmd_flags.extend(["--tblout", tblout_path])
+        # The F1/F2/F3 are the expected proportion to pass each of the filtering
+        # stages (which get progressively more expensive), reducing these
+        # speeds up the pipeline at the expensive of sensitivity.  They are
+        # currently set very low to make querying Mgnify run in a reasonable
+        # amount of time.
+        cmd_flags = [
+            # Don't pollute stdout with Jackhmmer output.
+            "-o",
+            "/dev/null",
+            "-A",
+            sto_path,
+            "--noali",
+            "--F1",
+            str(self.filter_f1),
+            "--F2",
+            str(self.filter_f2),
+            "--F3",
+            str(self.filter_f3),
+            "--incE",
+            str(self.e_value),
+            # Report only sequences with E-values <= x in per-sequence output.
+            "-E",
+            str(self.e_value),
+            "--cpu",
+            str(self.n_cpu),
+            "-N",
+            str(self.n_iter),
+        ]
+        if self.get_tblout:
+            tblout_path = os.path.join(query_tmp_dir, "tblout.txt")
+            cmd_flags.extend(["--tblout", tblout_path])
 
-            if self.z_value:
-                cmd_flags.extend(["-Z", str(self.z_value)])
+        if self.z_value:
+            cmd_flags.extend(["-Z", str(self.z_value)])
 
-            if self.dom_e is not None:
-                cmd_flags.extend(["--domE", str(self.dom_e)])
+        if self.dom_e is not None:
+            cmd_flags.extend(["--domE", str(self.dom_e)])
 
-            if self.incdom_e is not None:
-                cmd_flags.extend(["--incdomE", str(self.incdom_e)])
+        if self.incdom_e is not None:
+            cmd_flags.extend(["--incdomE", str(self.incdom_e)])
 
-            cmd = ([self.binary_path] + cmd_flags + [input_fasta_path, database_path])
+        cmd = ([self.binary_path] + cmd_flags + [input_fasta_path, database_path])
 
-            logging.info('Launching subprocess "%s"', " ".join(cmd))
-            process = subprocess.Popen(cmd,
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
-            with contextmanagement.timing(
-                f"Jackhmmer ({os.path.basename(database_path)}) query"):
-                _, stderr = process.communicate()
-                retcode = process.wait()
+        logging.info('Launching subprocess "%s"', " ".join(cmd))
+        # process = subprocess.Popen(cmd,
+        #                             stdout=subprocess.PIPE,
+        #                             stderr=subprocess.PIPE)
+        # with contextmanagement.timing( ##remove 
+        #     f"Jackhmmer ({os.path.basename(database_path)}) query"):
+        #     _, stderr = process.communicate()
+        #     retcode = process.wait()
 
-            if retcode:
-                raise RuntimeError("Jackhmmer failed\nstderr:\n%s\n" %
-                                   stderr.decode("utf-8"))
+        # if retcode:
+        #     raise RuntimeError("Jackhmmer failed\nstderr:\n%s\n" %
+        #                         stderr.decode("utf-8"))
 
-            # Get e-values for each target name
-            tbl = ""
-            if self.get_tblout:
-                with open(tblout_path) as f:
-                    tbl = f.read()
+        # Get e-values for each target name
+        tbl = ""
+        if self.get_tblout:
+            with open(tblout_path) as f:
+                tbl = f.read()
 
-            with open(sto_path) as f:
-                sto = f.read()
+        with open(sto_path) as f:
+            sto = f.read()
 
         raw_output = dict(
             sto=sto,
             tbl=tbl,
-            stderr=stderr,
             n_iter=self.n_iter,
             e_value=self.e_value,
         )
