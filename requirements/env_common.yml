@@ -4,12 +4,12 @@ channels:
   - defaults
 dependencies:
   - openmm
+  - mdtraj
   - pdbfixer
   - pip
   - pip:
     - numpy
     - rdkit
-    - mdtraj
     - pre-commit
     - biopython
     - dgllife==0.2.8
