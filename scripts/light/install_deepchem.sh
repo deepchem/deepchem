@@ -36,7 +36,7 @@ then
     else
         conda-merge $PWD/requirements/env_common.yml $PWD/requirements/env_test.yml > $PWD/env.yml
         echo "Installing common environment with GPU"
-    fi
+    fi 
 else
     # We expect the CUDA vesion is 10.1.
     if [ "$3" = "tensorflow" ];
