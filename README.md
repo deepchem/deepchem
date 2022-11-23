@@ -61,7 +61,7 @@ or
 conda install -c conda-forge deepchem
 ```
 
-Deepchem provides support for Tensorflow, Pytorch and Jax; each requires
+Deepchem provides support for Tensorflow, PyTorch and Jax; each requires
 an individual pip Installation.
 
 For using models with Tensorflow dependencies, you install using
