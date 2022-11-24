@@ -16,17 +16,18 @@ except ModuleNotFoundError:
 @pytest.mark.torch
 def test_prepare_input_stream():
   # test for the prepare_input_stream function of Ferminet class
-  h2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
-  molecule = FerminetModel(h2_molecule, spin=0, charge=0, seed=0, batch_no=10)
+  h2_molecule = [['Li', [0, 0, 0]], ['H', [0, 0, 0.748]]]
+  molecule = FerminetModel(h2_molecule, spin=0, charge=0, seed=0, batch_no=4)
   molecule.prepare_hf_solution()
-  assert np.shape(molecule.mo_values) == (2, 2)
+  # assert np.shape(molecule.mo_values) == (2, 2)
   # input = torch.tensor([[0, 0, 0], [0, 0, 0.748]], requires_grad=True)
   # fermi = Ferminet(input,
   #               spin=(molecule.up_spin, molecule.down_spin),
   #               nuclear_charge=torch.from_numpy(molecule.charge),
   #               inter_atom=torch.from_numpy(molecule.inter_atom))
-  loss = molecule.fit()
-  print(loss)
+  los = molecule.fit()
+  print(los)
+  raise IndexError
   # molecule_input = torch.tensor(molecule.molecule.x, requires_grad=True)
   # log_psi = fermi.forward(molecule_input.to(device))
   # fermi.local_energy()
