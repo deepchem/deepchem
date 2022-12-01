@@ -284,7 +284,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         if param_range[hp][0] == "int":
           # param values are always float in BO, so this line converts float to int
           # see : https://github.com/josejimenezluna/pyGPGO/issues/10
-          hyper_parameters[hp] = int(placeholders[hp])
+          hyper_parameters[hp] = int(round(placeholders[hp]))
         else:
           hyper_parameters[hp] = float(placeholders[hp])
       logger.info("Running hyperparameter set: %s" % str(hyper_parameters))
@@ -380,7 +380,7 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
     hyper_parameters = {}
     for hp in param_keys:
       if param_range[hp][0] == "int":
-        hyper_parameters[hp] = int(hp_opt[hp])
+        hyper_parameters[hp] = int(round(hp_opt[hp]))
       else:
         # FIXME: Incompatible types in assignment
         hyper_parameters[hp] = float(hp_opt[hp])  # type: ignore
