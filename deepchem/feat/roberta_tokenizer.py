@@ -1,5 +1,5 @@
 from deepchem.feat import Featurizer
-from typing import Dict, List
+from typing import List
 try:
   from transformers import RobertaTokenizerFast
 except ModuleNotFoundError:
@@ -8,21 +8,24 @@ except ModuleNotFoundError:
   pass
 
 
-class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
+class RobertaFeaturizer(Featurizer):
   """Roberta Featurizer.
 
   The Roberta Featurizer is a wrapper class of the Roberta Tokenizer,
   which is used by Huggingface's transformers library for tokenizing large corpuses for Roberta Models.
-  Please confirm the details in [1]_.
+  This class intends to allow users to use the RobertaTokenizer API while
+  remaining inside the DeepChem ecosystem.
 
   Please see https://github.com/huggingface/transformers
   and https://github.com/seyonechithrananda/bert-loves-chemistry for more details.
 
   Examples
   --------
+  >>> from transformers import RobertaTokenizerFast
   >>> from deepchem.feat import RobertaFeaturizer
+  >>> tokenizer = RobertaTokenizerFast.from_pretrained("seyonec/SMILES_tokenized_PubChem_shard00_160k", do_lower_case=False)
+  >>> featurizer = RobertaFeaturizer(tokenizer)
   >>> smiles = ["Cn1c(=O)c2c(ncn2C)n(C)c1=O", "CC(=O)N1CN(C(C)=O)C(O)C1O"]
-  >>> featurizer = RobertaFeaturizer.from_pretrained("seyonec/SMILES_tokenized_PubChem_shard00_160k")
   >>> out = featurizer.featurize(smiles, add_special_tokens=True, truncation=True)
 
   References
@@ -34,31 +37,33 @@ class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
   Note
   -----
   This class requires transformers to be installed.
-  RobertaFeaturizer uses dual inheritance with RobertaTokenizerFast in Huggingface for rapid tokenization,
-  as well as DeepChem's MolecularFeaturizer class.
+  RobertaFeaturizer uses inheritance with DeepChem's
+  Featurizer class while instantiating RobertaTokenizerFast
+  in Huggingface as an attribute for rapid tokenization.
   """
 
-  def __init__(self, **kwargs):
-    super().__init__(**kwargs)
-    return
+  def __init__(self, tokenizer: RobertaTokenizerFast):
+    if not isinstance(tokenizer, RobertaTokenizerFast):
+      raise TypeError(
+          f"""`tokenizer` must be a constructed `RobertaTokenizerFast`
+                       object, not {type(tokenizer)}""")
+    else:
+      self.tokenizer = tokenizer
 
   def _featurize(self, datapoint: str, **kwargs) -> List[List[int]]:
     """Calculate encoding using HuggingFace's RobertaTokenizerFast
 
     Parameters
     ----------
-    sequence: str
+    datapoint: str
       Arbitrary string sequence to be tokenized.
 
     Returns
     -------
-    datapoint: List
+    encoding: List
       List containing two lists; the `input_ids` and the `attention_mask`
     """
 
     # the encoding is natively a dictionary with keys 'input_ids' and 'attention_mask'
     encoding = list(self(datapoint, **kwargs).values())
     return encoding
-
-  def __call__(self, *args, **kwargs) -> Dict[str, List[int]]:
-    return super().__call__(*args, **kwargs)
