@@ -3,7 +3,6 @@ import torch.nn as nn
 from deepchem.data import NumpyDataset
 from deepchem.feat import CircularFingerprint
 from deepchem.models.torch_models.torch_model import TorchModel
-from deepchem.models.losses import Loss
 
 
 class SCScore(nn.Module):
@@ -26,7 +25,7 @@ class SCScore(nn.Module):
         
     def forward(self,x: torch.Tensor) -> torch.Tensor:
         #input tensor is of shape - (batch_size, 2, n_features)
-        x = torch.cat((x[:,0],x[:,1]),dim=0) 
+        x = torch.cat((x[:,0],x[:,1]),dim=0)
         x = nn.ReLU()(self.input_layer(x))
         for hidden_layer in self.hidden_layers:
             x = hidden_layer(x)
@@ -38,27 +37,32 @@ class SCScore(nn.Module):
         
         #output shape - (batch_size*2, 1)
         selector = output.shape[0] // 2
-        output = (output[:selector], output[selector:])
+        output = [output[:selector], output[selector:]]
+        #output type is a list
         #output[0] is reactant, output[1] is product
         return output
 
-
-class SCScoreLoss(Loss):
+    
+#we'll define our own loss function, since it doesn't require labels, weights, only just outputs.
+#we're not also inheriting from deepchem Loss fucntion, since it requires ouputs, labels and weights.
+class SCScoreLoss(object):
     """
     Defines the Loss for the SCScore Model.
-    The Loss for the SCScore is just a HingeLoss.
+    The Loss for the SCScore is a HingeLoss or a shifted relu loss.
     """
     def __init__(self, offset):
         self.offset = offset
 
     def _create_pytorch_loss(self):
 
-        def loss(output, labels):
+        def loss(output, labels, weights):
+            #calculates loss on the batch
+            #doesn't make use of labels, weights
             #output[0] is reactant, output[1] is product
             loss_item = nn.ReLU() (self.offset + output[0] - output[1])
             loss_item = torch.sum(loss_item)
             return loss_item
-
+        
         return loss
         
 
@@ -70,9 +74,10 @@ class SCScoreModel(TorchModel):
     def __init__(self, n_features=1024, layer_sizes=[300,300,300,300,300], dropout = 0, offset=0.25, **kwargs):
         self.n_features = n_features
         model = SCScore(n_features, layer_sizes, dropout)
-        output_types = ['prediction']
+        loss = SCScoreLoss(offset)._create_pytorch_loss()
+        output_types = ["prediction", "prediction"]
         super(SCScoreModel, self).__init__(
-             model, SCScoreLoss(offset), output_types=output_types, **kwargs)
+             model, loss, output_types=output_types, **kwargs)
 
     def default_generator(self, dataset, epochs=1, mode='fit', deterministic=True, pad_batches=True):
 
@@ -86,4 +91,4 @@ class SCScoreModel(TorchModel):
     
     def predict_mols(self, mols):
         pass
-    
+        
