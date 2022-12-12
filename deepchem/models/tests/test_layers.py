@@ -7,14 +7,14 @@ try:
   import deepchem.models.layers as layers
   from tensorflow.python.framework import test_util
   has_tensorflow = True
-except:
+except ModuleNotFoundError:
   has_tensorflow = False
 
 try:
   import torch
   import deepchem.models.torch_models.layers as torch_layers
   has_torch = True
-except:
+except ModuleNotFoundError:
   has_torch = False
 
 
