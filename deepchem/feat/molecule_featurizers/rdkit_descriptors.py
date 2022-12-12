@@ -1,8 +1,7 @@
 """
 Basic molecular features.
 """
-
-from typing import List, Sequence, Tuple, Union, Callable, Dict
+from typing import List, Sequence, Union, Callable, Dict
 import numpy as np
 import scipy.stats as st
 from scipy.stats import rv_continuous
@@ -27,23 +26,13 @@ class RDKitDescriptors(MolecularFeaturizer):
   (The implementation for normalization is based on `RDKit2DNormalized()` method
   in 'descriptastorus' library.)
 
-  The neural network architecture requires that the features are appropriately scaled to prevent
-  features with large ranges from dominating smaller ranged features, as well as preventing
-  issues where features in the training set are not drawn from the same sample distribution as
-  features in the testing set. To prevent these issues, a large sample of molecules is used to fit
-  cumulative density functions (CDFs) to all features.
-
-  CDFs were used as opposed to simpler scaling algorithms mainly because CDFs have the useful
-  property that 'each value has the same meaning: the percentage of the population observed below
-  the raw feature value.'
+  When the `is_normalized` option is set as True, descriptor values are normalized across the sample
+  by fitting a cumulative density function. CDFs were used as opposed to simpler scaling algorithms
+  mainly because CDFs have the useful property that 'each value has the same meaning: the percentage
+  of the population observed below the raw feature value.'
 
   Warning: Currently, the normalizing cdf parameters are not available for BCUT2D descriptors.
   (BCUT2D_MWHI, BCUT2D_MWLOW, BCUT2D_CHGHI, BCUT2D_CHGLO, BCUT2D_LOGPHI, BCUT2D_LOGPLOW, BCUT2D_MRHI, BCUT2D_MRLOW)
-
-  Attributes
-  ----------
-  descriptors: List[str]
-    List of RDKit descriptor names used in this class.
 
   Note
   ----
@@ -62,14 +51,19 @@ class RDKitDescriptors(MolecularFeaturizer):
   """
 
   def __init__(self,
+               descriptors: List[str] = [],
+               is_normalized: bool = False,
                use_fragment: bool = True,
                ipc_avg: bool = True,
-               is_normalized: bool = False,
-               use_bcut2d: bool = True):
+               use_bcut2d: bool = True,
+               labels_only: bool = False):
     """Initialize this featurizer.
 
     Parameters
     ----------
+    descriptors_list: List[str] (default None)
+      List of RDKit descriptors to compute properties. When None, computes values
+    for descriptors which are chosen based on options set in other arguments.
     use_fragment: bool, optional (default True)
       If True, the return value includes the fragment binary descriptors like 'fr_XXX'.
     ipc_avg: bool, optional (default True)
@@ -79,40 +73,57 @@ class RDKitDescriptors(MolecularFeaturizer):
       If True, the return value contains normalized features.
     use_bcut2d: bool, optional (default True)
       If True, the return value includes the descriptors like 'BCUT2D_XXX'.
+    labels_only: bool, optional (default False)
+      Returns only the presence or absence of a group.
+
+    Notes
+    -----
+    * If both `labels_only` and `is_normalized` are True, then `is_normalized` takes
+      precendence and `labels_only` will not be applied.
     """
+    try:
+      from rdkit.Chem import Descriptors
+    except ModuleNotFoundError:
+      raise ImportError("This class requires RDKit to be installed.")
+
     self.use_fragment: bool = use_fragment
     self.use_bcut2d: bool = use_bcut2d
     self.is_normalized: bool = is_normalized
     self.ipc_avg: bool = ipc_avg
-    self.descriptors: List[str] = []
-    self.descList: List[Tuple[str, Callable]] = []
+    self.labels_only = labels_only
+    self.reqd_properties = {}
+    self.properties = []
     self.normalized_desc: Dict[str, Callable] = {}
 
-    # initialize
-    if len(self.descList) == 0:
-      try:
-        from rdkit.Chem import Descriptors
+    all_descriptors = {name: func for name, func in Descriptors.descList}
 
-        desc_name: str  # descriptor name
-        function: Callable  # descriptor function
-        for desc_name, function in Descriptors.descList:
-          if self.use_fragment is False and desc_name.startswith('fr_'):
-            continue
-          if self.use_bcut2d is False and desc_name.startswith('BCUT2D_'):
-            continue
-          self.descriptors.append(desc_name)
-          self.descList.append((desc_name, function))
-      except ModuleNotFoundError:
-        raise ImportError("This class requires RDKit to be installed.")
-
-    # check initialization
-    assert len(self.descriptors) == len(self.descList)
+    if not descriptors:
+      # user has not specified a descriptor list
+      for desc_name, function in all_descriptors.items():
+        if self.use_fragment is False and desc_name.startswith('fr_'):
+          continue
+        if self.use_bcut2d is False and desc_name.startswith('BCUT2D_'):
+          continue
+        self.reqd_properties[desc_name] = function
+    else:
+      for desc_name in descriptors:
+        if desc_name in all_descriptors:
+          self.reqd_properties[desc_name] = all_descriptors[desc_name]
+        else:
+          logging.error("Unable to find specified property %s" % desc_name)
 
     # creates normalized functions dictionary if normalized features are required
     if is_normalized:
-      self._make_normalised_func_dict()
+      self.normalized_desc = self._make_normalised_func_dict()
+      desc_names = list(self.reqd_properties.keys())
+      for desc_name in desc_names:
+        if desc_name not in self.normalized_desc:
+          logger.warning("No normalization for %s. Feature removed!", desc_name)
+          self.reqd_properties.pop(desc_name)
 
-  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
+    self.reqd_properties = dict(sorted(self.reqd_properties.items()))
+
+  def _featurize(self, datapoint: RDKitMol) -> np.ndarray:
     """
     Calculate RDKit descriptors.
 
@@ -127,39 +138,21 @@ class RDKitDescriptors(MolecularFeaturizer):
       1D array of RDKit descriptors for `mol`.
       The length is `len(self.descriptors)`.
     """
-    if 'mol' in kwargs:
-      datapoint = kwargs.get("mol")
-      raise DeprecationWarning(
-          'Mol is being phased out as a parameter, please pass "datapoint" instead.'
-      )
-
     features: List[Union[int, float]] = []
-    if not self.is_normalized:
-      for desc_name, function in self.descList:
-        if desc_name == 'Ipc' and self.ipc_avg:
-          feature: Union[int, float] = function(datapoint, avg=True)
-        else:
-          feature = function(datapoint)
-        features.append(feature)
-    else:
-      for desc_name, function in self.descList:
+    for desc_name, function in self.reqd_properties.items():
+      if desc_name == 'Ipc' and self.ipc_avg:
+        feature = function(datapoint, avg=True)
+      else:
+        feature = function(datapoint)
 
-        if desc_name == 'Ipc' and self.ipc_avg:
-          feature = function(datapoint, avg=True)
-        else:
-          feature = function(datapoint)
+      if self.is_normalized:
+        # get cdf(feature) for that descriptor
+        feature = self.normalized_desc[desc_name](feature)
 
-        try:
-          feature = self.normalized_desc[desc_name](
-              feature)  # get cdf(feature) for that descriptor
-        except KeyError:
-          logger.warning("No normalization for %s. Feature removed!", desc_name)
-          self.descriptors.remove(
-              desc_name
-          )  # removes descriptors from the list, which cannot be normalized
-          continue
+      features.append(feature)
 
-        features.append(feature)
+    if self.labels_only:
+      features[features != 0] = 1
     return np.asarray(features)
 
   def _make_normalised_func_dict(self):
@@ -201,6 +194,7 @@ class RDKitDescriptors(MolecularFeaturizer):
     -------------------------------------------------------------------------------
     -------------------------------------------------------------------------------
     """
+    normalized_desc = {}
     # get sequence of descriptor names and normalization parameters from DescriptorsNormalizationParameters class
     parameters: Sequence[Union[str, Sequence[Union[str, Sequence[float],
                                                    float]]]]
@@ -230,4 +224,5 @@ class RDKitDescriptors(MolecularFeaturizer):
                               *arg)
         return np.clip(v, 0., 1.)
 
-      self.normalized_desc[desc_name] = norm_cdf
+      normalized_desc[desc_name] = norm_cdf
+    return normalized_desc
