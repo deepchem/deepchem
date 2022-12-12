@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 from deepchem.data import NumpyDataset
@@ -50,12 +51,12 @@ class SCScoreLoss(object):
     Defines the Loss for the SCScore Model.
     The Loss for the SCScore is a HingeLoss or a shifted relu loss.
     """
-    def __init__(self, offset):
+    def __init__(self, offset:int):
         self.offset = offset
 
     def _create_pytorch_loss(self):
 
-        def loss(output, labels, weights):
+        def loss(output:list[torch.Tensor], labels, weights) -> torch.Tensor:
             #calculates loss on the batch
             #doesn't make use of labels, weights
             #output[0] is reactant, output[1] is product
@@ -78,17 +79,14 @@ class SCScoreModel(TorchModel):
         output_types = ["prediction", "prediction"]
         super(SCScoreModel, self).__init__(
              model, loss, output_types=output_types, **kwargs)
-
-    def default_generator(self, dataset, epochs=1, mode='fit', deterministic=True, pad_batches=True):
-
-        for epoch in range(epochs):
-            for (X_b, y_b, w_b, ids_b) in dataset.iterbatches(
-                batch_size=self.batch_size,
-                deterministic=deterministic,
-                pad_batches=pad_batches):
-                #yield ([X_b[:, 0], X_b[:, 1]], [y_b], [w_b])
-                yield ([X_b], [y_b], [w_b])  
     
     def predict_mols(self, mols):
-        pass
-        
+        featurizer = CircularFingerprint(size=self.n_features, radius=2, chiral=True)
+        features = featurizer.featurize(mols)
+        features = np.expand_dims(featurizer.featurize(mols), axis=1)
+        features = np.concatenate([features, features], axis=1)
+        ds = NumpyDataset(features, None, None, None)
+        predictions = self.predict(ds)
+        predictions = predictions[0]
+        return predictions
+       
