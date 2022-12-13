@@ -199,8 +199,15 @@ If you are using the Windows and the PowerShell:
 
 .. code-block:: ps1
 
-    . .\scripts\install_deepchem_conda.ps1 3.7 cpu
+    .\scripts\install_deepchem_conda.ps1 3.7 cpu
 
+| Sometimes, PowerShell scripts can't be executed due to problems in Execution Policies.
+| In that case, you can either change the Execution policies or use the bypass argument.
+
+
+.. code-block:: ps1
+
+    powershell -executionpolicy bypass -File .\scripts\install_deepchem_conda.ps1 3.7 cpu
 
 | Before activating deepchem environment, make sure conda has been initialized.
 | Check if there is a :code:`(XXXX)` in your command line. 
