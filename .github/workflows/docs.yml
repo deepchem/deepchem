@@ -46,3 +46,18 @@ jobs:
       shell: bash -l {0}
       working-directory: ./docs
       run: make doctest_examples
+
+  website_dispatch:
+    # run after docs have been built
+    needs: linux
+    runs-on: ubuntu-latest
+    # webiste needs to be updated only when changes are pushed to master
+    # need not run when PR is created
+    if: github.event_name == 'push'
+    steps:
+      - name: Repository dispatch
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.WEBSITE_PAT }}
+          repository: deepchem/deepchem.github.io
+          event-type: update
