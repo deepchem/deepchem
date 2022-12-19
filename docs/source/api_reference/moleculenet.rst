@@ -45,7 +45,7 @@ Below is an example of how to load a MoleculeNet dataset and featurizer. This ap
     x,y,w,ids = train.X, train.y, train.w, train.ids
  
 
-Note that the w matrix represents the weight of each sample. Some assays may have missing values, in which case the weight is 0. Otherwise, the weight is 1.
+Note that the "w" matrix represents the weight of each sample. Some assays may have missing values, in which case the weight is 0. Otherwise, the weight is 1.
 
 BACE Dataset
 ------------
