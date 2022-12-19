@@ -28,6 +28,24 @@ Please review the `datasets already available in MolNet`_ before contributing.
 
 7. Submit a [WIP] PR (Work in progress pull request) following the PR `template`_.
 
+Example Usage
+-------------
+Below is an example of how to load a MoleculeNet dataset and featurizer. This approach will work for any dataset in MoleculeNet by changing the load function and featurizer. For more details on the featurizers, see the `Featurizers` section.
+::
+
+
+    import deepchem as dc
+    from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
+
+    featurizer = MolGraphConvFeaturizer(use_edges=True)
+    dataset_dc = dc.molnet.load_qm9(featurizer=featurizer)
+    tasks, dataset, transformers = dataset_dc
+    train, valid, test = dataset
+
+    x,y,w,ids = train.X, train.y, train.w, train.ids
+ 
+
+Note that the w matrix represents the weight of each sample. Some assays may have missing values, in which case the weight is 0. Otherwise, the weight is 1.
 
 BACE Dataset
 ------------
