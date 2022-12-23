@@ -88,6 +88,13 @@ DMPNNFeaturizer
   :members:
   :inherited-members:
 
+GroverFeaturizer
+****************
+
+.. autoclass:: deepchem.feat.GroverFeaturizer
+  :members:
+
+
 Utilities
 *********
 
