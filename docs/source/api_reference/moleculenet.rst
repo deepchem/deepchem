@@ -237,7 +237,7 @@ UV Datasets
 .. autofunction:: deepchem.molnet.load_uv
 
 
-.. _`datasets already available in MolNet`: http://moleculenet.ai/datasets-1
+.. _`datasets already available in MolNet`: https://moleculenet.org/datasets-1
 .. _`Contribution guidelines`: https://github.com/deepchem/deepchem/blob/master/CONTRIBUTING.md
 .. _`issue`: https://github.com/deepchem/deepchem/issues
 .. _`_QM9Loader`: https://github.com/deepchem/deepchem/blob/master/deepchem/molnet/load_function/qm9_datasets.py
