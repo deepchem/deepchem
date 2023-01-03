@@ -1084,7 +1084,6 @@ class NumpyDataset(Dataset):
     """
     X, y, w, ids = datasets[0].X, datasets[0].y, datasets[0].w, datasets[0].ids
     for dataset in datasets[1:]:
-      print(X.shape, y.shape)
       X = np.concatenate([X, dataset.X], axis=0)
       y = np.concatenate([y, dataset.y], axis=0)
       w = np.concatenate([w, dataset.w], axis=0)
@@ -1093,9 +1092,8 @@ class NumpyDataset(Dataset):
           axis=0,
       )
     k = y.shape[0]
-    if y.shape==(k,):
-        y=y.reshape(k,1)
-    print(X.shape, y.shape)
+    if y.shape == (k,):
+      y = y.reshape(k, 1)
     return NumpyDataset(X, y, w, ids, n_tasks=y.shape[1])
 
 
