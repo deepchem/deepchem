@@ -36,7 +36,8 @@ def test_lcnn_regression():
   # check overfit
   regression_metric = Metric(mae_score)
   scores = model.evaluate(test, [regression_metric], transformers)
-  assert scores[regression_metric.name] < 0.6
+  assert scores[regression_metric.name] < 0.4
+  assert scores[regression_metric.name] > 0.01
 
 
 @pytest.mark.torch
