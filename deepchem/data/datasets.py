@@ -795,8 +795,6 @@ class NumpyDataset(Dataset):
         w = np.ones((y.shape[0], 1), np.float32)
     if not isinstance(w, np.ndarray):
       w = np.array(w)
-    if y.shape == 1:
-      print("true")
     self._X = X
     self._y = y
     self._w = w
