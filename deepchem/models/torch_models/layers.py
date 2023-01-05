@@ -19,6 +19,58 @@ from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
 from deepchem.utils.pytorch_utils import get_activation
 from torch.nn import init as initializers
 
+class FeedForward(nn.Module):
+  """A simple feed-forward network.
+  
+  Parameters
+  ----------
+  d_input: int
+    the dimension of the input layer
+  d_hidden: int
+    the dimension of the hidden layers
+  n_layers: int
+    the number of hidden layers
+  d_output: int
+    the dimension of the output layer
+  dropout: float
+    the dropout probability
+  activation_fn: str
+    the activation function to use in the hidden layers 
+  
+  >>> model = FeedForward(d_input=10, d_hidden=3, n_layers=2, d_output=2, dropout=0.0, activation_fn='relu')
+  >>> x = torch.ones(2, 10)
+  >>> out = model(x)
+  >>> print(out.shape)
+  torch.Size([2, 10])
+  """
+  def __init__(self,
+              d_input: int,
+              d_hidden: int,
+              n_layers: int,
+              d_output: int,
+              dropout: float = 0.0,
+              activation_fn: ActivationFn = 'relu'
+              ):
+    super(FeedForward, self).__init__()
+    self.input_layer = nn.Linear(d_input, d_hidden)
+    self.hidden_layer = nn.Linear(d_hidden, d_hidden)
+    self.output_layer = nn.Linear(d_hidden, d_output)
+    self.dropout = nn.Dropout(dropout)
+    self.n_layers = n_layers
+    self.d_output = d_output
+    self.dropout = dropout
+    self.activation_fn = get_activation(activation_fn)
+    
+  def forward(self, x: Tensor) -> Tensor:
+    x = x.view(-1, self.d_input)
+    x = self.input_layer(x)
+    for i in range(self.n_layers-1):
+      x = self.hidden_layer(x)
+      x = self.dropout(x)
+      x = self.activation_fn(x)
+    x = self.output_layer(x)
+    return x
+
 
 class CNNModule(nn.Module):
   """A 1, 2, or 3 dimensional convolutional network for either regression or classification.
