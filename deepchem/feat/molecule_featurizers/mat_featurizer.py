@@ -31,9 +31,10 @@ class MATFeaturizer(MolecularFeaturizer):
   """
   This class is a featurizer for the Molecule Attention Transformer [1]_.
   The returned value is a numpy array which consists of molecular graph descriptions:
-    - Node Features
-    - Adjacency Matrix
-    - Distance Matrix
+
+  * Node Features
+  * Adjacency Matrix
+  * Distance Matrix
 
   References
   ---------

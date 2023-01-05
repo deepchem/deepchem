@@ -1114,24 +1114,18 @@ class DiskDataset(Dataset):
   `DiskDataset` are stored in a `data_dir`. The contents of `data_dir` should
   be laid out as follows:
 
-  | data_dir/
-  |   |
-  |   ---> metadata.csv.gzip
-  |   |
-  |   ---> tasks.json
-  |   |
-  |   ---> shard-0-X.npy
-  |   |
-  |   ---> shard-0-y.npy
-  |   |
-  |   ---> shard-0-w.npy
-  |   |
-  |   ---> shard-0-ids.npy
-  |   |
-  |   ---> shard-1-X.npy
-  |   .
-  |   .
-  |   .
+    >>> tree data_dir
+    data_dir
+    ├── metadata.csv.gzip
+    ├── tasks.json
+    ├── shard-0-X.npy
+    ├── shard-0-y.npy
+    ├── shard-0-w.npy
+    ├── shard-0-ids.npy
+    ├── shard-1-X.npy
+    ├── .
+    ├── .
+    └── .
 
   The metadata is constructed by static method
   `DiskDataset._construct_metadata` and saved to disk by

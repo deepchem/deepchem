@@ -21,7 +21,6 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
   """Featurizes protein-ligand complex using flat features or a 3D grid (in which
   each voxel is described with a vector of features).
   """
-
   def __init__(self,
                nb_rotations=0,
                feature_types=None,
@@ -34,17 +33,18 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
                verbose=True,
                sanitize=False,
                **kwargs):
-    """
+    """Initializes the RdkitGridFeaturizer Class
+
     Parameters
     ----------
     nb_rotations: int, optional (default 0)
       Number of additional random rotations of a complex to generate.
     feature_types: list, optional (default ['ecfp'])
       Types of features to calculate. Available types are
-        flat features -> 'ecfp_ligand', 'ecfp_hashed', 'splif_hashed', 'hbond_count'
-        voxel features -> 'ecfp', 'splif', 'sybyl', 'salt_bridge', 'charge', 'hbond', 'pi_stack, 'cation_pi'
+      flat features -> 'ecfp_ligand', 'ecfp_hashed', 'splif_hashed', 'hbond_count'
+      voxel features -> 'ecfp', 'splif', 'sybyl', 'salt_bridge', 'charge', 'hbond', 'pi_stack, 'cation_pi'
       There are also 3 predefined sets of features
-        'flat_combined', 'voxel_combined', and 'all_combined'.
+      'flat_combined', 'voxel_combined', and 'all_combined'.
       Calculated features are concatenated and their order is preserved
       (features in predefined sets are in alphabetical order).
     ecfp_degree: int, optional (default 2)
@@ -60,30 +60,37 @@ class RdkitGridFeaturizer(ComplexFeaturizer):
       ligand centroid.
     voxel_width: float, optional (default 1.0)
       Size of a 3D voxel in a grid.
-    flatten: bool, optional (defaul False)
+    flatten: bool, optional (default False)
       Indicate whether calculated features should be flattened. Output is always
       flattened if flat features are specified in feature_types.
-    verbose: bool, optional (defaul True)
-      Verbolity for logging
-    sanitize: bool, optional (defaul False)
+    verbose: bool, optional (default True)
+      Verbosity for logging
+    sanitize: bool, optional (default False)
       If set to True molecules will be sanitized. Note that calculating some
       features (e.g. aromatic interactions) require sanitized molecules.
     **kwargs: dict, optional
-      Keyword arguments can be usaed to specify custom cutoffs and bins (see
+      Keyword arguments can be used to specify custom cutoffs and bins (see
       default values below).
-
-    Default cutoffs and bins
-    ------------------------
     hbond_dist_bins: [(2.2, 2.5), (2.5, 3.2), (3.2, 4.0)]
+      hbond distance bins
     hbond_angle_cutoffs: [5, 50, 90]
+      Hbond angle cutoffs
     splif_contact_bins: [(0, 2.0), (2.0, 3.0), (3.0, 4.5)]
+      Splif contact bins
     ecfp_cutoff: 4.5
+      ecfp cutoff
     sybyl_cutoff: 7.0
+      sybul_cutoff
     salt_bridges_cutoff: 5.0
+      salt bridges cutoff
     pi_stack_dist_cutoff: 4.4
+      pi stack distance cutoff
     pi_stack_angle_cutoff: 30.0
+      pi stack angle cutoff
     cation_pi_dist_cutoff: 6.5
+      cation pi distance cutoff
     cation_pi_angle_cutoff: 30.0
+      cation pi angle cutoff
     """
 
     # check if user tries to set removed arguments

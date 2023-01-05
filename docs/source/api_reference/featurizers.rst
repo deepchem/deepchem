@@ -75,7 +75,7 @@ MolGraphConvFeaturizer
   :inherited-members:
 
 PagtnMolGraphFeaturizer
-**********************
+***********************
 
 .. autoclass:: deepchem.feat.PagtnMolGraphFeaturizer
   :members:
@@ -231,7 +231,7 @@ OneHotFeaturizer
   :inherited-members:
 
 SparseMatrixOneHotFeaturizer
-^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.SparseMatrixOneHotFeaturizer
   :members:
