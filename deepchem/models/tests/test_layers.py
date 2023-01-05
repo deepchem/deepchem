@@ -656,18 +656,18 @@ def test_position_wise_feed_forward():
   assert torch.allclose(result, output_ar, rtol=1e-4)
 
 @pytest.mark.torch
-def test_feedforward():
-  """Test invoking FeedForward."""
+def test_MLP():
+  """Test invoking MLP."""
   torch.manual_seed(0)
   input_ar = torch.tensor([[1., 2.], [5., 6.]])
-  layer = torch_layers.FeedForward(d_input=2,
-                                   d_hidden=2,
-                                   n_layers=1,
-                                   d_output=2,
-                                   activation='relu',
-                                   dropout_p=0.0)
+  layer = torch_layers.MLP(d_input=2,
+                           d_hidden=2,
+                           n_layers=2,
+                           d_output=2,
+                           activation='relu',
+                           dropout_p=0.0)
   result = layer(input_ar)
-  output_ar = torch.tensor([[0.4810, 0.0000], [1.9771, 0.0000]])
+  output_ar = torch.tensor([[[0.2795, 0.4243], [0.2795, 0.4243]]])
   assert torch.allclose(result, output_ar, rtol=1e-4)
 
 @pytest.mark.torch
