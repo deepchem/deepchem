@@ -19,28 +19,29 @@ from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
 from deepchem.utils.pytorch_utils import get_activation
 from torch.nn import init as initializers
 
+
 class MLP(nn.Module):
   """A simple fully connected feed-forward network, otherwise known as a multilayer perceptron (MLP).
-  
+
   Examples
-  -------- 
+  --------
   >>> model = MLP(d_input=10, d_hidden=3, n_layers=2, d_output=2, dropout=0.0, activation_fn='relu')
   >>> x = torch.ones(2, 10)
   >>> out = model(x)
   >>> print(out.shape)
   torch.Size([2, 2])
-  
+
   """
+
   def __init__(self,
-              d_input: int,
-              d_hidden: int,
-              n_layers: int,
-              d_output: int,
-              dropout: float = 0.0,
-              activation_fn: ActivationFn = 'relu'
-              ):
+               d_input: int,
+               d_hidden: int,
+               n_layers: int,
+               d_output: int,
+               dropout: float = 0.0,
+               activation_fn: ActivationFn = 'relu'):
     """Initialize the model.
-    
+
     Parameters
     ----------
     d_input: int
@@ -54,7 +55,7 @@ class MLP(nn.Module):
     dropout: float
       the dropout probability
     activation_fn: str
-      the activation function to use in the hidden layers 
+      the activation function to use in the hidden layers
     """
     super(MLP, self).__init__()
     self.input_layer = nn.Linear(d_input, d_hidden)
@@ -65,21 +66,21 @@ class MLP(nn.Module):
     self.d_input = d_input
     self.d_output = d_output
     self.activation_fn = get_activation(activation_fn)
-    
+
   def forward(self, x: Tensor) -> Tensor:
     """Forward pass of the model."""
-    
+
     if not self.n_layers:
       return x
-    
+
     if self.n_layers == 1:
       x = self.input_layer(x)
       x = self.activation_fn(x)
       return x
-  
+
     x = self.input_layer(x)
     x = self.activation_fn(x)
-    for i in range(self.n_layers-1):
+    for i in range(self.n_layers - 1):
       x = self.hidden_layer(x)
       x = self.dropout(x)
       x = self.activation_fn(x)

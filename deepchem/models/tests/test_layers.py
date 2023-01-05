@@ -655,6 +655,7 @@ def test_position_wise_feed_forward():
   output_ar = torch.tensor([[0.4810, 0.0000], [1.9771, 0.0000]])
   assert torch.allclose(result, output_ar, rtol=1e-4)
 
+
 @pytest.mark.torch
 def test_MLP():
   """Test invoking MLP."""
@@ -669,6 +670,7 @@ def test_MLP():
   result = layer(input_ar)
   output_ar = torch.tensor([[[0.2795, 0.4243], [0.2795, 0.4243]]])
   assert torch.allclose(result, output_ar, rtol=1e-4)
+
 
 @pytest.mark.torch
 def test_position_wise_feed_forward_dropout_at_input():
