@@ -120,19 +120,19 @@ class _TorchImageDataset(torch.utils.data.IterableDataset):  # type: ignore
                  deterministic: bool,
                  batch_size: int = None):
         """
-    Parameters
-    ----------
-    image_dataset: ImageDataset
-      The original ImageDataset which you want to convert to PyTorch Dataset
-    epochs: int
-      the number of times to iterate over the Dataset
-    deterministic: bool
-      if True, the data is produced in order.  If False, a different random
-      permutation of the data is used for each epoch.
-    batch_size: int
-      the number of samples to return in each batch.  If None, each returned
-      value is a single sample.
-    """
+        Parameters
+        ----------
+        image_dataset: ImageDataset
+          The original ImageDataset which you want to convert to PyTorch Dataset
+        epochs: int
+          the number of times to iterate over the Dataset
+        deterministic: bool
+          if True, the data is produced in order.  If False, a different random
+          permutation of the data is used for each epoch.
+        batch_size: int
+          the number of samples to return in each batch.  If None, each returned
+          value is a single sample.
+        """
         self.image_dataset = image_dataset
         self.epochs = epochs
         self.deterministic = deterministic
