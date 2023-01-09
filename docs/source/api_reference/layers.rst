@@ -122,7 +122,7 @@ Keras Layers
 Torch Layers
 ------------
 
-.. autoclass:: deepchem.models.torch_models.layers.MLP
+.. autoclass:: deepchem.models.torch_models.layers.MultilayerPerceptron
   :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.CNNModule

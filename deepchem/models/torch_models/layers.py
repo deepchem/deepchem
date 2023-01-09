@@ -20,12 +20,12 @@ from deepchem.utils.pytorch_utils import get_activation
 from torch.nn import init as initializers
 
 
-class MLP(nn.Module):
+class MultilayerPerceptron(nn.Module):
   """A simple fully connected feed-forward network, otherwise known as a multilayer perceptron (MLP).
 
   Examples
   --------
-  >>> model = MLP(d_input=10, d_hidden=3, n_layers=2, d_output=2, dropout=0.0, activation_fn='relu')
+  >>> model = MultilayerPerceptron(d_input=10, d_hidden=3, n_layers=2, d_output=2, dropout=0.0, activation_fn='relu')
   >>> x = torch.ones(2, 10)
   >>> out = model(x)
   >>> print(out.shape)
