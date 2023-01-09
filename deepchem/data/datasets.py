@@ -1090,6 +1090,8 @@ class NumpyDataset(Dataset):
           axis=0,
       )
 
+    if y.ndim == 1:
+      y = y.reshape(-1, 1)
     return NumpyDataset(X, y, w, ids, n_tasks=y.shape[1])
 
 
