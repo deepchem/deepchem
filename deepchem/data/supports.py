@@ -58,7 +58,7 @@ def get_task_dataset_minus_support(dataset, support, task):
 
     Useful for evaluating model performance once trained (so that
     test compounds can be ensured distinct from support.)
-  
+
     Parameters
     ----------
     dataset: dc.data.Dataset
@@ -179,7 +179,7 @@ def get_single_task_support(dataset, n_pos, n_neg, task, replace=True):
         Index of current task.
     replace: bool, optional
         Whether or not to use replacement when sampling supports.
-  
+
     Returns
     -------
     list
@@ -205,7 +205,7 @@ def get_task_support(dataset, n_episodes, n_pos, n_neg, task, log_every_n=50):
         Index of current task.
     log_every_n: int, optional
         Prints every log_every_n supports sampled.
-  
+
     Returns
     -------
     list
