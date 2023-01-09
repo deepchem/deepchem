@@ -15,15 +15,15 @@ class _TorchNumpyDataset(torch.utils.data.IterableDataset):  # type: ignore
         Parameters
         ----------
         numpy_dataset: NumpyDataset
-          The original NumpyDataset which you want to convert to PyTorch Dataset
+            The original NumpyDataset which you want to convert to PyTorch Dataset
         epochs: int
-          the number of times to iterate over the Dataset
+            the number of times to iterate over the Dataset
         deterministic: bool
-          if True, the data is produced in order.  If False, a different random
-          permutation of the data is used for each epoch.
+            if True, the data is produced in order.  If False, a different random
+            permutation of the data is used for each epoch.
         batch_size: int
-          the number of samples to return in each batch.  If None, each returned
-          value is a single sample.
+            the number of samples to return in each batch.  If None, each returned
+            value is a single sample.
         """
         self.numpy_dataset = numpy_dataset
         self.epochs = epochs
@@ -71,15 +71,15 @@ class _TorchDiskDataset(torch.utils.data.IterableDataset):  # type: ignore
         Parameters
         ----------
         disk_dataset: DiskDataset
-          The original DiskDataset which you want to convert to PyTorch Dataset
+            The original DiskDataset which you want to convert to PyTorch Dataset
         epochs: int
-          the number of times to iterate over the Dataset
+            the number of times to iterate over the Dataset
         deterministic: bool
-          if True, the data is produced in order.  If False, a different random
-          permutation of the data is used for each epoch.
+            if True, the data is produced in order.  If False, a different random
+            permutation of the data is used for each epoch.
         batch_size: int
-          the number of samples to return in each batch.  If None, each returned
-          value is a single sample.
+            the number of samples to return in each batch.  If None, each returned
+            value is a single sample.
         """
         self.disk_dataset = disk_dataset
         self.epochs = epochs
@@ -123,15 +123,15 @@ class _TorchImageDataset(torch.utils.data.IterableDataset):  # type: ignore
         Parameters
         ----------
         image_dataset: ImageDataset
-          The original ImageDataset which you want to convert to PyTorch Dataset
+            The original ImageDataset which you want to convert to PyTorch Dataset
         epochs: int
-          the number of times to iterate over the Dataset
+            the number of times to iterate over the Dataset
         deterministic: bool
-          if True, the data is produced in order.  If False, a different random
-          permutation of the data is used for each epoch.
+            if True, the data is produced in order.  If False, a different random
+            permutation of the data is used for each epoch.
         batch_size: int
-          the number of samples to return in each batch.  If None, each returned
-          value is a single sample.
+            the number of samples to return in each batch.  If None, each returned
+            value is a single sample.
         """
         self.image_dataset = image_dataset
         self.epochs = epochs
