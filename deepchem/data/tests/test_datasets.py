@@ -680,7 +680,14 @@ def test_merge():
     datasets.append(dataseti)
 
   new_data = dc.data.datasets.DiskDataset.merge(datasets)
-
+  x = [1, 2, 3]
+  X = np.array(x)
+  y = np.array(x)
+  a = dc.data.NumpyDataset(X, y)
+  b = dc.data.NumpyDataset(X, y)
+  c = dc.data.NumpyDataset.merge([a, b])
+  assert c.y.shape == (6, 1
+                      )  #test to check if merge works when y is one dimensional
   # Check that we have all the data in
   assert new_data.X.shape == (num_datapoints * num_datasets, num_features)
   assert new_data.y.shape == (num_datapoints * num_datasets, num_tasks)
