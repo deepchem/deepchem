@@ -45,17 +45,17 @@ class MultilayerPerceptron(nn.Module):
         Parameters
         ----------
         d_input: int
-          the dimension of the input layer
+            the dimension of the input layer
         d_hidden: int
-          the dimension of the hidden layers
+            the dimension of the hidden layers
         n_layers: int
-          the number of hidden layers
+            the number of hidden layers
         d_output: int
-          the dimension of the output layer
+            the dimension of the output layer
         dropout: float
-          the dropout probability
+            the dropout probability
         activation_fn: str
-          the activation function to use in the hidden layers
+            the activation function to use in the hidden layers
         """
         super(MultilayerPerceptron, self).__init__()
         self.input_layer = nn.Linear(d_input, d_hidden)
