@@ -663,6 +663,22 @@ def test_position_wise_feed_forward():
 
 
 @pytest.mark.torch
+def test_MultilayerPerceptron():
+    """Test invoking MLP."""
+    torch.manual_seed(0)
+    input_ar = torch.tensor([[1., 2.], [5., 6.]])
+    layer = torch_layers.MultilayerPerceptron(d_input=2,
+                            d_hidden=2,
+                            n_layers=2,
+                            d_output=2,
+                            activation='relu',
+                            dropout_p=0.0)
+    result = layer(input_ar)
+    output_ar = torch.tensor([[[0.2795, 0.4243], [0.2795, 0.4243]]])
+    assert torch.allclose(result, output_ar, rtol=1e-4)
+
+
+@pytest.mark.torch
 def test_position_wise_feed_forward_dropout_at_input():
     """Test invoking PositionwiseFeedForward."""
     torch.manual_seed(0)
