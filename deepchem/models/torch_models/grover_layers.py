@@ -1,8 +1,69 @@
+"""
+Copied from https://github.com/tencent-ailab/grover/blob/0421d97a5e1bd1b59d1923e3afd556afbe4ff782/grover/model/layers.py
+"""
 from deepchem.models.torch_models.layers import SublayerConnection, PositionwiseFeedForward
 
 
+def _index_select_nd(source: torch.Tensor, index: torch.Tensor) -> torch.Tensor:
+    """
+    Selects the message features from source corresponding to the atom or bond indices in index.
+
+    Parameters
+    ----------
+    source: torch.Tensor
+        A tensor of shape (num_bonds, hidden_size) containing message features.
+    index: torch.Tensor
+        A tensor of shape (num_atoms/num_bonds, max_num_bonds) containing the atom or bond indices to select from source.
+
+    Returns
+    ----------
+    message_features: torch.Tensor
+        A tensor of shape (num_atoms/num_bonds, max_num_bonds, hidden_size) containing the message features corresponding to the atoms/bonds specified in index.
+    """
+    index_size = index.size()  # (num_atoms/num_bonds, max_num_bonds)
+    suffix_dim = source.size()[1:]  # (hidden_size,)
+    final_size = index_size + suffix_dim  # (num_atoms/num_bonds, max_num_bonds, hidden_size)
+
+    target = source.index_select(dim=0, index=index.view(
+        -1))  # (num_atoms/num_bonds * max_num_bonds, hidden_size)
+    target = target.view(
+        final_size)  # (num_atoms/num_bonds, max_num_bonds, hidden_size)
+
+    return target
+
+
+def _select_neighbor_and_aggregate(feature, index):
+    """The basic operation in message passing.
+
+    Caution: the index_selec_ND would cause the reproducibility issue when performing the training on CUDA.
+
+    The operation is like map and reduce. `index_select_nd` maps message features to bonds/atoms and
+    this method aggregates the results by using `sum` as pooling operation. We can also add a configuration
+    here to use `mean` as pooling operation but it is left to future implementation.
+
+    References
+    ----------
+    See: https://pytorch.org/docs/stable/notes/randomness.html
+
+    Parameters
+    ----------
+    feature: np.array
+        The candidate feature for aggregate. (n_nodes, hidden)
+    index: np.array
+        The selected index (neighbor indexes).
+
+    Returns
+    -------
+    None
+    """
+    neighbor = _index_select_nd(feature, index)
+    return neighbor.sum(dim=1)
+
+
 class GroverMPNEncoder(nn.Module):
-    """Performs Message Passing to encodes a molecule"""
+    """Performs Message Passing to encodes a molecule
+
+    """
 
     # FIXME This layer is similar to DMPNNEncoderLayer and they
     # must be unified.
@@ -36,7 +97,10 @@ class GroverMPNEncoder(nn.Module):
         self.dynamic_depth = dynamic_depth
 
         self.dropout = nn.Dropout(p=dropout)
-        self.act_func = get_activation(activation)
+        if activation == 'relu':
+            self.act_func = nn.ReLU()
+        else:
+            raise ValueError('Only ReLU activation function is supported')
 
         if self.input_layer == "fc":
             input_dim = self.init_message_dim
@@ -115,13 +179,96 @@ class GroverMPNEncoder(nn.Module):
 
 
 class GroverAttentionHead(nn.Module):
-    """Generates attention head using GroverMPNEncoder"""
+    """Generates attention head using GroverMPNEncoder for generating query, key and value"""
 
-    def __init__(self):
-        pass
+    def __init__(self,
+                 hidden_size: int = 128,
+                 bias: bool = True,
+                 depth: int = 1,
+                 dropout: float = 0.0,
+                 undirected: bool = False,
+                 dense: int = 1,
+                 atom_messages: bool = False):
+        super(GroverAttentionHead, self).__init__()
+        self.atom_messages = atom_messages
 
-    def forward(self):
-        pass
+        # FIXME We assume that we are using a hidden layer to transform the initial atom message
+        # and bond messages to hidden dimension size.
+        self.mpn_q = GroverMPNEncoder(atom_messages=atom_messages,
+                                      init_message_dim=hidden_size,
+                                      attached_feat_fdim=hidden_size,
+                                      hidden_size=hidden_size,
+                                      bias=bias,
+                                      depth=depth,
+                                      dropout=dropout,
+                                      undirected=undirected,
+                                      dense=dense,
+                                      attach_feats=False,
+                                      input_layer='none',
+                                      dynamic_depth='truncnorm')
+
+        self.mpn_k = GroverMPNEncoder(atom_messages=atom_messages,
+                                      init_message_dim=hidden_size,
+                                      attached_feat_fdim=hidden_size,
+                                      hidden_size=hidden_size,
+                                      bias=bias,
+                                      depth=depth,
+                                      dropout=dropout,
+                                      undirected=undirected,
+                                      dense=dense,
+                                      attach_feats=False,
+                                      input_layer='none',
+                                      dynamic_depth='truncnorm')
+
+        self.mpn_v = GroverMPNEncoder(atom_messages=atom_messages,
+                                      init_message_dim=hidden_size,
+                                      attached_feat_fdim=hidden_size,
+                                      hidden_size=hidden_size,
+                                      bias=bias,
+                                      depth=depth,
+                                      dropout=dropout,
+                                      undirected=undirected,
+                                      dense=dense,
+                                      attach_feats=False,
+                                      input_layer='none',
+                                      dynamic_depth='truncnorm')
+
+    def forward(self, f_atoms, f_bonds, a2b, a2a, b2a, b2revb):
+        if self.atom_messages:
+            init_messages = f_atoms
+            init_attached_features = f_bonds
+            a2nei = a2a
+            a2attached = a2b
+            b2a = b2a
+            b2revb = b2revb
+        else:
+            # self.atom_messages is False
+            init_messages = f_bonds
+            init_attached_features = f_atoms
+            a2nei = a2b
+            a2attached = a2a
+            b2a = b2a
+            b2revb = b2revb
+
+        q = self.mpn_q(init_messages=init_messages,
+                       init_attached_features=init_attached_features,
+                       a2nei=a2nei,
+                       a2attached=a2attached,
+                       b2a=b2a,
+                       b2revb=b2revb)
+        k = self.mpn_k(init_messages=init_messages,
+                       init_attached_features=init_attached_features,
+                       a2nei=a2nei,
+                       a2attached=a2attached,
+                       b2a=b2a,
+                       b2revb=b2revb)
+        v = self.mpn_v(init_messages=init_messages,
+                       init_attached_features=init_attached_features,
+                       a2nei=a2nei,
+                       a2attached=a2attached,
+                       b2a=b2a,
+                       b2revb=b2revb)
+        return q, k, v
 
 
 class GroverTransEncoder(nn.Module):
