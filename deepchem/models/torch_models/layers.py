@@ -712,14 +712,10 @@ class MATEncoderLayer(nn.Module):
 
 
 class SublayerConnection(nn.Module):
-    """SublayerConnection layer which establishes a residual connection, as used in the Molecular Attention Transformer [1]_.
+    """SublayerConnection layer based on the paper `Attention Is All You Need <https://arxiv.org/abs/1706.03762>`_.
 
-    The SublayerConnection layer is a residual layer which is then passed through Layer Normalization.
-    The residual connection is established by computing the dropout-adjusted layer output of a normalized tensor and adding this to the original input tensor.
-
-    References
-    ----------
-    .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+    The SublayerConnection normalizes and adds dropout to output tensor of an arbitary layer.
+    It further adds a residual layer connection between the input of the arbitary layer and the dropout-adjusted layer output.
 
     Examples
     --------
