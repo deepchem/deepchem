@@ -271,6 +271,90 @@ class GroverAttentionHead(nn.Module):
         return q, k, v
 
 
+class GroverMTBlock(nn.Module):
+    """Message passing combined with transformer architecture
+
+    The layer combines message passing performed using GroverMPNEncoder and uses it
+    to generate query, key and value for multi-headed Attention block.
+    """
+
+    def __init__(self, atom_messages, input_dim, hidden_size, num_heads,
+                 dropout, bias, activation):
+        super(GroverMTBlock, self).__init__()
+        self.atom_messages = atom_messages
+        self.res_connection = res_connection
+        self.num_heads = self.num_heads
+        if activation == 'relu':
+            self.act_func = nn.ReLU()
+        else:
+            raise ValueError('Only relu activation is supported')
+        self.dropout_layer = nn.Dropout(p=dropout)
+
+        # Note: Elementwise affine has to be consistent with the pre-training phase
+        self.layernorm = nn.LayerNorm(hidden_size, elementwise_affine=True)
+        self.attn = torch.nn.MultiheadAttention(embed_dim=hidden_size,
+                                                num_heads=num_heads,
+                                                dropout=dropout,
+                                                bias=bias,
+                                                batch_first=True)
+
+        self.W_i = nn.Linear(input_dim, hidden_size, bias)
+        self.W_o = nn.Linear(hidden_size * num_heads, hidden_size, bias)
+        self.sublayer = SublayerConnection(hidden_size, dropout)
+        self.attention_heads = nn.ModuleList()
+        for i in range(num_heads):
+            self.attention_heads.append(
+                GroverAttentionHead(hidden_size=hidden_size,
+                                    bias=bias,
+                                    depth=depth,
+                                    dropout=dropout,
+                                    atom_messages=atom_messages,
+                                    undirected=undirected))
+
+    def forward(self, batch):
+        f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a = batch
+        if self.atom_messages:
+            if f_atoms.shape[1] != self.hidden_size:
+                f_atoms = self.W_i(f_atoms)
+                f_atoms = self.dropout_layer(
+                    self.layernorm(self.act_func(f_atoms)))
+
+        else:
+            if f_bonds.shape[1] != self.hidden_size:
+                f_bonds = self.W_i(f_bonds)
+                f_bonds = self.dropout_layer(
+                    self.layernorm(self.act_func(f_bonds)))
+
+        queries, keys, values = [], [], []
+        for head in self.attention_heads:
+            q, k, v = head(f_atoms,
+                           f_bonds,
+                           a2b=a2b,
+                           b2a=b2a,
+                           b2revb=b2revb,
+                           a2a=a2a)
+            queries.append(q.unsqueeze(1))
+            keys.append(k.unsqueeze(1))
+            values.append(v.unsqueeze(1))
+        queries = torch.cat(queries, dim=1)
+        keys = torch.cat(keys, dim=1)
+        values = torch.cat(values, dim=1)
+
+        # multi-headed attention
+        x_out = self.attn(queries, keys, values)
+        x_out = x_out.view(x_out.shape[0], -1)
+        x_out = self.W_o(x_out)
+
+        # support no residual connection in MTBlock.
+        if self.res_connection:
+            if self.atom_messages:
+                f_atoms = self.sublayer(f_atoms, x_out)
+            else:
+                f_bonds = self.sublayer(f_bonds, x_out)
+        batch = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope,
+        return batch
+
+
 class GroverTransEncoder(nn.Module):
     """GroverTransEncoder for encoding a molecular graph
 
