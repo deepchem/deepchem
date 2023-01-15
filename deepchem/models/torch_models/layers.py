@@ -754,7 +754,7 @@ class SublayerConnection(nn.Module):
             Layer whose normalized output will be added to x.
         """
         if x is None:
-            return self.dropout(self.norm(output))
+            return self.dropout_p(self.norm(output))
         return x + self.dropout_p(self.norm(output))
 
 

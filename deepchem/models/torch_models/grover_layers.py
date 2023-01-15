@@ -1,6 +1,13 @@
 """
 Copied from https://github.com/tencent-ailab/grover/blob/0421d97a5e1bd1b59d1923e3afd556afbe4ff782/grover/model/layers.py
 """
+try:
+    import torch
+    import torch.nn as nn
+except ModuleNotFoundError:
+    raise ImportError('These classes require PyTorch to be installed.')
+import numpy as np
+from scipy import stats
 from deepchem.models.torch_models.layers import SublayerConnection, PositionwiseFeedForward
 
 
@@ -75,7 +82,7 @@ class GroverMPNEncoder(nn.Module):
                  bias: bool,
                  depth: int,
                  undirected: bool,
-                 attach_feat: bool,
+                 attach_feats: bool,
                  dropout: float = 0.2,
                  activation: str = 'relu',
                  input_layer: str = 'fc',
@@ -89,14 +96,14 @@ class GroverMPNEncoder(nn.Module):
         self.layers_per_message = 1
         self.undirected = undirected
         self.atom_messages = atom_messages
-        self.attached_feat = attach_feat
+        self.attached_feat = attach_feats
 
         assert dynamic_depth in [
             'none', 'truncnorm', 'uniform'
         ], 'If dynamic depth, it should be truncnorm or uniform'
         self.dynamic_depth = dynamic_depth
 
-        self.dropout = nn.Dropout(p=dropout)
+        self.dropout_layer = nn.Dropout(p=dropout)
         if activation == 'relu':
             self.act_func = nn.ReLU()
         else:
@@ -111,7 +118,7 @@ class GroverMPNEncoder(nn.Module):
         # iterations, message size will be n_bonds x hidden_size but during first iteration,
         # message size will be init_messages_dim
         if self.attached_feat:
-            w_h_input_size = hidden_size + attached_fea_fdim
+            w_h_input_size = hidden_size + attached_feat_fdim
         else:
             w_h_input_size = hidden_size
 
@@ -153,14 +160,14 @@ class GroverMPNEncoder(nn.Module):
             nei_message = _select_neighbor_and_aggregate(message, a2nei)
             a_message = nei_message
             if self.attached_feat:
-                attached_nei_feats = _select_neighbor_and_aggregated(
+                attached_nei_feats = _select_neighbor_and_aggregate(
                     attached_feats, a2attached)
                 a_message = torch.cat((nei_message, attached_nei_feats), dim=1)
 
             if not self.atom_messages:
                 rev_message = message[b2revb]
                 if self.attached_feat:
-                    atom_rev_message = attached_fea[b2a[b2revb]]
+                    atom_rev_message = attached_feats[b2a[b2revb]]
                     rev_message = torch.cat((rev_message, atom_rev_message),
                                             dim=1)
                 # Except reverse bond its-self(w) ! \sum_{k\in N(u) \ w}
@@ -187,7 +194,6 @@ class GroverAttentionHead(nn.Module):
                  depth: int = 1,
                  dropout: float = 0.0,
                  undirected: bool = False,
-                 dense: int = 1,
                  atom_messages: bool = False):
         super(GroverAttentionHead, self).__init__()
         self.atom_messages = atom_messages
@@ -202,7 +208,6 @@ class GroverAttentionHead(nn.Module):
                                       depth=depth,
                                       dropout=dropout,
                                       undirected=undirected,
-                                      dense=dense,
                                       attach_feats=False,
                                       input_layer='none',
                                       dynamic_depth='truncnorm')
@@ -215,7 +220,6 @@ class GroverAttentionHead(nn.Module):
                                       depth=depth,
                                       dropout=dropout,
                                       undirected=undirected,
-                                      dense=dense,
                                       attach_feats=False,
                                       input_layer='none',
                                       dynamic_depth='truncnorm')
@@ -228,7 +232,6 @@ class GroverAttentionHead(nn.Module):
                                       depth=depth,
                                       dropout=dropout,
                                       undirected=undirected,
-                                      dense=dense,
                                       attach_feats=False,
                                       input_layer='none',
                                       dynamic_depth='truncnorm')
@@ -278,12 +281,22 @@ class GroverMTBlock(nn.Module):
     to generate query, key and value for multi-headed Attention block.
     """
 
-    def __init__(self, atom_messages, input_dim, hidden_size, num_heads,
-                 dropout, bias, activation):
+    def __init__(self,
+                 atom_messages: bool,
+                 input_dim: int,
+                 hidden_size: int,
+                 num_heads: int,
+                 dropout: float,
+                 bias: bool,
+                 res_connection: bool,
+                 depth: int,
+                 undirected: bool,
+                 activation: str = 'relu'):
         super(GroverMTBlock, self).__init__()
+        self.hidden_size = hidden_size
         self.atom_messages = atom_messages
         self.res_connection = res_connection
-        self.num_heads = self.num_heads
+        self.num_heads = num_heads
         if activation == 'relu':
             self.act_func = nn.ReLU()
         else:
@@ -306,8 +319,8 @@ class GroverMTBlock(nn.Module):
             self.attention_heads.append(
                 GroverAttentionHead(hidden_size=hidden_size,
                                     bias=bias,
-                                    depth=depth,
                                     dropout=dropout,
+                                    depth=depth,
                                     atom_messages=atom_messages,
                                     undirected=undirected))
 
@@ -341,8 +354,8 @@ class GroverMTBlock(nn.Module):
         values = torch.cat(values, dim=1)
 
         # multi-headed attention
-        x_out = self.attn(queries, keys, values)
-        x_out = x_out.view(x_out.shape[0], -1)
+        x_out, _ = self.attn(queries, keys, values)
+        x_out = x_out.reshape(x_out.shape[0], -1)
         x_out = self.W_o(x_out)
 
         # support no residual connection in MTBlock.
@@ -385,9 +398,9 @@ class GroverTransEncoder(nn.Module):
         the activation function
     num_mt_block: int
         the number of mt block.
-    num_attn_head: int
+    num_head: int
         the number of attention AttentionHead.
-    atom_emb_output:  bool
+    atom_emb_output_type: str
         enable the output aggregation after message passing.
                                             atom_messages:      True                      False
         - "none": no aggregation         output size:     (num_atoms, hidden_size)    (num_bonds, hidden_size)
@@ -400,16 +413,235 @@ class GroverTransEncoder(nn.Module):
     res_connection: bool
         enables the skip-connection in MTBlock.
     """
-    super(GroverTransEncoder, self).__init__()
-    self.hidden_size = hidden_size
-    self.edge_fdim = edge_fdim
-    self.node_fdim = node_fdim
-    self.depth = depth
-    self.undirected = undirected
-    self.dropout = dropout
-    self.activation = activation
-    self.num_mt_block = num_mt_block
-    self.num_attn_head = num_attn_head
-    self.atom_emb_output = atom_emb_output
-    self.bias = bias
-    self.res_connection = self.res_connection
+
+    def __init__(self,
+                 node_fdim: int,
+                 edge_fdim: int,
+                 hidden_size: int,
+                 depth: int,
+                 undirected: bool,
+                 dropout: float,
+                 num_mt_block,
+                 num_heads,
+                 atom_emb_output_type,
+                 res_connection: bool,
+                 bias: bool,
+                 activation: str = 'relu'):
+        super(GroverTransEncoder, self).__init__()
+
+        self.hidden_size = hidden_size
+        self.edge_fdim = edge_fdim
+        self.node_fdim = node_fdim
+        self.atom_emb_output_type = atom_emb_output_type
+
+        self.edge_blocks = nn.ModuleList()
+        self.node_blocks = nn.ModuleList()
+
+        for i in range(num_mt_block):
+            if i == 0:
+                node_input_fdim, edge_input_fdim = node_fdim, edge_fdim
+            else:
+                node_input_fdim, edge_input_fdim = hidden_size, hidden_size
+
+            self.edge_blocks.append(
+                GroverMTBlock(num_heads=num_heads,
+                              input_dim=edge_input_fdim,
+                              hidden_size=hidden_size,
+                              activation=activation,
+                              dropout=dropout,
+                              bias=bias,
+                              atom_messages=False,
+                              res_connection=res_connection,
+                              depth=depth,
+                              undirected=undirected))
+            self.node_blocks.append(
+                GroverMTBlock(num_heads=num_heads,
+                              input_dim=node_input_fdim,
+                              hidden_size=hidden_size,
+                              activation=activation,
+                              dropout=dropout,
+                              bias=bias,
+                              atom_messages=True,
+                              res_connection=res_connection,
+                              depth=depth,
+                              undirected=undirected))
+
+        self.ffn_atom_from_atom = PositionwiseFeedForward(
+            d_input=self.hidden_size + node_fdim,
+            d_hidden=self.hidden_size * 4,
+            d_output=self.hidden_size,
+            n_layers=2,
+            activation=activation,
+            dropout_p=dropout)
+
+        self.ffn_atom_from_bond = PositionwiseFeedForward(
+            d_input=self.hidden_size + node_fdim,
+            d_hidden=self.hidden_size * 4,
+            d_output=self.hidden_size,
+            n_layers=2,
+            activation=activation,
+            dropout_p=dropout)
+
+        self.ffn_bond_from_atom = PositionwiseFeedForward(
+            d_input=self.hidden_size + edge_fdim,
+            d_hidden=self.hidden_size * 4,
+            d_output=self.hidden_size,
+            n_layers=2,
+            activation=activation,
+            dropout_p=dropout)
+
+        self.ffn_bond_from_bond = PositionwiseFeedForward(
+            d_input=self.hidden_size + edge_fdim,
+            d_hidden=self.hidden_size * 4,
+            d_output=self.hidden_size,
+            n_layers=2,
+            activation=activation,
+            dropout_p=dropout)
+
+        self.atom_from_atom_sublayer = SublayerConnection(size=self.hidden_size,
+                                                          dropout_p=dropout)
+        self.atom_from_bond_sublayer = SublayerConnection(size=self.hidden_size,
+                                                          dropout_p=dropout)
+        self.bond_from_atom_sublayer = SublayerConnection(size=self.hidden_size,
+                                                          dropout_p=dropout)
+        self.bond_from_bond_sublayer = SublayerConnection(size=self.hidden_size,
+                                                          dropout_p=dropout)
+
+        if activation == 'relu':
+            self.act_func_node = nn.ReLU()
+            self.act_func_edge = nn.ReLU()
+        else:
+            raise ValueError('Only relu activation is supported')
+
+        self.dropout_layer = nn.Dropout(p=dropout)
+
+    def _pointwise_feed_forward_to_atom_embedding(self, emb_output, atom_feat,
+                                                  index, ffn_layer):
+        aggr_output = _select_neighbor_and_aggregate(emb_output, index)
+        aggr_outputx = torch.cat([atom_feat, aggr_output], dim=1)
+        return ffn_layer(aggr_outputx), aggr_outputx
+
+    def _pointwise_feed_forward_to_bond_embedding(self, emb_output, bond_feat,
+                                                  a2nei, b2revb, ffn_layer):
+        aggr_output = _select_neighbor_and_aggregate(emb_output, a2nei)
+        aggr_output = self._remove_rev_bond_message(emb_output, aggr_output,
+                                                    b2revb)
+        aggr_outputx = torch.cat([bond_feat, aggr_output], dim=1)
+        return ffn_layer(aggr_outputx), aggr_outputx
+
+    @staticmethod
+    def _remove_rev_bond_message(original_message, aggr_message, b2revb):
+        rev_message = original_message[b2revb]
+        return aggr_message - rev_message
+
+    def _atom_bond_transform(
+            self,
+            to_atom=True,  # False: to bond
+            atomwise_input=None,
+            bondwise_input=None,
+            original_f_atoms=None,
+            original_f_bonds=None,
+            a2a=None,
+            a2b=None,
+            b2a=None,
+            b2revb=None):
+        """Transfer the output of atom/bond multi-head attention to the final atom/bond output.
+        """
+
+        if to_atom:
+            # atom input to atom output
+            atomwise_input, _ = self._pointwise_feed_forward_to_atom_embedding(
+                atomwise_input, original_f_atoms, a2a, self.ffn_atom_from_atom)
+            atom_in_atom_out = self.atom_from_atom_sublayer(
+                None, atomwise_input)
+            # bond to atom
+            bondwise_input, _ = self._pointwise_feed_forward_to_atom_embedding(
+                bondwise_input, original_f_atoms, a2b, self.ffn_atom_from_bond)
+            bond_in_atom_out = self.atom_from_bond_sublayer(
+                None, bondwise_input)
+            return atom_in_atom_out, bond_in_atom_out
+        else:  # to bond embeddings
+            # atom input to bond output
+            atom_list_for_bond = torch.cat([b2a.unsqueeze(dim=1), a2a[b2a]],
+                                           dim=1)
+            atomwise_input, _ = self._pointwise_feed_forward_to_bond_embedding(
+                atomwise_input, original_f_bonds, atom_list_for_bond,
+                b2a[b2revb], self.ffn_bond_from_atom)
+            atom_in_bond_out = self.bond_from_atom_sublayer(
+                None, atomwise_input)
+            # bond input to bond output
+            bond_list_for_bond = a2b[b2a]
+            bondwise_input, _ = self._pointwise_feed_forward_to_bond_embedding(
+                bondwise_input, original_f_bonds, bond_list_for_bond, b2revb,
+                self.ffn_bond_from_bond)
+            bond_in_bond_out = self.bond_from_bond_sublayer(
+                None, bondwise_input)
+            return atom_in_bond_out, bond_in_bond_out
+
+    def forward(self, batch):
+        f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a = batch
+
+        node_batch = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
+        edge_batch = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
+
+        original_f_atoms, original_f_bonds = f_atoms, f_bonds
+
+        for nb in self.node_blocks:  # atom messages. Multi-headed attention
+            node_batch = nb(node_batch)
+        for eb in self.edge_blocks:  # bond messages. Multi-headed attention
+            edge_batch = eb(edge_batch)
+
+        atom_output, _, _, _, _, _, _ = node_batch  # atom hidden states
+        _, bond_output, _, _, _, _, _ = edge_batch  # bond hidden states
+
+        if self.atom_emb_output_type is None:
+            # output the embedding from multi-head attention directly.
+            return atom_output, bond_output
+
+        if self.atom_emb_output_type == 'atom':
+            return self._atom_bond_transform(
+                to_atom=True,  # False: to bond
+                atomwise_input=atom_output,
+                bondwise_input=bond_output,
+                original_f_atoms=original_f_atoms,
+                original_f_bonds=original_f_bonds,
+                a2a=a2a,
+                a2b=a2b,
+                b2a=b2a,
+                b2revb=b2revb)
+        elif self.atom_emb_output_type == 'bond':
+            return self._atom_bond_transform(
+                to_atom=False,  # False: to bond
+                atomwise_input=atom_output,
+                bondwise_input=bond_output,
+                original_f_atoms=original_f_atoms,
+                original_f_bonds=original_f_bonds,
+                a2a=a2a,
+                a2b=a2b,
+                b2a=b2a,
+                b2revb=b2revb)
+        else:  # 'both'
+            atom_embeddings = self._atom_bond_transform(
+                to_atom=True,  # False: to bond
+                atomwise_input=atom_output,
+                bondwise_input=bond_output,
+                original_f_atoms=original_f_atoms,
+                original_f_bonds=original_f_bonds,
+                a2a=a2a,
+                a2b=a2b,
+                b2a=b2a,
+                b2revb=b2revb)
+
+            bond_embeddings = self._atom_bond_transform(
+                to_atom=False,  # False: to bond
+                atomwise_input=atom_output,
+                bondwise_input=bond_output,
+                original_f_atoms=original_f_atoms,
+                original_f_bonds=original_f_bonds,
+                a2a=a2a,
+                a2b=a2b,
+                b2a=b2a,
+                b2revb=b2revb)
+
+            return ((atom_embeddings[0], bond_embeddings[0]),
+                    (atom_embeddings[1], bond_embeddings[1]))
