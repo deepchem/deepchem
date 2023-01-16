@@ -1162,7 +1162,7 @@ class TorchModel(Model):
             checkpoint will be chosen automatically.  Call get_checkpoints() to get a
             list of all available checkpoints
         model_dir: str, default None
-            Restore model from custom model directory if needed
+            Restore source model from custom model directory if needed
         include_top: bool, default True
             if True, copies the weights and bias associated with the final dense
             layer. Used only when assignment map is None
