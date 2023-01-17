@@ -1,4 +1,4 @@
-name: deepchem[dft]
+#name: deepchem[dft]
 dependencies:
         - pip:
           - git+https://github.com/diffqc/dqc
