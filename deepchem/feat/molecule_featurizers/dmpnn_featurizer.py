@@ -126,7 +126,7 @@ def get_atom_mass(atom: RDKitAtom) -> List[float]:
 
 def atom_features(
     atom: RDKitAtom,
-    functional_groups: List[int] = None,
+    functional_groups: Optional[List[int]] = None,
     only_atom_num: bool = False) -> Sequence[Union[bool, int, float]]:
   """Helper method used to compute atom feature vector.
 

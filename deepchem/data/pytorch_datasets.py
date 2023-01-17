@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 from deepchem.data.datasets import NumpyDataset, DiskDataset, ImageDataset
+from typing import Optional
 
 
 class _TorchNumpyDataset(torch.utils.data.IterableDataset):  # type: ignore
@@ -10,7 +11,7 @@ class _TorchNumpyDataset(torch.utils.data.IterableDataset):  # type: ignore
                  numpy_dataset: NumpyDataset,
                  epochs: int,
                  deterministic: bool,
-                 batch_size: int = None):
+                 batch_size: Optional[int] = None):
         """
         Parameters
         ----------
@@ -66,7 +67,7 @@ class _TorchDiskDataset(torch.utils.data.IterableDataset):  # type: ignore
                  disk_dataset: DiskDataset,
                  epochs: int,
                  deterministic: bool,
-                 batch_size: int = None):
+                 batch_size: Optional[int] = None):
         """
         Parameters
         ----------
@@ -118,7 +119,7 @@ class _TorchImageDataset(torch.utils.data.IterableDataset):  # type: ignore
                  image_dataset: ImageDataset,
                  epochs: int,
                  deterministic: bool,
-                 batch_size: int = None):
+                 batch_size: Optional[int] = None):
         """
         Parameters
         ----------

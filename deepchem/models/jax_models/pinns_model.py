@@ -111,7 +111,7 @@ class PINNModel(JaxModel):
                output_types: Optional[List[str]] = None,
                batch_size: int = 100,
                learning_rate: float = 0.001,
-               optimizer: Union[optax.GradientTransformation, Optimizer] = None,
+               optimizer: Optional[Union[optax.GradientTransformation, Optimizer]] = None,
                grad_fn: Callable = create_default_gradient_fn,
                update_fn: Callable = create_default_update_fn,
                eval_fn: Callable = create_default_eval_fn,
@@ -161,7 +161,7 @@ class PINNModel(JaxModel):
 
   def fit_generator(self,
                     generator: Iterable[Tuple[Any, Any, Any]],
-                    loss: Union[Loss, LossFn] = None,
+                    loss: Optional[Union[Loss, LossFn]] = None,
                     callbacks: Union[Callable, List[Callable]] = [],
                     all_losses: Optional[List[float]] = None) -> float:
     if not isinstance(callbacks, SequenceCollection):

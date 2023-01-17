@@ -2,7 +2,7 @@
 import tensorflow as tf
 import numpy as np
 from collections.abc import Sequence as SequenceCollection
-from typing import Callable, Dict, List, Tuple
+from typing import Optional, Callable, Dict, List, Tuple
 from tensorflow.keras import activations, initializers, backend
 from tensorflow.keras.layers import Dropout, BatchNormalization, Dense, Activation
 
@@ -97,7 +97,7 @@ class GraphConv(tf.keras.layers.Layer):
                out_channel: int,
                min_deg: int = 0,
                max_deg: int = 10,
-               activation_fn: Callable = None,
+               activation_fn: Optional[Callable] = None,
                **kwargs):
     """Initialize a graph convolutional layer.
 
