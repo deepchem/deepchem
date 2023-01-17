@@ -92,7 +92,6 @@ class RDKitDescriptors(MolecularFeaturizer):
     self.ipc_avg: bool = ipc_avg
     self.labels_only = labels_only
     self.reqd_properties = {}
-    self.properties = []
     self.normalized_desc: Dict[str, Callable] = {}
 
     all_descriptors = {name: func for name, func in Descriptors.descList}
@@ -123,7 +122,7 @@ class RDKitDescriptors(MolecularFeaturizer):
 
     self.reqd_properties = dict(sorted(self.reqd_properties.items()))
 
-  def _featurize(self, datapoint: RDKitMol) -> np.ndarray:
+  def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
     """
     Calculate RDKit descriptors.
 
@@ -196,18 +195,16 @@ class RDKitDescriptors(MolecularFeaturizer):
     """
     normalized_desc = {}
     # get sequence of descriptor names and normalization parameters from DescriptorsNormalizationParameters class
-    parameters: Sequence[Union[str, Sequence[Union[str, Sequence[float],
-                                                   float]]]]
     parameters = DNP.desc_norm_params.items()
 
     for desc_name, (distribution_name, params, minV, maxV, avg,
                     std) in parameters:
-      arg: Sequence[float] = params[:-2]
-      loc: float = params[-2]
-      scale: float = params[-1]
+      arg = params[:-2]
+      loc = params[-2]
+      scale = params[-1]
 
       # get required distribution_ from `scipy.stats` module.
-      cont_distribution: rv_continuous = getattr(st, distribution_name)
+      cont_distribution = getattr(st, distribution_name)
 
       # cdf => cumulative density functions
       # make the cdf with the parameters.

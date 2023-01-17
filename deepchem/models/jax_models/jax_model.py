@@ -12,7 +12,7 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 from deepchem.trans.transformers import Transformer, undo_transforms
 
 from typing import Any, Callable, Iterable, List, Optional, Tuple, Union, Sequence
-from deepchem.utils.typing import LossFn, OneOrMany, ArrayLike
+from deepchem.utils.typing import LossFn, OneOrMany
 
 # JAX depend
 import jax.numpy as jnp
@@ -497,8 +497,7 @@ class JaxModel(Model):
       self,
       X: Sequence,
       masks: int = 50) -> OneOrMany[Tuple[np.ndarray, np.ndarray]]:
-
-    pass
+    raise NotImplementedError('Predicting uncertainity on batch is not supported currently for JAX models')
 
   def predict(
       self,
@@ -537,8 +536,8 @@ class JaxModel(Model):
     return self._global_step
 
   def predict_embedding(self, dataset: Dataset) -> OneOrMany[np.ndarray]:
+    raise NotImplementedError('Predicting embedding is not supported currently for JAX models')
 
-    pass
 
   # def predict_uncertainty(self, dataset: Dataset, masks: int = 50
   #                        ) -> OneOrMany[Tuple[np.ndarray, np.ndarray]]:

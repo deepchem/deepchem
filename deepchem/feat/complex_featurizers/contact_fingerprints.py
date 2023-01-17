@@ -16,7 +16,7 @@ from deepchem.utils.rdkit_utils import MoleculeLoadException
 from deepchem.utils.geometry_utils import compute_pairwise_distances
 from deepchem.utils.geometry_utils import subtract_centroid
 
-from typing import Optional, Tuple, Dict, List
+from typing import Optional, Tuple, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -200,7 +200,7 @@ class ContactCircularVoxelizer(ComplexFeaturizer):
     except MoleculeLoadException:
       logger.warning("This molecule cannot be loaded by Rdkit. Returning None")
       return None
-    pairwise_features: List[np.ndarray] = []
+    pairwise_features = []
     # We compute pairwise contact fingerprints
     centroid = compute_contact_centroid(fragments, cutoff=self.cutoff)
     for (frag1, frag2) in itertools.combinations(fragments, 2):
