@@ -59,7 +59,7 @@ class GroverFeaturizer(MolecularFeaturizer):
     Examples
     --------
     >>> import deepchem as dc
-    >>> from grover_featurizer import GroverFeaturizer
+    >>> from deepchem.feat import GroverFeaturizer
     >>> feat = GroverFeaturizer(features_generator = dc.feat.CircularFingerprint())
     >>> out = feat.featurize('CCC')
 
@@ -174,7 +174,7 @@ class GroverFeaturizer(MolecularFeaturizer):
                              b2a=b2a)
         return molgraph
 
-    def _featurize(self, mol: RDKitMol) -> GraphData:
+    def _featurize(self, mol: RDKitMol, **kwargs) -> GraphData:
         """Featurize a single input molecule.
 
         Parameters
