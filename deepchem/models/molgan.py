@@ -1,4 +1,4 @@
-from typing import List, Tuple, Any
+from typing import Optional, List, Tuple, Any
 
 import tensorflow as tf
 from deepchem.feat.molecule_featurizers.molgan_featurizer import GraphMatrix
@@ -166,7 +166,7 @@ class BasicMolGANModel(WGAN):
 
   def predict_gan_generator(self,
                             batch_size: int = 1,
-                            noise_input: List = None,
+                            noise_input: Optional[List] = None,
                             conditional_inputs: List = [],
                             generator_index: int = 0) -> List[GraphMatrix]:
     """

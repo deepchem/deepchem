@@ -2392,9 +2392,9 @@ class AtomicConvolution(nn.Module):
     """
 
     def __init__(self,
-                 atom_types: Union[ArrayLike, torch.Tensor] = None,
+                 atom_types: Optional[Union[ArrayLike, torch.Tensor]] = None,
                  radial_params: Union[ArrayLike, torch.Tensor] = list(),
-                 box_size: Union[ArrayLike, torch.Tensor] = None,
+                 box_size: Optional[Union[ArrayLike, torch.Tensor]] = None,
                  **kwargs):
         """Initialize this layer.
 

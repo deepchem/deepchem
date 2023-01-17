@@ -16,7 +16,7 @@ from deepchem.utils.rdkit_utils import MoleculeLoadException
 from deepchem.utils.geometry_utils import compute_pairwise_distances
 from deepchem.utils.geometry_utils import subtract_centroid
 
-from typing import Tuple, Dict, List
+from typing import Optional, Tuple, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 def featurize_contacts_ecfp(
     frag1: Tuple,
     frag2: Tuple,
-    pairwise_distances: np.ndarray = None,
+    pairwise_distances: Optional[np.ndarray] = None,
     cutoff: float = 4.5,
     ecfp_degree: int = 2) -> Tuple[Dict[int, str], Dict[int, str]]:
   """Computes ECFP dicts for pairwise interaction between two molecular fragments.

@@ -16,7 +16,7 @@ from deepchem.utils.voxel_utils import convert_atom_pair_to_voxel
 from deepchem.utils.geometry_utils import compute_pairwise_distances
 from deepchem.utils.geometry_utils import subtract_centroid
 
-from typing import Tuple, Dict, List
+from typing import Optional, Tuple, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -207,7 +207,7 @@ class SplifVoxelizer(ComplexFeaturizer):
 
   def __init__(self,
                cutoff: float = 4.5,
-               contact_bins: List = None,
+               contact_bins: Optional[List] = None,
                radius: int = 2,
                size: int = 8,
                box_width: float = 16.0,
