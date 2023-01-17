@@ -1,9 +1,0 @@
-#name: deepchem[dft]
-dependencies:
-        - pip:
-          - git+https://github.com/diffqc/dqc
-          - xitorch
-          - numpy
-          - scipy
-          - pylibxc2
-          - h5py

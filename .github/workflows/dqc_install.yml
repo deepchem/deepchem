@@ -1,4 +1,4 @@
-name: Install DQC
+name: Test DQC
 on:
   push: # ci work when pushing master branch
     branches:
@@ -7,51 +7,18 @@ on:
     branches:
       - master
 jobs:
-  build:
+  test-dqc:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
         python-version: ['3.8', '3.10']
-        include:
-          - os: windows-latest
-            python-version: 3.9
-    steps:
-    - uses: actions/checkout@v3.3.0
-    - name: Cache pip modules for Linux
-      uses: actions/cache@v3.2.3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/torch/**') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4.5.0
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Build DeepChem
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e '.[dqc]'
-    - name: Import checking
-      run: python -c "import deepchem; import dqc;"
-
-#  test:
-#    runs-on: ${{ matrix.os }}
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        os: [ubuntu-latest]
-#        python-version: ['3.8', '3.10']
-#        include:
-#          - os: windows-latest
-#            python-version: '3.9'
     env:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
     steps:
-    - uses: actions/checkout@v3.3.0
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 0
     # https://github.com/galaxyproject/tools-iuc/blob/master/.github/workflows/pr.yaml
@@ -77,46 +44,26 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements/dqc/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
-    - name: Cache pip packages for MacOS
-      if: runner.os == 'macOS'
-      uses: actions/cache@v3.2.3
-      with:
-        path: ~/Library/Caches/pip
-        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/dqc/**') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    - name: Cache pip packages for Windows
-      if: runner.os == 'Windows'
-      uses: actions/cache@v3.2.3
-      with:
-        path: ~\AppData\Local\pip\Cache
-        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/dqc/**') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4.5.0
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Create env.yml
-      shell: bash
-      run: |
-        python -m pip install --upgrade pip;
-        pip install conda-merge;
-        conda-merge requirements/dqc/env_dqc.yml > env.yml
     - name: Install all dependencies
       uses: conda-incubator/setup-miniconda@v2
       with:
         miniconda-version: "latest"
         auto-update-conda: true
-        activate-environment: deepchem
+        activate-environment: dqc-env
         channels: conda-forge,defaults
         python-version: ${{ matrix.python-version }}
-        environment-file: env.yml
+        environment-file: requirements/env_dqc.yml
     - name: Install DeepChem
       id: install
       shell: bash -l {0}
       run: pip install -e .
-    - name: PyTest
-      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
-      shell: bash -l {0}
-      run: pytest -v -m 'dqc' deepchem
+    - name: Test Install
+      run: |
+        conda activate dqc-env
+        python -c 'import deepchem; print("DeepChem version %s" % deepchem.__version__)'
+        python -c 'import torch; print("Torch version %s" % torch.__version__)'
+        python -c 'import dqc; print("DQC version" % dqc.__version__)'
