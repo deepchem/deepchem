@@ -1,11 +1,5 @@
 name: Test DQC
-on:
-  push: # ci work when pushing master branch
-    branches:
-      - master
-  pull_request: # ci work when creating a PR to master branch
-    branches:
-      - master
+on: [push, pull_request]
 jobs:
   test-dqc:
     runs-on: ${{ matrix.os }}
