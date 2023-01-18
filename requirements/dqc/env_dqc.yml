@@ -1,4 +1,7 @@
-#name: deepchem[dft]
+name: dqc-env
+channels:
+  - conda-forge
+  - defaults
 dependencies:
         - pip:
           - git+https://github.com/diffqc/dqc

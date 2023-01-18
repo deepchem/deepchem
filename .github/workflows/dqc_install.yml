@@ -18,7 +18,7 @@ jobs:
           - os: windows-latest
             python-version: 3.9
     steps:
-    - uses: actions/checkout@v3.3.0
+    - uses: actions/checkout@v3
     - name: Cache pip modules for Linux
       uses: actions/cache@v3.2.3
       with:
@@ -51,7 +51,7 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
     steps:
-    - uses: actions/checkout@v3.3.0
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 0
     # https://github.com/galaxyproject/tools-iuc/blob/master/.github/workflows/pr.yaml
