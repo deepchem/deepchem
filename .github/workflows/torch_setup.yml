@@ -117,7 +117,9 @@ jobs:
       shell: bash -l {0}
       run: pip install -e .
     - name: Import checking dqc
-      run: python -c "import deepchem; import dqc;"
+      run:  |
+        conda activate deepchem
+        python -c "import deepchem; import dqc;"
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
