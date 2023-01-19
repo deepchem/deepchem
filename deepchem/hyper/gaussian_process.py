@@ -355,20 +355,20 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
         def optimizing_function(**placeholders):
             """Wrapper function
 
-      Take in hyper parameter values.
-      Calls a private optimize function (_optimize) with number of epochs.
-      Returns valid set performances.
+            Take in hyper parameter values.
+            Calls a private optimize function (_optimize) with number of epochs.
+            Returns valid set performances.
 
-      Parameters
-      ----------
-      placeholders: keyword arguments
-        Should be various hyperparameters as specified in `param_keys` above.
+            Parameters
+            ----------
+            placeholders: keyword arguments
+                Should be various hyperparameters as specified in `param_keys` above.
 
-      Returns:
-      --------
-      valid_scores: float
-        valid set performances
-      """
+            Returns:
+            --------
+            valid_scores: float
+                valid set performances
+            """
             return _optimize(nb_epoch=nb_epoch, **placeholders)
 
         # execute GPGO
