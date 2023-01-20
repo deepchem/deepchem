@@ -1,0 +1,9 @@
+dependencies:
+ - pip
+ - numpy
+ - scipy
+ - h5py
+ - pip:
+   - git+https://github.com/diffqc/dqc
+   - xitorch
+   - pylibxc2
