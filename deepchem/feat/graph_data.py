@@ -116,7 +116,12 @@ class GraphData:
         cls, node_features_str, edge_index_str, edge_features_str)
     # Adding shapes of kwargs
     for key, value in self.kwargs.items():
-      out += (', ' + key + '=' + str(list(value.shape)))
+      if isinstance(value, np.ndarray):
+        out += (', ' + key + '=' + str(list(value.shape)))
+      elif isinstance(value, str):
+        out += (', ' + key + '=' + value)
+      elif isinstance(value, int) or isinstance(value, float):
+        out += (', ' + key + '=' + str(value))
     out += ')'
     return out
 
