@@ -9,3 +9,4 @@ dependencies:
     - torch-sparse
     - torch-geometric
     - pytorch-lightning==1.6.5
+    - git+git://github.com/diffqc/dqc
