@@ -11,6 +11,7 @@ try:
 except ModuleNotFoundError:
   has_pytorch = False
 
+
 class KFACOptimizer(optim.Optimizer):
   """"
   This class implement the second order optimizer - KFAC, which uses Kronecker factor products of inputs and the gradients to
@@ -25,18 +26,22 @@ class KFACOptimizer(optim.Optimizer):
   arXiv:1602.01407, arXiv, 23 May 2016. arXiv.org, http://arxiv.org/abs/1602.01407.
   """
 
-  def __init__(self,
-               model: torch.nn.Module,
-               lr: float = 0.001,
-               momentum: float = 0.9,
-               stat_decay: float = 0.95,
-               damping: float = 0.001,
-               kl_clip: float = 0.001,
-               weight_decay: float = 0,
-               TCov: int = 10,
-               TInv: int = 100,
-               batch_averaged: bool = True,
-               mean: bool = False):
+  def __init__(
+      self,
+      model: torch.nn.Module,
+      lr: float = 0.001,
+      momentum: float = 0.9,
+      stat_decay: float = 0.95,
+      damping: float = 0.001,
+      kl_clip: float = 0.001,
+      weight_decay: float = 0,
+      TCov: int = 10,
+      TInv: int = 10,
+      batch_averaged: bool = True,
+      total_steps: int = 1,
+      mean: bool = False,
+      iterations: int = 1,
+  ):
     """
     Parameters:
     -----------
@@ -83,10 +88,20 @@ class KFACOptimizer(optim.Optimizer):
 
     self.model = model
 
-    self.steps = 0
+    self.total_steps = total_steps
+    self.mean = mean
 
-    self.m_aa: Dict[torch.nn.Module, torch.Tensor] = {}
-    self.m_gg: Dict[torch.nn.Module, torch.Tensor] = {}
+    self.steps = 0
+    self.input_number_forward = 0
+    self.input_number_backward = 0
+    self.expected_grad: Dict[torch.nn.Module, torch.Tensor] = {}
+    self.expected_input: Dict[torch.nn.Module, torch.Tensor] = {}
+
+    self.local_count_forward = 0
+    self.local_count_backward = 0
+
+    self.list_aa: Dict[torch.nn.Module, torch.Tensor] = {}
+    self.list_gg: Dict[torch.nn.Module, torch.Tensor] = {}
     self.Q_a: Dict[torch.nn.Module, torch.Tensor] = {}
     self.Q_g: Dict[torch.nn.Module, torch.Tensor] = {}
     self.d_a: Dict[torch.nn.Module, torch.Tensor] = {}
@@ -97,7 +112,6 @@ class KFACOptimizer(optim.Optimizer):
     self.TCov = TCov
     self.TInv = TInv
 
-    self.mean = mean
     self._prepare_model()
 
   @torch.no_grad()
@@ -260,14 +274,27 @@ class KFACOptimizer(optim.Optimizer):
     input: torch.Tensor
       the input matrix which should get updated
     """
+    self.expected_input = {}
     if self.steps % self.TCov == 0:
       aa = self.compute_cov_a(input[0].data, module)
       aa = torch.unsqueeze(aa, 0)
       # Initialize buffers
-      if self.steps == 0:
-        self.m_aa[module] = torch.diag(aa.new(aa.size(0)).fill_(1))
-      self.m_aa[module] = self.stat_decay * self.m_aa[module] + aa * (
-          1 - self.stat_decay)
+      if self.input_number_forward == 0:
+        self.expected_input[module] = torch.diag(aa.new(aa.size(0)).fill_(1))
+        self.list_aa[module] = torch.diag(aa.new(aa.size(0)).fill_(1))
+      try:
+        self.expected_input[module] = self.stat_decay * (
+            self.expected_input[module]) + aa * (1 - self.stat_decay)
+        self.list_aa[module] = self.stat_decay * self.list_aa[module] + (
+            aa - self.list_aa[module]) * (1 - self.stat_decay)
+      except KeyError:
+        self.expected_input[module] = torch.diag(aa.new(aa.size(0)).fill_(1))
+        self.list_aa[module] = torch.diag(aa.new(aa.size(0)).fill_(1))
+        self.expected_input[module] = self.stat_decay * (
+            self.expected_input[module]) + aa * (1 - self.stat_decay)
+        self.list_aa[module] = self.stat_decay * self.list_aa[module] + (
+            aa - self.list_aa[module]) * (1 - self.stat_decay)
+      self.input_number_forward += 1
 
   @torch.no_grad()
   def _save_grad_output(self, module: torch.nn.Module, grad_input: torch.Tensor,
@@ -290,10 +317,22 @@ class KFACOptimizer(optim.Optimizer):
       except IndexError:
         gg = gg.unsqueeze(0)
       # Initialize buffers
-      if self.steps == 0:
-        self.m_gg[module] = torch.diag(gg.new(gg.size(0)).fill_(1))
-      self.m_gg[module] = self.stat_decay * self.m_gg[module] + gg * (
-          1 - self.stat_decay)
+      if self.input_number_backward == 0:
+        self.expected_grad[module] = torch.diag(gg.new(gg.size(0)).fill_(1))
+        self.list_gg[module] = torch.diag(gg.new(gg.size(0)).fill_(1))
+      try:
+        self.expected_grad[module] = self.stat_decay * (
+            self.expected_grad[module]) + gg * (1 - self.stat_decay)
+        self.list_gg[module] = self.stat_decay * self.list_gg[module] + (
+            gg - self.expected_input[module]) * (1 - self.stat_decay)
+      except KeyError:
+        self.expected_grad[module] = torch.diag(gg.new(gg.size(0)).fill_(1))
+        self.list_gg[module] = torch.diag(gg.new(gg.size(0)).fill_(1))
+        self.expected_grad[module] = self.stat_decay * (
+            self.expected_grad[module]) + gg * (1 - self.stat_decay)
+        self.list_gg[module] = self.stat_decay * self.list_gg[module] + (
+            gg - self.expected_input[module]) * (1 - self.stat_decay)
+    self.input_number_backward
 
   @torch.no_grad()
   def _prepare_model(self):
@@ -301,14 +340,14 @@ class KFACOptimizer(optim.Optimizer):
     Attaches hooks(saving the ouptut and grad according to the update function) to the model for
     to calculate gradients at every step.
     """
-    count = 0
+    self.count = 0
     for module in self.model.modules():
       classname = module.__class__.__name__
       if classname in self.known_modules:
         self.modules.append(module)
         module.register_backward_hook(self._save_grad_output)
         module.register_forward_pre_hook(self._save_input)
-        count += 1
+        self.count += 1
 
   @torch.no_grad()
   def _update_inv(self, m: torch.nn.Module):
@@ -321,28 +360,14 @@ class KFACOptimizer(optim.Optimizer):
       This is the layer for which the eigen decomposition should be done on.
     """
     eps = 1e-10  # for numerical stability
-    if self.mean:
-      # print((self.m_gg[m] - torch.mean(self.m_gg[m])).size())
-      self.d_a[m], self.Q_a[m] = torch.symeig(self.m_aa[m] -
-                                              torch.mean(self.m_aa[m]),
-                                              eigenvectors=True)
-      try:
-        m_gg = self.m_gg[m]
-      except KeyError:
-        self.m_gg[m] = torch.zeros(m.in_features, m.in_features)
-
-      self.d_g[m], self.Q_g[m] = torch.symeig(self.m_gg[m] -
-                                              torch.mean(self.m_gg[m]),
-                                              eigenvectors=True)
-    else:
-      self.d_a[m], self.Q_a[m] = torch.symeig(self.m_aa[m], eigenvectors=True)
-      self.d_g[m], self.Q_g[m] = torch.symeig(self.m_gg[m], eigenvectors=True)
+    self.d_a[m], self.Q_a[m] = torch.symeig(self.list_aa[m], eigenvectors=True)
+    self.d_g[m], self.Q_g[m] = torch.symeig(self.list_gg[m], eigenvectors=True)
 
     self.d_a[m].mul_((self.d_a[m] > eps).float())
     self.d_g[m].mul_((self.d_g[m] > eps).float())
 
   @torch.no_grad()
-  def get_matrix_form_grad(self,m: torch.nn.Module):
+  def get_matrix_form_grad(self, m: torch.nn.Module):
     """
     Returns the gradient of the layer in a matrix form
 
@@ -367,7 +392,7 @@ class KFACOptimizer(optim.Optimizer):
         p_grad_mat = p_grad_mat.unsqueeze(1)
       print("p_grad")
       print(p_grad_mat.size())
-    
+
     else:
       raise NotImplementedError(
           "KFAC optimizer currently support only Linear and Conv2d layers")
@@ -377,14 +402,15 @@ class KFACOptimizer(optim.Optimizer):
         print("bias grad")
         print(m.bias.grad.data.size())
         try:
-          size=m.bias.grad.data.size()[0]
-          p_grad_mat = torch.cat((p_grad_mat,m.bias.grad.data.view(-1, 1)),1)
+          size = m.bias.grad.data.size()[0]
+          p_grad_mat = torch.cat((p_grad_mat, m.bias.grad.data.view(-1, 1)), 1)
         except RuntimeError:
-          p_grad_mat = torch.cat((p_grad_mat,m.bias.grad.data.view(-1,1)),0)
+          p_grad_mat = torch.cat((p_grad_mat, m.bias.grad.data.view(-1, 1)), 0)
         except IndexError:
           m.bias.grad.data = m.bias.grad.data.unsqueeze(0)
-          p_grad_mat = torch.cat((p_grad_mat,m.bias.grad.data.view(-1, 1)),0)
-          p_grad_mat=p_grad_mat.reshape(p_grad_mat.size()[1],p_grad_mat.size()[0])
+          p_grad_mat = torch.cat((p_grad_mat, m.bias.grad.data.view(-1, 1)), 0)
+          p_grad_mat = p_grad_mat.reshape(p_grad_mat.size()[1],
+                                          p_grad_mat.size()[0])
       else:
         raise TypeError("bias.grad.data should be a Tensor")
     return p_grad_mat
@@ -417,7 +443,8 @@ class KFACOptimizer(optim.Optimizer):
     try:
       v1 = self.Q_g[m].t() @ p_grad_mat @ self.Q_a[m]
     except RuntimeError:
-      p_grad_mat=p_grad_mat.reshape(p_grad_mat.size()[1],p_grad_mat.size()[0])
+      p_grad_mat = p_grad_mat.reshape(p_grad_mat.size()[1],
+                                      p_grad_mat.size()[0])
       v1 = self.Q_g[m].t() @ p_grad_mat @ self.Q_a[m]
     v2 = v1 / (self.d_g[m].unsqueeze(1) * self.d_a[m].unsqueeze(0) + damping)
     try:
@@ -554,3 +581,5 @@ class KFACOptimizer(optim.Optimizer):
     self._kl_clip_and_update_grad(updates, lr)
     self._step(closure)
     self.steps += 1
+    self.input_number_forward = 0
+    self.input_number_backward = 0

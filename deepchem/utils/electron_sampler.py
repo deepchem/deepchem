@@ -97,6 +97,7 @@ class ElectronSampler:
     self.steps = steps
     self.central_value = central_value
     self.batch_no = batch_no
+    self.sample_list = []
     if seed is not None:
       seed = int(seed)
       np.random.seed(seed)
@@ -155,6 +156,7 @@ class ElectronSampler:
     """
 
     mean = self.central_value[0]
+    self.sample_list = []
     specific_sample = no_sample[0][0]
     ndim = np.shape(self.central_value)[1]
     self.x = np.random.normal(mean, stddev,
@@ -169,11 +171,14 @@ class ElectronSampler:
           np.random.normal(mean, stddev,
                            (self.batch_no, specific_sample, 1, ndim)),
           axis=1)
+    self.num_accept = 0
 
-  def move(self,
-           stddev: float = 0.02,
-           asymmetric_func: Optional[Callable[[np.ndarray], np.ndarray]] = None,
-           index: Optional[int] = None) -> float:
+  def move(
+      self,
+      stddev: float = 0.02,
+      asymmetric_func: Optional[Callable[[np.ndarray], np.ndarray]] = None,
+      index: Optional[int] = None,
+  ) -> float:
     """Performs Metropolis-Hasting move for self.x(electrons). The type of moves to be followed -(simultaneous or single-electron, symmetric or asymmetric) have been specified when calling the class.
     The self.x array is replaced with a new array at the end of each step containing the new electron's positions.
 
@@ -192,12 +197,13 @@ class ElectronSampler:
     float
       accepted move ratio of the MCMC steps.
     """
-
+    self.sample_list = []
     lp1 = self.f(self.x)  # log probability of self.x state
-
+    step = self.steps + 1
+    x3 = self.x
     if self.simultaneous:
       if self.symmetric:
-        for i in range(self.steps):
+        for i in range(step):
           x2 = np.random.normal(self.x, stddev, self.x.shape)
           lp2 = self.f(x2)  # log probability of x2 state
           ratio = lp2 - lp1
@@ -205,8 +211,13 @@ class ElectronSampler:
               np.random.uniform(low=0, high=1.0, size=np.shape(self.x)[0]))
           cond = move_prob < ratio
           lp1 = np.where(cond, lp2, lp1)
-          self.x = np.where(cond[:, None, None, None], x2, self.x)
-          self.num_accept += np.sum(cond)
+          if i == (self.steps):
+            self.x = np.where(cond[:, None, None, None], x2, x3)
+            self.sample_list.append(self.x)
+            self.num_accept += np.sum(cond)
+          else:
+            x3 = np.where(cond[:, None, None, None], x2, x3)
+            self.num_accept += np.sum(cond)
 
       elif asymmetric_func is not None:
         for i in range(self.steps):
@@ -220,9 +231,13 @@ class ElectronSampler:
           move_prob = np.log(
               np.random.uniform(low=0, high=1.0, size=np.shape(self.x)[0]))
           cond = move_prob < ratio
-          self.x = np.where(cond[:, None, None, None], x2, self.x)
-          lp1 = np.where(cond, lp2, lp1)
-          self.num_accept += np.sum(cond)
+          if i != (self.steps):
+            self.sample_list.append(
+                np.where(cond[:, None, None, None], x2, self.x))
+          else:
+            self.x = np.where(cond[:, None, None, None], x2, self.x)
+            lp1 = np.where(cond, lp2, lp1)
+            self.num_accept += np.sum(cond)
 
     elif index is not None:
       index = int(index)
@@ -239,8 +254,13 @@ class ElectronSampler:
           move_prob = np.log(
               np.random.uniform(low=0, high=1.0, size=np.shape(self.x)[0]))
           cond = move_prob < ratio
-          lp1 = np.where(cond, lp2, lp1)
-          self.x = np.where(cond[:, None, None, None], x2, self.x)
+          if i != (self.steps):
+            self.sample_list.append(
+                np.where(cond[:, None, None, None], x2, self.x))
+          else:
+            lp1 = np.where(cond, lp2, lp1)
+            self.x = np.where(cond[:, None, None, None], x2, self.x)
+            self.num_accept += np.sum(cond)
 
       elif asymmetric_func is not None:
         init_dev = stddev * asymmetric_func(
@@ -260,9 +280,13 @@ class ElectronSampler:
           move_prob = np.log(
               np.random.uniform(low=0, high=1.0, size=np.shape(self.x)[0]))
           cond = move_prob < ratio
-          self.x = np.where(cond[:, None, None, None], x2, self.x)
-          lp1 = np.where(cond, lp2, lp1)
-          self.num_accept += np.sum(cond)
+          if i != (self.steps):
+            self.sample_list.append(
+                np.where(cond[:, None, None, None], x2, self.x))
+          else:
+            lp1 = np.where(cond, lp2, lp1)
+            self.x = np.where(cond[:, None, None, None], x2, self.x)
+            self.num_accept += np.sum(cond)
 
     return self.num_accept / (
         (i + 1) * np.shape(self.x)[0])  # accepted move ratio
