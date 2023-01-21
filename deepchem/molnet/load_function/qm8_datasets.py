@@ -8,7 +8,7 @@ from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
 GDB8_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/gdb8.tar.gz"
-QM8_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/qm8.csv"
+QM8_CSV_URL = "https://gist.githubusercontent.com/ellagale/9e632c9fcf11aaa803ae8a86f9c2a82d/raw/dd862e24858fe68141021c843069ecd0350b5d13/qm8.csv"
 QM8_TASKS = [
     "E1-CC2", "E2-CC2", "f1-CC2", "f2-CC2", "E1-PBE0", "E2-PBE0", "f1-PBE0",
     "f2-PBE0", "E1-PBE0", "E2-PBE0", "f1-PBE0", "f2-PBE0", "E1-CAM", "E2-CAM",
