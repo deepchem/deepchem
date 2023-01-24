@@ -4,7 +4,7 @@ Test for DFT Utilities
 import dqc
 from dqc.system.mol import Mol
 from dqc.qccalc.ks import KS
-from deepchem.utils.dftutils import _KSCalc, hashstr
+from deepchem.utils.dftutils import KSCalc, hashstr
 import torch
 
 
@@ -19,7 +19,7 @@ def test_dftutils():
     atomzs, atomposs = dqc.parse_moldesc(system["kwargs"]["moldesc"])
     mol = Mol(**system["kwargs"])
     qc = KS(mol, xc='lda_x').run()
-    qcs = _KSCalc(qc)
+    qcs = KSCalc(qc)
     a = qcs.energy()
     b = torch.tensor(-99.1360, dtype=torch.float64)
     assert torch.allclose(a, b)

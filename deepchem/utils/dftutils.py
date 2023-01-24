@@ -8,7 +8,7 @@ from dqc.qccalc.base_qccalc import BaseQCCalc
 import hashlib
 
 
-class _KSCalc(object):
+class KSCalc(object):
     """
     Interface to DQC's KS calculation.
 
