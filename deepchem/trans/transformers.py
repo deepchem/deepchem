@@ -1060,11 +1060,11 @@ class FlatteningTransformer(Transformer):
     def __init__(self, dataset: Dataset):
         """Initializes flattening transformation.
 
-    Parameters
-    ----------
-    dataset: dc.data.Dataset
-      Dataset object to be transformed
-    """
+        Parameters
+        ----------
+        dataset: dc.data.Dataset
+        Dataset object to be transformed
+        """
         if self.__class__.__name__ == "Transformer":
             raise ValueError(
                 "Transformer is an abstract superclass and cannot be directly instantiated. You probably want to instantiate a concrete subclass instead."
