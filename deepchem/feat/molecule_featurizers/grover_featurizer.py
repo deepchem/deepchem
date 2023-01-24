@@ -40,9 +40,9 @@ class GroverFeaturizer(MolecularFeaturizer):
     The Grover Featurizer is used to compute features suitable for grover model.
     It accepts an rdkit molecule of type `rdkit.Chem.rdchem.Mol` or a SMILES string
     as input and computes the following sets of features:
-      1. a molecular graph from the input molecule
-      2. functional groups which are used **only** during pretraining
-      3. additional features which can **only** be used during finetuning
+        1. a molecular graph from the input molecule
+        2. functional groups which are used **only** during pretraining
+        3. additional features which can **only** be used during finetuning
 
     Parameters
     ----------
