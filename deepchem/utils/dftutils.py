@@ -2,9 +2,13 @@
 Density Functional Theory Utilities
 Derived from: https://github.com/mfkasim1/xcnn/blob/main/xcdnn2/kscalc.py
 """
-import torch
-from dqc.utils.datastruct import SpinParam
-from dqc.qccalc.base_qccalc import BaseQCCalc
+try:
+    import torch
+    from dqc.utils.datastruct import SpinParam
+    from dqc.qccalc.base_qccalc import BaseQCCalc
+except ImportError:
+    raise ImportError()
+
 import hashlib
 
 
@@ -16,6 +20,7 @@ class KSCalc(object):
     __________
     qc: BaseQCCalc
         object often acts as a wrapper around an engine class (from dqc.qccalc) that contains information about the self-consistent iterations.
+
     References
     __________
     Kasim, Muhammad F., and Sam M. Vinko. "Learning the exchange-correlation functional from nature with fully differentiable density functional theory." Physical Review Letters 127.12 (2021): 126403.
@@ -29,15 +34,17 @@ class KSCalc(object):
         """
         Returns
         _______
-        The total energy
+        The total energy of the Kohn-Sham calculation for a particular system.
         """
         return self.qc.energy()
 
     def aodmtot(self) -> torch.Tensor:
         """
+        Both interacting and non-interacting system's total energy can be expressed in terms of the density matrix. The ground state properties of a system can be calculated by minimizing the energy w.r.t the density matrix.
+
         Returns
         _______
-        The total density matrix
+        The total density matrix in atomic orbital bases.
         """
         dm = self.qc.aodm()
         if isinstance(dm, SpinParam):
@@ -48,10 +55,13 @@ class KSCalc(object):
 
     def dens(self, rgrid: torch.Tensor) -> torch.Tensor:
         """
+        The ground state density n(r) of a system.
+
         Parameters
         __________
         rgrid: torch.Tensor
             Calculate integration grid using dqc.grid.
+
         Returns
         _______
         The total density profile in the given grid
@@ -65,10 +75,11 @@ class KSCalc(object):
 
     def force(self) -> torch.Tensor:
         """
+        The force on an atom is calculated as the gradient of energy with respect to the atomic position.
+
         Returns
         _______
-        The force for each atom
-        It is calculated as the gradient of energy with respect to         the atomic position.
+        The force for each atom.
         """
         ene = self.energy()
         atompos = self.qc.get_system().atompos
@@ -82,7 +93,7 @@ class KSCalc(object):
 
 def hashstr(s: str) -> str:
     """
-    Encodes the string into hashed format
+    Encodes the string into hashed format - hexadecimal digits.
 
     Parameters
     ----------
