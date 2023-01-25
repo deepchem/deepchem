@@ -1,4 +1,5 @@
-# import torch
+import torch 
+import torch.nn.functional as F
 import pytest
 import deepchem as dc
 import numpy as np
@@ -11,9 +12,9 @@ from deepchem.models.torch_models.torch_model import TorchModel
 def test_overfit_pretrainer():
     """Test fitting a TorchModel defined by subclassing Module."""
     np.random.seed(123)
-    n_samples = 10
-    n_feat = 2
-    d_hidden = 5
+    n_samples = 6
+    n_feat = 8
+    d_hidden = 6
     n_layers = 10
     n_tasks = 6
     pt_tasks = 3
@@ -45,17 +46,34 @@ def test_overfit_pretrainer():
             for i in range(self.n_layers):
                 if i == 0:
                     embedding.append(nn.Linear(self.input_dim, self.d_hidden))
-                    embedding.append(nn.ReLU())
+                    # embedding.append(nn.ReLU())
                 else:
                     embedding.append(nn.Linear(self.d_hidden, self.d_hidden))
-                    embedding.append(nn.ReLU())
+                    # embedding.append(nn.ReLU())
             return nn.Sequential(*embedding)
 
         def build_head(self):
-            return nn.Linear(d_hidden, pt_tasks)
+            return nn.Linear(self.d_hidden, self.d_output)
 
         def build_model(self, embedding, head):
-            return nn.Sequential(embedding, head)
+            
+            class ExampleModel(nn.Module):
+
+                def __init__(self, embedding, head):
+                    super(ExampleModel, self).__init__()
+                    self.embedding = embedding
+                    self.head = head
+
+                def forward(self, x):
+                    for i, layer in enumerate(self.embedding):
+                        x = layer(x)
+                        if i < len(self.embedding) - 1:
+                            x = F.relu(x)
+                    x = self.head(x)
+                    x = torch.sigmoid(x)
+                    return x
+            
+            return ExampleModel(embedding, head)
         
     class ExamplePretrainer(Pretrainer):
         """Example Pretrainer for testing."""
@@ -74,19 +92,20 @@ def test_overfit_pretrainer():
             return self._embedding
         
         def build_pretrain_loss(self):
-            return dc.models.losses.SigmoidCrossEntropy()
+            return dc.models.losses.L2Loss()
 
         def build_head(self, d_hidden, pt_tasks):
             linear = nn.Linear(d_hidden, pt_tasks)
-            af = nn.Sigmoid()
-            return nn.Sequential(linear, af)
+            # af = nn.Sigmoid()
+            # return nn.Sequential(linear, af)
+            return linear
 
     example_model = ExampleTorchModel(n_feat, d_hidden, n_layers, n_tasks)
     pretrainer = ExamplePretrainer(example_model, pt_tasks, learning_rate=0.001)
 
     pretrainer.fit(dataset, nb_epoch=1000)
-    prediction = np.squeeze(pretrainer.predict_on_batch(X))
-    assert np.array_equal(y, np.round(prediction))
+    prediction = np.round(np.squeeze(pretrainer.predict_on_batch(X)))
+    assert np.array_equal(y, prediction)
     metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
     scores = pretrainer.evaluate(dataset, [metric])
     assert scores[metric.name] > 0.9
