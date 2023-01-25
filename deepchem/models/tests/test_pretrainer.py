@@ -124,10 +124,72 @@ def test_fit_restore():
     prediction = np.squeeze(pretrainer2.predict_on_batch(X))
     assert np.array_equal(y, np.round(prediction))
     
-# @pytest.mark.torch
-# def test_load_from_pretrainer(): 
+@pytest.mark.torch
+def test_freeze_embedding():
+    np.random.seed(123)
+    torch.manual_seed(10)
+    n_samples = 6
+    n_feat = 3
+    d_hidden = 6
+    n_layers = 8
+    n_tasks = 6
+    pt_tasks = 3
+
+    X = np.random.rand(n_samples, n_feat)
+    y_pt = np.random.randint(2, size=(n_samples, pt_tasks)).astype(np.float32)
+    pt_dataset = dc.data.NumpyDataset(X, y_pt)
     
+    X = np.random.rand(n_samples, n_feat)
+    y_ft = np.random.randint(2, size=(n_samples, n_tasks)).astype(np.float32)
+    ft_dataset = dc.data.NumpyDataset(X, y_ft)
     
-# @pytest.mark.torch
-# def test_freeze_embedding():
-#     pass
+    example_model = ExampleTorchModel(n_feat, d_hidden, n_layers, n_tasks)
+    pretrainer = ExamplePretrainer(example_model, pt_tasks)
+
+    # train pretrainer
+    pretrainer.fit(pt_dataset, nb_epoch=1000)
+    
+    # load embedding from pretrainer
+    example_model2 = ExampleTorchModel(n_feat, d_hidden, n_layers, n_tasks)
+    example_model2.load_from_pretrained(pretrainer,include_top=False,model_dir=pretrainer.model_dir)
+    
+    example_model2.embedding.requires_grad = False #failing, does not modify model itself, only embedding attr
+    example_model2.fit(ft_dataset, nb_epoch=50)
+    
+    assert np.array_equal(pretrainer.embedding[0].weight.data.cpu().numpy(),example_model2.embedding[0].weight.data.cpu().numpy())
+    
+    # prediction = np.round(np.squeeze(example_model2.predict_on_batch(X)))
+    # assert np.array_equal(y_ft, prediction)
+    
+# test_freeze_embedding()
+    
+@pytest.mark.torch
+def test_load_from_pretrainer(): 
+    np.random.seed(123)
+    torch.manual_seed(10)
+    n_samples = 6
+    n_feat = 3
+    d_hidden = 6
+    n_layers = 8
+    n_tasks = 6
+    pt_tasks = 3
+
+    X = np.random.rand(n_samples, n_feat)
+    y = np.random.randint(2, size=(n_samples, pt_tasks)).astype(np.float32)
+    dataset = dc.data.NumpyDataset(X, y)
+    
+    example_model = ExampleTorchModel(n_feat, d_hidden, n_layers, n_tasks)
+    pretrainer = ExamplePretrainer(example_model, pt_tasks)
+
+    # train pretrainer
+    pretrainer.fit(dataset, nb_epoch=1000)
+    
+    # load embedding from pretrainer
+    example_model2 = ExampleTorchModel(n_feat, d_hidden, n_layers, n_tasks)
+    example_model2.load_from_pretrained(pretrainer,include_top=False,model_dir=pretrainer.model_dir)
+    
+    # verify that embedding is the same
+    # is this checking the embedding attribute only or the actual model embedding?
+    assert np.array_equal(pretrainer.embedding[0].weight.data.cpu().numpy(),example_model2.embedding[0].weight.data.cpu().numpy())
+
+test_load_from_pretrainer()
