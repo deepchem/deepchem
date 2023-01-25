@@ -1,3 +1,4 @@
+# import torch
 import pytest
 import deepchem as dc
 import numpy as np
@@ -11,21 +12,23 @@ def test_overfit_pretrainer():
     """Test fitting a TorchModel defined by subclassing Module."""
     np.random.seed(123)
     n_samples = 10
-    input_size = 15
-    d_hidden = 2
-    n_tasks = 3
-    pt_tasks = 5
+    n_feat = 2
+    d_hidden = 5
+    n_layers = 10
+    n_tasks = 6
+    pt_tasks = 3
 
-    X = np.random.rand(n_samples, input_size)
+    X = np.random.rand(n_samples, n_feat)
     y = np.random.randint(2, size=(n_samples, pt_tasks)).astype(np.float32)
     dataset = dc.data.NumpyDataset(X, y)
     
     class ExampleTorchModel(PretrainableTorchModel):
         """Example TorchModel for testing pretraining."""
 
-        def __init__(self, input_dim, d_hidden, d_output, **kwargs):
+        def __init__(self, input_dim, d_hidden, n_layers, d_output, **kwargs):
             self.input_dim = input_dim
             self.d_hidden = d_hidden
+            self.n_layers = n_layers
             self.d_output = d_output
             self.loss = dc.models.losses.L2Loss()
             self._head = self.build_head()
@@ -38,10 +41,18 @@ def test_overfit_pretrainer():
             return self._embedding
 
         def build_embedding(self):
-            return nn.Linear(self.input_dim, self.d_hidden)
+            embedding = []
+            for i in range(self.n_layers):
+                if i == 0:
+                    embedding.append(nn.Linear(self.input_dim, self.d_hidden))
+                    embedding.append(nn.ReLU())
+                else:
+                    embedding.append(nn.Linear(self.d_hidden, self.d_hidden))
+                    embedding.append(nn.ReLU())
+            return nn.Sequential(*embedding)
 
         def build_head(self):
-            return nn.Linear(self.d_hidden, self.d_output)
+            return nn.Linear(d_hidden, pt_tasks)
 
         def build_model(self, embedding, head):
             return nn.Sequential(embedding, head)
@@ -59,18 +70,19 @@ def test_overfit_pretrainer():
             super().__init__(torchmodel, **kwargs)
 
         @property
-        def embedding(self):  # use in load_from_pretrained
+        def embedding(self): 
             return self._embedding
         
         def build_pretrain_loss(self):
             return dc.models.losses.SigmoidCrossEntropy()
 
         def build_head(self, d_hidden, pt_tasks):
-            return nn.Linear(d_hidden, pt_tasks)
+            linear = nn.Linear(d_hidden, pt_tasks)
+            af = nn.Sigmoid()
+            return nn.Sequential(linear, af)
 
-
-    example_model = ExampleTorchModel(input_size, d_hidden, n_tasks)
-    pretrainer = ExamplePretrainer(example_model, pt_tasks)
+    example_model = ExampleTorchModel(n_feat, d_hidden, n_layers, n_tasks)
+    pretrainer = ExamplePretrainer(example_model, pt_tasks, learning_rate=0.001)
 
     pretrainer.fit(dataset, nb_epoch=1000)
     prediction = np.squeeze(pretrainer.predict_on_batch(X))
@@ -79,6 +91,7 @@ def test_overfit_pretrainer():
     scores = pretrainer.evaluate(dataset, [metric])
     assert scores[metric.name] > 0.9
 
+test_overfit_pretrainer()
 # @pytest.mark.torch
 # def test_freeze_embedding():
 #     pass
