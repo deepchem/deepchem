@@ -1,13 +1,16 @@
 """
 Test for DFT Utilities
 """
-import dqc
-from dqc.system.mol import Mol
-from dqc.qccalc.ks import KS
-from deepchem.utils.dftutils import KSCalc, hashstr
-import torch
+try:
+    import dqc
+    from dqc.system.mol import Mol
+    from dqc.qccalc.ks import KS
+    from deepchem.utils.dftutils import KSCalc, hashstr
+    import torch
+except ModuleNotFoundError:
+    raise ModuleNotFoundError("This utility requires dqc")
 
-
+@pytest.mark.torch
 def test_dftutils():
     system = {
         'type': 'mol',
@@ -24,7 +27,7 @@ def test_dftutils():
     b = torch.tensor(-99.1360, dtype=torch.float64)
     assert torch.allclose(a, b)
 
-
+@pytest.mark.torch
 def test_str():
     s = "hydrogen fluoride"
     s = hashstr(s)

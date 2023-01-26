@@ -6,8 +6,8 @@ try:
     import torch
     from dqc.utils.datastruct import SpinParam
     from dqc.qccalc.base_qccalc import BaseQCCalc
-except ImportError:
-    raise ImportError()
+except ModuleNotFoundError:
+    raise ModuleNotFoundError("This utility requires dqc")
 
 import hashlib
 
@@ -17,12 +17,12 @@ class KSCalc(object):
     Interface to DQC's KS calculation.
 
     Parameters
-    __________
+    ----------
     qc: BaseQCCalc
         object often acts as a wrapper around an engine class (from dqc.qccalc) that contains information about the self-consistent iterations.
 
     References
-    __________
+    ----------
     Kasim, Muhammad F., and Sam M. Vinko. "Learning the exchange-correlation functional from nature with fully differentiable density functional theory." Physical Review Letters 127.12 (2021): 126403.
     https://github.com/diffqc/dqc/blob/master/dqc/qccalc/ks.py
     """
@@ -33,7 +33,7 @@ class KSCalc(object):
     def energy(self) -> torch.Tensor:
         """
         Returns
-        _______
+        -------
         The total energy of the Kohn-Sham calculation for a particular system.
         """
         return self.qc.energy()
@@ -43,7 +43,7 @@ class KSCalc(object):
         Both interacting and non-interacting system's total energy can be expressed in terms of the density matrix. The ground state properties of a system can be calculated by minimizing the energy w.r.t the density matrix.
 
         Returns
-        _______
+        -------
         The total density matrix in atomic orbital bases.
         """
         dm = self.qc.aodm()
@@ -58,16 +58,16 @@ class KSCalc(object):
         The ground state density n(r) of a system.
 
         Parameters
-        __________
+        ----------
         rgrid: torch.Tensor
             Calculate integration grid using dqc.grid.
 
         Returns
-        _______
+        -------
         The total density profile in the given grid
 
         Reference
-        __________
+        ---------
         https://github.com/diffqc/dqc/blob/master/dqc/grid/base_grid.py
         """
         dmtot = self.aodmtot()
@@ -78,7 +78,7 @@ class KSCalc(object):
         The force on an atom is calculated as the gradient of energy with respect to the atomic position.
 
         Returns
-        _______
+        -------
         The force for each atom.
         """
         ene = self.energy()
