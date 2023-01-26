@@ -1,10 +1,12 @@
-import deepchem as dc
 from deepchem.models import TorchModel
-from deepchem.models.losses import L2Loss, L1Loss
-import torch.nn as nn
-import numpy as np
 
 class PretrainableTorchModel(TorchModel):
+    
+    """Abstract pretrainable torch model class. This class is meant to be subclassed for pretrainable TorchModels, meaning they can be passed to a Pretrainer object.
+    
+    PretainableTorchModels define methods to build the embedding layers and prediction head layers of the model, and a public attribute to access the embedding. The model is then built by connecting the embedding and head layers. Generating the embedding and head layers separately allows for the pretrainer to generate a model with the same embedding architecture but a different prediction head. This is useful for transfer learning on different tasks which requires specific predictions heads and loss functions.
+    """
+    
     @property
     def embedding():
         return NotImplementedError("Subclass must define the embedding")
@@ -19,7 +21,10 @@ class PretrainableTorchModel(TorchModel):
         return NotImplementedError("Subclass must define the model")
 
 class Pretrainer(TorchModel):
-    """Abstract pretrainer class. This class is meant to be subclassed for pretraining TorchModels."""
+    """Abstract pretrainer class. This class is meant to be subclassed for pretraining PretrainableTorchModels.
+    
+    The pretrainer is a TorchModel which takes a PretrainableTorchModel and duplicates the embedding layers of the model. The pretrainer then adds a new prediction head and loss function to the duplicated embedding layers. The pretrainer is then trained, and the embedding layers can be used to initialize the embedding layers of a PretrainableTorchModel. This allows for transfer learning on different tasks.
+    """
 
     def __init__(self, torchmodel: PretrainableTorchModel, **kwargs):
         super().__init__(torchmodel.model, torchmodel.loss, **kwargs)

@@ -1,10 +1,9 @@
 import torch 
-import torch.nn.functional as F
+import torch.nn as nn
 import pytest
 import deepchem as dc
 import numpy as np
 from deepchem.models.torch_models.pretrainer import Pretrainer, PretrainableTorchModel
-import torch.nn as nn
 from deepchem.models.torch_models.torch_model import TorchModel
 
 class ExampleTorchModel(PretrainableTorchModel):
@@ -70,7 +69,7 @@ class ExamplePretrainer(Pretrainer):
 
 @pytest.mark.torch
 def test_overfit_pretrainer():
-    """Test fitting a TorchModel defined by subclassing Module."""
+    """Overfit test the pretrainer to ensure it can learn a simple task."""
     np.random.seed(123)
     torch.manual_seed(10)
     n_samples = 6
@@ -96,6 +95,7 @@ def test_overfit_pretrainer():
 
 @pytest.mark.torch
 def test_fit_restore():
+    """Test that the pretrainer can be restored and continue training."""
     np.random.seed(123)
     torch.manual_seed(10)
     n_samples = 6
@@ -125,6 +125,8 @@ def test_fit_restore():
     
 @pytest.mark.torch
 def test_load_freeze_embedding():
+    """Test that the pretrainer can be used to load into a PretrainableTorchModel, freeze the TorchModel embedding, and train the head."""
+    
     np.random.seed(123)
     torch.manual_seed(10)
     n_samples = 6
@@ -164,10 +166,8 @@ def test_load_freeze_embedding():
     
     # check that the predictions are different becuase of the fine tuning
     assert not np.array_equal(np.round(np.squeeze(pretrainer.predict_on_batch(X))), np.round(np.squeeze(example_model2.predict_on_batch(X))))
-    
-    
-test_load_freeze_embedding()
-    
+
+# need to test load_from_pretrained again?
 # @pytest.mark.torch
 # def test_load_from_pretrainer(): 
 #     np.random.seed(123)
