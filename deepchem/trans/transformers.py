@@ -156,7 +156,7 @@ class Transformer(object):
         Parameters
         ----------
         transformed: np.ndarray
-          Array which was previously transformed by this class.
+            Array which was previously transformed by this class.
         """
         raise NotImplementedError(
             "Each Transformer is responsible for its own untransform method.")
@@ -309,7 +309,7 @@ class MinMaxTransformer(Transformer):
     Raises
     ------
     ValueError
-      if `transform_X` and `transform_y` are both set.
+        if `transform_X` and `transform_y` are both set.
     """
 
     def __init__(self,
@@ -615,53 +615,53 @@ class NormalizationTransformer(Transformer):
 class ClippingTransformer(Transformer):
     """Clip large values in datasets.
 
-      Examples
-      --------
-      Let's clip values from a synthetic dataset
+    Examples
+    --------
+    Let's clip values from a synthetic dataset
 
-      >>> n_samples = 10
-      >>> n_features = 3
-      >>> n_tasks = 1
-      >>> ids = np.arange(n_samples)
-      >>> X = np.random.rand(n_samples, n_features)
-      >>> y = np.zeros((n_samples, n_tasks))
-      >>> w = np.ones((n_samples, n_tasks))
-      >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
-      >>> transformer = dc.trans.ClippingTransformer(transform_X=True)
-      >>> dataset = transformer.transform(dataset)
-      """
+    >>> n_samples = 10
+    >>> n_features = 3
+    >>> n_tasks = 1
+    >>> ids = np.arange(n_samples)
+    >>> X = np.random.rand(n_samples, n_features)
+    >>> y = np.zeros((n_samples, n_tasks))
+    >>> w = np.ones((n_samples, n_tasks))
+    >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
+    >>> transformer = dc.trans.ClippingTransformer(transform_X=True)
+    >>> dataset = transformer.transform(dataset)
+    """
 
-        def __init__(self,
-                    transform_X: bool = False,
-                    transform_y: bool = False,
-                    dataset: Optional[Dataset] = None,
-                    x_max: float = 5.,
-                    y_max: float = 500.):
-            """Initialize clipping transformation.
+    def __init__(self,
+                 transform_X: bool = False,
+                 transform_y: bool = False,
+                 dataset: Optional[Dataset] = None,
+                 x_max: float = 5.,
+                 y_max: float = 500.):
+        """Initialize clipping transformation.
 
-            Parameters
-            ----------
-            transform_X: bool, optional (default False)
-                Whether to transform X
-            transform_y: bool, optional (default False)
-                Whether to transform y
-            dataset: dc.data.Dataset object, optional
-                Dataset to be transformed
-            x_max: float, optional
-                Maximum absolute value for X
-            y_max: float, optional
-                Maximum absolute value for y
+        Parameters
+        ----------
+        transform_X: bool, optional (default False)
+            Whether to transform X
+        transform_y: bool, optional (default False)
+            Whether to transform y
+        dataset: dc.data.Dataset object, optional
+            Dataset to be transformed
+        x_max: float, optional
+            Maximum absolute value for X
+        y_max: float, optional
+            Maximum absolute value for y
 
-            Note
-            ----
-            This transformer can transform `X` and `y` jointly, but does not transform
-            `w`.
+        Note
+        ----
+        This transformer can transform `X` and `y` jointly, but does not transform
+        `w`.
 
-            Raises
-            ------
-            ValueError
-                if `transform_w` is set.
-            """
+        Raises
+        ------
+        ValueError
+            if `transform_w` is set.
+        """
         super(ClippingTransformer, self).__init__(transform_X=transform_X,
                                                   transform_y=transform_y,
                                                   dataset=dataset)
@@ -1063,7 +1063,7 @@ class FlatteningTransformer(Transformer):
         Parameters
         ----------
         dataset: dc.data.Dataset
-        Dataset object to be transformed
+            Dataset object to be transformed
         """
         if self.__class__.__name__ == "Transformer":
             raise ValueError(
@@ -1956,7 +1956,7 @@ class ImageTransformer(Transformer):
         Parameters
         ----------
         size: Tuple[int, int]
-          The image size, a tuple of (width, height).
+            The image size, a tuple of (width, height).
         """
         self.size = size
         super(ImageTransformer, self).__init__(transform_X=True)
@@ -2264,15 +2264,15 @@ class FeaturizationTransformer(Transformer):
 
 
 class DataTransforms(object):
-      """Applies different data transforms to images.
+    """Applies different data transforms to images.
 
-      This utility class facilitates various image transformations that may be of
-      use for handling image datasets.
+    This utility class facilitates various image transformations that may be of
+    use for handling image datasets.
 
-      Note
-      ----
-      This class requires PIL to be installed.
-      """
+    Note
+    ----
+    This class requires PIL to be installed.
+    """
 
     def __init__(self, Image):
         self.Image = Image
