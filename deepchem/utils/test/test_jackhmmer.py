@@ -1,5 +1,4 @@
 from deepchem.utils.jackhmmer import Jackhmmer
-import unittest
 import pytest
 
 
