@@ -1095,6 +1095,8 @@ class TorchModel(Model):
         if hasattr(source_model, 'embedding') and not include_top:
             source_vars = list(source_model.embedding.parameters())
             dest_vars = list(self.embedding.parameters())
+        elif hasattr(source_model, 'embedding') and include_top:
+            raise ValueError("Cannot load from a pretrainer with include_top=True. Specify include_top=False to load from a pretrainer, which will only load the embedding layer.")
         else:
             source_vars = list(source_model.model.parameters())
             dest_vars = list(self.model.parameters())
