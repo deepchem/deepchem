@@ -182,14 +182,14 @@ class Evaluator(object):
     Parameters
     ----------
     model: Model
-      Model to evaluate. Note that this must be a regression or
-      classification model and not a generative model.
+        Model to evaluate. Note that this must be a regression or
+        classification model and not a generative model.
     dataset: Dataset
-      Dataset object to evaluate `model` on.
+        Dataset object to evaluate `model` on.
     transformers: List[Transformer]
-      List of `dc.trans.Transformer` objects. These transformations
-      must have been applied to `dataset` previously. The dataset will
-      be untransformed for metric evaluation.
+        List of `dc.trans.Transformer` objects. These transformations
+        must have been applied to `dataset` previously. The dataset will
+        be untransformed for metric evaluation.
     """
 
         self.model = model
