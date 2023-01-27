@@ -1091,12 +1091,16 @@ class TorchModel(Model):
             if true, copies the last dense layer
         """
         assignment_map: Dict[Any, Any] = {}
-        source_vars = list(source_model.model.parameters())
-        dest_vars = list(self.model.parameters())
-
-        if not include_top:
-            source_vars = source_vars[:-2]
-            dest_vars = dest_vars[:-2]
+        
+        if hasattr(source_model, 'embedding') and not include_top:
+            source_vars = list(source_model.embedding.parameters())
+            dest_vars = list(self.embedding.parameters())
+        else:
+            source_vars = list(source_model.model.parameters())
+            dest_vars = list(self.model.parameters())
+            if not include_top:
+                source_vars = source_vars[:-2]
+                dest_vars = dest_vars[:-2]      
 
         for source_var, dest_var in zip(source_vars, dest_vars):
             assignment_map[source_var] = dest_var
