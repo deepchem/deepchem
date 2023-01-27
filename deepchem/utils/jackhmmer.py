@@ -26,6 +26,8 @@ from typing import Any, Callable, Sequence, Mapping, Optional
 # check windows, mac, warning
 IS_WINDOWS = platform.system() == 'Windows'
 
+# sudo apt install --quiet --yes hmmer
+
 class Jackhmmer:
     def __init__(
         self,
@@ -175,17 +177,17 @@ class Jackhmmer:
         cmd = ([self.binary_path] + cmd_flags + [input_fasta_path, database_path])
 
         logging.info('Launching subprocess "%s"', " ".join(cmd))
-        # process = subprocess.Popen(cmd,
-        #                             stdout=subprocess.PIPE,
-        #                             stderr=subprocess.PIPE)
-        # with contextmanagement.timing( ##remove 
-        #     f"Jackhmmer ({os.path.basename(database_path)}) query"):
-        #     _, stderr = process.communicate()
-        #     retcode = process.wait()
+        process = subprocess.Popen(cmd,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    shell=True)
 
-        # if retcode:
-        #     raise RuntimeError("Jackhmmer failed\nstderr:\n%s\n" %
-        #                         stderr.decode("utf-8"))
+        _, stderr = process.communicate()
+        retcode = process.wait()
+
+        if retcode:
+            raise RuntimeError("Jackhmmer failed\nstderr:\n%s\n" %
+                                stderr.decode("utf-8"))
 
         # Get e-values for each target name
         tbl = ""
