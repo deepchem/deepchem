@@ -145,7 +145,7 @@ def hhsearch(dataset_path,
     if len(data_dir) == 0:
         raiseExceptions(
             'hhsearch requires a database. Please follow the instructions here \
-    to download a database: https://github.com/soedinglab/hh-suite/wiki#hh-suite-databases'
+            to download a database: https://github.com/soedinglab/hh-suite/wiki#hh-suite-databases'
         )
 
     _, dataset_file_type = os.path.splitext(dataset_path)

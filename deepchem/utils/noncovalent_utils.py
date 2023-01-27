@@ -272,13 +272,13 @@ def compute_pi_stack(mol1,
     Pseudocode:
 
     for each aromatic ring in mol1:
-      for each aromatic ring in mol2:
-        compute distance between centers
-        compute angle between normals
+        for each aromatic ring in mol2:
+            compute distance between centers
+            compute angle between normals
         if it counts as parallel pi-pi:
-          count interacting atoms
+            count interacting atoms
         if it counts as pi-T:
-          count interacting atoms
+            count interacting atoms
 
     Parameters:
     -----------
