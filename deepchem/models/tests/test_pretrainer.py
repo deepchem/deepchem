@@ -121,7 +121,6 @@ def test_fit_restore():
     assert np.array_equal(y, np.round(prediction))
     
 
-    
 @pytest.mark.torch
 def test_load_freeze_embedding():
     """Test that the pretrainer can be used to load into a PretrainableTorchModel, freeze the TorchModel embedding, and train the head."""
@@ -151,7 +150,7 @@ def test_load_freeze_embedding():
     
     # load embedding from pretrainer
     example_model2 = ExampleTorchModel(n_feat, d_hidden, n_layers, n_tasks)
-    example_model2.load_from_pretrained(pretrainer,include_top=False,model_dir=pretrainer.model_dir)
+    example_model2.load_from_pretrained(pretrainer, include_top=False, model_dir=pretrainer.model_dir)
     
     # freeze embedding layers
     for param in example_model2.embedding.parameters():
