@@ -166,7 +166,3 @@ def test_load_freeze_embedding():
     # check that the predictions are different becuase of the fine tuning
     assert not np.array_equal(np.round(np.squeeze(pretrainer.predict_on_batch(X_ft))), np.round(np.squeeze(example_model2.predict_on_batch(X_ft))))
 
-
-test_fit_restore()
-test_load_freeze_embedding()
-test_overfit_pretrainer()
