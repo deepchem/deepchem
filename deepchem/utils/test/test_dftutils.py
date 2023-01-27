@@ -9,6 +9,8 @@ try:
     import torch
 except ModuleNotFoundError:
     raise ModuleNotFoundError("This utility requires dqc")
+import pytest
+
 
 @pytest.mark.torch
 def test_dftutils():
@@ -26,6 +28,7 @@ def test_dftutils():
     a = qcs.energy()
     b = torch.tensor(-99.1360, dtype=torch.float64)
     assert torch.allclose(a, b)
+
 
 @pytest.mark.torch
 def test_str():
