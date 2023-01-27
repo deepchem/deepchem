@@ -10,7 +10,7 @@ from dqc.system.base_system import BaseSystem
 from dqc.grid.base_grid import BaseGrid
 from deepchem.utils.dftutils import KSCalc
 
-class System(dict):
+class DFTSystem(dict):
     """
     Interface to the system in the dataset.
     No scientific calculation should be performed in this class.
@@ -18,10 +18,10 @@ class System(dict):
     ``System.create()``.
     """
 
-    created_systems: Dict[str, System] = {}
+    created_systems: Dict[str, DFTSystem] = {}
 
     @classmethod
-    def create(cls, system: Dict) -> System:
+    def create(cls, system: Dict) -> DFTSystem:
         # create the system if it has not been created
         # otherwise, return the previously created system
 
@@ -99,7 +99,7 @@ class Entry(dict):
                  device: torch.device,
                  dtype: torch.dtype = torch.double):
         super().__init__(entry_dct)
-        self._systems = [System.create(p) for p in entry_dct["systems"]]
+        self._systems = [DFTSystem.create(p) for p in entry_dct["systems"]]
         self._dtype = dtype
         self._device = device
 
@@ -114,7 +114,7 @@ class Entry(dict):
     def device(self) -> torch.device:
         return self._device
 
-    def get_systems(self) -> List[System]:
+    def get_systems(self) -> List[DFTSystem]:
         """
         Returns the list of systems in the entry
         """
@@ -141,27 +141,9 @@ class Entry(dict):
         pass
 
     @abstractmethod
-    def get_val(self, qcs: List[BaseKSCalc]) -> torch.Tensor:
+    def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
         """
         Calculate the value of the entry given post-run QC objects.
-        """
-        pass
-
-    @abstractmethod
-    def get_loss(self, val: torch.Tensor,
-                 true_val: torch.Tensor) -> torch.Tensor:
-        """
-        Returns the unweighted loss function of the entry based on the value
-        and true value supplied.
-        """
-        pass
-
-    @abstractmethod
-    def get_deviation(self, val: torch.Tensor,
-                      true_val: torch.Tensor) -> torch.Tensor:
-        """
-        Returns the deviation of predicted value and true value in an interpretable
-        format and units.
         """
         pass
 
@@ -183,18 +165,8 @@ class EntryDM(Entry):
         dm = np.load(self["trueval"])
         true_val = torch.from_numpy(dm)
         return torch.as_tensor(true_val, device = self.device)
-    def get_val(self, qcs: List[BaseKSCalc]) -> torch.Tensor:
+    def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
         return qcs[0].aodmtot()
-
-    def get_loss(self, val: torch.Tensor,
-                 true_val: torch.Tensor) -> torch.Tensor:
-        return torch.mean((val - true_val)**2)
-
-    def get_deviation(self, val: torch.Tensor,
-                      true_val: torch.Tensor) -> torch.Tensor:
-        return (val - true_val) * 627.5  # MAE in kcal/mol
-        # return (val - true_val)
-        # return torch.mean((val - true_val).abs())  # MAE
 
 
 
@@ -219,7 +191,7 @@ class EntryDens(Entry):
         dens = np.load(self["trueval"])
         true_val = torch.from_numpy(dens)
         return torch.as_tensor(true_val, device = self.device)
-    def get_val(self, qcs: List[BaseKSCalc]) -> torch.Tensor:
+    def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
         qc = qcs[0]
 
         # get the integration grid infos
@@ -229,17 +201,8 @@ class EntryDens(Entry):
         # get the density profile
         return qc.dens(rgrid)
 
-    def get_loss(self, val: torch.Tensor,
-                 true_val: torch.Tensor) -> torch.Tensor:
-        # integration of squared difference at all spaces
-        dvol = self._get_integration_grid().get_dvolume()
-        return torch.sum((true_val - val)**2 * dvol)
 
-    def get_deviation(self, val: torch.Tensor,
-                      true_val: torch.Tensor) -> torch.Tensor:
-        return self.get_loss(val, true_val)  # sum of squares
-
-    def _get_integration_grid(self) -> BaseGrid:
+    def get_integration_grid(self) -> BaseGrid:
         if self._grid is None:
             system = self.get_systems()[0]
 
@@ -282,17 +245,9 @@ class EntryForce(Entry):
         # get the density matrix from PySCF's CCSD calculation
         return torch.tensor(0.0, dtype=self.dtype, device=self.device)
 
-    def get_val(self, qcs: List[BaseKSCalc]) -> torch.Tensor:
+    def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
         return qcs[0].force()
 
-    def get_loss(self, val: torch.Tensor,
-                 true_val: torch.Tensor) -> torch.Tensor:
-        return torch.mean((val - true_val)**2)
-
-    def get_deviation(self, val: torch.Tensor,
-                      true_val: torch.Tensor) -> torch.Tensor:
-        return (val -
-                true_val) * 627.5 * 1.88972687777  # MAE in kcal/mol/angstrom
 
 
 class EntryIE(Entry):
@@ -307,20 +262,12 @@ class EntryIE(Entry):
                                dtype=self.dtype,
                                device=self.device)
 
-    def get_val(self, qcs: List[BaseKSCalc]) -> torch.Tensor:
+    def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
         glob = {"systems": qcs, "energy": self.energy}
         return eval(self["cmd"], glob)
 
-    def get_loss(self, val: torch.Tensor,
-                 true_val: torch.Tensor) -> torch.Tensor:
-        return torch.mean((val - true_val)**2)
 
-    def get_deviation(self, val: torch.Tensor,
-                      true_val: torch.Tensor) -> torch.Tensor:
-        return (val - true_val) * 627.5  # MAE in kcal/mol
-        # return torch.mean((val - true_val).abs()) * 627.5  # MAE in kcal/mol
-
-    def energy(self, qc: BaseKSCalc) -> torch.Tensor:
+    def energy(self, qc: KSCalc) -> torch.Tensor:
         return qc.energy()
 
 
@@ -330,3 +277,13 @@ class EntryAE(EntryIE):
     @property
     def entry_type(self) -> str:
         return "ae"
+
+def load_entries(entry_path, device):
+    entries=[]
+    with open(entry_file_path) as f:
+        data_mol = yaml.load(f, Loader=SafeLoader)
+    for i in range (0,len(data_mol)):
+        entry = Entry.create(data_mol[i], device=device)
+        entries.append(entry)
+    return entries
+    
