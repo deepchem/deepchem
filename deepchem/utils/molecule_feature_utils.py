@@ -339,7 +339,7 @@ def get_atom_total_num_Hs_one_hot(
         A one-hot vector of the number of hydrogens which an atom has.
         If `include_unknown_set` is False, the length is `len(allowable_set)`.
         If `include_unknown_set` is True, the length is `len(allowable_set) + 1`.
-      """
+    """
     return one_hot_encode(atom.GetTotalNumHs(), allowable_set,
                           include_unknown_set)
 

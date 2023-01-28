@@ -282,23 +282,23 @@ def compute_pi_stack(mol1,
 
     Parameters:
     -----------
-      mol1: rdkit.rdchem.Mol
-          First molecule.
-      mol2: rdkit.rdchem.Mol
-          Second molecule.
-      pairwise_distances: np.ndarray (optional)
-          Array of pairwise interatomic distances (Angstroms)
-      dist_cutoff: float
-          Distance cutoff. Max allowed distance between the ring center (Angstroms).
-      angle_cutoff: float
-          Angle cutoff. Max allowed deviation from the ideal angle between rings.
+    mol1: rdkit.rdchem.Mol
+        First molecule.
+    mol2: rdkit.rdchem.Mol
+        Second molecule.
+    pairwise_distances: np.ndarray (optional)
+        Array of pairwise interatomic distances (Angstroms)
+    dist_cutoff: float
+        Distance cutoff. Max allowed distance between the ring center (Angstroms).
+    angle_cutoff: float
+        Angle cutoff. Max allowed deviation from the ideal angle between rings.
 
     Returns:
     --------
-      mol1_pi_t, mol1_pi_parallel, mol2_pi_t, mol2_pi_parallel: dict
-          Dictionaries mapping atom indices to number of atoms they interact with.
-          Separate dictionary is created for each type of pi stacking (parallel and
-          T-shaped) and each molecule (mol1 and mol2).
+    mol1_pi_t, mol1_pi_parallel, mol2_pi_t, mol2_pi_parallel: dict
+        Dictionaries mapping atom indices to number of atoms they interact with.
+        Separate dictionary is created for each type of pi stacking (parallel and
+        T-shaped) and each molecule (mol1 and mol2).
     """
 
     mol1_pi_parallel = Counter()
