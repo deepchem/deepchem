@@ -45,7 +45,6 @@ class PFMFeaturizer(Featurizer):
             A list of strings, where each string is length 1 and unique.
         max_length: int, optional (default 25)
             Maximum length of sequences to be featurized.
-
         """
         if len(charset) != len(set(charset)):
             raise ValueError("All values in charset must be unique.")
