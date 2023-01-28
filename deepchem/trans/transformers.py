@@ -90,7 +90,7 @@ class Transformer(object):
                  transform_ids: bool = False,
                  dataset: Optional[Dataset] = None):
         """Initializes transformation based on dataset statistics.
-
+    
         Parameters
         ----------
         transform_X: bool, optional (default False)
@@ -119,7 +119,7 @@ class Transformer(object):
         self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Transform the data in a set of (X, y, w, ids) arrays.
-
+    
         Parameters
         ----------
         X: np.ndarray
@@ -130,7 +130,7 @@ class Transformer(object):
             Array of weights.
         ids: np.ndarray
             Array of identifiers.
-
+    
         Returns
         -------
         Xtrans: np.ndarray
@@ -148,15 +148,15 @@ class Transformer(object):
 
     def untransform(self, transformed: np.ndarray) -> np.ndarray:
         """Reverses stored transformation on provided data.
-
+    
         Depending on whether `transform_X` or `transform_y` or `transform_w` was
         set, this will perform different un-transformations. Note that this method
         may not always be defined since some transformations aren't 1-1.
-
+    
         Parameters
         ----------
         transformed: np.ndarray
-          Array which was previously transformed by this class.
+            Array which was previously transformed by this class.
         """
         raise NotImplementedError(
             "Each Transformer is responsible for its own untransform method.")
@@ -167,12 +167,12 @@ class Transformer(object):
                   out_dir: Optional[str] = None,
                   **kwargs) -> Dataset:
         """Transforms all internally stored data in dataset.
-
+    
         This method transforms all internal data in the provided dataset by using
         the `Dataset.transform` method. Note that this method adds X-transform,
         y-transform columns to metadata. Specified keyword arguments are passed on
         to `Dataset.transform`.
-
+    
         Parameters
         ----------
         dataset: dc.data.Dataset
@@ -183,7 +183,7 @@ class Transformer(object):
         out_dir: str, optional
             If `out_dir` is specified in `kwargs` and `dataset` is a `DiskDataset`,
             the output dataset will be written to the specified directory.
-
+    
         Returns
         -------
         Dataset
@@ -205,9 +205,9 @@ class Transformer(object):
         self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Transforms numpy arrays X, y, and w
-
+    
         DEPRECATED. Use `transform_array` instead.
-
+    
         Parameters
         ----------
         X: np.ndarray
@@ -218,7 +218,7 @@ class Transformer(object):
             Array of weights.
         ids: np.ndarray
             Array of identifiers.
-
+    
         Returns
         -------
         Xtrans: np.ndarray
@@ -309,7 +309,7 @@ class MinMaxTransformer(Transformer):
     Raises
     ------
     ValueError
-      if `transform_X` and `transform_y` are both set.
+        if `transform_X` and `transform_y` are both set.
     """
 
     def __init__(self,
@@ -317,7 +317,7 @@ class MinMaxTransformer(Transformer):
                  transform_y: bool = False,
                  dataset: Optional[Dataset] = None):
         """Initialization of MinMax transformer.
-
+    
         Parameters
         ----------
         transform_X: bool, optional (default False)
@@ -347,7 +347,7 @@ class MinMaxTransformer(Transformer):
         self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Transform the data in a set of (X, y, w, ids) arrays.
-
+    
         Parameters
         ----------
         X: np.ndarray
@@ -358,7 +358,7 @@ class MinMaxTransformer(Transformer):
             Array of weights.
         ids: np.ndarray
             Array of ids.
-
+    
         Returns
         -------
         Xtrans: np.ndarray
@@ -385,14 +385,13 @@ class MinMaxTransformer(Transformer):
         return (X, y, w, ids)
 
     def untransform(self, z: np.ndarray) -> np.ndarray:
-        """
-        Undo transformation on provided data.
-
+        """Undo transformation on provided data.
+    
         Parameters
         ----------
         z: np.ndarray
             Transformed X or y array
-
+    
         Returns
         -------
         np.ndarray
@@ -427,33 +426,33 @@ class MinMaxTransformer(Transformer):
 class NormalizationTransformer(Transformer):
     """Normalizes dataset to have zero mean and unit standard deviation
 
-      This transformer transforms datasets to have zero mean and unit standard
-      deviation.
+    This transformer transforms datasets to have zero mean and unit standard
+    deviation.
 
-      Examples
-      --------
+    Examples
+    --------
 
-      >>> n_samples = 10
-      >>> n_features = 3
-      >>> n_tasks = 1
-      >>> ids = np.arange(n_samples)
-      >>> X = np.random.rand(n_samples, n_features)
-      >>> y = np.random.rand(n_samples, n_tasks)
-      >>> w = np.ones((n_samples, n_tasks))
-      >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
-      >>> transformer = dc.trans.NormalizationTransformer(transform_y=True, dataset=dataset)
-      >>> dataset = transformer.transform(dataset)
+    >>> n_samples = 10
+    >>> n_features = 3
+    >>> n_tasks = 1
+    >>> ids = np.arange(n_samples)
+    >>> X = np.random.rand(n_samples, n_features)
+    >>> y = np.random.rand(n_samples, n_tasks)
+    >>> w = np.ones((n_samples, n_tasks))
+    >>> dataset = dc.data.NumpyDataset(X, y, w, ids)
+    >>> transformer = dc.trans.NormalizationTransformer(transform_y=True, dataset=dataset)
+    >>> dataset = transformer.transform(dataset)
 
-      Note
-      ----
-      This class can only transform `X` or `y` and not `w`. So only one of
-      `transform_X` or `transform_y` can be set.
+    Note
+    ----
+    This class can only transform `X` or `y` and not `w`. So only one of
+    `transform_X` or `transform_y` can be set.
 
-      Raises
-      ------
-      ValueError
-          if `transform_X` and `transform_y` are both set.
-      """
+    Raises
+    ------
+    ValueError
+        if `transform_X` and `transform_y` are both set.
+    """
 
     def __init__(self,
                  transform_X: bool = False,
@@ -463,7 +462,7 @@ class NormalizationTransformer(Transformer):
                  transform_gradients: bool = False,
                  move_mean: bool = True):
         """Initialize normalization transformation.
-
+    
         Parameters
         ----------
         transform_X: bool, optional (default False)
@@ -509,7 +508,7 @@ class NormalizationTransformer(Transformer):
         self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Transform the data in a set of (X, y, w) arrays.
-
+    
         Parameters
         ----------
         X: np.ndarray
@@ -520,7 +519,7 @@ class NormalizationTransformer(Transformer):
             Array of weights.
         ids: np.ndarray
             Array of ids.
-
+    
         Returns
         -------
         Xtrans: np.ndarray
@@ -545,14 +544,13 @@ class NormalizationTransformer(Transformer):
         return (X, y, w, ids)
 
     def untransform(self, z: np.ndarray) -> np.ndarray:
-        """
-        Undo transformation on provided data.
-
+        """Undo transformation on provided data.
+    
         Parameters
         ----------
         z: np.ndarray
             Array to transform back
-
+    
         Returns
         -------
         z_out: np.ndarray
@@ -638,7 +636,7 @@ class ClippingTransformer(Transformer):
                  x_max: float = 5.,
                  y_max: float = 500.):
         """Initialize clipping transformation.
-
+    
         Parameters
         ----------
         transform_X: bool, optional (default False)
@@ -651,12 +649,12 @@ class ClippingTransformer(Transformer):
             Maximum absolute value for X
         y_max: float, optional
             Maximum absolute value for y
-
+    
         Note
         ----
         This transformer can transform `X` and `y` jointly, but does not transform
         `w`.
-
+    
         Raises
         ------
         ValueError
@@ -673,7 +671,7 @@ class ClippingTransformer(Transformer):
         self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Transform the data in a set of (X, y, w) arrays.
-
+    
         Parameters
         ----------
         X: np.ndarray
@@ -684,7 +682,7 @@ class ClippingTransformer(Transformer):
             Array of weights
         ids: np.ndarray
             Array of ids.
-
+    
         Returns
         -------
         X: np.ndarray
@@ -753,7 +751,7 @@ class LogTransformer(Transformer):
                  tasks: Optional[List[str]] = None,
                  dataset: Optional[Dataset] = None):
         """Initialize log transformer.
-
+    
         Parameters
         ----------
         transform_X: bool, optional (default False)
@@ -779,7 +777,7 @@ class LogTransformer(Transformer):
         self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Transform the data in a set of (X, y, w) arrays.
-
+    
         Parameters
         ----------
         X: np.ndarray
@@ -790,7 +788,7 @@ class LogTransformer(Transformer):
             Array of weights.
         ids: np.ndarray
             Array of weights.
-
+    
         Returns
         -------
         Xtrans: np.ndarray
@@ -828,14 +826,13 @@ class LogTransformer(Transformer):
         return (X, y, w, ids)
 
     def untransform(self, z: np.ndarray) -> np.ndarray:
-        """
-        Undo transformation on provided data.
-
+        """Undo transformation on provided data.
+    
         Parameters
         ----------
         z: np.ndarray,
             Transformed X or y array
-
+    
         Returns
         -------
         np.ndarray
@@ -972,7 +969,7 @@ class BalancingTransformer(Transformer):
         self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Transform the data in a set of (X, y, w) arrays.
-
+    
         Parameters
         ----------
         X: np.ndarray
@@ -983,7 +980,7 @@ class BalancingTransformer(Transformer):
             Array of weights.
         ids: np.ndarray
             Array of weights.
-
+    
         Returns
         -------
         Xtrans: np.ndarray
@@ -1022,9 +1019,10 @@ class BalancingTransformer(Transformer):
 
 
 class FlatteningTransformer(Transformer):
-    """ This transformer is required for a `Dataset` consisting of fragments as a preprocessing
-    step before prediction. This is used only in the context of performing interpretation of models using atomic
-    contributions (atom-based model interpretation) [1]_
+    """This transformer is required for a `Dataset` consisting of fragments as a preprocessing
+        step before prediction. This is used only in the context of performing interpretation of models using atomic
+        contributions (atom-based model interpretation) [1]_
+
     Examples
     --------
 
@@ -1059,7 +1057,7 @@ class FlatteningTransformer(Transformer):
 
     def __init__(self, dataset: Dataset):
         """Initializes flattening transformation.
-
+    
         Parameters
         ----------
         dataset: dc.data.Dataset
@@ -1080,7 +1078,7 @@ class FlatteningTransformer(Transformer):
         self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Transform the data in a set of (X, y, w) arrays.
-
+    
         Parameters
         ----------
         X: np.ndarray
@@ -1091,7 +1089,7 @@ class FlatteningTransformer(Transformer):
             Array of weights.
         ids: np.ndarray
             Array of weights.
-
+    
         Returns
         -------
         Xtrans: np.ndarray
@@ -1156,7 +1154,7 @@ class CDFTransformer(Transformer):
                  dataset: Optional[Dataset] = None,
                  bins: int = 2):
         """Initialize this transformer.
-
+    
         Parameters
         ----------
         transform_X: bool, optional (default False)
@@ -1181,7 +1179,7 @@ class CDFTransformer(Transformer):
         self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Performs CDF transform on data.
-
+    
         Parameters
         ----------
         X: np.ndarray
@@ -1192,7 +1190,7 @@ class CDFTransformer(Transformer):
             Array of weights.
         ids: np.ndarray
             Array of identifiers
-
+    
         Returns
         -------
         Xtrans: np.ndarray
@@ -1215,14 +1213,14 @@ class CDFTransformer(Transformer):
 
     def untransform(self, z: np.ndarray) -> np.ndarray:
         """Undo transformation on provided data.
-
+    
         Note that this transformation is only undone for y.
-
+    
         Parameters
         ----------
         z: np.ndarray,
             Transformed y array
-
+    
         Returns
         -------
         np.ndarray
@@ -1315,7 +1313,7 @@ class PowerTransformer(Transformer):
                  dataset: Optional[Dataset] = None,
                  powers: List[int] = [1]):
         """Initialize this transformer
-
+    
         Parameters
         ----------
         transform_X: bool, optional (default False)
@@ -1336,7 +1334,7 @@ class PowerTransformer(Transformer):
         self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Performs power transform on data.
-
+    
         Parameters
         ----------
         X: np.ndarray
@@ -1347,7 +1345,7 @@ class PowerTransformer(Transformer):
             Array of weights.
         ids: np.ndarray
             Array of identifiers.
-
+    
         Returns
         -------
         Xtrans: np.ndarray
@@ -1379,12 +1377,12 @@ class PowerTransformer(Transformer):
 
     def untransform(self, z: np.ndarray) -> np.ndarray:
         """Undo transformation on provided data.
-
+    
         Parameters
         ----------
         z: np.ndarray,
             Transformed y array
-
+    
         Returns
         -------
         np.ndarray
@@ -1419,7 +1417,7 @@ class CoulombFitTransformer(Transformer):
 
     def __init__(self, dataset: Dataset):
         """Initializes CoulombFitTransformer.
-
+    
         Parameters
         ----------
         dataset: dc.data.Dataset
@@ -1442,12 +1440,12 @@ class CoulombFitTransformer(Transformer):
 
     def realize(self, X: np.ndarray) -> np.ndarray:
         """Randomize features.
-
+    
         Parameters
         ----------
         X: np.ndarray
             Features
-
+    
         Returns
         -------
         X: np.ndarray
@@ -1466,12 +1464,12 @@ class CoulombFitTransformer(Transformer):
 
     def normalize(self, X: np.ndarray) -> np.ndarray:
         """Normalize features.
-
+    
         Parameters
         ----------
         X: np.ndarray
             Features
-
+    
         Returns
         -------
         X: np.ndarray
@@ -1481,12 +1479,12 @@ class CoulombFitTransformer(Transformer):
 
     def expand(self, X: np.ndarray) -> np.ndarray:
         """Binarize features.
-
+    
         Parameters
         ----------
         X: np.ndarray
             Features
-
+    
         Returns
         -------
         X: np.ndarray
@@ -1501,12 +1499,12 @@ class CoulombFitTransformer(Transformer):
 
     def X_transform(self, X: np.ndarray) -> np.ndarray:
         """Perform Coulomb Fit transform on features.
-
+    
         Parameters
         ----------
         X: np.ndarray
             Features
-
+    
         Returns
         -------
         X: np.ndarray
@@ -1520,7 +1518,7 @@ class CoulombFitTransformer(Transformer):
         self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Performs randomization and binarization operations on data.
-
+    
         Parameters
         ----------
         X: np.ndarray
@@ -1531,7 +1529,7 @@ class CoulombFitTransformer(Transformer):
             Array of weights.
         ids: np.ndarray
             Array of identifiers.
-
+    
         Returns
         -------
         Xtrans: np.ndarray
@@ -1589,7 +1587,7 @@ class IRVTransformer(Transformer):
 
     def __init__(self, K: int, n_tasks: int, dataset: Dataset):
         """Initializes IRVTransformer.
-
+    
         Parameters
         ----------
         K: int
@@ -1609,7 +1607,7 @@ class IRVTransformer(Transformer):
     def realize(self, similarity: np.ndarray, y: np.ndarray,
                 w: np.ndarray) -> List:
         """find samples with top ten similarity values in the reference dataset
-
+    
         Parameters
         ----------
         similarity: np.ndarray
@@ -1619,7 +1617,7 @@ class IRVTransformer(Transformer):
             labels for a single task
         w: np.array
             weights for a single task
-
+    
         Returns
         -------
         features: list
@@ -1664,17 +1662,17 @@ class IRVTransformer(Transformer):
         return features
 
     def X_transform(self, X_target: np.ndarray) -> np.ndarray:
-        """ Calculate similarity between target dataset(X_target) and
-        reference dataset(X): #(1 in intersection)/#(1 in union)
-
+        """Calculate similarity between target dataset(X_target) and
+            reference dataset(X): #(1 in intersection)/#(1 in union)
+    
         similarity = (X_target intersect X)/(X_target union X)
-
+    
         Parameters
         ----------
         X_target: np.ndarray
             fingerprints of target dataset
             should have same length with X in the second axis
-
+    
         Returns
         -------
         X_target: np.ndarray
@@ -1696,7 +1694,7 @@ class IRVTransformer(Transformer):
 
     @staticmethod
     def matrix_mul(X1, X2, shard_size=5000):
-        """ Calculate matrix multiplication for big matrix,
+        """Calculate matrix multiplication for big matrix,
         X1 and X2 are sliced into pieces with shard_size rows(columns)
         then multiplied together and concatenated to the proper size
         """
@@ -1736,7 +1734,7 @@ class IRVTransformer(Transformer):
                   out_dir: Optional[str] = None,
                   **kwargs) -> Union[DiskDataset, NumpyDataset]:
         """Transforms a given dataset
-
+    
         Parameters
         ----------
         dataset: Dataset
@@ -1745,7 +1743,7 @@ class IRVTransformer(Transformer):
             Whether to parallelize this transformation. Currently ignored.
         out_dir: str, optional (default None)
             Directory to write resulting dataset.
-
+    
         Returns
         -------
         DiskDataset or NumpyDataset
@@ -1793,7 +1791,7 @@ class DAGTransformer(Transformer):
 
     def __init__(self, max_atoms: int = 50):
         """Initializes DAGTransformer.
-
+    
         Parameters
         ----------
         max_atoms: int, optional (Default 50)
@@ -1806,7 +1804,7 @@ class DAGTransformer(Transformer):
         self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Transform the data in a set of (X, y, w, ids) arrays.
-
+    
         Parameters
         ----------
         X: np.ndarray
@@ -1817,7 +1815,7 @@ class DAGTransformer(Transformer):
             Array of weights.
         ids: np.ndarray
             Array of identifiers.
-
+    
         Returns
         -------
         Xtrans: np.ndarray
@@ -1840,12 +1838,12 @@ class DAGTransformer(Transformer):
 
     def UG_to_DAG(self, sample: ConvMol) -> List:
         """This function generates the DAGs for a molecule
-
+    
         Parameters
         ----------
         sample: `ConvMol`
             Molecule to transform
-
+    
         Returns
         -------
         List
@@ -1952,7 +1950,7 @@ class ImageTransformer(Transformer):
 
     def __init__(self, size: Tuple[int, int]):
         """Initializes ImageTransformer.
-
+    
         Parameters
         ----------
         size: Tuple[int, int]
@@ -1963,7 +1961,7 @@ class ImageTransformer(Transformer):
 
     def transform_array(self, X, y, w):
         """Transform the data in a set of (X, y, w, ids) arrays.
-
+    
         Parameters
         ----------
         X: np.ndarray
@@ -1974,7 +1972,7 @@ class ImageTransformer(Transformer):
             Array of weights.
         ids: np.ndarray
             Array of identifiers.
-
+    
         Returns
         -------
         Xtrans: np.ndarray
@@ -2218,7 +2216,7 @@ class FeaturizationTransformer(Transformer):
                  dataset: Optional[Dataset] = None,
                  featurizer: Optional[Featurizer] = None):
         """Initialization of FeaturizationTransformer
-
+    
         Parameters
         ----------
         dataset: dc.data.Dataset object, optional (default None)
@@ -2236,7 +2234,7 @@ class FeaturizationTransformer(Transformer):
         self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Transforms arrays of rdkit mols using internal featurizer.
-
+    
         Parameters
         ----------
         X: np.ndarray
@@ -2247,7 +2245,7 @@ class FeaturizationTransformer(Transformer):
             Array of weights.
         ids: np.ndarray
             Array of identifiers.
-
+    
         Returns
         -------
         Xtrans: np.ndarray
@@ -2279,14 +2277,14 @@ class DataTransforms(object):
 
     def scale(self, h, w):
         """Scales the image
-
+    
         Parameters
         ----------
         h: int
             Height of the images
         w: int
             Width of the images
-
+    
         Returns
         -------
         np.ndarray
@@ -2297,12 +2295,12 @@ class DataTransforms(object):
 
     def flip(self, direction="lr"):
         """Flips the image
-
+    
         Parameters
         ----------
         direction: str
             "lr" denotes left-right flip and "ud" denotes up-down flip.
-
+    
         Returns
         -------
         np.ndarray
@@ -2319,12 +2317,12 @@ class DataTransforms(object):
 
     def rotate(self, angle=0):
         """Rotates the image
-
+    
         Parameters
         ----------
         angle: float (default = 0 i.e no rotation)
             Denotes angle by which the image should be rotated (in Degrees)
-
+    
         Returns
         -------
         np.ndarray
@@ -2334,12 +2332,12 @@ class DataTransforms(object):
 
     def gaussian_blur(self, sigma=0.2):
         """Adds gaussian noise to the image
-
+    
         Parameters
         ----------
         sigma: float
             Std dev. of the gaussian distribution
-
+    
         Returns
         -------
         np.ndarray
@@ -2349,14 +2347,14 @@ class DataTransforms(object):
 
     def center_crop(self, x_crop, y_crop):
         """Crops the image from the center
-
+    
         Parameters
         ----------
         x_crop: int
             the total number of pixels to remove in the horizontal direction, evenly split between the left and right sides
         y_crop: int
             the total number of pixels to remove in the vertical direction, evenly split between the top and bottom sides
-
+    
         Returns
         -------
         np.ndarray
@@ -2370,7 +2368,7 @@ class DataTransforms(object):
 
     def crop(self, left, top, right, bottom):
         """Crops the image and returns the specified rectangular region from an image
-
+    
         Parameters
         ----------
         left: int
@@ -2381,7 +2379,7 @@ class DataTransforms(object):
             the number of pixels to exclude from the right of the image
         bottom: int
             the number of pixels to exclude from the bottom of the image
-
+    
         Returns
         -------
         np.ndarray
@@ -2393,7 +2391,7 @@ class DataTransforms(object):
 
     def convert2gray(self):
         """Converts the image to grayscale. The coefficients correspond to the Y' component of the Y'UV color system.
-
+    
         Returns
         -------
         np.ndarray
@@ -2403,7 +2401,7 @@ class DataTransforms(object):
 
     def shift(self, width, height, mode='constant', order=3):
         """Shifts the image
-
+    
         Parameters
         ----------
         width: float
@@ -2416,7 +2414,7 @@ class DataTransforms(object):
             ‘constant’
         order: int
             The order of the spline interpolation, default is 3. The order has to be in the range 0-5.
-
+    
         Returns
         -------
         np.ndarray
@@ -2433,14 +2431,14 @@ class DataTransforms(object):
 
     def gaussian_noise(self, mean=0, std=25.5):
         """Adds gaussian noise to the image
-
+    
         Parameters
         ----------
         mean: float
             Mean of gaussian.
         std: float
             Standard deviation of gaussian.
-
+    
         Returns
         -------
         np.ndarray
@@ -2453,7 +2451,7 @@ class DataTransforms(object):
 
     def salt_pepper_noise(self, prob=0.05, salt=255, pepper=0):
         """Adds salt and pepper noise to the image
-
+    
         Parameters
         ----------
         prob: float
@@ -2462,7 +2460,7 @@ class DataTransforms(object):
             value of salt noise.
         pepper: float
             value of pepper noise.
-
+    
         Returns
         -------
         np.ndarray
@@ -2477,12 +2475,12 @@ class DataTransforms(object):
 
     def median_filter(self, size):
         """ Calculates a multidimensional median filter
-
+    
         Parameters
         ----------
         size: int
             The kernel size in pixels.
-
+    
         Returns
         -------
         np.ndarray
@@ -2516,9 +2514,9 @@ class RxnSplitTransformer(Transformer):
     >>> split_reactions = trans.transform_array(X=reactions, y=np.array([]), w=np.array([]), ids=np.array([]))
     >>> split_reactions
     (array([['CC(C)C[Mg+].CON(C)C(=O)c1ccc(O)nc1>C1CCOC1.[Cl-]',
-            'CC(C)CC(=O)c1ccc(O)nc1'],
-          ['CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(N)cc3)cc21.O=CO>',
-            'CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(NC=O)cc3)cc21']], dtype='<U51'), array([], dtype=float64), array([], dtype=float64), array([], dtype=float64))
+        'CC(C)CC(=O)c1ccc(O)nc1'],
+    ['CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(N)cc3)cc21.O=CO>',
+        'CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(NC=O)cc3)cc21']], dtype='<U51'), array([], dtype=float64), array([], dtype=float64), array([], dtype=float64))
 
     When mixed training is disabled, you get the following outputs:
 
@@ -2526,9 +2524,9 @@ class RxnSplitTransformer(Transformer):
     >>> split_reactions = trans_disable.transform_array(X=reactions, y=np.array([]), w=np.array([]), ids=np.array([]))
     >>> split_reactions
     (array([['CC(C)C[Mg+].CON(C)C(=O)c1ccc(O)nc1.C1CCOC1.[Cl-]>',
-            'CC(C)CC(=O)c1ccc(O)nc1'],
-          ['CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(N)cc3)cc21.O=CO>',
-            'CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(NC=O)cc3)cc21']], dtype='<U51'), array([], dtype=float64), array([], dtype=float64), array([], dtype=float64))
+        'CC(C)CC(=O)c1ccc(O)nc1'],
+    ['CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(N)cc3)cc21.O=CO>',
+        'CCn1cc(C(=O)O)c(=O)c2cc(F)c(-c3ccc(NC=O)cc3)cc21']], dtype='<U51'), array([], dtype=float64), array([], dtype=float64), array([], dtype=float64))
 
     Note
     ----
@@ -2539,7 +2537,7 @@ class RxnSplitTransformer(Transformer):
                  sep_reagent: bool = True,
                  dataset: Optional[Dataset] = None):
         """Initializes the Reaction split Transformer.
-
+    
         Parameters
         ----------
         sep_reagent: bool, optional (default True)
@@ -2556,7 +2554,7 @@ class RxnSplitTransformer(Transformer):
         self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Transform the data in a set of (X, y, w, ids) arrays.
-
+    
         Parameters
         ----------
         X: np.ndarray
@@ -2567,7 +2565,7 @@ class RxnSplitTransformer(Transformer):
             Array of weights.
         ids: np.ndarray
             Array of weights.
-
+    
         Returns
         -------
         Xtrans: np.ndarray

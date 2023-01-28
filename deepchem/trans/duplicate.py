@@ -115,31 +115,31 @@ class DuplicateBalancingTransformer(Transformer):
         self.duplication_ratio = duplication_ratio
 
     def transform_array(
-        self, X: np.ndarray, y: np.ndarray, w: np.ndarray,
-        ids: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Transform the data in a set of (X, y, w, id) arrays.
-
+    
         Parameters
         ----------
         X: np.ndarray
-          Array of features
+            Array of features
         y: np.ndarray
-          Array of labels
+            Array of labels
         w: np.ndarray
-          Array of weights.
+            Array of weights.
         ids: np.ndarray
-          Array of identifiers
-
+            Array of identifiers
+    
         Returns
         -------
         Xtrans: np.ndarray
-          Transformed array of features
+            Transformed array of features
         ytrans: np.ndarray
-          Transformed array of labels
+            Transformed array of labels
         wtrans: np.ndarray
-          Transformed array of weights
+            Transformed array of weights
         idtrans: np.ndarray
-          Transformed array of identifiers
+            Transformed array of identifiers
         """
         if not (len(y.shape) == 1 or (len(y.shape) == 2 and y.shape[1] == 1)):
             raise ValueError("y must be of shape (N,) or (N, 1)")
