@@ -118,7 +118,7 @@ class DuplicateBalancingTransformer(Transformer):
         self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Transform the data in a set of (X, y, w, id) arrays.
-    
+
         Parameters
         ----------
         X: np.ndarray
@@ -129,7 +129,7 @@ class DuplicateBalancingTransformer(Transformer):
             Array of weights.
         ids: np.ndarray
             Array of identifiers
-    
+
         Returns
         -------
         Xtrans: np.ndarray
