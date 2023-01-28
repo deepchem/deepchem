@@ -2,6 +2,7 @@
 Generate coulomb matrices for molecules.
 
 See Montavon et al., _New Journal of Physics_ __15__ (2013) 095003.
+
 """
 import numpy as np
 from typing import Any, List, Optional
@@ -38,6 +39,7 @@ class CoulombMatrix(MolecularFeaturizer):
     Note
     ----
     This class requires RDKit to be installed.
+
     """
 
     def __init__(self,
@@ -64,6 +66,7 @@ class CoulombMatrix(MolecularFeaturizer):
             If `randomize` is set to True, the number of random samples to draw.
         seed: int, optional (default None)
             Random seed to use.
+
         """
         self.max_atoms = int(max_atoms)
         self.remove_hydrogens = remove_hydrogens
@@ -94,6 +97,7 @@ class CoulombMatrix(MolecularFeaturizer):
             The coulomb matrices of the given molecule.
             The default shape is `(num_confs, max_atoms, max_atoms)`.
             If num_confs == 1, the shape is `(max_atoms, max_atoms)`.
+
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
@@ -123,6 +127,7 @@ class CoulombMatrix(MolecularFeaturizer):
         -------
         np.ndarray
             The coulomb matrices of the given molecule
+
         """
         try:
             from rdkit import Chem
@@ -176,6 +181,7 @@ class CoulombMatrix(MolecularFeaturizer):
         References
         ----------
         .. [1] Montavon et al., New Journal of Physics, 15, (2013), 095003
+
         """
         rval = []
         row_norms = np.asarray([np.linalg.norm(row) for row in m], dtype=float)
@@ -201,6 +207,7 @@ class CoulombMatrix(MolecularFeaturizer):
         -------
         np.ndarray
             The distances matrix for all atoms in a molecule
+
         """
         n_atoms = conf.GetNumAtoms()
         coords = [
@@ -236,6 +243,7 @@ class CoulombMatrixEig(CoulombMatrix):
     .. [1] Montavon, Grégoire, et al. "Learning invariant representations of
         molecules for atomization energy prediction." Advances in neural information
         processing systems. 2012.
+
     """
 
     def __init__(self,
@@ -259,6 +267,7 @@ class CoulombMatrixEig(CoulombMatrix):
             If `randomize` is set to True, the number of random samples to draw.
         seed: int, optional (default None)
             Random seed to use.
+
         """
         self.max_atoms = int(max_atoms)
         self.remove_hydrogens = remove_hydrogens
@@ -285,6 +294,7 @@ class CoulombMatrixEig(CoulombMatrix):
             The eigenvalues of Coulomb matrix for molecules.
             The default shape is `(num_confs, max_atoms)`.
             If num_confs == 1, the shape is `(max_atoms,)`.
+            
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
