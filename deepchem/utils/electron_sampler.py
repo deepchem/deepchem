@@ -23,9 +23,7 @@ class ElectronSampler:
     Example
     -------
     >>> from deepchem.utils.electron_sampler import ElectronSampler
-    >>> def test_f(x):
-    ...	#dummy function which can be passed as the parameter f. f gives the log probability
-    ...	return 2*np.log(np.random.uniform(low=0,high=1.0,size=np.shape(x)[0]))
+    >>> test_f = lambda x: 2*np.log(np.random.uniform(low=0,high=1.0,size=np.shape(x)[0]))
     >>> distribution=ElectronSampler(central_value=np.array([[1,1,3],[3,2,3]]),f=test_f,seed=0,batch_no=2,steps=1000,)
     >>> distribution.gauss_initialize_position(np.array([[1],[2]]))
 
@@ -188,8 +186,8 @@ class ElectronSampler:
         index: int, optional (default None)
             Specifies the index of the electron to be updated in the case of a single electron move.
 
-        Return:
-        -----------
+        Return
+        ------
         float
             accepted move ratio of the MCMC steps.
         """

@@ -73,12 +73,12 @@ class FakeGraphGenerator:
         Parameters
         ----------
         n_graphs: int, default 100
-          Number of graphs to generate
+            Number of graphs to generate
 
         Returns
         -------
         graphs: NumpyDataset
-          Generated Graphs
+            Generated Graphs
         """
         graphs, labels = [], []
         for i in range(n_graphs):
@@ -135,11 +135,11 @@ def generate_edge_index(n_nodes: int,
     Parameters
     ----------
     n_nodes: int
-      Number of nodes in the graph
+        Number of nodes in the graph
     avg_degree: int
-      Average degree per node in a graph
+        Average degree per node in a graph
     remove_loops: bool
-      Remove self-loops in a graph
+        Remove self-loops in a graph
     """
     n_edges = n_nodes * avg_degree
     edge_index = np.random.randint(low=0, high=n_nodes, size=(2, n_edges))
