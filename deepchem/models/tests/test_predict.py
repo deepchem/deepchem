@@ -14,28 +14,28 @@ import shutil
 import deepchem as dc
 
 try:
-  import tensorflow as tf
-  from tensorflow.python.framework import test_util
-  from sklearn.ensemble import RandomForestClassifier
-  from sklearn.ensemble import RandomForestRegressor
-  has_tensorflow = True
+    import tensorflow as tf
+    from tensorflow.python.framework import test_util
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.ensemble import RandomForestRegressor
+    has_tensorflow = True
 except:
-  has_tensorflow = False
+    has_tensorflow = False
 
 
 class TestPredict(unittest.TestCase):
-  """
+    """
   Test that models make deterministic predictions 
 
   These tests guard against failures like having dropout turned on at
   test time.
   """
 
-  def setUp(self):
-    super(TestPredict, self).setUp()
-    self.current_dir = os.path.dirname(os.path.abspath(__file__))
+    def setUp(self):
+        super(TestPredict, self).setUp()
+        self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
-  '''
+    '''
   def test_tf_progressive_regression_predict(self):
     """Test tf progressive multitask makes deterministic predictions."""
     np.random.seed(123)
