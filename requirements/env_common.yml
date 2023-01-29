@@ -25,4 +25,4 @@ dependencies:
     - transformers==4.10.*
     - xgboost
     - gensim  # used by mol2vec 
-    - tb-nightly # @arunppsg shift to tensorboard stable version once tb 2.9.1 is released
+    - tensorboard
