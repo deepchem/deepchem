@@ -16,7 +16,7 @@ from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Dropout, Con
 
 # Common symbols in SMILES, note that Cl and Br are regarded as single symbol
 default_dict = {
-'#': 1,
+    '#': 1,
     '(': 2,
     ')': 3,
     '+': 4,

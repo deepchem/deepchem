@@ -4,7 +4,7 @@ Implementation of KFAC, a second order optimizer, in PyTorch.
 import math
 from typing import Optional, Callable, Dict, Tuple, List, Union
 try:
-import torch
+    import torch
     import torch.optim as optim
     has_pytorch = True
 

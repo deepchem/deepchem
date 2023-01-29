@@ -22,7 +22,7 @@ from tensorflow.keras.layers import GlobalAveragePooling2D
 DEFAULT_INCEPTION_BLOCKS = {"A": 3, "B": 3, "C": 3}
 
 INCEPTION_DICT = {
-"A": chemnet_layers.InceptionResnetA,
+    "A": chemnet_layers.InceptionResnetA,
     "B": chemnet_layers.InceptionResnetB,
     "C": chemnet_layers.InceptionResnetC
 }
