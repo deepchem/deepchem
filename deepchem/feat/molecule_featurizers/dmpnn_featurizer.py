@@ -80,6 +80,7 @@ def get_atomic_num_one_hot(atom: RDKitAtom,
         A one-hot vector of atomic number of the given atom.
         If `include_unknown_set` is False, the length is `len(allowable_set)`.
         If `include_unknown_set` is True, the length is `len(allowable_set) + 1`.
+
     """
     return one_hot_encode(atom.GetAtomicNum() - 1, allowable_set,
                           include_unknown_set)
@@ -106,6 +107,7 @@ def get_atom_chiral_tag_one_hot(
         A one-hot vector of chirality of the given atom.
         If `include_unknown_set` is False, the length is `len(allowable_set)`.
         If `include_unknown_set` is True, the length is `len(allowable_set) + 1`.
+
     """
     return one_hot_encode(atom.GetChiralTag(), allowable_set,
                           include_unknown_set)
@@ -123,6 +125,7 @@ def get_atom_mass(atom: RDKitAtom) -> List[float]:
     -------
     List[float]
         A vector of downscaled mass of the given atom.
+
     """
     return [atom.GetMass() * 0.01]
 
@@ -161,6 +164,7 @@ def atom_features(
     <class 'list'>
     >>> len(features)
     133
+
     """
 
     if atom is None:
@@ -222,6 +226,7 @@ def bond_features(bond: RDKitBond) -> Sequence[Union[bool, int, float]]:
     <class 'list'>
     >>> len(b_features)
     14
+
     """
     if bond is None:
         b_features: Sequence[Union[
@@ -235,8 +240,7 @@ def bond_features(bond: RDKitBond) -> Sequence[Union[bool, int, float]]:
 def map_reac_to_prod(
         mol_reac: RDKitMol,
         mol_prod: RDKitMol) -> Tuple[Dict[int, int], List[int], List[int]]:
-    """
-    Function to build a dictionary of mapping atom indices in the reactants to the products.
+    """Function to build a dictionary of mapping atom indices in the reactants to the products.
 
     Parameters
     ----------
@@ -252,6 +256,7 @@ def map_reac_to_prod(
     A tuple containing a dictionary of corresponding reactant and product atom indices,
     list of atom ids of product not part of the mapping and
     list of atom ids of reactant not part of the mapping
+
     """
     only_prod_ids: List[int] = []
     prod_map_to_id: Dict[int, int] = {}
@@ -284,8 +289,7 @@ def map_reac_to_prod(
 
 def generate_global_features(mol: RDKitMol,
                              features_generators: List[str]) -> np.ndarray:
-    """
-    Helper function for generating global features for a RDKit mol based on the given list of feature generators to be used.
+    """Helper function for generating global features for a RDKit mol based on the given list of feature generators to be used.
 
     Parameters
     ----------
@@ -315,6 +319,7 @@ def generate_global_features(mol: RDKitMol,
     array([1264])
     >>> global_features[nonzero_features_indices[0]]
     1.0
+
     """
     global_features: List[np.ndarray] = []
     available_generators = GraphConvConstants.FEATURE_GENERATORS
@@ -346,8 +351,7 @@ def generate_global_features(mol: RDKitMol,
 
 
 class DMPNNFeaturizer(MolecularFeaturizer):
-    """
-    This class is a featurizer for Directed Message Passing Neural Network (D-MPNN) implementation
+    """This class is a featurizer for Directed Message Passing Neural Network (D-MPNN) implementation
 
     The default node(atom) and edge(bond) representations are based on
     `Analyzing Learned Molecular Representations for Property Prediction paper <https://arxiv.org/pdf/1904.01561.pdf>`_.
@@ -403,6 +407,7 @@ class DMPNNFeaturizer(MolecularFeaturizer):
     Note
     ----
     This class requires RDKit to be installed.
+
     """
 
     def __init__(self,
@@ -418,6 +423,7 @@ class DMPNNFeaturizer(MolecularFeaturizer):
             Whether to add Hs or not.
         use_original_atom_ranks: bool, default False
             Whether to use original atom mapping or canonical atom mapping
+
         """
         self.features_generators = features_generators
         self.is_adding_hs = is_adding_hs
@@ -436,6 +442,7 @@ class DMPNNFeaturizer(MolecularFeaturizer):
         -------
         edge_index: np.ndarray
             Edge (Bond) index
+
         """
         src: List[int] = []
         dest: List[int] = []
@@ -466,6 +473,7 @@ class DMPNNFeaturizer(MolecularFeaturizer):
         -------
         f_bonds: np.ndarray
             Bond features array
+
         """
         bonds: Chem.rdchem._ROBondSeq = datapoint.GetBonds()
 
@@ -483,8 +491,7 @@ class DMPNNFeaturizer(MolecularFeaturizer):
         return f_bonds
 
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> GraphData:
-        """
-        Calculate molecule graph features from RDKit mol object.
+        """Calculate molecule graph features from RDKit mol object.
 
         Parameters
         ----------
@@ -499,6 +506,7 @@ class DMPNNFeaturizer(MolecularFeaturizer):
             - edge_index: Graph connectivity in COO format with shape [2, num_edges]
             - edge_features: Edge feature matrix with shape [num_edges, num_edge_features]
             - global_features: Array of global molecular features
+            
         """
         if isinstance(datapoint, Chem.rdchem.Mol):
             if self.is_adding_hs:

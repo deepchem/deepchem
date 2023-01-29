@@ -50,6 +50,7 @@ class MACCSKeysFingerprint(MolecularFeaturizer):
         -------
         np.ndarray
                 1D array of RDKit descriptors for `mol`. The length is 167.
+                
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")

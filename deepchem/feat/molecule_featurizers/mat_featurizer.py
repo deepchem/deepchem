@@ -16,11 +16,12 @@ class MATEncoding:
     Parameters
     ----------
     node_features: np.ndarray
-      Node Features matrix for the molecule. For MAT, derived from the construct_node_features_matrix function.
+        Node Features matrix for the molecule. For MAT, derived from the construct_node_features_matrix function.
     adjacency_matrix: np.ndarray
-      Adjacency matrix for the molecule. Derived from rdkit.Chem.rdmolops.GetAdjacencyMatrix
+        Adjacency matrix for the molecule. Derived from rdkit.Chem.rdmolops.GetAdjacencyMatrix
     distance_matrix: np.ndarray
-      Distance matrix for the molecule. Derived from rdkit.Chem.rdmolops.GetDistanceMatrix
+        Distance matrix for the molecule. Derived from rdkit.Chem.rdmolops.GetDistanceMatrix
+
     """
     node_features: np.ndarray
     adjacency_matrix: np.ndarray
@@ -31,9 +32,9 @@ class MATFeaturizer(MolecularFeaturizer):
     """
     This class is a featurizer for the Molecule Attention Transformer [1]_.
     The returned value is a numpy array which consists of molecular graph descriptions:
-      - Node Features
-      - Adjacency Matrix
-      - Distance Matrix
+        - Node Features
+        - Adjacency Matrix
+        - Distance Matrix
 
     References
     ---------
@@ -48,6 +49,7 @@ class MATFeaturizer(MolecularFeaturizer):
     Note
     ----
     This class requires RDKit to be installed.
+
     """
 
     def __init__(self):
@@ -65,7 +67,8 @@ class MATFeaturizer(MolecularFeaturizer):
         Returns
         ----------
         mol: RDKitMol
-          A processed RDKitMol object which is embedded, UFF Optimized and has Hydrogen atoms removed. If the former conditions are not met and there is a value error, then 2D Coordinates are computed instead.
+            A processed RDKitMol object which is embedded, UFF Optimized and has Hydrogen atoms removed. If the former conditions are not met and there is a value error, then 2D Coordinates are computed instead.
+        
         """
         try:
             from rdkit.Chem import AllChem
@@ -83,19 +86,19 @@ class MATFeaturizer(MolecularFeaturizer):
         return mol
 
     def atom_features(self, atom: RDKitAtom) -> np.ndarray:
-        """
-        Deepchem already contains an atom_features function, however we are defining a new one here due to the need to handle features specific to MAT.
+        """Deepchem already contains an atom_features function, however we are defining a new one here due to the need to handle features specific to MAT.
         Since we need new features like Atom GetNeighbors and IsInRing, and the number of features required for MAT is a fraction of what the Deepchem atom_features function computes, we can speed up computation by defining a custom function.
 
         Parameters
         ----------
         atom: RDKitAtom
-          RDKit Atom object.
+            RDKit Atom object.
 
         Returns
         ----------
         ndarray
-          Numpy array containing atom features.
+            Numpy array containing atom features.
+        
         """
         attrib = []
         attrib += one_hot_encode(atom.GetAtomicNum(),
@@ -112,18 +115,18 @@ class MATFeaturizer(MolecularFeaturizer):
         return np.array(attrib, dtype=np.float32)
 
     def construct_node_features_matrix(self, mol: RDKitMol) -> np.ndarray:
-        """
-        This function constructs a matrix of atom features for all atoms in a given molecule using the atom_features function.
+        """This function constructs a matrix of atom features for all atoms in a given molecule using the atom_features function.
 
         Parameters
         ----------
         mol: RDKitMol
-          RDKit Mol object.
+            RDKit Mol object.
 
         Returns
         ----------
         Atom_features: ndarray
-          Numpy array containing atom features.
+            Numpy array containing atom features.
+        
         """
         return np.array([self.atom_features(atom) for atom in mol.GetAtoms()])
 
@@ -131,22 +134,22 @@ class MATFeaturizer(MolecularFeaturizer):
             self, node_features: np.ndarray, adj_matrix: np.ndarray,
             dist_matrix: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """
-        Adds a single dummy node to the molecule, which is consequently reflected in the Node Features Matrix, Adjacency Matrix and the Distance Matrix.
+        """Adds a single dummy node to the molecule, which is consequently reflected in the Node Features Matrix, Adjacency Matrix and the Distance Matrix.
 
         Parameters
         ----------
         node_features: np.ndarray
-          Node Features matrix for a given molecule.
+            Node Features matrix for a given molecule.
         adjacency_matrix: np.ndarray
-          Adjacency matrix for a given molecule.
+            Adjacency matrix for a given molecule.
         distance_matrix: np.ndarray
-          Distance matrix for a given molecule.
+            Distance matrix for a given molecule.
 
         Returns
         ----------
         Atom_features: Tuple[np.ndarray, np.ndarray, np.ndarray]
-          A tuple containing three numpy arrays: node_features, adjacency_matrix, distance_matrix.
+            A tuple containing three numpy arrays: node_features, adjacency_matrix, distance_matrix.
+        
         """
 
         if node_features is not None:
@@ -170,8 +173,7 @@ class MATFeaturizer(MolecularFeaturizer):
         return node_features, adj_matrix, dist_matrix
 
     def _pad_array(self, array: np.ndarray, shape: Any) -> np.ndarray:
-        """
-        Pads an array to the desired shape.
+        """Pads an array to the desired shape.
 
         Parameters
         ----------
@@ -183,7 +185,8 @@ class MATFeaturizer(MolecularFeaturizer):
         Returns
         ----------
         array: np.ndarray
-          Array padded to input shape.
+            Array padded to input shape.
+        
         """
         result = np.zeros(shape=shape)
         slices = tuple(slice(s) for s in array.shape)
@@ -191,18 +194,18 @@ class MATFeaturizer(MolecularFeaturizer):
         return result
 
     def _pad_sequence(self, sequence: np.ndarray) -> np.ndarray:
-        """
-        Pads a given sequence using the pad_array function.
+        """Pads a given sequence using the pad_array function.
 
         Parameters
         ----------
         sequence: np.ndarray
-          Arrays in this sequence are padded to the largest shape in the sequence.
+            Arrays in this sequence are padded to the largest shape in the sequence.
 
         Returns
         ----------
         array: np.ndarray
-          Sequence with padded arrays.
+            Sequence with padded arrays.
+        
         """
         shapes = np.stack([np.array(t.shape) for t in sequence])
         max_shape = tuple(np.max(shapes, axis=0))
@@ -215,12 +218,13 @@ class MATFeaturizer(MolecularFeaturizer):
         Parameters
         ----------
         datapoint: RDKitMol
-          RDKit mol object.
+            RDKit mol object.
 
         Returns
         -------
         MATEncoding
-          A MATEncoding dataclass instance consisting of processed node_features, adjacency_matrix and distance_matrix.
+            A MATEncoding dataclass instance consisting of processed node_features, adjacency_matrix and distance_matrix.
+        
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
