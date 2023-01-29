@@ -35,21 +35,22 @@ def _construct_atom_feature(atom: RDKitAtom, h_bond_infos: List[Tuple[int,
     Parameters
     ----------
     atom: rdkit.Chem.rdchem.Atom
-      RDKit atom object
+        RDKit atom object
     h_bond_infos: List[Tuple[int, str]]
-      A list of tuple `(atom_index, hydrogen_bonding_type)`.
-      Basically, it is expected that this value is the return value of
-      `construct_hydrogen_bonding_info`. The `hydrogen_bonding_type`
-      value is "Acceptor" or "Donor".
+        A list of tuple `(atom_index, hydrogen_bonding_type)`.
+        Basically, it is expected that this value is the return value of
+        `construct_hydrogen_bonding_info`. The `hydrogen_bonding_type`
+        value is "Acceptor" or "Donor".
     use_chirality: bool
-      Whether to use chirality information or not.
+        Whether to use chirality information or not.
     use_partial_charge: bool
-      Whether to use partial charge data or not.
+        Whether to use partial charge data or not.
 
     Returns
     -------
     np.ndarray
-      A one-hot vector of the atom feature.
+        A one-hot vector of the atom feature.
+
     """
     atom_type = get_atom_type_one_hot(atom)
     formal_charge = get_atom_formal_charge(atom)
@@ -59,8 +60,8 @@ def _construct_atom_feature(atom: RDKitAtom, h_bond_infos: List[Tuple[int,
     degree = get_atom_total_degree_one_hot(atom)
     total_num_Hs = get_atom_total_num_Hs_one_hot(atom)
     atom_feat = np.concatenate([
-        atom_type, formal_charge, hybridization, acceptor_donor, aromatic, degree,
-        total_num_Hs
+        atom_type, formal_charge, hybridization, acceptor_donor, aromatic,
+        degree, total_num_Hs
     ])
 
     if use_chirality:
@@ -79,12 +80,13 @@ def _construct_bond_feature(bond: RDKitBond) -> np.ndarray:
     Parameters
     ---------
     bond: rdkit.Chem.rdchem.Bond
-      RDKit bond object
+        RDKit bond object
 
     Returns
     -------
     np.ndarray
-      A one-hot vector of the bond feature.
+        A one-hot vector of the bond feature.
+
     """
     bond_type = get_bond_type_one_hot(bond)
     same_ring = get_bond_is_in_same_ring_one_hot(bond)
@@ -140,11 +142,12 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
     References
     ----------
     .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond fingerprints."
-       Journal of computer-aided molecular design 30.8 (2016):595-608.
+        Journal of computer-aided molecular design 30.8 (2016):595-608.
 
     Note
     ----
     This class requires RDKit to be installed.
+    
     """
 
     def __init__(self,
@@ -155,15 +158,15 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
         Parameters
         ----------
         use_edges: bool, default False
-          Whether to use edge features or not.
+            Whether to use edge features or not.
         use_chirality: bool, default False
-          Whether to use chirality information or not.
-          If True, featurization becomes slow.
+            Whether to use chirality information or not.
+            If True, featurization becomes slow.
         use_partial_charge: bool, default False
-          Whether to use partial charge data or not.
-          If True, this featurizer computes gasteiger charges.
-          Therefore, there is a possibility to fail to featurize for some molecules
-          and featurization becomes slow.
+            Whether to use partial charge data or not.
+            If True, this featurizer computes gasteiger charges.
+            Therefore, there is a possibility to fail to featurize for some molecules
+            and featurization becomes slow.
         """
         self.use_edges = use_edges
         self.use_partial_charge = use_partial_charge
@@ -171,16 +174,17 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
 
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> GraphData:
         """Calculate molecule graph features from RDKit mol object.
-
+    
         Parameters
         ----------
         datapoint: rdkit.Chem.rdchem.Mol
-          RDKit mol object.
-
+            RDKit mol object.
+    
         Returns
         -------
         graph: GraphData
-          A molecule graph with some features.
+            A molecule graph with some features.
+        
         """
         assert datapoint.GetNumAtoms(
         ) > 1, "More than one atom should be present in the molecule for this featurizer to work."
@@ -199,7 +203,8 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
                     from rdkit.Chem import AllChem
                     AllChem.ComputeGasteigerCharges(datapoint)
                 except ModuleNotFoundError:
-                    raise ImportError("This class requires RDKit to be installed.")
+                    raise ImportError(
+                        "This class requires RDKit to be installed.")
 
         # construct atom (node) feature
         h_bond_infos = construct_hydrogen_bonding_info(datapoint)
@@ -273,9 +278,9 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
     - Formal charge: One hot encoding of formal charge of the atom.
     - Degree: One hot encoding of the atom degree
     - Explicit Valence: One hot encoding of explicit valence of an atom. The supported possibilities
-      include ``0 - 6``.
+        include ``0 - 6``.
     - Implicit Valence: One hot encoding of implicit valence of an atom. The supported possibilities
-      include ``0 - 5``.
+        include ``0 - 5``.
     - Aromaticity: Boolean representing if an atom is aromatic.
 
     The default edge representation is constructed by concatenating the following values,
@@ -306,7 +311,7 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
     References
     ----------
     .. [1] Chen, Barzilay, Jaakkola "Path-Augmented Graph Transformer Network"
-       10.26434/chemrxiv.8214422.
+        10.26434/chemrxiv.8214422.
 
     Note
     ----
@@ -319,18 +324,19 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
         Parameters
         ----------
         max_length : int
-          Maximum distance up to which shortest paths must be considered.
-          Paths shorter than max_length will be padded and longer will be
-          truncated, default to ``5``.
+            Maximum distance up to which shortest paths must be considered.
+            Paths shorter than max_length will be padded and longer will be
+            truncated, default to ``5``.
+        
         """
 
         self.SYMBOLS = [
-            'C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na', 'Ca', 'Fe',
-            'As', 'Al', 'I', 'B', 'V', 'K', 'Tl', 'Yb', 'Sb', 'Sn', 'Ag', 'Pd',
-            'Co', 'Se', 'Ti', 'Zn', 'H', 'Li', 'Ge', 'Cu', 'Au', 'Ni', 'Cd', 'In',
-            'Mn', 'Zr', 'Cr', 'Pt', 'Hg', 'Pb', 'W', 'Ru', 'Nb', 'Re', 'Te', 'Rh',
-            'Tc', 'Ba', 'Bi', 'Hf', 'Mo', 'U', 'Sm', 'Os', 'Ir', 'Ce', 'Gd', 'Ga',
-            'Cs', '*', 'UNK'
+            'C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na', 'Ca',
+            'Fe', 'As', 'Al', 'I', 'B', 'V', 'K', 'Tl', 'Yb', 'Sb', 'Sn', 'Ag',
+            'Pd', 'Co', 'Se', 'Ti', 'Zn', 'H', 'Li', 'Ge', 'Cu', 'Au', 'Ni',
+            'Cd', 'In', 'Mn', 'Zr', 'Cr', 'Pt', 'Hg', 'Pb', 'W', 'Ru', 'Nb',
+            'Re', 'Te', 'Rh', 'Tc', 'Ba', 'Bi', 'Hf', 'Mo', 'U', 'Sm', 'Os',
+            'Ir', 'Ce', 'Gd', 'Ga', 'Cs', '*', 'UNK'
         ]
 
         self.RING_TYPES = [(5, False), (5, True), (6, False), (6, True)]
@@ -339,33 +345,37 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
 
     def _pagtn_atom_featurizer(self, atom: RDKitAtom) -> np.ndarray:
         """Calculate Atom features from RDKit atom object.
-
+    
         Parameters
         ----------
         mol: rdkit.Chem.rdchem.Mol
-          RDKit mol object.
-
+            RDKit mol object.
+    
         Returns
         -------
         atom_feat: np.ndarray
-          numpy vector of atom features.
+            numpy vector of atom features.
+        
         """
         atom_type = get_atom_type_one_hot(atom, self.SYMBOLS, False)
-        formal_charge = get_atom_formal_charge_one_hot(atom,
-                                                       include_unknown_set=False)
+        formal_charge = get_atom_formal_charge_one_hot(
+            atom, include_unknown_set=False)
         degree = get_atom_total_degree_one_hot(atom, list(range(11)), False)
-        exp_valence = get_atom_explicit_valence_one_hot(atom, list(range(7)), False)
-        imp_valence = get_atom_implicit_valence_one_hot(atom, list(range(6)), False)
+        exp_valence = get_atom_explicit_valence_one_hot(atom, list(range(7)),
+                                                        False)
+        imp_valence = get_atom_implicit_valence_one_hot(atom, list(range(6)),
+                                                        False)
         armoticity = get_atom_is_in_aromatic_one_hot(atom)
         atom_feat = np.concatenate([
-            atom_type, formal_charge, degree, exp_valence, imp_valence, armoticity
+            atom_type, formal_charge, degree, exp_valence, imp_valence,
+            armoticity
         ])
         return atom_feat
 
     def _edge_features(self, mol: RDKitMol, path_atoms: Tuple[int, ...],
                        ring_info) -> np.ndarray:
         """Computes the edge features for a given pair of nodes.
-
+    
         Parameters
         ----------
         mol : : RDKitMol
@@ -374,6 +384,7 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
             Shortest path between the given pair of nodes.
         ring_info: list
             Different rings that contain the pair of atoms
+        
         """
         features: List = []
         path_bonds = []
@@ -390,8 +401,10 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
             if path_idx < len(path_bonds):
                 bond_type = get_bond_type_one_hot(path_bonds[path_idx])
                 conjugacy = get_bond_is_conjugated_one_hot(path_bonds[path_idx])
-                ring_attach = get_bond_is_in_same_ring_one_hot(path_bonds[path_idx])
-                features.append(np.concatenate([bond_type, conjugacy, ring_attach]))
+                ring_attach = get_bond_is_in_same_ring_one_hot(
+                    path_bonds[path_idx])
+                features.append(
+                    np.concatenate([bond_type, conjugacy, ring_attach]))
             else:
                 features.append(np.zeros(6))
 
@@ -402,32 +415,35 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
         features.append(position_feature)
         if ring_info:
             rfeat = [
-                one_hot_encode(r, allowable_set=self.RING_TYPES) for r in ring_info
+                one_hot_encode(r, allowable_set=self.RING_TYPES)
+                for r in ring_info
             ]
             # The 1.0 float value represents True Boolean
             rfeat = [1.0] + np.any(rfeat, axis=0).tolist()
             features.append(rfeat)
         else:
             # This will return a boolean vector with all entries False
-            features.append([0.0] +
-                            one_hot_encode(ring_info, allowable_set=self.RING_TYPES))
+            features.append(
+                [0.0] +
+                one_hot_encode(ring_info, allowable_set=self.RING_TYPES))
         return np.concatenate(features, axis=0)
 
     def _pagtn_edge_featurizer(self,
                                mol: RDKitMol) -> Tuple[np.ndarray, np.ndarray]:
         """Calculate bond features from RDKit mol object.
-
+    
         Parameters
         ----------
         mol: rdkit.Chem.rdchem.Mol
-          RDKit mol object.
-
+            RDKit mol object.
+    
         Returns
         -------
         np.ndarray
-          Source and Destination node indexes of each bond.
+            Source and Destination node indexes of each bond.
         np.ndarray
-          numpy vector of bond features.
+            numpy vector of bond features.
+        
         """
         n_atoms = mol.GetNumAtoms()
         # To get the shortest paths between two nodes.
@@ -447,22 +463,24 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
                     feats.append(np.zeros(7 * self.max_length + 7))
                     continue
                 ring_info = rings_dict.get(self.ordered_pair(i, j), [])
-                feats.append(self._edge_features(mol, paths_dict[(i, j)], ring_info))
+                feats.append(
+                    self._edge_features(mol, paths_dict[(i, j)], ring_info))
 
         return np.array([src, dest], dtype=int), np.array(feats, dtype=float)
 
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> GraphData:
         """Calculate molecule graph features from RDKit mol object.
-
+    
         Parameters
         ----------
         datapoint: rdkit.Chem.rdchem.Mol
-          RDKit mol object.
-
+            RDKit mol object.
+    
         Returns
         -------
         graph: GraphData
-          A molecule graph with some features.
+            A molecule graph with some features.
+        
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
@@ -470,9 +488,10 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
                 'Mol is being phased out as a parameter, please pass "datapoint" instead.'
             )
 
-        node_features = np.asarray(
-            [self._pagtn_atom_featurizer(atom) for atom in datapoint.GetAtoms()],
-            dtype=float)
+        node_features = np.asarray([
+            self._pagtn_atom_featurizer(atom) for atom in datapoint.GetAtoms()
+        ],
+                                   dtype=float)
         edge_index, edge_features = self._pagtn_edge_featurizer(datapoint)
         graph = GraphData(node_features, edge_index, edge_features)
         return graph

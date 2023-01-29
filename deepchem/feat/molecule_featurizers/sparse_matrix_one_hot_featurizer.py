@@ -34,11 +34,12 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
 
     def __init__(self, charset: List[str] = CHARSET):
         """Initialize featurizer.
-
+    
         Parameters
         ----------
         charset: List[str] (default code)
-          A list of strings, where each string is length 1 and unique.
+            A list of strings, where each string is length 1 and unique.
+        
         """
         if len(charset) != len(set(charset)):
             raise ValueError("All values in charset must be unique.")
@@ -52,29 +53,31 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
                   log_every_n: int = 1000,
                   **kwargs) -> np.ndarray:
         """Featurize strings.
-
+    
         Parameters
         ----------
         datapoints: list
-          A list of either strings (str or numpy.str_)
+            A list of either strings (str or numpy.str_)
         log_every_n: int, optional (default 1000)
-          How many elements are featurized every time a featurization is logged.
+            How many elements are featurized every time a featurization is logged.
+        
         """
         # Featurize data using featurize() in parent class
         return Featurizer.featurize(self, datapoints, log_every_n)
 
     def _featurize(self, datapoint: Any, **kwargs):
         """ Use parent method of base clase Featurizer.
-
+    
         Parameters
         ----------
         datapoint : list of string
             string to be converted to a sparse one hot matrix.
-
+    
         Returns
         -------
         scipy sparse matrix
-          A scipy sparse matrix of the one hot representation of the given string.
+            A scipy sparse matrix of the one hot representation of the given string.
+        
         """
         # Featurize str data
         if isinstance(datapoint, (str, np.str_)):
@@ -86,16 +89,17 @@ class SparseMatrixOneHotFeaturizer(Featurizer):
 
     def untransform(self, one_hot_vectors: scipy.sparse.base.spmatrix) -> str:
         """Convert from one hot representation back to original string
-
+    
         Parameters
         ----------
         one_hot_vectors: np.ndarray
-          An array of one hot encoded features.
-
+            An array of one hot encoded features.
+    
         Returns
         -------
         str
-          Original string for an one hot encoded array.
+            Original string for an one hot encoded array.
+        
         """
         string = ""
         invers_trans = self.ohe.inverse_transform(one_hot_vectors)

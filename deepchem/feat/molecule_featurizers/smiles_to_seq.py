@@ -1,6 +1,7 @@
 """
 Featurizer implementations used in Smiles2Vec models.
 SmilesToSeq featurizer for Smiles2Vec models taken from https://arxiv.org/abs/1712.02734
+
 """
 from typing import Dict, List
 import numpy as np
@@ -30,7 +31,8 @@ def create_char_to_idx(filename: str,
     Returns
     -------
     Dict[str, int]
-      A dictionary mapping characters to their integer indexes.
+        A dictionary mapping characters to their integer indexes.
+    
     """
     smiles_df = pd.read_csv(filename)
     char_set = set()
@@ -59,13 +61,14 @@ class SmilesToSeq(MolecularFeaturizer):
     References
     ----------
     .. [1] Goh, Garrett B., et al. "Using rule-based labels for weak supervised
-       learning: a ChemNet for transferable chemical property prediction."
-       Proceedings of the 24th ACM SIGKDD International Conference on Knowledge
-       Discovery & Data Mining. 2018.
+        learning: a ChemNet for transferable chemical property prediction."
+        Proceedings of the 24th ACM SIGKDD International Conference on Knowledge
+        Discovery & Data Mining. 2018.
 
     Note
     ----
     This class requires RDKit to be installed.
+    
     """
 
     def __init__(self,
@@ -73,26 +76,30 @@ class SmilesToSeq(MolecularFeaturizer):
                  max_len: int = 250,
                  pad_len: int = 10):
         """Initialize this class.
-
+    
         Parameters
         ----------
         char_to_idx: Dict
-          Dictionary containing character to index mappings for unique characters
+            Dictionary containing character to index mappings for unique characters
         max_len: int, default 250
-          Maximum allowed length of the SMILES string.
+            Maximum allowed length of the SMILES string.
         pad_len: int, default 10
-          Amount of padding to add on either side of the SMILES seq
+            Amount of padding to add on either side of the SMILES seq
+        
         """
         self.max_len = max_len
         self.char_to_idx = char_to_idx
-        self.idx_to_char = {idx: letter for letter, idx in self.char_to_idx.items()}
+        self.idx_to_char = {
+            idx: letter for letter, idx in self.char_to_idx.items()
+        }
         self.pad_len = pad_len
 
     def to_seq(self, smile: List[str]) -> np.ndarray:
         """Turns list of smiles characters into array of indices"""
         out_of_vocab_idx = self.char_to_idx[OUT_OF_VOCAB_TOKEN]
         seq = [
-            self.char_to_idx.get(character, out_of_vocab_idx) for character in smile
+            self.char_to_idx.get(character, out_of_vocab_idx)
+            for character in smile
         ]
         return np.array(seq)
 
@@ -116,17 +123,18 @@ class SmilesToSeq(MolecularFeaturizer):
 
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
         """Featurizes a SMILES sequence.
-
+    
         Parameters
         ----------
         datapoints: rdkit.Chem.rdchem.Mol
-          RDKit Mol object
-
+            RDKit Mol object
+    
         Returns
         -------
         np.ndarray
-          A 1D array of a SMILES sequence.
-          If the length of SMILES is longer than `max_len`, this value is an empty array.
+            A 1D array of a SMILES sequence.
+            If the length of SMILES is longer than `max_len`, this value is an empty array.
+        
         """
         try:
             from rdkit import Chem

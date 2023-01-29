@@ -48,6 +48,7 @@ class RDKitDescriptors(MolecularFeaturizer):
     <class 'numpy.ndarray'>
     >>> features[0].shape
     (208,)
+    
     """
 
     def __init__(self,
@@ -58,28 +59,29 @@ class RDKitDescriptors(MolecularFeaturizer):
                  use_bcut2d: bool = True,
                  labels_only: bool = False):
         """Initialize this featurizer.
-
+    
         Parameters
         ----------
         descriptors_list: List[str] (default None)
-          List of RDKit descriptors to compute properties. When None, computes values
+            List of RDKit descriptors to compute properties. When None, computes values
         for descriptors which are chosen based on options set in other arguments.
         use_fragment: bool, optional (default True)
-          If True, the return value includes the fragment binary descriptors like 'fr_XXX'.
+            If True, the return value includes the fragment binary descriptors like 'fr_XXX'.
         ipc_avg: bool, optional (default True)
-          If True, the IPC descriptor calculates with avg=True option.
-          Please see this issue: https://github.com/rdkit/rdkit/issues/1527.
+            If True, the IPC descriptor calculates with avg=True option.
+            Please see this issue: https://github.com/rdkit/rdkit/issues/1527.
         is_normalized: bool, optional (default False)
-          If True, the return value contains normalized features.
+            If True, the return value contains normalized features.
         use_bcut2d: bool, optional (default True)
-          If True, the return value includes the descriptors like 'BCUT2D_XXX'.
+            If True, the return value includes the descriptors like 'BCUT2D_XXX'.
         labels_only: bool, optional (default False)
-          Returns only the presence or absence of a group.
-
+            Returns only the presence or absence of a group.
+    
         Notes
         -----
         * If both `labels_only` and `is_normalized` are True, then `is_normalized` takes
-          precendence and `labels_only` will not be applied.
+            precendence and `labels_only` will not be applied.
+        
         """
         try:
             from rdkit.Chem import Descriptors
@@ -109,7 +111,8 @@ class RDKitDescriptors(MolecularFeaturizer):
                 if desc_name in all_descriptors:
                     self.reqd_properties[desc_name] = all_descriptors[desc_name]
                 else:
-                    logging.error("Unable to find specified property %s" % desc_name)
+                    logging.error("Unable to find specified property %s" %
+                                  desc_name)
 
         # creates normalized functions dictionary if normalized features are required
         if is_normalized:
@@ -117,7 +120,8 @@ class RDKitDescriptors(MolecularFeaturizer):
             desc_names = list(self.reqd_properties.keys())
             for desc_name in desc_names:
                 if desc_name not in self.normalized_desc:
-                    logger.warning("No normalization for %s. Feature removed!", desc_name)
+                    logger.warning("No normalization for %s. Feature removed!",
+                                   desc_name)
                     self.reqd_properties.pop(desc_name)
 
         self.reqd_properties = dict(sorted(self.reqd_properties.items()))
@@ -125,17 +129,18 @@ class RDKitDescriptors(MolecularFeaturizer):
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
         """
         Calculate RDKit descriptors.
-
+    
         Parameters
         ----------
         datapoint: RDKitMol
-          RDKit Mol object
-
+            RDKit Mol object
+    
         Returns
         -------
         np.ndarray
-          1D array of RDKit descriptors for `mol`.
-          The length is `len(self.descriptors)`.
+            1D array of RDKit descriptors for `mol`.
+            The length is `len(self.descriptors)`.
+        
         """
         features: List[Union[int, float]] = []
         for desc_name, function in self.reqd_properties.items():
@@ -158,27 +163,27 @@ class RDKitDescriptors(MolecularFeaturizer):
         """
         Helper function to create dictionary of RDkit descriptors and
         associated cumulative density functions (CDFs) to generate normalized features.
-
+    
         -------------------------------------------------------------------------------
         -------------------------------------------------------------------------------
         Copyright (c) 2018-2021, Novartis Institutes for BioMedical Research Inc.
         All rights reserved.
-
+    
         Redistribution and use in source and binary forms, with or without
         modification, are permitted provided that the following conditions are
         met:
-
-            * Redistributions of source code must retain the above copyright
-              notice, this list of conditions and the following disclaimer.
-            * Redistributions in binary form must reproduce the above
-              copyright notice, this list of conditions and the following
-              disclaimer in the documentation and/or other materials provided
-              with the distribution.
-            * Neither the name of Novartis Institutes for BioMedical Research Inc.
-              nor the names of its contributors may be used to endorse or promote
-              products derived from this software without specific prior written
-              permission.
-
+    
+        * Redistributions of source code must retain the above copyright
+            notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above
+            copyright notice, this list of conditions and the following
+            disclaimer in the documentation and/or other materials provided
+            with the distribution.
+        * Neither the name of Novartis Institutes for BioMedical Research Inc.
+            nor the names of its contributors may be used to endorse or promote
+            products derived from this software without specific prior written
+            permission.
+    
         THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
         "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
         LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -192,6 +197,7 @@ class RDKitDescriptors(MolecularFeaturizer):
         OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         -------------------------------------------------------------------------------
         -------------------------------------------------------------------------------
+        
         """
         normalized_desc = {}
         # get sequence of descriptor names and normalization parameters from DescriptorsNormalizationParameters class

@@ -1,6 +1,7 @@
 """
 Featurizer implementations used in ChemCeption models.
 SmilesToImage featurizer for ChemCeption models taken from https://arxiv.org/abs/1710.02238
+
 """
 import numpy as np
 
@@ -39,13 +40,14 @@ class SmilesToImage(MolecularFeaturizer):
     References
     ----------
     .. [1] Goh, Garrett B., et al. "Using rule-based labels for weak supervised
-       learning: a ChemNet for transferable chemical property prediction."
-       Proceedings of the 24th ACM SIGKDD International Conference on Knowledge
-       Discovery & Data Mining. 2018.
+        learning: a ChemNet for transferable chemical property prediction."
+        Proceedings of the 24th ACM SIGKDD International Conference on Knowledge
+        Discovery & Data Mining. 2018.
 
     Note
     ----
     This class requires RDKit to be installed.
+
     """
 
     def __init__(self,
@@ -57,18 +59,19 @@ class SmilesToImage(MolecularFeaturizer):
         Parameters
         ----------
         img_size: int, default 80
-          Size of the image tensor
+            Size of the image tensor
         res: float, default 0.5
-          Displays the resolution of each pixel in Angstrom
+            Displays the resolution of each pixel in Angstrom
         max_len: int, default 250
-          Maximum allowed length of SMILES string
+            Maximum allowed length of SMILES string
         img_spec: str, default std
-          Indicates the channel organization of the image tensor
+            Indicates the channel organization of the image tensor
+        
         """
         if img_spec not in ["std", "engd"]:
             raise ValueError(
-                "Image mode must be one of std or engd. {} is not supported".format(
-                    img_spec))
+                "Image mode must be one of std or engd. {} is not supported".
+                format(img_spec))
 
         self.img_size = img_size
         self.max_len = max_len
@@ -78,17 +81,18 @@ class SmilesToImage(MolecularFeaturizer):
 
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
         """Featurizes a single SMILE into an image.
-
+    
         Parameters
         ----------
         datapoint: rdkit.Chem.rdchem.Mol
-          RDKit Mol object
-
+            RDKit Mol object
+    
         Returns
         -------
         np.ndarray
-          A 3D array of image, the shape is `(img_size, img_size, 1)`.
-          If the length of SMILES is longer than `max_len`, this value is an empty array.
+            A 3D array of image, the shape is `(img_size, img_size, 1)`.
+            If the length of SMILES is longer than `max_len`, this value is an empty array.
+        
         """
         try:
             from rdkit import Chem
@@ -118,7 +122,8 @@ class SmilesToImage(MolecularFeaturizer):
                 [[2.0, bond.GetBeginAtomIdx(),
                   bond.GetEndAtomIdx()] for bond in datapoint.GetBonds()])
             # Compute atom properties
-            atom_props = np.array([[atom.GetAtomicNum()] for atom in cmol.GetAtoms()])
+            atom_props = np.array(
+                [[atom.GetAtomicNum()] for atom in cmol.GetAtoms()])
 
             bond_props = bond_props.astype(np.float32)
             atom_props = atom_props.astype(np.float32)

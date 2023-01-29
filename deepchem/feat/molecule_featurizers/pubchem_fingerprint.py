@@ -46,16 +46,17 @@ class PubChemFingerprint(MolecularFeaturizer):
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
         """
         Calculate PubChem fingerprint.
-
+    
         Parameters
         ----------
         datapoint: rdkit.Chem.rdchem.Mol
-          RDKit Mol object
-
+            RDKit Mol object
+    
         Returns
         -------
         np.ndarray
-          1D array of RDKit descriptors for `mol`. The length is 881.
+            1D array of RDKit descriptors for `mol`. The length is 881.
+        
         """
         try:
             from rdkit import Chem

@@ -14,12 +14,12 @@ class MordredDescriptors(MolecularFeaturizer):
     Attributes
     ----------
     descriptors: List[str]
-      List of Mordred descriptor names used in this class.
+        List of Mordred descriptor names used in this class.
 
     References
     ----------
     .. [1] Moriwaki, Hirotomo, et al. "Mordred: a molecular descriptor calculator."
-       Journal of cheminformatics 10.1 (2018): 4.
+        Journal of cheminformatics 10.1 (2018): 4.
     .. [2] http://mordred-descriptor.github.io/documentation/master/descriptors.html
 
     Note
@@ -44,7 +44,8 @@ class MordredDescriptors(MolecularFeaturizer):
         Parameters
         ----------
         ignore_3D: bool, optional (default True)
-          Whether to use 3D information or not.
+            Whether to use 3D information or not.
+        
         """
         self.ignore_3D = ignore_3D
         self.calc: Optional[Callable] = None
@@ -53,18 +54,19 @@ class MordredDescriptors(MolecularFeaturizer):
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
         """
         Calculate Mordred descriptors.
-
+    
         Parameters
         ----------
         datapoint: rdkit.Chem.rdchem.Mol
-          RDKit Mol object
-
+            RDKit Mol object
+    
         Returns
         -------
         np.ndarray
-          1D array of Mordred descriptors for `mol`.
-          If ignore_3D is True, the length is 1613.
-          If ignore_3D is False, the length is 1826.
+            1D array of Mordred descriptors for `mol`.
+            If ignore_3D is True, the length is 1613.
+            If ignore_3D is False, the length is 1826.
+        
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
@@ -78,7 +80,8 @@ class MordredDescriptors(MolecularFeaturizer):
                 self.calc = Calculator(descriptors, ignore_3D=self.ignore_3D)
                 self.descriptors = list(descriptors.__all__)
             except ModuleNotFoundError:
-                raise ImportError("This class requires Mordred to be installed.")
+                raise ImportError(
+                    "This class requires Mordred to be installed.")
 
         feature = self.calc(datapoint)
         # convert errors to zero
