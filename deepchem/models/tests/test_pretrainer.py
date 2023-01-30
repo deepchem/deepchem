@@ -3,10 +3,10 @@ import torch.nn as nn
 import pytest
 import deepchem as dc
 import numpy as np
-from deepchem.models.torch_models.pretrainer import Pretrainer, PretrainableTorchModel
+from deepchem.models.torch_models.pretrainer import Pretrainer, ModularTorchModel
 from deepchem.models.torch_models.torch_model import TorchModel
 
-class ExampleTorchModel(PretrainableTorchModel):
+class ExampleTorchModel(ModularTorchModel):
     """Example TorchModel for testing pretraining."""
 
     def __init__(self, input_dim, d_hidden, n_layers, d_output, **kwargs):
@@ -123,7 +123,7 @@ def test_fit_restore():
 
 @pytest.mark.torch
 def test_load_freeze_embedding():
-    """Test that the pretrainer can be used to load into a PretrainableTorchModel, freeze the TorchModel embedding, and train the head."""
+    """Test that the pretrainer can be used to load into a ModularTorchModel, freeze the TorchModel embedding, and train the head."""
     
     np.random.seed(123)
     torch.manual_seed(10)
