@@ -38,7 +38,7 @@ class Jackhmmer:
         filter_f3: float = 0.0000005,
         incdom_e: Optional[float] = None,
         dom_e: Optional[float] = None,
-        num_streamed_chunks: Optional[int] = None,
+        num_streamed_chunks: Optional[int] = None, 
         streaming_callback: Optional[Callable[[int], None]] = None,
     ):
         """Initializes the Python Jackhmmer wrapper, an interative protein search
@@ -224,8 +224,8 @@ class Jackhmmer:
             return [self._query_chunk(input_fasta_path, self.database_path)]
 
         db_basename = os.path.basename(self.database_path)
-        db_remote_chunk = lambda db_idx: f"{self.database_path}.{db_idx}"
-        db_local_chunk = lambda db_idx: f"/tmp/ramdisk/{db_basename}.{db_idx}"
+        def db_remote_chunk(db_idx): return f"{self.database_path}.{db_idx}"
+        def db_local_chunk(db_idx): return f"/tmp/ramdisk/{db_basename}.{db_idx}"
 
         # Remove existing files to prevent OOM
         for f in glob.glob(db_local_chunk("[0-9]*")):
