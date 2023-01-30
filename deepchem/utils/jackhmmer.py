@@ -19,14 +19,8 @@ import glob
 import logging
 import os
 import subprocess
-import platform
 from urllib import request
 from typing import Any, Callable, Sequence, Mapping, Optional
-
-# check windows, mac, warning
-IS_WINDOWS = platform.system() == 'Windows'
-
-# sudo apt install --quiet --yes hmmer
 
 class Jackhmmer:
     def __init__(
@@ -129,7 +123,6 @@ class Jackhmmer:
     def _query_chunk(self, input_fasta_path: str,
                      database_path: str) -> Mapping[str, Any]:
         """Queries the database chunk using Jackhmmer."""
-    # with contextmanagement.tmpdir_manager(base_dir="/tmp") as query_tmp_dir:
         query_tmp_dir = "/tmp"
         sto_path = os.path.join(query_tmp_dir, "output.sto")
 
@@ -173,16 +166,16 @@ class Jackhmmer:
 
         if self.incdom_e is not None:
             cmd_flags.extend(["--incdomE", str(self.incdom_e)])
-
+            
         cmd = ([self.binary_path] + cmd_flags + [input_fasta_path, database_path])
 
-        logging.info('Launching subprocess "%s"', " ".join(cmd))
-        process = subprocess.Popen(cmd,
+        cmd_str = " ".join(cmd)
+        process = subprocess.Popen(cmd_str,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE,
                                     shell=True)
 
-        _, stderr = process.communicate()
+        out, stderr = process.communicate()
         retcode = process.wait()
 
         if retcode:
