@@ -15,7 +15,7 @@ def write_vina_conf(protein_filename: str,
                     box_dims: np.ndarray,
                     conf_filename: str,
                     num_modes: int = 9,
-                    exhaustiveness: int = None) -> None:
+                    exhaustiveness: Optional[int] = None) -> None:
   """Writes Vina configuration file to disk.
 
   Autodock Vina accepts a configuration file which provides options
@@ -61,7 +61,7 @@ def write_gnina_conf(protein_filename: str,
                      ligand_filename: str,
                      conf_filename: str,
                      num_modes: int = 9,
-                     exhaustiveness: int = None,
+                     exhaustiveness: Optional[int] = None,
                      **kwargs) -> None:
   """Writes GNINA configuration file to disk.
 

@@ -185,7 +185,6 @@ class MPNNModel(TorchModel):
   * For each graph, compute its representation by combining the representations
     of all nodes in it, which involves a Set2Set layer.
   * Perform the final prediction using an MLP
-
   Examples
   --------
   >>> import deepchem as dc
@@ -210,6 +209,8 @@ class MPNNModel(TorchModel):
   -----
   This class requires DGL (https://github.com/dmlc/dgl) and DGL-LifeSci
   (https://github.com/awslabs/dgl-lifesci) to be installed.
+
+  The featurizer used with MPNNModel must produce a GraphData object which should have both 'edge' and 'node' features.
   """
 
   def __init__(self,
@@ -255,25 +256,26 @@ class MPNNModel(TorchModel):
     kwargs
       This can include any keyword argument of TorchModel.
     """
-    model = MPNN(
-        n_tasks=n_tasks,
-        node_out_feats=node_out_feats,
-        edge_hidden_feats=edge_hidden_feats,
-        num_step_message_passing=num_step_message_passing,
-        num_step_set2set=num_step_set2set,
-        num_layer_set2set=num_layer_set2set,
-        mode=mode,
-        number_atom_features=number_atom_features,
-        number_bond_features=number_bond_features,
-        n_classes=n_classes)
+    model = MPNN(n_tasks=n_tasks,
+                 node_out_feats=node_out_feats,
+                 edge_hidden_feats=edge_hidden_feats,
+                 num_step_message_passing=num_step_message_passing,
+                 num_step_set2set=num_step_set2set,
+                 num_layer_set2set=num_layer_set2set,
+                 mode=mode,
+                 number_atom_features=number_atom_features,
+                 number_bond_features=number_bond_features,
+                 n_classes=n_classes)
     if mode == 'regression':
       loss: Loss = L2Loss()
       output_types = ['prediction']
     else:
       loss = SparseSoftmaxCrossEntropy()
       output_types = ['prediction', 'loss']
-    super(MPNNModel, self).__init__(
-        model, loss=loss, output_types=output_types, **kwargs)
+    super(MPNNModel, self).__init__(model,
+                                    loss=loss,
+                                    output_types=output_types,
+                                    **kwargs)
 
     self._self_loop = self_loop
 
@@ -304,6 +306,6 @@ class MPNNModel(TorchModel):
         graph.to_dgl_graph(self_loop=self._self_loop) for graph in inputs[0]
     ]
     inputs = dgl.batch(dgl_graphs).to(self.device)
-    _, labels, weights = super(MPNNModel, self)._prepare_batch(([], labels,
-                                                                weights))
+    _, labels, weights = super(MPNNModel, self)._prepare_batch(
+        ([], labels, weights))
     return inputs, labels, weights

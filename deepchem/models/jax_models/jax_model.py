@@ -12,7 +12,7 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 from deepchem.trans.transformers import Transformer, undo_transforms
 
 from typing import Any, Callable, Iterable, List, Optional, Tuple, Union, Sequence
-from deepchem.utils.typing import LossFn, OneOrMany, ArrayLike
+from deepchem.utils.typing import LossFn, OneOrMany
 
 # JAX depend
 import jax.numpy as jnp
@@ -100,7 +100,7 @@ class JaxModel(Model):
                output_types: Optional[List[str]] = None,
                batch_size: int = 100,
                learning_rate: float = 0.001,
-               optimizer: Union[optax.GradientTransformation, Optimizer] = None,
+               optimizer: Optional[Union[optax.GradientTransformation, Optimizer]] = None,
                grad_fn: Callable = create_default_gradient_fn,
                update_fn: Callable = create_default_update_fn,
                eval_fn: Callable = create_default_eval_fn,
@@ -213,7 +213,7 @@ class JaxModel(Model):
           dataset: Dataset,
           nb_epochs: int = 10,
           deterministic: bool = False,
-          loss: Union[Loss, LossFn] = None,
+          loss: Optional[Union[Loss, LossFn]] = None,
           callbacks: Union[Callable, List[Callable]] = [],
           all_losses: Optional[List[float]] = None) -> float:
     """Train this model on a dataset.
@@ -267,7 +267,7 @@ class JaxModel(Model):
 
   def fit_generator(self,
                     generator: Iterable[Tuple[Any, Any, Any]],
-                    loss: Union[Loss, LossFn] = None,
+                    loss: Optional[Union[Loss, LossFn]] = None,
                     callbacks: Union[Callable, List[Callable]] = [],
                     all_losses: Optional[List[float]] = None) -> float:
     if not isinstance(callbacks, SequenceCollection):
@@ -497,8 +497,7 @@ class JaxModel(Model):
       self,
       X: Sequence,
       masks: int = 50) -> OneOrMany[Tuple[np.ndarray, np.ndarray]]:
-
-    pass
+    raise NotImplementedError('Predicting uncertainity on batch is not supported currently for JAX models')
 
   def predict(
       self,
@@ -537,8 +536,8 @@ class JaxModel(Model):
     return self._global_step
 
   def predict_embedding(self, dataset: Dataset) -> OneOrMany[np.ndarray]:
+    raise NotImplementedError('Predicting embedding is not supported currently for JAX models')
 
-    pass
 
   # def predict_uncertainty(self, dataset: Dataset, masks: int = 50
   #                        ) -> OneOrMany[Tuple[np.ndarray, np.ndarray]]:

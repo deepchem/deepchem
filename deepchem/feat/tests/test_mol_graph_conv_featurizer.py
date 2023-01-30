@@ -85,9 +85,9 @@ class TestMolGraphConvFeaturizer(unittest.TestCase):
 
     assert len(graph_feat) == 2
     assert graph_feat[0].num_nodes == 6
-    assert graph_feat[0].pos.shape == (6, 3)
+    assert graph_feat[0].node_pos_features.shape == (6, 3)
     assert graph_feat[1].num_nodes == 2
-    assert graph_feat[1].pos.shape == (2, 3)
+    assert graph_feat[1].node_pos_features.shape == (2, 3)
 
 
 class TestPagtnMolGraphConvFeaturizer(unittest.TestCase):

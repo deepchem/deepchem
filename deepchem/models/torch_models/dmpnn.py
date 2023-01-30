@@ -239,7 +239,7 @@ class _MapperDMPNN:
     Method to get b2revb and replace the reverse bond indices with -1 in mapping.
     """
     # mapping from bond index to the index of the reverse bond
-    b2revb: np.ndarray = np.empty(self.num_bonds, dtype=int)
+    b2revb = np.empty(self.num_bonds, dtype=int)
     for i in range(self.num_bonds):
       if i % 2 == 0:
         b2revb[i] = i + 1

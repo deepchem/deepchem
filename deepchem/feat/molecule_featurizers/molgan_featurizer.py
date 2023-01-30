@@ -60,8 +60,8 @@ class MolGanFeaturizer(MolecularFeaturizer):
       self,
       max_atom_count: int = 9,
       kekulize: bool = True,
-      bond_labels: List[RDKitBond] = None,
-      atom_labels: List[int] = None,
+      bond_labels: Optional[List[RDKitBond]] = None,
+      atom_labels: Optional[List[int]] = None,
   ):
     """
     Parameters

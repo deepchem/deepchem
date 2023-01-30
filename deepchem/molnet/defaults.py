@@ -5,7 +5,7 @@ Featurizers, transformers, and splitters for MolNet.
 import importlib
 import inspect
 import logging
-from typing import Dict, Any
+from typing import Optional, Dict, Any
 
 from deepchem.feat.base_classes import Featurizer
 from deepchem.trans.transformers import Transformer
@@ -14,7 +14,7 @@ from deepchem.splits.splitters import Splitter
 logger = logging.getLogger(__name__)
 
 
-def get_defaults(module_name: str = None) -> Dict[str, Any]:
+def get_defaults(module_name: Optional[str] = None) -> Dict[str, Any]:
   """Get featurizers, transformers, and splitters.
 
   This function returns a dictionary with class names as keys and classes

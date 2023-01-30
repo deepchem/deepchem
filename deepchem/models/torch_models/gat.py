@@ -6,6 +6,7 @@ import torch.nn.functional as F
 
 from deepchem.models.losses import Loss, L2Loss, SparseSoftmaxCrossEntropy
 from deepchem.models.torch_models.torch_model import TorchModel
+from typing import Optional
 
 
 class GAT(nn.Module):
@@ -54,9 +55,9 @@ class GAT(nn.Module):
 
   def __init__(self,
                n_tasks: int,
-               graph_attention_layers: list = None,
+               graph_attention_layers: Optional[list] = None,
                n_attention_heads: int = 8,
-               agg_modes: list = None,
+               agg_modes: Optional[list] = None,
                activation=F.elu,
                residual: bool = True,
                dropout: float = 0.,
@@ -253,9 +254,9 @@ class GATModel(TorchModel):
 
   def __init__(self,
                n_tasks: int,
-               graph_attention_layers: list = None,
+               graph_attention_layers: Optional[list] = None,
                n_attention_heads: int = 8,
-               agg_modes: list = None,
+               agg_modes: Optional[list] = None,
                activation=F.elu,
                residual: bool = True,
                dropout: float = 0.,

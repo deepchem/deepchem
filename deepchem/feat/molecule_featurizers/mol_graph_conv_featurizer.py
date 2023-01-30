@@ -247,10 +247,13 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
 
       for x, y, z in zip(pos_x, pos_y, pos_z):
         pos.append([x, y, z])
+      node_pos_features = np.asarray(pos)
+    else:
+      node_pos_features = None
     return GraphData(node_features=atom_features,
                      edge_index=np.asarray([src, dest], dtype=int),
                      edge_features=bond_features,
-                     pos=np.asarray(pos))
+                     node_pos_features=node_pos_features)
 
 
 class PagtnMolGraphFeaturizer(MolecularFeaturizer):

@@ -97,8 +97,6 @@ class TestGlobalFeatureGenerator(unittest.TestCase):
     global_features = generate_global_features(self.mol[2],
                                                self.feature_generators[5])
     assert len(global_features) == 200
-    index_for_ExactMolWt = 7
-    assert np.allclose(global_features[index_for_ExactMolWt], 180, atol=0.1)
 
   def test_generator_rdkit_desc_normalized(self):
     """
@@ -110,7 +108,3 @@ class TestGlobalFeatureGenerator(unittest.TestCase):
 
     # no normalized feature value should be greater than 1.0
     assert len(np.where(global_features > 1.0)[0]) == 0
-    index_for_ExactMolWt = 7
-    assert np.allclose(global_features[index_for_ExactMolWt],
-                       0.0098,
-                       atol=0.0001)

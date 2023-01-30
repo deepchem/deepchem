@@ -6,6 +6,7 @@ import torch.nn.functional as F
 
 from deepchem.models.losses import Loss, L2Loss, SparseSoftmaxCrossEntropy
 from deepchem.models.torch_models.torch_model import TorchModel
+from typing import Optional
 
 
 class GCN(nn.Module):
@@ -69,7 +70,7 @@ class GCN(nn.Module):
 
   def __init__(self,
                n_tasks: int,
-               graph_conv_layers: list = None,
+               graph_conv_layers: Optional[list] = None,
                activation=None,
                residual: bool = True,
                batchnorm: bool = False,
@@ -252,7 +253,7 @@ class GCNModel(TorchModel):
 
   def __init__(self,
                n_tasks: int,
-               graph_conv_layers: list = None,
+               graph_conv_layers: Optional[list] = None,
                activation=None,
                residual: bool = True,
                batchnorm: bool = False,
