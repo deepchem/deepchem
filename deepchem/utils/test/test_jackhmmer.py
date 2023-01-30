@@ -10,5 +10,4 @@ def test_jackhmmer():
     for line in result[0]['sto'].split('\n'):
         if line.startswith('#=GC RF'):
             assert line == exp_val
-            
-test_jackhmmer()
+        
