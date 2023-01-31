@@ -32,7 +32,7 @@ def create_char_to_idx(filename: str,
     -------
     Dict[str, int]
         A dictionary mapping characters to their integer indexes.
-    
+
     """
     smiles_df = pd.read_csv(filename)
     char_set = set()
@@ -68,7 +68,7 @@ class SmilesToSeq(MolecularFeaturizer):
     Note
     ----
     This class requires RDKit to be installed.
-    
+
     """
 
     def __init__(self,
@@ -76,7 +76,7 @@ class SmilesToSeq(MolecularFeaturizer):
                  max_len: int = 250,
                  pad_len: int = 10):
         """Initialize this class.
-    
+
         Parameters
         ----------
         char_to_idx: Dict
@@ -85,7 +85,7 @@ class SmilesToSeq(MolecularFeaturizer):
             Maximum allowed length of the SMILES string.
         pad_len: int, default 10
             Amount of padding to add on either side of the SMILES seq
-        
+
         """
         self.max_len = max_len
         self.char_to_idx = char_to_idx
@@ -123,18 +123,18 @@ class SmilesToSeq(MolecularFeaturizer):
 
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
         """Featurizes a SMILES sequence.
-    
+
         Parameters
         ----------
         datapoints: rdkit.Chem.rdchem.Mol
             RDKit Mol object
-    
+
         Returns
         -------
         np.ndarray
             A 1D array of a SMILES sequence.
             If the length of SMILES is longer than `max_len`, this value is an empty array.
-        
+
         """
         try:
             from rdkit import Chem

@@ -45,7 +45,7 @@ class MordredDescriptors(MolecularFeaturizer):
         ----------
         ignore_3D: bool, optional (default True)
             Whether to use 3D information or not.
-        
+
         """
         self.ignore_3D = ignore_3D
         self.calc: Optional[Callable] = None
@@ -54,19 +54,19 @@ class MordredDescriptors(MolecularFeaturizer):
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
         """
         Calculate Mordred descriptors.
-    
+
         Parameters
         ----------
         datapoint: rdkit.Chem.rdchem.Mol
             RDKit Mol object
-    
+
         Returns
         -------
         np.ndarray
             1D array of Mordred descriptors for `mol`.
             If ignore_3D is True, the length is 1613.
             If ignore_3D is False, the length is 1826.
-        
+
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")

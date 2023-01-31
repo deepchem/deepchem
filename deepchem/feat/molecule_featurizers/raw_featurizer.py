@@ -14,33 +14,33 @@ class RawFeaturizer(MolecularFeaturizer):
     Note
     ----
     This class requires RDKit to be installed.
-    
+
     """
 
     def __init__(self, smiles: bool = False):
         """Initialize this featurizer.
-    
+
         Parameters
         ----------
         smiles: bool, optional (default False)
             If True, encode this molecule as a SMILES string. Else as a RDKit mol.
-        
+
         """
         self.smiles = smiles
 
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> Union[str, RDKitMol]:
         """Calculate either smiles string or pass through raw molecule.
-    
+
         Parameters
         ----------
         datapoint: rdkit.Chem.rdchem.Mol
             RDKit Mol object
-    
+
         Returns
         -------
         str or rdkit.Chem.rdchem.Mol
             SMILES string or RDKit Mol object.
-        
+
         """
         try:
             from rdkit import Chem

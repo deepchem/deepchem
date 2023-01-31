@@ -294,7 +294,7 @@ class CoulombMatrixEig(CoulombMatrix):
             The eigenvalues of Coulomb matrix for molecules.
             The default shape is `(num_confs, max_atoms)`.
             If num_confs == 1, the shape is `(max_atoms,)`.
-            
+
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")

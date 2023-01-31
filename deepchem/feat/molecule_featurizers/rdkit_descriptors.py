@@ -48,7 +48,7 @@ class RDKitDescriptors(MolecularFeaturizer):
     <class 'numpy.ndarray'>
     >>> features[0].shape
     (208,)
-    
+
     """
 
     def __init__(self,
@@ -59,7 +59,7 @@ class RDKitDescriptors(MolecularFeaturizer):
                  use_bcut2d: bool = True,
                  labels_only: bool = False):
         """Initialize this featurizer.
-    
+
         Parameters
         ----------
         descriptors_list: List[str] (default None)
@@ -76,12 +76,12 @@ class RDKitDescriptors(MolecularFeaturizer):
             If True, the return value includes the descriptors like 'BCUT2D_XXX'.
         labels_only: bool, optional (default False)
             Returns only the presence or absence of a group.
-    
+
         Notes
         -----
         * If both `labels_only` and `is_normalized` are True, then `is_normalized` takes
             precendence and `labels_only` will not be applied.
-        
+
         """
         try:
             from rdkit.Chem import Descriptors
@@ -129,18 +129,18 @@ class RDKitDescriptors(MolecularFeaturizer):
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
         """
         Calculate RDKit descriptors.
-    
+
         Parameters
         ----------
         datapoint: RDKitMol
             RDKit Mol object
-    
+
         Returns
         -------
         np.ndarray
             1D array of RDKit descriptors for `mol`.
             The length is `len(self.descriptors)`.
-        
+
         """
         features: List[Union[int, float]] = []
         for desc_name, function in self.reqd_properties.items():
@@ -163,16 +163,16 @@ class RDKitDescriptors(MolecularFeaturizer):
         """
         Helper function to create dictionary of RDkit descriptors and
         associated cumulative density functions (CDFs) to generate normalized features.
-    
+
         -------------------------------------------------------------------------------
         -------------------------------------------------------------------------------
         Copyright (c) 2018-2021, Novartis Institutes for BioMedical Research Inc.
         All rights reserved.
-    
+
         Redistribution and use in source and binary forms, with or without
         modification, are permitted provided that the following conditions are
         met:
-    
+
         * Redistributions of source code must retain the above copyright
             notice, this list of conditions and the following disclaimer.
         * Redistributions in binary form must reproduce the above
@@ -183,7 +183,7 @@ class RDKitDescriptors(MolecularFeaturizer):
             nor the names of its contributors may be used to endorse or promote
             products derived from this software without specific prior written
             permission.
-    
+
         THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
         "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
         LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -197,7 +197,7 @@ class RDKitDescriptors(MolecularFeaturizer):
         OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         -------------------------------------------------------------------------------
         -------------------------------------------------------------------------------
-        
+
         """
         normalized_desc = {}
         # get sequence of descriptor names and normalization parameters from DescriptorsNormalizationParameters class

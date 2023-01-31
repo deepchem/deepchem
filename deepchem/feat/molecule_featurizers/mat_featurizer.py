@@ -68,7 +68,7 @@ class MATFeaturizer(MolecularFeaturizer):
         ----------
         mol: RDKitMol
             A processed RDKitMol object which is embedded, UFF Optimized and has Hydrogen atoms removed. If the former conditions are not met and there is a value error, then 2D Coordinates are computed instead.
-        
+
         """
         try:
             from rdkit.Chem import AllChem
@@ -98,7 +98,7 @@ class MATFeaturizer(MolecularFeaturizer):
         ----------
         ndarray
             Numpy array containing atom features.
-        
+
         """
         attrib = []
         attrib += one_hot_encode(atom.GetAtomicNum(),
@@ -126,7 +126,7 @@ class MATFeaturizer(MolecularFeaturizer):
         ----------
         Atom_features: ndarray
             Numpy array containing atom features.
-        
+
         """
         return np.array([self.atom_features(atom) for atom in mol.GetAtoms()])
 
@@ -149,7 +149,7 @@ class MATFeaturizer(MolecularFeaturizer):
         ----------
         Atom_features: Tuple[np.ndarray, np.ndarray, np.ndarray]
             A tuple containing three numpy arrays: node_features, adjacency_matrix, distance_matrix.
-        
+
         """
 
         if node_features is not None:
@@ -186,7 +186,7 @@ class MATFeaturizer(MolecularFeaturizer):
         ----------
         array: np.ndarray
             Array padded to input shape.
-        
+
         """
         result = np.zeros(shape=shape)
         slices = tuple(slice(s) for s in array.shape)
@@ -205,7 +205,7 @@ class MATFeaturizer(MolecularFeaturizer):
         ----------
         array: np.ndarray
             Sequence with padded arrays.
-        
+
         """
         shapes = np.stack([np.array(t.shape) for t in sequence])
         max_shape = tuple(np.max(shapes, axis=0))
@@ -224,7 +224,7 @@ class MATFeaturizer(MolecularFeaturizer):
         -------
         MATEncoding
             A MATEncoding dataclass instance consisting of processed node_features, adjacency_matrix and distance_matrix.
-        
+
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")

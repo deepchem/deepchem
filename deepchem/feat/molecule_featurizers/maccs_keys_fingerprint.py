@@ -50,12 +50,12 @@ class MACCSKeysFingerprint(MolecularFeaturizer):
         -------
         np.ndarray
                 1D array of RDKit descriptors for `mol`. The length is 167.
-                
+
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
             raise DeprecationWarning(
-                            'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+                'Mol is being phased out as a parameter, please pass "datapoint" instead.'
             )
 
         if self.calculator is None:

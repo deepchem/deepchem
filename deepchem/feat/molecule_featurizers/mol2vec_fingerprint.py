@@ -29,7 +29,7 @@ def _mol2alt_sentence(mol, radius):
     list
         alternating sentence
     combined
-    
+
     """
     # Copied from https://github.com/samoturk/mol2vec/blob/850d944d5f48a58e26ed0264332b5741f72555aa/mol2vec/features.py#L129-L168
     radii = list(range(int(radius) + 1))
@@ -115,7 +115,7 @@ class Mol2VecFingerprint(MolecularFeaturizer):
             github repository.
         unseen: str, optional (default 'UNK')
             The string to used to replace uncommon words/identifiers while training.
-        
+
         """
         try:
             from gensim.models import word2vec
@@ -141,7 +141,7 @@ class Mol2VecFingerprint(MolecularFeaturizer):
     def sentences2vec(self, sentences: list, model, unseen=None) -> np.ndarray:
         """Generate vectors for each sentence (list) in a list of sentences. Vector is simply a
         sum of vectors for individual words.
-    
+
         Parameters
         ----------
         sentences : list, array
@@ -154,7 +154,7 @@ class Mol2VecFingerprint(MolecularFeaturizer):
         Returns
         -------
         np.array
-        
+
         """
         keys = set(model.wv.key_to_index.keys())
         vec = []
@@ -180,17 +180,17 @@ class Mol2VecFingerprint(MolecularFeaturizer):
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
         """
         Calculate Mordred descriptors.
-    
+
         Parameters
         ----------
         datapoint: rdkit.Chem.rdchem.Mol
             RDKit Mol object
-    
+
         Returns
         -------
         np.ndarray
             1D array of mol2vec fingerprint. The default length is 300.
-        
+
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")

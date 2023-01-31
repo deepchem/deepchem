@@ -24,7 +24,7 @@ class GraphMatrix:
     -------
     graph: GraphMatrix
         A molecule graph with some features.
-    
+
     """
 
     def __init__(self, adjacency_matrix: np.ndarray, node_features: np.ndarray):
@@ -78,12 +78,12 @@ class MolGanFeaturizer(MolecularFeaturizer):
             List of types of bond used for generation of adjacency matrix
         atom_labels: List[int]
             List of atomic numbers used for generation of node features
-    
+
         References
         ---------
         .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model for
             small molecular graphs" (2018), https://arxiv.org/abs/1805.11973
-        
+
         """
 
         self.max_atom_count = max_atom_count
@@ -124,17 +124,17 @@ class MolGanFeaturizer(MolecularFeaturizer):
         """
         Calculate adjacency matrix and nodes features for RDKitMol.
         It strips any chirality and charges
-    
+
         Parameters
         ----------
         datapoint: rdkit.Chem.rdchem.Mol
             RDKit mol object.
-    
+
         Returns
         -------
         graph: GraphMatrix
             A molecule graph with some features.
-        
+
         """
 
         try:
@@ -185,7 +185,7 @@ class MolGanFeaturizer(MolecularFeaturizer):
         like chirality or charge are not included.
         Therefore, any checks of type: original_smiles == defeaturized_smiles
         will fail on chiral or charged compounds.
-    
+
         Parameters
         ----------
         graph_matrix: GraphMatrix
@@ -194,12 +194,12 @@ class MolGanFeaturizer(MolecularFeaturizer):
             Should RDKit sanitization be included in the process.
         cleanup: bool, default True
             Splits salts and removes compounds with "*" atom types
-    
+
         Returns
         -------
         mol: RDKitMol object
             RDKitMol object representing molecule.
-        
+
         """
 
         try:
@@ -247,19 +247,19 @@ class MolGanFeaturizer(MolecularFeaturizer):
                     log_every_n: int = 1000) -> np.ndarray:
         """
         Calculates molecules from corresponding GraphMatrix objects.
-    
+
         Parameters
         ----------
         graphs: GraphMatrix / iterable
             GraphMatrix object or corresponding iterable
         log_every_n: int, default 1000
             Logging messages reported every `log_every_n` samples.
-    
+
         Returns
         -------
         features: np.ndarray
             A numpy array containing RDKitMol objext.
-        
+
         """
 
         # Special case handling of single molecule

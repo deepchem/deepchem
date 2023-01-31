@@ -506,7 +506,7 @@ class DMPNNFeaturizer(MolecularFeaturizer):
             - edge_index: Graph connectivity in COO format with shape [2, num_edges]
             - edge_features: Edge feature matrix with shape [num_edges, num_edge_features]
             - global_features: Array of global molecular features
-            
+
         """
         if isinstance(datapoint, Chem.rdchem.Mol):
             if self.is_adding_hs:

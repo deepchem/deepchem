@@ -59,7 +59,7 @@ class BPSymmetryFunctionInput(MolecularFeaturizer):
         -------
         np.ndarray
             A numpy array of symmetry function. The shape is `(max_atoms, 4)`.
-            
+
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")

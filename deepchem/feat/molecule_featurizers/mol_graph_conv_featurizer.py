@@ -147,7 +147,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
     Note
     ----
     This class requires RDKit to be installed.
-    
+
     """
 
     def __init__(self,
@@ -174,17 +174,17 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
 
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> GraphData:
         """Calculate molecule graph features from RDKit mol object.
-    
+
         Parameters
         ----------
         datapoint: rdkit.Chem.rdchem.Mol
             RDKit mol object.
-    
+
         Returns
         -------
         graph: GraphData
             A molecule graph with some features.
-        
+
         """
         assert datapoint.GetNumAtoms(
         ) > 1, "More than one atom should be present in the molecule for this featurizer to work."
@@ -327,7 +327,7 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
             Maximum distance up to which shortest paths must be considered.
             Paths shorter than max_length will be padded and longer will be
             truncated, default to ``5``.
-        
+
         """
 
         self.SYMBOLS = [
@@ -345,17 +345,17 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
 
     def _pagtn_atom_featurizer(self, atom: RDKitAtom) -> np.ndarray:
         """Calculate Atom features from RDKit atom object.
-    
+
         Parameters
         ----------
         mol: rdkit.Chem.rdchem.Mol
             RDKit mol object.
-    
+
         Returns
         -------
         atom_feat: np.ndarray
             numpy vector of atom features.
-        
+
         """
         atom_type = get_atom_type_one_hot(atom, self.SYMBOLS, False)
         formal_charge = get_atom_formal_charge_one_hot(
@@ -375,7 +375,7 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
     def _edge_features(self, mol: RDKitMol, path_atoms: Tuple[int, ...],
                        ring_info) -> np.ndarray:
         """Computes the edge features for a given pair of nodes.
-    
+
         Parameters
         ----------
         mol : : RDKitMol
@@ -384,7 +384,7 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
             Shortest path between the given pair of nodes.
         ring_info: list
             Different rings that contain the pair of atoms
-        
+
         """
         features: List = []
         path_bonds = []
@@ -431,19 +431,19 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
     def _pagtn_edge_featurizer(self,
                                mol: RDKitMol) -> Tuple[np.ndarray, np.ndarray]:
         """Calculate bond features from RDKit mol object.
-    
+
         Parameters
         ----------
         mol: rdkit.Chem.rdchem.Mol
             RDKit mol object.
-    
+
         Returns
         -------
         np.ndarray
             Source and Destination node indexes of each bond.
         np.ndarray
             numpy vector of bond features.
-        
+
         """
         n_atoms = mol.GetNumAtoms()
         # To get the shortest paths between two nodes.
@@ -470,17 +470,17 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
 
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> GraphData:
         """Calculate molecule graph features from RDKit mol object.
-    
+
         Parameters
         ----------
         datapoint: rdkit.Chem.rdchem.Mol
             RDKit mol object.
-    
+
         Returns
         -------
         graph: GraphData
             A molecule graph with some features.
-        
+
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")

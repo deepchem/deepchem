@@ -66,7 +66,7 @@ class SmilesToImage(MolecularFeaturizer):
             Maximum allowed length of SMILES string
         img_spec: str, default std
             Indicates the channel organization of the image tensor
-        
+
         """
         if img_spec not in ["std", "engd"]:
             raise ValueError(
@@ -81,18 +81,18 @@ class SmilesToImage(MolecularFeaturizer):
 
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
         """Featurizes a single SMILE into an image.
-    
+
         Parameters
         ----------
         datapoint: rdkit.Chem.rdchem.Mol
             RDKit Mol object
-    
+
         Returns
         -------
         np.ndarray
             A 3D array of image, the shape is `(img_size, img_size, 1)`.
             If the length of SMILES is longer than `max_len`, this value is an empty array.
-        
+
         """
         try:
             from rdkit import Chem

@@ -102,7 +102,7 @@ class CircularFingerprint(MolecularFeaturizer):
         -------
         np.ndarray
             A numpy array of circular fingerprint.
-            
+
         """
         try:
             from rdkit import Chem, DataStructs

@@ -43,14 +43,14 @@ class OneHotFeaturizer(Featurizer):
     inputs.
 
     It does not need RDKit to be installed to work with arbitrary strings.
-    
+
     """
 
     def __init__(self,
                  charset: List[str] = ZINC_CHARSET,
                  max_length: Optional[int] = 100):
         """Initialize featurizer.
-    
+
         Parameters
         ----------
         charset: List[str] (default ZINC_CHARSET)
@@ -58,7 +58,7 @@ class OneHotFeaturizer(Featurizer):
         max_length: Optional[int], optional (default 100)
             The max length for string. If the length of string is shorter than
             max_length, the string is padded using space.
-    
+
         If max_length is None, no padding is performed and arbitrary length
         strings are allowed.
         """
@@ -76,14 +76,14 @@ class OneHotFeaturizer(Featurizer):
                   log_every_n: int = 1000,
                   **kwargs) -> np.ndarray:
         """Featurize strings or mols.
-    
+
         Parameters
         ----------
         datapoints: list
             A list of either strings (str or numpy.str_) or RDKit molecules.
         log_every_n: int, optional (default 1000)
             How many elements are featurized every time a featurization is logged.
-        
+
         """
         datapoints = list(datapoints)
         if (len(datapoints) < 1):
@@ -101,19 +101,19 @@ class OneHotFeaturizer(Featurizer):
 
     def _featurize_string(self, string: str) -> np.ndarray:
         """Compute one-hot featurization of string.
-    
+
         Parameters
         ----------
         string: str
             An arbitrary string to be featurized.
-    
+
         Returns
         -------
         np.ndarray
             An one hot vector encoded from arbitrary input string.
             The shape is `(max_length, len(charset) + 1)`.
             The index of unknown character is `len(charset)`.
-        
+
         """
         if isinstance(self.max_length, int):
             if (len(string) > self.max_length):  # Validation
@@ -128,19 +128,19 @@ class OneHotFeaturizer(Featurizer):
 
     def _featurize_mol(self, mol: RDKitMol) -> np.ndarray:
         """Compute one-hot featurization of this molecule.
-    
+
         Parameters
         ----------
         mol: rdKit.Chem.rdchem.Mol
             RDKit Mol object
-    
+
         Returns
         -------
         np.ndarray
             An one hot vector encoded from SMILES.
             The shape is '(max_length, len(charset) + 1)'
             The index of unknown character is 'len(charset)'.
-        
+
         """
         try:
             from rdkit import Chem
@@ -151,33 +151,33 @@ class OneHotFeaturizer(Featurizer):
 
     def pad_smile(self, smiles: str) -> str:
         """Pad SMILES string to `self.pad_length`
-    
+
         Parameters
         ----------
         smiles: str
             The SMILES string to be padded.
-    
+
         Returns
         -------
         str
             SMILES string space padded to self.pad_length
-        
+
         """
         return self.pad_string(smiles)
 
     def pad_string(self, string: str) -> str:
         """Pad string to `self.pad_length`
-    
+
         Parameters
         ----------
         string: str
             The string to be padded.
-    
+
         Returns
         -------
         str
             String space padded to self.pad_length
-        
+
         """
         if isinstance(self.max_length, int):
             return string.ljust(self.max_length)
@@ -186,17 +186,17 @@ class OneHotFeaturizer(Featurizer):
 
     def untransform(self, one_hot_vectors: np.ndarray) -> str:
         """Convert from one hot representation back to original string
-    
+
         Parameters
         ----------
         one_hot_vectors: np.ndarray
             An array of one hot encoded features.
-    
+
         Returns
         -------
         str
             Original string for an one hot encoded array.
-        
+
         """
         string = ""
         for one_hot in one_hot_vectors:
