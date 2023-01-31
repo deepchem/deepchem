@@ -23,7 +23,7 @@ def test_smiles_call():
 @pytest.mark.torch
 def test_smiles_featurize():
     """Test the .featurize method, which will convert the dictionary output to an array
-    
+
     Checks that all SMILES are featurized and that each featurization
     contains input_ids and attention_mask
     """

@@ -46,7 +46,7 @@ from deepchem.feat.complex_featurizers import NeighborListAtomicCoordinates
 from deepchem.feat.complex_featurizers import NeighborListComplexAtomicCoordinates
 from deepchem.feat.complex_featurizers import AtomicConvFeaturizer
 from deepchem.feat.complex_featurizers import (
-ComplexNeighborListFragmentAtomicCoordinates,)
+    ComplexNeighborListFragmentAtomicCoordinates,)
 from deepchem.feat.complex_featurizers import ContactCircularFingerprint
 from deepchem.feat.complex_featurizers import ContactCircularVoxelizer
 from deepchem.feat.complex_featurizers import SplifFingerprint

@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def featurize_contacts_ecfp(
-frag1: Tuple,
+        frag1: Tuple,
         frag2: Tuple,
         pairwise_distances: Optional[np.ndarray] = None,
         cutoff: float = 4.5,

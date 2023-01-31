@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def boxes_to_atoms(
-coords: np.ndarray,
+        coords: np.ndarray,
         boxes: List[CoordinateBox]) -> Dict[CoordinateBox, List[int]]:
     """Maps each box to a list of atoms in that box.
 

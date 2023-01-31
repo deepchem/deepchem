@@ -24,7 +24,7 @@ SPLIF_CONTACT_BINS = [(0, 2.0), (2.0, 3.0), (3.0, 4.5)]
 
 
 def compute_splif_features_in_range(frag1: Tuple,
-frag2: Tuple,
+                                    frag2: Tuple,
                                     pairwise_distances: np.ndarray,
                                     contact_bin: List,
                                     ecfp_degree: int = 2) -> Dict:

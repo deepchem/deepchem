@@ -84,7 +84,7 @@ class ChargeVoxelizer(ComplexFeaturizer):
     def _featurize(self, datapoint, **kwargs):  # -> Optional[np.ndarray]:
         """
         Compute featurization for a single mol/protein complex
-    
+
         Parameters
         ----------
         datapoint: Tuple[str, str]
@@ -178,7 +178,7 @@ class SaltBridgeVoxelizer(ComplexFeaturizer):
     def _featurize(self, datapoint, **kwargs):  # -> Optional[np.ndarray]:
         """
         Compute featurization for a single mol/protein complex
-    
+
         Parameters
         ----------
         datapoint: Tuple[str, str]
@@ -273,7 +273,7 @@ class CationPiVoxelizer(ComplexFeaturizer):
     def _featurize(self, datapoint, **kwargs):  # -> Optional[np.ndarray]:
         """
         Compute featurization for a single mol/protein complex
-    
+
         Parameters
         ----------
         datapoint: Tuple[str, str]
@@ -370,7 +370,7 @@ class PiStackVoxelizer(ComplexFeaturizer):
     def _featurize(self, datapoint, **kwargs):  # -> Optional[np.ndarray]:
         """
         Compute featurization for a single mol/protein complex
-    
+
         Parameters
         ----------
         datapoint: Tuple[str, str]
@@ -487,7 +487,7 @@ class HydrogenBondCounter(ComplexFeaturizer):
     def _featurize(self, datapoint, **kwargs):  # -> Optional[np.ndarray]:
         """
         Compute featurization for a single mol/protein complex
-    
+
         Parameters
         ----------
         datapoint: Tuple[str, str]
@@ -598,7 +598,7 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
     def _featurize(self, datapoint, **kwargs):  # -> Optional[np.ndarray]:
         """
         Compute featurization for a single mol/protein complex
-    
+
         Parameters
         ----------
         datapoint: Tuple[str, str]

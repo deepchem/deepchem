@@ -10,7 +10,7 @@ from deepchem.feat.base_classes import Featurizer, ComplexFeaturizer
 from deepchem.feat.molecule_featurizers import AtomicCoordinates
 from deepchem.utils.data_utils import pad_array
 from deepchem.utils.rdkit_utils import MoleculeLoadException, get_xyz_from_mol, \
-load_molecule, merge_molecules_xyz, merge_molecules
+    load_molecule, merge_molecules_xyz, merge_molecules
 
 
 def compute_neighbor_list(coords, neighbor_cutoff, max_num_neighbors,

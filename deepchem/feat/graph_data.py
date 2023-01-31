@@ -268,8 +268,8 @@ class BatchGraphData(GraphData):
 
         if graph_list[0].node_pos_features is not None:
             batch_node_pos_features: Optional[np.ndarray] = np.vstack([
-                graph.node_pos_features for graph in graph_list
-            ])  # type: ignore
+                graph.node_pos_features for graph in graph_list  # type: ignore
+            ])
         else:
             batch_node_pos_features = None
 

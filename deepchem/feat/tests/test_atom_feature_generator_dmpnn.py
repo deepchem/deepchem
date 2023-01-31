@@ -12,7 +12,7 @@ import numpy as np
 def example_smiles_n_features():
     """
     Sample data for testing
-    
+
     Returns
     -------
     dictionary
