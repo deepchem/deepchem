@@ -31,6 +31,7 @@ class BPSymmetryFunctionInput(MolecularFeaturizer):
     Note
     ----
     This class requires RDKit to be installed.
+
     """
 
     def __init__(self, max_atoms: int):
@@ -41,6 +42,7 @@ class BPSymmetryFunctionInput(MolecularFeaturizer):
         max_atoms: int
             The maximum number of atoms expected for molecules this featurizer will
             process.
+
         """
         self.max_atoms = max_atoms
         self.coordfeat = AtomicCoordinates(use_bohr=True)
@@ -57,6 +59,7 @@ class BPSymmetryFunctionInput(MolecularFeaturizer):
         -------
         np.ndarray
             A numpy array of symmetry function. The shape is `(max_atoms, 4)`.
+
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
