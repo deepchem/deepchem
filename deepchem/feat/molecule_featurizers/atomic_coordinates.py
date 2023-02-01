@@ -29,6 +29,7 @@ class AtomicCoordinates(MolecularFeaturizer):
     Note
     ----
     This class requires RDKit to be installed.
+
     """
 
     def __init__(self, use_bohr: bool = False):
@@ -37,6 +38,7 @@ class AtomicCoordinates(MolecularFeaturizer):
         ----------
         use_bohr: bool, optional (default False)
             Whether to use bohr or angstrom as a coordinate unit.
+
         """
         self.use_bohr = use_bohr
 
@@ -52,6 +54,7 @@ class AtomicCoordinates(MolecularFeaturizer):
         -------
         np.ndarray
             A numpy array of atomic coordinates. The shape is `(n_atoms, 3)`.
+
         """
         try:
             from rdkit import Chem
