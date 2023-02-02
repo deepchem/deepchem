@@ -4,20 +4,21 @@ from abc import abstractmethod, abstractproperty
 from typing import List, Dict, Optional, Union
 import numpy as np
 import torch
-import dqc
-from dqc.system.mol import Mol
-from dqc.system.base_system import BaseSystem
-from dqc.grid.base_grid import BaseGrid
-from deepchem.utils.dftutils import KSCalc
+try:
+    import dqc
+    from dqc.system.mol import Mol
+    from dqc.system.base_system import BaseSystem
+    from dqc.grid.base_grid import BaseGrid
+    from deepchem.utils.dftutils import KSCalc
+except ModuleNotFoundError:
+    raise ModuleNotFoundError("This utility requires dqc")
+
 import yaml
 from yaml.loader import SafeLoader
 
+
 class DFTSystem(dict):
     """
-    Interface to the system in the dataset.
-    No scientific calculation should be performed in this class.
-    Please do not initialize this class directly, instead, use
-    ``System.create()``.
     """
 
     created_systems: Dict[str, DFTSystem] = {}
@@ -38,7 +39,6 @@ class DFTSystem(dict):
         # caches
         self._caches = {}
 
-
     def get_dqc_system(self, pos_reqgrad: bool = False) -> BaseSystem:
         # convert the system dictionary to DQC system
 
@@ -58,6 +58,7 @@ class DFTSystem(dict):
     def set_cache(self, s: str, obj) -> None:
         self._caches[s] = obj
 
+
 class DFTEntry(dict):
     """
     Interface to the entry of the dataset.
@@ -68,12 +69,10 @@ class DFTEntry(dict):
     created_entries: Dict[str, DFTEntry] = {}
 
     @classmethod
-    def create(
-        cls,
-        entry_dct: Union[Dict, DFTEntry],
-        device: torch.device,
-        dtype: torch.dtype = torch.double
-    ) -> DFTEntry:
+    def create(cls,
+               entry_dct: Union[Dict, DFTEntry],
+               device: torch.device,
+               dtype: torch.dtype = torch.double) -> DFTEntry:
         if isinstance(entry_dct, DFTEntry):
             # TODO: should we add dtype and device checks here?
             return entry_dct
@@ -165,10 +164,10 @@ class EntryDM(DFTEntry):
         # get the density matrix from PySCF's CCSD calculation
         dm = np.load(self["true_val"])
         true_val = torch.from_numpy(dm)
-        return torch.as_tensor(true_val, device = self.device)
+        return torch.as_tensor(true_val, device=self.device)
+
     def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
         return qcs[0].aodmtot()
-
 
 
 class EntryDens(DFTEntry):
@@ -190,7 +189,8 @@ class EntryDens(DFTEntry):
         system = self.get_systems()[0]
         dens = np.load(self["trueval"])
         true_val = torch.from_numpy(dens)
-        return torch.as_tensor(true_val, device = self.device)
+        return torch.as_tensor(true_val, device=self.device)
+
     def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
         qc = qcs[0]
 
@@ -200,7 +200,6 @@ class EntryDens(DFTEntry):
 
         # get the density profile
         return qc.dens(rgrid)
-
 
     def get_integration_grid(self) -> BaseGrid:
         if self._grid is None:
@@ -249,7 +248,6 @@ class EntryForce(DFTEntry):
         return qcs[0].force()
 
 
-
 class EntryIE(DFTEntry):
     """Entry for Ionization Energy (IE)"""
 
@@ -267,8 +265,6 @@ class EntryIE(DFTEntry):
         return eval(self["cmd"], glob)
 
 
-
-
 class EntryAE(EntryIE):
     """Entry for Atomization Energy (AE)"""
 
@@ -276,12 +272,12 @@ class EntryAE(EntryIE):
     def entry_type(self) -> str:
         return "ae"
 
+
 def load_entries(entry_path, device):
-    entries=[]
+    entries = []
     with open(entry_path) as f:
         data_mol = yaml.load(f, Loader=SafeLoader)
-    for i in range (0,len(data_mol)):
+    for i in range(0, len(data_mol)):
         entry = DFTEntry.create(data_mol[i], device=device)
         entries.append(entry)
     return entries
-    
