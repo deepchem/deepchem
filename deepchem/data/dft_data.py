@@ -19,6 +19,7 @@ from yaml.loader import SafeLoader
 
 class DFTSystem(dict):
     """
+    The DFTSystem class creates and returns the various systems in an entry object as dictionaries. 
     """
 
     created_systems: Dict[str, DFTSystem] = {}
@@ -61,8 +62,9 @@ class DFTSystem(dict):
 
 class DFTEntry(dict):
     """
-    Interface to the entry of the dataset.
-    Entry class should not be initialized directly, but created through
+    Handles creating and initialising DFTEntry objects from the dataset. This object contains information    about the various systems in the datapoint (atoms, molecules and ions) along with the ground truth
+    values.    
+    Note: Entry class should not be initialized directly, but created through
     ``Entry.create``
     """
 
@@ -106,7 +108,15 @@ class DFTEntry(dict):
 
         self._trueval_is_set = False
         self._trueval = torch.tensor(0.0).to(device)
-
+        """
+        Parameters
+        ----------
+        systems:  List[DFTSystem]
+            Returns the list of systems in the entry
+        dtype: torch.dtype
+            Returns data type of the calculated and true energies of a system
+        device: torch.device
+            
     @property
     def dtype(self) -> torch.dtype:
         return self._dtype
