@@ -19,129 +19,131 @@ logger = logging.getLogger(__name__)
 
 
 class GBDTModel(SklearnModel):
-  """Wrapper class that wraps GBDT models as DeepChem models.
+    """Wrapper class that wraps GBDT models as DeepChem models.
 
-  This class supports LightGBM/XGBoost models.
-  """
-
-  def __init__(self,
-               model: BaseEstimator,
-               model_dir: Optional[str] = None,
-               early_stopping_rounds: int = 50,
-               eval_metric: Optional[Union[str, Callable]] = None,
-               **kwargs):
+    This class supports LightGBM/XGBoost models.
     """
-    Parameters
-    ----------
-    model: BaseEstimator
-      The model instance of scikit-learn wrapper LightGBM/XGBoost models.
-    model_dir: str, optional (default None)
-      Path to directory where model will be stored.
-    early_stopping_rounds: int, optional (default 50)
-      Activates early stopping. Validation metric needs to improve at least once
-      in every early_stopping_rounds round(s) to continue training.
-    eval_metric: Union[str, Callbale]
-      If string, it should be a built-in evaluation metric to use.
-      If callable, it should be a custom evaluation metric, see official note for more details.
-    """
-    if model_dir is not None:
-      if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-    else:
-      model_dir = tempfile.mkdtemp()
-    self.model_dir = model_dir
-    self.model = model
-    self.model_class = model.__class__
-    self.early_stopping_rounds = early_stopping_rounds
-    self.model_type = self._check_model_type()
 
-    if eval_metric is None:
-      if self.model_type == 'classification':
-        self.eval_metric: Optional[Union[str, Callable]] = 'auc'
-      elif self.model_type == 'regression':
-        self.eval_metric = 'mae'
-      else:
-        self.eval_metric = eval_metric
-    else:
-      self.eval_metric = eval_metric
+    def __init__(self,
+                 model: BaseEstimator,
+                 model_dir: Optional[str] = None,
+                 early_stopping_rounds: int = 50,
+                 eval_metric: Optional[Union[str, Callable]] = None,
+                 **kwargs):
+        """
+        Parameters
+        ----------
+        model: BaseEstimator
+            The model instance of scikit-learn wrapper LightGBM/XGBoost models.
+        model_dir: str, optional (default None)
+            Path to directory where model will be stored.
+        early_stopping_rounds: int, optional (default 50)
+            Activates early stopping. Validation metric needs to improve at least once
+            in every early_stopping_rounds round(s) to continue training.
+        eval_metric: Union[str, Callbale]
+            If string, it should be a built-in evaluation metric to use.
+            If callable, it should be a custom evaluation metric, see official note for more details.
+        """
+        if model_dir is not None:
+            if not os.path.exists(model_dir):
+                os.makedirs(model_dir)
+        else:
+            model_dir = tempfile.mkdtemp()
+        self.model_dir = model_dir
+        self.model = model
+        self.model_class = model.__class__
+        self.early_stopping_rounds = early_stopping_rounds
+        self.model_type = self._check_model_type()
 
-  def _check_model_type(self) -> str:
-    class_name = self.model.__class__.__name__
-    if class_name.endswith('Classifier'):
-      return 'classification'
-    elif class_name.endswith('Regressor'):
-      return 'regression'
-    elif class_name == 'NoneType':
-      return 'none'
-    else:
-      raise ValueError(
-          '{} is not a supported model instance.'.format(class_name))
+        if eval_metric is None:
+            if self.model_type == 'classification':
+                self.eval_metric: Optional[Union[str, Callable]] = 'auc'
+            elif self.model_type == 'regression':
+                self.eval_metric = 'mae'
+            else:
+                self.eval_metric = eval_metric
+        else:
+            self.eval_metric = eval_metric
 
-  def fit(self, dataset: Dataset):
-    """Fits GDBT model with all data.
+    def _check_model_type(self) -> str:
+        class_name = self.model.__class__.__name__
+        if class_name.endswith('Classifier'):
+            return 'classification'
+        elif class_name.endswith('Regressor'):
+            return 'regression'
+        elif class_name == 'NoneType':
+            return 'none'
+        else:
+            raise ValueError(
+                '{} is not a supported model instance.'.format(class_name))
 
-    First, this function splits all data into train and valid data (8:2),
-    and finds the best n_estimators. And then, we retrain all data using
-    best n_estimators * 1.25.
+    def fit(self, dataset: Dataset):
+        """Fits GDBT model with all data.
+    
+        First, this function splits all data into train and valid data (8:2),
+        and finds the best n_estimators. And then, we retrain all data using
+        best n_estimators * 1.25.
+    
+        Parameters
+        ----------
+        dataset: Dataset
+            The `Dataset` to train this model on.
+        """
+        X = dataset.X
+        y = np.squeeze(dataset.y)
 
-    Parameters
-    ----------
-    dataset: Dataset
-      The `Dataset` to train this model on.
-    """
-    X = dataset.X
-    y = np.squeeze(dataset.y)
+        # GDBT doesn't support multi-output(task)
+        if len(y.shape) != 1:
+            raise ValueError("GDBT model doesn't support multi-output(task)")
 
-    # GDBT doesn't support multi-output(task)
-    if len(y.shape) != 1:
-      raise ValueError("GDBT model doesn't support multi-output(task)")
+        seed = self.model.random_state
+        stratify = None
+        if self.model_type == 'classification':
+            stratify = y
 
-    seed = self.model.random_state
-    stratify = None
-    if self.model_type == 'classification':
-      stratify = y
+        # Find optimal n_estimators based on original learning_rate and early_stopping_rounds
+        X_train, X_test, y_train, y_test = train_test_split(X,
+                                                            y,
+                                                            test_size=0.2,
+                                                            random_state=seed,
+                                                            stratify=stratify)
+        self.model.fit(X_train,
+                       y_train,
+                       early_stopping_rounds=self.early_stopping_rounds,
+                       eval_metric=self.eval_metric,
+                       eval_set=[(X_test, y_test)])
 
-    # Find optimal n_estimators based on original learning_rate and early_stopping_rounds
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=seed, stratify=stratify)
-    self.model.fit(
-        X_train,
-        y_train,
-        early_stopping_rounds=self.early_stopping_rounds,
-        eval_metric=self.eval_metric,
-        eval_set=[(X_test, y_test)])
+        # retrain model to whole data using best n_estimators * 1.25
+        if self.model.__class__.__name__.startswith('XGB'):
+            estimated_best_round = np.round(self.model.best_ntree_limit * 1.25)
+        else:
+            estimated_best_round = np.round(self.model.best_iteration_ * 1.25)
+        self.model.n_estimators = np.int64(estimated_best_round)
+        self.model.fit(X, y, eval_metric=self.eval_metric)
 
-    # retrain model to whole data using best n_estimators * 1.25
-    if self.model.__class__.__name__.startswith('XGB'):
-      estimated_best_round = np.round(self.model.best_ntree_limit * 1.25)
-    else:
-      estimated_best_round = np.round(self.model.best_iteration_ * 1.25)
-    self.model.n_estimators = np.int64(estimated_best_round)
-    self.model.fit(X, y, eval_metric=self.eval_metric)
+    def fit_with_eval(self, train_dataset: Dataset, valid_dataset: Dataset):
+        """Fits GDBT model with valid data.
+    
+        Parameters
+        ----------
+        train_dataset: Dataset
+            The `Dataset` to train this model on.
+        valid_dataset: Dataset
+            The `Dataset` to validate this model on.
+        """
+        X_train, X_valid = train_dataset.X, valid_dataset.X
+        y_train, y_valid = np.squeeze(train_dataset.y), np.squeeze(
+            valid_dataset.y)
 
-  def fit_with_eval(self, train_dataset: Dataset, valid_dataset: Dataset):
-    """Fits GDBT model with valid data.
+        # GDBT doesn't support multi-output(task)
+        if len(y_train.shape) != 1 or len(y_valid.shape) != 1:
+            raise ValueError("GDBT model doesn't support multi-output(task)")
 
-    Parameters
-    ----------
-    train_dataset: Dataset
-      The `Dataset` to train this model on.
-    valid_dataset: Dataset
-      The `Dataset` to validate this model on.
-    """
-    X_train, X_valid = train_dataset.X, valid_dataset.X
-    y_train, y_valid = np.squeeze(train_dataset.y), np.squeeze(valid_dataset.y)
-
-    # GDBT doesn't support multi-output(task)
-    if len(y_train.shape) != 1 or len(y_valid.shape) != 1:
-      raise ValueError("GDBT model doesn't support multi-output(task)")
-
-    self.model.fit(
-        X_train,
-        y_train,
-        early_stopping_rounds=self.early_stopping_rounds,
-        eval_metric=self.eval_metric,
-        eval_set=[(X_valid, y_valid)])
+        self.model.fit(X_train,
+                       y_train,
+                       early_stopping_rounds=self.early_stopping_rounds,
+                       eval_metric=self.eval_metric,
+                       eval_set=[(X_valid, y_valid)])
 
 
 #########################################
@@ -151,8 +153,8 @@ class GBDTModel(SklearnModel):
 
 class XGBoostModel(GBDTModel):
 
-  def __init__(self, *args, **kwargs):
-    warnings.warn(
-        "XGBoostModel is deprecated and has been renamed to GBDTModel.",
-        FutureWarning)
-    super(XGBoostModel, self).__init__(*args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            "XGBoostModel is deprecated and has been renamed to GBDTModel.",
+            FutureWarning)
+        super(XGBoostModel, self).__init__(*args, **kwargs)
