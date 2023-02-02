@@ -1,4 +1,4 @@
-name: deepchem-dqc
+name: dqc
 channels:
   - conda-forge
   - defaults
