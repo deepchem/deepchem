@@ -8,7 +8,7 @@ try:
     from deepchem.utils.dftutils import KSCalc, hashstr
     import torch
 except ModuleNotFoundError:
-    raise ModuleNotFoundError("This utility requires dqc")
+    pass 
 import pytest
 
 
