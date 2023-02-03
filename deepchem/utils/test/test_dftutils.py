@@ -12,7 +12,7 @@ except ModuleNotFoundError:
 import pytest
 
 
-@pytest.mark.torch
+@pytest.mark.dqc
 def test_dftutils():
     system = {
         'type': 'mol',
@@ -30,7 +30,7 @@ def test_dftutils():
     assert torch.allclose(a, b)
 
 
-@pytest.mark.torch
+@pytest.mark.dqc
 def test_str():
     s = "hydrogen fluoride"
     s = hashstr(s)
