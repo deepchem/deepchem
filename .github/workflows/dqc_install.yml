@@ -30,7 +30,7 @@ jobs:
       with:
         miniconda-version: "latest"
         auto-update-conda: true
-        activate-environment: deepchem-dqc
+        activate-environment: dqc
         channels: conda-forge,defaults
         python-version: ${{ matrix.python-version }}
         environment-file: requirements/env_dqc.yml
@@ -54,3 +54,7 @@ jobs:
         python -c 'import dqc; print("DQC version %s" % dqc.__version__)'
         python -c 'import xitorch; print("Xitorch version %s" % xitorch.__version__)'
         python -c 'import pylibxc; print("pylibxc version %s" % pylibxc.version.__version__)'
+    - name: PyTest
+      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
+      shell: bash -l {0}
+      run: pytest -v -m 'dqc' deepchem
