@@ -1,3 +1,7 @@
+"""
+Density Functional Theory Data
+Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcca3e314a538ca/xcdnn2/entry.py
+"""
 from __future__ import annotations
 import os
 from abc import abstractmethod, abstractproperty
@@ -20,6 +24,12 @@ from yaml.loader import SafeLoader
 class DFTSystem(dict):
     """
     The DFTSystem class creates and returns the various systems in an entry object as dictionaries. 
+
+    References
+    ----------
+    Kasim, Muhammad F., and Sam M. Vinko. "Learning the exchange-correlation functional from nature with fully differentiable density functional theory." Physical Review Letters 127.12 (2021): 126403.
+    
+    https://github.com/diffqc/dqc/blob/0fe821fc92cb3457fb14f6dff0c223641c514ddb/dqc/system/base_system.py
     """
 
     created_systems: Dict[str, DFTSystem] = {}
