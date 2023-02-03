@@ -41,8 +41,13 @@ class DFTSystem(dict):
         self._caches = {}
 
     def get_dqc_system(self, pos_reqgrad: bool = False) -> BaseSystem:
-        # convert the system dictionary to DQC system
-
+        """
+        This method converts the system dictionary to a DQC system and returns it. 
+        Parameters
+        ----------
+        pos_reqgrad: bool 
+            decides if the atomic position require gradient calculation. 
+        """
         systype = self["type"]
         if systype == "mol":
             atomzs, atomposs = dqc.parse_moldesc(self["kwargs"]["moldesc"])
@@ -76,7 +81,6 @@ class DFTEntry(dict):
                device: torch.device,
                dtype: torch.dtype = torch.double) -> DFTEntry:
         if isinstance(entry_dct, DFTEntry):
-            # TODO: should we add dtype and device checks here?
             return entry_dct
 
         s = str(entry_dct)
@@ -116,7 +120,8 @@ class DFTEntry(dict):
         dtype: torch.dtype
             Returns data type of the calculated and true energies of a system
         device: torch.device
-            
+        """
+
     @property
     def dtype(self) -> torch.dtype:
         return self._dtype
@@ -134,7 +139,11 @@ class DFTEntry(dict):
     @abstractproperty
     def entry_type(self) -> str:
         """
-        Returning the type of the entry of the dataset
+        Returning the type of the entry of the dataset; 
+        1) Atomic Ionization Potential (IP/IE)
+        2) Atomization Energy (AE)
+        3) Density Profile (DENS)
+        4) Density Matrix (DM)
         """
         pass
 
@@ -147,14 +156,19 @@ class DFTEntry(dict):
     @abstractmethod
     def _get_true_val(self) -> torch.Tensor:
         """
-        Get the true value of the entry.
+        Get the true value of the DFTEntry.  
+        For the AE and IP entry types, the experimental values are collected from the NIST CCCBDB/ASD 
+        databases. 
+        The true values of density profiles are calculated using PYSCF-CCSD calculations. This method            simply loads the value, no calculation is performed.  
         """
         pass
 
     @abstractmethod
     def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
         """
-        Calculate the value of the entry given post-run QC objects.
+        Return the energy value of the entry, using a DQC-DFT calculation, where the XC has been 
+        replaced by the trained neural network. This method does not carry out any calculations, it is 
+        an interface to the KSCalc utility. 
         """
         pass
 
@@ -195,7 +209,6 @@ class EntryDens(DFTEntry):
     def _get_true_val(self) -> torch.Tensor:
         # get the density profile from PySCF's CCSD calculation
 
-        # get the density matrix from the PySCF calculation
         system = self.get_systems()[0]
         dens = np.load(self["trueval"])
         true_val = torch.from_numpy(dens)
@@ -284,6 +297,9 @@ class EntryAE(EntryIE):
 
 
 def load_entries(entry_path, device):
+    """
+    The method loads the yaml dataset and returns a list of entries, containing DFTEntry objects. 
+    """
     entries = []
     with open(entry_path) as f:
         data_mol = yaml.load(f, Loader=SafeLoader)
