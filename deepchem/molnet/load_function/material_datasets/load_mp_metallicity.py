@@ -2,10 +2,10 @@
 Metal vs non-metal classification for inorganic crystals from Materials Project.
 """
 import os
+from typing import List, Optional, Tuple, Union
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
-from typing import List, Optional, Tuple, Union
 
 MPMETAL_URL = 'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/mp_is_metal.tar.gz'
 MPMETAL_TASKS = ['is_metal']
@@ -37,7 +37,7 @@ def load_mp_metallicity(
     save_dir: Optional[str] = None,
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
-    """Load mp formation energy dataset.
+    """Load mp metallicity dataset.
 
     Contains 106113 inorganic crystal structures from the Materials
     Project database labeled as metals or nonmetals. In benchmark
