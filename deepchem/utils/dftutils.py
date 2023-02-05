@@ -6,7 +6,7 @@ try:
     from dqc.utils.datastruct import SpinParam
     from dqc.qccalc.base_qccalc import BaseQCCalc
 except ModuleNotFoundError:
-    raise ModuleNotFoundError("This utility requires dqc")
+    pass
 
 import hashlib
 
@@ -26,7 +26,7 @@ class KSCalc(object):
     https://github.com/diffqc/dqc/blob/master/dqc/qccalc/ks.py
     """
 
-    def __init__(self, qc: BaseQCCalc):
+    def __init__(self, qc: "BaseQCCalc"):
         self.qc = qc
 
     def energy(self) -> torch.Tensor:

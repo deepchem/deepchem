@@ -97,10 +97,3 @@ from deepchem.utils.voxel_utils import voxelize
 
 from deepchem.utils.sequence_utils import hhblits
 from deepchem.utils.sequence_utils import hhsearch
-
-# Density Functional Theory Utils
-try:
-    from deepchem.utils.dftutils import KSCalc
-    from deepchem.utils.dftutils import hashstr
-except ModuleNotFoundError:
-    pass
