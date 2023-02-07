@@ -33,20 +33,20 @@ PRIMITIVE_CELL_INF0 = {
 
 class _PtAdsorptionLoader(_MolnetLoader):
 
-  def create_dataset(self) -> Dataset:
-    dataset_file = os.path.join(self.data_dir, 'Platinum_adsorption.json')
-    if not os.path.exists(dataset_file):
-      dc.utils.data_utils.download_url(url=PLATINUM_URL, dest_dir=self.data_dir)
-      dc.utils.data_utils.untargz_file(
-          os.path.join(self.data_dir, 'Platinum_adsorption.tar.gz'),
-          self.data_dir)
-    loader = dc.data.JsonLoader(
-        tasks=PLATINUM_TASKS,
-        feature_field="Structures",
-        label_field="Formation Energy",
-        featurizer=self.featurizer,
-        **self.args)
-    return loader.create_dataset(dataset_file)
+    def create_dataset(self) -> Dataset:
+        dataset_file = os.path.join(self.data_dir, 'Platinum_adsorption.json')
+        if not os.path.exists(dataset_file):
+            dc.utils.data_utils.download_url(url=PLATINUM_URL,
+                                             dest_dir=self.data_dir)
+            dc.utils.data_utils.untargz_file(
+                os.path.join(self.data_dir, 'Platinum_adsorption.tar.gz'),
+                self.data_dir)
+        loader = dc.data.JsonLoader(tasks=PLATINUM_TASKS,
+                                    feature_field="Structures",
+                                    label_field="Formation Energy",
+                                    featurizer=self.featurizer,
+                                    **self.args)
+        return loader.create_dataset(dataset_file)
 
 
 def load_Platinum_Adsorption(
@@ -58,7 +58,7 @@ def load_Platinum_Adsorption(
     save_dir: Optional[str] = None,
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
-  """
+    """
     Load Platinum Adsorption Dataset
 
     The dataset consist of diffrent configurations of Adsorbates (i.e N and NO)
@@ -67,9 +67,9 @@ def load_Platinum_Adsorption(
     Structure objects.
 
     1. Pymatgen structure object with site_properties with following key value.
-     - "SiteTypes", mentioning if it is a active site "A1" or spectator
-       site "S1".
-     - "oss", diffrent occupational sites. For spectator sites make it -1.
+        - "SiteTypes", mentioning if it is a active site "A1" or spectator
+            site "S1".
+        - "oss", diffrent occupational sites. For spectator sites make it -1.
 
 
     Parameters
@@ -96,7 +96,7 @@ def load_Platinum_Adsorption(
     References
     ----------
     .. [1] Jonathan Lym, Geun Ho G. "Lattice Convolutional Neural Network Modeling of Adsorbate
-       Coverage Effects"J. Phys. Chem. C 2019, 123, 18951−18959
+        Coverage Effects"J. Phys. Chem. C 2019, 123, 18951−18959
 
     Examples
     --------
@@ -110,6 +110,6 @@ def load_Platinum_Adsorption(
     >> train_dataset, val_dataset, test_dataset = datasets
     """
 
-  loader = _PtAdsorptionLoader(featurizer, splitter, transformers,
-                               PLATINUM_TASKS, data_dir, save_dir, **kwargs)
-  return loader.load_dataset('LCNN_feat', reload)
+    loader = _PtAdsorptionLoader(featurizer, splitter, transformers,
+                                 PLATINUM_TASKS, data_dir, save_dir, **kwargs)
+    return loader.load_dataset('LCNN_feat', reload)

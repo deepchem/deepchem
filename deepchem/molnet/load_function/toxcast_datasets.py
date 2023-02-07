@@ -215,12 +215,14 @@ TOXCAST_TASKS = [
     'TOX21_VDR_BLA_agonist_ch2', 'TOX21_VDR_BLA_agonist_ratio',
     'TOX21_VDR_BLA_antagonist_ratio', 'TOX21_VDR_BLA_antagonist_viability',
     'TOX21_p53_BLA_p1_ch1', 'TOX21_p53_BLA_p1_ch2', 'TOX21_p53_BLA_p1_ratio',
-    'TOX21_p53_BLA_p1_viability', 'TOX21_p53_BLA_p2_ch1', 'TOX21_p53_BLA_p2_ch2',
-    'TOX21_p53_BLA_p2_ratio', 'TOX21_p53_BLA_p2_viability',
-    'TOX21_p53_BLA_p3_ch1', 'TOX21_p53_BLA_p3_ch2', 'TOX21_p53_BLA_p3_ratio',
-    'TOX21_p53_BLA_p3_viability', 'TOX21_p53_BLA_p4_ch1', 'TOX21_p53_BLA_p4_ch2',
-    'TOX21_p53_BLA_p4_ratio', 'TOX21_p53_BLA_p4_viability',
-    'TOX21_p53_BLA_p5_ch1', 'TOX21_p53_BLA_p5_ch2', 'TOX21_p53_BLA_p5_ratio',
+    'TOX21_p53_BLA_p1_viability', 'TOX21_p53_BLA_p2_ch1',
+    'TOX21_p53_BLA_p2_ch2', 'TOX21_p53_BLA_p2_ratio',
+    'TOX21_p53_BLA_p2_viability', 'TOX21_p53_BLA_p3_ch1',
+    'TOX21_p53_BLA_p3_ch2', 'TOX21_p53_BLA_p3_ratio',
+    'TOX21_p53_BLA_p3_viability', 'TOX21_p53_BLA_p4_ch1',
+    'TOX21_p53_BLA_p4_ch2', 'TOX21_p53_BLA_p4_ratio',
+    'TOX21_p53_BLA_p4_viability', 'TOX21_p53_BLA_p5_ch1',
+    'TOX21_p53_BLA_p5_ch2', 'TOX21_p53_BLA_p5_ratio',
     'TOX21_p53_BLA_p5_viability', 'Tanguay_ZF_120hpf_AXIS_up',
     'Tanguay_ZF_120hpf_ActivityScore', 'Tanguay_ZF_120hpf_BRAI_up',
     'Tanguay_ZF_120hpf_CFIN_up', 'Tanguay_ZF_120hpf_CIRC_up',
@@ -236,13 +238,15 @@ TOXCAST_TASKS = [
 
 class _ToxcastLoader(_MolnetLoader):
 
-  def create_dataset(self) -> Dataset:
-    dataset_file = os.path.join(self.data_dir, "toxcast_data.csv.gz")
-    if not os.path.exists(dataset_file):
-      dc.utils.data_utils.download_url(url=TOXCAST_URL, dest_dir=self.data_dir)
-    loader = dc.data.CSVLoader(
-        tasks=self.tasks, feature_field="smiles", featurizer=self.featurizer)
-    return loader.create_dataset(dataset_file, shard_size=8192)
+    def create_dataset(self) -> Dataset:
+        dataset_file = os.path.join(self.data_dir, "toxcast_data.csv.gz")
+        if not os.path.exists(dataset_file):
+            dc.utils.data_utils.download_url(url=TOXCAST_URL,
+                                             dest_dir=self.data_dir)
+        loader = dc.data.CSVLoader(tasks=self.tasks,
+                                   feature_field="smiles",
+                                   featurizer=self.featurizer)
+        return loader.create_dataset(dataset_file, shard_size=8192)
 
 
 def load_toxcast(
@@ -254,52 +258,52 @@ def load_toxcast(
     save_dir: Optional[str] = None,
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
-  """Load Toxcast dataset
+    """Load Toxcast dataset
 
-  ToxCast is an extended data collection from the same
-  initiative as Tox21, providing toxicology data for a large
-  library of compounds based on in vitro high-throughput
-  screening. The processed collection includes qualitative
-  results of over 600 experiments on 8k compounds.
+    ToxCast is an extended data collection from the same
+    initiative as Tox21, providing toxicology data for a large
+    library of compounds based on in vitro high-throughput
+    screening. The processed collection includes qualitative
+    results of over 600 experiments on 8k compounds.
 
-  Random splitting is recommended for this dataset.
+    Random splitting is recommended for this dataset.
 
-  The raw data csv file contains columns below:
+    The raw data csv file contains columns below:
 
-  - "smiles": SMILES representation of the molecular structure
-  - "ACEA_T47D_80hr_Negative" ~ "Tanguay_ZF_120hpf_YSE_up": Bioassays results.
-    Please refer to the section "high-throughput assay information" at
-    https://www.epa.gov/chemical-research/toxicity-forecaster-toxcasttm-data
-    for details.
+    - "smiles": SMILES representation of the molecular structure
+    - "ACEA_T47D_80hr_Negative" ~ "Tanguay_ZF_120hpf_YSE_up": Bioassays results.
+        Please refer to the section "high-throughput assay information" at
+        https://www.epa.gov/chemical-research/toxicity-forecaster-toxcasttm-data
+        for details.
 
-  Parameters
-  ----------
-  featurizer: Featurizer or str
-    the featurizer to use for processing the data.  Alternatively you can pass
-    one of the names from dc.molnet.featurizers as a shortcut.
-  splitter: Splitter or str
-    the splitter to use for splitting the data into training, validation, and
-    test sets.  Alternatively you can pass one of the names from
-    dc.molnet.splitters as a shortcut.  If this is None, all the data
-    will be included in a single dataset.
-  transformers: list of TransformerGenerators or strings
-    the Transformers to apply to the data.  Each one is specified by a
-    TransformerGenerator or, as a shortcut, one of the names from
-    dc.molnet.transformers.
-  reload: bool
-    if True, the first call for a particular featurizer and splitter will cache
-    the datasets to disk, and subsequent calls will reload the cached datasets.
-  data_dir: str
-    a directory to save the raw data in
-  save_dir: str
-    a directory to save the dataset in
+    Parameters
+    ----------
+    featurizer: Featurizer or str
+        the featurizer to use for processing the data.  Alternatively you can pass
+        one of the names from dc.molnet.featurizers as a shortcut.
+    splitter: Splitter or str
+        the splitter to use for splitting the data into training, validation, and
+        test sets.  Alternatively you can pass one of the names from
+        dc.molnet.splitters as a shortcut.  If this is None, all the data
+        will be included in a single dataset.
+    transformers: list of TransformerGenerators or strings
+        the Transformers to apply to the data.  Each one is specified by a
+        TransformerGenerator or, as a shortcut, one of the names from
+        dc.molnet.transformers.
+    reload: bool
+        if True, the first call for a particular featurizer and splitter will cache
+        the datasets to disk, and subsequent calls will reload the cached datasets.
+    data_dir: str
+        a directory to save the raw data in
+    save_dir: str
+        a directory to save the dataset in
 
-  References
-  ----------
-  .. [1] Richard, Ann M., et al. "ToxCast chemical landscape: paving the road
-     to 21st century toxicology." Chemical research in toxicology 29.8 (2016):
-     1225-1251.
-  """
-  loader = _ToxcastLoader(featurizer, splitter, transformers, TOXCAST_TASKS,
-                          data_dir, save_dir, **kwargs)
-  return loader.load_dataset('toxcast', reload)
+    References
+    ----------
+    .. [1] Richard, Ann M., et al. "ToxCast chemical landscape: paving the road
+        to 21st century toxicology." Chemical research in toxicology 29.8 (2016):
+        1225-1251.
+    """
+    loader = _ToxcastLoader(featurizer, splitter, transformers, TOXCAST_TASKS,
+                            data_dir, save_dir, **kwargs)
+    return loader.load_dataset('toxcast', reload)
