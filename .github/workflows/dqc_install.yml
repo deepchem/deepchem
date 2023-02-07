@@ -55,6 +55,7 @@ jobs:
         python -c 'import xitorch; print("Xitorch version %s" % xitorch.__version__)'
         python -c 'import pylibxc; print("pylibxc version %s" % pylibxc.version.__version__)'
     - name: PyTest
-      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
-      run: pytest -v -m 'dqc' deepchem
+      run: |
+        echo "running dqc pytest"
+        pytest -v -m 'dqc' deepchem
