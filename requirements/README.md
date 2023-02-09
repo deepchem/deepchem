@@ -1,5 +1,5 @@
 # Requirements
-DeepChem is a python deep-learning library for molecular machine learning. During its installation, it requires various prerequisite libraries to be installed. The various `.yml` files in the `requirements` folder contain the different libraries that are required based on the installer. The different folders are used to show the dependencies of the DeepChem library on the respective deep-learning backends.
+During its installation, DeepChem requires various prerequisite libraries to be installed. The various `.yml` files in the `requirements` folder contain the different libraries that are the prerequisites based on the installer, operating system, etc. The different folders are used to show the dependencies of the DeepChem library on the respective deep-learning backends.
 
 The files present are:
 1. `env_common.yml` - contains libraries related to scientific applications that are common to all operating systems.
@@ -8,10 +8,7 @@ The files present are:
 4. `env_ubuntu.yml` - contains dependencies specific to Ubuntu.
 5. `env_test.yml` - contains libraries related to testing code and models.
 
-The folders present are:
-1. `jax` - [JAX](https://github.com/google/jax) is NumPy on the CPU, GPU, and TPU, with great automatic differentiation for high-performance machine learning research. This folder contains the dependencies of DeepChem on the JAX library based on the CPU and GPU.
-2. `tensorflow` - [TensorFlow](https://www.tensorflow.org/) is an open-source library used for Machine Learning and Artificial Intelligence. This folder contains the dependencies of DeepChem in the TensorFlow library.
-3. `torch` - [PyTorch](https://pytorch.org/) is an open source machine learning framework that accelerates the path from research prototyping to production deployment. This folder contains the dependencies of DeepChem in the PyTorch library based on the CPU and GPU.
+The sub-folders present are for JAX, TensorFlow and PyTorch. The sub-folder contain the cpu and gpu deep learning backend requirements of DeepChem.
 
 ## env_common.yml
 This file contains the bare minimum requirements to run the DeepChem library. It is not specific to any operating system.
@@ -72,51 +69,25 @@ This file contains the requiremetns to perform testing of models and code in the
 
 ## jax
 ### env_jax.cpu.yml
-This file contains the dependencies that JAX uses for running on the CPU. The dependencies can be installed with `pip` and are as follows: 
-1. `jax` - [JAX](https://github.com/google/jax) is NumPy on the CPU, GPU, and TPU, with great automatic differentiation for high-performance machine learning research. This folder contains the dependencies of DeepChem on the JAX library based on the CPU and GPU. We must use `pip` to install a version of JAX that is less than `0.3.25`. The `0.3.25` version contains a breaking change that is not compatible with `haiku`. 
-2. `dm-haiku` - [Haiku](https://github.com/deepmind/dm-haiku) is a simple neural network library for JAX that enables users to use familiar object-oriented programming models while allowing full access to JAX's pure function transformations.
-3. `optax` - [Optax](https://github.com/deepmind/optax) is a gradient processing and optimization library for JAX.
+This file specifies the dependencies that JAX uses for running on the CPU.
 
 ### env_jax.gpu.yml
-This file contains the dependencies that JAX uses for running on the GPU. The dependency can be installed with `pip` and are follows: 
-1. `jax[cuda111]` - This version of JAX runs on the 11.1 version of CUDA. 
+This file specifies the dependencies that JAX uses for running on the GPU.
 
 ## tensorflow
 
 ### env_tensorflow.cpu.yml
-This file contains the dependencies that TensorFlow uses for running on the CPU. The dependencies can be installed with `pip` and are as follows: 
-1. `tensorflow` - An Open Source Machine Learning [Framework](https://github.com/tensorflow/tensorflow) for Everyone.
-2. `tensorflow_probability` - A [library](https://github.com/tensorflow/probability) for probabilistic reasoning and statistical analysis in TensorFlow. 
-3. `tensorflow_addons` - [TensorFlow Addons](https://github.com/tensorflow/addons) is a repository of contributions that conform to well-established API patterns, but implement new functionality not available in core TensorFlow.
+This file contains the dependencies that TensorFlow uses for running on the CPU.
 
 
 ## torch
 
 ### env_torch.cpu.yml
-This file contains the dependencies that PyTorch uses for running on the CPU. The dependency can be installed with `pip` and are follows: 
-1. `PyTorch` - The version compatible with the DeepChem library is `1.12.0+cpu`.
-2. `dgl` - It is a Python [package](https://github.com/dmlc/dgl) built to ease deep learning on graph, on top of existing DL frameworks. 
-3. `torch-scatter` - It is a PyTorch Extension [Library](https://github.com/rusty1s/pytorch_scatter) of Optimized Scatter Operations.
-4. `torch-sparse` - It is a PyTorch Extension [Library](https://github.com/rusty1s/pytorch_sparse) of Optimized Autograd Sparse Matrix Operations. 
-5. `torch-geometric` - It is a Graph Neural Network [Library](https://github.com/pyg-team/pytorch_geometric) for PyTorch.
-6. `pytorch-lightning` - Deep learning [framework](https://github.com/Lightning-AI/lightning) to train, deploy, and ship AI products Lightning fast. The version compatible with DeepChem is `1.6.5`.
+This file contains the dependencies that PyTorch uses for running on the CPU.
 
 ### env_torch.gpu.yml
-This file contains the dependencies that PyTorch uses for running on the GPU. The dependency can be installed with `pip` and are follows: 
-1. `dgl-cu111` - It is a Python [package](https://github.com/dmlc/dgl) built to ease deep learning on graph, on top of existing DL frameworks. The version compatible with `CUDA 11.1` should be installed. 
-2. `PyTorch` - The version compatible with the DeepChem library is `1.11.0+cu113`.
-3. `torchvision` - The [torchvision package](https://github.com/pytorch/vision) consists of popular datasets, model architectures, and common image transformations for computer vision. The version compatible with the DeepChem library is `0.12.0+cu113`.
-4. `torch-scatter` - It is a PyTorch Extension [Library](https://github.com/rusty1s/pytorch_scatter) of Optimized Scatter Operations.
-5. `torch-sparse` - It is a PyTorch Extension [Library](https://github.com/rusty1s/pytorch_sparse) of Optimized Autograd Sparse Matrix Operations. 
-6. `torch-geometric` - It is a Graph Neural Network [Library](https://github.com/pyg-team/pytorch_geometric) for PyTorch.
-7. `pytorch-lightning` - Deep learning [framework](https://github.com/Lightning-AI/lightning) to train, deploy, and ship AI products Lightning fast. The version compatible with DeepChem is `1.6.5`.
+This file contains the dependencies that PyTorch uses for running on the GPU.
 
 ### env_torch.mac.cpu.yml
-This file contains the dependencies that PyTorch uses for running on the CPU for macOS. The dependency can be installed with `pip` and are follows: 
-1. `PyTorch` - The version compatible with the DeepChem library is `1.10.x`.
-2. `dgl` - It is a Python [package](https://github.com/dmlc/dgl) built to ease deep learning on graph, on top of existing DL frameworks. 
-3. `torch-scatter` - It is a PyTorch Extension [Library](https://github.com/rusty1s/pytorch_scatter) of Optimized Scatter Operations.
-4. `torch-sparse` - It is a PyTorch Extension [Library](https://github.com/rusty1s/pytorch_sparse) of Optimized Autograd Sparse Matrix Operations. 
-5. `torch-geometric` - It is a Graph Neural Network [Library](https://github.com/pyg-team/pytorch_geometric) for PyTorch.
-6. `pytorch-lightning` - Deep learning [framework](https://github.com/Lightning-AI/lightning) to train, deploy, and ship AI products Lightning fast. The version compatible with DeepChem is `1.6.5`.
+This file contains the dependencies that PyTorch uses for running on the CPU for macOS.
 
