@@ -5,7 +5,7 @@ import pytest
 try:
     import tensorflow as tf
     import deepchem.models.layers as layers
-    from tensorflow.python.framework import test_util
+    from tensorflow.python.framework import test_util  # noqa: F401
     has_tensorflow = True
 except ModuleNotFoundError:
     has_tensorflow = False
@@ -121,7 +121,6 @@ def test_interatomic_l2_distances():
 @pytest.mark.tensorflow
 def test_weave_layer():
     """Test invoking WeaveLayer."""
-    out_channels = 2
     n_atoms = 4  # In CCC and C, there are 4 atoms
     raw_smiles = ['CCC', 'C']
     from rdkit import Chem
@@ -167,7 +166,6 @@ def test_weave_layer():
 @pytest.mark.tensorflow
 def test_weave_gather():
     """Test invoking WeaveGather."""
-    out_channels = 2
     n_atoms = 4  # In CCC and C, there are 4 atoms
     raw_smiles = ['CCC', 'C']
     from rdkit import Chem
@@ -209,9 +207,7 @@ def test_weave_gather():
 @pytest.mark.tensorflow
 def test_weave_gather_gaussian_histogram():
     """Test Gaussian Histograms."""
-    import tensorflow as tf
     from rdkit import Chem
-    out_channels = 2
     n_atoms = 4  # In CCC and C, there are 4 atoms
     raw_smiles = ['CCC', 'C']
     mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
@@ -230,14 +226,14 @@ def test_weave_gather_gaussian_histogram():
         np.array(np.concatenate(atom_feat, axis=0), dtype=np.float32),
         np.array(atom_split)
     ]
-    #per_mol_features = tf.math.segment_sum(inputs[0], inputs[1])
+    # per_mol_features = tf.math.segment_sum(inputs[0], inputs[1])
     outputs = gather.gaussian_histogram(inputs[0])
     # Gaussian histograms expands into 11 Gaussian buckets.
     assert np.array(outputs).shape == (
         4,
         11 * 75,
     )
-    #assert np.array(outputs[1]).shape == (11 * 75,)
+    # assert np.array(outputs[1]).shape == (11 * 75,)
 
 
 @pytest.mark.tensorflow
@@ -288,7 +284,7 @@ def test_graph_gather():
     """Test invoking GraphGather."""
     batch_size = 2
     n_features = 75
-    n_atoms = 4  # In CCC and C, there are 4 atoms
+    # n_atoms = 4  # In CCC and C, there are 4 atoms
     raw_smiles = ['CCC', 'C']
     from rdkit import Chem
     mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
@@ -308,7 +304,6 @@ def test_graph_gather():
 @pytest.mark.tensorflow
 def test_lstm_step():
     """Test invoking LSTMStep."""
-    max_depth = 5
     n_test = 5
     n_feat = 10
     y = np.random.rand(n_test, 2 * n_feat).astype(np.float32)
@@ -504,7 +499,7 @@ def test_ani_feat():
     max_atoms = 5
     input = np.random.rand(batch_size, max_atoms, 4).astype(np.float32)
     layer = layers.ANIFeat(max_atoms=max_atoms)
-    result = layer(input)
+    result = layer(input)  # noqa: F841
     # TODO What should the output shape be?  It's not documented, and there
     # are no other test cases for it.
 
@@ -577,21 +572,21 @@ def test_DAG_layer():
     # molecules in the batch, just as it is for the graph conv.
     # This means that n_atoms is the batch-size
     n_atoms = batch_size
-    #dropout_switch = False
+    # dropout_switch = False
     layer = layers.DAGLayer(n_graph_feat=n_graph_feat,
                             n_atom_feat=n_atom_feat,
                             max_atoms=max_atoms,
                             layer_sizes=layer_sizes)
-    outputs = layer([
+    outputs = layer([  # noqa: F841
         atom_features,
         parents,
         calculation_orders,
         calculation_masks,
         n_atoms,
-        #dropout_switch
+        # dropout_switch
     ])
-    ## TODO(rbharath): What is the shape of outputs supposed to be?
-    ## I'm getting (7, 30) here. Where does 7 come from??
+    # TODO(rbharath): What is the shape of outputs supposed to be?
+    # I'm getting (7, 30) here. Where does 7 come from??
 
 
 @pytest.mark.tensorflow
@@ -611,7 +606,7 @@ def test_DAG_gather():
                              layer_sizes=layer_sizes)
     atom_features = np.random.rand(batch_size, n_atom_feat)
     membership = np.sort(np.random.randint(0, batch_size, size=(batch_size)))
-    outputs = layer([atom_features, membership])
+    outputs = layer([atom_features, membership])  # noqa: F841
 
 
 @pytest.mark.torch

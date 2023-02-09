@@ -79,11 +79,11 @@ class GBDTModel(SklearnModel):
 
     def fit(self, dataset: Dataset):
         """Fits GDBT model with all data.
-    
+
         First, this function splits all data into train and valid data (8:2),
         and finds the best n_estimators. And then, we retrain all data using
         best n_estimators * 1.25.
-    
+
         Parameters
         ----------
         dataset: Dataset
@@ -123,7 +123,7 @@ class GBDTModel(SklearnModel):
 
     def fit_with_eval(self, train_dataset: Dataset, valid_dataset: Dataset):
         """Fits GDBT model with valid data.
-    
+
         Parameters
         ----------
         train_dataset: Dataset

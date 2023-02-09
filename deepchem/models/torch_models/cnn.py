@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-import deepchem as dc
 from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.torch_models.layers import CNNModule
 from deepchem.models.losses import L2Loss
@@ -149,10 +148,10 @@ class CNN(TorchModel):
         if weight_decay_penalty != 0:
             weights = [layer.weight for layer in self.model.layers]
             if weight_decay_penalty_type == 'l1':
-                regularization_loss = lambda: weight_decay_penalty * torch.sum(
+                regularization_loss = lambda: weight_decay_penalty * torch.sum(  # noqa: E731
                     torch.stack([torch.abs(w).sum() for w in weights]))
             else:
-                regularization_loss = lambda: weight_decay_penalty * torch.sum(
+                regularization_loss = lambda: weight_decay_penalty * torch.sum(  # noqa: E731
                     torch.stack([torch.square(w).sum() for w in weights]))
         else:
             regularization_loss = None

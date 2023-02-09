@@ -8,10 +8,9 @@ import tensorflow as tf
 import copy
 import sys
 
-from deepchem.metrics import to_one_hot, from_one_hot
+from deepchem.metrics import to_one_hot
 from deepchem.models import KerasModel, layers
 from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy
-from deepchem.trans import undo_transforms
 from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Dropout, Conv1D, Concatenate, Lambda
 
 # Common symbols in SMILES, note that Cl and Br are regarded as single symbol
@@ -56,7 +55,7 @@ class TextCNNModel(KerasModel):
     """ A Convolutional neural network on smiles strings
 
     Reimplementation of the discriminator module in ORGAN [1]_ .
-    Originated from [2]_. 
+    Originated from [2]_.
 
     This model applies multiple 1D convolutional filters to
     the padded strings, then max-over-time pooling is applied on
@@ -277,9 +276,9 @@ class TextCNNModel(KerasModel):
         return np.array(seq, dtype=np.int32)
 
 
-#################### Deprecation warnings for renamed TensorGraph models ####################
+#################### Deprecation warnings for renamed TensorGraph models ####################  # noqa: E266
 
-import warnings
+import warnings  # noqa: E402
 
 TENSORGRAPH_DEPRECATION = "{} is deprecated and has been renamed to {} and will be removed in DeepChem 3.0."
 

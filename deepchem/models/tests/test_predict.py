@@ -1,23 +1,18 @@
 """
-Tests that deepchem models make deterministic predictions. 
+Tests that deepchem models make deterministic predictions.
 """
 __author__ = "Bharath Ramsundar"
 __copyright__ = "Copyright 2016, Stanford University"
 __license__ = "MIT"
 
 import os
-import tempfile
-import numpy as np
 import unittest
-import sklearn
-import shutil
-import deepchem as dc
 
 try:
-    import tensorflow as tf
-    from tensorflow.python.framework import test_util
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.ensemble import RandomForestRegressor
+    import tensorflow as tf  # noqa: F401
+    from tensorflow.python.framework import test_util  # noqa: F401
+    from sklearn.ensemble import RandomForestClassifier  # noqa: F401
+    from sklearn.ensemble import RandomForestRegressor  # noqa: F401
     has_tensorflow = True
 except:
     has_tensorflow = False
@@ -25,7 +20,7 @@ except:
 
 class TestPredict(unittest.TestCase):
     """
-  Test that models make deterministic predictions 
+  Test that models make deterministic predictions
 
   These tests guard against failures like having dropout turned on at
   test time.
@@ -69,7 +64,7 @@ class TestPredict(unittest.TestCase):
     model.fit(dataset, nb_epoch=25)
     model.save()
 
-    # Check same predictions are made. 
+    # Check same predictions are made.
     y_pred_first = model.predict(dataset)
     y_pred_second = model.predict(dataset)
     np.testing.assert_allclose(y_pred_first, y_pred_second)

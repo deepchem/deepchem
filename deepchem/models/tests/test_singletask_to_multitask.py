@@ -10,7 +10,6 @@ import shutil
 import unittest
 import numpy as np
 import deepchem as dc
-from sklearn.linear_model import LogisticRegression
 
 
 class TestSingletasktoMultitask(unittest.TestCase):
@@ -18,18 +17,18 @@ class TestSingletasktoMultitask(unittest.TestCase):
   Test top-level API for singletask_to_multitask ML models.
   """
 
-    #def test_singletask_to_multitask_classification(self):
-    #  n_features = 10
-    #  n_tasks = 17
-    #  tasks = range(n_tasks)
+    # def test_singletask_to_multitask_classification(self):
+    #   n_features = 10
+    #   n_tasks = 17
+    #   tasks = range(n_tasks)
     #  # Define train dataset
-    #  n_train = 100
-    #  X_train = np.random.rand(n_train, n_features)
-    #  y_train = np.random.randint(2, size=(n_train, n_tasks))
-    #  w_train = np.ones_like(y_train)
-    #  ids_train = ["C"] * n_train
-    #  train_dataset = dc.data.DiskDataset.from_numpy(
-    #      X_train, y_train, w_train, ids_train)
+    #   n_train = 100
+    #   X_train = np.random.rand(n_train, n_features)
+    #   y_train = np.random.randint(2, size=(n_train, n_tasks))
+    #   w_train = np.ones_like(y_train)
+    #   ids_train = ["C"] * n_train
+    #   train_dataset = dc.data.DiskDataset.from_numpy(
+    #       X_train, y_train, w_train, ids_train)
 
     #  # Define test dataset
     #  n_test = 10

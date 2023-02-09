@@ -8,9 +8,9 @@ from deepchem.feat import MolGraphConvFeaturizer
 from deepchem.models.tests.test_graph_models import get_dataset
 
 try:
-    import dgl
-    import dgllife
-    import torch
+    import dgl  # noqa: F401
+    import dgllife  # noqa: F401
+    import torch  # noqa: F401
     from deepchem.models import AttentiveFPModel
     has_torch_and_dgl = True
 except:

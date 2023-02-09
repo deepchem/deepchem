@@ -1,17 +1,18 @@
-import unittest
 import os
 import numpy as np
 import pytest
-import scipy
+from scipy import io as scipy_io
 
-import deepchem as dc
-from deepchem.data import NumpyDataset
+from deepchem.data import NumpyDataset, CSVLoader
+from deepchem.trans import DAGTransformer
 from deepchem.molnet import load_bace_classification, load_delaney
 from deepchem.feat import ConvMolFeaturizer
+from deepchem.metrics import Metric, roc_auc_score, mean_absolute_error
+from deepchem.utils.data_utils import download_url, get_data_dir
 
 try:
     import tensorflow as tf
-    from deepchem.models import GraphConvModel, DAGModel, WeaveModel, MPNNModel
+    from deepchem.models import GraphConvModel, DAGModel, MPNNModel, DTNNModel
     has_tensorflow = True
 except:
     has_tensorflow = False
@@ -28,18 +29,18 @@ def get_dataset(mode='classification', featurizer='GraphConv', num_tasks=2):
         tasks, all_dataset, transformers = load_delaney(featurizer)
 
     train, valid, test = all_dataset
-    for i in range(1, num_tasks):
+    for _ in range(1, num_tasks):
         tasks.append("random_task")
     w = np.ones(shape=(data_points, len(tasks)))
 
     if mode == 'classification':
         y = np.random.randint(0, 2, size=(data_points, len(tasks)))
-        metric = dc.metrics.Metric(dc.metrics.roc_auc_score,
+        metric = Metric(roc_auc_score,
                                    np.mean,
                                    mode="classification")
     else:
         y = np.random.normal(size=(data_points, len(tasks)))
-        metric = dc.metrics.Metric(dc.metrics.mean_absolute_error,
+        metric = Metric(mean_absolute_error,
                                    mode="regression")
 
     ds = NumpyDataset(train.X[:data_points], y, w, train.ids[:data_points])
@@ -66,8 +67,7 @@ def test_graph_conv_model():
 
 @pytest.mark.tensorflow
 def test_neural_fingerprint_retrieval():
-    tasks, dataset, transformers, metric = get_dataset('classification',
-                                                       'GraphConv')
+    tasks, dataset, _, _ = get_dataset('classification', 'GraphConv')
 
     fp_size = 3
 
@@ -102,8 +102,7 @@ def test_graph_conv_regression_model():
 
 @pytest.mark.tensorflow
 def test_graph_conv_regression_uncertainty():
-    tasks, dataset, transformers, metric = get_dataset('regression',
-                                                       'GraphConv')
+    tasks, dataset, _, _ = get_dataset('regression', 'GraphConv')
 
     batch_size = 10
     model = GraphConvModel(len(tasks),
@@ -136,20 +135,18 @@ def test_graph_conv_model_no_task():
     model.fit(dataset, nb_epoch=20)
     # predict datset with no y (ensured by tasks = [])
     bace_url = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/bace.csv"
-    dc.utils.data_utils.download_url(url=bace_url, name="bace_tmp.csv")
-    loader = dc.data.CSVLoader(tasks=[],
+    download_url(url=bace_url, name="bace_tmp.csv")
+    loader = CSVLoader(tasks=[],
                                smiles_field='mol',
-                               featurizer=dc.feat.ConvMolFeaturizer())
+                               featurizer=ConvMolFeaturizer())
     td = loader.featurize(
-        os.path.join(dc.utils.data_utils.get_data_dir(), "bace_tmp.csv"))
+        os.path.join(get_data_dir(), "bace_tmp.csv"))
     model.predict(td)
 
 
 @pytest.mark.tensorflow
 def test_graph_conv_atom_features():
-    tasks, dataset, transformers, metric = get_dataset('regression',
-                                                       'Raw',
-                                                       num_tasks=1)
+    tasks, dataset, _, _ = get_dataset('regression', 'Raw', num_tasks=1)
 
     atom_feature_name = 'feature'
     y = []
@@ -164,7 +161,7 @@ def test_graph_conv_atom_features():
 
     featurizer = ConvMolFeaturizer(atom_properties=[atom_feature_name])
     X = featurizer.featurize(dataset.X)
-    dataset = dc.data.NumpyDataset(X, np.array(y))
+    dataset = NumpyDataset(X, np.array(y))
     batch_size = 50
     model = GraphConvModel(len(tasks),
                            number_atom_features=featurizer.feature_length(),
@@ -172,7 +169,7 @@ def test_graph_conv_atom_features():
                            mode='regression')
 
     model.fit(dataset, nb_epoch=1)
-    y_pred1 = model.predict(dataset)
+    _ = model.predict(dataset)
 
 
 @flaky
@@ -183,7 +180,7 @@ def test_dag_model():
                                                        'GraphConv')
 
     max_atoms = max([mol.get_num_atoms() for mol in dataset.X])
-    transformer = dc.trans.DAGTransformer(max_atoms=max_atoms)
+    transformer = DAGTransformer(max_atoms=max_atoms)
     dataset = transformer.transform(dataset)
 
     model = DAGModel(len(tasks),
@@ -199,14 +196,13 @@ def test_dag_model():
 @pytest.mark.slow
 @pytest.mark.tensorflow
 def test_dag_regression_model():
-    import tensorflow as tf
     np.random.seed(1234)
     tf.random.set_seed(1234)
     tasks, dataset, transformers, metric = get_dataset('regression',
                                                        'GraphConv')
 
     max_atoms = max([mol.get_num_atoms() for mol in dataset.X])
-    transformer = dc.trans.DAGTransformer(max_atoms=max_atoms)
+    transformer = DAGTransformer(max_atoms=max_atoms)
     dataset = transformer.transform(dataset)
 
     model = DAGModel(len(tasks),
@@ -222,15 +218,13 @@ def test_dag_regression_model():
 @pytest.mark.slow
 @pytest.mark.tensorflow
 def test_dag_regression_uncertainty():
-    import tensorflow as tf
     np.random.seed(1234)
     tf.random.set_seed(1234)
-    tasks, dataset, transformers, metric = get_dataset('regression',
-                                                       'GraphConv')
+    tasks, dataset, _, _ = get_dataset('regression', 'GraphConv')
 
     batch_size = 10
     max_atoms = max([mol.get_num_atoms() for mol in dataset.X])
-    transformer = dc.trans.DAGTransformer(max_atoms=max_atoms)
+    transformer = DAGTransformer(max_atoms=max_atoms)
     dataset = transformer.transform(dataset)
 
     model = DAGModel(len(tasks),
@@ -301,7 +295,7 @@ def test_mpnn_regression_model():
 @pytest.mark.slow
 @pytest.mark.tensorflow
 def test_mpnn_regression_uncertainty():
-    tasks, dataset, transformers, metric = get_dataset('regression', 'Weave')
+    tasks, dataset, _, _ = get_dataset('regression', 'Weave')
 
     batch_size = 10
     model = MPNNModel(len(tasks),
@@ -332,14 +326,14 @@ def test_mpnn_regression_uncertainty():
 def test_dtnn_regression_model():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     input_file = os.path.join(current_dir, "assets/example_DTNN.mat")
-    dataset = scipy.io.loadmat(input_file)
+    dataset = scipy_io.loadmat(input_file)
     X = dataset['X']
     y = dataset['T']
     w = np.ones_like(y)
-    dataset = dc.data.NumpyDataset(X, y, w, ids=None)
+    dataset = NumpyDataset(X, y, w, ids=None)
     n_tasks = y.shape[1]
 
-    model = dc.models.DTNNModel(n_tasks,
+    model = DTNNModel(n_tasks,
                                 n_embedding=20,
                                 n_distance=100,
                                 learning_rate=1.0,
@@ -357,8 +351,8 @@ def test_dtnn_regression_model():
 @pytest.mark.tensorflow
 def test_graph_predict():
 
-    model = dc.models.GraphConvModel(12, batch_size=50, mode='classification')
+    model = GraphConvModel(12, batch_size=50, mode='classification')
     mols = ["CCCCC", "CCCCCCCCC"]
-    feat = dc.feat.ConvMolFeaturizer()
+    feat = ConvMolFeaturizer()
     X = feat.featurize(mols)
-    assert (model.predict(dc.data.NumpyDataset(X))).all() == True
+    assert (model.predict(NumpyDataset(X))).all() is True

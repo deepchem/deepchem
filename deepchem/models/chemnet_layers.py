@@ -5,7 +5,6 @@ Contains implementations of layers used in ChemCeption and Smiles2Vec models.
 __author__ = "Vignesh Ram Somnath"
 __license__ = "MIT"
 
-import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Conv2D, Concatenate, ReLU, Add, MaxPool2D
 

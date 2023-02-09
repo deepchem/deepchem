@@ -103,11 +103,11 @@ class Pagtn(nn.Module):
             Whether to compute elementwise maximum, mean or sum of the node representations.
         """
         try:
-            import dgl
+            import dgl  # noqa: F401
         except:
             raise ImportError('This class requires dgl.')
         try:
-            import dgllife
+            import dgllife  # noqa: F401
         except:
             raise ImportError('This class requires dgllife.')
 
@@ -141,19 +141,19 @@ class Pagtn(nn.Module):
 
     def forward(self, g):
         """Predict graph labels
-    
+
         Parameters
         ----------
         g: DGLGraph
             A DGLGraph for a batch of graphs. It stores the node features in
             ``dgl_graph.ndata[self.nfeat_name]`` and edge features in
             ``dgl_graph.edata[self.efeat_name]``.
-    
+
         Returns
         -------
         torch.Tensor
             The model output.
-    
+
         * When self.mode = 'regression',
             its shape will be ``(dgl_graph.batch_size, self.n_tasks)``.
         * When self.mode = 'classification', the output consists of probabilities
@@ -288,12 +288,12 @@ class PagtnModel(TorchModel):
 
     def _prepare_batch(self, batch):
         """Create batch data for Pagtn.
-    
+
         Parameters
         ----------
         batch: tuple
             The tuple is ``(inputs, labels, weights)``.
-    
+
         Returns
         -------
         inputs: DGLGraph

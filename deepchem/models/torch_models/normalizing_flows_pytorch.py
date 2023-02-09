@@ -2,8 +2,6 @@
 """
 import torch
 from torch import nn
-from torch.distributions.multivariate_normal import MultivariateNormal
-from deepchem.models.torch_models.layers import RealNVPLayer
 from typing import Sequence, Tuple
 
 
@@ -41,7 +39,7 @@ class NormalizingFlow(nn.Module):
                  dim: int) -> None:
         """This class considers a transformation, or a composition of transformations
         functions (layers), between a base distribution and a target distribution.
-    
+
         Parameters
         ----------
         transform: Sequence
@@ -52,7 +50,7 @@ class NormalizingFlow(nn.Module):
             distribution is mainly used for this parameter.
         dim: int
             Value of the Nth dimension of the dataset.
-    
+
         """
         super().__init__()
         self.dim = dim
@@ -62,20 +60,20 @@ class NormalizingFlow(nn.Module):
     def log_prob(self, inputs: torch.Tensor) -> torch.Tensor:
         """This method computes the probability of the inputs when
         transformation/transformations are applied.
-    
+
         Parameters
         ----------
         inputs: torch.Tensor
             Tensor used to evaluate the log_prob computation of the learned
             distribution.
             shape: (samples, dim)
-    
+
         Returns
         -------
         log_prob: torch.Tensor
             This tensor contains the value of the log probability computed.
             shape: (samples)
-    
+
         """
         log_prob = torch.zeros(inputs.shape[0])
         for biject in reversed(self.transforms):
@@ -88,12 +86,12 @@ class NormalizingFlow(nn.Module):
         """Performs a sampling from the transformed distribution.
         Besides the outputs (sampling), this method returns the logarithm of
         probability to obtain the outputs at the base distribution.
-    
+
         Parameters
         ----------
         n_samples: int
             Number of samples to select from the transformed distribution
-    
+
         Returns
         -------
         sample: tuple
@@ -102,7 +100,7 @@ class NormalizingFlow(nn.Module):
             applied. The secong torc.Tensor is the computation of log probabilities
             of the transformed distribution.
             shape: ((samples, dim), (samples))
-    
+
         """
         outputs = self.base_distribution.sample((n_samples,))
         log_prob = self.base_distribution.log_prob(outputs)

@@ -6,13 +6,11 @@ import tensorflow as tf
 
 from typing import List, Union, Tuple, Iterable, Dict, Optional
 from deepchem.utils.typing import OneOrMany, LossFn, ActivationFn
-from deepchem.data import Dataset, NumpyDataset, pad_features
-from deepchem.feat.graph_features import ConvMolFeaturizer
+from deepchem.data import Dataset, pad_features
 from deepchem.feat.mol_graphs import ConvMol
 from deepchem.metrics import to_one_hot
 from deepchem.models import KerasModel, layers
 from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy, Loss
-from deepchem.trans import undo_transforms
 from tensorflow.keras.layers import Input, Dense, Reshape, Softmax, Dropout, Activation, BatchNormalization
 
 
@@ -344,7 +342,6 @@ class WeaveModel(KerasModel):
             n_atoms = mol.get_num_atoms()
             # pair_edges is of shape (2, N)
             pair_edges = mol.get_pair_edges()
-            N_pairs = pair_edges[1]
             # number of atoms in each molecule
             atom_split.extend([im] * n_atoms)
             # index of pair features
@@ -729,7 +726,7 @@ class DAGModel(KerasModel):
                 calculation_orders,
                 calculation_masks,
                 membership,
-                n_atoms  #, dropout_switch
+                n_atoms,  # dropout_switch
             ],
             outputs=outputs)
         super(DAGModel, self).__init__(model,
@@ -1250,9 +1247,9 @@ class MPNNModel(KerasModel):
                 yield (inputs, [y_b], [w_b])
 
 
-#################### Deprecation warnings for renamed TensorGraph models ####################
+#################### Deprecation warnings for renamed TensorGraph models ####################  # noqa: E266
 
-import warnings
+import warnings  # noqa: E402
 
 TENSORGRAPH_DEPRECATION = "{} is deprecated and has been renamed to {} and will be removed in DeepChem 3.0."
 

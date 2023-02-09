@@ -13,7 +13,7 @@ except:
     has_pytorch = False
 
 try:
-    import wandb
+    from warnings import wandb  # noqa: F401
     has_wandb = True
 except:
     has_wandb = False

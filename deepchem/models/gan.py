@@ -1,8 +1,7 @@
 """Generative Adversarial Networks."""
 
-from deepchem.models import KerasModel, layers, losses
+from deepchem.models import KerasModel, layers
 from tensorflow.keras.layers import Input, Lambda, Layer, Softmax, Reshape, Multiply
-from collections.abc import Sequence
 
 import numpy as np
 import tensorflow as tf

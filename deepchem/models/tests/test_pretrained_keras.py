@@ -1,9 +1,7 @@
-import os
 import unittest
 import pytest
 import deepchem as dc
 import numpy as np
-from deepchem.models.losses import L2Loss
 from deepchem.feat.mol_graphs import ConvMol
 
 try:
