@@ -112,33 +112,19 @@ class DFTEntry(dict):
         return cls.created_entries[s]
 
     def __init__(self,
-                 entry_dct: Dict,
-                 device: torch.device,
-                 dtype: torch.dtype = torch.double):
+                 entry_dct: Dict):
         super().__init__(entry_dct)
         self._systems = [DFTSystem.create(p) for p in entry_dct["systems"]]
-        self._dtype = dtype
-        self._device = device
 
         self._trueval_is_set = False
-        self._trueval = torch.tensor(0.0).to(device)
+        self._trueval = np.ndarray
         """
         Parameters
         ----------
         systems:  List[DFTSystem]
             Returns the list of systems in the entry
-        dtype: torch.dtype
-            Returns data type of the calculated and true energies of a system
-        device: torch.device
         """
 
-    @property
-    def dtype(self) -> torch.dtype:
-        return self._dtype
-
-    @property
-    def device(self) -> torch.device:
-        return self._device
 
     def get_systems(self) -> List[DFTSystem]:
         """
@@ -157,14 +143,14 @@ class DFTEntry(dict):
         """
         pass
 
-    def get_true_val(self) -> torch.Tensor:
+    def get_true_val(self) -> np.ndarray:
         if not self._trueval_is_set:
             self._trueval = self._get_true_val()
             self._trueval_is_set = True
         return self._trueval
 
     @abstractmethod
-    def _get_true_val(self) -> torch.Tensor:
+    def _get_true_val(self) -> np.ndarray:
         """
         Get the true value of the DFTEntry.  
         For the AE and IP entry types, the experimental values are collected from the NIST CCCBDB/ASD 
@@ -174,7 +160,7 @@ class DFTEntry(dict):
         pass
 
     @abstractmethod
-    def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
+    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         """
         Return the energy value of the entry, using a DQC-DFT calculation, where the XC has been 
         replaced by the trained neural network. This method does not carry out any calculations, it is 
@@ -194,13 +180,13 @@ class EntryDM(DFTEntry):
     def entry_type(self) -> str:
         return "dm"
 
-    def _get_true_val(self) -> torch.Tensor:
+    def _get_true_val(self) -> np.ndarray:
         # get the density matrix from PySCF's CCSD calculation
         dm = np.load(self["true_val"])
         true_val = torch.from_numpy(dm)
         return torch.as_tensor(true_val, device=self.device)
 
-    def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
+    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         return qcs[0].aodmtot()
 
 
@@ -208,15 +194,14 @@ class EntryDens(DFTEntry):
     """Entry for density profile (dens), compared with CCSD calculation"""
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        assert len(self.get_systems()) == 1, "dens entry can only have 1 system"
+
         self._grid: Optional[BaseGrid] = None
 
     @property
     def entry_type(self) -> str:
         return "dens"
 
-    def _get_true_val(self) -> torch.Tensor:
+    def _get_true_val(self) -> np.ndarray:
         # get the density profile from PySCF's CCSD calculation
 
         system = self.get_systems()[0]
@@ -224,7 +209,7 @@ class EntryDens(DFTEntry):
         true_val = torch.from_numpy(dens)
         return torch.as_tensor(true_val, device=self.device)
 
-    def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
+    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         qc = qcs[0]
 
         # get the integration grid infos
@@ -273,7 +258,7 @@ class EntryForce(DFTEntry):
     def entry_type(self) -> str:
         return "force"
 
-    def _get_true_val(self) -> torch.Tensor:
+    def _get_true_val(self) -> np.ndarray:
         # get the density matrix from PySCF's CCSD calculation
         return torch.tensor(0.0, dtype=self.dtype, device=self.device)
 
@@ -288,12 +273,12 @@ class EntryIE(DFTEntry):
     def entry_type(self) -> str:
         return "ie"
 
-    def _get_true_val(self) -> torch.Tensor:
+    def _get_true_val(self) -> np.ndarray:
         return torch.as_tensor(self["true_val"],
                                dtype=self.dtype,
                                device=self.device)
 
-    def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
+    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         glob = {"systems": qcs, "energy": self.energy}
         return eval(self["cmd"], glob)
 
