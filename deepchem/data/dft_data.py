@@ -87,9 +87,7 @@ class DFTEntry(dict):
 
     @classmethod
     def create(cls,
-               entry_dct: Union[Dict, DFTEntry],
-               device: torch.device,
-               dtype: torch.dtype = torch.double) -> DFTEntry:
+               entry_dct: Union[Dict, DFTEntry]) -> DFTEntry:
         if isinstance(entry_dct, DFTEntry):
             return entry_dct
 
@@ -98,8 +96,6 @@ class DFTEntry(dict):
             tpe = entry_dct["type"]
             kwargs = {
                 "entry_dct": entry_dct,
-                "dtype": dtype,
-                "device": device,
             }
             obj = {
                 "ae": EntryAE,
@@ -183,11 +179,10 @@ class EntryDM(DFTEntry):
     def _get_true_val(self) -> np.ndarray:
         # get the density matrix from PySCF's CCSD calculation
         dm = np.load(self["true_val"])
-        true_val = torch.from_numpy(dm)
-        return torch.as_tensor(true_val, device=self.device)
+        return dm
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
-        return qcs[0].aodmtot()
+        return (qcs[0].aodmtot()).numpy()
 
 
 class EntryDens(DFTEntry):
@@ -206,8 +201,7 @@ class EntryDens(DFTEntry):
 
         system = self.get_systems()[0]
         dens = np.load(self["trueval"])
-        true_val = torch.from_numpy(dens)
-        return torch.as_tensor(true_val, device=self.device)
+        return dens 
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         qc = qcs[0]
@@ -217,7 +211,7 @@ class EntryDens(DFTEntry):
         rgrid = grid.get_rgrid()
 
         # get the density profile
-        return qc.dens(rgrid)
+        return (qc.dens(rgrid)).numpy()
 
     def get_integration_grid(self) -> BaseGrid:
         if self._grid is None:
@@ -260,10 +254,10 @@ class EntryForce(DFTEntry):
 
     def _get_true_val(self) -> np.ndarray:
         # get the density matrix from PySCF's CCSD calculation
-        return torch.tensor(0.0, dtype=self.dtype, device=self.device)
+        return np.array(0.0)
 
     def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
-        return qcs[0].force()
+        return (qcs[0].force()).numpy()
 
 
 class EntryIE(DFTEntry):
@@ -274,9 +268,7 @@ class EntryIE(DFTEntry):
         return "ie"
 
     def _get_true_val(self) -> np.ndarray:
-        return torch.as_tensor(self["true_val"],
-                               dtype=self.dtype,
-                               device=self.device)
+        return (self["true_val"])
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         glob = {"systems": qcs, "energy": self.energy}
@@ -291,7 +283,7 @@ class EntryAE(EntryIE):
         return "ae"
 
 
-def load_entries(entry_path, device):
+def load_entries(entry_path):
     """
     The method loads the yaml dataset and returns a list of entries, containing DFTEntry objects. 
     """
@@ -299,6 +291,6 @@ def load_entries(entry_path, device):
     with open(entry_path) as f:
         data_mol = yaml.load(f, Loader=SafeLoader)
     for i in range(0, len(data_mol)):
-        entry = DFTEntry.create(data_mol[i], device=device)
+        entry = DFTEntry.create(data_mol[i])
         entries.append(entry)
     return entries
