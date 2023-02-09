@@ -23,7 +23,7 @@ from deepchem.utils.typing import LossFn, OneOrMany
 from deepchem.models.wandblogger import WandbLogger
 
 try:
-    from warnings import wandb
+    import wandb
     wandb.ensure_configured()
     if wandb.api.api_key is None:
         _has_wandb = False

@@ -5,7 +5,7 @@ import numpy as np
 import unittest
 import pytest
 try:
-    from warnings import wandb  # noqa: F401
+    import wandb  # noqa: F401
     has_wandb = True
 except:
     has_wandb = False
