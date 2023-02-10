@@ -10,7 +10,7 @@ import torch
 
 @pytest.fixture
 def entries():
-    entries = load_entries('deepchem/data/tests/dft_dset1.yaml', device='cpu')
+    entries = load_entries('deepchem/data/tests/dft_dset1.yaml')
     return entries
 
 
@@ -46,12 +46,12 @@ def test_entrytype(dm_entry_for_HF, ae_entry_for_LiH):
 
 @pytest.mark.dqc
 def test_dqcsystem(dm_HF_system0, dm_entry_for_HF):
-    mol_dqc = dm_HF_system0.get_dqc_system(dm_entry_for_HF)
+    mol_dqc = dm_HF_system0.get_dqc_mol(dm_entry_for_HF)
     hf_zs = torch.Tensor([1, 9])
     hf_pos = torch.DoubleTensor([[0.86625, 0.0000, 0.0000],
                                  [-0.86625, 0.0000, 0.0000]])
     assert (mol_dqc.atomzs == hf_zs).all()
-    assert torch.allclose(hf_pos, mol_dqc.atompos)
+    assert (hf_pos.numpy() == mol_dqc.atompos.numpy()).all()
 
 @pytest.mark.dqc
 def test_trueval(ae_entry_for_LiH, dm_entry_for_HF):

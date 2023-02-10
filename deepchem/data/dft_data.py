@@ -50,7 +50,7 @@ class DFTSystem(dict):
         # caches
         self._caches = {}
 
-    def get_dqc_system(self, pos_reqgrad: bool = False) -> BaseSystem:
+    def get_dqc_mol(self, pos_reqgrad: bool = False) -> BaseSystem:
         """
         This method converts the system dictionary to a DQC system and returns it. 
         Parameters
