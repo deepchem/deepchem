@@ -94,16 +94,16 @@ class DFTEntry(dict):
         s = str(entry_dct)
         if s not in cls.created_entries:
             tpe = entry_dct["type"]
-            kwargs = {
-                "entry_dct": entry_dct,
-            }
-            obj = {
-                "ae": EntryAE,
-                "ie": EntryIE,
-                "dm": EntryDM,
-                "dens": EntryDens,
-                "force": EntryForce,
-            }[tpe](**kwargs)
+            if tpe == "ae":
+                obj = EntryAE(entry_dct)
+            elif tpe == "ie":
+                obj = EntryIE(entry_dct)
+            elif tpe == "dm":
+                obj = EntryDM(entry_dct)
+            elif tpe == "dens":
+                obj = EntryDens(entry_dct)
+            elif tpe == "force":
+                obj = EntryForce(entry_dct)
             cls.created_entries[s] = obj
         return cls.created_entries[s]
 
@@ -168,8 +168,8 @@ class DFTEntry(dict):
 class EntryDM(DFTEntry):
     """Entry for Density Matrix (DM)"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, entry_dct):
+        super().__init__(entry_dct)
         assert len(self.get_systems()) == 1, "dm entry can only have 1 system"
 
     @property
@@ -188,8 +188,9 @@ class EntryDM(DFTEntry):
 class EntryDens(DFTEntry):
     """Entry for density profile (dens), compared with CCSD calculation"""
 
-    def __init__(self, *args, **kwargs):
-
+    def __init__(self, entry_dct):
+        super().__init__(entry_dct)
+        assert len(self.get_systems()) == 1
         self._grid: Optional[BaseGrid] = None
 
     @property
@@ -243,8 +244,8 @@ class EntryDens(DFTEntry):
 class EntryForce(DFTEntry):
     """Entry for force at the experimental equilibrium position"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, entry_dct):
+        super().__init__(entry_dct)
         assert len(
             self.get_systems()) == 1, "force entry can only have 1 system"
 
