@@ -207,8 +207,6 @@ def test_weave_fit_simple_distance_1():
                        learning_rate=0.0005)
     model.fit(dataset, nb_epoch=200)
     transformers = []
-    metric = Metric(roc_auc_score,
-                               np.mean,
-                               mode="classification")
+    metric = Metric(roc_auc_score, np.mean, mode="classification")
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9

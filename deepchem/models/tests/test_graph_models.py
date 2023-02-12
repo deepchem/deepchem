@@ -35,13 +35,10 @@ def get_dataset(mode='classification', featurizer='GraphConv', num_tasks=2):
 
     if mode == 'classification':
         y = np.random.randint(0, 2, size=(data_points, len(tasks)))
-        metric = Metric(roc_auc_score,
-                                   np.mean,
-                                   mode="classification")
+        metric = Metric(roc_auc_score, np.mean, mode="classification")
     else:
         y = np.random.normal(size=(data_points, len(tasks)))
-        metric = Metric(mean_absolute_error,
-                                   mode="regression")
+        metric = Metric(mean_absolute_error, mode="regression")
 
     ds = NumpyDataset(train.X[:data_points], y, w, train.ids[:data_points])
 
@@ -137,10 +134,9 @@ def test_graph_conv_model_no_task():
     bace_url = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/bace.csv"
     download_url(url=bace_url, name="bace_tmp.csv")
     loader = CSVLoader(tasks=[],
-                               smiles_field='mol',
-                               featurizer=ConvMolFeaturizer())
-    td = loader.featurize(
-        os.path.join(get_data_dir(), "bace_tmp.csv"))
+                       smiles_field='mol',
+                       featurizer=ConvMolFeaturizer())
+    td = loader.featurize(os.path.join(get_data_dir(), "bace_tmp.csv"))
     model.predict(td)
 
 
@@ -334,10 +330,10 @@ def test_dtnn_regression_model():
     n_tasks = y.shape[1]
 
     model = DTNNModel(n_tasks,
-                                n_embedding=20,
-                                n_distance=100,
-                                learning_rate=1.0,
-                                mode="regression")
+                      n_embedding=20,
+                      n_distance=100,
+                      learning_rate=1.0,
+                      mode="regression")
 
     # Fit trained model
     model.fit(dataset, nb_epoch=250)

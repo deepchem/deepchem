@@ -1025,8 +1025,8 @@ def test_chemception_reload():
     w = np.ones(shape=(data_points, n_tasks))
     dataset = dc.data.NumpyDataset(X, y, w, mols)
     _ = dc.metrics.Metric(dc.metrics.roc_auc_score,
-                                               np.mean,
-                                               mode="classification")
+                          np.mean,
+                          mode="classification")
 
     model_dir = tempfile.mkdtemp()
     model = dc.models.ChemCeption(n_tasks=n_tasks,
@@ -1082,8 +1082,8 @@ def test_smiles2vec_reload():
                                    dataset.ids[:data_points])
 
     _ = dc.metrics.Metric(dc.metrics.roc_auc_score,
-                                               np.mean,
-                                               mode="classification")
+                          np.mean,
+                          mode="classification")
 
     model_dir = tempfile.mkdtemp()
     model = dc.models.Smiles2Vec(char_to_idx=char_to_idx,

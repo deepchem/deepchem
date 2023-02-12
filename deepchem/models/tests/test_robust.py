@@ -23,8 +23,7 @@ def test_singletask_robust_multitask_classification():
     w = np.ones((n_samples, n_tasks))
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
-    _ = dc.metrics.Metric(dc.metrics.accuracy_score,
-                                              task_averager=np.mean)
+    _ = dc.metrics.Metric(dc.metrics.accuracy_score, task_averager=np.mean)
     model = dc.models.RobustMultitaskClassifier(n_tasks,
                                                 n_features,
                                                 layer_sizes=[50],
@@ -57,8 +56,8 @@ def test_singletask_robust_multitask_regression():
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     _ = dc.metrics.Metric(dc.metrics.mean_squared_error,
-                                          task_averager=np.mean,
-                                          mode="regression")
+                          task_averager=np.mean,
+                          mode="regression")
     model = dc.models.RobustMultitaskRegressor(n_tasks,
                                                n_features,
                                                layer_sizes=[50],
