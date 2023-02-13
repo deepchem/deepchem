@@ -1,6 +1,4 @@
-from deepchem.data import NumpyDataset
-from deepchem.metrics import Metric, roc_auc_score
-from deepchem.models import TorchModel, losses
+import deepchem as dc
 import deepchem.models.optimizers as optimizers
 import unittest
 import pytest
@@ -278,20 +276,21 @@ class TestOptimizers(unittest.TestCase):
 
         X = np.random.rand(n_samples, 1, n_features, n_features)
         y = np.random.randint(2, size=(n_samples, n_tasks)).astype(np.float32)
-        dataset = NumpyDataset(X, y)
+        dataset = dc.data.NumpyDataset(X, y)
 
-        metric = Metric(roc_auc_score)
+        metric = dc.metrics.Metric(dc.metrics.roc_auc_score)
         model = torch.nn.Sequential(
             torch.nn.Conv2d(1, 32, kernel_size=3, padding=1),
             torch.nn.Conv2d(32, 64, kernel_size=3,
                             padding=1), torch.nn.Flatten(),
             torch.nn.Linear(64 * n_features * n_features, 20), torch.nn.ReLU(),
             torch.nn.Linear(20, n_tasks))
-        model = TorchModel(model,
-                           losses.L2Loss(),
-                           optimizers=optimizers.KFAC(model=model,
-                                                      learning_rate=0.003,
-                                                      Tinv=10))
+        model = dc.models.TorchModel(model,
+                                     dc.models.losses.L2Loss(),
+                                     optimizers=optimizers.KFAC(
+                                         model=model,
+                                         learning_rate=0.003,
+                                         Tinv=10))
         # Fit trained model
         model.fit(
             dataset,
