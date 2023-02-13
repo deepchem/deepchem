@@ -1,5 +1,5 @@
 # Requirements
-During its installation, DeepChem requires various prerequisite libraries to be installed. The various `.yml` files in the `requirements` folder contain the different libraries that are the prerequisites based on the installer, operating system, etc. The different folders are used to show the dependencies of the DeepChem library on the respective deep-learning backends.
+DeepChem depends on various scientific computational libraries which are specified in the `.yml` files. The different sub-folders contain the deep-learning backend requirements of DeepChem.
 
 The files present are:
 1. `env_common.yml` - contains libraries related to scientific applications that are common to all operating systems.
