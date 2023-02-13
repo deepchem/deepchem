@@ -79,7 +79,7 @@ class CGCNNLayer(nn.Module):
 
     def forward(self, dgl_graph, node_feats, edge_feats):
         """Update node representations.
-    
+
         Parameters
         ----------
         dgl_graph: DGLGraph
@@ -88,7 +88,7 @@ class CGCNNLayer(nn.Module):
             The node features. The shape is `(N, hidden_node_dim)`.
         edge_feats: torch.Tensor
             The edge features. The shape is `(N, hidden_node_dim)`.
-    
+
         Returns
         -------
         node_feats: torch.Tensor
@@ -206,13 +206,13 @@ class CGCNN(nn.Module):
 
     def forward(self, dgl_graph):
         """Predict labels
-    
+
         Parameters
         ----------
         dgl_graph: DGLGraph
             DGLGraph for a batch of graphs. The graph expects that the node features
             are stored in `ndata['x']`, and the edge features are stored in `edata['edge_attr']`.
-    
+
         Returns
         -------
         out: torch.Tensor
@@ -295,7 +295,7 @@ class CGCNNModel(TorchModel):
                  n_classes: int = 2,
                  **kwargs):
         """This class accepts all the keyword arguments from TorchModel.
-    
+
         Parameters
         ----------
         in_node_dim: int, default 92
@@ -334,12 +334,12 @@ class CGCNNModel(TorchModel):
 
     def _prepare_batch(self, batch):
         """Create batch data for CGCNN.
-    
+
         Parameters
         ----------
         batch: Tuple
             The tuple are `(inputs, labels, weights)`.
-    
+
         Returns
         -------
         inputs: DGLGraph

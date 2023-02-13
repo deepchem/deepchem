@@ -2,18 +2,12 @@
 Normalizing flows for transforming probability distributions.
 """
 
-import numpy as np
 import logging
-from typing import List, Iterable, Optional, Tuple, Sequence, Any, Callable
+from typing import List, Optional, Sequence, Callable
 
 import tensorflow as tf
-from tensorflow.keras.layers import Lambda
 
-import deepchem as dc
-from deepchem.models.losses import Loss
-from deepchem.models.models import Model
 from deepchem.models.keras_model import KerasModel
-from deepchem.models.optimizers import Optimizer, Adam
 from deepchem.utils.typing import OneOrMany
 from deepchem.utils.data_utils import load_from_disk, save_to_disk
 
@@ -25,7 +19,7 @@ class NormalizingFlow(tf.keras.models.Model):
 
     The purpose of a normalizing flow is to map a simple distribution (that is
     easy to sample from and evaluate probability densities for) to a more
-    complex distribution that is learned from data. The base distribution 
+    complex distribution that is learned from data. The base distribution
     p(x) is transformed by the associated normalizing flow y=g(x) to model the
     distribution p(y).
 
@@ -39,7 +33,7 @@ class NormalizingFlow(tf.keras.models.Model):
     def __init__(self, base_distribution, flow_layers: Sequence,
                  **kwargs) -> None:
         """Create a new NormalizingFlow.
-    
+
         Parameters
         ----------
         base_distribution: tfd.Distribution
@@ -48,7 +42,7 @@ class NormalizingFlow(tf.keras.models.Model):
         flow_layers: Sequence[tfb.Bijector]
             An iterable of bijectors that comprise the flow.
         **kwargs
-    
+
         """
 
         try:
@@ -78,7 +72,7 @@ class NormalizingFlow(tf.keras.models.Model):
 class NormalizingFlowModel(KerasModel):
     """A base distribution and normalizing flow for applying transformations.
 
-    Normalizing flows are effective for any application requiring 
+    Normalizing flows are effective for any application requiring
     a probabilistic model that can both sample from a distribution and
     compute marginal likelihoods, e.g. generative modeling,
     unsupervised learning, or probabilistic inference. For a thorough review
@@ -89,14 +83,14 @@ class NormalizingFlowModel(KerasModel):
         2. Calculating log probabilities
 
     A normalizing flow implements three main operations:
-        1. Forward transformation 
-        2. Inverse transformation 
+        1. Forward transformation
+        2. Inverse transformation
         3. Calculating the Jacobian
 
     Deep Normalizing Flow models require normalizing flow layers where
     input and output dimensions are the same, the transformation is invertible,
     and the determinant of the Jacobian is efficient to compute and
-    differentiable. The determinant of the Jacobian of the transformation 
+    differentiable. The determinant of the Jacobian of the transformation
     gives a factor that preserves the probability volume to 1 when transforming
     between probability densities of different random variables.
 
@@ -108,14 +102,14 @@ class NormalizingFlowModel(KerasModel):
 
     def __init__(self, model: NormalizingFlow, **kwargs) -> None:
         """Creates a new NormalizingFlowModel.
-    
+
         In addition to the following arguments, this class also accepts all the keyword arguments from KerasModel.
-    
+
         Parameters
         ----------
         model: NormalizingFlow
-            An instance of NormalizingFlow.    
-    
+            An instance of NormalizingFlow.
+
         Examples
         --------
         >> import tensorflow_probability as tfp
@@ -135,13 +129,13 @@ class NormalizingFlowModel(KerasModel):
         ..    y=np.random.rand(5,),
         ..    ids=np.arange(5))
         >> nfm.fit(dataset)
-    
+
         """
 
         try:
             import tensorflow_probability as tfp
-            tfd = tfp.distributions
-            tfb = tfp.bijectors
+            _ = tfp.distributions
+            _ = tfp.bijectors
         except ModuleNotFoundError:
             raise ImportError(
                 "This class requires tensorflow-probability to be installed.")
@@ -160,19 +154,19 @@ class NormalizingFlowModel(KerasModel):
 
     def create_nll(self, input: OneOrMany[tf.Tensor]) -> tf.Tensor:
         """Create the negative log likelihood loss function.
-    
+
         The default implementation is appropriate for most cases. Subclasses can
         override this if there is a need to customize it.
-    
+
         Parameters
         ----------
         input: OneOrMany[tf.Tensor]
             A batch of data.
-    
+
         Returns
         -------
         A Tensor equal to the loss function to use for optimization.
-    
+
         """
 
         return -tf.reduce_mean(self.flow.log_prob(input, training=True))
@@ -188,19 +182,19 @@ class NormalizingFlowModel(KerasModel):
     def _create_gradient_fn(self,
                             variables: Optional[List[tf.Variable]]) -> Callable:
         """Create a function that computes gradients and applies them to the model.
-    
+
         Because of the way TensorFlow function tracing works, we need to create a
         separate function for each new set of variables.
-        
+
         Parameters
         ----------
         variables: Optional[List[tf.Variable]]
             Variables to track during training.
-    
+
         Returns
         -------
         Callable function that applies gradients for batch of training data.
-    
+
         """
 
         @tf.function(experimental_relax_shapes=True)
@@ -233,7 +227,7 @@ class NormalizingFlowLayer(object):
     A normalizing flow transforms random variables into new random variables.
     Each learnable layer is a bijection, an invertible
     transformation between two probability distributions. A simple initial
-    density is pushed through the normalizing flow to produce a richer, 
+    density is pushed through the normalizing flow to produce a richer,
     more multi-modal distribution. Normalizing flows have three main operations:
 
     1. Forward
@@ -241,8 +235,8 @@ class NormalizingFlowLayer(object):
     2. Inverse
         Reverse a transformation, useful for computing conditional probabilities.
     3. Log(|det(Jacobian)|) [LDJ]
-        Compute the determinant of the Jacobian of the transformation, 
-        which is a scaling that conserves the probability "volume" to equal 1. 
+        Compute the determinant of the Jacobian of the transformation,
+        which is a scaling that conserves the probability "volume" to equal 1.
 
     For examples of customized normalizing flows applied to toy problems,
     see [1]_.
@@ -265,78 +259,78 @@ class NormalizingFlowLayer(object):
 
     def _forward(self, x: tf.Tensor) -> tf.Tensor:
         """Forward transformation.
-    
+
         x = g(y)
-    
+
         Parameters
         ----------
         x: tf.Tensor
             Input tensor.
-    
+
         Returns
         -------
         fwd_x: tf.Tensor
             Transformed tensor.
-    
+
         """
 
         raise NotImplementedError("Forward transform must be defined.")
 
     def _inverse(self, y: tf.Tensor) -> tf.Tensor:
         """Inverse transformation.
-    
+
         x = g^{-1}(y)
-        
+
         Parameters
         ----------
         y: tf.Tensor
             Input tensor.
-    
+
         Returns
         -------
         inv_y: tf.Tensor
             Inverted tensor.
-    
+
         """
 
         raise NotImplementedError("Inverse transform must be defined.")
 
     def _forward_log_det_jacobian(self, x: tf.Tensor) -> tf.Tensor:
         """Log |Determinant(Jacobian(x)|
-    
+
         Note x = g^{-1}(y)
-    
+
         Parameters
         ----------
         x: tf.Tensor
             Input tensor.
-    
+
         Returns
         -------
         ldj: tf.Tensor
             Log of absolute value of determinant of Jacobian of x.
-    
+
         """
 
         raise NotImplementedError("LDJ must be defined.")
 
     def _inverse_log_det_jacobian(self, y: tf.Tensor) -> tf.Tensor:
         """Inverse LDJ.
-    
+
         The ILDJ = -LDJ.
-    
+
         Note x = g^{-1}(y)
-    
+
         Parameters
         ----------
         y: tf.Tensor
             Input tensor.
-    
+
         Returns
         -------
         ildj: tf.Tensor
             Log of absolute value of determinant of Jacobian of y.
-    
+
         """
 
         return -self._forward_log_det_jacobian(self._inverse(y))

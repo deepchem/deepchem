@@ -2,8 +2,6 @@
 Convenience class that lets singletask models fit on multitask data.
 """
 import os
-import sklearn
-import tempfile
 import numpy as np
 import shutil
 import logging
@@ -64,10 +62,9 @@ class SingletaskToMultitask(Model):
             DiskDataset.create_dataset([], task_dirs[task_num], [task.item()])
             for (task_num, task) in enumerate(tasks)
         ]
-        #task_metadata_rows = {task: [] for task in tasks}
+        # task_metadata_rows = {task: [] for task in tasks}
         for shard_num, (X, y, w, ids) in enumerate(dataset.itershards()):
             logger.info("Processing shard %d" % shard_num)
-            basename = "dataset-%d" % shard_num
             for task_num, task in enumerate(tasks):
                 logger.info("\tTask %s" % task)
                 if len(w.shape) == 1:
@@ -92,7 +89,7 @@ class SingletaskToMultitask(Model):
 
     def fit(self, dataset, **kwargs):
         """Updates all singletask models with new information.
-    
+
         Note
         ----
         This current implementation is only functional for sklearn models.
@@ -110,8 +107,6 @@ class SingletaskToMultitask(Model):
 
     def predict_on_batch(self, X):
         """Concatenates results from all singletask models."""
-        n_tasks = len(self.tasks)
-        n_samples = X.shape[0]
         y_preds = []
         for ind, task in enumerate(self.tasks):
             task_model = self.model_builder(self.task_model_dirs[task])
@@ -123,8 +118,6 @@ class SingletaskToMultitask(Model):
 
     def predict(self, dataset, transformers=[]):
         """Prediction for multitask models."""
-        n_tasks = len(self.tasks)
-        n_samples = len(dataset)
         y_preds = []
         for ind, task in enumerate(self.tasks):
             task_model = self.model_builder(self.task_model_dirs[task])
@@ -137,7 +130,7 @@ class SingletaskToMultitask(Model):
 
     def save(self):
         """Save all models
-    
+
         TODO(rbharath): Saving is not yet supported for this model.
         """
         pass

@@ -6,7 +6,7 @@ from deepchem.data import NumpyDataset
 from deepchem.feat.molecule_featurizers import MolGanFeaturizer
 from deepchem.models.optimizers import ExponentialDecay
 try:
-    import tensorflow as tf
+    import tensorflow as tf  # noqa: F401
     from deepchem.models import BasicMolGANModel as MolGAN
     from tensorflow import one_hot
     from tensorflow.keras.backend import clear_session as keras_clear_session

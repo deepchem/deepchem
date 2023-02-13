@@ -7,16 +7,14 @@ __license__ = "MIT"
 
 import os
 import numpy as np
-import tempfile
-import shutil
 import unittest
 import deepchem as dc
 
 
 class TestMultitask(unittest.TestCase):
     """
-  Sanity tests for multitask data.
-  """
+    Sanity tests for multitask data.
+    """
 
     def setUp(self):
         super(TestMultitask, self).setUp()

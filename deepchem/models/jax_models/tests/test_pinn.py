@@ -5,7 +5,7 @@ try:
     import jax
     import jax.numpy as jnp
     import haiku as hk
-    import optax
+    import optax  # noqa: F401
     from deepchem.models import PINNModel
     from deepchem.data import NumpyDataset
     from deepchem.models.optimizers import Adam

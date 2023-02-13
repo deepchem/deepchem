@@ -1,5 +1,4 @@
 import logging
-import deepchem as dc
 from deepchem.models import KerasModel
 from deepchem.models.layers import AtomicConvolution
 from deepchem.models.losses import L2Loss
@@ -11,8 +10,8 @@ import itertools
 
 from collections.abc import Sequence as SequenceCollection
 
-from typing import Sequence, Union
-from deepchem.utils.typing import ActivationFn, LossFn, OneOrMany
+from typing import Sequence
+from deepchem.utils.typing import ActivationFn, OneOrMany
 from deepchem.utils.data_utils import load_from_disk, save_to_disk
 
 logger = logging.getLogger(__name__)
@@ -202,7 +201,6 @@ class AtomicConvModel(KerasModel):
                            stddev=weight_init_stddevs[-1]),
                        bias_initializer=tf.constant_initializer(
                            value=bias_init_consts[-1]))(prev_layer))
-        loss: Union[dc.models.losses.Loss, LossFn]
 
         model = tf.keras.Model(inputs=[
             frag1_X, frag1_nbrs, frag1_nbrs_z, frag1_z, frag2_X, frag2_nbrs,
