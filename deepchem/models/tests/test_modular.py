@@ -16,23 +16,24 @@ class ExampleTorchModel(ModularTorchModel):
         self.components = self.build_components()
         self.custom_loss = self.loss_func
         self.model = self.build_model()
-        super().__init__(self.model, self.components, self.custom_loss, **kwargs)
+        super().__init__(self.model, self.components, **kwargs)
 
     def build_components(self):
         return {'encoder': self.encoder(), 'FF1': self.FF1(), 'FF2': self.FF2()}
 
-    def loss_func(self, data, components:dict):
-        inputs1 = torch.from_numpy(data.X).float()
+    # def loss_func(self, data, components:dict):
+    def loss_func(self, inputs, labels, weights):
+        inputs1 = torch.from_numpy(inputs).float()
         preds1 = components['FF1'](components['encoder'](inputs1))
         labels1 = torch.tensor(data.y)
         loss1 = torch.nn.functional.mse_loss(preds1, labels1)
         
-        inputs2 = torch.from_numpy(data.X).float()
+        inputs2 = torch.from_numpy(inputs).float()
         preds2 = components['FF1'](inputs2)
-        labels2 = torch.tensor(data.y)
+        labels2 = torch.tensor(labels)
         loss2 = torch.nn.functional.smooth_l1_loss(preds2, labels2)
-        
-        return loss1 + loss2
+        total_loss = loss1 + loss2
+        return (total_loss * weights).sum
 
     def encoder(self):
         embedding = []
@@ -130,7 +131,7 @@ def test_fit_restore():
     dataset = dc.data.NumpyDataset(X, y)
     
     example_model = ExampleTorchModel(n_feat, d_hidden, n_layers, n_tasks)
-    pretrainer = ExampleTorchModel(example_model, pt_tasks)
+    pretrainer = ExamplePretrainer(example_model, pt_tasks)
 
     pretrainer.fit(dataset, nb_epoch=1000)
     
