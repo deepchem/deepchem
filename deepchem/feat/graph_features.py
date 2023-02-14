@@ -300,7 +300,7 @@ def atom_features(atom,
 
     Returns
     -------
-    features: np.ndarray 
+    features: np.ndarray
         An array of per-atom features.
 
     Examples
@@ -405,7 +405,7 @@ def bond_features(bond, use_chirality=False, use_extended_chirality=False):
         If true, use chirality information.
     use_extended_chirality: bool, optional
         If true, use chirality information with upto 6 different types.
-    
+
     Note
     ----
     This method requires RDKit to be installed.
@@ -415,7 +415,7 @@ def bond_features(bond, use_chirality=False, use_extended_chirality=False):
     bond_feats: np.ndarray
         Array of bond features. This is a 1-D array of length 6 if `use_chirality`
         is `False` else of length 10 with chirality encoded.
-    
+
     bond_feats: Sequence[Union[bool, int, float]]
         List of bond features returned if `use_extended_chirality` is `True`.
 
@@ -768,7 +768,7 @@ class ConvMolFeaturizer(MolecularFeaturizer):
             one with each heavy atom removed. This is useful for subsequent model interpretation: finding atoms
             favorable/unfavorable for (modelled) activity. This option is typically used in combination
             with a FlatteningTransformer to split the lists into separate samples.
-        
+
             Since ConvMol is an object and not a numpy array, need to set dtype to
             object.
         """
@@ -785,7 +785,7 @@ class ConvMolFeaturizer(MolecularFeaturizer):
                   **kwargs) -> np.ndarray:
         """
         Override parent: aim is to add handling atom-depleted molecules featurization
-    
+
         Parameters
         ----------
         datapoints: rdkit.Chem.rdchem.Mol / SMILES string / iterable
@@ -793,7 +793,7 @@ class ConvMolFeaturizer(MolecularFeaturizer):
             strings.
         log_every_n: int, default 1000
             Logging messages reported every `log_every_n` samples.
-    
+
         Returns
         -------
         features: np.ndarray
@@ -825,7 +825,7 @@ class ConvMolFeaturizer(MolecularFeaturizer):
         For a given input RDKit atom return the values of the properties
         requested when initializing the featurize.  See the __init__ of the
         class for a full description of the names of the properties
-    
+
         Parameters
         ----------
         atom: RDKit.rdchem.Atom
@@ -853,12 +853,12 @@ class ConvMolFeaturizer(MolecularFeaturizer):
             Enumerates fragments resulting from mol object,
             s.t. each fragment = mol with single atom removed (all possible removals are enumerated)
             Goes over nodes, deletes one at a time and updates adjacency list of lists (removes connections to that node)
-        
+
             Parameters
             ----------
             n: np.array of nodes (number_of_nodes X number_of_features)
             a: list of nested lists of adjacent node pairs
-        
+
             """
             for i in range(n.shape[0]):
                 new_n = np.delete(n, (i), axis=0)
@@ -978,7 +978,7 @@ class WeaveFeaturizer(MolecularFeaturizer):
                  use_chirality: bool = False,
                  max_pair_distance: Optional[int] = None):
         """Initialize this featurizer with set parameters.
-    
+
         Parameters
         ----------
         graph_distance: bool, (default True)

@@ -18,8 +18,8 @@ from deepchem.models.torch_models.layers import MultilayerPerceptron, CNNModule,
 from deepchem.models.torch_models.cnn import CNN
 
 try:
-  from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
+    from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
 except ModuleNotFoundError as e:
-  logger.warning(
-      f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'
-  )
+    logger.warning(
+        f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'
+    )

@@ -1,4 +1,4 @@
-name: deepchem-dqc
+name: dqc
 channels:
   - conda-forge
   - defaults
@@ -13,3 +13,4 @@ dependencies:
    - git+https://github.com/diffqc/dqc.git
    - xitorch
    - pylibxc2
+   - pytest

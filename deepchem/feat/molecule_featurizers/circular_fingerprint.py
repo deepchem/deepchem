@@ -79,6 +79,7 @@ class CircularFingerprint(MolecularFeaturizer):
             when calculating sparse fingerprints).
         is_counts_based: bool, optional (default False)
             Whether to generates a counts-based fingerprint.
+
         """
         self.radius = radius
         self.size = size
@@ -101,6 +102,7 @@ class CircularFingerprint(MolecularFeaturizer):
         -------
         np.ndarray
             A numpy array of circular fingerprint.
+
         """
         try:
             from rdkit import Chem, DataStructs

@@ -276,7 +276,6 @@ class SparseAdam(Optimizer):
         self.epsilon = epsilon
 
     def _create_tf_optimizer(self, global_step):
-        import tensorflow as tf
         import tensorflow_addons as tfa
         if isinstance(self.learning_rate, LearningRateSchedule):
             learning_rate = self.learning_rate._create_tf_tensor(global_step)
@@ -335,7 +334,6 @@ class AdamW(Optimizer):
         self.amsgrad = amsgrad
 
     def _create_tf_optimizer(self, global_step):
-        import tensorflow as tf
         import tensorflow_addons as tfa
         if isinstance(self.learning_rate, LearningRateSchedule):
             learning_rate = self.learning_rate._create_tf_tensor(global_step)

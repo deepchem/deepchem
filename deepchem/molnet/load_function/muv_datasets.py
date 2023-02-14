@@ -17,13 +17,15 @@ MUV_TASKS = sorted([
 
 class _MuvLoader(_MolnetLoader):
 
-  def create_dataset(self) -> Dataset:
-    dataset_file = os.path.join(self.data_dir, "muv.csv.gz")
-    if not os.path.exists(dataset_file):
-      dc.utils.data_utils.download_url(url=MUV_URL, dest_dir=self.data_dir)
-    loader = dc.data.CSVLoader(
-        tasks=self.tasks, feature_field="smiles", featurizer=self.featurizer)
-    return loader.create_dataset(dataset_file, shard_size=8192)
+    def create_dataset(self) -> Dataset:
+        dataset_file = os.path.join(self.data_dir, "muv.csv.gz")
+        if not os.path.exists(dataset_file):
+            dc.utils.data_utils.download_url(url=MUV_URL,
+                                             dest_dir=self.data_dir)
+        loader = dc.data.CSVLoader(tasks=self.tasks,
+                                   feature_field="smiles",
+                                   featurizer=self.featurizer)
+        return loader.create_dataset(dataset_file, shard_size=8192)
 
 
 def load_muv(
@@ -35,51 +37,51 @@ def load_muv(
     save_dir: Optional[str] = None,
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
-  """Load MUV dataset
+    """Load MUV dataset
 
-  The Maximum Unbiased Validation (MUV) group is a benchmark dataset selected
-  from PubChem BioAssay by applying a refined nearest neighbor analysis.
+    The Maximum Unbiased Validation (MUV) group is a benchmark dataset selected
+    from PubChem BioAssay by applying a refined nearest neighbor analysis.
 
-  The MUV dataset contains 17 challenging tasks for around 90 thousand
-  compounds and is specifically designed for validation of virtual screening
-  techniques.
+    The MUV dataset contains 17 challenging tasks for around 90 thousand
+    compounds and is specifically designed for validation of virtual screening
+    techniques.
 
-  Scaffold splitting is recommended for this dataset.
+    Scaffold splitting is recommended for this dataset.
 
-  The raw data csv file contains columns below:
+    The raw data csv file contains columns below:
 
-  - "mol_id" - PubChem CID of the compound
-  - "smiles" - SMILES representation of the molecular structure
-  - "MUV-XXX" - Measured results (Active/Inactive) for bioassays
+    - "mol_id" - PubChem CID of the compound
+    - "smiles" - SMILES representation of the molecular structure
+    - "MUV-XXX" - Measured results (Active/Inactive) for bioassays
 
-  Parameters
-  ----------
-  featurizer: Featurizer or str
-    the featurizer to use for processing the data.  Alternatively you can pass
-    one of the names from dc.molnet.featurizers as a shortcut.
-  splitter: Splitter or str
-    the splitter to use for splitting the data into training, validation, and
-    test sets.  Alternatively you can pass one of the names from
-    dc.molnet.splitters as a shortcut.  If this is None, all the data
-    will be included in a single dataset.
-  transformers: list of TransformerGenerators or strings
-    the Transformers to apply to the data.  Each one is specified by a
-    TransformerGenerator or, as a shortcut, one of the names from
-    dc.molnet.transformers.
-  reload: bool
-    if True, the first call for a particular featurizer and splitter will cache
-    the datasets to disk, and subsequent calls will reload the cached datasets.
-  data_dir: str
-    a directory to save the raw data in
-  save_dir: str
-    a directory to save the dataset in
+    Parameters
+    ----------
+    featurizer: Featurizer or str
+        the featurizer to use for processing the data.  Alternatively you can pass
+        one of the names from dc.molnet.featurizers as a shortcut.
+    splitter: Splitter or str
+        the splitter to use for splitting the data into training, validation, and
+        test sets.  Alternatively you can pass one of the names from
+        dc.molnet.splitters as a shortcut.  If this is None, all the data
+        will be included in a single dataset.
+    transformers: list of TransformerGenerators or strings
+        the Transformers to apply to the data.  Each one is specified by a
+        TransformerGenerator or, as a shortcut, one of the names from
+        dc.molnet.transformers.
+    reload: bool
+        if True, the first call for a particular featurizer and splitter will cache
+        the datasets to disk, and subsequent calls will reload the cached datasets.
+    data_dir: str
+        a directory to save the raw data in
+    save_dir: str
+        a directory to save the dataset in
 
-  References
-  ----------
-  .. [1] Rohrer, Sebastian G., and Knut Baumann. "Maximum unbiased validation
-     (MUV) data sets for virtual screening based on PubChem bioactivity data."
-     Journal of chemical information and modeling 49.2 (2009): 169-184.
-  """
-  loader = _MuvLoader(featurizer, splitter, transformers, MUV_TASKS, data_dir,
-                      save_dir, **kwargs)
-  return loader.load_dataset('muv', reload)
+    References
+    ----------
+    .. [1] Rohrer, Sebastian G., and Knut Baumann. "Maximum unbiased validation
+        (MUV) data sets for virtual screening based on PubChem bioactivity data."
+        Journal of chemical information and modeling 49.2 (2009): 169-184.
+    """
+    loader = _MuvLoader(featurizer, splitter, transformers, MUV_TASKS, data_dir,
+                        save_dir, **kwargs)
+    return loader.load_dataset('muv', reload)

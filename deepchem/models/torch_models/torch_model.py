@@ -19,7 +19,7 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 
 from collections.abc import Sequence as SequenceCollection
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
-from deepchem.utils.typing import ArrayLike, LossFn, OneOrMany
+from deepchem.utils.typing import LossFn, OneOrMany
 from deepchem.models.wandblogger import WandbLogger
 
 try:
@@ -129,7 +129,7 @@ class TorchModel(Model):
                  wandb_logger: Optional[WandbLogger] = None,
                  **kwargs) -> None:
         """Create a new TorchModel.
-    
+
         Parameters
         ----------
         model: torch.nn.Module
@@ -295,7 +295,7 @@ class TorchModel(Model):
             callbacks: Union[Callable, List[Callable]] = [],
             all_losses: Optional[List[float]] = None) -> float:
         """Train this model on a dataset.
-    
+
         Parameters
         ----------
         dataset: Dataset
@@ -327,7 +327,7 @@ class TorchModel(Model):
             If specified, all logged losses are appended into this list. Note that
             you can call `fit()` repeatedly with the same list and losses will
             continue to be appended.
-    
+
         Returns
         -------
         The average loss over the most recent checkpoint interval
@@ -349,7 +349,7 @@ class TorchModel(Model):
                       callbacks: Union[Callable, List[Callable]] = [],
                       all_losses: Optional[List[float]] = None) -> float:
         """Train this model on data from a generator.
-    
+
         Parameters
         ----------
         generator: generator
@@ -377,7 +377,7 @@ class TorchModel(Model):
             If specified, all logged losses are appended into this list. Note that
             you can call `fit()` repeatedly with the same list and losses will
             continue to be appended.
-    
+
         Returns
         -------
         The average loss over the most recent checkpoint interval
@@ -490,7 +490,7 @@ class TorchModel(Model):
                      checkpoint: bool = True,
                      max_checkpoints_to_keep: int = 5) -> float:
         """Perform a single step of training.
-    
+
         Parameters
         ----------
         X: ndarray
@@ -513,7 +513,7 @@ class TorchModel(Model):
             if true, save a checkpoint after performing the training step
         max_checkpoints_to_keep: int
             the maximum number of checkpoints to keep.  Older checkpoints are discarded.
-    
+
         Returns
         -------
         the loss on the batch
@@ -534,11 +534,11 @@ class TorchModel(Model):
                  other_output_types: Optional[OneOrMany[str]]):
         """
         Predict outputs for data provided by a generator.
-    
+
         This is the private implementation of prediction.  Do not
         call it directly.  Instead call one of the public prediction
         methods.
-    
+
         Parameters
         ----------
         generator: generator
@@ -666,7 +666,7 @@ class TorchModel(Model):
             X: np.typing.ArrayLike,
             transformers: List[Transformer] = []) -> OneOrMany[np.ndarray]:
         """Generates predictions for input samples, processing samples in a batch.
-    
+
         Parameters
         ----------
         X: ndarray
@@ -674,7 +674,7 @@ class TorchModel(Model):
         transformers: list of dc.trans.Transformers
             Transformers that the input data has been transformed by.  The output
             is passed through these transformers to undo the transformations.
-    
+
         Returns
         -------
         a NumPy array of the model produces a single output, or a list of arrays
@@ -689,21 +689,21 @@ class TorchModel(Model):
             masks: int = 50) -> OneOrMany[Tuple[np.ndarray, np.ndarray]]:
         """
         Predict the model's outputs, along with the uncertainty in each one.
-    
+
         The uncertainty is computed as described in https://arxiv.org/abs/1703.04977.
         It involves repeating the prediction many times with different dropout masks.
         The prediction is computed as the average over all the predictions.  The
         uncertainty includes both the variation among the predicted values (epistemic
         uncertainty) and the model's own estimates for how well it fits the data
         (aleatoric uncertainty).  Not all models support uncertainty prediction.
-    
+
         Parameters
         ----------
         X: ndarray
             the input data, as a Numpy array.
         masks: int
             the number of dropout masks to average over
-    
+
         Returns
         -------
         for each output, a tuple (y_pred, y_std) where y_pred is the predicted
@@ -720,7 +720,7 @@ class TorchModel(Model):
             output_types: Optional[List[str]] = None) -> OneOrMany[np.ndarray]:
         """
         Uses self to make predictions on provided Dataset object.
-    
+
         Parameters
         ----------
         dataset: dc.data.Dataset
@@ -732,7 +732,7 @@ class TorchModel(Model):
             If specified, all outputs of this type will be retrieved
             from the model. If output_types is specified, outputs must
             be None.
-    
+
         Returns
         -------
         a NumPy array of the model produces a single output, or a list of arrays
@@ -750,12 +750,12 @@ class TorchModel(Model):
         Predicts embeddings created by underlying model if any exist.
         An embedding must be specified to have `output_type` of
         `'embedding'` in the model definition.
-    
+
         Parameters
         ----------
         dataset: dc.data.Dataset
             Dataset to make prediction on
-    
+
         Returns
         -------
         a NumPy array of the embeddings model produces, or a list
@@ -772,21 +772,21 @@ class TorchModel(Model):
             masks: int = 50) -> OneOrMany[Tuple[np.ndarray, np.ndarray]]:
         """
         Predict the model's outputs, along with the uncertainty in each one.
-    
+
         The uncertainty is computed as described in https://arxiv.org/abs/1703.04977.
         It involves repeating the prediction many times with different dropout masks.
         The prediction is computed as the average over all the predictions.  The
         uncertainty includes both the variation among the predicted values (epistemic
         uncertainty) and the model's own estimates for how well it fits the data
         (aleatoric uncertainty).  Not all models support uncertainty prediction.
-    
+
         Parameters
         ----------
         dataset: dc.data.Dataset
             Dataset to make prediction on
         masks: int
             the number of dropout masks to average over
-    
+
         Returns
         -------
         for each output, a tuple (y_pred, y_std) where y_pred is the predicted
@@ -829,7 +829,7 @@ class TorchModel(Model):
                            transformers: List[Transformer] = [],
                            per_task_metrics: bool = False):
         """Evaluate the performance of this model on the data produced by a generator.
-    
+
         Parameters
         ----------
         generator: generator
@@ -842,7 +842,7 @@ class TorchModel(Model):
             is passed through these transformers to undo the transformations.
         per_task_metrics: bool
             If True, return per-task scores.
-    
+
         Returns
         -------
         dict
@@ -853,22 +853,22 @@ class TorchModel(Model):
 
     def compute_saliency(self, X: np.ndarray) -> OneOrMany[np.ndarray]:
         """Compute the saliency map for an input sample.
-    
+
         This computes the Jacobian matrix with the derivative of each output element
         with respect to each input element.  More precisely,
-    
+
         - If this model has a single output, it returns a matrix of shape
             (output_shape, input_shape) with the derivatives.
         - If this model has multiple outputs, it returns a list of matrices, one
             for each output.
-    
+
         This method cannot be used on models that take multiple inputs.
-    
+
         Parameters
         ----------
         X: ndarray
             the input data for a single sample
-    
+
         Returns
         -------
         the Jacobian matrix, or a list of matrices
@@ -943,10 +943,10 @@ class TorchModel(Model):
             deterministic: bool = True,
             pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
         """Create a generator that iterates batches for a dataset.
-    
+
         Subclasses may override this method to customize how model inputs are
         generated from the data.
-    
+
         Parameters
         ----------
         dataset: Dataset
@@ -962,7 +962,7 @@ class TorchModel(Model):
             data for each epoch
         pad_batches: bool
             whether to pad each batch up to this model's preferred batch size
-    
+
         Returns
         -------
         a generator that iterates batches, each represented as a tuple of lists:
@@ -979,11 +979,11 @@ class TorchModel(Model):
                         max_checkpoints_to_keep: int = 5,
                         model_dir: Optional[str] = None) -> None:
         """Save a checkpoint to disk.
-    
+
         Usually you do not need to call this method, since fit() saves checkpoints
         automatically.  If you have disabled automatic checkpointing during fitting,
         this can be called to manually write checkpoints.
-    
+
         Parameters
         ----------
         max_checkpoints_to_keep: int
@@ -1022,12 +1022,12 @@ class TorchModel(Model):
 
     def get_checkpoints(self, model_dir: Optional[str] = None):
         """Get a list of all available checkpoint files.
-    
+
         Parameters
         ----------
         model_dir: str, default None
             Directory to get list of checkpoints from. Reverts to self.model_dir if None
-    
+
         """
         if model_dir is None:
             model_dir = self.model_dir
@@ -1041,7 +1041,7 @@ class TorchModel(Model):
                 checkpoint: Optional[str] = None,
                 model_dir: Optional[str] = None) -> None:
         """Reload the values of all variables from a checkpoint file.
-    
+
         Parameters
         ----------
         checkpoint: str
@@ -1082,7 +1082,7 @@ class TorchModel(Model):
         output tasks. include_top is used to control whether or not the final dense
         layer is used. The default assignment map is useful in cases where the type
         of task is different (classification vs regression) and/or number of tasks.
-    
+
         Parameters
         ----------
         source_model: dc.models.TorchModel
@@ -1109,7 +1109,7 @@ class TorchModel(Model):
         Creates a value map between parameters in the source model and their
         current values. This is used only when a custom value map is missing, and
         assumes the restore method has been called.
-    
+
         Parameters
         ----------
         source_model: dc.models.TorchModel
@@ -1143,7 +1143,7 @@ class TorchModel(Model):
         is used to control whether or not the final dense layer is used. The default
         assignment map is useful in cases where the type of task is different
         (classification vs regression) and/or number of tasks in the setting.
-    
+
         Parameters
         ----------
         source_model: dc.TorchModel, required
