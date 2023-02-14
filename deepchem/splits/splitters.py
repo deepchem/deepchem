@@ -917,6 +917,22 @@ class MolecularWeightSplitter(Splitter):
     Note
     ----
     This class requires RDKit to be installed.
+
+    Examples
+    --------
+    
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> # creation of demo data set with some smiles strings
+    >>> data_test= ["CC(C)Cl" , "CCC(C)CO" ,  "CCCCCCCO" , "CCCCCCCC(=O)OC" , "c3ccc2nc1ccccc1cc2c3" , "Nc2cccc3nc1ccccc1cc23" , "C1CCCCCC1" ]
+    >>> Xs = np.zeros(len(data_test))
+    >>> Ys = np.ones(len(data_test))
+    >>> # creation of a deepchem dataset with the smile codes in the ids field
+    >>> dataset = dc.data.DiskDataset.from_numpy(X=Xs,y=Ys,w=np.zeros(len(data_test)),ids=data_test)
+    >>> molecularweightsplitter = dc.splits.MolecularWeightSplitter()
+    >>> train, val, test = molecularweightsplitter.split(dataset)
+    >>> train
+    
     """
 
     def split(
