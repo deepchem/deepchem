@@ -763,6 +763,18 @@ class IndexSplitter(Splitter):
     training, the next `frac_valid` for validation, and the final `frac_test` for
     testing. This class may make sense to use your `Dataset` is already time
     ordered (for example).
+            
+    Examples
+    --------
+    >>> n_samples = 100
+    >>> n_features = 10
+    >>> n_tasks = 10
+    >>> X = np.random.rand(n_samples, n_features)
+    >>> y = np.random.rand(n_samples, n_tasks)
+    >>> splitter = dc.splits.IndexSplitter()
+    >>> dataset = dc.data.NumpyDataset(X, y)
+    >>> train_dataset, valid_dataset , test_dataset = splitter.split(dataset)
+
     """
 
     def split(
@@ -815,6 +827,18 @@ class SpecifiedSplitter(Splitter):
     dataset. Note that this is different from `IndexSplitter` which only splits
     based on the existing dataset ordering, while this `SpecifiedSplitter` can
     split on any specified ordering.
+        
+    Examples
+    --------
+    >>> n_samples = 10
+    >>> n_features = 3
+    >>> n_tasks = 1
+    >>> X = np.random.rand(n_samples, n_features)
+    >>> y = np.random.rand(n_samples, n_tasks)
+    >>> splitter = dc.splits.SpecifiedSplitter(valid_indices=[1,3,5], test_indices=[0,2,7,9])
+    >>> dataset = dc.data.NumpyDataset(X, y)
+    >>> train_dataset, valid_dataset , test_dataset = splitter.split(dataset)
+    
     """
 
     def __init__(self,
