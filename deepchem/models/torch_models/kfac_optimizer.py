@@ -43,27 +43,27 @@ class KFACOptimizer(optim.Optimizer):
         Parameters:
         -----------
         model: torch.nn.Module
-          The model to be optimized.
+              The model to be optimized.
         lr: float (default: 0.001)
-          Learning rate for the optimizer.
+              Learning rate for the optimizer.
         momentum: float (default: 0.9)
-          Momentum for the optimizer.
+              Momentum for the optimizer.
         stat_decay: float (default: 0.95)
-          Decay rate for the update of covariance matrix with mean.
+              Decay rate for the update of covariance matrix with mean.
         damping: float (default: 0.001)
-          damping factor for the update of covariance matrix.
+              damping factor for the update of covariance matrix.
         kl_clip: float (default: 0.001)
-          Clipping value for the update of covariance matrix.
+              Clipping value for the update of covariance matrix.
         weight_decay: float (default: 0)
-          weight decay for the optimizer.
+              weight decay for the optimizer.
         Tcov: int (default: 10)
-          The number of steps to update the covariance matrix.
+              The number of steps to update the covariance matrix.
         Tinv: int (default: 100)
-          The number of steps to calculate the inverse of covariance matrix.
+              The number of steps to calculate the inverse of covariance matrix.
         batch_averaged: bool (default: True)
-          States whether to use batch averaged covariance matrix.
+              States whether to use batch averaged covariance matrix.
         mean: bool (default: False)
-          States whether to use mean centered covariance matrix.
+              States whether to use mean centered covariance matrix.
         """
 
         if lr < 0.0:
@@ -120,12 +120,12 @@ class KFACOptimizer(optim.Optimizer):
         Parameters:
         -----------
         x: torch.Tensor
-          The input tensor to be made contiguous in memory, if it is not so.
+              The input tensor to be made contiguous in memory, if it is not so.
 
         Return:
         -------
         torch.Tensor
-          Tensor with contiguous memory
+              Tensor with contiguous memory
         """
         if not x.is_contiguous():
             x = x.contiguous()
@@ -145,18 +145,18 @@ class KFACOptimizer(optim.Optimizer):
         Parameters:
         -----------
         x: torch.Tensor
-          The input feature maps. with the size of (batch_size, in_c, h, w)
+              The input feature maps. with the size of (batch_size, in_c, h, w)
         kernel_size: Tuple[int, ...]
-          the kernel size of the conv filter.
+              the kernel size of the conv filter.
         stride: Tuple[int, ...]
-          the stride of conv operation.
+              the stride of conv operation.
         padding: Union[int, str, Tuple[int, ...]]
-          number of paddings. be a tuple of two elements
+              number of paddings. be a tuple of two elements
 
         Return:
         -------
         torch.Tensor:
-          Extracted patches with shape (batch_size, out_h, out_w, in_c*kh*kw)
+              Extracted patches with shape (batch_size, out_h, out_w, in_c*kh*kw)
         """
         if isinstance(padding, tuple):
             if padding[0] + padding[1] > 0:
@@ -188,14 +188,14 @@ class KFACOptimizer(optim.Optimizer):
         Parameters:
         -----------
         a: torch.Tensor
-          It is the output of the layer for which the covariance matrix should be calculated.
+              It is the output of the layer for which the covariance matrix should be calculated.
         layer: torch.nn.Module
-          It specifies the type of layer from which the output of the layer is taken.
+              It specifies the type of layer from which the output of the layer is taken.
 
         Returns:
         --------
         torch.Tensor
-          The covariance matrix of the A matrix.
+              The covariance matrix of the A matrix.
         """
         if isinstance(layer, torch.nn.Linear):
             batch_size = a.size(0)
@@ -227,14 +227,14 @@ class KFACOptimizer(optim.Optimizer):
         Parameters:
         -----------
         g: torch.Tensor
-          It is the gradient of the layer for which the covariance matrix should be calculated.
+              It is the gradient of the layer for which the covariance matrix should be calculated.
         layer: torch.nn.Module
-          It specifies the type of layer from which the output of the layer is taken.
+              It specifies the type of layer from which the output of the layer is taken.
 
         Returns:
         --------
         torch.Tensor
-          The covariance matrix of the G matrix.
+              The covariance matrix of the G matrix.
         """
         if isinstance(layer, torch.nn.Linear):
             try:
@@ -270,9 +270,9 @@ class KFACOptimizer(optim.Optimizer):
         Parameters:
         -----------
         module: torch.nn.Module
-          specifies the layer for which the input should be taken
+              specifies the layer for which the input should be taken
         input: torch.Tensor
-           the input matrix which should get updated
+              the input matrix which should get updated
         """
         self.expected_input = {}
         if self.steps % self.TCov == 0:
@@ -309,9 +309,9 @@ class KFACOptimizer(optim.Optimizer):
         Parameters:
         -----------
         module: torch.nn.Module
-          specifies the layer for which the gradient should be taken
+              specifies the layer for which the gradient should be taken
         input: torch.Tensor
-          the gradient matrix which should get updated
+              the gradient matrix which should get updated
         """
         # Accumulate statistics for Fisher matrices
         if self.steps % self.TCov == 0:
@@ -363,7 +363,7 @@ class KFACOptimizer(optim.Optimizer):
         Parameter:
         ----------
         m: torch.nn.Module
-          This is the layer for which the eigen decomposition should be done on.
+              This is the layer for which the eigen decomposition should be done on.
         """
         eps = 1e-10  # for numerical stability
         self.d_a[m], self.Q_a[m] = torch.symeig(self.list_aa[m],
@@ -382,12 +382,12 @@ class KFACOptimizer(optim.Optimizer):
         Parameter:
         ----------
         m: torch.nn.Module
-          the layer for which the gradient must be calculated
+              the layer for which the gradient must be calculated
 
         Return:
         -------
         torch.tensor
-          a matrix form of the gradient. it should be a [output_dim, input_dim] matrix.
+              a matrix form of the gradient. it should be a [output_dim, input_dim] matrix.
         """
         if isinstance(m, torch.nn.Conv2d):
             p_grad_mat = m.weight.grad.data.view(
@@ -432,16 +432,16 @@ class KFACOptimizer(optim.Optimizer):
         Parameters:
         -----------
         m: torch.nn.Module
-          Specifies the layer for which the calculation must be done on.
+              Specifies the layer for which the calculation must be done on.
         p_grad_mat: torch.Tensor
-          the gradients in matrix form isinstance(m.weight.grad.data, torch.Tensor) and i
+              the gradients in matrix form isinstance(m.weight.grad.data, torch.Tensor) and i
         damping: float
-          the damping factor for the calculation
+              the damping factor for the calculation
 
         Return:
         -------
         torch.Tensor
-          the product of inverse of the fisher matrix and the weights gradient.
+              the product of inverse of the fisher matrix and the weights gradient.
         """
         # p_grad_mat is of output_dim * input_dim
         # inv((ss')) p_grad_mat inv(aa') = [ Q_g (1/R_g) Q_g^T ] @ p_grad_mat @ [Q_a (1/R_a) Q_a^T]
@@ -486,9 +486,9 @@ class KFACOptimizer(optim.Optimizer):
         Parameters:
         -----------
         updates: Dict[torch.nn.Module,List[torch.Tensor]]
-          A dicitonary containing the product of gradient and fisher inverse of each layer.
+              A dicitonary containing the product of gradient and fisher inverse of each layer.
         lr: float
-          learning rate of the optimizer
+              learning rate of the optimizer
         """
         # do kl clip
         vg_sum = 0.0
@@ -525,7 +525,7 @@ class KFACOptimizer(optim.Optimizer):
         Parameters:
         -----------
         closure: Callable, optional(default: None)
-         an optional customizable function to be passed which can be used to clear the gradients and other compute loss for every step.
+            an optional customizable function to be passed which can be used to clear the gradients and other compute loss for every step.
         """
         for group in self.param_groups:
             weight_decay = group['weight_decay']
@@ -565,7 +565,7 @@ class KFACOptimizer(optim.Optimizer):
         Parameters:
         -----------
         closure: Callable, optional(default: None)
-          an optional customizable function to be passed which can be used to clear the gradients and other compute loss for every step.
+              an optional customizable function to be passed which can be used to clear the gradients and other compute loss for every step.
         """
         group = self.param_groups[0]
         lr = group['lr']
