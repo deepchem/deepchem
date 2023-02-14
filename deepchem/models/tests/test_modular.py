@@ -21,20 +21,17 @@ class ExampleTorchModel(ModularTorchModel):
     def build_components(self):
         return {'encoder': self.encoder(), 'FF1': self.FF1(), 'FF2': self.FF2()}
 
-    # def loss_func(self, data, components:dict):
     def loss_func(self, inputs, labels, weights):
         inputs1 = inputs
         preds1 = self.components['FF1'](self.components['encoder'](inputs1))
-        # labels1 = torch.tensor(labels)
-        labels1 = labels[0]
-        loss1 = torch.nn.functional.mse_loss(preds1, labels1)
+        labels = labels[0]
+        loss1 = torch.nn.functional.mse_loss(preds1, labels)
          
         inputs2 = inputs
         preds2 = self.components['FF1'](inputs2)
-        labels2 = labels[0]
-        loss2 = torch.nn.functional.smooth_l1_loss(preds2, labels2)
+        loss2 = torch.nn.functional.smooth_l1_loss(preds2, labels)
         total_loss = loss1 + loss2
-        return (total_loss * weights).mean
+        return (total_loss * weights[0]).mean()
 
     def encoder(self):
         embedding = []
@@ -45,22 +42,22 @@ class ExampleTorchModel(ModularTorchModel):
             else:
                 embedding.append(nn.Linear(self.d_hidden, self.d_hidden))
                 embedding.append(nn.ReLU())
-        return nn.Sequential(*embedding).cuda()
+        return nn.Sequential(*embedding)#.to(self.device)
 
     def FF1(self):
         linear = nn.Linear(self.input_dim, self.d_output)
         af = nn.Sigmoid()
-        return nn.Sequential(linear, af).cuda()
+        return nn.Sequential(linear, af)#.to(self.device)
     
     def FF2(self):
         linear = nn.Linear(self.d_hidden, self.d_output)
         af = nn.ReLU()
-        return nn.Sequential(linear, af).cuda()
+        return nn.Sequential(linear, af)#.to(self.device)
 
     def build_model(self):
         encoder = self.encoder()
         FF2 = self.FF2()
-        return nn.Sequential(encoder, FF2).cuda()
+        return nn.Sequential(encoder, FF2)#.to(self.device)
     
 class ExamplePretrainer(ModularTorchModel): 
     def __init__(self, model, pt_tasks, **kwargs):
@@ -72,7 +69,7 @@ class ExamplePretrainer(ModularTorchModel):
     def FF_pt(self):
         linear = nn.Linear(self.source_model.d_hidden, self.pt_tasks)
         af = nn.ReLU()
-        return nn.Sequential(linear, af).cuda()
+        return nn.Sequential(linear, af)#.to(self.device)
     def loss_func(self, inputs, labels, weights):
         inputs = inputs[0]
         labels = labels[0]
@@ -89,7 +86,7 @@ class ExamplePretrainer(ModularTorchModel):
         pt_components.update({'FF_pt': self.FF_pt()})
         return pt_components
     def build_model(self):
-        return nn.Sequential(self.components['encoder'], self.components['FF_pt']).cuda()
+        return nn.Sequential(self.components['encoder'], self.components['FF_pt'])#.to(self.device)
 
 @pytest.mark.torch
 def test_overfit_modular():
@@ -209,7 +206,8 @@ def test_load_freeze():
     # check that the first layer is still the same between the two models
     assert np.array_equal(example_pretrainer.components['encoder'][0].weight.data.cpu().numpy(),example_model.components['encoder'][0].weight.data.cpu().numpy())
 
-    # check that the predictions are different becuase of the fine tuning
+    # check that the predictions are different because of the fine tuning
+    example_model.model.to('cuda')
     assert not np.array_equal(np.round(np.squeeze(example_pretrainer.predict_on_batch(X_ft))), np.round(np.squeeze(example_model.predict_on_batch(X_ft))))
 
 test_fit_restore()

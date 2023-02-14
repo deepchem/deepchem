@@ -16,6 +16,9 @@ class ModularTorchModel(TorchModel):
         self.model = model
         self.components = components
         super().__init__(self.model, self.loss_func, **kwargs)
+        # send self.model and self.components to the device
+        self.model.to(self.device)
+        self.components = {k: v.to(self.device) for k, v in self.components.items()}
     
     def build_model(self):
         return NotImplementedError("Subclass must define the components")
