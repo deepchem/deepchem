@@ -23,17 +23,18 @@ class ExampleTorchModel(ModularTorchModel):
 
     # def loss_func(self, data, components:dict):
     def loss_func(self, inputs, labels, weights):
-        inputs1 = torch.from_numpy(inputs).float()
-        preds1 = components['FF1'](components['encoder'](inputs1))
-        labels1 = torch.tensor(data.y)
+        inputs1 = inputs
+        preds1 = self.components['FF1'](self.components['encoder'](inputs1))
+        # labels1 = torch.tensor(labels)
+        labels1 = labels[0]
         loss1 = torch.nn.functional.mse_loss(preds1, labels1)
-        
-        inputs2 = torch.from_numpy(inputs).float()
-        preds2 = components['FF1'](inputs2)
-        labels2 = torch.tensor(labels)
+         
+        inputs2 = inputs
+        preds2 = self.components['FF1'](inputs2)
+        labels2 = labels[0]
         loss2 = torch.nn.functional.smooth_l1_loss(preds2, labels2)
         total_loss = loss1 + loss2
-        return (total_loss * weights).sum
+        return (total_loss * weights).mean
 
     def encoder(self):
         embedding = []
@@ -44,22 +45,22 @@ class ExampleTorchModel(ModularTorchModel):
             else:
                 embedding.append(nn.Linear(self.d_hidden, self.d_hidden))
                 embedding.append(nn.ReLU())
-        return nn.Sequential(*embedding)
+        return nn.Sequential(*embedding).cuda()
 
     def FF1(self):
         linear = nn.Linear(self.input_dim, self.d_output)
         af = nn.Sigmoid()
-        return nn.Sequential(linear, af)
+        return nn.Sequential(linear, af).cuda()
     
     def FF2(self):
         linear = nn.Linear(self.d_hidden, self.d_output)
         af = nn.ReLU()
-        return nn.Sequential(linear, af)
+        return nn.Sequential(linear, af).cuda()
 
     def build_model(self):
         encoder = self.encoder()
         FF2 = self.FF2()
-        return nn.Sequential(encoder, FF2)
+        return nn.Sequential(encoder, FF2).cuda()
     
 class ExamplePretrainer(ModularTorchModel): 
     def __init__(self, model, pt_tasks, **kwargs):
