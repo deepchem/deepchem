@@ -12,7 +12,35 @@ import torch
 logger = logging.getLogger(__name__)
 
 class ModularTorchModel(TorchModel):
-    def __init__(self, model:nn.Module, components:dict, **kwargs):
+    """ModularTorchModel is a subclass of TorchModel that allows for components to be 
+    pre-trained and then combined into a final model. It is designed to be subclassed 
+    for specific models and is not intended to be used directly. It functions the same
+    as TorchModel, except that components of the model are separately defined in the 
+    components attribute, the model is built in the build_model method, and a custom loss
+    function can be passed which makes use of the components individually.
+    
+    Here is an example of how to use ModularTorchModel:
+    
+    >>> import numpy as np
+    >>> import deepchem as dc
+    >>> X_pt = np.random.rand(n_samples, n_feat)
+    >>> y_pt = np.zeros((n_samples, pt_tasks)).astype(np.float32)
+    >>> dataset_pt = dc.data.NumpyDataset(X_pt, y_pt)
+    
+    >>> example_model = ExampleTorchModel(n_feat, d_hidden, n_layers,  ft_tasks) 
+    >>> example_pretrainer = ExamplePretrainer(example_model, pt_tasks)
+    
+    >>> example_pretrainer.fit(dataset_pt, nb_epoch=1000)
+    
+    >>> example_model.load_from_pretrained(source_model = example_pretrainer, components=['encoder'])
+    
+    
+    """
+    
+    def __init__(self, 
+                 model:nn.Module, 
+                 components:dict, 
+                 **kwargs):
         self.model = model
         self.components = components
         super().__init__(self.model, self.loss_func, **kwargs)
@@ -29,7 +57,11 @@ class ModularTorchModel(TorchModel):
     def loss_func(self):
         return NotImplementedError("Subclass must define the loss function")
     
-    def load_from_pretrained(self, source_model: 'ModularTorchModel' = None, checkpoint: Optional[str] = None, model_dir: str = None, components: list = None):
+    def load_from_pretrained(self, 
+                             source_model: 'ModularTorchModel' = None, 
+                             checkpoint: Optional[str] = None, 
+                             model_dir: str = None, 
+                             components: list = None):
         # generate the source state dict
         if source_model is not None:
             source_state_dict = source_model.model.state_dict()
@@ -63,7 +95,11 @@ class ModularTorchModel(TorchModel):
                       loss: Optional[LossFn] = None,
                       callbacks: Union[Callable, List[Callable]] = [],
                       all_losses: Optional[List[float]] = None) -> float:
-        """Train this model on data from a generator.
+        """Train this model on data from a generator. This method is similar to
+        the TorchModel implementation, but it passes the inputs directly to the
+        loss function, rather than passing them through the model first.  This
+        enables the loss to be calculated from intermediate steps of the model
+        and not just the final output.
     
         Parameters
         ----------
