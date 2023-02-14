@@ -59,6 +59,35 @@ class ExampleTorchModel(ModularTorchModel):
         encoder = self.encoder()
         FF2 = self.FF2()
         return nn.Sequential(encoder, FF2)
+    
+class ExamplePretrainer(ModularTorchModel): 
+    def __init__(self, model, pt_tasks, **kwargs):
+        self.source_model = model # the pretrainer takes the original model as input in order to modify it
+        self.pt_tasks = pt_tasks
+        self.components = self.build_components()
+        self.model = self.build_model()
+        super().__init__(self.model, self.components, **kwargs)
+    def FF_pt(self):
+        linear = nn.Linear(self.source_model.d_hidden, self.pt_tasks)
+        af = nn.ReLU()
+        return nn.Sequential(linear, af).cuda()
+    def loss_func(self, inputs, labels, weights):
+        inputs = inputs[0]
+        labels = labels[0]
+        weights = weights[0]
+        # inputs = torch.from_numpy(inputs).float().cuda()
+        preds = self.components['FF_pt'](self.components['encoder'](inputs))
+        # labels = torch.tensor(labels).cuda()
+        loss = torch.nn.functional.mse_loss(preds, labels)
+        loss = loss * weights
+        loss = loss.mean()
+        return loss
+    def build_components(self):
+        pt_components = self.source_model.build_components()
+        pt_components.update({'FF_pt': self.FF_pt()})
+        return pt_components
+    def build_model(self):
+        return nn.Sequential(self.components['encoder'], self.components['FF_pt']).cuda()
 
 @pytest.mark.torch
 def test_overfit_modular():
@@ -82,7 +111,7 @@ def test_overfit_modular():
     prediction = np.round(np.squeeze(example_model.predict_on_batch(X)))
     assert np.array_equal(y, prediction)
     
-test_overfit_modular()
+
 
 @pytest.mark.torch
 def test_fit_restore():
@@ -113,49 +142,74 @@ def test_fit_restore():
     
     prediction = np.squeeze(pretrainer2.predict_on_batch(X))
     assert np.array_equal(y, np.round(prediction))
-    
-
-@pytest.mark.torch
-def test_load_freeze_embedding():
-    """Test that the pretrainer can be used to load into a ModularTorchModel, freeze the TorchModel embedding, and train the head."""
-    
+        
+def test_overfit_modular():
     np.random.seed(123)
     torch.manual_seed(10)
     n_samples = 6
     n_feat = 3
     d_hidden = 3
-    n_layers = 1
-    n_tasks = 6
+    n_layers = 2
+    ft_tasks = 6
     pt_tasks = 3
 
-    X_pt = np.random.rand(n_samples, n_feat)
-    y = np.zeros((n_samples, pt_tasks)).astype(np.float32)
-    pt_dataset = dc.data.NumpyDataset(X_pt, y)
+    # X = np.random.rand(n_samples, n_feat)
+    # y_ft = np.zeros((n_samples, ft_tasks)).astype(np.float32)
+    # # w_ft = np.ones((n_samples, ft_tasks)).astype(np.float32)
+    # dataset_ft = dc.data.NumpyDataset(X, y_ft)
+    
+    X = np.random.rand(n_samples, n_feat)
+    y_pt = np.zeros((n_samples, pt_tasks)).astype(np.float32)
+    w_pt = np.ones((n_samples, pt_tasks)).astype(np.float32)
+    dataset_pt = dc.data.NumpyDataset(X, y_pt,w_pt)
+    
+    example_model = ExampleTorchModel(n_feat, d_hidden, n_layers,  ft_tasks, model_dir='./example_model') 
+    example_pretrainer = ExamplePretrainer(example_model, pt_tasks, model_dir='./example_pretrainer')
+
+    example_pretrainer.fit(dataset_pt, nb_epoch=1000)
+
+    prediction = np.round(np.squeeze(example_pretrainer.predict_on_batch(X)))
+    assert np.array_equal(y_pt, prediction)
+    
+def test_load_freeze():
+    np.random.seed(123)
+    torch.manual_seed(10)
+    n_samples = 6
+    n_feat = 3
+    d_hidden = 3
+    n_layers = 2
+    ft_tasks = 6
+    pt_tasks = 3
     
     X_ft = np.random.rand(n_samples, n_feat)
-    y = np.zeros((n_samples, n_tasks)).astype(np.float32)
-    ft_dataset = dc.data.NumpyDataset(X_ft, y)
+    y_ft = np.zeros((n_samples, ft_tasks)).astype(np.float32)
+    # w_ft = np.ones((n_samples, ft_tasks)).astype(np.float32)
+    dataset_ft = dc.data.NumpyDataset(X_ft, y_ft)
     
-    example_model = ExampleTorchModel(n_feat, d_hidden, n_layers, n_tasks)
-    pretrainer = ExamplePretrainer(example_model, pt_tasks)
+    X_pt = np.random.rand(n_samples, n_feat)
+    y_pt = np.zeros((n_samples, pt_tasks)).astype(np.float32)
+    # w_pt = np.ones((n_samples, pt_tasks)).astype(np.float32)
+    dataset_pt = dc.data.NumpyDataset(X_pt, y_pt)
+    
+    example_model = ExampleTorchModel(n_feat, d_hidden, n_layers,  ft_tasks, model_dir='./example_model') 
+    example_pretrainer = ExamplePretrainer(example_model, pt_tasks, model_dir='./example_pretrainer')
 
-    # train pretrainer
-    pretrainer.fit(pt_dataset, nb_epoch=1000)
+    example_pretrainer.fit(dataset_pt, nb_epoch=1000)
     
-    # load embedding from pretrainer
-    example_model2 = ExampleTorchModel(n_feat, d_hidden, n_layers, n_tasks)
-    example_model2.load_from_pretrained(pretrainer, include_top=False, model_dir=pretrainer.model_dir)
+    example_model.load_from_pretrained(source_model = example_pretrainer, components=['encoder'])
     
-    # freeze embedding layers
-    for param in example_model2.embedding.parameters():
+    for param in example_model.components['encoder'].parameters():
         param.requires_grad = False
-        
-    # fine tune the second model
-    example_model2.fit(ft_dataset, nb_epoch=1)
+    example_model.model = example_model.build_model()
+    
+    example_model.fit(dataset_ft, nb_epoch=1)
     
     # check that the first layer is still the same between the two models
-    assert np.array_equal(pretrainer.embedding[0].weight.data.cpu().numpy(),example_model2.embedding[0].weight.data.cpu().numpy())
-    
-    # check that the predictions are different becuase of the fine tuning
-    assert not np.array_equal(np.round(np.squeeze(pretrainer.predict_on_batch(X_ft))), np.round(np.squeeze(example_model2.predict_on_batch(X_ft))))
+    assert np.array_equal(example_pretrainer.components['encoder'][0].weight.data.cpu().numpy(),example_model.components['encoder'][0].weight.data.cpu().numpy())
 
+    # check that the predictions are different becuase of the fine tuning
+    assert not np.array_equal(np.round(np.squeeze(example_pretrainer.predict_on_batch(X_ft))), np.round(np.squeeze(example_model.predict_on_batch(X_ft))))
+
+test_fit_restore()
+test_load_freeze()
+test_overfit_modular()
