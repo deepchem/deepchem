@@ -38,8 +38,7 @@ class KFACOptimizer(optim.Optimizer):
         TCov: int = 10,
         TInv: int = 10,
         batch_averaged: bool = True,
-        mean: bool = False,
-    ):
+        mean: bool = False,):
         """
         Parameters:
         -----------
