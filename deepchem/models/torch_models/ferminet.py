@@ -533,7 +533,7 @@ class FerminetModel(TorchModel):
 
   def prepare_hf_solution(self, x):
     self.hf_psi = torch.tensor(1.0)
-    ao_values = self.mol.eval_gto("GTOval_sph", x)
+    ao_values = pyscf.eval_gto("GTOval_sph", x)
     mo_values = tuple(
         torch.from_numpy(np.matmul(ao_values, coeff)) for coeff in self.coeffs)
     self.mo_values = mo_values
