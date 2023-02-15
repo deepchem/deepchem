@@ -19,9 +19,7 @@ class ModularTorchModel(TorchModel):
 
     - The build_components() method is used to define the components of the model.
     - The components are combined into a final model with the build_model() method.
-    - The loss function is defined with the loss_func method. This may access the components
-    to compute the loss using intermediate values from the network, rather than just the
-    full forward pass output.
+    - The loss function is defined with the loss_func method. This may access the components to compute the loss using intermediate values from the network, rather than just the full forward pass output.
 
     Here is an example of how to use ModularTorchModel to pretrain a linear layer, load
     it into another network and then finetune that network:
@@ -55,7 +53,6 @@ class ModularTorchModel(TorchModel):
     """
 
     def __init__(self, model: nn.Module, components: dict, **kwargs):
-
         """Create a ModularTorchModel.
 
         Parameters
@@ -76,15 +73,22 @@ class ModularTorchModel(TorchModel):
         }
 
     def build_model(self):
+        """Builds the final model from the components."""
         return NotImplementedError("Subclass must define the components")
 
     def build_components(self):
+        """Creates the components dictionary, with the keys being the names of the
+        components and the values being torch.nn.module objects."""
         return NotImplementedError("Subclass must define the components")
 
     def loss_func(self):
+        """Defines the loss function for the model which can access the components
+        using self.components. The loss function should take the inputs, labels, and
+        weights as arguments and return the loss."""
         return NotImplementedError("Subclass must define the loss function")
 
     def freeze_components(self, components: list, unfreeze: bool = False):
+        """Freezes or unfreezes the parameters of the specified components."""
         for component in components:
             for param in self.components[component].parameters():
                 if unfreeze:
@@ -99,10 +103,9 @@ class ModularTorchModel(TorchModel):
                              checkpoint: Optional[str] = None,
                              model_dir: str = None,
                              components: list = None):
-        
-        """T
-        """
-        
+        """Modifies the TorchModel load_from_pretrained method to allow for loading
+        from a ModularTorchModel and specifying which components to load."""
+
         # generate the source state dict
         if source_model is not None:
             source_state_dict = source_model.model.state_dict()
