@@ -1,7 +1,7 @@
 import time
 import logging
 from collections.abc import Sequence as SequenceCollection
-from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Iterable, List, Optional, Tuple, Union, Sequence
 import torch
 import torch.nn as nn
 from deepchem.models.torch_models.torch_model import TorchModel
@@ -72,22 +72,25 @@ class ModularTorchModel(TorchModel):
             k: v.to(self.device) for k, v in self.components.items()
         }
 
-    def build_model(self):
+    def build_model(self) -> nn.Module:
         """Builds the final model from the components."""
-        return NotImplementedError("Subclass must define the components")
+        raise NotImplementedError("Subclass must define the components")
 
-    def build_components(self):
+    def build_components(self) -> dict:
         """Creates the components dictionary, with the keys being the names of the
         components and the values being torch.nn.module objects."""
-        return NotImplementedError("Subclass must define the components")
+        raise NotImplementedError("Subclass must define the components")
 
-    def loss_func(self):
+    def loss_func(self, inputs: OneOrMany[torch.Tensor], labels: Sequence,
+                  weights: Sequence) -> torch.Tensor:
         """Defines the loss function for the model which can access the components
         using self.components. The loss function should take the inputs, labels, and
         weights as arguments and return the loss."""
-        return NotImplementedError("Subclass must define the loss function")
+        raise NotImplementedError("Subclass must define the loss function")
 
-    def freeze_components(self, components: list, unfreeze: bool = False):
+    def freeze_components(self,
+                          components: list,
+                          unfreeze: Optional[bool] = False):
         """Freezes or unfreezes the parameters of the specified components."""
         for component in components:
             for param in self.components[component].parameters():
@@ -98,11 +101,11 @@ class ModularTorchModel(TorchModel):
         self.model = self.build_model()
         self.model.to(self.device)
 
-    def load_from_pretrained(self,
-                             source_model: 'ModularTorchModel' = None,
-                             checkpoint: Optional[str] = None,
-                             model_dir: str = None,
-                             components: list = None):
+    def load_from_modular(self,
+                          source_model: Optional['ModularTorchModel'] = None,
+                          checkpoint: Optional[str] = None,
+                          model_dir: Optional[str] = None,
+                          components: Optional[list] = None) -> None:
         """Modifies the TorchModel load_from_pretrained method to allow for loading
         from a ModularTorchModel and specifying which components to load."""
 
@@ -239,7 +242,7 @@ class ModularTorchModel(TorchModel):
             self._global_step += 1
             current_step = self._global_step
 
-            avg_loss += batch_loss
+            avg_loss += float(batch_loss)
 
             # Report progress and write checkpoints.
             averaged_batches += 1

@@ -144,6 +144,7 @@ def test_fit_restore():
     assert np.array_equal(y, np.round(prediction))
 
 
+@pytest.mark.torch
 def test_load_freeze():
     np.random.seed(123)
     torch.manual_seed(10)
@@ -165,16 +166,14 @@ def test_load_freeze():
     example_model = ExampleTorchModel(n_feat,
                                       d_hidden,
                                       n_layers,
-                                      ft_tasks,
-                                      model_dir='./example_model')
+                                      ft_tasks)
     example_pretrainer = ExamplePretrainer(example_model,
-                                           pt_tasks,
-                                           model_dir='./example_pretrainer')
+                                           pt_tasks)
 
     example_pretrainer.fit(dataset_pt, nb_epoch=1000)
 
-    example_model.load_from_pretrained(source_model=example_pretrainer,
-                                       components=['encoder'])
+    example_model.load_from_modular(source_model=example_pretrainer,
+                                    components=['encoder'])
 
     example_model.freeze_components(['encoder'])
 
