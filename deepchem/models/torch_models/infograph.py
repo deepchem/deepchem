@@ -13,11 +13,11 @@ from torch_geometric.nn.aggr import Set2Set
 
 
 class Encoder(torch.nn.Module):
-    def __init__(self, num_features, dim):
+    def __init__(self, num_features, edge_features, dim):
         super(Encoder, self).__init__()
         self.lin0 = torch.nn.Linear(num_features, dim)
 
-        nn = Sequential(Linear(11, 128), ReLU(), Linear(128, dim * dim)) # 11 edge features
+        nn = Sequential(Linear(edge_features, 128), ReLU(), Linear(128, dim * dim)) # 11 edge features
         self.conv = NNConv(dim, dim, nn, aggr='mean', root_weight=False)
         self.gru = GRU(dim, dim)
 
@@ -61,8 +61,9 @@ class FF(nn.Module):
 # dim = 64
 
 class Infograph(ModularTorchModel):
-    def __init__(self, num_features, dim, use_unsup_loss=False, separate_encoder=False, **kwargs):
+    def __init__(self, num_features, edge_features, dim, use_unsup_loss=False, separate_encoder=False, **kwargs):
         self.embedding_dim = dim
+        self.edge_features = edge_features
         self.separate_encoder = separate_encoder
         self.local = True
         self.num_features = num_features
@@ -74,8 +75,8 @@ class Infograph(ModularTorchModel):
         
                      
     def build_components(self):
-        return {'encoder': Encoder(self.num_features, self.embedding_dim),
-                'unsup_encoder': Encoder(self.num_features, self.embedding_dim),
+        return {'encoder': Encoder(self.num_features, self.edge_features, self.embedding_dim),
+                'unsup_encoder': Encoder(self.num_features, self.edge_features, self.embedding_dim),
                 'ff1': FF(2*self.embedding_dim, self.embedding_dim),
                 'ff2': FF(2*self.embedding_dim, self.embedding_dim),
                 'fc1': torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
