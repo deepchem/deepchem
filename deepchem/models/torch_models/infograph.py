@@ -57,8 +57,6 @@ class FF(nn.Module):
     def forward(self, x):
         return self.block(x) + self.linear_shortcut(x)
 
-# num_feat = 30 # max([train_dc.X[i].num_node_features for i in range(len(train_dc))])
-# dim = 64
 
 class Infograph(ModularTorchModel):
     def __init__(self, num_features, edge_features, dim, use_unsup_loss=False, separate_encoder=False, **kwargs):
@@ -86,8 +84,6 @@ class Infograph(ModularTorchModel):
                 }
     
     def build_model(self):
-        # return nn.Linear(self.embedding_dim, 1)
-        # return InfoGraph_module(self.components)
         return InfoGraph_module(**self.components)
             
     def loss_func(self, inputs, labels, weights):

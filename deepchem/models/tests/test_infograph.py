@@ -5,7 +5,9 @@ from deepchem.data import DiskDataset
 # from deepchem.feat.graph_data import BatchGraphData
 from deepchem.models.torch_models.infograph import Infograph
 # import torch.nn.functional as F
-import matplotlib.pyplot as plt
+# import matplotlib
+# matplotlib.use('TkAgg')
+# import matplotlib.pyplot as plt
 
 featurizer = MolGraphConvFeaturizer(use_edges=True)
 targets, dataset, transforms = dc.molnet.load_zinc15(featurizer=featurizer, splitter='index')
@@ -24,9 +26,9 @@ dim = 64
 # # num_feat = 20
 # # dim = 30
 weight_decay = 0
-epochs_pt = 10
+epochs_pt = 2
 
-batch_size = 20
+batch_size = 180
 
 x = train_dc.X
 y = train_dc.y[:, target]
@@ -36,37 +38,39 @@ train_zinc = DiskDataset.from_numpy(x, y, w, ids)
 
 # train_dc_py = train_dc.make_pytorch_dataset(batch_size=batch_size)
 
-Infograph_model_pt = Infograph(num_feat_pt, edge_dim_pt, dim, use_unsup_loss, separate_encoder, model_dir='infograph_model')
+Infograph_model_pt = Infograph(num_feat_pt, edge_dim_pt, dim, use_unsup_loss, separate_encoder, model_dir='infograph_model', tensorboard=True, log_frequency=10, batch_size=batch_size)
 loss_pt = Infograph_model_pt.fit(train_zinc, nb_epoch=epochs_pt)
-# plot loss
-plt.plot(loss_pt)
-plt.xlabel('Epoch')
-plt.ylabel('Loss')
-plt.show()
 
 ##%
+# target = 1
+# use_unsup_loss = True
+# separate_encoder = True
 
-targets, dataset, transforms = dc.molnet.BBBP(featurizer=featurizer, splitter='index')
-train_dc, valid_dc, test_dc = dataset
-x = train_dc.X
-y = train_dc.y[:, target]
-w = train_dc.w[:, target]
-ids = train_dc.ids
-train_bbbp = DiskDataset.from_numpy(x, y, w, ids)
+# featurizer = MolGraphConvFeaturizer(use_edges=True)
+# targets, dataset, transforms = dc.molnet.load_bbbp(featurizer=featurizer, splitter='index')
+# train_dc, valid_dc, test_dc = dataset
+# x = train_dc.X
+# y = train_dc.y
+# w = train_dc.w
+# ids = train_dc.ids
+# train_bbbp = DiskDataset.from_numpy(x, y, w, ids)
 
-num_feat = 30 # max([train_dc.X[i].num_node_features for i in range(len(train_dc))])
-edge_dim = 11 # max([train_dc.X[i].num_edge_features for i in range(len(train_dc))])
-epochs_ft = 10
+# # num_feat = 30 
+# # edge_dim = 11 
+# num_feat = max([train_bbbp.X[i].num_node_features for i in range(len(train_dc))])
+# edge_dim = max([train_bbbp.X[i].num_edge_features for i in range(len(train_dc))])
+# dim = 64
+# epochs_ft = 1
 
-Infograph_model_ft = Infograph(num_feat, edge_dim, dim, use_unsup_loss, separate_encoder, model_dir='infograph_model_ft')
-Infograph_model_ft.load_from_modular(model_dir='infograph_model')
+# Infograph_model_ft = Infograph(num_feat, edge_dim, dim, use_unsup_loss, separate_encoder, model_dir='infograph_model_ft',tensorboard=True, log_frequency=1)
+# Infograph_model_ft.load_from_modular(model_dir='infograph_model')
 
-loss_ft = Infograph_model_ft.fit(train_bbbp, nb_epoch=epochs_ft)
+# loss_ft = Infograph_model_ft.fit(train_bbbp, nb_epoch=epochs_ft)
 
-plt.plot(loss_ft)
-plt.xlabel('Epoch')
-plt.ylabel('Loss')
-plt.show()
+# plt.plot(loss_ft)
+# plt.xlabel('Epoch')
+# plt.ylabel('Loss')
+# plt.show()
 
 
 
