@@ -14,7 +14,6 @@ class ExampleTorchModel(ModularTorchModel):
         self.n_layers = n_layers
         self.d_output = d_output
         self.components = self.build_components()
-        self.custom_loss = self.loss_func
         self.model = self.build_model()
         super().__init__(self.model, self.components, **kwargs)
 
@@ -184,9 +183,7 @@ def test_load_freeze():
     
     example_model.load_from_pretrained(source_model = example_pretrainer, components=['encoder'])
     
-    for param in example_model.components['encoder'].parameters():
-        param.requires_grad = False
-    example_model.model = example_model.build_model().to(example_model.device)
+    example_model.freeze_components(['encoder'])
     
     example_model.fit(dataset_ft, nb_epoch=1)
     

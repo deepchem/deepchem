@@ -9,6 +9,7 @@ from collections.abc import Sequence as SequenceCollection
 from typing import Any, Callable, Iterable, List, Optional,  Tuple, Union
 from deepchem.utils.typing import LossFn, OneOrMany
 import torch
+
 logger = logging.getLogger(__name__)
 
 class ModularTorchModel(TorchModel):
@@ -19,20 +20,30 @@ class ModularTorchModel(TorchModel):
     components attribute, the model is built in the build_model method, and a custom loss
     function can be passed which makes use of the components individually.
     
-    Here is an example of how to use ModularTorchModel:
+    Here is an example of how to use ModularTorchModel to pretrain a linear layer and
+    then finetune a network with the pretrained linear layer:
     
     >>> import numpy as np
     >>> import deepchem as dc
-    >>> X_pt = np.random.rand(n_samples, n_feat)
-    >>> y_pt = np.zeros((n_samples, pt_tasks)).astype(np.float32)
+    >>> import torch
+    >>> n_samples = 6
+    >>> n_feat = 3
+    >>> n_tasks = 6
+    >>> pt_tasks = 3
+    >>> X = np.random.rand(n_samples, n_feat)
+    >>> y_pretrain = np.zeros((n_samples, pt_tasks)).astype(np.float32)
     >>> dataset_pt = dc.data.NumpyDataset(X_pt, y_pt)
-    
-    >>> example_model = ExampleTorchModel(n_feat, d_hidden, n_layers,  ft_tasks) 
-    >>> example_pretrainer = ExamplePretrainer(example_model, pt_tasks)
-    
-    >>> example_pretrainer.fit(dataset_pt, nb_epoch=1000)
-    
-    >>> example_model.load_from_pretrained(source_model = example_pretrainer, components=['encoder'])
+    >>> y_finetune = np.zeros((n_samples, n_tasks)).astype(np.float32)
+    >>> dataset_ft = dc.data.NumpyDataset(X, y)
+    >>> components = {'linear': torch.nn.Linear(n_feat, n_tasks), 'activation': torch.nn.ReLU())}
+    >>> model = torch.nn.Sequential(components['linear'], components['activation'])
+    >>> modular_model = ModularTorchModel(model, components)
+    >>> pretrain_components = {'linear': torch.nn.Linear(n_feat, pt_tasks), 'activation': torch.nn.ReLU())}
+    >>> pretrain_model = torch.nn.Sequential(pretrain_components['linear'], pretrain_components['activation'])
+    >>> pretrain_modular_model = ModularTorchModel(pretrain_model, pretrain_components)
+    >>> pt_loss = pretrain_modular_model.fit(dataset_pt, nb_epoch=1)
+    >>> modular_model.load_from_pretrained(pretrain_modular_model, components=['linear'])
+    >>> ft_loss = modular_model.fit(dataset_ft, nb_epoch=1)
     
     
     """
@@ -44,7 +55,6 @@ class ModularTorchModel(TorchModel):
         self.model = model
         self.components = components
         super().__init__(self.model, self.loss_func, **kwargs)
-        # send self.model and self.components to the device
         self.model.to(self.device)
         self.components = {k: v.to(self.device) for k, v in self.components.items()}
     
@@ -56,6 +66,16 @@ class ModularTorchModel(TorchModel):
     
     def loss_func(self):
         return NotImplementedError("Subclass must define the loss function")
+    
+    def freeze_components(self, components: list, unfreeze: bool = False):
+        for component in components:
+            for param in self.components[component].parameters():
+                if unfreeze:
+                    param.requires_grad = True
+                else:
+                    param.requires_grad = False
+        self.model = self.build_model()
+        self.model.to(self.device)
     
     def load_from_pretrained(self, 
                              source_model: 'ModularTorchModel' = None, 
