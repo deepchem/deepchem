@@ -47,7 +47,7 @@ class ModularTorchModel(TorchModel):
     >>> pretrain_modular_model = dc.models.torch_models.modular.ModularTorchModel(pretrain_model, pretrain_components)
     >>> pretrain_modular_model.loss_func = lambda inputs, labels, weights: (torch.nn.functional.mse_loss(pretrain_model(inputs), labels[0]) * weights[0]).mean()
     >>> pt_loss = pretrain_modular_model.fit(dataset_pt, nb_epoch=1)
-    >>> modular_model.load_from_pretrained(pretrain_modular_model, components=['linear'])
+    >>> modular_model.load_from_modular(pretrain_modular_model, components=['linear'])
     >>> ft_loss = modular_model.fit(dataset_ft, nb_epoch=1)
 
     """
