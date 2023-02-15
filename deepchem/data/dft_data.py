@@ -47,8 +47,6 @@ class DFTSystem(dict):
     def __init__(self, system: Dict):
         super().__init__(system)
 
-        # caches
-        self._caches = {}
 
     def get_dqc_mol(self, pos_reqgrad: bool = False) -> BaseSystem:
         """
@@ -68,11 +66,6 @@ class DFTSystem(dict):
         else:
             raise RuntimeError("Unknown system type: %s" % systype)
 
-    def get_cache(self, s: str):
-        return self._caches.get(s, None)
-
-    def set_cache(self, s: str, obj) -> None:
-        self._caches[s] = obj
 
 
 class DFTEntry(dict):
@@ -182,7 +175,7 @@ class EntryDM(DFTEntry):
         return dm
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
-        return (qcs[0].aodmtot()).numpy()
+        return (qcs.aodmtot()).numpy()
 
 
 class EntryDens(DFTEntry):
@@ -241,26 +234,6 @@ class EntryDens(DFTEntry):
         return self._grid
 
 
-class EntryForce(DFTEntry):
-    """Entry for force at the experimental equilibrium position"""
-
-    def __init__(self, entry_dct):
-        super().__init__(entry_dct)
-        assert len(
-            self.get_systems()) == 1, "force entry can only have 1 system"
-
-    @property
-    def entry_type(self) -> str:
-        return "force"
-
-    def _get_true_val(self) -> np.ndarray:
-        # get the density matrix from PySCF's CCSD calculation
-        return np.array(0.0)
-
-    def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
-        return (qcs[0].force()).numpy()
-
-
 class EntryIE(DFTEntry):
     """Entry for Ionization Energy (IE)"""
 
@@ -284,14 +257,3 @@ class EntryAE(EntryIE):
         return "ae"
 
 
-def load_entries(entry_path):
-    """
-    The method loads the yaml dataset and returns a list of entries, containing DFTEntry objects. 
-    """
-    entries = []
-    with open(entry_path) as f:
-        data_mol = yaml.load(f, Loader=SafeLoader)
-    for i in range(0, len(data_mol)):
-        entry = DFTEntry.create(data_mol[i])
-        entries.append(entry)
-    return entries
