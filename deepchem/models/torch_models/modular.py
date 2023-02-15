@@ -1,72 +1,89 @@
-import torch 
-import torch.nn as nn
-from deepchem.models.torch_models.torch_model import TorchModel
-from typing import Optional
-from deepchem.models.optimizers import LearningRateSchedule
 import time
 import logging
 from collections.abc import Sequence as SequenceCollection
-from typing import Any, Callable, Iterable, List, Optional,  Tuple, Union
-from deepchem.utils.typing import LossFn, OneOrMany
+from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
 import torch
+import torch.nn as nn
+from deepchem.models.torch_models.torch_model import TorchModel
+from deepchem.models.optimizers import LearningRateSchedule
+from deepchem.utils.typing import LossFn, OneOrMany
 
 logger = logging.getLogger(__name__)
 
+
 class ModularTorchModel(TorchModel):
-    """ModularTorchModel is a subclass of TorchModel that allows for components to be 
-    pre-trained and then combined into a final model. It is designed to be subclassed 
-    for specific models and is not intended to be used directly. It functions the same
-    as TorchModel, except that components of the model are separately defined in the 
-    components attribute, the model is built in the build_model method, and a custom loss
-    function can be passed which makes use of the components individually.
-    
-    Here is an example of how to use ModularTorchModel to pretrain a linear layer and
-    then finetune a network with the pretrained linear layer:
-    
+    """ModularTorchModel is a subclass of TorchModel that allows for components to be
+    pre-trained and then combined into a final model. It is designed to be subclassed
+    for specific models and is not intended to be used directly. There are 3 main differences
+    between ModularTorchModel and TorchModel:
+
+    1. The build_components() method is used to define the components of the model.
+    2. The components are combined into a final model with the build_model() method.
+    3. The loss function is defined with the loss_func method. This may access the components
+    to compute the loss using intermediate values from the network, rather than just the
+    full forward pass output.
+
+    Here is an example of how to use ModularTorchModel to pretrain a linear layer, load
+    it into another network and then finetune that network:
+
     >>> import numpy as np
     >>> import deepchem as dc
     >>> import torch
     >>> n_samples = 6
     >>> n_feat = 3
+    >>> n_hidden = 2
     >>> n_tasks = 6
     >>> pt_tasks = 3
     >>> X = np.random.rand(n_samples, n_feat)
     >>> y_pretrain = np.zeros((n_samples, pt_tasks)).astype(np.float32)
-    >>> dataset_pt = dc.data.NumpyDataset(X_pt, y_pt)
+    >>> dataset_pt = dc.data.NumpyDataset(X, y_pretrain)
     >>> y_finetune = np.zeros((n_samples, n_tasks)).astype(np.float32)
-    >>> dataset_ft = dc.data.NumpyDataset(X, y)
-    >>> components = {'linear': torch.nn.Linear(n_feat, n_tasks), 'activation': torch.nn.ReLU())}
-    >>> model = torch.nn.Sequential(components['linear'], components['activation'])
-    >>> modular_model = ModularTorchModel(model, components)
-    >>> pretrain_components = {'linear': torch.nn.Linear(n_feat, pt_tasks), 'activation': torch.nn.ReLU())}
-    >>> pretrain_model = torch.nn.Sequential(pretrain_components['linear'], pretrain_components['activation'])
-    >>> pretrain_modular_model = ModularTorchModel(pretrain_model, pretrain_components)
+    >>> dataset_ft = dc.data.NumpyDataset(X, y_finetune)
+    >>> components = {'linear': torch.nn.Linear(n_feat, n_hidden), 'activation': torch.nn.ReLU(), 'head': torch.nn.Linear(n_hidden, n_tasks)}
+    >>> model = torch.nn.Sequential(components['linear'], components['activation'], components['head'])
+    >>> modular_model = dc.models.torch_models.modular.ModularTorchModel(model, components)
+    >>> modular_model.loss_func = lambda inputs, labels, weights: (torch.nn.functional.mse_loss(model(inputs), labels[0]) * weights[0]).mean()
+    >>> modular_model.build_model = lambda: torch.nn.Sequential(components['linear'], components['activation'], components['head'])
+    >>> pretrain_components = {'linear': torch.nn.Linear(n_feat, n_hidden), 'activation': torch.nn.ReLU(), 'head': torch.nn.Linear(n_hidden, pt_tasks)}
+    >>> pretrain_model = torch.nn.Sequential(pretrain_components['linear'], pretrain_components['activation'], pretrain_components['head'])
+    >>> pretrain_modular_model = dc.models.torch_models.modular.ModularTorchModel(pretrain_model, pretrain_components)
+    >>> pretrain_modular_model.loss_func = lambda inputs, labels, weights: (torch.nn.functional.mse_loss(pretrain_model(inputs), labels[0]) * weights[0]).mean()
     >>> pt_loss = pretrain_modular_model.fit(dataset_pt, nb_epoch=1)
     >>> modular_model.load_from_pretrained(pretrain_modular_model, components=['linear'])
     >>> ft_loss = modular_model.fit(dataset_ft, nb_epoch=1)
-    
-    
+
     """
-    
-    def __init__(self, 
-                 model:nn.Module, 
-                 components:dict, 
-                 **kwargs):
+
+    def __init__(self, model: nn.Module, components: dict, **kwargs):
+
+        """Create a ModularTorchModel.
+
+        Parameters
+        ----------
+        model: nn.Module
+            The model to be trained.
+        components: dict
+            A dictionary of the components of the model. The keys are the names of the
+            components and the values are the components themselves.
+        """
+
         self.model = model
         self.components = components
         super().__init__(self.model, self.loss_func, **kwargs)
         self.model.to(self.device)
-        self.components = {k: v.to(self.device) for k, v in self.components.items()}
-    
+        self.components = {
+            k: v.to(self.device) for k, v in self.components.items()
+        }
+
     def build_model(self):
         return NotImplementedError("Subclass must define the components")
-    
+
     def build_components(self):
-        return NotImplementedError("Subclass must define the components")   
-    
+        return NotImplementedError("Subclass must define the components")
+
     def loss_func(self):
         return NotImplementedError("Subclass must define the loss function")
-    
+
     def freeze_components(self, components: list, unfreeze: bool = False):
         for component in components:
             for param in self.components[component].parameters():
@@ -76,11 +93,11 @@ class ModularTorchModel(TorchModel):
                     param.requires_grad = False
         self.model = self.build_model()
         self.model.to(self.device)
-    
-    def load_from_pretrained(self, 
-                             source_model: 'ModularTorchModel' = None, 
-                             checkpoint: Optional[str] = None, 
-                             model_dir: str = None, 
+
+    def load_from_pretrained(self,
+                             source_model: 'ModularTorchModel' = None,
+                             checkpoint: Optional[str] = None,
+                             model_dir: str = None,
                              components: list = None):
         # generate the source state dict
         if source_model is not None:
@@ -91,21 +108,32 @@ class ModularTorchModel(TorchModel):
             checkpoints = sorted(self.get_checkpoints(model_dir))
             source_state_dict = torch.load(checkpoints[0])['model_state_dict']
         else:
-            raise ValueError("Must provide a source model, checkpoint, or model_dir")
-    
-        if components is not None: # load the specified components
+            raise ValueError(
+                "Must provide a source model, checkpoint, or model_dir")
+
+        if components is not None:  # load the specified components
             if source_model is not None:
-                assignment_map = {k: v for k, v in source_model.components.items() if k in components}
+                assignment_map = {
+                    k: v
+                    for k, v in source_model.components.items()
+                    if k in components
+                }
                 self.components.update(assignment_map)
                 self.model = self.build_model()
-            else:                
-                raise ValueError("If loading from checkpoint, you cannot pass a list of components to load")
-        else: # or all components with matching names and shapes
+            else:
+                raise ValueError(
+                    "If loading from checkpoint, you cannot pass a list of components to load"
+                )
+        else:  # or all components with matching names and shapes
             model_dict = self.model.state_dict()
-            assignment_map = {k: v for k, v in source_state_dict.items() if k in model_dict and v.shape == model_dict[k].shape} 
+            assignment_map = {
+                k: v
+                for k, v in source_state_dict.items()
+                if k in model_dict and v.shape == model_dict[k].shape
+            }
             model_dict.update(assignment_map)
             self.model.load_state_dict(model_dict)
-            
+
     def fit_generator(self,
                       generator: Iterable[Tuple[Any, Any, Any]],
                       max_checkpoints_to_keep: int = 5,
@@ -120,7 +148,7 @@ class ModularTorchModel(TorchModel):
         loss function, rather than passing them through the model first.  This
         enables the loss to be calculated from intermediate steps of the model
         and not just the final output.
-    
+
         Parameters
         ----------
         generator: generator
@@ -153,7 +181,7 @@ class ModularTorchModel(TorchModel):
         -------
         The average loss over the most recent checkpoint interval
         """
-        
+
         if not isinstance(callbacks, SequenceCollection):
             callbacks = [callbacks]
         self._ensure_built()
@@ -246,4 +274,3 @@ class ModularTorchModel(TorchModel):
         time2 = time.time()
         logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
         return last_avg_loss
-    
