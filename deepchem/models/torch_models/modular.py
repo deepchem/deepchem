@@ -13,13 +13,13 @@ logger = logging.getLogger(__name__)
 
 class ModularTorchModel(TorchModel):
     """ModularTorchModel is a subclass of TorchModel that allows for components to be
-    pre-trained and then combined into a final model. It is designed to be subclassed
+    pretrained and then combined into a final model. It is designed to be subclassed
     for specific models and is not intended to be used directly. There are 3 main differences
     between ModularTorchModel and TorchModel:
 
-    1. The build_components() method is used to define the components of the model.
-    2. The components are combined into a final model with the build_model() method.
-    3. The loss function is defined with the loss_func method. This may access the components
+    - The build_components() method is used to define the components of the model.
+    - The components are combined into a final model with the build_model() method.
+    - The loss function is defined with the loss_func method. This may access the components
     to compute the loss using intermediate values from the network, rather than just the
     full forward pass output.
 
@@ -99,6 +99,10 @@ class ModularTorchModel(TorchModel):
                              checkpoint: Optional[str] = None,
                              model_dir: str = None,
                              components: list = None):
+        
+        """T
+        """
+        
         # generate the source state dict
         if source_model is not None:
             source_state_dict = source_model.model.state_dict()
