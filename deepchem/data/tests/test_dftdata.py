@@ -1,9 +1,9 @@
 import pytest
 try:
     from deepchem.data.dft_data import DFTEntry
+    import torch
 except ModuleNotFoundError:
-    raise ModuleNotFoundError("This utility requires dqc")
-import torch
+    raise ModuleNotFoundError("This test requires dqc and torch")
 
 
 @pytest.mark.dqc
