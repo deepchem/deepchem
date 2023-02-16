@@ -16,7 +16,7 @@ def test_entryDM():
         'cmd':
             'dm(systems[0])',
         'true_val':
-            'output.npy',
+            'dftHF_output.npy',
         'systems': [{
             'type': 'mol',
             'kwargs': {
