@@ -505,6 +505,20 @@ class RandomStratifiedSplitter(Splitter):
     only whether a label is zero or non-zero. When labels can take on multiple
     non-zero values, it does not try to give each split a proportional fraction
     of the samples with each value.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> from typing import Sequence
+    >>> # creation of demo data set with some smiles strings
+    >>> smiles= ['C', 'CC', 'CCC', 'CCCC', 'CCCCC']
+    >>> Xs = np.zeros(len(smiles))
+    >>> # creation of a deepchem dataset with the smile codes in the ids field
+    >>> dataset = dc.data.DiskDataset.from_numpy(X=Xs,ids=smiles)
+    >>> randomstratifiedsplitter = dc.splits.RandomStratifiedSplitter()
+    >>> train_dataset, test_dataset = randomstratifiedsplitter.train_test_split(dataset)
+
     """
 
     def split(self,
@@ -766,14 +780,19 @@ class IndexSplitter(Splitter):
 
     Examples
     --------
-    >>> n_samples = 100
-    >>> n_features = 10
-    >>> n_tasks = 10
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> n_samples = 5
+    >>> n_features = 2
     >>> X = np.random.rand(n_samples, n_features)
-    >>> y = np.random.rand(n_samples, n_tasks)
-    >>> splitter = dc.splits.IndexSplitter()
+    >>> y = np.random.rand(n_samples)
+    >>> indexsplitter = dc.splits.IndexSplitter()
     >>> dataset = dc.data.NumpyDataset(X, y)
-    >>> train_dataset, valid_dataset , test_dataset = splitter.split(dataset)
+    >>> train_dataset, test_dataset = indexsplitter.train_test_split(dataset)
+    >>> print(train_dataset.ids)
+    [0 1 2 3]
+    >>> print (test_dataset.ids)
+    [4]
 
     """
 
@@ -830,6 +849,8 @@ class SpecifiedSplitter(Splitter):
 
     Examples
     --------
+    >>> import deepchem as dc
+    >>> import numpy as np
     >>> n_samples = 10
     >>> n_features = 3
     >>> n_tasks = 1
@@ -837,7 +858,13 @@ class SpecifiedSplitter(Splitter):
     >>> y = np.random.rand(n_samples, n_tasks)
     >>> splitter = dc.splits.SpecifiedSplitter(valid_indices=[1,3,5], test_indices=[0,2,7,9])
     >>> dataset = dc.data.NumpyDataset(X, y)
-    >>> train_dataset, valid_dataset , test_dataset = splitter.split(dataset)
+    >>> train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(dataset)
+    >>> print(train_dataset.ids)
+    [4 6 8]
+    >>> print(valid_dataset.ids)
+    [1 3 5]
+    >>> print(test_dataset.ids)
+    [0 2 7 9]
 
     """
 
@@ -920,20 +947,20 @@ class MolecularWeightSplitter(Splitter):
 
     Examples
     --------
-
     >>> import deepchem as dc
     >>> import numpy as np
     >>> # creation of demo data set with some smiles strings
-    >>> data_test= ["CC(C)Cl" , "CCC(C)CO" ,  "CCCCCCCO" , "CCCCCCCC(=O)OC" , "c3ccc2nc1ccccc1cc2c3" , "Nc2cccc3nc1ccccc1cc23" , "C1CCCCCC1" ]
-    >>> Xs = np.zeros(len(data_test))
-    >>> Ys = np.ones(len(data_test))
+    >>> smiles= ['C', 'CC', 'CCC', 'CCCC', 'CCCCC']
+    >>> Xs = np.zeros(len(smiles))
     >>> # creation of a deepchem dataset with the smile codes in the ids field
-    >>> dataset = dc.data.DiskDataset.from_numpy(X=Xs,y=Ys,w=np.zeros(len(data_test)),ids=data_test)
+    >>> dataset = dc.data.DiskDataset.from_numpy(X=Xs,ids=smiles)
     >>> molecularweightsplitter = dc.splits.MolecularWeightSplitter()
-    >>> train, val, test = molecularweightsplitter.split(dataset)
-    >>> train
-    array([0, 1, 6, 2, 3])
-    
+    >>> train_dataset, test_dataset = molecularweightsplitter.train_test_split(dataset)
+    >>> print(train_dataset.ids)
+    ['C' 'CC' 'CCC' 'CCCC']
+    >>> print(test_dataset.ids)
+    ['CCCCC']
+
     """
 
     def split(
@@ -1007,6 +1034,19 @@ class MaxMinSplitter(Splitter):
     Note
     ----
     This class requires RDKit to be installed.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> # creation of demo data set with some smiles strings
+    >>> smiles= ['C', 'CC', 'CCC', 'CCCC', 'CCCCC']
+    >>> Xs = np.zeros(len(smiles))
+    >>> # creation of a deepchem dataset with the smile codes in the ids field
+    >>> dataset = dc.data.DiskDataset.from_numpy(X=Xs,ids=smiles)
+    >>> maxminsplitter = dc.splits.MaxMinSplitter()
+    >>> train_dataset, test_dataset = maxminsplitter.train_test_split(dataset)
+
     """
 
     def split(
@@ -1107,6 +1147,23 @@ class ButinaSplitter(Splitter):
     Note
     ----
     This class requires RDKit to be installed.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> # creation of demo data set with some smiles strings
+    >>> smiles= ['C', 'CC', 'CCC', 'CCCC', 'CCCCC']
+    >>> Xs = np.zeros(len(smiles))
+    >>> # creation of a deepchem dataset with the smile codes in the ids field
+    >>> dataset = dc.data.DiskDataset.from_numpy(X=Xs,ids=smiles)
+    >>> butinasplitter = dc.splits.ButinaSplitter()
+    >>> train_dataset, test_dataset = butinasplitter.train_test_split(dataset)
+    >>> print(train_dataset.ids)
+    ['CCCC' 'CCC' 'CCCCC' 'CC']
+    >>> print(test_dataset.ids)
+    ['C']
+
     """
 
     def __init__(self, cutoff: float = 0.6):
@@ -1259,6 +1316,23 @@ class FingerprintSplitter(Splitter):
     Note
     ----
     This class requires RDKit to be installed.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> # creation of demo data set with some smiles strings
+    >>> smiles= ['C', 'CC', 'CCC', 'CCCC', 'CCCCC']
+    >>> Xs = np.zeros(len(smiles))
+    >>> # creation of a deepchem dataset with the smile codes in the ids field
+    >>> dataset = dc.data.DiskDataset.from_numpy(X=Xs,ids=smiles)
+    >>> fingerprintsplitter = dc.splits.FingerprintSplitter()
+    >>> train_dataset, test_dataset = fingerprintsplitter.train_test_split(dataset)
+    >>> print(train_dataset.ids)
+    ['C' 'CCCCC' 'CCCC' 'CCC']
+    >>> print(test_dataset.ids)
+    ['CC']
+
     """
 
     def __init__(self):
