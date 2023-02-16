@@ -19,7 +19,9 @@ class ModularTorchModel(TorchModel):
 
     - The build_components() method is used to define the components of the model.
     - The components are combined into a final model with the build_model() method.
-    - The loss function is defined with the loss_func method. This may access the components to compute the loss using intermediate values from the network, rather than just the full forward pass output.
+    - The loss function is defined with the loss_func method. This may access the 
+      components to compute the loss using intermediate values from the network, rather
+      than just the full forward pass output.
 
     Here is an example of how to use ModularTorchModel to pretrain a linear layer, load
     it into another network and then finetune that network:
@@ -37,15 +39,27 @@ class ModularTorchModel(TorchModel):
     >>> dataset_pt = dc.data.NumpyDataset(X, y_pretrain)
     >>> y_finetune = np.zeros((n_samples, n_tasks)).astype(np.float32)
     >>> dataset_ft = dc.data.NumpyDataset(X, y_finetune)
-    >>> components = {'linear': torch.nn.Linear(n_feat, n_hidden), 'activation': torch.nn.ReLU(), 'head': torch.nn.Linear(n_hidden, n_tasks)}
-    >>> model = torch.nn.Sequential(components['linear'], components['activation'], components['head'])
+    >>> components = {'linear': torch.nn.Linear(n_feat, n_hidden), 
+    ... 'activation': torch.nn.ReLU(), 'head': torch.nn.Linear(n_hidden, n_tasks)}
+    >>> model = torch.nn.Sequential(components['linear'], components['activation'], 
+    ... components['head'])
     >>> modular_model = dc.models.torch_models.modular.ModularTorchModel(model, components)
-    >>> modular_model.loss_func = lambda inputs, labels, weights: (torch.nn.functional.mse_loss(model(inputs), labels[0]) * weights[0]).mean()
-    >>> modular_model.build_model = lambda: torch.nn.Sequential(components['linear'], components['activation'], components['head'])
-    >>> pretrain_components = {'linear': torch.nn.Linear(n_feat, n_hidden), 'activation': torch.nn.ReLU(), 'head': torch.nn.Linear(n_hidden, pt_tasks)}
-    >>> pretrain_model = torch.nn.Sequential(pretrain_components['linear'], pretrain_components['activation'], pretrain_components['head'])
-    >>> pretrain_modular_model = dc.models.torch_models.modular.ModularTorchModel(pretrain_model, pretrain_components)
-    >>> pretrain_modular_model.loss_func = lambda inputs, labels, weights: (torch.nn.functional.mse_loss(pretrain_model(inputs), labels[0]) * weights[0]).mean()
+    >>> def example_loss_func(inputs, labels, weights):
+    ...    return (torch.nn.functional.mse_loss(model(inputs), labels[0]) * weights[0]).mean()
+    >>> modular_model.loss_func = example_loss_func
+    >>> def example_model_build():
+    ...     return torch.nn.Sequential(components['linear'], components['activation'], 
+    ... components['head'])
+    >>> modular_model.build_model = example_model_build
+    >>> pretrain_components = {'linear': torch.nn.Linear(n_feat, n_hidden), 
+    ... 'activation': torch.nn.ReLU(), 'head': torch.nn.Linear(n_hidden, pt_tasks)}
+    >>> pretrain_model = torch.nn.Sequential(pretrain_components['linear'], 
+    ... pretrain_components['activation'], pretrain_components['head'])
+    >>> pretrain_modular_model = dc.models.torch_models.modular.ModularTorchModel(pretrain_model, 
+    ... pretrain_components)
+    >>> def example_pt_loss_func(inputs, labels, weights):
+    ...     return (torch.nn.functional.mse_loss(pretrain_model(inputs), labels[0]) * weights[0]).mean()
+    >>> pretrain_modular_model.loss_func = example_pt_loss_func
     >>> pt_loss = pretrain_modular_model.fit(dataset_pt, nb_epoch=1)
     >>> modular_model.load_from_modular(pretrain_modular_model, components=['linear'])
     >>> ft_loss = modular_model.fit(dataset_ft, nb_epoch=1)
