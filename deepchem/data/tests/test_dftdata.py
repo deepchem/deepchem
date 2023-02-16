@@ -16,7 +16,7 @@ def test_entryDM():
         'cmd':
             'dm(systems[0])',
         'true_val':
-            'dftHF_output.npy',
+            'deepchem/data/tests/dftHF_output.npy',
         'systems': [{
             'type': 'mol',
             'kwargs': {
