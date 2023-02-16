@@ -163,6 +163,15 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.DMPNNEncoderLayer
   :members:
 
+Attention Layers
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.models.torch_models.attention.ScaledDotProductAttention
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.attention.SelfAttention
+  :members:
+
 Jax Layers
 ----------
 
