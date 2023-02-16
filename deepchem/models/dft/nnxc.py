@@ -1,11 +1,14 @@
 from abc import abstractproperty, abstractmethod
-import torch
 import numpy as np
 from typing import Union, Iterator, List
-from dqc.xc.base_xc import BaseXC
-from dqc.utils.datastruct import ValGrad, SpinParam
-from dqc.utils.safeops import safenorm, safepow
-from dqc.api.getxc import get_xc
+try:
+    from dqc.xc.base_xc import BaseXC
+    from dqc.utils.datastruct import ValGrad, SpinParam
+    from dqc.utils.safeops import safenorm, safepow
+    from dqc.api.getxc import get_xc
+    import torch
+except ModuleNotFoundError:
+    raise ModuleNotFoundError("This layer requires dqc and torch")
 
 
 class NNLDA(BaseXC, torch.nn.Module):
@@ -48,14 +51,15 @@ class NNLDA(BaseXC, torch.nn.Module):
             xi = (nu - nd) / (n + 1e-18)  # avoiding nan
 
         # decide how to transform the density to be the input of nn
-        ninp = get_n_input(n, self.ninpmode)
+        ninp = n
 
         # get the neural network output
         x = torch.cat((ninp, xi), dim=-1)  # (*BD, nr, 2)
         nnout = self.nnmodel(x)  # (*BD, nr, 1)
-        res = get_out_from_nnout(nnout, n, self.outmultmode)  # (*BD, nr, 1)
+        res = nnout * n  # (*BD, nr, 1)
         res = res.squeeze(-1)
         return res
+
 
 class HybridXC(NNLDA):
     """
