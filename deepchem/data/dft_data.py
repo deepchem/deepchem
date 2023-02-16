@@ -3,11 +3,9 @@ Density Functional Theory Data
 Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcca3e314a538ca/xcdnn2/entry.py
 """
 from __future__ import annotations
-import os
 from abc import abstractmethod, abstractproperty
 from typing import List, Dict, Optional, Union
 import numpy as np
-import torch
 try:
     import dqc
     from dqc.system.mol import Mol
@@ -15,16 +13,13 @@ try:
     from dqc.grid.base_grid import BaseGrid
     from deepchem.utils.dftutils import KSCalc
 except ModuleNotFoundError:
-    raise ModuleNotFoundError("This utility requires dqc")
-
-import yaml
-from yaml.loader import SafeLoader
+    raise ModuleNotFoundError("This data class requires dqc")
 
 
 class DFTSystem(dict):
     """
-    The DFTSystem class creates and returns the various systems in an entry object as dictionaries. 
-    
+    The DFTSystem class creates and returns the various systems in an entry object as dictionaries.
+
     Examples
     --------
     >>> from deepchem.data.dft_data import DFTSystem
@@ -32,12 +27,12 @@ class DFTSystem(dict):
 
     Returns
     -------
-    List of dictionaries for all the different atoms/ions/molecules in an entry object. 
+    List of dictionaries for all the different atoms/ions/molecules in an entry object.
 
     References
     ----------
     Kasim, Muhammad F., and Sam M. Vinko. "Learning the exchange-correlation functional from nature with fully differentiable density functional theory." Physical Review Letters 127.12 (2021): 126403.
-    
+
     https://github.com/diffqc/dqc/blob/0fe821fc92cb3457fb14f6dff0c223641c514ddb/dqc/system/base_system.py
     """
 
@@ -61,11 +56,11 @@ class DFTSystem(dict):
 
     def get_dqc_mol(self, pos_reqgrad: bool = False) -> BaseSystem:
         """
-        This method converts the system dictionary to a DQC system and returns it. 
+        This method converts the system dictionary to a DQC system and returns it.
         Parameters
         ----------
-        pos_reqgrad: bool 
-            decides if the atomic position require gradient calculation. 
+        pos_reqgrad: bool
+            decides if the atomic position require gradient calculation.
         """
         systype = self["type"]
         if systype == "mol":
@@ -81,7 +76,7 @@ class DFTSystem(dict):
 class DFTEntry(dict):
     """
     Handles creating and initialising DFTEntry objects from the dataset. This object contains information    about the various systems in the datapoint (atoms, molecules and ions) along with the ground truth
-    values.    
+    values.
     Notes
     -----
     Entry class should not be initialized directly, but created through
@@ -107,7 +102,7 @@ class DFTEntry(dict):
             }
         }]
     }
-    >>>dm_entry_for_HF = DFTEntry.create(data_mol)  
+    >>>dm_entry_for_HF = DFTEntry.create(data_mol)
     """
 
     created_entries: Dict[str, DFTEntry] = {}
@@ -115,8 +110,8 @@ class DFTEntry(dict):
     @classmethod
     def create(cls, entry_dct: Union[Dict, DFTEntry]) -> DFTEntry:
         """
-        This method is used to initialise the DFTEntry class. The entry objects are created 
-        based on their entry type. 
+        This method is used to initialise the DFTEntry class. The entry objects are created
+        based on their entry type.
 
         Parameters
         ----------
@@ -174,7 +169,7 @@ class DFTEntry(dict):
         """
         Returns
         -------
-        The type of entry ; 
+        The type of entry ;
         1) Atomic Ionization Potential (IP/IE)
         2) Atomization Energy (AE)
         3) Density Profile (DENS)
@@ -191,19 +186,19 @@ class DFTEntry(dict):
     @abstractmethod
     def _get_true_val(self) -> np.ndarray:
         """
-        Get the true value of the DFTEntry.  
-        For the AE and IP entry types, the experimental values are collected from the NIST CCCBDB/ASD 
-        databases. 
-        The true values of density profiles are calculated using PYSCF-CCSD calculations. This method            simply loads the value, no calculation is performed.  
+        Get the true value of the DFTEntry.
+        For the AE and IP entry types, the experimental values are collected from the NIST CCCBDB/ASD
+        databases.
+        The true values of density profiles are calculated using PYSCF-CCSD calculations. This method            simply loads the value, no calculation is performed.
         """
         pass
 
     @abstractmethod
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         """
-        Return the energy value of the entry, using a DQC-DFT calculation, where the XC has been 
-        replaced by the trained neural network. This method does not carry out any calculations, it is 
-        an interface to the KSCalc utility. 
+        Return the energy value of the entry, using a DQC-DFT calculation, where the XC has been
+        replaced by the trained neural network. This method does not carry out any calculations, it is
+        an interface to the KSCalc utility.
         """
         pass
 
@@ -241,8 +236,6 @@ class _EntryDens(DFTEntry):
         return "dens"
 
     def _get_true_val(self) -> np.ndarray:
-
-        system = self.get_systems()[0]
         dens = np.load(self["trueval"])
         return dens
 
@@ -256,10 +249,10 @@ class _EntryDens(DFTEntry):
 
     def get_integration_grid(self) -> BaseGrid:
         """
-        This method is used to calculate the integration grid required for a system 
-        in order to calculate it's density profile using Differentiable DFT. 
+        This method is used to calculate the integration grid required for a system
+        in order to calculate it's density profile using Differentiable DFT.
 
-        Returns 
+        Returns
         -------
             grid: BaseGrid
 
