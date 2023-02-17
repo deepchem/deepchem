@@ -12,7 +12,7 @@ class ScaledDotProductAttention(nn.Module):
 
     Example
     -------
-    >>> from deepchem.models import ScaledDotProductAttention as SDPA 
+    >>> from deepchem.models import ScaledDotProductAttention as SDPA
     >>> attn = SDPA()
     >>> x = torch.ones(1, 5)
     >>> # Linear layers for making query, key, value
@@ -77,8 +77,10 @@ class SelfAttention(nn.Module):
 
     def __init__(self, in_features, out_features, hidden_size=128):
         super(SelfAttention, self).__init__()
-        self.w1 = torch.nn.Parameter(torch.FloatTensor(hidden_size, in_features))
-        self.w2 = torch.nn.Parameter(torch.FloatTensor(out_features, hidden_size))
+        self.w1 = torch.nn.Parameter(torch.FloatTensor(hidden_size,
+                                                       in_features))
+        self.w2 = torch.nn.Parameter(
+            torch.FloatTensor(out_features, hidden_size))
         self.reset_parameters()
 
     def reset_parameters(self):
