@@ -16,7 +16,7 @@ except ModuleNotFoundError:
     raise ModuleNotFoundError("This data class requires dqc")
 
 
-class DFTSystem(dict):
+class DFTSystem():
     """
     The DFTSystem class creates and returns the various systems in an entry object as dictionaries.
 
@@ -51,7 +51,7 @@ class DFTSystem(dict):
         return cls.created_systems[system_str]
 
     def __init__(self, system: Dict):
-        super().__init__(system)
+        system = {}
 
     def get_dqc_mol(self, pos_reqgrad: bool = False) -> BaseSystem:
         """
@@ -72,7 +72,7 @@ class DFTSystem(dict):
             raise RuntimeError("Unknown system type: %s" % systype)
 
 
-class DFTEntry(dict):
+class DFTEntry():
     """
     Handles creating and initialising DFTEntry objects from the dataset. This object contains information    about the various systems in the datapoint (atoms, molecules and ions) along with the ground truth
     values.
@@ -137,14 +137,13 @@ class DFTEntry(dict):
             elif tpe == "dens":
                 obj = _EntryDens(entry_dct)
             cls.created_entries[s] = obj
+            print(cls.created_entries[s])
         return cls.created_entries[s]
 
     def __init__(self, entry_dct: Dict):
-        super().__init__(entry_dct)
+#        entry_dct = {}
         self._systems = [DFTSystem.create(p) for p in entry_dct["systems"]]
 
-        self._trueval_is_set = False
-        self._trueval = np.ndarray
         """
         Parameters
         ----------
@@ -177,10 +176,7 @@ class DFTEntry(dict):
         pass
 
     def get_true_val(self) -> np.ndarray:
-        if not self._trueval_is_set:
-            self._trueval = self._get_true_val()
-            self._trueval_is_set = True
-        return self._trueval
+        return self._get_true_val()
 
     @abstractmethod
     def _get_true_val(self) -> np.ndarray:
@@ -207,6 +203,7 @@ class _EntryDM(DFTEntry):
 
     def __init__(self, entry_dct):
         super().__init__(entry_dct)
+        self.entry_dct = entry_dct
         assert len(self.get_systems()) == 1, "dm entry can only have 1 system"
 
     @property
@@ -215,7 +212,7 @@ class _EntryDM(DFTEntry):
 
     def _get_true_val(self) -> np.ndarray:
         # get the density matrix from PySCF's CCSD calculation
-        dm = np.load(self["true_val"])
+        dm = np.load(self.entry_dct["true_val"])
         return dm
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
