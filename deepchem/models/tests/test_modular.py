@@ -1,9 +1,12 @@
-import torch
-import torch.nn as nn
 import pytest
 import deepchem as dc
 import numpy as np
-from deepchem.models.torch_models.modular import ModularTorchModel
+try:
+    from deepchem.models.torch_models.modular import ModularTorchModel
+    import torch
+    import torch.nn as nn
+except:
+    pass
 
 
 class ExampleTorchModel(ModularTorchModel):
@@ -163,12 +166,8 @@ def test_load_freeze():
     y_pt = np.zeros((n_samples, pt_tasks)).astype(np.float32)
     dataset_pt = dc.data.NumpyDataset(X_pt, y_pt)
 
-    example_model = ExampleTorchModel(n_feat,
-                                      d_hidden,
-                                      n_layers,
-                                      ft_tasks)
-    example_pretrainer = ExamplePretrainer(example_model,
-                                           pt_tasks)
+    example_model = ExampleTorchModel(n_feat, d_hidden, n_layers, ft_tasks)
+    example_pretrainer = ExamplePretrainer(example_model, pt_tasks)
 
     example_pretrainer.fit(dataset_pt, nb_epoch=1000)
 
