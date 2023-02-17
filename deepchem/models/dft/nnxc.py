@@ -10,8 +10,25 @@ try:
 except ModuleNotFoundError:
     raise ModuleNotFoundError("This layer requires dqc and torch")
 
+class BaseNNXC(BaseXC, torch.nn.Module):
 
-class NNLDA(BaseXC, torch.nn.Module):
+    @abstractproperty
+    def family(self) -> int:
+        pass
+
+    @abstractmethod
+    def get_edensityxc(
+            self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
+        pass
+
+    def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+        # torch.nn.module prefix has no ending dot, while xt prefix has
+        nnprefix = prefix if prefix == "" else prefix[:-1]
+        return [
+            name for (name, param) in self.named_parameters(prefix=nnprefix)
+        ]
+
+class NNLDA(BaseNNXC):
     """Neural network xc functional for LDA
     neural network xc functional of LDA (only receives the density as input)
     Parameters
@@ -61,7 +78,7 @@ class NNLDA(BaseXC, torch.nn.Module):
         return res
 
 
-class HybridXC(NNLDA):
+class HybridXC(BaseNNXC):
     """
     The HybridXC module computes XC energy by summing XC energy computed
     from libxc and the trainable neural network with tunable weights.
@@ -83,7 +100,6 @@ class HybridXC(NNLDA):
             xcstr: str,
             nnmodel: torch.nn.Module,
             *,
-            device: torch.device,
             ninpmode:
         int = 1,  # mode to decide how to transform the density to nn input
             outmultmode: int = 1,  # mode of calculating Eks from output of nn
@@ -96,7 +112,6 @@ class HybridXC(NNLDA):
         super().__init__()
         # What is type of xc here?
         self.xc = get_xc(xcstr)
-        print(type(self.xc))
         if self.xc.family == 1:
             self.nnxc = NNLDA(nnmodel,
                               ninpmode=ninpmode,
@@ -104,12 +119,10 @@ class HybridXC(NNLDA):
         self.aweight = torch.nn.Parameter(
             torch.tensor(aweight0,
                          dtype=dtype,
-                         device=device,
                          requires_grad=True))
         self.bweight = torch.nn.Parameter(
             torch.tensor(bweight0,
                          dtype=dtype,
-                         device=device,
                          requires_grad=True))
         self.weight_activation = torch.nn.Identity()
 
