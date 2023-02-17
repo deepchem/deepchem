@@ -1,4 +1,4 @@
-name: Test for build scripts
+name: Full Build
 on:
   push: # ci work when pushing master branch
     branches:
