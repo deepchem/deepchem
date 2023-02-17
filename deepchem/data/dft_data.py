@@ -37,7 +37,6 @@ class DFTSystem(dict):
     """
 
     created_systems: Dict[str, DFTSystem] = {}
-
     @classmethod
     def create(cls, system: Dict) -> DFTSystem:
         """
@@ -84,8 +83,8 @@ class DFTEntry(dict):
 
     Example
     -------
-    >>>from deepchem.data.dft_data import DFTEntry
-    >>>data_mol = {
+    >>> from deepchem.data.dft_data import DFTEntry
+    >>> data_mol = {
         'name':
             'Density matrix of HF',
         'type':
