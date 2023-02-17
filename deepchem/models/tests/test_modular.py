@@ -1,9 +1,13 @@
-import torch
-import torch.nn as nn
+
 import pytest
 import deepchem as dc
 import numpy as np
-from deepchem.models.torch_models.modular import ModularTorchModel
+try:
+    from deepchem.models.torch_models.modular import ModularTorchModel
+    import torch
+    import torch.nn as nn
+except:
+    pass
 
 
 class ExampleTorchModel(ModularTorchModel):
