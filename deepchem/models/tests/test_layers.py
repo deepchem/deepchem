@@ -666,11 +666,11 @@ def test_MultilayerPerceptron():
                                               d_hidden=2,
                                               n_layers=2,
                                               d_output=2,
-                                              activation='relu',
-                                              dropout_p=0.0)
+                                              activation_fn='relu',
+                                              dropout=0.0)
     result = layer(input_ar)
     output_ar = torch.tensor([[[0.2795, 0.4243], [0.2795, 0.4243]]])
-    assert torch.allclose(result, output_ar, rtol=1e-4)
+    assert torch.allclose(result, output_ar, atol=1e-4)
 
 
 @pytest.mark.torch
