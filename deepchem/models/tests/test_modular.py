@@ -174,7 +174,7 @@ def test_load_freeze():
     example_pretrainer.fit(dataset_pt, nb_epoch=1000)
 
     example_model.load_pretrained_components(source_model=example_pretrainer,
-                                    components=['encoder'])
+                                             components=['encoder'])
 
     example_model.freeze_components(['encoder'])
 
