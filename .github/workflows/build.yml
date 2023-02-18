@@ -1,9 +1,9 @@
-name: Test for mini build 
+name: Build tests
 on:
-  push: # ci work when pushing master branch
+  push:
     branches:
       - master
-  pull_request: # ci work when creating a PR to master branch
+  pull_request:
     branches:
       - master
 jobs:
@@ -19,14 +19,10 @@ jobs:
           python-version: '3.9'
     steps:
     - uses: actions/checkout@v3
-      # using cached dependencies to speed up workflow
-      # ref: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
     - name: Cache pip modules for Linux
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
-        # the key is used to search for cache
-        # hashFile(paths) return a single hash for the set of files that matches the path pattern
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
