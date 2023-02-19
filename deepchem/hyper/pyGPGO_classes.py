@@ -1,15 +1,11 @@
-from collections import OrderedDict
-
 import numpy as np
 from scipy.linalg import cholesky, solve
 from scipy.stats import norm, t
-from scipy.special import gamma, kv
+# from scipy.special import gamma, kv
 from scipy.spatial.distance import cdist
 from collections import OrderedDict
 from scipy.optimize import minimize
 from joblib import Parallel, delayed
-from pyGPGO.logger import EventLogger
-from scipy.optimize import minimize
 
 
 class GPGO:
@@ -499,7 +495,7 @@ class matern32:
             List of strings specifying which hyperparameters should be optimized.
         """
 
-        self.l = l
+        self.l = l  # noqa: E741
         self.sigmaf = sigmaf
         self.sigman = sigman
         self.parameters = parameters
@@ -687,7 +683,7 @@ class Acquisition:
     def IntegratedExpectedImprovement(self, tau, meanmcmc, stdmcmc):
         """
         Integrated expected improvement. Can only be used with `GaussianProcessMCMC` instance.
-        
+
         Parameters
         ----------
         tau: float
@@ -696,7 +692,7 @@ class Acquisition:
             Means of posterior predictive distributions after sampling.
         stdmcmc
             Standard deviations of posterior predictive distributions after sampling.
-            
+
         Returns
         -------
         float:
@@ -741,10 +737,10 @@ class Acquisition:
             Means of posterior predictive distributions after sampling.
         stdmcmc
             Standard deviations of posterior predictive distributions after sampling.
-            
+
         beta: float
             Hyperparameter controlling exploitation/exploration ratio.
-            
+
         Returns
         -------
         float:

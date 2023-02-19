@@ -8,7 +8,6 @@ valuable test suite so leaving it in despite the flakiness.
 import numpy as np
 import sklearn
 import sklearn.ensemble
-import deepchem as dc
 import unittest
 import pytest
 import tempfile
