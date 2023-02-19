@@ -1,6 +1,5 @@
 """
 Tests for Gaussian Process Hyperparameter Optimization.
-
 These tests fails every so often. I think it's when the Gaussian
 process optimizer doesn't find an optimal point. This is still a
 valuable test suite so leaving it in despite the flakiness.
@@ -8,15 +7,11 @@ valuable test suite so leaving it in despite the flakiness.
 import numpy as np
 import sklearn
 import sklearn.ensemble
+import deepchem as dc
 import unittest
 import pytest
 import tempfile
 from flaky import flaky
-
-from deepchem.models import SklearnModel, MultitaskRegressor
-from deepchem.data import NumpyDataset
-from deepchem.hyper import GaussianProcessHyperparamOpt
-from deepchem.metrics import Metric, pearson_r2_score, mean_squared_error
 
 
 class TestGaussianHyperparamOpt(unittest.TestCase):
@@ -33,22 +28,22 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
             }
             model_dir = model_params['model_dir']
             sklearn_model = sklearn.ensemble.RandomForestRegressor(**rf_params)
-            return SklearnModel(sklearn_model, model_dir)
+            return dc.models.SklearnModel(sklearn_model, model_dir)
 
         self.rf_model_builder = rf_model_builder
-        self.train_dataset = NumpyDataset(X=np.random.rand(50, 5),
+        self.train_dataset = dc.data.NumpyDataset(X=np.random.rand(50, 5),
                                                   y=np.random.rand(50, 1))
-        self.valid_dataset = NumpyDataset(X=np.random.rand(20, 5),
+        self.valid_dataset = dc.data.NumpyDataset(X=np.random.rand(20, 5),
                                                   y=np.random.rand(20, 1))
 
     def test_rf_example(self):
         """Test a simple example of optimizing a RF model with a gaussian process."""
 
-        optimizer = GaussianProcessHyperparamOpt(self.rf_model_builder,
+        optimizer = dc.hyper.GaussianProcessHyperparamOpt(self.rf_model_builder,
                                                           max_iter=2)
         params_dict = {"n_estimators": 10}
         transformers = []
-        metric = Metric(pearson_r2_score)
+        metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
 
         best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
             params_dict, self.train_dataset, self.valid_dataset, metric)
@@ -61,11 +56,11 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
     def test_rf_example_min(self):
         """Test a simple example of optimizing a RF model with a gaussian process looking for minimum score."""
 
-        optimizer = GaussianProcessHyperparamOpt(self.rf_model_builder,
+        optimizer = dc.hyper.GaussianProcessHyperparamOpt(self.rf_model_builder,
                                                           max_iter=2)
         params_dict = {"n_estimators": 10}
         transformers = []
-        metric = Metric(pearson_r2_score)
+        metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
 
         best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
             params_dict,
@@ -82,11 +77,11 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
 
     def test_rf_with_logdir(self):
         """Test that using a logdir can work correctly."""
-        optimizer = GaussianProcessHyperparamOpt(self.rf_model_builder,
+        optimizer = dc.hyper.GaussianProcessHyperparamOpt(self.rf_model_builder,
                                                           max_iter=2)
         params_dict = {"n_estimators": 10}
         transformers = []
-        metric = Metric(pearson_r2_score)
+        metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
         with tempfile.TemporaryDirectory() as tmpdirname:
             best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
                 params_dict,
@@ -106,16 +101,16 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
         """Test a simple example of optimizing a multitask model with a gaussian process search."""
         # Generate dummy dataset
         np.random.seed(123)
-        train_dataset = NumpyDataset(np.random.rand(10, 3),
+        train_dataset = dc.data.NumpyDataset(np.random.rand(10, 3),
                                              np.zeros((10, 2)), np.ones(
                                                  (10, 2)), np.arange(10))
-        valid_dataset = NumpyDataset(np.random.rand(5, 3),
+        valid_dataset = dc.data.NumpyDataset(np.random.rand(5, 3),
                                              np.zeros((5, 2)), np.ones((5, 2)),
                                              np.arange(5))
         transformers = []
 
-        optimizer = GaussianProcessHyperparamOpt(
-            lambda **params: MultitaskRegressor(
+        optimizer = dc.hyper.GaussianProcessHyperparamOpt(
+            lambda **params: dc.models.MultitaskRegressor(
                 n_tasks=2,
                 n_features=3,
                 dropouts=[0.],
@@ -125,7 +120,7 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
             max_iter=1)
 
         params_dict = {"batch_size": 10}
-        metric = Metric(mean_squared_error,
+        metric = dc.metrics.Metric(dc.metrics.mean_squared_error,
                                    task_averager=np.mean)
 
         best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
@@ -147,18 +142,18 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
         """Test a simple example of optimizing a multitask model with a gaussian process search with per-parameter search range."""
         # Generate dummy dataset
         np.random.seed(123)
-        train_dataset = NumpyDataset(np.random.rand(10, 3),
+        train_dataset = dc.data.NumpyDataset(np.random.rand(10, 3),
                                              np.zeros((10, 2)), np.ones(
                                                  (10, 2)), np.arange(10))
-        valid_dataset = NumpyDataset(np.random.rand(5, 3),
+        valid_dataset = dc.data.NumpyDataset(np.random.rand(5, 3),
                                              np.zeros((5, 2)), np.ones((5, 2)),
                                              np.arange(5))
         transformers = []
 
         # These are per-example multiplier
         search_range = {"learning_rate": 10, "batch_size": 4}
-        optimizer = GaussianProcessHyperparamOpt(
-            lambda **params: MultitaskRegressor(
+        optimizer = dc.hyper.GaussianProcessHyperparamOpt(
+            lambda **params: dc.models.MultitaskRegressor(
                 n_tasks=2,
                 n_features=3,
                 dropouts=[0.],
@@ -168,7 +163,7 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
             max_iter=2)
 
         params_dict = {"learning_rate": 0.003, "batch_size": 10}
-        metric = Metric(mean_squared_error,
+        metric = dc.metrics.Metric(dc.metrics.mean_squared_error,
                                    task_averager=np.mean)
 
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -197,16 +192,16 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
         """Test a simple example of optimizing a multitask model with a gaussian process search with a different number of training epochs."""
         # Generate dummy dataset
         np.random.seed(123)
-        train_dataset = NumpyDataset(np.random.rand(10, 3),
+        train_dataset = dc.data.NumpyDataset(np.random.rand(10, 3),
                                              np.zeros((10, 2)), np.ones(
                                                  (10, 2)), np.arange(10))
-        valid_dataset = NumpyDataset(np.random.rand(5, 3),
+        valid_dataset = dc.data.NumpyDataset(np.random.rand(5, 3),
                                              np.zeros((5, 2)), np.ones((5, 2)),
                                              np.arange(5))
         transformers = []
 
-        optimizer = GaussianProcessHyperparamOpt(
-            lambda **params: MultitaskRegressor(
+        optimizer = dc.hyper.GaussianProcessHyperparamOpt(
+            lambda **params: dc.models.MultitaskRegressor(
                 n_tasks=2,
                 n_features=3,
                 dropouts=[0.],
@@ -216,7 +211,7 @@ class TestGaussianHyperparamOpt(unittest.TestCase):
             max_iter=1)
 
         params_dict = {"batch_size": 10}
-        metric = Metric(mean_squared_error,
+        metric = dc.metrics.Metric(dc.metrics.mean_squared_error,
                                    task_averager=np.mean)
 
         best_model, best_hyperparams, all_results = optimizer.hyperparam_search(
