@@ -115,13 +115,27 @@ class ModularTorchModel(TorchModel):
         self.model = self.build_model()
         self.model.to(self.device)
 
-    def load_from_modular(self,
-                          source_model: Optional['ModularTorchModel'] = None,
-                          checkpoint: Optional[str] = None,
-                          model_dir: Optional[str] = None,
-                          components: Optional[list] = None) -> None:
+    def load_pretrained_components(
+            self,
+            source_model: Optional['ModularTorchModel'] = None,
+            checkpoint: Optional[str] = None,
+            model_dir: Optional[str] = None,
+            components: Optional[list] = None) -> None:
         """Modifies the TorchModel load_from_pretrained method to allow for loading
-        from a ModularTorchModel and specifying which components to load."""
+        from a ModularTorchModel and specifying which components to load.
+
+        If the user does not a specify a source model, a checkpoint is used to load
+        the weights. In this case, the user cannot specify which components to load
+        because the components are not stored in the checkpoint. All layers will
+        then be loaded if they have the same name and shape. This can cause issues
+        if a pretrained model has similar but not identical layers to the model where
+        a user may expect the weights to be loaded. ModularTorchModel subclasses
+        should be written such that the components are atomic and will be preserved
+        across as many tasks as possible. For example, an encoder may have varying
+        input dimensions for different datasets, so the encoder should be written
+        such that the input layer is not included in the encoder, allowing the
+        encoder to be loaded with any input dimension.
+        """
 
         # generate the source state dict
         if source_model is not None:

@@ -2,97 +2,104 @@ import pytest
 import deepchem as dc
 import numpy as np
 try:
+    try:
     from deepchem.models.torch_models.modular import ModularTorchModel
     import torch
     import torch.nn as nn
 except:
     pass
+    import torch
+    import torch.nn as nn
 
+    class ExampleTorchModel(ModularTorchModel):
+        """Example TorchModel for testing pretraining."""
 
-class ExampleTorchModel(ModularTorchModel):
-    """Example TorchModel for testing pretraining."""
+        def __init__(self, input_dim, d_hidden, n_layers, d_output, **kwargs):
+            self.input_dim = input_dim
+            self.d_hidden = d_hidden
+            self.n_layers = n_layers
+            self.d_output = d_output
+            self.components = self.build_components()
+            self.model = self.build_model()
+            super().__init__(self.model, self.components, **kwargs)
 
-    def __init__(self, input_dim, d_hidden, n_layers, d_output, **kwargs):
-        self.input_dim = input_dim
-        self.d_hidden = d_hidden
-        self.n_layers = n_layers
-        self.d_output = d_output
-        self.components = self.build_components()
-        self.model = self.build_model()
-        super().__init__(self.model, self.components, **kwargs)
+        def build_components(self):
+            return {
+                'encoder': self.encoder(),
+                'FF1': self.FF1(),
+                'FF2': self.FF2()
+            }
 
-    def build_components(self):
-        return {'encoder': self.encoder(), 'FF1': self.FF1(), 'FF2': self.FF2()}
+        def loss_func(self, inputs, labels, weights):
+            preds1 = self.components['FF1'](self.components['encoder'](inputs))
+            labels = labels[0]
+            loss1 = torch.nn.functional.mse_loss(preds1, labels)
 
-    def loss_func(self, inputs, labels, weights):
-        preds1 = self.components['FF1'](self.components['encoder'](inputs))
-        labels = labels[0]
-        loss1 = torch.nn.functional.mse_loss(preds1, labels)
+            preds2 = self.components['FF1'](inputs)
+            loss2 = torch.nn.functional.smooth_l1_loss(preds2, labels)
+            total_loss = loss1 + loss2
+            return (total_loss * weights[0]).mean()
 
-        preds2 = self.components['FF1'](inputs)
-        loss2 = torch.nn.functional.smooth_l1_loss(preds2, labels)
-        total_loss = loss1 + loss2
-        return (total_loss * weights[0]).mean()
+        def encoder(self):
+            embedding = []
+            for i in range(self.n_layers):
+                if i == 0:
+                    embedding.append(nn.Linear(self.input_dim, self.d_hidden))
+                    embedding.append(nn.ReLU())
+                else:
+                    embedding.append(nn.Linear(self.d_hidden, self.d_hidden))
+                    embedding.append(nn.ReLU())
+            return nn.Sequential(*embedding)
 
-    def encoder(self):
-        embedding = []
-        for i in range(self.n_layers):
-            if i == 0:
-                embedding.append(nn.Linear(self.input_dim, self.d_hidden))
-                embedding.append(nn.ReLU())
-            else:
-                embedding.append(nn.Linear(self.d_hidden, self.d_hidden))
-                embedding.append(nn.ReLU())
-        return nn.Sequential(*embedding)
+        def FF1(self):
+            linear = nn.Linear(self.input_dim, self.d_output)
+            af = nn.Sigmoid()
+            return nn.Sequential(linear, af)
 
-    def FF1(self):
-        linear = nn.Linear(self.input_dim, self.d_output)
-        af = nn.Sigmoid()
-        return nn.Sequential(linear, af)
+        def FF2(self):
+            linear = nn.Linear(self.d_hidden, self.d_output)
+            af = nn.ReLU()
+            return nn.Sequential(linear, af)
 
-    def FF2(self):
-        linear = nn.Linear(self.d_hidden, self.d_output)
-        af = nn.ReLU()
-        return nn.Sequential(linear, af)
+        def build_model(self):
+            encoder = self.encoder()
+            FF2 = self.FF2()
+            return nn.Sequential(encoder, FF2)
 
-    def build_model(self):
-        encoder = self.encoder()
-        FF2 = self.FF2()
-        return nn.Sequential(encoder, FF2)
+    class ExamplePretrainer(ModularTorchModel):
 
+        def __init__(self, model, pt_tasks, **kwargs):
+            self.source_model = model  # the pretrainer takes the original model as input in order to modify it
+            self.pt_tasks = pt_tasks
+            self.components = self.build_components()
+            self.model = self.build_model()
+            super().__init__(self.model, self.components, **kwargs)
 
-class ExamplePretrainer(ModularTorchModel):
+        def FF_pt(self):
+            linear = nn.Linear(self.source_model.d_hidden, self.pt_tasks)
+            af = nn.ReLU()
+            return nn.Sequential(linear, af)
 
-    def __init__(self, model, pt_tasks, **kwargs):
-        self.source_model = model  # the pretrainer takes the original model as input in order to modify it
-        self.pt_tasks = pt_tasks
-        self.components = self.build_components()
-        self.model = self.build_model()
-        super().__init__(self.model, self.components, **kwargs)
+        def loss_func(self, inputs, labels, weights):
+            inputs = inputs[0]
+            labels = labels[0]
+            weights = weights[0]
+            preds = self.components['FF_pt'](self.components['encoder'](inputs))
+            loss = torch.nn.functional.mse_loss(preds, labels)
+            loss = loss * weights
+            loss = loss.mean()
+            return loss
 
-    def FF_pt(self):
-        linear = nn.Linear(self.source_model.d_hidden, self.pt_tasks)
-        af = nn.ReLU()
-        return nn.Sequential(linear, af)
+        def build_components(self):
+            pt_components = self.source_model.build_components()
+            pt_components.update({'FF_pt': self.FF_pt()})
+            return pt_components
 
-    def loss_func(self, inputs, labels, weights):
-        inputs = inputs[0]
-        labels = labels[0]
-        weights = weights[0]
-        preds = self.components['FF_pt'](self.components['encoder'](inputs))
-        loss = torch.nn.functional.mse_loss(preds, labels)
-        loss = loss * weights
-        loss = loss.mean()
-        return loss
-
-    def build_components(self):
-        pt_components = self.source_model.build_components()
-        pt_components.update({'FF_pt': self.FF_pt()})
-        return pt_components
-
-    def build_model(self):
-        return nn.Sequential(self.components['encoder'],
-                             self.components['FF_pt'])
+        def build_model(self):
+            return nn.Sequential(self.components['encoder'],
+                                 self.components['FF_pt'])
+except:
+    pass
 
 
 @pytest.mark.torch
@@ -166,17 +173,13 @@ def test_load_freeze():
     y_pt = np.zeros((n_samples, pt_tasks)).astype(np.float32)
     dataset_pt = dc.data.NumpyDataset(X_pt, y_pt)
 
-    example_model = ExampleTorchModel(n_feat,
-                                      d_hidden,
-                                      n_layers,
-                                      ft_tasks)
-    example_pretrainer = ExamplePretrainer(example_model,
-                                           pt_tasks)
+    example_model = ExampleTorchModel(n_feat, d_hidden, n_layers, ft_tasks)
+    example_pretrainer = ExamplePretrainer(example_model, pt_tasks)
 
     example_pretrainer.fit(dataset_pt, nb_epoch=1000)
 
-    example_model.load_from_modular(source_model=example_pretrainer,
-                                    components=['encoder'])
+    example_model.load_pretrained_components(source_model=example_pretrainer,
+                                             components=['encoder'])
 
     example_model.freeze_components(['encoder'])
 
