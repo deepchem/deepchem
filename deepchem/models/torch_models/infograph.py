@@ -19,23 +19,18 @@ class Encoder(torch.nn.Module):
         self.gru = GRU(dim, dim)
 
         self.set2set = Set2Set(dim, processing_steps=3)
-        self.lin1 = torch.nn.Linear(2 * dim, dim)
-        self.lin2 = torch.nn.Linear(dim, 1)
 
     def forward(self, data):
         out = F.relu(self.lin0(data.node_features))
         h = out.unsqueeze(0)
 
-        feat_map = []
         for i in range(3):
             m = F.relu(self.conv(out, data.edge_index, data.edge_features))
             out, h = self.gru(m.unsqueeze(0), h)
             out = out.squeeze(0)
-            # print(out.shape) : [num_node x dim]
-            feat_map.append(out)
 
         out = self.set2set(out, data.graph_index)
-        return out, feat_map[-1]
+        return out
     
     
 class FF(nn.Module):
@@ -109,7 +104,6 @@ class Infograph(ModularTorchModel):
         if self.local:
             loss = self.local_global_loss_(l_enc, g_enc, inputs.edge_index,
                                       inputs.graph_index, measure)
-        # loss = (loss * weights).mean()
         return loss
     
     def unsup_sup_loss(self, inputs, labels, weights):
@@ -133,8 +127,13 @@ class Infograph(ModularTorchModel):
         inputs.node_features = torch.from_numpy(inputs.node_features).float().to(self.device)
         inputs.graph_index = torch.from_numpy(inputs.graph_index).long().to(self.device)
     
-        labels = torch.from_numpy(labels[0]).float().to(self.device)
-        weights = torch.from_numpy(weights[0]).float().to(self.device)
+        _, labels, weights = super(Infograph, self)._prepare_batch(
+            ([], labels, weights))
+        
+        if (len(labels) != 0) and (len(weights) != 0):
+            labels = labels[0]
+            weights = weights[0]
+        
         return inputs, labels, weights
     
     def local_global_loss_(self,l_enc, g_enc, edge_index, batch, measure):
@@ -192,7 +191,7 @@ class Infograph(ModularTorchModel):
     
 class InfoGraph_module(torch.nn.Module):
         
-    def __init__(self, encoder, unsup_encoder, ff1, ff2, fc1, fc2, local_d, global_d): #
+    def __init__(self, encoder, unsup_encoder, ff1, ff2, fc1, fc2, local_d, global_d): 
         super(InfoGraph_module, self).__init__()
         self.encoder = encoder
         self.unsup_encoder = unsup_encoder
@@ -213,10 +212,9 @@ class InfoGraph_module(torch.nn.Module):
                     m.bias.data.fill_(0.0)
 
     def forward(self, data):
-        out, M = self.encoder(data)
+        out = self.encoder(data)
         out = F.relu(self.fc1(out))
-        out = self.fc2(out)
-        pred = out.view(-1)
+        pred = self.fc2(out)
         return pred
 
 
