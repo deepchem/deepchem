@@ -401,6 +401,18 @@ class RandomGroupSplitter(Splitter):
     to maximize the choice such that frac_train, frac_valid, or frac_test is
     maximized.  It simply permutes the groups themselves. As such, use with
     caution if the number of elements per group varies significantly.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> X=np.arange(12)
+    >>> groups = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3]
+    >>> splitter = dc.splits.RandomGroupSplitter(groups=groups)
+    >>> dataset = dc.data.NumpyDataset(X)   # 12 elements
+    >>> train, test = splitter.train_test_split(dataset, frac_train=0.75, seed=0)
+    >>> print (train.ids) #array([6, 7, 8, 9, 10, 11, 3, 4, 5], dtype=object)
+    [6 7 8 9 10 11 3 4 5]
     """
 
     def __init__(self, groups: Sequence):
