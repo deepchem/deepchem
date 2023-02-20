@@ -36,7 +36,6 @@ class DFTSystem():
     https://github.com/diffqc/dqc/blob/0fe821fc92cb3457fb14f6dff0c223641c514ddb/dqc/system/base_system.py
     """
 
-    created_systems: Dict[str, DFTSystem] = {}
     @classmethod
     def create(cls, system: Dict) -> DFTSystem:
         """
@@ -45,10 +44,7 @@ class DFTSystem():
         Creates and returns the system if it has not been created
         manually during training step. Otherwise, return the previously created system.
         """
-        system_str = str(system)
-        if system_str not in cls.created_systems:
-            cls.created_systems[system_str] = DFTSystem(system)
-        return cls.created_systems[system_str]
+        return DFTSystem(system) 
 
     def __init__(self, system: Dict):
         self.system = system 
@@ -104,7 +100,6 @@ class DFTEntry():
     >>>dm_entry_for_HF = DFTEntry.create(data_mol)
     """
 
-    created_entries: Dict[str, DFTEntry] = {}
 
     @classmethod
     def create(cls, entry_dct: Union[Dict, DFTEntry]) -> DFTEntry:
@@ -125,19 +120,16 @@ class DFTEntry():
         if isinstance(entry_dct, DFTEntry):
             return entry_dct
 
-        s = str(entry_dct)
-        if s not in cls.created_entries:
-            tpe = entry_dct["type"]
-            if tpe == "ae":
-                obj = _EntryAE(entry_dct)
-            elif tpe == "ie":
-                obj = _EntryIE(entry_dct)
-            elif tpe == "dm":
-                obj = _EntryDM(entry_dct)
-            elif tpe == "dens":
-                obj = _EntryDens(entry_dct)
-            cls.created_entries[s] = obj
-        return cls.created_entries[s]
+        tpe = entry_dct["type"]
+        if tpe == "ae":
+            obj = _EntryAE(entry_dct)
+        elif tpe == "ie":
+            obj = _EntryIE(entry_dct)
+        elif tpe == "dm":
+            obj = _EntryDM(entry_dct)
+        elif tpe == "dens":
+            obj = _EntryDens(entry_dct)
+        return obj
 
     def __init__(self, entry_dct: Dict):
         self._systems = [DFTSystem.create(p) for p in entry_dct["systems"]]

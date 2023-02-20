@@ -4,7 +4,7 @@ try:
     import torch
 except ModuleNotFoundError:
     raise ModuleNotFoundError("This test requires dqc and torch")
-
+import deepchem
 
 @pytest.mark.dqc
 def test_entryDM():
