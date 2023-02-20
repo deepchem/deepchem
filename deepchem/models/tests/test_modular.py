@@ -2,12 +2,7 @@ import pytest
 import deepchem as dc
 import numpy as np
 try:
-    try:
     from deepchem.models.torch_models.modular import ModularTorchModel
-    import torch
-    import torch.nn as nn
-except:
-    pass
     import torch
     import torch.nn as nn
 
