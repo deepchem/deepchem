@@ -102,14 +102,14 @@ class ModularTorchModel(TorchModel):
         weights as arguments and return the loss."""
         raise NotImplementedError("Subclass must define the loss function")
 
-    def freeze_components(self, components: list[str]):
+    def freeze_components(self, components: List[str]):
         """Freezes or unfreezes the parameters of the specified components.
 
         Components string refers to keys in self.components.
 
         Parameters
         ----------
-        components: list[str]
+        components: List[str]
             The components to freeze.
         """
         for component in components:
@@ -118,14 +118,14 @@ class ModularTorchModel(TorchModel):
         self.model = self.build_model()
         self.model.to(self.device)
 
-    def unfreeze_components(self, components: list[str]):
+    def unfreeze_components(self, components: List[str]):
         """Unfreezes the parameters of the specified components.
 
         Components string refers to keys in self.components.
 
         Parameters
         ----------
-        components: list[str]
+        components: List[str]
             The components to unfreeze.
         """
         for component in components:
