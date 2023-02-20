@@ -51,7 +51,7 @@ class DFTSystem():
         return cls.created_systems[system_str]
 
     def __init__(self, system: Dict):
-        system = {}
+        self.system = system 
 
     def get_dqc_mol(self, pos_reqgrad: bool = False) -> BaseSystem:
         """
@@ -61,12 +61,12 @@ class DFTSystem():
         pos_reqgrad: bool
             decides if the atomic position require gradient calculation.
         """
-        systype = self["type"]
+        systype = self.system["type"]
         if systype == "mol":
-            atomzs, atomposs = dqc.parse_moldesc(self["kwargs"]["moldesc"])
+            atomzs, atomposs = dqc.parse_moldesc(self.system["kwargs"]["moldesc"])
             if pos_reqgrad:
                 atomposs.requires_grad_()
-            mol = Mol(**self["kwargs"])
+            mol = Mol(**self.system["kwargs"])
             return mol
         else:
             raise RuntimeError("Unknown system type: %s" % systype)
@@ -137,13 +137,10 @@ class DFTEntry():
             elif tpe == "dens":
                 obj = _EntryDens(entry_dct)
             cls.created_entries[s] = obj
-            print(cls.created_entries[s])
         return cls.created_entries[s]
 
     def __init__(self, entry_dct: Dict):
-#        entry_dct = {}
         self._systems = [DFTSystem.create(p) for p in entry_dct["systems"]]
-
         """
         Parameters
         ----------
@@ -218,6 +215,14 @@ class _EntryDM(DFTEntry):
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         return (qcs.aodmtot()).numpy()
 
+  #  def get_systems(self) -> List[DFTSystem]:
+  #      """
+  #      Returns
+  #      -------
+  #      List of systems in the entry
+  #      """
+  #      self._systems = [DFTSystem.create(p) for p in self.entry_dct["systems"]]
+  #      return self._systems
 
 class _EntryDens(DFTEntry):
     """Entry for density profile (dens), compared with CCSD calculation"""
@@ -232,7 +237,7 @@ class _EntryDens(DFTEntry):
         return "dens"
 
     def _get_true_val(self) -> np.ndarray:
-        dens = np.load(self["trueval"])
+        dens = np.load(self.entry_dct["trueval"])
         return dens
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
@@ -284,13 +289,16 @@ class _EntryDens(DFTEntry):
 
 class _EntryIE(DFTEntry):
     """Entry for Ionization Energy (IE)"""
+    def __init__(self, entry_dct):
+        super().__init__(entry_dct)
+        self.entry_dct = entry_dct
 
     @property
     def entry_type(self) -> str:
         return "ie"
 
     def _get_true_val(self) -> np.ndarray:
-        return (self["true_val"])
+        return (self.entry_dct["true_val"])
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         glob = {"systems": qcs, "energy": self.energy}
