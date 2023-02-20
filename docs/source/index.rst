@@ -53,16 +53,26 @@ Google Colab. Check out one of the `DeepChem Tutorials`_ or this
 `forum post`_ for Colab quick start guides.
 
 If you'd like to install DeepChem locally,
-we recommend installing deepchem which is nightly version and RDKit.
+we recommend installing deepchem which and RDKit.
 RDKit is a soft requirement package, but many useful methods depend on it.
+
+On Windows/Linux
 
 .. code-block:: bash
 
-    pip install tensorflow~=2.4
-    pip install --pre deepchem
-    conda install -y -c conda-forge rdkit
+    pip install deepchem[tensorflow]
 
-Then open your python and try running.
+On Unix(macOS)
+
+.. code-block:: bash
+
+    pip install deepchem
+
+.. Note::
+
+    To install TensorFlow GPU version on macOS refer to this `TensorFlow-Metal`_ installation guide.
+
+Then open your IDE or text editor of choice and try running the following code with python.
 
 .. code-block:: python
 
@@ -70,6 +80,7 @@ Then open your python and try running.
 
 .. _`DeepChem Tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials
 .. _`forum post`: https://forum.deepchem.io/t/getting-deepchem-running-in-colab/81/7
+.. _`TensorFlow-Metal`: https://developer.apple.com/metal/tensorflow-plugin/
 
 About Us
 --------
