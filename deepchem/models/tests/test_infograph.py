@@ -1,13 +1,45 @@
 import deepchem as dc
 from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
 from deepchem.data import DiskDataset
-# import torch
-# from deepchem.feat.graph_data import BatchGraphData
 from deepchem.models.torch_models.infograph import Infograph
-# import torch.nn.functional as F
-# import matplotlib
-# matplotlib.use('TkAgg')
-# import matplotlib.pyplot as plt
+import pytest
+
+
+@pytest.mark.torch
+def get_dataset(mode='classification', featurizer='GraphConv', num_tasks=2):
+    data_points = 20
+    if mode == 'classification':
+        tasks, all_dataset, transformers = load_bace_classification(featurizer)
+    else:
+        tasks, all_dataset, transformers = load_delaney(featurizer)
+
+    train, valid, test = all_dataset
+    for i in range(1, num_tasks):
+        tasks.append("random_task")
+    w = np.ones(shape=(data_points, len(tasks)))
+
+    if mode == 'classification':
+        y = np.random.randint(0, 2, size=(data_points, len(tasks)))
+        metric = dc.metrics.Metric(dc.metrics.roc_auc_score,
+                                   np.mean,
+                                   mode="classification")
+    else:
+        y = np.random.normal(size=(data_points, len(tasks)))
+        metric = dc.metrics.Metric(dc.metrics.mean_absolute_error,
+                                   mode="regression")
+
+    ds = NumpyDataset(train.X[:data_points], y, w, train.ids[:data_points])
+
+    return tasks, ds, transformers, metric
+
+
+@pytest.mark.torch
+def test_infograph_regression():
+    pass
+
+def test_infograph_classification():
+    pass
+
 
 # featurizer = MolGraphConvFeaturizer(use_edges=True)
 # targets, dataset, transforms = dc.molnet.load_zinc15(featurizer=featurizer, splitter='index')
@@ -67,102 +99,3 @@ Infograph_model_ft = Infograph(num_feat, edge_dim, dim, use_unsup_loss, separate
 # Infograph_model_ft.load_from_modular(model_dir='infograph_model')
 
 loss_ft = Infograph_model_ft.fit(train_bbbp, nb_epoch=epochs_ft)
-
-# plt.plot(loss_ft)
-# plt.xlabel('Epoch')
-# plt.ylabel('Loss')
-# plt.show()
-
-
-
-
-
-
-# if use_unsup_loss:
-#     unsup_train_dataset = train_dc_py
-    
-
-    
-# def test(loader):
-#     model.eval()
-#     error = 0
-
-#     for batch in loader:
-#         X, y = dc_to_pyg(batch)
-        
-#         error += (model(X) * std - y * std).abs().sum().item()  # MAE
-#     return error / len(loader.disk_dataset)
-
-# def train(epoch, use_unsup_loss):
-#     model.train()
-#     loss_all = 0
-#     sup_loss_all = 0
-#     unsup_loss_all = 0
-#     unsup_sup_loss_all = 0
-
-#     if use_unsup_loss:
-#         for data, data2 in zip(train_dc_py, unsup_train_dataset):
-#             data, y = dc_to_pyg(data)
-#             data2, y2 = dc_to_pyg(data2)
-#             # data = data.to(device)
-#             # data2 = data2.to(device)
-#             optimizer.zero_grad()
-
-#             sup_loss = F.mse_loss(model(data), y)
-#             unsup_loss = model.unsup_loss(data2)
-#             if separate_encoder:
-#                 unsup_sup_loss = model.unsup_sup_loss(data2)
-#                 loss = sup_loss + unsup_loss + unsup_sup_loss * llama
-#             else:
-#                 loss = sup_loss + unsup_loss * llama
-
-#             loss.backward()
-
-#             sup_loss_all += sup_loss.item()
-#             unsup_loss_all += unsup_loss.item()
-#             if separate_encoder:
-#                 unsup_sup_loss_all += unsup_sup_loss.item()
-#             loss_all += loss.item() * batch_size #data.num_graphs
-
-#             optimizer.step()
-
-#         if separate_encoder:
-#             print(sup_loss_all, unsup_loss_all, unsup_sup_loss_all)
-#         else:
-#             print(sup_loss_all, unsup_loss_all)
-#         return loss_all / len(train_dc_py.disk_dataset)
-#     else:
-#         for data in train_dc_py:
-#             # data = data.to(device)
-#             optimizer.zero_grad()
-
-#             sup_loss = F.mse_loss(model(data), y)
-#             loss = sup_loss
-
-#             loss.backward()
-#             loss_all += loss.item() * batch_size # data.num_graphs
-#             optimizer.step()
-
-#         return loss_all / len(train_dc_py.disk_dataset)
-
-# # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# device = torch.device('cpu')
-# model = InfoGraph(num_feat, dim, use_unsup_loss, separate_encoder).to(device)
-# optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=weight_decay)
-# scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-#     optimizer, mode='min', factor=0.7, patience=5, min_lr=0.000001)
-
-# val_error = test(valid_dc_py)
-# test_error = test(test_dc_py)
-# print('Epoch: {:03d}, Validation MAE: {:.7f}, Test MAE: {:.7f},'.format(0, val_error, test_error))
-
-# best_val_error = None
-# for epoch in range(1, epochs):
-#     lr = scheduler.optimizer.param_groups[0]['lr']
-#     loss = train(epoch, use_unsup_loss)
-#     val_error = test(valid_dc_py)
-#     scheduler.step(val_error)
-
-#     if best_val_error is None or val_error <= best_val_error:
-#         test_error = test(test_dc_py)
-#         best_val_error = val_error

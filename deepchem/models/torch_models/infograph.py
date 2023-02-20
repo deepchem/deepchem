@@ -1,13 +1,10 @@
 from deepchem.models.torch_models.modular import ModularTorchModel
-from deepchem.data import Dataset
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Sequential, Linear, ReLU, GRU
 from deepchem.feat.graph_data import BatchGraphData
 import math
-from typing import Iterable, List, Tuple, Any
-import numpy as np
 from torch_geometric.nn import NNConv
 from torch_geometric.nn.aggr import Set2Set
 
