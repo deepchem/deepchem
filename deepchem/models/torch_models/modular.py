@@ -102,16 +102,35 @@ class ModularTorchModel(TorchModel):
         weights as arguments and return the loss."""
         raise NotImplementedError("Subclass must define the loss function")
 
-    def freeze_components(self,
-                          components: list,
-                          unfreeze: Optional[bool] = False):
-        """Freezes or unfreezes the parameters of the specified components."""
+    def freeze_components(self, components: list[str]):
+        """Freezes or unfreezes the parameters of the specified components.
+
+        Components string refers to keys in self.components.
+
+        Parameters
+        ----------
+        components: list[str]
+            The components to freeze.
+        """
         for component in components:
             for param in self.components[component].parameters():
-                if unfreeze:
-                    param.requires_grad = True
-                else:
-                    param.requires_grad = False
+                param.requires_grad = False
+        self.model = self.build_model()
+        self.model.to(self.device)
+
+    def unfreeze_components(self, components: list[str]):
+        """Unfreezes the parameters of the specified components.
+
+        Components string refers to keys in self.components.
+
+        Parameters
+        ----------
+        components: list[str]
+            The components to unfreeze.
+        """
+        for component in components:
+            for param in self.components[component].parameters():
+                param.requires_grad = True
         self.model = self.build_model()
         self.model.to(self.device)
 
@@ -135,6 +154,18 @@ class ModularTorchModel(TorchModel):
         input dimensions for different datasets, so the encoder should be written
         such that the input layer is not included in the encoder, allowing the
         encoder to be loaded with any input dimension.
+
+        Parameters
+        ----------
+        source_model: Optional[ModularTorchModel]
+            The model to load the weights from.
+        checkpoint: Optional[str]
+            The path to the checkpoint to load the weights from.
+        model_dir: Optional[str]
+            The path to the directory containing the checkpoint to load the weights.
+        components: Optional[list]
+            The components to load the weights from. If None, all components will be
+            loaded.
         """
 
         # generate the source state dict
