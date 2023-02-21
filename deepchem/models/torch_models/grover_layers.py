@@ -68,8 +68,24 @@ def _select_neighbor_and_aggregate(feature, index):
 
 
 class GroverMPNEncoder(nn.Module):
-    """Performs Message Passing to encodes a molecule
+    """Performs Message Passing to generate encodings for the molecule.
 
+    Parameters
+    ----------
+    atom_messages: bool
+        True if encoding atom-messages else False.
+    init_message_dim: int
+        Dimension of embedding message.
+    attach_feats: bool
+        Set to `True` if additional features are passed along with node/edge embeddings.
+    attached_feat_fdim: int
+        Dimension of additional features when `attach_feats` is `True`
+    undirected: bool
+        If set to `True`, the graph is considered as an undirected graph.
+    depth: int
+        number of hops in a message passing iteration
+    dynamic_depth: str, default: none
+        If set to `uniform` for randomly sampling dynamic depth from an uniform distribution else if set to `truncnorm`, dynamic depth is sampled from a truncated normal distribution.
     """
 
     # FIXME This layer is similar to DMPNNEncoderLayer and they
@@ -77,12 +93,12 @@ class GroverMPNEncoder(nn.Module):
     def __init__(self,
                  atom_messages: bool,
                  init_message_dim: int,
-                 attached_feat_fdim: int,
                  hidden_size: int,
-                 bias: bool,
                  depth: int,
                  undirected: bool,
                  attach_feats: bool,
+                 attached_feat_fdim: int = 0,
+                 bias: bool = True,
                  dropout: float = 0.2,
                  activation: str = 'relu',
                  input_layer: str = 'fc',
@@ -111,7 +127,7 @@ class GroverMPNEncoder(nn.Module):
 
         if self.input_layer == "fc":
             input_dim = self.init_message_dim
-            self.W_i = nn.Linear(input_dim, self.hidden_size, bias=self.bias)
+            self.W_i = nn.Linear(input_dim, hidden_size, bias=bias)
 
         # Bug here, if input_layer is none, then w_h_input_size should have init_messages_dim
         # instead of hidden_size for first iteration of message passing alone (in subsequent
@@ -142,7 +158,7 @@ class GroverMPNEncoder(nn.Module):
 
         if self.training and self.dynamic_depth != 'none':
             if self.dynamic_depth == 'uniform':
-                ndepth = np.random.uniform(self.depth - 3, self.depth + 3)
+                ndepth = int(np.random.uniform(self.depth - 3, self.depth + 3))
             elif self.dynamic_depth == 'truncnorm':
                 mu, sigma = self.depth, 1
                 lower, upper = mu - 3 * sigma, mu + 3 * sigma
@@ -151,7 +167,7 @@ class GroverMPNEncoder(nn.Module):
                                     scale=sigma)
                 ndepth = int(X.rvs(1))
         else:
-            ndepth = self.ndepth
+            ndepth = self.depth
 
         for _ in range(ndepth - 1):
             if self.undirected:
@@ -186,7 +202,19 @@ class GroverMPNEncoder(nn.Module):
 
 
 class GroverAttentionHead(nn.Module):
-    """Generates attention head using GroverMPNEncoder for generating query, key and value"""
+    """Generates attention head using GroverMPNEncoder for generating query, key and value
+
+    Parameters
+    ----------
+    hidden_size: int
+        Dimension of hidden layer
+    undirected: bool
+        If set to `True`, the graph is considered as an undirected graph.
+    depth: int
+        number of hops in a message passing iteration
+    atom_messages: bool
+        True if encoding atom-messages else False.
+    """
 
     def __init__(self,
                  hidden_size: int = 128,
@@ -279,18 +307,31 @@ class GroverMTBlock(nn.Module):
 
     The layer combines message passing performed using GroverMPNEncoder and uses it
     to generate query, key and value for multi-headed Attention block.
+
+    Parameters
+    ----------
+    atom_messages: bool
+        True if encoding atom-messages else False.
+    input_dim: int
+        Dimension of input features
+    num_heads: int
+        Number of attention heads
+    depth: int
+        Number of hops in a message passing iteration
+    undirected: bool
+        If set to `True`, the graph is considered as an undirected graph.
     """
 
     def __init__(self,
                  atom_messages: bool,
                  input_dim: int,
-                 hidden_size: int,
                  num_heads: int,
-                 dropout: float,
-                 bias: bool,
-                 res_connection: bool,
                  depth: int,
-                 undirected: bool,
+                 undirected: bool = False,
+                 hidden_size: int = 128,
+                 dropout: float = 0.0,
+                 bias: bool = True,
+                 res_connection: bool = True,
                  activation: str = 'relu'):
         super(GroverMTBlock, self).__init__()
         self.hidden_size = hidden_size
@@ -364,7 +405,7 @@ class GroverMTBlock(nn.Module):
                 f_atoms = self.sublayer(f_atoms, x_out)
             else:
                 f_bonds = self.sublayer(f_bonds, x_out)
-        batch = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope,
+        batch = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
         return batch
 
 
@@ -417,15 +458,15 @@ class GroverTransEncoder(nn.Module):
     def __init__(self,
                  node_fdim: int,
                  edge_fdim: int,
-                 hidden_size: int,
-                 depth: int,
-                 undirected: bool,
-                 dropout: float,
-                 num_mt_block,
-                 num_heads,
-                 atom_emb_output_type,
-                 res_connection: bool,
-                 bias: bool,
+                 depth: int = 3,
+                 undirected: bool = False,
+                 num_mt_block: int = 2,
+                 num_heads: int = 2,
+                 atom_emb_output_type: str = 'both',
+                 hidden_size: int = 64,
+                 dropout: float = 0.2,
+                 res_connection: bool = True,
+                 bias: bool = True,
                  activation: str = 'relu'):
         super(GroverTransEncoder, self).__init__()
 
@@ -591,8 +632,8 @@ class GroverTransEncoder(nn.Module):
         for eb in self.edge_blocks:  # bond messages. Multi-headed attention
             edge_batch = eb(edge_batch)
 
-        atom_output, _, _, _, _, _, _ = node_batch  # atom hidden states
-        _, bond_output, _, _, _, _, _ = edge_batch  # bond hidden states
+        atom_output, _, _, _, _, _, _, _ = node_batch  # atom hidden states
+        _, bond_output, _, _, _, _, _, _ = edge_batch  # bond hidden states
 
         if self.atom_emb_output_type is None:
             # output the embedding from multi-head attention directly.
