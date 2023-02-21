@@ -26,7 +26,7 @@ try:
             }
 
         def loss_func(self, inputs, labels, weights):
-            preds1 = self.components['FF1'](self.components['encoder'](inputs))
+            preds1 = self.components['FF2'](self.components['encoder'](inputs))
             labels = labels[0]
             loss1 = torch.nn.functional.mse_loss(preds1, labels)
 
@@ -57,9 +57,8 @@ try:
             return nn.Sequential(linear, af)
 
         def build_model(self):
-            encoder = self.encoder()
-            FF2 = self.FF2()
-            return nn.Sequential(encoder, FF2)
+            return nn.Sequential(self.components['encoder'],
+                                 self.components['FF2'])
 
     class ExamplePretrainer(ModularTorchModel):
 
@@ -150,22 +149,26 @@ def test_fit_restore():
 
 
 @pytest.mark.torch
-def test_load_freeze():
+def test_load_freeze_unfreeze():
     np.random.seed(123)
     torch.manual_seed(10)
-    n_samples = 6
+    n_samples = 60
     n_feat = 3
     d_hidden = 3
-    n_layers = 2
+    n_layers = 1
     ft_tasks = 6
     pt_tasks = 3
 
     X_ft = np.random.rand(n_samples, n_feat)
-    y_ft = np.zeros((n_samples, ft_tasks)).astype(np.float32)
+    y_ft = np.random.rand(n_samples, ft_tasks).astype(np.float32)
     dataset_ft = dc.data.NumpyDataset(X_ft, y_ft)
 
+    X_ft2 = np.random.rand(n_samples, n_feat)
+    y_ft2 = np.zeros((n_samples, ft_tasks)).astype(np.float32)
+    dataset_ft2 = dc.data.NumpyDataset(X_ft2, y_ft2)
+
     X_pt = np.random.rand(n_samples, n_feat)
-    y_pt = np.zeros((n_samples, pt_tasks)).astype(np.float32)
+    y_pt = np.random.rand(n_samples, pt_tasks).astype(np.float32)
     dataset_pt = dc.data.NumpyDataset(X_pt, y_pt)
 
     example_model = ExampleTorchModel(n_feat, d_hidden, n_layers, ft_tasks)
@@ -178,7 +181,7 @@ def test_load_freeze():
 
     example_model.freeze_components(['encoder'])
 
-    example_model.fit(dataset_ft, nb_epoch=1)
+    example_model.fit(dataset_ft, nb_epoch=100)
 
     # check that the first layer is still the same between the two models
     assert np.array_equal(
@@ -189,3 +192,12 @@ def test_load_freeze():
     assert not np.array_equal(
         np.round(np.squeeze(example_pretrainer.predict_on_batch(X_ft))),
         np.round(np.squeeze(example_model.predict_on_batch(X_ft))))
+
+    example_model.unfreeze_components(['encoder'])
+
+    example_model.fit(dataset_ft2, nb_epoch=100)
+
+    # check that the first layer is different between the two models
+    assert not np.array_equal(
+        example_pretrainer.components['encoder'][0].weight.data.cpu().numpy(),
+        example_model.components['encoder'][0].weight.data.cpu().numpy())

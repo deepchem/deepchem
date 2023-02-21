@@ -1,5 +1,6 @@
 import time
 import logging
+import copy
 from collections.abc import Sequence as SequenceCollection
 from typing import Any, Callable, Iterable, List, Optional, Tuple, Union, Sequence
 import torch
@@ -115,8 +116,6 @@ class ModularTorchModel(TorchModel):
         for component in components:
             for param in self.components[component].parameters():
                 param.requires_grad = False
-        self.model = self.build_model()
-        self.model.to(self.device)
 
     def unfreeze_components(self, components: List[str]):
         """Unfreezes the parameters of the specified components.
@@ -131,8 +130,6 @@ class ModularTorchModel(TorchModel):
         for component in components:
             for param in self.components[component].parameters():
                 param.requires_grad = True
-        self.model = self.build_model()
-        self.model.to(self.device)
 
     def load_pretrained_components(
             self,
@@ -187,7 +184,9 @@ class ModularTorchModel(TorchModel):
                     for k, v in source_model.components.items()
                     if k in components
                 }
-                self.components.update(assignment_map)
+                assignment_map_copy = copy.deepcopy(
+                    assignment_map)  # deep copy to avoid modifying source_model
+                self.components.update(assignment_map_copy)
                 self.model = self.build_model()
             else:
                 raise ValueError(
