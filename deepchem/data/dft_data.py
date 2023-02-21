@@ -23,7 +23,28 @@ class DFTSystem():
     Examples
     --------
     >>> from deepchem.data.dft_data import DFTSystem
-    >>> entry.get_systems() #for any entry object
+    >>> systems = {'systems': [{
+        'type': 'mol',
+        'kwargs': {
+            'moldesc': 'Li 1.5070 0 0; H -1.5070 0 0',
+            'basis': '6-311++G(3df,3pd)'
+        }
+    }, {
+        'type': 'mol',
+        'kwargs': {
+            'moldesc': 'Li 0 0 0',
+            'basis': '6-311++G(3df,3pd)',
+            'spin': 1
+        }
+    }, {
+        'type': 'mol',
+        'kwargs': {
+            'moldesc': 'H 0 0 0',
+            'basis': '6-311++G(3df,3pd)',
+            'spin': 1
+        }
+    }]}
+    >>> output = DFTSystem.create(systems)
 
     Returns
     -------
@@ -37,17 +58,23 @@ class DFTSystem():
     """
 
     @classmethod
-    def create(cls, system: Dict) -> DFTSystem:
+    def create(self, system: Dict) -> DFTSystem:
         """
+        Parameters
+        ----------
+        system: Dict
+            system is a dictionary containing information on the atomic positions,
+            atomic numbers, and basis set used for the DFT calculation.
+
         Returns
         -------
         Creates and returns the system if it has not been created
         manually during training step. Otherwise, return the previously created system.
         """
-        return DFTSystem(system) 
+        return DFTSystem(system)
 
     def __init__(self, system: Dict):
-        self.system = system 
+        self.system = system
 
     def get_dqc_mol(self, pos_reqgrad: bool = False) -> BaseSystem:
         """
@@ -59,7 +86,8 @@ class DFTSystem():
         """
         systype = self.system["type"]
         if systype == "mol":
-            atomzs, atomposs = dqc.parse_moldesc(self.system["kwargs"]["moldesc"])
+            atomzs, atomposs = dqc.parse_moldesc(
+                self.system["kwargs"]["moldesc"])
             if pos_reqgrad:
                 atomposs.requires_grad_()
             mol = Mol(**self.system["kwargs"])
@@ -97,24 +125,23 @@ class DFTEntry():
             }
         }]
     }
-    >>>dm_entry_for_HF = DFTEntry.create(data_mol)
+    >>> dm_entry_for_HF = DFTEntry.create(data_mol)
     """
 
-
     @classmethod
-    def create(cls, entry_dct: Union[Dict, DFTEntry]) -> DFTEntry:
+    def create(self, entry_dct: Union[Dict, DFTEntry]) -> DFTEntry:
         """
         This method is used to initialise the DFTEntry class. The entry objects are created
         based on their entry type.
 
         Parameters
         ----------
-            entry_dct: Dict
+        entry_dct: Dict
 
         Returns
         -------
-        created_entries: Dict[str, DFTEntry]
-        A dictionary containing multiple entry objects
+        obj
+            DFTEntry object based on entry type
 
         """
         if isinstance(entry_dct, DFTEntry):
@@ -129,22 +156,19 @@ class DFTEntry():
             obj = _EntryDM(entry_dct)
         elif tpe == "dens":
             obj = _EntryDens(entry_dct)
+        else:
+            raise NotImplementedError("Unknown entry type: %s" % tpe)
         return obj
 
     def __init__(self, entry_dct: Dict):
         self._systems = [DFTSystem.create(p) for p in entry_dct["systems"]]
+
+    def get_systems(self) -> List[DFTSystem]:
         """
         Parameters
         ----------
         systems:  List[DFTSystem]
 
-        Returns
-        -------
-        List of systems in the entry
-        """
-
-    def get_systems(self) -> List[DFTSystem]:
-        """
         Returns
         -------
         List of systems in the entry
@@ -165,10 +189,6 @@ class DFTEntry():
         pass
 
     def get_true_val(self) -> np.ndarray:
-        return self._get_true_val()
-
-    @abstractmethod
-    def _get_true_val(self) -> np.ndarray:
         """
         Get the true value of the DFTEntry.
         For the AE and IP entry types, the experimental values are collected from the NIST CCCBDB/ASD
@@ -188,18 +208,32 @@ class DFTEntry():
 
 
 class _EntryDM(DFTEntry):
-    """Entry for Density Matrix (DM)"""
+    """
+    Entry for Density Matrix (DM)
+    The density matrix is used to express total energy of both non-interacting and
+    interacting systems.
+
+    Notes
+    -----
+    dm entry can only have 1 system
+    """
 
     def __init__(self, entry_dct):
+        """
+        Parameters
+        ----------
+        entry_dct: Dict
+
+        """
         super().__init__(entry_dct)
         self.entry_dct = entry_dct
-        assert len(self.get_systems()) == 1, "dm entry can only have 1 system"
+        assert len(self.get_systems()) == 1
 
     @property
     def entry_type(self) -> str:
         return "dm"
 
-    def _get_true_val(self) -> np.ndarray:
+    def get_true_val(self) -> np.ndarray:
         # get the density matrix from PySCF's CCSD calculation
         dm = np.load(self.entry_dct["true_val"])
         return dm
@@ -207,19 +241,19 @@ class _EntryDM(DFTEntry):
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         return (qcs.aodmtot()).numpy()
 
-  #  def get_systems(self) -> List[DFTSystem]:
-  #      """
-  #      Returns
-  #      -------
-  #      List of systems in the entry
-  #      """
-  #      self._systems = [DFTSystem.create(p) for p in self.entry_dct["systems"]]
-  #      return self._systems
 
 class _EntryDens(DFTEntry):
-    """Entry for density profile (dens), compared with CCSD calculation"""
+    """
+    Entry for density profile (dens), compared with CCSD calculation
+    """
 
     def __init__(self, entry_dct):
+        """
+        Parameters
+        ----------
+        entry_dct: Dict
+
+        """
         super().__init__(entry_dct)
         assert len(self.get_systems()) == 1
         self._grid: Optional[BaseGrid] = None
@@ -228,11 +262,23 @@ class _EntryDens(DFTEntry):
     def entry_type(self) -> str:
         return "dens"
 
-    def _get_true_val(self) -> np.ndarray:
+    def get_true_val(self) -> np.ndarray:
         dens = np.load(self.entry_dct["trueval"])
         return dens
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
+        """
+        This method calculates the integration grid which is then used to calculate the
+        density profile of an entry object.
+
+        Parameters
+        ----------
+        qcs: List[KSCalc]
+
+        Returns
+        -------
+        Numpy array containing calculated density profile
+        """
         qc = qcs[0]
 
         grid = self._get_integration_grid()
@@ -247,7 +293,7 @@ class _EntryDens(DFTEntry):
 
         Returns
         -------
-            grid: BaseGrid
+        grid: BaseGrid
 
         References
         ----------
@@ -280,8 +326,17 @@ class _EntryDens(DFTEntry):
 
 
 class _EntryIE(DFTEntry):
-    """Entry for Ionization Energy (IE)"""
+    """
+    Entry for Ionization Energy (IE)
+    """
+
     def __init__(self, entry_dct):
+        """
+        Parameters
+        ----------
+        entry_dct: Dict
+
+        """
         super().__init__(entry_dct)
         self.entry_dct = entry_dct
 
@@ -289,16 +344,31 @@ class _EntryIE(DFTEntry):
     def entry_type(self) -> str:
         return "ie"
 
-    def _get_true_val(self) -> np.ndarray:
+    def get_true_val(self) -> np.ndarray:
         return (self.entry_dct["true_val"])
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
+        """
+        This method calculates the energy of an entry based on the systems and command present
+        in the data object. For example; for a Lithium hydride molecule the total energy
+        would be ; energy(Li) + energy(H) - energy(LiH)
+
+        Parameters
+        ----------
+        qcs: List[KSCalc]
+
+        Returns
+        -------
+        Total Energy of a data object for entry types IE and AE
+        """
         glob = {"systems": qcs, "energy": self.energy}
         return eval(self["cmd"], glob)
 
 
 class _EntryAE(_EntryIE):
-    """Entry for Atomization Energy (AE)"""
+    """
+    Entry for Atomization Energy (AE)
+    """
 
     @property
     def entry_type(self) -> str:
