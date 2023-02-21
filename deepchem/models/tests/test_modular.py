@@ -113,7 +113,7 @@ def test_overfit_modular():
 
     example_model = ExampleTorchModel(n_feat, d_hidden, n_layers, n_tasks)
 
-    example_model.fit(dataset)
+    example_model.fit(dataset, nb_epoch=1000)
     prediction = np.round(np.squeeze(example_model.predict_on_batch(X)))
     assert np.array_equal(y, prediction)
 
