@@ -11,7 +11,9 @@ except ModuleNotFoundError:
     raise ModuleNotFoundError("This layer requires dqc and torch")
 
 class BaseNNXC(BaseXC, torch.nn.Module):
-
+    """
+    Base class for the NNLDA and HybridXC classes.
+    """
     @abstractproperty
     def family(self) -> int:
         pass
@@ -29,7 +31,8 @@ class BaseNNXC(BaseXC, torch.nn.Module):
         ]
 
 class NNLDA(BaseNNXC):
-    """Neural network xc functional for LDA
+    """
+    Neural network xc functional for LDA
     neural network xc functional of LDA (only receives the density as input)
     Parameters
     ----------
