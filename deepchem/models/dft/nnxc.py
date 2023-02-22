@@ -23,12 +23,6 @@ class BaseNNXC(BaseXC, torch.nn.Module):
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
         pass
 
-    def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
-        # torch.nn.module prefix has no ending dot, while xt prefix has
-        nnprefix = prefix if prefix == "" else prefix[:-1]
-        return [
-            name for (name, param) in self.named_parameters(prefix=nnprefix)
-        ]
 
 class NNLDA(BaseNNXC):
     """
@@ -102,7 +96,6 @@ class HybridXC(BaseNNXC):
             self,
             xcstr: str,
             nnmodel: torch.nn.Module,
-            *,
             ninpmode:
         int = 1,  # mode to decide how to transform the density to nn input
             outmultmode: int = 1,  # mode of calculating Eks from output of nn

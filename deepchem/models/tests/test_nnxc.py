@@ -1,5 +1,5 @@
 try:
-    from deepchem.models.dft.nnxc import NNLDA
+    from deepchem.models.dft.nnxc import NNLDA, HybridXC
     import torch
     import torch.nn as nn
     from dqc.utils.datastruct import ValGrad, SpinParam
@@ -28,4 +28,16 @@ def test_nnlda():
         value=torch.rand((n,), dtype=torch.float32).requires_grad_())
     output = k.get_edensityxc(densinfo).detach()
     expected_output = torch.tensor([0.3386, 0.0177])
+    torch.testing.assert_close(output, expected_output, atol=1e-4, rtol=0)
+
+
+def test_hybridxc():
+    torch.manual_seed(42)
+    n = 2
+    nnmodel = DummyModel(n)
+    k = HybridXC("lda_x", nnmodel, aweight0=0.0)
+    densinfo = ValGrad(
+        value=torch.rand((n,), dtype=torch.float32).requires_grad_())
+    output = k.get_edensityxc(densinfo).detach()
+    expected_output = torch.tensor([-0.6988, -0.2108], dtype=torch.float64)
     torch.testing.assert_close(output, expected_output, atol=1e-4, rtol=0)
