@@ -70,17 +70,18 @@ def test_infograph_classification():
 
 @pytest.mark.torch
 def test_fit_restore():
-    n_samples = 20
-    n_feat = 3
-    n_tasks = 3
-    X = np.random.rand(n_samples, n_feat)
-    # inputs = BatchGraphData(inputs[0])
-    # inputs.edge_features = torch.from_numpy(inputs.edge_features).float().to(self.device)
-    # inputs.edge_index = torch.from_numpy(inputs.edge_index).long().to(self.device)
-    # inputs.node_features = torch.from_numpy(inputs.node_features).float().to(self.device)
-    # inputs.graph_index = torch.from_numpy(inputs.graph_index).long().to(self.device)
-    y = np.zeros((n_samples, n_tasks)).astype(np.float32)
-    dataset = dc.data.NumpyDataset(X, y)
+    # n_samples = 20
+    # n_feat = 3
+    # n_tasks = 3
+    # X = np.random.rand(n_samples, n_feat)
+    # # inputs = BatchGraphData(inputs[0])
+    # # inputs.edge_features = torch.from_numpy(inputs.edge_features).float().to(self.device)
+    # # inputs.edge_index = torch.from_numpy(inputs.edge_index).long().to(self.device)
+    # # inputs.node_features = torch.from_numpy(inputs.node_features).float().to(self.device)
+    # # inputs.graph_index = torch.from_numpy(inputs.graph_index).long().to(self.device)
+    # y = np.zeros((n_samples, n_tasks)).astype(np.float32)
+    # dataset = dc.data.NumpyDataset(X, y)
+    tasks, dataset, transformers, metric = get_dataset('classification')
     
     num_feat = max([dataset.X[i].num_node_features for i in range(len(dataset))])
     edge_dim = max([dataset.X[i].num_edge_features for i in range(len(dataset))])
@@ -88,12 +89,12 @@ def test_fit_restore():
     
     model = Infograph(num_feat, edge_dim, dim, use_unsup_loss=False, separate_encoder=False, batch_size = 10)
     
-    model.fit(dataset, nb_epoch=2000)
+    model.fit(dataset, nb_epoch=1000)
     
-    model2 = Infograph(num_feat, edge_dim, dim, use_unsup_loss=False, separate_encoder=False, batch_size = 10, model_dir=model.model_dir)
+    model2 = Infograph(num_feat, edge_dim, dim, use_unsup_loss=False, separate_encoder=False, model_dir=model.model_dir)
     model2.fit(dataset, nb_epoch=1, restore=True)
-    prediction = np.squeeze(model2.predict_on_batch(dataset.X))
-    assert np.array_equal(dataset.y, np.round(prediction))
+    prediction = model2.predict_on_batch(dataset.X).reshape(-1, 1)
+    assert np.allclose(dataset.y, np.round(prediction))
 
 test_fit_restore()
 # featurizer = MolGraphConvFeaturizer(use_edges=True)
