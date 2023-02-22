@@ -51,6 +51,34 @@ class FF(nn.Module):
 
 
 class Infograph(ModularTorchModel):
+    """
+    Infograph is a semi-supervised graph convolutional network for predicting molecular properties.
+    It aims to maximize the mutual information between the graph-level representation and the 
+    representations of substructures of different scales. It does this by producing graph-level
+    encodings and substructure encodings, and then using a discriminator to classify if they
+    are from the same molecule or not. 
+    
+    References
+    ----------
+    F.-Y. Sun, J. Hoffmann, V. Verma, and J. Tang, “InfoGraph: Unsupervised and Semi-supervised 
+    Graph-Level Representation Learning via Mutual Information Maximization.” arXiv, Jan. 17, 2020.
+    http://arxiv.org/abs/1908.01000
+    
+    Parameters
+    ----------
+    num_features: int
+        Number of node features for each input
+    edge_features: int
+        Number of edge features for each input
+    dim: int
+        Dimension of the embedding
+    use_unsup_loss: bool
+        Whether to use the unsupervised loss
+    separate_encoder: bool
+        Whether to use a separate encoder for the unsupervised loss
+    """
+    
+    
     def __init__(self, num_features, edge_features, dim, use_unsup_loss=False, separate_encoder=False, **kwargs):
         self.embedding_dim = dim
         self.edge_features = edge_features
@@ -116,7 +144,6 @@ class Infograph(ModularTorchModel):
         measure = 'JSD'
         loss = self.global_global_loss_(g_enc, g_enc1, inputs.edge_index,
                                    inputs.graph_index, measure)
-        # loss = (loss * weights).mean()
         return loss
     
     def _prepare_batch(self, batch):
@@ -204,7 +231,6 @@ class InfoGraph_module(torch.nn.Module):
         self.init_emb()
 
     def init_emb(self):
-        # initrange = -1.5 / self.embedding_dim
         for m in self.modules():
             if isinstance(m, nn.Linear):
                 torch.nn.init.xavier_uniform_(m.weight.data)
