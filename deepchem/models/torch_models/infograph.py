@@ -47,6 +47,16 @@ class Encoder(torch.nn.Module):
     
     
 class FF(nn.Module):
+    """
+    A feedforward neural network with a skip connection.
+    
+    Parameters
+    ----------
+    input_dim: int
+        Dimension of the input
+    dim: int
+        Dimension of the embedding
+    """
     def __init__(self, input_dim, dim):
         super().__init__()
         self.block = nn.Sequential(
@@ -63,7 +73,7 @@ class FF(nn.Module):
         return self.block(x) + self.linear_shortcut(x)
 
 
-class Infograph(ModularTorchModel):
+class InfoGraphModel(ModularTorchModel):
     """
     Infograph is a semi-supervised graph convolutional network for predicting molecular properties.
     It aims to maximize the mutual information between the graph-level representation and the 
@@ -117,7 +127,7 @@ class Infograph(ModularTorchModel):
                 }
     
     def build_model(self):
-        return InfoGraph_module(**self.components)
+        return InfoGraph(**self.components)
             
     def loss_func(self, inputs, labels, weights):
         if self.use_unsup_loss:
@@ -167,7 +177,7 @@ class Infograph(ModularTorchModel):
         inputs.node_features = torch.from_numpy(inputs.node_features).float().to(self.device)
         inputs.graph_index = torch.from_numpy(inputs.graph_index).long().to(self.device)
     
-        _, labels, weights = super(Infograph, self)._prepare_batch(
+        _, labels, weights = super(InfoGraph, self)._prepare_batch(
             ([], labels, weights))
         
         if (len(labels) != 0) and (len(weights) != 0):
@@ -229,10 +239,28 @@ class Infograph(ModularTorchModel):
         return E_neg - E_pos
     
     
-class InfoGraph_module(torch.nn.Module):
-        
+class InfoGraph(torch.nn.Module):
+    """
+    The nn.Module for InfoGraph. This class defines the forward pass of InfoGraph.
+    
+    Parameters
+    ----------
+    encoder: torch.nn.Module
+        The encoder for InfoGraph.
+    unsup_encoder: torch.nn.Module
+        The unsupervised encoder for InfoGraph, of identical architecture to encoder.
+    ff1: torch.nn.Module
+        The first feedforward layer for InfoGraph.
+    ff2: torch.nn.Module
+        The second feedforward layer for InfoGraph.
+    fc1: torch.nn.Module
+        The first fully connected layer for InfoGraph.
+    fc2: torch.nn.Module
+        The second fully connected layer for InfoGraph.
+    
+    """
     def __init__(self, encoder, unsup_encoder, ff1, ff2, fc1, fc2, local_d, global_d): 
-        super(InfoGraph_module, self).__init__()
+        super(InfoGraph, self).__init__()
         self.encoder = encoder
         self.unsup_encoder = unsup_encoder
         self.ff1 = ff1

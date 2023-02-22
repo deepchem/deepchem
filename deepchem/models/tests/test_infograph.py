@@ -3,7 +3,7 @@ import numpy as np
 import deepchem as dc
 from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
 from deepchem.data import NumpyDataset
-from deepchem.models.torch_models.infograph import Infograph
+from deepchem.models.torch_models.infograph import InfoGraphModel
 from deepchem.molnet import load_bace_classification, load_delaney
 try:
     import torch
@@ -49,7 +49,7 @@ def test_infograph_regression():
         [dataset.X[i].num_edge_features for i in range(len(dataset))])
     dim = 64
 
-    model = Infograph(num_feat,
+    model = InfoGraphModel(num_feat,
                       edge_dim,
                       dim,
                       use_unsup_loss=False,
@@ -72,7 +72,7 @@ def test_infograph_classification():
         [dataset.X[i].num_edge_features for i in range(len(dataset))])
     dim = 64
 
-    model = Infograph(num_feat,
+    model = InfoGraphModel(num_feat,
                       edge_dim,
                       dim,
                       use_unsup_loss=False,
@@ -94,7 +94,7 @@ def test_fit_restore():
         [dataset.X[i].num_edge_features for i in range(len(dataset))])
     dim = 64
 
-    model = Infograph(num_feat,
+    model = InfoGraphModel(num_feat,
                       edge_dim,
                       dim,
                       use_unsup_loss=False,
@@ -103,7 +103,7 @@ def test_fit_restore():
 
     model.fit(dataset, nb_epoch=1000)
 
-    model2 = Infograph(num_feat,
+    model2 = InfoGraphModel(num_feat,
                        edge_dim,
                        dim,
                        use_unsup_loss=False,
