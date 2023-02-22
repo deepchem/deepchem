@@ -16,7 +16,7 @@ def get_dataset(mode='classification', num_tasks=1):
     np.random.seed(123)
     data_points = 20
     featurizer = MolGraphConvFeaturizer(use_edges=True)
-    
+
     if mode == 'classification':
         tasks, all_dataset, transformers = load_bace_classification(featurizer)
     else:
@@ -39,47 +39,76 @@ def get_dataset(mode='classification', num_tasks=1):
 
     return tasks, ds, transformers, metric
 
+
 @pytest.mark.torch
 def test_infograph_regression():
     tasks, dataset, transformers, metric = get_dataset('regression')
-    num_feat = max([dataset.X[i].num_node_features for i in range(len(dataset))])
-    edge_dim = max([dataset.X[i].num_edge_features for i in range(len(dataset))])
+    num_feat = max(
+        [dataset.X[i].num_node_features for i in range(len(dataset))])
+    edge_dim = max(
+        [dataset.X[i].num_edge_features for i in range(len(dataset))])
     dim = 64
-    
-    model = Infograph(num_feat, edge_dim, dim, use_unsup_loss=False, separate_encoder=False, batch_size = 10)
-    
+
+    model = Infograph(num_feat,
+                      edge_dim,
+                      dim,
+                      use_unsup_loss=False,
+                      separate_encoder=False,
+                      batch_size=10)
+
     model.fit(dataset, nb_epoch=1000)
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean_absolute_error'] < 0.1
 
+
 @pytest.mark.torch
 def test_infograph_classification():
-    
+
     tasks, dataset, transformers, metric = get_dataset('classification')
-    
-    num_feat = max([dataset.X[i].num_node_features for i in range(len(dataset))])
-    edge_dim = max([dataset.X[i].num_edge_features for i in range(len(dataset))])
+
+    num_feat = max(
+        [dataset.X[i].num_node_features for i in range(len(dataset))])
+    edge_dim = max(
+        [dataset.X[i].num_edge_features for i in range(len(dataset))])
     dim = 64
-    
-    model = Infograph(num_feat, edge_dim, dim, use_unsup_loss=False, separate_encoder=False, batch_size = 10)
-    
+
+    model = Infograph(num_feat,
+                      edge_dim,
+                      dim,
+                      use_unsup_loss=False,
+                      separate_encoder=False,
+                      batch_size=10)
+
     model.fit(dataset, nb_epoch=1000)
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
 
+
 @pytest.mark.torch
 def test_fit_restore():
     tasks, dataset, transformers, metric = get_dataset('classification')
-    
-    num_feat = max([dataset.X[i].num_node_features for i in range(len(dataset))])
-    edge_dim = max([dataset.X[i].num_edge_features for i in range(len(dataset))])
+
+    num_feat = max(
+        [dataset.X[i].num_node_features for i in range(len(dataset))])
+    edge_dim = max(
+        [dataset.X[i].num_edge_features for i in range(len(dataset))])
     dim = 64
-    
-    model = Infograph(num_feat, edge_dim, dim, use_unsup_loss=False, separate_encoder=False, batch_size = 10)
-    
+
+    model = Infograph(num_feat,
+                      edge_dim,
+                      dim,
+                      use_unsup_loss=False,
+                      separate_encoder=False,
+                      batch_size=10)
+
     model.fit(dataset, nb_epoch=1000)
-    
-    model2 = Infograph(num_feat, edge_dim, dim, use_unsup_loss=False, separate_encoder=False, model_dir=model.model_dir)
+
+    model2 = Infograph(num_feat,
+                       edge_dim,
+                       dim,
+                       use_unsup_loss=False,
+                       separate_encoder=False,
+                       model_dir=model.model_dir)
     model2.fit(dataset, nb_epoch=1, restore=True)
     prediction = model2.predict_on_batch(dataset.X).reshape(-1, 1)
     assert np.allclose(dataset.y, np.round(prediction))

@@ -10,6 +10,19 @@ from torch_geometric.nn.aggr import Set2Set
 
 
 class Encoder(torch.nn.Module):
+    """
+    The encoder for the InfoGraph model. It is a message passing graph convolutional
+    network that produces encoded representations for molecular graph inputs.
+    
+    Parameters
+    ----------
+    num_features: int
+        Number of node features for each input
+    edge_features: int
+        Number of edge features for each input
+    dim: int
+        Dimension of the embedding
+    """
     def __init__(self, num_features, edge_features, dim):
         super(Encoder, self).__init__()
         self.lin0 = torch.nn.Linear(num_features, dim)
