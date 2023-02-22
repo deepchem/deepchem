@@ -1502,7 +1502,6 @@ class VinaFreeEnergy(tf.keras.layers.Layer):
             The free energy of each complex in batch
         """
         X = inputs[0]
-        Z = inputs[1]
 
         # TODO(rbharath): This layer shouldn't be neighbor-listing. Make
         # neighbors lists an argument instead of a part of this layer.
@@ -2486,9 +2485,9 @@ class GraphCNN(tf.keras.layers.Layer):
         num_filters: int
             Number of filters to have in the output
 
-      in_layers: list of Layers or tensors
-          [V, A, mask]
-          V are the vertex features must be of shape (batch, vertex, channel)
+        in_layers: list of Layers or tensors
+            [V, A, mask]
+            V are the vertex features must be of shape (batch, vertex, channel)
 
         A are the adjacency matrixes for each graph
             Shape (batch, from_vertex, adj_matrix, to_vertex)
@@ -2549,7 +2548,7 @@ class GraphCNN(tf.keras.layers.Layer):
         A_shape = tf.shape(A)
         A_reshape = tf.reshape(A, [-1, A_shape[-1]])
         # So the Tensor has known dimensions
-        if B.get_shape()[1] == None:
+        if B.get_shape()[1] is None:
             axis_2 = -1
         else:
             axis_2 = B.get_shape()[1]
@@ -2730,7 +2729,7 @@ class WeaveLayer(tf.keras.layers.Layer):
         fingerprints." Journal of computer-aided molecular design 30.8 (2016):
         595-608.
 
-  """
+    """
 
     def __init__(self,
                  n_atom_input_feat: int = 75,
@@ -3030,7 +3029,7 @@ class WeaveGather(tf.keras.layers.Layer):
             `tf.keras.activations`.
         """
         try:
-            import tensorflow_probability as tfp
+            import tensorflow_probability as tfp  # noqa: F401
         except ModuleNotFoundError:
             raise ImportError(
                 "This class requires tensorflow-probability to be installed.")

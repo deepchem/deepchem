@@ -1,11 +1,9 @@
 import pytest
-import deepchem as dc
-import numpy as np
 
 try:
     import jax
     import jax.numpy as jnp
-    from jax import random
+    from jax import random  # noqa: F401
     import haiku as hk
 except:
     has_haiku_and_optax = False
@@ -13,12 +11,10 @@ except:
 
 @pytest.mark.jax
 def test_linear():
-    import deepchem as dc
-    import haiku as hk
-    import deepchem.models.jax_models.layers
+    from deepchem.models.jax_models import layers as jax_models_layers
 
     def forward(x):
-        layer = dc.models.jax_models.layers.Linear(2)
+        layer = jax_models_layers.Linear(2)
         return layer(x)
 
     forward = hk.transform(forward)

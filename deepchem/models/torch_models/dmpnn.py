@@ -191,7 +191,7 @@ mapping (with reverse bonds) = [ [B1,B3] [B0] [B1,B3] [B2] ]
         """
         Generate mapping, which maps bond index to 'array of indices of the bonds'
         incoming at the initial atom of the bond (reverse bonds are not considered).
-    
+
         Steps:
         - Get mapping based on `self.atom_to_incoming_bonds` and `self.bond_to_ini_atom`.
         - Replace reverse bond indices with -1.
@@ -302,7 +302,7 @@ class DMPNN(nn.Module):
                  ffn_dropout_p: float = 0.0,
                  ffn_dropout_at_input_no_act: bool = True):
         """Initialize the DMPNN class.
-    
+
         Parameters
         ----------
         mode: str, default 'regression'
@@ -395,16 +395,16 @@ class DMPNN(nn.Module):
         ----------
         data: Batch
             A pytorch-geometric batch containing tensors for:
-        
+
             - atom_features
             - f_ini_atoms_bonds
             - atom_to_incoming_bonds
             - mapping
             - global_features
-    
+
         The `molecules_unbatch_key` is also derived from the batch.
         (List containing number of atoms in various molecules of the batch)
-    
+
         Returns
         -------
         output: Union[torch.Tensor, Sequence[torch.Tensor]]
@@ -504,7 +504,7 @@ class DMPNNModel(TorchModel):
                  ffn_dropout_at_input_no_act: bool = True,
                  **kwargs):
         """Initialize the DMPNNModel class.
-    
+
         Parameters
         ----------
         mode: str, default 'regression'
@@ -591,15 +591,15 @@ class DMPNNModel(TorchModel):
 
     def _to_pyg_graph(self, values: Sequence[np.ndarray]) -> _ModData:
         """Convert to PyTorch Geometric graph modified data instance
-    
+
         .. note::
             This method requires PyTorch Geometric to be installed.
-    
+
         Parameters
         ----------
         values: Sequence[np.ndarray]
             Mappings from ``_MapperDMPNN`` helper class for a molecule
-    
+
         Returns
         -------
         torch_geometric.data.Data
@@ -646,18 +646,18 @@ class DMPNNModel(TorchModel):
         self, batch: Tuple[List, List, List]
     ) -> Tuple[Batch, List[torch.Tensor], List[torch.Tensor]]:
         """Method to prepare pytorch-geometric batches from inputs.
-    
+
         Overrides the existing ``_prepare_batch`` method to customize how model batches are
         generated from the inputs.
-    
+
         .. note::
             This method requires PyTorch Geometric to be installed.
-    
+
         Parameters
         ----------
         batch: Tuple[List, List, List]
             batch data from ``default_generator``
-    
+
         Returns
         -------
         Tuple[Batch, List[torch.Tensor], List[torch.Tensor]]
@@ -682,21 +682,21 @@ class DMPNNModel(TorchModel):
                           pad_batches: bool = False,
                           **kwargs) -> Iterable[Tuple[List, List, List]]:
         """Create a generator that iterates batches for a dataset.
-    
+
         Overrides the existing ``default_generator`` method to customize how model inputs are
         generated from the data.
-    
+
         Here, the ``_MapperDMPNN`` helper class is used, for each molecule in a batch, to get required input parameters:
-    
+
         - atom_features
         - f_ini_atoms_bonds
         - atom_to_incoming_bonds
         - mapping
         - global_features
-    
+
         Then data from each molecule is converted to a ``_ModData`` object and stored as list of graphs.
         The graphs are modified such that all tensors have same size in 0th dimension. (important requirement for batching)
-    
+
         Parameters
         ----------
         dataset: Dataset
@@ -712,7 +712,7 @@ class DMPNNModel(TorchModel):
             data for each epoch
         pad_batches: bool
             whether to pad each batch up to this model's preferred batch size
-    
+
         Returns
         -------
         a generator that iterates batches, each represented as a tuple of lists:

@@ -1,4 +1,3 @@
-import numpy as np
 import tensorflow as tf
 from collections.abc import Sequence as SequenceCollection
 
@@ -19,7 +18,7 @@ class RobustMultitaskClassifier(KerasModel):
     The key idea of this model is to have bypass layers that feed
     directly from features to task output. This might provide some
     flexibility toroute around challenges in multitasking with
-    destructive interference. 
+    destructive interference.
 
     References
     ----------

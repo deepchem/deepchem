@@ -1,7 +1,7 @@
 import unittest
 import pytest
 try:
-    import tensorflow as tf
+    import tensorflow as tf  # noqa: F401
     from deepchem.models import TextCNNModel
     from deepchem.models.text_cnn import default_dict
     has_tensorflow = True

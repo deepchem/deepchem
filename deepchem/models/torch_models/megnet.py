@@ -49,7 +49,7 @@ class MEGNet(nn.Module):
                  n_classes: int = 2,
                  n_tasks: int = 1):
         """
-    
+
         Parameters
         ----------
         n_node_features: int
@@ -124,7 +124,7 @@ class MEGNet(nn.Module):
             A pytorch-geometric batch of graphs where node attributes are stores
             as pyg_batch['x'], edge_index in pyg_batch['edge_index'], edge features
             in pyg_batch['edge_attr'], global features in pyg_batch['global_features']
-    
+
         Returns
         -------
         torch.Tensor: Predictions for the graph
@@ -242,7 +242,7 @@ class MEGNetModel(TorchModel):
 
     def _prepare_batch(self, batch):
         """Creates batch data for MEGNet model
-    
+
         Note
         ----
         Ideally, we should only override default_generator method. But the problem

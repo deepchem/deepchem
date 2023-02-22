@@ -6,8 +6,8 @@ from deepchem.utils import load_dataset_from_disk, download_url, untargz_file
 from deepchem.metrics import Metric, mae_score
 
 try:
-    import dgl
-    import torch
+    import dgl  # noqa: F401
+    import torch  # noqa: F401
     from deepchem.models import LCNNModel
     has_pytorch_and_dgl = True
 except:
@@ -23,7 +23,7 @@ def test_lcnn_regression():
     download_url(url=URL, dest_dir=current_dir)
     untargz_file(path.join(current_dir, 'lcnn_data_feature.tar.gz'),
                  current_dir)
-    tasks, datasets, transformers = load_dataset_from_disk(
+    _, datasets, transformers = load_dataset_from_disk(
         path.join(current_dir, 'lcnn_data'))
     train, valid, test = datasets
     model = LCNNModel(mode='regression', batch_size=8, learning_rate=0.001)

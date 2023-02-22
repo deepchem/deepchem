@@ -47,10 +47,10 @@ class MultitaskClassifier(TorchModel):
                  residual: bool = False,
                  **kwargs) -> None:
         """Create a MultitaskClassifier.
-    
+
         In addition to the following arguments, this class also accepts
         all the keyword arguments from TensorGraph.
-    
+
         Parameters
         ----------
         n_tasks: int
@@ -153,10 +153,10 @@ class MultitaskClassifier(TorchModel):
         if weight_decay_penalty != 0:
             weights = [layer.weight for layer in model.layers]
             if weight_decay_penalty_type == 'l1':
-                regularization_loss = lambda: weight_decay_penalty * torch.sum(
+                regularization_loss = lambda: weight_decay_penalty * torch.sum(  # noqa: E731
                     torch.stack([torch.abs(w).sum() for w in weights]))
             else:
-                regularization_loss = lambda: weight_decay_penalty * torch.sum(
+                regularization_loss = lambda: weight_decay_penalty * torch.sum(  # noqa: E731
                     torch.stack([torch.square(w).sum() for w in weights]))
         else:
             regularization_loss = None
@@ -214,10 +214,10 @@ class MultitaskRegressor(TorchModel):
                  residual: bool = False,
                  **kwargs) -> None:
         """Create a MultitaskRegressor.
-    
+
         In addition to the following arguments, this class also accepts all the keywork arguments
         from TensorGraph.
-    
+
         Parameters
         ----------
         n_tasks: int
@@ -331,10 +331,10 @@ class MultitaskRegressor(TorchModel):
         if weight_decay_penalty != 0:
             weights = [layer.weight for layer in model.layers]
             if weight_decay_penalty_type == 'l1':
-                regularization_loss = lambda: weight_decay_penalty * torch.sum(
+                regularization_loss = lambda: weight_decay_penalty * torch.sum(  # noqa: E731
                     torch.stack([torch.abs(w).sum() for w in weights]))
             else:
-                regularization_loss = lambda: weight_decay_penalty * torch.sum(
+                regularization_loss = lambda: weight_decay_penalty * torch.sum(  # noqa: E731
                     torch.stack([torch.square(w).sum() for w in weights]))
         else:
             regularization_loss = None
@@ -421,10 +421,10 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
                  batch_size: int = 50,
                  **kwargs):
         """Create a MultitaskFitTransformRegressor.
-    
+
         In addition to the following arguments, this class also accepts all the keywork arguments
         from MultitaskRegressor.
-    
+
         Parameters
         ----------
         n_tasks: int

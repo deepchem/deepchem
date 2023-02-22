@@ -22,7 +22,7 @@ except:
     has_pytorch = False
 
 try:
-    import jax
+    import jax  # noqa: F401
     import optax
     has_jax = True
 except:
@@ -51,7 +51,6 @@ class TestOptimizers(unittest.TestCase):
     @pytest.mark.jax
     def test_adam_jax(self):
         """Test creating an Adam optimizer."""
-        import optax
         opt = optimizers.Adam(learning_rate=0.01)
         jaxopt = opt._create_jax_optimizer()
         assert isinstance(jaxopt, optax.GradientTransformation)
@@ -75,7 +74,6 @@ class TestOptimizers(unittest.TestCase):
     @pytest.mark.jax
     def test_adamw_jax(self):
         """Test creating an AdamW optimizer."""
-        import optax
         opt = optimizers.AdamW(learning_rate=0.01)
         jaxopt = opt._create_jax_optimizer()
         assert isinstance(jaxopt, optax.GradientTransformation)
@@ -115,7 +113,6 @@ class TestOptimizers(unittest.TestCase):
     @pytest.mark.jax
     def test_adagrad_jax(self):
         """Test creating an AdaGrad optimizer."""
-        import optax
         opt = optimizers.AdaGrad(learning_rate=0.01)
         jaxopt = opt._create_jax_optimizer()
         assert isinstance(jaxopt, optax.GradientTransformation)
@@ -139,7 +136,6 @@ class TestOptimizers(unittest.TestCase):
     @pytest.mark.jax
     def test_rmsprop_jax(self):
         """Test creating an RMSProp Optimizer."""
-        import optax
         opt = optimizers.RMSProp(learning_rate=0.01)
         jaxopt = opt._create_jax_optimizer()
         assert isinstance(jaxopt, optax.GradientTransformation)
@@ -163,7 +159,6 @@ class TestOptimizers(unittest.TestCase):
     @pytest.mark.jax
     def test_gradient_descent_jax(self):
         """Test creating an Gradient Descent Optimizer."""
-        import optax
         opt = optimizers.GradientDescent(learning_rate=0.01)
         jaxopt = opt._create_jax_optimizer()
         assert isinstance(jaxopt, optax.GradientTransformation)
@@ -176,7 +171,7 @@ class TestOptimizers(unittest.TestCase):
                                            decay_steps=10000)
         opt = optimizers.Adam(learning_rate=rate)
         global_step = tf.Variable(0)
-        tfopt = opt._create_tf_optimizer(global_step)
+        _ = opt._create_tf_optimizer(global_step)
 
     @pytest.mark.torch
     def test_exponential_decay_pytorch(self):
@@ -187,12 +182,11 @@ class TestOptimizers(unittest.TestCase):
         opt = optimizers.Adam(learning_rate=rate)
         params = [torch.nn.Parameter(torch.Tensor([1.0]))]
         torchopt = opt._create_pytorch_optimizer(params)
-        schedule = rate._create_pytorch_schedule(torchopt)
+        _ = rate._create_pytorch_schedule(torchopt)
 
     @pytest.mark.jax
     def test_exponential_decay_jax(self):
         """Test creating an optimizer with an exponentially decaying learning rate."""
-        import optax
         rate = optimizers.ExponentialDecay(initial_rate=0.001,
                                            decay_rate=0.99,
                                            decay_steps=10000)
@@ -208,7 +202,7 @@ class TestOptimizers(unittest.TestCase):
                                           decay_steps=10000)
         opt = optimizers.Adam(learning_rate=rate)
         global_step = tf.Variable(0)
-        tfopt = opt._create_tf_optimizer(global_step)
+        _ = opt._create_tf_optimizer(global_step)
 
     @pytest.mark.torch
     def test_polynomial_decay_pytorch(self):
@@ -219,12 +213,11 @@ class TestOptimizers(unittest.TestCase):
         opt = optimizers.Adam(learning_rate=rate)
         params = [torch.nn.Parameter(torch.Tensor([1.0]))]
         torchopt = opt._create_pytorch_optimizer(params)
-        schedule = rate._create_pytorch_schedule(torchopt)
+        _ = rate._create_pytorch_schedule(torchopt)
 
     @pytest.mark.jax
     def test_polynomial_decay_jax(self):
         """Test creating an optimizer with a polynomially decaying learning rate."""
-        import optax
         rate = optimizers.PolynomialDecay(initial_rate=0.001,
                                           final_rate=0.0001,
                                           decay_steps=10000)
@@ -238,7 +231,7 @@ class TestOptimizers(unittest.TestCase):
         rate = optimizers.LinearCosineDecay(initial_rate=0.1, decay_steps=10000)
         opt = optimizers.Adam(learning_rate=rate)
         global_step = tf.Variable(0)
-        tfopt = opt._create_tf_optimizer(global_step)
+        _ = opt._create_tf_optimizer(global_step)
 
     @pytest.mark.torch
     def test_linearCosine_decay_pytorch(self):
@@ -247,12 +240,11 @@ class TestOptimizers(unittest.TestCase):
         opt = optimizers.Adam(learning_rate=rate)
         params = [torch.nn.Parameter(torch.Tensor([1.0]))]
         torchopt = opt._create_pytorch_optimizer(params)
-        schedule = rate._create_pytorch_schedule(torchopt)
+        _ = rate._create_pytorch_schedule(torchopt)
 
     @pytest.mark.jax
     def test_linearCosine_decay_jax(self):
         """test creating an optimizer with a linear cosine decay to the learning rate"""
-        import optax
         rate = optimizers.LinearCosineDecay(initial_rate=0.1, decay_steps=10000)
         opt = optimizers.Adam(learning_rate=rate)
         jaxopt = opt._create_jax_optimizer()
@@ -261,7 +253,6 @@ class TestOptimizers(unittest.TestCase):
     @pytest.mark.jax
     def test_PieceWise_decay_jax(self):
         """test creating an optimizer with a PeiceWise constant decay to the learning rate"""
-        import optax
         rate = optimizers.PiecewiseConstantSchedule(initial_rate=0.1,
                                                     boundaries_and_scales={
                                                         5000: 0.1,
@@ -275,7 +266,6 @@ class TestOptimizers(unittest.TestCase):
     @pytest.mark.torch
     def test_KFAC(self):
         """test creating a KFAC optimizer"""
-        import torch
         import numpy as np
 
         np.random.seed(123)

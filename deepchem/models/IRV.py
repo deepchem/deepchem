@@ -1,10 +1,8 @@
-import logging
 import numpy as np
 import tensorflow as tf
 
 from deepchem.models import KerasModel, layers
 from deepchem.models.losses import SigmoidCrossEntropy
-from deepchem.trans import undo_transforms
 from tensorflow.keras.layers import Input, Layer, Activation, Concatenate, Lambda
 
 
@@ -126,6 +124,9 @@ class MultitaskIRVClassifier(KerasModel):
                              SigmoidCrossEntropy(),
                              output_types=['prediction', 'loss'],
                              **kwargs)
+
+
+import warnings  # noqa: E402
 
 
 class TensorflowMultitaskIRVClassifier(MultitaskIRVClassifier):

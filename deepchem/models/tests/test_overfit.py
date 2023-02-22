@@ -12,7 +12,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 try:
     import tensorflow as tf
-    from tensorflow.python.framework import test_util
+    from tensorflow.python.framework import test_util  # noqa: F401
     has_tensorflow = True
 except:
     has_tensorflow = False
@@ -143,7 +143,6 @@ def test_classification_overfit():
     n_samples = 10
     n_features = 3
     n_tasks = 1
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -177,7 +176,6 @@ def test_residual_classification_overfit():
     n_samples = 10
     n_features = 5
     n_tasks = 1
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -245,7 +243,6 @@ def test_skewed_classification_overfit():
     n_samples = 100
     n_features = 3
     n_tasks = 1
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -284,7 +281,6 @@ def test_skewed_missing_classification_overfit():
     n_samples = 5120
     n_features = 6
     n_tasks = 1
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -358,7 +354,6 @@ def test_multitask_classification_overfit():
     n_tasks = 10
     n_samples = 10
     n_features = 3
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -395,7 +390,6 @@ def test_multitask_classification_regularization():
     n_tasks = 10
     n_samples = 10
     n_features = 3
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -441,7 +435,6 @@ def test_robust_multitask_classification_overfit():
     n_tasks = 10
     n_samples = 10
     n_features = 3
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -476,7 +469,6 @@ def test_IRV_multitask_classification_overfit():
     n_tasks = 5
     n_samples = 10
     n_features = 128
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -542,7 +534,6 @@ def test_multitask_regression_overfit():
     n_tasks = 10
     n_samples = 10
     n_features = 10
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -575,7 +566,6 @@ def test_multitask_regression_regularization():
     n_tasks = 10
     n_samples = 10
     n_features = 10
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -620,7 +610,6 @@ def test_residual_regression_overfit():
     n_tasks = 10
     n_samples = 10
     n_features = 10
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -657,7 +646,6 @@ def test_robust_multitask_regression_overfit():
     n_tasks = 10
     n_samples = 10
     n_features = 3
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
