@@ -1,5 +1,6 @@
 import time
 import logging
+import copy
 from collections.abc import Sequence as SequenceCollection
 from typing import Any, Callable, Iterable, List, Optional, Tuple, Union, Sequence
 import torch
@@ -61,7 +62,7 @@ class ModularTorchModel(TorchModel):
     ...     return (torch.nn.functional.mse_loss(pretrain_model(inputs), labels[0]) * weights[0]).mean()
     >>> pretrain_modular_model.loss_func = example_pt_loss_func
     >>> pt_loss = pretrain_modular_model.fit(dataset_pt, nb_epoch=1)
-    >>> modular_model.load_from_modular(pretrain_modular_model, components=['linear'])
+    >>> modular_model.load_pretrained_components(pretrain_modular_model, components=['linear'])
     >>> ft_loss = modular_model.fit(dataset_ft, nb_epoch=1)
 
     """
@@ -102,18 +103,33 @@ class ModularTorchModel(TorchModel):
         weights as arguments and return the loss."""
         raise NotImplementedError("Subclass must define the loss function")
 
-    def freeze_components(self,
-                          components: list,
-                          unfreeze: Optional[bool] = False):
-        """Freezes or unfreezes the parameters of the specified components."""
+    def freeze_components(self, components: List[str]):
+        """Freezes or unfreezes the parameters of the specified components.
+
+        Components string refers to keys in self.components.
+
+        Parameters
+        ----------
+        components: List[str]
+            The components to freeze.
+        """
         for component in components:
             for param in self.components[component].parameters():
-                if unfreeze:
-                    param.requires_grad = True
-                else:
-                    param.requires_grad = False
-        self.model = self.build_model()
-        self.model.to(self.device)
+                param.requires_grad = False
+
+    def unfreeze_components(self, components: List[str]):
+        """Unfreezes the parameters of the specified components.
+
+        Components string refers to keys in self.components.
+
+        Parameters
+        ----------
+        components: List[str]
+            The components to unfreeze.
+        """
+        for component in components:
+            for param in self.components[component].parameters():
+                param.requires_grad = True
 
     def load_pretrained_components(
             self,
@@ -135,6 +151,18 @@ class ModularTorchModel(TorchModel):
         input dimensions for different datasets, so the encoder should be written
         such that the input layer is not included in the encoder, allowing the
         encoder to be loaded with any input dimension.
+
+        Parameters
+        ----------
+        source_model: Optional[ModularTorchModel]
+            The model to load the weights from.
+        checkpoint: Optional[str]
+            The path to the checkpoint to load the weights from.
+        model_dir: Optional[str]
+            The path to the directory containing the checkpoint to load the weights.
+        components: Optional[list]
+            The components to load the weights from. If None, all components will be
+            loaded.
         """
 
         # generate the source state dict
@@ -156,7 +184,9 @@ class ModularTorchModel(TorchModel):
                     for k, v in source_model.components.items()
                     if k in components
                 }
-                self.components.update(assignment_map)
+                assignment_map_copy = copy.deepcopy(
+                    assignment_map)  # deep copy to avoid modifying source_model
+                self.components.update(assignment_map_copy)
                 self.model = self.build_model()
             else:
                 raise ValueError(
