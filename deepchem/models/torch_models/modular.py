@@ -62,7 +62,7 @@ class ModularTorchModel(TorchModel):
     ...     return (torch.nn.functional.mse_loss(pretrain_model(inputs), labels[0]) * weights[0]).mean()
     >>> pretrain_modular_model.loss_func = example_pt_loss_func
     >>> pt_loss = pretrain_modular_model.fit(dataset_pt, nb_epoch=1)
-    >>> modular_model.load_from_modular(pretrain_modular_model, components=['linear'])
+    >>> modular_model.load_pretrained_components(pretrain_modular_model, components=['linear'])
     >>> ft_loss = modular_model.fit(dataset_ft, nb_epoch=1)
 
     """
