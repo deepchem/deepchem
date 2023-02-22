@@ -4,6 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from deepchem.models.torch_models.torch_model import TorchModel
+from deepchem.models.torch_models.modular import ModularTorchModel
 from deepchem.models.torch_models.attentivefp import AttentiveFP, AttentiveFPModel
 from deepchem.models.torch_models.cgcnn import CGCNN, CGCNNModel
 from deepchem.models.torch_models.gat import GAT, GATModel
