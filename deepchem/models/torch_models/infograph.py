@@ -101,6 +101,23 @@ class InfoGraphModel(ModularTorchModel):
         Whether to use the unsupervised loss
     separate_encoder: bool
         Whether to use a separate encoder for the unsupervised loss
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models import InfoGraphModel
+    >>> from deepchem.feat import MolGraphConvFeaturizer
+    >>> from deepchem.data import NumpyDataset
+    >>> import torch
+    >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
+    >>> featurizer = MolGraphConvFeaturizer(use_edges=True)
+    >>> X = featurizer.featurize(smiles)
+    >>> y = torch.randint(0, 2, size=(2, 1)).float()
+    >>> w = torch.ones(size=(2, 1)).float()
+    >>> ds = NumpyDataset(X, y, w)
+    >>> num_feat = max([ds.X[i].num_node_features for i in range(len(ds))])
+    >>> edge_dim = max([ds.X[i].num_edge_features for i in range(len(ds))])
+    >>> model = InfoGraphModel(num_feat, edge_dim, 15, use_unsup_loss=False, separate_encoder=False)
+    >>> loss = model.fit(ds, nb_epoch=1)
     """
 
     def __init__(self,
