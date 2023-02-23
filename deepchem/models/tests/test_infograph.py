@@ -19,8 +19,8 @@ def get_dataset(mode='classification'):
     if mode == 'classification':
         input_file = os.path.join(dir, 'assets/example_classification.csv')
         loader = dc.data.CSVLoader(tasks=["outcome"],
-                                    feature_field="smiles",
-                                    featurizer=featurizer)
+                                   feature_field="smiles",
+                                   featurizer=featurizer)
         dataset = loader.create_dataset(input_file)
         metric = dc.metrics.Metric(dc.metrics.roc_auc_score,
                                    np.mean,
@@ -28,8 +28,8 @@ def get_dataset(mode='classification'):
     else:
         input_file = os.path.join(dir, 'assets/example_regression.csv')
         loader = dc.data.CSVLoader(tasks=["outcome"],
-                                    feature_field="smiles",
-                                    featurizer=featurizer)
+                                   feature_field="smiles",
+                                   featurizer=featurizer)
         dataset = loader.create_dataset(input_file)
         metric = dc.metrics.Metric(dc.metrics.mean_absolute_error,
                                    mode="regression")
@@ -77,7 +77,10 @@ def test_infograph_classification():
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
     assert scores['mean-roc_auc_score'] >= 0.9
+
+
 test_infograph_classification()
+
 
 @pytest.mark.torch
 def test_fit_restore():
