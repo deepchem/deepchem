@@ -60,7 +60,6 @@ def test_infograph_regression():
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean_absolute_error'] < 0.1
 
-
 @pytest.mark.torch
 def test_infograph_classification():
 

@@ -13,7 +13,7 @@ class Encoder(torch.nn.Module):
     """
     The encoder for the InfoGraph model. It is a message passing graph convolutional
     network that produces encoded representations for molecular graph inputs.
-    
+
     Parameters
     ----------
     num_features: int
@@ -23,11 +23,13 @@ class Encoder(torch.nn.Module):
     dim: int
         Dimension of the embedding
     """
+
     def __init__(self, num_features, edge_features, dim):
         super(Encoder, self).__init__()
         self.lin0 = torch.nn.Linear(num_features, dim)
 
-        nn = Sequential(Linear(edge_features, 128), ReLU(), Linear(128, dim * dim))
+        nn = Sequential(Linear(edge_features, 128), ReLU(),
+                        Linear(128, dim * dim))
         self.conv = NNConv(dim, dim, nn, aggr='mean', root_weight=False)
         self.gru = GRU(dim, dim)
 
@@ -41,15 +43,16 @@ class Encoder(torch.nn.Module):
             m = F.relu(self.conv(out, data.edge_index, data.edge_features))
             out, h = self.gru(m.unsqueeze(0), h)
             out = out.squeeze(0)
+            feat_map = out
 
         out = self.set2set(out, data.graph_index)
-        return out
-    
-    
+        return out, feat_map
+
+
 class FF(nn.Module):
     """
     A feedforward neural network with a skip connection.
-    
+
     Parameters
     ----------
     input_dim: int
@@ -57,16 +60,12 @@ class FF(nn.Module):
     dim: int
         Dimension of the embedding
     """
+
     def __init__(self, input_dim, dim):
         super().__init__()
-        self.block = nn.Sequential(
-            nn.Linear(input_dim, dim),
-            nn.ReLU(),
-            nn.Linear(dim, dim),
-            nn.ReLU(),
-            nn.Linear(dim, dim),
-            nn.ReLU()
-        )
+        self.block = nn.Sequential(nn.Linear(input_dim, dim), nn.ReLU(),
+                                   nn.Linear(dim, dim), nn.ReLU(),
+                                   nn.Linear(dim, dim), nn.ReLU())
         self.linear_shortcut = nn.Linear(input_dim, dim)
 
     def forward(self, x):
@@ -76,17 +75,17 @@ class FF(nn.Module):
 class InfoGraphModel(ModularTorchModel):
     """
     Infograph is a semi-supervised graph convolutional network for predicting molecular properties.
-    It aims to maximize the mutual information between the graph-level representation and the 
+    It aims to maximize the mutual information between the graph-level representation and the
     representations of substructures of different scales. It does this by producing graph-level
     encodings and substructure encodings, and then using a discriminator to classify if they
-    are from the same molecule or not. 
-    
+    are from the same molecule or not.
+
     References
     ----------
-    F.-Y. Sun, J. Hoffmann, V. Verma, and J. Tang, “InfoGraph: Unsupervised and Semi-supervised 
+    F.-Y. Sun, J. Hoffmann, V. Verma, and J. Tang, “InfoGraph: Unsupervised and Semi-supervised
     Graph-Level Representation Learning via Mutual Information Maximization.” arXiv, Jan. 17, 2020.
     http://arxiv.org/abs/1908.01000
-    
+
     Parameters
     ----------
     num_features: int
@@ -100,35 +99,52 @@ class InfoGraphModel(ModularTorchModel):
     separate_encoder: bool
         Whether to use a separate encoder for the unsupervised loss
     """
-    
-    
-    def __init__(self, num_features, edge_features, dim, use_unsup_loss=False, separate_encoder=False, **kwargs):
+
+    def __init__(self,
+                 num_features,
+                 edge_features,
+                 dim,
+                 use_unsup_loss=False,
+                 separate_encoder=False,
+                 measure='JSD',
+                 **kwargs):
         self.embedding_dim = dim
         self.edge_features = edge_features
         self.separate_encoder = separate_encoder
         self.local = True
         self.num_features = num_features
         self.use_unsup_loss = use_unsup_loss
-        
+        self.measure = measure
+
         self.components = self.build_components()
         self.model = self.build_model()
         super().__init__(self.model, self.components, **kwargs)
-        
-                     
+
     def build_components(self):
-        return {'encoder': Encoder(self.num_features, self.edge_features, self.embedding_dim),
-                'unsup_encoder': Encoder(self.num_features, self.edge_features, self.embedding_dim),
-                'ff1': FF(2*self.embedding_dim, self.embedding_dim),
-                'ff2': FF(2*self.embedding_dim, self.embedding_dim),
-                'fc1': torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
-                'fc2': torch.nn.Linear(self.embedding_dim, 1),
-                'local_d': FF(self.embedding_dim, self.embedding_dim),
-                'global_d': FF(2*self.embedding_dim, self.embedding_dim)
-                }
-    
+        return {
+            'encoder':
+                Encoder(self.num_features, self.edge_features,
+                        self.embedding_dim),
+            'unsup_encoder':
+                Encoder(self.num_features, self.edge_features,
+                        self.embedding_dim),
+            'ff1':
+                FF(2 * self.embedding_dim, self.embedding_dim),
+            'ff2':
+                FF(2 * self.embedding_dim, self.embedding_dim),
+            'fc1':
+                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+            'fc2':
+                torch.nn.Linear(self.embedding_dim, 1),
+            'local_d':
+                FF(self.embedding_dim, self.embedding_dim),
+            'global_d':
+                FF(2 * self.embedding_dim, self.embedding_dim)
+        }
+
     def build_model(self):
         return InfoGraph(**self.components)
-            
+
     def loss_func(self, inputs, labels, weights):
         if self.use_unsup_loss:
             sup_loss = F.mse_loss(self.model(inputs), labels)
@@ -150,99 +166,192 @@ class InfoGraphModel(ModularTorchModel):
             y, M = self.components['encoder'](inputs)
         g_enc = self.components['global_d'](y)
         l_enc = self.components['local_d'](M)
-    
-        measure = 'JSD'
+
         if self.local:
-            loss = self.local_global_loss_(l_enc, g_enc, inputs.edge_index,
-                                      inputs.graph_index, measure)
+            loss = self.local_global_loss_(l_enc, g_enc, inputs.graph_index)
         return loss
-    
-    def unsup_sup_loss(self, inputs, labels, weights):
-        y, M = self.components['encoder'](inputs)
-        y_, M_ = self.components['unsup_encoder'](inputs)
-    
-        g_enc = self.components['ff1'](y)
-        g_enc1 = self.components['ff2'](y_)
-    
-        measure = 'JSD'
-        loss = self.global_global_loss_(g_enc, g_enc1, inputs.edge_index,
-                                   inputs.graph_index, measure)
-        return loss
-    
+
     def _prepare_batch(self, batch):
         inputs, labels, weights = batch
         inputs = BatchGraphData(inputs[0])
-        inputs.edge_features = torch.from_numpy(inputs.edge_features).float().to(self.device)
-        inputs.edge_index = torch.from_numpy(inputs.edge_index).long().to(self.device)
-        inputs.node_features = torch.from_numpy(inputs.node_features).float().to(self.device)
-        inputs.graph_index = torch.from_numpy(inputs.graph_index).long().to(self.device)
-    
-        _, labels, weights = super(InfoGraph, self)._prepare_batch(
-            ([], labels, weights))
-        
+        inputs.edge_features = torch.from_numpy(
+            inputs.edge_features).float().to(self.device)
+        inputs.edge_index = torch.from_numpy(inputs.edge_index).long().to(
+            self.device)
+        inputs.node_features = torch.from_numpy(
+            inputs.node_features).float().to(self.device)
+        inputs.graph_index = torch.from_numpy(inputs.graph_index).long().to(
+            self.device)
+
+        _, labels, weights = super()._prepare_batch(([], labels, weights))
+
         if (len(labels) != 0) and (len(weights) != 0):
             labels = labels[0]
             weights = weights[0]
-        
+
         return inputs, labels, weights
-    
-    def local_global_loss_(self,l_enc, g_enc, edge_index, batch, measure):
-        '''
-        Args:
-            l: Local feature map.
-            g: Global features.
-            measure: Type of f-divergence. For use with mode `fd`
-            mode: Loss mode. Fenchel-dual `fd`, NCE `nce`, or Donsker-Vadadhan `dv`.
+
+    def unsup_sup_loss(self, inputs, labels, weights):
+        y, M = self.components['encoder'](inputs)
+        y_, M_ = self.components['unsup_encoder'](inputs)
+
+        g_enc = self.components['ff1'](y)
+        g_enc1 = self.components['ff2'](y_)
+
+        measure = 'JSD'
+        loss = self.global_global_loss_(g_enc, g_enc1, measure)
+        return loss
+
+    def local_global_loss_(self, l_enc, g_enc, batch):
+        """
+        Parameters:
+        ----------
+        l_enc: torch.Tensor
+            Local feature map from the encoder.
+        g_enc: torch.Tensor
+            Global features from the encoder.
+        batch: torch.Tensor
+            Batch tensor
+
         Returns:
-            torch.Tensor: Loss.
-        '''
+        -------
+        loss: torch.Tensor
+            Local Global Loss value
+        """
         num_graphs = g_enc.shape[0]
         num_nodes = l_enc.shape[0]
-    
-        pos_mask = torch.zeros((num_nodes, num_graphs)).to(self.device)  
+
+        pos_mask = torch.zeros((num_nodes, num_graphs)).to(self.device)
         neg_mask = torch.ones((num_nodes, num_graphs)).to(self.device)
         for nodeidx, graphidx in enumerate(batch):
             pos_mask[nodeidx][graphidx] = 1.
             neg_mask[nodeidx][graphidx] = 0.
-    
+
         res = torch.mm(l_enc, g_enc.t())
-    
-        E_pos = get_positive_expectation(res * pos_mask, measure, average=False)
+
+        E_pos = self.get_positive_expectation(res * pos_mask, average=False)
         E_pos = (E_pos * pos_mask).sum() / pos_mask.sum()
-        E_neg = get_negative_expectation(res * neg_mask, measure, average=False)
+        E_neg = self.get_negative_expectation(res * neg_mask, average=False)
         E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
-    
+
         return E_neg - E_pos
-    
-    def global_global_loss_(self, g_enc, g_enc1, edge_index, batch, measure):
-        '''
-        Args:
-            g: Global features
-            g1: Global features.
-            measure: Type of f-divergence. For use with mode `fd`
-            mode: Loss mode. Fenchel-dual `fd`, NCE `nce`, or Donsker-Vadadhan `dv`.
+
+    def global_global_loss_(self, g_enc, g_enc1):
+        """
+        Parameters:
+        ----------
+        g_enc: torch.Tensor
+            Global features from the encoder.
+        g_enc1: torch.Tensor
+            Global features from the separate encoder.
+
         Returns:
-            torch.Tensor: Loss.
-        '''
+        -------
+        loss: torch.Tensor
+            Global Global Loss value
+        """
         num_graphs = g_enc.shape[0]
-    
+
         pos_mask = torch.eye(num_graphs).to(self.device)
         neg_mask = 1 - pos_mask
-    
+
         res = torch.mm(g_enc, g_enc1.t())
-    
-        E_pos = get_positive_expectation(res * pos_mask, measure, average=False)
+
+        E_pos = self.get_positive_expectation(res * pos_mask, average=False)
         E_pos = (E_pos * pos_mask).sum() / pos_mask.sum()
-        E_neg = get_negative_expectation(res * neg_mask, measure, average=False)
+        E_neg = self.get_negative_expectation(res * neg_mask, average=False)
         E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
-    
+
         return E_neg - E_pos
-    
-    
+
+    def get_positive_expectation(self, p_samples, average=True):
+        """Computes the positive part of a divergence / difference.
+
+        Parameters:
+        ----------
+        p_samples: torch.Tensor
+            Positive samples.
+        average: bool
+            Average the result over samples.
+
+        Returns:
+        -------
+        Ep: torch.Tensor
+            Positive part of the divergence / difference.
+        """
+        log_2 = math.log(2.)
+
+        if self.measure == 'GAN':
+            Ep = -F.softplus(-p_samples)
+        elif self.measure == 'JSD':
+            Ep = log_2 - F.softplus(-p_samples)
+        elif self.measure == 'X2':
+            Ep = p_samples**2
+        elif self.measure == 'KL':
+            Ep = p_samples + 1.
+        elif self.measure == 'RKL':
+            Ep = -torch.exp(-p_samples)
+        elif self.measure == 'DV':
+            Ep = p_samples
+        elif self.measure == 'H2':
+            Ep = 1. - torch.exp(-p_samples)
+        elif self.measure == 'W1':
+            Ep = p_samples
+        else:
+            raise ValueError('Unknown measure: {}'.format(self.measure))
+
+        if average:
+            return Ep.mean()
+        else:
+            return Ep
+
+    def get_negative_expectation(self, q_samples, average=True):
+        """Computes the negative part of a divergence / difference.
+
+        Parameters:
+        ----------
+        q_samples: torch.Tensor
+            Negative samples.
+        average: bool
+            Average the result over samples.
+
+        Returns:
+        -------
+        Ep: torch.Tensor
+            Negative part of the divergence / difference.
+
+        """
+        log_2 = math.log(2.)
+
+        if self.measure == 'GAN':
+            Eq = F.softplus(-q_samples) + q_samples
+        elif self.measure == 'JSD':
+            Eq = F.softplus(-q_samples) + q_samples - log_2
+        elif self.measure == 'X2':
+            Eq = -0.5 * ((torch.sqrt(q_samples**2) + 1.)**2)
+        elif self.measure == 'KL':
+            Eq = torch.exp(q_samples)
+        elif self.measure == 'RKL':
+            Eq = q_samples - 1.
+        elif self.measure == 'DV':
+            Eq = log_sum_exp(q_samples, 0) - math.log(q_samples.size(0))
+        elif self.measure == 'H2':
+            Eq = torch.exp(q_samples) - 1.
+        elif self.measure == 'W1':
+            Eq = q_samples
+        else:
+            raise ValueError('Unknown measure: {}'.format(self.measure))
+
+        if average:
+            return Eq.mean()
+        else:
+            return Eq
+
+
 class InfoGraph(torch.nn.Module):
     """
     The nn.Module for InfoGraph. This class defines the forward pass of InfoGraph.
-    
+
     Parameters
     ----------
     encoder: torch.nn.Module
@@ -257,9 +366,11 @@ class InfoGraph(torch.nn.Module):
         The first fully connected layer for InfoGraph.
     fc2: torch.nn.Module
         The second fully connected layer for InfoGraph.
-    
+
     """
-    def __init__(self, encoder, unsup_encoder, ff1, ff2, fc1, fc2, local_d, global_d): 
+
+    def __init__(self, encoder, unsup_encoder, ff1, ff2, fc1, fc2, local_d,
+                 global_d):
         super(InfoGraph, self).__init__()
         self.encoder = encoder
         self.unsup_encoder = unsup_encoder
@@ -279,126 +390,28 @@ class InfoGraph(torch.nn.Module):
                     m.bias.data.fill_(0.0)
 
     def forward(self, data):
-        out = self.encoder(data)
+        out, M = self.encoder(data)
         out = F.relu(self.fc1(out))
         pred = self.fc2(out)
         return pred
 
 
 def log_sum_exp(x, axis=None):
-    """Log sum exp function                 
+    """Log sum exp function.
 
-    Args:
-        x: Input.
-        axis: Axis over which to perform sum.
+    Parameters
+    ----------
+    x: torch.Tensor
+        Input tensor
+    axis: int
+        Axis to perform sum over
 
-    Returns:
-        torch.Tensor: log sum exp
+    Returns
+    -------
+    y: torch.Tensor
+        Log sum exp of x
 
     """
     x_max = torch.max(x, axis)[0]
     y = torch.log((torch.exp(x - x_max)).sum(axis)) + x_max
     return y
-
-
-def random_permute(X):
-    """Randomly permutes a tensor.
-
-    Args:
-        X: Input tensor.
-
-    Returns:
-        torch.Tensor
-
-    """
-    X = X.transpose(1, 2)
-    b = torch.rand((X.size(0), X.size(1))).cuda()
-    idx = b.sort(0)[1]
-    adx = torch.range(0, X.size(1) - 1).long()
-    X = X[idx, adx[None, :]].transpose(1, 2)
-    return X
-
-
-def get_positive_expectation(p_samples, measure, average=True):
-    """Computes the positive part of a divergence / difference.
-
-    Args:
-        p_samples: Positive samples.
-        measure: Measure to compute for.
-        average: Average the result over samples.
-
-    Returns:
-        torch.Tensor
-
-    """
-    log_2 = math.log(2.)
-
-    if measure == 'GAN':
-        Ep = -F.softplus(-p_samples)
-    elif measure == 'JSD':
-        Ep = log_2 - F.softplus(-p_samples)
-    elif measure == 'X2':
-        Ep = p_samples**2
-    elif measure == 'KL':
-        Ep = p_samples + 1.
-    elif measure == 'RKL':
-        Ep = -torch.exp(-p_samples)
-    elif measure == 'DV':
-        Ep = p_samples
-    elif measure == 'H2':
-        Ep = 1. - torch.exp(-p_samples)
-    elif measure == 'W1':
-        Ep = p_samples
-    else:
-        raise_measure_error(measure)
-
-    if average:
-        return Ep.mean()
-    else:
-        return Ep
-
-
-def get_negative_expectation(q_samples, measure, average=True):
-    """Computes the negative part of a divergence / difference.
-
-    Args:
-        q_samples: Negative samples.
-        measure: Measure to compute for.
-        average: Average the result over samples.
-
-    Returns:
-        torch.Tensor
-
-    """
-    log_2 = math.log(2.)
-
-    if measure == 'GAN':
-        Eq = F.softplus(-q_samples) + q_samples
-    elif measure == 'JSD':
-        Eq = F.softplus(-q_samples) + q_samples - log_2
-    elif measure == 'X2':
-        Eq = -0.5 * ((torch.sqrt(q_samples**2) + 1.)**2)
-    elif measure == 'KL':
-        Eq = torch.exp(q_samples)
-    elif measure == 'RKL':
-        Eq = q_samples - 1.
-    elif measure == 'DV':
-        Eq = log_sum_exp(q_samples, 0) - math.log(q_samples.size(0))
-    elif measure == 'H2':
-        Eq = torch.exp(q_samples) - 1.
-    elif measure == 'W1':
-        Eq = q_samples
-    else:
-        raise_measure_error(measure)
-
-    if average:
-        return Eq.mean()
-    else:
-        return Eq
-
-
-
-
-
-
-
