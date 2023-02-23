@@ -4,11 +4,6 @@ import numpy as np
 import deepchem as dc
 from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
 
-try:
-    from deepchem.models.torch_models.infograph import InfoGraphModel
-except:
-    pass
-
 
 @pytest.mark.torch
 def get_dataset(mode='classification'):
@@ -39,6 +34,7 @@ def get_dataset(mode='classification'):
 
 @pytest.mark.torch
 def test_infograph_regression():
+    from deepchem.models.torch_models.infograph import InfoGraphModel
     dataset, metric = get_dataset('regression')
     num_feat = max(
         [dataset.X[i].num_node_features for i in range(len(dataset))])
@@ -59,9 +55,8 @@ def test_infograph_regression():
 
 @pytest.mark.torch
 def test_infograph_classification():
-
+    from deepchem.models.torch_models.infograph import InfoGraphModel
     dataset, metric = get_dataset('classification')
-
     num_feat = max(
         [dataset.X[i].num_node_features for i in range(len(dataset.X))])
     edge_dim = max(
@@ -84,8 +79,8 @@ test_infograph_classification()
 
 @pytest.mark.torch
 def test_fit_restore():
+    from deepchem.models.torch_models.infograph import InfoGraphModel
     dataset, _ = get_dataset('classification')
-
     num_feat = max(
         [dataset.X[i].num_node_features for i in range(len(dataset))])
     edge_dim = max(
