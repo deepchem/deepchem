@@ -5,11 +5,6 @@ import torch.nn.functional as F
 from torch.nn import Sequential, Linear, ReLU, GRU
 from deepchem.feat.graph_data import BatchGraphData
 import math
-try:
-    from torch_geometric.nn import NNConv
-    from torch_geometric.nn.aggr import Set2Set
-except:
-    raise ImportError("These classes require PyTorch Geometric to be installed")
 
 
 class Encoder(torch.nn.Module):
@@ -28,6 +23,9 @@ class Encoder(torch.nn.Module):
     """
 
     def __init__(self, num_features, edge_features, dim):
+        from torch_geometric.nn import NNConv
+        from torch_geometric.nn.aggr import Set2Set
+
         super(Encoder, self).__init__()
         self.lin0 = torch.nn.Linear(num_features, dim)
 
