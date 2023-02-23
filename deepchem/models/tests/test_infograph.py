@@ -74,9 +74,6 @@ def test_infograph_classification():
     assert scores['mean-roc_auc_score'] >= 0.9
 
 
-test_infograph_classification()
-
-
 @pytest.mark.torch
 def test_fit_restore():
     from deepchem.models.torch_models.infograph import InfoGraphModel
