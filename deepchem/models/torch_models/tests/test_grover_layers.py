@@ -19,8 +19,7 @@ def testGroverMPNEncoder(dynamic_depth, atom_messages):
     a2a = torch.Tensor([[0, 0], [3, 0], [3, 0], [1, 2]]).type(torch.int32)
 
     # TODO Write tests for undirected = True case, currently fails. for this case, we have
-    # to generate inputs (a2b, b2a, b2revb) for undirected graph (mol2graph returns features
-    # for directed graphs)
+    # to generate inputs (a2b, b2a, b2revb) for undirected graph.
     hidden_size = 32
     depth = 5
     undirected = False
@@ -109,8 +108,10 @@ def testGroverMTBlock():
     new_batch = layer(
         [f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a])
     new_f_atoms, new_f_bonds, new_a2b, new_b2a, new_b2revb, new_a_scope, new_b_scope, new_a2a = new_batch
+    # The shapes should match the earlier shapes because message passing only updates node features.
     assert new_f_atoms.shape == (f_atoms.shape[0], hidden_size)
     assert new_f_bonds.shape == f_bonds.shape
+    # The following variables are utility variables used during message passing to compute neighbors. Here we are asserting that MTBlock layer is not modifying these variables.
     assert (new_a2b == a2b).all()
     assert (new_b2a == b2a).all()
     assert (new_b2revb == b2revb).all()

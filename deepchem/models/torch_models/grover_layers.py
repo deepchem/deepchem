@@ -86,6 +86,8 @@ class GroverMPNEncoder(nn.Module):
         number of hops in a message passing iteration
     dynamic_depth: str, default: none
         If set to `uniform` for randomly sampling dynamic depth from an uniform distribution else if set to `truncnorm`, dynamic depth is sampled from a truncated normal distribution.
+    input_layer: str
+        If set to `fc`, adds an initial feed-forward layer. If set to `none`, does not add an initial feed forward layer.
     """
 
     # FIXME This layer is similar to DMPNNEncoderLayer and they
@@ -106,6 +108,9 @@ class GroverMPNEncoder(nn.Module):
         super(GroverMPNEncoder, self).__init__()
         if input_layer == 'none':
             assert init_message_dim == hidden_size
+        assert dynamic_depth in [
+            'uniform', 'truncnorm', 'none'
+        ], 'dynamic depth should be one of uniform, truncnorm, none'
         self.init_message_dim = init_message_dim
         self.depth = depth
         self.input_layer = input_layer
@@ -126,17 +131,13 @@ class GroverMPNEncoder(nn.Module):
             raise ValueError('Only ReLU activation function is supported')
 
         if self.input_layer == "fc":
-            input_dim = self.init_message_dim
-            self.W_i = nn.Linear(input_dim, hidden_size, bias=bias)
-
-        # Bug here, if input_layer is none, then w_h_input_size should have init_messages_dim
-        # instead of hidden_size for first iteration of message passing alone (in subsequent
-        # iterations, message size will be n_bonds x hidden_size but during first iteration,
-        # message size will be init_messages_dim
-        if self.attached_feat:
-            w_h_input_size = hidden_size + attached_feat_fdim
-        else:
+            self.W_i = nn.Linear(self.init_message_dim, hidden_size, bias=bias)
             w_h_input_size = hidden_size
+        elif input_layer == 'none':
+            w_h_input_size = self.init_message_dim
+
+        if self.attached_feat:
+            w_h_input_size += attached_feat_fdim
 
         # Shared weight matrix across depths (default)
         self.W_h = nn.Linear(w_h_input_size, hidden_size, bias=bias)
@@ -158,7 +159,8 @@ class GroverMPNEncoder(nn.Module):
 
         if self.training and self.dynamic_depth != 'none':
             if self.dynamic_depth == 'uniform':
-                ndepth = int(np.random.uniform(self.depth - 3, self.depth + 3))
+                ndepth = abs(
+                    int(np.random.uniform(self.depth - 3, self.depth + 3)))
             elif self.dynamic_depth == 'truncnorm':
                 mu, sigma = self.depth, 1
                 lower, upper = mu - 3 * sigma, mu + 3 * sigma
