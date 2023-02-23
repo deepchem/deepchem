@@ -67,10 +67,10 @@ Keras Layers
 
 .. autoclass:: deepchem.models.layers.AlphaShareLayer
   :members:
-  
+
 .. autoclass:: deepchem.models.layers.SluiceLoss
   :members:
-  
+
 .. autoclass:: deepchem.models.layers.BetaShare
   :members:
 
@@ -158,7 +158,7 @@ Torch Layers
   :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.RealNVPLayer
-  :members: 
+  :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.DMPNNEncoderLayer
   :members:
@@ -178,6 +178,9 @@ The following layers are used for implementing GROVER model as described in the 
   :members:
 
 .. autoclass:: deepchem.models.torch_models.grover_layers.GroverTransEncoder
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover.GroverEmbedding
   :members:
 
 Attention Layers
