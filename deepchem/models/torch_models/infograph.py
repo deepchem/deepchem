@@ -5,8 +5,11 @@ import torch.nn.functional as F
 from torch.nn import Sequential, Linear, ReLU, GRU
 from deepchem.feat.graph_data import BatchGraphData
 import math
-from torch_geometric.nn import NNConv
-from torch_geometric.nn.aggr import Set2Set
+try:
+    from torch_geometric.nn import NNConv
+    from torch_geometric.nn.aggr import Set2Set
+except:
+    raise ImportError("These classes require PyTorch Geometric to be installed")
 
 
 class Encoder(torch.nn.Module):

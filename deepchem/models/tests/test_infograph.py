@@ -50,15 +50,16 @@ def test_infograph_regression():
     dim = 64
 
     model = InfoGraphModel(num_feat,
-                      edge_dim,
-                      dim,
-                      use_unsup_loss=False,
-                      separate_encoder=False,
-                      batch_size=10)
+                           edge_dim,
+                           dim,
+                           use_unsup_loss=False,
+                           separate_encoder=False,
+                           batch_size=10)
 
     model.fit(dataset, nb_epoch=1000)
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean_absolute_error'] < 0.1
+
 
 @pytest.mark.torch
 def test_infograph_classification():
@@ -72,11 +73,11 @@ def test_infograph_classification():
     dim = 64
 
     model = InfoGraphModel(num_feat,
-                      edge_dim,
-                      dim,
-                      use_unsup_loss=False,
-                      separate_encoder=False,
-                      batch_size=10)
+                           edge_dim,
+                           dim,
+                           use_unsup_loss=False,
+                           separate_encoder=False,
+                           batch_size=10)
 
     model.fit(dataset, nb_epoch=1000)
     scores = model.evaluate(dataset, [metric], transformers)
@@ -94,20 +95,20 @@ def test_fit_restore():
     dim = 64
 
     model = InfoGraphModel(num_feat,
-                      edge_dim,
-                      dim,
-                      use_unsup_loss=False,
-                      separate_encoder=False,
-                      batch_size=10)
+                           edge_dim,
+                           dim,
+                           use_unsup_loss=False,
+                           separate_encoder=False,
+                           batch_size=10)
 
     model.fit(dataset, nb_epoch=1000)
 
     model2 = InfoGraphModel(num_feat,
-                       edge_dim,
-                       dim,
-                       use_unsup_loss=False,
-                       separate_encoder=False,
-                       model_dir=model.model_dir)
+                            edge_dim,
+                            dim,
+                            use_unsup_loss=False,
+                            separate_encoder=False,
+                            model_dir=model.model_dir)
     model2.fit(dataset, nb_epoch=1, restore=True)
     prediction = model2.predict_on_batch(dataset.X).reshape(-1, 1)
     assert np.allclose(dataset.y, np.round(prediction))
