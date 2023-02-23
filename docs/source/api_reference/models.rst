@@ -398,6 +398,16 @@ InfoGraphModel
 .. autoclass:: deepchem.models.torch_models.InfoGraphModel
   :members:
 
+InfoGraphEncoder
+----------------
+.. autoclass:: deepchem.models.torch_models.InfoGraphEncoder
+  :members:
+
+FF_skip
+-------
+.. autoclass:: deepchem.models.torch_models.FF_skip
+  :members:
+
 LCNNModel
 ---------
 

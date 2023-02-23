@@ -7,7 +7,7 @@ from deepchem.feat.graph_data import BatchGraphData
 import math
 
 
-class Encoder(torch.nn.Module):
+class InfoGraphEncoder(torch.nn.Module):
     """
     The encoder for the InfoGraph model. It is a message passing graph convolutional
     network that produces encoded representations for molecular graph inputs.
@@ -26,7 +26,7 @@ class Encoder(torch.nn.Module):
         from torch_geometric.nn import NNConv
         from torch_geometric.nn.aggr import Set2Set
 
-        super(Encoder, self).__init__()
+        super().__init__()
         self.lin0 = torch.nn.Linear(num_features, dim)
 
         nn = Sequential(Linear(edge_features, 128), ReLU(),
@@ -50,7 +50,7 @@ class Encoder(torch.nn.Module):
         return out, feat_map
 
 
-class FF(nn.Module):
+class FF_skip(nn.Module):
     """
     A feedforward neural network with a skip connection.
 
@@ -67,10 +67,10 @@ class FF(nn.Module):
         self.block = nn.Sequential(nn.Linear(input_dim, dim), nn.ReLU(),
                                    nn.Linear(dim, dim), nn.ReLU(),
                                    nn.Linear(dim, dim), nn.ReLU())
-        self.linear_shortcut = nn.Linear(input_dim, dim)
+        self.skip = nn.Linear(input_dim, dim)
 
     def forward(self, x):
-        return self.block(x) + self.linear_shortcut(x)
+        return self.block(x) + self.skip(x)
 
 
 class InfoGraphModel(ModularTorchModel):
@@ -99,6 +99,9 @@ class InfoGraphModel(ModularTorchModel):
         Whether to use the unsupervised loss
     separate_encoder: bool
         Whether to use a separate encoder for the unsupervised loss
+    measure: str
+        The divergence measure to use for the unsupervised loss. Options are 'GAN', 'JSD',
+        'KL', 'RKL', 'X2', 'DV', 'H2', or 'W1'.
 
     Examples
     --------
@@ -114,7 +117,7 @@ class InfoGraphModel(ModularTorchModel):
     >>> ds = NumpyDataset(X, y, w)
     >>> num_feat = max([ds.X[i].num_node_features for i in range(len(ds))])
     >>> edge_dim = max([ds.X[i].num_edge_features for i in range(len(ds))])
-    >>> model = InfoGraphModel(num_feat, edge_dim, 15, use_unsup_loss=False, separate_encoder=False)
+    >>> model = InfoGraphModel(num_feat, edge_dim, 15, use_unsup_loss=True, separate_encoder=True)
     >>> loss = model.fit(ds, nb_epoch=1)
     """
 
@@ -141,23 +144,23 @@ class InfoGraphModel(ModularTorchModel):
     def build_components(self):
         return {
             'encoder':
-                Encoder(self.num_features, self.edge_features,
-                        self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
             'unsup_encoder':
-                Encoder(self.num_features, self.edge_features,
-                        self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
             'ff1':
-                FF(2 * self.embedding_dim, self.embedding_dim),
+                FF_skip(2 * self.embedding_dim, self.embedding_dim),
             'ff2':
-                FF(2 * self.embedding_dim, self.embedding_dim),
+                FF_skip(2 * self.embedding_dim, self.embedding_dim),
             'fc1':
                 torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
             'fc2':
                 torch.nn.Linear(self.embedding_dim, 1),
             'local_d':
-                FF(self.embedding_dim, self.embedding_dim),
+                FF_skip(self.embedding_dim, self.embedding_dim),
             'global_d':
-                FF(2 * self.embedding_dim, self.embedding_dim)
+                FF_skip(2 * self.embedding_dim, self.embedding_dim)
         }
 
     def build_model(self):
