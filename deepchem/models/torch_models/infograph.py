@@ -128,6 +128,7 @@ class InfoGraphModel(ModularTorchModel):
                  use_unsup_loss=False,
                  separate_encoder=False,
                  measure='JSD',
+                 average_loss=True,
                  **kwargs):
         self.embedding_dim = dim
         self.edge_features = edge_features
@@ -136,6 +137,7 @@ class InfoGraphModel(ModularTorchModel):
         self.num_features = num_features
         self.use_unsup_loss = use_unsup_loss
         self.measure = measure
+        self.average_loss = average_loss
 
         self.components = self.build_components()
         self.model = self.build_model()
@@ -219,8 +221,7 @@ class InfoGraphModel(ModularTorchModel):
         g_enc = self.components['ff1'](y)
         g_enc1 = self.components['ff2'](y_)
 
-        measure = 'JSD'
-        loss = self.global_global_loss_(g_enc, g_enc1, measure)
+        loss = self.global_global_loss_(g_enc, g_enc1)
         return loss
 
     def local_global_loss_(self, l_enc, g_enc, batch):
@@ -250,9 +251,9 @@ class InfoGraphModel(ModularTorchModel):
 
         res = torch.mm(l_enc, g_enc.t())
 
-        E_pos = self.get_positive_expectation(res * pos_mask, average=False)
+        E_pos = self.get_positive_expectation(res * pos_mask)
         E_pos = (E_pos * pos_mask).sum() / pos_mask.sum()
-        E_neg = self.get_negative_expectation(res * neg_mask, average=False)
+        E_neg = self.get_negative_expectation(res * neg_mask)
         E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
 
         return E_neg - E_pos
@@ -278,14 +279,14 @@ class InfoGraphModel(ModularTorchModel):
 
         res = torch.mm(g_enc, g_enc1.t())
 
-        E_pos = self.get_positive_expectation(res * pos_mask, average=False)
+        E_pos = self.get_positive_expectation(res * pos_mask)
         E_pos = (E_pos * pos_mask).sum() / pos_mask.sum()
-        E_neg = self.get_negative_expectation(res * neg_mask, average=False)
+        E_neg = self.get_negative_expectation(res * neg_mask)
         E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
 
         return E_neg - E_pos
 
-    def get_positive_expectation(self, p_samples, average=True):
+    def get_positive_expectation(self, p_samples):
         """Computes the positive part of a divergence / difference.
 
         Parameters:
@@ -321,12 +322,12 @@ class InfoGraphModel(ModularTorchModel):
         else:
             raise ValueError('Unknown measure: {}'.format(self.measure))
 
-        if average:
+        if self.average_loss:
             return Ep.mean()
         else:
             return Ep
 
-    def get_negative_expectation(self, q_samples, average=True):
+    def get_negative_expectation(self, q_samples):
         """Computes the negative part of a divergence / difference.
 
         Parameters:
@@ -363,7 +364,7 @@ class InfoGraphModel(ModularTorchModel):
         else:
             raise ValueError('Unknown measure: {}'.format(self.measure))
 
-        if average:
+        if self.average_loss:
             return Eq.mean()
         else:
             return Eq
