@@ -47,7 +47,7 @@ class MultilayerPerceptron(nn.Module):
             the dimension of the input layer
         d_output: int
             the dimension of the output layer
-        d_hidden: tuples
+        d_hidden: tuple
             the dimensions of the hidden layers
         dropout: float
             the dropout probability
