@@ -102,6 +102,8 @@ class InfoGraphModel(ModularTorchModel):
     measure: str
         The divergence measure to use for the unsupervised loss. Options are 'GAN', 'JSD',
         'KL', 'RKL', 'X2', 'DV', 'H2', or 'W1'.
+    average_loss: bool
+        Whether to average the loss over the batch
 
     Examples
     --------
