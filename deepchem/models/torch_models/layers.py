@@ -15,9 +15,10 @@ try:
 except ModuleNotFoundError:
     pass
 
-from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
-from deepchem.utils.pytorch_utils import get_activation
+#from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
+#from deepchem.utils.pytorch_utils import get_activation
 from torch.nn import init as initializers
+from torch_scatter import segment_coo
 
 
 class MultilayerPerceptron(nn.Module):
@@ -2796,3 +2797,77 @@ class WeightedLinearCombo(nn.Module):
             else:
                 out_tensor += w * in_tensor
         return out_tensor
+    
+
+class EdgeNetwork(nn.Module):
+    """ Submodule for Message Passing 
+
+    Examples
+    --------
+    >>> pair_features = torch.rand((8, 4), dtype=torch.float32)           
+    >>> atom_features = torch.rand((10, 5), dtype=torch.float32)          
+    >>> atom_to_pair = torch.randint(size=(8, 2), low=0, high=8)
+    >>> inputs = [pair_features, atom_features, atom_to_pair]
+    >>> n_pair_features = 4
+    >>> n_hidden = 5
+    >>> init = 'xavier_uniform_'
+    >>> layer = EdgeNetwork(n_pair_features, n_hidden, init)
+    >>> result = layer(inputs)
+    >>> result.shape
+    torch.Size([8, 5])
+    """
+
+    def __init__(self,
+                 n_pair_features: int=8,
+                 n_hidden: int=100,
+                 init: str='xavier_uniform_',
+                 **kwargs):
+        '''initalise a EdgeNetwork Layer
+        Parameters
+        ----------
+        n_pair_features: int, optional
+            The length of the pair features vector.
+        n_hidden: int, optional
+            number of hidden units in the passing phase
+        init: str, optional
+            Initialization function to be used in the message passing layer.
+        '''
+        
+        super(EdgeNetwork, self).__init__(**kwargs)
+        self.n_pair_features: int = n_pair_features
+        self.n_hidden: int = n_hidden
+        self.init: str = init
+
+        init = getattr(initializers, self.init)
+        self.W: torch.Tensor = init(torch.empty([self.n_pair_features, self.n_hidden * self.n_hidden]))
+        self.b: torch.Tensor = torch.zeros((self.n_hidden * self.n_hidden,))
+        self.built: bool = True
+
+    def __repr__(self) -> str:
+        return (
+        f'{self.__class__.__name__}(n_pair_features:{self.n_pair_features},n_hidden:{self.n_hidden},init:{self.init})'
+    )
+
+    def forward(self, inputs: List[torch.Tensor]) -> torch.Tensor:
+        """
+        Parameters
+        ----------
+        inputs: List[torch.Tensor]
+            The length of atom_to_pair should be same as n_pair_features.
+
+        Returns
+        -------
+        out_tensor: torch.Tensor
+        """
+        pair_features: torch.Tensor
+        atom_features: torch.Tensor
+        atom_to_pair: torch.Tensor
+        pair_features, atom_features, atom_to_pair = inputs
+        A: torch.Tensor = torch.add(torch.matmul(pair_features, self.W), self.b)           # (None, n_hidden*n_hidden)
+        A = torch.reshape(A, (-1, self.n_hidden, self.n_hidden))                           # (None, n_hidden, n_hidden)
+        out: torch.Tensor = torch.unsqueeze(atom_features[atom_to_pair[:, 1]], 2)          # (None, n_hidden, 1)
+        out = torch.squeeze(torch.matmul(A, out), axis=2)                                  # (None, n_hidden)
+        sorted, indices = torch.sort(atom_to_pair[:,0])                                     
+        out_tensor = segment_coo(out, sorted, reduce="sum")                                # (None, n_hidden)
+        return out_tensor
+    
