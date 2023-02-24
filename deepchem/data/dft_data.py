@@ -66,6 +66,7 @@ class DFTSystem():
             system is a dictionary containing information on the atomic positions,
             atomic numbers, and basis set used for the DFT calculation.
         """
+
     def get_dqc_mol(self, pos_reqgrad: bool = False) -> BaseSystem:
         """
         This method converts the system dictionary to a DQC system and returns it.
@@ -119,7 +120,8 @@ class DFTEntry():
     """
 
     @classmethod
-    def create(self, entry_dct: Union[Dict, DFTEntry]) -> DFTEntry:
+    def create(self, e_type: str, true_val: str,
+               systems: List[Dict]) -> DFTEntry:
         """
         This method is used to initialise the DFTEntry class. The entry objects are created
         based on their entry type.
@@ -134,24 +136,23 @@ class DFTEntry():
             DFTEntry object based on entry type
 
         """
-        if isinstance(entry_dct, DFTEntry):
-            return entry_dct
+        #if isinstance(entry_dct, DFTEntry):
+        #    return entry_dct
 
-        tpe = entry_dct["type"]
-        if tpe == "ae":
-            obj = _EntryAE(entry_dct)
-        elif tpe == "ie":
-            obj = _EntryIE(entry_dct)
-        elif tpe == "dm":
-            obj = _EntryDM(entry_dct)
-        elif tpe == "dens":
-            obj = _EntryDens(entry_dct)
+        if e_type == "ae":
+            obj = _EntryAE(e_type, true_val, systems)
+        elif e_type == "ie":
+            obj = _EntryIE(e_type, true_val, systems)
+        elif e_type == "dm":
+            obj = _EntryDM(e_type, true_val, systems)
+        elif e_type == "dens":
+            obj = _EntryDens(e_type, true_val, systems)
         else:
             raise NotImplementedError("Unknown entry type: %s" % tpe)
         return obj
 
-    def __init__(self, entry_dct: Dict):
-        self._systems = [DFTSystem(p) for p in entry_dct["systems"]]
+    def __init__(self, e_type: str, true_val: str, systems: List[Dict]):
+        self._systems = [DFTSystem(p) for p in systems]
 
     def get_systems(self) -> List[DFTSystem]:
         """
@@ -208,15 +209,15 @@ class _EntryDM(DFTEntry):
     dm entry can only have 1 system
     """
 
-    def __init__(self, entry_dct):
+    def __init__(self, e_type, true_val, systems):
         """
         Parameters
         ----------
         entry_dct: Dict
 
         """
-        super().__init__(entry_dct)
-        self.entry_dct = entry_dct
+        super().__init__(e_type, true_val, systems)
+        self.true_val = true_val
         assert len(self.get_systems()) == 1
 
     @property
@@ -225,11 +226,11 @@ class _EntryDM(DFTEntry):
 
     def get_true_val(self) -> np.ndarray:
         # get the density matrix from PySCF's CCSD calculation
-        dm = np.load(self.entry_dct["true_val"])
+        dm = np.load(self.true_val)
         return dm
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
-        return (qcs.aodmtot()).numpy()
+        return (qcs[0].aodmtot()).numpy()
 
 
 class _EntryDens(DFTEntry):
@@ -237,14 +238,15 @@ class _EntryDens(DFTEntry):
     Entry for density profile (dens), compared with CCSD calculation
     """
 
-    def __init__(self, entry_dct):
+    def __init__(self, e_type, true_val, systems):
         """
         Parameters
         ----------
         entry_dct: Dict
 
         """
-        super().__init__(entry_dct)
+        super().__init__(e_type, true_val, systems)
+        self.true_val = true_val
         assert len(self.get_systems()) == 1
         self._grid: Optional[BaseGrid] = None
 
@@ -253,7 +255,7 @@ class _EntryDens(DFTEntry):
         return "dens"
 
     def get_true_val(self) -> np.ndarray:
-        dens = np.load(self.entry_dct["trueval"])
+        dens = np.load(self.true_val)
         return dens
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
@@ -320,22 +322,22 @@ class _EntryIE(DFTEntry):
     Entry for Ionization Energy (IE)
     """
 
-    def __init__(self, entry_dct):
+    def __init__(self, e_type, true_val, systems):
         """
         Parameters
         ----------
         entry_dct: Dict
 
         """
-        super().__init__(entry_dct)
-        self.entry_dct = entry_dct
+        super().__init__(e_type, true_val, systems)
+        self.true_val = float(true_val)
 
     @property
     def entry_type(self) -> str:
         return "ie"
 
     def get_true_val(self) -> np.ndarray:
-        return (self.entry_dct["true_val"])
+        return (self.true_val)
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         """
@@ -351,8 +353,10 @@ class _EntryIE(DFTEntry):
         -------
         Total Energy of a data object for entry types IE and AE
         """
-        glob = {"systems": qcs, "energy": self.energy}
-        return eval(self["cmd"], glob)
+        e = [m.energy() for m in qcs]
+        return (
+            sum(e) - 2 * e[0]
+        )  #the systems needs to be entered in a specific order for this to work i.e ; main atom/molecule needs to be the first element.
 
 
 class _EntryAE(_EntryIE):
