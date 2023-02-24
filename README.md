@@ -26,7 +26,7 @@ materials science, quantum chemistry, and biology.
 - [Getting Started](#getting-started)
   - [Gitter](#gitter)
 - [About Us](#about-us)
-- [Contributing to DeepChem](/CONTRIBUTING.md)
+- [Contributing to DeepChem](/.github/CONTRIBUTING.md)
 - [Citing DeepChem](#citing-deepchem)
 
 ## Requirements
