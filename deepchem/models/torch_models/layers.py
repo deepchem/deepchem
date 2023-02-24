@@ -74,7 +74,7 @@ class MultilayerPerceptron(nn.Module):
             return x
 
         if self.n_layers == 1:
-            x = self.input_layer(x)
+            x = nn.Linear(self.d_input, self.d_output)(x)
             x = self.activation_fn(x)
             return x
 
