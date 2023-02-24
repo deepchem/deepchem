@@ -2783,6 +2783,7 @@ class WeightedLinearCombo(nn.Module):
                 out_tensor += w * in_tensor
         return out_tensor
 
+
 class SetGather(nn.Module):
     """set2set gather layer for graph-based model
 
@@ -2791,7 +2792,12 @@ class SetGather(nn.Module):
     Torch Equivalent of Keras SetGather layer
     """
 
-    def __init__(self, M : int, batch_size : int, n_hidden : int =100, init='orthogonal', **kwargs):
+    def __init__(self,
+                 M: int,
+                 batch_size: int,
+                 n_hidden: int = 100,
+                 init='orthogonal',
+                 **kwargs):
         """
         Parameters
         ----------
@@ -2811,9 +2817,10 @@ class SetGather(nn.Module):
         self.init = init
 
     def __repr__(self) -> str:
-        return(f'{self.__class__.__name__}(M={self.M}, batch_size={self.batch_size}, n_hidden={self.n_hidden}, init={self.init})')
-    
-    #Check its Working
+        return (
+            f'{self.__class__.__name__}(M={self.M}, batch_size={self.batch_size}, n_hidden={self.n_hidden}, init={self.init})'
+        )
+
     def get_config(self):
         config = super(SetGather, self).get_config()
         config['M'] = self.M
@@ -2821,16 +2828,18 @@ class SetGather(nn.Module):
         config['n_hidden'] = self.n_hidden
         config['init'] = self.init
         return config
-    
+
     def build(self, input_shape):
+
         def init(input_shape):
-            return nn.Parameter(torch.Tensor(input_shape[0], input_shape[1]).normal_(mean=0.0, std=0.1))
+            return nn.Parameter(
+                torch.Tensor(input_shape[0], input_shape[1]).normal_(mean=0.0,
+                                                                     std=0.1))
 
         self.U = init((2 * self.n_hidden, 4 * self.n_hidden))
-        self.b = nn.Parameter(torch.cat(
-            (torch.zeros(self.n_hidden), torch.ones(self.n_hidden),
-             torch.zeros(self.n_hidden), torch.zeros(self.n_hidden))
-        ))
+        self.b = nn.Parameter(
+            torch.cat((torch.zeros(self.n_hidden), torch.ones(self.n_hidden),
+                       torch.zeros(self.n_hidden), torch.zeros(self.n_hidden))))
         self.built = True
 
     def forward(self, inputs):
@@ -2844,15 +2853,19 @@ class SetGather(nn.Module):
 
         for i in range(self.M):
             q_expanded = h[atom_split]
-            q = self.atom_features_linear(q_expanded)
             e = (atom_features * q_expanded).sum(dim=-1)
             e_mols = torch.split(e, split_size_or_sections=1, dim=1)
             # Add another value(~-Inf) to prevent error in softmax
             e_mols = [
-                torch.cat([e_mol, torch.tensor([-1000.])], dim=0) for e_mol in e_mols
+                torch.cat([e_mol, torch.tensor([-1000.])], dim=0)
+                for e_mol in e_mols
             ]
-            a = torch.cat([torch.nn.functional.softmax(e_mol[:-1], dim=0) for e_mol in e_mols], dim=0)
-            
+            a = torch.cat([
+                torch.nn.functional.softmax(e_mol[:-1], dim=0)
+                for e_mol in e_mols
+            ],
+                          dim=0)
+
             # reshape the attention weights to a 2D tensor of shape (num_atoms, 1)
             a_2d = a.view(-1, 1)
 
@@ -2861,7 +2874,10 @@ class SetGather(nn.Module):
 
             # perform segmented sum operation along atom_split to get updated feature vectors for each atom
             r = torch.zeros_like(atom_features)
-            r.scatter_add_(dim=0, index=atom_split.unsqueeze(1).expand(-1, atom_features.shape[1]), src=weighted_features)
+            r.scatter_add_(dim=0,
+                           index=atom_split.unsqueeze(1).expand(
+                               -1, atom_features.shape[1]),
+                           src=weighted_features)
 
             # Model using this layer must set `pad_batches=True`
             q_star = torch.cat([h, r], axis=1)
