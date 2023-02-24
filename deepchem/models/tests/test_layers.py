@@ -663,9 +663,8 @@ def test_MultilayerPerceptron():
     torch.manual_seed(0)
     input_ar = torch.tensor([[1., 2.], [5., 6.]])
     layer = torch_layers.MultilayerPerceptron(d_input=2,
-                                              d_hidden=2,
-                                              n_layers=2,
                                               d_output=2,
+                                              d_hidden=(2, 2),
                                               activation_fn='relu',
                                               dropout=0.0)
     result = layer(input_ar)
