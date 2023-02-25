@@ -11,7 +11,7 @@ except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
 
 try:
-    from torch_scatter import scatter_mean
+    from torch_scatter import scatter_mean, scatter_sum
 except ModuleNotFoundError:
     pass
 
@@ -2790,6 +2790,22 @@ class SetGather(nn.Module):
     Models using this layer must set `pad_batches=True`
 
     Torch Equivalent of Keras SetGather layer
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models import layers
+    >>> total_n_atoms = 4
+    >>> n_atom_feat = 4
+    >>> atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
+    >>> atom_split = np.array([0, 0, 0, 1], dtype=np.int32)
+    >>> gather = layers.SetGather(2, 2, n_hidden=4)
+    >>> gather.build()
+    >>> output_molecules = gather([atom_feat, atom_split])
+    >>> print(output_molecules.shape)
+    torch.Size([2, 8])
+
     """
 
     def __init__(self,
@@ -2821,7 +2837,7 @@ class SetGather(nn.Module):
             f'{self.__class__.__name__}(M={self.M}, batch_size={self.batch_size}, n_hidden={self.n_hidden}, init={self.init})'
         )
 
-    def build(self, input_shape):
+    def build(self):
 
         def init(input_shape):
             return nn.Parameter(
@@ -2844,41 +2860,40 @@ class SetGather(nn.Module):
         h = torch.zeros((self.batch_size, self.n_hidden))
 
         for i in range(self.M):
-            q_expanded = h[atom_split]
-            e = (atom_features * q_expanded).sum(dim=-1)
-            e_mols = torch.split(e, split_size_or_sections=1, dim=1)
+            q_expanded = h[atom_split]  # Fine
+            e = (torch.from_numpy(atom_features) * q_expanded).sum(
+                dim=-1
+            )  # Fine - Array to tensor [May cause BE error] [not done in TF]
+            e_mols = self.dynamic_partition(e, atom_split,
+                                            self.batch_size)  # Fine
+
             # Add another value(~-Inf) to prevent error in softmax
             e_mols = [
                 torch.cat([e_mol, torch.tensor([-1000.])], dim=0)
                 for e_mol in e_mols
-            ]
+            ]  # Fine
             a = torch.cat([
                 torch.nn.functional.softmax(e_mol[:-1], dim=0)
                 for e_mol in e_mols
             ],
-                          dim=0)
+                          dim=0)  # Fine
 
-            # reshape the attention weights to a 2D tensor of shape (num_atoms, 1)
-            a_2d = a.view(-1, 1)
-
-            # element-wise multiplication of atom features with attention weights
-            weighted_features = a_2d * atom_features
-
-            # perform segmented sum operation along atom_split to get updated feature vectors for each atom
-            r = torch.zeros_like(atom_features)
-            r.scatter_add_(dim=0,
-                           index=atom_split.unsqueeze(1).expand(
-                               -1, atom_features.shape[1]),
-                           src=weighted_features)
+            # Doubt check this line - Do it works same as TF
+            r = scatter_sum(torch.reshape(a, [-1, 1]) * atom_features,
+                            torch.from_numpy(atom_split).type_as(
+                                torch.tensor([1], dtype=torch.long)),
+                            dim=1)
 
             # Model using this layer must set `pad_batches=True`
-            q_star = torch.cat([h, r], axis=1)
+            q_star = torch.cat(
+                [h, torch.reshape(r, [self.batch_size, self.n_hidden])], axis=1)
             h, c = self.LSTMStep(q_star, c)
         return q_star
 
     def LSTMStep(self, h, c, x=None):
-        # Perform one step of LSTM
-        z = torch.mm(h, self.U) + self.b
+        # z = torch.mm(h, self.U) + self.b
+        z = F.linear(h.float().detach(),
+                     self.U.float().T.detach(), self.b.detach())
         i = torch.sigmoid(z[:, :self.n_hidden])
         f = torch.sigmoid(z[:, self.n_hidden:2 * self.n_hidden])
         o = torch.sigmoid(z[:, 2 * self.n_hidden:3 * self.n_hidden])
@@ -2886,3 +2901,12 @@ class SetGather(nn.Module):
         c_out = f * c + i * torch.tanh(z3)
         h_out = o * torch.tanh(c_out)
         return h_out, c_out
+
+    def dynamic_partition(self, input_tensor, partition_tensor, num_partitions):
+        # create a boolean mask for each partition
+        partition_masks = [partition_tensor == i for i in range(num_partitions)]
+
+        # partition the input tensor using the masks
+        partitions = [input_tensor[mask] for mask in partition_masks]
+
+        return partitions
