@@ -2821,14 +2821,6 @@ class SetGather(nn.Module):
             f'{self.__class__.__name__}(M={self.M}, batch_size={self.batch_size}, n_hidden={self.n_hidden}, init={self.init})'
         )
 
-    def get_config(self):
-        config = super(SetGather, self).get_config()
-        config['M'] = self.M
-        config['batch_size'] = self.batch_size
-        config['n_hidden'] = self.n_hidden
-        config['init'] = self.init
-        return config
-
     def build(self, input_shape):
 
         def init(input_shape):
