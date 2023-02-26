@@ -666,11 +666,11 @@ def test_MultilayerPerceptron():
                                               d_output=2,
                                               d_hidden=(2, 2),
                                               activation_fn='relu',
-                                              dropout=0.0)
+                                              dropout=0.0,
+                                              skip_connection=False)
     result = layer(input_ar)
     output_ar = torch.tensor([[[0.2795, 0.4243], [0.2795, 0.4243]]])
     assert torch.allclose(result, output_ar, atol=1e-4)
-
 
 @pytest.mark.torch
 def test_position_wise_feed_forward_dropout_at_input():

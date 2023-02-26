@@ -38,7 +38,8 @@ class MultilayerPerceptron(nn.Module):
                  d_output: int,
                  d_hidden: Optional[tuple] = None,
                  dropout: float = 0.0,
-                 activation_fn: ActivationFn = 'relu'):
+                 activation_fn: ActivationFn = 'relu',
+                 skip_connection: bool = False):
         """Initialize the model.
 
         Parameters
@@ -53,6 +54,8 @@ class MultilayerPerceptron(nn.Module):
             the dropout probability
         activation_fn: str
             the activation function to use in the hidden layers
+        skip_connection: bool
+            whether to add a skip connection from the input to the output
         """
         super(MultilayerPerceptron, self).__init__()
         self.d_input = d_input
@@ -61,6 +64,7 @@ class MultilayerPerceptron(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.activation_fn = get_activation(activation_fn)
         self.model = nn.Sequential(*self.build_layers())
+        self.skip = nn.Linear(d_input, d_output) if skip_connection else None
 
     def build_layers(self):
         layer_list = []
@@ -74,13 +78,15 @@ class MultilayerPerceptron(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         """Forward pass of the model."""
-
+        input = x
         for layer in self.model:
             x = layer(x)
             if isinstance(layer, nn.Linear):
                 x = self.activation_fn(x)
-        return x
-
+        if self.skip is not None:
+            return x + self.skip(input)
+        else:
+            return x
 
 class CNNModule(nn.Module):
     """A 1, 2, or 3 dimensional convolutional network for either regression or classification.
