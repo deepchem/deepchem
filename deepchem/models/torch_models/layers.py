@@ -2885,8 +2885,7 @@ class SetGather(nn.Module):
                             dim=1)
 
             # Model using this layer must set `pad_batches=True`
-            q_star = torch.cat(
-                [h, torch.reshape(r, [self.batch_size, self.n_hidden])], axis=1)
+            q_star = torch.cat([h, r], axis=1)
             h, c = self.LSTMStep(q_star, c)
         return q_star
 
