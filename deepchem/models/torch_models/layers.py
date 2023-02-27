@@ -15,8 +15,8 @@ try:
 except ModuleNotFoundError:
     pass
 
-#from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
-#from deepchem.utils.pytorch_utils import get_activation
+from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
+from deepchem.utils.pytorch_utils import get_activation
 from torch.nn import init as initializers
 from torch_scatter import segment_coo
 
@@ -2822,7 +2822,7 @@ class EdgeNetwork(nn.Module):
                  n_hidden: int=100,
                  init: str='xavier_uniform_',
                  **kwargs):
-        '''initalise a EdgeNetwork Layer
+        """initalise a EdgeNetwork Layer
         Parameters
         ----------
         n_pair_features: int, optional
@@ -2831,7 +2831,7 @@ class EdgeNetwork(nn.Module):
             number of hidden units in the passing phase
         init: str, optional
             Initialization function to be used in the message passing layer.
-        '''
+        """
         
         super(EdgeNetwork, self).__init__(**kwargs)
         self.n_pair_features: int = n_pair_features
@@ -2863,11 +2863,10 @@ class EdgeNetwork(nn.Module):
         atom_features: torch.Tensor
         atom_to_pair: torch.Tensor
         pair_features, atom_features, atom_to_pair = inputs
-        A: torch.Tensor = torch.add(torch.matmul(pair_features, self.W), self.b)           # (None, n_hidden*n_hidden)
-        A = torch.reshape(A, (-1, self.n_hidden, self.n_hidden))                           # (None, n_hidden, n_hidden)
-        out: torch.Tensor = torch.unsqueeze(atom_features[atom_to_pair[:, 1]], 2)          # (None, n_hidden, 1)
-        out = torch.squeeze(torch.matmul(A, out), axis=2)                                  # (None, n_hidden)
-        sorted, indices = torch.sort(atom_to_pair[:,0])                                     
-        out_tensor = segment_coo(out, sorted, reduce="sum")                                # (None, n_hidden)
+        A: torch.Tensor = torch.add(torch.matmul(pair_features, self.W), self.b)  
+        A = torch.reshape(A, (-1, self.n_hidden, self.n_hidden))                    
+        out: torch.Tensor = torch.unsqueeze(atom_features[atom_to_pair[:, 1]], 2)           
+        out = torch.squeeze(torch.matmul(A, out), axis=2) 
+        out_tensor = segment_coo(out, atom_to_pair[:, 0], reduce="sum")                                                   
         return out_tensor
     
