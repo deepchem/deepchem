@@ -151,6 +151,14 @@ On the other hand, the graph convolution models which inherit :code:`TorchModel`
 .. autoclass:: deepchem.feat.graph_data.GraphData
   :members:
 
+Density Functional Theory Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+These Data classes are used to create entry objects for DFT calculations.
+
+.. autoclass:: deepchem.data.dftdata.DFTSystem
+   :members:
+.. autoclass:: deepchem.data.dftdata.DFTEntry
+   :members:
 
 Base Classes (for develop)
 --------------------------
