@@ -658,7 +658,10 @@ def test_position_wise_feed_forward():
 
 
 @pytest.mark.torch
-def test_MultilayerPerceptron():
+@pytest.mark.parametrize('skip_connection,expected',
+                          [(False, torch.tensor([[[0.2795, 0.4243], [0.2795, 0.4243]]])),
+                           (True, torch.tensor([[-0.9612, 2.3846], [-4.1104, 5.7606]]))])
+def test_MultilayerPerceptron(skip_connection, expected):
     """Test invoking MLP."""
     torch.manual_seed(0)
     input_ar = torch.tensor([[1., 2.], [5., 6.]])
@@ -667,11 +670,11 @@ def test_MultilayerPerceptron():
                                               d_hidden=(2, 2),
                                               activation_fn='relu',
                                               dropout=0.0,
-                                              skip_connection=False)
+                                              skip_connection=skip_connection)
     result = layer(input_ar)
-    output_ar = torch.tensor([[[0.2795, 0.4243], [0.2795, 0.4243]]])
+    output_ar = expected
     assert torch.allclose(result, output_ar, atol=1e-4)
-    
+
 
 @pytest.mark.torch
 def test_position_wise_feed_forward_dropout_at_input():

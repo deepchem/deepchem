@@ -30,7 +30,6 @@ class MultilayerPerceptron(nn.Module):
     >>> out = model(x)
     >>> print(out.shape)
     torch.Size([2, 2])
-
     """
 
     def __init__(self,
@@ -65,7 +64,7 @@ class MultilayerPerceptron(nn.Module):
         self.activation_fn = get_activation(activation_fn)
         self.model = nn.Sequential(*self.build_layers())
         self.skip = nn.Linear(d_input, d_output) if skip_connection else None
-        
+
     def build_layers(self):
         layer_list = []
         layer_dim = self.d_input
@@ -88,6 +87,7 @@ class MultilayerPerceptron(nn.Module):
             return x + self.skip(input)
         else:
             return x
+
 
 class CNNModule(nn.Module):
     """A 1, 2, or 3 dimensional convolutional network for either regression or classification.
