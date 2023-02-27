@@ -12,12 +12,9 @@ except ModuleNotFoundError:
 def test_entryDM():
     e_type= 'dm'
     true_val= 'deepchem/data/tests/dftHF_output.npy'
-    systems = [{
-            'type': 'mol',
-            'kwargs': {
+    systems = [ {
                 'moldesc': 'H 0.86625 0 0; F -0.86625 0 0',
                 'basis': '6-311++G(3df,3pd)'
-            }
         }]
     dm_entry_for_HF = DFTEntry.create(e_type , true_val , systems)
     assert dm_entry_for_HF.entry_type == 'dm'
@@ -36,26 +33,17 @@ def test_entryDM():
 def test_entryAE():
     e_type = 'ae'
     true_val= '0.09194410469'
-    systems =  [{
-            'type': 'mol',
-            'kwargs': {
+    systems =  [ {
                 'moldesc': 'Li 1.5070 0 0; H -1.5070 0 0',
                 'basis': '6-311++G(3df,3pd)'
-            }
-        }, {
-            'type': 'mol',
-            'kwargs': {
+        },{
                 'moldesc': 'Li 0 0 0',
                 'basis': '6-311++G(3df,3pd)',
                 'spin': 1
-            }
         }, {
-            'type': 'mol',
-            'kwargs': {
                 'moldesc': 'H 0 0 0',
                 'basis': '6-311++G(3df,3pd)',
                 'spin': 1
-            }
         }]
     ae_entry_for_LiH = DFTEntry.create(e_type , true_val , systems)
     assert ae_entry_for_LiH.entry_type == 'ae'

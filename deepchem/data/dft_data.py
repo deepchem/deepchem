@@ -59,6 +59,8 @@ class DFTSystem():
 
     def __init__(self, system: Dict):
         self.system = system
+        self.moldesc = system["moldesc"]
+        self.basis = system["basis"]
         """
         Parameters
         ----------
@@ -75,16 +77,11 @@ class DFTSystem():
         pos_reqgrad: bool
             decides if the atomic position require gradient calculation.
         """
-        systype = self.system["type"]
-        if systype == "mol":
-            atomzs, atomposs = dqc.parse_moldesc(
-                self.system["kwargs"]["moldesc"])
-            if pos_reqgrad:
-                atomposs.requires_grad_()
-            mol = Mol(**self.system["kwargs"])
-            return mol
-        else:
-            raise RuntimeError("Unknown system type: %s" % systype)
+        atomzs, atomposs = dqc.parse_moldesc(self.moldesc)
+        if pos_reqgrad:
+            atomposs.requires_grad_()
+        mol = Mol(self.moldesc, self.basis)
+        return mol
 
 
 class DFTEntry():
