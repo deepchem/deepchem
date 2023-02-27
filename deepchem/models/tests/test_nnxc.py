@@ -19,7 +19,6 @@ class DummyModel(torch.nn.Module):
 
 def test_nnlda():
     torch.manual_seed(42)
-    # It works only for n = 2. Not sure why. Value taken from
     # https://github.com/diffqc/dqc/blob/742eb2576418464609f942def4fb7c3bbdc0cd82/dqc/test/test_xc.py#L15
     n = 2
     model = DummyModel(n)
