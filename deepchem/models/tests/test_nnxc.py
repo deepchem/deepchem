@@ -2,7 +2,7 @@ try:
     from deepchem.models.dft.nnxc import NNLDA, HybridXC
     import torch
     import torch.nn as nn
-    from dqc.utils.datastruct import ValGrad, SpinParam
+    from dqc.utils.datastruct import ValGrad
 except ModuleNotFoundError:
     raise ModuleNotFoundError("This test requires dqc and torch")
 
