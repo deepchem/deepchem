@@ -922,3 +922,43 @@ def test_torch_weighted_linear_combo():
     expected = torch.Tensor(input1) * layer.input_weights[0] + torch.Tensor(
         input2) * layer.input_weights[1]
     assert torch.allclose(result, expected)
+
+
+@pytest.mark.torch
+@pytest.mark.tensorflow
+def test_edge_network():
+    """Test invoking the Torch equivalent of EdgeNetwork."""
+    n_pair_features = 2
+    n_hidden = 2
+    tf_init = 'glorot_uniform'
+    torch_init = 'xavier_uniform_'
+
+    # generate arbitrary features
+    pair_features = np.around(np.float32(np.random.rand(4, 2)), decimals=4)   
+    atom_features = np.around(np.float32(np.random.rand(5, 2)), decimals=4)      
+    atom_to_pair = np.random.randint(size=(4, 2), low=0, high=4)
+
+    # tensors for tensorflow layer
+    tf_pair_features = tf.convert_to_tensor(pair_features, dtype=tf.float32)
+    tf_atom_features = tf.convert_to_tensor(atom_features, dtype=tf.float32)
+    tf_atom_to_pair = tf.convert_to_tensor(atom_to_pair, dtype=tf.int64)
+
+    # tensors for torch layer
+    torch_pair_features = torch.from_numpy(pair_features)
+    torch_atom_features = torch.from_numpy(atom_features)
+    torch_atom_to_pair = torch.from_numpy(atom_to_pair)
+
+    tf_inputs = [tf_pair_features, tf_atom_features, tf_atom_to_pair]
+    torch_inputs = [torch_pair_features, torch_atom_features, torch_atom_to_pair]
+
+    tf_layer = dc.models.layers.EdgeNetwork(n_pair_features, n_hidden, tf_init)
+    torch_layer = torch_layers.EdgeNetwork(n_pair_features, n_hidden, torch_init)
+
+    tf_result = tf_layer(tf_inputs)
+    
+    # assigning tensorflow layer weights to torch layer
+    torch_layer.W = torch.from_numpy(np.array(tf_layer.W))
+    torch_result = torch_layer(torch_inputs)
+    
+    assert tf_result.shape == torch_result.shape
+    assert np.allclose(np.array(tf_result), np.array(torch_result), atol=1e-04)
