@@ -2880,9 +2880,8 @@ class SetGather(nn.Module):
 
             # Doubt check this line - Do it works same as TF
             r = scatter_sum(torch.reshape(a, [-1, 1]) * atom_features,
-                            torch.from_numpy(atom_split).type_as(
-                                torch.tensor([1], dtype=torch.long)),
-                            dim=1)
+                            torch.from_numpy(atom_split).long(),
+                            dim=0)
 
             # Model using this layer must set `pad_batches=True`
             q_star = torch.cat([h, r], axis=1)
