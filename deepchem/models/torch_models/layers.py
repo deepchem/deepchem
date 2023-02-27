@@ -65,15 +65,16 @@ class MultilayerPerceptron(nn.Module):
         self.activation_fn = get_activation(activation_fn)
         self.model = nn.Sequential(*self.build_layers())
         self.skip = nn.Linear(d_input, d_output) if skip_connection else None
-
+        
     def build_layers(self):
         layer_list = []
+        layer_dim = self.d_input
         if self.d_hidden is not None:
             for d in self.d_hidden:
-                layer_list.append(nn.Linear(self.d_input, d))
+                layer_list.append(nn.Linear(layer_dim, d))
                 layer_list.append(self.dropout)
-                self.d_input = d
-        layer_list.append(nn.Linear(self.d_input, self.d_output))
+                layer_dim = d
+        layer_list.append(nn.Linear(layer_dim, self.d_output))
         return layer_list
 
     def forward(self, x: Tensor) -> Tensor:
