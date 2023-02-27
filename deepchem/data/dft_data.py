@@ -4,7 +4,7 @@ Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcc
 """
 from __future__ import annotations
 from abc import abstractmethod, abstractproperty
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional
 import numpy as np
 try:
     import dqc
@@ -23,32 +23,23 @@ class DFTSystem():
     Examples
     --------
     >>> from deepchem.data.dft_data import DFTSystem
-    >>> systems = {'systems': [{
-        'type': 'mol',
-        'kwargs': {
-            'moldesc': 'Li 1.5070 0 0; H -1.5070 0 0',
-            'basis': '6-311++G(3df,3pd)'
-        }
-    }, {
-        'type': 'mol',
-        'kwargs': {
-            'moldesc': 'Li 0 0 0',
-            'basis': '6-311++G(3df,3pd)',
-            'spin': 1
-        }
-    }, {
-        'type': 'mol',
-        'kwargs': {
-            'moldesc': 'H 0 0 0',
-            'basis': '6-311++G(3df,3pd)',
-            'spin': 1
-        }
-    }]}
-    >>> output = DFTSystem.create(systems)
+    >>> systems = [ {
+                'moldesc': 'Li 1.5070 0 0; H -1.5070 0 0',
+                'basis': '6-311++G(3df,3pd)'
+        },{
+                'moldesc': 'Li 0 0 0',
+                'basis': '6-311++G(3df,3pd)',
+                'spin': 1
+        }, {
+                'moldesc': 'H 0 0 0',
+                'basis': '6-311++G(3df,3pd)',
+                'spin': 1
+        }]
+    >>> output = DFTSystem(systems)
 
     Returns
     -------
-    List of dictionaries for all the different atoms/ions/molecules in an entry object.
+    DFTSystem object for all the individual atoms/ions/molecules in an entry object.
 
     References
     ----------
@@ -76,6 +67,10 @@ class DFTSystem():
         ----------
         pos_reqgrad: bool
             decides if the atomic position require gradient calculation.
+        Returns
+        -------
+        mol
+            DQC mol object
         """
         atomzs, atomposs = dqc.parse_moldesc(self.moldesc)
         if pos_reqgrad:
@@ -96,24 +91,13 @@ class DFTEntry():
     Example
     -------
     >>> from deepchem.data.dft_data import DFTEntry
-    >>> data_mol = {
-        'name':
-            'Density matrix of HF',
-        'type':
-            'dm',
-        'cmd':
-            'dm(systems[0])',
-        'true_val':
-            'output.npy',
-        'systems': [{
-            'type': 'mol',
-            'kwargs': {
+    >>> e_type= 'dm'
+    >>> true_val= 'deepchem/data/tests/dftHF_output.npy'
+    >>> systems = [ {
                 'moldesc': 'H 0.86625 0 0; F -0.86625 0 0',
                 'basis': '6-311++G(3df,3pd)'
-            }
         }]
-    }
-    >>> dm_entry_for_HF = DFTEntry.create(data_mol)
+    >>> dm_entry_for_HF = DFTEntry.create(e_type, true_val, systems)
     """
 
     @classmethod
@@ -125,17 +109,26 @@ class DFTEntry():
 
         Parameters
         ----------
-        entry_dct: Dict
-
+        e_type: str
+            Determines the type of calculation to be carried out on the entry
+            object. Accepts the following values: "ae", "ie", "dm", "dens", that            stand for atomization energy, ionization energy, density matrix and
+            density profile respectively.
+        true_val: str
+            Ground state energy values for the entry object as a string (for ae
+            and ie), or a .npy file containing a matrix ( for dm and dens).
+        systems: List[Dict]
+            List of dictionaries contains "moldesc", "basis" and "spin"
+            of all the atoms/molecules. These values are to be entered in
+            the DQC or PYSCF format. The systems needs to be entered in a
+            specific order, i.e ; the main atom/molecule needs to be the
+            first element. (This is for objects containing equations, such
+            as ae and ie entry objects).
         Returns
         -------
         obj
             DFTEntry object based on entry type
 
         """
-        #if isinstance(entry_dct, DFTEntry):
-        #    return entry_dct
-
         if e_type == "ae":
             obj = _EntryAE(e_type, true_val, systems)
         elif e_type == "ie":
@@ -145,7 +138,7 @@ class DFTEntry():
         elif e_type == "dens":
             obj = _EntryDens(e_type, true_val, systems)
         else:
-            raise NotImplementedError("Unknown entry type: %s" % tpe)
+            raise NotImplementedError("Unknown entry type: %s" % e_type)
         return obj
 
     def __init__(self, e_type: str, true_val: str, systems: List[Dict]):
@@ -210,7 +203,10 @@ class _EntryDM(DFTEntry):
         """
         Parameters
         ----------
-        entry_dct: Dict
+        e_type: str
+        true_val: str
+           must be a .npy file containing the pre-calculated density matrix
+        systems: List[Dict]
 
         """
         super().__init__(e_type, true_val, systems)
@@ -239,8 +235,10 @@ class _EntryDens(DFTEntry):
         """
         Parameters
         ----------
-        entry_dct: Dict
-
+        e_type: str
+        true_val: str
+           must be a .npy file containing the pre-calculated density profile.
+        systems: List[Dict]
         """
         super().__init__(e_type, true_val, systems)
         self.true_val = true_val
@@ -323,7 +321,9 @@ class _EntryIE(DFTEntry):
         """
         Parameters
         ----------
-        entry_dct: Dict
+        e_type: str
+        true_val: str
+        systems: List[Dict]
 
         """
         super().__init__(e_type, true_val, systems)
@@ -351,9 +351,7 @@ class _EntryIE(DFTEntry):
         Total Energy of a data object for entry types IE and AE
         """
         e = [m.energy() for m in qcs]
-        return (
-            sum(e) - 2 * e[0]
-        )  #the systems needs to be entered in a specific order for this to work i.e ; main atom/molecule needs to be the first element.
+        return (sum(e) - 2 * e[0])
 
 
 class _EntryAE(_EntryIE):
