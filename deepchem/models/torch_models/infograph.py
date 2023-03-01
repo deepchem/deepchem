@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Sequential, Linear, ReLU, GRU
 from deepchem.feat.graph_data import BatchGraphData
+from deepchem.models.torch_models.layers import MultilayerPerceptron
 import math
 
 
@@ -50,29 +51,6 @@ class InfoGraphEncoder(torch.nn.Module):
         return out, feat_map
 
 
-class FF_skip(nn.Module):
-    """
-    A feedforward neural network with a skip connection.
-
-    Parameters
-    ----------
-    input_dim: int
-        Dimension of the input
-    dim: int
-        Dimension of the embedding
-    """
-
-    def __init__(self, input_dim, dim):
-        super().__init__()
-        self.block = nn.Sequential(nn.Linear(input_dim, dim), nn.ReLU(),
-                                   nn.Linear(dim, dim), nn.ReLU(),
-                                   nn.Linear(dim, dim), nn.ReLU())
-        self.skip = nn.Linear(input_dim, dim)
-
-    def forward(self, x):
-        return self.block(x) + self.skip(x)
-
-
 class InfoGraphModel(ModularTorchModel):
     """
     Infograph is a semi-supervised graph convolutional network for predicting molecular properties.
@@ -80,6 +58,10 @@ class InfoGraphModel(ModularTorchModel):
     representations of substructures of different scales. It does this by producing graph-level
     encodings and substructure encodings, and then using a discriminator to classify if they
     are from the same molecule or not.
+
+    To conduct training in unsupervised mode, use_unsup_loss should be True and separate_encoder
+    should be set to False. For semi-supervised training, use_unsup_loss should be True and
+    separate_encoder should be True. For supervised training, use_unsup_loss should be False.
 
     References
     ----------
@@ -148,23 +130,29 @@ class InfoGraphModel(ModularTorchModel):
     def build_components(self):
         return {
             'encoder':
-                InfoGraphEncoder(self.num_features, self.edge_features,
-                                 self.embedding_dim),
+            InfoGraphEncoder(self.num_features, self.edge_features,
+                             self.embedding_dim),
             'unsup_encoder':
-                InfoGraphEncoder(self.num_features, self.edge_features,
-                                 self.embedding_dim),
+            InfoGraphEncoder(self.num_features, self.edge_features,
+                             self.embedding_dim),
             'ff1':
-                FF_skip(2 * self.embedding_dim, self.embedding_dim),
+            MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                 (self.embedding_dim)),
             'ff2':
-                FF_skip(2 * self.embedding_dim, self.embedding_dim),
+            MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                 (self.embedding_dim)),
             'fc1':
-                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+            torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
             'fc2':
-                torch.nn.Linear(self.embedding_dim, 1),
+            torch.nn.Linear(self.embedding_dim, 1),
             'local_d':
-                FF_skip(self.embedding_dim, self.embedding_dim),
+            MultilayerPerceptron(self.embedding_dim,
+                                 self.embedding_dim, (self.embedding_dim),
+                                 skip_connection=True),
             'global_d':
-                FF_skip(2 * self.embedding_dim, self.embedding_dim)
+            MultilayerPerceptron(2 * self.embedding_dim,
+                                 self.embedding_dim, (self.embedding_dim),
+                                 skip_connection=True),
         }
 
     def build_model(self):
