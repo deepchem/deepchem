@@ -22,7 +22,7 @@ from torch.nn import init as initializers
 
 class MultilayerPerceptron(nn.Module):
     """A simple fully connected feed-forward network, otherwise known as a multilayer perceptron (MLP).
-
+    
     Examples
     --------
     >>> model = MultilayerPerceptron(d_input=10, d_hidden=(2,3), d_output=2, dropout=0.0, activation_fn='relu')
@@ -669,9 +669,9 @@ class MATEncoderLayer(nn.Module):
         self.self_attn = MultiHeadedMATAttention(dist_kernel, lambda_attention,
                                                  lambda_distance, h, sa_hsize,
                                                  sa_dropout_p, output_bias)
-        self.feed_forward = PositionwiseFeedForward(d_input, d_hidden, d_output,
-                                                    activation, n_layers,
-                                                    ff_dropout_p)
+        self.feed_forward = PositionwiseFeedForward(d_input, d_hidden,
+                                                    d_output, activation,
+                                                    n_layers, ff_dropout_p)
         layer = SublayerConnection(size=encoder_hsize,
                                    dropout_p=encoder_dropout_p)
         self.sublayer = nn.ModuleList([layer for _ in range(2)])
@@ -852,7 +852,8 @@ class PositionwiseFeedForward(nn.Module):
 
         self.linears = nn.ModuleList(self.linears)
         dropout_layer = nn.Dropout(dropout_p)
-        self.dropout_p = nn.ModuleList([dropout_layer for _ in range(n_layers)])
+        self.dropout_p = nn.ModuleList(
+            [dropout_layer for _ in range(n_layers)])
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Output Computation for the PositionwiseFeedForward layer.
@@ -1139,9 +1140,9 @@ class GraphNetwork(torch.nn.Module):
         edge_features_mean_by_node = scatter_mean(edge_features,
                                                   dst_index,
                                                   dim=0)
-        out = torch.cat(
-            (node_features, edge_features_mean_by_node, global_features[batch]),
-            dim=1)
+        out = torch.cat((node_features, edge_features_mean_by_node,
+                         global_features[batch]),
+                        dim=1)
         for model in self.node_models:
             out = model(out)
         return self.node_dense(out)
@@ -1611,8 +1612,8 @@ class DMPNNEncoderLayer(nn.Module):
         atoms_hidden_states: torch.Tensor
             Tensor containing atom hidden states.
         """
-        messages_to_atoms: torch.Tensor = h_message[atom_to_incoming_bonds].sum(
-            1)  # num_atoms x hidden_size
+        messages_to_atoms: torch.Tensor = h_message[
+            atom_to_incoming_bonds].sum(1)  # num_atoms x hidden_size
         atoms_hidden_states: torch.Tensor = self.W_o(
             torch.cat((atom_features, messages_to_atoms),
                       1))  # num_atoms x hidden_size
@@ -1766,8 +1767,8 @@ class InteratomicL2Distances(nn.Module):
         )
 
     def forward(
-        self, inputs: List[Union[torch.Tensor,
-                                 List[Union[int, float]]]]) -> torch.Tensor:
+        self, inputs: List[Union[torch.Tensor, List[Union[int, float]]]]
+    ) -> torch.Tensor:
         """Invokes this layer.
 
         Parameters
@@ -2034,7 +2035,7 @@ class NeighborList(nn.Module):
 
         # List of length N_atoms, each element of different length uniques_i
         nbrs = self.get_atoms_in_nbrs(coords, cells)
-        padding = torch.full((self.M_nbrs,), -1)
+        padding = torch.full((self.M_nbrs, ), -1)
         padded_nbrs = [
             torch.concat([unique_nbrs, padding], 0) for unique_nbrs in nbrs
         ]
@@ -2050,7 +2051,8 @@ class NeighborList(nn.Module):
         coord_padding = torch.full((self.M_nbrs, self.ndim),
                                    2 * self.stop).to(torch.float)
         padded_nbr_coords = [
-            torch.cat([nbr_coord, coord_padding], 0) for nbr_coord in nbr_coords
+            torch.cat([nbr_coord, coord_padding], 0)
+            for nbr_coord in nbr_coords
         ]
 
         # List of length N_atoms, each of shape (1, ndim)
@@ -2153,8 +2155,8 @@ class NeighborList(nn.Module):
         closest_inds: torch.Tensor
             Of shape (n_cells, M_nbrs)
         """
-        N_atoms, n_cells, ndim, M_nbrs = (self.N_atoms, self.n_cells, self.ndim,
-                                          self.M_nbrs)
+        N_atoms, n_cells, ndim, M_nbrs = (self.N_atoms, self.n_cells,
+                                          self.ndim, self.M_nbrs)
         # Tile both cells and coords to form arrays of size (N_atoms*n_cells, ndim)
         tiled_cells = torch.reshape(torch.tile(cells, (1, N_atoms)),
                                     (N_atoms * n_cells, ndim))
@@ -2691,8 +2693,8 @@ class CombineMeanStd(nn.Module):
 
         mean_parent, std_parent = torch.tensor(inputs[0]), torch.tensor(
             inputs[1])
-        noise_scale = torch.tensor(training or
-                                   not self.training_only).to(torch.float)
+        noise_scale = torch.tensor(training
+                                   or not self.training_only).to(torch.float)
         sample_noise = torch.normal(0.0, self.noise_epsilon, mean_parent.shape)
         return mean_parent + noise_scale * std_parent * sample_noise
 
@@ -2711,9 +2713,9 @@ class GatedRecurrentUnit(nn.Module):
         self.Uz = init(torch.empty(n_hidden, n_hidden))
         self.Ur = init(torch.empty(n_hidden, n_hidden))
         self.Uh = init(torch.empty(n_hidden, n_hidden))
-        self.bz = torch.zeros((n_hidden,))
-        self.br = torch.zeros((n_hidden,))
-        self.bh = torch.zeros((n_hidden,))
+        self.bz = torch.zeros((n_hidden, ))
+        self.br = torch.zeros((n_hidden, ))
+        self.bh = torch.zeros((n_hidden, ))
 
     def forward(self, inputs):
         sigmoid = get_activation('sigmoid')
@@ -2765,8 +2767,8 @@ class WeightedLinearCombo(nn.Module):
         )
 
     def forward(
-        self, inputs: Sequence[Union[ArrayLike,
-                                     torch.Tensor]]) -> Optional[torch.Tensor]:
+        self, inputs: Sequence[Union[ArrayLike, torch.Tensor]]
+    ) -> Optional[torch.Tensor]:
         """
         Parameters
         ----------
