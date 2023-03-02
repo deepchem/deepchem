@@ -11,13 +11,16 @@ from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator
 
 import pandas as pd
 import numpy as np
-
+import yaml
+from yaml.loader import SafeLoader
 from deepchem.utils.typing import OneOrMany
 from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files, unzip_file
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 from deepchem.utils.genomics_utils import encode_bio_sequence
+
+from deepchem.data.dft_data import DFTEntry
 
 logger = logging.getLogger(__name__)
 
@@ -1613,3 +1616,23 @@ class InMemoryLoader(DataLoader):
             ids.append(entry_id)
         X = np.concatenate(features, axis=0)
         return X, np.array(labels), np.array(weights), np.array(ids)
+
+class DFTYamlLoader(DataLoader):
+    def __init__(self,
+                 featurizer: Featurizer):
+        tasks = None
+    def create_dataset(self, input_files: str, featurizer):
+        entries = self._get_shards(input_files)
+        y = np.array([self._featurize_shard(shard) for shard in entries] )
+        return y 
+        
+    def _get_shards(self, input_files):
+        with open(input_files) as f:
+            data = yaml.load(f, Loader=SafeLoader)
+        return(data)
+    def _featurize_shard(self,
+                         shard):
+        e_type = shard['e_type']
+        true_val =  shard['true_val']
+        systems =  shard['systems']
+        return(DFTEntry.create(e_type, true_val, systems))
