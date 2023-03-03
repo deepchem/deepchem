@@ -1,9 +1,20 @@
+import deepchem as dc
+from deepchem.feat import MolGraphConvFeaturizer
 import pytest
+import os
 
 
 @pytest.mark.torch
 def gen_dataset():
-    x, edge_index, edge_attr, y = gen_data()
+    # load sample dataset
+    dir = os.path.dirname(os.path.abspath(__file__))
+    input_file = os.path.join(dir, 'assets/example_classification.csv')
+    loader = dc.data.CSVLoader(tasks=["outcome"],
+                               feature_field="smiles",
+                               featurizer=MolGraphConvFeaturizer())
+    dataset = loader.create_dataset(input_file)
+    return dataset
+
 
 @pytest.mark.torch
 def test_GINConv():
