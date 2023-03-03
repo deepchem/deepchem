@@ -1,12 +1,13 @@
 import deepchem as dc
 from deepchem.feat import MolGraphConvFeaturizer
-from deepchem.feat.graph_data import BatchGraphData
+from deepchem.feat.graph_data import GraphData
 import pytest
 import os
 
 
 @pytest.mark.torch
 def gen_dataset():
+    # import torch
     # load sample dataset
     dir = os.path.dirname(os.path.abspath(__file__))
     # input_file = os.path.join(dir, '../../assets/example_classification.csv')
@@ -16,17 +17,18 @@ def gen_dataset():
     loader = dc.data.CSVLoader(tasks=["outcome"],
                                feature_field="smiles",
                                featurizer=MolGraphConvFeaturizer(use_edges=True))
+    # need to implement simple GraphFeaturizer to take in smiles and output GraphData
     dataset = loader.create_dataset(path)
-    batch = BatchGraphData(graph_list=dataset.X)
-    return batch
+    dataset = [mol.to_pyg_graph() for mol in dataset.X]
+    return dataset
 
 
 @pytest.mark.torch
 def test_GINConv():
     from deepchem.models.torch_models.mp_layers import GINConv
     layer = GINConv(emb_dim=10)
-    batch = gen_dataset()
-    output = layer(batch.node_features, batch.edge_index, batch.node_features)
+    dataset = gen_dataset()[0]
+    output = layer(dataset.x, dataset.edge_index, dataset.edge_attr)
     print(output)
 test_GINConv()
 
