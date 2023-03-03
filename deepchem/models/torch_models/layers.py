@@ -2797,30 +2797,30 @@ class WeightedLinearCombo(nn.Module):
             else:
                 out_tensor += w * in_tensor
         return out_tensor
-    
+
 
 class EdgeNetwork(nn.Module):
-    """ Submodule for Message Passing 
+    """ Submodule for Message Passing
 
     Examples
     --------
-    >>> pair_features = torch.rand((8, 4), dtype=torch.float32)           
-    >>> atom_features = torch.rand((10, 5), dtype=torch.float32)          
-    >>> atom_to_pair = torch.randint(size=(8, 2), low=0, high=8)
+    >>> pair_features = torch.rand((4, 2), dtype=torch.float32)
+    >>> atom_features = torch.rand((5, 2), dtype=torch.float32)
+    >>> atom_to_pair = torch.randint(size=(4, 2), low=0, high=4)
     >>> inputs = [pair_features, atom_features, atom_to_pair]
-    >>> n_pair_features = 4
-    >>> n_hidden = 5
+    >>> n_pair_features = 2
+    >>> n_hidden = 2
     >>> init = 'xavier_uniform_'
     >>> layer = EdgeNetwork(n_pair_features, n_hidden, init)
     >>> result = layer(inputs)
-    >>> result.shape
-    torch.Size([8, 5])
+    >>> result.shape[1]
+    2
     """
 
     def __init__(self,
-                 n_pair_features: int=8,
-                 n_hidden: int=100,
-                 init: str='xavier_uniform_',
+                 n_pair_features: int = 8,
+                 n_hidden: int = 100,
+                 init: str = 'xavier_uniform_',
                  **kwargs):
         """initalise a EdgeNetwork Layer
         Parameters
@@ -2832,21 +2832,22 @@ class EdgeNetwork(nn.Module):
         init: str, optional
             Initialization function to be used in the message passing layer.
         """
-        
+
         super(EdgeNetwork, self).__init__(**kwargs)
         self.n_pair_features: int = n_pair_features
         self.n_hidden: int = n_hidden
         self.init: str = init
 
-        init = getattr(initializers, self.init)
-        self.W: torch.Tensor = init(torch.empty([self.n_pair_features, self.n_hidden * self.n_hidden]))
+        init_func: Callable = getattr(initializers, self.init)
+        self.W: torch.Tensor = init_func(
+            torch.empty([self.n_pair_features, self.n_hidden * self.n_hidden]))
         self.b: torch.Tensor = torch.zeros((self.n_hidden * self.n_hidden,))
         self.built: bool = True
 
     def __repr__(self) -> str:
         return (
-        f'{self.__class__.__name__}(n_pair_features:{self.n_pair_features},n_hidden:{self.n_hidden},init:{self.init})'
-    )
+            f'{self.__class__.__name__}(n_pair_features:{self.n_pair_features},n_hidden:{self.n_hidden},init:{self.init})'
+        )
 
     def forward(self, inputs: List[torch.Tensor]) -> torch.Tensor:
         """
@@ -2863,10 +2864,10 @@ class EdgeNetwork(nn.Module):
         atom_features: torch.Tensor
         atom_to_pair: torch.Tensor
         pair_features, atom_features, atom_to_pair = inputs
-        A: torch.Tensor = torch.add(torch.matmul(pair_features, self.W), self.b)  
-        A = torch.reshape(A, (-1, self.n_hidden, self.n_hidden))                    
-        out: torch.Tensor = torch.unsqueeze(atom_features[atom_to_pair[:, 1]], 2)           
-        out = torch.squeeze(torch.matmul(A, out), axis=2) 
-        out_tensor = segment_coo(out, atom_to_pair[:, 0], reduce="sum")                                                   
+        A: torch.Tensor = torch.add(torch.matmul(pair_features, self.W), self.b)
+        A = torch.reshape(A, (-1, self.n_hidden, self.n_hidden))
+        out: torch.Tensor = torch.unsqueeze(atom_features[atom_to_pair[:, 1]],
+                                            dim=2)
+        out_squeeze: torch.Tensor = torch.squeeze(torch.matmul(A, out), dim=2)
+        out_tensor = segment_coo(out_squeeze, atom_to_pair[:, 0], reduce="sum")
         return out_tensor
-    
