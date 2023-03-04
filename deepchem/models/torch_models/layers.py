@@ -2832,13 +2832,6 @@ class SetGather(nn.Module):
         self.n_hidden = n_hidden
         self.init = init
 
-    def __repr__(self) -> str:
-        return (
-            f'{self.__class__.__name__}(M={self.M}, batch_size={self.batch_size}, n_hidden={self.n_hidden}, init={self.init})'
-        )
-
-    def build(self):
-
         def init(input_shape):
             return nn.Parameter(
                 torch.Tensor(input_shape[0], input_shape[1]).normal_(mean=0.0,
@@ -2849,6 +2842,11 @@ class SetGather(nn.Module):
             torch.cat((torch.zeros(self.n_hidden), torch.ones(self.n_hidden),
                        torch.zeros(self.n_hidden), torch.zeros(self.n_hidden))))
         self.built = True
+
+    def __repr__(self) -> str:
+        return (
+            f'{self.__class__.__name__}(M={self.M}, batch_size={self.batch_size}, n_hidden={self.n_hidden}, init={self.init})'
+        )
 
     def forward(self, inputs):
         """Perform M steps of set2set gather,
@@ -2863,22 +2861,21 @@ class SetGather(nn.Module):
             q_expanded = h[atom_split]  # Fine
             e = (torch.from_numpy(atom_features) * q_expanded).sum(
                 dim=-1
-            )  # Fine - Array to tensor [May cause BE error] [not done in TF]
+            )
             e_mols = self.dynamic_partition(e, atom_split,
-                                            self.batch_size)  # Fine
+                                            self.batch_size)
 
             # Add another value(~-Inf) to prevent error in softmax
             e_mols = [
                 torch.cat([e_mol, torch.tensor([-1000.])], dim=0)
                 for e_mol in e_mols
-            ]  # Fine
+            ]
             a = torch.cat([
                 torch.nn.functional.softmax(e_mol[:-1], dim=0)
                 for e_mol in e_mols
             ],
-                          dim=0)  # Fine
+                          dim=0)
 
-            # Doubt check this line - Do it works same as TF
             r = scatter_sum(torch.reshape(a, [-1, 1]) * atom_features,
                             torch.from_numpy(atom_split).long(),
                             dim=0)
