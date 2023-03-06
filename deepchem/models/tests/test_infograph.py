@@ -39,7 +39,7 @@ def get_regression_dataset():
 
 
 @pytest.mark.torch
-def test_infograph_regression():
+def test_infograph_regression_semisupervised():
     from deepchem.models.torch_models.infograph import InfoGraphModel
     dataset, metric = get_regression_dataset()
     num_feat = max(
@@ -51,8 +51,8 @@ def test_infograph_regression():
     model = InfoGraphModel(num_feat,
                            edge_dim,
                            dim,
-                           use_unsup_loss=False,
-                           separate_encoder=False)
+                           use_unsup_loss=True,
+                           separate_encoder=True)
 
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
@@ -60,30 +60,9 @@ def test_infograph_regression():
 
 
 @pytest.mark.torch
-def test_infograph_classification():
+def test_infograph_regression_unsupervised():
     from deepchem.models.torch_models.infograph import InfoGraphModel
-    dataset, metric = get_classification_dataset()
-    num_feat = max(
-        [dataset.X[i].num_node_features for i in range(len(dataset.X))])
-    edge_dim = max(
-        [dataset.X[i].num_edge_features for i in range(len(dataset.X))])
-    dim = 64
-
-    model = InfoGraphModel(num_feat,
-                           edge_dim,
-                           dim,
-                           use_unsup_loss=False,
-                           separate_encoder=False)
-
-    model.fit(dataset, nb_epoch=100)
-    scores = model.evaluate(dataset, [metric])
-    assert scores['mean-roc_auc_score'] >= 0.9
-
-
-@pytest.mark.torch
-def test_infograph_unsupervised():
-    from deepchem.models.torch_models.infograph import InfoGraphModel
-    dataset, metric = get_classification_dataset()
+    dataset, metric = get_regression_dataset()
     num_feat = max(
         [dataset.X[i].num_node_features for i in range(len(dataset.X))])
     edge_dim = max(
@@ -94,6 +73,27 @@ def test_infograph_unsupervised():
                            edge_dim,
                            dim,
                            use_unsup_loss=True,
+                           separate_encoder=False)
+
+    model.fit(dataset, nb_epoch=100)
+    scores = model.evaluate(dataset, [metric])
+    assert scores['mean_absolute_error'] < 0.1
+
+
+@pytest.mark.torch
+def test_infograph_supervised_classification():
+    from deepchem.models.torch_models.infograph import InfoGraphModel
+    dataset, metric = get_classification_dataset()
+    num_feat = max(
+        [dataset.X[i].num_node_features for i in range(len(dataset.X))])
+    edge_dim = max(
+        [dataset.X[i].num_edge_features for i in range(len(dataset.X))])
+    dim = 64
+
+    model = InfoGraphModel(num_feat,
+                           edge_dim,
+                           dim,
+                           use_unsup_loss=False,
                            separate_encoder=False)
 
     model.fit(dataset, nb_epoch=100)

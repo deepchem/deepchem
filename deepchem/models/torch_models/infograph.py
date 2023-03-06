@@ -130,32 +130,35 @@ class InfoGraphModel(ModularTorchModel):
     def build_components(self):
         return {
             'encoder':
-                InfoGraphEncoder(self.num_features, self.edge_features,
-                                 self.embedding_dim),
+            InfoGraphEncoder(self.num_features, self.edge_features,
+                             self.embedding_dim),
             'unsup_encoder':
-                InfoGraphEncoder(self.num_features, self.edge_features,
-                                 self.embedding_dim),
+            InfoGraphEncoder(self.num_features, self.edge_features,
+                             self.embedding_dim),
             'ff1':
-                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
-                                     (self.embedding_dim,)),
+            MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                 (self.embedding_dim, )),
             'ff2':
-                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
-                                     (self.embedding_dim,)),
+            MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                 (self.embedding_dim, )),
             'fc1':
-                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+            torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
             'fc2':
-                torch.nn.Linear(self.embedding_dim, 1),
+            torch.nn.Linear(self.embedding_dim, 1),
             'local_d':
-                MultilayerPerceptron(self.embedding_dim,
-                                     self.embedding_dim, (self.embedding_dim,),
-                                     skip_connection=True),
+            MultilayerPerceptron(self.embedding_dim,
+                                 self.embedding_dim, (self.embedding_dim, ),
+                                 skip_connection=True),
             'global_d':
-                MultilayerPerceptron(2 * self.embedding_dim,
-                                     self.embedding_dim, (self.embedding_dim,),
-                                     skip_connection=True),
+            MultilayerPerceptron(2 * self.embedding_dim,
+                                 self.embedding_dim, (self.embedding_dim, ),
+                                 skip_connection=True),
         }
 
     def build_model(self):
+        """
+        Builds the InfoGraph model by unpacking the components dictionary and passing them to the InfoGraph nn.module.
+        """
         return InfoGraph(**self.components)
 
     def loss_func(self, inputs, labels, weights):
@@ -181,7 +184,7 @@ class InfoGraphModel(ModularTorchModel):
         l_enc = self.components['local_d'](M)
 
         if self.local:
-            loss = self.local_global_loss_(l_enc, g_enc, inputs.graph_index)
+            loss = self._local_global_loss(l_enc, g_enc, inputs.graph_index)
         return loss
 
     def _prepare_batch(self, batch):
@@ -211,10 +214,10 @@ class InfoGraphModel(ModularTorchModel):
         g_enc = self.components['ff1'](y)
         g_enc1 = self.components['ff2'](y_)
 
-        loss = self.global_global_loss_(g_enc, g_enc1)
+        loss = self._global_global_loss(g_enc, g_enc1)
         return loss
 
-    def local_global_loss_(self, l_enc, g_enc, batch):
+    def _local_global_loss(self, l_enc, g_enc, batch):
         """
         Parameters:
         ----------
@@ -248,7 +251,7 @@ class InfoGraphModel(ModularTorchModel):
 
         return E_neg - E_pos
 
-    def global_global_loss_(self, g_enc, g_enc1):
+    def _global_global_loss(self, g_enc, g_enc1):
         """
         Parameters:
         ----------
