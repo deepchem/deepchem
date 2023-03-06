@@ -75,7 +75,6 @@ class MultilayerPerceptron(nn.Module):
         if self.d_hidden is not None:
             for d in self.d_hidden:
                 layer_list.append(nn.Linear(layer_dim, d))
-                layer_list.append(self.activation_fn())
                 layer_list.append(self.dropout)
                 layer_dim = d
         layer_list.append(nn.Linear(layer_dim, self.d_output))
@@ -86,8 +85,8 @@ class MultilayerPerceptron(nn.Module):
         input = x
         for layer in self.model:
             x = layer(x)
-            # if isinstance(layer, nn.Linear):
-            #     x = self.activation_fn(x)
+            if isinstance(layer, nn.Linear):
+                x = self.activation_fn(x)  # Done because activation_fn is torch.nn.functional
         if self.skip is not None:
             return x + self.skip(input)
         else:
