@@ -402,6 +402,15 @@ class InfoGraph(torch.nn.Module):
                     m.bias.data.fill_(0.0)
 
     def forward(self, data):
+        """
+        Forward pass for InfoGraph.
+
+        Parameters
+        ----------
+        data: Union[GraphData, BatchGraphData]
+            The input data, either a single graph or a batch of graphs.
+        """
+
         out, M = self.encoder(data)
         out = F.relu(self.fc1(out))
         pred = self.fc2(out)
