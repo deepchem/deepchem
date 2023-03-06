@@ -67,10 +67,10 @@ Keras Layers
 
 .. autoclass:: deepchem.models.layers.AlphaShareLayer
   :members:
-  
+
 .. autoclass:: deepchem.models.layers.SluiceLoss
   :members:
-  
+
 .. autoclass:: deepchem.models.layers.BetaShare
   :members:
 
@@ -158,9 +158,29 @@ Torch Layers
   :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.RealNVPLayer
-  :members: 
+  :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.DMPNNEncoderLayer
+  :members:
+
+Grover Layers
+^^^^^^^^^^^^^
+
+The following layers are used for implementing GROVER model as described in the paper `<Self-Supervised  Graph Transformer on Large-Scale Molecular Data <https://drug.ai.tencent.com/publications/GROVER.pdf>_`
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverMPNEncoder
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverAttentionHead
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverMTBlock
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverTransEncoder
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover.GroverEmbedding
   :members:
 
 Attention Layers
