@@ -919,3 +919,27 @@ def test_torch_weighted_linear_combo():
     expected = torch.Tensor(input1) * layer.input_weights[0] + torch.Tensor(
         input2) * layer.input_weights[1]
     assert torch.allclose(result, expected)
+
+@pytest.mark.torch
+@pytest.mark.tensorflow
+def test_set_gather():
+    """Test invoking the Torch Equivalent of SetGather."""
+    total_n_atoms = 4
+    n_atom_feat = 4
+    atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
+    atom_split = np.array([0, 0, 0, 1], dtype=np.int32)
+
+    # Parameters
+    M = 2
+    batch_size = 2
+    n_hidden = 4
+
+    tf_layer = dc.models.layers.SetGather(M, batch_size, n_hidden)
+    tf_result = tf_layer([atom_feat, atom_split])
+
+    torch_layer = torch_layers.SetGather(M, batch_size, n_hidden)
+    torch_layer.U = torch.nn.Parameter(torch.from_numpy(tf_layer.U.numpy()))
+    torch_result = torch_layer([atom_feat, atom_split])
+
+    assert tf_result.shape == torch_result.shape
+    assert np.allclose(np.array(tf_result), np.array(torch_result), atol=1e-4)

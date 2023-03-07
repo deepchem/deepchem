@@ -2799,7 +2799,7 @@ class SetGather(nn.Module):
     >>> total_n_atoms = 4
     >>> n_atom_feat = 4
     >>> atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
-    >>> atom_split = np.array([0, 0, 0, 1], dtype=np.int32)
+    >>> atom_split = np.array([0, 0, 1, 1], dtype=np.int32)
     >>> gather = layers.SetGather(2, 2, n_hidden=4)
     >>> gather.build()
     >>> output_molecules = gather([atom_feat, atom_split])
@@ -2879,9 +2879,10 @@ class SetGather(nn.Module):
             r = scatter_sum(torch.reshape(a, [-1, 1]) * atom_features,
                             torch.from_numpy(atom_split).long(),
                             dim=0)
-
+            #print(r)
             # Model using this layer must set `pad_batches=True`
             q_star = torch.cat([h, r], axis=1)
+            #print(q_star)
             h, c = self.LSTMStep(q_star, c)
         return q_star
 
