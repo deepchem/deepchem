@@ -1,7 +1,6 @@
 from deepchem.feat import MolecularFeaturizer
 from deepchem.utils.typing import RDKitMol
 from rdkit import Chem
-import torch
 import numpy as np
 from deepchem.feat.graph_data import GraphData
 
@@ -18,8 +17,7 @@ allowable_features = {
     'possible_hybridization_list': [
         Chem.rdchem.HybridizationType.S, Chem.rdchem.HybridizationType.SP,
         Chem.rdchem.HybridizationType.SP2, Chem.rdchem.HybridizationType.SP3,
-        Chem.rdchem.HybridizationType.SP3D,
-        Chem.rdchem.HybridizationType.SP3D2,
+        Chem.rdchem.HybridizationType.SP3D, Chem.rdchem.HybridizationType.SP3D2,
         Chem.rdchem.HybridizationType.UNSPECIFIED
     ],
     'possible_numH_list': [0, 1, 2, 3, 4, 5, 6, 7, 8],
@@ -36,14 +34,32 @@ allowable_features = {
 }
 
 
-class SNAPfeaturizer(MolecularFeaturizer):
+class SNAPFeaturizer(MolecularFeaturizer):
+    """
+    This featurizer is based on the SNAP featurizer used in the paper [1].
+
+    References
+    ----------
+    1. Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint
+    at https://doi.org/10.48550/arXiv.1905.12265 (2020).
+
+    """
+
     def _featurize(self, mol: RDKitMol, **kwargs):
         """
-        Converts rdkit mol object to graph Data object required by the pytorch
-        geometric package. NB: Uses simplified atom and bond features, and represent
-        as indices
-        :param mol: rdkit mol object
-        :return: graph data object with the attributes: x, edge_index, edge_attr
+        Converts rdkit mol object to the deepchem Graph Data object. Uses
+        simplified atom and bond features, represented as indices.
+
+        Parameters
+        ----------
+        mol: RDKitMol
+            RDKit molecule object
+
+        Returns
+        -------
+        data: GraphData
+            Graph data object with the attributes: x, edge_index, edge_features
+
         """
         # atoms
         # num_atom_features = 2  # atom type,  chirality tag
@@ -68,7 +84,8 @@ class SNAPfeaturizer(MolecularFeaturizer):
                 i = bond.GetBeginAtomIdx()
                 j = bond.GetEndAtomIdx()
                 edge_feature = [
-                    allowable_features['possible_bonds'].index(bond.GetBondType())
+                    allowable_features['possible_bonds'].index(
+                        bond.GetBondType())
                 ] + [
                     allowable_features['possible_bond_dirs'].index(
                         bond.GetBondDir())
@@ -78,17 +95,17 @@ class SNAPfeaturizer(MolecularFeaturizer):
                 edges_list.append((j, i))
                 edge_features_list.append(edge_feature)
 
-            # data.edge_index: Graph connectivity in COO format with shape [2, num_edges]
+            # Graph connectivity in COO format with shape [2, num_edges]
             edge_index = np.array(edges_list).T
 
-            # data.edge_attr: Edge feature matrix with shape [num_edges, num_edge_features]
-            edge_attr = np.array(edge_features_list)
+            # Edge feature matrix with shape [num_edges, num_edge_features]
+            edge_feats = np.array(edge_features_list)
         else:  # mol has no bonds
-            # edge_index = torch.empty((2, 0), dtype=torch.long)
             edge_index = np.empty((2, 0), dtype=np.long)
-            # edge_attr = torch.empty((0, num_bond_features), dtype=torch.long)
-            edge_attr = np.empty((0, num_bond_features), dtype=np.long)
-            
-        data = GraphData(node_features=x, edge_index=edge_index, edge_features=edge_attr)
+            edge_feats = np.empty((0, num_bond_features), dtype=np.long)
+
+        data = GraphData(node_features=x,
+                         edge_index=edge_index,
+                         edge_features=edge_feats)
 
         return data
