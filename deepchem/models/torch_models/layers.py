@@ -2801,7 +2801,6 @@ class SetGather(nn.Module):
     >>> atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
     >>> atom_split = np.array([0, 0, 1, 1], dtype=np.int32)
     >>> gather = layers.SetGather(2, 2, n_hidden=4)
-    >>> gather.build()
     >>> output_molecules = gather([atom_feat, atom_split])
     >>> print(output_molecules.shape)
     torch.Size([2, 8])
@@ -2832,12 +2831,12 @@ class SetGather(nn.Module):
         self.n_hidden = n_hidden
         self.init = init
 
-        def init(input_shape):
+        def initFunc(input_shape):
             return nn.Parameter(
                 torch.Tensor(input_shape[0], input_shape[1]).normal_(mean=0.0,
                                                                      std=0.1))
 
-        self.U = init((2 * self.n_hidden, 4 * self.n_hidden))
+        self.U = initFunc((2 * self.n_hidden, 4 * self.n_hidden))
         self.b = nn.Parameter(
             torch.cat((torch.zeros(self.n_hidden), torch.ones(self.n_hidden),
                        torch.zeros(self.n_hidden), torch.zeros(self.n_hidden))))
@@ -2859,11 +2858,8 @@ class SetGather(nn.Module):
 
         for i in range(self.M):
             q_expanded = h[atom_split]  # Fine
-            e = (torch.from_numpy(atom_features) * q_expanded).sum(
-                dim=-1
-            )
-            e_mols = self.dynamic_partition(e, atom_split,
-                                            self.batch_size)
+            e = (torch.from_numpy(atom_features) * q_expanded).sum(dim=-1)
+            e_mols = self.dynamic_partition(e, atom_split, self.batch_size)
 
             # Add another value(~-Inf) to prevent error in softmax
             e_mols = [
@@ -2879,10 +2875,8 @@ class SetGather(nn.Module):
             r = scatter_sum(torch.reshape(a, [-1, 1]) * atom_features,
                             torch.from_numpy(atom_split).long(),
                             dim=0)
-            #print(r)
             # Model using this layer must set `pad_batches=True`
             q_star = torch.cat([h, r], axis=1)
-            #print(q_star)
             h, c = self.LSTMStep(q_star, c)
         return q_star
 

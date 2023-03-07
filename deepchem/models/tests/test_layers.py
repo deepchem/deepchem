@@ -920,6 +920,7 @@ def test_torch_weighted_linear_combo():
         input2) * layer.input_weights[1]
     assert torch.allclose(result, expected)
 
+
 @pytest.mark.torch
 @pytest.mark.tensorflow
 def test_set_gather():
