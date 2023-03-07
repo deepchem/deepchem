@@ -14,6 +14,7 @@ extras = {
     'jax': ['jax', 'jaxlib', 'dm-haiku', 'optax'],
     'torch': ['torch', 'torchvision', 'pytorch-lightning', 'dgl', 'dgllife'],
     'tensorflow': ['tensorflow', 'tensorflow_probability', 'tensorflow_addons'],
+    'dqc': ['dqc', 'xitorch', 'torch', 'pylibxc2']
 }
 
 
