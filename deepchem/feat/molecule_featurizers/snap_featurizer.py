@@ -1,5 +1,4 @@
 from deepchem.feat import MolecularFeaturizer
-from deepchem.utils.typing import RDKitMol
 from rdkit import Chem
 import numpy as np
 from deepchem.feat.graph_data import GraphData
@@ -40,12 +39,12 @@ class SNAPFeaturizer(MolecularFeaturizer):
 
     References
     ----------
-    1. Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint
-    at https://doi.org/10.48550/arXiv.1905.12265 (2020).
+
+    .. [1] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
 
     """
 
-    def _featurize(self, mol: RDKitMol, **kwargs):
+    def _featurize(self, mol, **kwargs):
         """
         Converts rdkit mol object to the deepchem Graph Data object. Uses
         simplified atom and bond features, represented as indices.
@@ -101,8 +100,8 @@ class SNAPFeaturizer(MolecularFeaturizer):
             # Edge feature matrix with shape [num_edges, num_edge_features]
             edge_feats = np.array(edge_features_list)
         else:  # mol has no bonds
-            edge_index = np.empty((2, 0), dtype=np.long)
-            edge_feats = np.empty((0, num_bond_features), dtype=np.long)
+            edge_index = np.empty((2, 0), dtype=np.int8)
+            edge_feats = np.empty((0, num_bond_features), dtype=np.int8)
 
         data = GraphData(node_features=x,
                          edge_index=edge_index,
