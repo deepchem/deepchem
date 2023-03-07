@@ -382,6 +382,28 @@ class InfoGraph(torch.nn.Module):
     fc2: torch.nn.Module
         The second fully connected layer for InfoGraph.
 
+
+    Example
+    -------
+    >>> import torch
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models.infograph import InfoGraphModel
+    >>> from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
+    >>> from deepchem.feat.graph_data import BatchGraphData
+    >>> smiles = ['C1=CC=CC=C1', 'C1=CC=CC=C1C2=CC=CC=C2']
+    >>> featurizer = MolGraphConvFeaturizer(use_edges=True)
+    >>> graphs = BatchGraphData(featurizer.featurize(smiles))
+    >>> num_feat = 30
+    >>> num_edge = 11
+    >>> infographmodular = InfoGraphModel(num_feat,num_edge,64,use_unsup_loss=True,separate_encoder=True)
+    >>>  # convert features to torch tensors
+    >>> graphs.edge_features = torch.from_numpy(graphs.edge_features).to(infographmodular.device).float()
+    >>> graphs.edge_index = torch.from_numpy(graphs.edge_index).to(infographmodular.device).long()
+    >>> graphs.node_features = torch.from_numpy(graphs.node_features).to(infographmodular.device).float()
+    >>> graphs.graph_index = torch.from_numpy(graphs.graph_index).to(infographmodular.device).long()
+    >>> model = infographmodular.model
+    >>> output = model(graphs).cpu().detach().numpy()
+
     """
 
     def __init__(self, encoder, unsup_encoder, ff1, ff2, fc1, fc2, local_d,
