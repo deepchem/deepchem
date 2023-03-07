@@ -163,6 +163,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.DMPNNEncoderLayer
   :members:
 
+.. autoclass:: deepchem.models.torch_models.InfoGraphEncoder
+  :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 

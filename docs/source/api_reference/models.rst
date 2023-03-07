@@ -395,12 +395,8 @@ Note that this is an alternative implementation for MPNN and currently you can o
 
 InfoGraphModel
 --------------
-.. autoclass:: deepchem.models.torch_models.InfoGraphModel
-  :members:
 
-InfoGraphEncoder
-----------------
-.. autoclass:: deepchem.models.torch_models.InfoGraphEncoder
+.. autoclass:: deepchem.models.torch_models.InfoGraphModel
   :members:
 
 LCNNModel
