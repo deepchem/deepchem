@@ -1,12 +1,9 @@
 from abc import abstractproperty, abstractmethod
 from typing import Union
-try:
-    from dqc.xc.base_xc import BaseXC
-    from dqc.utils.datastruct import ValGrad, SpinParam
-    from dqc.api.getxc import get_xc
-    import torch
-except ModuleNotFoundError:
-    raise ModuleNotFoundError("This layer requires dqc and torch")
+from dqc.xc.base_xc import BaseXC
+from dqc.utils.datastruct import ValGrad, SpinParam
+from dqc.api.getxc import get_xc
+import torch
 
 
 class BaseNNXC(BaseXC, torch.nn.Module):
@@ -16,17 +13,36 @@ class BaseNNXC(BaseXC, torch.nn.Module):
 
     @abstractproperty
     def family(self) -> int:
+        """
+        This method determines the type of model to be used, to train the 
+        neural network. Currently we only support an LDA based model and will 
+        implement more in subsequent iterations.
+
+        Returns
+        -------
+        xc.family 
+        """  
         pass
 
     @abstractmethod
     def get_edensityxc(
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
+        """
+        This method is used to transform the electron density. The output
+        of this method varies depending on the layer. 
+
+        Parameters
+        ----------
+        densinfo: Union[ValGrad, SpinParam[ValGrad]]
+            Density information calculated using DQC utilities.
+        """
         pass
 
 
 class NNLDA(BaseNNXC):
     """
     Neural network xc functional of LDA (only receives the density as input)
+
     """
 
     def __init__(self,
