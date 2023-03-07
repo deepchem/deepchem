@@ -94,12 +94,6 @@ GroverFeaturizer
 .. autoclass:: deepchem.feat.GroverFeaturizer
   :members:
 
-SNAPFeaturizer
-**************
-
-.. autoclass:: deepchem.feat.SNAPFeaturizer
-  :members:
-
 
 Utilities
 *********
@@ -257,6 +251,12 @@ RawFeaturizer
   :members:
   :inherited-members:
 
+SNAPFeaturizer
+^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.SNAPFeaturizer
+  :members:
+  :inherited-members:
 
 Molecular Complex Featurizers
 -------------------------------
