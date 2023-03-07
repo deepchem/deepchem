@@ -5,7 +5,6 @@ Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcc
 from __future__ import annotations
 from abc import abstractmethod, abstractproperty
 from typing import List, Dict, Optional
-import deepchem
 import numpy as np
 try:
     import dqc
@@ -102,8 +101,7 @@ class DFTEntry():
     """
 
     @classmethod
-    def create(self, e_type: str, true_val: str,
-               systems: List[Dict]) :
+    def create(self, e_type: str, true_val: str, systems: List[Dict]):
         """
         This method is used to initialise the DFTEntry class. The entry objects are created
         based on their entry type.
@@ -126,8 +124,7 @@ class DFTEntry():
             as ae and ie entry objects).
         Returns
         -------
-        obj
-            DFTEntry object based on entry type
+        DFTEntry object based on entry type
 
         """
         if e_type == "ae":
@@ -176,7 +173,7 @@ class DFTEntry():
         databases.
         The true values of density profiles are calculated using PYSCF-CCSD calculations. This method            simply loads the value, no calculation is performed.
         """
-        pass
+        return np.array(0)
 
     @abstractmethod
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
