@@ -130,29 +130,29 @@ class InfoGraphModel(ModularTorchModel):
     def build_components(self):
         return {
             'encoder':
-            InfoGraphEncoder(self.num_features, self.edge_features,
-                             self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
             'unsup_encoder':
-            InfoGraphEncoder(self.num_features, self.edge_features,
-                             self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
             'ff1':
-            MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
-                                 (self.embedding_dim, )),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim,)),
             'ff2':
-            MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
-                                 (self.embedding_dim, )),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim,)),
             'fc1':
-            torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
             'fc2':
-            torch.nn.Linear(self.embedding_dim, 1),
+                torch.nn.Linear(self.embedding_dim, 1),
             'local_d':
-            MultilayerPerceptron(self.embedding_dim,
-                                 self.embedding_dim, (self.embedding_dim, ),
-                                 skip_connection=True),
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True),
             'global_d':
-            MultilayerPerceptron(2 * self.embedding_dim,
-                                 self.embedding_dim, (self.embedding_dim, ),
-                                 skip_connection=True),
+                MultilayerPerceptron(2 * self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True),
         }
 
     def build_model(self):
