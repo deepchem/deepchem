@@ -127,7 +127,7 @@ This function helps compute distances between atoms from a given base atom.
 .. autofunction:: deepchem.feat.graph_features.find_distance
 
 This function is important and computes per-atom feature vectors used by
-graph convolutional featurizers. 
+graph convolutional featurizers.
 
 .. autofunction:: deepchem.feat.graph_features.atom_features
 
@@ -281,11 +281,11 @@ MaterialCompositionFeaturizer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Material Composition Featurizers are those that work with datasets of crystal
-compositions with periodic boundary conditions. 
+compositions with periodic boundary conditions.
 For inorganic crystal structures, these featurizers operate on chemical
 compositions (e.g. "MoS2"). They should be applied on systems that have
-periodic boundary conditions. Composition featurizers are not designed 
-to work with molecules. 
+periodic boundary conditions. Composition featurizers are not designed
+to work with molecules.
 
 ElementPropertyFingerprint
 **************************
@@ -306,9 +306,9 @@ MaterialStructureFeaturizer
 Material Structure Featurizers are those that work with datasets of crystals with
 periodic boundary conditions. For inorganic crystal structures, these
 featurizers operate on pymatgen.Structure objects, which include a
-lattice and 3D coordinates that specify a periodic crystal structure. 
+lattice and 3D coordinates that specify a periodic crystal structure.
 They should be applied on systems that have periodic boundary conditions.
-Structure featurizers are not designed to work with molecules. 
+Structure featurizers are not designed to work with molecules.
 
 SineCoulombMatrix
 *****************
@@ -338,7 +338,7 @@ MaterialCompositionFeaturizer
 Molecule Tokenizers
 -------------------
 
-A tokenizer is in charge of preparing the inputs for a natural language processing model. 
+A tokenizer is in charge of preparing the inputs for a natural language processing model.
 For many scientific applications, it is possible to treat inputs as "words"/"sentences" and
 use NLP methods to make meaningful predictions. For example, SMILES strings or DNA sequences
 have grammatical structure and can be usefully modeled with NLP techniques. DeepChem provides
@@ -364,7 +364,7 @@ and hold the various model inputs computed by these methodes (input_ids, attenti
 For more details on the base tokenizers which the DeepChem tokenizers inherit from,
 please refer to the following: `HuggingFace tokenizers docs`_
 
-Tokenization methods on string-based corpuses in the life sciences are 
+Tokenization methods on string-based corpuses in the life sciences are
 becoming increasingly popular for NLP-based applications to chemistry and biology.
 One such example is ChemBERTa, a transformer for molecular property prediction.
 DeepChem offers a tutorial for utilizing ChemBERTa using an alternate tokenizer,
@@ -420,7 +420,7 @@ Sequence Featurizers
 PFMFeaturizer
 ^^^^^^^^^^^^^
 
-The :code:`dc.feat.PFMFeaturizer` module implements a featurizer for position frequency matrices. 
+The :code:`dc.feat.PFMFeaturizer` module implements a featurizer for position frequency matrices.
 This takes in a list of multisequence alignments and returns a list of position frequency matrices.
 
 .. autoclass:: deepchem.feat.sequence_featurizers.PFMFeaturizer
@@ -522,3 +522,11 @@ This featurizer can take a pair of PDB or SDF files which contain ligand molecul
 .. autoclass:: deepchem.feat.ComplexFeaturizer
   :members:
 
+VocabularyBuilder
+^^^^^^^^^^^^^^^^^
+
+If you're creating a vocabulary builder for generating vocabulary from a corpus or input data,
+the vocabulary builder must inhere from :code:`VocabularyBuilder` base class.
+
+.. autoclass:: deepchem.feat.vocabulary_builders.VocabularyBuilder
+  :members:
