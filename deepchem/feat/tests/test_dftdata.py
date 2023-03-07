@@ -4,8 +4,10 @@ try:
     from dqc.qccalc.ks import KS
     from deepchem.utils.dftutils import KSCalc
     import torch
-except ModuleNotFoundError:
-    raise ModuleNotFoundError("This test requires dqc and torch")
+    has_dqc = True
+except:
+    has_dqc = False
+
 import numpy as np
 
 
