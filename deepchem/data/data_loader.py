@@ -1624,7 +1624,7 @@ class DFTYamlLoader(DataLoader):
     def create_dataset(self, input_files: str, featurizer):
         entries = self._get_shards(input_files)
         y = np.array([self._featurize_shard(shard) for shard in entries] )
-        return y 
+        return NumpyDataset(y) 
         
     def _get_shards(self, input_files):
         with open(input_files) as f:
