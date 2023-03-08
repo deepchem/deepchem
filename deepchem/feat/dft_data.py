@@ -17,25 +17,16 @@ try:
 except:
     pass
 
+
 class DFTSystem():
     """
     The DFTSystem class creates and returns the various systems in an entry object as dictionaries.
 
     Examples
     --------
-    >>> from deepchem.data.dft_data import DFTSystem
-    >>> systems = [ {
-                'moldesc': 'Li 1.5070 0 0; H -1.5070 0 0',
-                'basis': '6-311++G(3df,3pd)'
-        },{
-                'moldesc': 'Li 0 0 0',
-                'basis': '6-311++G(3df,3pd)',
-                'spin': 1
-        }, {
-                'moldesc': 'H 0 0 0',
-                'basis': '6-311++G(3df,3pd)',
-                'spin': 1
-        }]
+    >>> from deepchem.feat.dft_data import DFTSystem
+    >>> systems = {'moldesc': 'Li 1.5070 0 0; H -1.5070 0 0',
+                'basis': '6-311++G(3df,3pd)'}
     >>> output = DFTSystem(systems)
 
     Returns
@@ -91,10 +82,10 @@ class DFTEntry():
 
     Example
     -------
-    >>> from deepchem.data.dft_data import DFTEntry
+    >>> from deepchem.feat.dft_data import DFTEntry
     >>> e_type= 'dm'
     >>> true_val= 'deepchem/data/tests/dftHF_output.npy'
-    >>> systems = [ {
+    >>> systems = [{
                 'moldesc': 'H 0.86625 0 0; F -0.86625 0 0',
                 'basis': '6-311++G(3df,3pd)'
         }]
