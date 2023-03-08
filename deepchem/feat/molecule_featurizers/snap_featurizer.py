@@ -37,6 +37,13 @@ class SNAPFeaturizer(MolecularFeaturizer):
     """
     This featurizer is based on the SNAP featurizer used in the paper [1].
 
+    Example
+    -------
+    >>> smiles = ["CC(=O)C"]
+    >>> featurizer = SNAPFeaturizer()
+    >>> print(featurizer.featurize(smiles))
+    [GraphData(node_features=[4, 2], edge_index=[2, 6], edge_features=[6, 2])]
+
     References
     ----------
 
