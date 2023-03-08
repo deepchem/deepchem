@@ -275,7 +275,7 @@ class Evaluator(object):
             If true, return computed metric for each task on multitask dataset.
         use_sample_weights: bool, optional (default False)
             If set, use per-sample weights `w`.
-        n_classes: int, optional (default None)
+        n_classes: int, optional (default 2) (DEPRECATED)
             If specified, will use `n_classes` as the number of unique classes
             in `self.dataset`. Note that this argument will be ignored for
             regression metrics.
@@ -288,6 +288,15 @@ class Evaluator(object):
             If `per_task_metrics == True`, then returns a second dictionary
             of scores for each task separately.
         """
+        if n_classes is not None:
+            if hasattr(self.model, 'n_classes'):
+                if n_classes != self.model.n_classes:
+                    logger.warning(
+                        "n_classes specified is different from dataset used to train the model."
+                        "Hence, n_classes from model is used to evaluate the model"
+                    )
+                    n_classes = self.model.n_classes
+
         if csv_out is not None:
             logger.warning(
                 "csv_out is deprecated as an argument and will be removed in a future version of DeepChem."
