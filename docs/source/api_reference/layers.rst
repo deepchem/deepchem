@@ -218,3 +218,11 @@ Jax Layers
 
 .. autoclass:: deepchem.models.jax_models.layers.Linear
   :members:
+
+Density Functional Theory Layers
+--------------------------------
+
+.. autoclass:: deepchem.models.dft.nnxc.NNLDA
+   :members:
+.. autoclass:: deepchem.models.dft.nnxc.HybridXC
+   :members:

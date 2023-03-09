@@ -1,9 +1,12 @@
 from abc import abstractproperty, abstractmethod
 from typing import Union
-from dqc.xc.base_xc import BaseXC
-from dqc.utils.datastruct import ValGrad, SpinParam
-from dqc.api.getxc import get_xc
-import torch
+try:
+    from dqc.xc.base_xc import BaseXC
+    from dqc.utils.datastruct import ValGrad, SpinParam
+    from dqc.api.getxc import get_xc
+    import torch
+except ModuleNotFoundError:
+    pass
 
 
 class BaseNNXC(BaseXC, torch.nn.Module):
@@ -14,14 +17,14 @@ class BaseNNXC(BaseXC, torch.nn.Module):
     @abstractproperty
     def family(self) -> int:
         """
-        This method determines the type of model to be used, to train the 
-        neural network. Currently we only support an LDA based model and will 
+        This method determines the type of model to be used, to train the
+        neural network. Currently we only support an LDA based model and will
         implement more in subsequent iterations.
 
         Returns
         -------
-        xc.family 
-        """  
+        xc.family
+        """
         pass
 
     @abstractmethod
@@ -29,7 +32,7 @@ class BaseNNXC(BaseXC, torch.nn.Module):
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
         """
         This method is used to transform the electron density. The output
-        of this method varies depending on the layer. 
+        of this method varies depending on the layer.
 
         Parameters
         ----------
@@ -41,32 +44,50 @@ class BaseNNXC(BaseXC, torch.nn.Module):
 
 class NNLDA(BaseNNXC):
     """
-    Neural network xc functional of LDA (only receives the density as input)
+    Neural network xc functional of LDA
 
+    The difference between the total exact energy and the total of the rest
+    of the energy terms (such as kinetic energy), is known as the
+    exchange-correlation energy. The exchange-correlation functional is obtained    by calculating the functional derivate of the XC energy w.r.t the
+    electron density function.
+
+    Local-density approximations (LDA) are a class of approximations to the
+    exchange–correlation (XC) energy. The LDA assumes variations of the
+    density to be gradual, i.e, it is  based on the homogeneous electron
+    gas model. Which is why it is regarded as the simplest approach to the
+    exchange correlation functional. This class of functionals depend only
+    upon the value of the electronic density at each point in space.
+
+    Hence, in this model, we only input the density and not other components
+    such as the gradients of the density (which is used in other functionals
+    such as the GGA class).
+
+    Examples
+    --------
+    >>> from deepchem.models.dft.nnxc import NNLDA
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> n_input, n_hidden = 2, 1
+    >>> nnmodel = (nn.Linear(n_input, n_hidden))
+    >>> output = NNLDA(nnmodel)
+
+    References
+    ----------
+    Density-Functional Theory of the Electronic Structure of Molecules,Robert
+    G. Parr and Weitao Yang, Annual Review of Physical Chemistry 1995 46:1,
+    701-728
+    R. O. Jones and O. Gunnarsson, Rev. Mod. Phys. 61, 689 (1989)
     """
 
-    def __init__(self,
-                 nnmodel: torch.nn.Module,
-                 ninpmode: int = 1,
-                 outmultmode: int = 1):
+    def __init__(self, nnmodel: torch.nn.Module):
         super().__init__()
         """
         Parameters
         ----------
         nnmodel: torch.nn.Module
             Neural network for xc functional
-        ninpmode: int
-            The mode to decide the transformation of the density to NN input.
-        outmultmode: int
-            The mode to decide Eks from NN output
         """
         self.nnmodel = nnmodel
-        self.ninpmode = ninpmode
-        self.outmultmode = outmultmode
-
-    @property
-    def family(self) -> int:
-        return 1
 
     def get_edensityxc(
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
@@ -106,13 +127,25 @@ class HybridXC(BaseNNXC):
     """
     The HybridXC module computes XC energy by summing XC energy computed
     from libxc and the trainable neural network with tunable weights.
+    This layer constructs a hybrid functional based on the user's choice
+    of what model is to be used to train the functional. (Currently, we only
+    support an LDA based model). This hybrid functional is a combination of
+    the xc that is trained by a neural network, and a conventional DFT
+    functional.
+
+    Examples
+    --------
+    >>> from deepchem.models.dft.nnxc import HybridXC
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> n_input, n_hidden = 2, 1
+    >>> nnmodel = (nn.Linear(n_input, n_hidden))
+    >>> output = HybridXC("lda_x", nnmodel, aweight0=0.0)
     """
 
     def __init__(self,
                  xcstr: str,
                  nnmodel: torch.nn.Module,
-                 ninpmode: int = 1,
-                 outmultmode: int = 1,
                  aweight0: float = 0.0,
                  bweight0: float = 1.0):
 
@@ -121,23 +154,21 @@ class HybridXC(BaseNNXC):
         Parameters
         ----------
         xcstr: str
-            The choice of xc to use.
+            The choice of xc to use. The possible values can be found under
+            the "LDA Functionals" section in the reference given below.
         nnmodel: nn.Module
             trainable neural network for prediction xc energy.
-        ninpmode: int
-            The mode to decide the transformation of the density to NN input.
-        outmultmode: int
-            The mode to decide Eks from NN output
         aweight0: float
             weight of the neural network
-         bweight0: float
+        bweight0: float
             weight of the default xc
+
+        References
+        https://tddft.org/programs/libxc/functionals/
         """
         self.xc = get_xc(xcstr)
         if self.xc.family == 1:
-            self.nnxc = NNLDA(nnmodel,
-                              ninpmode=ninpmode,
-                              outmultmode=outmultmode)
+            self.nnxc = NNLDA(nnmodel)
         self.aweight = torch.nn.Parameter(
             torch.tensor(aweight0, requires_grad=True))
         self.bweight = torch.nn.Parameter(

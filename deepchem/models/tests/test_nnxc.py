@@ -4,7 +4,7 @@ try:
     import torch.nn as nn
     from dqc.utils.datastruct import ValGrad
 except ModuleNotFoundError:
-    raise ModuleNotFoundError("This test requires dqc and torch")
+    pass
 
 
 class DummyModel(torch.nn.Module):
@@ -22,7 +22,7 @@ def test_nnlda():
     # https://github.com/diffqc/dqc/blob/742eb2576418464609f942def4fb7c3bbdc0cd82/dqc/test/test_xc.py#L15
     n = 2
     model = DummyModel(n)
-    k = NNLDA(model, ninpmode=1, outmultmode=1)
+    k = NNLDA(model)
     densinfo = ValGrad(
         value=torch.rand((n,), dtype=torch.float32).requires_grad_())
     output = k.get_edensityxc(densinfo).detach()
