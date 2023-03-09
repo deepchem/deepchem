@@ -922,25 +922,16 @@ def test_torch_weighted_linear_combo():
 
 
 @pytest.mark.torch
-@pytest.mark.tensorflow
 def test_set_gather():
     """Test invoking the Torch Equivalent of SetGather."""
-    total_n_atoms = 4
-    n_atom_feat = 4
-    atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
-    atom_split = np.array([0, 0, 0, 1], dtype=np.int32)
-
-    # Parameters
-    M = 2
-    batch_size = 2
-    n_hidden = 4
-
-    tf_layer = dc.models.layers.SetGather(M, batch_size, n_hidden)
-    tf_result = tf_layer([atom_feat, atom_split])
-
-    torch_layer = torch_layers.SetGather(M, batch_size, n_hidden)
-    torch_layer.U = torch.nn.Parameter(torch.from_numpy(tf_layer.U.numpy()))
+    # total_n_atoms = 4
+    # n_atom_feat = 4
+    # atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
+    atom_feat = np.load('assets/atom_feat_SetGather.npy')
+    atom_split = np.array([0, 0, 1, 1], dtype=np.int32)
+    torch_layer = torch_layers.SetGather(2, 2, 4)
+    weights = np.load('assets/weights_SetGather_tf.npy')
+    torch_layer.U = torch.nn.Parameter(torch.from_numpy(weights))
     torch_result = torch_layer([atom_feat, atom_split])
-
-    assert tf_result.shape == torch_result.shape
+    tf_result = np.load('assets/result_SetGather_tf.npy')
     assert np.allclose(np.array(tf_result), np.array(torch_result), atol=1e-4)
