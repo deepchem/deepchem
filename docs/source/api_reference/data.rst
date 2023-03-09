@@ -155,9 +155,9 @@ Density Functional Theory Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 These Data classes are used to create entry objects for DFT calculations.
 
-.. autoclass:: deepchem.feat.dftdata.DFTSystem
+.. autoclass:: deepchem.feat.dft_data.DFTSystem
    :members:
-.. autoclass:: deepchem.feat.dftdata.DFTEntry
+.. autoclass:: deepchem.feat.dft_data.DFTEntry
    :members:
 
 Base Classes (for develop)
