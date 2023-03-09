@@ -25,8 +25,7 @@ class DFTSystem():
     Examples
     --------
     >>> from deepchem.feat.dft_data import DFTSystem
-    >>> systems = {'moldesc': 'Li 1.5070 0 0; H -1.5070 0 0',
-                'basis': '6-311++G(3df,3pd)'}
+    >>> systems = {'moldesc': 'Li 1.5070 0 0; H -1.5070 0 0','basis': '6-311++G(3df,3pd)'}
     >>> output = DFTSystem(systems)
 
     Returns
@@ -85,10 +84,7 @@ class DFTEntry():
     >>> from deepchem.feat.dft_data import DFTEntry
     >>> e_type= 'dm'
     >>> true_val= 'deepchem/data/tests/dftHF_output.npy'
-    >>> systems = [{
-                'moldesc': 'H 0.86625 0 0; F -0.86625 0 0',
-                'basis': '6-311++G(3df,3pd)'
-        }]
+    >>> systems = [{'moldesc': 'H 0.86625 0 0; F -0.86625 0 0','basis': '6-311++G(3df,3pd)'}]
     >>> dm_entry_for_HF = DFTEntry.create(e_type, true_val, systems)
     """
 
