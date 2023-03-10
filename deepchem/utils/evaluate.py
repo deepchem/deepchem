@@ -275,7 +275,7 @@ class Evaluator(object):
             If true, return computed metric for each task on multitask dataset.
         use_sample_weights: bool, optional (default False)
             If set, use per-sample weights `w`.
-        n_classes: int, optional (default 2) (DEPRECATED)
+        n_classes: int, optional (default 2)
             If specified, will use `n_classes` as the number of unique classes
             in `self.dataset`. Note that this argument will be ignored for
             regression metrics.
