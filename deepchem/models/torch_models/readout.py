@@ -24,6 +24,17 @@ class GroverReadout(nn.Module):
         If readout type is attention, size of hidden layer in attention network.
     attn_out_size: int
         If readout type is attention, size of attention out layer.
+
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.models.torch_models.readout import GroverReadout
+    >>> n_nodes, n_features = 6, 32
+    >>> readout = GroverReadout(rtype="mean")
+    >>> embedding = torch.ones(n_nodes, n_features)
+    >>> result = readout(embedding, scope=[(0, 6)])
+    >>> result.size()
+    torch.Size([1, 32])
     """
 
     def __init__(self,
