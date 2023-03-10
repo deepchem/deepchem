@@ -71,21 +71,9 @@ from deepchem.feat.atomic_conformation import AtomicConformationFeaturizer
 from deepchem.feat.huggingface_featurizer import HuggingFaceFeaturizer
 # tokenizers
 try:
-    import transformers
-    from transformers import BertTokenizer
     from deepchem.feat.smiles_tokenizer import SmilesTokenizer
     from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
-except ModuleNotFoundError:
-    pass
-
-try:
-    from transformers import BertTokenizerFast
     from deepchem.feat.bert_tokenizer import BertFeaturizer
-except ModuleNotFoundError:
-    pass
-
-try:
-    from transformers import RobertaTokenizerFast
     from deepchem.feat.roberta_tokenizer import RobertaFeaturizer
     from deepchem.feat.reaction_featurizer import RxnFeaturizer
 except ModuleNotFoundError:
