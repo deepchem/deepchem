@@ -25,8 +25,8 @@ class DFTSystem():
     Examples
     --------
     >>> from deepchem.feat.dft_data import DFTSystem
-    >>> systems = {'moldesc': 'Li 1.5070 0 0; H -1.5070 0 0','basis': '6-311++G(3df,3pd)'}
-    >>> output = DFTSystem(systems)
+    >>> systems = [{'moldesc': 'Li 1.5070 0 0; H -1.5070 0 0','basis': '6-311++G(3df,3pd)'}]
+    >>> output = DFTSystem(systems[0])
 
     Returns
     -------
@@ -98,8 +98,8 @@ class DFTEntry():
         ----------
         e_type: str
             Determines the type of calculation to be carried out on the entry
-            object. Accepts the following values: "ae", "ie", "dm", "dens", that            stand for atomization energy, ionization energy, density matrix and
-            density profile respectively.
+            object. Accepts the following values: "ae", "ie", "dm", "dens", that stand for atomization energy,
+            ionization energy, density matrix and density profile respectively.
         true_val: str
             Ground state energy values for the entry object as a string (for ae
             and ie), or a .npy file containing a matrix ( for dm and dens).
