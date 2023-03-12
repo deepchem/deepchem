@@ -148,7 +148,7 @@ jobs:
       run: |
         CHANGED_FILES=`git diff --name-only $COMMIT_RANGE | grep .py$ | grep -v contrib/ || true`
         if [ -n "$CHANGED_FILES" ]; then
-          yapf -d $CHANGED_FILES
+          yapf -d $CHANGED_FILES --exclude='.yapfignore'
         fi
     - name: Flake8
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
