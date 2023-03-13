@@ -25,8 +25,8 @@ class DFTSystem():
     Examples
     --------
     >>> from deepchem.feat.dft_data import DFTSystem
-    >>> systems = [{'moldesc': 'Li 1.5070 0 0; H -1.5070 0 0','basis': '6-311++G(3df,3pd)'}]
-    >>> output = DFTSystem(systems[0])
+    >>> systems = {'moldesc': 'Li 1.5070 0 0; H -1.5070 0 0','basis': '6-311++G(3df,3pd)'}
+    >>> output = DFTSystem([systems])
 
     Returns
     -------
