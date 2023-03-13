@@ -39,8 +39,8 @@ def get_regression_dataset():
 
 
 @pytest.mark.torch
-def test_infograph_regression_semisupervised():
-    from deepchem.models.torch_models.infograph import InfoGraphModel
+def test_infographstar_regression_semisupervised():
+    from deepchem.models.torch_models.infograph import InfoGraphStarModel
     dataset, metric = get_regression_dataset()
     num_feat = max(
         [dataset.X[i].num_node_features for i in range(len(dataset))])
@@ -48,11 +48,12 @@ def test_infograph_regression_semisupervised():
         [dataset.X[i].num_edge_features for i in range(len(dataset))])
     dim = 64
 
-    model = InfoGraphModel(num_feat,
-                           edge_dim,
-                           dim,
-                           use_unsup_loss=True,
-                           separate_encoder=True)
+    model = InfoGraphStarModel(num_feat,
+                               edge_dim,
+                               dim,
+                               training_mode='semisupervised')
+    #    use_unsup_loss=True,
+    #    separate_encoder=True)
 
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
@@ -70,10 +71,8 @@ def test_infograph_regression_unsupervised():
     dim = 64
 
     model = InfoGraphModel(num_feat,
-                           edge_dim,
-                           dim,
-                           use_unsup_loss=True,
-                           separate_encoder=False)
+                               edge_dim,
+                               dim)
 
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
@@ -81,8 +80,8 @@ def test_infograph_regression_unsupervised():
 
 
 @pytest.mark.torch
-def test_infograph_supervised_classification():
-    from deepchem.models.torch_models.infograph import InfoGraphModel
+def test_infographstar_supervised_classification():
+    from deepchem.models.torch_models.infograph import InfoGraphStarModel
     dataset, metric = get_classification_dataset()
     num_feat = max(
         [dataset.X[i].num_node_features for i in range(len(dataset.X))])
@@ -90,11 +89,10 @@ def test_infograph_supervised_classification():
         [dataset.X[i].num_edge_features for i in range(len(dataset.X))])
     dim = 64
 
-    model = InfoGraphModel(num_feat,
-                           edge_dim,
-                           dim,
-                           use_unsup_loss=False,
-                           separate_encoder=False)
+    model = InfoGraphStarModel(num_feat,
+                               edge_dim,
+                               dim,
+                               training_mode='supervised')
 
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
@@ -103,7 +101,7 @@ def test_infograph_supervised_classification():
 
 @pytest.mark.torch
 def test_fit_restore():
-    from deepchem.models.torch_models.infograph import InfoGraphModel
+    from deepchem.models.torch_models.infograph import InfoGraphStarModel
     dataset, _ = get_classification_dataset()
     num_feat = max(
         [dataset.X[i].num_node_features for i in range(len(dataset))])
@@ -111,20 +109,18 @@ def test_fit_restore():
         [dataset.X[i].num_edge_features for i in range(len(dataset))])
     dim = 64
 
-    model = InfoGraphModel(num_feat,
-                           edge_dim,
-                           dim,
-                           use_unsup_loss=False,
-                           separate_encoder=False)
+    model = InfoGraphStarModel(num_feat,
+                               edge_dim,
+                               dim,
+                               training_mode='supervised')
 
     model.fit(dataset, nb_epoch=100)
 
-    model2 = InfoGraphModel(num_feat,
-                            edge_dim,
-                            dim,
-                            use_unsup_loss=False,
-                            separate_encoder=False,
-                            model_dir=model.model_dir)
+    model2 = InfoGraphStarModel(num_feat,
+                                edge_dim,
+                                dim,
+                                training_mode='supervised',
+                                model_dir=model.model_dir)
     model2.fit(dataset, nb_epoch=1, restore=True)
     prediction = model2.predict_on_batch(dataset.X).reshape(-1, 1)
     assert np.allclose(dataset.y, np.round(prediction))

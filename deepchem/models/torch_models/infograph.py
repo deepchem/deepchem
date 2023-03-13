@@ -6,6 +6,11 @@ from torch.nn import Sequential, Linear, ReLU, GRU
 from deepchem.feat.graph_data import BatchGraphData
 from deepchem.models.torch_models.layers import MultilayerPerceptron
 import math
+try:
+    from torch_geometric.nn import NNConv, GINConv, global_add_pool
+    from torch_geometric.nn.aggr import Set2Set
+except ImportError:
+    pass
 
 
 class InfoGraphEncoder(torch.nn.Module):
@@ -24,8 +29,8 @@ class InfoGraphEncoder(torch.nn.Module):
     """
 
     def __init__(self, num_features, edge_features, dim):
-        from torch_geometric.nn import NNConv
-        from torch_geometric.nn.aggr import Set2Set
+        # from torch_geometric.nn import NNConv
+        # from torch_geometric.nn.aggr import Set2Set
 
         super().__init__()
         self.lin0 = torch.nn.Linear(num_features, dim)
@@ -51,7 +56,52 @@ class InfoGraphEncoder(torch.nn.Module):
         return out, feat_map
 
 
-class InfoGraphModel(ModularTorchModel):
+class GINEncoder(torch.nn.Module):
+
+    def __init__(self, num_features, dim, num_gc_layers=5):
+        # from torch_geometric.nn import
+        super().__init__()
+
+        # num_features = dataset.num_features
+        # dim = 32
+        self.num_gc_layers = num_gc_layers
+
+        # self.nns = []
+        self.convs = torch.nn.ModuleList()
+        self.bns = torch.nn.ModuleList()
+
+        for i in range(num_gc_layers):
+
+            if i:
+                nn = Sequential(Linear(dim, dim), ReLU(), Linear(dim, dim))
+            else:
+                nn = Sequential(Linear(num_features, dim), ReLU(),
+                                Linear(dim, dim))
+            conv = GINConv(nn)
+            bn = torch.nn.BatchNorm1d(dim)
+
+            self.convs.append(conv)
+            self.bns.append(bn)
+
+    def forward(self, data):
+        # if x is None:
+        #     x = torch.ones((data.graph_index.shape[0], 1))  # .to(device)
+
+        xs = []
+        for i in range(self.num_gc_layers):
+
+            x = F.relu(self.convs[i](data.node_features, data.edge_index))
+            x = self.bns[i](x)
+            xs.append(x)
+            # if i == 2:
+            # feature_map = x2
+
+        xpool = [global_add_pool(data.x, data.graph_index) for x in xs]
+        x = torch.cat(xpool, 1)
+        return x, torch.cat(xs, 1)
+
+
+class InfoGraphStarModel(ModularTorchModel):
     """
     Infograph is a semi-supervised graph convolutional network for predicting molecular properties.
     It aims to maximize the mutual information between the graph-level representation and the
@@ -109,73 +159,87 @@ class InfoGraphModel(ModularTorchModel):
                  num_features,
                  edge_features,
                  dim,
-                 use_unsup_loss=False,
-                 separate_encoder=False,
+                 training_mode='supervised',
                  measure='JSD',
                  average_loss=True,
                  **kwargs):
         self.embedding_dim = dim
         self.edge_features = edge_features
-        self.separate_encoder = separate_encoder
         self.local = True
+        self.prior = False
+        self.gamma = .1
         self.num_features = num_features
-        self.use_unsup_loss = use_unsup_loss
         self.measure = measure
         self.average_loss = average_loss
+        if training_mode == 'supervised':
+            self.use_unsup_loss = False
+            self.separate_encoder = False
+        elif training_mode == 'semisupervised':
+            self.use_unsup_loss = True
+            self.separate_encoder = True
+        # elif training_mode == 'unsupervised':
+        #     self.use_unsup_loss = True
+        #     self.separate_encoder = False
+        #     self.training_mode = 'unsupervised'
 
         self.components = self.build_components()
         self.model = self.build_model()
         super().__init__(self.model, self.components, **kwargs)
 
     def build_components(self):
+
         return {
             'encoder':
-                InfoGraphEncoder(self.num_features, self.edge_features,
-                                 self.embedding_dim),
+            InfoGraphEncoder(self.num_features, self.edge_features,
+                             self.embedding_dim),
             'unsup_encoder':
-                InfoGraphEncoder(self.num_features, self.edge_features,
-                                 self.embedding_dim),
+            GINEncoder(self.num_features, self.embedding_dim),
             'ff1':
-                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
-                                     (self.embedding_dim,)),
+            MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                 (self.embedding_dim, )),
             'ff2':
-                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
-                                     (self.embedding_dim,)),
+            MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                 (self.embedding_dim, )),
             'fc1':
-                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+            torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
             'fc2':
-                torch.nn.Linear(self.embedding_dim, 1),
+            torch.nn.Linear(self.embedding_dim, 1),
             'local_d':
-                MultilayerPerceptron(self.embedding_dim,
-                                     self.embedding_dim, (self.embedding_dim,),
-                                     skip_connection=True),
+            MultilayerPerceptron(self.embedding_dim,
+                                 self.embedding_dim, (self.embedding_dim, ),
+                                 skip_connection=True),
             'global_d':
-                MultilayerPerceptron(2 * self.embedding_dim,
-                                     self.embedding_dim, (self.embedding_dim,),
-                                     skip_connection=True),
+            MultilayerPerceptron(2 * self.embedding_dim,
+                                 self.embedding_dim, (self.embedding_dim, ),
+                                 skip_connection=True)
         }
+        # if self.training_mode == 'unsupervised':
+        #     return common.update(unsup)
+        # else:
+        #     return common
 
     def build_model(self):
         """
         Builds the InfoGraph model by unpacking the components dictionary and passing them to the InfoGraph nn.module.
         """
-        return InfoGraph(**self.components)
+        return InfoGraphStar(**self.components)
 
     def loss_func(self, inputs, labels, weights):
         if self.use_unsup_loss:
             sup_loss = F.mse_loss(self.model(inputs), labels)
-            unsup_loss = self.unsup_loss(inputs)
+            local_unsup_loss = self.local_unsup_loss(inputs)
             if self.separate_encoder:
-                unsup_sup_loss = self.unsup_sup_loss(inputs, labels, weights)
-                loss = sup_loss + unsup_loss + unsup_sup_loss * self.learning_rate
+                global_unsup_loss = self.global_unsup_loss(
+                    inputs, labels, weights)
+                loss = sup_loss + local_unsup_loss + global_unsup_loss * self.learning_rate
             else:
-                loss = sup_loss + unsup_loss * self.learning_rate
+                loss = sup_loss + local_unsup_loss * self.learning_rate
             return (loss * weights).mean()
         else:
             sup_loss = F.mse_loss(self.model(inputs), labels)
             return (sup_loss * weights).mean()
 
-    def unsup_loss(self, inputs):
+    def local_unsup_loss(self, inputs):
         if self.separate_encoder:
             y, M = self.components['unsup_encoder'](inputs)
         else:
@@ -185,29 +249,10 @@ class InfoGraphModel(ModularTorchModel):
 
         if self.local:
             loss = self._local_global_loss(l_enc, g_enc, inputs.graph_index)
+
         return loss
 
-    def _prepare_batch(self, batch):
-        inputs, labels, weights = batch
-        inputs = BatchGraphData(inputs[0])
-        inputs.edge_features = torch.from_numpy(
-            inputs.edge_features).float().to(self.device)
-        inputs.edge_index = torch.from_numpy(inputs.edge_index).long().to(
-            self.device)
-        inputs.node_features = torch.from_numpy(
-            inputs.node_features).float().to(self.device)
-        inputs.graph_index = torch.from_numpy(inputs.graph_index).long().to(
-            self.device)
-
-        _, labels, weights = super()._prepare_batch(([], labels, weights))
-
-        if (len(labels) != 0) and (len(weights) != 0):
-            labels = labels[0]
-            weights = weights[0]
-
-        return inputs, labels, weights
-
-    def unsup_sup_loss(self, inputs, labels, weights):
+    def global_unsup_loss(self, inputs, labels, weights):
         y, M = self.components['encoder'](inputs)
         y_, M_ = self.components['unsup_encoder'](inputs)
 
@@ -217,7 +262,7 @@ class InfoGraphModel(ModularTorchModel):
         loss = self._global_global_loss(g_enc, g_enc1)
         return loss
 
-    def _local_global_loss(self, l_enc, g_enc, batch):
+    def _local_global_loss(self, l_enc, g_enc, index):
         """
         Parameters:
         ----------
@@ -238,7 +283,7 @@ class InfoGraphModel(ModularTorchModel):
 
         pos_mask = torch.zeros((num_nodes, num_graphs)).to(self.device)
         neg_mask = torch.ones((num_nodes, num_graphs)).to(self.device)
-        for nodeidx, graphidx in enumerate(batch):
+        for nodeidx, graphidx in enumerate(index):
             pos_mask[nodeidx][graphidx] = 1.
             neg_mask[nodeidx][graphidx] = 0.
 
@@ -362,8 +407,44 @@ class InfoGraphModel(ModularTorchModel):
         else:
             return Eq
 
+    def _prepare_batch(self, batch):
+        inputs, labels, weights = batch
+        inputs = BatchGraphData(inputs[0])
+        inputs.edge_features = torch.from_numpy(
+            inputs.edge_features).float().to(self.device)
+        inputs.edge_index = torch.from_numpy(inputs.edge_index).long().to(
+            self.device)
+        inputs.node_features = torch.from_numpy(
+            inputs.node_features).float().to(self.device)
+        inputs.graph_index = torch.from_numpy(inputs.graph_index).long().to(
+            self.device)
 
-class InfoGraph(torch.nn.Module):
+        _, labels, weights = super()._prepare_batch(([], labels, weights))
+
+        if (len(labels) != 0) and (len(weights) != 0):
+            labels = labels[0]
+            weights = weights[0]
+
+        return inputs, labels, weights
+
+
+class InfoGraph(nn.Module):
+    # if self.training_mode == 'unsupervised' and self.prior:
+    #     prior = torch.rand_like(y)
+    #     term_a = torch.log(self.components['prior_d'](prior)).mean()
+    #     term_b = torch.log(1.0 - self.components['prior_d'](y)).mean()
+    #     PRIOR = - (term_a + term_b) * self.gamma
+    #     return loss + PRIOR
+    pass
+# unsup = {
+#     'prior_d':
+#     nn.Sequential(
+#         MultilayerPerceptron(self.num_features, 1,
+#                              (self.num_features, )), nn.Sigmoid())
+# }
+
+
+class InfoGraphStar(torch.nn.Module):
     """
     The nn.Module for InfoGraph. This class defines the forward pass of InfoGraph.
 
@@ -408,7 +489,7 @@ class InfoGraph(torch.nn.Module):
 
     def __init__(self, encoder, unsup_encoder, ff1, ff2, fc1, fc2, local_d,
                  global_d):
-        super(InfoGraph, self).__init__()
+        super().__init__()
         self.encoder = encoder
         self.unsup_encoder = unsup_encoder
         self.ff1 = ff1
