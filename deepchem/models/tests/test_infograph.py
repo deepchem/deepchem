@@ -66,16 +66,14 @@ def test_infograph_regression_unsupervised():
     dataset, metric = get_regression_dataset()
     num_feat = max(
         [dataset.X[i].num_node_features for i in range(len(dataset.X))])
-    edge_dim = max(
-        [dataset.X[i].num_edge_features for i in range(len(dataset.X))])
+    # edge_dim = max(
+    #     [dataset.X[i].num_edge_features for i in range(len(dataset.X))])
     dim = 64
 
-    model = InfoGraphModel(num_feat,
-                               edge_dim,
-                               dim)
+    model = InfoGraphModel(num_feat, dim)
 
     model.fit(dataset, nb_epoch=100)
-    scores = model.evaluate(dataset, [metric])
+    scores = model.evaluate(dataset, [metric]) # how to test unsupervised?
     assert scores['mean_absolute_error'] < 0.1
 
 

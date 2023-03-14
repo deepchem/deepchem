@@ -171,12 +171,13 @@ class InfoGraphModel(ModularTorchModel):
         y, M = self.components['encoder'](inputs)
         g_enc = self.components['global_discriminator'](y)
         l_enc = self.components['local_discriminator'](M)
-        local_global_loss = self._local_global_loss(g_enc, l_enc, inputs.graph_index)
+        local_global_loss = self._local_global_loss(g_enc, l_enc,
+                                                    inputs.graph_index)
         if self.prior:
             prior = torch.rand_like(y)
             term_a = torch.log(self.prior_d(prior)).mean()
             term_b = torch.log(1.0 - self.prior_d(y)).mean()
-            PRIOR = - (term_a + term_b) * self.gamma
+            PRIOR = -(term_a + term_b) * self.gamma
         else:
             PRIOR = 0
         return local_global_loss + PRIOR
