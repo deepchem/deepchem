@@ -13,49 +13,6 @@ except ImportError:
     pass
 
 
-class InfoGraphEncoder(torch.nn.Module):
-    """
-    The encoder for the InfoGraph model. It is a message passing graph convolutional
-    network that produces encoded representations for molecular graph inputs.
-
-    Parameters
-    ----------
-    num_features: int
-        Number of node features for each input
-    edge_features: int
-        Number of edge features for each input
-    dim: int
-        Dimension of the embedding
-    """
-
-    def __init__(self, num_features, edge_features, dim):
-        # from torch_geometric.nn import NNConv
-        # from torch_geometric.nn.aggr import Set2Set
-
-        super().__init__()
-        self.lin0 = torch.nn.Linear(num_features, dim)
-
-        nn = Sequential(Linear(edge_features, 128), ReLU(),
-                        Linear(128, dim * dim))
-        self.conv = NNConv(dim, dim, nn, aggr='mean', root_weight=False)
-        self.gru = GRU(dim, dim)
-
-        self.set2set = Set2Set(dim, processing_steps=3)
-
-    def forward(self, data):
-        out = F.relu(self.lin0(data.node_features))
-        h = out.unsqueeze(0)
-
-        for i in range(3):
-            m = F.relu(self.conv(out, data.edge_index, data.edge_features))
-            out, h = self.gru(m.unsqueeze(0), h)
-            out = out.squeeze(0)
-            feat_map = out
-
-        out = self.set2set(out, data.graph_index)
-        return out, feat_map
-
-
 class GINEncoder(torch.nn.Module):
 
     def __init__(self, num_features, dim, num_gc_layers=5):
@@ -88,15 +45,16 @@ class GINEncoder(torch.nn.Module):
         #     x = torch.ones((data.graph_index.shape[0], 1))  # .to(device)
 
         xs = []
+        x = data.node_features
         for i in range(self.num_gc_layers):
 
-            x = F.relu(self.convs[i](data.node_features, data.edge_index))
+            x = F.relu(self.convs[i](x, data.edge_index))
             x = self.bns[i](x)
             xs.append(x)
             # if i == 2:
             # feature_map = x2
 
-        xpool = [global_add_pool(data.x, data.graph_index) for x in xs]
+        xpool = [global_add_pool(x, data.graph_index) for x in xs]
         x = torch.cat(xpool, 1)
         return x, torch.cat(xs, 1)
 
@@ -139,6 +97,7 @@ class InfoGraphModel(ModularTorchModel):
                  **kwargs):
         self.num_features = num_features
         self.hidden_dim = hidden_dim
+        self.enc_dim = hidden_dim * num_gc_layers
         self.num_gc_layers = num_gc_layers
         self.gamma = gamma
         self.prior = prior
@@ -151,12 +110,12 @@ class InfoGraphModel(ModularTorchModel):
             'encoder':
             GINEncoder(self.num_features, self.hidden_dim, self.num_gc_layers),
             'local_d':
-            MultilayerPerceptron(self.num_features,
-                                 self.num_features, (self.num_features, ),
+            MultilayerPerceptron(self.enc_dim,
+                                 self.enc_dim, (self.enc_dim, ),
                                  skip_connection=True),
             'global_d':
-            MultilayerPerceptron(self.num_features,
-                                 self.num_features, (self.num_features, ),
+            MultilayerPerceptron(self.enc_dim,
+                                 self.enc_dim, (self.enc_dim, ),
                                  skip_connection=True),
             'prior_d':
             nn.Sequential(
@@ -169,8 +128,8 @@ class InfoGraphModel(ModularTorchModel):
 
     def loss_func(self, inputs, labels, weights):
         y, M = self.components['encoder'](inputs)
-        g_enc = self.components['global_discriminator'](y)
-        l_enc = self.components['local_discriminator'](M)
+        g_enc = self.components['global_d'](y)
+        l_enc = self.components['local_d'](M)
         local_global_loss = self._local_global_loss(g_enc, l_enc,
                                                     inputs.graph_index)
         if self.prior:
@@ -216,8 +175,147 @@ class InfoGraphModel(ModularTorchModel):
 
         return E_neg - E_pos
 
+    def _prepare_batch(self, batch):
+        inputs, labels, weights = batch
+        inputs = BatchGraphData(inputs[0])
+        inputs.edge_features = torch.from_numpy(
+            inputs.edge_features).float().to(self.device)
+        inputs.edge_index = torch.from_numpy(inputs.edge_index).long().to(
+            self.device)
+        inputs.node_features = torch.from_numpy(
+            inputs.node_features).float().to(self.device)
+        inputs.graph_index = torch.from_numpy(inputs.graph_index).long().to(
+            self.device)
 
-please = InfoGraphModel(10, 10, 3)
+        _, labels, weights = super()._prepare_batch(([], labels, weights))
+
+        if (len(labels) != 0) and (len(weights) != 0):
+            labels = labels[0]
+            weights = weights[0]
+
+        return inputs, labels, weights
+
+
+class InfoGraphEncoder(torch.nn.Module):
+    """
+    The encoder for the InfoGraph model. It is a message passing graph convolutional
+    network that produces encoded representations for molecular graph inputs.
+
+    Parameters
+    ----------
+    num_features: int
+        Number of node features for each input
+    edge_features: int
+        Number of edge features for each input
+    dim: int
+        Dimension of the embedding
+    """
+
+    def __init__(self, num_features, edge_features, dim):
+        # from torch_geometric.nn import NNConv
+        # from torch_geometric.nn.aggr import Set2Set
+
+        super().__init__()
+        self.lin0 = torch.nn.Linear(num_features, dim)
+
+        nn = Sequential(Linear(edge_features, 128), ReLU(),
+                        Linear(128, dim * dim))
+        self.conv = NNConv(dim, dim, nn, aggr='mean', root_weight=False)
+        self.gru = GRU(dim, dim)
+
+        self.set2set = Set2Set(dim, processing_steps=3)
+
+    def forward(self, data):
+        out = F.relu(self.lin0(data.node_features))
+        h = out.unsqueeze(0)
+
+        for i in range(3):
+            m = F.relu(self.conv(out, data.edge_index, data.edge_features))
+            out, h = self.gru(m.unsqueeze(0), h)
+            out = out.squeeze(0)
+            feat_map = out
+
+        out = self.set2set(out, data.graph_index)
+        return out, feat_map
+
+
+class InfoGraphStar(torch.nn.Module):
+    """
+    The nn.Module for InfoGraph. This class defines the forward pass of InfoGraph.
+
+    Parameters
+    ----------
+    encoder: torch.nn.Module
+        The encoder for InfoGraph.
+    unsup_encoder: torch.nn.Module
+        The unsupervised encoder for InfoGraph, of identical architecture to encoder.
+    ff1: torch.nn.Module
+        The first feedforward layer for InfoGraph.
+    ff2: torch.nn.Module
+        The second feedforward layer for InfoGraph.
+    fc1: torch.nn.Module
+        The first fully connected layer for InfoGraph.
+    fc2: torch.nn.Module
+        The second fully connected layer for InfoGraph.
+
+
+    Example
+    -------
+    >>> import torch
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models.infograph import InfoGraphModel
+    >>> from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
+    >>> from deepchem.feat.graph_data import BatchGraphData
+    >>> smiles = ['C1=CC=CC=C1', 'C1=CC=CC=C1C2=CC=CC=C2']
+    >>> featurizer = MolGraphConvFeaturizer(use_edges=True)
+    >>> graphs = BatchGraphData(featurizer.featurize(smiles))
+    >>> num_feat = 30
+    >>> num_edge = 11
+    >>> infographmodular = InfoGraphModel(num_feat,num_edge,64,use_unsup_loss=True,separate_encoder=True)
+    >>>  # convert features to torch tensors
+    >>> graphs.edge_features = torch.from_numpy(graphs.edge_features).to(infographmodular.device).float()
+    >>> graphs.edge_index = torch.from_numpy(graphs.edge_index).to(infographmodular.device).long()
+    >>> graphs.node_features = torch.from_numpy(graphs.node_features).to(infographmodular.device).float()
+    >>> graphs.graph_index = torch.from_numpy(graphs.graph_index).to(infographmodular.device).long()
+    >>> model = infographmodular.model
+    >>> output = model(graphs).cpu().detach().numpy()
+
+    """
+
+    def __init__(self, encoder, unsup_encoder, ff1, ff2, fc1, fc2, local_d,
+                 global_d):
+        super().__init__()
+        self.encoder = encoder
+        self.unsup_encoder = unsup_encoder
+        self.ff1 = ff1
+        self.ff2 = ff2
+        self.fc1 = fc1
+        self.fc2 = fc2
+        self.local_d = local_d
+        self.global_d = global_d
+        self.init_emb()
+
+    def init_emb(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                torch.nn.init.xavier_uniform_(m.weight.data)
+                if m.bias is not None:
+                    m.bias.data.fill_(0.0)
+
+    def forward(self, data):
+        """
+        Forward pass for InfoGraphStar.
+
+        Parameters
+        ----------
+        data: Union[GraphData, BatchGraphData]
+            The input data, either a single graph or a batch of graphs.
+        """
+
+        out, M = self.encoder(data)
+        out = F.relu(self.fc1(out))
+        pred = self.fc2(out)
+        return pred
 
 
 class InfoGraphStarModel(ModularTorchModel):
@@ -539,85 +637,6 @@ class InfoGraphStarModel(ModularTorchModel):
         return inputs, labels, weights
 
 
-class InfoGraphStar(torch.nn.Module):
-    """
-    The nn.Module for InfoGraph. This class defines the forward pass of InfoGraph.
-
-    Parameters
-    ----------
-    encoder: torch.nn.Module
-        The encoder for InfoGraph.
-    unsup_encoder: torch.nn.Module
-        The unsupervised encoder for InfoGraph, of identical architecture to encoder.
-    ff1: torch.nn.Module
-        The first feedforward layer for InfoGraph.
-    ff2: torch.nn.Module
-        The second feedforward layer for InfoGraph.
-    fc1: torch.nn.Module
-        The first fully connected layer for InfoGraph.
-    fc2: torch.nn.Module
-        The second fully connected layer for InfoGraph.
-
-
-    Example
-    -------
-    >>> import torch
-    >>> import numpy as np
-    >>> from deepchem.models.torch_models.infograph import InfoGraphModel
-    >>> from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
-    >>> from deepchem.feat.graph_data import BatchGraphData
-    >>> smiles = ['C1=CC=CC=C1', 'C1=CC=CC=C1C2=CC=CC=C2']
-    >>> featurizer = MolGraphConvFeaturizer(use_edges=True)
-    >>> graphs = BatchGraphData(featurizer.featurize(smiles))
-    >>> num_feat = 30
-    >>> num_edge = 11
-    >>> infographmodular = InfoGraphModel(num_feat,num_edge,64,use_unsup_loss=True,separate_encoder=True)
-    >>>  # convert features to torch tensors
-    >>> graphs.edge_features = torch.from_numpy(graphs.edge_features).to(infographmodular.device).float()
-    >>> graphs.edge_index = torch.from_numpy(graphs.edge_index).to(infographmodular.device).long()
-    >>> graphs.node_features = torch.from_numpy(graphs.node_features).to(infographmodular.device).float()
-    >>> graphs.graph_index = torch.from_numpy(graphs.graph_index).to(infographmodular.device).long()
-    >>> model = infographmodular.model
-    >>> output = model(graphs).cpu().detach().numpy()
-
-    """
-
-    def __init__(self, encoder, unsup_encoder, ff1, ff2, fc1, fc2, local_d,
-                 global_d):
-        super().__init__()
-        self.encoder = encoder
-        self.unsup_encoder = unsup_encoder
-        self.ff1 = ff1
-        self.ff2 = ff2
-        self.fc1 = fc1
-        self.fc2 = fc2
-        self.local_d = local_d
-        self.global_d = global_d
-        self.init_emb()
-
-    def init_emb(self):
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                torch.nn.init.xavier_uniform_(m.weight.data)
-                if m.bias is not None:
-                    m.bias.data.fill_(0.0)
-
-    def forward(self, data):
-        """
-        Forward pass for InfoGraphStar.
-
-        Parameters
-        ----------
-        data: Union[GraphData, BatchGraphData]
-            The input data, either a single graph or a batch of graphs.
-        """
-
-        out, M = self.encoder(data)
-        out = F.relu(self.fc1(out))
-        pred = self.fc2(out)
-        return pred
-
-
 def log_sum_exp(x, axis=None):
     """Log sum exp function.
 
@@ -637,3 +656,191 @@ def log_sum_exp(x, axis=None):
     x_max = torch.max(x, axis)[0]
     y = torch.log((torch.exp(x - x_max)).sum(axis)) + x_max
     return y
+
+
+from sklearn import preprocessing
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier
+# from sklearn.linear_model import LogisticRegression
+# from sklearn.manifold import TSNE
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import GridSearchCV, StratifiedKFold
+# from sklearn.model_selection import cross_val_score
+# from sklearn.neural_network import MLPClassifier
+from sklearn.svm import SVC, LinearSVC
+# import matplotlib.pyplot as plt
+import numpy as np
+# import os
+# import pandas as pd
+import torch
+import torch.nn as nn
+
+# def draw_plot(datadir, DS, embeddings, fname, max_nodes=None):
+#     return
+#     import seaborn as sns
+#     graphs = read_graphfile(datadir, DS, max_nodes=max_nodes)
+#     labels = [graph.graph['label'] for graph in graphs]
+
+#     labels = preprocessing.LabelEncoder().fit_transform(labels)
+#     x, y = np.array(embeddings), np.array(labels)
+#     print('fitting TSNE ...')
+#     x = TSNE(n_components=2).fit_transform(x)
+
+#     plt.close()
+#     df = pd.DataFrame(columns=['x0', 'x1', 'Y'])
+
+#     df['x0'], df['x1'], df['Y'] = x[:,0], x[:,1], y
+#     sns.pairplot(x_vars=['x0'], y_vars=['x1'], data=df, hue="Y", size=5)
+#     plt.legend()
+#     plt.savefig(fname)
+
+
+class LogReg(nn.Module):
+
+    def __init__(self, ft_in, nb_classes):
+        super(LogReg, self).__init__()
+        self.fc = nn.Linear(ft_in, nb_classes)
+
+        for m in self.modules():
+            self.weights_init(m)
+
+    def weights_init(self, m):
+        if isinstance(m, nn.Linear):
+            torch.nn.init.xavier_uniform_(m.weight.data)
+            if m.bias is not None:
+                m.bias.data.fill_(0.0)
+
+    def forward(self, seq):
+        ret = self.fc(seq)
+        return ret
+
+
+def logistic_classify(x, y):
+    nb_classes = np.unique(y).shape[0]
+    xent = nn.CrossEntropyLoss()
+    hid_units = x.shape[1]
+
+    accs = []
+    kf = StratifiedKFold(n_splits=10, shuffle=True, random_state=None)
+    for train_index, test_index in kf.split(x, y):
+        train_embs, test_embs = x[train_index], x[test_index]
+        train_lbls, test_lbls = y[train_index], y[test_index]
+
+        train_embs, train_lbls = torch.from_numpy(
+            train_embs).cuda(), torch.from_numpy(train_lbls).cuda()
+        test_embs, test_lbls = torch.from_numpy(
+            test_embs).cuda(), torch.from_numpy(test_lbls).cuda()
+
+        log = LogReg(hid_units, nb_classes)
+        log.cuda()
+        opt = torch.optim.Adam(log.parameters(), lr=0.01, weight_decay=0.0)
+
+        best_val = 0
+        test_acc = None
+        for it in range(100):
+            log.train()
+            opt.zero_grad()
+
+            logits = log(train_embs)
+            loss = xent(logits, train_lbls)
+
+            loss.backward()
+            opt.step()
+
+        logits = log(test_embs)
+        preds = torch.argmax(logits, dim=1)
+        acc = torch.sum(preds == test_lbls).float() / test_lbls.shape[0]
+        accs.append(acc.item())
+    return np.mean(accs)
+
+
+def svc_classify(x, y, search):
+    kf = StratifiedKFold(n_splits=10, shuffle=True, random_state=None)
+    accuracies = []
+    for train_index, test_index in kf.split(x, y):
+
+        x_train, x_test = x[train_index], x[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+        # x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.1)
+        if search:
+            params = {'C': [0.001, 0.01, 0.1, 1, 10, 100, 1000]}
+            classifier = GridSearchCV(SVC(),
+                                      params,
+                                      cv=5,
+                                      scoring='accuracy',
+                                      verbose=0)
+        else:
+            classifier = SVC(C=10)
+        classifier.fit(x_train, y_train)
+        accuracies.append(accuracy_score(y_test, classifier.predict(x_test)))
+    return np.mean(accuracies)
+
+
+def randomforest_classify(x, y, search):
+    kf = StratifiedKFold(n_splits=10, shuffle=True, random_state=None)
+    accuracies = []
+    for train_index, test_index in kf.split(x, y):
+
+        x_train, x_test = x[train_index], x[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+        if search:
+            params = {'n_estimators': [100, 200, 500, 1000]}
+            classifier = GridSearchCV(RandomForestClassifier(),
+                                      params,
+                                      cv=5,
+                                      scoring='accuracy',
+                                      verbose=0)
+        else:
+            classifier = RandomForestClassifier()
+        classifier.fit(x_train, y_train)
+        accuracies.append(accuracy_score(y_test, classifier.predict(x_test)))
+    ret = np.mean(accuracies)
+    return ret
+
+
+def linearsvc_classify(x, y, search):
+    kf = StratifiedKFold(n_splits=10, shuffle=True, random_state=None)
+    accuracies = []
+    for train_index, test_index in kf.split(x, y):
+
+        x_train, x_test = x[train_index], x[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+        if search:
+            params = {'C': [0.001, 0.01, 0.1, 1, 10, 100, 1000]}
+            classifier = GridSearchCV(LinearSVC(),
+                                      params,
+                                      cv=5,
+                                      scoring='accuracy',
+                                      verbose=0)
+        else:
+            classifier = LinearSVC(C=10)
+        classifier.fit(x_train, y_train)
+        accuracies.append(accuracy_score(y_test, classifier.predict(x_test)))
+    return np.mean(accuracies)
+
+
+def evaluate_embedding(embeddings, labels, search=True):
+    labels = preprocessing.LabelEncoder().fit_transform(labels)
+    x, y = np.array(embeddings), np.array(labels)
+    # print(x.shape, y.shape)
+
+    logreg_accuracies = [logistic_classify(x, y) for _ in range(1)]
+    # print(logreg_accuracies)
+    print('LogReg', np.mean(logreg_accuracies))
+
+    svc_accuracies = [svc_classify(x, y, search) for _ in range(1)]
+    # print(svc_accuracies)
+    print('svc', np.mean(svc_accuracies))
+
+    linearsvc_accuracies = [linearsvc_classify(x, y, search) for _ in range(1)]
+    # print(linearsvc_accuracies)
+    print('LinearSvc', np.mean(linearsvc_accuracies))
+
+    randomforest_accuracies = [
+        randomforest_classify(x, y, search) for _ in range(1)
+    ]
+    # print(randomforest_accuracies)
+    print('randomforest', np.mean(randomforest_accuracies))
+
+    return np.mean(logreg_accuracies), np.mean(svc_accuracies), np.mean(
+        linearsvc_accuracies), np.mean(randomforest_accuracies)
