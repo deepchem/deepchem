@@ -101,9 +101,124 @@ class GINEncoder(torch.nn.Module):
         return x, torch.cat(xs, 1)
 
 
+class InfoGraph(nn.Module):
+
+    def __init__(self, encoder, local_d, global_d, prior_d):
+        super().__init__()
+        self.encoder = encoder
+        self.local_d = local_d
+        self.global_d = global_d
+        self.prior_d = prior_d
+        self.init_emb()
+
+    def forward(self, data):
+        y, M = self.encoder(data)
+        g_enc = self.global_d(y)
+        l_enc = self.local_d(M)
+        return g_enc, l_enc
+
+
+class InfoGraphModel(ModularTorchModel):
+    """
+    InfoGraph is an unsupervised graph convolutional network for molecular structure.
+    """
+
+    def __init__(self,
+                 num_features,
+                 hidden_dim,
+                 num_gc_layers,
+                 gamma=.1,
+                 prior=True,
+                 **kwargs):
+        self.num_features = num_features
+        self.hidden_dim = hidden_dim
+        self.num_gc_layers = num_gc_layers
+        self.gamma = gamma
+        self.prior = prior
+        self.components = self.build_components()
+        self.model = self.build_model()
+        super().__init__(self.model, self.components, **kwargs)
+
+    def init_emb(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                torch.nn.init.xavier_uniform_(m.weight.data)
+                if m.bias is not None:
+                    m.bias.data.fill_(0.0)
+
+    def build_components(self) -> dict:
+        return {
+            'encoder':
+            GINEncoder(self.num_features, self.hidden_dim, self.num_gc_layers),
+            'local_discriminator':
+            MultilayerPerceptron(self.num_features,
+                                 self.num_features, (self.num_features, ),
+                                 skip_connection=True),
+            'global_discriminator':
+            MultilayerPerceptron(self.num_features,
+                                 self.num_features, (self.num_features, ),
+                                 skip_connection=True),
+            'prior_discriminator':
+            nn.Sequential(
+                MultilayerPerceptron(self.num_features, 1, (self.hidden_dim, )),
+                nn.Sigmoid())
+        }
+
+    def build_model(self) -> nn.Module:
+        return InfoGraph(**self.components)
+
+    def loss_func(self, inputs, labels, weights):
+        y, M = self.components['encoder'](inputs)
+        g_enc = self.components['global_discriminator'](y)
+        l_enc = self.components['local_discriminator'](M)
+        local_global_loss = self._local_global_loss(g_enc, l_enc, inputs.graph_index)
+        if self.prior:
+            prior = torch.rand_like(y)
+            term_a = torch.log(self.prior_d(prior)).mean()
+            term_b = torch.log(1.0 - self.prior_d(y)).mean()
+            PRIOR = - (term_a + term_b) * self.gamma
+        else:
+            PRIOR = 0
+        return local_global_loss + PRIOR
+
+    def _local_global_loss(self, l_enc, g_enc, index):
+        """
+        Parameters:
+        ----------
+        l_enc: torch.Tensor
+            Local feature map from the encoder.
+        g_enc: torch.Tensor
+            Global features from the encoder.
+        index: torch.Tensor
+            Index of the graph that each node belongs to.
+
+        Returns:
+        -------
+        loss: torch.Tensor
+            Local Global Loss value
+        """
+        num_graphs = g_enc.shape[0]
+        num_nodes = l_enc.shape[0]
+
+        pos_mask = torch.zeros((num_nodes, num_graphs)).to(self.device)
+        neg_mask = torch.ones((num_nodes, num_graphs)).to(self.device)
+        for nodeidx, graphidx in enumerate(index):
+            pos_mask[nodeidx][graphidx] = 1.
+            neg_mask[nodeidx][graphidx] = 0.
+
+        res = torch.mm(l_enc, g_enc.t())
+
+        E_pos = self.get_positive_expectation(res * pos_mask)
+        E_pos = (E_pos * pos_mask).sum() / pos_mask.sum()
+        E_neg = self.get_negative_expectation(res * neg_mask)
+        E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
+
+        return E_neg - E_pos
+
+
 class InfoGraphStarModel(ModularTorchModel):
     """
-    Infograph is a semi-supervised graph convolutional network for predicting molecular properties.
+    InfographStar is a semi-supervised graph convolutional network for predicting molecular properties.
     It aims to maximize the mutual information between the graph-level representation and the
     representations of substructures of different scales. It does this by producing graph-level
     encodings and substructure encodings, and then using a discriminator to classify if they
@@ -177,10 +292,6 @@ class InfoGraphStarModel(ModularTorchModel):
         elif training_mode == 'semisupervised':
             self.use_unsup_loss = True
             self.separate_encoder = True
-        # elif training_mode == 'unsupervised':
-        #     self.use_unsup_loss = True
-        #     self.separate_encoder = False
-        #     self.training_mode = 'unsupervised'
 
         self.components = self.build_components()
         self.model = self.build_model()
@@ -213,10 +324,6 @@ class InfoGraphStarModel(ModularTorchModel):
                                  self.embedding_dim, (self.embedding_dim, ),
                                  skip_connection=True)
         }
-        # if self.training_mode == 'unsupervised':
-        #     return common.update(unsup)
-        # else:
-        #     return common
 
     def build_model(self):
         """
@@ -270,8 +377,8 @@ class InfoGraphStarModel(ModularTorchModel):
             Local feature map from the encoder.
         g_enc: torch.Tensor
             Global features from the encoder.
-        batch: torch.Tensor
-            Batch tensor
+        index: torch.Tensor
+            Index of the graph that each node belongs to.
 
         Returns:
         -------
@@ -428,22 +535,6 @@ class InfoGraphStarModel(ModularTorchModel):
         return inputs, labels, weights
 
 
-class InfoGraph(nn.Module):
-    # if self.training_mode == 'unsupervised' and self.prior:
-    #     prior = torch.rand_like(y)
-    #     term_a = torch.log(self.components['prior_d'](prior)).mean()
-    #     term_b = torch.log(1.0 - self.components['prior_d'](y)).mean()
-    #     PRIOR = - (term_a + term_b) * self.gamma
-    #     return loss + PRIOR
-    pass
-# unsup = {
-#     'prior_d':
-#     nn.Sequential(
-#         MultilayerPerceptron(self.num_features, 1,
-#                              (self.num_features, )), nn.Sigmoid())
-# }
-
-
 class InfoGraphStar(torch.nn.Module):
     """
     The nn.Module for InfoGraph. This class defines the forward pass of InfoGraph.
@@ -509,7 +600,7 @@ class InfoGraphStar(torch.nn.Module):
 
     def forward(self, data):
         """
-        Forward pass for InfoGraph.
+        Forward pass for InfoGraphStar.
 
         Parameters
         ----------
