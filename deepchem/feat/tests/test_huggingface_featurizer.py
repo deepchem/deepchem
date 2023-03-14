@@ -3,7 +3,7 @@ from deepchem.feat.huggingface_featurizer import HuggingFaceFeaturizer
 
 def testHuggingFaceFeaturizer():
     # NOTE: The test depends on the sanity of the pretrained tokenizer,
-    # which is not guaranteed.
+    # which is not guaranteed since the external resource can be modified.
     from transformers import RobertaTokenizerFast
     hf_tokenizer = RobertaTokenizerFast.from_pretrained(
         "seyonec/PubChem10M_SMILES_BPE_60k")

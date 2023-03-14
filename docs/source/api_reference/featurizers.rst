@@ -414,6 +414,13 @@ References:
 .. _`RXN Mapper: Unsupervised Attention-Guided Atom-Mapping`: https://chemrxiv.org/articles/Unsupervised_Attention-Guided_Atom-Mapping/12298559
 .. _`Molecular Transformer: Unsupervised Attention-Guided Atom-Mapping`: https://pubs.acs.org/doi/10.1021/acscentsci.9b00576
 
+HuggingFaceFeaturizer
+^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.huggingface_featurizer.HuggingFaceFeaturizer
+  :members:
+  :inherited-members:
+
 Sequence Featurizers
 ---------------------
 
@@ -445,7 +452,7 @@ RobertaFeaturizer
   :inherited-members:
 
 RxnFeaturizer
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.RxnFeaturizer
   :members:
@@ -466,7 +473,7 @@ UserDefinedFeaturizer
   :inherited-members:
 
 DummyFeaturizer
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.DummyFeaturizer
   :members:
