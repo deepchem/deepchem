@@ -11,6 +11,7 @@ from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator
 
 import pandas as pd
 import numpy as np
+from numpy.typing import ArrayLike
 import yaml
 from yaml.loader import SafeLoader
 from deepchem.utils.typing import OneOrMany
@@ -20,7 +21,10 @@ from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 from deepchem.utils.genomics_utils import encode_bio_sequence
 
-from deepchem.data.dft_data import DFTEntry
+try:
+    from deepchem.data.dft_data import DFTEntry
+except ModuleNotFoundError:
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -1618,21 +1622,25 @@ class InMemoryLoader(DataLoader):
         return X, np.array(labels), np.array(weights), np.array(ids)
 
 class DFTYamlLoader(DataLoader):
+    """
+    """
     def __init__(self,
                  featurizer: Featurizer):
         tasks = None
-    def create_dataset(self, input_files: str, featurizer):
+    def create_dataset(self, input_files: str, featurizer, w: Optional[ArrayLike]= None):
         entries = self._get_shards(input_files)
-        y = np.array([self._featurize_shard(shard) for shard in entries] )
-        return NumpyDataset(y) 
+        X = np.array([self._featurize_shard(shard) for shard in entries])
+        y = np.array([0])
+        w = w 
+        return NumpyDataset(X, y, w=w)
         
     def _get_shards(self, input_files):
         with open(input_files) as f:
             data = yaml.load(f, Loader=SafeLoader)
         return(data)
-    def _featurize_shard(self,
-                         shard):
+    def _featurize_shard(self, shard):
         e_type = shard['e_type']
         true_val =  shard['true_val']
         systems =  shard['systems']
-        return(DFTEntry.create(e_type, true_val, systems))
+        x = DFTEntry.create(e_type, true_val, systems)
+        return x
