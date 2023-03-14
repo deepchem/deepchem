@@ -183,7 +183,19 @@ The following layers are used for implementing GROVER model as described in the 
 .. autoclass:: deepchem.models.torch_models.grover_layers.GroverTransEncoder
   :members:
 
-.. autoclass:: deepchem.models.torch_models.grover.GroverEmbedding
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverEmbedding
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverEmbedding
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverAtomVocabPredictor
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverBondVocabPredictor
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverFunctionalGroupDescriptor
   :members:
 
 Attention Layers
