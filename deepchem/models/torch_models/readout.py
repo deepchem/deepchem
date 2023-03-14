@@ -71,7 +71,7 @@ class GroverReadout(nn.Module):
         graph_embeddings: torch.Tensor
             A stacked tensor containing graph embeddings of shape len(scope) x in_features if readout type is mean or len(scope) x attn_out_size when readout type is self-attention.
         """
-        embeddings = []
+        embeddings: List[torch.Tensor] = []
         for _, (a_start, a_size) in enumerate(scope):
             if a_size == 0:
                 embeddings.append(self.cached_zero_vector)
