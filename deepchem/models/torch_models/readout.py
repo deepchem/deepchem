@@ -12,7 +12,10 @@ class GroverReadout(nn.Module):
     """Performs readout on a batch of graph
 
     The readout module is used for performing readouts on batched graphs to
-    convert node embeddings/edge embeddings into graph embeddings.
+    convert node embeddings/edge embeddings into graph embeddings. It is used
+    in the Grover architecture to generate a graph embedding from node and edge
+    embeddings. The generate embedding can be used in downstream tasks like graph
+    classification or graph prediction problems.
 
     Parameters
     ----------
