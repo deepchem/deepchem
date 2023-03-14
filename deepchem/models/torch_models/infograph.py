@@ -111,6 +111,13 @@ class InfoGraph(nn.Module):
         self.prior_d = prior_d
         self.init_emb()
 
+    def init_emb(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                torch.nn.init.xavier_uniform_(m.weight.data)
+                if m.bias is not None:
+                    m.bias.data.fill_(0.0)
+
     def forward(self, data):
         y, M = self.encoder(data)
         g_enc = self.global_d(y)
@@ -139,26 +146,19 @@ class InfoGraphModel(ModularTorchModel):
         self.model = self.build_model()
         super().__init__(self.model, self.components, **kwargs)
 
-    def init_emb(self):
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                torch.nn.init.xavier_uniform_(m.weight.data)
-                if m.bias is not None:
-                    m.bias.data.fill_(0.0)
-
     def build_components(self) -> dict:
         return {
             'encoder':
             GINEncoder(self.num_features, self.hidden_dim, self.num_gc_layers),
-            'local_discriminator':
+            'local_d':
             MultilayerPerceptron(self.num_features,
                                  self.num_features, (self.num_features, ),
                                  skip_connection=True),
-            'global_discriminator':
+            'global_d':
             MultilayerPerceptron(self.num_features,
                                  self.num_features, (self.num_features, ),
                                  skip_connection=True),
-            'prior_discriminator':
+            'prior_d':
             nn.Sequential(
                 MultilayerPerceptron(self.num_features, 1, (self.hidden_dim, )),
                 nn.Sigmoid())
@@ -215,6 +215,9 @@ class InfoGraphModel(ModularTorchModel):
         E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
 
         return E_neg - E_pos
+
+
+please = InfoGraphModel(10, 10, 3)
 
 
 class InfoGraphStarModel(ModularTorchModel):
