@@ -42,20 +42,14 @@ def get_regression_dataset():
 def test_infographstar_regression_semisupervised():
     from deepchem.models.torch_models.infograph import InfoGraphStarModel
     dataset, metric = get_regression_dataset()
-    num_feat = max(
-        [dataset.X[i].num_node_features for i in range(len(dataset))])
-    edge_dim = max(
-        [dataset.X[i].num_edge_features for i in range(len(dataset))])
-    dim = 64#64
-    # encoder -> dim * 2 * num_gc_layers *
-    # ginencoder -> num_gc_layers * dim
+    num_feat = 30
+    edge_dim = 11
+    dim = 64
     model = InfoGraphStarModel(num_feat,
                                edge_dim,
                                dim,
-                               num_gc_layers=3, # affects dimension of output
+                               num_gc_layers=2,
                                training_mode='semisupervised')
-    #    use_unsup_loss=True,
-    #    separate_encoder=True)
 
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
@@ -63,7 +57,26 @@ def test_infographstar_regression_semisupervised():
 test_infographstar_regression_semisupervised()
 
 @pytest.mark.torch
-def test_infograph_regression_unsupervised():
+def test_infographstar_supervised_classification():
+    from deepchem.models.torch_models.infograph import InfoGraphStarModel
+    dataset, metric = get_classification_dataset()
+    num_feat = 30
+    edge_dim = 11
+    dim = 64
+
+    model = InfoGraphStarModel(num_feat,
+                               edge_dim,
+                               dim,
+                               training_mode='supervised')
+
+    model.fit(dataset, nb_epoch=100)
+    scores = model.evaluate(dataset, [metric])
+    assert scores['mean-roc_auc_score'] >= 0.9
+test_infographstar_supervised_classification()
+
+
+@pytest.mark.torch
+def test_infograph_unsupervised():
     from deepchem.models.torch_models.infograph import InfoGraphModel
     # from deepchem.models.torch_models.infograph import evaluate_embedding
     dataset, metric = get_regression_dataset()
@@ -82,24 +95,8 @@ def test_infograph_regression_unsupervised():
 # test_infograph_regression_unsupervised()
 
 @pytest.mark.torch
-def test_infographstar_supervised_classification():
-    from deepchem.models.torch_models.infograph import InfoGraphStarModel
-    dataset, metric = get_classification_dataset()
-    num_feat = max(
-        [dataset.X[i].num_node_features for i in range(len(dataset.X))])
-    edge_dim = max(
-        [dataset.X[i].num_edge_features for i in range(len(dataset.X))])
-    dim = 64
-
-    model = InfoGraphStarModel(num_feat,
-                               edge_dim,
-                               dim,
-                               training_mode='supervised')
-
-    model.fit(dataset, nb_epoch=100)
-    scores = model.evaluate(dataset, [metric])
-    assert scores['mean-roc_auc_score'] >= 0.9
-# test_infographstar_supervised_classification()
+def test_infograph_load_pretrained_components():
+    pass
 
 @pytest.mark.torch
 def test_fit_restore():

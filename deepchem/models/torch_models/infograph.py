@@ -92,14 +92,14 @@ class InfoGraphModel(ModularTorchModel):
 
     def __init__(self,
                  num_features,
-                 hidden_dim,
-                 num_gc_layers,
+                 embedding_dim,
+                 num_gc_layers=5,
                  gamma=.1,
                  prior=True,
                  **kwargs):
         self.num_features = num_features
-        self.hidden_dim = hidden_dim
-        self.enc_dim = hidden_dim * num_gc_layers
+        self.embedding_dim = embedding_dim
+        self.enc_dim = embedding_dim * num_gc_layers
         self.num_gc_layers = num_gc_layers
         self.gamma = gamma
         self.prior = prior
@@ -110,7 +110,7 @@ class InfoGraphModel(ModularTorchModel):
     def build_components(self) -> dict:
         return {
             'encoder':
-            GINEncoder(self.num_features, self.hidden_dim, self.num_gc_layers),
+            GINEncoder(self.num_features, self.embedding_dim, self.num_gc_layers),
             'local_d':
             MultilayerPerceptron(self.enc_dim,
                                  self.enc_dim, (self.enc_dim, ),
@@ -121,7 +121,7 @@ class InfoGraphModel(ModularTorchModel):
                                  skip_connection=True),
             'prior_d':
             nn.Sequential(
-                MultilayerPerceptron(self.num_features, 1, (self.hidden_dim, )),
+                MultilayerPerceptron(self.num_features, 1, (self.embedding_dim, )),
                 nn.Sigmoid())
         }
 
@@ -377,7 +377,7 @@ class InfoGraphStarModel(ModularTorchModel):
     def __init__(self,
                  num_features,
                  edge_features,
-                 dim,
+                 embedding_dim,
                  training_mode='supervised',
                  measure='JSD',
                  average_loss=True,
@@ -393,16 +393,14 @@ class InfoGraphStarModel(ModularTorchModel):
         self.average_loss = average_loss
         self.training_mode = training_mode
         if training_mode == 'supervised':
-            self.embedding_dim = dim
+            self.embedding_dim = embedding_dim
             self.use_unsup_loss = False
             self.separate_encoder = False
-            # self.enc_dim = dim
         elif training_mode == 'semisupervised':
-            self.embedding_dim = dim * num_gc_layers
+            self.embedding_dim = embedding_dim * num_gc_layers
             self.use_unsup_loss = True
             self.num_gc_layers = num_gc_layers
             self.separate_encoder = True
-            # self.enc_dim = dim
 
         self.components = self.build_components()
         self.model = self.build_model()
