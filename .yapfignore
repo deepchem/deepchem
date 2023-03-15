@@ -1,0 +1,2 @@
+#no need to format .npy files
+*.npy
