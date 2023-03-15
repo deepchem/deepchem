@@ -38,7 +38,7 @@ def get_regression_dataset():
     return dataset, metric
 
 
-@pytest.m1ark.torch
+@pytest.mark.torch
 def test_infographstar_regression_semisupervised():
     from deepchem.models.torch_models.infograph import InfoGraphStarModel
     dataset, metric = get_regression_dataset()
