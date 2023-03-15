@@ -54,7 +54,7 @@ def test_infographstar_regression_semisupervised():
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
     assert scores['mean_absolute_error'] < 0.1
-test_infographstar_regression_semisupervised()
+# test_infographstar_regression_semisupervised()
 
 @pytest.mark.torch
 def test_infographstar_supervised_classification():
@@ -72,8 +72,6 @@ def test_infographstar_supervised_classification():
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
     assert scores['mean-roc_auc_score'] >= 0.9
-test_infographstar_supervised_classification()
-
 
 @pytest.mark.torch
 def test_infograph_unsupervised():
@@ -89,10 +87,10 @@ def test_infograph_unsupervised():
     model = InfoGraphModel(num_feat, dim, 2)
 
     model.fit(dataset, nb_epoch=100)
-    
+
     # scores = model.evaluate(dataset, [metric]) # how to test unsupervised?
     # assert scores['mean_absolute_error'] < 0.1
-# test_infograph_regression_unsupervised()
+test_infograph_unsupervised()
 
 @pytest.mark.torch
 def test_infograph_load_pretrained_components():
