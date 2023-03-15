@@ -15,7 +15,7 @@ except ImportError:
 
 class GINEncoder(torch.nn.Module):
     """
-    Graph Information Network (GIN) encoder. This is a graph convolutional network that produces encoded representations for molecular graph inputs. It is based on the GIN model described in [1].
+    Graph Information Network (GIN) encoder. This is a graph convolutional network that produces encoded representations for molecular graph inputs.
 
     Parameters
     ----------
@@ -76,7 +76,7 @@ class InfoGraph(nn.Module):
 
     References
     ----------
-    .. [1] Sun, F.-Y., Hoffmann, J., Verma, V. & Tang, J. InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Information Maximization. Preprint at http://arxiv.org/abs/1908.01000 (2020).
+    .. [1] F.-Y. Sun, J. Hoffmann, V. Verma, and J. Tang, “InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Maximization.” arXiv, Jan. 17, 2020. http://arxiv.org/abs/1908.01000
 
     Example
     -------
@@ -134,7 +134,7 @@ class InfoGraphModel(ModularTorchModel):
 
     References
     ----------
-    .. [1] Sun, F.-Y., Hoffmann, J., Verma, V. & Tang, J. InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Information Maximization. Preprint at http://arxiv.org/abs/1908.01000 (2020).
+    .. [1] F.-Y. Sun, J. Hoffmann, V. Verma, and J. Tang, “InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Maximization.” arXiv, Jan. 17, 2020. http://arxiv.org/abs/1908.01000
 
     Parameters
     ----------
@@ -332,7 +332,7 @@ class InfoGraphStar(torch.nn.Module):
 
     References
     ----------
-    .. [1] Sun, F.-Y., Hoffmann, J., Verma, V. & Tang, J. InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Information Maximization. Preprint at http://arxiv.org/abs/1908.01000 (2020).
+    .. [1] F.-Y. Sun, J. Hoffmann, V. Verma, and J. Tang, “InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Maximization.” arXiv, Jan. 17, 2020. http://arxiv.org/abs/1908.01000
 
 
     Example
@@ -407,9 +407,7 @@ class InfoGraphStarModel(ModularTorchModel):
 
     References
     ----------
-    .. [1] F.-Y. Sun, J. Hoffmann, V. Verma, and J. Tang, “InfoGraph: Unsupervised and Semi-supervised
-    Graph-Level Representation Learning via Mutual Information Maximization.” arXiv, Jan. 17, 2020.
-    http://arxiv.org/abs/1908.01000
+    .. [1] F.-Y. Sun, J. Hoffmann, V. Verma, and J. Tang, “InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Maximization.” arXiv, Jan. 17, 2020. http://arxiv.org/abs/1908.01000
 
     Parameters
     ----------
