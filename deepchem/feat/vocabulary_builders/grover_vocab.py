@@ -3,13 +3,50 @@ from typing import Dict
 from collections import Counter
 from rdkit import Chem
 from deepchem.data import Dataset
-from deepchem.utils.typing import RDKitMol, RDKitAtom, RDKitBond
 from deepchem.feat.base_classes import Featurizer
+from deepchem.utils.typing import RDKitMol, RDKitAtom, RDKitBond
 from deepchem.feat.vocabulary_builders.vocabulary_builder import VocabularyBuilder
 
 
-class GroverAtomVocabBuilder(VocabularyBuilder):
-    other_index = 1
+class GroverAtomVocabularyBuilder(VocabularyBuilder):
+    """Atom Vocabulary Builder for Grover
+
+    This module can be used to generate atom vocabulary from SMILES strings for
+    the GROVER pretraining task. For each atom in a molecule, the vocabulary context is the
+    node-edge-count of the atom where node is the neighboring atom, edge is the type of bond (single
+    bond or double bound) and count is the number of such node-edge pairs for the atom in its
+    neighborhood. For example, for the molecule 'CC(=O)C', the context of the first carbon atom is
+    C-SINGLE1 because it's neighbor is C atom, the type of bond is SINGLE bond and the count of such
+    bonds is 1. The context of the second carbon atom is C-SINGLE2 and O-DOUBLE1 because
+    it is connected to two carbon atoms by a single bond and 1 O atom by a double bond.
+    The vocabulary of an atom is then computed as the `atom-symbol_contexts` where the contexts
+    are sorted in alphabetical order when there are multiple contexts. For example, the
+    vocabulary of second C is `C_C-SINGLE2_O-DOUBLE1`. The algorithm enumerates vocabulary of all atoms
+    in the dataset and makes a vocabulary to index mapping by sorting the vocabulary
+    by frequency and then alphabetically.
+
+
+    Example
+    -------
+    >>> import tempfile
+    >>> import deepchem as dc
+    >>> from rdkit import Chem
+    >>> file = tempfile.NamedTemporaryFile()
+    >>> dataset = dc.data.NumpyDataset(X=[['CCC'], ['CC(=O)C']])
+    >>> vocab = GroverAtomVocabularyBuilder()
+    >>> vocab.build(dataset)
+    >>> vocab.stoi
+    {'<pad>': 0, '<other>': 1, 'C_C-SINGLE1': 2, 'C_C-SINGLE2': 3, 'C_C-SINGLE2_O-DOUBLE1': 4, 'O_C-DOUBLE1': 5}
+    >>> vocab.save(file.name)
+    >>> loaded_vocab = GroverAtomVocabularyBuilder.load(file.name)
+    >>> mol = Chem.MolFromSmiles('CC(=O)C')
+    >>> loaded_vocab.encode(mol, mol.GetAtomWithIdx(1))
+    4
+
+    Reference
+    ---------
+    .. Rong, Yu, et al. "Self-supervised graph transformer on large-scale molecular data." Advances in Neural Information Processing Systems 33 (2020): 12559-12571.
+    """
 
     def __init__(self):
         self.specials = ('<pad>', '<other>')
@@ -18,8 +55,16 @@ class GroverAtomVocabBuilder(VocabularyBuilder):
         self.itos = list(self.specials)
         self.stoi = self._make_reverse_mapping(self.itos)
         self.pad_index = 0
+        self.other_index = 1
 
-    def build(self, dataset: Dataset):
+    def build(self, dataset: Dataset) -> None:
+        """Builds vocabulary
+
+        Parameters
+        ----------
+        dataset: dc.data.Dataset
+            A dataset object with SMILEs strings in X attribute.
+        """
         counter: Dict[str, int] = Counter()
         for x, _, _, _ in dataset.itersamples():
             smiles = x[0]
@@ -35,18 +80,37 @@ class GroverAtomVocabBuilder(VocabularyBuilder):
             self.itos.append(word)
         self.stoi = self._make_reverse_mapping(self.itos)
 
-    def save(self, fname: str):
+    def save(self, fname: str) -> None:
+        """Saves a vocabulary in json format
+
+        Parameter
+        ---------
+        fname: str
+            Filename to save vocabulary
+        """
         vocab = {'stoi': self.stoi, 'itos': self.itos}
         with open(fname, 'w') as f:
             json.dump(vocab, f)
 
     @classmethod
-    def load(cls, fname: str):
+    def load(cls, fname: str) -> 'GroverAtomVocabularyBuilder':
+        """Loads vocabulary from the specified json file
+
+        Parameters
+        ----------
+        fname: str
+            JSON file containing vocabulary
+
+        Returns
+        -------
+        vocab: GroverAtomVocabularyBuilder
+            A grover atom vocabulary builder which can be used for encoding
+        """
         with open(fname, 'r') as f:
             data = json.load(f)
         vocab = cls()
         vocab.stoi, vocab.itos = data['stoi'], data['itos']
-        return vocab.stoi, vocab.itos
+        return vocab
 
     @staticmethod
     def atom_to_vocab(mol: RDKitMol, atom: RDKitAtom) -> str:
@@ -68,9 +132,9 @@ class GroverAtomVocabBuilder(VocabularyBuilder):
         -------
         >>> from rdkit import Chem
         >>> mol = Chem.MolFromSmiles('[C@@H](C)C(=O)O')
-        >>> atom_to_vocab(mol, mol.GetAtomWithIdx(0))
+        >>> GroverAtomVocabularyBuilder.atom_to_vocab(mol, mol.GetAtomWithIdx(0))
         'C_C-SINGLE2'
-        >>> atom_to_vocab(mol, mol.GetAtomWithIdx(3))
+        >>> GroverAtomVocabularyBuilder.atom_to_vocab(mol, mol.GetAtomWithIdx(3))
         'O_C-DOUBLE1'
         """
         nei: Dict[str, int] = Counter()
@@ -89,11 +153,58 @@ class GroverAtomVocabBuilder(VocabularyBuilder):
     def _make_reverse_mapping(self, itos):
         return {tok: i for i, tok in enumerate(itos)}
 
+    def encode(self, mol: RDKitMol, atom: RDKitAtom) -> str:
+        """Encodes an atom in a molecule
 
-class GroverBondVocabBuilder(VocabularyBuilder):
+        Parameter
+        ---------
+        mol: RDKitMol
+            An RDKitMol object
+        atom: RDKitAtom
+            An atom in the molecule
 
+        Returns
+        -------
+        vocab: str
+            The vocabulary of the atom in the molecule.
+        """
+        return self.stoi.get(self.atom_to_vocab(mol, atom))
+
+
+class GroverBondVocabularyBuilder(VocabularyBuilder):
+    """Bond Vocabulary Builder for Grover
+
+    This module can be used to generate bond vocabulary from SMILES strings for
+    the GROVER pretraining task. For each bond in a molecule, the vocabulary context is the
+    node-edge-count of the bond where node is the neighboring atom, edge is the type of bond
+    and count is the number of such node-edge pairs for the bond in its one hop
+    neighborhood. The algorithm enumerates vocabulary of all bonds
+    in the dataset and makes a vocabulary to index mapping by sorting the vocabulary
+    by frequency and then alphabetically.
+
+
+    Example
+    -------
+    >>> import tempfile
+    >>> import deepchem as dc
+    >>> from rdkit import Chem
+    >>> file = tempfile.NamedTemporaryFile()
+    >>> dataset = dc.data.NumpyDataset(X=[['CCC']])
+    >>> vocab = GroverBondVocabularyBuilder()
+    >>> vocab.build(dataset)
+    >>> vocab.stoi
+    {'<pad>': 0, '<other>': 1, '(SINGLE-STEREONONE-NONE)_C-(SINGLE-STEREONONE-NONE)1': 2}
+    >>> vocab.save(file.name)
+    >>> loaded_vocab = GroverBondVocabularyBuilder.load(file.name)
+    >>> mol = Chem.MolFromSmiles('CCC')
+    >>> loaded_vocab.encode(mol, mol.GetBondWithIdx(0))
+    2
+
+    Reference
+    ---------
+    .. Rong, Yu, et al. "Self-supervised graph transformer on large-scale molecular data." Advances in Neural Information Processing Systems 33 (2020): 12559-12571.
+    """
     BOND_FEATURES = ['BondType', 'Stereo', 'BondDir']
-    other_index = 1
 
     def __init__(self):
         self.specials = ('<pad>', '<other>')
@@ -104,7 +215,14 @@ class GroverBondVocabBuilder(VocabularyBuilder):
         self.pad_index = 0
         self.other_index = 1
 
-    def build(self, dataset: Dataset):
+    def build(self, dataset: Dataset) -> None:
+        """Builds vocabulary
+
+        Parameters
+        ----------
+        dataset: dc.data.Dataset
+            A dataset object with SMILEs strings in X attribute.
+        """
         counter: Dict[str, int] = Counter()
         for x, _, _, _ in dataset.itersamples():
             smiles = x[0]
@@ -120,18 +238,37 @@ class GroverBondVocabBuilder(VocabularyBuilder):
             self.itos.append(word)
         self.stoi = self._make_reverse_mapping(self.itos)
 
-    def save(self, fname: str):
+    def save(self, fname: str) -> None:
+        """Saves a vocabulary in json format
+
+        Parameter
+        ---------
+        fname: str
+            Filename to save vocabulary
+        """
         vocab = {'stoi': self.stoi, 'itos': self.itos}
         with open(fname, 'w') as f:
             json.dump(vocab, f)
 
     @classmethod
-    def load(cls, fname: str):
+    def load(cls, fname: str) -> 'GroverBondVocabularyBuilder':
+        """Loads vocabulary from the specified json file
+
+        Parameters
+        ----------
+        fname: str
+            JSON file containing vocabulary
+
+        Returns
+        -------
+        vocab: GroverAtomVocabularyBuilder
+            A grover atom vocabulary builder which can be used for encoding
+        """
         with open(fname, 'r') as f:
             data = json.load(f)
         vocab = cls()
         vocab.stoi, vocab.itos = data['stoi'], data['itos']
-        return vocab.stoi, vocab.itos
+        return vocab
 
     @staticmethod
     def bond_to_vocab(mol: RDKitMol, bond: RDKitBond):
@@ -155,9 +292,9 @@ class GroverBondVocabBuilder(VocabularyBuilder):
         -------
         >>> from rdkit import Chem
         >>> mol = Chem.MolFromSmiles('[C@@H](C)C(=O)O')
-        >>> bond_to_vocab(mol, mol.GetBondWithIdx(0))
+        >>> GroverBondVocabularyBuilder.bond_to_vocab(mol, mol.GetBondWithIdx(0))
         '(SINGLE-STEREONONE-NONE)_C-(SINGLE-STEREONONE-NONE)1'
-        >>> bond_to_vocab(mol, mol.GetBondWithIdx(2))
+        >>> GroverBondVocabularyBuilder.bond_to_vocab(mol, mol.GetBondWithIdx(2))
         '(DOUBLE-STEREONONE-NONE)_C-(SINGLE-STEREONONE-NONE)2'
         """
         nei: Dict[str, int] = Counter()
@@ -170,11 +307,11 @@ class GroverBondVocabBuilder(VocabularyBuilder):
                     continue
                 tmp_bond = mol.GetBondBetweenAtoms(nei_atom.GetIdx(), a_idx)
                 nei[str(nei_atom.GetSymbol()) + '-' +
-                    GroverBondVocabBuilder._get_bond_feature_name(
+                    GroverBondVocabularyBuilder._get_bond_feature_name(
                         tmp_bond)] += 1
         keys = list(nei.keys())
         keys.sort()
-        output = GroverBondVocabBuilder._get_bond_feature_name(bond)
+        output = GroverBondVocabularyBuilder._get_bond_feature_name(bond)
         for k in keys:
             output = "%s_%s%d" % (output, k, nei[k])
         return output
@@ -183,35 +320,95 @@ class GroverBondVocabBuilder(VocabularyBuilder):
     def _get_bond_feature_name(bond: RDKitBond):
         """Return the string format of bond features."""
         ret = []
-        for bond_feature in GroverBondVocabBuilder.BOND_FEATURES:
+        for bond_feature in GroverBondVocabularyBuilder.BOND_FEATURES:
             fea = eval(f"bond.Get{bond_feature}")()
             ret.append(str(fea))
-
         return '(' + '-'.join(ret) + ')'
 
     def _make_reverse_mapping(self, itos):
         return {tok: i for i, tok in enumerate(itos)}
 
+    def encode(self, mol: RDKitMol, bond: RDKitBond) -> str:
+        """Encodes a bond in a molecule
 
-class GroverAtomTokenizer(Featurizer):
+        Parameter
+        ---------
+        mol: RDKitMol
+            An RDKitMol object
+        bond: RDKitBond
+            A bond in the molecule
 
-    def __init__(self, filename: str):
-        self.stoi, _ = GroverAtomVocabBuilder.load(filename)
+        Returns
+        -------
+        vocab: str
+            The vocabulary of the bond in the molecule.
+        """
+        return self.stoi.get(self.bond_to_vocab(mol, bond))
+
+
+class GroverAtomVocabTokenizer(Featurizer):
+    """Grover Atom Vocabulary Tokenizer
+
+    The Grover Atom vocab tokenizer is used for tokenizing an atom using a
+    vocabulary generated by GroverAtomVocabularyBuilder.
+
+    Example
+    -------
+    >>> import tempfile
+    >>> import deepchem as dc
+    >>> from deepchem.feat.vocabulary_builders.grover_vocab import GroverAtomVocabularyBuilder
+    >>> file = tempfile.NamedTemporaryFile()
+    >>> dataset = dc.data.NumpyDataset(X=[['CC(=O)C', 'CCC']])
+    >>> vocab = GroverAtomVocabularyBuilder()
+    >>> vocab.build(dataset)
+    >>> vocab.save(file.name)  # build and save the vocabulary
+    >>> atom_tokenizer = GroverAtomVocabTokenizer(file.name)
+    >>> mol = Chem.MolFromSmiles('CC(=O)C')
+    >>> atom_tokenizer.featurize([(mol, mol.GetAtomWithIdx(0))])[0]
+    2
+
+    Parameters
+    ----------
+    fname: str
+        Filename of vocabulary generated by GroverAtomVocabularyBuilder
+    """
+
+    def __init__(self, fname: str):
+        self.vocabulary = GroverAtomVocabularyBuilder.load(fname)
 
     def _featurize(self, datapoint):
-        # returns an encoding
-        return self.stoi.get(
-            GroverAtomVocabBuilder.atom_to_vocab(datapoint[0], datapoint[1]),
-            GroverAtomVocabBuilder.other_index)
+        return self.vocabulary.encode(datapoint[0], datapoint[1])
 
 
-class GroverBondTokenizer(Featurizer):
+class GroverBondVocabTokenizer(Featurizer):
+    """Grover Bond Vocabulary Tokenizer
 
-    def __init__(self, filename: str):
-        self.stoi, _ = GroverBondVocabBuilder.load(filename)
+    The Grover Bond vocab tokenizer is used for tokenizing a bond using a
+    vocabulary generated by GroverBondVocabularyBuilder.
+
+    Example
+    -------
+    >>> import tempfile
+    >>> import deepchem as dc
+    >>> from deepchem.feat.vocabulary_builders.grover_vocab import GroverBondVocabularyBuilder
+    >>> file = tempfile.NamedTemporaryFile()
+    >>> dataset = dc.data.NumpyDataset(X=[['CC(=O)C', 'CCC']])
+    >>> vocab = GroverBondVocabularyBuilder()
+    >>> vocab.build(dataset)
+    >>> vocab.save(file.name)  # build and save the vocabulary
+    >>> bond_tokenizer = GroverBondVocabTokenizer(file.name)
+    >>> mol = Chem.MolFromSmiles('CC(=O)C')
+    >>> bond_tokenizer.featurize([(mol, mol.GetBondWithIdx(0))])[0]
+    2
+
+    Parameters
+    ----------
+    fname: str
+        Filename of vocabulary generated by GroverAtomVocabularyBuilder
+    """
+
+    def __init__(self, fname: str):
+        self.vocabulary = GroverBondVocabularyBuilder.load(fname)
 
     def _featurize(self, datapoint):
-        # returns an encoding
-        return self.stoi.get(
-            GroverBondVocabBuilder.bond_to_vocab(datapoint[0], datapoint[1]),
-            GroverBondVocabBuilder.other_index)
+        return self.vocabulary.encode(datapoint[0], datapoint[1])
