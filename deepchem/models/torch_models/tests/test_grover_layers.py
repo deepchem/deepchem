@@ -23,7 +23,7 @@ def testGroverEmbedding():
     layer = GroverEmbedding(hidden_size=hidden_size,
                             edge_fdim=edge_fdim,
                             node_fdim=node_fdim,
-                            atom_embedding_output_type='both')
+                            embedding_output_type='both')
     output = layer([f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a])
     assert output['atom_from_atom'].shape == (n_atoms, hidden_size)
     assert output['bond_from_atom'].shape == (n_bonds, hidden_size)
@@ -184,7 +184,7 @@ def testGroverTransEncoder():
     layer = GroverTransEncoder(hidden_size=hidden_size,
                                edge_fdim=edge_fdim,
                                node_fdim=node_fdim,
-                               atom_emb_output_type='both')
+                               embedding_output_type='both')
     output = layer([f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a])
     assert output[0][0].shape == (n_atoms, hidden_size)
     assert output[0][1].shape == (n_bonds, hidden_size)

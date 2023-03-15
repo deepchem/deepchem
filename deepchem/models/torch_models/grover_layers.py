@@ -16,7 +16,7 @@ from deepchem.models.torch_models.layers import SublayerConnection, Positionwise
 class GroverEmbedding(nn.Module):
     """GroverEmbedding layer.
 
-    This layer is a simple wrapper over GroverTransEncoder layer for retrieving the embeddings from the GroverTransEncoder corresponding to the `atom_embedding_output_type` chosen by the user.
+    This layer is a simple wrapper over GroverTransEncoder layer for retrieving the embeddings from the GroverTransEncoder corresponding to the `embedding_output_type` chosen by the user.
 
     Parameters
     ----------
@@ -32,7 +32,7 @@ class GroverEmbedding(nn.Module):
         the number of message passing blocks.
     num_head: int
         the number of attention heads.
-    atom_embedding_output_type: str
+    embedding_output_type: str
         the type of output aggregation after message passing.
                                             atom_messages:      True                      False
         - "none": no aggregation         output size:     (num_atoms, hidden_size)    (num_bonds, hidden_size)
@@ -45,7 +45,7 @@ class GroverEmbedding(nn.Module):
     def __init__(self,
                  node_fdim,
                  edge_fdim,
-                 atom_embedding_output_type,
+                 embedding_output_type,
                  hidden_size=128,
                  depth=1,
                  undirected=False,
@@ -56,7 +56,7 @@ class GroverEmbedding(nn.Module):
                  bias=False,
                  res_connection=False):
         super(GroverEmbedding, self).__init__()
-        self.atom_embedding_output_type = atom_embedding_output_type
+        self.embedding_output_type = embedding_output_type
         self.encoders = GroverTransEncoder(
             hidden_size=hidden_size,
             edge_fdim=edge_fdim,
@@ -67,7 +67,7 @@ class GroverEmbedding(nn.Module):
             activation=activation,
             num_mt_block=num_mt_block,
             num_heads=num_heads,
-            atom_emb_output_type=atom_embedding_output_type,
+            embedding_output_type=embedding_output_type,
             bias=bias,
             res_connection=res_connection)
 
@@ -80,21 +80,21 @@ class GroverEmbedding(nn.Module):
             A list containing f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
         """
         output = self.encoders(graph_batch)
-        if self.atom_embedding_output_type == 'atom':
+        if self.embedding_output_type == 'atom':
             return {
                 "atom_from_atom": output[0],
                 "atom_from_bond": output[1],
                 "bond_from_atom": None,
                 "bond_from_bond": None
             }  # atom_from_atom, atom_from_bond
-        elif self.atom_embedding_output_type == 'bond':
+        elif self.embedding_output_type == 'bond':
             return {
                 "atom_from_atom": None,
                 "atom_from_bond": None,
                 "bond_from_atom": output[0],
                 "bond_from_bond": output[1]
             }  # bond_from_atom, bond_from_bond
-        elif self.atom_embedding_output_type == "both":
+        elif self.embedding_output_type == "both":
             return {
                 "atom_from_atom": output[0][0],
                 "bond_from_atom": output[0][1],
@@ -690,7 +690,7 @@ class GroverTransEncoder(nn.Module):
         the number of mt block.
     num_head: int
         the number of attention AttentionHead.
-    atom_emb_output_type: str
+    embedding_output_type: str
         enable the output aggregation after message passing.
                                             atom_messages:      True                      False
         - "none": no aggregation         output size:     (num_atoms, hidden_size)    (num_bonds, hidden_size)
@@ -711,7 +711,7 @@ class GroverTransEncoder(nn.Module):
                  undirected: bool = False,
                  num_mt_block: int = 2,
                  num_heads: int = 2,
-                 atom_emb_output_type: str = 'both',
+                 embedding_output_type: str = 'both',
                  hidden_size: int = 64,
                  dropout: float = 0.2,
                  res_connection: bool = True,
@@ -722,7 +722,7 @@ class GroverTransEncoder(nn.Module):
         self.hidden_size = hidden_size
         self.edge_fdim = edge_fdim
         self.node_fdim = node_fdim
-        self.atom_emb_output_type = atom_emb_output_type
+        self.embedding_output_type = embedding_output_type
 
         self.edge_blocks = nn.ModuleList()
         self.node_blocks = nn.ModuleList()
@@ -884,11 +884,11 @@ class GroverTransEncoder(nn.Module):
         atom_output, _, _, _, _, _, _, _ = node_batch  # atom hidden states
         _, bond_output, _, _, _, _, _, _ = edge_batch  # bond hidden states
 
-        if self.atom_emb_output_type is None:
+        if self.embedding_output_type is None:
             # output the embedding from multi-head attention directly.
             return atom_output, bond_output
 
-        if self.atom_emb_output_type == 'atom':
+        if self.embedding_output_type == 'atom':
             return self._atom_bond_transform(
                 to_atom=True,  # False: to bond
                 atomwise_input=atom_output,
@@ -899,7 +899,7 @@ class GroverTransEncoder(nn.Module):
                 a2b=a2b,
                 b2a=b2a,
                 b2revb=b2revb)
-        elif self.atom_emb_output_type == 'bond':
+        elif self.embedding_output_type == 'bond':
             return self._atom_bond_transform(
                 to_atom=False,  # False: to bond
                 atomwise_input=atom_output,
