@@ -479,6 +479,27 @@ DummyFeaturizer
   :members:
   :inherited-members:
 
+GroverAtomVocabTokenizer
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.vocabulary_builders.grover_vocab.GroverAtomVocabTokenizer
+   :members:
+
+GroverBondVocabTokenizer
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass::  deepchem.feat.vocabulary_builders.grover_vocab.GroverBondVocabTokenizer
+   :members:
+
+Tokenizers
+----------
+
+.. autoclass:: deepchem.feat.vocabulary_builders.grover_vocab.GroverAtomVocabularyBuilder
+   :members:
+
+.. autoclass:: deepchem.feat.vocabulary_builders.grover_vocab.GroverAtomVocabularyBuilder
+   :members:
+
 Base Featurizers (for develop)
 ------------------------------
 
