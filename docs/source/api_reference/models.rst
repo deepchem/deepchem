@@ -399,6 +399,12 @@ InfoGraphModel
 .. autoclass:: deepchem.models.torch_models.InfoGraphModel
   :members:
 
+InfoGraphStarModel
+--------------
+
+.. autoclass:: deepchem.models.torch_models.InfoGraphStarModel
+  :members:
+
 LCNNModel
 ---------
 
