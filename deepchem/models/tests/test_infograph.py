@@ -38,7 +38,7 @@ def get_regression_dataset():
     return dataset, metric
 
 
-@pytest.mark.torch
+@pytest.m1ark.torch
 def test_infographstar_regression_semisupervised():
     from deepchem.models.torch_models.infograph import InfoGraphStarModel
     dataset, metric = get_regression_dataset()
@@ -56,11 +56,26 @@ def test_infographstar_regression_semisupervised():
     assert scores['mean_absolute_error'] < 0.1
 
 
-# test_infographstar_regression_semisupervised()
+@pytest.mark.torch
+def test_infographstar_classification_semisupervised():
+    from deepchem.models.torch_models.infograph import InfoGraphStarModel
+    dataset, metric = get_classification_dataset()
+    num_feat = 30
+    edge_dim = 11
+    dim = 64
+    model = InfoGraphStarModel(num_feat,
+                               edge_dim,
+                               dim,
+                               num_gc_layers=2,
+                               training_mode='semisupervised')
+
+    model.fit(dataset, nb_epoch=100)
+    scores = model.evaluate(dataset, [metric])
+    assert scores['mean-roc_auc_score'] >= 0.9
 
 
 @pytest.mark.torch
-def test_infographstar_supervised_classification():
+def test_infographstar_classification_supervised():
     from deepchem.models.torch_models.infograph import InfoGraphStarModel
     dataset, metric = get_classification_dataset()
     num_feat = 30
@@ -78,6 +93,24 @@ def test_infographstar_supervised_classification():
 
 
 @pytest.mark.torch
+def test_infographstar_regression_supervised():
+    from deepchem.models.torch_models.infograph import InfoGraphStarModel
+    dataset, metric = get_regression_dataset()
+    num_feat = 30
+    edge_dim = 11
+    dim = 64
+    model = InfoGraphStarModel(num_feat,
+                               edge_dim,
+                               dim,
+                               num_gc_layers=2,
+                               training_mode='supervised')
+
+    model.fit(dataset, nb_epoch=100)
+    scores = model.evaluate(dataset, [metric])
+    assert scores['mean_absolute_error'] < 0.1
+
+
+@pytest.mark.torch
 def test_infograph_unsupervised():
     from deepchem.models.torch_models.infograph import InfoGraphModel
     dataset, metric = get_regression_dataset()  # note, labels are ignored
@@ -88,8 +121,6 @@ def test_infograph_unsupervised():
 
     loss = model.fit(dataset, nb_epoch=100)
     assert loss < 6  # early loss is around 50
-
-
 
 
 @pytest.mark.torch
