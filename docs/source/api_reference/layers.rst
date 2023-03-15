@@ -198,6 +198,12 @@ Attention Layers
 .. autoclass:: deepchem.models.torch_models.attention.SelfAttention
   :members:
 
+Readout Layers
+^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.models.torch_models.readout.GroverReadout
+   :members:
+
 Jax Layers
 ----------
 
