@@ -164,6 +164,7 @@ class HybridXC(BaseNNXC):
             weight of the default xc
 
         References
+        ----------
         https://tddft.org/programs/libxc/functionals/
         """
         self.xc = get_xc(xcstr)
