@@ -46,11 +46,13 @@ def test_infographstar_regression_semisupervised():
         [dataset.X[i].num_node_features for i in range(len(dataset))])
     edge_dim = max(
         [dataset.X[i].num_edge_features for i in range(len(dataset))])
-    dim = 64
-
+    dim = 64#64
+    # encoder -> dim * 2 * num_gc_layers *
+    # ginencoder -> num_gc_layers * dim
     model = InfoGraphStarModel(num_feat,
                                edge_dim,
                                dim,
+                               num_gc_layers=3, # affects dimension of output
                                training_mode='semisupervised')
     #    use_unsup_loss=True,
     #    separate_encoder=True)

@@ -16,6 +16,7 @@ except ImportError:
 class GINEncoder(torch.nn.Module):
 
     def __init__(self, num_features, dim, num_gc_layers=5):
+        dim = int(dim / num_gc_layers)
         # from torch_geometric.nn import
         super().__init__()
 
@@ -56,7 +57,8 @@ class GINEncoder(torch.nn.Module):
 
         xpool = [global_add_pool(x, data.graph_index) for x in xs]
         x = torch.cat(xpool, 1)
-        return x, torch.cat(xs, 1)
+        xs = torch.cat(xs, 1)
+        return x, xs
 
 
 class InfoGraph(nn.Module):
@@ -381,7 +383,7 @@ class InfoGraphStarModel(ModularTorchModel):
                  average_loss=True,
                  num_gc_layers=5,
                  **kwargs):
-        self.embedding_dim = dim
+
         self.edge_features = edge_features
         self.local = True
         self.prior = False
@@ -391,14 +393,16 @@ class InfoGraphStarModel(ModularTorchModel):
         self.average_loss = average_loss
         self.training_mode = training_mode
         if training_mode == 'supervised':
+            self.embedding_dim = dim
             self.use_unsup_loss = False
             self.separate_encoder = False
-            self.enc_dim = dim
+            # self.enc_dim = dim
         elif training_mode == 'semisupervised':
+            self.embedding_dim = dim * num_gc_layers
             self.use_unsup_loss = True
-            self.separate_encoder = True
             self.num_gc_layers = num_gc_layers
-            self.enc_dim = dim * num_gc_layers
+            self.separate_encoder = True
+            # self.enc_dim = dim
 
         self.components = self.build_components()
         self.model = self.build_model()
@@ -445,21 +449,21 @@ class InfoGraphStarModel(ModularTorchModel):
                 MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
                                      (self.embedding_dim, )),
                 'ff2':
-                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                MultilayerPerceptron(self.embedding_dim, self.embedding_dim,
                                      (self.embedding_dim, )),
                 'fc1':
                 torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
                 torch.nn.Linear(self.embedding_dim, 1),
                 'local_d':
-                MultilayerPerceptron(self.enc_dim,
-                                     self.enc_dim, (self.enc_dim, ),
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim, ),
                                      skip_connection=True),
                 'global_d':
                 MultilayerPerceptron(
-                    self.enc_dim,  # * 2
-                    self.enc_dim,
-                    (self.enc_dim, ),
+                    self.embedding_dim,  # * 2
+                    self.embedding_dim,
+                    (self.embedding_dim, ),
                     skip_connection=True)
             }
 
