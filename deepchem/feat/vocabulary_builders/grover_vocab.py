@@ -11,8 +11,20 @@ from deepchem.feat.vocabulary_builders.vocabulary_builder import VocabularyBuild
 class GroverAtomVocabularyBuilder(VocabularyBuilder):
     """Atom Vocabulary Builder for Grover
 
-    This module can be used to generate atom vocabulary from
-    SMILEs strings using the algorithm described in `Grover. <https://drug.ai.tencent.com/publications/GROVER.pdf>`_
+    This module can be used to generate atom vocabulary from SMILES strings for
+    the GROVER pretraining task. For each atom in a molecule, the vocabulary context is the
+    node-edge-count of the atom where node is the neighboring atom, edge is the type of bond (single
+    bond or double bound) and count is the number of such node-edge pairs for the atom in its
+    neighborhood. For example, for the molecule 'CC(=O)C', the context of the first carbon atom is
+    C-SINGLE1 because it's neighbor is C atom, the type of bond is SINGLE bond and the count of such
+    bonds is 1. The context of the second carbon atom is C-SINGLE2 and O-DOUBLE1 because
+    it is connected to two carbon atoms by a single bond and 1 O atom by a double bond.
+    The vocabulary of an atom is then computed as the `atom-symbol_contexts` where the contexts
+    are sorted in alphabetical order when there are multiple contexts. For example, the
+    vocabulary of second C is `C_C-SINGLE2_O-DOUBLE1`. The algorithm enumerates vocabulary of all atoms
+    in the dataset and makes a vocabulary to index mapping by sorting the vocabulary
+    by frequency and then alphabetically.
+
 
     Example
     -------
@@ -20,13 +32,17 @@ class GroverAtomVocabularyBuilder(VocabularyBuilder):
     >>> import deepchem as dc
     >>> from rdkit import Chem
     >>> file = tempfile.NamedTemporaryFile()
-    >>> dataset = dc.data.NumpyDataset(X=['CCC', 'CC(=O)C'])
+    >>> dataset = dc.data.NumpyDataset(X=[['CCC'], ['CC(=O)C']])
     >>> vocab = GroverAtomVocabularyBuilder()
     >>> vocab.build(dataset)
+    >>> vocab.stoi
+    {'<pad>': 0, '<other>': 1, 'C_C-SINGLE1': 2, 'C_C-SINGLE2_O-DOUBLE1': 3, 'O_C-DOUBLE1': 4}
     >>> vocab.save(file.name)
-    >>> new_vocab = vocab.load(file.name)
-    >>> mol = Chem.MolFromSmiles('CC')
-    >>> new_vocab.encode(mol, mol.GetAtomWithIdx(1))
+    >>> loaded_vocab = vocab.load(file.name)
+    >>> mol = Chem.MolFromSmiles('CC(=O)C')
+    >>> loaded_vocab.encode(mol, mol.GetAtomWithIdx(1))
+    >>> av.encode(mol, atom)
+    3
 
     Reference
     ---------
@@ -138,11 +154,51 @@ class GroverAtomVocabularyBuilder(VocabularyBuilder):
     def _make_reverse_mapping(self, itos):
         return {tok: i for i, tok in enumerate(itos)}
 
-    def encode(self, mol: RDKitMol, atom):
+    def encode(self, mol: RDKitMol, atom: RDKitAtom):
+        """Encodes an atom in a molecule
+
+        Parameter
+        ---------
+        mol: RDKitMol
+            An RDKitMol object
+        atom: RDKitAtom
+            An atom in the molecule
+        """
         return self.stoi.get(self.atom_to_vocab(mol, atom))
 
 
 class GroverBondVocabularyBuilder(VocabularyBuilder):
+    """Bond Vocabulary Builder for Grover
+
+    This module can be used to generate bond vocabulary from SMILES strings for
+    the GROVER pretraining task. For each bond in a molecule, the vocabulary context is the
+    node-edge-count of the bond where node is the neighboring atom, edge is the type of bond
+    and count is the number of such node-edge pairs for the bond in its one hop
+    neighborhood. The algorithm enumerates vocabulary of all bonds
+    in the dataset and makes a vocabulary to index mapping by sorting the vocabulary
+    by frequency and then alphabetically.
+
+
+    Example
+    -------
+    >>> import tempfile
+    >>> import deepchem as dc
+    >>> from rdkit import Chem
+    >>> file = tempfile.NamedTemporaryFile()
+    >>> dataset = dc.data.NumpyDataset(X=[['CCC']])
+    >>> vocab = GroverBondVocabularyBuilder()
+    >>> vocab.build(dataset)
+    >>> vocab.stoi
+    {'<pad>': 0, '<other>': 1, '(SINGLE-STEREONONE-NONE)_C-(SINGLE-STEREONONE-NONE)1': 2}
+    >>> vocab.save(file.name)
+    >>> loaded_vocab = vocab.load(file.name)
+    >>> mol = Chem.MolFromSmiles('CC')
+    >>> loaded_vocab.encode(mol, mol.GetBondWithIdx(0))
+
+    Reference
+    ---------
+    .. Rong, Yu, et al. "Self-supervised graph transformer on large-scale molecular data." Advances in Neural Information Processing Systems 33 (2020): 12559-12571.
+    """
     BOND_FEATURES = ['BondType', 'Stereo', 'BondDir']
 
     def __init__(self):
