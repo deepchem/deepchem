@@ -14,10 +14,28 @@ except ImportError:
 
 
 class GINEncoder(torch.nn.Module):
+    """
+    Graph Information Network (GIN) encoder. This is a graph convolutional network that produces encoded representations for molecular graph inputs. It is based on the GIN model described in [1].
 
-    def __init__(self, num_features, dim, num_gc_layers=5):
-        dim = int(dim / num_gc_layers)
-        # from torch_geometric.nn import
+    Parameters
+    ----------
+    num_features: int
+        The number of node features
+    embedding_dim: int
+        The dimension of the output embedding
+    num_gc_layers: int, optional (default 5)
+        The number of graph convolutional layers to use
+
+    References
+    ----------
+    1. Xu, K., Hu, W., Leskovec, J. & Jegelka, S. How Powerful are Graph Neural Networks? arXiv:1810.00826 [cs, stat] (2019).
+
+    """
+
+    def __init__(self, num_features, embedding_dim, num_gc_layers=5):
+        dim = int(
+            embedding_dim / num_gc_layers
+        )  # the output dimension of this encoder is modified by the number of GC layers, so this is necessary to ensure that the output dimension is consistent with the InfoGraphEncoder
         super().__init__()
 
         self.num_gc_layers = num_gc_layers
@@ -26,12 +44,11 @@ class GINEncoder(torch.nn.Module):
         self.bns = torch.nn.ModuleList()
 
         for i in range(num_gc_layers):
-
-            if i:
-                nn = Sequential(Linear(dim, dim), ReLU(), Linear(dim, dim))
-            else:
+            if i == 0:
                 nn = Sequential(Linear(num_features, dim), ReLU(),
                                 Linear(dim, dim))
+            else:
+                nn = Sequential(Linear(dim, dim), ReLU(), Linear(dim, dim))
             conv = GINConv(nn)
             bn = torch.nn.BatchNorm1d(dim)
 
@@ -46,8 +63,6 @@ class GINEncoder(torch.nn.Module):
             x = F.relu(self.convs[i](x, data.edge_index))
             x = self.bns[i](x)
             xs.append(x)
-            # if i == 2:
-            # feature_map = x2
 
         xpool = [global_add_pool(x, data.graph_index) for x in xs]
         x = torch.cat(xpool, 1)
@@ -56,7 +71,35 @@ class GINEncoder(torch.nn.Module):
 
 
 class InfoGraph(nn.Module):
+    """
+    The nn.Module for InfoGraph. This class defines the forward pass of InfoGraph.
 
+    References
+    ----------
+    1. Sun, F.-Y., Hoffmann, J., Verma, V. & Tang, J. InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Information Maximization. Preprint at http://arxiv.org/abs/1908.01000 (2020).
+
+    Example
+    -------
+    >>> import torch
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models.infograph import InfoGraphModel
+    >>> from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
+    >>> from deepchem.feat.graph_data import BatchGraphData
+    >>> smiles = ['C1=CC=CC=C1', 'C1=CC=CC=C1C2=CC=CC=C2']
+    >>> featurizer = MolGraphConvFeaturizer(use_edges=True)
+    >>> graphs = BatchGraphData(featurizer.featurize(smiles))
+    >>> num_feat = 30
+    >>> num_edge = 11
+    >>> infographmodular = InfoGraphModel(num_feat,num_edge,64)
+    >>>  # convert features to torch tensors
+    >>> graphs.edge_features = torch.from_numpy(graphs.edge_features).to(infographmodular.device).float()
+    >>> graphs.edge_index = torch.from_numpy(graphs.edge_index).to(infographmodular.device).long()
+    >>> graphs.node_features = torch.from_numpy(graphs.node_features).to(infographmodular.device).float()
+    >>> graphs.graph_index = torch.from_numpy(graphs.graph_index).to(infographmodular.device).long()
+    >>> model = infographmodular.model
+    >>> output = model(graphs).cpu().detach().numpy()
+
+    """
     def __init__(self, encoder, local_d, global_d, prior_d):
         super().__init__()
         self.encoder = encoder
@@ -81,21 +124,48 @@ class InfoGraph(nn.Module):
 
 class InfoGraphModel(ModularTorchModel):
     """
-    InfoGraph is an unsupervised graph convolutional network for molecular structure.
+    InfoGraph is a graph convolutional model for unsupervised graph-level representation learning. The model aims to maximize the mutual information between the representations of entire graphs and the representations of substructures of different granularity.
+
+    The unsupervised training of InfoGraph involves two encoders: one that encodes the entire graph and another that encodes substructures of different sizes. The mutual information between the two encoder outputs is maximized using a contrastive loss function. The model randomly samples pairs of graphs and substructures, and then maximizes their mutual information by minimizing their distance in a learned embedding space.
+
+    This can be used for downstream tasks such as graph classification and molecular property prediction.It is implemented as a ModularTorchModel in order to facilitate transfer learning.
+
+    References
+    ----------
+    1. Sun, F.-Y., Hoffmann, J., Verma, V. & Tang, J. InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Information Maximization. Preprint at http://arxiv.org/abs/1908.01000 (2020).
+
+    Parameters
+    ----------
+    num_features: int
+        Number of node features for each input
+    edge_features: int
+        Number of edge features for each input
+    embedding_dim: int
+        Dimension of the embedding
+    num_gc_layers: int
+        Number of graph convolutional layers
+    prior: bool
+        Whether to use a prior expectation in the loss term
+    gamma: float
+        Weight of the prior expectation in the loss term
+    measure: str
+        The divergence measure to use for the unsupervised loss. Options are 'GAN', 'JSD',
+        'KL', 'RKL', 'X2', 'DV', 'H2', or 'W1'.
+    average_loss: bool
+        Whether to average the loss over the batch
     """
 
     def __init__(self,
                  num_features,
                  embedding_dim,
                  num_gc_layers=5,
-                 gamma=.1,
                  prior=True,
+                 gamma=.1,
                  measure='JSD',
                  average_loss=True,
                  **kwargs):
         self.num_features = num_features
-        self.embedding_dim = embedding_dim
-        # self.enc_dim = embedding_dim * num_gc_layers
+        self.embedding_dim = embedding_dim * num_gc_layers
         self.num_gc_layers = num_gc_layers
         self.gamma = gamma
         self.prior = prior
@@ -108,7 +178,8 @@ class InfoGraphModel(ModularTorchModel):
     def build_components(self) -> dict:
         return {
             'encoder':
-            GINEncoder(self.num_features, self.embedding_dim, self.num_gc_layers),
+            GINEncoder(self.num_features, self.embedding_dim,
+                       self.num_gc_layers),
             'local_d':
             MultilayerPerceptron(self.embedding_dim,
                                  self.embedding_dim, (self.embedding_dim, ),
@@ -118,9 +189,9 @@ class InfoGraphModel(ModularTorchModel):
                                  self.embedding_dim, (self.embedding_dim, ),
                                  skip_connection=True),
             'prior_d':
-            nn.Sequential(
-                MultilayerPerceptron(self.embedding_dim, 1, (self.embedding_dim, )),
-                nn.Sigmoid())
+            MultilayerPerceptron(self.embedding_dim,
+                                 1, (self.embedding_dim, ),
+                                 activation_fn='sigmoid')
         }
 
     def build_model(self) -> nn.Module:
@@ -168,9 +239,11 @@ class InfoGraphModel(ModularTorchModel):
 
         res = torch.mm(l_enc, g_enc.t()).to(self.device)
 
-        E_pos = get_positive_expectation(res * pos_mask, self.measure, self.average_loss)
+        E_pos = get_positive_expectation(res * pos_mask, self.measure,
+                                         self.average_loss)
         E_pos = (E_pos * pos_mask).sum() / pos_mask.sum()
-        E_neg = get_negative_expectation(res * neg_mask, self.measure, self.average_loss)
+        E_neg = get_negative_expectation(res * neg_mask, self.measure,
+                                         self.average_loss)
         E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
 
         return E_neg - E_pos
@@ -212,9 +285,6 @@ class InfoGraphEncoder(torch.nn.Module):
     """
 
     def __init__(self, num_features, edge_features, dim):
-        # from torch_geometric.nn import NNConv
-        # from torch_geometric.nn.aggr import Set2Set
-
         super().__init__()
         self.lin0 = torch.nn.Linear(num_features, dim)
 
@@ -241,23 +311,27 @@ class InfoGraphEncoder(torch.nn.Module):
 
 class InfoGraphStar(torch.nn.Module):
     """
-    The nn.Module for InfoGraph. This class defines the forward pass of InfoGraph.
+    The nn.Module for InfoGraphStar. This class defines the forward pass of InfoGraphStar.
 
     Parameters
     ----------
     encoder: torch.nn.Module
-        The encoder for InfoGraph.
+        The encoder for InfoGraphStar.
     unsup_encoder: torch.nn.Module
         The unsupervised encoder for InfoGraph, of identical architecture to encoder.
     ff1: torch.nn.Module
-        The first feedforward layer for InfoGraph.
+        The first feedforward layer for InfoGraphStar.
     ff2: torch.nn.Module
-        The second feedforward layer for InfoGraph.
+        The second feedforward layer for InfoGraphStar.
     fc1: torch.nn.Module
-        The first fully connected layer for InfoGraph.
+        The first fully connected layer for InfoGraphStar.
     fc2: torch.nn.Module
-        The second fully connected layer for InfoGraph.
+        The second fully connected layer for InfoGraphStar.
 
+    References
+    ----------
+    1. Sun, F.-Y., Hoffmann, J., Verma, V. & Tang, J. InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Information Maximization. Preprint at http://arxiv.org/abs/1908.01000 (2020).
+    
 
     Example
     -------
@@ -271,7 +345,7 @@ class InfoGraphStar(torch.nn.Module):
     >>> graphs = BatchGraphData(featurizer.featurize(smiles))
     >>> num_feat = 30
     >>> num_edge = 11
-    >>> infographmodular = InfoGraphModel(num_feat,num_edge,64,use_unsup_loss=True,separate_encoder=True)
+    >>> infographmodular = InfoGraphStarModel(num_feat,num_edge,64)
     >>>  # convert features to torch tensors
     >>> graphs.edge_features = torch.from_numpy(graphs.edge_features).to(infographmodular.device).float()
     >>> graphs.edge_index = torch.from_numpy(graphs.edge_index).to(infographmodular.device).long()
@@ -342,12 +416,10 @@ class InfoGraphStarModel(ModularTorchModel):
         Number of node features for each input
     edge_features: int
         Number of edge features for each input
-    dim: int
+    embedding_dim: int
         Dimension of the embedding
-    use_unsup_loss: bool
-        Whether to use the unsupervised loss
-    separate_encoder: bool
-        Whether to use a separate encoder for the unsupervised loss
+    training_mode: str
+        The mode to use for training. Options are 'supervised', 'semisupervised'. For unsupervised training, use InfoGraphModel.
     measure: str
         The divergence measure to use for the unsupervised loss. Options are 'GAN', 'JSD',
         'KL', 'RKL', 'X2', 'DV', 'H2', or 'W1'.
@@ -368,7 +440,7 @@ class InfoGraphStarModel(ModularTorchModel):
     >>> ds = NumpyDataset(X, y, w)
     >>> num_feat = max([ds.X[i].num_node_features for i in range(len(ds))])
     >>> edge_dim = max([ds.X[i].num_edge_features for i in range(len(ds))])
-    >>> model = InfoGraphModel(num_feat, edge_dim, 15, use_unsup_loss=True, separate_encoder=True)
+    >>> model = InfoGraphModel(num_feat, edge_dim, 15, training_mode='semisupervised')
     >>> loss = model.fit(ds, nb_epoch=1)
     """
 
@@ -534,9 +606,11 @@ class InfoGraphStarModel(ModularTorchModel):
 
         res = torch.mm(l_enc, g_enc.t())
 
-        E_pos = get_positive_expectation(res * pos_mask, self.measure, self.average_loss)
+        E_pos = get_positive_expectation(res * pos_mask, self.measure,
+                                         self.average_loss)
         E_pos = (E_pos * pos_mask).sum() / pos_mask.sum()
-        E_neg = get_negative_expectation(res * neg_mask, self.measure, self.average_loss)
+        E_neg = get_negative_expectation(res * neg_mask, self.measure,
+                                         self.average_loss)
         E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
 
         return E_neg - E_pos
@@ -562,13 +636,15 @@ class InfoGraphStarModel(ModularTorchModel):
 
         res = torch.mm(g_enc, g_enc1.t())
 
-        E_pos = get_positive_expectation(res * pos_mask, self.measure, self.average_loss)
+        E_pos = get_positive_expectation(res * pos_mask, self.measure,
+                                         self.average_loss)
         E_pos = (E_pos * pos_mask).sum() / pos_mask.sum()
-        E_neg = get_negative_expectation(res * neg_mask, self.measure, self.average_loss)
+        E_neg = get_negative_expectation(res * neg_mask, self.measure,
+                                         self.average_loss)
         E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
 
         return E_neg - E_pos
-    
+
     def _prepare_batch(self, batch):
         inputs, labels, weights = batch
         inputs = BatchGraphData(inputs[0])
@@ -580,15 +656,15 @@ class InfoGraphStarModel(ModularTorchModel):
             inputs.node_features).float().to(self.device)
         inputs.graph_index = torch.from_numpy(inputs.graph_index).long().to(
             self.device)
-    
+
         _, labels, weights = super()._prepare_batch(([], labels, weights))
-    
+
         if (len(labels) != 0) and (len(weights) != 0):
             labels = labels[0]
             weights = weights[0]
-    
+
         return inputs, labels, weights
-    
+
 
 def get_positive_expectation(p_samples, measure, average_loss):
     """Computes the positive part of a divergence / difference.

@@ -54,7 +54,10 @@ def test_infographstar_regression_semisupervised():
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
     assert scores['mean_absolute_error'] < 0.1
+
+
 # test_infographstar_regression_semisupervised()
+
 
 @pytest.mark.torch
 def test_infographstar_supervised_classification():
@@ -73,28 +76,21 @@ def test_infographstar_supervised_classification():
     scores = model.evaluate(dataset, [metric])
     assert scores['mean-roc_auc_score'] >= 0.9
 
+
 @pytest.mark.torch
 def test_infograph_unsupervised():
     from deepchem.models.torch_models.infograph import InfoGraphModel
-    # from deepchem.models.torch_models.infograph import evaluate_embedding
-    dataset, metric = get_regression_dataset()
-    num_feat = max(
-        [dataset.X[i].num_node_features for i in range(len(dataset.X))])
-    # edge_dim = max(
-    #     [dataset.X[i].num_edge_features for i in range(len(dataset.X))])
+    dataset, metric = get_regression_dataset()  # note, labels are ignored
+    num_feat = 30
     dim = 64
 
-    model = InfoGraphModel(num_feat, dim, 2)
+    model = InfoGraphModel(num_feat, dim)
 
-    model.fit(dataset, nb_epoch=100)
+    loss = model.fit(dataset, nb_epoch=100)
+    assert loss < 6  # early loss is around 50
 
-    # scores = model.evaluate(dataset, [metric]) # how to test unsupervised?
-    # assert scores['mean_absolute_error'] < 0.1
-test_infograph_unsupervised()
 
-@pytest.mark.torch
-def test_infograph_load_pretrained_components():
-    pass
+
 
 @pytest.mark.torch
 def test_fit_restore():
