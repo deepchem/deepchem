@@ -195,7 +195,7 @@ The following layers are used for implementing GROVER model as described in the 
 .. autoclass:: deepchem.models.torch_models.grover_layers.GroverBondVocabPredictor
   :members:
 
-.. autoclass:: deepchem.models.torch_models.grover_layers.GroverFunctionalGroupDescriptor
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverFunctionalGroupPredictor
   :members:
 
 Attention Layers

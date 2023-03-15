@@ -33,13 +33,7 @@ class GroverEmbedding(nn.Module):
     num_head: int
         the number of attention heads.
     embedding_output_type: str
-        the type of output aggregation after message passing.
-                                            atom_messages:      True                      False
-        - "none": no aggregation         output size:     (num_atoms, hidden_size)    (num_bonds, hidden_size)
-        -"atom":  aggregating to atom  output size:     (num_atoms, hidden_size)    (num_atoms, hidden_size)
-        -"bond": aggragating to bond.   output size:     (num_bonds, hidden_size)    (num_bonds, hidden_size)
-        -"both": aggregating to atom&bond. output size:  (num_atoms, hidden_size)    (num_bonds, hidden_size)
-                                                        (num_bonds, hidden_size)    (num_atoms, hidden_size)
+        the type of output aggregation after message passing. If `atom`, returns an embedding per atom. If `bond`, returns an embedding per bond. If `both`, returns an embedding for every atom and bond.
     """
 
     def __init__(self,
@@ -78,6 +72,11 @@ class GroverEmbedding(nn.Module):
         ----------
         graph_batch: List[torch.Tensor]
             A list containing f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
+
+        Returns
+        -------
+        embedding: Dict[str, torch.Tensor]
+            When embedding type is `atom`, the dictionary contains atom and bond embeddings aggregated by atom, if `bond`, the dictionary contains atom and bond embedding aggregated by bond and if `both`, it contains aotm and bond embeddings aggregated to both atom and bond.
         """
         output = self.encoders(graph_batch)
         if self.embedding_output_type == 'atom':
@@ -106,10 +105,13 @@ class GroverEmbedding(nn.Module):
 class GroverBondVocabPredictor(nn.Module):
     """Layer for learning contextual information for bonds.
 
-    The layer is used in `Grover <https://drug.ai.tencent.com/publications/GROVER.pdf>`_
-    architecture to learn contextual information of a bond by predicting
+    The layer is used in Grover architecture to learn contextual information of a bond by predicting
     the context of a bond from the bond embedding in a multi-class classification setting.
     The contextual information of a bond are encoded as strings (ex: '(DOUBLE-STEREONONE-NONE)_C-(SINGLE-STEREONONE-NONE)2').
+
+    Reference
+    ---------
+    .. Rong, Yu, et al. "Self-supervised graph transformer on large-scale molecular data." Advances in Neural Information Processing Systems 33 (2020): 12559-12571.
     """
 
     def __init__(self, vocab_size: int, in_features: int = 128):
@@ -121,6 +123,18 @@ class GroverBondVocabPredictor(nn.Module):
             Size of vocabulary, used for number of classes in prediction.
         in_features: int, default: 128
             Input feature size of bond embeddings.
+
+        Example
+        -------
+        >>> from deepchem.models.torch_models.grover_layers import GroverBondVocabPredictor
+        >>> num_bonds = 20
+        >>> in_features, vocab_size = 16, 10
+        >>> layer = GroverBondVocabPredictor(vocab_size, in_features)
+        >>> embedding = torch.randn(num_bonds * 2 + 1,
+        >>>                         in_features)  # * 2 + 1 for reverse bond and padding
+        >>> result = layer(embedding)
+        >>> result.shape
+        torch.Size([21, 10])
         """
         super(GroverBondVocabPredictor, self).__init__()
         self.linear = nn.Linear(in_features, vocab_size)
@@ -153,11 +167,25 @@ class GroverAtomVocabPredictor(nn.Module):
     """Grover Atom Vocabulary Prediction Module.
 
     The GroverAtomVocabPredictor module is used for predicting atom-vocabulary
-    for the self-supervision task in `Grover. <https://drug.ai.tencent.com/publications/GROVER.pdf>`_
-    In the self-supervision tasks, one task is to learn contextual-information of nodes (atoms).
+    for the self-supervision task in Grover architecture. In the self-supervision tasks,
+    one task is to learn contextual-information of nodes (atoms).
     Contextual information are encoded as strings, like `C_N-DOUBLE1_O-SINGLE1`.
     The module accepts an atom encoding and learns to predict the contextual information
     of the atom as a multi-class classification problem.
+
+    Example
+    -------
+    >>> from deepchem.models.torch_models.grover_layers import GroverAtomVocabPredictor
+    >>> num_atoms, in_features, vocab_size = 30, 16, 10
+    >>> layer = GroverAtomVocabPredictor(vocab_size, in_features)
+    >>> embedding = torch.randn(num_atoms, in_features)
+    >>> result = layer(embedding)
+    >>> result.shape
+    torch.Size([30, 10])
+
+    Reference
+    ---------
+    .. Rong, Yu, et al. "Self-supervised graph transformer on large-scale molecular data." Advances in Neural Information Processing Systems 33 (2020): 12559-12571.
     """
 
     def __init__(self, vocab_size: int, in_features: int = 128):
@@ -189,7 +217,7 @@ class GroverAtomVocabPredictor(nn.Module):
         return self.logsoftmax(self.linear(embeddings))
 
 
-class GroverFunctionalGroupPrediction(nn.Module):
+class GroverFunctionalGroupPredictor(nn.Module):
     """The functional group prediction task for self-supervised learning.
 
     Molecules have functional groups in them. This module is used for predicting
@@ -201,13 +229,31 @@ class GroverFunctionalGroupPrediction(nn.Module):
         size of functional group
     in_features: int,
         hidden_layer size, default 128
+
+    Example
+    -------
+    >>> from deepchem.models.torch_models.grover_layers import GroverFunctionalGroupPredictor
+    >>> in_features, fg_size = 8, 20
+    >>> num_atoms, num_bonds = 10, 20
+    >>> predictor = GroverFunctionalGroupPredictor(fg_size=20, in_features=8)
+    >>> atom_scope, bond_scope = [(0, 3), (3, 3), (6, 4)], [(0, 5), (5, 4), (9, 11)]
+    >>> embeddings = {}
+    >>> embeddings['bond_from_atom'] = torch.randn(num_bonds, in_features)
+    >>> embeddings['bond_from_bond'] = torch.randn(num_bonds, in_features)
+    >>> embeddings['atom_from_atom'] = torch.randn(num_atoms, in_features)
+    >>> embeddings['atom_from_bond'] = torch.randn(num_atoms, in_features)
+    >>> result = predictor(embeddings, atom_scope, bond_scope)
+
+    Reference
+    ---------
+    .. Rong, Yu, et al. "Self-supervised graph transformer on large-scale molecular data." Advances in Neural Information Processing Systems 33 (2020): 12559-12571.
+
     """
 
     def __init__(self, fg_size: int, in_features=128):
-        super(GroverFunctionalGroupPrediction, self).__init__()
+        super(GroverFunctionalGroupPredictor, self).__init__()
 
         self.readout = GroverReadout(rtype="mean", in_features=in_features)
-        # We have four branches here but the input with less than four branches is OK.
         self.linear_atom_from_atom = nn.Linear(in_features, fg_size)
         self.linear_atom_from_bond = nn.Linear(in_features, fg_size)
         self.linear_bond_from_atom = nn.Linear(in_features, fg_size)
@@ -215,10 +261,11 @@ class GroverFunctionalGroupPrediction(nn.Module):
 
     def forward(self, embeddings: Dict, atom_scope: List, bond_scope: List):
         """
-        The forward function for the GroverFunctionalGroupPrediction (semantic motif prediction) layer.
-        It takes atom/bond embeddings and their corresponsing scopes and produces prediction logits for
-        different branches. The scopes are used to differentiate atoms/bonds belonging to a molecule in a
-        batched molecular graph. For more details, see `BatchMolGraph`.
+        The forward function for the GroverFunctionalGroupPredictor (semantic motif prediction) layer.
+        It takes atom/bond embeddings produced from GroverEmbedding module and
+        their corresponsing scopes and produces prediction logits for different branches.
+        The scopes are used to differentiate atoms/bonds belonging to a molecule in a
+        batched molecular graph.
 
         Parameters
         ----------

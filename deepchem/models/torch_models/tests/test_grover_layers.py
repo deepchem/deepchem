@@ -48,10 +48,34 @@ def testGroverAtomVocabPredictor():
     from deepchem.models.torch_models.grover_layers import GroverAtomVocabPredictor
     num_atoms, in_features, vocab_size = 30, 16, 10
     layer = GroverAtomVocabPredictor(vocab_size, in_features)
-    embedding = torch.randn(num_atoms,
-                            in_features)  # * 2 + 1 for reverse bond and padding
+    embedding = torch.randn(num_atoms, in_features)
     result = layer(embedding)
     assert result.shape == (num_atoms, vocab_size)
+
+
+@pytest.mark.torch
+def testGroverFunctionalGroupPredictor():
+    from deepchem.models.torch_models.grover_layers import GroverFunctionalGroupPredictor
+    in_features, fg_size = 8, 20
+    num_atoms, num_bonds = 10, 20
+    predictor = GroverFunctionalGroupPredictor(fg_size=20, in_features=8)
+    # In a batched graph, atoms and bonds belonging to different graphs are differentiated
+    # via scopes. In the below scenario, we assume a batched mol graph of three molecules
+    # with 10 atoms, 20 bonds. On the 10 atoms, we consider the first 3 belonging to mol1,
+    # next 3 belonging to mol2 and remaining 4 belonging to mol4.
+    # Hence, the atom scope is [(0, 3), (3, 3), (6, 4)]. Similarly, for bonds, we have first 5 bonds belonging to mol1, next 4 to mol2 and remaining 11 to bond3.
+    atom_scope, bond_scope = [(0, 3), (3, 3), (6, 4)], [(0, 5), (5, 4), (9, 11)]
+    embeddings = {}
+    embeddings['bond_from_atom'] = torch.randn(num_bonds, in_features)
+    embeddings['bond_from_bond'] = torch.randn(num_bonds, in_features)
+    embeddings['atom_from_atom'] = torch.randn(num_atoms, in_features)
+    embeddings['atom_from_bond'] = torch.randn(num_atoms, in_features)
+
+    result = predictor(embeddings, atom_scope, bond_scope)
+    assert result['bond_from_bond'].shape == (len(bond_scope), fg_size)
+    assert result['bond_from_atom'].shape == (len(bond_scope), fg_size)
+    assert result['atom_from_atom'].shape == (len(atom_scope), fg_size)
+    assert result['atom_from_bond'].shape == (len(atom_scope), fg_size)
 
 
 @pytest.mark.torch
