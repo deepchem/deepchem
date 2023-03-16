@@ -102,7 +102,7 @@ def test_infographstar_regression_supervised():
     model = InfoGraphStarModel(num_feat,
                                edge_dim,
                                dim,
-                               num_gc_layers=2,
+                               num_gc_layers=3,
                                training_mode='supervised')
 
     model.fit(dataset, nb_epoch=100)
