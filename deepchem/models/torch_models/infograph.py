@@ -1,11 +1,10 @@
 import math
-from typing import Union
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Sequential, Linear, ReLU, GRU
 from deepchem.models.torch_models.modular import ModularTorchModel
-from deepchem.feat.graph_data import BatchGraphData, GraphData
+from deepchem.feat.graph_data import BatchGraphData
 from deepchem.models.torch_models.layers import MultilayerPerceptron
 try:
     from torch_geometric.nn import NNConv, GINConv, global_add_pool
@@ -29,6 +28,9 @@ class GINEncoder(torch.nn.Module):
 
     Example
     -------
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models.infograph import GINEncoder
+    >>> from deepchem.feat.graph_data import GraphData
     >>> encoder = GINEncoder(num_features=25, embedding_dim=32)
     >>> node_features = np.random.randn(10, 25)
     >>> edge_index = np.array([[0, 1, 2], [1, 2, 3]])
@@ -75,14 +77,14 @@ class GINEncoder(torch.nn.Module):
             self.convs.append(conv)
             self.bns.append(bn)
 
-    def forward(self, data: Union[BatchGraphData, GraphData]):
+    def forward(self, data: BatchGraphData):
         """
         Encodes the input graph data.
 
         Parameters
         ----------
-        data : Union[BatchGraphData, GraphData]
-            The input graph data.
+        data : BatchGraphData
+            The batched input graph data.
 
         Returns
         -------
@@ -129,7 +131,7 @@ class InfoGraphEncoder(torch.nn.Module):
 
         self.set2set = Set2Set(dim, processing_steps=3)
 
-    def forward(self, data: Union[BatchGraphData, GraphData]):
+    def forward(self, data: BatchGraphData):
         """
         Encode input graphs into an embedding and feature map.
 
@@ -187,7 +189,7 @@ class InfoGraphStar(torch.nn.Module):
     -------
     >>> import torch
     >>> import numpy as np
-    >>> from deepchem.models.torch_models.infograph import InfoGraphModel
+    >>> from deepchem.models.torch_models.infograph import InfoGraphStarModel
     >>> from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
     >>> from deepchem.feat.graph_data import BatchGraphData
     >>> smiles = ['C1=CC=CC=C1', 'C1=CC=CC=C1C2=CC=CC=C2']
@@ -196,7 +198,6 @@ class InfoGraphStar(torch.nn.Module):
     >>> num_feat = 30
     >>> num_edge = 11
     >>> infographmodular = InfoGraphStarModel(num_feat,num_edge,64)
-    >>>  # convert features to torch tensors
     >>> graphs.edge_features = torch.from_numpy(graphs.edge_features).to(infographmodular.device).float()
     >>> graphs.edge_index = torch.from_numpy(graphs.edge_index).to(infographmodular.device).long()
     >>> graphs.node_features = torch.from_numpy(graphs.node_features).to(infographmodular.device).float()
@@ -278,7 +279,7 @@ class InfoGraphStarModel(ModularTorchModel):
 
     Examples
     --------
-    >>> from deepchem.models.torch_models import InfoGraphModel
+    >>> from deepchem.models.torch_models import InfoGraphStarModel
     >>> from deepchem.feat import MolGraphConvFeaturizer
     >>> from deepchem.data import NumpyDataset
     >>> import torch
@@ -290,7 +291,7 @@ class InfoGraphStarModel(ModularTorchModel):
     >>> ds = NumpyDataset(X, y, w)
     >>> num_feat = max([ds.X[i].num_node_features for i in range(len(ds))])
     >>> edge_dim = max([ds.X[i].num_edge_features for i in range(len(ds))])
-    >>> model = InfoGraphModel(num_feat, edge_dim, 15, training_mode='semisupervised')
+    >>> model = InfoGraphStarModel(num_feat, edge_dim, 15, training_mode='semisupervised')
     >>> loss = model.fit(ds, nb_epoch=1)
     """
 
@@ -328,61 +329,76 @@ class InfoGraphStarModel(ModularTorchModel):
 
     def build_components(self):
         """
-        Builds the components of the InfoGraphStar model. InfoGraphStar works by maximizing the mutual information between the graph-level representation and the representations of substructures of different scales. It does this by producing graph-level encodings and substructure encodings, and then using a discriminator to classify if they are from the same molecule or not. The encoder is a graph convolutional network that produces the graph-level encodings and substructure encodings. In a supervised training mode, only 1 encoder is used and the encodings are not compared, while in a semi-supvervised training mode they are different in order to prevent negative transfer from the pretraining stage. The local discriminator is a multilayer perceptron that classifies if the substructure encodings are from the same molecule or not while the global discriminator classifies if the graph-level encodings are from the same molecule or not.
+        Builds the components of the InfoGraphStar model. InfoGraphStar works by maximizing the mutual information between the graph-level representation and the representations of substructures of different scales.
+
+        It does this by producing graph-level encodings and substructure encodings, and then using a discriminator to classify if they are from the same molecule or not.
+
+        The encoder is a graph convolutional network that produces the graph-level encodings and substructure encodings.
+
+        In a supervised training mode, only 1 encoder is used and the encodings are not compared, while in a semi-supvervised training mode they are different in order to prevent negative transfer from the pretraining stage.
+
+        The local discriminator is a multilayer perceptron that classifies if the substructure encodings are from the same molecule or not while the global discriminator classifies if the graph-level encodings are from the same molecule or not.
         """
         if self.training_mode == 'supervised':
             return {
                 'encoder':
-                InfoGraphEncoder(self.num_features, self.edge_features,
-                                 self.embedding_dim),
+                    InfoGraphEncoder(self.num_features, self.edge_features,
+                                     self.embedding_dim),
                 'unsup_encoder':
-                InfoGraphEncoder(self.num_features, self.edge_features,
-                                 self.embedding_dim),
+                    InfoGraphEncoder(self.num_features, self.edge_features,
+                                     self.embedding_dim),
                 'ff1':
-                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
-                                     (self.embedding_dim, )),
+                    MultilayerPerceptron(2 * self.embedding_dim,
+                                         self.embedding_dim,
+                                         (self.embedding_dim,)),
                 'ff2':
-                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
-                                     (self.embedding_dim, )),
+                    MultilayerPerceptron(2 * self.embedding_dim,
+                                         self.embedding_dim,
+                                         (self.embedding_dim,)),
                 'fc1':
-                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+                    torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
-                torch.nn.Linear(self.embedding_dim, 1),
+                    torch.nn.Linear(self.embedding_dim, 1),
                 'local_d':
-                MultilayerPerceptron(self.embedding_dim,
-                                     self.embedding_dim, (self.embedding_dim, ),
-                                     skip_connection=True),
+                    MultilayerPerceptron(self.embedding_dim,
+                                         self.embedding_dim,
+                                         (self.embedding_dim,),
+                                         skip_connection=True),
                 'global_d':
-                MultilayerPerceptron(2 * self.embedding_dim,
-                                     self.embedding_dim, (self.embedding_dim, ),
-                                     skip_connection=True)
+                    MultilayerPerceptron(2 * self.embedding_dim,
+                                         self.embedding_dim,
+                                         (self.embedding_dim,),
+                                         skip_connection=True)
             }
         elif self.training_mode == 'semisupervised':
             return {
                 'encoder':
-                InfoGraphEncoder(self.num_features, self.edge_features,
-                                 self.embedding_dim),
+                    InfoGraphEncoder(self.num_features, self.edge_features,
+                                     self.embedding_dim),
                 'unsup_encoder':
-                GINEncoder(self.num_features, self.embedding_dim,
-                           self.num_gc_layers),
+                    GINEncoder(self.num_features, self.embedding_dim,
+                               self.num_gc_layers),
                 'ff1':
-                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
-                                     (self.embedding_dim, )),
+                    MultilayerPerceptron(2 * self.embedding_dim,
+                                         self.embedding_dim,
+                                         (self.embedding_dim,)),
                 'ff2':
-                MultilayerPerceptron(self.embedding_dim, self.embedding_dim,
-                                     (self.embedding_dim, )),
+                    MultilayerPerceptron(self.embedding_dim, self.embedding_dim,
+                                         (self.embedding_dim,)),
                 'fc1':
-                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+                    torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
-                torch.nn.Linear(self.embedding_dim, 1),
+                    torch.nn.Linear(self.embedding_dim, 1),
                 'local_d':
-                MultilayerPerceptron(self.embedding_dim,
-                                     self.embedding_dim, (self.embedding_dim, ),
-                                     skip_connection=True),
+                    MultilayerPerceptron(self.embedding_dim,
+                                         self.embedding_dim,
+                                         (self.embedding_dim,),
+                                         skip_connection=True),
                 'global_d':
-                MultilayerPerceptron(self.embedding_dim,
-                                     self.embedding_dim, (self.embedding_dim, ),
-                                     skip_connection=True)
+                    MultilayerPerceptron(self.embedding_dim,
+                                         self.embedding_dim,
+                                         (self.embedding_dim,),
+                                         skip_connection=True)
             }
 
     def build_model(self):
