@@ -1,16 +1,106 @@
-from deepchem.models.torch_models.modular import ModularTorchModel
+import math
+from typing import Union
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Sequential, Linear, ReLU, GRU
-from deepchem.feat.graph_data import BatchGraphData
+from deepchem.models.torch_models.modular import ModularTorchModel
+from deepchem.feat.graph_data import BatchGraphData, GraphData
 from deepchem.models.torch_models.layers import MultilayerPerceptron
-import math
 try:
-    from torch_geometric.nn import NNConv
+    from torch_geometric.nn import NNConv, GINConv, global_add_pool
     from torch_geometric.nn.aggr import Set2Set
 except ImportError:
     pass
+
+
+class GINEncoder(torch.nn.Module):
+    """
+    Graph Information Network (GIN) encoder. This is a graph convolutional network that produces encoded representations for molecular graph inputs.
+
+    Parameters
+    ----------
+    num_features: int
+        The number of node features
+    embedding_dim: int
+        The dimension of the output embedding
+    num_gc_layers: int, optional (default 5)
+        The number of graph convolutional layers to use
+
+    Example
+    -------
+    >>> encoder = GINEncoder(num_features=25, embedding_dim=32)
+    >>> node_features = np.random.randn(10, 25)
+    >>> edge_index = np.array([[0, 1, 2], [1, 2, 3]])
+    >>> edge_features = np.random.randn(3, 10)
+    >>> graph_index = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    >>> data = GraphData(node_features=node_features, edge_index=edge_index, edge_features=edge_features, graph_index=graph_index)
+    >>> data.node_features = torch.from_numpy(data.node_features).float()
+    >>> data.edge_features = torch.from_numpy(data.edge_features).float()
+    >>> data.edge_index = torch.from_numpy(data.edge_index).long()
+    >>> data.graph_index = torch.from_numpy(data.graph_index).long()
+    >>> embedding, intermediate_embeddings = encoder(data)
+    >>> print(embedding.shape)
+    torch.Size([1, 30])
+
+    References
+    ----------
+    .. [1] Xu, K., Hu, W., Leskovec, J. & Jegelka, S. How Powerful are Graph Neural Networks? arXiv:1810.00826 [cs, stat] (2019).
+
+    """
+
+    def __init__(self,
+                 num_features: int,
+                 embedding_dim: int,
+                 num_gc_layers: int = 5):
+        dim = int(
+            embedding_dim / num_gc_layers
+        )  # the output dimension of this encoder is modified by the number of GC layers, so this is necessary to ensure that the output dimension is consistent with the InfoGraphEncoder
+        super().__init__()
+
+        self.num_gc_layers = num_gc_layers
+
+        self.convs = torch.nn.ModuleList()
+        self.bns = torch.nn.ModuleList()
+
+        for i in range(num_gc_layers):
+            if i == 0:
+                nn = Sequential(Linear(num_features, dim), ReLU(),
+                                Linear(dim, dim))
+            else:
+                nn = Sequential(Linear(dim, dim), ReLU(), Linear(dim, dim))
+            conv = GINConv(nn)
+            bn = torch.nn.BatchNorm1d(dim)
+
+            self.convs.append(conv)
+            self.bns.append(bn)
+
+    def forward(self, data: Union[BatchGraphData, GraphData]):
+        """
+        Encodes the input graph data.
+
+        Parameters
+        ----------
+        data : Union[BatchGraphData, GraphData]
+            The input graph data.
+
+        Returns
+        -------
+        Tuple[torch.Tensor, torch.Tensor]
+            A tuple containing the encoded representation and intermediate embeddings.
+        """
+        xs = []
+        x = data.node_features
+        for i in range(self.num_gc_layers):
+
+            x = F.relu(self.convs[i](x, data.edge_index))
+            x = self.bns[i](x)
+            xs.append(x)
+
+        xpool = [global_add_pool(x, data.graph_index) for x in xs]
+        x = torch.cat(xpool, 1)
+        xs = torch.cat(xs, 1)
+        return x, xs
 
 
 class InfoGraphEncoder(torch.nn.Module):
@@ -39,7 +129,23 @@ class InfoGraphEncoder(torch.nn.Module):
 
         self.set2set = Set2Set(dim, processing_steps=3)
 
-    def forward(self, data):
+    def forward(self, data: Union[BatchGraphData, GraphData]):
+        """
+        Encode input graphs into an embedding and feature map.
+
+        Parameters
+        ----------
+        data: Union[BatchGraphData, GraphData]
+            Contains information about graphs.
+
+        Returns
+        -------
+        torch.Tensor
+            Encoded tensor of input data.
+        torch.Tensor
+            Feature map tensor of input data.
+
+        """
         out = F.relu(self.lin0(data.node_features))
         h = out.unsqueeze(0)
 
@@ -114,6 +220,9 @@ class InfoGraphStar(torch.nn.Module):
         self.init_emb()
 
     def init_emb(self):
+        """
+        Initializes the parameters of the model by setting their values from a uniform distribution and filling the bias with 0.
+        """
         for m in self.modules():
             if isinstance(m, nn.Linear):
                 torch.nn.init.xavier_uniform_(m.weight.data)
@@ -218,68 +327,62 @@ class InfoGraphStarModel(ModularTorchModel):
         super().__init__(self.model, self.components, **kwargs)
 
     def build_components(self):
-
+        """
+        Builds the components of the InfoGraphStar model. InfoGraphStar works by maximizing the mutual information between the graph-level representation and the representations of substructures of different scales. It does this by producing graph-level encodings and substructure encodings, and then using a discriminator to classify if they are from the same molecule or not. The encoder is a graph convolutional network that produces the graph-level encodings and substructure encodings. In a supervised training mode, only 1 encoder is used and the encodings are not compared, while in a semi-supvervised training mode they are different in order to prevent negative transfer from the pretraining stage. The local discriminator is a multilayer perceptron that classifies if the substructure encodings are from the same molecule or not while the global discriminator classifies if the graph-level encodings are from the same molecule or not.
+        """
         if self.training_mode == 'supervised':
             return {
                 'encoder':
-                    InfoGraphEncoder(self.num_features, self.edge_features,
-                                     self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
                 'unsup_encoder':
-                    InfoGraphEncoder(self.num_features, self.edge_features,
-                                     self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
                 'ff1':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim, )),
                 'ff2':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim, )),
                 'fc1':
-                    torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
-                    torch.nn.Linear(self.embedding_dim, 1),
+                torch.nn.Linear(self.embedding_dim, 1),
                 'local_d':
-                    MultilayerPerceptron(self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True),
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim, ),
+                                     skip_connection=True),
                 'global_d':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True)
+                MultilayerPerceptron(2 * self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim, ),
+                                     skip_connection=True)
             }
         elif self.training_mode == 'semisupervised':
             return {
                 'encoder':
-                    InfoGraphEncoder(self.num_features, self.edge_features,
-                                     self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
                 'unsup_encoder':
-                    GINEncoder(self.num_features, self.embedding_dim,
-                               self.num_gc_layers),
+                GINEncoder(self.num_features, self.embedding_dim,
+                           self.num_gc_layers),
                 'ff1':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim, )),
                 'ff2':
-                    MultilayerPerceptron(self.embedding_dim, self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim, )),
                 'fc1':
-                    torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
-                    torch.nn.Linear(self.embedding_dim, 1),
+                torch.nn.Linear(self.embedding_dim, 1),
                 'local_d':
-                    MultilayerPerceptron(self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True),
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim, ),
+                                     skip_connection=True),
                 'global_d':
-                    MultilayerPerceptron(
-                        self.embedding_dim,  # * 2
-                        self.embedding_dim,
-                        (self.embedding_dim,),
-                        skip_connection=True)
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim, ),
+                                     skip_connection=True)
             }
 
     def build_model(self):
@@ -393,6 +496,9 @@ class InfoGraphStarModel(ModularTorchModel):
         return E_neg - E_pos
 
     def _prepare_batch(self, batch):
+        """
+        Prepares the batch for the model by converting the GraphData numpy arrays to torch tensors and moving them to the device.
+        """
         inputs, labels, weights = batch
         inputs = BatchGraphData(inputs[0])
         inputs.edge_features = torch.from_numpy(
