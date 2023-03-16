@@ -137,17 +137,18 @@ class GroverAtomVocabularyBuilder(VocabularyBuilder):
         >>> GroverAtomVocabularyBuilder.atom_to_vocab(mol, mol.GetAtomWithIdx(3))
         'O_C-DOUBLE1'
         """
-        nei: Dict[str, int] = Counter()
+        atom_neighbors: Dict[str, int] = Counter()
         for a in atom.GetNeighbors():
             bond = mol.GetBondBetweenAtoms(atom.GetIdx(), a.GetIdx())
-            nei[str(a.GetSymbol()) + "-" + str(bond.GetBondType())] += 1
-        keys = list(nei.keys())
+            atom_neighbors[str(a.GetSymbol()) + "-" +
+                           str(bond.GetBondType())] += 1
+        keys = list(atom_neighbors.keys())
         # sorting the atoms neighbors
         keys.sort()
         output = atom.GetSymbol()
         # concatenating the sorted neighbors
         for key in keys:
-            output = "%s_%s%d" % (output, key, nei[key])
+            output = "%s_%s%d" % (output, key, atom_neighbors[key])
         return output
 
     def _make_reverse_mapping(self, itos):
@@ -174,14 +175,32 @@ class GroverAtomVocabularyBuilder(VocabularyBuilder):
 class GroverBondVocabularyBuilder(VocabularyBuilder):
     """Bond Vocabulary Builder for Grover
 
-    This module can be used to generate bond vocabulary from SMILES strings for
-    the GROVER pretraining task. For each bond in a molecule, the vocabulary context is the
-    node-edge-count of the bond where node is the neighboring atom, edge is the type of bond
-    and count is the number of such node-edge pairs for the bond in its one hop
-    neighborhood. The algorithm enumerates vocabulary of all bonds
-    in the dataset and makes a vocabulary to index mapping by sorting the vocabulary
-    by frequency and then alphabetically.
+    This module can be used to generate bond vocabulary from SMILES strings
+    for the GROVER pretraining task.
 
+    For assigning the vocabulary of a bond, we consider the features of the bond
+    and the context of the bond. The context of bond is the feature of the bond under
+    consideration and the feature of the bonds of atom in which the bond begins and ends.
+    It is formed by the concatenation of atomSymbol-bondFeature-Count where atomSymbol
+    is the symbol of neighboring atom, bondFeature is the type of bond and count is the
+    number of such atomSymbol-bondFeature pairs in the surrounding context.
+
+    The feature of a bond is determined by three sub-features: the type of bond (single or double bond),
+    the RDKit StereoConfiguration of the bond and RDKit BondDir. For the C-C bond
+    in CCC, the type of bond is SINGLE, its stereo is NONE and the bond does not have
+    direction. Hence, the feature of the bond is SINGLE-STEREONONE-NONE.
+
+    For assigning the vocabulary, we should also have to look at the neighboring bonds.
+    Consider the molecule 'CC(=O)C'. It has three bonds. The C-C bond has two neighbors.
+    The first C atom has no other bonds, so it contributes no context. The second C atom
+    has one bond with an O atom and one bond with a C atom. Consider the C=O double bond.
+    The bond feature is DOUBLE-STEREONONE-NONE. The corresponding context is
+    atomSymbol-bondFeature-Count. This gives us C-(DOUBLE-STEREONONE-NONE)1.
+    Similary, it also has another bond with a C atom which gives the
+    context C-(SINGLE-STEREONONE-NONE)1. Hence, the vocabulary of
+    the bond is '(SINGLE-STEREONONE-NONE)_C-(DOUBLE-STEREONONE-NONE)1_C-(SINGLE-STEREONONE-NONE)1'
+
+    The algorithm enumerates vocabulary of all bonds in the dataset and makes a vocabulary to index mapping by sorting the vocabulary by frequency and then alphabetically.
 
     Example
     -------
@@ -278,10 +297,10 @@ class GroverBondVocabularyBuilder(VocabularyBuilder):
 
         Parameters
         ----------
-        mol: Molecule
-            the molecular.
-        atom: rdchem.Atom
-            the target atom.
+        mol: RDKitMole
+            the molecule object
+        bond: RDKitBond
+            the target bond
 
         Returns
         -------
@@ -297,7 +316,7 @@ class GroverBondVocabularyBuilder(VocabularyBuilder):
         >>> GroverBondVocabularyBuilder.bond_to_vocab(mol, mol.GetBondWithIdx(2))
         '(DOUBLE-STEREONONE-NONE)_C-(SINGLE-STEREONONE-NONE)2'
         """
-        nei: Dict[str, int] = Counter()
+        bond_neighbors: Dict[str, int] = Counter()
         two_neighbors = (bond.GetBeginAtom(), bond.GetEndAtom())
         two_indices = [a.GetIdx() for a in two_neighbors]
         for nei_atom in two_neighbors:
@@ -306,14 +325,14 @@ class GroverBondVocabularyBuilder(VocabularyBuilder):
                 if a_idx in two_indices:
                     continue
                 tmp_bond = mol.GetBondBetweenAtoms(nei_atom.GetIdx(), a_idx)
-                nei[str(nei_atom.GetSymbol()) + '-' +
-                    GroverBondVocabularyBuilder._get_bond_feature_name(
-                        tmp_bond)] += 1
-        keys = list(nei.keys())
+                bond_neighbors[str(nei_atom.GetSymbol()) + '-' +
+                               GroverBondVocabularyBuilder.
+                               _get_bond_feature_name(tmp_bond)] += 1
+        keys = list(bond_neighbors.keys())
         keys.sort()
         output = GroverBondVocabularyBuilder._get_bond_feature_name(bond)
         for k in keys:
-            output = "%s_%s%d" % (output, k, nei[k])
+            output = "%s_%s%d" % (output, k, bond_neighbors[k])
         return output
 
     @staticmethod

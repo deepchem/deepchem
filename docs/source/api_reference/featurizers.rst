@@ -479,6 +479,9 @@ DummyFeaturizer
   :members:
   :inherited-members:
 
+Tokenizers
+----------
+
 GroverAtomVocabTokenizer
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -491,8 +494,8 @@ GroverBondVocabTokenizer
 .. autoclass::  deepchem.feat.vocabulary_builders.grover_vocab.GroverBondVocabTokenizer
    :members:
 
-Tokenizers
-----------
+Vocabulary Builders
+-------------------
 
 .. autoclass:: deepchem.feat.vocabulary_builders.grover_vocab.GroverAtomVocabularyBuilder
    :members:
