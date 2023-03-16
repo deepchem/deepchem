@@ -109,6 +109,18 @@ class GroverBondVocabPredictor(nn.Module):
     the context of a bond from the bond embedding in a multi-class classification setting.
     The contextual information of a bond are encoded as strings (ex: '(DOUBLE-STEREONONE-NONE)_C-(SINGLE-STEREONONE-NONE)2').
 
+    Example
+    -------
+    >>> from deepchem.models.torch_models.grover_layers import GroverBondVocabPredictor
+    >>> num_bonds = 20
+    >>> in_features, vocab_size = 16, 10
+    >>> layer = GroverBondVocabPredictor(vocab_size, in_features)
+    >>> embedding = torch.randn(num_bonds * 2 + 1,
+    >>>                         in_features)  # * 2 + 1 for reverse bond and padding
+    >>> result = layer(embedding)
+    >>> result.shape
+    torch.Size([21, 10])
+
     Reference
     ---------
     .. Rong, Yu, et al. "Self-supervised graph transformer on large-scale molecular data." Advances in Neural Information Processing Systems 33 (2020): 12559-12571.
@@ -123,18 +135,6 @@ class GroverBondVocabPredictor(nn.Module):
             Size of vocabulary, used for number of classes in prediction.
         in_features: int, default: 128
             Input feature size of bond embeddings.
-
-        Example
-        -------
-        >>> from deepchem.models.torch_models.grover_layers import GroverBondVocabPredictor
-        >>> num_bonds = 20
-        >>> in_features, vocab_size = 16, 10
-        >>> layer = GroverBondVocabPredictor(vocab_size, in_features)
-        >>> embedding = torch.randn(num_bonds * 2 + 1,
-        >>>                         in_features)  # * 2 + 1 for reverse bond and padding
-        >>> result = layer(embedding)
-        >>> result.shape
-        torch.Size([21, 10])
         """
         super(GroverBondVocabPredictor, self).__init__()
         self.linear = nn.Linear(in_features, vocab_size)
