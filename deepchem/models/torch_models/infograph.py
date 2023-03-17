@@ -1,13 +1,16 @@
 import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import Sequential, Linear, ReLU, GRU
-from deepchem.models.torch_models.modular import ModularTorchModel
+from torch.nn import GRU, Linear, ReLU, Sequential
+
 from deepchem.feat.graph_data import BatchGraphData
 from deepchem.models.torch_models.layers import MultilayerPerceptron
+from deepchem.models.torch_models.modular import ModularTorchModel
+
 try:
-    from torch_geometric.nn import NNConv, GINConv, global_add_pool
+    from torch_geometric.nn import GINConv, NNConv, global_add_pool
     from torch_geometric.nn.aggr import Set2Set
 except ImportError:
     pass
