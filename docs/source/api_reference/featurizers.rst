@@ -332,9 +332,6 @@ LCNNFeaturizer
   :inherited-members:
 
 
-MaterialCompositionFeaturizer
------------------------------
-
 Molecule Tokenizers
 -------------------
 
