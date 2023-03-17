@@ -172,6 +172,3 @@ class TestGraph(unittest.TestCase):
         assert isinstance(batched_graph.edge_features, torch.Tensor)
         assert batched_graph.node_pos_features is None
         # batched graph does not take kwargs like 'z'
-
-test = TestGraph()
-test.test_graphdata_numpy_to_torch()
