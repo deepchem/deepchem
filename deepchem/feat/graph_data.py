@@ -14,11 +14,11 @@ class GraphData:
     ----------
     node_features: np.ndarray or torch.Tensor
         Node feature matrix with shape [num_nodes, num_node_features]
-    edge_index: np.ndarray  or torch.Tensor, dtype int
+    edge_index: np.ndarray or torch.Tensor, dtype int
         Graph connectivity in COO format with shape [2, num_edges]
-    edge_features: np.ndarray  or torch.Tensor, optional (default None)
+    edge_features: np.ndarray or torch.Tensor, optional (default None)
         Edge feature matrix with shape [num_edges, num_edge_features]
-    node_pos_features: np.ndarray  or torch.Tensor, optional (default None)
+    node_pos_features: np.ndarray or torch.Tensor, optional (default None)
         Node position matrix with shape [num_nodes, num_dimensions].
     num_nodes: int
         The number of nodes in the graph
