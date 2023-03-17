@@ -166,8 +166,12 @@ class TestGraph(unittest.TestCase):
         batched_graph = BatchGraphData([graph, graph])
         batched_graph = batched_graph.numpy_to_torch()
 
+        assert isinstance(batched_graph, BatchGraphData)
         assert isinstance(batched_graph.node_features, torch.Tensor)
         assert isinstance(batched_graph.edge_index, torch.Tensor)
         assert isinstance(batched_graph.edge_features, torch.Tensor)
         assert batched_graph.node_pos_features is None
         # batched graph does not take kwargs like 'z'
+
+test = TestGraph()
+test.test_graphdata_numpy_to_torch()
