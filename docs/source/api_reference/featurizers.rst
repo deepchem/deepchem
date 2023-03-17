@@ -431,9 +431,19 @@ GroverBondVocabTokenizer
 .. autoclass::  deepchem.feat.vocabulary_builders.grover_vocab.GroverBondVocabTokenizer
    :members:
 
+Vocabulary Builders
+-------------------
+
+Tokenizers uses a vocabulary to tokenize the datapoint. To build a vocabulary, an algorithm which generates vocabulary from a corpus is required. A corpus is usually a collection of molecules, DNA sequences etc. DeepChem provides the following algorithms to build vocabulary from a corpus. A vocabulary builder is not a featurizer. It is an utility which helps the tokenizers to featurize datapoints.
+
+.. autoclass:: deepchem.feat.vocabulary_builders.grover_vocab.GroverAtomVocabularyBuilder
+   :members:
+
+.. autoclass:: deepchem.feat.vocabulary_builders.grover_vocab.GroverAtomVocabularyBuilder
+   :members:
 
 Sequence Featurizers
----------------------
+--------------------
 
 PFMFeaturizer
 ^^^^^^^^^^^^^
@@ -490,14 +500,6 @@ DummyFeaturizer
   :members:
   :inherited-members:
 
-Vocabulary Builders
--------------------
-
-.. autoclass:: deepchem.feat.vocabulary_builders.grover_vocab.GroverAtomVocabularyBuilder
-   :members:
-
-.. autoclass:: deepchem.feat.vocabulary_builders.grover_vocab.GroverAtomVocabularyBuilder
-   :members:
 
 Base Featurizers (for develop)
 ------------------------------
