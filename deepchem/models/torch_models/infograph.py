@@ -77,7 +77,7 @@ class GINEncoder(torch.nn.Module):
             self.convs.append(conv)
             self.bns.append(bn)
 
-    def forward(self, data: BatchGraphData):
+    def forward(self, data):
         """
         Encodes the input graph data.
 
@@ -131,7 +131,7 @@ class InfoGraphEncoder(torch.nn.Module):
 
         self.set2set = Set2Set(dim, processing_steps=3)
 
-    def forward(self, data: BatchGraphData):
+    def forward(self, data):
         """
         Encode input graphs into an embedding and feature map.
 
@@ -299,7 +299,7 @@ class InfoGraphStarModel(ModularTorchModel):
                  num_features,
                  edge_features,
                  embedding_dim,
-                 training_mode='supervised',
+                 task='supervised',
                  measure='JSD',
                  average_loss=True,
                  num_gc_layers=5,
@@ -312,16 +312,16 @@ class InfoGraphStarModel(ModularTorchModel):
         self.num_features = num_features
         self.measure = measure
         self.average_loss = average_loss
-        self.training_mode = training_mode
-        if training_mode == 'supervised':
+        self.task = task
+        if self.task == 'supervised':
             self.embedding_dim = embedding_dim
-            self.use_unsup_loss = False
-            self.separate_encoder = False
-        elif training_mode == 'semisupervised':
+            # self.use_unsup_loss = False
+            # self.separate_encoder = False
+        elif self.task == 'semisupervised':
             self.embedding_dim = embedding_dim * num_gc_layers
-            self.use_unsup_loss = True
+            # self.use_unsup_loss = True
             self.num_gc_layers = num_gc_layers
-            self.separate_encoder = True
+            # self.separate_encoder = True
 
         self.components = self.build_components()
         self.model = self.build_model()
@@ -338,67 +338,66 @@ class InfoGraphStarModel(ModularTorchModel):
         In a supervised training mode, only 1 encoder is used and the encodings are not compared, while in a semi-supvervised training mode they are different in order to prevent negative transfer from the pretraining stage.
 
         The local discriminator is a multilayer perceptron that classifies if the substructure encodings are from the same molecule or not while the global discriminator classifies if the graph-level encodings are from the same molecule or not.
+        
+        Encoder: InfoGraphEncoder
+        Unsupervised Encoder: InfoGraphEncoder
+        FF1: MultilayerPerceptron
+        FF2: MultilayerPerceptron
+        Fc1: Linear
         """
-        if self.training_mode == 'supervised':
+        if self.task == 'supervised':
             return {
                 'encoder':
-                    InfoGraphEncoder(self.num_features, self.edge_features,
-                                     self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
                 'unsup_encoder':
-                    InfoGraphEncoder(self.num_features, self.edge_features,
-                                     self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
                 'ff1':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim, )),
                 'ff2':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim, )),
                 'fc1':
-                    torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
-                    torch.nn.Linear(self.embedding_dim, 1),
+                torch.nn.Linear(self.embedding_dim, 1),
                 'local_d':
-                    MultilayerPerceptron(self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True),
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim, ),
+                                     skip_connection=True),
                 'global_d':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True)
+                MultilayerPerceptron(2 * self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim, ),
+                                     skip_connection=True)
             }
-        elif self.training_mode == 'semisupervised':
+        elif self.task == 'semisupervised':
             return {
                 'encoder':
-                    InfoGraphEncoder(self.num_features, self.edge_features,
-                                     self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
                 'unsup_encoder':
-                    GINEncoder(self.num_features, self.embedding_dim,
-                               self.num_gc_layers),
+                GINEncoder(self.num_features, self.embedding_dim,
+                           self.num_gc_layers),
                 'ff1':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim, )),
                 'ff2':
-                    MultilayerPerceptron(self.embedding_dim, self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim, )),
                 'fc1':
-                    torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
-                    torch.nn.Linear(self.embedding_dim, 1),
+                torch.nn.Linear(self.embedding_dim, 1),
                 'local_d':
-                    MultilayerPerceptron(self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True),
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim, ),
+                                     skip_connection=True),
                 'global_d':
-                    MultilayerPerceptron(self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True)
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim, ),
+                                     skip_connection=True)
             }
 
     def build_model(self):
@@ -408,22 +407,20 @@ class InfoGraphStarModel(ModularTorchModel):
         return InfoGraphStar(**self.components)
 
     def loss_func(self, inputs, labels, weights):
-        if self.use_unsup_loss:
+        if self.task == 'semisupervised':
             sup_loss = F.mse_loss(self.model(inputs), labels)
             local_unsup_loss = self.local_unsup_loss(inputs)
-            if self.separate_encoder:
-                global_unsup_loss = self.global_unsup_loss(
-                    inputs, labels, weights)
-                loss = sup_loss + local_unsup_loss + global_unsup_loss * self.learning_rate
-            else:
-                loss = sup_loss + local_unsup_loss * self.learning_rate
+            global_unsup_loss = self.global_unsup_loss(inputs, labels, weights)
+            loss = sup_loss + local_unsup_loss + global_unsup_loss * self.learning_rate
+            # original implementation also includes an option if not using a separate encoder:
+            # loss = sup_loss + local_unsup_loss * self.learning_rate
             return (loss * weights).mean()
         else:
             sup_loss = F.mse_loss(self.model(inputs), labels)
             return (sup_loss * weights).mean()
 
     def local_unsup_loss(self, inputs):
-        if self.separate_encoder:
+        if self.task == 'semisupervised':
             y, M = self.components['unsup_encoder'](inputs)
         else:
             y, M = self.components['encoder'](inputs)
