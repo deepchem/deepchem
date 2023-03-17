@@ -411,12 +411,26 @@ References:
 .. _`RXN Mapper: Unsupervised Attention-Guided Atom-Mapping`: https://chemrxiv.org/articles/Unsupervised_Attention-Guided_Atom-Mapping/12298559
 .. _`Molecular Transformer: Unsupervised Attention-Guided Atom-Mapping`: https://pubs.acs.org/doi/10.1021/acscentsci.9b00576
 
+
 HuggingFaceFeaturizer
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.huggingface_featurizer.HuggingFaceFeaturizer
   :members:
   :inherited-members:
+
+GroverAtomVocabTokenizer
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.vocabulary_builders.grover_vocab.GroverAtomVocabTokenizer
+   :members:
+
+GroverBondVocabTokenizer
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass::  deepchem.feat.vocabulary_builders.grover_vocab.GroverBondVocabTokenizer
+   :members:
+
 
 Sequence Featurizers
 ---------------------
@@ -475,21 +489,6 @@ DummyFeaturizer
 .. autoclass:: deepchem.feat.DummyFeaturizer
   :members:
   :inherited-members:
-
-Tokenizers
-----------
-
-GroverAtomVocabTokenizer
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. autoclass:: deepchem.feat.vocabulary_builders.grover_vocab.GroverAtomVocabTokenizer
-   :members:
-
-GroverBondVocabTokenizer
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. autoclass::  deepchem.feat.vocabulary_builders.grover_vocab.GroverBondVocabTokenizer
-   :members:
 
 Vocabulary Builders
 -------------------
