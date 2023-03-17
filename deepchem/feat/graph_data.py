@@ -206,7 +206,20 @@ class GraphData:
         return g
 
     def numpy_to_torch(self):
-        """Convert numpy arrays to torch tensors"""
+        """Convert numpy arrays to torch tensors. This may be useful when you are using PyTorch Geometric with GraphData objects.
+
+        Example
+        -------
+        >>> num_nodes, num_node_features = 5, 32
+        >>> num_edges, num_edge_features = 6, 32
+        >>> node_features = np.random.random_sample((num_nodes, num_node_features))
+        >>> edge_features = np.random.random_sample((num_edges, num_edge_features))
+        >>> edge_index = np.random.randint(0, num_nodes, (2, num_edges))
+        >>> graph_data = GraphData(node_features, edge_index, edge_features)
+        >>> graph_data = graph_data.numpy_to_torch()
+        >>> print(type(graph_data.node_features))
+        <class 'torch.Tensor'>
+        """
         import torch
         self.node_features = torch.from_numpy(self.node_features).float()
         self.edge_index = torch.from_numpy(self.edge_index).long()
@@ -221,6 +234,7 @@ class GraphData:
             value = torch.from_numpy(value)
             self.kwargs[key] = value
             setattr(self, key, value)
+        return self
 
 
 class BatchGraphData(GraphData):
