@@ -20,7 +20,7 @@ def testGroverEmbedding():
     layer = GroverEmbedding(edge_fdim=edge_fdim,
                             node_fdim=node_fdim,
                             hidden_size=8,
-                            atom_embedding_output_type='both')
+                            embedding_output_type='both')
     output = layer([f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a])
     assert output['atom_from_atom'].shape == (n_atoms, hidden_size)
     assert output['bond_from_atom'].shape == (n_bonds, hidden_size)
