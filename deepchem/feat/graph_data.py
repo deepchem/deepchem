@@ -1,4 +1,5 @@
 from typing import Optional, Sequence
+
 import numpy as np
 
 
@@ -81,7 +82,7 @@ class GraphData:
             elif edge_index.shape[1] != edge_features.shape[0]:
                 raise ValueError(
                     'The first dimension of edge_features must be the \
-                          same as the second dimension of edge_index.')
+                          same as the second dimension of edge_index.'                                                                      )
 
         if node_pos_features is not None:
             if isinstance(node_pos_features, np.ndarray) is False:
@@ -90,7 +91,7 @@ class GraphData:
             elif node_pos_features.shape[0] != node_features.shape[0]:
                 raise ValueError(
                     'The length of node_pos_features must be the same as the \
-                          length of node_features.')
+                          length of node_features.'                                                   )
 
         self.node_features = node_features
         self.edge_index = edge_index
@@ -203,6 +204,23 @@ class GraphData:
             g.add_edges(np.arange(self.num_nodes), np.arange(self.num_nodes))
 
         return g
+
+    def numpy_to_torch(self):
+        """Convert numpy arrays to torch tensors"""
+        import torch
+        self.node_features = torch.from_numpy(self.node_features).float()
+        self.edge_index = torch.from_numpy(self.edge_index).long()
+        if self.edge_features is not None:
+            self.edge_features = torch.from_numpy(self.edge_features).float()
+        if self.node_pos_features is not None:
+            self.node_pos_features = torch.from_numpy(
+                self.node_pos_features).float()
+        if hasattr(self, 'graph_index'):
+            self.graph_index = torch.from_numpy(self.graph_index).long()
+        for key, value in self.kwargs.items():
+            value = torch.from_numpy(value)
+            self.kwargs[key] = value
+            setattr(self, key, value)
 
 
 class BatchGraphData(GraphData):
