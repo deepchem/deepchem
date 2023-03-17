@@ -1,11 +1,10 @@
-import math
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import GRU, Linear, ReLU, Sequential
 
 from deepchem.feat.graph_data import BatchGraphData
+from deepchem.models.losses import MolGraphConvMILoss
 from deepchem.models.torch_models.layers import MultilayerPerceptron
 from deepchem.models.torch_models.modular import ModularTorchModel
 
@@ -313,22 +312,17 @@ class InfoGraphStarModel(ModularTorchModel):
         self.prior = False
         self.gamma = .1
         self.num_features = num_features
-        self.measure = measure
-        self.average_loss = average_loss
         self.task = task
         if self.task == 'supervised':
             self.embedding_dim = embedding_dim
-            # self.use_unsup_loss = False
-            # self.separate_encoder = False
         elif self.task == 'semisupervised':
             self.embedding_dim = embedding_dim * num_gc_layers
-            # self.use_unsup_loss = True
             self.num_gc_layers = num_gc_layers
-            # self.separate_encoder = True
 
         self.components = self.build_components()
         self.model = self.build_model()
         super().__init__(self.model, self.components, **kwargs)
+        self.MIloss = MolGraphConvMILoss(self.device, measure, average_loss)
 
     def build_components(self):
         """
@@ -342,11 +336,16 @@ class InfoGraphStarModel(ModularTorchModel):
 
         The local discriminator is a multilayer perceptron that classifies if the substructure encodings are from the same molecule or not while the global discriminator classifies if the graph-level encodings are from the same molecule or not.
         
+        Components list and type:
+        ------------------------
         Encoder: InfoGraphEncoder
-        Unsupervised Encoder: InfoGraphEncoder
-        FF1: MultilayerPerceptron
-        FF2: MultilayerPerceptron
-        Fc1: Linear
+        Unsupervised Encoder: InfoGraphEncoder for supervised or GINEncoder for unsupervised training
+        FeedForward 1: MultilayerPerceptron
+        FeedForward 2: MultilayerPerceptron
+        Fully connected 1: torch.nn.Linear
+        Fully connected 2: torch.nn.Linear
+        Local Discriminator: MultilayerPerceptron
+        Global Discriminator: MultilayerPerceptron
         """
         if self.task == 'supervised':
             return {
@@ -431,7 +430,8 @@ class InfoGraphStarModel(ModularTorchModel):
         l_enc = self.components['local_d'](M)
 
         if self.local:
-            loss = self._local_global_loss(l_enc, g_enc, inputs.graph_index)
+            loss = self.MIloss.local_global_loss(l_enc, g_enc,
+                                                 inputs.graph_index)
 
         return loss
 
@@ -442,74 +442,8 @@ class InfoGraphStarModel(ModularTorchModel):
         g_enc = self.components['ff1'](y)
         g_enc1 = self.components['ff2'](y_)
 
-        loss = self._global_global_loss(g_enc, g_enc1)
+        loss = self.MIloss.global_global_loss(g_enc, g_enc1)
         return loss
-
-    def _local_global_loss(self, l_enc, g_enc, index):
-        """
-        Parameters:
-        ----------
-        l_enc: torch.Tensor
-            Local feature map from the encoder.
-        g_enc: torch.Tensor
-            Global features from the encoder.
-        index: torch.Tensor
-            Index of the graph that each node belongs to.
-
-        Returns:
-        -------
-        loss: torch.Tensor
-            Local Global Loss value
-        """
-        num_graphs = g_enc.shape[0]
-        num_nodes = l_enc.shape[0]
-
-        pos_mask = torch.zeros((num_nodes, num_graphs)).to(self.device)
-        neg_mask = torch.ones((num_nodes, num_graphs)).to(self.device)
-        for nodeidx, graphidx in enumerate(index):
-            pos_mask[nodeidx][graphidx] = 1.
-            neg_mask[nodeidx][graphidx] = 0.
-
-        res = torch.mm(l_enc, g_enc.t())
-
-        E_pos = get_positive_expectation(res * pos_mask, self.measure,
-                                         self.average_loss)
-        E_pos = (E_pos * pos_mask).sum() / pos_mask.sum()
-        E_neg = get_negative_expectation(res * neg_mask, self.measure,
-                                         self.average_loss)
-        E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
-
-        return E_neg - E_pos
-
-    def _global_global_loss(self, g_enc, g_enc1):
-        """
-        Parameters:
-        ----------
-        g_enc: torch.Tensor
-            Global features from the encoder.
-        g_enc1: torch.Tensor
-            Global features from the separate encoder.
-
-        Returns:
-        -------
-        loss: torch.Tensor
-            Global Global Loss value
-        """
-        num_graphs = g_enc.shape[0]
-
-        pos_mask = torch.eye(num_graphs).to(self.device)
-        neg_mask = 1 - pos_mask
-
-        res = torch.mm(g_enc, g_enc1.t())
-
-        E_pos = get_positive_expectation(res * pos_mask, self.measure,
-                                         self.average_loss)
-        E_pos = (E_pos * pos_mask).sum() / pos_mask.sum()
-        E_neg = get_negative_expectation(res * neg_mask, self.measure,
-                                         self.average_loss)
-        E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
-
-        return E_neg - E_pos
 
     def _prepare_batch(self, batch):
         """
@@ -533,109 +467,3 @@ class InfoGraphStarModel(ModularTorchModel):
             weights = weights[0]
 
         return inputs, labels, weights
-
-
-def get_positive_expectation(p_samples, measure, average_loss):
-    """Computes the positive part of a divergence / difference.
-
-    Parameters:
-    ----------
-    p_samples: torch.Tensor
-        Positive samples.
-    average: bool
-        Average the result over samples.
-
-    Returns:
-    -------
-    Ep: torch.Tensor
-        Positive part of the divergence / difference.
-    """
-    log_2 = math.log(2.)
-
-    if measure == 'GAN':
-        Ep = -F.softplus(-p_samples)
-    elif measure == 'JSD':
-        Ep = log_2 - F.softplus(-p_samples)
-    elif measure == 'X2':
-        Ep = p_samples**2
-    elif measure == 'KL':
-        Ep = p_samples + 1.
-    elif measure == 'RKL':
-        Ep = -torch.exp(-p_samples)
-    elif measure == 'DV':
-        Ep = p_samples
-    elif measure == 'H2':
-        Ep = 1. - torch.exp(-p_samples)
-    elif measure == 'W1':
-        Ep = p_samples
-    else:
-        raise ValueError('Unknown measure: {}'.format(measure))
-
-    if average_loss:
-        return Ep.mean()
-    else:
-        return Ep
-
-
-def get_negative_expectation(q_samples, measure, average_loss):
-    """Computes the negative part of a divergence / difference.
-
-    Parameters:
-    ----------
-    q_samples: torch.Tensor
-        Negative samples.
-    average: bool
-        Average the result over samples.
-
-    Returns:
-    -------
-    Ep: torch.Tensor
-        Negative part of the divergence / difference.
-
-    """
-    log_2 = math.log(2.)
-
-    if measure == 'GAN':
-        Eq = F.softplus(-q_samples) + q_samples
-    elif measure == 'JSD':
-        Eq = F.softplus(-q_samples) + q_samples - log_2
-    elif measure == 'X2':
-        Eq = -0.5 * ((torch.sqrt(q_samples**2) + 1.)**2)
-    elif measure == 'KL':
-        Eq = torch.exp(q_samples)
-    elif measure == 'RKL':
-        Eq = q_samples - 1.
-    elif measure == 'DV':
-        Eq = log_sum_exp(q_samples, 0) - math.log(q_samples.size(0))
-    elif measure == 'H2':
-        Eq = torch.exp(q_samples) - 1.
-    elif measure == 'W1':
-        Eq = q_samples
-    else:
-        raise ValueError('Unknown measure: {}'.format(measure))
-
-    if average_loss:
-        return Eq.mean()
-    else:
-        return Eq
-
-
-def log_sum_exp(x, axis=None):
-    """Log sum exp function.
-
-    Parameters
-    ----------
-    x: torch.Tensor
-        Input tensor
-    axis: int
-        Axis to perform sum over
-
-    Returns
-    -------
-    y: torch.Tensor
-        Log sum exp of x
-
-    """
-    x_max = torch.max(x, axis)[0]
-    y = torch.log((torch.exp(x - x_max)).sum(axis)) + x_max
-    return y
