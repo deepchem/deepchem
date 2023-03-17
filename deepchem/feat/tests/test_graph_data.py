@@ -77,7 +77,7 @@ class TestGraph(unittest.TestCase):
                 [0, 1, 2, 2, 3, 4],
                 [1, 2, 0, 3, 4, 0],
                 [2, 2, 1, 4, 0, 3],
-            ], )
+            ],)
             _ = GraphData(
                 node_features=node_features,
                 edge_index=invalid_edge_index_shape,
@@ -111,7 +111,7 @@ class TestGraph(unittest.TestCase):
         assert batch.num_node_features == num_node_features
         assert batch.num_edges == sum(num_edge_list)
         assert batch.num_edge_features == num_edge_features
-        assert batch.graph_index.shape == (sum(num_nodes_list), )
+        assert batch.graph_index.shape == (sum(num_nodes_list),)
 
     @pytest.mark.torch
     def test_graph_data_single_atom_mol(self):
