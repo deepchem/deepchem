@@ -1,7 +1,6 @@
-from abc import abstractproperty, abstractmethod
+from abc import abstractmethod
 from typing import Union
 try:
-    from dqc.xc.base_xc import BaseXC
     from dqc.utils.datastruct import ValGrad, SpinParam
     from dqc.api.getxc import get_xc
     import torch
@@ -9,23 +8,10 @@ except ModuleNotFoundError:
     pass
 
 
-class BaseNNXC(BaseXC, torch.nn.Module):
+class BaseNNXC(torch.nn.Module):
     """
     Base class for the NNLDA and HybridXC classes.
     """
-
-    @abstractproperty
-    def family(self) -> int:
-        """
-        This method determines the type of model to be used, to train the
-        neural network. Currently we only support an LDA based model and will
-        implement more in subsequent iterations.
-
-        Returns
-        -------
-        xc.family
-        """
-        pass
 
     @abstractmethod
     def get_edensityxc(
@@ -171,17 +157,14 @@ class HybridXC(BaseNNXC):
         https://tddft.org/programs/libxc/functionals/
         """
         self.xc = get_xc(xcstr)
-        if self.xc.family == 1:
+        k = self.xc.family
+        if k == 1:
             self.nnxc = NNLDA(nnmodel)
         self.aweight = torch.nn.Parameter(
             torch.tensor(aweight0, requires_grad=True))
         self.bweight = torch.nn.Parameter(
             torch.tensor(bweight0, requires_grad=True))
         self.weight_activation = torch.nn.Identity()
-
-    @property
-    def family(self) -> int:
-        return self.xc.family
 
     def get_edensityxc(
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
