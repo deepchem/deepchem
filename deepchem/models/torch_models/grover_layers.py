@@ -116,7 +116,7 @@ class GroverBondVocabPredictor(nn.Module):
     >>> in_features, vocab_size = 16, 10
     >>> layer = GroverBondVocabPredictor(vocab_size, in_features)
     >>> embedding = torch.randn(num_bonds * 2 + 1,
-    >>>                         in_features)  # * 2 + 1 for reverse bond and padding
+    ...  in_features)  # * 2 + 1 for reverse bond and padding
     >>> result = layer(embedding)
     >>> result.shape
     torch.Size([21, 10])
