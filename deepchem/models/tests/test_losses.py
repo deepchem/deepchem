@@ -389,7 +389,9 @@ class TestLosses(unittest.TestCase):
     def test_MutualInformation_pytorch(self):
         """."""
         from deepchem.models.torch_models.infograph import InfoGraphEncoder
+        from deepchem.feat.graph_data import BatchGraphData
         data, _ = self.get_regression_dataset()
+        data = BatchGraphData(data.X).numpy_to_torch()
         sample1 = data.X[0]
         sample2 = data.X[1]
         num_feat = 30
