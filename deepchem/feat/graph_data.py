@@ -361,7 +361,6 @@ class BatchGraphData(GraphData):
         >>> print(type(batch_graph_data.node_features))
         <class 'torch.Tensor'>
         """
-
         import torch
         graph_copy = super().numpy_to_torch()
 
