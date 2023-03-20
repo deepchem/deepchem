@@ -4,11 +4,12 @@ try:
     from dqc.utils.datastruct import ValGrad, SpinParam
     from dqc.api.getxc import get_xc
     import torch
+    import torch.nn as nn
 except ModuleNotFoundError:
     pass
 
 
-class BaseNNXC(torch.nn.Module):
+class BaseNNXC(nn.Module):
     """
     Base class for the NNLDA and HybridXC classes.
     """
