@@ -82,7 +82,7 @@ class GraphData:
             elif edge_index.shape[1] != edge_features.shape[0]:
                 raise ValueError(
                     'The first dimension of edge_features must be the \
-                          same as the second dimension of edge_index.')
+                          same as the second dimension of edge_index.'                                                                      )
 
         if node_pos_features is not None:
             if isinstance(node_pos_features, np.ndarray) is False:
@@ -91,7 +91,7 @@ class GraphData:
             elif node_pos_features.shape[0] != node_features.shape[0]:
                 raise ValueError(
                     'The length of node_pos_features must be the same as the \
-                          length of node_features.')
+                          length of node_features.'                                                   )
 
         self.node_features = node_features
         self.edge_index = edge_index
@@ -223,37 +223,33 @@ class GraphData:
         import copy
 
         import torch
+        graph_copy = copy.deepcopy(self)
 
-        node_features = torch.from_numpy(self.node_features).float()
-        edge_index = torch.from_numpy(self.edge_index).long()
+        graph_copy.node_features = torch.from_numpy(self.node_features).float()
+        graph_copy.edge_index = torch.from_numpy(self.edge_index).long()
         if self.edge_features is not None:
-            edge_features = torch.from_numpy(self.edge_features).float()
+            graph_copy.edge_features = torch.from_numpy(
+                self.edge_features).float()
         else:
-            edge_features = None
+            graph_copy.edge_features = None
         if self.node_pos_features is not None:
-            node_pos_features = torch.from_numpy(self.node_pos_features).float()
+            graph_copy.node_pos_features = torch.from_numpy(
+                self.node_pos_features).float()
         else:
-            node_pos_features = None
+            graph_copy.node_pos_features = None
 
-        kwargs = {}
+        graph_copy.kwargs = {}
         for key, value in self.kwargs.items():
-            value = torch.from_numpy(value)
-            kwargs[key] = value
+            if isinstance(value, np.ndarray):
+                value = torch.from_numpy(value)
+                graph_copy.kwargs[key] = value
+                setattr(graph_copy, key, value)
 
         if isinstance(self, BatchGraphData):
-            bgcopy = copy.deepcopy(self)
-            bgcopy.node_features = node_features
-            bgcopy.edge_index = edge_index
-            bgcopy.edge_features = edge_features
-            bgcopy.node_pos_features = node_pos_features
-
             graph_index = torch.from_numpy(self.graph_index).long()
-            bgcopy.graph_index = graph_index
+            graph_copy.graph_index = graph_index
 
-            return bgcopy
-
-        return GraphData(node_features, edge_index, edge_features,
-                         node_pos_features, **kwargs)
+        return graph_copy
 
 
 class BatchGraphData(GraphData):
