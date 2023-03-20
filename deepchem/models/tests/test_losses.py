@@ -1,7 +1,10 @@
-import deepchem.models.losses as losses
 import unittest
-import pytest
+
 import numpy as np
+import pytest
+
+import deepchem as dc
+import deepchem.models.losses as losses
 
 try:
     import tensorflow as tf
@@ -385,12 +388,37 @@ class TestLosses(unittest.TestCase):
     @pytest.mark.torch
     def test_MutualInformation_pytorch(self):
         """."""
+
+        data = self.get_regression_dataset()
+
         loss = losses.MutualInformationLoss()
         inputs = torch.tensor([[0.7, 0.3], [0.9, 0.1]])
-        result = loss._create_pytorch_loss(enc1,enc2)(inputs).numpy()
-        
-        # expected = 
+        result = loss._create_pytorch_loss(enc1, enc2)(inputs).numpy()
+
+        # expected =
         # test global global
         assert np.allclose(expected, result)
         # test global local
-        result = loss._create_pytorch_loss(enc1,enc2,index)(inputs).numpy()
+        result = loss._create_pytorch_loss(enc1, enc2, index)(inputs).numpy()
+
+    def get_regression_dataset():
+        import os
+
+        from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
+
+        np.random.seed(123)
+        featurizer = MolGraphConvFeaturizer(use_edges=True)
+        dir = os.path.dirname(os.path.abspath(__file__))
+
+        input_file = os.path.join(dir, 'assets/example_regression.csv')
+        loader = dc.data.CSVLoader(tasks=["outcome"],
+                                   feature_field="smiles",
+                                   featurizer=featurizer)
+        dataset = loader.create_dataset(input_file)
+        metric = dc.metrics.Metric(dc.metrics.mean_absolute_error,
+                                   mode="regression")
+
+        return dataset, metric
+
+test = TestLosses()
+test.test_MutualInformation_pytorch()
