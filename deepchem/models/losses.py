@@ -490,37 +490,39 @@ class MutualInformationLoss(Loss):
     """
 
     def _create_pytorch_loss(self,
-                             enc,
-                             enc2,
                              index=None,
                              measure='JSD',
                              average_loss=True):
 
         import torch
-        if ~index:  # Global global encoding loss (comparing two full graphs)
-            num_graphs = enc.shape[0]
-            pos_mask = torch.eye(num_graphs)
-            neg_mask = 1 - pos_mask
-        elif index:  # Local global encoding loss (comparing a subgraph to the full graph)
-            num_graphs = enc2.shape[0]
-            num_nodes = enc.shape[0]
 
-            pos_mask = torch.zeros((num_nodes, num_graphs))
-            neg_mask = torch.ones((num_nodes, num_graphs))
-            for nodeidx, graphidx in enumerate(index):
-                pos_mask[nodeidx][graphidx] = 1.
-                neg_mask[nodeidx][graphidx] = 0.
+        def loss(enc, enc2):
+            if ~index:  # Global global encoding loss (comparing two full graphs)
+                num_graphs = enc.shape[0]
+                pos_mask = torch.eye(num_graphs)
+                neg_mask = 1 - pos_mask
+            elif index:  # Local global encoding loss (comparing a subgraph to the full graph)
+                num_graphs = enc2.shape[0]
+                num_nodes = enc.shape[0]
 
-            res = torch.mm(enc, enc2.t())
+                pos_mask = torch.zeros((num_nodes, num_graphs))
+                neg_mask = torch.ones((num_nodes, num_graphs))
+                for nodeidx, graphidx in enumerate(index):
+                    pos_mask[nodeidx][graphidx] = 1.
+                    neg_mask[nodeidx][graphidx] = 0.
 
-            E_pos = get_positive_expectation(res * pos_mask, measure,
-                                             average_loss)
-            E_pos = (E_pos * pos_mask).sum() / pos_mask.sum()
-            E_neg = get_negative_expectation(res * neg_mask, measure,
-                                             average_loss)
-            E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
+                res = torch.mm(enc, enc2.t())
 
-            return E_neg - E_pos
+                E_pos = get_positive_expectation(res * pos_mask, measure,
+                                                 average_loss)
+                E_pos = (E_pos * pos_mask).sum() / pos_mask.sum()
+                E_neg = get_negative_expectation(res * neg_mask, measure,
+                                                 average_loss)
+                E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
+
+                return E_neg - E_pos
+
+        return loss
 
 
 def get_positive_expectation(p_samples, measure='JSD', average_loss=True):

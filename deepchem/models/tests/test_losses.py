@@ -388,20 +388,31 @@ class TestLosses(unittest.TestCase):
     @pytest.mark.torch
     def test_MutualInformation_pytorch(self):
         """."""
+        from deepchem.models.torch_models.infograph import InfoGraphEncoder
+        data, _ = self.get_regression_dataset()
+        sample1 = data.X[0]
+        sample2 = data.X[1]
+        num_feat = 30
+        edge_dim = 11
+        dim = 8
 
-        data = self.get_regression_dataset()
+        encoder = InfoGraphEncoder(num_feat, edge_dim, dim)
+        encoding1, _ = encoder(sample1)
+        encoding2, _ = encoder(sample2)
 
         loss = losses.MutualInformationLoss()
-        inputs = torch.tensor([[0.7, 0.3], [0.9, 0.1]])
-        result = loss._create_pytorch_loss(enc1, enc2)(inputs).numpy()
 
-        # expected =
+        # encoding different molecules
+        result_diff = loss._create_pytorch_loss()(encoding1, encoding2).numpy()
+        # encoding the same molecule
+        result_same = loss._create_pytorch_loss()(encoding1, encoding1).numpy()
+
         # test global global
-        assert np.allclose(expected, result)
+        assert result_diff > result_same
         # test global local
-        result = loss._create_pytorch_loss(enc1, enc2, index)(inputs).numpy()
+        # result = loss._create_pytorch_loss(enc1, enc2, index)(inputs).numpy()
 
-    def get_regression_dataset():
+    def get_regression_dataset(self):
         import os
 
         from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
@@ -419,6 +430,7 @@ class TestLosses(unittest.TestCase):
                                    mode="regression")
 
         return dataset, metric
+
 
 test = TestLosses()
 test.test_MutualInformation_pytorch()
