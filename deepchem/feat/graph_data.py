@@ -1,4 +1,5 @@
 from typing import Optional, Sequence
+
 import numpy as np
 
 
@@ -10,13 +11,13 @@ class GraphData:
 
     Attributes
     ----------
-    node_features: np.ndarray
+    node_features: np.ndarray or torch.Tensor
         Node feature matrix with shape [num_nodes, num_node_features]
-    edge_index: np.ndarray, dtype int
+    edge_index: np.ndarray or torch.Tensor, dtype int
         Graph connectivity in COO format with shape [2, num_edges]
-    edge_features: np.ndarray, optional (default None)
+    edge_features: np.ndarray or torch.Tensor, optional (default None)
         Edge feature matrix with shape [num_edges, num_edge_features]
-    node_pos_features: np.ndarray, optional (default None)
+    node_pos_features: np.ndarray or torch.Tensor, optional (default None)
         Node position matrix with shape [num_nodes, num_dimensions].
     num_nodes: int
         The number of nodes in the graph
@@ -81,7 +82,7 @@ class GraphData:
             elif edge_index.shape[1] != edge_features.shape[0]:
                 raise ValueError(
                     'The first dimension of edge_features must be the \
-                          same as the second dimension of edge_index.')
+                          same as the second dimension of edge_index.'                                                                      )
 
         if node_pos_features is not None:
             if isinstance(node_pos_features, np.ndarray) is False:
@@ -90,7 +91,7 @@ class GraphData:
             elif node_pos_features.shape[0] != node_features.shape[0]:
                 raise ValueError(
                     'The length of node_pos_features must be the same as the \
-                          length of node_features.')
+                          length of node_features.'                                                   )
 
         self.node_features = node_features
         self.edge_index = edge_index
@@ -203,6 +204,52 @@ class GraphData:
             g.add_edges(np.arange(self.num_nodes), np.arange(self.num_nodes))
 
         return g
+
+    def numpy_to_torch(self):
+        """Convert numpy arrays to torch tensors. This may be useful when you are using PyTorch Geometric with GraphData objects.
+
+        Example
+        -------
+        >>> num_nodes, num_node_features = 5, 32
+        >>> num_edges, num_edge_features = 6, 32
+        >>> node_features = np.random.random_sample((num_nodes, num_node_features))
+        >>> edge_features = np.random.random_sample((num_edges, num_edge_features))
+        >>> edge_index = np.random.randint(0, num_nodes, (2, num_edges))
+        >>> graph_data = GraphData(node_features, edge_index, edge_features)
+        >>> graph_data = graph_data.numpy_to_torch()
+        >>> print(type(graph_data.node_features))
+        <class 'torch.Tensor'>
+        """
+        import copy
+
+        import torch
+        graph_copy = copy.deepcopy(self)
+
+        graph_copy.node_features = torch.from_numpy(self.node_features).float()
+        graph_copy.edge_index = torch.from_numpy(self.edge_index).long()
+        if self.edge_features is not None:
+            graph_copy.edge_features = torch.from_numpy(
+                self.edge_features).float()
+        else:
+            graph_copy.edge_features = None
+        if self.node_pos_features is not None:
+            graph_copy.node_pos_features = torch.from_numpy(
+                self.node_pos_features).float()
+        else:
+            graph_copy.node_pos_features = None
+
+        graph_copy.kwargs = {}
+        for key, value in self.kwargs.items():
+            if isinstance(value, np.ndarray):
+                value = torch.from_numpy(value)
+                graph_copy.kwargs[key] = value
+                setattr(graph_copy, key, value)
+
+        if isinstance(self, BatchGraphData):
+            graph_index = torch.from_numpy(self.graph_index).long()
+            graph_copy.graph_index = graph_index
+
+        return graph_copy
 
 
 class BatchGraphData(GraphData):
