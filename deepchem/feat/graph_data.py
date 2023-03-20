@@ -82,7 +82,7 @@ class GraphData:
             elif edge_index.shape[1] != edge_features.shape[0]:
                 raise ValueError(
                     'The first dimension of edge_features must be the \
-                          same as the second dimension of edge_index.')
+                          same as the second dimension of edge_index.'                                                                      )
 
         if node_pos_features is not None:
             if isinstance(node_pos_features, np.ndarray) is False:
@@ -91,7 +91,7 @@ class GraphData:
             elif node_pos_features.shape[0] != node_features.shape[0]:
                 raise ValueError(
                     'The length of node_pos_features must be the same as the \
-                          length of node_features.')
+                          length of node_features.'                                                   )
 
         self.node_features = node_features
         self.edge_index = edge_index
@@ -341,6 +341,27 @@ class BatchGraphData(GraphData):
         )
 
     def numpy_to_torch(self):
+        """
+        Convert numpy arrays to torch tensors for BatchGraphData. BatchGraphData is very similar to GraphData, but it combines all graphs into a single graph object and it has an additional attribute `graph_index` which indicates which nodes belong to which graph.
+
+        Example
+        -------
+        >>> num_nodes, num_node_features = 5, 32
+        >>> num_edges, num_edge_features = 6, 32
+        >>> node_features = np.random.random_sample((num_nodes, num_node_features))
+        >>> edge_features = np.random.random_sample((num_edges, num_edge_features))
+        >>> edge_index = np.random.randint(0, num_nodes, (2, num_edges))
+        >>> graph_data = GraphData(node_features, edge_index, edge_features)
+        >>> node_features2 = np.random.random_sample((num_nodes, num_node_features))
+        >>> edge_features2 = np.random.random_sample((num_edges, num_edge_features))
+        >>> edge_index2 = np.random.randint(0, num_nodes, (2, num_edges))
+        >>> graph_data2 = GraphData(node_features2, edge_index2, edge_features2)
+        >>> batch_graph_data = BatchGraphData([graph_data, graph_data2])
+        >>> batch_graph_data = batch_graph_data.numpy_to_torch()
+        >>> print(type(batch_graph_data.node_features))
+        <class 'torch.Tensor'>
+        """
+
         import torch
         graph_copy = super().numpy_to_torch()
 
