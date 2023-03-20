@@ -1,7 +1,6 @@
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence
 
 import numpy as np
-import torch
 
 
 class GraphData:
@@ -42,12 +41,10 @@ class GraphData:
     """
 
     def __init__(self,
-                 node_features: Union[np.ndarray, torch.Tensor],
-                 edge_index: Union[np.ndarray, torch.Tensor],
-                 edge_features: Optional[Union[np.ndarray,
-                                               torch.Tensor]] = None,
-                 node_pos_features: Optional[Union[np.ndarray,
-                                                   torch.Tensor]] = None,
+                 node_features: np.ndarray,
+                 edge_index: np.ndarray,
+                 edge_features: Optional[np.ndarray] = None,
+                 node_pos_features: Optional[np.ndarray] = None,
                  **kwargs):
         """
         Parameters
@@ -64,30 +61,23 @@ class GraphData:
             Additional attributes and their values
         """
         # validate params
-        if isinstance(node_features, (np.ndarray, torch.Tensor)) is False:
-            raise ValueError(
-                'node_features must be np.ndarray or torch.tensor.')
+        if isinstance(node_features, np.ndarray) is False:
+            raise ValueError('node_features must be np.ndarray.')
 
-        if isinstance(edge_index, (np.ndarray, torch.Tensor)) is False:
-            raise ValueError('edge_index must be np.ndarray or torch.tensor.')
-        elif isinstance(edge_index,
-                        np.ndarray) and edge_index.dtype != np.integer:
-            raise ValueError('edge_index must be of dtype integer.')
-        elif isinstance(
-                edge_index,
-                torch.Tensor) and edge_index.is_floating_point() is True:
-            raise ValueError('edge_index must be of dtype integer.')
-
+        if isinstance(edge_index, np.ndarray) is False:
+            raise ValueError('edge_index must be np.ndarray.')
+        elif issubclass(edge_index.dtype.type, np.integer) is False:
+            raise ValueError('edge_index.dtype must contains integers.')
         elif edge_index.shape[0] != 2:
             raise ValueError('The shape of edge_index is [2, num_edges].')
 
-        # np.max() method works only for a non-empty array, so size of the array should be non-zero. Convert edge index to numpy array if it is a torch tensor.
-        elif (edge_index.size != 0) and (np.max(np.array(edge_index)) >=
+        # np.max() method works only for a non-empty array, so size of the array should be non-zero
+        elif (edge_index.size != 0) and (np.max(edge_index) >=
                                          len(node_features)):
             raise ValueError('edge_index contains the invalid node number.')
 
         if edge_features is not None:
-            if isinstance(edge_features, (np.ndarray, torch.Tensor)) is False:
+            if isinstance(edge_features, np.ndarray) is False:
                 raise ValueError('edge_features must be np.ndarray or None.')
             elif edge_index.shape[1] != edge_features.shape[0]:
                 raise ValueError(
@@ -95,11 +85,9 @@ class GraphData:
                           same as the second dimension of edge_index.')
 
         if node_pos_features is not None:
-            if isinstance(node_pos_features,
-                          (np.ndarray, torch.Tensor)) is False:
+            if isinstance(node_pos_features, np.ndarray) is False:
                 raise ValueError(
-                    'node_pos_features must be np.ndarray, torch.tensor or None.'
-                )
+                    'node_pos_features must be np.ndarray or None.')
             elif node_pos_features.shape[0] != node_features.shape[0]:
                 raise ValueError(
                     'The length of node_pos_features must be the same as the \
@@ -233,6 +221,8 @@ class GraphData:
         <class 'torch.Tensor'>
         """
         import copy
+
+        import torch
 
         node_features = torch.from_numpy(self.node_features).float()
         edge_index = torch.from_numpy(self.edge_index).long()
