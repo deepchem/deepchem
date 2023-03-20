@@ -511,16 +511,16 @@ class MutualInformationLoss(Loss):
                     pos_mask[nodeidx][graphidx] = 1.
                     neg_mask[nodeidx][graphidx] = 0.
 
-                res = torch.mm(enc, enc2.t())
+            res = torch.mm(enc, enc2.t())
 
-                E_pos = get_positive_expectation(res * pos_mask, measure,
-                                                 average_loss)
-                E_pos = (E_pos * pos_mask).sum() / pos_mask.sum()
-                E_neg = get_negative_expectation(res * neg_mask, measure,
-                                                 average_loss)
-                E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
+            E_pos = get_positive_expectation(res * pos_mask, measure,
+                                             average_loss)
+            E_pos = (E_pos * pos_mask).sum() / pos_mask.sum()
+            E_neg = get_negative_expectation(res * neg_mask, measure,
+                                             average_loss)
+            E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
 
-                return E_neg - E_pos
+            return E_neg - E_pos
 
         return loss
 
