@@ -100,6 +100,7 @@ class NNLDA(BaseNNXC):
         ----------
         densinfo: Union[ValGrad, SpinParam[ValGrad]]
             Density information calculated using DQC utilities.
+
         Returns
         -------
         res
@@ -154,9 +155,9 @@ class HybridXC(BaseNNXC):
         Parameters
         ----------
         xcstr: str
-            The choice of xc to use. Some of the commonly used ones are: 
+            The choice of xc to use. Some of the commonly used ones are:
             lda_x, lda_c_pw, lda_c_ow, lda_c_pz, lda_xc_lp_a, lda_xc_lp_b.
-            The rest of the possible values can be found under the 
+            The rest of the possible values can be found under the
             "LDA Functionals" section in the reference given below.
         nnmodel: nn.Module
             trainable neural network for prediction xc energy.
