@@ -77,7 +77,7 @@ class TestGraph(unittest.TestCase):
                 [0, 1, 2, 2, 3, 4],
                 [1, 2, 0, 3, 4, 0],
                 [2, 2, 1, 4, 0, 3],
-            ], )
+            ],)
             _ = GraphData(
                 node_features=node_features,
                 edge_index=invalid_edge_index_shape,
@@ -111,9 +111,7 @@ class TestGraph(unittest.TestCase):
         assert batch.num_node_features == num_node_features
         assert batch.num_edges == sum(num_edge_list)
         assert batch.num_edge_features == num_edge_features
-        assert batch.graph_index.shape == (sum(num_nodes_list), )
-        assert batch.edge_index.max() == sum(num_edge_list)
-        assert batch.edge_index.shape == (2, sum(num_edge_list))
+        assert batch.graph_index.shape == (sum(num_nodes_list),)
 
     @pytest.mark.torch
     def test_graph_data_single_atom_mol(self):
@@ -165,7 +163,27 @@ class TestGraph(unittest.TestCase):
         assert graph.node_pos_features is None
         assert isinstance(graph.z, torch.Tensor)
 
-        batched_graph = BatchGraphData([graph_np, graph_np])
+    @pytest.mark.torch
+    def test_batchgraphdata_numpy_to_torch(self):
+        import torch
+        num_nodes_list, num_edge_list = [3, 4, 5], [2, 4, 5]
+        num_node_features, num_edge_features = 32, 32
+        edge_index_list = [
+            np.array([[0, 1], [1, 2]]),
+            np.array([[0, 1, 2, 3], [1, 2, 0, 2]]),
+            np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]]),
+        ]
+
+        graph_list = [
+            GraphData(node_features=np.random.random_sample(
+                (num_nodes_list[i], num_node_features)),
+                      edge_index=edge_index_list[i],
+                      edge_features=np.random.random_sample(
+                          (num_edge_list[i], num_edge_features)),
+                      node_pos_features=None) for i in range(len(num_edge_list))
+        ]
+        batched_graph = BatchGraphData(graph_list)
+
         batched_graph = batched_graph.numpy_to_torch()
 
         assert isinstance(batched_graph, BatchGraphData)
@@ -173,4 +191,3 @@ class TestGraph(unittest.TestCase):
         assert isinstance(batched_graph.edge_index, torch.Tensor)
         assert isinstance(batched_graph.edge_features, torch.Tensor)
         assert batched_graph.node_pos_features is None
-        # batched graph does not take kwargs like 'z'

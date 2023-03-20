@@ -11,13 +11,13 @@ class GraphData:
 
     Attributes
     ----------
-    node_features: np.ndarray or torch.Tensor
+    node_features: np.ndarray
         Node feature matrix with shape [num_nodes, num_node_features]
-    edge_index: np.ndarray or torch.Tensor, dtype int
+    edge_index: np.ndarray, dtype int
         Graph connectivity in COO format with shape [2, num_edges]
-    edge_features: np.ndarray or torch.Tensor, optional (default None)
+    edge_features: np.ndarray, optional (default None)
         Edge feature matrix with shape [num_edges, num_edge_features]
-    node_pos_features: np.ndarray or torch.Tensor, optional (default None)
+    node_pos_features: np.ndarray, optional (default None)
         Node position matrix with shape [num_nodes, num_dimensions].
     num_nodes: int
         The number of nodes in the graph
@@ -245,10 +245,6 @@ class GraphData:
                 graph_copy.kwargs[key] = value
                 setattr(graph_copy, key, value)
 
-        if isinstance(self, BatchGraphData):
-            graph_index = torch.from_numpy(self.graph_index).long()
-            graph_copy.graph_index = graph_index
-
         return graph_copy
 
 
@@ -321,14 +317,11 @@ class BatchGraphData(GraphData):
             batch_node_pos_features = None
 
         # create new edge index
-        # number of nodes in each graph
         num_nodes_list = [graph.num_nodes for graph in graph_list]
-        # cumulative number of nodes for each graph
-        cum_num_nodes_list = np.cumsum([0] + num_nodes_list)[:-1]
-        # columns are the edge index, values are the node index
         batch_edge_index = np.hstack([
-            graph.edge_index + cum_num_nodes
-            for cum_num_nodes, graph in zip(cum_num_nodes_list, graph_list)
+            graph.edge_index + prev_num_node
+            for prev_num_node, graph in zip([0] +
+                                            num_nodes_list[:-1], graph_list)
         ])
 
         # graph_index indicates which nodes belong to which graph
@@ -343,3 +336,32 @@ class BatchGraphData(GraphData):
             edge_features=batch_edge_features,
             node_pos_features=batch_node_pos_features,
         )
+
+    def numpy_to_torch(self):
+        """
+        Convert numpy arrays to torch tensors for BatchGraphData. BatchGraphData is very similar to GraphData, but it combines all graphs into a single graph object and it has an additional attribute `graph_index` which indicates which nodes belong to which graph.
+
+        Example
+        -------
+        >>> num_nodes, num_node_features = 5, 32
+        >>> num_edges, num_edge_features = 6, 32
+        >>> node_features = np.random.random_sample((num_nodes, num_node_features))
+        >>> edge_features = np.random.random_sample((num_edges, num_edge_features))
+        >>> edge_index = np.random.randint(0, num_nodes, (2, num_edges))
+        >>> graph_data = GraphData(node_features, edge_index, edge_features)
+        >>> node_features2 = np.random.random_sample((num_nodes, num_node_features))
+        >>> edge_features2 = np.random.random_sample((num_edges, num_edge_features))
+        >>> edge_index2 = np.random.randint(0, num_nodes, (2, num_edges))
+        >>> graph_data2 = GraphData(node_features2, edge_index2, edge_features2)
+        >>> batch_graph_data = BatchGraphData([graph_data, graph_data2])
+        >>> batch_graph_data = batch_graph_data.numpy_to_torch()
+        >>> print(type(batch_graph_data.node_features))
+        <class 'torch.Tensor'>
+        """
+        import torch
+        graph_copy = super().numpy_to_torch()
+
+        graph_index = torch.from_numpy(self.graph_index).long()
+        graph_copy.graph_index = graph_index
+
+        return graph_copy
