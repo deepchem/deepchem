@@ -294,7 +294,6 @@ class _EntryIE(DFTEntry):
         e_type: str
         true_val: str
         systems: List[Dict]
-
         """
         super().__init__(e_type, true_val, systems)
         self.true_val = float(true_val)
