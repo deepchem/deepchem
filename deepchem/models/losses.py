@@ -472,15 +472,21 @@ class MutualInformationLoss(Loss):
 
     Parameters:
     ----------
-    g_enc: torch.Tensor
-        Global features from the encoder.
-    g_enc1: torch.Tensor
-        Global features from the separate encoder.
+    enc: torch.Tensor
+        Features from a graph convolutional encoder.
+    enc2: torch.Tensor
+        Another set of features from a graph convolutional encoder.
+    index: graph_index: np.ndarray or torch.tensor, dtype int
+        This vector indicates which graph the node belongs with shape [num_nodes,]. Only present in BatchGraphData, not in GraphData objects.
+    measure: str
+        The divergence measure to use for the unsupervised loss. Options are 'GAN', 'JSD', 'KL', 'RKL', 'X2', 'DV', 'H2', or 'W1'.
+    average_loss: bool
+        Whether to average the loss over the batch
 
     Returns:
     -------
     loss: torch.Tensor
-        Global Global Loss value
+        Measure of mutual information between the encodings of the two graphs.
     """
 
     def _create_pytorch_loss(self,
@@ -491,12 +497,11 @@ class MutualInformationLoss(Loss):
                              average_loss=True):
 
         import torch
-        if ~index:  # Global global encoding loss
+        if ~index:  # Global global encoding loss (comparing two full graphs)
             num_graphs = enc.shape[0]
-
             pos_mask = torch.eye(num_graphs)
             neg_mask = 1 - pos_mask
-        elif index:  # Local global encoding loss
+        elif index:  # Local global encoding loss (comparing a subgraph to the full graph)
             num_graphs = enc2.shape[0]
             num_nodes = enc.shape[0]
 
@@ -575,7 +580,7 @@ def get_negative_expectation(self, q_samples, measure='JSD', average_loss=True):
     q_samples: torch.Tensor
         Negative samples.
     measure: str
-    
+
     average: bool
         Average the result over samples.
 

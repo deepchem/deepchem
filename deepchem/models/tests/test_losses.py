@@ -381,3 +381,16 @@ class TestLosses(unittest.TestCase):
             -np.mean([0.9 * np.log(0.9), 0.1 * np.log(0.1)])
         ]
         assert np.allclose(expected, result)
+
+    @pytest.mark.torch
+    def test_MutualInformation_pytorch(self):
+        """."""
+        loss = losses.MutualInformationLoss()
+        inputs = torch.tensor([[0.7, 0.3], [0.9, 0.1]])
+        result = loss._create_pytorch_loss(enc1,enc2)(inputs).numpy()
+        
+        # expected = 
+        # test global global
+        assert np.allclose(expected, result)
+        # test global local
+        result = loss._create_pytorch_loss(enc1,enc2,index)(inputs).numpy()
