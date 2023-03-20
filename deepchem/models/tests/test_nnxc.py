@@ -8,6 +8,7 @@ except ModuleNotFoundError:
     pass
 
 
+@pytest.mark.dqc
 class DummyModel(torch.nn.Module):
 
     def __init__(self, n):
