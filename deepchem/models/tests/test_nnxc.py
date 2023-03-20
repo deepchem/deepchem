@@ -1,3 +1,4 @@
+import pytest
 try:
     from deepchem.models.dft.nnxc import NNLDA, HybridXC
     import torch
@@ -17,6 +18,7 @@ class DummyModel(torch.nn.Module):
         return self.linear(x)
 
 
+@pytest.mark.dqc
 def test_nnlda():
     torch.manual_seed(42)
     # https://github.com/diffqc/dqc/blob/742eb2576418464609f942def4fb7c3bbdc0cd82/dqc/test/test_xc.py#L15
@@ -30,6 +32,7 @@ def test_nnlda():
     torch.testing.assert_close(output, expected_output, atol=1e-4, rtol=0)
 
 
+@pytest.mark.dqc
 def test_hybridxc():
     torch.manual_seed(42)
     n = 2
