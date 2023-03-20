@@ -82,7 +82,7 @@ class GraphData:
             elif edge_index.shape[1] != edge_features.shape[0]:
                 raise ValueError(
                     'The first dimension of edge_features must be the \
-                          same as the second dimension of edge_index.'                                                                      )
+                          same as the second dimension of edge_index.')
 
         if node_pos_features is not None:
             if isinstance(node_pos_features, np.ndarray) is False:
@@ -91,7 +91,7 @@ class GraphData:
             elif node_pos_features.shape[0] != node_features.shape[0]:
                 raise ValueError(
                     'The length of node_pos_features must be the same as the \
-                          length of node_features.'                                                   )
+                          length of node_features.')
 
         self.node_features = node_features
         self.edge_index = edge_index
@@ -321,11 +321,14 @@ class BatchGraphData(GraphData):
             batch_node_pos_features = None
 
         # create new edge index
+        # number of nodes in each graph
         num_nodes_list = [graph.num_nodes for graph in graph_list]
+        # cumulative number of nodes for each graph
+        cum_num_nodes_list = np.cumsum([0] + num_nodes_list)[:-1]
+        # columns are the edge index, values are the node index
         batch_edge_index = np.hstack([
-            graph.edge_index + prev_num_node
-            for prev_num_node, graph in zip([0] +
-                                            num_nodes_list[:-1], graph_list)
+            graph.edge_index + cum_num_nodes
+            for cum_num_nodes, graph in zip(cum_num_nodes_list, graph_list)
         ])
 
         # graph_index indicates which nodes belong to which graph
