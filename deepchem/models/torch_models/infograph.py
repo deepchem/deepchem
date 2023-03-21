@@ -1,15 +1,11 @@
+from deepchem.models.torch_models.modular import ModularTorchModel
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import GRU, Linear, ReLU, Sequential
-
+from torch.nn import Sequential, Linear, ReLU, GRU
 from deepchem.feat.graph_data import BatchGraphData
-from deepchem.models.losses import (
-    GlobalMutualInformationLoss,
-    LocalMutualInformationLoss,
-)
 from deepchem.models.torch_models.layers import MultilayerPerceptron
-from deepchem.models.torch_models.modular import ModularTorchModel
+import math
 
 
 class InfoGraphEncoder(torch.nn.Module):
@@ -126,10 +122,6 @@ class InfoGraphModel(ModularTorchModel):
         self.use_unsup_loss = use_unsup_loss
         self.measure = measure
         self.average_loss = average_loss
-        self.global_global_loss = GlobalMutualInformationLoss(
-        )._create_pytorch_loss()
-        self.local_global_loss = LocalMutualInformationLoss(
-        )._create_pytorch_loss()
 
         self.components = self.build_components()
         self.model = self.build_model()
@@ -192,12 +184,20 @@ class InfoGraphModel(ModularTorchModel):
         l_enc = self.components['local_d'](M)
 
         if self.local:
-            loss = self.local_global_loss(l_enc, g_enc, inputs.graph_index)
+            loss = self._local_global_loss(l_enc, g_enc, inputs.graph_index)
         return loss
 
     def _prepare_batch(self, batch):
         inputs, labels, weights = batch
-        inputs = BatchGraphData(inputs[0]).numpy_to_torch()
+        inputs = BatchGraphData(inputs[0])
+        inputs.edge_features = torch.from_numpy(
+            inputs.edge_features).float().to(self.device)
+        inputs.edge_index = torch.from_numpy(inputs.edge_index).long().to(
+            self.device)
+        inputs.node_features = torch.from_numpy(
+            inputs.node_features).float().to(self.device)
+        inputs.graph_index = torch.from_numpy(inputs.graph_index).long().to(
+            self.device)
 
         _, labels, weights = super()._prepare_batch(([], labels, weights))
 
@@ -214,8 +214,153 @@ class InfoGraphModel(ModularTorchModel):
         g_enc = self.components['ff1'](y)
         g_enc1 = self.components['ff2'](y_)
 
-        loss = self.global_global_loss(g_enc, g_enc1)
+        loss = self._global_global_loss(g_enc, g_enc1)
         return loss
+
+    def _local_global_loss(self, l_enc, g_enc, batch):
+        """
+        Parameters:
+        ----------
+        l_enc: torch.Tensor
+            Local feature map from the encoder.
+        g_enc: torch.Tensor
+            Global features from the encoder.
+        batch: torch.Tensor
+            Batch tensor
+
+        Returns:
+        -------
+        loss: torch.Tensor
+            Local Global Loss value
+        """
+        num_graphs = g_enc.shape[0]
+        num_nodes = l_enc.shape[0]
+
+        pos_mask = torch.zeros((num_nodes, num_graphs)).to(self.device)
+        neg_mask = torch.ones((num_nodes, num_graphs)).to(self.device)
+        for nodeidx, graphidx in enumerate(batch):
+            pos_mask[nodeidx][graphidx] = 1.
+            neg_mask[nodeidx][graphidx] = 0.
+
+        res = torch.mm(l_enc, g_enc.t())
+
+        E_pos = self.get_positive_expectation(res * pos_mask)
+        E_pos = (E_pos * pos_mask).sum() / pos_mask.sum()
+        E_neg = self.get_negative_expectation(res * neg_mask)
+        E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
+
+        return E_neg - E_pos
+
+    def _global_global_loss(self, g_enc, g_enc1):
+        """
+        Parameters:
+        ----------
+        g_enc: torch.Tensor
+            Global features from the encoder.
+        g_enc1: torch.Tensor
+            Global features from the separate encoder.
+
+        Returns:
+        -------
+        loss: torch.Tensor
+            Global Global Loss value
+        """
+        num_graphs = g_enc.shape[0]
+
+        pos_mask = torch.eye(num_graphs).to(self.device)
+        neg_mask = 1 - pos_mask
+
+        res = torch.mm(g_enc, g_enc1.t())
+
+        E_pos = self.get_positive_expectation(res * pos_mask)
+        E_pos = (E_pos * pos_mask).sum() / pos_mask.sum()
+        E_neg = self.get_negative_expectation(res * neg_mask)
+        E_neg = (E_neg * neg_mask).sum() / neg_mask.sum()
+
+        return E_neg - E_pos
+
+    def get_positive_expectation(self, p_samples):
+        """Computes the positive part of a divergence / difference.
+
+        Parameters:
+        ----------
+        p_samples: torch.Tensor
+            Positive samples.
+        average: bool
+            Average the result over samples.
+
+        Returns:
+        -------
+        Ep: torch.Tensor
+            Positive part of the divergence / difference.
+        """
+        log_2 = math.log(2.)
+
+        if self.measure == 'GAN':
+            Ep = -F.softplus(-p_samples)
+        elif self.measure == 'JSD':
+            Ep = log_2 - F.softplus(-p_samples)
+        elif self.measure == 'X2':
+            Ep = p_samples**2
+        elif self.measure == 'KL':
+            Ep = p_samples + 1.
+        elif self.measure == 'RKL':
+            Ep = -torch.exp(-p_samples)
+        elif self.measure == 'DV':
+            Ep = p_samples
+        elif self.measure == 'H2':
+            Ep = 1. - torch.exp(-p_samples)
+        elif self.measure == 'W1':
+            Ep = p_samples
+        else:
+            raise ValueError('Unknown measure: {}'.format(self.measure))
+
+        if self.average_loss:
+            return Ep.mean()
+        else:
+            return Ep
+
+    def get_negative_expectation(self, q_samples):
+        """Computes the negative part of a divergence / difference.
+
+        Parameters:
+        ----------
+        q_samples: torch.Tensor
+            Negative samples.
+        average: bool
+            Average the result over samples.
+
+        Returns:
+        -------
+        Ep: torch.Tensor
+            Negative part of the divergence / difference.
+
+        """
+        log_2 = math.log(2.)
+
+        if self.measure == 'GAN':
+            Eq = F.softplus(-q_samples) + q_samples
+        elif self.measure == 'JSD':
+            Eq = F.softplus(-q_samples) + q_samples - log_2
+        elif self.measure == 'X2':
+            Eq = -0.5 * ((torch.sqrt(q_samples**2) + 1.)**2)
+        elif self.measure == 'KL':
+            Eq = torch.exp(q_samples)
+        elif self.measure == 'RKL':
+            Eq = q_samples - 1.
+        elif self.measure == 'DV':
+            Eq = log_sum_exp(q_samples, 0) - math.log(q_samples.size(0))
+        elif self.measure == 'H2':
+            Eq = torch.exp(q_samples) - 1.
+        elif self.measure == 'W1':
+            Eq = q_samples
+        else:
+            raise ValueError('Unknown measure: {}'.format(self.measure))
+
+        if self.average_loss:
+            return Eq.mean()
+        else:
+            return Eq
 
 
 class InfoGraph(torch.nn.Module):
