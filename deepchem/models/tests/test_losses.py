@@ -391,12 +391,10 @@ class TestLosses(unittest.TestCase):
         from deepchem.feat.graph_data import BatchGraphData
         from deepchem.models.torch_models.infograph import InfoGraphEncoder
         from deepchem.models.torch_models.layers import MultilayerPerceptron
-        data, _ = self.get_regression_dataset()
+        torch.manual_seed(123)
 
-        sample = data.X[:2]
-        # sample2 = data.X[5:]
-        batch = BatchGraphData(sample).numpy_to_torch()
-        # batch2 = BatchGraphData(sample2).numpy_to_torch()
+        data, _ = self.get_regression_dataset()
+        batch = BatchGraphData(data.X).numpy_to_torch()
 
         num_feat = 30
         edge_dim = 11
@@ -412,15 +410,16 @@ class TestLosses(unittest.TestCase):
         globalloss = losses.GlobalMutualInformationLoss()
         localloss = losses.LocalMutualInformationLoss()
 
-        result = globalloss._create_pytorch_loss()(g_enc, g_enc2)
-        result = localloss._create_pytorch_loss()(g_enc, l_enc,
-                                                  batch.graph_index)
-        # encoding the same molecule
-        # result_same = loss._create_pytorch_loss()(encoding1, encoding1).numpy()
-        print()
-        # test global global
-        # assert result_diff > result_same
-        # pass
+        excepted_global_loss = np.array(.0308)
+        expected_local_loss = np.array(.00936)
+
+        global_loss = globalloss._create_pytorch_loss()(
+            g_enc, g_enc2).detach().numpy()
+        local_loss = localloss._create_pytorch_loss()(
+            l_enc, g_enc, batch.graph_index).detach().numpy()
+
+        assert np.allclose(global_loss, excepted_global_loss, 1e-3)
+        assert np.allclose(local_loss, expected_local_loss, 1e-3)
 
     def get_regression_dataset(self):
         import os
@@ -440,7 +439,3 @@ class TestLosses(unittest.TestCase):
                                    mode="regression")
 
         return dataset, metric
-
-
-test = TestLosses()
-test.test_MutualInformation_pytorch()
