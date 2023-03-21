@@ -118,7 +118,8 @@ class NNLDA(BaseNNXC):
 class HybridXC(BaseNNXC):
     """
     The HybridXC module computes XC energy by summing XC energy computed
-    from libxc and the trainable neural network with tunable weights.
+    from libxc(any conventional DFT functional) and the trainable neural
+    network with tunable weights.
     This layer constructs a hybrid functional based on the user's choice
     of what model is to be used to train the functional. (Currently, we only
     support an LDA based model). This hybrid functional is a combination of
