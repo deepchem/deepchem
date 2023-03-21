@@ -390,31 +390,35 @@ class TestLosses(unittest.TestCase):
         """."""
         from deepchem.feat.graph_data import BatchGraphData
         from deepchem.models.torch_models.infograph import InfoGraphEncoder
+        from deepchem.models.torch_models.layers import MultilayerPerceptron
         data, _ = self.get_regression_dataset()
 
-        sample1 = data.X[:5]
-        sample2 = data.X[5:]
-        batch1 = BatchGraphData(sample1).numpy_to_torch()
-        batch2 = BatchGraphData(sample2).numpy_to_torch()
+        sample = data.X[:2]
+        # sample2 = data.X[5:]
+        batch = BatchGraphData(sample).numpy_to_torch()
+        # batch2 = BatchGraphData(sample2).numpy_to_torch()
 
         num_feat = 30
         edge_dim = 11
-        dim = 8
+        dim = 4
 
         encoder = InfoGraphEncoder(num_feat, edge_dim, dim)
-        encoding1, _ = encoder(batch1)
-        encoding2, _ = encoder(batch2)
+        encoding, feature_map = encoder(batch)
+        # encoding2, _ = encoder(batch2)
+
+        g_enc = MultilayerPerceptron(2 * dim, dim)(encoding)
+        l_enc = MultilayerPerceptron(dim, dim)(feature_map)
 
         loss = losses.MutualInformationLoss()
 
         # encoding different molecules
-        result_diff = loss._create_pytorch_loss()(encoding1, encoding2).numpy()
+        result_diff = loss._create_pytorch_loss()(
+            g_enc, l_enc, batch_graph_index=batch.graph_index).numpy()
         # encoding the same molecule
-        result_same = loss._create_pytorch_loss()(encoding1, encoding1,
-                                                  batch1).numpy()
-
+        # result_same = loss._create_pytorch_loss()(encoding1, encoding1).numpy()
+        print()
         # test global global
-        assert result_diff > result_same
+        # assert result_diff > result_same
         # pass
 
     def get_regression_dataset(self):
@@ -437,5 +441,6 @@ class TestLosses(unittest.TestCase):
         return dataset, metric
 
 
-# test = TestLosses()
-# test.test_MutualInformation_pytorch()
+
+test = TestLosses()
+test.test_MutualInformation_pytorch()

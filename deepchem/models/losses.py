@@ -495,18 +495,18 @@ class MutualInformationLoss(Loss):
 
         import torch
 
-        def loss(enc, enc2, batch):
-            if batch is None:  # Global global encoding loss (comparing two full graphs)
+        def loss(enc, enc2, batch_graph_index=None):
+            if batch_graph_index is None:  # Global global encoding loss (comparing two full graphs)
                 num_graphs = enc.shape[0]
                 pos_mask = torch.eye(num_graphs)
                 neg_mask = 1 - pos_mask
-            elif batch:  # Local global encoding loss (comparing a subgraph to the full graph)
+            else:  # Local global encoding loss (comparing a subgraph to the full graph)
                 num_graphs = enc2.shape[0]
                 num_nodes = enc.shape[0]
 
                 pos_mask = torch.zeros((num_nodes, num_graphs))
                 neg_mask = torch.ones((num_nodes, num_graphs))
-                for nodeidx, graphidx in enumerate(batch.graph_index):
+                for nodeidx, graphidx in enumerate(batch_graph_index):
                     pos_mask[nodeidx][graphidx] = 1.
                     neg_mask[nodeidx][graphidx] = 0.
 
