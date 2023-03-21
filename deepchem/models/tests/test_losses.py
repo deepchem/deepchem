@@ -404,16 +404,15 @@ class TestLosses(unittest.TestCase):
 
         encoder = InfoGraphEncoder(num_feat, edge_dim, dim)
         encoding, feature_map = encoder(batch)
-        # encoding2, _ = encoder(batch2)
 
         g_enc = MultilayerPerceptron(2 * dim, dim)(encoding)
+        g_enc2 = MultilayerPerceptron(2 * dim, dim)(encoding)
         l_enc = MultilayerPerceptron(dim, dim)(feature_map)
 
         loss = losses.MutualInformationLoss()
 
-        # encoding different molecules
-        result_diff = loss._create_pytorch_loss()(
-            g_enc, l_enc, batch_graph_index=batch.graph_index).numpy()
+        result = loss._create_pytorch_loss()(g_enc, g_enc2)
+        result = loss._create_pytorch_loss()(g_enc, l_enc, batch.graph_index)
         # encoding the same molecule
         # result_same = loss._create_pytorch_loss()(encoding1, encoding1).numpy()
         print()
@@ -439,7 +438,6 @@ class TestLosses(unittest.TestCase):
                                    mode="regression")
 
         return dataset, metric
-
 
 
 test = TestLosses()
