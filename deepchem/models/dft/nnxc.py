@@ -7,7 +7,14 @@ from dqc.api.getxc import get_xc
 
 class BaseNNXC(torch.nn.Module):
     """
-    Base class for the NNLDA and HybridXC classes.
+    Base class for the Neural Network XC (NNXC)  and HybridXC classes.
+    It can be used to build layers such as the NNLDA layer, where the exchange
+    correlation functional is trained based on the pre-defined LDA class
+    of functionals. The methods in this class take the electron density as
+    the input and transform it accordingly. For example; The NNLDA layer
+    requires only the density to build an NNXC whereas a GGA based model would
+    require the density gradient as well. This method also takes polarization
+    into account.
     """
 
     @abstractmethod
@@ -87,7 +94,8 @@ class NNLDA(BaseNNXC):
         Returns
         -------
         res
-            Neural network output by calculating total density (n) and the spin density (xi)
+            Neural network output by calculating total density (n) and the spin
+            density (xi). The shape of res is (ninp , ) where ninp is the number            of layers in nnmodel ; which is user defined.
         """
         if isinstance(densinfo, ValGrad):  # unpolarized case
             n = densinfo.value.unsqueeze(-1)  # (*BD, nr, 1)
@@ -176,8 +184,8 @@ class HybridXC(BaseNNXC):
         -------
         Total calculated electron density with tunable weights.
         """
-        nnlda_ene = self.nnxc.get_edensityxc(densinfo)
-        lda_ene = self.xc.get_edensityxc(densinfo)
+        nnxc_ene = self.nnxc.get_edensityxc(densinfo)
+        xc_ene = self.xc.get_edensityxc(densinfo)
         aweight = self.weight_activation(self.aweight)
         bweight = self.weight_activation(self.bweight)
-        return nnlda_ene * aweight + lda_ene * bweight
+        return nnxc_ene * aweight + xc_ene * bweight
