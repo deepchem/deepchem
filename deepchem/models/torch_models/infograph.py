@@ -126,8 +126,10 @@ class InfoGraphModel(ModularTorchModel):
         self.use_unsup_loss = use_unsup_loss
         self.measure = measure
         self.average_loss = average_loss
-        self.global_global_loss = GlobalMutualInformationLoss()._create_pytorch_loss()
-        self.local_global_loss = LocalMutualInformationLoss()._create_pytorch_loss()
+        self.global_global_loss = GlobalMutualInformationLoss(
+        )._create_pytorch_loss()
+        self.local_global_loss = LocalMutualInformationLoss(
+        )._create_pytorch_loss()
 
         self.components = self.build_components()
         self.model = self.build_model()

@@ -99,7 +99,7 @@ def test_infograph_supervised_classification():
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
     assert scores['mean-roc_auc_score'] >= 0.9
-
+test_infograph_supervised_classification()
 
 @pytest.mark.torch
 def test_fit_restore():
