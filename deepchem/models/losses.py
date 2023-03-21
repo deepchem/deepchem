@@ -474,9 +474,9 @@ class GlobalMutualInformationLoss(Loss):
 
     Parameters:
     ----------
-    enc: torch.Tensor
+    global_enc: torch.Tensor
         Features from a graph convolutional encoder.
-    enc2: torch.Tensor
+    global_enc2: torch.Tensor
         Another set of features from a graph convolutional encoder.
     measure: str
         The divergence measure to use for the unsupervised loss. Options are 'GAN', 'JSD', 'KL', 'RKL', 'X2', 'DV', 'H2', or 'W1'.
@@ -492,7 +492,7 @@ class GlobalMutualInformationLoss(Loss):
     def _create_pytorch_loss(self, measure='JSD', average_loss=True):
         import torch
 
-        def loss(global_enc, global_enc2): 
+        def loss(global_enc, global_enc2):
             num_graphs = global_enc.shape[0]
             pos_mask = torch.eye(num_graphs)
             neg_mask = 1 - pos_mask
@@ -520,11 +520,11 @@ class LocalMutualInformationLoss(Loss):
 
     Parameters:
     ----------
-    enc: torch.Tensor
+    local_enc: torch.Tensor
         Features from a graph convolutional encoder.
-    enc2: torch.Tensor
+    global_enc: torch.Tensor
         Another set of features from a graph convolutional encoder.
-    index: graph_index: np.ndarray or torch.tensor, dtype int
+    batch_graph_index: graph_index: np.ndarray or torch.tensor, dtype int
         This vector indicates which graph the node belongs with shape [num_nodes,]. Only present in BatchGraphData, not in GraphData objects.
     measure: str
         The divergence measure to use for the unsupervised loss. Options are 'GAN', 'JSD', 'KL', 'RKL', 'X2', 'DV', 'H2', or 'W1'.
