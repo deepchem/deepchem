@@ -388,31 +388,34 @@ class TestLosses(unittest.TestCase):
     @pytest.mark.torch
     def test_MutualInformation_pytorch(self):
         """."""
-        from deepchem.models.torch_models.infograph import InfoGraphEncoder
         from deepchem.feat.graph_data import BatchGraphData
+        from deepchem.models.torch_models.infograph import InfoGraphEncoder
         data, _ = self.get_regression_dataset()
-        batchedgraph = BatchGraphData(data.X).numpy_to_torch()
-        sample1 = data.X[0]
-        sample2 = data.X[1]
+
+        sample1 = data.X[:5]
+        sample2 = data.X[5:]
+        batch1 = BatchGraphData(sample1).numpy_to_torch()
+        batch2 = BatchGraphData(sample2).numpy_to_torch()
+
         num_feat = 30
         edge_dim = 11
         dim = 8
 
         encoder = InfoGraphEncoder(num_feat, edge_dim, dim)
-        encoding1, _ = encoder(sample1)
-        encoding2, _ = encoder(sample2)
+        encoding1, _ = encoder(batch1)
+        encoding2, _ = encoder(batch2)
 
         loss = losses.MutualInformationLoss()
 
         # encoding different molecules
         result_diff = loss._create_pytorch_loss()(encoding1, encoding2).numpy()
         # encoding the same molecule
-        result_same = loss._create_pytorch_loss()(encoding1, encoding1).numpy()
+        result_same = loss._create_pytorch_loss()(encoding1, encoding1,
+                                                  batch1).numpy()
 
         # test global global
         assert result_diff > result_same
-        # test global local
-        # result = loss._create_pytorch_loss(enc1, enc2, index)(inputs).numpy()
+        # pass
 
     def get_regression_dataset(self):
         import os
@@ -434,5 +437,5 @@ class TestLosses(unittest.TestCase):
         return dataset, metric
 
 
-test = TestLosses()
-test.test_MutualInformation_pytorch()
+# test = TestLosses()
+# test.test_MutualInformation_pytorch()

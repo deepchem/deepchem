@@ -490,24 +490,23 @@ class MutualInformationLoss(Loss):
     """
 
     def _create_pytorch_loss(self,
-                             index=None,
                              measure='JSD',
                              average_loss=True):
 
         import torch
 
-        def loss(enc, enc2):
-            if ~index:  # Global global encoding loss (comparing two full graphs)
+        def loss(enc, enc2, batch):
+            if batch is None:  # Global global encoding loss (comparing two full graphs)
                 num_graphs = enc.shape[0]
                 pos_mask = torch.eye(num_graphs)
                 neg_mask = 1 - pos_mask
-            elif index:  # Local global encoding loss (comparing a subgraph to the full graph)
+            elif batch:  # Local global encoding loss (comparing a subgraph to the full graph)
                 num_graphs = enc2.shape[0]
                 num_nodes = enc.shape[0]
 
                 pos_mask = torch.zeros((num_nodes, num_graphs))
                 neg_mask = torch.ones((num_nodes, num_graphs))
-                for nodeidx, graphidx in enumerate(index):
+                for nodeidx, graphidx in enumerate(batch.graph_index):
                     pos_mask[nodeidx][graphidx] = 1.
                     neg_mask[nodeidx][graphidx] = 0.
 
@@ -533,8 +532,7 @@ def get_positive_expectation(p_samples, measure='JSD', average_loss=True):
     p_samples: torch.Tensor
         Positive samples.
     measure: str
-        The divergence measure to use for the unsupervised loss. Options are 'GAN', 'JSD',
-        'KL', 'RKL', 'X2', 'DV', 'H2', or 'W1'.
+        The divergence measure to use for the unsupervised loss. Options are 'GAN', 'JSD', 'KL', 'RKL', 'X2', 'DV', 'H2', or 'W1'.
     average: bool
         Average the result over samples.
 
@@ -550,9 +548,9 @@ def get_positive_expectation(p_samples, measure='JSD', average_loss=True):
     log_2 = math.log(2.)
 
     if measure == 'GAN':
-        Ep = -torch.nn.functional.F.softplus(-p_samples)
+        Ep = -torch.nn.functional.softplus(-p_samples)
     elif measure == 'JSD':
-        Ep = log_2 - torch.nn.functional.F.softplus(-p_samples)
+        Ep = log_2 - torch.nn.functional.softplus(-p_samples)
     elif measure == 'X2':
         Ep = p_samples**2
     elif measure == 'KL':
@@ -574,7 +572,7 @@ def get_positive_expectation(p_samples, measure='JSD', average_loss=True):
         return Ep
 
 
-def get_negative_expectation(self, q_samples, measure='JSD', average_loss=True):
+def get_negative_expectation(q_samples, measure='JSD', average_loss=True):
     """Computes the negative part of a divergence / difference.
 
     Parameters:
@@ -598,9 +596,9 @@ def get_negative_expectation(self, q_samples, measure='JSD', average_loss=True):
     log_2 = math.log(2.)
 
     if measure == 'GAN':
-        Eq = torch.nn.functional.F.softplus(-q_samples) + q_samples
+        Eq = torch.nn.functional.softplus(-q_samples) + q_samples
     elif measure == 'JSD':
-        Eq = torch.nn.functional.F.softplus(-q_samples) + q_samples - log_2
+        Eq = torch.nn.functional.softplus(-q_samples) + q_samples - log_2
     elif measure == 'X2':
         Eq = -0.5 * ((torch.sqrt(q_samples**2) + 1.)**2)
     elif measure == 'KL':
@@ -608,7 +606,7 @@ def get_negative_expectation(self, q_samples, measure='JSD', average_loss=True):
     elif measure == 'RKL':
         Eq = q_samples - 1.
     elif measure == 'DV':
-        Eq = self.log_sum_exp(q_samples, 0) - math.log(q_samples.size(0))
+        Eq = log_sum_exp(q_samples, 0) - math.log(q_samples.size(0))
     elif measure == 'H2':
         Eq = torch.exp(q_samples) - 1.
     elif measure == 'W1':
