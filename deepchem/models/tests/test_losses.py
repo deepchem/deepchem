@@ -409,10 +409,12 @@ class TestLosses(unittest.TestCase):
         g_enc2 = MultilayerPerceptron(2 * dim, dim)(encoding)
         l_enc = MultilayerPerceptron(dim, dim)(feature_map)
 
-        loss = losses.MutualInformationLoss()
+        globalloss = losses.GlobalMutualInformationLoss()
+        localloss = losses.LocalMutualInformationLoss()
 
-        result = loss._create_pytorch_loss()(g_enc, g_enc2)
-        result = loss._create_pytorch_loss()(g_enc, l_enc, batch.graph_index)
+        result = globalloss._create_pytorch_loss()(g_enc, g_enc2)
+        result = localloss._create_pytorch_loss()(g_enc, l_enc,
+                                                  batch.graph_index)
         # encoding the same molecule
         # result_same = loss._create_pytorch_loss()(encoding1, encoding1).numpy()
         print()
