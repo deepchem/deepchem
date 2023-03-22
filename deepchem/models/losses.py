@@ -487,6 +487,30 @@ class GlobalMutualInformationLoss(Loss):
     -------
     loss: torch.Tensor
         Measure of mutual information between the encodings of the two graphs.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import deepchem.models.losses as losses
+    >>> from deepchem.feat.graph_data import BatchGraphData, GraphData
+    >>> from deepchem.models.torch_models.infograph import InfoGraphEncoder
+    >>> from deepchem.models.torch_models.layers import MultilayerPerceptron
+    >>> graph_list = []
+    >>> for i in range(3):
+    ...     node_features = np.random.rand(5, 10)
+    ...     edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=np.int64)
+    ...     edge_features = np.random.rand(5, 5)
+    ...     graph_list.append(GraphData(node_features, edge_index, edge_features))
+    >>> batch = BatchGraphData(graph_list).numpy_to_torch()
+    >>> num_feat = 10
+    >>> edge_dim = 5
+    >>> dim = 4
+    >>> encoder = InfoGraphEncoder(num_feat, edge_dim, dim)
+    >>> encoding, feature_map = encoder(batch)
+    >>> g_enc = MultilayerPerceptron(2 * dim, dim)(encoding)
+    >>> g_enc2 = MultilayerPerceptron(2 * dim, dim)(encoding)
+    >>> globalloss = losses.GlobalMutualInformationLoss()
+    >>> loss = globalloss._create_pytorch_loss()(g_enc, g_enc2).detach().numpy()
     """
 
     def _create_pytorch_loss(self, measure='JSD', average_loss=True):
@@ -535,6 +559,31 @@ class LocalMutualInformationLoss(Loss):
     -------
     loss: torch.Tensor
         Measure of mutual information between the encodings of the two graphs.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import deepchem.models.losses as losses
+    >>> from deepchem.feat.graph_data import BatchGraphData, GraphData
+    >>> from deepchem.models.torch_models.infograph import InfoGraphEncoder
+    >>> from deepchem.models.torch_models.layers import MultilayerPerceptron
+    >>> graph_list = []
+    >>> for i in range(3):
+    ...     node_features = np.random.rand(5, 10)
+    ...     edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=np.int64)
+    ...     edge_features = np.random.rand(5, 5)
+    ...     graph_list.append(GraphData(node_features, edge_index, edge_features))
+
+    >>> batch = BatchGraphData(graph_list).numpy_to_torch()
+    >>> num_feat = 10
+    >>> edge_dim = 5
+    >>> dim = 4
+    >>> encoder = InfoGraphEncoder(num_feat, edge_dim, dim)
+    >>> encoding, feature_map = encoder(batch)
+    >>> g_enc = MultilayerPerceptron(2 * dim, dim)(encoding)
+    >>> l_enc = MultilayerPerceptron(dim, dim)(feature_map)
+    >>> localloss = losses.LocalMutualInformationLoss()
+    >>> loss = localloss._create_pytorch_loss()(g_enc, l_enc).detach().numpy()
     """
 
     def _create_pytorch_loss(self, measure='JSD', average_loss=True):
