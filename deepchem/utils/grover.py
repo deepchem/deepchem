@@ -11,11 +11,11 @@ except ModuleNotFoundError:
 
 @dataclass
 class GroverBatchMolGraph:
-    smiles_batch: List[str]
+    smiles: List[str]
     f_atoms: torch.FloatTensor
     f_bonds: torch.FloatTensor
     fg_labels: torch.FloatTensor
-    additional_feats: torch.FloatTensor
+    additional_features: torch.FloatTensor
     a2b: torch.LongTensor
     b2a: torch.LongTensor
     b2revb: torch.LongTensor
@@ -51,7 +51,7 @@ def grover_batch_mol_graph(grover_mol_graphs: Sequence[GraphData]):
         smiles.append(getattr(mol_graph, 'smiles'))
         f_atoms.extend(mol_graph.node_features)
         f_bonds.extend(mol_graph.edge_features)
-        fg_labels.extend(getattr(mol_graph, 'fg_labels'))
+        fg_labels.append(getattr(mol_graph, 'fg_labels'))
         additional_feats.append(getattr(mol_graph, 'additional_features'))
 
         for a in range(mol_graph.num_nodes):
