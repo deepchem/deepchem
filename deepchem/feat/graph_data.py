@@ -208,6 +208,11 @@ class GraphData:
     def numpy_to_torch(self, device: str = 'cpu'):
         """Convert numpy arrays to torch tensors. This may be useful when you are using PyTorch Geometric with GraphData objects.
 
+        Parameters
+        ----------
+        device : str
+            Device to store the tensors. Default to 'cpu'.
+
         Example
         -------
         >>> num_nodes, num_node_features = 5, 32
@@ -345,6 +350,11 @@ class BatchGraphData(GraphData):
     def numpy_to_torch(self, device: str = "cpu"):
         """
         Convert numpy arrays to torch tensors for BatchGraphData. BatchGraphData is very similar to GraphData, but it combines all graphs into a single graph object and it has an additional attribute `graph_index` which indicates which nodes belong to which graph.
+
+        Parameters
+        ----------
+        device : str
+            Device to store the tensors. Default to 'cpu'.
 
         Example
         -------
