@@ -393,6 +393,12 @@ Note that this is an alternative implementation for MPNN and currently you can o
 .. autoclass:: deepchem.models.torch_models.MPNNModel
   :members:
 
+InfoGraphModel
+--------------
+
+.. autoclass:: deepchem.models.torch_models.InfoGraphModel
+  :members:
+
 LCNNModel
 ---------
 
