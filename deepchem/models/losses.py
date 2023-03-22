@@ -638,6 +638,15 @@ def get_positive_expectation(p_samples, measure='JSD', average_loss=True):
     -------
     Ep: torch.Tensor
         Positive part of the divergence / difference.
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> import torch
+    >>> from deepchem.models.losses import get_positive_expectation
+    >>> p_samples = torch.tensor([0.5, 1.0, -0.5, -1.0])
+    >>> measure = 'JSD'
+    >>> result = get_positive_expectation(p_samples, measure)
     """
     import math
 
@@ -687,6 +696,14 @@ def get_negative_expectation(q_samples, measure='JSD', average_loss=True):
     Ep: torch.Tensor
         Negative part of the divergence / difference.
 
+    Example
+    -------
+    >>> import numpy as np
+    >>> import torch
+    >>> from deepchem.models.losses import get_negative_expectation
+    >>> q_samples = torch.tensor([0.5, 1.0, -0.5, -1.0])
+    >>> measure = 'JSD'
+    >>> result = get_negative_expectation(q_samples, measure)
     """
     import math
 

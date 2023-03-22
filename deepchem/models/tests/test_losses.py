@@ -462,3 +462,53 @@ class TestLosses(unittest.TestCase):
                                    mode="regression")
 
         return dataset, metric
+
+    @pytest.mark.torch
+    def test_get_positive_expectation(self):
+        import numpy as np
+        import torch
+
+        from deepchem.models.losses import get_positive_expectation
+
+        p_samples = torch.tensor([0.5, 1.0, -0.5, -1.0])
+        measures = ['GAN', 'JSD', 'X2', 'KL', 'RKL', 'DV', 'H2', 'W1']
+        expected_results = [
+            np.array(-0.76866937),
+            np.array(-0.07552214),
+            np.array(0.625),
+            np.array(1),
+            np.array(-1.3353533),
+            np.array(0),
+            np.array(-0.33535326),
+            np.array(0)
+        ]
+
+        for measure, expected in zip(measures, expected_results):
+            result = get_positive_expectation(p_samples,
+                                              measure).detach().numpy()
+            assert np.allclose(result, expected, atol=1e-6)
+
+    @pytest.mark.torch
+    def test_get_negative_expectation(self):
+        import numpy as np
+        import torch
+
+        from deepchem.models.losses import get_negative_expectation
+
+        q_samples = torch.tensor([0.5, 1.0, -0.5, -1.0])
+        measures = ['GAN', 'JSD', 'X2', 'KL', 'RKL', 'DV', 'H2', 'W1']
+        expected_results = [
+            np.array(0.76866937),
+            np.array(0.07552214),
+            np.array(-1.5625),
+            np.array(1.3353533),
+            np.array(-1),
+            np.array(0.289196),
+            np.array(0.33535326),
+            np.array(0)
+        ]
+
+        for measure, expected in zip(measures, expected_results):
+            result = get_negative_expectation(q_samples,
+                                              measure).detach().numpy()
+            assert np.allclose(result, expected, atol=1e-6)
