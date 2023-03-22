@@ -67,10 +67,10 @@ Keras Layers
 
 .. autoclass:: deepchem.models.layers.AlphaShareLayer
   :members:
-  
+
 .. autoclass:: deepchem.models.layers.SluiceLoss
   :members:
-  
+
 .. autoclass:: deepchem.models.layers.BetaShare
   :members:
 
@@ -158,10 +158,60 @@ Torch Layers
   :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.RealNVPLayer
-  :members: 
+  :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.DMPNNEncoderLayer
   :members:
+
+.. autoclass:: deepchem.models.torch_models.InfoGraphEncoder
+  :members:
+
+Grover Layers
+^^^^^^^^^^^^^
+
+The following layers are used for implementing GROVER model as described in the paper `<Self-Supervised  Graph Transformer on Large-Scale Molecular Data <https://drug.ai.tencent.com/publications/GROVER.pdf>_`
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverMPNEncoder
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverAttentionHead
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverMTBlock
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverTransEncoder
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverEmbedding
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverEmbedding
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverAtomVocabPredictor
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverBondVocabPredictor
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover_layers.GroverFunctionalGroupPredictor
+  :members:
+
+Attention Layers
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.models.torch_models.attention.ScaledDotProductAttention
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.attention.SelfAttention
+  :members:
+
+Readout Layers
+^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.models.torch_models.readout.GroverReadout
+   :members:
 
 Jax Layers
 ----------

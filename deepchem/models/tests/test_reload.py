@@ -3,7 +3,6 @@ Test reload for trained models.
 """
 import os
 import pytest
-import unittest
 import tempfile
 import numpy as np
 import deepchem as dc
@@ -20,7 +19,7 @@ except:
     has_tensorflow = False
 
 try:
-    import torch
+    import torch  # noqa: F401
     has_torch = True
 except:
     has_torch = False
@@ -129,7 +128,6 @@ def test_multitaskclassification_reload():
     n_samples = 10
     n_features = 3
     n_tasks = 1
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -186,7 +184,6 @@ def test_residual_classification_reload():
     n_samples = 10
     n_features = 5
     n_tasks = 1
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -241,7 +238,6 @@ def test_robust_multitask_classification_reload():
     n_tasks = 10
     n_samples = 10
     n_features = 3
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -369,7 +365,6 @@ def test_normalizing_flow_model_reload():
     import tensorflow_probability as tfp
     tfd = tfp.distributions
     tfb = tfp.bijectors
-    tfk = tf.keras
 
     model_dir = tempfile.mkdtemp()
 
@@ -388,7 +383,7 @@ def test_normalizing_flow_model_reload():
 
     target_distribution = tfd.MultivariateNormalDiag(loc=np.array([1., 0.]))
     dataset = dc.data.NumpyDataset(X=target_distribution.sample(96))
-    final = nfm.fit(dataset, nb_epoch=1)
+    _ = nfm.fit(dataset, nb_epoch=1)
 
     x = np.zeros(2)
     lp1 = nfm.flow.log_prob(x).numpy()
@@ -473,7 +468,6 @@ def test_IRV_multitask_classification_reload():
     n_tasks = 5
     n_samples = 10
     n_features = 128
-    n_classes = 2
 
     # Generate dummy dataset
     np.random.seed(123)
@@ -657,7 +651,6 @@ def test_DAG_regression_reload():
 
     # Load mini log-solubility dataset.
     featurizer = dc.feat.ConvMolFeaturizer()
-    tasks = ["outcome"]
     mols = [
         "CC", "CCO", "CC", "CCC", "CCCCO", "CO", "CC", "CCCCC", "CCC", "CCCO"
     ]
@@ -727,9 +720,7 @@ def test_weave_classification_reload():
 
     # Load mini log-solubility dataset.
     featurizer = dc.feat.WeaveFeaturizer()
-    tasks = ["outcome"]
     mols = ["CC", "CCCCC", "CCCCC", "CCC", "COOO", "COO", "OO"]
-    n_samples = len(mols)
     X = featurizer(mols)
     y = [1, 1, 1, 1, 0, 0, 0]
     dataset = dc.data.NumpyDataset(X, y)
@@ -776,7 +767,7 @@ def test_weave_classification_reload():
     reloadpred = reloaded_model.predict(predset)
     assert np.all(origpred == reloadpred)
 
-    #Eval model on train
+    # Eval model on train
     scores = reloaded_model.evaluate(dataset, [classification_metric])
     assert scores[classification_metric.name] > .6
 
@@ -790,7 +781,6 @@ def test_MPNN_regression_reload():
 
     # Load mini log-solubility dataset.
     featurizer = dc.feat.WeaveFeaturizer()
-    tasks = ["outcome"]
     mols = ["C", "CO", "CC"]
     n_samples = len(mols)
     X = featurizer(mols)
@@ -856,7 +846,6 @@ def test_textCNN_classification_reload():
     n_tasks = 1
 
     featurizer = dc.feat.RawFeaturizer()
-    tasks = ["outcome"]
     mols = ["C", "CO", "CC"]
     n_samples = len(mols)
     X = featurizer(mols)
@@ -975,9 +964,7 @@ def test_1d_cnn_regression_reload():
 def test_graphconvmodel_reload():
     featurizer = dc.feat.ConvMolFeaturizer()
     tasks = ["outcome"]
-    n_tasks = len(tasks)
     mols = ["C", "CO", "CC"]
-    n_samples = len(mols)
     X = featurizer(mols)
     y = np.array([0, 1, 0])
     dataset = dc.data.NumpyDataset(X, y)
@@ -1037,9 +1024,9 @@ def test_chemception_reload():
     y = np.random.randint(0, 2, size=(data_points, n_tasks))
     w = np.ones(shape=(data_points, n_tasks))
     dataset = dc.data.NumpyDataset(X, y, w, mols)
-    classsification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score,
-                                               np.mean,
-                                               mode="classification")
+    _ = dc.metrics.Metric(dc.metrics.roc_auc_score,
+                          np.mean,
+                          mode="classification")
 
     model_dir = tempfile.mkdtemp()
     model = dc.models.ChemCeption(n_tasks=n_tasks,
@@ -1094,9 +1081,9 @@ def test_smiles2vec_reload():
     dataset = dc.data.NumpyDataset(dataset.X[:data_points, :max_seq_len], y, w,
                                    dataset.ids[:data_points])
 
-    classsification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score,
-                                               np.mean,
-                                               mode="classification")
+    _ = dc.metrics.Metric(dc.metrics.roc_auc_score,
+                          np.mean,
+                          mode="classification")
 
     model_dir = tempfile.mkdtemp()
     model = dc.models.Smiles2Vec(char_to_idx=char_to_idx,

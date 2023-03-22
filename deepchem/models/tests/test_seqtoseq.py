@@ -4,7 +4,7 @@ import numpy as np
 import unittest
 
 try:
-    import tensorflow as tf
+    import tensorflow as tf  # noqa: F401
     has_tensorflow = True
 except:
     has_tensorflow = False

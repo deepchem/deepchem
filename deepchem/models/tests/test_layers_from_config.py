@@ -1,11 +1,8 @@
-import os
-import unittest
 import deepchem as dc
-import numpy as np
 import pytest
 try:
-    import tensorflow as tf
-    from tensorflow.python.eager import context
+    import tensorflow as tf  # noqa: F401
+    from tensorflow.python.eager import context  # noqa: F401
     has_tensorflow = True
 except:
     has_tensorflow = False

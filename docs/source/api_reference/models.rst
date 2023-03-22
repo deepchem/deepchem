@@ -321,6 +321,14 @@ You can wrap an arbitrary :code:`torch.nn.Module` in a :code:`TorchModel` object
 .. autoclass:: deepchem.models.TorchModel
   :members:
 
+ModularTorchModel
+-----------------
+
+You can modify networks for different tasks by using a :code:`ModularTorchModel`.
+
+.. autoclass:: deepchem.models.torch_models.modular.ModularTorchModel
+  :members:
+
 CNN
 ---
 
@@ -383,6 +391,12 @@ Note that this is an alternative implementation for MPNN and currently you can o
 ``deepchem.models.torch_models``.
 
 .. autoclass:: deepchem.models.torch_models.MPNNModel
+  :members:
+
+InfoGraphModel
+--------------
+
+.. autoclass:: deepchem.models.torch_models.InfoGraphModel
   :members:
 
 LCNNModel

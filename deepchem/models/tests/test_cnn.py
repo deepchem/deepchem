@@ -4,7 +4,7 @@ import pytest
 import unittest
 from flaky import flaky
 try:
-    import torch
+    import torch  # noqa: F401
     has_torch = True
 except:
     has_torch = False

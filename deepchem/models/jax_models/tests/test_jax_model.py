@@ -186,7 +186,7 @@ def test_overfit_subclass_model():
     params = params_init(rng, modified_inputs)
 
     # Loss Function
-    criterion = lambda pred, tar, w: jnp.mean(
+    criterion = lambda pred, tar, w: jnp.mean(  # noqa: E731
         optax.sigmoid_binary_cross_entropy(pred[0], tar))  # noqa
 
     # JaxModel Working
@@ -288,7 +288,7 @@ def test_fit_use_all_losses():
     params = model.init(rng, modified_inputs)
 
     # Loss Function
-    criterion = lambda pred, tar, w: jnp.mean(
+    criterion = lambda pred, tar, w: jnp.mean(  # noqa: E731
         optax.sigmoid_binary_cross_entropy(pred[0], tar))  # noqa
 
     # JaxModel Working

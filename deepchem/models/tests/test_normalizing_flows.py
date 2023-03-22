@@ -2,12 +2,8 @@
 Tests for Normalizing Flows.
 """
 
-import os
-import sys
 import pytest
 
-import deepchem
-import numpy as np
 import unittest
 from deepchem.data import NumpyDataset
 

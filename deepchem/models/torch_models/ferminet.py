@@ -72,7 +72,7 @@ solution of a many-electron system.
 
     def prepare_input_stream(self,) -> Tuple[Any, Any, Any, Any]:
         """Prepares the one-electron and two-electron input stream for the model.
-    
+
         Returns:
         --------
         one_electron_up: numpy.ndarray

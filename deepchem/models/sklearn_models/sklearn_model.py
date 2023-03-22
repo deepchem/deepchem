@@ -93,7 +93,7 @@ class SklearnModel(Model):
 
     def fit(self, dataset: Dataset) -> None:
         """Fits scikit-learn model to data.
-    
+
         Parameters
         ----------
         dataset: Dataset
@@ -110,12 +110,12 @@ class SklearnModel(Model):
 
     def predict_on_batch(self, X: np.typing.ArrayLike) -> np.ndarray:
         """Makes predictions on batch of data.
-    
+
         Parameters
         ----------
         X: np.ndarray
             A numpy array of features.
-    
+
         Returns
         -------
         np.ndarray
@@ -132,7 +132,7 @@ class SklearnModel(Model):
                 X: Dataset,
                 transformers: List[Transformer] = []) -> OneOrMany[np.ndarray]:
         """Makes predictions on dataset.
-    
+
         Parameters
         ----------
         dataset: Dataset

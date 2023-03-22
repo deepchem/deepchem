@@ -4,7 +4,7 @@ from deepchem.data import NumpyDataset
 from deepchem.feat import CircularFingerprint
 from deepchem.models import KerasModel
 from deepchem.models.losses import HingeLoss
-from tensorflow.keras.layers import Input, Dense, Dropout, Activation, Lambda
+from tensorflow.keras.layers import Input, Dense, Dropout, Lambda
 
 
 class ScScoreModel(KerasModel):
