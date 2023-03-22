@@ -112,6 +112,8 @@ class TestGraph(unittest.TestCase):
         assert batch.num_edges == sum(num_edge_list)
         assert batch.num_edge_features == num_edge_features
         assert batch.graph_index.shape == (sum(num_nodes_list),)
+        assert batch.edge_index.max() == sum(num_edge_list)
+        assert batch.edge_index.shape == (2, sum(num_edge_list))
 
     @pytest.mark.torch
     def test_graph_data_single_atom_mol(self):

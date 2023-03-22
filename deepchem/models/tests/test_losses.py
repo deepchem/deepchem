@@ -386,7 +386,7 @@ class TestLosses(unittest.TestCase):
         assert np.allclose(expected, result)
 
     @pytest.mark.torch
-    def test_MutualInformation_pytorch(self):
+    def test_GlobalMutualInformation_pytorch(self):
         """."""
         from deepchem.feat.graph_data import BatchGraphData
         from deepchem.models.torch_models.infograph import InfoGraphEncoder
@@ -405,20 +405,43 @@ class TestLosses(unittest.TestCase):
 
         g_enc = MultilayerPerceptron(2 * dim, dim)(encoding)
         g_enc2 = MultilayerPerceptron(2 * dim, dim)(encoding)
-        l_enc = MultilayerPerceptron(dim, dim)(feature_map)
 
         globalloss = losses.GlobalMutualInformationLoss()
-        localloss = losses.LocalMutualInformationLoss()
 
         excepted_global_loss = np.array(.0308)
-        expected_local_loss = np.array(.00936)
 
         global_loss = globalloss._create_pytorch_loss()(
             g_enc, g_enc2).detach().numpy()
-        local_loss = localloss._create_pytorch_loss()(
-            l_enc, g_enc, batch.graph_index).detach().numpy()
 
         assert np.allclose(global_loss, excepted_global_loss, 1e-3)
+
+    @pytest.mark.torch
+    def test_LocalInformation_pytorch(self):
+        """."""
+        from deepchem.feat.graph_data import BatchGraphData
+        from deepchem.models.torch_models.infograph import InfoGraphEncoder
+        from deepchem.models.torch_models.layers import MultilayerPerceptron
+        torch.manual_seed(123)
+
+        data, _ = self.get_regression_dataset()
+        batch = BatchGraphData(data.X).numpy_to_torch()
+
+        num_feat = 30
+        edge_dim = 11
+        dim = 4
+
+        encoder = InfoGraphEncoder(num_feat, edge_dim, dim)
+        encoding, feature_map = encoder(batch)
+
+        g_enc = MultilayerPerceptron(2 * dim, dim)(encoding)
+        l_enc = MultilayerPerceptron(dim, dim)(feature_map)
+
+        localloss = losses.LocalMutualInformationLoss()
+
+        expected_local_loss = np.array(0.017)
+
+        local_loss = localloss._create_pytorch_loss()(
+            l_enc, g_enc, batch.graph_index).detach().numpy()
         assert np.allclose(local_loss, expected_local_loss, 1e-3)
 
     def get_regression_dataset(self):
@@ -439,3 +462,53 @@ class TestLosses(unittest.TestCase):
                                    mode="regression")
 
         return dataset, metric
+
+    @pytest.mark.torch
+    def test_get_positive_expectation(self):
+        import numpy as np
+        import torch
+
+        from deepchem.models.losses import get_positive_expectation
+
+        p_samples = torch.tensor([0.5, 1.0, -0.5, -1.0])
+        measures = ['GAN', 'JSD', 'X2', 'KL', 'RKL', 'DV', 'H2', 'W1']
+        expected_results = [
+            np.array(-0.76866937),
+            np.array(-0.07552214),
+            np.array(0.625),
+            np.array(1),
+            np.array(-1.3353533),
+            np.array(0),
+            np.array(-0.33535326),
+            np.array(0)
+        ]
+
+        for measure, expected in zip(measures, expected_results):
+            result = get_positive_expectation(p_samples,
+                                              measure).detach().numpy()
+            assert np.allclose(result, expected, atol=1e-6)
+
+    @pytest.mark.torch
+    def test_get_negative_expectation(self):
+        import numpy as np
+        import torch
+
+        from deepchem.models.losses import get_negative_expectation
+
+        q_samples = torch.tensor([0.5, 1.0, -0.5, -1.0])
+        measures = ['GAN', 'JSD', 'X2', 'KL', 'RKL', 'DV', 'H2', 'W1']
+        expected_results = [
+            np.array(0.76866937),
+            np.array(0.07552214),
+            np.array(-1.5625),
+            np.array(1.3353533),
+            np.array(-1),
+            np.array(0.289196),
+            np.array(0.33535326),
+            np.array(0)
+        ]
+
+        for measure, expected in zip(measures, expected_results):
+            result = get_negative_expectation(q_samples,
+                                              measure).detach().numpy()
+            assert np.allclose(result, expected, atol=1e-6)
