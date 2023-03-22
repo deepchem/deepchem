@@ -1,7 +1,10 @@
-import deepchem.models.losses as losses
 import unittest
-import pytest
+
 import numpy as np
+import pytest
+
+import deepchem as dc
+import deepchem.models.losses as losses
 
 try:
     import tensorflow as tf
@@ -381,3 +384,58 @@ class TestLosses(unittest.TestCase):
             -np.mean([0.9 * np.log(0.9), 0.1 * np.log(0.1)])
         ]
         assert np.allclose(expected, result)
+
+    @pytest.mark.torch
+    def test_MutualInformation_pytorch(self):
+        """."""
+        from deepchem.feat.graph_data import BatchGraphData
+        from deepchem.models.torch_models.infograph import InfoGraphEncoder
+        from deepchem.models.torch_models.layers import MultilayerPerceptron
+        torch.manual_seed(123)
+
+        data, _ = self.get_regression_dataset()
+        batch = BatchGraphData(data.X).numpy_to_torch()
+
+        num_feat = 30
+        edge_dim = 11
+        dim = 4
+
+        encoder = InfoGraphEncoder(num_feat, edge_dim, dim)
+        encoding, feature_map = encoder(batch)
+
+        g_enc = MultilayerPerceptron(2 * dim, dim)(encoding)
+        g_enc2 = MultilayerPerceptron(2 * dim, dim)(encoding)
+        l_enc = MultilayerPerceptron(dim, dim)(feature_map)
+
+        globalloss = losses.GlobalMutualInformationLoss()
+        localloss = losses.LocalMutualInformationLoss()
+
+        excepted_global_loss = np.array(.0308)
+        expected_local_loss = np.array(.00936)
+
+        global_loss = globalloss._create_pytorch_loss()(
+            g_enc, g_enc2).detach().numpy()
+        local_loss = localloss._create_pytorch_loss()(
+            l_enc, g_enc, batch.graph_index).detach().numpy()
+
+        assert np.allclose(global_loss, excepted_global_loss, 1e-3)
+        assert np.allclose(local_loss, expected_local_loss, 1e-3)
+
+    def get_regression_dataset(self):
+        import os
+
+        from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
+
+        np.random.seed(123)
+        featurizer = MolGraphConvFeaturizer(use_edges=True)
+        dir = os.path.dirname(os.path.abspath(__file__))
+
+        input_file = os.path.join(dir, 'assets/example_regression.csv')
+        loader = dc.data.CSVLoader(tasks=["outcome"],
+                                   feature_field="smiles",
+                                   featurizer=featurizer)
+        dataset = loader.create_dataset(input_file)
+        metric = dc.metrics.Metric(dc.metrics.mean_absolute_error,
+                                   mode="regression")
+
+        return dataset, metric
