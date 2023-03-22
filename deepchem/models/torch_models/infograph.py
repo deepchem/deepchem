@@ -354,7 +354,7 @@ class InfoGraphStarModel(ModularTorchModel):
         global_d: MultilayerPerceptron, global discriminator
         """
         if self.task == 'supervised':
-            components = {
+            return {
                 'encoder':
                 InfoGraphEncoder(self.num_features, self.edge_features,
                                  self.embedding_dim),
@@ -380,10 +380,8 @@ class InfoGraphStarModel(ModularTorchModel):
                                      self.embedding_dim, (self.embedding_dim,),
                                      skip_connection=True)
             }
-            components = {k: v.to(self.device) for k, v in components.items()}
-            return components
         elif self.task == 'semisupervised':
-            components = {
+            return {
                 'encoder':
                 InfoGraphEncoder(self.num_features, self.edge_features,
                                  self.embedding_dim),
@@ -409,8 +407,6 @@ class InfoGraphStarModel(ModularTorchModel):
                                      self.embedding_dim, (self.embedding_dim,),
                                      skip_connection=True)
             }
-            components = {k: v.to(self.device) for k, v in components.items()}
-            return components
 
     def build_model(self):
         """
@@ -460,6 +456,11 @@ class InfoGraphStarModel(ModularTorchModel):
         """
         inputs, labels, weights = batch
         inputs = BatchGraphData(inputs[0]).numpy_to_torch()
+        # push all tensors in inputs to self.device
+        inputs.edge_features = inputs.edge_features.to(self.device)
+        inputs.edge_index = inputs.edge_index.to(self.device)
+        inputs.graph_index = inputs.graph_index.to(self.device)
+        inputs.node_features = inputs.node_features.to(self.device)
 
         _, labels, weights = super()._prepare_batch(([], labels, weights))
 

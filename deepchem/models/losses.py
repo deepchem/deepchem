@@ -1,8 +1,3 @@
-import math
-
-import torch
-
-
 class Loss:
     """A loss function for use in training models."""
 
@@ -526,8 +521,9 @@ class GlobalMutualInformationLoss(Loss):
         import torch
 
         def loss(global_enc, global_enc2):
+            device = global_enc.device
             num_graphs = global_enc.shape[0]
-            pos_mask = torch.eye(num_graphs)
+            pos_mask = torch.eye(num_graphs).to(device)
             neg_mask = 1 - pos_mask
 
             res = torch.mm(global_enc, global_enc2.t())
@@ -604,11 +600,12 @@ class LocalMutualInformationLoss(Loss):
         import torch
 
         def loss(local_enc, global_enc, batch_graph_index):
+            device = local_enc.device
             num_graphs = global_enc.shape[0]
             num_nodes = local_enc.shape[0]
 
-            pos_mask = torch.zeros((num_nodes, num_graphs))
-            neg_mask = torch.ones((num_nodes, num_graphs))
+            pos_mask = torch.zeros((num_nodes, num_graphs)).to(device)
+            neg_mask = torch.ones((num_nodes, num_graphs)).to(device)
             for nodeidx, graphidx in enumerate(batch_graph_index):
                 pos_mask[nodeidx][graphidx] = 1.
                 neg_mask[nodeidx][graphidx] = 0.
