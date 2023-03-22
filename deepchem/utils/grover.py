@@ -11,6 +11,7 @@ except ModuleNotFoundError:
 
 @dataclass
 class GroverBatchMolGraph:
+    """A dataclass for representing Grover Batch Graph"""
     smiles: List[str]
     f_atoms: torch.FloatTensor
     f_bonds: torch.FloatTensor
@@ -27,7 +28,36 @@ class GroverBatchMolGraph:
         return self.f_atoms, self.f_bonds, self.a2b, self.b2a, self.b2revb, self.a_scope, self.b_scope, self.a2a
 
 
-def grover_batch_mol_graph(grover_mol_graphs: Sequence[GraphData]):
+def grover_batch_mol_graph(
+        grover_mol_graphs: Sequence[GraphData]) -> GroverBatchMolGraph:
+    """Utility for batching grover molecular graphs.
+
+    A new utility is required here since grover model require additional features
+    which has to be padded.
+
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.utils.grover import grover_batch_mol_graph
+    >>> grover_featurizer = dc.feat.GroverFeaturizer(features_generator=dc.feat.CircularFingerprint())
+    >>> smiles = ['CC', 'CCC']
+    >>> mol_graphs = grover_featurizer.featurize(smiles)
+    >>> mol_graph = mol_graphs[0]
+    >>> batched_mol_graphs = grover_batch_mol_graph(mol_graphs)
+
+    Parameters
+    ----------
+    grover_mol_graphs: Sequence[GraphData]
+        Accepts a sequence of GraphData objects featurized by GroverFeaturizer.
+
+    Returns
+    -------
+    batched_graph: GroverBatchMolGraph
+        Batched graph data
+
+    """
+    # NOTE: This method is similar to batching of graphs for DMPNN model
+    # and in future, they should be combined.
     mol_graph_data = grover_mol_graphs[0]
     atom_features_dim = mol_graph_data.node_features.shape[1]
     bond_features_dim = mol_graph_data.edge_features.shape[1]

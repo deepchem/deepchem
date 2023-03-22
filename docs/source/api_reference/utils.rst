@@ -238,6 +238,15 @@ used for testing model architectures or other purposes.
 .. autoclass:: deepchem.utils.fake_data_generator.FakeGraphGenerator
   :members:
 
+Grover Utilites
+---------------
+
+Utilities used for Grover Model.
+
+.. autoclass:: deepchem.utils.grover.GroverBatchMolGraph
+
+.. autofunction:: deepchem.utils.grover.grover_batch_mol_graph
+
 Electron Sampler
 -------------------
 
@@ -248,10 +257,9 @@ like Variational Monte Carlo, etc.
 .. autoclass:: deepchem.utils.electron_sampler.ElectronSampler
   :members:
 
-Density Functional Theory Utilities 
+Density Functional Theory Utilities
 -----------------------------------
 
 The utilites here are used to create an object that contains information about a system's self-consistent iteration steps and other processes.
 .. autoclass:: deepchem.utils.dftutils.KSCalc
 .. autofunction:: deepchem.utils.dftutils.hashstr
-
