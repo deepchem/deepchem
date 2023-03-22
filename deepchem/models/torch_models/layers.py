@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from typing import Any, Tuple, Optional, Sequence, List, Union
+from typing import Any, Tuple, Optional, Sequence, List, Union, Callable
 from collections.abc import Sequence as SequenceCollection
 try:
     import torch
@@ -25,67 +25,74 @@ class MultilayerPerceptron(nn.Module):
 
     Examples
     --------
-    >>> model = MultilayerPerceptron(d_input=10, d_hidden=3, n_layers=2, d_output=2, dropout=0.0, activation_fn='relu')
+    >>> model = MultilayerPerceptron(d_input=10, d_hidden=(2,3), d_output=2, dropout=0.0, activation_fn='relu')
     >>> x = torch.ones(2, 10)
     >>> out = model(x)
     >>> print(out.shape)
     torch.Size([2, 2])
-
     """
 
     def __init__(self,
                  d_input: int,
-                 d_hidden: int,
-                 n_layers: int,
                  d_output: int,
+                 d_hidden: Optional[tuple] = None,
                  dropout: float = 0.0,
-                 activation_fn: ActivationFn = 'relu'):
+                 activation_fn: Union[Callable, str] = 'relu',
+                 skip_connection: bool = False):
         """Initialize the model.
 
         Parameters
         ----------
         d_input: int
             the dimension of the input layer
-        d_hidden: int
-            the dimension of the hidden layers
-        n_layers: int
-            the number of hidden layers
         d_output: int
             the dimension of the output layer
+        d_hidden: tuple
+            the dimensions of the hidden layers
         dropout: float
             the dropout probability
         activation_fn: str
             the activation function to use in the hidden layers
+        skip_connection: bool
+            whether to add a skip connection from the input to the output
         """
         super(MultilayerPerceptron, self).__init__()
-        self.input_layer = nn.Linear(d_input, d_hidden)
-        self.hidden_layer = nn.Linear(d_hidden, d_hidden)
-        self.output_layer = nn.Linear(d_hidden, d_output)
-        self.dropout = nn.Dropout(dropout)
-        self.n_layers = n_layers
         self.d_input = d_input
+        self.d_hidden = d_hidden
         self.d_output = d_output
+        self.dropout = nn.Dropout(dropout)
         self.activation_fn = get_activation(activation_fn)
+        self.model = nn.Sequential(*self.build_layers())
+        self.skip = nn.Linear(d_input, d_output) if skip_connection else None
+
+    def build_layers(self):
+        """
+        Build the layers of the model, iterating through the hidden dimensions to produce a list of layers.
+        """
+
+        layer_list = []
+        layer_dim = self.d_input
+        if self.d_hidden is not None:
+            for d in self.d_hidden:
+                layer_list.append(nn.Linear(layer_dim, d))
+                layer_list.append(self.dropout)
+                layer_dim = d
+        layer_list.append(nn.Linear(layer_dim, self.d_output))
+        return layer_list
 
     def forward(self, x: Tensor) -> Tensor:
         """Forward pass of the model."""
-
-        if not self.n_layers:
+        input = x
+        for layer in self.model:
+            x = layer(x)
+            if isinstance(layer, nn.Linear):
+                x = self.activation_fn(
+                    x
+                )  # Done because activation_fn returns a torch.nn.functional
+        if self.skip is not None:
+            return x + self.skip(input)
+        else:
             return x
-
-        if self.n_layers == 1:
-            x = self.input_layer(x)
-            x = self.activation_fn(x)
-            return x
-
-        x = self.input_layer(x)
-        x = self.activation_fn(x)
-        for i in range(self.n_layers - 1):
-            x = self.hidden_layer(x)
-            x = self.dropout(x)
-            x = self.activation_fn(x)
-        x = self.output_layer(x)
-        return x
 
 
 class CNNModule(nn.Module):

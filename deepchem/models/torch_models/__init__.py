@@ -9,6 +9,7 @@ from deepchem.models.torch_models.attentivefp import AttentiveFP, AttentiveFPMod
 from deepchem.models.torch_models.cgcnn import CGCNN, CGCNNModel
 from deepchem.models.torch_models.gat import GAT, GATModel
 from deepchem.models.torch_models.gcn import GCN, GCNModel
+from deepchem.models.torch_models.infograph import InfoGraph, InfoGraphModel, InfoGraphEncoder
 from deepchem.models.torch_models.mpnn import MPNN, MPNNModel
 from deepchem.models.torch_models.lcnn import LCNN, LCNNModel
 from deepchem.models.torch_models.pagtn import Pagtn, PagtnModel
@@ -18,6 +19,7 @@ from deepchem.models.torch_models.normalizing_flows_pytorch import NormalizingFl
 from deepchem.models.torch_models.layers import MultilayerPerceptron, CNNModule, CombineMeanStd, WeightedLinearCombo, AtomicConvolution, NeighborList, SetGather
 from deepchem.models.torch_models.cnn import CNN
 from deepchem.models.torch_models.attention import ScaledDotProductAttention, SelfAttention
+from deepchem.models.torch_models.readout import GroverReadout
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
 except ModuleNotFoundError as e:
