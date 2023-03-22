@@ -2866,7 +2866,7 @@ class SetGather(nn.Module):
         for i in range(self.M):
             q_expanded = h[atom_split]  # Fine
             e = (torch.from_numpy(atom_features) * q_expanded).sum(dim=-1)
-            e_mols = self.dynamic_partition(e, atom_split, self.batch_size)
+            e_mols = self._dynamic_partition(e, atom_split, self.batch_size)
 
             # Add another value(~-Inf) to prevent error in softmax
             e_mols = [
@@ -2899,7 +2899,7 @@ class SetGather(nn.Module):
         h_out = o * torch.tanh(c_out)
         return h_out, c_out
 
-    def dynamic_partition(self, input_tensor, partition_tensor, num_partitions):
+    def _dynamic_partition(self, input_tensor, partition_tensor, num_partitions):
         # create a boolean mask for each partition
         partition_masks = [partition_tensor == i for i in range(num_partitions)]
 
