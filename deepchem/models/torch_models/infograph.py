@@ -4,7 +4,10 @@ import torch.nn.functional as F
 from torch.nn import GRU, Linear, ReLU, Sequential
 
 from deepchem.feat.graph_data import BatchGraphData
-from deepchem.models.losses import MolGraphConvMILoss
+from deepchem.models.losses import (
+    GlobalMutualInformationLoss,
+    LocalMutualInformationLoss,
+)
 from deepchem.models.torch_models.layers import MultilayerPerceptron
 from deepchem.models.torch_models.modular import ModularTorchModel
 
@@ -318,11 +321,14 @@ class InfoGraphStarModel(ModularTorchModel):
         elif self.task == 'semisupervised':
             self.embedding_dim = embedding_dim * num_gc_layers
             self.num_gc_layers = num_gc_layers
+        self.localloss = LocalMutualInformationLoss()._create_pytorch_loss(
+            measure, average_loss)
+        self.globalloss = GlobalMutualInformationLoss()._create_pytorch_loss(
+            measure, average_loss)
 
         self.components = self.build_components()
         self.model = self.build_model()
         super().__init__(self.model, self.components, **kwargs)
-        self.MIloss = MolGraphConvMILoss(self.device, measure, average_loss)
 
     def build_components(self):
         """
@@ -336,78 +342,75 @@ class InfoGraphStarModel(ModularTorchModel):
 
         The local discriminator is a multilayer perceptron that classifies if the substructure encodings are from the same molecule or not while the global discriminator classifies if the graph-level encodings are from the same molecule or not.
 
-        Components list and type:
-        ------------------------
-        Encoder: InfoGraphEncoder
-        Unsupervised Encoder: InfoGraphEncoder for supervised or GINEncoder for unsupervised training
-        FeedForward 1: MultilayerPerceptron
-        FeedForward 2: MultilayerPerceptron
-        Fully connected 1: torch.nn.Linear
-        Fully connected 2: torch.nn.Linear
-        Local Discriminator: MultilayerPerceptron
-        Global Discriminator: MultilayerPerceptron
+        Components list, type and description:
+        --------------------------------------
+        encoder: InfoGraphEncoder
+        unsup_encoder: InfoGraphEncoder for supervised or GINEncoder for unsupervised training
+        ff1: MultilayerPerceptron, feedforward network
+        ff2: MultilayerPerceptron, feedforward network
+        fc1: torch.nn.Linear, fully connected layer
+        fc2: torch.nn.Linear, fully connected layer
+        local_d: MultilayerPerceptron, local discriminator
+        global_d: MultilayerPerceptron, global discriminator
         """
         if self.task == 'supervised':
-            return {
+            components = {
                 'encoder':
-                    InfoGraphEncoder(self.num_features, self.edge_features,
-                                     self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
                 'unsup_encoder':
-                    InfoGraphEncoder(self.num_features, self.edge_features,
-                                     self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
                 'ff1':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim,)),
                 'ff2':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim,)),
                 'fc1':
-                    torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
-                    torch.nn.Linear(self.embedding_dim, 1),
+                torch.nn.Linear(self.embedding_dim, 1),
                 'local_d':
-                    MultilayerPerceptron(self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True),
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True),
                 'global_d':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True)
+                MultilayerPerceptron(2 * self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True)
             }
+            components = {k: v.to(self.device) for k, v in components.items()}
+            return components
         elif self.task == 'semisupervised':
-            return {
+            components = {
                 'encoder':
-                    InfoGraphEncoder(self.num_features, self.edge_features,
-                                     self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
                 'unsup_encoder':
-                    GINEncoder(self.num_features, self.embedding_dim,
-                               self.num_gc_layers),
+                GINEncoder(self.num_features, self.embedding_dim,
+                           self.num_gc_layers),
                 'ff1':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim,)),
                 'ff2':
-                    MultilayerPerceptron(self.embedding_dim, self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim,)),
                 'fc1':
-                    torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
-                    torch.nn.Linear(self.embedding_dim, 1),
+                torch.nn.Linear(self.embedding_dim, 1),
                 'local_d':
-                    MultilayerPerceptron(self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True),
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True),
                 'global_d':
-                    MultilayerPerceptron(self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True)
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True)
             }
+            components = {k: v.to(self.device) for k, v in components.items()}
+            return components
 
     def build_model(self):
         """
@@ -437,8 +440,7 @@ class InfoGraphStarModel(ModularTorchModel):
         l_enc = self.components['local_d'](M)
 
         if self.local:
-            loss = self.MIloss.local_global_loss(l_enc, g_enc,
-                                                 inputs.graph_index)
+            loss = self.localloss(l_enc, g_enc, inputs.graph_index) # encodings on GPU
 
         return loss
 
@@ -449,7 +451,7 @@ class InfoGraphStarModel(ModularTorchModel):
         g_enc = self.components['ff1'](y)
         g_enc1 = self.components['ff2'](y_)
 
-        loss = self.MIloss.global_global_loss(g_enc, g_enc1)
+        loss = self.globalloss(g_enc, g_enc1)
         return loss
 
     def _prepare_batch(self, batch):
@@ -457,15 +459,7 @@ class InfoGraphStarModel(ModularTorchModel):
         Prepares the batch for the model by converting the GraphData numpy arrays to torch tensors and moving them to the device.
         """
         inputs, labels, weights = batch
-        inputs = BatchGraphData(inputs[0])
-        inputs.edge_features = torch.from_numpy(
-            inputs.edge_features).float().to(self.device)
-        inputs.edge_index = torch.from_numpy(inputs.edge_index).long().to(
-            self.device)
-        inputs.node_features = torch.from_numpy(
-            inputs.node_features).float().to(self.device)
-        inputs.graph_index = torch.from_numpy(inputs.graph_index).long().to(
-            self.device)
+        inputs = BatchGraphData(inputs[0]).numpy_to_torch()
 
         _, labels, weights = super()._prepare_batch(([], labels, weights))
 
