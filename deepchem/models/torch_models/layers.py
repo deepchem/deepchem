@@ -2899,7 +2899,8 @@ class SetGather(nn.Module):
         h_out = o * torch.tanh(c_out)
         return h_out, c_out
 
-    def _dynamic_partition(self, input_tensor, partition_tensor, num_partitions):
+    def _dynamic_partition(self, input_tensor, partition_tensor,
+                           num_partitions):
         # create a boolean mask for each partition
         partition_masks = [partition_tensor == i for i in range(num_partitions)]
 
