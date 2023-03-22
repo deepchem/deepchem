@@ -82,7 +82,7 @@ class GraphData:
             elif edge_index.shape[1] != edge_features.shape[0]:
                 raise ValueError(
                     'The first dimension of edge_features must be the \
-                          same as the second dimension of edge_index.'                                                                                                                                                                                                                  )
+                          same as the second dimension of edge_index.')
 
         if node_pos_features is not None:
             if isinstance(node_pos_features, np.ndarray) is False:
@@ -91,7 +91,7 @@ class GraphData:
             elif node_pos_features.shape[0] != node_features.shape[0]:
                 raise ValueError(
                     'The length of node_pos_features must be the same as the \
-                          length of node_features.'                                                                                                                                                         )
+                          length of node_features.')
 
         self.node_features = node_features
         self.edge_index = edge_index
@@ -225,8 +225,10 @@ class GraphData:
         import torch
         graph_copy = copy.deepcopy(self)
 
-        graph_copy.node_features = torch.from_numpy(self.node_features).float().to(device)
-        graph_copy.edge_index = torch.from_numpy(self.edge_index).long().to(device)
+        graph_copy.node_features = torch.from_numpy(
+            self.node_features).float().to(device)
+        graph_copy.edge_index = torch.from_numpy(
+            self.edge_index).long().to(device)
         if self.edge_features is not None:
             graph_copy.edge_features = torch.from_numpy(
                 self.edge_features).float().to(device)
