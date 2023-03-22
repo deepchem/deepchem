@@ -488,6 +488,10 @@ class GlobalMutualInformationLoss(Loss):
     loss: torch.Tensor
         Measure of mutual information between the encodings of the two graphs.
 
+    References
+    ----------
+    .. [1] F.-Y. Sun, J. Hoffmann, V. Verma, and J. Tang, “InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Maximization.” arXiv, Jan. 17, 2020. http://arxiv.org/abs/1908.01000
+
     Examples
     --------
     >>> import numpy as np
@@ -560,8 +564,12 @@ class LocalMutualInformationLoss(Loss):
     loss: torch.Tensor
         Measure of mutual information between the encodings of the two graphs.
 
-    Examples
-    --------
+    References
+    ----------
+    .. [1] F.-Y. Sun, J. Hoffmann, V. Verma, and J. Tang, “InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Maximization.” arXiv, Jan. 17, 2020. http://arxiv.org/abs/1908.01000
+
+    Example
+    -------
     >>> import numpy as np
     >>> import deepchem.models.losses as losses
     >>> from deepchem.feat.graph_data import BatchGraphData, GraphData
