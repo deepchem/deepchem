@@ -340,12 +340,25 @@ class BatchGraphData(GraphData):
             graph_index.extend([i] * num_nodes)
         self.graph_index = np.array(graph_index)
 
-        super().__init__(
-            node_features=batch_node_features,
-            edge_index=batch_edge_index,
-            edge_features=batch_edge_features,
-            node_pos_features=batch_node_pos_features,
-        )
+        # Batch kwargs
+        non_kwargs = [
+            'node_features', 'edge_index', 'edge_features', 'node_pos_features',
+            'kwargs', 'num_nodes', 'num_node_features', 'num_edges'
+        ]
+        valid_kwargs = []
+        for arg in vars(graph_list[0]):
+            if arg not in non_kwargs:
+                valid_kwargs.append(arg)
+        kwargs = {}
+        for kwarg in valid_kwargs:
+            kwargs[kwarg] = np.vstack(
+                [getattr(graph, kwarg) for graph in graph_list])
+
+        super().__init__(node_features=batch_node_features,
+                         edge_index=batch_edge_index,
+                         edge_features=batch_edge_features,
+                         node_pos_features=batch_node_pos_features,
+                         **kwargs)
 
     def numpy_to_torch(self, device: str = "cpu"):
         """
