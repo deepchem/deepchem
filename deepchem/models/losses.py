@@ -1,3 +1,6 @@
+from typing import Optional, List, Sequence
+
+
 class Loss:
     """A loss function for use in training models."""
 
@@ -757,6 +760,123 @@ def log_sum_exp(x, axis=None):
     x_max = torch.max(x, axis)[0]
     y = torch.log((torch.exp(x - x_max)).sum(axis)) + x_max
     return y
+
+
+class GroverPretrainLoss(Loss):
+    """GroverPretrainLoss
+
+    The Grover Pretraining consists learning of atom embeddings and bond embeddings for
+    a molecule. To this end, the learning consists of three tasks:
+        1. Learning of atom vocabulary from atom embeddings and bond embeddings
+        2. Learning of bond vocabulary from atom embeddings and bond embeddings
+        3. Learning to predict functional groups from atom embedings readout and bond embeddings readout
+    The loss function accepts atom vocabulary labels, bond vocabulary labels and functional group
+    predictions produced by Grover model during pretraining as a dictionary and applies negative
+    log-likelihood loss for atom vocabulary and bond vocabulary predictions and Binary Cross Entropy
+    loss for functional group prediction and sums these to get overall loss.
+    """
+
+    def _create_pytorch_loss(self):
+        import torch
+        import torch.nn as nn
+
+        def loss(atom_vocab_task_atom_pred: torch.Tensor,
+                 atom_vocab_task_bond_pred: torch.Tensor,
+                 bond_vocab_task_atom_pred: torch.Tensor,
+                 bond_vocab_task_bond_pred: torch.Tensor,
+                 fg_task_atom_from_atom: torch.Tensor,
+                 fg_task_atom_from_bond: torch.Tensor,
+                 fg_task_bond_from_atom: torch.Tensor,
+                 fg_task_bond_from_bond: torch.Tensor,
+                 atom_vocab_task_target: torch.Tensor,
+                 bond_vocab_task_target: torch.Tensor,
+                 fg_task_target: torch.Tensor,
+                 weights: Optional[List[Sequence]] = None,
+                 dist_coff=0.1):
+            """
+            Parameters
+            ----------
+            atom_vocab_task_atom_pred: torch.Tensor
+                Atom vocabulary prediction from atom embedding
+            atom_vocab_task_bond_pred: torch.Tensor
+                Atom vocabulary prediction from bond embedding
+            bond_vocab_task_atom_pred: torch.Tensor
+                Bond vocabulary prediction from atom embedding
+            bond_vocab_task_bond_pred: torch.Tensor
+                Bond vocabulary prediction from bond embedding
+            fg_task_atom_from_atom: torch.Tensor
+                Functional group prediction from atom embedding readout generated from atom embedding
+            fg_task_atom_from_bond: torch.Tensor
+                Functional group prediction from atom embedding readout generated from bond embedding
+            fg_task_bond_from_atom: torch.Tensor
+                Functional group prediction from bond embedding readout generated from atom embedding
+            fg_task_bond_from_bond: torch.Tensor
+                Functional group prediction from bond embedding readout generated from bond embedding
+            atom_vocab_task_target: torch.Tensor
+                Targets for atom vocabulary prediction
+            bond_vocab_task_target: torch.Tensor
+                Targets for bond vocabulary prediction
+            fg_task_target: torch.Tensor
+                Targets for functional groups
+            dist_coff: float, default 0.1
+                loss metric
+
+            Returns
+            -------
+            loss: torch.Tensor
+                loss value
+            """
+            av_task_loss = nn.NLLLoss(ignore_index=0,
+                                      reduction="mean")  # same for av and bv
+            fg_task_loss = nn.BCEWithLogitsLoss(reduction="mean")
+            av_task_dist_loss = nn.MSELoss(reduction="mean")
+            fg_task_dist_loss = nn.MSELoss(reduction="mean")
+
+            sigmoid = nn.Sigmoid()
+
+            av_atom_loss = av_task_loss(atom_vocab_task_atom_pred,
+                                        atom_vocab_task_target)
+            av_bond_loss = av_task_loss(bond_vocab_task_atom_pred,
+                                        atom_vocab_task_target)
+            bv_atom_loss = av_task_loss(atom_vocab_task_atom_pred,
+                                        bond_vocab_task_target)
+            bv_bond_loss = av_task_loss(bond_vocab_task_bond_pred,
+                                        bond_vocab_task_target)
+
+            fg_atom_from_atom_loss = fg_task_loss(fg_task_atom_from_atom,
+                                                  fg_task_target)
+            fg_atom_from_bond_loss = fg_task_loss(fg_task_atom_from_bond,
+                                                  fg_task_target)
+            fg_bond_from_atom_loss = fg_task_loss(fg_task_bond_from_atom,
+                                                  fg_task_target)
+            fg_bond_from_bond_loss = fg_task_loss(fg_task_bond_from_bond,
+                                                  fg_task_target)
+
+            av_dist_loss = av_task_dist_loss(atom_vocab_task_atom_pred,
+                                             atom_vocab_task_bond_pred)
+            bv_dist_loss = av_task_dist_loss(bond_vocab_task_atom_pred,
+                                             bond_vocab_task_bond_pred)
+
+            fg_atom_dist_loss = fg_task_dist_loss(
+                sigmoid(fg_task_atom_from_atom),
+                sigmoid(fg_task_atom_from_bond))
+            fg_bond_dist_loss = fg_task_dist_loss(
+                sigmoid(fg_task_bond_from_atom),
+                sigmoid(fg_task_bond_from_bond))
+
+            av_bv_loss = av_atom_loss + av_bond_loss + bv_atom_loss + bv_bond_loss
+            fg_loss = fg_atom_from_atom_loss + fg_atom_from_bond_loss + fg_bond_from_atom_loss + fg_bond_from_bond_loss
+            fg_dist_loss = fg_atom_dist_loss + fg_bond_dist_loss
+
+            # NOTE The below comment is from original source code
+            # dist_loss = av_dist_loss + bv_dist_loss + fg_dist_loss
+            # return av_loss + fg_loss + dist_coff * dist_loss
+            overall_loss = av_bv_loss + fg_loss + dist_coff * (
+                av_dist_loss + bv_dist_loss + fg_dist_loss)
+
+            # return overall_loss, av_loss, bv_loss, fg_loss, av_dist_loss, bv_dist_loss, fg_dist_loss
+            # We just return overall_loss since TorchModel can handle only a single loss
+            return overall_loss
 
 
 def _make_tf_shapes_consistent(output, labels):
