@@ -205,8 +205,13 @@ class GraphData:
 
         return g
 
-    def numpy_to_torch(self):
+    def numpy_to_torch(self, device: str = 'cpu'):
         """Convert numpy arrays to torch tensors. This may be useful when you are using PyTorch Geometric with GraphData objects.
+
+        Parameters
+        ----------
+        device : str
+            Device to store the tensors. Default to 'cpu'.
 
         Example
         -------
@@ -225,23 +230,25 @@ class GraphData:
         import torch
         graph_copy = copy.deepcopy(self)
 
-        graph_copy.node_features = torch.from_numpy(self.node_features).float()
-        graph_copy.edge_index = torch.from_numpy(self.edge_index).long()
+        graph_copy.node_features = torch.from_numpy(
+            self.node_features).float().to(device)
+        graph_copy.edge_index = torch.from_numpy(
+            self.edge_index).long().to(device)
         if self.edge_features is not None:
             graph_copy.edge_features = torch.from_numpy(
-                self.edge_features).float()
+                self.edge_features).float().to(device)
         else:
             graph_copy.edge_features = None
         if self.node_pos_features is not None:
             graph_copy.node_pos_features = torch.from_numpy(
-                self.node_pos_features).float()
+                self.node_pos_features).float().to(device)
         else:
             graph_copy.node_pos_features = None
 
         graph_copy.kwargs = {}
         for key, value in self.kwargs.items():
             if isinstance(value, np.ndarray):
-                value = torch.from_numpy(value)
+                value = torch.from_numpy(value).to(device)
                 graph_copy.kwargs[key] = value
                 setattr(graph_copy, key, value)
 
@@ -340,9 +347,14 @@ class BatchGraphData(GraphData):
             node_pos_features=batch_node_pos_features,
         )
 
-    def numpy_to_torch(self):
+    def numpy_to_torch(self, device: str = "cpu"):
         """
         Convert numpy arrays to torch tensors for BatchGraphData. BatchGraphData is very similar to GraphData, but it combines all graphs into a single graph object and it has an additional attribute `graph_index` which indicates which nodes belong to which graph.
+
+        Parameters
+        ----------
+        device : str
+            Device to store the tensors. Default to 'cpu'.
 
         Example
         -------
@@ -364,7 +376,7 @@ class BatchGraphData(GraphData):
         import torch
         graph_copy = super().numpy_to_torch()
 
-        graph_index = torch.from_numpy(self.graph_index).long()
+        graph_index = torch.from_numpy(self.graph_index).long().to(device)
         graph_copy.graph_index = graph_index
 
         return graph_copy
