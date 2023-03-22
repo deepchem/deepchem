@@ -436,7 +436,7 @@ class InfoGraphStarModel(ModularTorchModel):
         l_enc = self.components['local_d'](M)
 
         if self.local:
-            loss = self.localloss(l_enc, g_enc, inputs.graph_index) # encodings on GPU
+            loss = self.localloss(l_enc, g_enc, inputs.graph_index)
 
         return loss
 
