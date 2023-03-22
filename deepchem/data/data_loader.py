@@ -11,13 +11,20 @@ from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator
 
 import pandas as pd
 import numpy as np
-
+from numpy.typing import ArrayLike
 from deepchem.utils.typing import OneOrMany
 from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files, unzip_file
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 from deepchem.utils.genomics_utils import encode_bio_sequence
+
+try:
+    from deepchem.feat.dft_data import DFTEntry
+    import yaml
+    from yaml.loader import SafeLoader
+except ModuleNotFoundError:
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -1613,3 +1620,121 @@ class InMemoryLoader(DataLoader):
             ids.append(entry_id)
         X = np.concatenate(features, axis=0)
         return X, np.array(labels), np.array(weights), np.array(ids)
+
+
+class DFTYamlLoader(DataLoader):
+    """
+    Creates a `Dataset` object from YAML input files.
+
+    This class provides methods to load and featurize data from a YAML file.
+    Although, in this class, we only focus on a specfic input format
+    that can be used to perform Density Functional Theory calculations.
+
+    Examples
+    --------
+    >>> from deepchem.data.data_loader import DFTYamlLoader
+    >>> import deepchem as dc
+    >>> import pytest
+    >>> input_files = 'deepchem/data/tests/dftdata.yaml'
+    >>> featurizer = dc.feat.DummyFeaturizer()
+    >>> k = DFTYamlLoader(featurizer)
+    >>> l = k.create_dftdataset(input_files, featurizer)
+
+    Notes
+    -----
+    Format (and example) for the YAML file:
+
+    - e_type : 'ae'
+      true_val : '0.09194410469'
+      systems : [{
+            'moldesc': 'Li 1.5070 0 0; H -1.5070 0 0',
+            'basis': '6-311++G(3df,3pd)'
+        }]
+
+    Each entry in the YAML file must contain the three parameters : e_type,
+    true_val and systems in this particular order.
+    One entry object may contain one or more systems.
+    To read more about the parameters and their possible values please refer to
+    deepchem.feat.dft_data.
+
+    """
+
+    def __init__(self, featurizer: Featurizer):
+        """
+        Initialize DFTYAML loader
+
+        Parameters
+        ----------
+            featurizer: Featurizer
+        """
+
+    def create_dftdataset(self,
+                       input_files: str,
+                       featurizer,
+                       w: Optional[ArrayLike] = None) -> Dataset:
+        """
+        Creates and returns a `Dataset` object by featurizing provided YAML
+        files.
+
+        Parameters
+        ----------
+        input_files: str
+            .yaml file to be processed.
+        featurizer: Featurizer
+            Featurizer to be used with the yaml loader; We use
+            the DummyFeaturizer.
+        w: np.array, Optional (default ae:1.0, ie:1.0, dens:1.0, dm:1.0)
+            Weights to be used for each entry type.
+
+        Returns
+        -------
+        NumpyDataset
+            A `NumpyDataset` object contain an array of DFTEntry objects.
+        """
+
+        entries = self._get_shards(input_files)
+        X = np.array([self._featurize_shard(shard) for shard in entries])
+        y = np.array([0])
+        w = w
+        return NumpyDataset(X, y, w=w)
+
+    def _get_shards(self, input_files):
+        """
+        Loads and divides the .yaml file into shards.
+
+        Parameters
+        ----------
+        input_files: str
+            .yaml file to be processed.
+
+        Returns
+        -------
+        data
+            list of dictionaries where each dictionary corresponds to one
+            shard and is then featurized into one entry object.
+        """
+        with open(input_files) as f:
+            data = yaml.load(f, Loader=SafeLoader)
+        return (data)
+
+    def _featurize_shard(self, shard):
+        """
+        Featurizes shards in the dataset
+
+        Parameters
+        ----------
+        shard: dict
+            Dictionary containing values to initialize the DFTEntry object.
+
+        Returns
+        -------
+        x: DFTEntry object
+        """
+        try:
+            e_type = shard['e_type']
+            true_val = shard['true_val']
+            systems = shard['systems']
+        except KeyError:
+            print("Unknown key")
+        x = DFTEntry.create(e_type, true_val, systems)
+        return x
