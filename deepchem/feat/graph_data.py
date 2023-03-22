@@ -317,11 +317,14 @@ class BatchGraphData(GraphData):
             batch_node_pos_features = None
 
         # create new edge index
+        # number of nodes in each graph
         num_nodes_list = [graph.num_nodes for graph in graph_list]
+        # cumulative number of nodes for each graph. This is necessary because the values in edge_index are node indices of all of the graphs in graph_list and so we need to offset the indices by the number of nodes in the previous graphs.
+        cum_num_nodes_list = np.cumsum([0] + num_nodes_list)[:-1]
+        # columns are the edge index, values are the node index
         batch_edge_index = np.hstack([
-            graph.edge_index + prev_num_node
-            for prev_num_node, graph in zip([0] +
-                                            num_nodes_list[:-1], graph_list)
+            graph.edge_index + cum_num_nodes
+            for cum_num_nodes, graph in zip(cum_num_nodes_list, graph_list)
         ])
 
         # graph_index indicates which nodes belong to which graph
