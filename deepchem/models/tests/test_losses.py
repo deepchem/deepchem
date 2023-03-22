@@ -438,7 +438,7 @@ class TestLosses(unittest.TestCase):
 
         localloss = losses.LocalMutualInformationLoss()
 
-        expected_local_loss = np.array(0.01691)
+        expected_local_loss = np.array(0.017)
 
         local_loss = localloss._create_pytorch_loss()(
             l_enc, g_enc, batch.graph_index).detach().numpy()

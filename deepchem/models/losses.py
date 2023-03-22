@@ -591,7 +591,7 @@ class LocalMutualInformationLoss(Loss):
     >>> g_enc = MultilayerPerceptron(2 * dim, dim)(encoding)
     >>> l_enc = MultilayerPerceptron(dim, dim)(feature_map)
     >>> localloss = losses.LocalMutualInformationLoss()
-    >>> loss = localloss._create_pytorch_loss()(g_enc, l_enc).detach().numpy()
+    >>> loss = localloss._create_pytorch_loss()(l_enc, g_enc, batch.graph_index).detach().numpy()
     """
 
     def _create_pytorch_loss(self, measure='JSD', average_loss=True):
