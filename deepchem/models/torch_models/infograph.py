@@ -259,6 +259,24 @@ class InfoGraphModel(ModularTorchModel):
         'KL', 'RKL', 'X2', 'DV', 'H2', or 'W1'.
     average_loss: bool
         Whether to average the loss over the batch
+ 
+    Example
+    -------
+
+    >>> from deepchem.models.torch_models import InfoGraphModel
+    >>> from deepchem.feat import MolGraphConvFeaturizer
+    >>> from deepchem.data import NumpyDataset
+    >>> import torch
+    >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
+    >>> featurizer = MolGraphConvFeaturizer(use_edges=True)
+    >>> X = featurizer.featurize(smiles)
+    >>> y = torch.randint(0, 2, size=(2, 1)).float()
+    >>> w = torch.ones(size=(2, 1)).float()
+    >>> ds = NumpyDataset(X, y, w)
+    >>> num_feat = max([ds.X[i].num_node_features for i in range(len(ds))])
+    >>> edge_dim = max([ds.X[i].num_edge_features for i in range(len(ds))])
+    >>> model = InfoGraphModel(num_feat, edge_dim, 15)
+    >>> loss = model.fit(ds, nb_epoch=1)
     """
 
     def __init__(self,
