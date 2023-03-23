@@ -1,3 +1,4 @@
+import os
 import time
 import logging
 import copy
@@ -342,3 +343,53 @@ class ModularTorchModel(TorchModel):
         time2 = time.time()
         logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
         return last_avg_loss
+
+    def save_checkpoint(self, max_checkpoints_to_keep=5, model_dir=None):
+        if model_dir is None:
+            model_dir = self.model_dir
+        if not os.path.exists(model_dir):
+            os.makedirs(model_dir)
+
+        data = {}
+        data['model'] = self.model.state_dict()
+        for name, component in self.components.items():
+            data[name] = component.state_dict()
+
+        temp_file = os.path.join(model_dir, 'temp_checkpoint.pt')
+        torch.save(data, temp_file)
+
+        # Rename and delete older files.
+
+        paths = [
+            os.path.join(model_dir, 'checkpoint%d.pt' % (i + 1))
+            for i in range(max_checkpoints_to_keep)
+        ]
+        if os.path.exists(paths[-1]):
+            os.remove(paths[-1])
+        for i in reversed(range(max_checkpoints_to_keep - 1)):
+            if os.path.exists(paths[i]):
+                os.rename(paths[i], paths[i + 1])
+        os.rename(temp_file, paths[0])
+
+    def get_checkpoints(self, model_dir: Optional[str] = None):
+        if model_dir is None:
+            model_dir = self.model_dir
+        files = sorted(os.listdir(model_dir))
+        files = [
+            f for f in files if f.startswith('checkpoint') and f.endswith('.pt')
+        ]
+        return [os.path.join(model_dir, f) for f in files]
+
+    def restore(self,
+                checkpoint: Optional[str] = None,
+                model_dir: Optional[str] = None) -> None:
+        if checkpoint is None:
+            checkpoints = sorted(self.get_checkpoints(model_dir))
+            if len(checkpoints) == 0:
+                raise ValueError('No checkpoint found')
+            checkpoint = checkpoints[0]
+        data = torch.load(checkpoint)
+        self.model.load_state_dict(data['model'])
+        for name, state_dict in data.items():
+            if name != 'model' and name in self.components.keys():
+                self.components[name].load_state_dict(data[name])
