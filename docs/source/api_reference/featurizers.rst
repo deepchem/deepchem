@@ -94,12 +94,6 @@ GroverFeaturizer
 .. autoclass:: deepchem.feat.GroverFeaturizer
   :members:
 
-SNAPFeaturizer
-**************
-
-.. autoclass:: deepchem.feat.SNAPFeaturizer
-  :members:
-
 
 Utilities
 *********
