@@ -141,7 +141,11 @@ class InfoGraphEncoder(torch.nn.Module):
 
         nn = Sequential(Linear(edge_features, 128), ReLU(),
                         Linear(128, embedding_dim * embedding_dim))
-        self.conv = NNConv(embedding_dim, embedding_dim, nn, aggr='mean', root_weight=False)
+        self.conv = NNConv(embedding_dim,
+                           embedding_dim,
+                           nn,
+                           aggr='mean',
+                           root_weight=False)
         self.gru = GRU(embedding_dim, embedding_dim)
 
         self.set2set = Set2Set(embedding_dim, processing_steps=3)
@@ -187,19 +191,16 @@ class InfoGraph(nn.Module):
 
     Example
     -------
-    >>> import torch
-    >>> import numpy as np
     >>> from deepchem.models.torch_models.infograph import InfoGraphModel
     >>> from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
     >>> from deepchem.feat.graph_data import BatchGraphData
+    >>> num_feat = 30
+    >>> num_edge = 11
+    >>> infographmodular = InfoGraphModel(num_feat, num_edge, 64)
     >>> smiles = ['C1=CC=CC=C1', 'C1=CC=CC=C1C2=CC=CC=C2']
     >>> featurizer = MolGraphConvFeaturizer(use_edges=True)
     >>> graphs = BatchGraphData(featurizer.featurize(smiles))
-    >>> num_feat = 30
-    >>> num_edge = 11
-    >>> infographmodular = InfoGraphModel(num_feat,num_edge,64)
-    >>>  # convert features to torch tensors
-    >>> graphs.numpy_to_torch()
+    >>> graphs = graphs.numpy_to_torch(infographmodular.device)
     >>> model = infographmodular.model
     >>> global_enc, local_enc = model(graphs)
 
