@@ -41,11 +41,7 @@ class GINEncoder(torch.nn.Module):
     >>> edge_index = np.array([[0, 1, 2], [1, 2, 3]])
     >>> edge_features = np.random.randn(3, 10)
     >>> graph_index = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-    >>> data = GraphData(node_features=node_features, edge_index=edge_index, edge_features=edge_features, graph_index=graph_index)
-    >>> data.node_features = torch.from_numpy(data.node_features).float()
-    >>> data.edge_features = torch.from_numpy(data.edge_features).float()
-    >>> data.edge_index = torch.from_numpy(data.edge_index).long()
-    >>> data.graph_index = torch.from_numpy(data.graph_index).long()
+    >>> data = GraphData(node_features=node_features, edge_index=edge_index, edge_features=edge_features, graph_index=graph_index).numpy_to_torch()
     >>> embedding, intermediate_embeddings = encoder(data)
     >>> print(embedding.shape)
     torch.Size([1, 30])
@@ -121,20 +117,34 @@ class InfoGraphEncoder(torch.nn.Module):
         Number of node features for each input
     edge_features: int
         Number of edge features for each input
-    dim: int
+    embedding_dim: int
         Dimension of the embedding
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models.infograph import InfoGraphEncoder
+    >>> from deepchem.feat.graph_data import GraphData
+    >>> encoder = InfoGraphEncoder(num_features=25, edge_features=10, embedding_dim=32)
+    >>> node_features = np.random.randn(10, 25)
+    >>> edge_index = np.array([[0, 1, 2], [1, 2, 3]])
+    >>> edge_features = np.random.randn(3, 10)
+    >>> graph_index = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    >>> data = GraphData(node_features=node_features, edge_index=edge_index, edge_features=edge_features, graph_index=graph_index).numpy_to_torch()
+    >>> embedding, feature_map = encoder(data)
+    >>> print(embedding.shape)
     """
 
-    def __init__(self, num_features, edge_features, dim):
+    def __init__(self, num_features, edge_features, embedding_dim):
         super().__init__()
-        self.lin0 = torch.nn.Linear(num_features, dim)
+        self.lin0 = torch.nn.Linear(num_features, embedding_dim)
 
         nn = Sequential(Linear(edge_features, 128), ReLU(),
-                        Linear(128, dim * dim))
-        self.conv = NNConv(dim, dim, nn, aggr='mean', root_weight=False)
-        self.gru = GRU(dim, dim)
+                        Linear(128, embedding_dim * embedding_dim))
+        self.conv = NNConv(embedding_dim, embedding_dim, nn, aggr='mean', root_weight=False)
+        self.gru = GRU(embedding_dim, embedding_dim)
 
-        self.set2set = Set2Set(dim, processing_steps=3)
+        self.set2set = Set2Set(embedding_dim, processing_steps=3)
 
     def forward(self, data):
         """
@@ -162,6 +172,7 @@ class InfoGraphEncoder(torch.nn.Module):
             out = out.squeeze(0)
             feat_map = out
 
+        # set2set doubles the dimensionality of the embedding
         out = self.set2set(out, data.graph_index)
         return out, feat_map
 
@@ -357,14 +368,10 @@ class InfoGraphStar(torch.nn.Module):
     >>> from deepchem.feat.graph_data import BatchGraphData
     >>> smiles = ['C1=CC=CC=C1', 'C1=CC=CC=C1C2=CC=CC=C2']
     >>> featurizer = MolGraphConvFeaturizer(use_edges=True)
-    >>> graphs = BatchGraphData(featurizer.featurize(smiles))
+    >>> graphs = BatchGraphData(featurizer.featurize(smiles)).numpy_to_torch()
     >>> num_feat = 30
     >>> num_edge = 11
     >>> infographmodular = InfoGraphStarModel(num_feat,num_edge,64)
-    >>> graphs.edge_features = torch.from_numpy(graphs.edge_features).to(infographmodular.device).float()
-    >>> graphs.edge_index = torch.from_numpy(graphs.edge_index).to(infographmodular.device).long()
-    >>> graphs.node_features = torch.from_numpy(graphs.node_features).to(infographmodular.device).float()
-    >>> graphs.graph_index = torch.from_numpy(graphs.graph_index).to(infographmodular.device).long()
     >>> model = infographmodular.model
     >>> output = model(graphs).cpu().detach().numpy()
 

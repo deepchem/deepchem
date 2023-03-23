@@ -39,6 +39,71 @@ def get_regression_dataset():
 
 
 @pytest.mark.torch
+def test_infographencoder():
+    import numpy as np
+    import torch
+    from deepchem.models.torch_models.infograph import InfoGraphEncoder
+    from deepchem.feat.graph_data import GraphData, BatchGraphData
+    embedding_dim = 32
+    num_nodes = 10
+    num_graphs = 3
+    encoder = InfoGraphEncoder(num_features=25,
+                               edge_features=10,
+                               embedding_dim=embedding_dim)
+
+    data = []
+    for i in range(num_graphs):
+        node_features = np.random.randn(num_nodes, 25)
+        edge_index = np.array([[0, 1, 2], [1, 2, 3]])
+        edge_features = np.random.randn(3, 10)
+
+        data.append(
+            GraphData(node_features=node_features,
+                      edge_index=edge_index,
+                      edge_features=edge_features))
+    data = BatchGraphData(data).numpy_to_torch()
+
+    embedding, feature_map = encoder(data)
+
+    assert embedding.shape == torch.Size([num_graphs, 2 * embedding_dim])
+    assert feature_map.shape == torch.Size(
+        [num_nodes * num_graphs, embedding_dim])
+
+
+@pytest.mark.torch
+def test_GINEcnoder():
+    import numpy as np
+    import torch
+    from deepchem.models.torch_models.infograph import GINEncoder
+    from deepchem.feat.graph_data import GraphData, BatchGraphData
+    num_gc_layers = 2
+    embedding_dim = 32
+    num_nodes = 10
+    num_graphs = 3
+    encoder = GINEncoder(num_features=25,
+                         embedding_dim=embedding_dim,
+                         num_gc_layers=num_gc_layers)
+
+    data = []
+    for i in range(num_graphs):
+        node_features = np.random.randn(num_nodes, 25)
+        edge_index = np.array([[0, 1, 2], [1, 2, 3]])
+        edge_features = np.random.randn(3, 10)
+
+        data.append(
+            GraphData(node_features=node_features,
+                      edge_index=edge_index,
+                      edge_features=edge_features))
+    data = BatchGraphData(data).numpy_to_torch()
+
+    embedding, intermediate_embeddings = encoder(data)
+
+    assert embedding.shape == torch.Size([num_graphs, embedding_dim])
+    assert intermediate_embeddings.shape == torch.Size(
+        [num_nodes * num_graphs, embedding_dim])
+
+
+@pytest.mark.torch
 def test_infographstar_regression_semisupervised():
     from deepchem.models.torch_models.infograph import InfoGraphStarModel
     dataset, metric = get_regression_dataset()
@@ -109,6 +174,7 @@ def test_infographstar_regression_supervised():
     scores = model.evaluate(dataset, [metric])
     assert scores['mean_absolute_error'] < 0.1
 
+
 @pytest.mark.torch
 def test_infograph():
     from deepchem.models.torch_models.infograph import InfoGraphModel
@@ -121,6 +187,7 @@ def test_infograph():
     # first iteration loss is around 50
     loss = model.fit(dataset, nb_epoch=20)
     assert loss < 25
+
 
 @pytest.mark.torch
 def test_fit_restore():
