@@ -602,8 +602,7 @@ class InfoGraphStarModel(ModularTorchModel):
         l_enc = self.components['local_d'](M)
 
         if self.local:
-            loss = self.localloss(l_enc, g_enc,
-                                  inputs.graph_index)  # encodings on GPU
+            loss = self.localloss(l_enc, g_enc, inputs.graph_index)
 
         return loss
 
@@ -622,12 +621,7 @@ class InfoGraphStarModel(ModularTorchModel):
         Prepares the batch for the model by converting the GraphData numpy arrays to torch tensors and moving them to the device.
         """
         inputs, labels, weights = batch
-        inputs = BatchGraphData(inputs[0]).numpy_to_torch()
-        # push all tensors in inputs to self.device
-        inputs.edge_features = inputs.edge_features.to(self.device)
-        inputs.edge_index = inputs.edge_index.to(self.device)
-        inputs.graph_index = inputs.graph_index.to(self.device)
-        inputs.node_features = inputs.node_features.to(self.device)
+        inputs = BatchGraphData(inputs[0]).numpy_to_torch(self.device)
 
         _, labels, weights = super()._prepare_batch(([], labels, weights))
 
