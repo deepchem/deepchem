@@ -194,25 +194,26 @@ class TestGraph(unittest.TestCase):
         assert isinstance(batched_graph.edge_features, torch.Tensor)
         assert batched_graph.node_pos_features is None
 
-    def test_batch_graph_data_with_kwargs(self):
+    def test_batch_graph_data_with_user_defined_attributes(self):
         edge_index = np.array([[0, 1], [1, 0]])
         node_features_shape = 5
         n_nodes = 2
         g1 = GraphData(node_features=np.random.randn(n_nodes,
                                                      node_features_shape),
                        edge_index=edge_index,
-                       kwarg1=[0, 1])
+                       user_defined_attribute1=[0, 1])
 
         g2 = GraphData(node_features=np.random.randn(n_nodes,
                                                      node_features_shape),
                        edge_index=edge_index,
-                       kwarg1=[2, 3])
+                       user_defined_attribute1=[2, 3])
 
         g3 = GraphData(node_features=np.random.randn(n_nodes,
                                                      node_features_shape),
                        edge_index=edge_index,
-                       kwarg1=[4, 5])
+                       user_defined_attribute1=[4, 5])
         g = BatchGraphData([g1, g2, g3])
 
-        assert hasattr(g, 'kwarg1')
-        assert (g.kwarg1 == np.array([[0, 1], [2, 3], [4, 5]])).all()
+        assert hasattr(g, 'user_defined_attribute1')
+        assert (g.user_defined_attribute1 == np.array([[0, 1], [2, 3],
+                                                       [4, 5]])).all()
