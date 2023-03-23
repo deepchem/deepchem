@@ -109,6 +109,18 @@ def test_infographstar_regression_supervised():
     scores = model.evaluate(dataset, [metric])
     assert scores['mean_absolute_error'] < 0.1
 
+@pytest.mark.torch
+def test_infograph():
+    from deepchem.models.torch_models.infograph import InfoGraphModel
+    import torch
+    torch.manual_seed(123)
+    dataset, _ = get_regression_dataset()
+    num_feat = 30
+    edge_dim = 11
+    model = InfoGraphModel(num_feat, edge_dim)
+    # first iteration loss is around 50
+    loss = model.fit(dataset, nb_epoch=20)
+    assert loss < 25
 
 @pytest.mark.torch
 def test_fit_restore():

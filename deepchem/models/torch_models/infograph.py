@@ -188,10 +188,7 @@ class InfoGraph(nn.Module):
     >>> num_edge = 11
     >>> infographmodular = InfoGraphModel(num_feat,num_edge,64)
     >>>  # convert features to torch tensors
-    >>> graphs.edge_features = torch.from_numpy(graphs.edge_features).to(infographmodular.device).float()
-    >>> graphs.edge_index = torch.from_numpy(graphs.edge_index).to(infographmodular.device).long()
-    >>> graphs.node_features = torch.from_numpy(graphs.node_features).to(infographmodular.device).float()
-    >>> graphs.graph_index = torch.from_numpy(graphs.graph_index).to(infographmodular.device).long()
+    >>> graphs.numpy_to_torch()
     >>> model = infographmodular.model
     >>> global_enc, local_enc = model(graphs)
 
