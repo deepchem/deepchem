@@ -345,17 +345,8 @@ class ModularTorchModel(TorchModel):
                 os.rename(paths[i], paths[i + 1])
         os.rename(temp_file, paths[0])
 
-    def get_checkpoints(self, model_dir: Optional[str] = None):
-        if model_dir is None:
-            model_dir = self.model_dir
-        files = sorted(os.listdir(model_dir))
-        files = [
-            f for f in files if f.startswith('checkpoint') and f.endswith('.pt')
-        ]
-        return [os.path.join(model_dir, f) for f in files]
-
-    def restore(
-            self,  # type: ignore
+    def restore(  # type: ignore
+            self,
             components: Optional[List[str]] = None,
             checkpoint: Optional[str] = None,
             model_dir: Optional[str] = None) -> None:
