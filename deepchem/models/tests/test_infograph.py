@@ -220,7 +220,7 @@ def test_infograph_pretrain_overfit():
 
 
 @pytest.mark.torch
-def test_fit_restore():
+def test_infographstar_fit_restore():
     from deepchem.models.torch_models.infograph import InfoGraphStarModel
     dataset, _ = get_classification_dataset()
     num_feat = 30
