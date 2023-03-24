@@ -1,8 +1,8 @@
 import time
 import logging
-import copy
+import os
 from collections.abc import Sequence as SequenceCollection
-from typing import Any, Callable, Iterable, List, Optional, Tuple, Union, Sequence
+from typing import Any, Callable, Iterable, List, Optional, Tuple, Union, Sequence, Dict
 import torch
 import torch.nn as nn
 from deepchem.models.torch_models.torch_model import TorchModel
@@ -84,7 +84,8 @@ class ModularTorchModel(TorchModel):
         super().__init__(self.model, self.loss_func, **kwargs)
         self.model.to(self.device)
         self.components = {
-            k: v.to(self.device) for k, v in self.components.items()
+            k: v.to(self.device)
+            for k, v in self.components.items()
         }
 
     def build_model(self) -> nn.Module:
@@ -130,77 +131,6 @@ class ModularTorchModel(TorchModel):
         for component in components:
             for param in self.components[component].parameters():
                 param.requires_grad = True
-
-    def load_pretrained_components(
-            self,
-            source_model: Optional['ModularTorchModel'] = None,
-            checkpoint: Optional[str] = None,
-            model_dir: Optional[str] = None,
-            components: Optional[list] = None) -> None:
-        """Modifies the TorchModel load_from_pretrained method to allow for loading
-        from a ModularTorchModel and specifying which components to load.
-
-        If the user does not a specify a source model, a checkpoint is used to load
-        the weights. In this case, the user cannot specify which components to load
-        because the components are not stored in the checkpoint. All layers will
-        then be loaded if they have the same name and shape. This can cause issues
-        if a pretrained model has similar but not identical layers to the model where
-        a user may expect the weights to be loaded. ModularTorchModel subclasses
-        should be written such that the components are atomic and will be preserved
-        across as many tasks as possible. For example, an encoder may have varying
-        input dimensions for different datasets, so the encoder should be written
-        such that the input layer is not included in the encoder, allowing the
-        encoder to be loaded with any input dimension.
-
-        Parameters
-        ----------
-        source_model: Optional[ModularTorchModel]
-            The model to load the weights from.
-        checkpoint: Optional[str]
-            The path to the checkpoint to load the weights from.
-        model_dir: Optional[str]
-            The path to the directory containing the checkpoint to load the weights.
-        components: Optional[list]
-            The components to load the weights from. If None, all components will be
-            loaded.
-        """
-
-        # generate the source state dict
-        if source_model is not None:
-            source_state_dict = source_model.model.state_dict()
-        elif checkpoint is not None:
-            source_state_dict = torch.load(checkpoint)['model_state_dict']
-        elif model_dir is not None:
-            checkpoints = sorted(self.get_checkpoints(model_dir))
-            source_state_dict = torch.load(checkpoints[0])['model_state_dict']
-        else:
-            raise ValueError(
-                "Must provide a source model, checkpoint, or model_dir")
-
-        if components is not None:  # load the specified components
-            if source_model is not None:
-                assignment_map = {
-                    k: v
-                    for k, v in source_model.components.items()
-                    if k in components
-                }
-                assignment_map_copy = copy.deepcopy(
-                    assignment_map)  # deep copy to avoid modifying source_model
-                self.components.update(assignment_map_copy)
-                self.model = self.build_model()
-            else:
-                raise ValueError(
-                    "If loading from checkpoint, you cannot pass a list of components to load"
-                )
-        else:  # or all components with matching names and shapes
-            model_dict = self.model.state_dict()
-            assignment_map = {
-                k: v
-                for k, v in source_state_dict.items()
-                if k in model_dict and v.shape == model_dict[k].shape
-            }
-            model_dict.update(assignment_map)
-            self.model.load_state_dict(model_dict)
 
     def fit_generator(self,
                       generator: Iterable[Tuple[Any, Any, Any]],
@@ -342,3 +272,127 @@ class ModularTorchModel(TorchModel):
         time2 = time.time()
         logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
         return last_avg_loss
+
+    def load_from_pretrained(self,
+                             source_model: "ModularTorchModel",
+                             components: Optional[List[str]] = None,
+                             assignment_map: Optional[Dict[Any, Any]] = None,
+                             value_map: Optional[Dict[Any, Any]] = None,
+                             checkpoint: Optional[str] = None,
+                             model_dir: Optional[str] = None,
+                             include_top: bool = True,
+                             inputs: Optional[Sequence[Any]] = None,
+                             **kwargs) -> None:   # type: ignore
+        """Copies parameter values from a pretrained model. `source_model` can either
+        be a pretrained model or a model with the same architecture. `value_map`
+        is a parameter-value dictionary. If no `value_map` is provided, the parameter
+        values are restored to the `source_model` from a checkpoint and a default
+        `value_map` is created. `assignment_map` is a dictionary mapping parameters
+        from the `source_model` to the current model. If no `assignment_map` is
+        provided, one is made from scratch and assumes the model is composed of
+        several different layers, with the final one being a dense layer. include_top
+        is used to control whether or not the final dense layer is used. The default
+        assignment map is useful in cases where the type of task is different
+        (classification vs regression) and/or number of tasks in the setting.
+    
+        Parameters
+        ----------
+        source_model: dc.TorchModel, required
+            source_model can either be the pretrained model or a dc.TorchModel with
+            the same architecture as the pretrained model. It is used to restore from
+            a checkpoint, if value_map is None and to create a default assignment map
+            if assignment_map is None
+        assignment_map: Dict, default None
+            Dictionary mapping the source_model parameters and current model parameters
+        value_map: Dict, default None
+            Dictionary containing source_model trainable parameters mapped to numpy
+            arrays. If value_map is None, the values are restored and a default
+            parameter map is created using the restored values
+        checkpoint: str, default None
+            the path to the checkpoint file to load.  If this is None, the most recent
+            checkpoint will be chosen automatically.  Call get_checkpoints() to get a
+            list of all available checkpoints
+        model_dir: str, default None
+            Restore source model from custom model directory if needed
+        include_top: bool, default True
+            if True, copies the weights and bias associated with the final dense
+            layer. Used only when assignment map is None
+        inputs: List, input tensors for model
+            if not None, then the weights are built for both the source and self.
+        """
+        if inputs is not None:
+            # Ensure weights for both models are built.
+            source_model.model(inputs)
+            self.model(inputs)
+
+        self._ensure_built()
+        if value_map is None:
+            logger.info(
+                "No value map provided. Creating default value map from restored model."
+            )
+            source_model.restore(model_dir=model_dir, checkpoint=checkpoint) # source model restore in order to make assignment that we never use
+            value_map = self._create_value_map(source_model=source_model)
+
+        # if assignment_map is None:
+        #     logger.info(
+        #         "No assignment map provided. Creating custom assignment map.")
+        #     assignment_map = self._create_assignment_map(
+        #         source_model=source_model, include_top=include_top)
+
+        # for source_var, dest_var in assignment_map.items():
+        #     assert source_var.shape == dest_var.shape
+        #     dest_var.data = torch.as_tensor(value_map[source_var],
+        #                                     device=self.device)
+
+    def save_checkpoint(self, max_checkpoints_to_keep=5, model_dir=None):
+        if model_dir is None:
+            model_dir = self.model_dir
+        if not os.path.exists(model_dir):
+            os.makedirs(model_dir)
+
+        data = {}
+        data['model'] = self.model.state_dict()
+        for name, component in self.components.items():
+            data[name] = component.state_dict()
+
+        temp_file = os.path.join(model_dir, 'temp_checkpoint.pt')
+        torch.save(data, temp_file)
+
+        # Rename and delete older files.
+
+        paths = [
+            os.path.join(model_dir, 'checkpoint%d.pt' % (i + 1))
+            for i in range(max_checkpoints_to_keep)
+        ]
+        if os.path.exists(paths[-1]):
+            os.remove(paths[-1])
+        for i in reversed(range(max_checkpoints_to_keep - 1)):
+            if os.path.exists(paths[i]):
+                os.rename(paths[i], paths[i + 1])
+        os.rename(temp_file, paths[0])
+
+    def get_checkpoints(self, model_dir: Optional[str] = None):
+        if model_dir is None:
+            model_dir = self.model_dir
+        files = sorted(os.listdir(model_dir))
+        files = [
+            f for f in files if f.startswith('checkpoint') and f.endswith('.pt')
+        ]
+        return [os.path.join(model_dir, f) for f in files]
+
+    def restore(self,
+                components: Optional[List[str]] = None,
+                checkpoint: Optional[str] = None,
+                model_dir: Optional[str] = None) -> None:
+        if checkpoint is None:
+            checkpoints = sorted(self.get_checkpoints(model_dir))
+            if len(checkpoints) == 0:
+                raise ValueError('No checkpoint found')
+            checkpoint = checkpoints[0]
+        data = torch.load(checkpoint)
+        # self.model.load_state_dict(data['model'])
+        for name, state_dict in data.items():
+            if name != 'model' and name in self.components.keys():
+                if components is None or name in components:
+                    self.components[name].load_state_dict(state_dict)
+        self.build_model()

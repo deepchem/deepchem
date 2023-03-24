@@ -176,8 +176,8 @@ def test_load_freeze_unfreeze():
 
     example_pretrainer.fit(dataset_pt, nb_epoch=1000)
 
-    example_model.load_pretrained_components(source_model=example_pretrainer,
-                                             components=['encoder'])
+    example_model.restore(model_dir=example_pretrainer.model_dir,
+                          components=['encoder'])
 
     example_model.freeze_components(['encoder'])
 
@@ -201,3 +201,6 @@ def test_load_freeze_unfreeze():
     assert not np.array_equal(
         example_pretrainer.components['encoder'][0].weight.data.cpu().numpy(),
         example_model.components['encoder'][0].weight.data.cpu().numpy())
+
+
+test_load_freeze_unfreeze()
