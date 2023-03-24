@@ -272,6 +272,77 @@ class ModularTorchModel(TorchModel):
         time2 = time.time()
         logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
         return last_avg_loss
+    
+    def load_pretrained_components(
+            self,
+            source_model: Optional['ModularTorchModel'] = None,
+            checkpoint: Optional[str] = None,
+            model_dir: Optional[str] = None,
+            components: Optional[list] = None) -> None:
+        """Modifies the TorchModel load_from_pretrained method to allow for loading
+        from a ModularTorchModel and specifying which components to load.
+    
+        If the user does not a specify a source model, a checkpoint is used to load
+        the weights. In this case, the user cannot specify which components to load
+        because the components are not stored in the checkpoint. All layers will
+        then be loaded if they have the same name and shape. This can cause issues
+        if a pretrained model has similar but not identical layers to the model where
+        a user may expect the weights to be loaded. ModularTorchModel subclasses
+        should be written such that the components are atomic and will be preserved
+        across as many tasks as possible. For example, an encoder may have varying
+        input dimensions for different datasets, so the encoder should be written
+        such that the input layer is not included in the encoder, allowing the
+        encoder to be loaded with any input dimension.
+    
+        Parameters
+        ----------
+        source_model: Optional[ModularTorchModel]
+            The model to load the weights from.
+        checkpoint: Optional[str]
+            The path to the checkpoint to load the weights from.
+        model_dir: Optional[str]
+            The path to the directory containing the checkpoint to load the weights.
+        components: Optional[list]
+            The components to load the weights from. If None, all components will be
+            loaded.
+        """
+    
+        # generate the source state dict
+        if source_model is not None:
+            source_state_dict = source_model.model.state_dict()
+        elif checkpoint is not None:
+            source_state_dict = torch.load(checkpoint)['model_state_dict']
+        elif model_dir is not None:
+            checkpoints = sorted(self.get_checkpoints(model_dir))
+            source_state_dict = torch.load(checkpoints[0])['model_state_dict']
+        else:
+            raise ValueError(
+                "Must provide a source model, checkpoint, or model_dir")
+    
+        if components is not None:  # load the specified components
+            if source_model is not None:
+                assignment_map = {
+                    k: v
+                    for k, v in source_model.components.items()
+                    if k in components
+                }
+                assignment_map_copy = copy.deepcopy(
+                    assignment_map)  # deep copy to avoid modifying source_model
+                self.components.update(assignment_map_copy)
+                self.model = self.build_model()
+            else:
+                raise ValueError(
+                    "If loading from checkpoint, you cannot pass a list of components to load"
+                )
+        else:  # or all components with matching names and shapes
+            model_dict = self.model.state_dict()
+            assignment_map = {
+                k: v
+                for k, v in source_state_dict.items()
+                if k in model_dict and v.shape == model_dict[k].shape
+            }
+            model_dict.update(assignment_map)
+            self.model.load_state_dict(model_dict)
 
     def load_from_pretrained(self,
                              source_model: "ModularTorchModel",
