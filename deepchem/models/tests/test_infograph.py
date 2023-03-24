@@ -190,16 +190,17 @@ def test_infograph():
 
 
 @pytest.mark.torch
-def test_infograph_pretrain():
-    """This test demonstrates the intended use of InfoGraph and InfoGraphStar together, with InfoGraph serving as a pretraining step for InfoGraphStar."""
+def test_infograph_pretrain_overfit():
+    """This tests the intended use of InfoGraph and InfoGraphStar together, with InfoGraph serving as a pretraining step for InfoGraphStar."""
     from deepchem.models.torch_models.infograph import InfoGraphModel, InfoGraphStarModel
     import torch
     torch.manual_seed(123)
+    np.random.seed(123)
 
     dataset, _ = get_regression_dataset()
     num_feat = 30
     edge_dim = 11
-    dim = 64
+    dim = 32
 
     infograph = InfoGraphModel(num_feat, edge_dim)
     infographstar = InfoGraphStarModel(num_feat,
@@ -212,7 +213,7 @@ def test_infograph_pretrain():
     infograph.fit(dataset, nb_epoch=20)
     infographstar.load_pretrained_components(infograph, ['unsup_encoder'])
     loss2 = infographstar.fit(dataset, nb_epoch=10)
-    infographstar.fit(dataset, nb_epoch=1000)
+    infographstar.fit(dataset, nb_epoch=100)
     prediction = infographstar.predict_on_batch(dataset.X).reshape(-1, 1)
     assert np.allclose(np.round(dataset.y), np.round(prediction))
     assert loss1 > loss2
