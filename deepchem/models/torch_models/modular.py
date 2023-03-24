@@ -272,14 +272,14 @@ class ModularTorchModel(TorchModel):
         logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
         return last_avg_loss
 
-    def load_from_pretrained(
+    def load_from_pretrained(  # type: ignore
             self,
             source_model: Optional["ModularTorchModel"] = None,
             components: Optional[List[str]] = None,
             checkpoint: Optional[str] = None,
             model_dir: Optional[str] = None,
             inputs: Optional[Sequence[Any]] = None,
-            **kwargs) -> None:  # type: ignore
+            **kwargs) -> None:
         """Copies parameter values from a pretrained model. The pretrained model can be loaded as a source_model (ModularTorchModel object), checkpoint (pytorch .ckpt file) or a model_dir (directory with .ckpt files). Specific components can be chosen by passing a list of strings with the desired component names. If both a source_model and a checkpoint/model_dir are loaded, the source_model weights will be loaded.
 
         Parameters
@@ -353,10 +353,11 @@ class ModularTorchModel(TorchModel):
         ]
         return [os.path.join(model_dir, f) for f in files]
 
-    def restore(self,
-                components: Optional[List[str]] = None,
-                checkpoint: Optional[str] = None,
-                model_dir: Optional[str] = None) -> None:
+    def restore(
+            self,  # type: ignore
+            components: Optional[List[str]] = None,
+            checkpoint: Optional[str] = None,
+            model_dir: Optional[str] = None) -> None:
         if checkpoint is None:
             checkpoints = sorted(self.get_checkpoints(model_dir))
             if len(checkpoints) == 0:
