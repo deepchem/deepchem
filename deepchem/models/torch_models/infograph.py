@@ -259,8 +259,9 @@ class InfoGraphStarModel(ModularTorchModel):
     encodings and substructure encodings, and then using a discriminator to classify if they
     are from the same molecule or not.
 
-    Supervised training is done by using the graph-level encodings to predict the target property. Semi-supervised training is done by adding a loss term that maximizes the mutual information between the graph-level encodings and the substructure encodings to the supervised loss.
-    To conduct training in unsupervised mode, InfoGraphModel.
+    Supervised training is done by using the graph-level encodings to predict the target property. Semi-supervised training is done by adding a loss term that maximizes the mutual information between the graph-level encodings and the substructure encodings to the supervised loss. These modes can be chosen by setting the training_mode parameter.
+
+    To conduct training in unsupervised mode, use InfoGraphModel.
 
     References
     ----------
