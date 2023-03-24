@@ -133,6 +133,7 @@ class InfoGraphEncoder(torch.nn.Module):
     >>> data = GraphData(node_features=node_features, edge_index=edge_index, edge_features=edge_features, graph_index=graph_index).numpy_to_torch()
     >>> embedding, feature_map = encoder(data)
     >>> print(embedding.shape)
+    torch.Size([1, 64])
     """
 
     def __init__(self, num_features, edge_features, embedding_dim):
@@ -260,11 +261,10 @@ class InfoGraphModel(ModularTorchModel):
         'KL', 'RKL', 'X2', 'DV', 'H2', or 'W1'.
     average_loss: bool
         Whether to average the loss over the batch
- 
+
     Example
     -------
-
-    >>> from deepchem.models.torch_models import InfoGraphModel
+    >>> from deepchem.models.torch_models.infograph import InfoGraphModel
     >>> from deepchem.feat import MolGraphConvFeaturizer
     >>> from deepchem.data import NumpyDataset
     >>> import torch
@@ -385,12 +385,12 @@ class InfoGraphStar(torch.nn.Module):
     >>> from deepchem.models.torch_models.infograph import InfoGraphStarModel
     >>> from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
     >>> from deepchem.feat.graph_data import BatchGraphData
-    >>> smiles = ['C1=CC=CC=C1', 'C1=CC=CC=C1C2=CC=CC=C2']
-    >>> featurizer = MolGraphConvFeaturizer(use_edges=True)
-    >>> graphs = BatchGraphData(featurizer.featurize(smiles)).numpy_to_torch()
     >>> num_feat = 30
     >>> num_edge = 11
     >>> infographmodular = InfoGraphStarModel(num_feat,num_edge,64)
+    >>> smiles = ['C1=CC=CC=C1', 'C1=CC=CC=C1C2=CC=CC=C2']
+    >>> featurizer = MolGraphConvFeaturizer(use_edges=True)
+    >>> graphs = BatchGraphData(featurizer.featurize(smiles)).numpy_to_torch(infographmodular.device)
     >>> model = infographmodular.model
     >>> output = model(graphs).cpu().detach().numpy()
 
