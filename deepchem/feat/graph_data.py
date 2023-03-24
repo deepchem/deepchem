@@ -376,8 +376,9 @@ class BatchGraphData(GraphData):
         import torch
         graph_copy = super().numpy_to_torch(device)
 
-        graph_index = torch.from_numpy(self.graph_index).long().to(  # type: ignore
-            device)
+        graph_index = torch.from_numpy(
+            self.graph_index).long().to(  # type: ignore
+                device)
         graph_copy.graph_index = graph_index
 
         return graph_copy
