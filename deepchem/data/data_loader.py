@@ -11,18 +11,17 @@ from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator
 
 import pandas as pd
 import numpy as np
-from numpy.typing import ArrayLike
 from deepchem.utils.typing import OneOrMany
 from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files, unzip_file
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 from deepchem.utils.genomics_utils import encode_bio_sequence
+import yaml
+from yaml.loader import SafeLoader
 
 try:
     from deepchem.feat.dft_data import DFTEntry
-    import yaml
-    from yaml.loader import SafeLoader
 except ModuleNotFoundError:
     pass
 
@@ -1659,19 +1658,15 @@ class DFTYamlLoader(DataLoader):
 
     """
 
-    def __init__(self, featurizer: Featurizer):
+    def __init__(self):
         """
         Initialize DFTYAML loader
-
-        Parameters
-        ----------
-            featurizer: Featurizer
         """
 
-    def create_dftdataset(self,
-                       input_files: str,
-                       featurizer,
-                       w: Optional[ArrayLike] = None) -> Dataset:
+    def create_dataset(self,
+                       inputs: OneOrMany[Any],
+                       data_dir: Optional[str] = None,
+                       shard_size: Optional[int] = 8192) -> Dataset:
         """
         Creates and returns a `Dataset` object by featurizing provided YAML
         files.
@@ -1692,13 +1687,18 @@ class DFTYamlLoader(DataLoader):
             A `NumpyDataset` object contain an array of DFTEntry objects.
         """
 
-        entries = self._get_shards(input_files)
-        X = np.array([self._featurize_shard(shard) for shard in entries])
-        y = np.array([0])
-        w = w
-        return NumpyDataset(X, y, w=w)
+        def shard_generator():
+            entries = self._get_shards(inputs)
+            for shard in entries:
+                X = np.array(self._featurize_shard(shard))
+                y = np.array([0])
+                w = None
+                ids = np.array([0])
+                yield X, y, w, ids
 
-    def _get_shards(self, input_files):
+        return DiskDataset.create_dataset(shard_generator(), data_dir)
+
+    def _get_shards(self, inputs):
         """
         Loads and divides the .yaml file into shards.
 
@@ -1713,7 +1713,7 @@ class DFTYamlLoader(DataLoader):
             list of dictionaries where each dictionary corresponds to one
             shard and is then featurized into one entry object.
         """
-        with open(input_files) as f:
+        with open(inputs) as f:
             data = yaml.load(f, Loader=SafeLoader)
         return (data)
 
