@@ -1,4 +1,4 @@
-name: Test for Code Formatting 
+name: Test for Build
 on:
   push: # ci work when pushing master branch
     branches:
@@ -136,30 +136,7 @@ jobs:
 #        channels: conda-forge,defaults
 #        python-version: ${{ matrix.python-version }}
 #        environment-file: env.yml
-    - name: Install DeepChem
-      id: install
-      shell: bash -l {0}
-      run: pip install -e .
-    - name: Yapf (version 0.32.0)
-      id: yapf
-      # on Windows, yapf raise the strange error..., so ignore
-      if: runner.os == 'Linux' || runner.os == 'macOS'
-      shell: bash -l {0}
-      run: |
-        CHANGED_FILES=`git diff --name-only $COMMIT_RANGE | grep .py$ | grep -v contrib/ || true`
-        if [ -n "$CHANGED_FILES" ]; then
-          yapf -d $CHANGED_FILES
-        fi
-    - name: Flake8
-      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
-      shell: bash -l {0}
-      run: source scripts/flake8_for_ci.sh
-    - name: Mypy
-      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
-      shell: bash -l {0}
-      run: |
-        mypy -p deepchem
-  
+
   pypi-build:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: [build]
