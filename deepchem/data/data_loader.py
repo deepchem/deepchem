@@ -1634,10 +1634,9 @@ class DFTYamlLoader(DataLoader):
     >>> from deepchem.data.data_loader import DFTYamlLoader
     >>> import deepchem as dc
     >>> import pytest
-    >>> input_files = 'deepchem/data/tests/dftdata.yaml'
-    >>> featurizer = dc.feat.DummyFeaturizer()
-    >>> k = DFTYamlLoader(featurizer)
-    >>> l = k.create_dftdataset(input_files, featurizer)
+    >>> inputs = 'deepchem/data/tests/dftdata.yaml'
+    >>> data = DFTYamlLoader()
+    >>> output = data.create_dataset(inputs)
 
     Notes
     -----
@@ -1653,6 +1652,8 @@ class DFTYamlLoader(DataLoader):
     Each entry in the YAML file must contain the three parameters : e_type,
     true_val and systems in this particular order.
     One entry object may contain one or more systems.
+    This data class does not support/ require an additional featurizer,
+    since the datapoints are featurized within the methods.
     To read more about the parameters and their possible values please refer to
     deepchem.feat.dft_data.
 
@@ -1666,25 +1667,25 @@ class DFTYamlLoader(DataLoader):
     def create_dataset(self,
                        inputs: OneOrMany[Any],
                        data_dir: Optional[str] = None,
-                       shard_size: Optional[int] = 8192) -> Dataset:
+                       shard_size: Optional[int] = 1) -> Dataset:
         """
         Creates and returns a `Dataset` object by featurizing provided YAML
         files.
 
         Parameters
         ----------
-        input_files: str
-            .yaml file to be processed.
-        featurizer: Featurizer
-            Featurizer to be used with the yaml loader; We use
-            the DummyFeaturizer.
-        w: np.array, Optional (default ae:1.0, ie:1.0, dens:1.0, dm:1.0)
-            Weights to be used for each entry type.
+        input_files: OneOrMany[str]
+            List of YAML filenames.
+        data_dir: Optional[str], default None
+            Name of directory where featurized data is stored.
+        shard_size: int, optional (default 1)
+            Shard size when loading data.
 
         Returns
         -------
-        NumpyDataset
-            A `NumpyDataset` object contain an array of DFTEntry objects.
+        DiskDataset
+            A `DiskDataset` object containing a featurized representation
+            of data from `inputs`.
         """
 
         def shard_generator():
@@ -1728,7 +1729,7 @@ class DFTYamlLoader(DataLoader):
 
         Returns
         -------
-        x: DFTEntry object
+        x: featurized shard (DFTEntry objects)
         """
         try:
             e_type = shard['e_type']
