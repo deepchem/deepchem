@@ -303,22 +303,34 @@ class InfoGraphModel(ModularTorchModel):
         super().__init__(self.model, self.components, **kwargs)
 
     def build_components(self) -> dict:
+        """
+        Build the components of the model. InfoGraph is an unsupervised molecular graph representation learning model. It consists of an encoder, a local discriminator, a global discriminator, and a prior discriminator.
+
+        The unsupervised loss is calculated by the mutual information in embedding representations at all layers.
+
+        Components list, type and description:
+        --------------------------------------
+        encoder: GINEncoder, encodes the graph 
+        local_d: MultilayerPerceptron
+        global_d: MultilayerPerceptron
+        local_d: MultilayerPerceptron
+        """
         return {
             'encoder':
-            GINEncoder(self.num_features, self.embedding_dim,
-                       self.num_gc_layers),
+                GINEncoder(self.num_features, self.embedding_dim,
+                           self.num_gc_layers),
             'local_d':
-            MultilayerPerceptron(self.embedding_dim,
-                                 self.embedding_dim, (self.embedding_dim,),
-                                 skip_connection=True),
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True),
             'global_d':
-            MultilayerPerceptron(self.embedding_dim,
-                                 self.embedding_dim, (self.embedding_dim,),
-                                 skip_connection=True),
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True),
             'prior_d':
-            MultilayerPerceptron(self.embedding_dim,
-                                 1, (self.embedding_dim,),
-                                 activation_fn='sigmoid')
+                MultilayerPerceptron(self.embedding_dim,
+                                     1, (self.embedding_dim,),
+                                     activation_fn='sigmoid')
         }
 
     def build_model(self) -> nn.Module:
@@ -333,10 +345,10 @@ class InfoGraphModel(ModularTorchModel):
             prior = torch.rand_like(y)
             term_a = torch.log(self.components['prior_d'](prior)).mean()
             term_b = torch.log(1.0 - self.components['prior_d'](y)).mean()
-            PRIOR = -(term_a + term_b) * self.gamma
+            prior = -(term_a + term_b) * self.gamma
         else:
-            PRIOR = 0
-        return local_global_loss + PRIOR
+            prior = 0
+        return local_global_loss + prior
 
     def _prepare_batch(self, batch):
         """
@@ -397,7 +409,7 @@ class InfoGraphStar(torch.nn.Module):
     """
 
     def __init__(self, encoder, unsup_encoder, ff1, ff2, fc1, fc2, local_d,
-                 global_d):
+                 global_d, init_emb=False):
         super().__init__()
         self.encoder = encoder
         self.unsup_encoder = unsup_encoder
@@ -407,7 +419,8 @@ class InfoGraphStar(torch.nn.Module):
         self.fc2 = fc2
         self.local_d = local_d
         self.global_d = global_d
-        self.init_emb()
+        if init_emb:
+            self.init_emb()
 
     def init_emb(self):
         """
