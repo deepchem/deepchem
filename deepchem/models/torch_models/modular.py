@@ -337,10 +337,12 @@ class ModularTorchModel(TorchModel):
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
 
-        data = {}
-        data['model'] = self.model.state_dict()
-        data['optimizer_state_dict'] = self._pytorch_optimizer.state_dict(),
-        data['global_step'] = self._global_step
+        data = {
+            'model': self.model.state_dict(),
+            'optimizer_state_dict': self._pytorch_optimizer.state_dict(),
+            'global_step': self._global_step
+        }
+
         for name, component in self.components.items():
             data[name] = component.state_dict()
 
@@ -390,4 +392,8 @@ class ModularTorchModel(TorchModel):
             if name != 'model' and name in self.components.keys():
                 if components is None or name in components:
                     self.components[name].load_state_dict(state_dict)
-        self.build_model()
+        compare = self.build_model()
+        # self.build_model()
+        self.model.load_state_dict(data['model'])
+        self._pytorch_optimizer.load_state_dict(data['optimizer_state_dict'])
+        self._global_step = data['global_step']
