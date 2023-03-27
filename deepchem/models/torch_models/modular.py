@@ -84,8 +84,7 @@ class ModularTorchModel(TorchModel):
         super().__init__(self.model, self.loss_func, **kwargs)
         self.model.to(self.device)
         self.components = {
-            k: v.to(self.device)
-            for k, v in self.components.items()
+            k: v.to(self.device) for k, v in self.components.items()
         }
 
     def build_model(self) -> nn.Module:
