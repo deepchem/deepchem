@@ -230,17 +230,17 @@ class GraphData:
         import torch
         graph_copy = copy.deepcopy(self)
 
-        graph_copy.node_features = torch.from_numpy(
+        graph_copy.node_features = torch.from_numpy(  # type: ignore
             self.node_features).float().to(device)
-        graph_copy.edge_index = torch.from_numpy(
+        graph_copy.edge_index = torch.from_numpy(  # type: ignore
             self.edge_index).long().to(device)
         if self.edge_features is not None:
-            graph_copy.edge_features = torch.from_numpy(
+            graph_copy.edge_features = torch.from_numpy(  # type: ignore
                 self.edge_features).float().to(device)
         else:
             graph_copy.edge_features = None
         if self.node_pos_features is not None:
-            graph_copy.node_pos_features = torch.from_numpy(
+            graph_copy.node_pos_features = torch.from_numpy(  # type: ignore
                 self.node_pos_features).float().to(device)
         else:
             graph_copy.node_pos_features = None
@@ -376,7 +376,9 @@ class BatchGraphData(GraphData):
         import torch
         graph_copy = super().numpy_to_torch(device)
 
-        graph_index = torch.from_numpy(self.graph_index).long().to(device)
+        graph_index = torch.from_numpy(
+            self.graph_index).long().to(  # type: ignore
+                device)
         graph_copy.graph_index = graph_index
 
         return graph_copy
