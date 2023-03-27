@@ -16,7 +16,7 @@ from deepchem.models.torch_models.layers import SublayerConnection, Positionwise
 class GroverEmbedding(nn.Module):
     """GroverEmbedding layer.
 
-    This layer is a simple wrapper over GroverTransEncoder layer for retrieving the embeddings from the GroverTransEncoder corresponding to the `embedding_output_type` chosen by the user.
+    This layer is a simple wrapper over GroverTransEncoder layer for retrieving the embeddings from the GroverTransEncoder layer.
 
     Parameters
     ----------
@@ -716,14 +716,6 @@ class GroverTransEncoder(nn.Module):
         the number of mt block.
     num_head: int
         the number of attention AttentionHead.
-    embedding_output_type: str
-        enable the output aggregation after message passing.
-                                            atom_messages:      True                      False
-        - "none": no aggregation         output size:     (num_atoms, hidden_size)    (num_bonds, hidden_size)
-        -"atom":  aggregating to atom  output size:     (num_atoms, hidden_size)    (num_atoms, hidden_size)
-        -"bond": aggragating to bond.   output size:     (num_bonds, hidden_size)    (num_bonds, hidden_size)
-        -"both": aggregating to atom&bond. output size:  (num_atoms, hidden_size)    (num_bonds, hidden_size)
-                                                        (num_bonds, hidden_size)    (num_atoms, hidden_size)
     bias: bool
         enable bias term in all linear layers.
     res_connection: bool
