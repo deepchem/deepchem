@@ -157,7 +157,7 @@ def test_load_freeze_unfreeze():
     d_hidden = 3
     n_layers = 1
     ft_tasks = 6
-    pt_tasks = 3
+    pt_tasks = 6
 
     X_ft = np.random.rand(n_samples, n_feat)
     y_ft = np.random.rand(n_samples, ft_tasks).astype(np.float32)
@@ -201,3 +201,6 @@ def test_load_freeze_unfreeze():
     assert not np.array_equal(
         example_pretrainer.components['encoder'][0].weight.data.cpu().numpy(),
         example_model.components['encoder'][0].weight.data.cpu().numpy())
+
+
+test_load_freeze_unfreeze()
