@@ -212,8 +212,16 @@ class InfoGraphStar(torch.nn.Module):
 
     """
 
-    def __init__(self, encoder, unsup_encoder, ff1, ff2, fc1, fc2, local_d,
-                 global_d):
+    def __init__(self,
+                 encoder,
+                 unsup_encoder,
+                 ff1,
+                 ff2,
+                 fc1,
+                 fc2,
+                 local_d,
+                 global_d,
+                 init_emb=False):
         super().__init__()
         self.encoder = encoder
         self.unsup_encoder = unsup_encoder
@@ -223,7 +231,8 @@ class InfoGraphStar(torch.nn.Module):
         self.fc2 = fc2
         self.local_d = local_d
         self.global_d = global_d
-        self.init_emb()
+        if init_emb:
+            self.init_emb()
 
     def init_emb(self):
         """
@@ -358,63 +367,56 @@ class InfoGraphStarModel(ModularTorchModel):
         if self.task == 'supervised':
             return {
                 'encoder':
-                    InfoGraphEncoder(self.num_features, self.edge_features,
-                                     self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
                 'unsup_encoder':
-                    InfoGraphEncoder(self.num_features, self.edge_features,
-                                     self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
                 'ff1':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim,)),
                 'ff2':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim,)),
                 'fc1':
-                    torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
-                    torch.nn.Linear(self.embedding_dim, 1),
+                torch.nn.Linear(self.embedding_dim, 1),
                 'local_d':
-                    MultilayerPerceptron(self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True),
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True),
                 'global_d':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True)
+                MultilayerPerceptron(2 * self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True)
             }
         elif self.task == 'semisupervised':
             return {
                 'encoder':
-                    InfoGraphEncoder(self.num_features, self.edge_features,
-                                     self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
                 'unsup_encoder':
-                    GINEncoder(self.num_features, self.embedding_dim,
-                               self.num_gc_layers),
+                GINEncoder(self.num_features, self.embedding_dim,
+                           self.num_gc_layers),
                 'ff1':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim,)),
                 'ff2':
-                    MultilayerPerceptron(self.embedding_dim, self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim,)),
                 'fc1':
-                    torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
-                    torch.nn.Linear(self.embedding_dim, 1),
+                torch.nn.Linear(self.embedding_dim, 1),
                 'local_d':
-                    MultilayerPerceptron(self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True),
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True),
                 'global_d':
-                    MultilayerPerceptron(self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True)
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True)
             }
 
     def build_model(self):

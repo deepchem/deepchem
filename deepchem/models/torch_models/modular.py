@@ -392,8 +392,7 @@ class ModularTorchModel(TorchModel):
             if name != 'model' and name in self.components.keys():
                 if components is None or name in components:
                     self.components[name].load_state_dict(state_dict)
-        compare = self.build_model()
-        # self.build_model()
-        self.model.load_state_dict(data['model'])
+
+        self.build_model()
         self._pytorch_optimizer.load_state_dict(data['optimizer_state_dict'])
         self._global_step = data['global_step']
