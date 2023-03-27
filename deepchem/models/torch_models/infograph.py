@@ -408,8 +408,16 @@ class InfoGraphStar(torch.nn.Module):
 
     """
 
-    def __init__(self, encoder, unsup_encoder, ff1, ff2, fc1, fc2, local_d,
-                 global_d, init_emb=False):
+    def __init__(self,
+                 encoder,
+                 unsup_encoder,
+                 ff1,
+                 ff2,
+                 fc1,
+                 fc2,
+                 local_d,
+                 global_d,
+                 init_emb=False):
         super().__init__()
         self.encoder = encoder
         self.unsup_encoder = unsup_encoder
