@@ -84,7 +84,8 @@ class ModularTorchModel(TorchModel):
         super().__init__(self.model, self.loss_func, **kwargs)
         self.model.to(self.device)
         self.components = {
-            k: v.to(self.device) for k, v in self.components.items()
+            k: v.to(self.device)
+            for k, v in self.components.items()
         }
 
     def build_model(self) -> nn.Module:
@@ -319,6 +320,18 @@ class ModularTorchModel(TorchModel):
                          model_dir=model_dir)
 
     def save_checkpoint(self, max_checkpoints_to_keep=5, model_dir=None):
+        """
+        Saves the current state of the model and its components as a checkpoint file in the specified model directory.
+        It maintains a maximum number of checkpoint files, deleting the oldest one when the limit is reached.
+
+        Parameters
+        ----------
+        max_checkpoints_to_keep: int, default 5
+            Maximum number of checkpoint files to keep.
+        model_dir: str, default None
+            The directory to save the checkpoint file in. If None, the model_dir specified in the constructor is used.
+        """
+
         if model_dir is None:
             model_dir = self.model_dir
         if not os.path.exists(model_dir):
@@ -350,6 +363,21 @@ class ModularTorchModel(TorchModel):
             components: Optional[List[str]] = None,
             checkpoint: Optional[str] = None,
             model_dir: Optional[str] = None) -> None:
+        """
+        Restores the state of a ModularTorchModel from a checkpoint file.
+
+        If no checkpoint file is provided, it will use the latest checkpoint found in the model directory. If a list of component names is provided, only the state of those components will be restored.
+
+        Parameters
+        ----------
+        components: Optional[List[str]]
+            A list of component names to restore. If None, all components will be restored.
+        checkpoint: Optional[str]
+            The path to the checkpoint file. If None, the latest checkpoint in the model directory will
+            be used.
+        model_dir: Optional[str]
+            The path to the model directory. If None, the model directory used to initialize the model will be used.
+        """
         if checkpoint is None:
             checkpoints = sorted(self.get_checkpoints(model_dir))
             if len(checkpoints) == 0:
