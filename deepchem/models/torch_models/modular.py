@@ -339,6 +339,8 @@ class ModularTorchModel(TorchModel):
 
         data = {}
         data['model'] = self.model.state_dict()
+        data['optimizer_state_dict'] = self._pytorch_optimizer.state_dict(),
+        data['global_step'] = self._global_step
         for name, component in self.components.items():
             data[name] = component.state_dict()
 
