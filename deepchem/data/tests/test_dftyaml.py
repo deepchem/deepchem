@@ -11,4 +11,6 @@ def test_dftloader():
     inputs = 'deepchem/data/tests/dftdata.yaml'
     k = DFTYamlLoader()
     data = k.create_dataset(inputs)
+    assert data.X[0].dtype == ('O')
+    assert len(data) == 2
     assert ((data.X)[0][0]).get_true_val() == 0.09194410469
