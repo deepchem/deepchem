@@ -8,13 +8,45 @@ from dqc.api.getxc import get_xc
 class BaseNNXC(torch.nn.Module):
     """
     Base class for the Neural Network XC (NNXC)  and HybridXC classes.
-    It can be used to build layers such as the NNLDA layer, where the exchange
-    correlation functional is trained based on the pre-defined LDA class
-    of functionals. The methods in this class take the electron density as
+
+    Density-functional theory (DFT) is a theory used to calculate the
+    electronic structure of atoms, molecules, and solids. Its objective is
+    to use the fundamental laws of quantum mechanics to quantitatively
+    comprehend the properties of materials.
+
+    There are serious limitations to the tradional methods used to approximate
+    solutions to the Schrödinger equation of N interacting electrons moving in
+    an external potential. Whereas in DFT, instead of the many-body wave
+    function, the density (n(r)) is a function of three spatial coordinates.
+
+    The many-body electronic ground state can be described using single-particle    equations and an effective potential thanks to the Kohn-Sham theory. The
+    exchange-correlation potential, which accounts for many-body effects, the
+    Hartree potential, which describes the electrostatic electron-electron
+    interaction, and the ionic potential resulting from the atomic cores make
+    up the effective potential.
+
+    The difference between the total exact energy and the total of the rest
+    of the energy terms (such as kinetic energy), is known as the
+    exchange-correlation energy. The exchange-correlation functional is obtained    by calculating the functional derivate of the XC energy w.r.t the
+    electron density function. In this model, we are trying to build a neural
+    network that can be trained to calculate an exchange-correlation functional
+    based on a specific set of molecules/atoms/ions.
+
+    This base class can be used to build layers such as the NNLDA layer, where
+    the exchange correlation functional is trained based on the pre-defined LDA     class of functionals. The methods in this class take the electron density as
     the input and transform it accordingly. For example; The NNLDA layer
     requires only the density to build an NNXC whereas a GGA based model would
     require the density gradient as well. This method also takes polarization
     into account.
+
+    References
+    ----------
+    Encyclopedia of Condensed Matter Physics, 2005.
+    Mark R. Pederson, Tunna Baruah, in Advances In Atomic, Molecular, and
+    Optical Physics, 2015
+    Kasim, Muhammad F., and Sam M. Vinko. "Learning the exchange-correlation
+    functional from nature with fully differentiable density functional
+    theory." Physical Review Letters 127.12 (2021): 126403.
     """
 
     @abstractmethod
@@ -35,11 +67,6 @@ class BaseNNXC(torch.nn.Module):
 class NNLDA(BaseNNXC):
     """
     Neural network xc functional of LDA
-
-    The difference between the total exact energy and the total of the rest
-    of the energy terms (such as kinetic energy), is known as the
-    exchange-correlation energy. The exchange-correlation functional is obtained    by calculating the functional derivate of the XC energy w.r.t the
-    electron density function.
 
     Local-density approximations (LDA) are a class of approximations to the
     exchange–correlation (XC) energy. The LDA assumes variations of the
