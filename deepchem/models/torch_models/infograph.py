@@ -310,10 +310,10 @@ class InfoGraphModel(ModularTorchModel):
 
         Components list, type and description:
         --------------------------------------
-        encoder: GINEncoder, encodes the graph 
-        local_d: MultilayerPerceptron
-        global_d: MultilayerPerceptron
-        local_d: MultilayerPerceptron
+        encoder: GINEncoder, graph convolutional encoder
+        local_d: MultilayerPerceptron, local discriminator
+        global_d: MultilayerPerceptron, global discriminator
+        prior_d: MultilayerPerceptron, prior discriminator
         """
         return {
             'encoder':
