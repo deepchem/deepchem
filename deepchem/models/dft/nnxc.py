@@ -1,11 +1,13 @@
 from abc import abstractmethod
 from typing import Union
 import torch
+from typing import Union, Iterator, List
 from dqc.utils.datastruct import ValGrad, SpinParam
 from dqc.api.getxc import get_xc
+from dqc.xc.base_xc import BaseXC
 
 
-class BaseNNXC(torch.nn.Module):
+class BaseNNXC(BaseXC, torch.nn.Module):
     """
     Base class for the Neural Network XC (NNXC)  and HybridXC classes.
 
@@ -62,6 +64,13 @@ class BaseNNXC(torch.nn.Module):
             Density information calculated using DQC utilities.
         """
         pass
+
+    def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+        # torch.nn.module prefix has no ending dot, while xt prefix has
+        nnprefix = prefix if prefix == "" else prefix[:-1]
+        return [
+            name for (name, param) in self.named_parameters(prefix=nnprefix)
+        ]
 
 
 class NNLDA(BaseNNXC):
@@ -198,6 +207,10 @@ class HybridXC(BaseNNXC):
         self.bweight = torch.nn.Parameter(
             torch.tensor(bweight0, requires_grad=True))
         self.weight_activation = torch.nn.Identity()
+
+    @property
+    def family(self) -> int:
+        return self.xc.family
 
     def get_edensityxc(
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
