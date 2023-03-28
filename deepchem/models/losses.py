@@ -774,6 +774,35 @@ class GroverPretrainLoss(Loss):
     predictions produced by Grover model during pretraining as a dictionary and applies negative
     log-likelihood loss for atom vocabulary and bond vocabulary predictions and Binary Cross Entropy
     loss for functional group prediction and sums these to get overall loss.
+
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.models.losses import GroverPretrainLoss
+    >>> loss = GroverPretrainLoss()
+    >>> loss_fn = loss._create_pytorch_loss()
+    >>> batch_size = 3
+    >>> output_dim = 10
+    >>> fg_size = 8
+    >>> atom_vocab_task_target = torch.ones(batch_size).type(torch.int64)
+    >>> bond_vocab_task_target = torch.ones(batch_size).type(torch.int64)
+    >>> fg_task_target = torch.ones(batch_size, fg_size)
+    >>> atom_vocab_task_atom_pred = torch.zeros(batch_size, output_dim)
+    >>> bond_vocab_task_atom_pred = torch.zeros(batch_size, output_dim)
+    >>> atom_vocab_task_bond_pred = torch.zeros(batch_size, output_dim)
+    >>> bond_vocab_task_bond_pred = torch.zeros(batch_size, output_dim)
+    >>> fg_task_atom_from_atom = torch.zeros(batch_size, fg_size)
+    >>> fg_task_atom_from_bond = torch.zeros(batch_size, fg_size)
+    >>> fg_task_bond_from_atom = torch.zeros(batch_size, fg_size)
+    >>> fg_task_bond_from_bond = torch.zeros(batch_size, fg_size)
+    >>> result = loss_fn(atom_vocab_task_atom_pred, atom_vocab_task_bond_pred,
+    ...     bond_vocab_task_atom_pred, bond_vocab_task_bond_pred, fg_task_atom_from_atom,
+    ...     fg_task_atom_from_bond, fg_task_bond_from_atom, fg_task_bond_from_bond,
+    ...     atom_vocab_task_target, bond_vocab_task_target, fg_task_target)
+
+    Reference
+    ---------
+    .. Rong, Yu, et al. "Self-supervised graph transformer on large-scale molecular data." Advances in Neural Information Processing Systems 33 (2020): 12559-12571.
     """
 
     def _create_pytorch_loss(self):
@@ -826,8 +855,7 @@ class GroverPretrainLoss(Loss):
             loss: torch.Tensor
                 loss value
             """
-            av_task_loss = nn.NLLLoss(ignore_index=0,
-                                      reduction="mean")  # same for av and bv
+            av_task_loss = nn.NLLLoss(reduction="mean")  # same for av and bv
             fg_task_loss = nn.BCEWithLogitsLoss(reduction="mean")
             av_task_dist_loss = nn.MSELoss(reduction="mean")
             fg_task_dist_loss = nn.MSELoss(reduction="mean")
@@ -838,7 +866,7 @@ class GroverPretrainLoss(Loss):
                                         atom_vocab_task_target)
             av_bond_loss = av_task_loss(bond_vocab_task_atom_pred,
                                         atom_vocab_task_target)
-            bv_atom_loss = av_task_loss(atom_vocab_task_atom_pred,
+            bv_atom_loss = av_task_loss(atom_vocab_task_bond_pred,
                                         bond_vocab_task_target)
             bv_bond_loss = av_task_loss(bond_vocab_task_bond_pred,
                                         bond_vocab_task_target)
@@ -877,6 +905,8 @@ class GroverPretrainLoss(Loss):
             # return overall_loss, av_loss, bv_loss, fg_loss, av_dist_loss, bv_dist_loss, fg_dist_loss
             # We just return overall_loss since TorchModel can handle only a single loss
             return overall_loss
+
+        return loss
 
 
 def _make_tf_shapes_consistent(output, labels):
