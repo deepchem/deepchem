@@ -114,7 +114,7 @@ def test_infographstar_regression_semisupervised():
                                edge_dim,
                                dim,
                                num_gc_layers=2,
-                               training_mode='semisupervised')
+                               task='semisupervised')
 
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
@@ -132,7 +132,7 @@ def test_infographstar_classification_semisupervised():
                                edge_dim,
                                dim,
                                num_gc_layers=2,
-                               training_mode='semisupervised')
+                               task='semisupervised')
 
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
@@ -150,11 +150,15 @@ def test_infographstar_classification_supervised():
     model = InfoGraphStarModel(num_feat,
                                edge_dim,
                                dim,
-                               training_mode='supervised')
+                               task='supervised',
+                               mode='classification')
 
-    model.fit(dataset, nb_epoch=100)
+    model.fit(dataset, nb_epoch=1000)
     scores = model.evaluate(dataset, [metric])
     assert scores['mean-roc_auc_score'] >= 0.9
+
+
+test_infographstar_classification_supervised()
 
 
 @pytest.mark.torch
@@ -168,7 +172,7 @@ def test_infographstar_regression_supervised():
                                edge_dim,
                                dim,
                                num_gc_layers=3,
-                               training_mode='supervised')
+                               task='supervised')
 
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
@@ -207,7 +211,7 @@ def test_infograph_pretrain_overfit():
                                        edge_dim,
                                        dim,
                                        num_gc_layers=2,
-                                       training_mode='semisupervised')
+                                       task='semisupervised')
 
     loss1 = infographstar.fit(dataset, nb_epoch=10)
     infograph.fit(dataset, nb_epoch=20)
@@ -227,10 +231,7 @@ def test_infographstar_fit_restore():
     edge_dim = 11
     dim = 64
 
-    model = InfoGraphStarModel(num_feat,
-                               edge_dim,
-                               dim,
-                               training_mode='supervised')
+    model = InfoGraphStarModel(num_feat, edge_dim, dim, task='supervised')
 
     model.fit(dataset, nb_epoch=100)
 

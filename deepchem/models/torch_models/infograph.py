@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import GRU, Linear, ReLU, Sequential
 
+from deepchem.models.losses import CategoricalCrossEntropy
 from deepchem.feat.graph_data import BatchGraphData
 from deepchem.models.losses import (
     GlobalMutualInformationLoss,
@@ -516,6 +517,8 @@ class InfoGraphStarModel(ModularTorchModel):
                  edge_features,
                  embedding_dim,
                  task='supervised',
+                 mode='regression',
+                 num_classes=1,
                  measure='JSD',
                  average_loss=True,
                  num_gc_layers=5,
@@ -527,6 +530,12 @@ class InfoGraphStarModel(ModularTorchModel):
         self.gamma = .1
         self.num_features = num_features
         self.task = task
+        self.mode = mode
+        if self.mode == 'regression':
+            self.output_dim = 1
+        elif self.mode == 'classification':
+            self.output_dim = num_classes
+            self.class_loss = CategoricalCrossEntropy()._create_pytorch_loss()
         if self.task == 'supervised':
             self.embedding_dim = embedding_dim
         elif self.task == 'semisupervised':
@@ -590,7 +599,7 @@ class InfoGraphStarModel(ModularTorchModel):
                 'fc1':
                     torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
-                    torch.nn.Linear(self.embedding_dim, 1),
+                    torch.nn.Linear(self.embedding_dim, self.output_dim),
                 'local_d':
                     MultilayerPerceptron(self.embedding_dim,
                                          self.embedding_dim,
@@ -620,7 +629,7 @@ class InfoGraphStarModel(ModularTorchModel):
                 'fc1':
                     torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
-                    torch.nn.Linear(self.embedding_dim, 1),
+                    torch.nn.Linear(self.embedding_dim, self.output_dim),
                 'local_d':
                     MultilayerPerceptron(self.embedding_dim,
                                          self.embedding_dim,
@@ -649,8 +658,15 @@ class InfoGraphStarModel(ModularTorchModel):
             # loss = sup_loss + local_unsup_loss * self.learning_rate
             return (loss * weights).mean()
         else:
-            sup_loss = F.mse_loss(self.model(inputs), labels)
-            return (sup_loss * weights).mean()
+            if self.mode == 'regression':
+                sup_loss = F.mse_loss(self.model(inputs), labels)
+                return (sup_loss * weights).mean()
+            elif self.mode == 'classification':
+                # out = self.model(inputs)
+                # logits = out.view(-1, self.output_dim)
+                # proba = F.softmax(logits, dim=1)
+                sup_loss = self.class_loss(self.model(inputs), labels)
+                return (sup_loss * weights).mean()
 
     def local_unsup_loss(self, inputs):
         if self.task == 'semisupervised':
