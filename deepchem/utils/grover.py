@@ -8,55 +8,107 @@ except ModuleNotFoundError:
     pass
 
 
-def extract_grover_attributes(molgraphs: BatchGraphData):
-    fg_labels = getattr(molgraphs, 'fg_labels')
-    additional_features = getattr(molgraphs, 'additional_features')
-    f_atoms = molgraphs.node_features
-    f_bonds = molgraphs.edge_features
-    graph_index = molgraphs.graph_index
+def _get_atom_scopes(graph_index):
+    """Atom scope is a list of tuples with a single entry for every
+    molecule in the batched graph. The entry indicates the beginning
+    node index for a molecule and the number of nodes in the molecule.
 
-    # computing atom scopes
-    unique_atoms = np.unique(molgraphs.graph_index)
+    Example
+    -------
+    >>> import numpy as np
+    >>> graph_index = np.array([0, 0, 1, 1, 1])
+    >>> _get_atom_scopes(graph_index)
+    [[0, 2], [2, 3]]
+    """
+    # graph_index indicates which atom belongs to which molecule
+    mols = np.unique(graph_index)
     scopes = []
-    for atom in unique_atoms:
-        positions = np.where(graph_index == atom, 1, 0)
+    for mol in mols:
+        positions = np.where(graph_index == mol, 1, 0)
         scopes.append([np.argmax(positions), np.count_nonzero(positions)])
-    a_scope = scopes
+    return scopes
 
-    # computing bond scopes
-    edge_index = molgraphs.edge_index
+
+def _get_bond_scopes(edge_index, graph_index):
+    """Bond scope is a list of tuples with a single entry for every molecule
+    in the batched graph. The entry indicates the beginning bond index for a
+    molecule and the number of bonds in the molecule.
+
+    Example
+    -------
+    >>> edge_index = np.array([[0, 1, 2, 4], [1, 0, 4, 2]]) # a molecule with 4 bonds
+    >>> graph_index = np.array([0, 0, 1, 1, 1])
+    >>> _get_bond_scopes(edge_index, graph_index)
+    [[0, 2], [2, 2]]
+    """
+    mols = np.unique(graph_index)
     bond_index = graph_index[edge_index[0]]
     scopes = []
-    for atom in unique_atoms:
-        positions = np.where(bond_index == atom, 1, 0)
+    for mol in mols:
+        positions = np.where(bond_index == mol, 1, 0)
         scopes.append([np.argmax(positions), np.count_nonzero(positions)])
-    b_scope = scopes
+    return scopes
 
-    # computing b2revb
-    def find_position(bond, edge_index):
-        for i, (sa, da) in enumerate(edge_index.T):
+
+def _compute_b2revb(edge_index):
+    """Every edge in a grover graph is a directed edge. Hence, a bond
+    is represented by two edges of opposite directions. b2revb is a representation
+    which stores for every edge, the index of reverse edge of that edge.
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> edge_index = np.array([[0, 1, 2, 4], [1, 0, 4, 2]])
+    >>> _compute_b2revb(edge_index)
+    [1, 0, 3, 2]
+    """
+    b2revb = [0] * len(edge_index[0])
+    for i, bond in enumerate(edge_index.T):
+        for j, (sa, da) in enumerate(edge_index.T):
             if sa == bond[1] and da == bond[0]:
-                return i
+                b2revb[i] = j
+    return b2revb
 
-    def compute_b2revb(edge_index):
-        b2revb = [0] * len(edge_index[0])
-        for i, bond in enumerate(edge_index.T):
-            b2revb[i] = find_position(bond, edge_index)
-        return b2revb
 
-    b2revb = compute_b2revb(edge_index)
+def _get_a2b(n_atoms, edge_index):
+    """a2b is a mapping between atoms and their incoming bonds
 
-    # computing a2b
-    n_atoms = molgraphs.num_nodes
+    Example
+    -------
+    >>> import numpy as np
+    >>> edge_index = np.array([[0, 1], [1, 2]])
+    >>> n_atoms = 3
+    >>> _get_a2b(n_atoms, edge_index)
+    array([[0], [0], [1]])
+    """
     a2b: List[List[Any]] = [[] for atom in range(n_atoms)]
 
     for i, bond in enumerate(edge_index.T):
         dest_atom = bond[1]
         a2b[dest_atom].append(i)
 
+    # padding
     max_num_bonds = max(map(lambda x: len(x), a2b))
     a2b = np.asarray(
         [a2b[a] + [0] * (max_num_bonds - len(a2b[a])) for a in range(n_atoms)])
+
+    return a2b
+
+
+def extract_grover_attributes(molgraphs: BatchGraphData):
+    fg_labels = getattr(molgraphs, 'fg_labels')
+    additional_features = getattr(molgraphs, 'additional_features')
+    f_atoms = molgraphs.node_features
+    f_bonds = molgraphs.edge_features
+    graph_index = molgraphs.graph_index
+    edge_index = molgraphs.edge_index
+
+    a_scope = _get_atom_scopes(graph_index)
+    b_scope = _get_bond_scopes(edge_index, graph_index)
+    b2revb = _compute_b2revb(edge_index)
+
+    # computing a2b
+    a2b = _get_a2b(molgraphs.num_nodes, edge_index)
 
     f_atoms = torch.FloatTensor(f_atoms)
     f_bonds = torch.FloatTensor(f_bonds)
