@@ -1,13 +1,6 @@
-name: New Code Formatting
+name: Code Formatting
 
-on:
-  push: # ci work when pushing master branch
-    branches:
-      - master
-  pull_request: # ci work when creating a PR to master branch
-    branches:
-      - master
-
+on: [pull_request]
 
 jobs:
   test:
@@ -17,12 +10,7 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set commit range (push to the master branch, e.g. merge)
-      if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-      run: echo "COMMIT_RANGE=${{ github.event.before }}.." >> $GITHUB_ENV
-
-    - name: Set commit range (pull request)
-      if: github.event_name == 'pull_request'
+    - name: Set commit range
       run: |
         git fetch origin master
         echo "COMMIT_RANGE=origin/master..." >> $GITHUB_ENV
