@@ -79,7 +79,9 @@ def _get_a2b(n_atoms, edge_index):
     >>> edge_index = np.array([[0, 1], [1, 2]])
     >>> n_atoms = 3
     >>> _get_a2b(n_atoms, edge_index)
-    array([[0], [0], [1]])
+    array([[0],
+           [0],
+           [1]])
     """
     a2b: List[List[Any]] = [[] for atom in range(n_atoms)]
 
@@ -95,27 +97,44 @@ def _get_a2b(n_atoms, edge_index):
     return a2b
 
 
-def extract_grover_attributes(molgraphs: BatchGraphData):
-    fg_labels = getattr(molgraphs, 'fg_labels')
-    additional_features = getattr(molgraphs, 'additional_features')
-    f_atoms = molgraphs.node_features
-    f_bonds = molgraphs.edge_features
-    graph_index = molgraphs.graph_index
-    edge_index = molgraphs.edge_index
+def extract_grover_attributes(molgraph: BatchGraphData):
+    """Utility to extract grover attributes for grover model
+
+    Parameter
+    ---------
+    molgraph: BatchGraphData
+        A batched graph data representing a collection of molecules.
+
+    Example
+    -------
+    >>> import deepchem as dc
+    >>> from deepchem.feat.graph_data import BatchGraphData
+    >>> smiles = ['CC', 'CCC', 'CC(=O)C']
+    >>> featurizer = dc.feat.GroverFeaturizer(features_generator=dc.feat.CircularFingerprint())
+    >>> graphs = featurizer.featurize(smiles)
+    >>> molgraph = BatchGraphData(graphs)
+    >>> attributes = extract_grover_attributes(molgraph)
+    """
+    fg_labels = getattr(molgraph, 'fg_labels')
+    additional_features = getattr(molgraph, 'additional_features')
+    f_atoms = molgraph.node_features
+    f_bonds = molgraph.edge_features
+    graph_index = molgraph.graph_index
+    edge_index = molgraph.edge_index
 
     a_scope = _get_atom_scopes(graph_index)
     b_scope = _get_bond_scopes(edge_index, graph_index)
     b2revb = _compute_b2revb(edge_index)
 
     # computing a2b
-    a2b = _get_a2b(molgraphs.num_nodes, edge_index)
+    a2b = _get_a2b(molgraph.num_nodes, edge_index)
 
     f_atoms = torch.FloatTensor(f_atoms)
     f_bonds = torch.FloatTensor(f_bonds)
     fg_labels = torch.FloatTensor(fg_labels)
     additional_features = torch.FloatTensor(additional_features)
     a2b = torch.LongTensor(a2b)
-    b2a = torch.LongTensor(molgraphs.edge_index[0])
+    b2a = torch.LongTensor(molgraph.edge_index[0])
     b2revb = torch.LongTensor(b2revb)
     # only needed if using atom messages
     a2a = b2a[a2b]  # type: ignore

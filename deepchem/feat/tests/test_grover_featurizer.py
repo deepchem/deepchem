@@ -33,10 +33,4 @@ def test_grover_featurizer():
     assert molgraph.node_features.shape == (num_atoms, 151)
     np.testing.assert_array_equal(molgraph.edge_index,
                                   np.asarray([[0, 2, 1, 2], [2, 0, 2, 1]]))
-    assert molgraph.a2b == [[1], [3], [0, 2]]
-    assert len(molgraph.a2b) == num_atoms
-    assert molgraph.b2a == [0, 2, 1, 2]
-    assert len(molgraph.b2a) == num_bonds * 2
-    assert molgraph.b2revb == [1, 0, 3, 2]
-    assert len(molgraph.b2revb) == num_bonds * 2
     assert molgraph.additional_features.shape == (cfp_size,)

@@ -336,6 +336,7 @@ class BatchGraphData(GraphData):
         ])
 
         # graph_index indicates which nodes belong to which graph
+        # TODO should we rename this as node_index?
         graph_index = []
         for i, num_nodes in enumerate(num_nodes_list):
             graph_index.extend([i] * num_nodes)
@@ -363,14 +364,8 @@ class BatchGraphData(GraphData):
         `node_features`, `edge_index`, `edge_features`, `node_pos_features`, `kwargs`, `num_nodes`,
         `num_node_features`, `num_edges`, `num_edge_features` as these are graph data attributes."""
         graph_data_attributes = [
-            'node_features',
-            'edge_index',
-            'edge_features',
-            'node_pos_features',
-            'kwargs',
-            'num_nodes',
-            'num_node_features',
-            'num_edges',
+            'node_features', 'edge_index', 'edge_features', 'node_pos_features',
+            'kwargs', 'num_nodes', 'num_node_features', 'num_edges',
             'num_edge_features'
         ]
         user_defined_attribute_names = []

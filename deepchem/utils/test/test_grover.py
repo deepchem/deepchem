@@ -12,11 +12,6 @@ def test_grover_batch_mol_graph():
 
     smiles = ['CC', 'CCC']
     mol_graphs = grover_featurizer.featurize(smiles)
-    for graph in mol_graphs:
-        # TODO Don't set these attributes during featurization
-        delattr(graph, 'a2b')
-        delattr(graph, 'b2a')
-        delattr(graph, 'b2revb')
     mol_graph = mol_graphs[0]
     batched_mol_graph = BatchGraphData(mol_graphs)
     f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels, additional_features = extract_grover_attributes(

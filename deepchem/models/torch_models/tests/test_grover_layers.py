@@ -17,11 +17,6 @@ def grover_graph_attributes():
     featurizer = dc.feat.GroverFeaturizer(features_generator=fg)
 
     graphs = featurizer.featurize(smiles)
-    # TODO Remove these attributes during featurization itself
-    for graph in graphs:
-        delattr(graph, 'a2b')
-        delattr(graph, 'b2a')
-        delattr(graph, 'b2revb')
     batched_graph = BatchGraphData(graphs)
     attributes = extract_grover_attributes(batched_graph)
     return attributes
