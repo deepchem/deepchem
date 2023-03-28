@@ -207,13 +207,14 @@ class InfoGraph(nn.Module):
 
     """
 
-    def __init__(self, encoder, local_d, global_d, prior_d):
+    def __init__(self, encoder, local_d, global_d, prior_d, init_emb=False):
         super().__init__()
         self.encoder = encoder
         self.local_d = local_d
         self.global_d = global_d
         self.prior_d = prior_d
-        self.init_emb()
+        if init_emb:
+            self.init_emb()
 
     def init_emb(self):
         for m in self.modules():
