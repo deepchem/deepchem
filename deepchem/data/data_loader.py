@@ -1736,6 +1736,8 @@ class DFTYamlLoader(DataLoader):
             true_val = shard['true_val']
             systems = shard['systems']
         except KeyError:
-            print("Unknown key")
+            raise ValueError(
+                "Unknown key in yaml file. Please check format for correctness."
+            )
         x = DFTEntry.create(e_type, true_val, systems)
         return x
