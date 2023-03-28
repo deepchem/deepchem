@@ -312,8 +312,11 @@ class InfoGraphModel(ModularTorchModel):
         Components list, type and description:
         --------------------------------------
         encoder: GINEncoder, graph convolutional encoder
+
         local_d: MultilayerPerceptron, local discriminator
+
         global_d: MultilayerPerceptron, global discriminator
+
         prior_d: MultilayerPerceptron, prior discriminator
         """
         return {
@@ -553,12 +556,19 @@ class InfoGraphStarModel(ModularTorchModel):
         Components list, type and description:
         --------------------------------------
         encoder: InfoGraphEncoder
+
         unsup_encoder: InfoGraphEncoder for supervised or GINEncoder for unsupervised training
+
         ff1: MultilayerPerceptron, feedforward network
+
         ff2: MultilayerPerceptron, feedforward network
+
         fc1: torch.nn.Linear, fully connected layer
+
         fc2: torch.nn.Linear, fully connected layer
+
         local_d: MultilayerPerceptron, local discriminator
+
         global_d: MultilayerPerceptron, global discriminator
         """
         if self.task == 'supervised':
