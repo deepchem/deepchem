@@ -406,7 +406,7 @@ InfoGraphModel
   :members:
 
 InfoGraphStarModel
---------------
+------------------
 
 .. autoclass:: deepchem.models.torch_models.InfoGraphStarModel
   :members:

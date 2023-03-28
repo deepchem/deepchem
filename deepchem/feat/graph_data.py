@@ -292,8 +292,9 @@ class BatchGraphData(GraphData):
     ...    [[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]],
     ...    [[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]],
     ... ], dtype=int)
-    >>> graph_list = [GraphData(node_features, edge_index) for node_features, edge_index
-    ...           in zip(node_features_list, edge_index_list)]
+    >>> user_defined_attribute = np.array([0, 1])
+    >>> graph_list = [GraphData(node_features, edge_index, attribute=user_defined_attribute)
+    ...     for node_features, edge_index in zip(node_features_list, edge_index_list)]
     >>> batch_graph = BatchGraphData(graph_list=graph_list)
     """
 
@@ -340,12 +341,43 @@ class BatchGraphData(GraphData):
             graph_index.extend([i] * num_nodes)
         self.graph_index = np.array(graph_index)
 
-        super().__init__(
-            node_features=batch_node_features,
-            edge_index=batch_edge_index,
-            edge_features=batch_edge_features,
-            node_pos_features=batch_node_pos_features,
-        )
+        # Batch user defined attributes
+        kwargs = {}
+        user_defined_attribute_names = self._get_user_defined_attributes(
+            graph_list[0])
+        for name in user_defined_attribute_names:
+            kwargs[name] = np.vstack(
+                [getattr(graph, name) for graph in graph_list])
+
+        super().__init__(node_features=batch_node_features,
+                         edge_index=batch_edge_index,
+                         edge_features=batch_edge_features,
+                         node_pos_features=batch_node_pos_features,
+                         **kwargs)
+
+    def _get_user_defined_attributes(self, graph_data: GraphData):
+        """A GraphData object can have user defined attributes but the attribute name of those
+        are unknown since it can be arbitary. This method helps to find user defined attribute's
+        name by making a list of known graph data attributes and finding other user defined
+        attributes via `vars` method. The user defined attributes are attributes other than
+        `node_features`, `edge_index`, `edge_features`, `node_pos_features`, `kwargs`, `num_nodes`,
+        `num_node_features`, `num_edges`, `num_edge_features` as these are graph data attributes."""
+        graph_data_attributes = [
+            'node_features',
+            'edge_index',
+            'edge_features',
+            'node_pos_features',
+            'kwargs',
+            'num_nodes',
+            'num_node_features',
+            'num_edges',
+            'num_edge_features',
+        ]
+        user_defined_attribute_names = []
+        for arg in vars(graph_data):
+            if arg not in graph_data_attributes:
+                user_defined_attribute_names.append(arg)
+        return user_defined_attribute_names
 
     def numpy_to_torch(self, device: str = "cpu"):
         """
