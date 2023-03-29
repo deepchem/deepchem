@@ -201,6 +201,3 @@ def test_load_freeze_unfreeze():
     assert not np.array_equal(
         example_pretrainer.components['encoder'][0].weight.data.cpu().numpy(),
         example_model.components['encoder'][0].weight.data.cpu().numpy())
-
-
-test_load_freeze_unfreeze()
