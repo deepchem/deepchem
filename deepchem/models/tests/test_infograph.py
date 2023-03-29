@@ -211,7 +211,7 @@ def test_infograph_pretrain_overfit():
 
     loss1 = infographstar.fit(dataset, nb_epoch=10)
     infograph.fit(dataset, nb_epoch=20)
-    infographstar.load_pretrained_components(infograph, ['unsup_encoder'])
+    infographstar.load_from_pretrained(infograph, ['unsup_encoder'])
     loss2 = infographstar.fit(dataset, nb_epoch=10)
     infographstar.fit(dataset, nb_epoch=200)
     prediction = infographstar.predict_on_batch(dataset.X).reshape(-1, 1)
