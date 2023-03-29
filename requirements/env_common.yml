@@ -23,7 +23,6 @@ dependencies:
     - pymatgen
     - simdna
     - transformers==4.10.*
-    - tokenizers
     - xgboost
-    - gensim  # used by mol2vec
+    - gensim  # used by mol2vec 
     - tensorboard
