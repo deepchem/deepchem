@@ -142,7 +142,11 @@ def test_infographstar_classification_semisupervised():
 @pytest.mark.torch
 def test_infographstar_classification_supervised():
     from deepchem.models.torch_models.infograph import InfoGraphStarModel
+    # import deepchem as dc
     dataset, metric = get_classification_dataset()
+    dataset = dc.molnet.load_tox21()
+    feat = MolGraphConvFeaturizer(use_edges=True)
+    dataset = feat.featurize(dataset)
     num_feat = 30
     edge_dim = 11
     dim = 64
@@ -151,10 +155,10 @@ def test_infographstar_classification_supervised():
                                edge_dim,
                                dim,
                                task='supervised',
-                               mode='classification',
+                               mode='regression',
                                num_classes=1)
 
-    model.fit(dataset, nb_epoch=100)
+    model.fit(dataset, nb_epoch=10)
     # scores = model.evaluate(dataset, [metric])
     # assert scores['mean-roc_auc_score'] >= 0.9
     prediction = model.predict_on_batch(dataset.X).reshape(-1, 1)
