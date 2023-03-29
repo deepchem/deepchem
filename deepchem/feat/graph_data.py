@@ -336,7 +336,6 @@ class BatchGraphData(GraphData):
         ])
 
         # graph_index indicates which nodes belong to which graph
-        # TODO should we rename this as node_index?
         graph_index = []
         for i, num_nodes in enumerate(num_nodes_list):
             graph_index.extend([i] * num_nodes)

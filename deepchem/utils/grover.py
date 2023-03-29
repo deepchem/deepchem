@@ -1,5 +1,6 @@
 import numpy as np
 from typing import List, Any
+from numpy.typing import ArrayLike
 from deepchem.feat.graph_data import BatchGraphData
 
 try:
@@ -8,10 +9,21 @@ except ModuleNotFoundError:
     pass
 
 
-def _get_atom_scopes(graph_index):
+def _get_atom_scopes(graph_index: ArrayLike) -> List[List[int]]:
     """Atom scope is a list of tuples with a single entry for every
     molecule in the batched graph. The entry indicates the beginning
     node index for a molecule and the number of nodes in the molecule.
+
+    Parameters
+    ----------
+    graph_index: np.array
+        An array containing a mapping between node index and the graph
+    in the batched graph.
+
+    Returns
+    -------
+    scopes: List[List[int]]
+        Node index scope for each molecule in the batched graph.
 
     Example
     -------
@@ -29,10 +41,24 @@ def _get_atom_scopes(graph_index):
     return scopes
 
 
-def _get_bond_scopes(edge_index, graph_index):
+def _get_bond_scopes(edge_index: ArrayLike,
+                     graph_index: ArrayLike) -> List[List[int]]:
     """Bond scope is a list of tuples with a single entry for every molecule
     in the batched graph. The entry indicates the beginning bond index for a
     molecule and the number of bonds in the molecule.
+
+    Parameters
+    ----------
+    edge_index: np.array
+        Graph connectivity in COO format with shape [2, num_edges]
+    graph_index: np.array
+        An array containing a mapping between node index and the graph
+    in the batched graph.
+
+    Returns
+    -------
+    scopes: List[List[int]]
+        Bond index scope for each molecule in the batched graph.
 
     Example
     -------
@@ -50,10 +76,20 @@ def _get_bond_scopes(edge_index, graph_index):
     return scopes
 
 
-def _compute_b2revb(edge_index):
+def _compute_b2revb(edge_index: ArrayLike) -> List[int]:
     """Every edge in a grover graph is a directed edge. Hence, a bond
     is represented by two edges of opposite directions. b2revb is a representation
     which stores for every edge, the index of reverse edge of that edge.
+
+    Parameters
+    ----------
+    edge_index: np.array
+        Graph connectivity in COO format with shape [2, num_edges]
+
+    Returns
+    -------
+    b2revb: List[int]
+        A mapping where an element at an index contains the index of the reverse bond.
 
     Example
     -------
@@ -70,8 +106,20 @@ def _compute_b2revb(edge_index):
     return b2revb
 
 
-def _get_a2b(n_atoms, edge_index):
-    """a2b is a mapping between atoms and their incoming bonds
+def _get_a2b(n_atoms: int, edge_index: ArrayLike) -> ArrayLike:
+    """a2b is a mapping between atoms and their incoming bonds.
+
+    Parameters
+    ----------
+    n_atoms: int
+        Number of atoms
+    edge_index: np.array
+        Graph connectivity in COO format with shape [2, num_edges]
+
+    Returns
+    -------
+    a2b: ArrayLike
+        A mapping between atoms and their incoming bonds
 
     Example
     -------
@@ -100,10 +148,15 @@ def _get_a2b(n_atoms, edge_index):
 def extract_grover_attributes(molgraph: BatchGraphData):
     """Utility to extract grover attributes for grover model
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     molgraph: BatchGraphData
         A batched graph data representing a collection of molecules.
+
+    Returns
+    -------
+    graph_attributes: Tuple
+        A tuple containing atom features, bond features, atom to bond mapping, bond to atom mapping, bond to reverse bond mapping, atom to atom mapping, atom scope, bond scope, functional group labels and other additional features.
 
     Example
     -------
