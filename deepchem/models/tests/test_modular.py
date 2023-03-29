@@ -157,7 +157,7 @@ def test_load_freeze_unfreeze():
     d_hidden = 3
     n_layers = 1
     ft_tasks = 6
-    pt_tasks = 3
+    pt_tasks = 6
 
     X_ft = np.random.rand(n_samples, n_feat)
     y_ft = np.random.rand(n_samples, ft_tasks).astype(np.float32)
@@ -176,8 +176,8 @@ def test_load_freeze_unfreeze():
 
     example_pretrainer.fit(dataset_pt, nb_epoch=1000)
 
-    example_model.load_pretrained_components(source_model=example_pretrainer,
-                                             components=['encoder'])
+    example_model.load_from_pretrained(model_dir=example_pretrainer.model_dir,
+                                       components=['encoder'])
 
     example_model.freeze_components(['encoder'])
 
