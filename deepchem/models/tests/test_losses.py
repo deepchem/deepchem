@@ -486,3 +486,34 @@ class TestLosses(unittest.TestCase):
             result = get_negative_expectation(q_samples,
                                               measure).detach().numpy()
             assert np.allclose(result, expected, atol=1e-6)
+
+    @pytest.mark.torch
+    def test_grover_pretrain_loss(self):
+        import torch
+        from deepchem.models.losses import GroverPretrainLoss
+        loss = GroverPretrainLoss()
+        loss_fn = loss._create_pytorch_loss()
+        batch_size = 3
+        output_dim = 10
+        fg_size = 8
+        atom_vocab_task_target = torch.ones(batch_size).type(torch.int64)
+        bond_vocab_task_target = torch.ones(batch_size).type(torch.int64)
+        fg_task_target = torch.ones(batch_size, fg_size)
+        atom_vocab_task_atom_pred = torch.zeros(batch_size, output_dim)
+        bond_vocab_task_atom_pred = torch.zeros(batch_size, output_dim)
+        atom_vocab_task_bond_pred = torch.zeros(batch_size, output_dim)
+        bond_vocab_task_bond_pred = torch.zeros(batch_size, output_dim)
+        fg_task_atom_from_atom = torch.zeros(batch_size, fg_size)
+        fg_task_atom_from_bond = torch.zeros(batch_size, fg_size)
+        fg_task_bond_from_atom = torch.zeros(batch_size, fg_size)
+        fg_task_bond_from_bond = torch.zeros(batch_size, fg_size)
+
+        result = loss_fn(atom_vocab_task_atom_pred, atom_vocab_task_bond_pred,
+                         bond_vocab_task_atom_pred, bond_vocab_task_bond_pred,
+                         fg_task_atom_from_atom, fg_task_atom_from_bond,
+                         fg_task_bond_from_atom, fg_task_bond_from_bond,
+                         atom_vocab_task_target, bond_vocab_task_target,
+                         fg_task_target)
+
+        expected_result = torch.tensor(2.7726)
+        assert torch.allclose(result, expected_result)

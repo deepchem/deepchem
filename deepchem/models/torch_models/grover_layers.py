@@ -262,6 +262,8 @@ class GroverFunctionalGroupPredictor(nn.Module):
         """
         preds_atom_from_atom, preds_atom_from_bond, preds_bond_from_atom, preds_bond_from_bond = None, None, None, None
 
+        # TODO remove if condition
+        # see https://github.com/deepchem/deepchem/pull/3300
         if embeddings["bond_from_atom"] is not None:
             preds_bond_from_atom = self.linear_bond_from_atom(
                 self.readout(embeddings["bond_from_atom"], bond_scope))
@@ -722,6 +724,7 @@ class GroverTransEncoder(nn.Module):
         enables the skip-connection in MTBlock.
     """
 
+    # TODO Clean above docstring
     def __init__(self,
                  node_fdim: int,
                  edge_fdim: int,
@@ -885,6 +888,8 @@ class GroverTransEncoder(nn.Module):
             return atom_in_bond_out, bond_in_bond_out
 
     def forward(self, batch):
+        # TODO Add return type and input parameters docstring
+        # TODO Add docstring on how atom_embeddings and bond_embeddings are generated
         f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a = batch
 
         node_batch = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
