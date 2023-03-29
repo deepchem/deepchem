@@ -1,11 +1,8 @@
 from abc import abstractmethod
 from typing import Union
-try:
-    import torch
-    from dqc.utils.datastruct import ValGrad, SpinParam
-    from dqc.api.getxc import get_xc
-except ModuleNotFoundError:
-    pass
+import torch
+from dqc.utils.datastruct import ValGrad, SpinParam
+from dqc.api.getxc import get_xc
 
 
 class BaseNNXC(torch.nn.Module):
