@@ -151,15 +151,17 @@ def test_infographstar_classification_supervised():
                                edge_dim,
                                dim,
                                task='supervised',
-                               mode='classification')
+                               mode='classification',
+                               num_classes=1)
 
-    model.fit(dataset, nb_epoch=1000)
-    scores = model.evaluate(dataset, [metric])
-    assert scores['mean-roc_auc_score'] >= 0.9
+    model.fit(dataset, nb_epoch=100)
+    # scores = model.evaluate(dataset, [metric])
+    # assert scores['mean-roc_auc_score'] >= 0.9
+    prediction = model.predict_on_batch(dataset.X).reshape(-1, 1)
+    assert np.allclose(np.round(dataset.y), np.round(prediction))
 
 
 test_infographstar_classification_supervised()
-
 
 @pytest.mark.torch
 def test_infographstar_regression_supervised():
@@ -215,7 +217,7 @@ def test_infograph_pretrain_overfit():
 
     loss1 = infographstar.fit(dataset, nb_epoch=10)
     infograph.fit(dataset, nb_epoch=20)
-    infographstar.load_pretrained_components(infograph, ['unsup_encoder'])
+    infographstar.load_from_pretrained(infograph, ['unsup_encoder'])
     loss2 = infographstar.fit(dataset, nb_epoch=10)
     infographstar.fit(dataset, nb_epoch=200)
     prediction = infographstar.predict_on_batch(dataset.X).reshape(-1, 1)

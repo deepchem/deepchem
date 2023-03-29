@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import GRU, Linear, ReLU, Sequential
 
-from deepchem.models.losses import CategoricalCrossEntropy
+from deepchem.models.losses import CategoricalCrossEntropy, SparseSoftmaxCrossEntropy
 from deepchem.feat.graph_data import BatchGraphData
 from deepchem.models.losses import (
     GlobalMutualInformationLoss,
@@ -535,7 +535,7 @@ class InfoGraphStarModel(ModularTorchModel):
             self.output_dim = 1
         elif self.mode == 'classification':
             self.output_dim = num_classes
-            self.class_loss = CategoricalCrossEntropy()._create_pytorch_loss()
+            self.class_loss = SparseSoftmaxCrossEntropy()._create_pytorch_loss()
         if self.task == 'supervised':
             self.embedding_dim = embedding_dim
         elif self.task == 'semisupervised':
@@ -649,8 +649,8 @@ class InfoGraphStarModel(ModularTorchModel):
         return InfoGraphStar(**self.components)
 
     def loss_func(self, inputs, labels, weights):
+        sup_loss = self.sup_loss(inputs, labels)
         if self.task == 'semisupervised':
-            sup_loss = F.mse_loss(self.model(inputs), labels)
             local_unsup_loss = self.local_unsup_loss(inputs)
             global_unsup_loss = self.global_unsup_loss(inputs, labels, weights)
             loss = sup_loss + local_unsup_loss + global_unsup_loss * self.learning_rate
@@ -658,15 +658,19 @@ class InfoGraphStarModel(ModularTorchModel):
             # loss = sup_loss + local_unsup_loss * self.learning_rate
             return (loss * weights).mean()
         else:
-            if self.mode == 'regression':
-                sup_loss = F.mse_loss(self.model(inputs), labels)
-                return (sup_loss * weights).mean()
-            elif self.mode == 'classification':
-                # out = self.model(inputs)
-                # logits = out.view(-1, self.output_dim)
-                # proba = F.softmax(logits, dim=1)
-                sup_loss = self.class_loss(self.model(inputs), labels)
-                return (sup_loss * weights).mean()
+            return (sup_loss * weights).mean()
+            # return sup_loss
+
+    def sup_loss(self, inputs, labels):
+        if self.mode == 'regression':
+            sup_loss = F.mse_loss(self.model(inputs), labels)
+        elif self.mode == 'classification':
+            out = self.model(inputs)
+            # proba = torch.softmax(out, dim=1)
+            logits = out.view(-1, self.output_dim)
+            proba = F.softmax(logits, dim=1)
+            sup_loss = self.class_loss(out, labels)
+        return sup_loss
 
     def local_unsup_loss(self, inputs):
         if self.task == 'semisupervised':
