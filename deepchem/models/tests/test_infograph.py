@@ -22,6 +22,24 @@ def get_classification_dataset():
     return dataset, metric
 
 
+@pytest.mark.torch
+def get_multitask_dataset():
+    np.random.seed(123)
+    featurizer = MolGraphConvFeaturizer(use_edges=True)
+    dir = os.path.dirname(os.path.abspath(__file__))
+
+    input_file = os.path.join(dir, 'assets/multitask_example.csv')
+    loader = dc.data.CSVLoader(tasks=['task0', 'task1', 'task2'],
+                               feature_field="smiles",
+                               featurizer=featurizer)
+    dataset = loader.create_dataset(input_file)
+    # dataset.w = np.ones((len(dataset), 3))
+    metric = dc.metrics.Metric(dc.metrics.roc_auc_score,
+                               np.mean,
+                               mode="classification")
+    return dataset, metric
+
+
 def get_regression_dataset():
     np.random.seed(123)
     featurizer = MolGraphConvFeaturizer(use_edges=True)
@@ -142,11 +160,7 @@ def test_infographstar_classification_semisupervised():
 @pytest.mark.torch
 def test_infographstar_classification_supervised():
     from deepchem.models.torch_models.infograph import InfoGraphStarModel
-    # import deepchem as dc
-    dataset, metric = get_classification_dataset()
-    dataset = dc.molnet.load_tox21()
-    feat = MolGraphConvFeaturizer(use_edges=True)
-    dataset = feat.featurize(dataset)
+    dataset, metric = get_multitask_dataset()
     num_feat = 30
     edge_dim = 11
     dim = 64
@@ -155,17 +169,14 @@ def test_infographstar_classification_supervised():
                                edge_dim,
                                dim,
                                task='supervised',
-                               mode='regression',
-                               num_classes=1)
+                               mode='classification',
+                               num_classes=2,
+                               num_tasks=3)
 
-    model.fit(dataset, nb_epoch=10)
-    # scores = model.evaluate(dataset, [metric])
-    # assert scores['mean-roc_auc_score'] >= 0.9
-    prediction = model.predict_on_batch(dataset.X).reshape(-1, 1)
-    assert np.allclose(np.round(dataset.y), np.round(prediction))
+    model.fit(dataset, nb_epoch=200)
+    scores = model.evaluate(dataset, [metric])
+    assert scores['mean-roc_auc_score'] >= 0.9)
 
-
-test_infographstar_classification_supervised()
 
 @pytest.mark.torch
 def test_infographstar_regression_supervised():

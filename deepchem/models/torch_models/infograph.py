@@ -2,9 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import GRU, Linear, ReLU, Sequential
+from typing import Iterable, List, Tuple
+from deepchem.metrics import to_one_hot
 
 import deepchem as dc
-from deepchem.models.losses import CategoricalCrossEntropy, SparseSoftmaxCrossEntropy
+from deepchem.models.losses import SoftmaxCrossEntropy
 from deepchem.feat.graph_data import BatchGraphData
 from deepchem.models.losses import (
     GlobalMutualInformationLoss,
@@ -323,20 +325,20 @@ class InfoGraphModel(ModularTorchModel):
         """
         return {
             'encoder':
-                GINEncoder(self.num_features, self.embedding_dim,
-                           self.num_gc_layers),
+            GINEncoder(self.num_features, self.embedding_dim,
+                       self.num_gc_layers),
             'local_d':
-                MultilayerPerceptron(self.embedding_dim,
-                                     self.embedding_dim, (self.embedding_dim,),
-                                     skip_connection=True),
+            MultilayerPerceptron(self.embedding_dim,
+                                 self.embedding_dim, (self.embedding_dim,),
+                                 skip_connection=True),
             'global_d':
-                MultilayerPerceptron(self.embedding_dim,
-                                     self.embedding_dim, (self.embedding_dim,),
-                                     skip_connection=True),
+            MultilayerPerceptron(self.embedding_dim,
+                                 self.embedding_dim, (self.embedding_dim,),
+                                 skip_connection=True),
             'prior_d':
-                MultilayerPerceptron(self.embedding_dim,
-                                     1, (self.embedding_dim,),
-                                     activation_fn='sigmoid')
+            MultilayerPerceptron(self.embedding_dim,
+                                 1, (self.embedding_dim,),
+                                 activation_fn='sigmoid')
         }
 
     def build_model(self) -> nn.Module:
@@ -519,7 +521,7 @@ class InfoGraphStarModel(ModularTorchModel):
                  embedding_dim,
                  task='supervised',
                  mode='regression',
-                 num_classes=1,
+                 num_classes=2,
                  num_tasks=1,
                  measure='JSD',
                  average_loss=True,
@@ -533,12 +535,14 @@ class InfoGraphStarModel(ModularTorchModel):
         self.num_features = num_features
         self.task = task
         self.mode = mode
+        self.num_classes = num_classes
         if self.mode == 'regression':
             self.output_dim = 1
+            # self.output_dim = num_tasks TODO test
         elif self.mode == 'classification':
-            self.output_dim = num_classes
             self.num_tasks = num_tasks
-            self.class_loss = dc.models.losses.SoftmaxCrossEntropy()._create_pytorch_loss()
+            self.output_dim = num_classes * num_tasks
+            self.class_loss = SoftmaxCrossEntropy()._create_pytorch_loss()
         if self.task == 'supervised':
             self.embedding_dim = embedding_dim
         elif self.task == 'semisupervised':
@@ -586,63 +590,56 @@ class InfoGraphStarModel(ModularTorchModel):
         if self.task == 'supervised':
             return {
                 'encoder':
-                    InfoGraphEncoder(self.num_features, self.edge_features,
-                                     self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
                 'unsup_encoder':
-                    InfoGraphEncoder(self.num_features, self.edge_features,
-                                     self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
                 'ff1':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim,)),
                 'ff2':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim,)),
                 'fc1':
-                    torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
-                    torch.nn.Linear(self.embedding_dim, self.output_dim),
+                torch.nn.Linear(self.embedding_dim, self.output_dim),
                 'local_d':
-                    MultilayerPerceptron(self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True),
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True),
                 'global_d':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True)
+                MultilayerPerceptron(2 * self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True)
             }
         elif self.task == 'semisupervised':
             return {
                 'encoder':
-                    InfoGraphEncoder(self.num_features, self.edge_features,
-                                     self.embedding_dim),
+                InfoGraphEncoder(self.num_features, self.edge_features,
+                                 self.embedding_dim),
                 'unsup_encoder':
-                    GINEncoder(self.num_features, self.embedding_dim,
-                               self.num_gc_layers),
+                GINEncoder(self.num_features, self.embedding_dim,
+                           self.num_gc_layers),
                 'ff1':
-                    MultilayerPerceptron(2 * self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim,)),
                 'ff2':
-                    MultilayerPerceptron(self.embedding_dim, self.embedding_dim,
-                                         (self.embedding_dim,)),
+                MultilayerPerceptron(self.embedding_dim, self.embedding_dim,
+                                     (self.embedding_dim,)),
                 'fc1':
-                    torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
-                    torch.nn.Linear(self.embedding_dim, self.output_dim),
+                torch.nn.Linear(self.embedding_dim, self.output_dim),
                 'local_d':
-                    MultilayerPerceptron(self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True),
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True),
                 'global_d':
-                    MultilayerPerceptron(self.embedding_dim,
-                                         self.embedding_dim,
-                                         (self.embedding_dim,),
-                                         skip_connection=True)
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True)
             }
 
     def build_model(self):
@@ -671,12 +668,12 @@ class InfoGraphStarModel(ModularTorchModel):
         elif self.mode == 'classification':
             out = self.model(inputs)
             # proba = torch.softmax(out, dim=1)
-            logits = torch.reshape(out, (-1, self.output_dim))
-            # logits = torch.reshape(out, (-1, self.num_tasks, self.output_dim))
+            # logits = torch.reshape(out, (-1, self.output_dim))
+            logits = torch.reshape(out, (-1, self.num_tasks, self.num_classes))
 
-            output = F.softmax(logits, dim=1)
-            # sup_loss = self.class_loss(output, labels)
-            sup_loss = F.mse_loss(output, labels)
+            output = F.softmax(logits, dim=2)
+            sup_loss = self.class_loss(output, labels)
+            # sup_loss = F.mse_loss(out, labels)
         return sup_loss
 
     def local_unsup_loss(self, inputs):
@@ -716,3 +713,30 @@ class InfoGraphStarModel(ModularTorchModel):
             weights = weights[0]
 
         return inputs, labels, weights
+
+    def default_generator(
+            self,
+            dataset: dc.data.Dataset,
+            epochs: int = 1,
+            mode: str = 'fit',
+            deterministic: bool = True,
+            pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
+        if self.mode == 'classification':
+            for epoch in range(epochs):
+                for (X_b, y_b, w_b,
+                     ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                                   deterministic=deterministic,
+                                                   pad_batches=pad_batches):
+                    if y_b is not None:
+                        y_b = to_one_hot(y_b.flatten(),
+                                         self.num_classes).reshape(
+                                             -1, self.num_tasks,
+                                             self.num_classes)
+                    yield ([X_b], [y_b], [w_b])
+        else:
+            for epoch in range(epochs):
+                for (X_b, y_b, w_b,
+                     ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                                   deterministic=deterministic,
+                                                   pad_batches=pad_batches):
+                    yield ([X_b], [y_b], [w_b])
