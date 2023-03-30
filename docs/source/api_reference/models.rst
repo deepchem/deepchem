@@ -102,6 +102,9 @@ Losses
 .. autoclass:: deepchem.models.losses.LocalMutualInformationLoss
   :members:
 
+.. autoclass:: deepchem.models.losses.GroverPretrainLoss
+  :members:
+
 Optimizers
 ----------
 
