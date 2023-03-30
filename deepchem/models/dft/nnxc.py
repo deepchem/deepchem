@@ -7,6 +7,7 @@ try:
     has_dqc = True
 except ModuleNotFoundError:
     has_dqc = False
+    pass
 
 
 class BaseNNXC(torch.nn.Module):
