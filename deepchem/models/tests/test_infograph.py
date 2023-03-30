@@ -33,7 +33,6 @@ def get_multitask_dataset():
                                feature_field="smiles",
                                featurizer=featurizer)
     dataset = loader.create_dataset(input_file)
-    # dataset.w = np.ones((len(dataset), 3))
     metric = dc.metrics.Metric(dc.metrics.roc_auc_score,
                                np.mean,
                                mode="classification")
