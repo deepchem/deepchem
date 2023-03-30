@@ -196,3 +196,31 @@ class GNN_graphpred(torch.nn.Module):
         node_representation = self.gnn(x, edge_index, edge_attr)
 
         return self.graph_pred_linear(self.pool(node_representation, batch))
+    
+
+# masking mode training code    
+criterion = nn.BCEWithLogitsLoss()
+
+def train(args, model, device, loader, optimizer):
+    model.train()
+
+    train_acc_accum = 0
+    train_loss_accum = 0
+
+    for step, batch in enumerate(tqdm(loader, desc="Iteration")):
+        batch = batch.to(device)
+        node_emb = model(batch.x, batch.edge_index, batch.edge_attr)
+
+        positive_score = torch.sum(node_emb[batch.edge_index[0, ::2]] * node_emb[batch.edge_index[1, ::2]], dim = 1)
+        negative_score = torch.sum(node_emb[batch.negative_edge_index[0]] * node_emb[batch.negative_edge_index[1]], dim = 1)
+
+        optimizer.zero_grad()
+        loss = criterion(positive_score, torch.ones_like(positive_score)) + criterion(negative_score, torch.zeros_like(negative_score))
+        loss.backward()
+        optimizer.step()
+
+        train_loss_accum += float(loss.detach().cpu().item())
+        acc = (torch.sum(positive_score > 0) + torch.sum(negative_score < 0)).to(torch.float32)/float(2*len(positive_score))
+        train_acc_accum += float(acc.detach().cpu().item())
+
+    return train_acc_accum/step, train_loss_accum/step
