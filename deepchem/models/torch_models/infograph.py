@@ -545,8 +545,7 @@ class InfoGraphStarModel(ModularTorchModel):
         self.mode = mode
         self.num_classes = num_classes
         if self.mode == 'regression':
-            self.output_dim = 1
-            # self.output_dim = num_tasks TODO test
+            self.output_dim = num_tasks
         elif self.mode == 'classification':
             self.num_tasks = num_tasks
             self.output_dim = num_classes * num_tasks
@@ -736,22 +735,14 @@ class InfoGraphStarModel(ModularTorchModel):
             mode: str = 'fit',
             deterministic: bool = True,
             pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
-        if self.mode == 'classification':
-            for epoch in range(epochs):
-                for (X_b, y_b, w_b,
-                     ids_b) in dataset.iterbatches(batch_size=self.batch_size,
-                                                   deterministic=deterministic,
-                                                   pad_batches=pad_batches):
-                    if y_b is not None:
-                        y_b = to_one_hot(y_b.flatten(),
-                                         self.num_classes).reshape(
-                                             -1, self.num_tasks,
-                                             self.num_classes)
-                    yield ([X_b], [y_b], [w_b])
-        else:
-            for epoch in range(epochs):
-                for (X_b, y_b, w_b,
-                     ids_b) in dataset.iterbatches(batch_size=self.batch_size,
-                                                   deterministic=deterministic,
-                                                   pad_batches=pad_batches):
-                    yield ([X_b], [y_b], [w_b])
+        for epoch in range(epochs):
+            for (X_b, y_b, w_b,
+                 ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                               deterministic=deterministic,
+                                               pad_batches=pad_batches):
+                if self.mode == 'classification' and y_b is not None:
+                    y_b = to_one_hot(y_b.flatten(),
+                                        self.num_classes).reshape(
+                                            -1, self.num_tasks,
+                                            self.num_classes)
+                yield ([X_b], [y_b], [w_b])
