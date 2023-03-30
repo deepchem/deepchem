@@ -197,7 +197,7 @@ def test_infographstar_multitask_classification_supervised():
                                num_classes=2,
                                num_tasks=3)
 
-    model.fit(dataset, nb_epoch=50)
+    model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
     assert scores['mean-roc_auc_score'] >= 0.9
 
