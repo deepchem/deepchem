@@ -16,7 +16,6 @@ from collections.abc import Callable
 
 class BaseSCF(torch.nn.Module):
     """
-    Object containing trainable parameters and the interface to the NN models.
     """
 
     @abstractmethod
@@ -42,8 +41,6 @@ class XCNNSCF(BaseSCF):
     Prameters
     ---------
     entries:Dict
-        The entries are used to prepare buffer. The buffers are used to store
-    density matrices across training epochs.
     """
 
     def __init__(self,
@@ -69,8 +66,6 @@ class XCNNSCF(BaseSCF):
         return "dm0_" + hashstr(str(obj))
 
 
-#    def _get_dm0(self, system: DFTSystem) -> \
-#        Tuple[Union[None, torch.Tensor, SpinParam[torch.Tensor]], Optional[str]]:
     def _get_dm0(self, system: DFTSystem):
         dm_name = self._dm0_name(system)
         dm0: torch.Tensor = getattr(self, dm_name, None)
