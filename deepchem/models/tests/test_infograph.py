@@ -140,8 +140,6 @@ def test_infographstar_regression_semisupervised():
     assert scores['mean_absolute_error'] < 0.1
 
 
-# test_infographstar_regression_semisupervised()
-
 @pytest.mark.torch
 def test_infographstar_classification_semisupervised():
     from deepchem.models.torch_models.infograph import InfoGraphStarModel
@@ -180,8 +178,6 @@ def test_infographstar_classification_supervised():
     scores = model.evaluate(dataset, [metric])
     assert scores['mean-roc_auc_score'] >= 0.9
 
-
-test_infographstar_classification_supervised()
 
 @pytest.mark.torch
 def test_infographstar_regression_supervised():

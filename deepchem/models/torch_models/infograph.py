@@ -325,20 +325,20 @@ class InfoGraphModel(ModularTorchModel):
         """
         return {
             'encoder':
-            GINEncoder(self.num_features, self.embedding_dim,
-                       self.num_gc_layers),
+                GINEncoder(self.num_features, self.embedding_dim,
+                           self.num_gc_layers),
             'local_d':
-            MultilayerPerceptron(self.embedding_dim,
-                                 self.embedding_dim, (self.embedding_dim,),
-                                 skip_connection=True),
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True),
             'global_d':
-            MultilayerPerceptron(self.embedding_dim,
-                                 self.embedding_dim, (self.embedding_dim,),
-                                 skip_connection=True),
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True),
             'prior_d':
-            MultilayerPerceptron(self.embedding_dim,
-                                 1, (self.embedding_dim,),
-                                 activation_fn='sigmoid')
+                MultilayerPerceptron(self.embedding_dim,
+                                     1, (self.embedding_dim,),
+                                     activation_fn='sigmoid')
         }
 
     def build_model(self) -> nn.Module:
@@ -598,56 +598,63 @@ class InfoGraphStarModel(ModularTorchModel):
         if self.task == 'supervised':
             return {
                 'encoder':
-                InfoGraphEncoder(self.num_features, self.edge_features,
-                                 self.embedding_dim),
+                    InfoGraphEncoder(self.num_features, self.edge_features,
+                                     self.embedding_dim),
                 'unsup_encoder':
-                InfoGraphEncoder(self.num_features, self.edge_features,
-                                 self.embedding_dim),
+                    InfoGraphEncoder(self.num_features, self.edge_features,
+                                     self.embedding_dim),
                 'ff1':
-                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
-                                     (self.embedding_dim,)),
+                    MultilayerPerceptron(2 * self.embedding_dim,
+                                         self.embedding_dim,
+                                         (self.embedding_dim,)),
                 'ff2':
-                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
-                                     (self.embedding_dim,)),
+                    MultilayerPerceptron(2 * self.embedding_dim,
+                                         self.embedding_dim,
+                                         (self.embedding_dim,)),
                 'fc1':
-                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+                    torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
-                torch.nn.Linear(self.embedding_dim, self.output_dim),
+                    torch.nn.Linear(self.embedding_dim, self.output_dim),
                 'local_d':
-                MultilayerPerceptron(self.embedding_dim,
-                                     self.embedding_dim, (self.embedding_dim,),
-                                     skip_connection=True),
+                    MultilayerPerceptron(self.embedding_dim,
+                                         self.embedding_dim,
+                                         (self.embedding_dim,),
+                                         skip_connection=True),
                 'global_d':
-                MultilayerPerceptron(2 * self.embedding_dim,
-                                     self.embedding_dim, (self.embedding_dim,),
-                                     skip_connection=True)
+                    MultilayerPerceptron(2 * self.embedding_dim,
+                                         self.embedding_dim,
+                                         (self.embedding_dim,),
+                                         skip_connection=True)
             }
         elif self.task == 'semisupervised':
             return {
                 'encoder':
-                InfoGraphEncoder(self.num_features, self.edge_features,
-                                 self.embedding_dim),
+                    InfoGraphEncoder(self.num_features, self.edge_features,
+                                     self.embedding_dim),
                 'unsup_encoder':
-                GINEncoder(self.num_features, self.embedding_dim,
-                           self.num_gc_layers),
+                    GINEncoder(self.num_features, self.embedding_dim,
+                               self.num_gc_layers),
                 'ff1':
-                MultilayerPerceptron(2 * self.embedding_dim, self.embedding_dim,
-                                     (self.embedding_dim,)),
+                    MultilayerPerceptron(2 * self.embedding_dim,
+                                         self.embedding_dim,
+                                         (self.embedding_dim,)),
                 'ff2':
-                MultilayerPerceptron(self.embedding_dim, self.embedding_dim,
-                                     (self.embedding_dim,)),
+                    MultilayerPerceptron(self.embedding_dim, self.embedding_dim,
+                                         (self.embedding_dim,)),
                 'fc1':
-                torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
+                    torch.nn.Linear(2 * self.embedding_dim, self.embedding_dim),
                 'fc2':
-                torch.nn.Linear(self.embedding_dim, self.output_dim),
+                    torch.nn.Linear(self.embedding_dim, self.output_dim),
                 'local_d':
-                MultilayerPerceptron(self.embedding_dim,
-                                     self.embedding_dim, (self.embedding_dim,),
-                                     skip_connection=True),
+                    MultilayerPerceptron(self.embedding_dim,
+                                         self.embedding_dim,
+                                         (self.embedding_dim,),
+                                         skip_connection=True),
                 'global_d':
-                MultilayerPerceptron(self.embedding_dim,
-                                     self.embedding_dim, (self.embedding_dim,),
-                                     skip_connection=True)
+                    MultilayerPerceptron(self.embedding_dim,
+                                         self.embedding_dim,
+                                         (self.embedding_dim,),
+                                         skip_connection=True)
             }
 
     def build_model(self):
@@ -657,7 +664,10 @@ class InfoGraphStarModel(ModularTorchModel):
         if self.mode == 'regression':
             return InfoGraphStar(**self.components,)
         elif self.mode == 'classification':
-            return InfoGraphStar(**self.components, mode=self.mode, num_tasks=self.num_tasks, num_classes=self.num_classes)
+            return InfoGraphStar(**self.components,
+                                 mode=self.mode,
+                                 num_tasks=self.num_tasks,
+                                 num_classes=self.num_classes)
 
     def loss_func(self, inputs, labels, weights):
         sup_loss = self.sup_loss(inputs, labels)
@@ -670,7 +680,6 @@ class InfoGraphStarModel(ModularTorchModel):
             return (loss * weights).mean()
         else:
             return (sup_loss * weights).mean()
-            # return sup_loss
 
     def sup_loss(self, inputs, labels):
         if self.mode == 'regression':
@@ -678,13 +687,8 @@ class InfoGraphStarModel(ModularTorchModel):
             sup_loss = F.mse_loss(out, labels)
         elif self.mode == 'classification':
             out = self.model(inputs)
-            # proba = torch.softmax(out, dim=1)
-            # logits = torch.reshape(out, (-1, self.output_dim))
-            # logits = torch.reshape(out, (-1, self.num_tasks, self.num_classes))
-
-            output = F.softmax(out, dim=2)
-            sup_loss = self.class_loss(output, labels)
-            # sup_loss = F.mse_loss(out, labels)
+            out = F.softmax(out, dim=2)
+            sup_loss = self.class_loss(out, labels)
         return sup_loss
 
     def local_unsup_loss(self, inputs):
