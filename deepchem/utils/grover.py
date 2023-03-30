@@ -37,7 +37,9 @@ def _get_atom_scopes(graph_index: ArrayLike) -> List[List[int]]:
     scopes = []
     for mol in mols:
         positions = np.where(graph_index == mol, 1, 0)
-        scopes.append([np.argmax(positions), np.count_nonzero(positions)])
+        scopes.append(
+            [int(np.argmax(positions)),
+             int(np.count_nonzero(positions))])
     return scopes
 
 
@@ -72,7 +74,9 @@ def _get_bond_scopes(edge_index: ArrayLike,
     scopes = []
     for mol in mols:
         positions = np.where(bond_index == mol, 1, 0)
-        scopes.append([np.argmax(positions), np.count_nonzero(positions)])
+        scopes.append(
+            [int(np.argmax(positions)),
+             int(np.count_nonzero(positions))])
     return scopes
 
 
@@ -98,7 +102,7 @@ def _compute_b2revb(edge_index: ArrayLike) -> List[int]:
     >>> _compute_b2revb(edge_index)
     [1, 0, 3, 2]
     """
-    b2revb = [0] * len(edge_index[0])
+    b2revb = [0] * edge_index.shape[1]
     for i, bond in enumerate(edge_index.T):
         for j, (sa, da) in enumerate(edge_index.T):
             if sa == bond[1] and da == bond[0]:
@@ -106,7 +110,7 @@ def _compute_b2revb(edge_index: ArrayLike) -> List[int]:
     return b2revb
 
 
-def _get_a2b(n_atoms: int, edge_index: ArrayLike) -> ArrayLike:
+def _get_a2b(n_atoms: int, edge_index: np.ndarray) -> np.ndarray:
     """a2b is a mapping between atoms and their incoming bonds.
 
     Parameters
@@ -139,10 +143,10 @@ def _get_a2b(n_atoms: int, edge_index: ArrayLike) -> ArrayLike:
 
     # padding
     max_num_bonds = max(map(lambda x: len(x), a2b))
-    a2b = np.asarray(
+    atom_bond_mapping = np.asarray(
         [a2b[a] + [0] * (max_num_bonds - len(a2b[a])) for a in range(n_atoms)])
 
-    return a2b
+    return atom_bond_mapping
 
 
 def extract_grover_attributes(molgraph: BatchGraphData):
