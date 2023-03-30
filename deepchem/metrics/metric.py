@@ -622,8 +622,6 @@ class Metric(object):
         # check whether n_tasks is int or not
         # This is because `normalize_weight_shape` require int value.
         assert isinstance(n_tasks, int)
-        if n_classes > 1:  # classification
-            y_pred_arr = np.reshape(y_pred_arr, (-1, n_tasks, n_classes))
 
         y_true_arr = normalize_labels_shape(y_true_arr,
                                             mode=self.mode,

@@ -425,6 +425,9 @@ class InfoGraphStar(torch.nn.Module):
                  fc2,
                  local_d,
                  global_d,
+                 mode='regression',
+                 num_tasks=1,
+                 num_classes=2,
                  init_emb=False):
         super().__init__()
         self.encoder = encoder
@@ -435,6 +438,9 @@ class InfoGraphStar(torch.nn.Module):
         self.fc2 = fc2
         self.local_d = local_d
         self.global_d = global_d
+        self.mode = mode
+        self.num_tasks = num_tasks
+        self.num_classes = num_classes
         if init_emb:
             self.init_emb()
 
@@ -461,6 +467,8 @@ class InfoGraphStar(torch.nn.Module):
         out, M = self.encoder(data)
         out = F.relu(self.fc1(out))
         pred = self.fc2(out)
+        if self.mode == 'classification':
+            pred = torch.reshape(pred, (-1, self.num_tasks, self.num_classes))
         return pred
 
 
@@ -646,7 +654,10 @@ class InfoGraphStarModel(ModularTorchModel):
         """
         Builds the InfoGraph model by unpacking the components dictionary and passing them to the InfoGraph nn.module.
         """
-        return InfoGraphStar(**self.components)
+        if self.mode == 'regression':
+            return InfoGraphStar(**self.components,)
+        elif self.mode == 'classification':
+            return InfoGraphStar(**self.components, mode=self.mode, num_tasks=self.num_tasks, num_classes=self.num_classes)
 
     def loss_func(self, inputs, labels, weights):
         sup_loss = self.sup_loss(inputs, labels)
@@ -669,9 +680,9 @@ class InfoGraphStarModel(ModularTorchModel):
             out = self.model(inputs)
             # proba = torch.softmax(out, dim=1)
             # logits = torch.reshape(out, (-1, self.output_dim))
-            logits = torch.reshape(out, (-1, self.num_tasks, self.num_classes))
+            # logits = torch.reshape(out, (-1, self.num_tasks, self.num_classes))
 
-            output = F.softmax(logits, dim=2)
+            output = F.softmax(out, dim=2)
             sup_loss = self.class_loss(output, labels)
             # sup_loss = F.mse_loss(out, labels)
         return sup_loss

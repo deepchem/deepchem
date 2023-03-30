@@ -40,6 +40,7 @@ def get_multitask_dataset():
     return dataset, metric
 
 
+@pytest.mark.torch
 def get_regression_dataset():
     np.random.seed(123)
     featurizer = MolGraphConvFeaturizer(use_edges=True)
@@ -139,7 +140,7 @@ def test_infographstar_regression_semisupervised():
     assert scores['mean_absolute_error'] < 0.1
 
 
-test_infographstar_regression_semisupervised()
+# test_infographstar_regression_semisupervised()
 
 @pytest.mark.torch
 def test_infographstar_classification_semisupervised():
@@ -179,6 +180,8 @@ def test_infographstar_classification_supervised():
     scores = model.evaluate(dataset, [metric])
     assert scores['mean-roc_auc_score'] >= 0.9
 
+
+test_infographstar_classification_supervised()
 
 @pytest.mark.torch
 def test_infographstar_regression_supervised():
