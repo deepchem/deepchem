@@ -1,6 +1,9 @@
 import torch
 from torch_geometric.nn import GINConv, GCNConv, GATConv, global_add_pool, global_mean_pool, global_max_pool, Set2Set
+from torch_geometric.nn.aggr import AttentionalAggregation
 from torch.functional import F
+from deepchem.models.torch_models import ModularTorchModel
+from torch_geometric.data import Data
 # from torch_scatter import scatter_add
 # from torch_geometric.nn.inits import glorot, zeros
 
@@ -107,6 +110,124 @@ class GNN(torch.nn.Module):
         return node_representation
 
 
+class GNNModular(ModularTorchModel):
+    """
+    Modular GNN which allows for easy swapping of GNN layers.
+
+    Parameters
+    ----------
+    gnn_type: str
+        The type of GNN layer to use. Must be one of "gin", "gcn", "graphsage", or "gat".
+    num_layer: int
+        The number of GNN layers to use.
+    emb_dim: int
+        The dimensionality of the node embeddings.
+    num_tasks: int
+        The number of tasks.
+    graph_pooling: str
+        The type of graph pooling to use. Must be one of "sum", "mean", "max", "attention" or "set2set".
+
+
+    """
+
+    def __init__(self, gnn_type, num_layer, emb_dim, num_tasks, graph_pooling,
+                 JK, **kwargs):
+        self.gnn_type = gnn_type
+        self.num_layer = num_layer
+        self.emb_dim = emb_dim
+        self.num_tasks = num_tasks
+        self.graph_pooling = graph_pooling
+        self.JK = JK
+        self.criterion = torch.nn.BCEWithLogitsLoss()
+
+        self.components = self.build_components()
+        self.model = self.build_model()
+        super().__init__(self.model, self.components, **kwargs)
+
+    def build_components(self):
+        encoders = []
+        batch_norms = []
+        for layer in range(self.num_layer):
+            if self.gnn_type == "gin":
+                self.encoders.append(GINConv(self.emb_dim, aggr="add"))
+            elif self.gnn_type == "gcn":
+                self.encoders.append(GCNConv(self.emb_dim))
+            elif self.gnn_type == "gat":
+                self.encoders.append(GATConv(self.emb_dim))
+            self.batch_norms.append(torch.nn.BatchNorm1d(self.emb_dim))
+
+        if self.graph_pooling == "sum":
+            pool = global_add_pool
+        elif self.graph_pooling == "mean":
+            pool = global_mean_pool
+        elif self.graph_pooling == "max":
+            pool = global_max_pool
+        elif self.graph_pooling == "attention":
+            if self.JK == "concat":
+                pool = AttentionalAggregation(
+                    gate_nn=torch.nn.Linear((self.num_layer + 1) *
+                                            self.emb_dim, 1))
+            else:
+                pool = AttentionalAggregation(
+                    gate_nn=torch.nn.Linear(self.emb_dim, 1))
+        elif self.graph_pooling == "set2set":
+            set2setiter = 3
+            if self.JK == "concat":
+                pool = Set2Set((self.num_layer + 1) * self.emb_dim, set2setiter)
+            else:
+                pool = Set2Set(self.emb_dim, processing_steps=set2setiter)
+
+        if self.graph_pooling == "set2set":
+            mult = 2
+        else:
+            mult = 1
+
+        if self.JK == "concat":
+            head = torch.nn.Linear(mult * (self.num_layer + 1) * self.emb_dim,
+                                   self.num_tasks)
+        else:
+            head = torch.nn.Linear(mult * self.emb_dim, self.num_tasks)
+
+        return {
+            'atom_type_embedding':
+                torch.nn.Embedding(num_atom_type, self.emb_dim),
+            'chirality_embedding':
+                torch.nn.Embedding(num_chirality_tag, self.emb_dim),
+            'gnn':
+                encoders,
+            'batch_norms':
+                batch_norms,
+            'pool':
+                pool,
+            'head':
+                head
+        }
+
+    def build_model(self):
+        return GNN(**self.components)
+
+    def loss_func(self, inputs, labels, weights):
+        #edge pred
+        batch = inputs.to(self.device)
+        node_emb = model(batch.x, batch.edge_index, batch.edge_attr)  #self.gnn
+
+        positive_score = torch.sum(node_emb[batch.edge_index[0, ::2]] *
+                                   node_emb[batch.edge_index[1, ::2]],
+                                   dim=1)
+        negative_score = torch.sum(node_emb[batch.negative_edge_index[0]] *
+                                   node_emb[batch.negative_edge_index[1]],
+                                   dim=1)
+
+        optimizer.zero_grad()
+        loss = criterion(positive_score,
+                         torch.ones_like(positive_score)) + criterion(
+                             negative_score, torch.zeros_like(negative_score))
+        return (loss * weights[0]).mean()
+
+    def default_generator(self, dataset, epochs=1, **kwargs):
+        return DataLoaderAE(dataset, batch_size=32, shuffle=True)
+
+
 class GNN_graphpred(torch.nn.Module):
     """
     Extension of GIN to incorporate edge information by concatenation.
@@ -180,10 +301,6 @@ class GNN_graphpred(torch.nn.Module):
             self.graph_pred_linear = torch.nn.Linear(self.mult * self.emb_dim,
                                                      self.num_tasks)
 
-    def from_pretrained(self, model_file):
-        #self.gnn = GNN(self.num_layer, self.emb_dim, JK = self.JK, drop_ratio = self.drop_ratio)
-        self.gnn.load_state_dict(torch.load(model_file))
-
     def forward(self, *argv):
         if len(argv) == 4:
             x, edge_index, edge_attr, batch = argv[0], argv[1], argv[2], argv[3]
@@ -196,12 +313,13 @@ class GNN_graphpred(torch.nn.Module):
         node_representation = self.gnn(x, edge_index, edge_attr)
 
         return self.graph_pred_linear(self.pool(node_representation, batch))
-    
 
-# masking mode training code    
-criterion = nn.BCEWithLogitsLoss()
 
-def train(args, model, device, loader, optimizer):
+# edge pred mode training code
+criterion = torch.nn.BCEWithLogitsLoss()
+
+
+def edge_pred(args, model, device, loader, optimizer):
     model.train()
 
     train_acc_accum = 0
@@ -211,16 +329,97 @@ def train(args, model, device, loader, optimizer):
         batch = batch.to(device)
         node_emb = model(batch.x, batch.edge_index, batch.edge_attr)
 
-        positive_score = torch.sum(node_emb[batch.edge_index[0, ::2]] * node_emb[batch.edge_index[1, ::2]], dim = 1)
-        negative_score = torch.sum(node_emb[batch.negative_edge_index[0]] * node_emb[batch.negative_edge_index[1]], dim = 1)
+        positive_score = torch.sum(node_emb[batch.edge_index[0, ::2]] *
+                                   node_emb[batch.edge_index[1, ::2]],
+                                   dim=1)
+        negative_score = torch.sum(node_emb[batch.negative_edge_index[0]] *
+                                   node_emb[batch.negative_edge_index[1]],
+                                   dim=1)
 
         optimizer.zero_grad()
-        loss = criterion(positive_score, torch.ones_like(positive_score)) + criterion(negative_score, torch.zeros_like(negative_score))
+        loss = criterion(positive_score,
+                         torch.ones_like(positive_score)) + criterion(
+                             negative_score, torch.zeros_like(negative_score))
         loss.backward()
         optimizer.step()
 
         train_loss_accum += float(loss.detach().cpu().item())
-        acc = (torch.sum(positive_score > 0) + torch.sum(negative_score < 0)).to(torch.float32)/float(2*len(positive_score))
+        acc = (torch.sum(positive_score > 0) + torch.sum(negative_score < 0)
+               ).to(torch.float32) / float(2 * len(positive_score))
         train_acc_accum += float(acc.detach().cpu().item())
 
-    return train_acc_accum/step, train_loss_accum/step
+    return train_acc_accum / step, train_loss_accum / step
+
+
+class DataLoaderAE(torch.utils.data.DataLoader):
+    r"""Data loader which merges data objects from a
+    :class:`torch_geometric.data.dataset` to a mini-batch.
+    Args:
+        dataset (Dataset): The dataset from which to load the data.
+        batch_size (int, optional): How may samples per batch to load.
+            (default: :obj:`1`)
+        shuffle (bool, optional): If set to :obj:`True`, the data will be
+            reshuffled at every epoch (default: :obj:`True`)
+    """
+
+    def __init__(self, dataset, batch_size=1, shuffle=True, **kwargs):
+        super(DataLoaderAE, self).__init__(
+            dataset,
+            batch_size,
+            shuffle,
+            collate_fn=lambda data_list: BatchAE.from_data_list(data_list),
+            **kwargs)
+
+
+class BatchAE(Data):
+    r"""A plain old python object modeling a batch of graphs as one big
+    (dicconnected) graph. With :class:`torch_geometric.data.Data` being the
+    base class, all its methods can also be used here.
+    In addition, single graphs can be reconstructed via the assignment vector
+    :obj:`batch`, which maps each node to its respective graph identifier.
+    """
+
+    def __init__(self, batch=None, **kwargs):
+        super(BatchAE, self).__init__(**kwargs)
+        self.batch = batch
+
+    @staticmethod
+    def from_data_list(data_list):
+        r"""Constructs a batch object from a python list holding
+        :class:`torch_geometric.data.Data` objects.
+        The assignment vector :obj:`batch` is created on the fly."""
+        keys = [set(data.keys) for data in data_list]
+        keys = list(set.union(*keys))
+        assert 'batch' not in keys
+
+        batch = BatchAE()
+
+        for key in keys:
+            batch[key] = []
+        batch.batch = []
+
+        cumsum_node = 0
+
+        for i, data in enumerate(data_list):
+            num_nodes = data.num_nodes
+            batch.batch.append(torch.full((num_nodes,), i, dtype=torch.long))
+            for key in data.keys:
+                item = data[key]
+                if key in ['edge_index', 'negative_edge_index']:
+                    item = item + cumsum_node
+                batch[key].append(item)
+
+            cumsum_node += num_nodes
+
+        for key in keys:
+            batch[key] = torch.cat(batch[key], dim=batch.cat_dim(key))
+        batch.batch = torch.cat(batch.batch, dim=-1)
+        return batch.contiguous()
+
+    @property
+    def num_graphs(self):
+        """Returns the number of graphs in the batch."""
+        return self.batch[-1].item() + 1
+
+    def cat_dim(self, key):
+        return -1 if key in ["edge_index", "negative_edge_index"] else 0
