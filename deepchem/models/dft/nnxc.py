@@ -1,8 +1,12 @@
 from abc import abstractmethod
 from typing import Union
-import torch
-from dqc.utils.datastruct import ValGrad, SpinParam
-from dqc.api.getxc import get_xc
+try:
+    import torch
+    from dqc.utils.datastruct import ValGrad, SpinParam
+    from dqc.api.getxc import get_xc
+    has_dqc = True
+except ModuleNotFoundError:
+    has_dqc = False
 
 
 class BaseNNXC(torch.nn.Module):
@@ -81,12 +85,12 @@ class NNLDA(BaseNNXC):
 
     Examples
     --------
-    >> from deepchem.models.dft.nnxc import NNLDA
-    >> import torch
-    >> import torch.nn as nn
-    >> n_input, n_hidden = 2, 1
-    >> nnmodel = (nn.Linear(n_input, n_hidden))
-    >> output = NNLDA(nnmodel)
+    >>> from deepchem.models.dft.nnxc import NNLDA
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> n_input, n_hidden = 2, 1
+    >>> nnmodel = (nn.Linear(n_input, n_hidden))
+    >>> output = NNLDA(nnmodel)
 
     References
     ----------
@@ -155,12 +159,12 @@ class HybridXC(BaseNNXC):
 
     Examples
     --------
-    >> from deepchem.models.dft.nnxc import HybridXC
-    >> import torch
-    >> import torch.nn as nn
-    >> n_input, n_hidden = 2, 1
-    >> nnmodel = (nn.Linear(n_input, n_hidden))
-    >> output = HybridXC("lda_x", nnmodel, aweight0=0.0)
+    >>> from deepchem.models.dft.nnxc import HybridXC
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> n_input, n_hidden = 2, 1
+    >>> nnmodel = (nn.Linear(n_input, n_hidden))
+    >>> output = HybridXC("lda_x", nnmodel, aweight0=0.0)
     """
 
     def __init__(self,

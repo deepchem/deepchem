@@ -5,7 +5,7 @@ try:
     from deepchem.utils.dftutils import KSCalc
     import torch
     has_dqc = True
-except:
+except ModuleNotFoundError:
     has_dqc = False
 
 import numpy as np
