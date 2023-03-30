@@ -41,11 +41,7 @@ class GINEncoder(torch.nn.Module):
     >>> edge_index = np.array([[0, 1, 2], [1, 2, 3]])
     >>> edge_features = np.random.randn(3, 10)
     >>> graph_index = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-    >>> data = GraphData(node_features=node_features, edge_index=edge_index, edge_features=edge_features, graph_index=graph_index)
-    >>> data.node_features = torch.from_numpy(data.node_features).float()
-    >>> data.edge_features = torch.from_numpy(data.edge_features).float()
-    >>> data.edge_index = torch.from_numpy(data.edge_index).long()
-    >>> data.graph_index = torch.from_numpy(data.graph_index).long()
+    >>> data = GraphData(node_features=node_features, edge_index=edge_index, edge_features=edge_features, graph_index=graph_index).numpy_to_torch()
     >>> embedding, intermediate_embeddings = encoder(data)
     >>> print(embedding.shape)
     torch.Size([1, 30])
@@ -121,20 +117,39 @@ class InfoGraphEncoder(torch.nn.Module):
         Number of node features for each input
     edge_features: int
         Number of edge features for each input
-    dim: int
+    embedding_dim: int
         Dimension of the embedding
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models.infograph import InfoGraphEncoder
+    >>> from deepchem.feat.graph_data import GraphData
+    >>> encoder = InfoGraphEncoder(num_features=25, edge_features=10, embedding_dim=32)
+    >>> node_features = np.random.randn(10, 25)
+    >>> edge_index = np.array([[0, 1, 2], [1, 2, 3]])
+    >>> edge_features = np.random.randn(3, 10)
+    >>> graph_index = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    >>> data = GraphData(node_features=node_features, edge_index=edge_index, edge_features=edge_features, graph_index=graph_index).numpy_to_torch()
+    >>> embedding, feature_map = encoder(data)
+    >>> print(embedding.shape)
+    torch.Size([1, 64])
     """
 
-    def __init__(self, num_features, edge_features, dim):
+    def __init__(self, num_features, edge_features, embedding_dim):
         super().__init__()
-        self.lin0 = torch.nn.Linear(num_features, dim)
+        self.lin0 = torch.nn.Linear(num_features, embedding_dim)
 
         nn = Sequential(Linear(edge_features, 128), ReLU(),
-                        Linear(128, dim * dim))
-        self.conv = NNConv(dim, dim, nn, aggr='mean', root_weight=False)
-        self.gru = GRU(dim, dim)
+                        Linear(128, embedding_dim * embedding_dim))
+        self.conv = NNConv(embedding_dim,
+                           embedding_dim,
+                           nn,
+                           aggr='mean',
+                           root_weight=False)
+        self.gru = GRU(embedding_dim, embedding_dim)
 
-        self.set2set = Set2Set(dim, processing_steps=3)
+        self.set2set = Set2Set(embedding_dim, processing_steps=3)
 
     def forward(self, data):
         """
@@ -162,8 +177,193 @@ class InfoGraphEncoder(torch.nn.Module):
             out = out.squeeze(0)
             feat_map = out
 
+        # set2set doubles the dimensionality of the embedding
         out = self.set2set(out, data.graph_index)
         return out, feat_map
+
+
+class InfoGraph(nn.Module):
+    """
+    The nn.Module for InfoGraph. This class defines the forward pass of InfoGraph.
+
+    References
+    ----------
+    1. Sun, F.-Y., Hoffmann, J., Verma, V. & Tang, J. InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Information Maximization. Preprint at http://arxiv.org/abs/1908.01000 (2020).
+
+    Example
+    -------
+    >>> from deepchem.models.torch_models.infograph import InfoGraphModel
+    >>> from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
+    >>> from deepchem.feat.graph_data import BatchGraphData
+    >>> num_feat = 30
+    >>> num_edge = 11
+    >>> infographmodular = InfoGraphModel(num_feat, num_edge, 64)
+    >>> smiles = ['C1=CC=CC=C1', 'C1=CC=CC=C1C2=CC=CC=C2']
+    >>> featurizer = MolGraphConvFeaturizer(use_edges=True)
+    >>> graphs = BatchGraphData(featurizer.featurize(smiles))
+    >>> graphs = graphs.numpy_to_torch(infographmodular.device)
+    >>> model = infographmodular.model
+    >>> global_enc, local_enc = model(graphs)
+
+    """
+
+    def __init__(self, encoder, local_d, global_d, prior_d):
+        super().__init__()
+        self.encoder = encoder
+        self.local_d = local_d
+        self.global_d = global_d
+        self.prior_d = prior_d
+        self.init_emb()
+
+    def init_emb(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                torch.nn.init.xavier_uniform_(m.weight.data)
+                if m.bias is not None:
+                    m.bias.data.fill_(0.0)
+
+    def forward(self, data):
+        y, M = self.encoder(data)
+        g_enc = self.global_d(y)
+        l_enc = self.local_d(M)
+        return g_enc, l_enc
+
+
+class InfoGraphModel(ModularTorchModel):
+    """
+    InfoGraph is a graph convolutional model for unsupervised graph-level representation learning. The model aims to maximize the mutual information between the representations of entire graphs and the representations of substructures of different granularity.
+
+    The unsupervised training of InfoGraph involves two encoders: one that encodes the entire graph and another that encodes substructures of different sizes. The mutual information between the two encoder outputs is maximized using a contrastive loss function.
+    The model randomly samples pairs of graphs and substructures, and then maximizes their mutual information by minimizing their distance in a learned embedding space.
+
+    This can be used for downstream tasks such as graph classification and molecular property prediction.It is implemented as a ModularTorchModel in order to facilitate transfer learning.
+
+    References
+    ----------
+    1. Sun, F.-Y., Hoffmann, J., Verma, V. & Tang, J. InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Information Maximization. Preprint at http://arxiv.org/abs/1908.01000 (2020).
+
+    Parameters
+    ----------
+    num_features: int
+        Number of node features for each input
+    edge_features: int
+        Number of edge features for each input
+    embedding_dim: int
+        Dimension of the embedding
+    num_gc_layers: int
+        Number of graph convolutional layers
+    prior: bool
+        Whether to use a prior expectation in the loss term
+    gamma: float
+        Weight of the prior expectation in the loss term
+    measure: str
+        The divergence measure to use for the unsupervised loss. Options are 'GAN', 'JSD',
+        'KL', 'RKL', 'X2', 'DV', 'H2', or 'W1'.
+    average_loss: bool
+        Whether to average the loss over the batch
+
+    Example
+    -------
+    >>> from deepchem.models.torch_models.infograph import InfoGraphModel
+    >>> from deepchem.feat import MolGraphConvFeaturizer
+    >>> from deepchem.data import NumpyDataset
+    >>> import torch
+    >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
+    >>> featurizer = MolGraphConvFeaturizer(use_edges=True)
+    >>> X = featurizer.featurize(smiles)
+    >>> y = torch.randint(0, 2, size=(2, 1)).float()
+    >>> w = torch.ones(size=(2, 1)).float()
+    >>> ds = NumpyDataset(X, y, w)
+    >>> num_feat = max([ds.X[i].num_node_features for i in range(len(ds))])
+    >>> edge_dim = max([ds.X[i].num_edge_features for i in range(len(ds))])
+    >>> model = InfoGraphModel(num_feat, edge_dim, 15)
+    >>> loss = model.fit(ds, nb_epoch=1)
+    """
+
+    def __init__(self,
+                 num_features,
+                 embedding_dim,
+                 num_gc_layers=5,
+                 prior=True,
+                 gamma=.1,
+                 measure='JSD',
+                 average_loss=True,
+                 **kwargs):
+        self.num_features = num_features
+        self.embedding_dim = embedding_dim * num_gc_layers
+        self.num_gc_layers = num_gc_layers
+        self.gamma = gamma
+        self.prior = prior
+        self.measure = measure
+        self.average_loss = average_loss
+        self.localloss = LocalMutualInformationLoss()._create_pytorch_loss(
+            measure, average_loss)
+        self.components = self.build_components()
+        self.model = self.build_model()
+        super().__init__(self.model, self.components, **kwargs)
+
+    def build_components(self) -> dict:
+        """
+        Build the components of the model. InfoGraph is an unsupervised molecular graph representation learning model. It consists of an encoder, a local discriminator, a global discriminator, and a prior discriminator.
+
+        The unsupervised loss is calculated by the mutual information in embedding representations at all layers.
+
+        Components list, type and description:
+        --------------------------------------
+        encoder: GINEncoder, graph convolutional encoder
+        local_d: MultilayerPerceptron, local discriminator
+        global_d: MultilayerPerceptron, global discriminator
+        prior_d: MultilayerPerceptron, prior discriminator
+        """
+        return {
+            'encoder':
+                GINEncoder(self.num_features, self.embedding_dim,
+                           self.num_gc_layers),
+            'local_d':
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True),
+            'global_d':
+                MultilayerPerceptron(self.embedding_dim,
+                                     self.embedding_dim, (self.embedding_dim,),
+                                     skip_connection=True),
+            'prior_d':
+                MultilayerPerceptron(self.embedding_dim,
+                                     1, (self.embedding_dim,),
+                                     activation_fn='sigmoid')
+        }
+
+    def build_model(self) -> nn.Module:
+        return InfoGraph(**self.components)
+
+    def loss_func(self, inputs, labels, weights):
+        y, M = self.components['encoder'](inputs)
+        g_enc = self.components['global_d'](y)
+        l_enc = self.components['local_d'](M)
+        local_global_loss = self.localloss(l_enc, g_enc, inputs.graph_index)
+        if self.prior:
+            prior = torch.rand_like(y)
+            term_a = torch.log(self.components['prior_d'](prior)).mean()
+            term_b = torch.log(1.0 - self.components['prior_d'](y)).mean()
+            prior = -(term_a + term_b) * self.gamma
+        else:
+            prior = 0
+        return local_global_loss + prior
+
+    def _prepare_batch(self, batch):
+        """
+        Prepares the batch for the model by converting the GraphData numpy arrays to torch tensors and moving them to the device.
+        """
+        inputs, labels, weights = batch
+        inputs = BatchGraphData(inputs[0]).numpy_to_torch(self.device)
+
+        _, labels, weights = super()._prepare_batch(([], labels, weights))
+
+        if (len(labels) != 0) and (len(weights) != 0):
+            labels = labels[0]
+            weights = weights[0]
+
+        return inputs, labels, weights
 
 
 class InfoGraphStar(torch.nn.Module):
@@ -197,23 +397,27 @@ class InfoGraphStar(torch.nn.Module):
     >>> from deepchem.models.torch_models.infograph import InfoGraphStarModel
     >>> from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
     >>> from deepchem.feat.graph_data import BatchGraphData
-    >>> smiles = ['C1=CC=CC=C1', 'C1=CC=CC=C1C2=CC=CC=C2']
-    >>> featurizer = MolGraphConvFeaturizer(use_edges=True)
-    >>> graphs = BatchGraphData(featurizer.featurize(smiles))
     >>> num_feat = 30
     >>> num_edge = 11
     >>> infographmodular = InfoGraphStarModel(num_feat,num_edge,64)
-    >>> graphs.edge_features = torch.from_numpy(graphs.edge_features).to(infographmodular.device).float()
-    >>> graphs.edge_index = torch.from_numpy(graphs.edge_index).to(infographmodular.device).long()
-    >>> graphs.node_features = torch.from_numpy(graphs.node_features).to(infographmodular.device).float()
-    >>> graphs.graph_index = torch.from_numpy(graphs.graph_index).to(infographmodular.device).long()
+    >>> smiles = ['C1=CC=CC=C1', 'C1=CC=CC=C1C2=CC=CC=C2']
+    >>> featurizer = MolGraphConvFeaturizer(use_edges=True)
+    >>> graphs = BatchGraphData(featurizer.featurize(smiles)).numpy_to_torch(infographmodular.device)
     >>> model = infographmodular.model
     >>> output = model(graphs).cpu().detach().numpy()
 
     """
 
-    def __init__(self, encoder, unsup_encoder, ff1, ff2, fc1, fc2, local_d,
-                 global_d):
+    def __init__(self,
+                 encoder,
+                 unsup_encoder,
+                 ff1,
+                 ff2,
+                 fc1,
+                 fc2,
+                 local_d,
+                 global_d,
+                 init_emb=False):
         super().__init__()
         self.encoder = encoder
         self.unsup_encoder = unsup_encoder
@@ -223,7 +427,8 @@ class InfoGraphStar(torch.nn.Module):
         self.fc2 = fc2
         self.local_d = local_d
         self.global_d = global_d
-        self.init_emb()
+        if init_emb:
+            self.init_emb()
 
     def init_emb(self):
         """
