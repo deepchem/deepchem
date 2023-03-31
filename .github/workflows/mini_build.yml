@@ -104,28 +104,28 @@ jobs:
     - name: Install prerequisites for XGBoost and LightGBM (MacOS)
       if: startsWith(runner.os, 'macOS')
       run: brew update && brew install libomp
-    - name: Create env.yml
-      shell: bash
-      run: |
-        python -m pip install --upgrade pip;
-        pip install conda-merge;
-        cd requirements
-        if [ "$(uname)" == 'Linux' ]; then
-          conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml > env.yml
-        elif [  "$(uname)" == 'Darwin' ]; then
-          conda-merge env_common.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml jax/env_jax.cpu.yml > env.yml
-        elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
-          conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
-        fi;
-        cd ..
-        cp requirements/env.yml env.yml
-    - name: Install all dependencies using micromamba
-      uses: mamba-org/provision-with-micromamba@main
-      with:
-        environment-file: env.yml
-        environment-name: deepchem
-        channels: conda-forge,defaults
-        extra-specs: python=${{ matrix.python-version }}
+    # - name: Create env.yml
+    #   shell: bash
+    #   run: |
+    #     python -m pip install --upgrade pip;
+    #     pip install conda-merge;
+    #     cd requirements
+    #     if [ "$(uname)" == 'Linux' ]; then
+    #       conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml > env.yml
+    #     elif [  "$(uname)" == 'Darwin' ]; then
+    #       conda-merge env_common.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml jax/env_jax.cpu.yml > env.yml
+    #     elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
+    #       conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
+    #     fi;
+    #     cd ..
+    #     cp requirements/env.yml env.yml
+    # - name: Install all dependencies using micromamba
+    #   uses: mamba-org/provision-with-micromamba@main
+    #   with:
+    #     environment-file: env.yml
+    #     environment-name: deepchem
+    #     channels: conda-forge,defaults
+    #     extra-specs: python=${{ matrix.python-version }}
 
 #    - name: Install all dependencies using conda
 #      uses: conda-incubator/setup-miniconda@v2
