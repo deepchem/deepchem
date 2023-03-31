@@ -125,7 +125,7 @@ jobs:
     - name: Mypy
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
-      run: mypy $TENSORFLOW_FILES
+      run: mypy -m $TENSORFLOW_FILES
 
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
