@@ -1,5 +1,5 @@
 import json
-from typing import Dict
+from typing import Dict, Optional
 from collections import Counter
 from rdkit import Chem
 from deepchem.data import Dataset
@@ -25,6 +25,15 @@ class GroverAtomVocabularyBuilder(VocabularyBuilder):
     in the dataset and makes a vocabulary to index mapping by sorting the vocabulary
     by frequency and then alphabetically.
 
+    The algorithm enumerates vocabulary of all atoms in the dataset and makes a vocabulary to
+    index mapping by sorting the vocabulary by frequency and then alphabetically. The `max_size`
+    parameter can be used for setting the size of the vocabulary. When this parameter is set,
+    the algorithm stops adding new words to the index when the vocabulary size reaches `max_size`.
+
+    Parameters
+    ----------
+    max_size: int (optional)
+        Maximum size of vocabulary
 
     Example
     -------
@@ -48,10 +57,10 @@ class GroverAtomVocabularyBuilder(VocabularyBuilder):
     .. Rong, Yu, et al. "Self-supervised graph transformer on large-scale molecular data." Advances in Neural Information Processing Systems 33 (2020): 12559-12571.
     """
 
-    def __init__(self):
+    def __init__(self, max_size: Optional[int] = None):
         self.specials = ('<pad>', '<other>')
         self.min_freq = 1
-        self.max_size = None
+        self.size = max_size
         self.itos = list(self.specials)
         self.stoi = self._make_reverse_mapping(self.itos)
         self.pad_index = 0
@@ -77,7 +86,11 @@ class GroverAtomVocabularyBuilder(VocabularyBuilder):
         words_and_frequencies = sorted(counter.items(), key=lambda tup: tup[0])
         words_and_frequencies.sort(key=lambda tup: tup[1], reverse=True)
         for word, freq in words_and_frequencies:
+            if len(self.itos) == self.size:
+                break
             self.itos.append(word)
+        if self.size is None:
+            self.size = len(self.itos)
         self.stoi = self._make_reverse_mapping(self.itos)
 
     def save(self, fname: str) -> None:
@@ -88,7 +101,7 @@ class GroverAtomVocabularyBuilder(VocabularyBuilder):
         fname: str
             Filename to save vocabulary
         """
-        vocab = {'stoi': self.stoi, 'itos': self.itos}
+        vocab = {'stoi': self.stoi, 'itos': self.itos, 'size': self.size}
         with open(fname, 'w') as f:
             json.dump(vocab, f)
 
@@ -109,7 +122,8 @@ class GroverAtomVocabularyBuilder(VocabularyBuilder):
         with open(fname, 'r') as f:
             data = json.load(f)
         vocab = cls()
-        vocab.stoi, vocab.itos = data['stoi'], data['itos']
+        vocab.stoi, vocab.itos, vocab.size = data['stoi'], data['itos'], data[
+            'size']
         return vocab
 
     @staticmethod
@@ -200,7 +214,15 @@ class GroverBondVocabularyBuilder(VocabularyBuilder):
     context C-(SINGLE-STEREONONE-NONE)1. Hence, the vocabulary of
     the bond is '(SINGLE-STEREONONE-NONE)_C-(DOUBLE-STEREONONE-NONE)1_C-(SINGLE-STEREONONE-NONE)1'
 
-    The algorithm enumerates vocabulary of all bonds in the dataset and makes a vocabulary to index mapping by sorting the vocabulary by frequency and then alphabetically.
+    The algorithm enumerates vocabulary of all bonds in the dataset and makes a vocabulary to
+    index mapping by sorting the vocabulary by frequency and then alphabetically. The `max_size`
+    parameter can be used for setting the size of the vocabulary. When this parameter is set,
+    the algorithm stops adding new words to the index when the vocabulary size reaches `max_size`.
+
+    Parameters
+    ----------
+    max_size: int (optional)
+        Maximum size of vocabulary
 
     Example
     -------
@@ -225,10 +247,10 @@ class GroverBondVocabularyBuilder(VocabularyBuilder):
     """
     BOND_FEATURES = ['BondType', 'Stereo', 'BondDir']
 
-    def __init__(self):
+    def __init__(self, max_size: Optional[int] = None):
         self.specials = ('<pad>', '<other>')
         self.min_freq = 1
-        self.max_size = None
+        self.size = max_size
         self.itos = list(self.specials)
         self.stoi = self._make_reverse_mapping(self.itos)
         self.pad_index = 0
@@ -254,7 +276,11 @@ class GroverBondVocabularyBuilder(VocabularyBuilder):
         words_and_frequencies = sorted(counter.items(), key=lambda tup: tup[0])
         words_and_frequencies.sort(key=lambda tup: tup[1], reverse=True)
         for word, freq in words_and_frequencies:
+            if len(self.itos) == self.size:
+                break
             self.itos.append(word)
+        if self.size is None:
+            self.size = len(self.itos)
         self.stoi = self._make_reverse_mapping(self.itos)
 
     def save(self, fname: str) -> None:
@@ -265,7 +291,7 @@ class GroverBondVocabularyBuilder(VocabularyBuilder):
         fname: str
             Filename to save vocabulary
         """
-        vocab = {'stoi': self.stoi, 'itos': self.itos}
+        vocab = {'stoi': self.stoi, 'itos': self.itos, 'size': self.size}
         with open(fname, 'w') as f:
             json.dump(vocab, f)
 
@@ -286,7 +312,8 @@ class GroverBondVocabularyBuilder(VocabularyBuilder):
         with open(fname, 'r') as f:
             data = json.load(f)
         vocab = cls()
-        vocab.stoi, vocab.itos = data['stoi'], data['itos']
+        vocab.stoi, vocab.itos, vocab.size = data['stoi'], data['itos'], data[
+            'size']
         return vocab
 
     @staticmethod
