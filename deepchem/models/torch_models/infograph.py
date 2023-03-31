@@ -741,8 +741,6 @@ class InfoGraphStarModel(ModularTorchModel):
                                                deterministic=deterministic,
                                                pad_batches=pad_batches):
                 if self.mode == 'classification' and y_b is not None:
-                    y_b = to_one_hot(y_b.flatten(),
-                                        self.num_classes).reshape(
-                                            -1, self.num_tasks,
-                                            self.num_classes)
+                    y_b = to_one_hot(y_b.flatten(), self.num_classes).reshape(
+                        -1, self.num_tasks, self.num_classes)
                 yield ([X_b], [y_b], [w_b])
