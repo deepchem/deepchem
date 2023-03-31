@@ -150,7 +150,7 @@ def test_infographstar_regression_semisupervised():
                                num_gc_layers=2,
                                task='semisupervised')
 
-    model.fit(dataset, nb_epoch=50)
+    model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
     assert scores['mean_absolute_error'] < 0.1
 
@@ -167,7 +167,7 @@ def test_infographstar_classification_semisupervised():
     model = InfoGraphStarModel(num_feat,
                                edge_dim,
                                dim,
-                               num_gc_layers=2,
+                               num_gc_layers=3,
                                task='semisupervised')
 
     model.fit(dataset, nb_epoch=50)
@@ -211,6 +211,7 @@ def test_infographstar_multitask_regression_supervised():
     model = InfoGraphStarModel(num_feat,
                                edge_dim,
                                dim,
+                               num_gc_layers=3,
                                task='supervised',
                                mode='regression',
                                num_tasks=3)
