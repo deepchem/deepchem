@@ -70,7 +70,7 @@ def _get_bond_scopes(edge_index: ArrayLike,
     [[0, 2], [2, 2]]
     """
     mols = np.unique(graph_index)
-    bond_index = graph_index[edge_index[0]]
+    bond_index = graph_index[edge_index[0]]  # type: ignore
     scopes = []
     for mol in mols:
         positions = np.where(bond_index == mol, 1, 0)
@@ -80,7 +80,7 @@ def _get_bond_scopes(edge_index: ArrayLike,
     return scopes
 
 
-def _compute_b2revb(edge_index: ArrayLike) -> List[int]:
+def _compute_b2revb(edge_index: np.ndarray) -> List[int]:
     """Every edge in a grover graph is a directed edge. Hence, a bond
     is represented by two edges of opposite directions. b2revb is a representation
     which stores for every edge, the index of reverse edge of that edge.
@@ -186,15 +186,15 @@ def extract_grover_attributes(molgraph: BatchGraphData):
     # computing a2b
     a2b = _get_a2b(molgraph.num_nodes, edge_index)
 
-    f_atoms = torch.FloatTensor(f_atoms)
-    f_bonds = torch.FloatTensor(f_bonds)
-    fg_labels = torch.FloatTensor(fg_labels)
-    additional_features = torch.FloatTensor(additional_features)
-    a2b = torch.LongTensor(a2b)
-    b2a = torch.LongTensor(molgraph.edge_index[0])
-    b2revb = torch.LongTensor(b2revb)
+    f_atoms_tensor = torch.FloatTensor(f_atoms)
+    f_bonds_tensor = torch.FloatTensor(f_bonds)
+    fg_labels_tensor = torch.FloatTensor(fg_labels)
+    additional_features_tensor = torch.FloatTensor(additional_features)
+    a2b_tensor = torch.LongTensor(a2b)
+    b2a_tensor = torch.LongTensor(molgraph.edge_index[0])
+    b2revb_tensor = torch.LongTensor(b2revb)
     # only needed if using atom messages
-    a2a = b2a[a2b]  # type: ignore
-    a_scope = torch.LongTensor(np.asarray(a_scope))
-    b_scope = torch.LongTensor(np.asarray(b_scope))
-    return f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels, additional_features
+    a2a = b2a_tensor[a2b_tensor]  # type: ignore
+    a_scope_tensor = torch.LongTensor(np.asarray(a_scope))
+    b_scope_tensor = torch.LongTensor(np.asarray(b_scope))
+    return f_atoms_tensor, f_bonds_tensor, a2b_tensor, b2a_tensor, b2revb_tensor, a2a, a_scope_tensor, b_scope_tensor, fg_labels_tensor, additional_features_tensor
