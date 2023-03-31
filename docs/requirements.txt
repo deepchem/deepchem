@@ -13,6 +13,4 @@ jax
 dm-haiku
 optax
 rdkit
-# https://data.pyg.org/whl/torch-1.13.0%2Bcpu/torch_sparse-0.6.16%2Bpt113cpu-cp38-cp38-linux_x86_64.whl
-# https://data.pyg.org/whl/torch-1.13.0%2Bcpu/torch_scatter-2.1.1%2Bpt113cpu-cp38-cp38-linux_x86_64.whl
 torch_geometric
