@@ -19,6 +19,8 @@ class IRVLayer(Layer):
             Number of tasks
         K: int
             Number of nearest neighbours used in classification
+        penalty: float
+            Amount of penalty (l2 or l1 applied)
         """
         self.n_tasks = n_tasks
         self.K = K
