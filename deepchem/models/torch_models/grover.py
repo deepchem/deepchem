@@ -23,14 +23,6 @@ class GroverEmbedding(nn.Module):
         the number of message passing blocks.
     num_head: int
         the number of attention heads.
-    embedding_output_type: str
-        the type of output aggregation after message passing.
-                                            atom_messages:      True                      False
-        - "none": no aggregation         output size:     (num_atoms, hidden_size)    (num_bonds, hidden_size)
-        -"atom":  aggregating to atom  output size:     (num_atoms, hidden_size)    (num_atoms, hidden_size)
-        -"bond": aggragating to bond.   output size:     (num_bonds, hidden_size)    (num_bonds, hidden_size)
-        -"both": aggregating to atom&bond. output size:  (num_atoms, hidden_size)    (num_bonds, hidden_size)
-                                                        (num_bonds, hidden_size)    (num_atoms, hidden_size)
     """
 
     def __init__(self,
