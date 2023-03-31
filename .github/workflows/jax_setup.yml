@@ -109,6 +109,22 @@ jobs:
       id: install
       shell: bash -l {0}
       run: pip install -e .
+
+    - name: Get Jax Files
+      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
+      shell: bash -l {0}
+      run: source scripts/framework_list.sh
+
+    - name: Mypy
+      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
+      shell: bash -l {0}
+      run: mypy $JAX_FILES
+      
+    - name: Doctest Linux
+      if: ${{ (runner.os == 'Linux') && always() }}
+      shell: bash -l {0}
+      run: pytest --doctest-modules $JAX_FILES --doctest-continue-on-failure # DGLBACKEND=?
+
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
