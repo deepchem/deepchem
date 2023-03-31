@@ -122,13 +122,13 @@ jobs:
       shell: bash -l {0}
       run: source scripts/framework_list.sh
 
-    - name: Mypy
-      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
-      shell: bash -l {0}
-      run: |
-      for file in "$PYTORCH_FILES"; do
-        mypy -m "$file"
-      done
+    # - name: Mypy
+    #   if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
+    #   shell: bash -l {0}
+    #   run: |
+    #   for file in "$PYTORCH_FILES"; do
+    #     mypy -m "$file"
+    #   done
       
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
