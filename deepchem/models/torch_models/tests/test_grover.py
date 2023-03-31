@@ -1,3 +1,4 @@
+import os
 import pytest
 
 
@@ -58,3 +59,46 @@ def testGroverFinetune(grover_graph_attributes):
     model.training = False
     output = model(inputs, additional_features)
     assert output.shape == (3, 1)
+
+
+def test_grover_overfit():
+    import deepchem as dc
+    from deepchem.feat.vocabulary_builders import (GroverAtomVocabularyBuilder,
+                                                   GroverBondVocabularyBuilder)
+    from deepchem.models.torch_models.grover import Grover
+    dataset_path = os.path.join(os.path.dirname(__file__),
+                                '../../tests/assets/example.csv')
+    loader = dc.data.CSVLoader(tasks=['log-solubility'],
+                               featurizer=dc.feat.DummyFeaturizer(),
+                               feature_field=['smiles'])
+    dataset = loader.create_dataset(dataset_path)
+
+    av = GroverAtomVocabularyBuilder()
+    av.build(dataset)
+
+    bv = GroverBondVocabularyBuilder()
+    bv.build(dataset)
+
+    fg = dc.feat.CircularFingerprint()
+    loader2 = dc.data.CSVLoader(
+        tasks=['log-solubility'],
+        featurizer=dc.feat.GroverFeaturizer(features_generator=fg),
+        feature_field='smiles')
+    graph_data = loader2.create_dataset(dataset_path)
+
+    model = Grover(node_fdim=151,
+                   edge_fdim=165,
+                   atom_vocab=av,
+                   bond_vocab=bv,
+                   atom_vocab_size=300,
+                   bond_vocab_size=300,
+                   hidden_size=128,
+                   functional_group_size=85,
+                   mode='regression',
+                   task='pretraining')
+
+    model.fit(graph_data, nb_epoch=1)
+    metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
+    scores = model.evaluate(graph_data, [metric])
+    assert scores['mean_squared_error'] < 0.1
+>>>>>>> 3af36497 (grover layer tests [skip ci])

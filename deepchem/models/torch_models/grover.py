@@ -249,8 +249,8 @@ class GroverModel(ModularTorchModel):
         Maximum number of tokens in bond vocabulary.
     hidden_size: int
         Size of hidden layers
-    functional_group_size: int
-        Size of fingerprint
+    functional_group_size: int (default: 85)
+        Size of functional group used in grover
     num_mt_block: int
         the number of message passing blocks.
     num_head: int
@@ -266,17 +266,15 @@ class GroverModel(ModularTorchModel):
     """
 
     def __init__(self,
-                 node_fdim,
-                 edge_fdim,
-                 atom_vocab,
-                 bond_vocab,
-                 atom_vocab_size,
-                 bond_vocab_size,
-                 hidden_size,
-                 functional_group_size,
-                 mode,
+                 node_fdim: int,
+                 edge_fdim: int,
+                 atom_vocab: GroverAtomVocabularyBuilder,
+                 bond_vocab: GroverBondVocabularyBuilder,
+                 hidden_size: int,
+                 mode: str,
                  self_attention=False,
                  features_only=False,
+                 functional_group_size: int = 85,
                  features_dim=128,
                  dropout=0.2,
                  activation='relu',
@@ -292,9 +290,8 @@ class GroverModel(ModularTorchModel):
         self.edge_fdim = edge_fdim
         self.atom_vocab = atom_vocab
         self.bond_vocab = bond_vocab
-        # TODO Infer atom_vocab_size and bond_vocab_size from atom_vocab and bond_vocab
-        self.atom_vocab_size = atom_vocab_size
-        self.bond_vocab_size = bond_vocab_size
+        self.atom_vocab_size = atom_vocab.size
+        self.bond_vocab_size = bond_vocab.size
         self.task = task
         self.model_dir = model_dir
         self.hidden_size = hidden_size
