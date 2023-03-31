@@ -7,7 +7,6 @@ from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
 
 @pytest.mark.torch
 def get_classification_dataset():
-    # np.random.seed(123)
     featurizer = MolGraphConvFeaturizer(use_edges=True)
     dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -24,7 +23,6 @@ def get_classification_dataset():
 
 @pytest.mark.torch
 def get_multitask_classification_dataset():
-    # np.random.seed(123)
     featurizer = MolGraphConvFeaturizer(use_edges=True)
     dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -41,7 +39,6 @@ def get_multitask_classification_dataset():
 
 @pytest.mark.torch
 def get_multitask_regression_dataset():
-    # np.random.seed(123)
     featurizer = MolGraphConvFeaturizer(use_edges=True)
     dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -57,7 +54,6 @@ def get_multitask_regression_dataset():
 
 @pytest.mark.torch
 def get_regression_dataset():
-    # np.random.seed(123)
     featurizer = MolGraphConvFeaturizer(use_edges=True)
     dir = os.path.dirname(os.path.abspath(__file__))
 
