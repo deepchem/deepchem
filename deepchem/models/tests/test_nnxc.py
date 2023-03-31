@@ -4,9 +4,8 @@ try:
     from deepchem.models.dft.nnxc import NNLDA, HybridXC
     import torch.nn as nn
     from dqc.utils.datastruct import ValGrad
-    has_dqc = True
 except ModuleNotFoundError:
-    has_dqc = False
+    pass
 
 
 @pytest.mark.dqc
