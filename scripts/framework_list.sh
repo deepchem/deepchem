@@ -17,15 +17,10 @@ while IFS= read -r -d '' file; do
   else
     no_framework_files+="$file "
   fi
-done < <(find deepchem/deepchem -type f -name "*.py" -print0)
+done < <(find deepchem -type f -name "*.py" -print0)
 
 # Export lists as environment variables
 echo "PYTORCH_FILES=$pytorch_files" >> $GITHUB_ENV
 echo "JAX_FILES=$jax_files" >> $GITHUB_ENV
 echo "TENSORFLOW_FILES=$tensorflow_files" >> $GITHUB_ENV
 echo "NO_FRAMEWORK_FILES=$no_framework_files" >> $GITHUB_ENV
-
-# export PYTORCH_FILES="$pytorch_files"
-# export JAX_FILES="$jax_files"
-# export TENSORFLOW_FILES="$tensorflow_files"
-# export NO_FRAMEWORK_FILES="$no_framework_files"
