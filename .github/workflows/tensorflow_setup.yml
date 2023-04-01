@@ -125,7 +125,7 @@ jobs:
     - name: Mypy
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
-      run: mypy $TENSORFLOW_FILES --ignore-missing-imports
+      run: mypy "${{ env.TENSORFLOW_FILES }}" --ignore-missing-imports
 
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
@@ -135,9 +135,9 @@ jobs:
     - name: Doctest Linux
       if: ${{ (runner.os == 'Linux') && always() }}
       shell: bash -l {0}
-      run: DGLBACKEND=tensorflow pytest --doctest-modules $TENSORFLOW_FILES --doctest-continue-on-failure 
+      run: DGLBACKEND=tensorflow pytest --doctest-modules "${{ env.TENSORFLOW_FILES }}" --doctest-continue-on-failure 
 
     - name: Doctest Windows
       if: ${{ (runner.os == 'Windows') && always() }}
       shell: bash -l {0}
-      run: DGLBACKEND=tensorflow pytest --doctest-modules $TENSORFLOW_FILES --doctest-continue-on-failure 
+      run: DGLBACKEND=tensorflow pytest --doctest-modules "${{ env.TENSORFLOW_FILES }}" --doctest-continue-on-failure 
