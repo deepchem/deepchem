@@ -121,8 +121,6 @@ jobs:
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
       run: source scripts/framework_list.sh
-      env: 
-        PYTORCH_FILES = 
 
     - name: Mypy
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
