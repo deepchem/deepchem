@@ -118,7 +118,10 @@ jobs:
     - name: Mypy
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
-      run: mypy "${{ env.JAX_FILES }}" --ignore-missing-imports
+      run: |
+      for file in "${{ env.JAX_FILES }}"; do
+        mypy file --ignore-missing-imports
+      done
       
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
@@ -128,5 +131,8 @@ jobs:
     - name: Doctest Linux
       if: ${{ (runner.os == 'Linux') && always() }}
       shell: bash -l {0}
-      run: pytest --doctest-modules "${{ env.JAX_FILES }}" --doctest-continue-on-failure # DGLBACKEND=?
+      run: |
+      for file in "${{ env.JAX_FILES }}"; do
+        pytest --doctest-modules file --doctest-continue-on-failure # DGLBACKEND=?
+      done
 
