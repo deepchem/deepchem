@@ -17,7 +17,7 @@ while IFS= read -r -d '' file; do
   else
     no_framework_files+="$file "
   fi
-done < <(find deepchem -type f -name "*.py" -print0)
+done < <(find deepchem/deepchem -type f -name "*.py" -print0)
 
 # Export lists as environment variables
 echo "PYTORCH_FILES=$pytorch_files" >> $GITHUB_ENV
