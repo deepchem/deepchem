@@ -18,7 +18,6 @@ except ModuleNotFoundError:
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
 from deepchem.utils.pytorch_utils import get_activation
 from torch.nn import init as initializers
-from torch_scatter import segment_coo
 
 
 class MultilayerPerceptron(nn.Module):
@@ -2806,7 +2805,13 @@ class EdgeNetwork(nn.Module):
     --------
     >>> pair_features = torch.rand((4, 2), dtype=torch.float32)
     >>> atom_features = torch.rand((5, 2), dtype=torch.float32)
-    >>> atom_to_pair = torch.randint(size=(4, 2), low=0, high=4)
+    >>> atom_to_pair = []
+    >>> n_atoms = 2
+    >>> start = 0
+    >>> C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
+    >>> atom_to_pair.append(np.transpose(np.array([C1.flatten() + start, C0.flatten() + start])))
+    >>> atom_to_pair = torch.Tensor(atom_to_pair)
+    >>> atom_to_pair = torch.squeeze(atom_to_pair.to(torch.int64), dim=0)
     >>> inputs = [pair_features, atom_features, atom_to_pair]
     >>> n_pair_features = 2
     >>> n_hidden = 2
@@ -2864,10 +2869,62 @@ class EdgeNetwork(nn.Module):
         atom_features: torch.Tensor
         atom_to_pair: torch.Tensor
         pair_features, atom_features, atom_to_pair = inputs
+
+        def unsorted_segment_sum(data, segment_ids, num_segments):
+            """
+            Computes the sum along segments of a tensor. Analogous to tf.unsorted_segment_sum.
+            :param data: A tensor whose segments are to be summed.
+            :param segment_ids: The segment indices tensor.
+            :param num_segments: The number of segments.
+            :return: A tensor of same data type as the data argument.
+            """
+            assert all([i in data.shape for i in segment_ids.shape
+                       ]), "segment_ids.shape should be a prefix of data.shape"
+
+            # segment_ids is a 1-D tensor repeat it to have the same shape as data
+            if len(segment_ids.shape) == 1:
+                s = torch.prod(torch.tensor(data.shape[1:])).long()
+                segment_ids = segment_ids.repeat_interleave(s).view(
+                    segment_ids.shape[0], *data.shape[1:])
+
+            assert data.shape == segment_ids.shape, "data.shape and segment_ids.shape should be equal"
+
+            shape = [num_segments] + list(data.shape[1:])
+            tensor = torch.zeros(*shape).scatter_add(0, segment_ids,
+                                                     data.float())
+            tensor = tensor.type(data.dtype)
+            return tensor
+
+        def segment_sum(data, segment_ids):
+            """
+            Analogous to tf.segment_sum (https://www.tensorflow.org/api_docs/python/tf/math/segment_sum).
+
+            :param data: A pytorch tensor of the data for segmented summation.
+            :param segment_ids: A 1-D tensor containing the indices for the segmentation.
+            :return: a tensor of the same type as data containing the results of the segmented summation.
+            """
+            if not all(segment_ids[i] <= segment_ids[i + 1]
+                       for i in range(len(segment_ids) - 1)):
+                raise AssertionError("elements of segment_ids must be sorted")
+
+            if len(segment_ids.shape) != 1:
+                raise AssertionError("segment_ids have be a 1-D tensor")
+
+            if data.shape[0] != segment_ids.shape[0]:
+                raise AssertionError(
+                    "segment_ids should be the same size as dimension 0 of input."
+                )
+
+            num_segments = len(torch.unique(segment_ids))
+            return unsorted_segment_sum(data, segment_ids, num_segments)
+
         A: torch.Tensor = torch.add(torch.matmul(pair_features, self.W), self.b)
         A = torch.reshape(A, (-1, self.n_hidden, self.n_hidden))
         out: torch.Tensor = torch.unsqueeze(atom_features[atom_to_pair[:, 1]],
                                             dim=2)
         out_squeeze: torch.Tensor = torch.squeeze(torch.matmul(A, out), dim=2)
-        out_tensor = segment_coo(out_squeeze, atom_to_pair[:, 0], reduce="sum")
-        return out_tensor
+        ind = atom_to_pair[:, 0]
+
+        result = segment_sum(out_squeeze, ind)
+
+        return result
