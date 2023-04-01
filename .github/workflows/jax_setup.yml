@@ -110,18 +110,15 @@ jobs:
       shell: bash -l {0}
       run: pip install -e .
 
-    - name: Get Jax Files
-      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
-      shell: bash -l {0}
-      run: source scripts/framework_list.sh
+    # - name: Get Jax Files
+    #   if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
+    #   shell: bash -l {0}
+    #   run: source scripts/framework_list.sh
 
     - name: Mypy
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
-      run: |
-      for file in "${{ env.JAX_FILES }}"; do
-        mypy file --ignore-missing-imports
-      done
+      run: source scripts/mypy_doctest.sh jax mypy
       
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
@@ -131,8 +128,5 @@ jobs:
     - name: Doctest Linux
       if: ${{ (runner.os == 'Linux') && always() }}
       shell: bash -l {0}
-      run: |
-      for file in "${{ env.JAX_FILES }}"; do
-        pytest --doctest-modules file --doctest-continue-on-failure # DGLBACKEND=?
-      done
+      run: source scripts/mypy_doctest.sh jax doctest
 

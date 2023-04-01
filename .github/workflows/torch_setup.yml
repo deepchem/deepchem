@@ -117,18 +117,15 @@ jobs:
       shell: bash -l {0}
       run: pip install -e .
 
-    - name: Get Torch Files
-      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
-      shell: bash -l {0}
-      run: source scripts/framework_list.sh
+    # - name: Get Torch Files
+    #   if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
+    #   shell: bash -l {0}
+    #   run: source scripts/framework_list.sh
 
     - name: Mypy
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
-      run: |
-      for file in "${{ env.PYTORCH_FILES }}"; do
-        mypy file --ignore-missing-imports
-      done
+      run: source scripts/mypy_doctest.sh torch mypy
       
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
@@ -138,15 +135,9 @@ jobs:
     - name: Doctest Linux
       if: ${{ (runner.os == 'Linux') && always() }}
       shell: bash -l {0}
-      run: |
-      for file in "${{ env.PYTORCH_FILES }}"; do
-        DGLBACKEND=pytorch pytest --doctest-modules file --doctest-continue-on-failure
-      done
+      run: source scripts/mypy_doctest.sh torch doctest
 
     - name: Doctest Windows
       if: ${{ (runner.os == 'Windows') && always() }}
       shell: bash -l {0}
-      run: |
-      for file in "${{ env.PYTORCH_FILES }}"; do
-        DGLBACKEND=pytorch pytest --doctest-modules file --doctest-continue-on-failure
-      done
+      run: source scripts/mypy_doctest.sh torch doctest
