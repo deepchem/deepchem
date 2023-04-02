@@ -7,7 +7,6 @@ from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
 
 @pytest.mark.torch
 def get_classification_dataset():
-    np.random.seed(123)
     featurizer = MolGraphConvFeaturizer(use_edges=True)
     dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -22,8 +21,39 @@ def get_classification_dataset():
     return dataset, metric
 
 
+@pytest.mark.torch
+def get_multitask_classification_dataset():
+    featurizer = MolGraphConvFeaturizer(use_edges=True)
+    dir = os.path.dirname(os.path.abspath(__file__))
+
+    input_file = os.path.join(dir, 'assets/multitask_example.csv')
+    loader = dc.data.CSVLoader(tasks=['task0', 'task1', 'task2'],
+                               feature_field="smiles",
+                               featurizer=featurizer)
+    dataset = loader.create_dataset(input_file)
+    metric = dc.metrics.Metric(dc.metrics.roc_auc_score,
+                               np.mean,
+                               mode="classification")
+    return dataset, metric
+
+
+@pytest.mark.torch
+def get_multitask_regression_dataset():
+    featurizer = MolGraphConvFeaturizer(use_edges=True)
+    dir = os.path.dirname(os.path.abspath(__file__))
+
+    input_file = os.path.join(dir, 'assets/multitask_regression.csv')
+    loader = dc.data.CSVLoader(tasks=['task0', 'task1', 'task2'],
+                               feature_field="smiles",
+                               featurizer=featurizer)
+    dataset = loader.create_dataset(input_file)
+    metric = dc.metrics.Metric(dc.metrics.mean_absolute_error,
+                               mode="regression")
+    return dataset, metric
+
+
+@pytest.mark.torch
 def get_regression_dataset():
-    np.random.seed(123)
     featurizer = MolGraphConvFeaturizer(use_edges=True)
     dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -44,6 +74,7 @@ def test_infographencoder():
     import torch
     from deepchem.models.torch_models.infograph import InfoGraphEncoder
     from deepchem.feat.graph_data import GraphData, BatchGraphData
+    torch.manual_seed(123)
     embedding_dim = 32
     num_nodes = 10
     num_graphs = 3
@@ -76,6 +107,7 @@ def test_GINEcnoder():
     import torch
     from deepchem.models.torch_models.infograph import GINEncoder
     from deepchem.feat.graph_data import GraphData, BatchGraphData
+    torch.manual_seed(123)
     num_gc_layers = 2
     embedding_dim = 32
     num_nodes = 10
@@ -106,15 +138,17 @@ def test_GINEcnoder():
 @pytest.mark.torch
 def test_infographstar_regression_semisupervised():
     from deepchem.models.torch_models.infograph import InfoGraphStarModel
+    import torch
+    torch.manual_seed(123)
     dataset, metric = get_regression_dataset()
     num_feat = 30
     edge_dim = 11
-    dim = 64
+    dim = 128
     model = InfoGraphStarModel(num_feat,
                                edge_dim,
                                dim,
                                num_gc_layers=2,
-                               training_mode='semisupervised')
+                               task='semisupervised')
 
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
@@ -124,6 +158,8 @@ def test_infographstar_regression_semisupervised():
 @pytest.mark.torch
 def test_infographstar_classification_semisupervised():
     from deepchem.models.torch_models.infograph import InfoGraphStarModel
+    import torch
+    torch.manual_seed(123)
     dataset, metric = get_classification_dataset()
     num_feat = 30
     edge_dim = 11
@@ -131,8 +167,8 @@ def test_infographstar_classification_semisupervised():
     model = InfoGraphStarModel(num_feat,
                                edge_dim,
                                dim,
-                               num_gc_layers=2,
-                               training_mode='semisupervised')
+                               num_gc_layers=3,
+                               task='semisupervised')
 
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
@@ -140,9 +176,11 @@ def test_infographstar_classification_semisupervised():
 
 
 @pytest.mark.torch
-def test_infographstar_classification_supervised():
+def test_infographstar_multitask_classification_supervised():
     from deepchem.models.torch_models.infograph import InfoGraphStarModel
-    dataset, metric = get_classification_dataset()
+    import torch
+    torch.manual_seed(123)
+    dataset, metric = get_multitask_classification_dataset()
     num_feat = 30
     edge_dim = 11
     dim = 64
@@ -150,16 +188,46 @@ def test_infographstar_classification_supervised():
     model = InfoGraphStarModel(num_feat,
                                edge_dim,
                                dim,
-                               training_mode='supervised')
+                               task='supervised',
+                               mode='classification',
+                               num_classes=2,
+                               num_tasks=3)
 
-    model.fit(dataset, nb_epoch=100)
+    model.fit(dataset, nb_epoch=200)
     scores = model.evaluate(dataset, [metric])
-    assert scores['mean-roc_auc_score'] >= 0.9
+    # .8 to save resources for a difficult task
+    assert scores['mean-roc_auc_score'] >= 0.8
+
+
+@pytest.mark.torch
+def test_infographstar_multitask_regression_supervised():
+    from deepchem.models.torch_models.infograph import InfoGraphStarModel
+    import torch
+    torch.manual_seed(123)
+    dataset, metric = get_multitask_regression_dataset()
+    num_feat = 30
+    edge_dim = 11
+    dim = 64
+
+    model = InfoGraphStarModel(num_feat,
+                               edge_dim,
+                               dim,
+                               num_gc_layers=3,
+                               task='supervised',
+                               mode='regression',
+                               num_tasks=3)
+
+    model.fit(dataset, nb_epoch=200)
+    scores = model.evaluate(dataset, [metric])
+    # .2 to save resources for a difficult task
+    assert scores['mean_absolute_error'] < 0.2
 
 
 @pytest.mark.torch
 def test_infographstar_regression_supervised():
     from deepchem.models.torch_models.infograph import InfoGraphStarModel
+    import torch
+    torch.manual_seed(123)
     dataset, metric = get_regression_dataset()
     num_feat = 30
     edge_dim = 11
@@ -168,7 +236,7 @@ def test_infographstar_regression_supervised():
                                edge_dim,
                                dim,
                                num_gc_layers=3,
-                               training_mode='supervised')
+                               task='supervised')
 
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
@@ -207,7 +275,7 @@ def test_infograph_pretrain_overfit():
                                        edge_dim,
                                        dim,
                                        num_gc_layers=2,
-                                       training_mode='semisupervised')
+                                       task='semisupervised')
 
     loss1 = infographstar.fit(dataset, nb_epoch=10)
     infograph.fit(dataset, nb_epoch=20)
@@ -227,10 +295,7 @@ def test_infographstar_fit_restore():
     edge_dim = 11
     dim = 64
 
-    model = InfoGraphStarModel(num_feat,
-                               edge_dim,
-                               dim,
-                               training_mode='supervised')
+    model = InfoGraphStarModel(num_feat, edge_dim, dim, task='supervised')
 
     model.fit(dataset, nb_epoch=100)
 
