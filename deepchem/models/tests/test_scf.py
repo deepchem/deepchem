@@ -11,31 +11,11 @@ except ModuleNotFoundError:
 
 
 @pytest.mark.dqc
-def construct_nn_model(ninp=2, nhid=10, ndepths=1):
-    """
-    Constructs Neural Network
-    Parameters
-    ----------
-    ninp: int
-        size of neural input
-    nhid: int
-        hidden layer size
-    ndepths: int
-        depth of neural network
-    """
-    layers = []
-    for i in range(ndepths):
-        n1 = ninp if i == 0 else nhid
-        layers.append(torch.nn.Linear(n1, nhid))
-        layers.append(torch.nn.Softplus())
-    layers.append(torch.nn.Linear(nhid, 1, bias=False))
-    return torch.nn.Sequential(*layers)
-
-
-@pytest.mark.dqc
 def test_scf():
     torch.manual_seed(42)
-    nnmodel = construct_nn_model(ninp=2, nhid=10, ndepths=1).to(torch.double)
+    nnmodel = (torch.nn.Sequential(torch.nn.Linear(2, 10), torch.nn.Softplus(),
+                                   torch.nn.Linear(10, 1, bias=False))).to(
+                                       torch.double)
     hybridxc = HybridXC("lda_x", nnmodel, aweight0=0.0)
     e_type = 'ae'
     true_val = '0.09194410469'

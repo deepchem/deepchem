@@ -1,9 +1,10 @@
 from abc import abstractmethod
-from typing import Union, Iterator, List
+from typing import Union, List
 import torch
 from dqc.utils.datastruct import ValGrad, SpinParam
 from dqc.api.getxc import get_xc
 from dqc.xc.base_xc import BaseXC
+
 
 class BaseNNXC(BaseXC, torch.nn.Module):
     """
@@ -64,6 +65,10 @@ class BaseNNXC(BaseXC, torch.nn.Module):
         pass
 
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+        """
+        This method is implemented only to avoid errors while passing the
+        get_edensityxc method values to DQC and Xitorch.
+        """
         # torch.nn.module prefix has no ending dot, while xt prefix has
         nnprefix = prefix if prefix == "" else prefix[:-1]
         return [
@@ -208,6 +213,14 @@ class HybridXC(BaseNNXC):
 
     @property
     def family(self) -> int:
+        """
+        This method determines the type of model to be used, to train the
+        neural network. Currently we only support an LDA based model and will
+        implement more in subsequent iterations.
+        Returns
+        -------
+        xc.family
+        """
         return self.xc.family
 
     def get_edensityxc(
