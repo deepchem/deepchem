@@ -204,7 +204,7 @@ class GroverFunctionalGroupPredictor(nn.Module):
 
     Parameters
     ----------
-    fg_size: int,
+    functional_group_size: int,
         size of functional group
     in_features: int,
         hidden_layer size, default 128
@@ -212,9 +212,9 @@ class GroverFunctionalGroupPredictor(nn.Module):
     Example
     -------
     >>> from deepchem.models.torch_models.grover_layers import GroverFunctionalGroupPredictor
-    >>> in_features, fg_size = 8, 20
+    >>> in_features, functional_group_size = 8, 20
     >>> num_atoms, num_bonds = 10, 20
-    >>> predictor = GroverFunctionalGroupPredictor(fg_size=20, in_features=8)
+    >>> predictor = GroverFunctionalGroupPredictor(functional_group_size=20, in_features=8)
     >>> atom_scope, bond_scope = [(0, 3), (3, 3), (6, 4)], [(0, 5), (5, 4), (9, 11)]
     >>> embeddings = {}
     >>> embeddings['bond_from_atom'] = torch.randn(num_bonds, in_features)
@@ -229,14 +229,18 @@ class GroverFunctionalGroupPredictor(nn.Module):
 
     """
 
-    def __init__(self, fg_size: int, in_features=128):
+    def __init__(self, functional_group_size: int, in_features=128):
         super(GroverFunctionalGroupPredictor, self).__init__()
 
         self.readout = GroverReadout(rtype="mean", in_features=in_features)
-        self.linear_atom_from_atom = nn.Linear(in_features, fg_size)
-        self.linear_atom_from_bond = nn.Linear(in_features, fg_size)
-        self.linear_bond_from_atom = nn.Linear(in_features, fg_size)
-        self.linear_bond_from_bond = nn.Linear(in_features, fg_size)
+        self.linear_atom_from_atom = nn.Linear(in_features,
+                                               functional_group_size)
+        self.linear_atom_from_bond = nn.Linear(in_features,
+                                               functional_group_size)
+        self.linear_bond_from_atom = nn.Linear(in_features,
+                                               functional_group_size)
+        self.linear_bond_from_bond = nn.Linear(in_features,
+                                               functional_group_size)
 
     def forward(self, embeddings: Dict, atom_scope: List, bond_scope: List):
         """
@@ -260,24 +264,17 @@ class GroverFunctionalGroupPredictor(nn.Module):
         preds: Dict
             A dictionary containing the predicted logits.
         """
-        preds_atom_from_atom, preds_atom_from_bond, preds_bond_from_atom, preds_bond_from_bond = None, None, None, None
+        preds_bond_from_atom = self.linear_bond_from_atom(
+            self.readout(embeddings["bond_from_atom"], bond_scope))
+        preds_bond_from_bond = self.linear_bond_from_bond(
+            self.readout(embeddings["bond_from_bond"], bond_scope))
 
-        # TODO remove if condition
-        # see https://github.com/deepchem/deepchem/pull/3300
-        if embeddings["bond_from_atom"] is not None:
-            preds_bond_from_atom = self.linear_bond_from_atom(
-                self.readout(embeddings["bond_from_atom"], bond_scope))
-        if embeddings["bond_from_bond"] is not None:
-            preds_bond_from_bond = self.linear_bond_from_bond(
-                self.readout(embeddings["bond_from_bond"], bond_scope))
+        preds_atom_from_atom = self.linear_atom_from_atom(
+            self.readout(embeddings["atom_from_atom"], atom_scope))
+        preds_atom_from_bond = self.linear_atom_from_bond(
+            self.readout(embeddings["atom_from_bond"], atom_scope))
 
-        if embeddings["atom_from_atom"] is not None:
-            preds_atom_from_atom = self.linear_atom_from_atom(
-                self.readout(embeddings["atom_from_atom"], atom_scope))
-        if embeddings["atom_from_bond"] is not None:
-            preds_atom_from_bond = self.linear_atom_from_bond(
-                self.readout(embeddings["atom_from_bond"], atom_scope))
-
+        # TODO Add to docs what these different values are
         return {
             "atom_from_atom": preds_atom_from_atom,
             "atom_from_bond": preds_atom_from_bond,
