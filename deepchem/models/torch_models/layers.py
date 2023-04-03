@@ -2799,7 +2799,7 @@ class WeightedLinearCombo(nn.Module):
 
 
 class EdgeNetwork(nn.Module):
-    """ Submodule for Message Passing
+    """Submodule for Message Passing
 
     Examples
     --------
@@ -2827,7 +2827,8 @@ class EdgeNetwork(nn.Module):
                  n_hidden: int = 100,
                  init: str = 'xavier_uniform_',
                  **kwargs):
-        """initalise a EdgeNetwork Layer
+        """Initalises a EdgeNetwork Layer
+
         Parameters
         ----------
         n_pair_features: int, optional
@@ -2863,7 +2864,8 @@ class EdgeNetwork(nn.Module):
 
         Returns
         -------
-        out_tensor: torch.Tensor
+        result: torch.Tensor
+            Tensor containing the mapping of the edge vector to a d × d matrix, where d denotes the dimension of the internal hidden representation of each node in the graph.
         """
         pair_features: torch.Tensor
         atom_features: torch.Tensor
@@ -2871,12 +2873,17 @@ class EdgeNetwork(nn.Module):
         pair_features, atom_features, atom_to_pair = inputs
 
         def unsorted_segment_sum(data, segment_ids, num_segments):
-            """
-            Computes the sum along segments of a tensor. Analogous to tf.unsorted_segment_sum.
-            :param data: A tensor whose segments are to be summed.
-            :param segment_ids: The segment indices tensor.
-            :param num_segments: The number of segments.
-            :return: A tensor of same data type as the data argument.
+            """Computes the sum along segments of a tensor. Analogous to tf.unsorted_segment_sum.
+
+            Parameters
+            ----------
+            data: A tensor whose segments are to be summed.
+            segment_ids: The segment indices tensor.
+            num_segments: The number of segments.
+
+            Returns
+            -------
+            tensor: torch.Tensor
             """
             assert all([i in data.shape for i in segment_ids.shape
                        ]), "segment_ids.shape should be a prefix of data.shape"
@@ -2896,12 +2903,16 @@ class EdgeNetwork(nn.Module):
             return tensor
 
         def segment_sum(data, segment_ids):
-            """
-            Analogous to tf.segment_sum (https://www.tensorflow.org/api_docs/python/tf/math/segment_sum).
+            """Analogous to tf.segment_sum (https://www.tensorflow.org/api_docs/python/tf/math/segment_sum).
 
-            :param data: A pytorch tensor of the data for segmented summation.
-            :param segment_ids: A 1-D tensor containing the indices for the segmentation.
-            :return: a tensor of the same type as data containing the results of the segmented summation.
+            Parameters
+            ----------
+            data: A pytorch tensor of the data for segmented summation.
+            segment_ids: A 1-D tensor containing the indices for the segmentation.
+
+            Returns
+            -------
+            out_tensor: torch.Tensor
             """
             if not all(segment_ids[i] <= segment_ids[i + 1]
                        for i in range(len(segment_ids) - 1)):
@@ -2916,7 +2927,8 @@ class EdgeNetwork(nn.Module):
                 )
 
             num_segments = len(torch.unique(segment_ids))
-            return unsorted_segment_sum(data, segment_ids, num_segments)
+            out_tensor = unsorted_segment_sum(data, segment_ids, num_segments)
+            return out_tensor
 
         A: torch.Tensor = torch.add(torch.matmul(pair_features, self.W), self.b)
         A = torch.reshape(A, (-1, self.n_hidden, self.n_hidden))
