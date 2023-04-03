@@ -70,7 +70,11 @@ class GroverEmbedding(nn.Module):
         Returns
         -------
         embedding: Dict[str, torch.Tensor]
-            When embedding type is `atom`, the dictionary contains atom and bond embeddings aggregated by atom, if `bond`, the dictionary contains atom and bond embedding aggregated by bond and if `both`, it contains aotm and bond embeddings aggregated to both atom and bond.
+            Returns a dictionary of embeddings. The embeddings are:
+         - atom_from_atom: node messages aggregated from node hidden states
+         - bond_from_atom: bond messages aggregated from bond hidden states
+         - atom_from_bond: node message aggregated from bond hidden states
+         - bond_from_bond: bond messages aggregated from bond hidden states.
         """
         output = self.encoders(graph_batch)
         return {
@@ -245,10 +249,9 @@ class GroverFunctionalGroupPredictor(nn.Module):
     def forward(self, embeddings: Dict, atom_scope: List, bond_scope: List):
         """
         The forward function for the GroverFunctionalGroupPredictor (semantic motif prediction) layer.
-        It takes atom/bond embeddings produced from GroverEmbedding module and
-        their corresponsing scopes and produces prediction logits for different branches.
-        The scopes are used to differentiate atoms/bonds belonging to a molecule in a
-        batched molecular graph.
+        It takes atom/bond embeddings produced from node and bond hidden states from GroverEmbedding module
+        and the atom, bond scopes and produces prediction logits for different each embedding.
+        The scopes are used to differentiate atoms/bonds belonging to a molecule in a batched molecular graph.
 
         Parameters
         ----------
@@ -262,7 +265,12 @@ class GroverFunctionalGroupPredictor(nn.Module):
         Returns
         -------
         preds: Dict
-            A dictionary containing the predicted logits.
+            A dictionary containing the predicted logits of functional group from four different types of input embeddings. The key and their corresponding predictions
+        are described below.
+         - atom_from_atom - prediction logits from atom embeddings generated via node hidden states
+         - atom_from_bond - prediction logits from atom embeddings generated via bond hidden states
+         - bond_from_atom - prediction logits from bond embeddings generated via node hidden states
+         - bond_from_bond - prediction logits from bond embeddings generated via bond hidden states
         """
         preds_bond_from_atom = self.linear_bond_from_atom(
             self.readout(embeddings["bond_from_atom"], bond_scope))
@@ -274,7 +282,6 @@ class GroverFunctionalGroupPredictor(nn.Module):
         preds_atom_from_bond = self.linear_atom_from_bond(
             self.readout(embeddings["atom_from_bond"], atom_scope))
 
-        # TODO Add to docs what these different values are
         return {
             "atom_from_atom": preds_atom_from_atom,
             "atom_from_bond": preds_atom_from_bond,
@@ -687,13 +694,9 @@ class GroverTransEncoder(nn.Module):
     """GroverTransEncoder for encoding a molecular graph
 
     The GroverTransEncoder layer is used for encoding a molecular graph.
-    The layer can return four possible output depending on the `atom_emb_output`
-    choice. If it `none`, it returns output from multihead attention block directly.
-    If it is `atom`, then it aggregates node messages from node hidden states, it also aggregates
-    node messages from incoming bond's hidden states to the nodes and returns two tensors.
-    It it is `bond`, it aggregates bond embeddings from bond hidden states, it also aggregates another
-    set of bond embeddings from bond's source nodes hidden states and returns two tensors.
-    If it is `both`, it returns four tensor (`bond` option + `atom` option).
+    The layer returns 4 outputs. They are atom messages aggregated from atom hidden states,
+    atom messages aggregated from bond hidden states, bond messages aggregated from atom hidden
+    states, bond messages aggregated from bond hidden states.
 
     Parameters
     ----------
@@ -721,7 +724,6 @@ class GroverTransEncoder(nn.Module):
         enables the skip-connection in MTBlock.
     """
 
-    # TODO Clean above docstring
     def __init__(self,
                  node_fdim: int,
                  edge_fdim: int,
@@ -885,8 +887,19 @@ class GroverTransEncoder(nn.Module):
             return atom_in_bond_out, bond_in_bond_out
 
     def forward(self, batch):
-        # TODO Add return type and input parameters docstring
-        # TODO Add docstring on how atom_embeddings and bond_embeddings are generated
+        """Forward layer
+
+        Parameters
+        ----------
+        batch: Tuple
+            A tuple of tensors representing grover attributes
+
+        Returns
+        -------
+        embeddings: Tuple[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor]]
+            Embeddings for atom generated from hidden state of nodes and bonds and embeddings of bond generated from hidden states of nodes and bond.
+        """
+
         f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a = batch
 
         node_batch = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
