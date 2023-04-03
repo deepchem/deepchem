@@ -6,24 +6,32 @@ except ModuleNotFoundError:
     pass
 
 
+@pytest.fixture
+def grover_graph_attributes():
+    import deepchem as dc
+    from deepchem.feat.graph_data import BatchGraphData
+    from deepchem.utils.grover import extract_grover_attributes
+    smiles = ['CC', 'CCC', 'CC(=O)C']
+
+    fg = dc.feat.CircularFingerprint()
+    featurizer = dc.feat.GroverFeaturizer(features_generator=fg)
+
+    graphs = featurizer.featurize(smiles)
+    batched_graph = BatchGraphData(graphs)
+    attributes = extract_grover_attributes(batched_graph)
+    return attributes
+
+
 @pytest.mark.torch
-def testGroverEmbedding():
+def testGroverEmbedding(grover_graph_attributes):
     from deepchem.models.torch_models.grover_layers import GroverEmbedding
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels, additional_features = grover_graph_attributes
     hidden_size = 8
-    f_atoms = torch.randn(4, 151)
-    f_bonds = torch.randn(5, 165)
-    a2b = torch.Tensor([[0, 0], [2, 0], [4, 0], [1, 3]]).type(torch.int32)
-    b2a = torch.Tensor([0, 1, 3, 2, 3]).type(torch.long)
-    b2revb = torch.Tensor([0, 2, 1, 4, 3]).type(torch.long)
-    a_scope = torch.Tensor([[1, 3]]).type(torch.int32)
-    b_scope = torch.Tensor([[1, 4]]).type(torch.int32)
-    a2a = torch.Tensor([[0, 0], [3, 0], [3, 0], [1, 2]]).type(torch.int32)
     n_atoms, n_bonds = f_atoms.shape[0], f_bonds.shape[0]
     node_fdim, edge_fdim = f_atoms.shape[1], f_bonds.shape[1]
     layer = GroverEmbedding(hidden_size=hidden_size,
                             edge_fdim=edge_fdim,
-                            node_fdim=node_fdim,
-                            embedding_output_type='both')
+                            node_fdim=node_fdim)
     output = layer([f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a])
     assert output['atom_from_atom'].shape == (n_atoms, hidden_size)
     assert output['bond_from_atom'].shape == (n_bonds, hidden_size)
@@ -81,14 +89,9 @@ def testGroverFunctionalGroupPredictor():
 @pytest.mark.torch
 @pytest.mark.parametrize('dynamic_depth', ['none', 'uniform'])
 @pytest.mark.parametrize('atom_messages', [False, True])
-def testGroverMPNEncoder(dynamic_depth, atom_messages):
+def testGroverMPNEncoder(grover_graph_attributes, dynamic_depth, atom_messages):
     from deepchem.models.torch_models.grover_layers import GroverMPNEncoder
-    f_atoms = torch.randn(4, 151)
-    f_bonds = torch.randn(5, 165)
-    a2b = torch.Tensor([[0, 0], [2, 0], [4, 0], [1, 3]]).type(torch.int32)
-    b2a = torch.Tensor([0, 1, 3, 2, 3]).type(torch.long)
-    b2revb = torch.Tensor([0, 2, 1, 4, 3]).type(torch.long)
-    a2a = torch.Tensor([[0, 0], [3, 0], [3, 0], [1, 2]]).type(torch.int32)
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, _, _, _, _ = grover_graph_attributes
 
     # TODO Write tests for undirected = True case, currently fails. for this case, we have
     # to generate inputs (a2b, b2a, b2revb) for undirected graph.
@@ -135,18 +138,11 @@ def testGroverMPNEncoder(dynamic_depth, atom_messages):
         assert out.shape == (f_atoms.shape[0], hidden_size)
 
 
-def testGroverAttentionHead():
+@pytest.mark.torch
+def testGroverAttentionHead(grover_graph_attributes):
     from deepchem.models.torch_models.grover_layers import GroverAttentionHead
-    # FIXME It is assumed that f_atoms and f_bonds are outputs of a hidden layer rather
-    # than raw inputs of molecular features.
-    f_atoms = torch.randn(4, 16)
-    f_bonds = torch.randn(5, 16)
-    a2b = torch.Tensor([[0, 0], [2, 0], [4, 0], [1, 3]]).type(torch.int32)
-    b2a = torch.Tensor([0, 1, 3, 2, 3]).type(torch.long)
-    b2revb = torch.Tensor([0, 2, 1, 4, 3]).type(torch.long)
-    a2a = torch.Tensor([[0, 0], [3, 0], [3, 0], [1, 2]]).type(torch.int32)
-
-    hidden_size = 16
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, _, _, _, _ = grover_graph_attributes
+    hidden_size = 165
     atom_messages = False
     layer = GroverAttentionHead(hidden_size,
                                 bias=True,
@@ -159,16 +155,10 @@ def testGroverAttentionHead():
     assert value.size() == (f_bonds.shape[0], hidden_size)
 
 
-def testGroverMTBlock():
+@pytest.mark.torch
+def testGroverMTBlock(grover_graph_attributes):
     from deepchem.models.torch_models.grover_layers import GroverMTBlock
-    f_atoms = torch.randn(4, 151)
-    f_bonds = torch.randn(5, 165)
-    a2b = torch.Tensor([[0, 0], [2, 0], [4, 0], [1, 3]]).type(torch.int32)
-    b2a = torch.Tensor([0, 1, 3, 2, 3]).type(torch.long)
-    b2revb = torch.Tensor([0, 2, 1, 4, 3]).type(torch.long)
-    a_scope = torch.Tensor([[1, 3]]).type(torch.int32)
-    b_scope = torch.Tensor([[1, 4]]).type(torch.int32)
-    a2a = torch.Tensor([[0, 0], [3, 0], [3, 0], [1, 2]]).type(torch.int32)
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, _ = grover_graph_attributes
 
     hidden_size = 16
     layer = GroverMTBlock(atom_messages=True,
@@ -192,23 +182,17 @@ def testGroverMTBlock():
     assert (new_a2a == a2a).all()
 
 
-def testGroverTransEncoder():
+@pytest.mark.torch
+def testGroverTransEncoder(grover_graph_attributes):
     from deepchem.models.torch_models.grover_layers import GroverTransEncoder
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, _ = grover_graph_attributes
+
     hidden_size = 8
-    f_atoms = torch.randn(4, 151)
-    f_bonds = torch.randn(5, 165)
-    a2b = torch.Tensor([[0, 0], [2, 0], [4, 0], [1, 3]]).type(torch.int32)
-    b2a = torch.Tensor([0, 1, 3, 2, 3]).type(torch.long)
-    b2revb = torch.Tensor([0, 2, 1, 4, 3]).type(torch.long)
-    a_scope = torch.Tensor([[1, 3]]).type(torch.int32)
-    b_scope = torch.Tensor([[1, 4]]).type(torch.int32)
-    a2a = torch.Tensor([[0, 0], [3, 0], [3, 0], [1, 2]]).type(torch.int32)
     n_atoms, n_bonds = f_atoms.shape[0], f_bonds.shape[0]
     node_fdim, edge_fdim = f_atoms.shape[1], f_bonds.shape[1]
     layer = GroverTransEncoder(hidden_size=hidden_size,
                                edge_fdim=edge_fdim,
-                               node_fdim=node_fdim,
-                               embedding_output_type='both')
+                               node_fdim=node_fdim)
     output = layer([f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a])
     assert output[0][0].shape == (n_atoms, hidden_size)
     assert output[0][1].shape == (n_bonds, hidden_size)

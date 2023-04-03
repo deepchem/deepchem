@@ -16,7 +16,7 @@ from deepchem.models.torch_models.layers import SublayerConnection, Positionwise
 class GroverEmbedding(nn.Module):
     """GroverEmbedding layer.
 
-    This layer is a simple wrapper over GroverTransEncoder layer for retrieving the embeddings from the GroverTransEncoder corresponding to the `embedding_output_type` chosen by the user.
+    This layer is a simple wrapper over GroverTransEncoder layer for retrieving the embeddings from the GroverTransEncoder layer.
 
     Parameters
     ----------
@@ -32,14 +32,11 @@ class GroverEmbedding(nn.Module):
         the number of message passing blocks.
     num_head: int
         the number of attention heads.
-    embedding_output_type: str
-        the type of output aggregation after message passing. If `atom`, returns an embedding per atom. If `bond`, returns an embedding per bond. If `both`, returns an embedding for every atom and bond.
     """
 
     def __init__(self,
                  node_fdim,
                  edge_fdim,
-                 embedding_output_type,
                  hidden_size=128,
                  depth=1,
                  undirected=False,
@@ -50,20 +47,17 @@ class GroverEmbedding(nn.Module):
                  bias=False,
                  res_connection=False):
         super(GroverEmbedding, self).__init__()
-        self.embedding_output_type = embedding_output_type
-        self.encoders = GroverTransEncoder(
-            hidden_size=hidden_size,
-            edge_fdim=edge_fdim,
-            node_fdim=node_fdim,
-            depth=depth,
-            undirected=undirected,
-            dropout=dropout,
-            activation=activation,
-            num_mt_block=num_mt_block,
-            num_heads=num_heads,
-            embedding_output_type=embedding_output_type,
-            bias=bias,
-            res_connection=res_connection)
+        self.encoders = GroverTransEncoder(hidden_size=hidden_size,
+                                           edge_fdim=edge_fdim,
+                                           node_fdim=node_fdim,
+                                           depth=depth,
+                                           undirected=undirected,
+                                           dropout=dropout,
+                                           activation=activation,
+                                           num_mt_block=num_mt_block,
+                                           num_heads=num_heads,
+                                           bias=bias,
+                                           res_connection=res_connection)
 
     def forward(self, graph_batch: List[torch.Tensor]):
         """Forward function
@@ -79,27 +73,12 @@ class GroverEmbedding(nn.Module):
             When embedding type is `atom`, the dictionary contains atom and bond embeddings aggregated by atom, if `bond`, the dictionary contains atom and bond embedding aggregated by bond and if `both`, it contains aotm and bond embeddings aggregated to both atom and bond.
         """
         output = self.encoders(graph_batch)
-        if self.embedding_output_type == 'atom':
-            return {
-                "atom_from_atom": output[0],
-                "atom_from_bond": output[1],
-                "bond_from_atom": None,
-                "bond_from_bond": None
-            }  # atom_from_atom, atom_from_bond
-        elif self.embedding_output_type == 'bond':
-            return {
-                "atom_from_atom": None,
-                "atom_from_bond": None,
-                "bond_from_atom": output[0],
-                "bond_from_bond": output[1]
-            }  # bond_from_atom, bond_from_bond
-        elif self.embedding_output_type == "both":
-            return {
-                "atom_from_atom": output[0][0],
-                "bond_from_atom": output[0][1],
-                "atom_from_bond": output[1][0],
-                "bond_from_bond": output[1][1]
-            }
+        return {
+            "atom_from_atom": output[0][0],
+            "bond_from_atom": output[0][1],
+            "atom_from_bond": output[1][0],
+            "bond_from_bond": output[1][1]
+        }
 
 
 class GroverBondVocabPredictor(nn.Module):
@@ -283,6 +262,8 @@ class GroverFunctionalGroupPredictor(nn.Module):
         """
         preds_atom_from_atom, preds_atom_from_bond, preds_bond_from_atom, preds_bond_from_bond = None, None, None, None
 
+        # TODO remove if condition
+        # see https://github.com/deepchem/deepchem/pull/3300
         if embeddings["bond_from_atom"] is not None:
             preds_bond_from_atom = self.linear_bond_from_atom(
                 self.readout(embeddings["bond_from_atom"], bond_scope))
@@ -737,20 +718,13 @@ class GroverTransEncoder(nn.Module):
         the number of mt block.
     num_head: int
         the number of attention AttentionHead.
-    embedding_output_type: str
-        enable the output aggregation after message passing.
-                                            atom_messages:      True                      False
-        - "none": no aggregation         output size:     (num_atoms, hidden_size)    (num_bonds, hidden_size)
-        -"atom":  aggregating to atom  output size:     (num_atoms, hidden_size)    (num_atoms, hidden_size)
-        -"bond": aggragating to bond.   output size:     (num_bonds, hidden_size)    (num_bonds, hidden_size)
-        -"both": aggregating to atom&bond. output size:  (num_atoms, hidden_size)    (num_bonds, hidden_size)
-                                                        (num_bonds, hidden_size)    (num_atoms, hidden_size)
     bias: bool
         enable bias term in all linear layers.
     res_connection: bool
         enables the skip-connection in MTBlock.
     """
 
+    # TODO Clean above docstring
     def __init__(self,
                  node_fdim: int,
                  edge_fdim: int,
@@ -758,7 +732,6 @@ class GroverTransEncoder(nn.Module):
                  undirected: bool = False,
                  num_mt_block: int = 2,
                  num_heads: int = 2,
-                 embedding_output_type: str = 'both',
                  hidden_size: int = 64,
                  dropout: float = 0.2,
                  res_connection: bool = True,
@@ -769,7 +742,6 @@ class GroverTransEncoder(nn.Module):
         self.hidden_size = hidden_size
         self.edge_fdim = edge_fdim
         self.node_fdim = node_fdim
-        self.embedding_output_type = embedding_output_type
 
         self.edge_blocks = nn.ModuleList()
         self.node_blocks = nn.ModuleList()
@@ -916,6 +888,8 @@ class GroverTransEncoder(nn.Module):
             return atom_in_bond_out, bond_in_bond_out
 
     def forward(self, batch):
+        # TODO Add return type and input parameters docstring
+        # TODO Add docstring on how atom_embeddings and bond_embeddings are generated
         f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a = batch
 
         node_batch = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
@@ -931,54 +905,27 @@ class GroverTransEncoder(nn.Module):
         atom_output, _, _, _, _, _, _, _ = node_batch  # atom hidden states
         _, bond_output, _, _, _, _, _, _ = edge_batch  # bond hidden states
 
-        if self.embedding_output_type is None:
-            # output the embedding from multi-head attention directly.
-            return atom_output, bond_output
+        atom_embeddings = self._atom_bond_transform(
+            to_atom=True,  # False: to bond
+            atomwise_input=atom_output,
+            bondwise_input=bond_output,
+            original_f_atoms=original_f_atoms,
+            original_f_bonds=original_f_bonds,
+            a2a=a2a,
+            a2b=a2b,
+            b2a=b2a,
+            b2revb=b2revb)
 
-        if self.embedding_output_type == 'atom':
-            return self._atom_bond_transform(
-                to_atom=True,  # False: to bond
-                atomwise_input=atom_output,
-                bondwise_input=bond_output,
-                original_f_atoms=original_f_atoms,
-                original_f_bonds=original_f_bonds,
-                a2a=a2a,
-                a2b=a2b,
-                b2a=b2a,
-                b2revb=b2revb)
-        elif self.embedding_output_type == 'bond':
-            return self._atom_bond_transform(
-                to_atom=False,  # False: to bond
-                atomwise_input=atom_output,
-                bondwise_input=bond_output,
-                original_f_atoms=original_f_atoms,
-                original_f_bonds=original_f_bonds,
-                a2a=a2a,
-                a2b=a2b,
-                b2a=b2a,
-                b2revb=b2revb)
-        else:  # 'both'
-            atom_embeddings = self._atom_bond_transform(
-                to_atom=True,  # False: to bond
-                atomwise_input=atom_output,
-                bondwise_input=bond_output,
-                original_f_atoms=original_f_atoms,
-                original_f_bonds=original_f_bonds,
-                a2a=a2a,
-                a2b=a2b,
-                b2a=b2a,
-                b2revb=b2revb)
+        bond_embeddings = self._atom_bond_transform(
+            to_atom=False,  # False: to bond
+            atomwise_input=atom_output,
+            bondwise_input=bond_output,
+            original_f_atoms=original_f_atoms,
+            original_f_bonds=original_f_bonds,
+            a2a=a2a,
+            a2b=a2b,
+            b2a=b2a,
+            b2revb=b2revb)
 
-            bond_embeddings = self._atom_bond_transform(
-                to_atom=False,  # False: to bond
-                atomwise_input=atom_output,
-                bondwise_input=bond_output,
-                original_f_atoms=original_f_atoms,
-                original_f_bonds=original_f_bonds,
-                a2a=a2a,
-                a2b=a2b,
-                b2a=b2a,
-                b2revb=b2revb)
-
-            return ((atom_embeddings[0], bond_embeddings[0]),
-                    (atom_embeddings[1], bond_embeddings[1]))
+        return ((atom_embeddings[0], bond_embeddings[0]), (atom_embeddings[1],
+                                                           bond_embeddings[1]))

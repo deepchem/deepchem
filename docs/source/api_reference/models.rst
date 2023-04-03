@@ -102,6 +102,9 @@ Losses
 .. autoclass:: deepchem.models.losses.LocalMutualInformationLoss
   :members:
 
+.. autoclass:: deepchem.models.losses.GroverPretrainLoss
+  :members:
+
 Optimizers
 ----------
 
@@ -403,6 +406,12 @@ InfoGraphModel
 --------------
 
 .. autoclass:: deepchem.models.torch_models.InfoGraphModel
+  :members:
+
+InfoGraphStarModel
+------------------
+
+.. autoclass:: deepchem.models.torch_models.InfoGraphStarModel
   :members:
 
 LCNNModel

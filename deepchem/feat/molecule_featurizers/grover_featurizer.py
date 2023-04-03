@@ -3,7 +3,7 @@ Grover Featurizer.
 The adaptation is based on https://github.com/tencent-ailab/grover/blob/0421d97a5e1bd1b59d1923e3afd556afbe4ff782/grover/data/molgraph.py
 
 """
-from typing import Optional, List
+from typing import Optional
 import numpy as np
 from deepchem.feat.graph_data import GraphData
 from deepchem.feat.molecule_featurizers import RDKitDescriptors
@@ -118,25 +118,13 @@ class GroverFeaturizer(MolecularFeaturizer):
         from deepchem.feat.molecule_featurizers.dmpnn_featurizer import bond_features
         smiles = Chem.MolToSmiles(mol)
         n_atoms = mol.GetNumAtoms()  # number of atoms
-        n_bonds = 0  # number of bonds
         f_atoms = []  # mapping from atom index to atom features
         f_bonds = [
         ]  # mapping from bond index to concat(from_atom, bond) features
-        a2b: List[List[int]] = [
-        ]  # mapping from atom index to incoming bond indices
-        b2a = [
-        ]  # mapping from bond index to the index of the atom the bond is coming from
-        b2revb = []  # mapping from bond index to index of reverse bond
-        # all bonds are considered as directed edges. A reverse bond of a directed bond (edge)
-        # is the edge in reverse direction (reverse bond). Ex: If b2 is the bond between a2 --> a1,
-        # it's reverse bond is a1 --> a2
         edge_index = []
 
         for _, atom in enumerate(mol.GetAtoms()):
             f_atoms.append(self._get_atom_features(atom, mol))
-
-        for i in range(n_atoms):
-            a2b.append([])
 
         for a1 in range(n_atoms):
             for a2 in range(a1 + 1, n_atoms):
@@ -153,26 +141,12 @@ class GroverFeaturizer(MolecularFeaturizer):
                 f_bonds.append(f_atoms[a1] + f_bond)
                 f_bonds.append(f_atoms[a2] + f_bond)
 
-                b1 = n_bonds
-                b2 = b1 + 1
-                a2b[a2].append(
-                    b1)  # atom2 has b1 as incoming edge. b1 = a1 --> a2
-                b2a.append(a1)
-                a2b[a1].append(
-                    b2)  # atom1 has b2 as incoming edge. b2 = a2 --> a1
-                b2a.append(a2)
-                b2revb.append(b2)
-                b2revb.append(b1)
-                n_bonds += 2
                 edge_index.extend([[a1, a2], [a2, a1]])
 
         molgraph = GraphData(node_features=np.asarray(f_atoms),
                              edge_index=np.asarray(edge_index).T,
                              edge_features=np.asarray(f_bonds),
-                             smiles=smiles,
-                             b2revb=b2revb,
-                             a2b=a2b,
-                             b2a=b2a)
+                             smiles=smiles)
         return molgraph
 
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> GraphData:
