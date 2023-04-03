@@ -4,7 +4,7 @@ from torch_geometric.nn.aggr import AttentionalAggregation
 from torch.functional import F
 from deepchem.models.torch_models import ModularTorchModel
 from torch_geometric.data import Data
-from deepchem.feat.graph_data import BatchGraphData
+# from deepchem.feat.graph_data import BatchGraphData
 # from torch_scatter import scatter_add
 # from torch_geometric.nn.inits import glorot, zeros
 
@@ -55,8 +55,8 @@ class GNN(torch.nn.Module):
         self.JK = JK
 
         # may mess with testing
-        torch.nn.init.xavier_uniform_(self.atom_type_embedding)
-        torch.nn.init.xavier_uniform_(self.chirality_embedding)
+        torch.nn.init.xavier_uniform_(self.atom_type_embedding.weight.data)
+        torch.nn.init.xavier_uniform_(self.chirality_embedding.weight.data)
 
     def forward(self, data: "BatchAE"):  # can we make it BatchGraphData?
 
@@ -110,7 +110,7 @@ class GNNModular(ModularTorchModel):
         The dropout probability.
     JK: str, optional (default "last")
         The type of jump knowledge to use. [1] Must be one of "last", "sum", "max", "concat" or "none". "last": Use the node representation from the last GNN layer. "concat": Concatenate the node representations from all GNN layers. "max": Take the element-wise maximum of the node representations from all GNN layers. "sum": Take the element-wise sum of the node representations from all GNN layers.
-        
+
     References
     ----------
     _[1]. Xu, K. et al. Representation Learning on Graphs with Jumping Knowledge Networks. Preprint at https://doi.org/10.48550/arXiv.1806.03536 (2018).
@@ -120,13 +120,13 @@ class GNNModular(ModularTorchModel):
     """
 
     def __init__(self,
-                 gnn_type,
-                 num_layer,
-                 emb_dim,
-                 num_tasks,
-                 graph_pooling,
-                 dropout=0,
-                 JK="last",
+                 gnn_type: str,
+                 num_layer: int,
+                 emb_dim: int,
+                 num_tasks: int,
+                 graph_pooling: str,
+                 dropout: int = 0,
+                 JK: str = "last",
                  **kwargs):
         self.gnn_type = gnn_type
         self.num_layer = num_layer
@@ -146,12 +146,12 @@ class GNNModular(ModularTorchModel):
         batch_norms = []
         for layer in range(self.num_layer):
             if self.gnn_type == "gin":
-                self.encoders.append(GINConv(self.emb_dim, aggr="add"))
+                encoders.append(GINConv(self.emb_dim, aggr="add"))
             elif self.gnn_type == "gcn":
-                self.encoders.append(GCNConv(self.emb_dim))
+                encoders.append(GCNConv(self.emb_dim))
             elif self.gnn_type == "gat":
-                self.encoders.append(GATConv(self.emb_dim))
-            self.batch_norms.append(torch.nn.BatchNorm1d(self.emb_dim))
+                encoders.append(GATConv(self.emb_dim))
+            batch_norms.append(torch.nn.BatchNorm1d(self.emb_dim))
 
         if self.graph_pooling == "sum":
             pool = global_add_pool
@@ -199,12 +199,12 @@ class GNNModular(ModularTorchModel):
             'head':
                 head
         }
-        self.gnn = GNN(self.components['atom_type_embedding'],
-                       self.components['chirality_embedding'],
-                       self.components['gconvs'],
-                       self.components['batch_norms'], self.dropout, self.JK)
-        self.gnn_head = GNN_head(self.components['pool'],
-                                 self.components['head'])
+        self.gnn = GNN(components['atom_type_embedding'],
+                       components['chirality_embedding'],
+                       components['gconvs'],
+                       components['batch_norms'], self.dropout, self.JK)
+        self.gnn_head = GNN_head(components['pool'],
+                                 components['head'])
         return components
 
     def build_model(self):
@@ -212,7 +212,7 @@ class GNNModular(ModularTorchModel):
 
     def loss_func(self, inputs, labels, weights):
         #edge pred
-        # batch = inputs.to(self.device)
+        inputs = inputs.to(self.device)
         node_emb = self.gnn(inputs)
 
         positive_score = torch.sum(node_emb[inputs.edge_index[0, ::2]] *
@@ -222,10 +222,9 @@ class GNNModular(ModularTorchModel):
                                    node_emb[inputs.negative_edge_index[1]],
                                    dim=1)
 
-        # optimizer.zero_grad()
-        loss = criterion(positive_score,
-                         torch.ones_like(positive_score)) + criterion(
-                             negative_score, torch.zeros_like(negative_score))
+        loss = self.criterion(
+            positive_score, torch.ones_like(positive_score)) + self.criterion(
+                negative_score, torch.zeros_like(negative_score))
         return (loss * weights[0]).mean()
 
     def default_generator(self, dataset, epochs=1, **kwargs):
@@ -249,51 +248,15 @@ class GNN_head(torch.nn.Module):
     JK-net: https://arxiv.org/abs/1806.03536
     """
 
-    def __init__(self, gnn, pool, head):
+    def __init__(self, pool, head):
         super().__init__()
-        self.gnn = gnn
+        # self.gnn = gnn
         self.pool = pool
         self.head = head
 
     def forward(self, data):
-        node_representation, graph_index = self.gnn(data)
+        node_representation, graph_index = data
         return self.head(self.pool(node_representation, graph_index))
-
-
-# edge pred mode training code
-criterion = torch.nn.BCEWithLogitsLoss()
-
-
-def edge_pred(args, model, device, loader, optimizer):
-    model.train()
-
-    train_acc_accum = 0
-    train_loss_accum = 0
-
-    for step, batch in enumerate(tqdm(loader, desc="Iteration")):
-        batch = batch.to(device)
-        node_emb = model(batch.x, batch.edge_index, batch.edge_attr)
-
-        positive_score = torch.sum(node_emb[batch.edge_index[0, ::2]] *
-                                   node_emb[batch.edge_index[1, ::2]],
-                                   dim=1)
-        negative_score = torch.sum(node_emb[batch.negative_edge_index[0]] *
-                                   node_emb[batch.negative_edge_index[1]],
-                                   dim=1)
-
-        optimizer.zero_grad()
-        loss = criterion(positive_score,
-                         torch.ones_like(positive_score)) + criterion(
-                             negative_score, torch.zeros_like(negative_score))
-        loss.backward()
-        optimizer.step()
-
-        train_loss_accum += float(loss.detach().cpu().item())
-        acc = (torch.sum(positive_score > 0) + torch.sum(negative_score < 0)
-               ).to(torch.float32) / float(2 * len(positive_score))
-        train_acc_accum += float(acc.detach().cpu().item())
-
-    return train_acc_accum / step, train_loss_accum / step
 
 
 class DataLoaderAE(torch.utils.data.DataLoader):
