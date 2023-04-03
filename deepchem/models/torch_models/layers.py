@@ -11,7 +11,7 @@ except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
 
 try:
-    from torch_scatter import scatter_mean, scatter_sum
+    from torch_geometric.utils import scatter
 except ModuleNotFoundError:
     pass
 
@@ -1138,9 +1138,10 @@ class GraphNetwork(torch.nn.Module):
         # Compute mean edge features for each node by dst_index (each node
         # receives information from edges which have that node as its destination,
         # hence the computation uses dst_index to aggregate information)
-        edge_features_mean_by_node = scatter_mean(edge_features,
-                                                  dst_index,
-                                                  dim=0)
+        edge_features_mean_by_node = scatter(src=edge_features,
+                                             index=dst_index,
+                                             dim=0,
+                                             reduce='mean')
         out = torch.cat(
             (node_features, edge_features_mean_by_node, global_features[batch]),
             dim=1)
@@ -1151,8 +1152,14 @@ class GraphNetwork(torch.nn.Module):
     def _update_global_features(self, node_features, edge_features,
                                 global_features, node_batch_map,
                                 edge_batch_map):
-        edge_features_mean = scatter_mean(edge_features, edge_batch_map, dim=0)
-        node_features_mean = scatter_mean(node_features, node_batch_map, dim=0)
+        edge_features_mean = scatter(src=edge_features,
+                                     index=edge_batch_map,
+                                     dim=0,
+                                     reduce='mean')
+        node_features_mean = scatter(src=node_features,
+                                     index=node_batch_map,
+                                     dim=0,
+                                     reduce='mean')
         out = torch.cat(
             (edge_features_mean, node_features_mean, global_features), dim=1)
         for model in self.global_models:
@@ -2879,7 +2886,7 @@ class SetGather(nn.Module):
             ],
                           dim=0)
 
-            r = scatter_sum(torch.reshape(a, [-1, 1]) * atom_features,
+            r = scatter(torch.reshape(a, [-1, 1]) * atom_features,
                             torch.from_numpy(atom_split).long(),
                             dim=0)
             # Model using this layer must set `pad_batches=True`
