@@ -11,6 +11,7 @@ from tensorflow.keras import layers
 class BasicMolGANModel(WGAN):
     """
     Model for de-novo generation of small molecules based on work of Nicola De Cao et al. [1]_.
+    It uses a GAN directly on graph data and a reinforcement learning objective to induce the network to generate molecules with certain chemical properties.
     Utilizes WGAN infrastructure; uses adjacency matrix and node features as inputs.
     Inputs need to be one-hot representation.
 
