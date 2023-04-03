@@ -112,6 +112,8 @@ class TestGraph(unittest.TestCase):
         assert batch.num_edges == sum(num_edge_list)
         assert batch.num_edge_features == num_edge_features
         assert batch.graph_index.shape == (sum(num_nodes_list),)
+        assert batch.edge_index.max() == sum(num_edge_list)
+        assert batch.edge_index.shape == (2, sum(num_edge_list))
 
     @pytest.mark.torch
     def test_graph_data_single_atom_mol(self):
@@ -191,3 +193,27 @@ class TestGraph(unittest.TestCase):
         assert isinstance(batched_graph.edge_index, torch.Tensor)
         assert isinstance(batched_graph.edge_features, torch.Tensor)
         assert batched_graph.node_pos_features is None
+
+    def test_batch_graph_data_with_user_defined_attributes(self):
+        edge_index = np.array([[0, 1], [1, 0]])
+        node_features_shape = 5
+        n_nodes = 2
+        g1 = GraphData(node_features=np.random.randn(n_nodes,
+                                                     node_features_shape),
+                       edge_index=edge_index,
+                       user_defined_attribute1=[0, 1])
+
+        g2 = GraphData(node_features=np.random.randn(n_nodes,
+                                                     node_features_shape),
+                       edge_index=edge_index,
+                       user_defined_attribute1=[2, 3])
+
+        g3 = GraphData(node_features=np.random.randn(n_nodes,
+                                                     node_features_shape),
+                       edge_index=edge_index,
+                       user_defined_attribute1=[4, 5])
+        g = BatchGraphData([g1, g2, g3])
+
+        assert hasattr(g, 'user_defined_attribute1')
+        assert (g.user_defined_attribute1 == np.array([[0, 1], [2, 3],
+                                                       [4, 5]])).all()

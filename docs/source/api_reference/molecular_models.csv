@@ -17,3 +17,5 @@ MATModel,`ref <https://arxiv.org/abs/2002.08264>`_,Regressor,MATFeaturizer,PyTor
 WeaveModel,`ref <https://arxiv.org/abs/1603.00856>`_,Regressor,WeaveFeaturizer,Keras,
 BasicMolGANModel,`ref <https://arxiv.org/abs/1805.11973>`_,Generator,MolGanFeaturizer,Keras,fit method: :code:`fit_gan`,
 DMPNNModel,`ref <https://arxiv.org/pdf/1904.01561.pdf>`_,Classifier/ Regressor,DMPNNFeaturizer,PyTorch
+InfoGraph,`ref <https://arxiv.org/abs/1908.01000>`_,Classifier/ Regressor,MolGraphConvFeaturizer,PyTorch
+InfoGraphStar,`ref <https://arxiv.org/abs/1908.01000>`_,Classifier/ Regressor,MolGraphConvFeaturizer,PyTorch

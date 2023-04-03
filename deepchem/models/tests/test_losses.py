@@ -1,7 +1,10 @@
-import deepchem.models.losses as losses
 import unittest
-import pytest
+
 import numpy as np
+import pytest
+
+import deepchem as dc
+import deepchem.models.losses as losses
 
 try:
     import tensorflow as tf
@@ -381,3 +384,136 @@ class TestLosses(unittest.TestCase):
             -np.mean([0.9 * np.log(0.9), 0.1 * np.log(0.1)])
         ]
         assert np.allclose(expected, result)
+
+    @pytest.mark.torch
+    def test_GlobalMutualInformation_pytorch(self):
+        """."""
+        torch.manual_seed(123)
+
+        g_enc = torch.tensor([[1, 2, 3, 4], [1, 2, 3, 4]])
+        g_enc2 = torch.tensor([[5, 6, 7, 8], [5, 6, 7, 8]])
+
+        globalloss = losses.GlobalMutualInformationLoss()
+
+        excepted_global_loss = np.array(34.306854)
+
+        global_loss = globalloss._create_pytorch_loss()(
+            g_enc, g_enc2).detach().numpy()
+        assert np.allclose(global_loss, excepted_global_loss, 1e-3)
+
+    @pytest.mark.torch
+    def test_LocalInformation_pytorch(self):
+        """."""
+        torch.manual_seed(123)
+        dim = 4
+        g_enc = torch.rand(2, dim)
+        l_enc = torch.randn(4, dim)
+        batch_graph_index = torch.tensor([[0, 1], [1, 0]])
+
+        localloss = losses.LocalMutualInformationLoss()
+
+        expected_local_loss = np.array(-0.17072642)
+
+        local_loss = localloss._create_pytorch_loss()(
+            l_enc, g_enc, batch_graph_index).detach().numpy()
+        assert np.allclose(local_loss, expected_local_loss, 1e-3)
+
+    def get_regression_dataset(self):
+        import os
+
+        from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
+
+        np.random.seed(123)
+        featurizer = MolGraphConvFeaturizer(use_edges=True)
+        dir = os.path.dirname(os.path.abspath(__file__))
+
+        input_file = os.path.join(dir, 'assets/example_regression.csv')
+        loader = dc.data.CSVLoader(tasks=["outcome"],
+                                   feature_field="smiles",
+                                   featurizer=featurizer)
+        dataset = loader.create_dataset(input_file)
+        metric = dc.metrics.Metric(dc.metrics.mean_absolute_error,
+                                   mode="regression")
+
+        return dataset, metric
+
+    @pytest.mark.torch
+    def test_get_positive_expectation(self):
+        import numpy as np
+        import torch
+
+        from deepchem.models.losses import get_positive_expectation
+
+        p_samples = torch.tensor([0.5, 1.0, -0.5, -1.0])
+        measures = ['GAN', 'JSD', 'X2', 'KL', 'RKL', 'DV', 'H2', 'W1']
+        expected_results = [
+            np.array(-0.76866937),
+            np.array(-0.07552214),
+            np.array(0.625),
+            np.array(1),
+            np.array(-1.3353533),
+            np.array(0),
+            np.array(-0.33535326),
+            np.array(0)
+        ]
+
+        for measure, expected in zip(measures, expected_results):
+            result = get_positive_expectation(p_samples,
+                                              measure).detach().numpy()
+            assert np.allclose(result, expected, atol=1e-6)
+
+    @pytest.mark.torch
+    def test_get_negative_expectation(self):
+        import numpy as np
+        import torch
+
+        from deepchem.models.losses import get_negative_expectation
+
+        q_samples = torch.tensor([0.5, 1.0, -0.5, -1.0])
+        measures = ['GAN', 'JSD', 'X2', 'KL', 'RKL', 'DV', 'H2', 'W1']
+        expected_results = [
+            np.array(0.76866937),
+            np.array(0.07552214),
+            np.array(-1.5625),
+            np.array(1.3353533),
+            np.array(-1),
+            np.array(0.289196),
+            np.array(0.33535326),
+            np.array(0)
+        ]
+
+        for measure, expected in zip(measures, expected_results):
+            result = get_negative_expectation(q_samples,
+                                              measure).detach().numpy()
+            assert np.allclose(result, expected, atol=1e-6)
+
+    @pytest.mark.torch
+    def test_grover_pretrain_loss(self):
+        import torch
+        from deepchem.models.losses import GroverPretrainLoss
+        loss = GroverPretrainLoss()
+        loss_fn = loss._create_pytorch_loss()
+        batch_size = 3
+        output_dim = 10
+        fg_size = 8
+        atom_vocab_task_target = torch.ones(batch_size).type(torch.int64)
+        bond_vocab_task_target = torch.ones(batch_size).type(torch.int64)
+        fg_task_target = torch.ones(batch_size, fg_size)
+        atom_vocab_task_atom_pred = torch.zeros(batch_size, output_dim)
+        bond_vocab_task_atom_pred = torch.zeros(batch_size, output_dim)
+        atom_vocab_task_bond_pred = torch.zeros(batch_size, output_dim)
+        bond_vocab_task_bond_pred = torch.zeros(batch_size, output_dim)
+        fg_task_atom_from_atom = torch.zeros(batch_size, fg_size)
+        fg_task_atom_from_bond = torch.zeros(batch_size, fg_size)
+        fg_task_bond_from_atom = torch.zeros(batch_size, fg_size)
+        fg_task_bond_from_bond = torch.zeros(batch_size, fg_size)
+
+        result = loss_fn(atom_vocab_task_atom_pred, atom_vocab_task_bond_pred,
+                         bond_vocab_task_atom_pred, bond_vocab_task_bond_pred,
+                         fg_task_atom_from_atom, fg_task_atom_from_bond,
+                         fg_task_bond_from_atom, fg_task_bond_from_bond,
+                         atom_vocab_task_target, bond_vocab_task_target,
+                         fg_task_target)
+
+        expected_result = torch.tensor(2.7726)
+        assert torch.allclose(result, expected_result)

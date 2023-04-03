@@ -5,7 +5,5 @@ dependencies:
   - pip:
     - -f https://data.pyg.org/whl/torch-1.10.0+cpu.html
     - dgl
-    - torch-scatter==2.1.0
-    - torch-sparse
     - torch-geometric
     - pytorch-lightning==1.6.5
