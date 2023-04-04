@@ -114,12 +114,65 @@ class GroverPretrain(nn.Module):
 
 
 class GroverFinetune(nn.Module):
+    """Grover Finetune model.
+
+    For a graph level prediction task, the GroverFinetune model uses node/edge embeddings
+    output by the GroverEmbeddong layer and applies a readout function on it to get
+    graph embeddings and use additional MLP layers to predict the property of the molecular graph.
+
+    Parameters
+    ----------
+    embedding: nn.Module
+        An embedding layer to generate embedding from input molecular graph
+    readout: nn.Module
+        A readout layer to perform readout atom and bond hidden states
+    mol_atom_from_atom_ffn: nn.Module
+        A feed forward network which learns representation from atom messages generated via atom hidden states of a molecular graph
+    mol_atom_from_bond_ffn: nn.Module
+        A feed forward network which learns representation from atom messages generated via bond hidden states of a molecular graph
+    mode: str
+        classification or regression
+
+    Returns
+    -------
+    prediction_logits: torch.Tensor
+        prediction logits
+
+    Example
+    -------
+    >>> import deepchem as dc
+    >>> from deepchem.feat.graph_data import BatchGraphData
+    >>> from deepchem.utils.grover import extract_grover_attributes
+    >>> from deepchem.models.torch_models.grover_layers import GroverEmbedding
+    >>> from deepchem.models.torch_models.readout import GroverReadout
+    >>> from deepchem.models.torch_models.grover import GroverFinetune
+    >>> smiles = ['CC', 'CCC', 'CC(=O)C']
+    >>> fg = dc.feat.CircularFingerprint()
+    >>> featurizer = dc.feat.GroverFeaturizer(features_generator=fg)
+    >>> graphs = featurizer.featurize(smiles)
+    >>> batched_graph = BatchGraphData(graphs)
+    >>> attributes = extract_grover_attributes(batched_graph)
+    >>> components = {}
+    >>> f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels, additional_features = _get_grover_graph_attributes()
+    >>> inputs = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
+    >>> components = {}
+    >>> components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1], edge_fdim=f_bonds.shape[1])
+    >>> components['readout'] = GroverReadout(rtype="mean", in_features=128)
+    >>> components['mol_atom_from_atom_ffn'] = nn.Linear(in_features=additional_features.shape[1]+ 128, out_features=1)
+    >>> components['mol_atom_from_bond_ffn'] = nn.Linear(in_features=additional_features.shape[1] + 128, out_features=1)
+    >>> model = GroverFinetune(**components, mode='regression')
+    >>> model.training = False
+    >>> output = model(inputs, additional_features)
+
+    Reference
+    ---------
+    .. Rong, Yu, et al. "Self-supervised graph transformer on large-scale molecular data." Advances in Neural Information Processing Systems 33 (2020): 12559-12571.
+    """
 
     def __init__(self, embedding: nn.Module, readout: nn.Module,
                  mol_atom_from_atom_ffn: nn.Module,
                  mol_atom_from_bond_ffn: nn.Module, mode: str):
         super().__init__()
-        # TODO Document why mol_atom_from_atom_ffn and mol_atom_from_bond_ffn layers are used.
         self.embedding = embedding
         self.readout = readout
         self.mol_atom_from_atom_ffn = mol_atom_from_atom_ffn
@@ -127,6 +180,14 @@ class GroverFinetune(nn.Module):
         self.mode = mode
 
     def forward(self, graphbatch, additional_features):
+        """
+        Parameters
+        ----------
+        graphbatch: Tuple
+            grover batch graph attributes
+        additional_features: Optional[torch.Tensor]
+            Additional features
+        """
         _, _, _, _, _, a_scope, _, _ = graphbatch
         output = self.embedding(graphbatch)
 
@@ -154,9 +215,9 @@ class GroverFinetune(nn.Module):
             # The loss function is used to update gradients so as to make these values closer to target.
             return atom_ffn_output, bond_ffn_output
         else:
-            if self.classification:
-                atom_ffn_output = self.sigmoid(atom_ffn_output)
-                bond_ffn_output = self.sigmoid(bond_ffn_output)
+            if self.mode == 'classification':
+                atom_ffn_output = torch.sigmoid(atom_ffn_output)
+                bond_ffn_output = torch.sigmoid(bond_ffn_output)
             output = (atom_ffn_output + bond_ffn_output) / 2
             return output
 
