@@ -1,5 +1,5 @@
 import torch
-from torch_geometric.nn import GINEConv, GCNConv, GATConv, global_add_pool, global_mean_pool, global_max_pool
+from torch_geometric.nn import GINEConv, global_add_pool, global_mean_pool, global_max_pool
 from torch_geometric.nn.aggr import AttentionalAggregation, Set2Set
 from torch.functional import F
 from deepchem.models.torch_models import ModularTorchModel
@@ -219,16 +219,18 @@ class GNNModular(ModularTorchModel):
                 encoders.append(
                     GINEConv(torch.nn.Linear(self.emb_dim, self.emb_dim),
                              aggr="add"))
-            elif self.gnn_type == "gcn":
-                encoders.append(GCNConv(self.emb_dim))
-            elif self.gnn_type == "gat":
-                encoders.append(GATConv(self.emb_dim))
+            else:
+                raise ValueError("Only GIN is supported for now")
+            # elif self.gnn_type == "gcn":
+            #     encoders.append(GCNConv(self.emb_dim))
+            # elif self.gnn_type == "gat":
+            #     encoders.append(GATConv(self.emb_dim))
             batch_norms.append(torch.nn.BatchNorm1d(self.emb_dim))
         encoders = torch.nn.ModuleList(encoders)
         batch_norms = torch.nn.ModuleList(batch_norms)
 
         if self.graph_pooling == "sum":
-            pool = global_add_pool  # can't make a component a function
+            pool = global_add_pool
         elif self.graph_pooling == "mean":
             pool = global_mean_pool
         elif self.graph_pooling == "max":
