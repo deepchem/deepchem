@@ -62,7 +62,7 @@ class GNN(torch.nn.Module):
         Forward pass for the GNN module.
         """
 
-        x = self.atom_type_embedding(
+        x = self.atom_type_embedding(  # type: ignore
             data.node_features[:, 0].long()) + self.chirality_embedding(
                 data.node_features[:, 1].long())
 
