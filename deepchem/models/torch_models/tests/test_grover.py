@@ -1,5 +1,6 @@
 import os
 import pytest
+import torch
 import numpy as np
 import deepchem as dc
 
@@ -90,11 +91,11 @@ def testGroverFinetune(grover_graph_attributes):
     assert output.shape == (3, 1)
 
 
-def test_grover_overfit():
+def test_grover_pretraining_task_overfit():
     import deepchem as dc
     from deepchem.feat.vocabulary_builders import (GroverAtomVocabularyBuilder,
                                                    GroverBondVocabularyBuilder)
-    from deepchem.models.torch_models.grover import Grover
+    from deepchem.models.torch_models.grover import GroverModel
     dataset_path = os.path.join(os.path.dirname(__file__),
                                 '../../tests/assets/example.csv')
     loader = dc.data.CSVLoader(tasks=['log-solubility'],
@@ -115,19 +116,48 @@ def test_grover_overfit():
         feature_field='smiles')
     graph_data = loader2.create_dataset(dataset_path)
 
-    model = Grover(node_fdim=151,
-                   edge_fdim=165,
-                   atom_vocab=av,
-                   bond_vocab=bv,
-                   atom_vocab_size=300,
-                   bond_vocab_size=300,
-                   hidden_size=128,
-                   functional_group_size=85,
-                   mode='regression',
-                   task='pretraining')
+    model = GroverModel(node_fdim=151,
+                        edge_fdim=165,
+                        atom_vocab=av,
+                        bond_vocab=bv,
+                        features_dim=2048,
+                        hidden_size=128,
+                        functional_group_size=85,
+                        task='pretraining',
+                        model_dir='gm')
 
+    # since pretraining is a self-supervision task where labels are generated during
+    # preparing batch, we mock _prepare_batch_for_pretraining to set all labels to 0.
+    # The test here is checking whether the model predict 0's after overfitting.
+    def _prepare_batch_for_pretraining(batch):
+        from deepchem.feat.graph_data import BatchGraphData
+        from deepchem.utils.grover import extract_grover_attributes
+        X, y, w = batch
+        batchgraph = BatchGraphData(X[0])
+        fgroup_label = getattr(batchgraph, 'fg_labels')
+
+        f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, _ = extract_grover_attributes(
+            batchgraph)
+
+        atom_vocab_label = torch.zeros(f_atoms.shape[0]).long()
+        bond_vocab_label = torch.zeros(f_bonds.shape[0] // 2).long()
+        fg_task = torch.zeros(fgroup_label.shape)
+        labels = {
+            "av_task": atom_vocab_label,
+            "bv_task": bond_vocab_label,
+            "fg_task": fg_task
+        }
+        inputs = (f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a)
+        return inputs, labels, w
+
+    model._prepare_batch_for_pretraining = _prepare_batch_for_pretraining
     model.fit(graph_data, nb_epoch=1)
-    metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
-    scores = model.evaluate(graph_data, [metric])
-    assert scores['mean_squared_error'] < 0.1
->>>>>>> 3af36497 (grover layer tests [skip ci])
+
+    assert np.allclose(preds[0], np.zeros_like(preds[0]))
+    assert np.allclose(preds[1], np.zeros_like(preds[1]))
+    assert np.allclose(preds[2], np.zeros_like(preds[2]))
+    assert np.allclose(preds[3], np.zeros_like(preds[3]))
+    assert np.allclose(preds[4], np.zeros_like(preds[4]))
+    assert np.allclose(preds[5], np.zeros_like(preds[5]))
+    assert np.allclose(preds[6], np.zeros_like(preds[6]))
+    assert np.allclose(preds[7], np.zeros_like(preds[7]))
