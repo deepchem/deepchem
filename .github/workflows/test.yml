@@ -77,14 +77,6 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**.yml') }}
         restore-keys: |
           ${{ runner.os }}-pip-
-    - name: Cache pip packages for MacOS
-      if: runner.os == 'macOS'
-      uses: actions/cache@v3
-      with:
-        path: ~/Library/Caches/pip
-        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/**.yml') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
     - name: Cache pip packages for Windows
       if: runner.os == 'Windows'
       uses: actions/cache@v3
@@ -106,8 +98,6 @@ jobs:
         cd requirements
         if [ "$(uname)" == 'Linux' ]; then
           conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml env_py310_no_support.yml >  env.yml
-        elif [  "$(uname)" == 'Darwin' ]; then
-          conda-merge env_common.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml jax/env_jax.cpu.yml env_py310_no_support.yml > env.yml
         elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
           conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
         fi;
@@ -123,8 +113,6 @@ jobs:
         cd requirements
         if [ "$(uname)" == 'Linux' ]; then
           conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml > env.yml
-        elif [  "$(uname)" == 'Darwin' ]; then
-          conda-merge env_common.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml jax/env_jax.cpu.yml > env.yml
         elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
           conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
         fi;

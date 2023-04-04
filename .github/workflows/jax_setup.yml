@@ -62,28 +62,11 @@ jobs:
       run: |
         git fetch origin master
         echo "COMMIT_RANGE=origin/master..." >> $GITHUB_ENV
-    - name: Cache pip packages for Linux
-      if: runner.os == 'Linux'
+    - name: Cache pip packages
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements/jax/**') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    - name: Cache pip packages for MacOS
-      if: runner.os == 'macOS'
-      uses: actions/cache@v3
-      with:
-        path: ~/Library/Caches/pip
-        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/jax/**') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    - name: Cache pip packages for Windows
-      if: runner.os == 'Windows'
-      uses: actions/cache@v3
-      with:
-        path: ~\AppData\Local\pip\Cache
-        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/jax/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Set up Python ${{ matrix.python-version }}
