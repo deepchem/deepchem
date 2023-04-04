@@ -402,9 +402,9 @@ class GroverModel(ModularTorchModel):
             batchgraph)
 
         atom_vocab_label = torch.Tensor(
-            self.atom_random_mask(self.atom_vocab, smiles_batch)).long()
+            self.atom_vocab_random_mask(self.atom_vocab, smiles_batch)).long()
         bond_vocab_label = torch.Tensor(
-            self.bond_random_mask(self.bond_vocab, smiles_batch)).long()
+            self.bond_vocab_random_mask(self.bond_vocab, smiles_batch)).long()
         labels = {
             "av_task": atom_vocab_label,
             "bv_task": bond_vocab_label,
@@ -496,19 +496,39 @@ class GroverModel(ModularTorchModel):
         return nn.Sequential(*ffn)
 
     @staticmethod
-    def atom_random_mask(atom_vocab: GroverAtomVocabularyBuilder,
-                         smiles_batch: List[str]):
-        """
+    def atom_vocab_random_mask(atom_vocab: GroverAtomVocabularyBuilder,
+                               smiles: List[str]) -> List[int]:
+        """Random masking of atom labels from vocabulary
+
+        For every atom in the list of SMILES string, the algorithm fetches the atoms
+        context (vocab label) from the vocabulary provided and returns the vocabulary
+        labels with a random masking (probability of masking = 0.15).
+
         Parameters
         ----------
-        atom_vocab: grover.data.MolVocab
+        atom_vocab: GroverAtomVocabularyBuilder
             atom vocabulary
-        smiles_batch: List[str]
+        smiles: List[str]
             a list of smiles string
+
+        Returns
+        -------
+        vocab_label: List[int]
+            atom vocab label with random masking
+
+        Example
+        -------
+        >>> from deepchem.models.torch_models.grover import GroverModel
+        >>> from deepchem.feat.vocabulary_builders import GroverAtomVocabularyBuilder
+        >>> smiles = np.array(['CC', 'CCC'])
+        >>> dataset = dc.data.NumpyDataset(X=smiles)
+        >>> atom_vocab = GroverAtomVocabularyBuilder()
+        >>> atom_vocab.build(dataset)
+        >>> vocab_labels = GroverModel.atom_vocab_random_mask(atom_vocab, smiles)
         """
         vocab_label = []
         percent = 0.15
-        for smi in smiles_batch:
+        for smi in smiles:
             mol = Chem.MolFromSmiles(smi)
             mlabel = [0] * mol.GetNumAtoms()
             n_mask = math.ceil(mol.GetNumAtoms() * percent)
@@ -523,18 +543,39 @@ class GroverModel(ModularTorchModel):
         return vocab_label
 
     @staticmethod
-    def bond_random_mask(bond_vocab, smiles_batch):
-        """
+    def bond_vocab_random_mask(bond_vocab: GroverBondVocabularyBuilder,
+                               smiles: List[str]) -> List[int]:
+        """Random masking of bond labels from bond vocabulary
+
+        For every bond in the list of SMILES string, the algorithm fetches the bond
+        context (vocab label) from the vocabulary provided and returns the vocabulary
+        labels with a random masking (probability of masking = 0.15).
+
         Parameters
         ----------
-        bond_vocab: MolVocab
+        bond_vocab: GroverBondVocabularyBuilder
             bond vocabulary
-        smiles_batch: List[str]
-            List of smiles strings
+        smiles: List[str]
+            a list of smiles string
+
+        Returns
+        -------
+        vocab_label: List[int]
+            bond vocab label with random masking
+
+        Example
+        -------
+        >>> from deepchem.models.torch_models.grover import GroverModel
+        >>> from deepchem.feat.vocabulary_builders import GroverBondVocabularyBuilder
+        >>> smiles = np.array(['CC', 'CCC'])
+        >>> dataset = dc.data.NumpyDataset(X=smiles)
+        >>> bond_vocab = GroverBondVocabularyBuilder()
+        >>> bond_vocab.build(dataset)
+        >>> vocab_labels = GroverModel.bond_vocab_random_mask(bond_vocab, smiles)
         """
         vocab_label = []
         percent = 0.15
-        for smi in smiles_batch:
+        for smi in smiles:
             mol = Chem.MolFromSmiles(smi)
             nm_atoms = mol.GetNumAtoms()
             nm_bonds = mol.GetNumBonds()

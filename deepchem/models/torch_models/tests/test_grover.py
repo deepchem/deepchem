@@ -4,7 +4,7 @@ import numpy as np
 import deepchem as dc
 
 
-def test_atom_random_mask():
+def test_atom_vocab_random_mask():
     from deepchem.models.torch_models.grover import GroverModel
     from deepchem.feat.vocabulary_builders import GroverAtomVocabularyBuilder
     smiles = np.array(['CC', 'CCC'])
@@ -13,11 +13,11 @@ def test_atom_random_mask():
     atom_vocab = GroverAtomVocabularyBuilder()
     atom_vocab.build(dataset)
 
-    vocab_labels = GroverModel.atom_random_mask(atom_vocab, smiles)
+    vocab_labels = GroverModel.atom_vocab_random_mask(atom_vocab, smiles)
     assert len(vocab_labels) == 5  # 5 atoms
 
 
-def test_bond_random_mask():
+def test_bond_vocab_random_mask():
     from deepchem.models.torch_models.grover import GroverModel
     from deepchem.feat.vocabulary_builders import GroverBondVocabularyBuilder
 
@@ -27,7 +27,7 @@ def test_bond_random_mask():
     bond_vocab = GroverBondVocabularyBuilder()
     bond_vocab.build(dataset)
 
-    vocab_labels = GroverModel.bond_random_mask(bond_vocab, smiles)
+    vocab_labels = GroverModel.bond_vocab_random_mask(bond_vocab, smiles)
     assert len(vocab_labels) == 3  # 3 bonds
 
 
