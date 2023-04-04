@@ -16,7 +16,7 @@ except ModuleNotFoundError:
     pass
 
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
-from deepchem.utils.pytorch_utils import get_activation
+from deepchem.utils.pytorch_utils import get_activation, segment_sum
 from torch.nn import init as initializers
 
 
@@ -2872,71 +2872,13 @@ class EdgeNetwork(nn.Module):
         atom_to_pair: torch.Tensor
         pair_features, atom_features, atom_to_pair = inputs
 
-        def unsorted_segment_sum(data, segment_ids, num_segments):
-            """Computes the sum along segments of a tensor. Analogous to tf.unsorted_segment_sum.
-
-            Parameters
-            ----------
-            data: A tensor whose segments are to be summed.
-            segment_ids: The segment indices tensor.
-            num_segments: The number of segments.
-
-            Returns
-            -------
-            tensor: torch.Tensor
-            """
-            assert all([i in data.shape for i in segment_ids.shape
-                       ]), "segment_ids.shape should be a prefix of data.shape"
-
-            # segment_ids is a 1-D tensor repeat it to have the same shape as data
-            if len(segment_ids.shape) == 1:
-                s = torch.prod(torch.tensor(data.shape[1:])).long()
-                segment_ids = segment_ids.repeat_interleave(s).view(
-                    segment_ids.shape[0], *data.shape[1:])
-
-            assert data.shape == segment_ids.shape, "data.shape and segment_ids.shape should be equal"
-
-            shape = [num_segments] + list(data.shape[1:])
-            tensor = torch.zeros(*shape).scatter_add(0, segment_ids,
-                                                     data.float())
-            tensor = tensor.type(data.dtype)
-            return tensor
-
-        def segment_sum(data, segment_ids):
-            """Analogous to tf.segment_sum (https://www.tensorflow.org/api_docs/python/tf/math/segment_sum).
-
-            Parameters
-            ----------
-            data: A pytorch tensor of the data for segmented summation.
-            segment_ids: A 1-D tensor containing the indices for the segmentation.
-
-            Returns
-            -------
-            out_tensor: torch.Tensor
-            """
-            if not all(segment_ids[i] <= segment_ids[i + 1]
-                       for i in range(len(segment_ids) - 1)):
-                raise AssertionError("elements of segment_ids must be sorted")
-
-            if len(segment_ids.shape) != 1:
-                raise AssertionError("segment_ids have be a 1-D tensor")
-
-            if data.shape[0] != segment_ids.shape[0]:
-                raise AssertionError(
-                    "segment_ids should be the same size as dimension 0 of input."
-                )
-
-            num_segments = len(torch.unique(segment_ids))
-            out_tensor = unsorted_segment_sum(data, segment_ids, num_segments)
-            return out_tensor
-
         A: torch.Tensor = torch.add(torch.matmul(pair_features, self.W), self.b)
         A = torch.reshape(A, (-1, self.n_hidden, self.n_hidden))
         out: torch.Tensor = torch.unsqueeze(atom_features[atom_to_pair[:, 1]],
                                             dim=2)
         out_squeeze: torch.Tensor = torch.squeeze(torch.matmul(A, out), dim=2)
-        ind = atom_to_pair[:, 0]
+        ind: torch.Tensor = atom_to_pair[:, 0]
 
-        result = segment_sum(out_squeeze, ind)
+        result: torch.Tensor = segment_sum(out_squeeze, ind)
 
         return result
