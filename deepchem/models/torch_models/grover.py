@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import numpy as np
 from typing import List
 from deepchem.models.torch_models.grover_layers import GroverTransEncoder
 
@@ -110,6 +111,54 @@ class GroverPretrain(nn.Module):
         return av_task_atom_pred, av_task_bond_pred, bv_task_atom_pred, bv_task_bond_pred, fg_prediction[
             'atom_from_atom'], fg_prediction['atom_from_bond'], fg_prediction[
                 'bond_from_atom'], fg_prediction['bond_from_bond']
+
+
+class GroverFinetune(nn.Module):
+
+    def __init__(self, embedding: nn.Module, readout: nn.Module,
+                 mol_atom_from_atom_ffn: nn.Module,
+                 mol_atom_from_bond_ffn: nn.Module, mode: str):
+        super().__init__()
+        # TODO Document why mol_atom_from_atom_ffn and mol_atom_from_bond_ffn layers are used.
+        self.embedding = embedding
+        self.readout = readout
+        self.mol_atom_from_atom_ffn = mol_atom_from_atom_ffn
+        self.mol_atom_from_bond_ffn = mol_atom_from_bond_ffn
+        self.mode = mode
+
+    def forward(self, graphbatch, additional_features):
+        _, _, _, _, _, a_scope, _, _ = graphbatch
+        output = self.embedding(graphbatch)
+
+        mol_atom_from_bond_output = self.readout(output["atom_from_bond"],
+                                                 a_scope)
+        mol_atom_from_atom_output = self.readout(output["atom_from_atom"],
+                                                 a_scope)
+
+        if additional_features[0] is not None:
+            additional_features = torch.from_numpy(
+                np.stack(additional_features)).float()
+            additional_features.to(output["atom_from_bond"])
+            if len(additional_features.shape) == 1:
+                additional_features = additional_features.view(
+                    1, additional_features.shape[0])
+            mol_atom_from_atom_output = torch.cat(
+                [mol_atom_from_atom_output, additional_features], 1)
+            mol_atom_from_bond_output = torch.cat(
+                [mol_atom_from_bond_output, additional_features], 1)
+
+        atom_ffn_output = self.mol_atom_from_atom_ffn(mol_atom_from_atom_output)
+        bond_ffn_output = self.mol_atom_from_bond_ffn(mol_atom_from_bond_output)
+        if self.training:
+            # In training mode, we return atom level aggregated output and bond level aggregated output.
+            # The loss function is used to update gradients so as to make these values closer to target.
+            return atom_ffn_output, bond_ffn_output
+        else:
+            if self.classification:
+                atom_ffn_output = self.sigmoid(atom_ffn_output)
+                bond_ffn_output = self.sigmoid(bond_ffn_output)
+            output = (atom_ffn_output + bond_ffn_output) / 2
+            return output
 
 
 class GroverEmbedding(nn.Module):
