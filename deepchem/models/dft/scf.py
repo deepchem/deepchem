@@ -2,6 +2,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Union
 import torch
+import numpy as np
 from dqc.qccalc.ks import KS
 from dqc.utils.datastruct import SpinParam
 from deepchem.feat.dft_data import DFTEntry, DFTSystem
@@ -121,7 +122,9 @@ class XCNNSCF(torch.nn.Module):
         system: DFTSystem
         """
         dm_name = self._dm0_name(system)
-        dm0: torch.Tensor = getattr(self, dm_name, None)
+        dm0: torch.Tensor
+        get_dm = np.array(getattr(self, dm_name, None), dtype=bool)
+        dm0 = torch.Tensor(get_dm)
         dm_exists = dm0 is not None
         dm_written = dm_exists and torch.any(dm0 != 0.0)
         if not dm_written:

@@ -227,7 +227,12 @@ Density Functional Theory Layers
 
 .. autoclass:: deepchem.models.dft.nnxc.BaseNNXC
    :members:
+
 .. autoclass:: deepchem.models.dft.nnxc.NNLDA
    :members:
+
 .. autoclass:: deepchem.models.dft.nnxc.HybridXC
+   :members:
+
+.. autoclass:: deepchem.models.dft.scf.XCNNSCF
    :members:
