@@ -7,8 +7,8 @@ from deepchem.feat.graph_data import BatchGraphData
 
 num_atom_type = 120
 num_chirality_tag = 3
-num_bond_type = 6
-num_bond_direction = 3
+# num_bond_type = 6
+# num_bond_direction = 3
 
 
 class GNN(torch.nn.Module):
@@ -120,7 +120,7 @@ class GNN_head(torch.nn.Module):
         return out
 
 
-class GNNModular(ModularTorchModel):
+class GNNModularModel(ModularTorchModel):
     """
     Modular GNN which allows for easy swapping of GNN layers.
 
@@ -159,6 +159,7 @@ class GNNModular(ModularTorchModel):
     References
     ----------
     .. [1] Xu, K. et al. Representation Learning on Graphs with Jumping Knowledge Networks. Preprint at https://doi.org/10.48550/arXiv.1806.03536 (2018).
+    .. [2] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
     """
 
     def __init__(self,
