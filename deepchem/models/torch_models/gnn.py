@@ -1,5 +1,5 @@
 import torch
-from torch_geometric.nn import GINConv, GCNConv, GATConv, global_add_pool, global_mean_pool, global_max_pool
+from torch_geometric.nn import GINEConv, GCNConv, GATConv, global_add_pool, global_mean_pool, global_max_pool
 from torch_geometric.nn.aggr import AttentionalAggregation, Set2Set
 from torch.functional import F
 from deepchem.models.torch_models import ModularTorchModel
@@ -33,8 +33,14 @@ class GNN(torch.nn.Module):
 
     """
 
-    def __init__(self, atom_type_embedding, chirality_embedding, gconvs,
-                 batch_norms, dropout, JK):
+    def __init__(self,
+                 atom_type_embedding,
+                 chirality_embedding,
+                 gconvs,
+                 batch_norms,
+                 dropout,
+                 JK,
+                 init_emb=False):
         super(GNN, self).__init__()
 
         self.atom_type_embedding = atom_type_embedding
@@ -45,9 +51,10 @@ class GNN(torch.nn.Module):
         self.num_layer = len(gconvs)
         self.JK = JK
 
-        # may mess with testing
-        torch.nn.init.xavier_uniform_(self.atom_type_embedding.weight.data)
-        torch.nn.init.xavier_uniform_(self.chirality_embedding.weight.data)
+        # may mess with loading pretrained weights
+        if init_emb:
+            torch.nn.init.xavier_uniform_(self.atom_type_embedding.weight.data)
+            torch.nn.init.xavier_uniform_(self.chirality_embedding.weight.data)
 
     def forward(self, data: BatchGraphData):
         """
@@ -60,7 +67,7 @@ class GNN(torch.nn.Module):
 
         h_list = [x]
         for i, conv_layer in enumerate(self.gconv):
-            h = conv_layer(h_list[i], data.edge_index)  # data.edge_features?
+            h = conv_layer(h_list[i], data.edge_index, data.edge_features)
             h = self.batch_norms[i](h)
             h = F.dropout(F.relu(h), self.dropout, training=self.training)
             if i == self.num_layer - 1:
@@ -155,11 +162,11 @@ class GNNModular(ModularTorchModel):
     """
 
     def __init__(self,
-                 gnn_type: str,
-                 num_layer: int,
-                 emb_dim: int,
-                 num_tasks: int,
-                 graph_pooling: str,
+                 gnn_type: str = "gin",
+                 num_layer: int = 3,
+                 emb_dim: int = 64,
+                 num_tasks: int = 1,
+                 graph_pooling: str = "attention",
                  dropout: int = 0,
                  JK: str = "concat",
                  task: str = "edge_pred",
@@ -173,6 +180,7 @@ class GNNModular(ModularTorchModel):
         self.JK = JK
         self.task = task
         self.criterion = torch.nn.BCEWithLogitsLoss()
+        self.neg_edges = NegativeEdge()
 
         self.components = self.build_components()
         self.model = self.build_model()
@@ -198,8 +206,8 @@ class GNNModular(ModularTorchModel):
         for layer in range(self.num_layer):
             if self.gnn_type == "gin":
                 encoders.append(
-                    GINConv(torch.nn.Linear(self.emb_dim, self.emb_dim),
-                            aggr="add"))
+                    GINEConv(torch.nn.Linear(self.emb_dim, self.emb_dim),
+                             aggr="add"))
             elif self.gnn_type == "gcn":
                 encoders.append(GCNConv(self.emb_dim))
             elif self.gnn_type == "gat":
@@ -261,7 +269,7 @@ class GNNModular(ModularTorchModel):
         return components
 
     def build_model(self):
-        if self.task == "edge_pred":
+        if self.task == "edge_pred":  # unsupervised task, does not need pred head
             return self.gnn
         else:
             return torch.nn.Sequential(self.gnn, self.gnn_head)
@@ -292,8 +300,7 @@ class GNNModular(ModularTorchModel):
         """
         inputs, labels, weights = batch
         inputs = BatchGraphData(inputs[0]).numpy_to_torch(self.device)
-        neg_trans = NegativeEdge()
-        inputs = neg_trans(inputs)
+        inputs = self.neg_edges(inputs)
 
         _, labels, weights = super()._prepare_batch(([], labels, weights))
 
