@@ -23,11 +23,10 @@ def get_regression_dataset():
 
 @pytest.mark.torch
 def test_GNN_context_pred():
-    # import torch
-    from deepchem.models.torch_models.gnn import GNNModularModel
+    from deepchem.models.torch_models.gnn import GNNModular
 
-    dataset, metric = get_regression_dataset()
-    model = GNNModularModel("edge_pred", graph_pooling="mean")
+    dataset, _ = get_regression_dataset()
+    model = GNNModular("edge_pred", graph_pooling="mean")
     loss1 = model.fit(dataset, nb_epoch=10)
     loss2 = model.fit(dataset, nb_epoch=10)
     assert loss2 < loss1

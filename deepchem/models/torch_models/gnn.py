@@ -7,6 +7,7 @@ from deepchem.feat.graph_data import BatchGraphData
 
 num_atom_type = 120
 num_chirality_tag = 3
+# Relevant in future PRs
 # num_bond_type = 6
 # num_bond_direction = 3
 
@@ -120,7 +121,7 @@ class GNN_head(torch.nn.Module):
         return out
 
 
-class GNNModularModel(ModularTorchModel):
+class GNNModular(ModularTorchModel):
     """
     Modular GNN which allows for easy swapping of GNN layers.
 
@@ -139,7 +140,11 @@ class GNNModularModel(ModularTorchModel):
     dropout: float, optional (default 0)
         The dropout probability.
     JK: str, optional (default "last")
-        The type of jump knowledge to use. [1] Must be one of "last", "sum", "max", "concat" or "none". "last": Use the node representation from the last GNN layer. "concat": Concatenate the node representations from all GNN layers. "max": Take the element-wise maximum of the node representations from all GNN layers. "sum": Take the element-wise sum of the node representations from all GNN layers.
+        The type of jump knowledge to use. [1] Must be one of "last", "sum", "max", "concat" or "none".
+        "last": Use the node representation from the last GNN layer.
+        "concat": Concatenate the node representations from all GNN layers.
+        "max": Take the element-wise maximum of the node representations from all GNN layers.
+        "sum": Take the element-wise sum of the node representations from all GNN layers.
     task: str, optional (default "regression")
         The type of task. Can be unsupervised tasks "edge_pred" or "node_pred" or supervised tasks like "regression" or "classification".
 
@@ -194,10 +199,15 @@ class GNNModularModel(ModularTorchModel):
         Components list, type and description:
         --------------------------------------
         atom_type_embedding: torch.nn.Embedding, an embedding layer for atom types.
+
         chirality_embedding: torch.nn.Embedding, an embedding layer for chirality tags.
+
         gconvs: torch_geometric.nn.conv.MessagePassing, a list of graph convolutional layers (encoders) based on the specified GNN type (GIN, GCN, or GAT).
+
         batch_norms: torch.nn.BatchNorm1d, a list of batch normalization layers corresponding to the encoders.
+
         pool: Union[function,torch_geometric.nn.aggr.Aggregation], a pooling layer based on the specified graph pooling type (sum, mean, max, attention, or set2set).
+
         head: nn.Linear, a linear layer for the head of the model.
 
         These components are then used to construct the GNN and GNN_head modules for the GNNModular model.
@@ -314,7 +324,8 @@ class GNNModularModel(ModularTorchModel):
 
 class NegativeEdge:
     """
-    NegativeEdge is a callable class that adds negative edges to the input graph data. It randomly samples negative edges (edges that do not exist in the original graph) and adds them to the input graph data. The number of negative edges added is equal to half the number of edges in the original graph. This is useful for tasks like edge prediction, where the model needs to learn to differentiate between existing and non-existing edges.
+    NegativeEdge is a callable class that adds negative edges to the input graph data. It randomly samples negative edges (edges that do not exist in the original graph) and adds them to the input graph data.
+    The number of negative edges added is equal to half the number of edges in the original graph. This is useful for tasks like edge prediction, where the model needs to learn to differentiate between existing and non-existing edges.
     """
 
     def __call__(self, data):

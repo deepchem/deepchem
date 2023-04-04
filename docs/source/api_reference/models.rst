@@ -415,10 +415,10 @@ InfoGraphStarModel
   :members:
 
 
-GNNModularModel
-------------------
+GNNModular
+----------
 
-.. autoclass:: deepchem.models.torch_models.gnn.GNNModularModel
+.. autoclass:: deepchem.models.torch_models.gnn.GNNModular
   :members:
 
 

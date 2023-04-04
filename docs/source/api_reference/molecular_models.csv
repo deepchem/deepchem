@@ -19,4 +19,4 @@ BasicMolGANModel,`ref <https://arxiv.org/abs/1805.11973>`_,Generator,MolGanFeatu
 DMPNNModel,`ref <https://arxiv.org/pdf/1904.01561.pdf>`_,Classifier/ Regressor,DMPNNFeaturizer,PyTorch
 InfoGraph,`ref <https://arxiv.org/abs/1908.01000>`_,Classifier/ Regressor,MolGraphConvFeaturizer,PyTorch
 InfoGraphStar,`ref <https://arxiv.org/abs/1908.01000>`_,Classifier/ Regressor,MolGraphConvFeaturizer,PyTorch
-GNNModularModel,`ref <https://arxiv.org/abs/1905.12265>`_,Classifier/ Regressor,SNAPFeaturizer,PyTorch
+GNNModular,`ref <https://arxiv.org/abs/1905.12265>`_,Classifier/ Regressor,SNAPFeaturizer,PyTorch
