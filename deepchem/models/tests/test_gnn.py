@@ -21,20 +21,14 @@ def get_regression_dataset():
     return dataset, metric
 
 
-
-
 @pytest.mark.torch
-def test_GNN():
+def test_GNN_context_pred():
     # import torch
     from deepchem.models.torch_models.gnn import GNNModular
-    from deepchem.models.torch_models.gnn import NegativeEdge
-    from deepchem.feat.graph_data import BatchGraphData
 
     dataset, metric = get_regression_dataset()
-    # dataset = BatchGraphData(dataset.X).numpy_to_torch()
-    # neg_trans = NegativeEdge()
-    # dataset = neg_trans(dataset)
-    model = GNNModular("gin", 3, 64, 1, "attention", 0)
+    model = GNNModular("gin", 3, 64, 1, "attention", 0, "concat", "edge_pred")
     model.fit(dataset, nb_epoch=1)
 
-test_GNN()
+
+test_GNN_context_pred()

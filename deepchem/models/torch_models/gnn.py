@@ -3,16 +3,9 @@ from torch_geometric.nn import GINConv, GCNConv, GATConv, global_add_pool, globa
 from torch_geometric.nn.aggr import AttentionalAggregation, Set2Set
 from torch.functional import F
 from deepchem.models.torch_models import ModularTorchModel
-from torch_geometric.data import Data
 from deepchem.feat.graph_data import BatchGraphData
-# from deepchem.feat.graph_data import BatchGraphData
-# from torch_scatter import scatter_add
-# from torch_geometric.nn.inits import glorot, zeros
 
-# from torch_geometric.nn.conv import CuGraphSAGEConv
-# from torch_geometric.nn.models import GraphSAGE
-
-num_atom_type = 120  # including the extra mask tokens
+num_atom_type = 120
 num_chirality_tag = 3
 num_bond_type = 6
 num_bond_direction = 3
@@ -20,32 +13,29 @@ num_bond_direction = 3
 
 class GNN(torch.nn.Module):
     """
+    GNN module for the GNNModular model.
 
-    Args:
-        num_layer (int): the number of GNN layers
-        emb_dim (int): dimensionality of embeddings
-        JK (str): last, concat, max or sum.
-        max_pool_layer (int): the layer from which we use max pool rather than add pool for neighbor aggregation
-        drop_ratio (float): dropout rate
-        gnn_type: gin, gcn, graphsage, gat
+    This module is responsible for the graph neural network layers in the GNNModular model.
 
-    Output:
-        node representations
+    Example
+    -------
+    >>> from deepchem.models.torch_models.gnn import GNNModular
+    >>> from deepchem.feat.graph_data import BatchGraphData
+    >>> from deepchem.feat.molecule_featurizers import SNAPFeaturizer
+    >>> featurizer = SNAPFeaturizer()
+    >>> smiles = ["C1=CC=CC=C1", "C1=CC=CC=C1C=O", "C1=CC=CC=C1C(=O)O"]
+    >>> features = featurizer.featurize(smiles)
+    >>> batched_graph = BatchGraphData(features).numpy_to_torch(device="cuda")
+    >>> modular = model = GNNModular("gin", 3, 64, 1, "attention", 0, "last", "edge_pred")
+    >>> gnnmodel = modular.gnn
+    >>> print(gnnmodel(batched_graph)[0].shape)
+    torch.Size([23, 64])
 
     """
 
     def __init__(self, atom_type_embedding, chirality_embedding, gconvs,
                  batch_norms, dropout, JK):
         super(GNN, self).__init__()
-        # self.num_layer = num_layer
-        # self.drop_ratio = drop_ratio
-        # self.JK = JK
-
-        # if self.num_layer < 2:
-        #     raise ValueError("Number of GNN layers must be greater than 1.")
-
-        # self.x_embedding1 = torch.nn.Embedding(num_atom_type, emb_dim)
-        # self.x_embedding2 = torch.nn.Embedding(num_chirality_tag, emb_dim)
 
         self.atom_type_embedding = atom_type_embedding
         self.chirality_embedding = chirality_embedding
@@ -59,7 +49,10 @@ class GNN(torch.nn.Module):
         torch.nn.init.xavier_uniform_(self.atom_type_embedding.weight.data)
         torch.nn.init.xavier_uniform_(self.chirality_embedding.weight.data)
 
-    def forward(self, data: BatchGraphData):  # can we make it BatchGraphData?
+    def forward(self, data: BatchGraphData):
+        """
+        Forward pass for the GNN module.
+        """
 
         x = self.atom_type_embedding(
             data.node_features[:, 0].long()) + self.chirality_embedding(
@@ -67,7 +60,7 @@ class GNN(torch.nn.Module):
 
         h_list = [x]
         for i, conv_layer in enumerate(self.gconv):
-            h = conv_layer(h_list[i], data.edge_index)  # data.edge_features
+            h = conv_layer(h_list[i], data.edge_index)  # data.edge_features?
             h = self.batch_norms[i](h)
             h = F.dropout(F.relu(h), self.dropout, training=self.training)
             if i == self.num_layer - 1:
@@ -77,7 +70,7 @@ class GNN(torch.nn.Module):
                 h = F.dropout(F.relu(h), self.dropout, training=self.training)
             h_list.append(h)
 
-        # Different implementations of Jk-concat
+        # Different implementations of JK
         if self.JK == "concat":
             node_representation = torch.cat(h_list, dim=1)
         elif self.JK == "last":
@@ -89,29 +82,28 @@ class GNN(torch.nn.Module):
             h_list = [h.unsqueeze_(0) for h in h_list]
             node_representation = torch.sum(torch.cat(h_list, dim=0), dim=0)[0]
 
-        return node_representation
-    
-    
+        return node_representation, data
+
+
 class GNN_head(torch.nn.Module):
     """
-    Extension of GIN to incorporate edge information by concatenation.
+    Forward pass for the GNN head module.
 
-    Args:
-        num_layer (int): the number of GNN layers
-        emb_dim (int): dimensionality of embeddings
-        num_tasks (int): number of tasks in multi-task learning scenario
-        drop_ratio (float): dropout rate
-        JK (str): last, concat, max or sum.
-        graph_pooling (str): sum, mean, max, attention, set2set
-        gnn_type: gin, gcn, graphsage, gat
-        
-    See https://arxiv.org/abs/1810.00826
-    JK-net: https://arxiv.org/abs/1806.03536
+    Parameters
+    ----------
+    node_representation: torch.Tensor
+        The node representations after passing through the GNN layers.
+    data: BatchGraphData
+        The input graph data.
+
+    Returns
+    -------
+    out: torch.Tensor
+        The output of the GNN head module.
     """
 
     def __init__(self, pool, head):
         super().__init__()
-        # self.gnn = gnn
         self.pool = pool
         self.head = head
 
@@ -141,13 +133,25 @@ class GNNModular(ModularTorchModel):
         The dropout probability.
     JK: str, optional (default "last")
         The type of jump knowledge to use. [1] Must be one of "last", "sum", "max", "concat" or "none". "last": Use the node representation from the last GNN layer. "concat": Concatenate the node representations from all GNN layers. "max": Take the element-wise maximum of the node representations from all GNN layers. "sum": Take the element-wise sum of the node representations from all GNN layers.
+    task: str, optional (default "regression")
+        The type of task. Can be unsupervised tasks "edge_pred" or "node_pred" or supervised tasks like "regression" or "classification".
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import deepchem as dc
+    >>> from deepchem.feat.molecule_featurizers import SNAPFeaturizer
+    >>> from deepchem.models.torch_models.gnn import GNNModular
+    >>> featurizer = SNAPFeaturizer()
+    >>> smiles = ["C1=CC=CC=C1", "C1=CC=CC=C1C=O", "C1=CC=CC=C1C(=O)O"]
+    >>> features = featurizer.featurize(smiles)
+    >>> dataset = dc.data.NumpyDataset(features, np.zeros(len(features)))
+    >>> model = GNNModular("gin", 3, 64, 1, "attention", 0, "last", "edge_pred")
+    >>> loss = model.fit(dataset, nb_epoch=1)
 
     References
     ----------
-    _[1]. Xu, K. et al. Representation Learning on Graphs with Jumping Knowledge Networks. Preprint at https://doi.org/10.48550/arXiv.1806.03536 (2018).
-
-
-
+    .. [1] Xu, K. et al. Representation Learning on Graphs with Jumping Knowledge Networks. Preprint at https://doi.org/10.48550/arXiv.1806.03536 (2018).
     """
 
     def __init__(self,
@@ -158,6 +162,7 @@ class GNNModular(ModularTorchModel):
                  graph_pooling: str,
                  dropout: int = 0,
                  JK: str = "concat",
+                 task: str = "edge_pred",
                  **kwargs):
         self.gnn_type = gnn_type
         self.num_layer = num_layer
@@ -166,6 +171,7 @@ class GNNModular(ModularTorchModel):
         self.graph_pooling = graph_pooling
         self.dropout = dropout
         self.JK = JK
+        self.task = task
         self.criterion = torch.nn.BCEWithLogitsLoss()
 
         self.components = self.build_components()
@@ -173,11 +179,27 @@ class GNNModular(ModularTorchModel):
         super().__init__(self.model, self.components, **kwargs)
 
     def build_components(self):
+        """
+        Builds the components of the GNNModular model. It initializes the encoders, batch normalization layers, pooling layers, and head layers based on the provided configuration. The method returns a dictionary containing the following components:
+
+        Components list, type and description:
+        --------------------------------------
+        atom_type_embedding: torch.nn.Embedding, an embedding layer for atom types.
+        chirality_embedding: torch.nn.Embedding, an embedding layer for chirality tags.
+        gconvs: torch_geometric.nn.conv.MessagePassing, a list of graph convolutional layers (encoders) based on the specified GNN type (GIN, GCN, or GAT).
+        batch_norms: torch.nn.BatchNorm1d, a list of batch normalization layers corresponding to the encoders.
+        pool: Union[function,torch_geometric.nn.aggr.Aggregation], a pooling layer based on the specified graph pooling type (sum, mean, max, attention, or set2set).
+        head: nn.Linear, a linear layer for the head of the model.
+
+        These components are then used to construct the GNN and GNN_head modules for the GNNModular model.
+        """
         encoders = []
         batch_norms = []
         for layer in range(self.num_layer):
             if self.gnn_type == "gin":
-                encoders.append(GINConv(torch.nn.Linear(self.emb_dim, self.emb_dim))) # , aggr="add"))   self.emb_dim
+                encoders.append(
+                    GINConv(torch.nn.Linear(self.emb_dim, self.emb_dim),
+                            aggr="add"))
             elif self.gnn_type == "gcn":
                 encoders.append(GCNConv(self.emb_dim))
             elif self.gnn_type == "gat":
@@ -239,14 +261,18 @@ class GNNModular(ModularTorchModel):
         return components
 
     def build_model(self):
-        # return torch.nn.Sequential(self.gnn, self.gnn_head)
-        # when do we need gnn_head? finetuning?
-        return self.gnn
+        if self.task == "edge_pred":
+            return self.gnn
+        else:
+            return torch.nn.Sequential(self.gnn, self.gnn_head)
 
     def loss_func(self, inputs, labels, weights):
-        #edge pred
-        # inputs = inputs.to(self.device)
-        node_emb = self.gnn(inputs)  # shape is num_nodes x emb_dim
+        if self.task == "edge_pred":
+            return self.edge_pred_loss(inputs, labels, weights)
+
+    def edge_pred_loss(self, inputs, labels, weights):
+        node_emb, _ = self.model(
+            inputs)  # node_emb shape == [num_nodes x emb_dim]
 
         positive_score = torch.sum(node_emb[inputs.edge_index[0, ::2]] *
                                    node_emb[inputs.edge_index[1, ::2]],
@@ -260,8 +286,6 @@ class GNNModular(ModularTorchModel):
                 negative_score, torch.zeros_like(negative_score))
         return (loss * weights[0]).mean()
 
-    # def default_generator(self, dataset, epochs=1, **kwargs):
-    #     return DataLoaderAE(dataset, batch_size=32, shuffle=True)
     def _prepare_batch(self, batch):
         """
         Prepares the batch for the model by converting the GraphData numpy arrays to torch tensors and moving them to the device.
@@ -280,36 +304,10 @@ class GNNModular(ModularTorchModel):
         return inputs, labels, weights
 
 
-
-
-
-# class DataLoaderAE(torch.utils.data.DataLoader):
-#     r"""Data loader which merges data objects from a
-#     :class:`torch_geometric.data.dataset` to a mini-batch.
-#     Args:
-#         dataset (Dataset): The dataset from which to load the data.
-#         batch_size (int, optional): How may samples per batch to load.
-#             (default: :obj:`1`)
-#         shuffle (bool, optional): If set to :obj:`True`, the data will be
-#             reshuffled at every epoch (default: :obj:`True`)
-#     """
-
-#     def __init__(self, dataset, batch_size=1, shuffle=True, **kwargs):
-#         super(DataLoaderAE, self).__init__(
-#             dataset,
-#             batch_size,
-#             shuffle,
-#             collate_fn=lambda data_list: BatchAE.from_data_list(data_list),
-#             **kwargs)
-
-
 class NegativeEdge:
-
-    def __init__(self):
-        """
-        Randomly sample negative edges
-        """
-        pass
+    """
+    NegativeEdge is a callable class that adds negative edges to the input graph data. It randomly samples negative edges (edges that do not exist in the original graph) and adds them to the input graph data. The number of negative edges added is equal to half the number of edges in the original graph. This is useful for tasks like edge prediction, where the model needs to learn to differentiate between existing and non-existing edges.
+    """
 
     def __call__(self, data):
         num_nodes = data.num_nodes
@@ -328,7 +326,7 @@ class NegativeEdge:
             node1 = redandunt_sample[0, i].cpu().item()
             node2 = redandunt_sample[1, i].cpu().item()
             edge_str = str(node1) + "," + str(node2)
-            if not edge_str in edge_set and not edge_str in sampled_edge_set and not node1 == node2:
+            if edge_str not in edge_set and edge_str not in sampled_edge_set and not node1 == node2:
                 sampled_edge_set.add(edge_str)
                 sampled_ind.append(i)
             if len(sampled_ind) == num_edges / 2:
@@ -337,57 +335,3 @@ class NegativeEdge:
         data.negative_edge_index = redandunt_sample[:, sampled_ind]
 
         return data
-
-
-class BatchAE(Data):
-    r"""A plain old python object modeling a batch of graphs as one big
-    (dicconnected) graph. With :class:`torch_geometric.data.Data` being the
-    base class, all its methods can also be used here.
-    In addition, single graphs can be reconstructed via the assignment vector
-    :obj:`batch`, which maps each node to its respective graph identifier.
-    """
-
-    def __init__(self, batch=None, **kwargs):
-        super(BatchAE, self).__init__(**kwargs)
-        self.batch = batch
-
-    @staticmethod
-    def from_data_list(data_list):
-        r"""Constructs a batch object from a python list holding
-        :class:`torch_geometric.data.Data` objects.
-        The assignment vector :obj:`batch` is created on the fly."""
-        keys = [set(data.keys) for data in data_list]
-        keys = list(set.union(*keys))
-        assert 'batch' not in keys
-
-        batch = BatchAE()
-
-        for key in keys:
-            batch[key] = []
-        batch.batch = []
-
-        cumsum_node = 0
-
-        for i, data in enumerate(data_list):
-            num_nodes = data.num_nodes
-            batch.batch.append(torch.full((num_nodes,), i, dtype=torch.long))
-            for key in data.keys:
-                item = data[key]
-                if key in ['edge_index', 'negative_edge_index']:
-                    item = item + cumsum_node
-                batch[key].append(item)
-
-            cumsum_node += num_nodes
-
-        for key in keys:
-            batch[key] = torch.cat(batch[key], dim=batch.cat_dim(key))
-        batch.batch = torch.cat(batch.batch, dim=-1)
-        return batch.contiguous()
-
-    @property
-    def num_graphs(self):
-        """Returns the number of graphs in the batch."""
-        return self.batch[-1].item() + 1
-
-    def cat_dim(self, key):
-        return -1 if key in ["edge_index", "negative_edge_index"] else 0
