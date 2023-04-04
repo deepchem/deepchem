@@ -1,9 +1,10 @@
 import torch
-from torch_geometric.nn import GINConv, GCNConv, GATConv, global_add_pool, global_mean_pool, global_max_pool, Set2Set
-from torch_geometric.nn.aggr import AttentionalAggregation
+from torch_geometric.nn import GINConv, GCNConv, GATConv, global_add_pool, global_mean_pool, global_max_pool
+from torch_geometric.nn.aggr import AttentionalAggregation, Set2Set
 from torch.functional import F
 from deepchem.models.torch_models import ModularTorchModel
 from torch_geometric.data import Data
+from deepchem.feat.graph_data import BatchGraphData
 # from deepchem.feat.graph_data import BatchGraphData
 # from torch_scatter import scatter_add
 # from torch_geometric.nn.inits import glorot, zeros
@@ -58,16 +59,17 @@ class GNN(torch.nn.Module):
         torch.nn.init.xavier_uniform_(self.atom_type_embedding.weight.data)
         torch.nn.init.xavier_uniform_(self.chirality_embedding.weight.data)
 
-    def forward(self, data: "BatchAE"):  # can we make it BatchGraphData?
+    def forward(self, data: BatchGraphData):  # can we make it BatchGraphData?
 
-        data.x = self.atom_type_embedding(
-            data.x[:, 0]) + self.chirality_embedding(data.x[:, 1])
+        x = self.atom_type_embedding(
+            data.node_features[:, 0].long()) + self.chirality_embedding(
+                data.node_features[:, 1].long())
 
-        h_list = [data.x]
+        h_list = [x]
         for i, conv_layer in enumerate(self.gconv):
-            h = conv_layer(h_list[i], data.edge_index, data.edge_features)
+            h = conv_layer(h_list[i], data.edge_index)  # data.edge_features
             h = self.batch_norms[i](h)
-            # h = F.dropout(F.relu(h), self.drop_ratio, training = self.training)
+            h = F.dropout(F.relu(h), self.dropout, training=self.training)
             if i == self.num_layer - 1:
                 # remove relu for the last layer
                 h = F.dropout(h, self.dropout, training=self.training)
@@ -87,7 +89,36 @@ class GNN(torch.nn.Module):
             h_list = [h.unsqueeze_(0) for h in h_list]
             node_representation = torch.sum(torch.cat(h_list, dim=0), dim=0)[0]
 
-        return node_representation, data.graph_index
+        return node_representation
+    
+    
+class GNN_head(torch.nn.Module):
+    """
+    Extension of GIN to incorporate edge information by concatenation.
+
+    Args:
+        num_layer (int): the number of GNN layers
+        emb_dim (int): dimensionality of embeddings
+        num_tasks (int): number of tasks in multi-task learning scenario
+        drop_ratio (float): dropout rate
+        JK (str): last, concat, max or sum.
+        graph_pooling (str): sum, mean, max, attention, set2set
+        gnn_type: gin, gcn, graphsage, gat
+        
+    See https://arxiv.org/abs/1810.00826
+    JK-net: https://arxiv.org/abs/1806.03536
+    """
+
+    def __init__(self, pool, head):
+        super().__init__()
+        # self.gnn = gnn
+        self.pool = pool
+        self.head = head
+
+    def forward(self, node_representation, data):
+        pooled = self.pool(node_representation, data.graph_index)
+        out = self.head(pooled)
+        return out
 
 
 class GNNModular(ModularTorchModel):
@@ -126,7 +157,7 @@ class GNNModular(ModularTorchModel):
                  num_tasks: int,
                  graph_pooling: str,
                  dropout: int = 0,
-                 JK: str = "last",
+                 JK: str = "concat",
                  **kwargs):
         self.gnn_type = gnn_type
         self.num_layer = num_layer
@@ -146,15 +177,17 @@ class GNNModular(ModularTorchModel):
         batch_norms = []
         for layer in range(self.num_layer):
             if self.gnn_type == "gin":
-                encoders.append(GINConv(self.emb_dim, aggr="add"))
+                encoders.append(GINConv(torch.nn.Linear(self.emb_dim, self.emb_dim))) # , aggr="add"))   self.emb_dim
             elif self.gnn_type == "gcn":
                 encoders.append(GCNConv(self.emb_dim))
             elif self.gnn_type == "gat":
                 encoders.append(GATConv(self.emb_dim))
             batch_norms.append(torch.nn.BatchNorm1d(self.emb_dim))
+        encoders = torch.nn.ModuleList(encoders)
+        batch_norms = torch.nn.ModuleList(batch_norms)
 
         if self.graph_pooling == "sum":
-            pool = global_add_pool
+            pool = global_add_pool  # can't make a component a function
         elif self.graph_pooling == "mean":
             pool = global_mean_pool
         elif self.graph_pooling == "max":
@@ -200,20 +233,20 @@ class GNNModular(ModularTorchModel):
                 head
         }
         self.gnn = GNN(components['atom_type_embedding'],
-                       components['chirality_embedding'],
-                       components['gconvs'],
+                       components['chirality_embedding'], components['gconvs'],
                        components['batch_norms'], self.dropout, self.JK)
-        self.gnn_head = GNN_head(components['pool'],
-                                 components['head'])
+        self.gnn_head = GNN_head(components['pool'], components['head'])
         return components
 
     def build_model(self):
-        return torch.nn.Sequential(self.gnn, self.gnn_head)
+        # return torch.nn.Sequential(self.gnn, self.gnn_head)
+        # when do we need gnn_head? finetuning?
+        return self.gnn
 
     def loss_func(self, inputs, labels, weights):
         #edge pred
-        inputs = inputs.to(self.device)
-        node_emb = self.gnn(inputs)
+        # inputs = inputs.to(self.device)
+        node_emb = self.gnn(inputs)  # shape is num_nodes x emb_dim
 
         positive_score = torch.sum(node_emb[inputs.edge_index[0, ::2]] *
                                    node_emb[inputs.edge_index[1, ::2]],
@@ -227,56 +260,83 @@ class GNNModular(ModularTorchModel):
                 negative_score, torch.zeros_like(negative_score))
         return (loss * weights[0]).mean()
 
-    def default_generator(self, dataset, epochs=1, **kwargs):
-        return DataLoaderAE(dataset, batch_size=32, shuffle=True)
+    # def default_generator(self, dataset, epochs=1, **kwargs):
+    #     return DataLoaderAE(dataset, batch_size=32, shuffle=True)
+    def _prepare_batch(self, batch):
+        """
+        Prepares the batch for the model by converting the GraphData numpy arrays to torch tensors and moving them to the device.
+        """
+        inputs, labels, weights = batch
+        inputs = BatchGraphData(inputs[0]).numpy_to_torch(self.device)
+        neg_trans = NegativeEdge()
+        inputs = neg_trans(inputs)
+
+        _, labels, weights = super()._prepare_batch(([], labels, weights))
+
+        if (len(labels) != 0) and (len(weights) != 0):
+            labels = labels[0]
+            weights = weights[0]
+
+        return inputs, labels, weights
 
 
-class GNN_head(torch.nn.Module):
-    """
-    Extension of GIN to incorporate edge information by concatenation.
-
-    Args:
-        num_layer (int): the number of GNN layers
-        emb_dim (int): dimensionality of embeddings
-        num_tasks (int): number of tasks in multi-task learning scenario
-        drop_ratio (float): dropout rate
-        JK (str): last, concat, max or sum.
-        graph_pooling (str): sum, mean, max, attention, set2set
-        gnn_type: gin, gcn, graphsage, gat
-        
-    See https://arxiv.org/abs/1810.00826
-    JK-net: https://arxiv.org/abs/1806.03536
-    """
-
-    def __init__(self, pool, head):
-        super().__init__()
-        # self.gnn = gnn
-        self.pool = pool
-        self.head = head
-
-    def forward(self, data):
-        node_representation, graph_index = data
-        return self.head(self.pool(node_representation, graph_index))
 
 
-class DataLoaderAE(torch.utils.data.DataLoader):
-    r"""Data loader which merges data objects from a
-    :class:`torch_geometric.data.dataset` to a mini-batch.
-    Args:
-        dataset (Dataset): The dataset from which to load the data.
-        batch_size (int, optional): How may samples per batch to load.
-            (default: :obj:`1`)
-        shuffle (bool, optional): If set to :obj:`True`, the data will be
-            reshuffled at every epoch (default: :obj:`True`)
-    """
 
-    def __init__(self, dataset, batch_size=1, shuffle=True, **kwargs):
-        super(DataLoaderAE, self).__init__(
-            dataset,
-            batch_size,
-            shuffle,
-            collate_fn=lambda data_list: BatchAE.from_data_list(data_list),
-            **kwargs)
+# class DataLoaderAE(torch.utils.data.DataLoader):
+#     r"""Data loader which merges data objects from a
+#     :class:`torch_geometric.data.dataset` to a mini-batch.
+#     Args:
+#         dataset (Dataset): The dataset from which to load the data.
+#         batch_size (int, optional): How may samples per batch to load.
+#             (default: :obj:`1`)
+#         shuffle (bool, optional): If set to :obj:`True`, the data will be
+#             reshuffled at every epoch (default: :obj:`True`)
+#     """
+
+#     def __init__(self, dataset, batch_size=1, shuffle=True, **kwargs):
+#         super(DataLoaderAE, self).__init__(
+#             dataset,
+#             batch_size,
+#             shuffle,
+#             collate_fn=lambda data_list: BatchAE.from_data_list(data_list),
+#             **kwargs)
+
+
+class NegativeEdge:
+
+    def __init__(self):
+        """
+        Randomly sample negative edges
+        """
+        pass
+
+    def __call__(self, data):
+        num_nodes = data.num_nodes
+        num_edges = data.num_edges
+
+        edge_set = set([
+            str(data.edge_index[0, i].cpu().item()) + "," +
+            str(data.edge_index[1, i].cpu().item())
+            for i in range(data.edge_index.shape[1])
+        ])
+
+        redandunt_sample = torch.randint(0, num_nodes, (2, 5 * num_edges))
+        sampled_ind = []
+        sampled_edge_set = set([])
+        for i in range(5 * num_edges):
+            node1 = redandunt_sample[0, i].cpu().item()
+            node2 = redandunt_sample[1, i].cpu().item()
+            edge_str = str(node1) + "," + str(node2)
+            if not edge_str in edge_set and not edge_str in sampled_edge_set and not node1 == node2:
+                sampled_edge_set.add(edge_str)
+                sampled_ind.append(i)
+            if len(sampled_ind) == num_edges / 2:
+                break
+
+        data.negative_edge_index = redandunt_sample[:, sampled_ind]
+
+        return data
 
 
 class BatchAE(Data):
