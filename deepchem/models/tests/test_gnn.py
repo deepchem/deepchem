@@ -26,7 +26,7 @@ def test_GNN_context_pred():
     from deepchem.models.torch_models.gnn import GNNModular
 
     dataset, _ = get_regression_dataset()
-    model = GNNModular("edge_pred", graph_pooling="mean")
+    model = GNNModular(task="edge_pred")
     loss1 = model.fit(dataset, nb_epoch=10)
     loss2 = model.fit(dataset, nb_epoch=10)
     assert loss2 < loss1

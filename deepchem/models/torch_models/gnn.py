@@ -158,7 +158,7 @@ class GNNModular(ModularTorchModel):
     >>> smiles = ["C1=CC=CC=C1", "C1=CC=CC=C1C=O", "C1=CC=CC=C1C(=O)O"]
     >>> features = featurizer.featurize(smiles)
     >>> dataset = dc.data.NumpyDataset(features, np.zeros(len(features)))
-    >>> model = GNNModular("gin", 3, 64, 1, "attention", 0, "last", "edge_pred")
+    >>> model = GNNModular(task="edge_pred")
     >>> loss = model.fit(dataset, nb_epoch=1)
 
     References
@@ -217,8 +217,10 @@ class GNNModular(ModularTorchModel):
         for layer in range(self.num_layer):
             if self.gnn_type == "gin":
                 encoders.append(
-                    GINEConv(torch.nn.Linear(self.emb_dim, self.emb_dim),
-                             aggr="add"))
+                    GINEConv(
+                        torch.nn.Linear(self.emb_dim, self.emb_dim),
+                        edge_dim=2,  # bond type, bond direction
+                        aggr="add"))
             else:
                 raise ValueError("Only GIN is supported for now")
             # elif self.gnn_type == "gcn":
