@@ -1,6 +1,7 @@
 """
 Copied from https://github.com/tencent-ailab/grover/blob/0421d97a5e1bd1b59d1923e3afd556afbe4ff782/grover/model/layers.py
 """
+from typing import List, Dict
 try:
     import torch
     import torch.nn as nn
@@ -8,7 +9,281 @@ except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
 import numpy as np
 from scipy import stats
+from deepchem.models.torch_models.readout import GroverReadout
 from deepchem.models.torch_models.layers import SublayerConnection, PositionwiseFeedForward
+
+
+class GroverEmbedding(nn.Module):
+    """GroverEmbedding layer.
+
+    This layer is a simple wrapper over GroverTransEncoder layer for retrieving the embeddings from the GroverTransEncoder layer.
+
+    Parameters
+    ----------
+    edge_fdim: int
+        the dimension of additional feature for edge/bond.
+    node_fdim: int
+        the dimension of additional feature for node/atom.
+    depth: int
+        Dynamic message passing depth for use in MPNEncoder
+    undirected: bool
+        The message passing is undirected or not
+    num_mt_block: int
+        the number of message passing blocks.
+    num_head: int
+        the number of attention heads.
+    """
+
+    def __init__(self,
+                 node_fdim,
+                 edge_fdim,
+                 hidden_size=128,
+                 depth=1,
+                 undirected=False,
+                 dropout=0.2,
+                 activation='relu',
+                 num_mt_block=1,
+                 num_heads=4,
+                 bias=False,
+                 res_connection=False):
+        super(GroverEmbedding, self).__init__()
+        self.encoders = GroverTransEncoder(hidden_size=hidden_size,
+                                           edge_fdim=edge_fdim,
+                                           node_fdim=node_fdim,
+                                           depth=depth,
+                                           undirected=undirected,
+                                           dropout=dropout,
+                                           activation=activation,
+                                           num_mt_block=num_mt_block,
+                                           num_heads=num_heads,
+                                           bias=bias,
+                                           res_connection=res_connection)
+
+    def forward(self, graph_batch: List[torch.Tensor]):
+        """Forward function
+
+        Parameters
+        ----------
+        graph_batch: List[torch.Tensor]
+            A list containing f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
+
+        Returns
+        -------
+        embedding: Dict[str, torch.Tensor]
+            When embedding type is `atom`, the dictionary contains atom and bond embeddings aggregated by atom, if `bond`, the dictionary contains atom and bond embedding aggregated by bond and if `both`, it contains aotm and bond embeddings aggregated to both atom and bond.
+        """
+        output = self.encoders(graph_batch)
+        return {
+            "atom_from_atom": output[0][0],
+            "bond_from_atom": output[0][1],
+            "atom_from_bond": output[1][0],
+            "bond_from_bond": output[1][1]
+        }
+
+
+class GroverBondVocabPredictor(nn.Module):
+    """Layer for learning contextual information for bonds.
+
+    The layer is used in Grover architecture to learn contextual information of a bond by predicting
+    the context of a bond from the bond embedding in a multi-class classification setting.
+    The contextual information of a bond are encoded as strings (ex: '(DOUBLE-STEREONONE-NONE)_C-(SINGLE-STEREONONE-NONE)2').
+
+    Example
+    -------
+    >>> from deepchem.models.torch_models.grover_layers import GroverBondVocabPredictor
+    >>> num_bonds = 20
+    >>> in_features, vocab_size = 16, 10
+    >>> layer = GroverBondVocabPredictor(vocab_size, in_features)
+    >>> embedding = torch.randn(num_bonds * 2 + 1,
+    ...  in_features)  # * 2 + 1 for reverse bond and padding
+    >>> result = layer(embedding)
+    >>> result.shape
+    torch.Size([21, 10])
+
+    Reference
+    ---------
+    .. Rong, Yu, et al. "Self-supervised graph transformer on large-scale molecular data." Advances in Neural Information Processing Systems 33 (2020): 12559-12571.
+    """
+
+    def __init__(self, vocab_size: int, in_features: int = 128):
+        """Initializes GroverBondVocabPredictor
+
+        Parameters
+        ----------
+        vocab_size: int
+            Size of vocabulary, used for number of classes in prediction.
+        in_features: int, default: 128
+            Input feature size of bond embeddings.
+        """
+        super(GroverBondVocabPredictor, self).__init__()
+        self.linear = nn.Linear(in_features, vocab_size)
+        self.linear_rev = nn.Linear(in_features, vocab_size)
+        self.logsoftmax = nn.LogSoftmax(dim=1)
+
+    def forward(self, embeddings):
+        """
+        Parameters
+        ----------
+        embeddings: torch.Tensor
+            bond embeddings of shape (num_bond, in_features)
+
+        Returns
+        -------
+        logits: torch.Tensor
+            the prediction for each bond, (num_bond, vocab_size)
+        """
+        nm_bonds = embeddings.shape[
+            0]  # must be an odd number because every bond (undirected edge) is represented as two directed edges + 1 element for padding.
+        # The bond and rev bond have odd and even ids respectively.
+        ids1 = [0] + list(range(1, nm_bonds, 2))
+        ids2 = list(range(0, nm_bonds, 2))
+        logits = self.linear(embeddings[ids1]) + self.linear_rev(
+            embeddings[ids2])
+        return self.logsoftmax(logits)
+
+
+class GroverAtomVocabPredictor(nn.Module):
+    """Grover Atom Vocabulary Prediction Module.
+
+    The GroverAtomVocabPredictor module is used for predicting atom-vocabulary
+    for the self-supervision task in Grover architecture. In the self-supervision tasks,
+    one task is to learn contextual-information of nodes (atoms).
+    Contextual information are encoded as strings, like `C_N-DOUBLE1_O-SINGLE1`.
+    The module accepts an atom encoding and learns to predict the contextual information
+    of the atom as a multi-class classification problem.
+
+    Example
+    -------
+    >>> from deepchem.models.torch_models.grover_layers import GroverAtomVocabPredictor
+    >>> num_atoms, in_features, vocab_size = 30, 16, 10
+    >>> layer = GroverAtomVocabPredictor(vocab_size, in_features)
+    >>> embedding = torch.randn(num_atoms, in_features)
+    >>> result = layer(embedding)
+    >>> result.shape
+    torch.Size([30, 10])
+
+    Reference
+    ---------
+    .. Rong, Yu, et al. "Self-supervised graph transformer on large-scale molecular data." Advances in Neural Information Processing Systems 33 (2020): 12559-12571.
+    """
+
+    def __init__(self, vocab_size: int, in_features: int = 128):
+        """Initializing Grover Atom Vocabulary Predictor
+
+        Parameters
+        ----------
+        vocab_size: int
+            size of vocabulary (vocabulary here is the total number of different possible contexts)
+        in_features: int
+            feature size of atom embeddings.
+        """
+        super(GroverAtomVocabPredictor, self).__init__()
+        self.linear = nn.Linear(in_features, vocab_size)
+        self.logsoftmax = nn.LogSoftmax(dim=1)
+
+    def forward(self, embeddings):
+        """
+        Parameters
+        ----------
+        embeddings: torch.Tensor
+            the atom embeddings of shape (vocab_size, in_features)
+
+        Returns
+        -------
+        logits: torch.Tensor
+            the prediction for each atom of shape (num_bond, vocab_size)
+        """
+        return self.logsoftmax(self.linear(embeddings))
+
+
+class GroverFunctionalGroupPredictor(nn.Module):
+    """The functional group prediction task for self-supervised learning.
+
+    Molecules have functional groups in them. This module is used for predicting
+    the functional group and the problem is formulated as an multi-label classification problem.
+
+    Parameters
+    ----------
+    fg_size: int,
+        size of functional group
+    in_features: int,
+        hidden_layer size, default 128
+
+    Example
+    -------
+    >>> from deepchem.models.torch_models.grover_layers import GroverFunctionalGroupPredictor
+    >>> in_features, fg_size = 8, 20
+    >>> num_atoms, num_bonds = 10, 20
+    >>> predictor = GroverFunctionalGroupPredictor(fg_size=20, in_features=8)
+    >>> atom_scope, bond_scope = [(0, 3), (3, 3), (6, 4)], [(0, 5), (5, 4), (9, 11)]
+    >>> embeddings = {}
+    >>> embeddings['bond_from_atom'] = torch.randn(num_bonds, in_features)
+    >>> embeddings['bond_from_bond'] = torch.randn(num_bonds, in_features)
+    >>> embeddings['atom_from_atom'] = torch.randn(num_atoms, in_features)
+    >>> embeddings['atom_from_bond'] = torch.randn(num_atoms, in_features)
+    >>> result = predictor(embeddings, atom_scope, bond_scope)
+
+    Reference
+    ---------
+    .. Rong, Yu, et al. "Self-supervised graph transformer on large-scale molecular data." Advances in Neural Information Processing Systems 33 (2020): 12559-12571.
+
+    """
+
+    def __init__(self, fg_size: int, in_features=128):
+        super(GroverFunctionalGroupPredictor, self).__init__()
+
+        self.readout = GroverReadout(rtype="mean", in_features=in_features)
+        self.linear_atom_from_atom = nn.Linear(in_features, fg_size)
+        self.linear_atom_from_bond = nn.Linear(in_features, fg_size)
+        self.linear_bond_from_atom = nn.Linear(in_features, fg_size)
+        self.linear_bond_from_bond = nn.Linear(in_features, fg_size)
+
+    def forward(self, embeddings: Dict, atom_scope: List, bond_scope: List):
+        """
+        The forward function for the GroverFunctionalGroupPredictor (semantic motif prediction) layer.
+        It takes atom/bond embeddings produced from GroverEmbedding module and
+        their corresponsing scopes and produces prediction logits for different branches.
+        The scopes are used to differentiate atoms/bonds belonging to a molecule in a
+        batched molecular graph.
+
+        Parameters
+        ----------
+        embedding: Dict
+            The input embeddings organized as an dictionary. The input embeddings are output of GroverEmbedding layer.
+        atom_scope: List
+            The scope for atoms.
+        bond_scope: List
+            The scope for bonds
+
+        Returns
+        -------
+        preds: Dict
+            A dictionary containing the predicted logits.
+        """
+        preds_atom_from_atom, preds_atom_from_bond, preds_bond_from_atom, preds_bond_from_bond = None, None, None, None
+
+        # TODO remove if condition
+        # see https://github.com/deepchem/deepchem/pull/3300
+        if embeddings["bond_from_atom"] is not None:
+            preds_bond_from_atom = self.linear_bond_from_atom(
+                self.readout(embeddings["bond_from_atom"], bond_scope))
+        if embeddings["bond_from_bond"] is not None:
+            preds_bond_from_bond = self.linear_bond_from_bond(
+                self.readout(embeddings["bond_from_bond"], bond_scope))
+
+        if embeddings["atom_from_atom"] is not None:
+            preds_atom_from_atom = self.linear_atom_from_atom(
+                self.readout(embeddings["atom_from_atom"], atom_scope))
+        if embeddings["atom_from_bond"] is not None:
+            preds_atom_from_bond = self.linear_atom_from_bond(
+                self.readout(embeddings["atom_from_bond"], atom_scope))
+
+        return {
+            "atom_from_atom": preds_atom_from_atom,
+            "atom_from_bond": preds_atom_from_bond,
+            "bond_from_atom": preds_bond_from_atom,
+            "bond_from_bond": preds_bond_from_bond
+        }
 
 
 def _index_select_nd(source: torch.Tensor, index: torch.Tensor) -> torch.Tensor:
@@ -443,20 +718,13 @@ class GroverTransEncoder(nn.Module):
         the number of mt block.
     num_head: int
         the number of attention AttentionHead.
-    atom_emb_output_type: str
-        enable the output aggregation after message passing.
-                                            atom_messages:      True                      False
-        - "none": no aggregation         output size:     (num_atoms, hidden_size)    (num_bonds, hidden_size)
-        -"atom":  aggregating to atom  output size:     (num_atoms, hidden_size)    (num_atoms, hidden_size)
-        -"bond": aggragating to bond.   output size:     (num_bonds, hidden_size)    (num_bonds, hidden_size)
-        -"both": aggregating to atom&bond. output size:  (num_atoms, hidden_size)    (num_bonds, hidden_size)
-                                                        (num_bonds, hidden_size)    (num_atoms, hidden_size)
     bias: bool
         enable bias term in all linear layers.
     res_connection: bool
         enables the skip-connection in MTBlock.
     """
 
+    # TODO Clean above docstring
     def __init__(self,
                  node_fdim: int,
                  edge_fdim: int,
@@ -464,7 +732,6 @@ class GroverTransEncoder(nn.Module):
                  undirected: bool = False,
                  num_mt_block: int = 2,
                  num_heads: int = 2,
-                 atom_emb_output_type: str = 'both',
                  hidden_size: int = 64,
                  dropout: float = 0.2,
                  res_connection: bool = True,
@@ -475,7 +742,6 @@ class GroverTransEncoder(nn.Module):
         self.hidden_size = hidden_size
         self.edge_fdim = edge_fdim
         self.node_fdim = node_fdim
-        self.atom_emb_output_type = atom_emb_output_type
 
         self.edge_blocks = nn.ModuleList()
         self.node_blocks = nn.ModuleList()
@@ -622,6 +888,8 @@ class GroverTransEncoder(nn.Module):
             return atom_in_bond_out, bond_in_bond_out
 
     def forward(self, batch):
+        # TODO Add return type and input parameters docstring
+        # TODO Add docstring on how atom_embeddings and bond_embeddings are generated
         f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a = batch
 
         node_batch = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
@@ -637,54 +905,27 @@ class GroverTransEncoder(nn.Module):
         atom_output, _, _, _, _, _, _, _ = node_batch  # atom hidden states
         _, bond_output, _, _, _, _, _, _ = edge_batch  # bond hidden states
 
-        if self.atom_emb_output_type is None:
-            # output the embedding from multi-head attention directly.
-            return atom_output, bond_output
+        atom_embeddings = self._atom_bond_transform(
+            to_atom=True,  # False: to bond
+            atomwise_input=atom_output,
+            bondwise_input=bond_output,
+            original_f_atoms=original_f_atoms,
+            original_f_bonds=original_f_bonds,
+            a2a=a2a,
+            a2b=a2b,
+            b2a=b2a,
+            b2revb=b2revb)
 
-        if self.atom_emb_output_type == 'atom':
-            return self._atom_bond_transform(
-                to_atom=True,  # False: to bond
-                atomwise_input=atom_output,
-                bondwise_input=bond_output,
-                original_f_atoms=original_f_atoms,
-                original_f_bonds=original_f_bonds,
-                a2a=a2a,
-                a2b=a2b,
-                b2a=b2a,
-                b2revb=b2revb)
-        elif self.atom_emb_output_type == 'bond':
-            return self._atom_bond_transform(
-                to_atom=False,  # False: to bond
-                atomwise_input=atom_output,
-                bondwise_input=bond_output,
-                original_f_atoms=original_f_atoms,
-                original_f_bonds=original_f_bonds,
-                a2a=a2a,
-                a2b=a2b,
-                b2a=b2a,
-                b2revb=b2revb)
-        else:  # 'both'
-            atom_embeddings = self._atom_bond_transform(
-                to_atom=True,  # False: to bond
-                atomwise_input=atom_output,
-                bondwise_input=bond_output,
-                original_f_atoms=original_f_atoms,
-                original_f_bonds=original_f_bonds,
-                a2a=a2a,
-                a2b=a2b,
-                b2a=b2a,
-                b2revb=b2revb)
+        bond_embeddings = self._atom_bond_transform(
+            to_atom=False,  # False: to bond
+            atomwise_input=atom_output,
+            bondwise_input=bond_output,
+            original_f_atoms=original_f_atoms,
+            original_f_bonds=original_f_bonds,
+            a2a=a2a,
+            a2b=a2b,
+            b2a=b2a,
+            b2revb=b2revb)
 
-            bond_embeddings = self._atom_bond_transform(
-                to_atom=False,  # False: to bond
-                atomwise_input=atom_output,
-                bondwise_input=bond_output,
-                original_f_atoms=original_f_atoms,
-                original_f_bonds=original_f_bonds,
-                a2a=a2a,
-                a2b=a2b,
-                b2a=b2a,
-                b2revb=b2revb)
-
-            return ((atom_embeddings[0], bond_embeddings[0]),
-                    (atom_embeddings[1], bond_embeddings[1]))
+        return ((atom_embeddings[0], bond_embeddings[0]), (atom_embeddings[1],
+                                                           bond_embeddings[1]))

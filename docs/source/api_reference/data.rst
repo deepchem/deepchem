@@ -119,6 +119,12 @@ where you already hold the raw data in-memory (say in a pandas dataframe).
   :members: __init__, create_dataset
 
 
+Density Functional Theory YAML Loader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. autoclass:: deepchem.data.DFTYamlLoader
+  :members: __init__, create_dataset
+
+
 Data Classes
 ------------
 DeepChem featurizers often transform members into "data classes". These are
@@ -151,6 +157,14 @@ On the other hand, the graph convolution models which inherit :code:`TorchModel`
 .. autoclass:: deepchem.feat.graph_data.GraphData
   :members:
 
+Density Functional Theory Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+These Data classes are used to create entry objects for DFT calculations.
+
+.. autoclass:: deepchem.feat.dft_data.DFTSystem
+   :members:
+.. autoclass:: deepchem.feat.dft_data.DFTEntry
+   :members:
 
 Base Classes (for develop)
 --------------------------

@@ -5,7 +5,5 @@ dependencies:
     - -f https://data.dgl.ai/wheels/repo.html
     - dgl
     - torch==1.12.0+cpu
-    - torch-scatter
-    - torch-sparse
     - torch-geometric
     - pytorch-lightning==1.6.5
