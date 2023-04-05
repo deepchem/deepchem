@@ -56,10 +56,10 @@ class GNN(torch.nn.Module):
     >>> smiles = ["C1=CC=CC=C1", "C1=CC=CC=C1C=O", "C1=CC=CC=C1C(=O)O"]
     >>> features = featurizer.featurize(smiles)
     >>> batched_graph = BatchGraphData(features).numpy_to_torch(device="cuda")
-    >>> modular = model = GNNModular("gin", 3, 64, 1, "attention", 0, "last", "edge_pred")
+    >>> modular = GNNModular(emb_dim = 8, task = "edge_pred")
     >>> gnnmodel = modular.gnn
     >>> print(gnnmodel(batched_graph)[0].shape)
-    torch.Size([23, 64])
+    torch.Size([23, 32])
 
     """
 
