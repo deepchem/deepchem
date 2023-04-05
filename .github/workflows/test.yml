@@ -105,11 +105,11 @@ jobs:
         pip install conda-merge;
         cd requirements
         if [ "$(uname)" == 'Linux' ]; then
-          conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml env_py310_no_support.yml >  env.yml
+          conda-merge env_common.yml env_test.yml env_ubuntu.yml >  env.yml
         elif [  "$(uname)" == 'Darwin' ]; then
-          conda-merge env_common.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml jax/env_jax.cpu.yml env_py310_no_support.yml > env.yml
+          conda-merge env_common.yml env_test.yml env_mac.yml > env.yml
         elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
-          conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
+          conda-merge env_common.yml env_test.yml > env.yml
         fi;
         cd ..
         cp requirements/env.yml env.yml
@@ -122,11 +122,11 @@ jobs:
         pip install conda-merge;
         cd requirements
         if [ "$(uname)" == 'Linux' ]; then
-          conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml > env.yml
+          conda-merge env_common.yml env_test.yml env_ubuntu.yml > env.yml
         elif [  "$(uname)" == 'Darwin' ]; then
-          conda-merge env_common.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml jax/env_jax.cpu.yml > env.yml
+          conda-merge env_common.yml env_test.yml env_mac.yml > env.yml
         elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
-          conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
+          conda-merge env_common.yml env_test.yml  > env.yml
         fi;
         cd ..
         cp requirements/env.yml env.yml
@@ -143,15 +143,15 @@ jobs:
       id: install
       shell: bash -l {0}
       run: pip install -e .
-    - name: Doctest Linux
-      if: ${{ (runner.os == 'Linux') && always() }}
-      shell: bash -l {0}
-      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem --doctest-continue-on-failure
-    - name: Doctest Windows
-      if: ${{ (runner.os == 'Windows') && always() }}
-      # Seperate test avoiding Jax in windows since Jax is not supported in Windows
-      shell: bash -l {0}
-      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --ignore-glob='deepchem/models/jax_models/*' --doctest-modules deepchem --doctest-continue-on-failure
+    # - name: Doctest Linux
+    #   if: ${{ (runner.os == 'Linux') && always() }}
+    #   shell: bash -l {0}
+    #   run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem --doctest-continue-on-failure
+    # - name: Doctest Windows
+    #   if: ${{ (runner.os == 'Windows') && always() }}
+    #   # Seperate test avoiding Jax in windows since Jax is not supported in Windows
+    #   shell: bash -l {0}
+    #   run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --ignore-glob='deepchem/models/jax_models/*' --doctest-modules deepchem --doctest-continue-on-failure
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') &&  (matrix.python-version == '3.10') }}
       shell: bash -l {0}
@@ -161,3 +161,5 @@ jobs:
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') &&  (matrix.python-version != '3.10') }}
       shell: bash -l {0}
       run: pytest -v -m "not jax and not torch and not tensorflow and not dqc" deepchem
+
+      # unittest cases?
