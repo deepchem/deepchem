@@ -363,15 +363,9 @@ class BatchGraphData(GraphData):
         `node_features`, `edge_index`, `edge_features`, `node_pos_features`, `kwargs`, `num_nodes`,
         `num_node_features`, `num_edges`, `num_edge_features` as these are graph data attributes."""
         graph_data_attributes = [
-            'node_features',
-            'edge_index',
-            'edge_features',
-            'node_pos_features',
-            'kwargs',
-            'num_nodes',
-            'num_node_features',
-            'num_edges',
-            'num_edge_features',
+            'node_features', 'edge_index', 'edge_features', 'node_pos_features',
+            'kwargs', 'num_nodes', 'num_node_features', 'num_edges',
+            'num_edge_features'
         ]
         user_defined_attribute_names = []
         for arg in vars(graph_data):

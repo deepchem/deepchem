@@ -1,27 +1,60 @@
-try:
-    import torch
-except ModuleNotFoundError:
-    pass
+import pytest
 
 
-def testGroverEmbedding():
+@pytest.mark.torch
+def testGroverPretrain(grover_graph_attributes):
+    from deepchem.models.torch_models.grover import GroverPretrain
+    from deepchem.models.torch_models.grover_layers import GroverEmbedding, GroverAtomVocabPredictor, GroverBondVocabPredictor, GroverFunctionalGroupPredictor
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, _ = grover_graph_attributes
+    components = {}
+    components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1],
+                                              edge_fdim=f_bonds.shape[1])
+    components['atom_vocab_task_atom'] = GroverAtomVocabPredictor(
+        vocab_size=10, in_features=128)
+    components['atom_vocab_task_bond'] = GroverAtomVocabPredictor(
+        vocab_size=10, in_features=128)
+    components['bond_vocab_task_atom'] = GroverBondVocabPredictor(
+        vocab_size=10, in_features=128)
+    components['bond_vocab_task_bond'] = GroverBondVocabPredictor(
+        vocab_size=10, in_features=128)
+    components['functional_group_predictor'] = GroverFunctionalGroupPredictor(
+        functional_group_size=10)
+    model = GroverPretrain(**components)
+
+    inputs = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
+    output = model(inputs)
+    assert len(output) == 8
+    # 9: number of atoms
+    assert output[0].shape == (9, 10)
+    assert output[1].shape == (9, 10)
+    # 6: number of bonds
+    assert output[2].shape == (6, 10)
+    assert output[3].shape == (6, 10)
+    # 3: number of molecules
+    assert output[4].shape == (3, 10)
+    assert output[5].shape == (3, 10)
+    assert output[6].shape == (3, 10)
+    assert output[7].shape == (3, 10)
+
+
+@pytest.mark.torch
+def testGroverFinetune(grover_graph_attributes):
+    import torch.nn as nn
     from deepchem.models.torch_models.grover_layers import GroverEmbedding
-    hidden_size = 8
-    f_atoms = torch.randn(4, 151)
-    f_bonds = torch.randn(5, 165)
-    a2b = torch.Tensor([[0, 0], [2, 0], [4, 0], [1, 3]]).type(torch.int32)
-    b2a = torch.Tensor([0, 1, 3, 2, 3]).type(torch.long)
-    b2revb = torch.Tensor([0, 2, 1, 4, 3]).type(torch.long)
-    a_scope = torch.Tensor([[1, 3]]).type(torch.int32)
-    b_scope = torch.Tensor([[1, 4]]).type(torch.int32)
-    a2a = torch.Tensor([[0, 0], [3, 0], [3, 0], [1, 2]]).type(torch.int32)
-    n_atoms, n_bonds = f_atoms.shape[0], f_bonds.shape[0]
-    node_fdim, edge_fdim = f_atoms.shape[1], f_bonds.shape[1]
-    layer = GroverEmbedding(edge_fdim=edge_fdim,
-                            node_fdim=node_fdim,
-                            hidden_size=8)
-    output = layer([f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a])
-    assert output['atom_from_atom'].shape == (n_atoms, hidden_size)
-    assert output['bond_from_atom'].shape == (n_bonds, hidden_size)
-    assert output['atom_from_bond'].shape == (n_atoms, hidden_size)
-    assert output['bond_from_bond'].shape == (n_bonds, hidden_size)
+    from deepchem.models.torch_models.readout import GroverReadout
+    from deepchem.models.torch_models.grover import GroverFinetune
+
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels, additional_features = grover_graph_attributes
+    inputs = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
+    components = {}
+    components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1],
+                                              edge_fdim=f_bonds.shape[1])
+    components['readout'] = GroverReadout(rtype="mean", in_features=128)
+    components['mol_atom_from_atom_ffn'] = nn.Linear(
+        in_features=additional_features.shape[1] + 128, out_features=1)
+    components['mol_atom_from_bond_ffn'] = nn.Linear(
+        in_features=additional_features.shape[1] + 128, out_features=1)
+    model = GroverFinetune(**components, mode='regression')
+    model.training = False
+    output = model(inputs, additional_features)
+    assert output.shape == (3, 1)
