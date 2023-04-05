@@ -117,13 +117,12 @@ class BasicMolGANModel(WGAN):
     def create_generator(self) -> keras.Model:
         """
         Create generator model.
-        Take noise data as an input and processes it through number of dense and dropout layers.
-        Then data is converted into two forms one used for training and other for generation of compounds.
-        
+        Take noise data as an input and processes it through number of
+        dense and dropout layers. Then data is converted into two forms
+        one used for training and other for generation of compounds.
         The model has two outputs:
             1. edges
             2. nodes
-        
         The format differs depending on intended use (sample generation or training).
         For sample generation, flag "sample_generation=True" to be used while calling generator
         i.e. gan.generators[0](noise_input, training=False, sample_generation=True).
@@ -142,8 +141,9 @@ class BasicMolGANModel(WGAN):
         Takes two inputs:
             1. adjacency tensor, containing bond information
             2. nodes tensor, containing atom information
-        The input vectors need to be in one-hot encoding format. 
-        Use MolGAN featurizer for that purpose.It will be simplified in the future release.
+        The input vectors need to be in one-hot encoding format.
+        Use MolGAN featurizer for that purpose. It will be simplified
+        in the future release.
         
         """
         adjacency_tensor = layers.Input(shape=(self.vertices, self.vertices,
