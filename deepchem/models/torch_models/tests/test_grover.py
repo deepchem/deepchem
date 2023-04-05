@@ -35,3 +35,26 @@ def testGroverPretrain(grover_graph_attributes):
     assert output[5].shape == (3, 10)
     assert output[6].shape == (3, 10)
     assert output[7].shape == (3, 10)
+
+
+@pytest.mark.torch
+def testGroverFinetune(grover_graph_attributes):
+    import torch.nn as nn
+    from deepchem.models.torch_models.grover_layers import GroverEmbedding
+    from deepchem.models.torch_models.readout import GroverReadout
+    from deepchem.models.torch_models.grover import GroverFinetune
+
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels, additional_features = grover_graph_attributes
+    inputs = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
+    components = {}
+    components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1],
+                                              edge_fdim=f_bonds.shape[1])
+    components['readout'] = GroverReadout(rtype="mean", in_features=128)
+    components['mol_atom_from_atom_ffn'] = nn.Linear(
+        in_features=additional_features.shape[1] + 128, out_features=1)
+    components['mol_atom_from_bond_ffn'] = nn.Linear(
+        in_features=additional_features.shape[1] + 128, out_features=1)
+    model = GroverFinetune(**components, mode='regression')
+    model.training = False
+    output = model(inputs, additional_features)
+    assert output.shape == (3, 1)
