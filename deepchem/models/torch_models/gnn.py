@@ -2,6 +2,7 @@ import torch
 from torch_geometric.nn import GINEConv, global_add_pool, global_mean_pool, global_max_pool
 from torch_geometric.nn.aggr import AttentionalAggregation, Set2Set
 from torch.functional import F
+from torch.nn.functional import mse_loss
 from deepchem.models.torch_models import ModularTorchModel
 from deepchem.feat.graph_data import BatchGraphData
 
@@ -120,7 +121,7 @@ class GNN(torch.nn.Module):
             h_list = [h.unsqueeze_(0) for h in h_list]
             node_representation = torch.sum(torch.cat(h_list, dim=0), dim=0)[0]
 
-        return node_representation, data
+        return (node_representation, data)
 
 
 class GNNHead(torch.nn.Module):
@@ -145,19 +146,20 @@ class GNNHead(torch.nn.Module):
         self.pool = pool
         self.head = head
 
-    def forward(self, node_representation, data):
+    def forward(self, data):
         """
         Forward pass for the GNN head module.
 
         Parameters
         ----------
-        node_representation: torch.Tensor
-            The node representations after passing through the GNN layers.
-        data: BatchGraphData
-            The original input graph data.
+        data: tuple
+            A tuple containing the node representations and the input graph data.
+            node_representation is a torch.Tensor created after passing input through the GNN layers.
+            input_batch is the original input BatchGraphData.
         """
+        node_representation, input_batch = data
 
-        pooled = self.pool(node_representation, data.graph_index)
+        pooled = self.pool(node_representation, input_batch.graph_index)
         out = self.head(pooled)
         return out
 
@@ -213,6 +215,7 @@ class GNNModular(ModularTorchModel):
                  num_layer: int = 3,
                  emb_dim: int = 64,
                  num_tasks: int = 1,
+                 num_classes: int = 2,
                  graph_pooling: str = "attention",
                  dropout: int = 0,
                  JK: str = "concat",
@@ -221,12 +224,20 @@ class GNNModular(ModularTorchModel):
         self.gnn_type = gnn_type
         self.num_layer = num_layer
         self.emb_dim = emb_dim
-        self.num_tasks = num_tasks
+
+        if task == "classification":
+            self.output_dim = num_classes * num_tasks
+        elif task == "regression":
+            self.output_dim = num_tasks
+            # self.criterion = F.mse_loss
+        else:
+            self.output_dim = num_tasks
+            # self.criterion = torch.nn.BCEWithLogitsLoss()
+
         self.graph_pooling = graph_pooling
         self.dropout = dropout
         self.JK = JK
         self.task = task
-        self.criterion = torch.nn.BCEWithLogitsLoss()
 
         self.components = self.build_components()
         self.model = self.build_model()
@@ -300,9 +311,9 @@ class GNNModular(ModularTorchModel):
 
         if self.JK == "concat":
             head = torch.nn.Linear(mult * (self.num_layer + 1) * self.emb_dim,
-                                   self.num_tasks)
+                                   self.output_dim)
         else:
-            head = torch.nn.Linear(mult * self.emb_dim, self.num_tasks)
+            head = torch.nn.Linear(mult * self.emb_dim, self.output_dim)
 
         components = {
             'atom_type_embedding':
@@ -345,14 +356,17 @@ class GNNModular(ModularTorchModel):
         The loss function executed in the training loop, which is based on the specified task.
         """
         if self.task == "edge_pred":
-            return self.edge_pred_loss(inputs, labels, weights)
+            loss = self.edge_pred_loss(inputs)
         elif self.task == "regression":
-            return self.regression_loss(inputs, labels, weights)
-        
-    def regression_loss(self, inputs, labels, weights):
-        pass
-    
-    def edge_pred_loss(self, inputs, labels, weights):
+            loss = self.regression_loss(inputs, labels)
+        return (loss * weights).mean()
+
+    def regression_loss(self, inputs, labels):
+        out = self.model(inputs)
+        reg_loss = mse_loss(out, labels)
+        return reg_loss
+
+    def edge_pred_loss(self, inputs):
         """
         The loss function for the graph edge prediction task.
 
@@ -368,10 +382,11 @@ class GNNModular(ModularTorchModel):
                                    node_emb[inputs.negative_edge_index[1]],
                                    dim=1)
 
-        loss = self.criterion(
-            positive_score, torch.ones_like(positive_score)) + self.criterion(
+        edge_pred_loss = torch.nn.BCEWithLogitsLoss()(
+            positive_score,
+            torch.ones_like(positive_score)) + torch.nn.BCEWithLogitsLoss()(
                 negative_score, torch.zeros_like(negative_score))
-        return (loss * weights[0]).mean()
+        return edge_pred_loss
 
     def _prepare_batch(self, batch):
         """
