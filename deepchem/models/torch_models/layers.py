@@ -2861,10 +2861,23 @@ class SetGather(nn.Module):
             f'{self.__class__.__name__}(M={self.M}, batch_size={self.batch_size}, n_hidden={self.n_hidden}, init={self.init})'
         )
 
-    def forward(self, inputs):
+    def forward(self, inputs: Sequence[np.ndarray]) -> torch.Tensor:
         """Perform M steps of set2set gather,
 
         Detailed descriptions in: https://arxiv.org/abs/1511.06391
+
+        Parameters
+        ----------
+        inputs: Sequence[nd.array]
+            This contains two elements.
+            atom_features: (n_atoms, n_atom_feat)
+            atom_split: (n_atoms,)
+
+        Returns
+        -------
+        q_star: torch.Tensor
+            Final state of the model after all M steps.
+            
         """
         atom_features, atom_split = inputs
         c = torch.zeros((self.batch_size, self.n_hidden))
@@ -2887,14 +2900,34 @@ class SetGather(nn.Module):
                           dim=0)
 
             r = scatter(torch.reshape(a, [-1, 1]) * atom_features,
-                            torch.from_numpy(atom_split).long(),
-                            dim=0)
+                        torch.from_numpy(atom_split).long(),
+                        dim=0)
             # Model using this layer must set `pad_batches=True`
             q_star = torch.cat([h, r], axis=1)
-            h, c = self.LSTMStep(q_star, c)
+            h, c = self._LSTMStep(q_star, c)
         return q_star
 
-    def LSTMStep(self, h, c, x=None):
+    def _LSTMStep(self,
+                  h: torch.Tensor,
+                  c: torch.Tensor,
+                  x=None) -> Tuple[torch.Tensor, torch.Tensor]:
+        """This methord performs a single step of a Long Short-Term Memory (LSTM) cell,
+
+        Parameters
+        ----------
+        h: torch.Tensor
+            The hidden state of the LSTM cell.
+        c: torch.Tensor
+            The cell state of the LSTM cell.
+
+        Returns
+        -------
+        h_out: torch.Tensor
+            The updated hidden state of the LSTM cell.
+        c_out: torch.Tensor
+            The updated cell state of the LSTM cell.
+
+        """
         # z = torch.mm(h, self.U) + self.b
         z = F.linear(h.float().detach(),
                      self.U.float().T.detach(), self.b.detach())
@@ -2906,8 +2939,26 @@ class SetGather(nn.Module):
         h_out = o * torch.tanh(c_out)
         return h_out, c_out
 
-    def _dynamic_partition(self, input_tensor, partition_tensor,
-                           num_partitions):
+    def _dynamic_partition(self, input_tensor: torch.Tensor,
+                           partition_tensor: np.ndarray,
+                           num_partitions: int) -> List[torch.Tensor]:
+        """Partitions `data` into `num_partitions` tensors using indices from `partitions`.
+        
+        Parameters
+        ----------
+        input_tensor: torch.Tensor
+            The tensor to be partitioned.
+        partition_tensor: np.ndarray
+            A 1-D tensor whose size is equal to the first dimension of `input_tensor`.
+        num_partitions: int
+            The number of partitions to output.
+
+        Returns
+        -------
+        partitions: List[torch.Tensor]
+            A list of `num_partitions` `Tensor` objects with the same type as `data`.
+        
+        """
         # create a boolean mask for each partition
         partition_masks = [partition_tensor == i for i in range(num_partitions)]
 
