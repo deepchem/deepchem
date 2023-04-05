@@ -69,7 +69,7 @@ def testGroverPretrain(grover_graph_attributes):
 
 
 @pytest.mark.torch
-def testGroverFinetune(grover_graph_attributes):
+def test_grover_finetune_regression(grover_graph_attributes):
     import torch.nn as nn
     from deepchem.models.torch_models.grover_layers import GroverEmbedding
     from deepchem.models.torch_models.readout import GroverReadout
@@ -82,13 +82,44 @@ def testGroverFinetune(grover_graph_attributes):
                                               edge_fdim=f_bonds.shape[1])
     components['readout'] = GroverReadout(rtype="mean", in_features=128)
     components['mol_atom_from_atom_ffn'] = nn.Linear(
-        in_features=additional_features.shape[1] + 128, out_features=1)
+        in_features=additional_features.shape[1] + 128, out_features=128)
     components['mol_atom_from_bond_ffn'] = nn.Linear(
-        in_features=additional_features.shape[1] + 128, out_features=1)
-    model = GroverFinetune(**components, mode='regression')
+        in_features=additional_features.shape[1] + 128, out_features=128)
+    model = GroverFinetune(**components, mode='regression', hidden_size=128)
     model.training = False
-    output = model(inputs, additional_features)
+    output = model((inputs, additional_features))
     assert output.shape == (3, 1)
+
+
+@pytest.mark.torch
+def test_grover_finetune_classification(grover_graph_attributes):
+    import torch.nn as nn
+    from deepchem.models.torch_models.grover_layers import GroverEmbedding
+    from deepchem.models.torch_models.readout import GroverReadout
+    from deepchem.models.torch_models.grover import GroverFinetune
+
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels, additional_features = grover_graph_attributes
+    inputs = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
+    components = {}
+    components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1],
+                                              edge_fdim=f_bonds.shape[1])
+    components['readout'] = GroverReadout(rtype="mean", in_features=128)
+    components['mol_atom_from_atom_ffn'] = nn.Linear(
+        in_features=additional_features.shape[1] + 128, out_features=128)
+    components['mol_atom_from_bond_ffn'] = nn.Linear(
+        in_features=additional_features.shape[1] + 128, out_features=128)
+    n_classes = 2
+    model = GroverFinetune(**components,
+                           mode='classification',
+                           n_classes=n_classes,
+                           hidden_size=128)
+    model.training = False
+    output = model((inputs, additional_features))
+    assert len(output) == n_classes
+    # logits for class 1
+    assert output[0].shape == (3, 2)
+    # logits for class 2
+    assert output[1].shape == (3, 2)
 
 
 def test_grover_pretraining_task_overfit():
@@ -152,6 +183,8 @@ def test_grover_pretraining_task_overfit():
 
     model._prepare_batch_for_pretraining = _prepare_batch_for_pretraining
     model.fit(graph_data, nb_epoch=1)
+
+    preds = model.predict(graph_data)
 
     assert np.allclose(preds[0], np.zeros_like(preds[0]))
     assert np.allclose(preds[1], np.zeros_like(preds[1]))

@@ -1,8 +1,8 @@
 import math
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
-from deepchem.models.torch_models.grover_layers import GroverTransEncoder
 from typing import List, Sequence, Optional, Any, Tuple
 from rdkit import Chem
 from deepchem.feat.graph_data import BatchGraphData
@@ -77,6 +77,7 @@ class GroverPretrain(nn.Module):
     ---------
     .. Rong, Yu, et al. "Self-supervised graph transformer on large-scale molecular data." Advances in Neural Information Processing Systems 33 (2020): 12559-12571.
     """
+
     def __init__(self, embedding: nn.Module, atom_vocab_task_atom: nn.Module,
                  atom_vocab_task_bond: nn.Module,
                  bond_vocab_task_atom: nn.Module,
@@ -177,32 +178,47 @@ class GroverFinetune(nn.Module):
     .. Rong, Yu, et al. "Self-supervised graph transformer on large-scale molecular data." Advances in Neural Information Processing Systems 33 (2020): 12559-12571.
     """
 
-    def __init__(self, embedding: nn.Module, readout: nn.Module,
+    def __init__(self,
+                 embedding: nn.Module,
+                 readout: nn.Module,
                  mol_atom_from_atom_ffn: nn.Module,
-                 mol_atom_from_bond_ffn: nn.Module, mode: str):
+                 mol_atom_from_bond_ffn: nn.Module,
+                 hidden_size: int = 128,
+                 mode: str = 'regression',
+                 n_tasks: int = 1,
+                 n_classes: Optional[int] = None):
         super().__init__()
         self.embedding = embedding
         self.readout = readout
         self.mol_atom_from_atom_ffn = mol_atom_from_atom_ffn
         self.mol_atom_from_bond_ffn = mol_atom_from_bond_ffn
+        self.n_tasks = n_tasks
+        self.n_classes = n_classes
         self.mode = mode
+        # the hidden size here is the output size of last layer in mol_atom_from_atom_ffn and mol_atom_from_bond_ffn components.
+        # it is necessary that aforementioned components produces output tensor of same size.
+        if self.mode == 'classification':
+            assert n_classes is not None
+            self.linear = nn.Linear(hidden_size,
+                                    out_features=n_tasks * n_classes)
+        elif self.mode == 'regression':
+            self.linear = nn.Linear(hidden_size, out_features=n_tasks)
 
-    def forward(self, graphbatch, additional_features):
+    def forward(self, inputs):
         """
         Parameters
         ----------
-        graphbatch: Tuple
+        inputs: Tuple
             grover batch graph attributes
-        additional_features: Optional[torch.Tensor]
-            Additional features
         """
-        _, _, _, _, _, a_scope, _, _ = graphbatch
+        graphbatch, additional_features = inputs
+        _, _, _, _, _, atom_scope, bond_scope, _ = graphbatch
         output = self.embedding(graphbatch)
 
         mol_atom_from_bond_output = self.readout(output["atom_from_bond"],
-                                                 a_scope)
+                                                 atom_scope)
         mol_atom_from_atom_output = self.readout(output["atom_from_atom"],
-                                                 a_scope)
+                                                 atom_scope)
 
         if additional_features[0] is not None:
             additional_features = torch.from_numpy(
@@ -220,14 +236,28 @@ class GroverFinetune(nn.Module):
         bond_ffn_output = self.mol_atom_from_bond_ffn(mol_atom_from_bond_output)
         if self.training:
             # In training mode, we return atom level aggregated output and bond level aggregated output.
-            # The loss function is used to update gradients so as to make these values closer to target.
+            # The training has an additional objective which ensures that atom and bond level aggregated outputs
+            # are similar to each other apart from the objective of making the aggregated output closer to each
+            # other.
             return atom_ffn_output, bond_ffn_output
         else:
             if self.mode == 'classification':
                 atom_ffn_output = torch.sigmoid(atom_ffn_output)
                 bond_ffn_output = torch.sigmoid(bond_ffn_output)
             output = (atom_ffn_output + bond_ffn_output) / 2
-            return output
+            output = self.linear(output)
+
+            if self.mode == 'classification':
+                if self.n_tasks == 1:
+                    logits = output.view(-1, self.n_classes)
+                    softmax_dim = 1
+                else:
+                    logits = output.view(-1, self.n_tasks, self.n_classes)
+                    softmax_dim = 2
+                proba = F.softmax(logits, dim=softmax_dim)
+                return proba, logits
+            elif self.mode == 'regression':
+                return output
 
 
 class GroverModel(ModularTorchModel):
@@ -271,7 +301,6 @@ class GroverModel(ModularTorchModel):
                  atom_vocab: GroverAtomVocabularyBuilder,
                  bond_vocab: GroverBondVocabularyBuilder,
                  hidden_size: int,
-                 mode: str,
                  self_attention=False,
                  features_only=False,
                  functional_group_size: int = 85,
@@ -280,8 +309,10 @@ class GroverModel(ModularTorchModel):
                  activation='relu',
                  task='pretraining',
                  ffn_num_layers=1,
-                 output_size=1,
+                 mode: Optional[str] = None,
                  model_dir=None,
+                 n_tasks: int = 1,
+                 n_classes: Optional[int] = None,
                  **kwargs):
         assert task in ['pretraining', 'finetuning']
         self.ffn_num_layers = ffn_num_layers
@@ -302,8 +333,9 @@ class GroverModel(ModularTorchModel):
         self.features_only = features_only
         self.features_dim = features_dim
         self.dropout = dropout
-        self.output_size = output_size
         self.mode = mode
+        self.n_tasks = n_tasks
+        self.n_classes = n_classes
         self.components = self.build_components()
         self.model = self.build_model()
         super().__init__(self.model,
@@ -326,7 +358,11 @@ class GroverModel(ModularTorchModel):
         if self.task == 'pretraining':
             return GroverPretrain(**self.components)
         elif self.task == 'finetuning':
-            return GroverFinetune(**self.components, mode=self.mode)
+            return GroverFinetune(**self.components,
+                                  mode=self.mode,
+                                  hidden_size=self.hidden_size,
+                                  n_tasks=self.n_tasks,
+                                  n_classes=self.n_classes)
 
     def get_loss_func(self):
         if self.task == 'pretraining':
@@ -416,11 +452,14 @@ class GroverModel(ModularTorchModel):
     def _prepare_batch_for_finetuning(self, batch: Tuple[Any, Any, Any]):
         X, y, w = batch
         batchgraph = BatchGraphData(X[0])
-        labels = torch.FloatTensor(y[0])
+        if y is not None:
+            labels = torch.FloatTensor(y[0])
+        else:
+            labels = None
         f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, additional_features = extract_grover_attributes(
             batchgraph)
-        inputs = ((f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a),
-                  additional_features)
+        inputs = (f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope,
+                  a2a), additional_features
         return inputs, labels, w
 
     def _pretraining_loss(self,
@@ -432,7 +471,6 @@ class GroverModel(ModularTorchModel):
         av_task_atom_pred, av_task_bond_pred, bv_task_atom_pred, bv_task_bond_pred, fg_prediction_atom_from_atom, fg_prediction_atom_from_bond, fg_prediction_bond_from_atom, fg_prediction_bond_from_bond = self.model(
             inputs)
 
-        # TODO Output from functional groups should have descriptive names
         loss = self.loss(av_task_atom_pred, av_task_bond_pred,
                          bv_task_atom_pred, bv_task_bond_pred,
                          fg_prediction_atom_from_atom,
@@ -443,15 +481,12 @@ class GroverModel(ModularTorchModel):
         return loss
 
     def _finetuning_loss(self, inputs, labels, weights, dist_coff=0.1):
-        if self.classification:
+        if self.mode == 'classification':
             pred_loss = nn.BCEWithLogitsLoss()
         elif self.mode == 'regression':
             pred_loss = nn.MSELoss()
 
-        batchgraph, additional_features = inputs
-        _, _, _, _, _, atom_scope, bond_scope, _ = batchgraph
-
-        preds = self.model(batchgraph, additional_features)
+        preds = self.model(inputs)
 
         if not self.model.training:
             # in eval mode.
@@ -459,8 +494,8 @@ class GroverModel(ModularTorchModel):
         elif self.model.training:
             dist_loss = nn.MSELoss()
             dist = dist_loss(preds[0], preds[1])
-            pred_loss1 = pred_loss(preds[0], labels)
-            pred_loss2 = pred_loss(preds[1], labels)
+            pred_loss1 = pred_loss(preds[0].mean(axis=-1).unsqueeze(-1), labels)
+            pred_loss2 = pred_loss(preds[1].mean(axis=-1).unsqueeze(-1), labels)
             return pred_loss1 + pred_loss2 + dist_coff * dist
 
     def _create_ffn(self):
@@ -479,18 +514,11 @@ class GroverModel(ModularTorchModel):
         if self.activation == 'relu':
             activation = nn.ReLU()
 
-        if self.ffn_num_layers == 1:
-            ffn = [dropout, nn.Linear(first_linear_dim, self.output_size)]
-        else:
-            ffn = [dropout, nn.Linear(first_linear_dim, self.ffn_hidden_size)]
-            for i in range(self.ffn_num_layers - 2):
-                ffn.extend([
-                    activation, dropout,
-                    nn.Linear(self.ffn_hidden_size, self.ffn_hidden_size)
-                ])
+        ffn = [dropout, nn.Linear(first_linear_dim, self.hidden_size)]
+        for i in range(self.ffn_num_layers - 1):
             ffn.extend([
                 activation, dropout,
-                nn.Linear(self.ffn_hidden_size, self.output_size)
+                nn.Linear(self.hidden_size, self.hidden_size)
             ])
 
         return nn.Sequential(*ffn)
