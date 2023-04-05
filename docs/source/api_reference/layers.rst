@@ -207,6 +207,12 @@ The following layers are used for implementing GROVER model as described in the 
 .. autoclass:: deepchem.models.torch_models.grover_layers.GroverFunctionalGroupPredictor
   :members:
 
+.. autoclass:: deepchem.models.torch_models.grover.GroverPretrain
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover.GroverFinetune
+  :members:
+
 Attention Layers
 ^^^^^^^^^^^^^^^^
 
@@ -233,7 +239,12 @@ Density Functional Theory Layers
 
 .. autoclass:: deepchem.models.dft.nnxc.BaseNNXC
    :members:
+
 .. autoclass:: deepchem.models.dft.nnxc.NNLDA
    :members:
+
 .. autoclass:: deepchem.models.dft.nnxc.HybridXC
+   :members:
+
+.. autoclass:: deepchem.models.dft.scf.XCNNSCF
    :members:
