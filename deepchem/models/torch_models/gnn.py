@@ -92,9 +92,9 @@ class GNN(torch.nn.Module):
             Batched graph data.
         """
 
-        x = self.atom_type_embedding(  # type: ignore
+        x = self.atom_type_embedding(
             data.node_features[:, 0].long()) + self.chirality_embedding(
-                data.node_features[:, 1].long())
+                data.node_features[:, 1].long())  # type: ignore
 
         h_list = [x]
         for i, conv_layer in enumerate(self.gconv):
