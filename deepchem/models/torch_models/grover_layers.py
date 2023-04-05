@@ -98,11 +98,10 @@ class GroverBondVocabPredictor(nn.Module):
     >>> num_bonds = 20
     >>> in_features, vocab_size = 16, 10
     >>> layer = GroverBondVocabPredictor(vocab_size, in_features)
-    >>> embedding = torch.randn(num_bonds * 2 + 1,
-    ...  in_features)  # * 2 + 1 for reverse bond and padding
+    >>> embedding = torch.randn(num_bonds * 2, in_features)
     >>> result = layer(embedding)
     >>> result.shape
-    torch.Size([21, 10])
+    torch.Size([20, 10])
 
     Reference
     ---------
@@ -136,10 +135,9 @@ class GroverBondVocabPredictor(nn.Module):
         logits: torch.Tensor
             the prediction for each bond, (num_bond, vocab_size)
         """
-        nm_bonds = embeddings.shape[
-            0]  # must be an odd number because every bond (undirected edge) is represented as two directed edges + 1 element for padding.
+        nm_bonds = embeddings.shape[0]
         # The bond and rev bond have odd and even ids respectively.
-        ids1 = [0] + list(range(1, nm_bonds, 2))
+        ids1 = list(range(1, nm_bonds, 2))
         ids2 = list(range(0, nm_bonds, 2))
         logits = self.linear(embeddings[ids1]) + self.linear_rev(
             embeddings[ids2])
