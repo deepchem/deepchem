@@ -3,7 +3,7 @@ from torch_geometric.nn import GINEConv, global_add_pool, global_mean_pool, glob
 from torch_geometric.nn.aggr import AttentionalAggregation, Set2Set
 from torch.functional import F
 from deepchem.data import Dataset
-from deepchem.models.losses import SoftmaxCrossEntropy
+from deepchem.models.losses import SoftmaxCrossEntropy, EdgePredictionLoss
 from deepchem.models.torch_models import ModularTorchModel
 from deepchem.feat.graph_data import BatchGraphData
 from typing import Iterable, List, Tuple
@@ -235,16 +235,16 @@ class GNNModular(ModularTorchModel):
         self.emb_dim = emb_dim
 
         self.num_tasks = num_tasks
+        self.num_classes = num_classes
         if task == "classification":
-            self.num_classes = num_classes
             self.output_dim = num_classes * num_tasks
             self.criterion = SoftmaxCrossEntropy()._create_pytorch_loss()
         elif task == "regression":
             self.output_dim = num_tasks
             self.criterion = F.mse_loss
-        else:
+        elif task == "edge_pred":
             self.output_dim = num_tasks
-            self.criterion = torch.nn.BCEWithLogitsLoss()
+            self.edge_pred_loss = EdgePredictionLoss()._create_pytorch_loss()
 
         self.graph_pooling = graph_pooling
         self.dropout = dropout
@@ -369,7 +369,8 @@ class GNNModular(ModularTorchModel):
         The loss function executed in the training loop, which is based on the specified task.
         """
         if self.task == "edge_pred":
-            loss = self.edge_pred_loss(inputs)
+            node_emb, inputs = self.model(inputs)
+            loss = self.edge_pred_loss(node_emb, inputs)
         elif self.task == "regression":
             loss = self.regression_loss(inputs, labels)
         elif self.task == "classification":
@@ -386,27 +387,6 @@ class GNNModular(ModularTorchModel):
         out = F.softmax(out, dim=2)
         class_loss = self.criterion(out, labels)
         return class_loss
-
-    def edge_pred_loss(self, inputs):
-        """
-        The loss function for the graph edge prediction task.
-
-        The inputs in this loss must be a BatchGraphData object transformed by the NegativeEdge molecule feature utility.
-        """
-        node_emb, _ = self.model(
-            inputs)  # node_emb shape == [num_nodes x emb_dim]
-
-        positive_score = torch.sum(node_emb[inputs.edge_index[0, ::2]] *
-                                   node_emb[inputs.edge_index[1, ::2]],
-                                   dim=1)
-        negative_score = torch.sum(node_emb[inputs.negative_edge_index[0]] *
-                                   node_emb[inputs.negative_edge_index[1]],
-                                   dim=1)
-
-        edge_pred_loss = self.criterion(
-            positive_score, torch.ones_like(positive_score)) + self.criterion(
-                negative_score, torch.zeros_like(negative_score))
-        return edge_pred_loss
 
     def _prepare_batch(self, batch):
         """

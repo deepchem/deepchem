@@ -909,6 +909,69 @@ class GroverPretrainLoss(Loss):
         return loss
 
 
+class EdgePredictionLoss(Loss):
+    """
+    Unsupervised graph edge prediction loss.
+
+    The inputs in this loss must be a BatchGraphData object transformed by the negative_edge_sampler molecule.
+
+    Examples
+    --------
+    >>> from deepchem.models.losses import EdgePredictionLoss
+    >>> from deepchem.feat.graph_data import BatchGraphData, GraphData
+    >>> from deepchem.models.torch_models.gnn import negative_edge_sampler
+    >>> import torch
+    >>> import numpy as np 
+    >>> emb_dim = 8
+    >>> num_nodes_list, num_edge_list = [3, 4, 5], [2, 4, 5]
+    >>> num_node_features, num_edge_features = 32, 32
+    >>> edge_index_list = [
+    ...     np.array([[0, 1], [1, 2]]),
+    ...     np.array([[0, 1, 2, 3], [1, 2, 0, 2]]),
+    ...     np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]]),
+    ... ]
+    >>> graph_list = [
+    ...     GraphData(node_features=np.random.random_sample(
+    ...         (num_nodes_list[i], num_node_features)),
+    ...               edge_index=edge_index_list[i],
+    ...               edge_features=np.random.random_sample(
+    ...                   (num_edge_list[i], num_edge_features)),
+    ...               node_pos_features=None) for i in range(len(num_edge_list))
+    ... ]
+    >>> batched_graph = BatchGraphData(graph_list)
+    >>> batched_graph = batched_graph.numpy_to_torch()
+    >>> neg_sampled = negative_edge_sampler(batched_graph)
+    >>> embedding = np.random.random((sum(num_nodes_list), emb_dim))
+    >>> embedding = torch.from_numpy(embedding)
+    >>> loss_func = EdgePredictionLoss()._create_pytorch_loss()
+    >>> loss = loss_func(embedding, neg_sampled)
+
+    References
+    ----------
+    .. [1] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
+    """
+
+    def _create_pytorch_loss(self):
+        import torch
+        self.criterion = torch.nn.BCEWithLogitsLoss()
+
+        def loss(node_emb, inputs):
+            positive_score = torch.sum(node_emb[inputs.edge_index[0, ::2]] *
+                                       node_emb[inputs.edge_index[1, ::2]],
+                                       dim=1)
+            negative_score = torch.sum(node_emb[inputs.negative_edge_index[0]] *
+                                       node_emb[inputs.negative_edge_index[1]],
+                                       dim=1)
+
+            edge_pred_loss = self.criterion(
+                positive_score,
+                torch.ones_like(positive_score)) + self.criterion(
+                    negative_score, torch.zeros_like(negative_score))
+            return edge_pred_loss
+
+        return loss
+
+
 def _make_tf_shapes_consistent(output, labels):
     """Try to make inputs have the same shape by adding dimensions of size 1."""
     import tensorflow as tf
