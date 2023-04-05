@@ -122,6 +122,7 @@ def test_grover_finetune_classification(grover_graph_attributes):
     assert output[1].shape == (3, 2)
 
 
+@pytest.mark.torch
 def test_grover_pretraining_task_overfit():
     import deepchem as dc
     from deepchem.feat.vocabulary_builders import (GroverAtomVocabularyBuilder,
@@ -194,3 +195,57 @@ def test_grover_pretraining_task_overfit():
     assert np.allclose(preds[5], np.zeros_like(preds[5]))
     assert np.allclose(preds[6], np.zeros_like(preds[6]))
     assert np.allclose(preds[7], np.zeros_like(preds[7]))
+
+
+@pytest.mark.torch
+def test_grover_model_overfit_finetune(tmpdir):
+    from deepchem.models.torch_models.grover import GroverModel
+    from deepchem.feat.vocabulary_builders import (GroverAtomVocabularyBuilder,
+                                                   GroverBondVocabularyBuilder)
+    # arranging test - preparing dataset
+    import pandas as pd
+
+    df = pd.DataFrame({'smiles': ['CC', 'CCC'], 'preds': [0, 0]})
+
+    filepath = os.path.join(tmpdir, 'example.csv')
+    df.to_csv(filepath, index=False)
+
+    dataset_path = os.path.join(filepath)
+    loader = dc.data.CSVLoader(tasks=['preds'],
+                               featurizer=dc.feat.DummyFeaturizer(),
+                               feature_field=['smiles'])
+    dataset = loader.create_dataset(dataset_path)
+
+    av = GroverAtomVocabularyBuilder()
+    av.build(dataset)
+
+    bv = GroverBondVocabularyBuilder()
+    bv.build(dataset)
+
+    fg = dc.feat.CircularFingerprint()
+    loader2 = dc.data.CSVLoader(
+        tasks=['preds'],
+        featurizer=dc.feat.GroverFeaturizer(features_generator=fg),
+        feature_field='smiles')
+    graph_data = loader2.create_dataset(dataset_path)
+
+    # acting - tests
+    model = GroverModel(node_fdim=151,
+                        edge_fdim=165,
+                        atom_vocab=av,
+                        bond_vocab=bv,
+                        features_dim=2048,
+                        hidden_size=128,
+                        functional_group_size=85,
+                        mode='regression',
+                        task='finetuning',
+                        model_dir='gm_ft')
+
+    loss = model.fit(graph_data, nb_epoch=100)
+    scores = model.evaluate(
+        graph_data,
+        metrics=[dc.metrics.Metric(dc.metrics.mean_squared_error, np.mean)])
+
+    # asserting
+    assert loss < 0.01
+    assert scores['mean-mean_squared_error'] < 0.001
