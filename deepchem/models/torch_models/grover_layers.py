@@ -70,7 +70,11 @@ class GroverEmbedding(nn.Module):
         Returns
         -------
         embedding: Dict[str, torch.Tensor]
-            When embedding type is `atom`, the dictionary contains atom and bond embeddings aggregated by atom, if `bond`, the dictionary contains atom and bond embedding aggregated by bond and if `both`, it contains aotm and bond embeddings aggregated to both atom and bond.
+            Returns a dictionary of embeddings. The embeddings are:
+         - atom_from_atom: node messages aggregated from node hidden states
+         - bond_from_atom: bond messages aggregated from bond hidden states
+         - atom_from_bond: node message aggregated from bond hidden states
+         - bond_from_bond: bond messages aggregated from bond hidden states.
         """
         output = self.encoders(graph_batch)
         return {
@@ -204,7 +208,7 @@ class GroverFunctionalGroupPredictor(nn.Module):
 
     Parameters
     ----------
-    fg_size: int,
+    functional_group_size: int,
         size of functional group
     in_features: int,
         hidden_layer size, default 128
@@ -212,9 +216,9 @@ class GroverFunctionalGroupPredictor(nn.Module):
     Example
     -------
     >>> from deepchem.models.torch_models.grover_layers import GroverFunctionalGroupPredictor
-    >>> in_features, fg_size = 8, 20
+    >>> in_features, functional_group_size = 8, 20
     >>> num_atoms, num_bonds = 10, 20
-    >>> predictor = GroverFunctionalGroupPredictor(fg_size=20, in_features=8)
+    >>> predictor = GroverFunctionalGroupPredictor(functional_group_size=20, in_features=8)
     >>> atom_scope, bond_scope = [(0, 3), (3, 3), (6, 4)], [(0, 5), (5, 4), (9, 11)]
     >>> embeddings = {}
     >>> embeddings['bond_from_atom'] = torch.randn(num_bonds, in_features)
@@ -229,22 +233,25 @@ class GroverFunctionalGroupPredictor(nn.Module):
 
     """
 
-    def __init__(self, fg_size: int, in_features=128):
+    def __init__(self, functional_group_size: int, in_features=128):
         super(GroverFunctionalGroupPredictor, self).__init__()
 
         self.readout = GroverReadout(rtype="mean", in_features=in_features)
-        self.linear_atom_from_atom = nn.Linear(in_features, fg_size)
-        self.linear_atom_from_bond = nn.Linear(in_features, fg_size)
-        self.linear_bond_from_atom = nn.Linear(in_features, fg_size)
-        self.linear_bond_from_bond = nn.Linear(in_features, fg_size)
+        self.linear_atom_from_atom = nn.Linear(in_features,
+                                               functional_group_size)
+        self.linear_atom_from_bond = nn.Linear(in_features,
+                                               functional_group_size)
+        self.linear_bond_from_atom = nn.Linear(in_features,
+                                               functional_group_size)
+        self.linear_bond_from_bond = nn.Linear(in_features,
+                                               functional_group_size)
 
     def forward(self, embeddings: Dict, atom_scope: List, bond_scope: List):
         """
         The forward function for the GroverFunctionalGroupPredictor (semantic motif prediction) layer.
-        It takes atom/bond embeddings produced from GroverEmbedding module and
-        their corresponsing scopes and produces prediction logits for different branches.
-        The scopes are used to differentiate atoms/bonds belonging to a molecule in a
-        batched molecular graph.
+        It takes atom/bond embeddings produced from node and bond hidden states from GroverEmbedding module
+        and the atom, bond scopes and produces prediction logits for different each embedding.
+        The scopes are used to differentiate atoms/bonds belonging to a molecule in a batched molecular graph.
 
         Parameters
         ----------
@@ -258,25 +265,22 @@ class GroverFunctionalGroupPredictor(nn.Module):
         Returns
         -------
         preds: Dict
-            A dictionary containing the predicted logits.
+            A dictionary containing the predicted logits of functional group from four different types of input embeddings. The key and their corresponding predictions
+        are described below.
+         - atom_from_atom - prediction logits from atom embeddings generated via node hidden states
+         - atom_from_bond - prediction logits from atom embeddings generated via bond hidden states
+         - bond_from_atom - prediction logits from bond embeddings generated via node hidden states
+         - bond_from_bond - prediction logits from bond embeddings generated via bond hidden states
         """
-        preds_atom_from_atom, preds_atom_from_bond, preds_bond_from_atom, preds_bond_from_bond = None, None, None, None
+        preds_bond_from_atom = self.linear_bond_from_atom(
+            self.readout(embeddings["bond_from_atom"], bond_scope))
+        preds_bond_from_bond = self.linear_bond_from_bond(
+            self.readout(embeddings["bond_from_bond"], bond_scope))
 
-        # TODO remove if condition
-        # see https://github.com/deepchem/deepchem/pull/3300
-        if embeddings["bond_from_atom"] is not None:
-            preds_bond_from_atom = self.linear_bond_from_atom(
-                self.readout(embeddings["bond_from_atom"], bond_scope))
-        if embeddings["bond_from_bond"] is not None:
-            preds_bond_from_bond = self.linear_bond_from_bond(
-                self.readout(embeddings["bond_from_bond"], bond_scope))
-
-        if embeddings["atom_from_atom"] is not None:
-            preds_atom_from_atom = self.linear_atom_from_atom(
-                self.readout(embeddings["atom_from_atom"], atom_scope))
-        if embeddings["atom_from_bond"] is not None:
-            preds_atom_from_bond = self.linear_atom_from_bond(
-                self.readout(embeddings["atom_from_bond"], atom_scope))
+        preds_atom_from_atom = self.linear_atom_from_atom(
+            self.readout(embeddings["atom_from_atom"], atom_scope))
+        preds_atom_from_bond = self.linear_atom_from_bond(
+            self.readout(embeddings["atom_from_bond"], atom_scope))
 
         return {
             "atom_from_atom": preds_atom_from_atom,
@@ -690,13 +694,9 @@ class GroverTransEncoder(nn.Module):
     """GroverTransEncoder for encoding a molecular graph
 
     The GroverTransEncoder layer is used for encoding a molecular graph.
-    The layer can return four possible output depending on the `atom_emb_output`
-    choice. If it `none`, it returns output from multihead attention block directly.
-    If it is `atom`, then it aggregates node messages from node hidden states, it also aggregates
-    node messages from incoming bond's hidden states to the nodes and returns two tensors.
-    It it is `bond`, it aggregates bond embeddings from bond hidden states, it also aggregates another
-    set of bond embeddings from bond's source nodes hidden states and returns two tensors.
-    If it is `both`, it returns four tensor (`bond` option + `atom` option).
+    The layer returns 4 outputs. They are atom messages aggregated from atom hidden states,
+    atom messages aggregated from bond hidden states, bond messages aggregated from atom hidden
+    states, bond messages aggregated from bond hidden states.
 
     Parameters
     ----------
@@ -724,7 +724,6 @@ class GroverTransEncoder(nn.Module):
         enables the skip-connection in MTBlock.
     """
 
-    # TODO Clean above docstring
     def __init__(self,
                  node_fdim: int,
                  edge_fdim: int,
@@ -888,8 +887,19 @@ class GroverTransEncoder(nn.Module):
             return atom_in_bond_out, bond_in_bond_out
 
     def forward(self, batch):
-        # TODO Add return type and input parameters docstring
-        # TODO Add docstring on how atom_embeddings and bond_embeddings are generated
+        """Forward layer
+
+        Parameters
+        ----------
+        batch: Tuple
+            A tuple of tensors representing grover attributes
+
+        Returns
+        -------
+        embeddings: Tuple[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor]]
+            Embeddings for atom generated from hidden state of nodes and bonds and embeddings of bond generated from hidden states of nodes and bond.
+        """
+
         f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a = batch
 
         node_batch = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
