@@ -2,9 +2,12 @@ import torch
 from torch_geometric.nn import GINEConv, global_add_pool, global_mean_pool, global_max_pool
 from torch_geometric.nn.aggr import AttentionalAggregation, Set2Set
 from torch.functional import F
+from deepchem.data import Dataset
 from deepchem.models.losses import SoftmaxCrossEntropy
 from deepchem.models.torch_models import ModularTorchModel
 from deepchem.feat.graph_data import BatchGraphData
+from typing import Iterable, List, Tuple
+from deepchem.metrics import to_one_hot
 
 num_atom_type = 120
 num_chirality_tag = 3
@@ -126,25 +129,29 @@ class GNN(torch.nn.Module):
 
 class GNNHead(torch.nn.Module):
     """
-    Forward pass for the GNN head module.
+    Prediction head module for the GNNModular model.
 
     Parameters
     ----------
-    node_representation: torch.Tensor
-        The node representations after passing through the GNN layers.
-    data: BatchGraphData
-        The input graph data.
-
-    Returns
-    -------
-    out: torch.Tensor
-        The output of the GNN head module.
+    pool: Union[function,torch.nn.Module]
+        Pooling function or nn.Module to use
+    head: torch.nn.Module
+        Prediction head to use
+    task: str
+        The type of task. Must be one of "regression", "classification".
+    num_tasks: int
+        Number of tasks.
+    num_classes: int
+        Number of classes for classification.
     """
 
-    def __init__(self, pool, head):
+    def __init__(self, pool, head, task, num_tasks, num_classes):
         super().__init__()
         self.pool = pool
         self.head = head
+        self.task = task
+        self.num_tasks = num_tasks
+        self.num_classes = num_classes
 
     def forward(self, data):
         """
@@ -161,6 +168,8 @@ class GNNHead(torch.nn.Module):
 
         pooled = self.pool(node_representation, input_batch.graph_index)
         out = self.head(pooled)
+        if self.task == "classification":
+            out = torch.reshape(out, (-1, self.num_tasks, self.num_classes))
         return out
 
 
@@ -225,7 +234,9 @@ class GNNModular(ModularTorchModel):
         self.num_layer = num_layer
         self.emb_dim = emb_dim
 
+        self.num_tasks = num_tasks
         if task == "classification":
+            self.num_classes = num_classes
             self.output_dim = num_classes * num_tasks
             self.criterion = SoftmaxCrossEntropy()._create_pytorch_loss()
         elif task == "regression":
@@ -333,7 +344,8 @@ class GNNModular(ModularTorchModel):
         self.gnn = GNN(components['atom_type_embedding'],
                        components['chirality_embedding'], components['gconvs'],
                        components['batch_norms'], self.dropout, self.JK)
-        self.gnn_head = GNNHead(components['pool'], components['head'])
+        self.gnn_head = GNNHead(components['pool'], components['head'],
+                                self.task, self.num_tasks, self.num_classes)
         return components
 
     def build_model(self):
@@ -347,7 +359,7 @@ class GNNModular(ModularTorchModel):
 
         if self.task == "edge_pred":  # unsupervised task, does not need pred head
             return self.gnn
-        elif self.task == "regression":
+        elif self.task in ("regression", "classification"):
             return torch.nn.Sequential(self.gnn, self.gnn_head)
         else:
             raise ValueError(f"Task {self.task} is not supported.")
@@ -426,6 +438,23 @@ class GNNModular(ModularTorchModel):
             weights = weights[0]
 
         return inputs, labels, weights
+
+    def default_generator(
+            self,
+            dataset: Dataset,
+            epochs: int = 1,
+            mode: str = 'fit',
+            deterministic: bool = True,
+            pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
+        for epoch in range(epochs):
+            for (X_b, y_b, w_b,
+                 ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                               deterministic=deterministic,
+                                               pad_batches=pad_batches):
+                if self.task == 'classification' and y_b is not None:
+                    y_b = to_one_hot(y_b.flatten(), self.num_classes).reshape(
+                        -1, self.num_tasks, self.num_classes)
+                yield ([X_b], [y_b], [w_b])
 
 
 def negative_edge_sampler(data: BatchGraphData):
