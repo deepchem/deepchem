@@ -31,3 +31,10 @@ def test_GNN_edge_pred():
     loss1 = model.fit(dataset, nb_epoch=5)
     loss2 = model.fit(dataset, nb_epoch=5)
     assert loss2 < loss1
+
+@pytest.mark.torch
+def test_GNN_regression():
+    from deepchem.models.torch_models.gnn import GNNModular
+
+    dataset, metric = get_regression_dataset()
+    model = GNNModular(task="regression")

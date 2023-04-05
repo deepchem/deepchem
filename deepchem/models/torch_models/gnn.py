@@ -335,8 +335,10 @@ class GNNModular(ModularTorchModel):
 
         if self.task == "edge_pred":  # unsupervised task, does not need pred head
             return self.gnn
-        else:
+        elif self.task == "regression":
             return torch.nn.Sequential(self.gnn, self.gnn_head)
+        else:
+            raise ValueError(f"Task {self.task} is not supported.")
 
     def loss_func(self, inputs, labels, weights):
         """
@@ -344,7 +346,12 @@ class GNNModular(ModularTorchModel):
         """
         if self.task == "edge_pred":
             return self.edge_pred_loss(inputs, labels, weights)
-
+        elif self.task == "regression":
+            return self.regression_loss(inputs, labels, weights)
+        
+    def regression_loss(self, inputs, labels, weights):
+        pass
+    
     def edge_pred_loss(self, inputs, labels, weights):
         """
         The loss function for the graph edge prediction task.
