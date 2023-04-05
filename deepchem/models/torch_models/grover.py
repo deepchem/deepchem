@@ -261,7 +261,13 @@ class GroverFinetune(nn.Module):
 
 
 class GroverModel(ModularTorchModel):
-    """Grove model
+    """GROVER model
+
+    The GROVER model employs a self-supervised message passing transformer architecutre
+    for learning molecular representation. The pretraining task can learn rich structural
+    and semantic information of molecules from unlabelled molecular data, which can
+    be leveraged by finetuning for downstream applications. To this end, GROVER integrates message
+    passing networks into a transformer style architecture.
 
     Parameters
     ----------
@@ -273,22 +279,56 @@ class GroverModel(ModularTorchModel):
         Grover atom vocabulary builder required during pretraining.
     bond_vocab: GroverBondVocabularyBuilder
         Grover bond vocabulary builder required during pretraining.
-    atom_vocab_size: int
-        Maximum number of tokens in atom vocabulary.
-    bond_vocab_size: int
-        Maximum number of tokens in bond vocabulary.
     hidden_size: int
         Size of hidden layers
-    functional_group_size: int (default: 85)
-        Size of functional group used in grover
-    num_mt_block: int
-        the number of message passing blocks.
-    num_head: int
-        the number of attention heads.
-    mode: str (classification or regression)
-        Training mode (used only for finetuning)
     features_only: bool
         Uses only additional features in the feed-forward network, no graph network
+    self_attention: bool, default False
+        When set to True, a self-attention layer is used during graph readout operation.
+    functional_group_size: int (default: 85)
+        Size of functional group used in grover.
+    features_dim: int
+        Size of additional molecular features, like fingerprints.
+    ffn_num_layers: int (default: 1)
+        Number of linear layers to use for feature extraction from embeddings
+    task: str (pretraining or finetuning)
+        Pretraining or finetuning tasks.
+    mode: str (classification or regression)
+        Training mode (used only for finetuning)
+    n_tasks: int, optional (default: 1)
+        Number of tasks
+    n_classes: int, optiona (default: 2)
+        Number of target classes in classification mode
+    model_dir: str
+        Directory to save model checkpoints
+    dropout: float, optional (default: 0.2)
+        dropout value
+    actionvation: str, optional (default: 'relu')
+        supported activation function
+
+    Example
+    -------
+    >>> from deepchem.models.torch_models.grover import GroverModel
+    >>> from deepchem.feat.vocabulary_builders import (GroverAtomVocabularyBuilder, GroverBondVocabularyBuilder)
+    >>> import pandas as pd
+    >>> import os
+    >>> import tempfile
+    >>> tmpdir = tempfile.mkdtemp()
+    >>> df = pd.DataFrame({'smiles': ['CC', 'CCC'], 'preds': [0, 0]})
+    >>> filepath = os.path.join(tmpdir, 'example.csv')
+    >>> df.to_csv(filepath, index=False)
+    >>> dataset_path = os.path.join(filepath)
+    >>> loader = dc.data.CSVLoader(tasks=['preds'], featurizer=dc.feat.DummyFeaturizer(), feature_field=['smiles'])
+    >>> dataset = loader.create_dataset(dataset_path)
+    >>> av = GroverAtomVocabularyBuilder()
+    >>> av.build(dataset)
+    >>> bv = GroverBondVocabularyBuilder()
+    >>> bv.build(dataset)
+    >>> fg = dc.feat.CircularFingerprint()
+    >>> loader2 = dc.data.CSVLoader(tasks=['preds'], featurizer=dc.feat.GroverFeaturizer(features_generator=fg), feature_field='smiles')
+    >>> graph_data = loader2.create_dataset(dataset_path)
+    >>> model = GroverModel(node_fdim=151, edge_fdim=165, atom_vocab=av, bond_vocab=bv, features_dim=2048, hidden_size=128, functional_group_size=85, mode='regression', task='finetuning', model_dir='gm')
+    >>> loss = model.fit(graph_data, nb_epoch=1)
 
     Reference
     ---------
@@ -348,6 +388,52 @@ class GroverModel(ModularTorchModel):
         self.loss = self.get_loss_func()
 
     def build_components(self):
+        """Builds components for grover pretraining and finetuning model.
+
+        .. list-table:: Components of pretraining model
+           :widths: 25 25 50
+           :header-rows: 1
+
+           * - Component name
+             - Type
+             - Description
+           * - `embedding`
+             - Graph message passing network
+             - A layer which accepts a molecular graph and produces an embedding for grover pretraining task
+           * - `atom_vocab_task_atom`
+             - Feed forward layer
+             - A layer which accepts an embedding generated from atom hidden states and predicts atom vocabulary for grover pretraining task
+           * - `atom_vocab_task_bond`
+             - Feed forward layer
+             - A layer which accepts an embedding generated from bond hidden states and predicts atom vocabulary for grover pretraining task
+           * - `bond_vocab_task_atom`
+             - Feed forward layer
+             - A layer which accepts an embedding generated from atom hidden states and predicts bond vocabulary for grover pretraining task
+           * - `bond_vocab_task_bond`
+             - Feed forward layer
+             - A layer which accepts an embedding generated from bond hidden states and predicts bond vocabulary for grover pretraining task
+           * - `functional_group_predictor`
+             - Feed forward layer
+             - A layer which accepts an embedding generated from a graph readout and predicts functional group for grover pretraining task
+
+        .. list-table:: Components of finetuning model
+
+           * - Component name
+             - Type
+             - Description
+           * - `embedding`
+             - Graph message passing network
+             - An embedding layer to generate embedding from input molecular graph
+           * - `readout`
+             - Feed forward layer
+             - A readout layer to perform readout atom and bond hidden states
+           * - `mol_atom_from_atom_ffn`
+             - Feed forward layer
+             - A feed forward network which learns representation from atom messages generated via atom hidden states of a molecular graph
+           * - `mol_atom_from_bond_ffn`
+             - Feed forward layer
+             - A feed forward network which learns representation from atom messages generated via bond hidden states of a molecular graph
+        """
         if self.task == 'pretraining':
             components = self._get_pretraining_components()
         elif self.task == 'finetuning':
@@ -355,6 +441,7 @@ class GroverModel(ModularTorchModel):
         return components
 
     def build_model(self):
+        """Builds grover pretrain or finetune model based on task"""
         if self.task == 'pretraining':
             return GroverPretrain(**self.components)
         elif self.task == 'finetuning':
@@ -365,6 +452,7 @@ class GroverModel(ModularTorchModel):
                                   n_classes=self.n_classes)
 
     def get_loss_func(self):
+        """Returns loss function based on task"""
         if self.task == 'pretraining':
             from deepchem.models.losses import GroverPretrainLoss
             return GroverPretrainLoss()._create_pytorch_loss()
@@ -372,12 +460,17 @@ class GroverModel(ModularTorchModel):
             return self._finetuning_loss
 
     def loss_func(self, inputs, labels, weights):
+        """Returns loss function which performs forward iteration based on task type"""
         if self.task == 'pretraining':
             return self._pretraining_loss(inputs, labels, weights)
         elif self.task == 'finetuning':
             return self._finetuning_loss(inputs, labels, weights)
 
     def _get_pretraining_components(self):
+        """Return pretraining components.
+
+        The component names are described in GroverModel.build_components method.
+        """
         components = {}
         components['embedding'] = GroverEmbedding(node_fdim=self.node_fdim,
                                                   edge_fdim=self.edge_fdim)
@@ -395,6 +488,10 @@ class GroverModel(ModularTorchModel):
         return components
 
     def _get_finetuning_components(self):
+        """Return finetuning components.
+
+        The component names are described in GroverModel.build_components method.
+        """
         components = {}
         components['embedding'] = GroverEmbedding(node_fdim=self.node_fdim,
                                                   edge_fdim=self.edge_fdim)
@@ -412,22 +509,34 @@ class GroverModel(ModularTorchModel):
 
         return components
 
-    def _prepare_batch(self, data):
+    def _prepare_batch(self, batch):
+        """Prepare batch method for preprating batch of data for finetuning and pretraining tasks"""
         if self.task == 'pretraining':
-            return self._prepare_batch_for_pretraining(data)
+            return self._prepare_batch_for_pretraining(batch)
         elif self.task == 'finetuning':
-            return self._prepare_batch_for_finetuning(data)
+            return self._prepare_batch_for_finetuning(batch)
 
     def _prepare_batch_for_pretraining(self, batch: Tuple[Any, Any, Any]):
-        """
+        """Prepare batch for pretraining
+
+        This method is used for batching a sequence of graph data objects using BatchGraphData method.
+        It batches a graph and extracts attributes from the batched graph and return it as inputs for
+        the model. It also performs generates labels for atom vocab prediction and bonc vocab
+        prediction tasks in grover.
+
         Parameters
         ----------
-        smiles: List[str]
-            A list of smiles strings
-        atom_vocab: MolVocab
-            atom vocabulary
-        bond_vocab: MolVocab
-            bond vocabulary
+        batch: Tuple[Sequence[GraphData], Any, Any]
+            A batch of data containing grover molecular graphs, target prediction values and weights for datapoint.
+
+        Returns
+        -------
+        inputs: Tuple
+            Inputs for grover pretraining model
+        labels: Dict[str, torch.Tensor]
+            Labels for grover pretraining self-supervised task
+        w: Any
+            Weights of data point
         """
         X, y, w = batch
         batchgraph = BatchGraphData(X[0])
@@ -450,6 +559,26 @@ class GroverModel(ModularTorchModel):
         return inputs, labels, w
 
     def _prepare_batch_for_finetuning(self, batch: Tuple[Any, Any, Any]):
+        """Prepare batch for finetuning task
+
+        The method batches a sequence of grover graph data objects using BatchGraphData utility
+        and extracts attributes from the batched graph. The extracted attributes are fed to
+        the grover model as inputs.
+
+        Parameters
+        ----------
+        batch: Tuple[Sequence[GraphData], Any, Any]
+            A batch of data containing grover molecular graphs, target prediction values and weights for datapoint.
+
+        Returns
+        -------
+        inputs: Tuple
+            Inputs for grover finetuning model
+        labels: Dict[str, torch.Tensor]
+            Labels for grover finetuning task
+        w: Any
+            Weights of data point
+        """
         X, y, w = batch
         batchgraph = BatchGraphData(X[0])
         if y is not None:
@@ -466,21 +595,71 @@ class GroverModel(ModularTorchModel):
                           inputs,
                           labels,
                           weights: Optional[List[Sequence]] = None,
-                          dist_coff=0.1):
+                          dist_coff: float = 0.1):
+        """Grover pretraining loss
+
+        The Grover pretraining loss function performs a forward iteration and returns
+        the loss value.
+
+        Parameters
+        ----------
+        inputs: Tuple[torch.Tensor]
+            extracted grover graph attributed
+        labels: Dict[str, torch.Tensor]
+            Target predictions
+        weights: List[Sequence]
+            Weight to assign to each datapoint
+        dist_coff: float, default: 0.1
+            Loss term weight for weighting closeness between embedding generated from atom hidden state and bond hidden state in atom vocabulary and bond vocabulary prediction tasks.
+
+        Returns
+        -------
+        loss: torch.Tensor
+            loss value
+        """
         _, _, _, _, _, atom_scope, bond_scope, _ = inputs
         av_task_atom_pred, av_task_bond_pred, bv_task_atom_pred, bv_task_bond_pred, fg_prediction_atom_from_atom, fg_prediction_atom_from_bond, fg_prediction_bond_from_atom, fg_prediction_bond_from_bond = self.model(
             inputs)
 
-        loss = self.loss(av_task_atom_pred, av_task_bond_pred,
-                         bv_task_atom_pred, bv_task_bond_pred,
+        loss = self.loss(av_task_atom_pred,
+                         av_task_bond_pred,
+                         bv_task_atom_pred,
+                         bv_task_bond_pred,
                          fg_prediction_atom_from_atom,
                          fg_prediction_atom_from_bond,
                          fg_prediction_bond_from_atom,
-                         fg_prediction_bond_from_bond, labels['av_task'],
-                         labels['bv_task'], labels['fg_task'])  # type: ignore
+                         fg_prediction_bond_from_bond,
+                         labels['av_task'],
+                         labels['bv_task'],
+                         labels['fg_task'],
+                         weights=weights,
+                         dist_coff=dist_coff)  # type: ignore
         return loss
 
     def _finetuning_loss(self, inputs, labels, weights, dist_coff=0.1):
+        """Loss function for finetuning task
+
+        The finetuning loss is a binary cross entropy loss for classification mode and
+        mean squared error loss for regression mode. During training of the model, apart from
+        learning the data distribution, the loss function is also used to make the embedding
+        generated from atom hidden state and bond hidden state close to each other.
+
+        Parameters
+        ----------
+        inputs: Tuple[torch.Tensor]
+            extracted grover graph attributed
+        labels: Dict[str, torch.Tensor]
+            Target predictions
+        weights: List[Sequence]
+            Weight to assign to each datapoint
+        dist_coff: float, default: 0.1
+            Loss term weight for weighting closeness between embedding generated from atom hidden state and bond hidden state
+
+        Returns
+        -------
+        loss: torch.Tensor
+            loss value
+        """
         if self.mode == 'classification':
             pred_loss = nn.BCEWithLogitsLoss()
         elif self.mode == 'regression':
