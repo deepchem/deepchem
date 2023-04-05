@@ -249,3 +249,104 @@ def test_grover_model_overfit_finetune(tmpdir):
     # asserting
     assert loss < 0.01
     assert scores['mean-mean_squared_error'] < 0.001
+
+
+@pytest.mark.torch
+@pytest.mark.parametrize('task', ['pretraining', 'finetuning'])
+def test_grover_model_save_restore(tmpdir, task):
+    # arranging for tests
+    from deepchem.models.torch_models.grover import GroverModel
+    from deepchem.feat.vocabulary_builders import (GroverAtomVocabularyBuilder,
+                                                   GroverBondVocabularyBuilder)
+    atom_vocabulary = GroverAtomVocabularyBuilder(max_size=100)
+    bond_vocabulary = GroverBondVocabularyBuilder(max_size=100)
+
+    model_config = {
+        'node_fdim': 151,
+        'edge_fdim': 165,
+        'atom_vocab': atom_vocabulary,
+        'bond_vocab': bond_vocabulary,
+        'features_dim': 2048,
+        'hidden_size': 128,
+        'functional_group_size': 85,
+        'mode': 'regression',
+        'model_dir': tmpdir,
+        'task': task
+    }
+
+    old_model = GroverModel(**model_config)
+    old_model._ensure_built()
+    old_model.save_checkpoint()
+
+    new_model = GroverModel(**model_config)
+    new_model._ensure_built()
+    # checking weights don't match before restore
+    old_state = old_model.model.state_dict()
+    new_state = new_model.model.state_dict()
+
+    for key in new_state.keys():
+        # norm layers and cached zero vectors have constant weights
+        if 'norm' not in key and 'zero' not in key:
+            assert not torch.allclose(old_state[key], new_state[key])
+
+    # restoring model
+    new_model.restore()
+
+    # checking matching of weights after restore
+    old_state = old_model.model.state_dict()
+    new_state = new_model.model.state_dict()
+
+    for key in new_state.keys():
+        assert torch.allclose(old_state[key], new_state[key])
+
+
+@pytest.mark.torch
+def test_load_from_pretrained_embeddings(tmpdir):
+    from deepchem.models.torch_models.grover import GroverModel
+    from deepchem.feat.vocabulary_builders import (GroverAtomVocabularyBuilder,
+                                                   GroverBondVocabularyBuilder)
+    atom_vocabulary = GroverAtomVocabularyBuilder(max_size=100)
+    bond_vocabulary = GroverBondVocabularyBuilder(max_size=100)
+
+    pretrain_dir = os.path.join(tmpdir, 'pretrain_model')
+    model_config = {
+        'node_fdim': 151,
+        'edge_fdim': 165,
+        'atom_vocab': atom_vocabulary,
+        'bond_vocab': bond_vocabulary,
+        'features_dim': 2048,
+        'hidden_size': 128,
+        'functional_group_size': 85,
+        'mode': 'regression',
+        'model_dir': pretrain_dir,
+    }
+    model_config['task'] = 'pretraining'
+
+    pretrain_model = GroverModel(**model_config)
+    pretrain_model._ensure_built()
+    pretrain_model.save_checkpoint()
+
+    model_config['task'] = 'finetuning'
+    model_config['model_dir'] = os.path.join(tmpdir, 'finetune_model')
+
+    finetune_model = GroverModel(**model_config)
+    finetune_model._ensure_built()
+
+    pm_e_sdict = pretrain_model.model.embedding.state_dict()
+    fm_e_sdict = finetune_model.model.embedding.state_dict()
+
+    # asserting that weights are not same before reloading
+    for key in pm_e_sdict.keys():
+        # notm and bias layers have constant weights, hence they are not checked
+        if 'norm' not in key and 'bias' not in key:
+            assert not torch.allclose(pm_e_sdict[key], fm_e_sdict[key])
+
+    # acting - loading pretrained weights
+    finetune_model.load_from_pretrained(source_model=pretrain_model,
+                                        components=['embedding'])
+
+    fm_pretrained_e_sdict = finetune_model.model.embedding.state_dict()
+
+    # asserting that weight matches after loading
+    for key in pm_e_sdict.keys():
+        assert torch.allclose(pm_e_sdict[key], fm_pretrained_e_sdict[key])
