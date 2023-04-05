@@ -169,6 +169,12 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.GINEncoder
   :members:
 
+.. autoclass:: deepchem.models.torch_models.gnn.GNN
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.gnn.GNNHead
+  :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 

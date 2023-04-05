@@ -22,11 +22,12 @@ def get_regression_dataset():
 
 
 @pytest.mark.torch
-def test_GNN_context_pred():
+def test_GNN_edge_pred():
+    """Tests the unsupervised edge prediction task"""
     from deepchem.models.torch_models.gnn import GNNModular
 
     dataset, _ = get_regression_dataset()
     model = GNNModular(task="edge_pred")
-    loss1 = model.fit(dataset, nb_epoch=10)
-    loss2 = model.fit(dataset, nb_epoch=10)
+    loss1 = model.fit(dataset, nb_epoch=5)
+    loss2 = model.fit(dataset, nb_epoch=5)
     assert loss2 < loss1

@@ -18,6 +18,31 @@ class GNN(torch.nn.Module):
 
     This module is responsible for the graph neural network layers in the GNNModular model.
 
+    Parameters
+    ----------
+    atom_type_embedding: torch.nn.Embedding
+        Embedding layer for atom types.
+    chirality_embedding: torch.nn.Embedding
+        Embedding layer for chirality tags.
+    gconvs: torch.nn.ModuleList
+        ModuleList of graph convolutional layers.
+    batch_norms: torch.nn.ModuleList
+        ModuleList of batch normalization layers.
+    dropout: int
+        Dropout probability.
+    JK: str
+        The type of jump knowledge to use. [1] Must be one of "last", "sum", "max", "concat" or "none".
+        "last": Use the node representation from the last GNN layer.
+        "concat": Concatenate the node representations from all GNN layers.
+        "max": Take the element-wise maximum of the node representations from all GNN layers.
+        "sum": Take the element-wise sum of the node representations from all GNN layers.
+    init_emb: bool
+        Whether to initialize the embedding layers with Xavier uniform initialization.
+
+    References
+    ----------
+    .. [1] Xu, K. et al. Representation Learning on Graphs with Jumping Knowledge Networks. Preprint at https://doi.org/10.48550/arXiv.1806.03536 (2018).
+
     Example
     -------
     >>> from deepchem.models.torch_models.gnn import GNNModular
@@ -60,6 +85,11 @@ class GNN(torch.nn.Module):
     def forward(self, data: BatchGraphData):
         """
         Forward pass for the GNN module.
+
+        Parameters
+        ----------
+        data: BatchGraphData
+            Batched graph data.
         """
 
         x = self.atom_type_embedding(  # type: ignore
@@ -93,7 +123,7 @@ class GNN(torch.nn.Module):
         return node_representation, data
 
 
-class GNN_head(torch.nn.Module):
+class GNNHead(torch.nn.Module):
     """
     Forward pass for the GNN head module.
 
@@ -116,6 +146,17 @@ class GNN_head(torch.nn.Module):
         self.head = head
 
     def forward(self, node_representation, data):
+        """
+        Forward pass for the GNN head module.
+
+        Parameters
+        ----------
+        node_representation: torch.Tensor
+            The node representations after passing through the GNN layers.
+        data: BatchGraphData
+            The original input graph data.
+        """
+
         pooled = self.pool(node_representation, data.graph_index)
         out = self.head(pooled)
         return out
@@ -186,7 +227,6 @@ class GNNModular(ModularTorchModel):
         self.JK = JK
         self.task = task
         self.criterion = torch.nn.BCEWithLogitsLoss()
-        self.neg_edges = NegativeEdge()
 
         self.components = self.build_components()
         self.model = self.build_model()
@@ -223,6 +263,7 @@ class GNNModular(ModularTorchModel):
                         aggr="add"))
             else:
                 raise ValueError("Only GIN is supported for now")
+            # Relevent for future PRs
             # elif self.gnn_type == "gcn":
             #     encoders.append(GCNConv(self.emb_dim))
             # elif self.gnn_type == "gat":
@@ -280,20 +321,36 @@ class GNNModular(ModularTorchModel):
         self.gnn = GNN(components['atom_type_embedding'],
                        components['chirality_embedding'], components['gconvs'],
                        components['batch_norms'], self.dropout, self.JK)
-        self.gnn_head = GNN_head(components['pool'], components['head'])
+        self.gnn_head = GNNHead(components['pool'], components['head'])
         return components
 
     def build_model(self):
+        """
+        Builds the appropriate model based on the specified task.
+
+        For the edge prediction task, the model is simply the GNN module because it is an unsupervised task and does not require a prediction head.
+
+        Supervised tasks such as node classification and graph regression require a prediction head, so the model is a sequential module consisting of the GNN module followed by the GNN_head module.
+        """
+
         if self.task == "edge_pred":  # unsupervised task, does not need pred head
             return self.gnn
         else:
             return torch.nn.Sequential(self.gnn, self.gnn_head)
 
     def loss_func(self, inputs, labels, weights):
+        """
+        The loss function executed in the training loop, which is based on the specified task.
+        """
         if self.task == "edge_pred":
             return self.edge_pred_loss(inputs, labels, weights)
 
     def edge_pred_loss(self, inputs, labels, weights):
+        """
+        The loss function for the graph edge prediction task.
+
+        The inputs in this loss must be a BatchGraphData object transformed by the NegativeEdge molecule feature utility.
+        """
         node_emb, _ = self.model(
             inputs)  # node_emb shape == [num_nodes x emb_dim]
 
@@ -311,11 +368,26 @@ class GNNModular(ModularTorchModel):
 
     def _prepare_batch(self, batch):
         """
-        Prepares the batch for the model by converting the GraphData numpy arrays to torch tensors and moving them to the device.
+        Prepares the batch for the model by converting the GraphData numpy arrays to BatchedGraphData torch tensors and moving them to the device, then transforming the input to the appropriate format for the task.
+
+        Parameters
+        ----------
+        batch: tuple
+            A tuple containing the inputs, labels, and weights for the batch.
+
+        Returns
+        -------
+        inputs: BatchGraphData
+            The inputs for the batch, converted to a BatchGraphData object, moved to the device, and transformed to the appropriate format for the task.
+        labels: torch.Tensor
+            The labels for the batch, moved to the device.
+        weights: torch.Tensor
+            The weights for the batch, moved to the device.
         """
         inputs, labels, weights = batch
         inputs = BatchGraphData(inputs[0]).numpy_to_torch(self.device)
-        inputs = self.neg_edges(inputs)
+        if self.task == "edge_pred":
+            inputs = negative_edge_sampler(inputs)
 
         _, labels, weights = super()._prepare_batch(([], labels, weights))
 
@@ -326,35 +398,46 @@ class GNNModular(ModularTorchModel):
         return inputs, labels, weights
 
 
-class NegativeEdge:
+def negative_edge_sampler(data: BatchGraphData):
     """
-    NegativeEdge is a callable class that adds negative edges to the input graph data. It randomly samples negative edges (edges that do not exist in the original graph) and adds them to the input graph data.
+    NegativeEdge is a function that adds negative edges to the input graph data. It randomly samples negative edges (edges that do not exist in the original graph) and adds them to the input graph data.
     The number of negative edges added is equal to half the number of edges in the original graph. This is useful for tasks like edge prediction, where the model needs to learn to differentiate between existing and non-existing edges.
+
+    Parameters
+    ----------
+    data: dc.feat.graph_data.BatchGraphData
+        The input graph data.
+
+    Returns
+    -------
+    BatchGraphData
+        A new BatchGraphData object with the additional attribute `negative_edge_index`.
+
     """
+    import torch
 
-    def __call__(self, data):
-        num_nodes = data.num_nodes
-        num_edges = data.num_edges
+    num_nodes = data.num_nodes
+    num_edges = data.num_edges
 
-        edge_set = set([
-            str(data.edge_index[0, i].cpu().item()) + "," +
-            str(data.edge_index[1, i].cpu().item())
-            for i in range(data.edge_index.shape[1])
-        ])
+    edge_set = set([
+        str(data.edge_index[0, i].cpu().item()) + "," +
+        str(data.edge_index[1, i].cpu().item())
+        for i in range(data.edge_index.shape[1])
+    ])
 
-        redandunt_sample = torch.randint(0, num_nodes, (2, 5 * num_edges))
-        sampled_ind = []
-        sampled_edge_set = set([])
-        for i in range(5 * num_edges):
-            node1 = redandunt_sample[0, i].cpu().item()
-            node2 = redandunt_sample[1, i].cpu().item()
-            edge_str = str(node1) + "," + str(node2)
-            if edge_str not in edge_set and edge_str not in sampled_edge_set and not node1 == node2:
-                sampled_edge_set.add(edge_str)
-                sampled_ind.append(i)
-            if len(sampled_ind) == num_edges / 2:
-                break
+    redandunt_sample = torch.randint(0, num_nodes, (2, 5 * num_edges))
+    sampled_ind = []
+    sampled_edge_set = set([])
+    for i in range(5 * num_edges):
+        node1 = redandunt_sample[0, i].cpu().item()
+        node2 = redandunt_sample[1, i].cpu().item()
+        edge_str = str(node1) + "," + str(node2)
+        if edge_str not in edge_set and edge_str not in sampled_edge_set and not node1 == node2:
+            sampled_edge_set.add(edge_str)
+            sampled_ind.append(i)
+        if len(sampled_ind) == num_edges / 2:
+            break
 
-        data.negative_edge_index = redandunt_sample[:, sampled_ind]
+    data.negative_edge_index = redandunt_sample[:, sampled_ind]  # type: ignore
 
-        return data
+    return data
