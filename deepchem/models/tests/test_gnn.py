@@ -22,7 +22,7 @@ def get_regression_dataset():
 
 
 def get_multitask_regression_dataset():
-    featurizer = SNAPFeaturizer(use_edges=True)
+    featurizer = SNAPFeaturizer()
     dir = os.path.dirname(os.path.abspath(__file__))
 
     input_file = os.path.join(dir, 'assets/multitask_regression.csv')
@@ -58,4 +58,14 @@ def test_GNN_regression():
     assert scores['mean_absolute_error'] < 0.1
 
 
-test_GNN_edge_pred()
+@pytest.mark.torch
+def test_GNN_multitask_regression():
+    from deepchem.models.torch_models.gnn import GNNModular
+
+    dataset, metric = get_multitask_regression_dataset()
+    model = GNNModular(task="regression", num_tasks=3)
+    model.fit(dataset, nb_epoch=100)
+    scores = model.evaluate(dataset, [metric])
+    assert scores['mean_absolute_error'] < 0.1
+
+test_GNN_multitask_regression()
