@@ -2,7 +2,7 @@ import torch
 from torch_geometric.nn import GINEConv, global_add_pool, global_mean_pool, global_max_pool
 from torch_geometric.nn.aggr import AttentionalAggregation, Set2Set
 from torch.functional import F
-from torch.nn.functional import mse_loss
+from deepchem.models.losses import SoftmaxCrossEntropy
 from deepchem.models.torch_models import ModularTorchModel
 from deepchem.feat.graph_data import BatchGraphData
 
@@ -227,12 +227,13 @@ class GNNModular(ModularTorchModel):
 
         if task == "classification":
             self.output_dim = num_classes * num_tasks
+            self.criterion = SoftmaxCrossEntropy()._create_pytorch_loss()
         elif task == "regression":
             self.output_dim = num_tasks
-            # self.criterion = F.mse_loss
+            self.criterion = F.mse_loss
         else:
             self.output_dim = num_tasks
-            # self.criterion = torch.nn.BCEWithLogitsLoss()
+            self.criterion = torch.nn.BCEWithLogitsLoss()
 
         self.graph_pooling = graph_pooling
         self.dropout = dropout
@@ -359,12 +360,20 @@ class GNNModular(ModularTorchModel):
             loss = self.edge_pred_loss(inputs)
         elif self.task == "regression":
             loss = self.regression_loss(inputs, labels)
+        elif self.task == "classification":
+            loss = self.classification_loss(inputs, labels)
         return (loss * weights).mean()
 
     def regression_loss(self, inputs, labels):
         out = self.model(inputs)
-        reg_loss = mse_loss(out, labels)
+        reg_loss = self.criterion(out, labels)
         return reg_loss
+
+    def classification_loss(self, inputs, labels):
+        out = self.model(inputs)
+        out = F.softmax(out, dim=2)
+        class_loss = self.criterion(out, labels)
+        return class_loss
 
     def edge_pred_loss(self, inputs):
         """
@@ -382,9 +391,8 @@ class GNNModular(ModularTorchModel):
                                    node_emb[inputs.negative_edge_index[1]],
                                    dim=1)
 
-        edge_pred_loss = torch.nn.BCEWithLogitsLoss()(
-            positive_score,
-            torch.ones_like(positive_score)) + torch.nn.BCEWithLogitsLoss()(
+        edge_pred_loss = self.criterion(
+            positive_score, torch.ones_like(positive_score)) + self.criterion(
                 negative_score, torch.zeros_like(negative_score))
         return edge_pred_loss
 
