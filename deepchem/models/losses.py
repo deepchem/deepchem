@@ -921,7 +921,7 @@ class EdgePredictionLoss(Loss):
     >>> from deepchem.feat.graph_data import BatchGraphData, GraphData
     >>> from deepchem.models.torch_models.gnn import negative_edge_sampler
     >>> import torch
-    >>> import numpy as np 
+    >>> import numpy as np
     >>> emb_dim = 8
     >>> num_nodes_list, num_edge_list = [3, 4, 5], [2, 4, 5]
     >>> num_node_features, num_edge_features = 32, 32
