@@ -313,7 +313,7 @@ class ModularTorchModel(TorchModel):
         if source_model is not None:
             for name, module in source_model.components.items():
                 if components is None or name in components:
-                    self.components[name] = module
+                    self.components[name].load_state_dict(module.state_dict())
             self.build_model()
 
         elif source_model is None:
