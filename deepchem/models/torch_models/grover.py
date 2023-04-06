@@ -162,16 +162,16 @@ class GroverFinetune(nn.Module):
     >>> batched_graph = BatchGraphData(graphs)
     >>> attributes = extract_grover_attributes(batched_graph)
     >>> components = {}
-    >>> f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels, additional_features = _get_grover_graph_attributes()
+    >>> f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels, additional_features = attributes
     >>> inputs = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
     >>> components = {}
     >>> components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1], edge_fdim=f_bonds.shape[1])
     >>> components['readout'] = GroverReadout(rtype="mean", in_features=128)
-    >>> components['mol_atom_from_atom_ffn'] = nn.Linear(in_features=additional_features.shape[1]+ 128, out_features=1)
-    >>> components['mol_atom_from_bond_ffn'] = nn.Linear(in_features=additional_features.shape[1] + 128, out_features=1)
-    >>> model = GroverFinetune(**components, mode='regression')
+    >>> components['mol_atom_from_atom_ffn'] = nn.Linear(in_features=additional_features.shape[1]+ 128, out_features=128)
+    >>> components['mol_atom_from_bond_ffn'] = nn.Linear(in_features=additional_features.shape[1] + 128, out_features=128)
+    >>> model = GroverFinetune(**components, mode='regression', hidden_size=128)
     >>> model.training = False
-    >>> output = model(inputs, additional_features)
+    >>> output = model((inputs, additional_features))
 
     Reference
     ---------
@@ -308,6 +308,7 @@ class GroverModel(ModularTorchModel):
 
     Example
     -------
+    >>> import deepchem as dc
     >>> from deepchem.models.torch_models.grover import GroverModel
     >>> from deepchem.feat.vocabulary_builders import (GroverAtomVocabularyBuilder, GroverBondVocabularyBuilder)
     >>> import pandas as pd
@@ -319,14 +320,14 @@ class GroverModel(ModularTorchModel):
     >>> df.to_csv(filepath, index=False)
     >>> dataset_path = os.path.join(filepath)
     >>> loader = dc.data.CSVLoader(tasks=['preds'], featurizer=dc.feat.DummyFeaturizer(), feature_field=['smiles'])
-    >>> dataset = loader.create_dataset(dataset_path)
+    >>> dataset = loader.create_dataset(filepath)
     >>> av = GroverAtomVocabularyBuilder()
     >>> av.build(dataset)
     >>> bv = GroverBondVocabularyBuilder()
     >>> bv.build(dataset)
     >>> fg = dc.feat.CircularFingerprint()
     >>> loader2 = dc.data.CSVLoader(tasks=['preds'], featurizer=dc.feat.GroverFeaturizer(features_generator=fg), feature_field='smiles')
-    >>> graph_data = loader2.create_dataset(dataset_path)
+    >>> graph_data = loader2.create_dataset(filepath)
     >>> model = GroverModel(node_fdim=151, edge_fdim=165, atom_vocab=av, bond_vocab=bv, features_dim=2048, hidden_size=128, functional_group_size=85, mode='regression', task='finetuning', model_dir='gm')
     >>> loss = model.fit(graph_data, nb_epoch=1)
 
@@ -725,6 +726,7 @@ class GroverModel(ModularTorchModel):
 
         Example
         -------
+        >>> import deepchem as dc
         >>> from deepchem.models.torch_models.grover import GroverModel
         >>> from deepchem.feat.vocabulary_builders import GroverAtomVocabularyBuilder
         >>> smiles = np.array(['CC', 'CCC'])
@@ -772,6 +774,7 @@ class GroverModel(ModularTorchModel):
 
         Example
         -------
+        >>> import deepchem as dc
         >>> from deepchem.models.torch_models.grover import GroverModel
         >>> from deepchem.feat.vocabulary_builders import GroverBondVocabularyBuilder
         >>> smiles = np.array(['CC', 'CCC'])
