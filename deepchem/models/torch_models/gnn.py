@@ -97,7 +97,7 @@ class GNN(torch.nn.Module):
         """
 
         x = self.atom_type_embedding(
-            data.node_features[:, 0].long()) + self.chirality_embedding(
+            data.node_features[:, 0].long()) + self.chirality_embedding(  # type: ignore
                 data.node_features[:, 1].long())  # type: ignore
 
         h_list = [x]
