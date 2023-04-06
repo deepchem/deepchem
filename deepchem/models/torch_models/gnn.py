@@ -112,7 +112,7 @@ class GNN(torch.nn.Module):
                 h = F.dropout(F.relu(h), self.dropout, training=self.training)
             h_list.append(h)
 
-        # Different implementations of JK
+        # Different implementations of jump_knowledge
         if self.jump_knowledge == "concat":
             node_representation = torch.cat(h_list, dim=1)
         elif self.jump_knowledge == "last":
@@ -343,8 +343,10 @@ class GNNModular(ModularTorchModel):
         }
         self.gnn = GNN(components['atom_type_embedding'],
                        components['chirality_embedding'], components['gconvs'],
-                       components['batch_norms'], self.dropout, self.JK)
-        self.gnn_head = GNNHead(components['pool'], components['head'])
+                       components['batch_norms'], self.dropout,
+                       self.jump_knowledge)
+        self.gnn_head = GNNHead(components['pool'], components['head'],
+                                self.task, self.num_tasks, self.num_classes)
         return components
 
     def build_model(self):

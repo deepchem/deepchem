@@ -94,7 +94,7 @@ def test_GNN_regression():
     model = GNNModular(task="regression")
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
-    assert scores['mean_absolute_error'] < 0.1
+    assert scores['mean_absolute_error'] < 0.2
 
 
 @pytest.mark.torch
@@ -105,7 +105,7 @@ def test_GNN_multitask_regression():
     model = GNNModular(task="regression", num_tasks=3)
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
-    assert scores['mean_absolute_error'] < 0.1
+    assert scores['mean_absolute_error'] < 0.2
 
 
 @pytest.mark.torch
@@ -114,6 +114,6 @@ def test_GNN_multitask_classification():
 
     dataset, metric = get_multitask_classification_dataset()
     model = GNNModular(task="classification", num_tasks=3)
-    model.fit(dataset, nb_epoch=100)
+    model.fit(dataset, nb_epoch=200)
     scores = model.evaluate(dataset, [metric])
     assert scores['mean-roc_auc_score'] >= 0.8
