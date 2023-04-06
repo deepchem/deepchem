@@ -34,7 +34,7 @@ class GNN(torch.nn.Module):
         ModuleList of batch normalization layers.
     dropout: int
         Dropout probability.
-    JK: str
+    jump_knowledge: str
         The type of jump knowledge to use. [1] Must be one of "last", "sum", "max", "concat" or "none".
         "last": Use the node representation from the last GNN layer.
         "concat": Concatenate the node representations from all GNN layers.
@@ -69,7 +69,7 @@ class GNN(torch.nn.Module):
                  gconvs,
                  batch_norms,
                  dropout,
-                 JK,
+                 jump_knowledge,
                  init_emb=False):
         super(GNN, self).__init__()
 
@@ -79,7 +79,7 @@ class GNN(torch.nn.Module):
         self.batch_norms = batch_norms
         self.dropout = dropout
         self.num_layer = len(gconvs)
-        self.JK = JK
+        self.jump_knowledge = jump_knowledge
 
         # may mess with loading pretrained weights
         if init_emb:
