@@ -628,3 +628,33 @@ class GroverModel(ModularTorchModel):
                     virtual_bond_id += 1
             vocab_label.extend(mlabel)
         return vocab_label
+
+    def restore(  # type: ignore
+            self,
+            checkpoint: Optional[str] = None,
+            model_dir: Optional[str] = None) -> None:  # type: ignore
+        """Reload the values of all variables from a checkpoint file.
+
+        Parameters
+        ----------
+        checkpoint: str
+            the path to the checkpoint file to load.  If this is None, the most recent
+            checkpoint will be chosen automatically.  Call get_checkpoints() to get a
+            list of all available checkpoints.
+        model_dir: str, default None
+            Directory to restore checkpoint from. If None, use self.model_dir.  If
+            checkpoint is not None, this is ignored.
+        """
+        # FIXME I am rewriting restore because the restore method in parent class
+        # does not restore layers which are not components. This restore method
+        # can restore an full model.
+        self._ensure_built()
+        if checkpoint is None:
+            checkpoints = sorted(self.get_checkpoints(model_dir))
+            if len(checkpoints) == 0:
+                raise ValueError('No checkpoint found')
+            checkpoint = checkpoints[0]
+        data = torch.load(checkpoint)
+        self.model.load_state_dict(data['model'])
+        self._pytorch_optimizer.load_state_dict(data['optimizer_state_dict'])
+        self._global_step = data['global_step']
