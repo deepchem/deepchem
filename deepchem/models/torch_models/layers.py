@@ -2877,7 +2877,7 @@ class SetGather(nn.Module):
         -------
         q_star: torch.Tensor
             Final state of the model after all M steps.
-            
+    
         """
         atom_features, atom_split = inputs
         c = torch.zeros((self.batch_size, self.n_hidden))
@@ -2943,7 +2943,7 @@ class SetGather(nn.Module):
                            partition_tensor: np.ndarray,
                            num_partitions: int) -> List[torch.Tensor]:
         """Partitions `data` into `num_partitions` tensors using indices from `partitions`.
-        
+
         Parameters
         ----------
         input_tensor: torch.Tensor
@@ -2957,7 +2957,7 @@ class SetGather(nn.Module):
         -------
         partitions: List[torch.Tensor]
             A list of `num_partitions` `Tensor` objects with the same type as `data`.
-        
+
         """
         # create a boolean mask for each partition
         partition_masks = [partition_tensor == i for i in range(num_partitions)]
