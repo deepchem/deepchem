@@ -443,6 +443,11 @@ DMPNNModel
 .. autoclass:: deepchem.models.torch_models.DMPNNModel
   :members:
 
+GroverModel
+-----------
+
+.. autoclass:: deepchem.models.torch_models.GroverModel
+  :members:
 
 PyTorch Lightning Models
 ==============
