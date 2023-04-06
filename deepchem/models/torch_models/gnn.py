@@ -96,9 +96,9 @@ class GNN(torch.nn.Module):
             Batched graph data.
         """
 
-        x = self.atom_type_embedding(
-            data.node_features[:, 0].long()) + self.chirality_embedding(  # type: ignore
-                data.node_features[:, 1].long())  # type: ignore
+        x = self.atom_type_embedding(data.node_features[:, 0].long(
+        )) + self.chirality_embedding(  # type: ignore
+            data.node_features[:, 1].long())  # type: ignore
 
         h_list = [x]
         for i, conv_layer in enumerate(self.gconv):
@@ -245,6 +245,8 @@ class GNNModular(ModularTorchModel):
         elif task == "edge_pred":
             self.output_dim = num_tasks
             self.edge_pred_loss = EdgePredictionLoss()._create_pytorch_loss()
+        elif task == "masking":
+            pass
 
         self.graph_pooling = graph_pooling
         self.dropout = dropout
@@ -295,38 +297,6 @@ class GNNModular(ModularTorchModel):
         encoders = torch.nn.ModuleList(encoders)
         batch_norms = torch.nn.ModuleList(batch_norms)
 
-        if self.graph_pooling == "sum":
-            pool = global_add_pool
-        elif self.graph_pooling == "mean":
-            pool = global_mean_pool
-        elif self.graph_pooling == "max":
-            pool = global_max_pool
-        elif self.graph_pooling == "attention":
-            if self.jump_knowledge == "concat":
-                pool = AttentionalAggregation(
-                    gate_nn=torch.nn.Linear((self.num_layer + 1) *
-                                            self.emb_dim, 1))
-            else:
-                pool = AttentionalAggregation(
-                    gate_nn=torch.nn.Linear(self.emb_dim, 1))
-        elif self.graph_pooling == "set2set":
-            set2setiter = 3
-            if self.jump_knowledge == "concat":
-                pool = Set2Set((self.num_layer + 1) * self.emb_dim, set2setiter)
-            else:
-                pool = Set2Set(self.emb_dim, processing_steps=set2setiter)
-
-        if self.graph_pooling == "set2set":
-            mult = 2
-        else:
-            mult = 1
-
-        if self.jump_knowledge == "concat":
-            head = torch.nn.Linear(mult * (self.num_layer + 1) * self.emb_dim,
-                                   self.output_dim)
-        else:
-            head = torch.nn.Linear(mult * self.emb_dim, self.output_dim)
-
         components = {
             'atom_type_embedding':
                 torch.nn.Embedding(num_atom_type, self.emb_dim),
@@ -335,18 +305,52 @@ class GNNModular(ModularTorchModel):
             'gconvs':
                 encoders,
             'batch_norms':
-                batch_norms,
-            'pool':
-                pool,
-            'head':
-                head
+                batch_norms
         }
         self.gnn = GNN(components['atom_type_embedding'],
                        components['chirality_embedding'], components['gconvs'],
                        components['batch_norms'], self.dropout,
                        self.jump_knowledge)
-        self.gnn_head = GNNHead(components['pool'], components['head'],
-                                self.task, self.num_tasks, self.num_classes)
+
+        # for supervised tasks, add prediction head
+        if self.task in ("regression", "classification"):
+            if self.graph_pooling == "sum":
+                pool = global_add_pool
+            elif self.graph_pooling == "mean":
+                pool = global_mean_pool
+            elif self.graph_pooling == "max":
+                pool = global_max_pool
+            elif self.graph_pooling == "attention":
+                if self.jump_knowledge == "concat":
+                    pool = AttentionalAggregation(
+                        gate_nn=torch.nn.Linear((self.num_layer + 1) *
+                                                self.emb_dim, 1))
+                else:
+                    pool = AttentionalAggregation(
+                        gate_nn=torch.nn.Linear(self.emb_dim, 1))
+            elif self.graph_pooling == "set2set":
+                set2setiter = 3
+                if self.jump_knowledge == "concat":
+                    pool = Set2Set((self.num_layer + 1) * self.emb_dim,
+                                   set2setiter)
+                else:
+                    pool = Set2Set(self.emb_dim, processing_steps=set2setiter)
+
+            if self.graph_pooling == "set2set":
+                mult = 2
+            else:
+                mult = 1
+
+            if self.jump_knowledge == "concat":
+                head = torch.nn.Linear(
+                    mult * (self.num_layer + 1) * self.emb_dim, self.output_dim)
+            else:
+                head = torch.nn.Linear(mult * self.emb_dim, self.output_dim)
+
+            components.update({'pool': pool, 'head': head})
+
+            self.gnn_head = GNNHead(components['pool'], components['head'],
+                                    self.task, self.num_tasks, self.num_classes)
         return components
 
     def build_model(self):
@@ -505,3 +509,64 @@ def negative_edge_sampler(data: BatchGraphData):
     data.negative_edge_index = redandunt_sample[:, sampled_ind]  # type: ignore
 
     return data
+
+
+class MaskEdge:
+    def __init__(self, mask_rate):
+        """
+        Assume edge_attr is of the form:
+        [w1, w2, w3, w4, w5, w6, w7, self_loop, mask]
+        :param mask_rate: % of edges to be masked
+        """
+        self.mask_rate = mask_rate
+
+    def __call__(self, data, masked_edge_indices=None):
+        """
+
+        :param data: pytorch geometric data object. Assume that the edge
+        ordering is the default pytorch geometric ordering, where the two
+        directions of a single edge occur in pairs.
+        Eg. data.edge_index = tensor([[0, 1, 1, 2, 2, 3],
+                                     [1, 0, 2, 1, 3, 2]])
+        :param masked_edge_indices: If None, then randomly sample num_edges * mask_rate + 1
+        number of edge indices. Otherwise should correspond to the 1st
+        direction of an edge pair. ie all indices should be an even number
+        :return: None, creates new attributes in the original data object:
+        data.mask_edge_idx: indices of masked edges
+        data.mask_edge_labels: corresponding ground truth edge feature for
+        each masked edge
+        data.edge_attr: modified in place: the edge features (
+        both directions) that correspond to the masked edges have the masked
+        edge feature
+        """
+        if masked_edge_indices == None:
+            # sample x distinct edges to be masked, based on mask rate. But
+            # will sample at least 1 edge
+            num_edges = int(data.edge_index.size()[1] / 2)  # num unique edges
+            sample_size = int(num_edges * self.mask_rate + 1)
+            # during sampling, we only pick the 1st direction of a particular
+            # edge pair
+            masked_edge_indices = [2 * i for i in random.sample(range(
+                num_edges), sample_size)]
+
+        data.masked_edge_idx = torch.tensor(np.array(masked_edge_indices))
+
+        # create ground truth edge features for the edges that correspond to
+        # the masked indices
+        mask_edge_labels_list = []
+        for idx in masked_edge_indices:
+            mask_edge_labels_list.append(data.edge_attr[idx].view(1, -1))
+        data.mask_edge_label = torch.cat(mask_edge_labels_list, dim=0)
+
+        # created new masked edge_attr, where both directions of the masked
+        # edges have masked edge type. For message passing in gcn
+
+        # append the 2nd direction of the masked edges
+        all_masked_edge_indices = masked_edge_indices + [i + 1 for i in
+                                                         masked_edge_indices]
+        for idx in all_masked_edge_indices:
+            data.edge_attr[idx] = torch.tensor(np.array([0, 0, 0, 0, 0,
+                                                             0, 0, 0, 1]),
+                                                      dtype=torch.float)
+
+        return data
