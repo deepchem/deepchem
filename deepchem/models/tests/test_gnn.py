@@ -49,5 +49,8 @@ def test_GNN_save_reload():
     model2 = GNNModular(task="edge_pred")
     model2.load_from_pretrained(model_dir=model.model_dir)
     assert model.components.keys() == model2.components.keys()
-    keys_with_weights = [key for key in model.components.keys() if hasattr(model.components[key], 'weight')]
+    keys_with_weights = [
+        key for key in model.components.keys()
+        if hasattr(model.components[key], 'weight')
+    ]
     assert all(compare_weights(key, model, model2) for key in keys_with_weights)
