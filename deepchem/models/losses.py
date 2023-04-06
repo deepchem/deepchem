@@ -911,7 +911,7 @@ class GroverPretrainLoss(Loss):
 
 class EdgePredictionLoss(Loss):
     """
-    Unsupervised graph edge prediction loss.
+    Unsupervised graph edge prediction loss. The goal is to learn node embeddings such that the inner product of the embeddings of connected nodes is high (positive examples) and the inner product of the embeddings of unconnected nodes is low (negative examples).
 
     The inputs in this loss must be a BatchGraphData object transformed by the negative_edge_sampler molecule.
 

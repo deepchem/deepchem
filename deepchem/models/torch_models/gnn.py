@@ -1,4 +1,6 @@
+import random
 import torch
+import numpy as np
 from torch_geometric.nn import GINEConv, global_add_pool, global_mean_pool, global_max_pool
 from torch_geometric.nn.aggr import AttentionalAggregation, Set2Set
 from torch.functional import F
@@ -512,17 +514,8 @@ def negative_edge_sampler(data: BatchGraphData):
     return data
 
 
-class MaskEdge:
-    def __init__(self, mask_rate):
-        """
-        Assume edge_attr is of the form:
-        [w1, w2, w3, w4, w5, w6, w7, self_loop, mask]
-        :param mask_rate: % of edges to be masked
-        """
-        self.mask_rate = mask_rate
-
-    def __call__(self, data, masked_edge_indices=None):
-        """
+def mask_edge(data: BatchGraphData, mask_rate: float, masked_edge_indices=None):
+    """
 
         :param data: pytorch geometric data object. Assume that the edge
         ordering is the default pytorch geometric ordering, where the two
@@ -540,34 +533,36 @@ class MaskEdge:
         both directions) that correspond to the masked edges have the masked
         edge feature
         """
-        if masked_edge_indices == None:
-            # sample x distinct edges to be masked, based on mask rate. But
-            # will sample at least 1 edge
-            num_edges = int(data.edge_index.size()[1] / 2)  # num unique edges
-            sample_size = int(num_edges * self.mask_rate + 1)
-            # during sampling, we only pick the 1st direction of a particular
-            # edge pair
-            masked_edge_indices = [2 * i for i in random.sample(range(
-                num_edges), sample_size)]
+    if masked_edge_indices is None:
+        # sample x distinct edges to be masked, based on mask rate. But
+        # will sample at least 1 edge
+        num_edges = int(data.edge_index.size()[1] / 2)  # num unique edges
+        sample_size = int(num_edges * mask_rate + 1)
+        # during sampling, we only pick the 1st direction of a particular
+        # edge pair
+        masked_edge_indices = [
+            2 * i for i in random.sample(range(num_edges), sample_size)
+        ]
 
-        data.masked_edge_idx = torch.tensor(np.array(masked_edge_indices))
+    data.masked_edge_idx = torch.tensor(np.array(masked_edge_indices))
 
-        # create ground truth edge features for the edges that correspond to
-        # the masked indices
-        mask_edge_labels_list = []
-        for idx in masked_edge_indices:
-            mask_edge_labels_list.append(data.edge_attr[idx].view(1, -1))
-        data.mask_edge_label = torch.cat(mask_edge_labels_list, dim=0)
+    # create ground truth edge features for the edges that correspond to
+    # the masked indices
+    mask_edge_labels_list = []
+    for idx in masked_edge_indices:
+        mask_edge_labels_list.append(data.edge_attr[idx].view(1, -1))
+    data.mask_edge_label = torch.cat(mask_edge_labels_list, dim=0)
 
-        # created new masked edge_attr, where both directions of the masked
-        # edges have masked edge type. For message passing in gcn
+    # created new masked edge_attr, where both directions of the masked
+    # edges have masked edge type. For message passing in gcn
 
-        # append the 2nd direction of the masked edges
-        all_masked_edge_indices = masked_edge_indices + [i + 1 for i in
-                                                         masked_edge_indices]
-        for idx in all_masked_edge_indices:
-            data.edge_attr[idx] = torch.tensor(np.array([0, 0, 0, 0, 0,
-                                                             0, 0, 0, 1]),
-                                                      dtype=torch.float)
+    # append the 2nd direction of the masked edges
+    all_masked_edge_indices = masked_edge_indices + [
+        i + 1 for i in masked_edge_indices
+    ]
+    for idx in all_masked_edge_indices:
+        data.edge_attr[idx] = torch.tensor(np.array([0, 0, 0, 0, 0, 0, 0, 0,
+                                                     1]),
+                                           dtype=torch.float)
 
-        return data
+    return data
