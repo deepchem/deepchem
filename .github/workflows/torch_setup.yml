@@ -7,7 +7,7 @@ on:
     branches:
       - master
 jobs:
-  build:
+  torch-build:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -37,7 +37,7 @@ jobs:
     - name: Import checking
       run: python -c "import deepchem; import torch;"
 
-  test:
+  torch-tests:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
