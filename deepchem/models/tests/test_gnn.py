@@ -58,6 +58,23 @@ def get_multitask_classification_dataset():
 
 
 @pytest.mark.torch
+def test_GNN_save_reload():
+    from deepchem.models.torch_models.gnn import GNNModular
+
+    dataset, _ = get_regression_dataset()
+    model = GNNModular(task="edge_pred")
+    model.fit(dataset, nb_epoch=1)
+    model2 = GNNModular(task="edge_pred")
+    model2.load_from_pretrained(model_dir=model.model_dir)
+    assert model.components.keys() == model2.components.keys()
+    keys_with_weights = [
+        key for key in model.components.keys()
+        if hasattr(model.components[key], 'weight')
+    ]
+    assert all(compare_weights(key, model, model2) for key in keys_with_weights)
+
+
+@pytest.mark.torch
 def test_GNN_edge_pred():
     """Tests the unsupervised edge prediction task"""
     from deepchem.models.torch_models.gnn import GNNModular
@@ -100,22 +117,3 @@ def test_GNN_multitask_classification():
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
     assert scores['mean-roc_auc_score'] >= 0.8
-
-
-test_GNN_multitask_classification()
-
-@pytest.mark.torch
-def test_GNN_save_reload():
-    from deepchem.models.torch_models.gnn import GNNModular
-
-    dataset, _ = get_regression_dataset()
-    model = GNNModular(task="edge_pred")
-    model.fit(dataset, nb_epoch=1)
-    model2 = GNNModular(task="edge_pred")
-    model2.load_from_pretrained(model_dir=model.model_dir)
-    assert model.components.keys() == model2.components.keys()
-    keys_with_weights = [
-        key for key in model.components.keys()
-        if hasattr(model.components[key], 'weight')
-    ]
-    assert all(compare_weights(key, model, model2) for key in keys_with_weights)
