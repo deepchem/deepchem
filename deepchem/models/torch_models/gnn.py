@@ -113,14 +113,14 @@ class GNN(torch.nn.Module):
             h_list.append(h)
 
         # Different implementations of JK
-        if self.JK == "concat":
+        if self.jump_knowledge == "concat":
             node_representation = torch.cat(h_list, dim=1)
-        elif self.JK == "last":
+        elif self.jump_knowledge == "last":
             node_representation = h_list[-1]
-        elif self.JK == "max":
+        elif self.jump_knowledge == "max":
             h_list = [h.unsqueeze_(0) for h in h_list]
             node_representation = torch.max(torch.cat(h_list, dim=0), dim=0)[0]
-        elif self.JK == "sum":
+        elif self.jump_knowledge == "sum":
             h_list = [h.unsqueeze_(0) for h in h_list]
             node_representation = torch.sum(torch.cat(h_list, dim=0), dim=0)[0]
 
@@ -191,7 +191,7 @@ class GNNModular(ModularTorchModel):
         The type of graph pooling to use. Must be one of "sum", "mean", "max", "attention" or "set2set".
     dropout: float, optional (default 0)
         The dropout probability.
-    JK: str, optional (default "last")
+    jump_knowledge: str, optional (default "last")
         The type of jump knowledge to use. [1] Must be one of "last", "sum", "max", "concat" or "none".
         "last": Use the node representation from the last GNN layer.
         "concat": Concatenate the node representations from all GNN layers.
@@ -227,7 +227,7 @@ class GNNModular(ModularTorchModel):
                  num_classes: int = 2,
                  graph_pooling: str = "attention",
                  dropout: int = 0,
-                 JK: str = "concat",
+                 jump_knowledge: str = "concat",
                  task: str = "edge_pred",
                  **kwargs):
         self.gnn_type = gnn_type
@@ -248,7 +248,7 @@ class GNNModular(ModularTorchModel):
 
         self.graph_pooling = graph_pooling
         self.dropout = dropout
-        self.JK = JK
+        self.jump_knowledge = jump_knowledge
         self.task = task
 
         self.components = self.build_components()
@@ -302,7 +302,7 @@ class GNNModular(ModularTorchModel):
         elif self.graph_pooling == "max":
             pool = global_max_pool
         elif self.graph_pooling == "attention":
-            if self.JK == "concat":
+            if self.jump_knowledge == "concat":
                 pool = AttentionalAggregation(
                     gate_nn=torch.nn.Linear((self.num_layer + 1) *
                                             self.emb_dim, 1))
@@ -311,7 +311,7 @@ class GNNModular(ModularTorchModel):
                     gate_nn=torch.nn.Linear(self.emb_dim, 1))
         elif self.graph_pooling == "set2set":
             set2setiter = 3
-            if self.JK == "concat":
+            if self.jump_knowledge == "concat":
                 pool = Set2Set((self.num_layer + 1) * self.emb_dim, set2setiter)
             else:
                 pool = Set2Set(self.emb_dim, processing_steps=set2setiter)
@@ -321,7 +321,7 @@ class GNNModular(ModularTorchModel):
         else:
             mult = 1
 
-        if self.JK == "concat":
+        if self.jump_knowledge == "concat":
             head = torch.nn.Linear(mult * (self.num_layer + 1) * self.emb_dim,
                                    self.output_dim)
         else:
@@ -344,8 +344,7 @@ class GNNModular(ModularTorchModel):
         self.gnn = GNN(components['atom_type_embedding'],
                        components['chirality_embedding'], components['gconvs'],
                        components['batch_norms'], self.dropout, self.JK)
-        self.gnn_head = GNNHead(components['pool'], components['head'],
-                                self.task, self.num_tasks, self.num_classes)
+        self.gnn_head = GNNHead(components['pool'], components['head'])
         return components
 
     def build_model(self):
