@@ -972,6 +972,24 @@ class EdgePredictionLoss(Loss):
         return loss
 
 
+class GraphMaskingLoss(Loss):
+    def _create_pytorch_loss(self, mask_edge=True):
+        import torch
+        self.mask_edge = mask_edge
+        self.criterion = torch.nn.CrossEntropyLoss()
+
+        def loss(pred_node, pred_edge, inputs):
+
+            ## loss for nodes
+            loss = self.criterion(pred_node.double(), inputs.mask_node_label[:,
+                                                                             0])
+
+            if self.mask_edge:
+                loss += self.criterion(pred_edge.double(),
+                                       inputs.mask_edge_label[:, 0])
+            return loss
+        return loss
+
 def _make_tf_shapes_consistent(output, labels):
     """Try to make inputs have the same shape by adding dimensions of size 1."""
     import tensorflow as tf
