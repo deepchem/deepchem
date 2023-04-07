@@ -481,7 +481,7 @@ class GNNModular(ModularTorchModel):
         elif self.task == "mask_nodes":
             inputs = mask_nodes(inputs, self.mask_rate)
         elif self.task == "mask_edges":
-            inputs = mask_edges(inputs)
+            inputs = mask_edges(inputs, self.mask_rate)
 
         _, labels, weights = super()._prepare_batch(([], labels, weights))
 
@@ -703,7 +703,7 @@ def mask_edges(data: BatchGraphData,
     # the masked indices
     mask_edge_labels_list = []
     for idx in masked_edge_indices:
-        mask_edge_labels_list.append(data.edge_attr[idx].view(1, -1))
+        mask_edge_labels_list.append(data.edge_features[idx].view(1, -1))
     data.mask_edge_label = torch.cat(mask_edge_labels_list,
                                      dim=0)  # type: ignore
 
