@@ -14,7 +14,7 @@ from deepchem.metrics import to_one_hot
 num_node_type = 120
 num_chirality_tag = 3
 # Relevant in future PRs
-# num_edge_type = 6
+num_edge_type = 6
 # num_edge_direction = 3
 
 
@@ -238,6 +238,7 @@ class GNNModular(ModularTorchModel):
                  dropout: int = 0,
                  jump_knowledge: str = "concat",
                  task: str = "edge_pred",
+                 mask_rate: float = .1,
                  mask_edge: bool = True,
                  **kwargs):
         self.gnn_type = gnn_type
@@ -256,10 +257,12 @@ class GNNModular(ModularTorchModel):
             self.output_dim = num_tasks
             self.edge_pred_loss = EdgePredictionLoss()._create_pytorch_loss()
         elif task == "mask_nodes":
+            self.mask_rate = mask_rate
             self.mask_edge = mask_edge
             self.node_mask_loss = GraphNodeMaskingLoss()._create_pytorch_loss(
                 self.mask_edge)
         elif task == "mask_edges":
+            self.mask_rate = mask_rate
             self.edge_mask_loss = GraphEdgeMaskingLoss()._create_pytorch_loss()
 
         self.graph_pooling = graph_pooling
@@ -470,7 +473,7 @@ class GNNModular(ModularTorchModel):
         if self.task == "edge_pred":
             inputs = negative_edge_sampler(inputs)
         elif self.task == "mask_nodes":
-            inputs = mask_nodes(inputs)
+            inputs = mask_nodes(inputs, self.mask_rate)
         elif self.task == "mask_edges":
             inputs = mask_edges(inputs)
 
@@ -569,12 +572,13 @@ def negative_edge_sampler(data: BatchGraphData):
     return data
 
 
-def mask_nodes(data: BatchGraphData,
-               masked_node_indices=None,
-               num_node_type,
-               num_edge_type,
-               mask_rate,
-               mask_edge=True):
+def mask_nodes(
+        data: BatchGraphData,
+        #    num_node_type,
+        #    num_edge_type,
+        mask_rate,
+        masked_node_indices=None,
+        mask_edge=True):
     """
 
         :param data: pytorch geometric data object. Assume that the edge
@@ -596,23 +600,23 @@ def mask_nodes(data: BatchGraphData,
         mask_edge will mask the edges connected to the masked nodes
         """
 
-    if masked_node_indices == None:
+    if masked_node_indices is None:
         # sample x distinct nodes to be masked, based on mask rate. But
         # will sample at least 1 node
-        num_nodes = data.x.size()[0]
+        num_nodes = data.node_features.size()[0]
         sample_size = int(num_nodes * mask_rate + 1)
         masked_node_indices = random.sample(range(num_nodes), sample_size)
 
     # create mask node label by copying node feature of mask node
     mask_node_labels_list = []
     for node_idx in masked_node_indices:
-        mask_node_labels_list.append(data.x[node_idx].view(1, -1))
+        mask_node_labels_list.append(data.node_features[node_idx].view(1, -1))
     data.mask_node_label = torch.cat(mask_node_labels_list, dim=0)
     data.masked_node_indices = torch.tensor(masked_node_indices)
 
     # modify the original node feature of the masked node
     for node_idx in masked_node_indices:
-        data.x[node_idx] = torch.tensor([num_node_type, 0])
+        data.node_features[node_idx] = torch.tensor([num_node_type, 0])
 
     if mask_edge:
         # create mask edge labels by copying edge features of edges that are connected to
@@ -620,8 +624,8 @@ def mask_nodes(data: BatchGraphData,
         connected_edge_indices = []
         for edge_idx, (u, v) in enumerate(data.edge_index.cpu().numpy().T):
             for node_idx in masked_node_indices:
-                if node_idx in set((u, v)) and \
-                    edge_idx not in connected_edge_indices:
+                if node_idx in set(
+                    (u, v)) and edge_idx not in connected_edge_indices:
                     connected_edge_indices.append(edge_idx)
 
         if len(connected_edge_indices) > 0:
@@ -632,13 +636,13 @@ def mask_nodes(data: BatchGraphData,
                 # edge ordering is such that two directions of a single
                 # edge occur in pairs, so to get the unique undirected
                 # edge indices, we take every 2nd edge index from list
-                mask_edge_labels_list.append(data.edge_attr[edge_idx].view(
+                mask_edge_labels_list.append(data.edge_features[edge_idx].view(
                     1, -1))
 
             data.mask_edge_label = torch.cat(mask_edge_labels_list, dim=0)
             # modify the original edge features of the edges connected to the mask nodes
             for edge_idx in connected_edge_indices:
-                data.edge_attr[edge_idx] = torch.tensor([num_edge_type, 0])
+                data.edge_features[edge_idx] = torch.tensor([num_edge_type, 0])
 
             data.connected_edge_indices = torch.tensor(
                 connected_edge_indices[::2])
