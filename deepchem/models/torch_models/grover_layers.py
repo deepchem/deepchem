@@ -76,6 +76,7 @@ class GroverEmbedding(nn.Module):
          - atom_from_bond: node message aggregated from bond hidden states
          - bond_from_bond: bond messages aggregated from bond hidden states.
         """
+        # TODO Explain in detail what the four outcompes are
         output = self.encoders(graph_batch)
         return {
             "atom_from_atom": output[0][0],
@@ -136,9 +137,9 @@ class GroverBondVocabPredictor(nn.Module):
             the prediction for each bond, (num_bond, vocab_size)
         """
         nm_bonds = embeddings.shape[0]
-        # The bond and rev bond have odd and even ids respectively.
-        ids1 = list(range(1, nm_bonds, 2))
-        ids2 = list(range(0, nm_bonds, 2))
+        # The bond and rev bond have even and odd ids respectively.
+        ids1 = list(range(0, nm_bonds, 2))
+        ids2 = list(range(1, nm_bonds, 2))
         logits = self.linear(embeddings[ids1]) + self.linear_rev(
             embeddings[ids2])
         return self.logsoftmax(logits)
