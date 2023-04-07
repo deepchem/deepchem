@@ -714,7 +714,7 @@ def mask_edges(data: BatchGraphData,
     all_masked_edge_indices = masked_edge_indices + [
         i + 1 for i in masked_edge_indices
     ]
-    for idx in all_masked_edge_indices:
+    for idx in all_masked_edge_indices: # XXX dimensions issue 
         data.edge_features[idx] = torch.tensor(np.array(
             [0, 0, 0, 0, 0, 0, 0, 0, 1]),
                                                dtype=torch.float)
