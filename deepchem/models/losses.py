@@ -989,24 +989,18 @@ class GraphNodeMaskingLoss(Loss):
                                        inputs.mask_edge_label[:, 0])
             return loss
         return loss
-    
+
+
 class GraphEdgeMaskingLoss(Loss):
-    def _create_pytorch_loss(self, mask_edge=True):
+    def _create_pytorch_loss(self):
         import torch
-        self.mask_edge = mask_edge
         self.criterion = torch.nn.CrossEntropyLoss()
 
-        def loss(pred_node, pred_edge, inputs):
-
-            ## loss for nodes
-            loss = self.criterion(pred_node.double(), inputs.mask_node_label[:,
-                                                                             0])
-
-            if self.mask_edge:
-                loss += self.criterion(pred_edge.double(),
-                                       inputs.mask_edge_label[:, 0])
+        def loss(pred_edge, edge_label):
+            loss = self.criterion(pred_edge, edge_label)
             return loss
         return loss
+
 
 def _make_tf_shapes_consistent(output, labels):
     """Try to make inputs have the same shape by adding dimensions of size 1."""

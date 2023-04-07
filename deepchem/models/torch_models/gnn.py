@@ -11,11 +11,11 @@ from deepchem.feat.graph_data import BatchGraphData
 from typing import Iterable, List, Tuple
 from deepchem.metrics import to_one_hot
 
-num_atom_type = 120
+num_node_type = 120
 num_chirality_tag = 3
 # Relevant in future PRs
-# num_bond_type = 6
-# num_bond_direction = 3
+# num_edge_type = 6
+# num_edge_direction = 3
 
 
 class GNN(torch.nn.Module):
@@ -26,8 +26,8 @@ class GNN(torch.nn.Module):
 
     Parameters
     ----------
-    atom_type_embedding: torch.nn.Embedding
-        Embedding layer for atom types.
+    node_type_embedding: torch.nn.Embedding
+        Embedding layer for node types.
     chirality_embedding: torch.nn.Embedding
         Embedding layer for chirality tags.
     gconvs: torch.nn.ModuleList
@@ -66,7 +66,7 @@ class GNN(torch.nn.Module):
     """
 
     def __init__(self,
-                 atom_type_embedding,
+                 node_type_embedding,
                  chirality_embedding,
                  gconvs,
                  batch_norms,
@@ -75,7 +75,7 @@ class GNN(torch.nn.Module):
                  init_emb=False):
         super(GNN, self).__init__()
 
-        self.atom_type_embedding = atom_type_embedding
+        self.node_type_embedding = node_type_embedding
         self.chirality_embedding = chirality_embedding
         self.gconv = gconvs
         self.batch_norms = batch_norms
@@ -85,7 +85,7 @@ class GNN(torch.nn.Module):
 
         # may mess with loading pretrained weights
         if init_emb:
-            torch.nn.init.xavier_uniform_(self.atom_type_embedding.weight.data)
+            torch.nn.init.xavier_uniform_(self.node_type_embedding.weight.data)
             torch.nn.init.xavier_uniform_(self.chirality_embedding.weight.data)
 
     def forward(self, data: BatchGraphData):
@@ -100,7 +100,7 @@ class GNN(torch.nn.Module):
 
         node_feats = data.node_features[:, 0].long()  # type: ignore
         chiral_feats = data.node_features[:, 1].long()  # type: ignore
-        x = self.atom_type_embedding(node_feats) + self.chirality_embedding(
+        x = self.node_type_embedding(node_feats) + self.chirality_embedding(
             chiral_feats)
 
         h_list = [x]
@@ -238,7 +238,7 @@ class GNNModular(ModularTorchModel):
                  dropout: int = 0,
                  jump_knowledge: str = "concat",
                  task: str = "edge_pred",
-                 mask_edge:bool = True,
+                 mask_edge: bool = True,
                  **kwargs):
         self.gnn_type = gnn_type
         self.num_layer = num_layer
@@ -277,7 +277,7 @@ class GNNModular(ModularTorchModel):
 
         Components list, type and description:
         --------------------------------------
-        atom_type_embedding: torch.nn.Embedding, an embedding layer for atom types.
+        node_type_embedding: torch.nn.Embedding, an embedding layer for node types.
 
         chirality_embedding: torch.nn.Embedding, an embedding layer for chirality tags.
 
@@ -298,7 +298,7 @@ class GNNModular(ModularTorchModel):
                 encoders.append(
                     GINEConv(
                         torch.nn.Linear(self.emb_dim, self.emb_dim),
-                        edge_dim=2,  # bond type, bond direction
+                        edge_dim=2,  # edge type, edge direction
                         aggr="add"))
             else:
                 raise ValueError("Only GIN is supported for now")
@@ -312,8 +312,8 @@ class GNNModular(ModularTorchModel):
         batch_norms = torch.nn.ModuleList(batch_norms)
 
         components = {
-            'atom_type_embedding':
-                torch.nn.Embedding(num_atom_type, self.emb_dim),
+            'node_type_embedding':
+                torch.nn.Embedding(num_node_type, self.emb_dim),
             'chirality_embedding':
                 torch.nn.Embedding(num_chirality_tag, self.emb_dim),
             'gconvs':
@@ -321,17 +321,17 @@ class GNNModular(ModularTorchModel):
             'batch_norms':
                 batch_norms
         }
-        self.gnn = GNN(components['atom_type_embedding'],
+        self.gnn = GNN(components['node_type_embedding'],
                        components['chirality_embedding'], components['gconvs'],
                        components['batch_norms'], self.dropout,
                        self.jump_knowledge)
 
         if self.task in ("mask_nodes", "mask_edges"):
-            linear_pred_atoms = torch.nn.Linear(self.emb_dim, 119)
-            linear_pred_bonds = torch.nn.Linear(self.emb_dim, 4)
+            linear_pred_nodes = torch.nn.Linear(self.emb_dim, 119)
+            linear_pred_edges = torch.nn.Linear(self.emb_dim, 4)
             components.update({
-                'linear_pred_atoms': linear_pred_atoms,
-                'linear_pred_bonds': linear_pred_bonds
+                'linear_pred_nodes': linear_pred_nodes,
+                'linear_pred_edges': linear_pred_edges
             })
 
         # for supervised tasks, add prediction head
@@ -383,10 +383,8 @@ class GNNModular(ModularTorchModel):
 
         Supervised tasks such as node classification and graph regression require a prediction head, so the model is a sequential module consisting of the GNN module followed by the GNN_head module.
         """
-
-        if self.task in (
-                "edge_pred", "mask_nodes",
-                "mask_edges"):  # unsupervised task, does not need pred head
+        # unsupervised tasks do not need a pred head
+        if self.task in ("edge_pred", "mask_nodes", "mask_edges"):
             return self.gnn
         elif self.task in ("regression", "classification"):
             return torch.nn.Sequential(self.gnn, self.gnn_head)
@@ -403,7 +401,7 @@ class GNNModular(ModularTorchModel):
         elif self.task == "mask_nodes":
             loss = self.mask_nodes(inputs, labels)
         elif self.task == "mask_edges":
-            pass
+            loss = self.mask_edges(inputs, labels)
         elif self.task == "regression":
             loss = self.regression_loss(inputs, labels)
         elif self.task == "classification":
@@ -423,13 +421,14 @@ class GNNModular(ModularTorchModel):
 
     def mask_nodes(self, inputs, labels):
         node_emb, inputs = self.model(inputs)
-        pred_node = self.components['linear_pred_atoms'](
-        node_emb[inputs.masked_atom_indices])
+        pred_node = self.components['linear_pred_nodes'](
+            node_emb[inputs.masked_node_indices])
         if self.mask_edge:
-            masked_edge_index = inputs.edge_index[:,inputs.connected_edge_indices]
+            masked_edge_index = inputs.edge_index[:,
+                                                  inputs.connected_edge_indices]
             edge_rep = node_emb[masked_edge_index[0]] + node_emb[
                 masked_edge_index[1]]
-            pred_edge = self.components['linear_pred_bonds'](edge_rep)
+            pred_edge = self.components['linear_pred_edges'](edge_rep)
         else:
             pred_edge = None
         return self.node_mask_loss(pred_node, pred_edge, inputs)
@@ -441,13 +440,12 @@ class GNNModular(ModularTorchModel):
         masked_edge_index = inputs.edge_index[:, inputs.masked_edge_idx]
         edge_emb = node_emb[masked_edge_index[0]] + node_emb[
             masked_edge_index[1]]
-        pred_edge = self.components['linear_pred_bonds'](edge_emb)
+        pred_edge = self.components['linear_pred_edges'](edge_emb)
 
         #converting the binary classification to multiclass classification
-        edge_label = torch.argmax(inputs.mask_edge_label, dim = 1)
+        edge_label = torch.argmax(inputs.mask_edge_label, dim=1)
 
-
-        loss = self.edge_mask_loss(pred_edge, edge_label)
+        return self.edge_mask_loss(pred_edge, edge_label)
 
     def _prepare_batch(self, batch):
         """
@@ -572,8 +570,8 @@ def negative_edge_sampler(data: BatchGraphData):
 
 
 def mask_nodes(data: BatchGraphData,
-               masked_atom_indices=None,
-               num_atom_type,
+               masked_node_indices=None,
+               num_node_type,
                num_edge_type,
                mask_rate,
                mask_edge=True):
@@ -584,9 +582,9 @@ def mask_nodes(data: BatchGraphData,
         directions of a single edge occur in pairs.
         Eg. data.edge_index = tensor([[0, 1, 1, 2, 2, 3],
                                      [1, 0, 2, 1, 3, 2]])
-        :param masked_atom_indices: If None, then randomly samples num_atoms
-        * mask rate number of atom indices
-        Otherwise a list of atom idx that sets the atoms to be masked (for
+        :param masked_node_indices: If None, then randomly samples num_nodes
+        * mask rate number of node indices
+        Otherwise a list of node idx that sets the nodes to be masked (for
         debugging only)
         :return: None, Creates new attributes in original data object:
         data.mask_node_idx
@@ -595,52 +593,52 @@ def mask_nodes(data: BatchGraphData,
         data.mask_edge_label
         
         
-        mask_edge will mask the edges connected to the masked atoms
+        mask_edge will mask the edges connected to the masked nodes
         """
 
-    if masked_atom_indices == None:
-        # sample x distinct atoms to be masked, based on mask rate. But
-        # will sample at least 1 atom
-        num_atoms = data.x.size()[0]
-        sample_size = int(num_atoms * mask_rate + 1)
-        masked_atom_indices = random.sample(range(num_atoms), sample_size)
+    if masked_node_indices == None:
+        # sample x distinct nodes to be masked, based on mask rate. But
+        # will sample at least 1 node
+        num_nodes = data.x.size()[0]
+        sample_size = int(num_nodes * mask_rate + 1)
+        masked_node_indices = random.sample(range(num_nodes), sample_size)
 
-    # create mask node label by copying atom feature of mask atom
+    # create mask node label by copying node feature of mask node
     mask_node_labels_list = []
-    for atom_idx in masked_atom_indices:
-        mask_node_labels_list.append(data.x[atom_idx].view(1, -1))
+    for node_idx in masked_node_indices:
+        mask_node_labels_list.append(data.x[node_idx].view(1, -1))
     data.mask_node_label = torch.cat(mask_node_labels_list, dim=0)
-    data.masked_atom_indices = torch.tensor(masked_atom_indices)
+    data.masked_node_indices = torch.tensor(masked_node_indices)
 
     # modify the original node feature of the masked node
-    for atom_idx in masked_atom_indices:
-        data.x[atom_idx] = torch.tensor([num_atom_type, 0])
+    for node_idx in masked_node_indices:
+        data.x[node_idx] = torch.tensor([num_node_type, 0])
 
     if mask_edge:
-        # create mask edge labels by copying edge features of edges that are bonded to
-        # mask atoms
+        # create mask edge labels by copying edge features of edges that are connected to
+        # mask nodes
         connected_edge_indices = []
-        for bond_idx, (u, v) in enumerate(data.edge_index.cpu().numpy().T):
-            for atom_idx in masked_atom_indices:
-                if atom_idx in set((u, v)) and \
-                    bond_idx not in connected_edge_indices:
-                    connected_edge_indices.append(bond_idx)
+        for edge_idx, (u, v) in enumerate(data.edge_index.cpu().numpy().T):
+            for node_idx in masked_node_indices:
+                if node_idx in set((u, v)) and \
+                    edge_idx not in connected_edge_indices:
+                    connected_edge_indices.append(edge_idx)
 
         if len(connected_edge_indices) > 0:
-            # create mask edge labels by copying bond features of the bonds connected to
-            # the mask atoms
+            # create mask edge labels by copying edge features of the edges connected to
+            # the mask nodes
             mask_edge_labels_list = []
-            for bond_idx in connected_edge_indices[::2]:  # because the
+            for edge_idx in connected_edge_indices[::2]:  # because the
                 # edge ordering is such that two directions of a single
                 # edge occur in pairs, so to get the unique undirected
                 # edge indices, we take every 2nd edge index from list
-                mask_edge_labels_list.append(data.edge_attr[bond_idx].view(
+                mask_edge_labels_list.append(data.edge_attr[edge_idx].view(
                     1, -1))
 
             data.mask_edge_label = torch.cat(mask_edge_labels_list, dim=0)
-            # modify the original bond features of the bonds connected to the mask atoms
-            for bond_idx in connected_edge_indices:
-                data.edge_attr[bond_idx] = torch.tensor([num_edge_type, 0])
+            # modify the original edge features of the edges connected to the mask nodes
+            for edge_idx in connected_edge_indices:
+                data.edge_attr[edge_idx] = torch.tensor([num_edge_type, 0])
 
             data.connected_edge_indices = torch.tensor(
                 connected_edge_indices[::2])
@@ -656,7 +654,7 @@ def mask_edges(data: BatchGraphData,
                mask_rate: float,
                masked_edge_indices=None):
     """
-    This is separate from the mask_nodes function because we want to be able to mask edges without masking any atoms. 
+    This is separate from the mask_nodes function because we want to be able to mask edges without masking any nodes. 
 
         :param data: pytorch geometric data object. Assume that the edge
         ordering is the default pytorch geometric ordering, where the two
