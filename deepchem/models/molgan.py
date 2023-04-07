@@ -123,11 +123,10 @@ class BasicMolGANModel(WGAN):
         The model has two outputs:
             1. edges
             2. nodes
-        The format differs depending on intended use (sample generation or training).
-        For sample generation, flag "sample_generation=True" to be used while calling generator
+        The format differs depending on intended use (training or sample generation).
+        For sample generation use flag, sample_generation=True while calling generator
         i.e. gan.generators[0](noise_input, training=False, sample_generation=True).
         For training the model, set `sample_generation=False`
-        
         """
         return BasicMolGANGenerator(vertices=self.vertices,
                                     edges=self.edges,
@@ -144,7 +143,6 @@ class BasicMolGANModel(WGAN):
         The input vectors need to be in one-hot encoding format.
         Use MolGAN featurizer for that purpose. It will be simplified
         in the future release.
-        
         """
         adjacency_tensor = layers.Input(shape=(self.vertices, self.vertices,
                                                self.edges))
