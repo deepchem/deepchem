@@ -972,7 +972,25 @@ class EdgePredictionLoss(Loss):
         return loss
 
 
-class GraphMaskingLoss(Loss):
+class GraphNodeMaskingLoss(Loss):
+    def _create_pytorch_loss(self, mask_edge=True):
+        import torch
+        self.mask_edge = mask_edge
+        self.criterion = torch.nn.CrossEntropyLoss()
+
+        def loss(pred_node, pred_edge, inputs):
+
+            ## loss for nodes
+            loss = self.criterion(pred_node.double(), inputs.mask_node_label[:,
+                                                                             0])
+
+            if self.mask_edge:
+                loss += self.criterion(pred_edge.double(),
+                                       inputs.mask_edge_label[:, 0])
+            return loss
+        return loss
+    
+class GraphEdgeMaskingLoss(Loss):
     def _create_pytorch_loss(self, mask_edge=True):
         import torch
         self.mask_edge = mask_edge

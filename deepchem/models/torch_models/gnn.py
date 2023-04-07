@@ -5,7 +5,7 @@ from torch_geometric.nn import GINEConv, global_add_pool, global_mean_pool, glob
 from torch_geometric.nn.aggr import AttentionalAggregation, Set2Set
 from torch.functional import F
 from deepchem.data import Dataset
-from deepchem.models.losses import SoftmaxCrossEntropy, EdgePredictionLoss, GraphMaskingLoss
+from deepchem.models.losses import SoftmaxCrossEntropy, EdgePredictionLoss, GraphNodeMaskingLoss, GraphEdgeMaskingLoss
 from deepchem.models.torch_models import ModularTorchModel
 from deepchem.feat.graph_data import BatchGraphData
 from typing import Iterable, List, Tuple
@@ -201,7 +201,13 @@ class GNNModular(ModularTorchModel):
         "max": Take the element-wise maximum of the node representations from all GNN layers.
         "sum": Take the element-wise sum of the node representations from all GNN layers.
     task: str, optional (default "regression")
-        The type of task. Can be unsupervised tasks "edge_pred" or "node_pred" or supervised tasks like "regression" or "classification".
+        The type of task.
+        Unsupervised tasks:
+        edge_pred: Edge prediction. Predicts whether an edge exists between two nodes.
+        mask_nodes: Masking nodes. Predicts the masked node.
+        mask_edges: Masking edges. Predicts the masked edge.
+        Supervised tasks:
+        "regression" or "classification".
 
     Examples
     --------
@@ -232,6 +238,7 @@ class GNNModular(ModularTorchModel):
                  dropout: int = 0,
                  jump_knowledge: str = "concat",
                  task: str = "edge_pred",
+                 mask_edge:bool = True,
                  **kwargs):
         self.gnn_type = gnn_type
         self.num_layer = num_layer
@@ -248,8 +255,12 @@ class GNNModular(ModularTorchModel):
         elif task == "edge_pred":
             self.output_dim = num_tasks
             self.edge_pred_loss = EdgePredictionLoss()._create_pytorch_loss()
-        elif task == "masking":
-            self.mask_loss = GraphMaskingLoss()._create_pytorch_loss()
+        elif task == "mask_nodes":
+            self.mask_edge = mask_edge
+            self.node_mask_loss = GraphNodeMaskingLoss()._create_pytorch_loss(
+                self.mask_edge)
+        elif task == "mask_edges":
+            self.edge_mask_loss = GraphEdgeMaskingLoss()._create_pytorch_loss()
 
         self.graph_pooling = graph_pooling
         self.dropout = dropout
@@ -390,15 +401,7 @@ class GNNModular(ModularTorchModel):
             node_emb, inputs = self.model(inputs)
             loss = self.edge_pred_loss(node_emb, inputs)
         elif self.task == "mask_nodes":
-            node_emb, inputs = self.model(inputs)
-            pred_node = self.components['linear_pred_atoms'](
-                node_emb[inputs.masked_atom_indices])
-            masked_edge_index = inputs.edge_index[:,
-                                                  inputs.connected_edge_indices]
-            edge_rep = node_emb[masked_edge_index[0]] + node_emb[
-                masked_edge_index[1]]
-            pred_edge = self.components['linear_pred_bonds'](edge_rep)
-            loss = self.mask_loss(pred_node, pred_edge, inputs)
+            loss = self.mask_nodes(inputs, labels)
         elif self.task == "mask_edges":
             pass
         elif self.task == "regression":
@@ -417,6 +420,34 @@ class GNNModular(ModularTorchModel):
         out = F.softmax(out, dim=2)
         class_loss = self.criterion(out, labels)
         return class_loss
+
+    def mask_nodes(self, inputs, labels):
+        node_emb, inputs = self.model(inputs)
+        pred_node = self.components['linear_pred_atoms'](
+        node_emb[inputs.masked_atom_indices])
+        if self.mask_edge:
+            masked_edge_index = inputs.edge_index[:,inputs.connected_edge_indices]
+            edge_rep = node_emb[masked_edge_index[0]] + node_emb[
+                masked_edge_index[1]]
+            pred_edge = self.components['linear_pred_bonds'](edge_rep)
+        else:
+            pred_edge = None
+        return self.node_mask_loss(pred_node, pred_edge, inputs)
+
+    def mask_edges(self, inputs, labels):
+        node_emb, inputs = self.model(inputs)
+
+        ### predict the edge types.
+        masked_edge_index = inputs.edge_index[:, inputs.masked_edge_idx]
+        edge_emb = node_emb[masked_edge_index[0]] + node_emb[
+            masked_edge_index[1]]
+        pred_edge = self.components['linear_pred_bonds'](edge_emb)
+
+        #converting the binary classification to multiclass classification
+        edge_label = torch.argmax(inputs.mask_edge_label, dim = 1)
+
+
+        loss = self.edge_mask_loss(pred_edge, edge_label)
 
     def _prepare_batch(self, batch):
         """
