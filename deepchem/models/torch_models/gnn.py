@@ -100,8 +100,9 @@ class GNN(torch.nn.Module):
 
         node_feats = data.node_features[:, 0].long()  # type: ignore
         chiral_feats = data.node_features[:, 1].long()  # type: ignore
-        x = self.node_type_embedding(node_feats) + self.chirality_embedding(
-            chiral_feats)
+        node_emb = self.node_type_embedding(node_feats)
+        chir_emb = self.chirality_embedding(chiral_feats)
+        x = node_emb + chir_emb
 
         h_list = [x]
         for i, conv_layer in enumerate(self.gconv):
@@ -297,6 +298,7 @@ class GNNModular(ModularTorchModel):
         encoders = []
         batch_norms = []
         for layer in range(self.num_layer):
+            # do we need input layer? bio/model.py/ginconv L 31
             if self.gnn_type == "gin":
                 encoders.append(
                     GINEConv(
@@ -330,8 +332,11 @@ class GNNModular(ModularTorchModel):
                        self.jump_knowledge)
 
         if self.task in ("mask_nodes", "mask_edges"):
-            linear_pred_nodes = torch.nn.Linear(self.emb_dim, 119)
-            linear_pred_edges = torch.nn.Linear(self.emb_dim, 4)
+            self.emb_dim = (self.num_layer + 1) * self.emb_dim
+            linear_pred_nodes = torch.nn.Linear(self.emb_dim,
+                                                119)  # num_node_type?
+            linear_pred_edges = torch.nn.Linear(self.emb_dim,
+                                                4)  # num_chirality_tag?
             components.update({
                 'linear_pred_nodes': linear_pred_nodes,
                 'linear_pred_edges': linear_pred_edges
@@ -347,6 +352,7 @@ class GNNModular(ModularTorchModel):
                 pool = global_max_pool
             elif self.graph_pooling == "attention":
                 if self.jump_knowledge == "concat":
+                    # self.emb_dim = (self.num_layer + 1) * self.emb_dim ?
                     pool = AttentionalAggregation(
                         gate_nn=torch.nn.Linear((self.num_layer + 1) *
                                                 self.emb_dim, 1))
@@ -615,8 +621,10 @@ def mask_nodes(
     data.masked_node_indices = torch.tensor(masked_node_indices)
 
     # modify the original node feature of the masked node
+    # XXX problematic
     for node_idx in masked_node_indices:
-        data.node_features[node_idx] = torch.tensor([num_node_type, 0])
+        data.node_features[node_idx] = torch.tensor([num_node_type - 1,
+                                                     0])  #why need -1?
 
     if mask_edge:
         # create mask edge labels by copying edge features of edges that are connected to
@@ -642,7 +650,8 @@ def mask_nodes(
             data.mask_edge_label = torch.cat(mask_edge_labels_list, dim=0)
             # modify the original edge features of the edges connected to the mask nodes
             for edge_idx in connected_edge_indices:
-                data.edge_features[edge_idx] = torch.tensor([num_edge_type, 0])
+                data.edge_features[edge_idx] = torch.tensor(
+                    [num_edge_type, 0])  # do we need -1?
 
             data.connected_edge_indices = torch.tensor(
                 connected_edge_indices[::2])
