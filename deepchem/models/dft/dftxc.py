@@ -5,24 +5,24 @@ from deepchem.feat.dft_data import DFTEntry, DFTSystem
 from deepchem.models.dft.nnxc import HybridXC
 from deepchem.models.losses import Loss, L2Loss
 from deepchem.models.torch_models.torch_model import TorchModel
+from typing import Optional
 
+class DFTXC(torch.nn.Module):
 
-class DFTXC(torch.nn.module):
-
-    def __init__(self, nnmodel, input):
+    def __init__(self, nnmodel, input_file):
 
         load_data = DFTYamlLoader()
-        self.data = load_data.create_dataset(input)
-        nnmodel = model
-        self.hybridxc = HybridXC("lda_x", nnmodel, aweight0=0.0)
-
+        self.data = load_data.create_dataset(input_file)
+        #nnmodel = model
+        super(DFTXC, self).__init__()
     def inputs(self):
         return self.data
 
     def forward(self):
+        hybridxc = HybridXC("lda_x", nnmodel, aweight0=0.0)
         for i in (self.data).X:
             entry = i[0]
-            evl = XCNNSCF(self.hybridxc, entry)
+            evl = XCNNSCF(hybridxc, entry)
             for system in entry.get_systems():
                 qcs = [evl.run(system)]
             return entry.get_val(qcs)
@@ -31,19 +31,24 @@ class DFTXC(torch.nn.module):
 class XCModel(TorchModel):
 
     def __init__(self,
-                 input: str,
+                 input_file: str,
                  nnmodel: Optional[torch.nn.Module] = None,
                  device: Optional[torch.device] = None,
                  **kwargs) -> None:
         if nnmodel == None:
+            ninp = 2
+            nhid = 10
+            ndepths = 1
+            modeltype = 1
             nnmodel = construct_nn_model(ninp, nhid, ndepths,
                                          modeltype).to(torch.double)
-        model = DFTXC(nnmodel, input) = self.model
+        model = DFTXC(nnmodel, input_file) 
+        self.model = model
         loss: Loss = L2Loss()
         output_types = ['loss']
         super(XCModel, self).__init__(model,
-                                      loss=loss,
-                                      output_types=output_types,
+                                       loss=loss,
+                                       output_types=output_types,
                                       **kwargs)
 
         def _prepare_batch(self, batch):
