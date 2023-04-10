@@ -7,56 +7,59 @@ from deepchem.models.losses import Loss, L2Loss
 from deepchem.models.torch_models.torch_model import TorchModel
 from typing import Optional
 
+
 class DFTXC(torch.nn.Module):
 
-    def __init__(self, nnmodel, input_file):
+    def __init__(self,
+                 ninp: int = 2,
+                 nhid: int = 10,
+                 ndepths: int = 1,
+                 modeltype: int = 1):
 
-        load_data = DFTYamlLoader()
-        self.data = load_data.create_dataset(input_file)
-        #nnmodel = model
         super(DFTXC, self).__init__()
-    def inputs(self):
-        return self.data
+        self.model = construct_nn_model(ninp, nhid, ndepths,
+                                        modeltype).to(torch.double)
 
-    def forward(self):
+    def forward(self, inputs, nnmodel):
+        out = []
         hybridxc = HybridXC("lda_x", nnmodel, aweight0=0.0)
-        for i in (self.data).X:
-            entry = i[0]
+        for entry in inputs:
             evl = XCNNSCF(hybridxc, entry)
             for system in entry.get_systems():
                 qcs = [evl.run(system)]
-            return entry.get_val(qcs)
+            out.append(entry.get_val(qcs))
+        return out
 
 
 class XCModel(TorchModel):
 
     def __init__(self,
-                 input_file: str,
-                 nnmodel: Optional[torch.nn.Module] = None,
+                 xc_type: str,
+                 ninp: int = 2,
+                 nhid: int = 10,
+                 ndepths: int = 1,
+                 modeltype: int = 1,
+                 n_tasks: int = 1,
+                 mode: str = 'regression',
                  device: Optional[torch.device] = None,
                  **kwargs) -> None:
-        if nnmodel == None:
-            ninp = 2
-            nhid = 10
-            ndepths = 1
-            modeltype = 1
-            nnmodel = construct_nn_model(ninp, nhid, ndepths,
-                                         modeltype).to(torch.double)
-        model = DFTXC(nnmodel, input_file) 
+        model = DFTXC(ninp, nhid, ndepths, modeltype)
+        self.xc = xc_type
         self.model = model
         loss: Loss = L2Loss()
         output_types = ['loss']
+        self.mode = mode
         super(XCModel, self).__init__(model,
-                                       loss=loss,
-                                       output_types=output_types,
+                                      loss=loss,
+                                      output_types=output_types,
                                       **kwargs)
 
         def _prepare_batch(self, batch):
-            inputs = (self.model).inputs()
-            labels = [
-                torch.from_numpy(input.get_true_val()) for input in inputs
-            ]
-            return inputs, labels
+            print(batch)
+            inputs = batch.X
+            labels = [torch.from_numpy(i.get_true_val()) for i in inputs]
+            weights = {"ae": 1.0, "dm": 1.0, "dens": 1.0, "ie": 1.0}
+            return inputs, labels, weights
 
 
 class ExpM1Activation(torch.nn.Module):
