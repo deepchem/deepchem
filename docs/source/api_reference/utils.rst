@@ -256,5 +256,8 @@ Density Functional Theory Utilities
 -----------------------------------
 
 The utilites here are used to create an object that contains information about a system's self-consistent iteration steps and other processes.
+
 .. autoclass:: deepchem.utils.dftutils.KSCalc
+  :members:
+
 .. autofunction:: deepchem.utils.dftutils.hashstr

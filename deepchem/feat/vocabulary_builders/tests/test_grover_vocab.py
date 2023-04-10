@@ -28,6 +28,12 @@ def testGroverAtomVocabularyBuilder():
     assert loaded_vocab.atom_to_vocab(mol, atom) == 'C_C-SINGLE1'
     assert loaded_vocab.encode(mol, mol.GetAtomWithIdx(0)) == 2
 
+    # test with max size
+    vocab = GroverAtomVocabularyBuilder(max_size=3)
+    vocab.build(dataset)
+    assert vocab.size == 3
+    assert vocab.size == len(vocab.itos)
+
 
 def testGroverBondVocabularyBuilder():
     from deepchem.feat.vocabulary_builders.grover_vocab import GroverBondVocabularyBuilder
@@ -59,6 +65,12 @@ def testGroverBondVocabularyBuilder():
         mol, bond
     ) == '(SINGLE-STEREONONE-NONE)_C-(DOUBLE-STEREONONE-NONE)1_C-(SINGLE-STEREONONE-NONE)1'
     assert loaded_vocab.encode(mol, bond) == 2
+
+    # test with max size
+    vocab = GroverBondVocabularyBuilder(max_size=3)
+    vocab.build(dataset)
+    assert vocab.size == 3
+    assert vocab.size == len(vocab.itos)
 
 
 def testGroverAtomVocabTokenizer():

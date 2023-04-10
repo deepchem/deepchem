@@ -848,7 +848,7 @@ class GroverPretrainLoss(Loss):
             fg_task_target: torch.Tensor
                 Targets for functional groups
             dist_coff: float, default 0.1
-                loss metric
+                Loss term weight for weighting closeness between embedding generated from atom hidden state and bond hidden state in atom vocabulary and bond vocabulary prediction tasks.
 
             Returns
             -------
@@ -864,9 +864,9 @@ class GroverPretrainLoss(Loss):
 
             av_atom_loss = av_task_loss(atom_vocab_task_atom_pred,
                                         atom_vocab_task_target)
-            av_bond_loss = av_task_loss(bond_vocab_task_atom_pred,
+            av_bond_loss = av_task_loss(atom_vocab_task_bond_pred,
                                         atom_vocab_task_target)
-            bv_atom_loss = av_task_loss(atom_vocab_task_bond_pred,
+            bv_atom_loss = av_task_loss(bond_vocab_task_atom_pred,
                                         bond_vocab_task_target)
             bv_bond_loss = av_task_loss(bond_vocab_task_bond_pred,
                                         bond_vocab_task_target)
