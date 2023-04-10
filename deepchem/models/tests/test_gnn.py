@@ -99,6 +99,7 @@ def test_GNN_node_masking():
     loss2 = model.fit(dataset, nb_epoch=5)
     assert loss2 < loss1
 
+
 @pytest.mark.torch
 def test_GNN_edge_masking():
     """Tests the unsupervised node masking task"""

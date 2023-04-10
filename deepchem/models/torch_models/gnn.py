@@ -408,9 +408,9 @@ class GNNModular(ModularTorchModel):
             node_emb, inputs = self.model(inputs)
             loss = self.edge_pred_loss(node_emb, inputs)
         elif self.task == "mask_nodes":
-            loss = self.mask_nodes(inputs, labels)
+            loss = self.masked_node_loss(inputs, labels)
         elif self.task == "mask_edges":
-            loss = self.mask_edges(inputs, labels)
+            loss = self.masked_edge_loss(inputs, labels)
         elif self.task == "regression":
             loss = self.regression_loss(inputs, labels)
         elif self.task == "classification":
@@ -428,7 +428,7 @@ class GNNModular(ModularTorchModel):
         class_loss = self.criterion(out, labels)
         return class_loss
 
-    def mask_nodes(self, inputs, labels):
+    def masked_node_loss(self, inputs, labels):
         node_emb, inputs = self.model(inputs)
         pred_node = self.components['linear_pred_nodes'](
             node_emb[inputs.masked_node_indices])
@@ -442,7 +442,7 @@ class GNNModular(ModularTorchModel):
             pred_edge = None
         return self.node_mask_loss(pred_node, pred_edge, inputs)
 
-    def mask_edges(self, inputs, labels):
+    def masked_edge_loss(self, inputs, labels):
         node_emb, inputs = self.model(inputs)
 
         ### predict the edge types.
@@ -714,7 +714,7 @@ def mask_edges(data: BatchGraphData,
     all_masked_edge_indices = masked_edge_indices + [
         i + 1 for i in masked_edge_indices
     ]
-    for idx in all_masked_edge_indices: # XXX dimensions issue 
+    for idx in all_masked_edge_indices: # XXX dimensions issue
         data.edge_features[idx] = torch.tensor(np.array(
             [0, 0, 0, 0, 0, 0, 0, 0, 1]),
                                                dtype=torch.float)
