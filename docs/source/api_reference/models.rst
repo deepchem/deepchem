@@ -414,6 +414,14 @@ InfoGraphStarModel
 .. autoclass:: deepchem.models.torch_models.InfoGraphStarModel
   :members:
 
+
+GNNModular
+----------
+
+.. autoclass:: deepchem.models.torch_models.gnn.GNNModular
+  :members:
+
+
 LCNNModel
 ---------
 
