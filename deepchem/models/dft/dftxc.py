@@ -5,7 +5,7 @@ from deepchem.feat.dft_data import DFTEntry, DFTSystem
 from deepchem.models.dft.nnxc import HybridXC
 from deepchem.models.losses import Loss, L2Loss
 from deepchem.models.torch_models.torch_model import TorchModel
-from typing import Optional
+from typing import List, Optional, Tuple, Any
 
 
 class DFTXC(torch.nn.Module):
@@ -21,15 +21,14 @@ class DFTXC(torch.nn.Module):
         self.model = construct_nn_model(ninp, nhid, ndepths,
                                         modeltype).to(torch.double)
 
-    def forward(self, inputs, nnmodel):
-        out = []
-        hybridxc = HybridXC("lda_x", nnmodel, aweight0=0.0)
+    def forward(self, inputs):
+        hybridxc = HybridXC("lda_x", self.model, aweight0=0.0)
         for entry in inputs:
             evl = XCNNSCF(hybridxc, entry)
             for system in entry.get_systems():
                 qcs = [evl.run(system)]
-            out.append(entry.get_val(qcs))
-        return out
+            print(entry.get_val(qcs))
+            return(entry.get_val(qcs))
 
 
 class XCModel(TorchModel):
@@ -41,7 +40,6 @@ class XCModel(TorchModel):
                  ndepths: int = 1,
                  modeltype: int = 1,
                  n_tasks: int = 0,
-                 batch_size: int = None,
                  log_frequency: int = 0,
                  mode: str = 'regression',
                  device: Optional[torch.device] = None,
@@ -56,30 +54,13 @@ class XCModel(TorchModel):
                                       loss=loss,
                                       output_types=output_types,
                                       **kwargs)
+    def _prepare_batch(self, batch: Tuple[Any, Any, Any])-> Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]:
 
-      #  def _prepare_batch(self, batch: Tuple[Any, Any, Any]
-      #)-> Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]:
-      #      print(batch)
-      #      inputs, labels, weights = batch
-      #      inputs = [torch.as_tensor(x, device=self.device) for x in inputs]
-      #      labels = [torch.from_numpy(i.get_true_val()) for i in inputs]
-      #      #weights = {"ae": 1.0, "dm": 1.0, "dens": 1.0, "ie": 1.0}
-      #      return (inputs, labels, weights)
-
-      #  def _iterbatches_from_shards(self,
-      #                           shard_indices: Sequence[int],
-      #                           batch_size: Optional[int] = None,
-      #                           epochs: int = 1,
-      #                           deterministic: bool = False,
-      #                           pad_batches: bool = False) -> Iterator[Batch]:
-      #  """Get an object that iterates over batches from a restricted set of shards."""
-
-      #  def iterate(dataset: DiskDataset, batch_size: Optional[int],
-      #              epochs: int):
-      #      num_shards = len(shard_indices)
-      #      if deterministic:
-      #          shard_perm = np.arange(num_shards)
-
+        inputs, labels, weights = batch
+        print(inputs) 
+        labels = [torch.as_tensor(i[0].get_true_val()) for i in inputs]
+        return (inputs, labels, weights)
+        
 class ExpM1Activation(torch.nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
