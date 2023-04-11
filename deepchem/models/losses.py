@@ -911,9 +911,11 @@ class GroverPretrainLoss(Loss):
 
 class EdgePredictionLoss(Loss):
     """
-    Unsupervised graph edge prediction loss. The goal is to learn node embeddings such that the inner product of the embeddings of connected nodes is high (positive examples) and the inner product of the embeddings of unconnected nodes is low (negative examples).
+    EdgePredictionLoss is an unsupervised graph edge prediction loss function that calculates the loss based on the similarity between node embeddings for positive and negative edge pairs. This loss function is designed for graph neural networks and is particularly useful for pre-training tasks.
 
-    The inputs in this loss must be a BatchGraphData object transformed by the negative_edge_sampler molecule.
+    This loss function encourages the model to learn node embeddings that can effectively distinguish between true edges (positive samples) and false edges (negative samples) in the graph. The loss is computed by comparing the similarity scores (dot product) of node embeddings for positive and negative edge pairs. The goal is to maximize the similarity for positive pairs and minimize it for negative pairs.
+
+    To use this loss function, the input must be a BatchGraphData object transformed by the negative_edge_sampler. The loss function takes the node embeddings and the input graph data (with positive and negative edge pairs) as inputs and returns the edge prediction loss.
 
     Examples
     --------
