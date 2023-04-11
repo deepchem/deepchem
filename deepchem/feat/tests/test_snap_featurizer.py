@@ -1,4 +1,4 @@
-from deepchem.feat.molecule_featurizers.snap_featurizer import SNAPFeaturizer, EgoGraphFeaturizer
+from deepchem.feat.molecule_featurizers.snap_featurizer import SNAPFeaturizer
 
 
 def test_snap_featurizer():

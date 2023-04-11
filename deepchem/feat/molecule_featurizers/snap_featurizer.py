@@ -1,4 +1,4 @@
-from deepchem.feat import MolecularFeaturizer, Featurizer
+from deepchem.feat import MolecularFeaturizer
 from rdkit import Chem
 import numpy as np
 from deepchem.feat.graph_data import GraphData

@@ -11,10 +11,11 @@ from deepchem.feat.graph_data import BatchGraphData
 from typing import Iterable, List, Tuple
 from deepchem.metrics import to_one_hot
 
-num_node_type = 120
+num_node_type = 120  # including the extra mask tokens
+# num_node_type = 119 # but it's actually 118?
 num_chirality_tag = 3
 # Relevant in future PRs
-num_edge_type = 6
+num_edge_type = 6  # including aromatic and self-loop edge, and extra masked tokens
 # num_edge_direction = 3
 
 
@@ -318,7 +319,7 @@ class GNNModular(ModularTorchModel):
 
         components = {
             'node_type_embedding':
-                torch.nn.Embedding(num_node_type, self.emb_dim),
+                torch.nn.Embedding(num_node_type, self.emb_dim),  # XXX 120
             'chirality_embedding':
                 torch.nn.Embedding(num_chirality_tag, self.emb_dim),
             'gconvs':
@@ -333,10 +334,11 @@ class GNNModular(ModularTorchModel):
 
         if self.task in ("mask_nodes", "mask_edges"):
             self.emb_dim = (self.num_layer + 1) * self.emb_dim
-            linear_pred_nodes = torch.nn.Linear(self.emb_dim,
-                                                119)  # num_node_type?
-            linear_pred_edges = torch.nn.Linear(self.emb_dim,
-                                                4)  # num_chirality_tag?
+            linear_pred_nodes = torch.nn.Linear(self.emb_dim, num_node_type -
+                                                1)  # -1 to remove mask token
+            linear_pred_edges = torch.nn.Linear(
+                self.emb_dim,
+                num_edge_type - 2)  # -2 to remove mask token and self-loop
             components.update({
                 'linear_pred_nodes': linear_pred_nodes,
                 'linear_pred_edges': linear_pred_edges
@@ -445,13 +447,13 @@ class GNNModular(ModularTorchModel):
     def masked_edge_loss(self, inputs, labels):
         node_emb, inputs = self.model(inputs)
 
-        ### predict the edge types.
+        # predict the edge types.
         masked_edge_index = inputs.edge_index[:, inputs.masked_edge_idx]
         edge_emb = node_emb[masked_edge_index[0]] + node_emb[
             masked_edge_index[1]]
         pred_edge = self.components['linear_pred_edges'](edge_emb)
 
-        #converting the binary classification to multiclass classification
+        # converting the binary classification to multiclass classification
         edge_label = torch.argmax(inputs.mask_edge_label, dim=1)
 
         return self.edge_mask_loss(pred_edge, edge_label)
@@ -582,11 +584,10 @@ def negative_edge_sampler(data: BatchGraphData):
     return data
 
 
-def mask_nodes(
-        data: BatchGraphData,
-        mask_rate,
-        masked_node_indices=None,
-        mask_edge=True):
+def mask_nodes(data: BatchGraphData,
+               mask_rate,
+               masked_node_indices=None,
+               mask_edge=True):
     """
     Mask nodes and their connected edges in a PyTorch geometric data object.
 
@@ -610,7 +611,6 @@ def mask_nodes(
         - data.mask_edge_idx
         - data.mask_edge_label
 
-    
         """
 
     if masked_node_indices is None:
@@ -628,10 +628,11 @@ def mask_nodes(
     data.masked_node_indices = torch.tensor(masked_node_indices)
 
     # modify the original node feature of the masked node
-    # XXX problematic
     for node_idx in masked_node_indices:
-        data.node_features[node_idx] = torch.tensor([num_node_type - 1,
-                                                     0])  #why need -1?
+        data.node_features[node_idx] = torch.tensor([
+            num_node_type - 1,  # last token is the mask token
+            1  # is 0 right?
+        ])
 
     if mask_edge:
         # create mask edge labels by copying edge features of edges that are connected to
@@ -658,7 +659,8 @@ def mask_nodes(
             # modify the original edge features of the edges connected to the mask nodes
             for edge_idx in connected_edge_indices:
                 data.edge_features[edge_idx] = torch.tensor(
-                    [num_edge_type, 0])  # do we need -1?
+                    [num_edge_type - 1,
+                     1])  # XXX do we need -1?, is 1 the correct value?
 
             data.connected_edge_indices = torch.tensor(
                 connected_edge_indices[::2])
@@ -675,9 +677,9 @@ def mask_edges(data: BatchGraphData,
                masked_edge_indices=None):
     """
     Mask edges in a PyTorch geometric data object.
-    
+
     This is separate from the mask_nodes function because we want to be able to mask edges without masking any nodes.
-    
+
     Parameters
     ----------
     data : torch_geometric.data.Data
@@ -686,7 +688,7 @@ def mask_edges(data: BatchGraphData,
                                       [1, 0, 2, 1, 3, 2]])
     masked_edge_indices : list, optional
         If None, then randomly sample num_edges * mask_rate + 1 number of edge indices. Otherwise should correspond to the 1st direction of an edge pair. ie all indices should be an even number
-    
+
     Returns
     -------
     None
@@ -724,9 +726,10 @@ def mask_edges(data: BatchGraphData,
     all_masked_edge_indices = masked_edge_indices + [
         i + 1 for i in masked_edge_indices
     ]
-    for idx in all_masked_edge_indices: # XXX expects ego graph, and why ego featurizer has 9 features?
-        data.edge_features[idx] = torch.tensor(np.array(
-            [0, 0, 0, 0, 0, 0, 0, 0, 1]),
-                                               dtype=torch.float)
+    for idx in all_masked_edge_indices:
+        data.edge_features[idx] = torch.tensor(
+            np.array([num_edge_type,
+                      1]),  # XXX is 1 the correct 2nd value?
+            dtype=torch.float)
 
     return data
