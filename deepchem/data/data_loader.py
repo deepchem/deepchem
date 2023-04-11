@@ -1690,15 +1690,17 @@ class DFTYamlLoader(DataLoader):
 
         def shard_generator():
             entries = self._get_shards(inputs)
+            i = 0
             for shard in entries:
                 X = np.array(self._featurize_shard(shard))
-                y = np.array([0])
+                y = np.array([shard['true_val']])
                 w = None
-                ids = np.array([0])
+                i = i +1
+                ids = np.array([i])
                 yield X, y, w, ids
 
         return DiskDataset.create_dataset(shard_generator(), data_dir)
-
+        
     def _get_shards(self, inputs):
         """
         Loads and divides the .yaml file into shards.
