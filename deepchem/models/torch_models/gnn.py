@@ -428,6 +428,10 @@ class GNNModular(ModularTorchModel):
             mode: str = 'fit',
             deterministic: bool = True,
             pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
+        """
+        This default generator is modified from the default generator in dc.models.tensorgraph.tensor_graph.py to support multitask classification. If the task is classification, the labels y_b are converted to a one-hot encoding and reshaped according to the number of tasks and classes.
+        """
+
         for epoch in range(epochs):
             for (X_b, y_b, w_b,
                  ids_b) in dataset.iterbatches(batch_size=self.batch_size,
