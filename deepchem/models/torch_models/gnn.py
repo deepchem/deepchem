@@ -580,30 +580,33 @@ def negative_edge_sampler(data: BatchGraphData):
 
 def mask_nodes(
         data: BatchGraphData,
-        #    num_node_type,
-        #    num_edge_type,
         mask_rate,
         masked_node_indices=None,
         mask_edge=True):
     """
+    Mask nodes and their connected edges in a PyTorch geometric data object.
 
-        :param data: pytorch geometric data object. Assume that the edge
-        ordering is the default pytorch geometric ordering, where the two
-        directions of a single edge occur in pairs.
+    Parameters
+    ----------
+    data: torch_geometric.data.Data
+        PyTorch geometric data object. Assume that the edge ordering is the default PyTorch geometric ordering, where the two directions of a single edge occur in pairs.
         Eg. data.edge_index = tensor([[0, 1, 1, 2, 2, 3],
-                                     [1, 0, 2, 1, 3, 2]])
-        :param masked_node_indices: If None, then randomly samples num_nodes
-        * mask rate number of node indices
-        Otherwise a list of node idx that sets the nodes to be masked (for
-        debugging only)
-        :return: None, Creates new attributes in original data object:
-        data.mask_node_idx
-        data.mask_node_label
-        data.mask_edge_idx
-        data.mask_edge_label
-        
-        
-        mask_edge will mask the edges connected to the masked nodes
+                                    [1, 0, 2, 1, 3, 2]])
+    masked_node_indices: list, optional
+        If None, then randomly samples num_nodes * mask rate number of node indices. Otherwise, a list of node indices that sets the nodes to be masked (for debugging only).
+    mask_edge: bool, optional
+        Will mask the edges connected to the masked nodes.
+
+    Returns
+    -------
+    None
+        Creates new attributes in the original data object:
+        - data.mask_node_idx
+        - data.mask_node_label
+        - data.mask_edge_idx
+        - data.mask_edge_label
+
+    
         """
 
     if masked_node_indices is None:
@@ -667,23 +670,26 @@ def mask_edges(data: BatchGraphData,
                mask_rate: float,
                masked_edge_indices=None):
     """
-    This is separate from the mask_nodes function because we want to be able to mask edges without masking any nodes. 
-
-        :param data: pytorch geometric data object. Assume that the edge
-        ordering is the default pytorch geometric ordering, where the two
-        directions of a single edge occur in pairs.
+    Mask edges in a PyTorch geometric data object.
+    
+    This is separate from the mask_nodes function because we want to be able to mask edges without masking any nodes.
+    
+    Parameters
+    ----------
+    data : torch_geometric.data.Data
+        PyTorch geometric data object. Assume that the edge ordering is the default PyTorch geometric ordering, where the two directions of a single edge occur in pairs.
         Eg. data.edge_index = tensor([[0, 1, 1, 2, 2, 3],
-                                     [1, 0, 2, 1, 3, 2]])
-        :param masked_edge_indices: If None, then randomly sample num_edges * mask_rate + 1
-        number of edge indices. Otherwise should correspond to the 1st
-        direction of an edge pair. ie all indices should be an even number
-        :return: None, creates new attributes in the original data object:
-        data.mask_edge_idx: indices of masked edges
-        data.mask_edge_labels: corresponding ground truth edge feature for
-        each masked edge
-        data.edge_attr: modified in place: the edge features (
-        both directions) that correspond to the masked edges have the masked
-        edge feature
+                                      [1, 0, 2, 1, 3, 2]])
+    masked_edge_indices : list, optional
+        If None, then randomly sample num_edges * mask_rate + 1 number of edge indices. Otherwise should correspond to the 1st direction of an edge pair. ie all indices should be an even number
+    
+    Returns
+    -------
+    None
+        Creates new attributes in the original data object:
+        - data.mask_edge_idx: indices of masked edges
+        - data.mask_edge_labels: corresponding ground truth edge feature for each masked edge
+        - data.edge_attr: modified in place: the edge features (both directions) that correspond to the masked edges have the masked edge feature
         """
     if masked_edge_indices is None:
         # sample x distinct edges to be masked, based on mask rate. But
@@ -714,7 +720,7 @@ def mask_edges(data: BatchGraphData,
     all_masked_edge_indices = masked_edge_indices + [
         i + 1 for i in masked_edge_indices
     ]
-    for idx in all_masked_edge_indices: # XXX dimensions issue
+    for idx in all_masked_edge_indices: # XXX expects ego graph, and why ego featurizer has 9 features?
         data.edge_features[idx] = torch.tensor(np.array(
             [0, 0, 0, 0, 0, 0, 0, 0, 1]),
                                                dtype=torch.float)

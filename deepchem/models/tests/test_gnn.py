@@ -86,8 +86,6 @@ def test_GNN_edge_pred():
     assert loss2 < loss1
 
 
-# test_GNN_edge_pred()
-
 @pytest.mark.torch
 def test_GNN_node_masking():
     """Tests the unsupervised node masking task"""
