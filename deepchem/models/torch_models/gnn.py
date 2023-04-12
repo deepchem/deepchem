@@ -12,7 +12,6 @@ from typing import Iterable, List, Tuple
 from deepchem.metrics import to_one_hot
 
 num_node_type = 120  # including the extra mask tokens
-# num_node_type = 119 # but it's actually 118?
 num_chirality_tag = 3
 # Relevant in future PRs
 num_edge_type = 6  # including aromatic and self-loop edge, and extra masked tokens
@@ -631,7 +630,7 @@ def mask_nodes(data: BatchGraphData,
     for node_idx in masked_node_indices:
         data.node_features[node_idx] = torch.tensor([
             num_node_type - 1,  # last token is the mask token
-            1  # is 0 right?
+            1  # signifies that the edge is masked
         ])
 
     if mask_edge:
@@ -659,8 +658,7 @@ def mask_nodes(data: BatchGraphData,
             # modify the original edge features of the edges connected to the mask nodes
             for edge_idx in connected_edge_indices:
                 data.edge_features[edge_idx] = torch.tensor(
-                    [num_edge_type - 1,
-                     1])  # XXX do we need -1?, is 1 the correct value?
+                    [num_edge_type - 1, 1])  # signifies that the edge is masked
 
             data.connected_edge_indices = torch.tensor(
                 connected_edge_indices[::2])
@@ -728,8 +726,7 @@ def mask_edges(data: BatchGraphData,
     ]
     for idx in all_masked_edge_indices:
         data.edge_features[idx] = torch.tensor(
-            np.array([num_edge_type,
-                      1]),  # XXX is 1 the correct 2nd value?
+            np.array([num_edge_type, 1]),  # signifies that the edge is masked
             dtype=torch.float)
 
     return data
