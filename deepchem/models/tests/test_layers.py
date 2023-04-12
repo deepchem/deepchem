@@ -16,6 +16,7 @@ try:
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
+    pass
 
 
 @pytest.mark.tensorflow
@@ -661,6 +662,7 @@ def test_position_wise_feed_forward():
 @pytest.mark.parametrize('skip_connection,expected',
                          [(False, [[0.2795, 0.4243], [0.2795, 0.4243]]),
                           (True, [[-0.9612, 2.3846], [-4.1104, 5.7606]])])
+@pytest.mark.torch
 def test_MultilayerPerceptron(skip_connection, expected):
     """Test invoking MLP."""
     torch.manual_seed(0)
