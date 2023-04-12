@@ -79,5 +79,7 @@ try:
 except ModuleNotFoundError:
     pass
 
+from deepchem.feat.vocabulary_builders import HuggingFaceVocabularyBuilder
+
 # support classes
 from deepchem.feat.molecule_featurizers import GraphMatrix
