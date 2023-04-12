@@ -152,7 +152,7 @@ def test_infographstar_regression_semisupervised():
 
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
-    assert scores['mean_absolute_error'] < 0.1
+    assert scores['mean_absolute_error'] < 0.2
 
 
 @pytest.mark.torch

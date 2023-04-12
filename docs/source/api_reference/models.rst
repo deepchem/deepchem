@@ -105,6 +105,9 @@ Losses
 .. autoclass:: deepchem.models.losses.GroverPretrainLoss
   :members:
 
+.. autoclass:: deepchem.models.losses.EdgePredictionLoss
+  :members:
+
 Optimizers
 ----------
 
@@ -414,6 +417,14 @@ InfoGraphStarModel
 .. autoclass:: deepchem.models.torch_models.InfoGraphStarModel
   :members:
 
+
+GNNModular
+----------
+
+.. autoclass:: deepchem.models.torch_models.gnn.GNNModular
+  :members:
+
+
 LCNNModel
 ---------
 
@@ -443,6 +454,11 @@ DMPNNModel
 .. autoclass:: deepchem.models.torch_models.DMPNNModel
   :members:
 
+GroverModel
+-----------
+
+.. autoclass:: deepchem.models.torch_models.GroverModel
+  :members:
 
 PyTorch Lightning Models
 ==============

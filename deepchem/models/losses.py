@@ -848,7 +848,7 @@ class GroverPretrainLoss(Loss):
             fg_task_target: torch.Tensor
                 Targets for functional groups
             dist_coff: float, default 0.1
-                loss metric
+                Loss term weight for weighting closeness between embedding generated from atom hidden state and bond hidden state in atom vocabulary and bond vocabulary prediction tasks.
 
             Returns
             -------
@@ -864,9 +864,9 @@ class GroverPretrainLoss(Loss):
 
             av_atom_loss = av_task_loss(atom_vocab_task_atom_pred,
                                         atom_vocab_task_target)
-            av_bond_loss = av_task_loss(bond_vocab_task_atom_pred,
+            av_bond_loss = av_task_loss(atom_vocab_task_bond_pred,
                                         atom_vocab_task_target)
-            bv_atom_loss = av_task_loss(atom_vocab_task_bond_pred,
+            bv_atom_loss = av_task_loss(bond_vocab_task_atom_pred,
                                         bond_vocab_task_target)
             bv_bond_loss = av_task_loss(bond_vocab_task_bond_pred,
                                         bond_vocab_task_target)
@@ -905,6 +905,73 @@ class GroverPretrainLoss(Loss):
             # return overall_loss, av_loss, bv_loss, fg_loss, av_dist_loss, bv_dist_loss, fg_dist_loss
             # We just return overall_loss since TorchModel can handle only a single loss
             return overall_loss
+
+        return loss
+
+
+class EdgePredictionLoss(Loss):
+    """
+    EdgePredictionLoss is an unsupervised graph edge prediction loss function that calculates the loss based on the similarity between node embeddings for positive and negative edge pairs. This loss function is designed for graph neural networks and is particularly useful for pre-training tasks.
+
+    This loss function encourages the model to learn node embeddings that can effectively distinguish between true edges (positive samples) and false edges (negative samples) in the graph.
+
+    The loss is computed by comparing the similarity scores (dot product) of node embeddings for positive and negative edge pairs. The goal is to maximize the similarity for positive pairs and minimize it for negative pairs.
+
+    To use this loss function, the input must be a BatchGraphData object transformed by the negative_edge_sampler. The loss function takes the node embeddings and the input graph data (with positive and negative edge pairs) as inputs and returns the edge prediction loss.
+
+    Examples
+    --------
+    >>> from deepchem.models.losses import EdgePredictionLoss
+    >>> from deepchem.feat.graph_data import BatchGraphData, GraphData
+    >>> from deepchem.models.torch_models.gnn import negative_edge_sampler
+    >>> import torch
+    >>> import numpy as np
+    >>> emb_dim = 8
+    >>> num_nodes_list, num_edge_list = [3, 4, 5], [2, 4, 5]
+    >>> num_node_features, num_edge_features = 32, 32
+    >>> edge_index_list = [
+    ...     np.array([[0, 1], [1, 2]]),
+    ...     np.array([[0, 1, 2, 3], [1, 2, 0, 2]]),
+    ...     np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]]),
+    ... ]
+    >>> graph_list = [
+    ...     GraphData(node_features=np.random.random_sample(
+    ...         (num_nodes_list[i], num_node_features)),
+    ...               edge_index=edge_index_list[i],
+    ...               edge_features=np.random.random_sample(
+    ...                   (num_edge_list[i], num_edge_features)),
+    ...               node_pos_features=None) for i in range(len(num_edge_list))
+    ... ]
+    >>> batched_graph = BatchGraphData(graph_list)
+    >>> batched_graph = batched_graph.numpy_to_torch()
+    >>> neg_sampled = negative_edge_sampler(batched_graph)
+    >>> embedding = np.random.random((sum(num_nodes_list), emb_dim))
+    >>> embedding = torch.from_numpy(embedding)
+    >>> loss_func = EdgePredictionLoss()._create_pytorch_loss()
+    >>> loss = loss_func(embedding, neg_sampled)
+
+    References
+    ----------
+    .. [1] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
+    """
+
+    def _create_pytorch_loss(self):
+        import torch
+        self.criterion = torch.nn.BCEWithLogitsLoss()
+
+        def loss(node_emb, inputs):
+            positive_score = torch.sum(node_emb[inputs.edge_index[0, ::2]] *
+                                       node_emb[inputs.edge_index[1, ::2]],
+                                       dim=1)
+            negative_score = torch.sum(node_emb[inputs.negative_edge_index[0]] *
+                                       node_emb[inputs.negative_edge_index[1]],
+                                       dim=1)
+
+            edge_pred_loss = self.criterion(
+                positive_score,
+                torch.ones_like(positive_score)) + self.criterion(
+                    negative_score, torch.zeros_like(negative_score))
+            return edge_pred_loss
 
         return loss
 

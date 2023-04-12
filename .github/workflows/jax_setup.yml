@@ -7,7 +7,7 @@ on:
     branches:
       - master
 jobs:
-  build:
+  jax-build:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -33,7 +33,7 @@ jobs:
     - name: Import checking
       run: python -c "import deepchem; import jax;"
 
-  test:
+  jax-test:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

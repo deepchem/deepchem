@@ -42,6 +42,10 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
+| `HuggingFace Tokenizers`_      | latest        | :code:`dc.feat.HuggingFaceVocabularyBuilder`      |
+|                                |               |                                                   |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
 | `LightGBM`_                    | latest        | :code:`dc.models.gbdt_models`                     |
 |                                |               |                                                   |
 |                                |               |                                                   |
@@ -126,7 +130,7 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-          
+
 .. _`joblib`: https://pypi.python.org/pypi/joblib
 .. _`NumPy`: https://numpy.org/
 .. _`pandas`: http://pandas.pydata.org/
@@ -158,3 +162,4 @@ DeepChem has a number of "soft" requirements.
 .. _`Weights & Biases`: https://docs.wandb.com/
 .. _`XGBoost`: https://xgboost.readthedocs.io/en/latest/
 .. _`Tensorflow Addons`: https://www.tensorflow.org/addons/overview
+.. _`HuggingFace Tokenizers`: https://huggingface.co/docs/tokenizers/index

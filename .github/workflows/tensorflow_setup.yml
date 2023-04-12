@@ -7,7 +7,7 @@ on:
     branches:
       - master
 jobs:
-  build:
+  tf-build:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -37,7 +37,7 @@ jobs:
     - name: Import checking
       run: python -c "import deepchem; import tensorflow;"
 
-  test:
+  tf-test:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
