@@ -205,8 +205,7 @@ class _EntryDM(DFTEntry):
         return dm
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
-        return (qcs[0].aodmtot()).detach().numpy()
-
+        return (qcs[0].aodmtot())
 
 class _EntryDens(DFTEntry):
     """
@@ -300,7 +299,7 @@ class _EntryIE(DFTEntry):
         return "ie"
 
     def get_true_val(self) -> np.ndarray:
-        return (self.true_val)
+        return np.array([self.true_val])
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         """
@@ -317,7 +316,7 @@ class _EntryIE(DFTEntry):
         Total Energy of a data object for entry types IE and AE
         """
         e = [m.energy() for m in qcs]
-        return (sum(e) - 2 * e[0]).detach().numpy()
+        return (sum(e) - 2 * e[0])
 
 
 class _EntryAE(_EntryIE):

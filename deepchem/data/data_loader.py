@@ -1693,8 +1693,8 @@ class DFTYamlLoader(DataLoader):
             i = 0
             for shard in entries:
                 X = np.array(self._featurize_shard(shard))
-                y = np.array([shard['true_val']])
-                w = None
+                y = np.array([0])
+                w = np.array([1.0])
                 i = i +1
                 ids = np.array([i])
                 yield X, y, w, ids
@@ -1742,4 +1742,4 @@ class DFTYamlLoader(DataLoader):
                 "Unknown key in yaml file. Please check format for correctness."
             )
         x = DFTEntry.create(e_type, true_val, systems)
-        return x
+        return [x]
