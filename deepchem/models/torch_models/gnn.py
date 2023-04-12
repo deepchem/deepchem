@@ -452,10 +452,7 @@ class GNNModular(ModularTorchModel):
             masked_edge_index[1]]
         pred_edge = self.components['linear_pred_edges'](edge_emb)
 
-        # converting the binary classification to multiclass classification
-        edge_label = torch.argmax(inputs.mask_edge_label, dim=1)
-
-        return self.edge_mask_loss(pred_edge, edge_label)
+        return self.edge_mask_loss(pred_edge, inputs.mask_edge_label)
 
     def _prepare_batch(self, batch):
         """
@@ -627,11 +624,13 @@ def mask_nodes(data: BatchGraphData,
     data.masked_node_indices = torch.tensor(masked_node_indices)
 
     # modify the original node feature of the masked node
+    num_node_feats = data.node_features.size()[1]
     for node_idx in masked_node_indices:
-        data.node_features[node_idx] = torch.tensor([
-            num_node_type - 1,  # last token is the mask token
-            1  # signifies that the edge is masked
-        ])
+        data.node_features[node_idx] = torch.tensor(
+            [[0] * (num_node_feats - 2) +  # zero out all node features
+             [num_node_type - 1] +  # last token is the mask token
+             [0]  # signifies that the edge is masked
+             ]).squeeze()
 
     if mask_edge:
         # create mask edge labels by copying edge features of edges that are connected to
@@ -656,9 +655,12 @@ def mask_nodes(data: BatchGraphData,
 
             data.mask_edge_label = torch.cat(mask_edge_labels_list, dim=0)
             # modify the original edge features of the edges connected to the mask nodes
+            num_edge_feat = data.edge_features.size()[1]
             for edge_idx in connected_edge_indices:
                 data.edge_features[edge_idx] = torch.tensor(
-                    [num_edge_type - 1, 1])  # signifies that the edge is masked
+                    [0] * (num_edge_feat - 2) +  # zero out all edge features
+                    [num_edge_type] +  # last token is the mask token
+                    [0]).squeeze()  # signifies that the edge is masked
 
             data.connected_edge_indices = torch.tensor(
                 connected_edge_indices[::2])
@@ -724,9 +726,11 @@ def mask_edges(data: BatchGraphData,
     all_masked_edge_indices = masked_edge_indices + [
         i + 1 for i in masked_edge_indices
     ]
+    num_edge_feat = data.edge_features.size()[1]
     for idx in all_masked_edge_indices:
         data.edge_features[idx] = torch.tensor(
-            np.array([num_edge_type, 1]),  # signifies that the edge is masked
-            dtype=torch.float)
+            [0] * (num_edge_feat - 2) +  # zero out all edge features
+            [num_edge_type] +  # last token is the mask token
+            [0]).squeeze()  # signifies that the edge is masked
 
     return data
