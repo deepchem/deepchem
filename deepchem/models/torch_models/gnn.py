@@ -452,7 +452,7 @@ class GNNModular(ModularTorchModel):
             masked_edge_index[1]]
         pred_edge = self.components['linear_pred_edges'](edge_emb)
 
-        return self.edge_mask_loss(pred_edge, inputs.mask_edge_label)
+        return self.edge_mask_loss(pred_edge, inputs)
 
     def _prepare_batch(self, batch):
         """
@@ -630,7 +630,7 @@ def mask_nodes(data: BatchGraphData,
             [[0] * (num_node_feats - 2) +  # zero out all node features
              [num_node_type - 1] +  # last token is the mask token
              [0]  # signifies that the edge is masked
-             ]).squeeze()
+            ]).squeeze()
 
     if mask_edge:
         # create mask edge labels by copying edge features of edges that are connected to
