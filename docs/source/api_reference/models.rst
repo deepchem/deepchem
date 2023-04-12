@@ -105,6 +105,9 @@ Losses
 .. autoclass:: deepchem.models.losses.GroverPretrainLoss
   :members:
 
+.. autoclass:: deepchem.models.losses.EdgePredictionLoss
+  :members:
+
 Optimizers
 ----------
 

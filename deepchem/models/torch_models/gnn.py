@@ -2,8 +2,12 @@ import torch
 from torch_geometric.nn import GINEConv, global_add_pool, global_mean_pool, global_max_pool
 from torch_geometric.nn.aggr import AttentionalAggregation, Set2Set
 from torch.functional import F
+from deepchem.data import Dataset
+from deepchem.models.losses import SoftmaxCrossEntropy, EdgePredictionLoss
 from deepchem.models.torch_models import ModularTorchModel
 from deepchem.feat.graph_data import BatchGraphData
+from typing import Iterable, List, Tuple
+from deepchem.metrics import to_one_hot
 
 num_atom_type = 120
 num_chirality_tag = 3
@@ -52,10 +56,10 @@ class GNN(torch.nn.Module):
     >>> smiles = ["C1=CC=CC=C1", "C1=CC=CC=C1C=O", "C1=CC=CC=C1C(=O)O"]
     >>> features = featurizer.featurize(smiles)
     >>> batched_graph = BatchGraphData(features).numpy_to_torch(device="cuda")
-    >>> modular = model = GNNModular("gin", 3, 64, 1, "attention", 0, "last", "edge_pred")
+    >>> modular = GNNModular(emb_dim = 8, task = "edge_pred")
     >>> gnnmodel = modular.gnn
     >>> print(gnnmodel(batched_graph)[0].shape)
-    torch.Size([23, 64])
+    torch.Size([23, 32])
 
     """
 
@@ -109,7 +113,7 @@ class GNN(torch.nn.Module):
                 h = F.dropout(F.relu(h), self.dropout, training=self.training)
             h_list.append(h)
 
-        # Different implementations of JK
+        # Different implementations of jump_knowledge
         if self.jump_knowledge == "concat":
             node_representation = torch.cat(h_list, dim=1)
         elif self.jump_knowledge == "last":
@@ -121,7 +125,7 @@ class GNN(torch.nn.Module):
             h_list = [h.unsqueeze_(0) for h in h_list]
             node_representation = torch.sum(torch.cat(h_list, dim=0), dim=0)[0]
 
-        return node_representation, data
+        return (node_representation, data)
 
 
 class GNNHead(torch.nn.Module):
@@ -142,25 +146,31 @@ class GNNHead(torch.nn.Module):
         Number of classes for classification.
     """
 
-    def __init__(self, pool, head):
+    def __init__(self, pool, head, task, num_tasks, num_classes):
         super().__init__()
         self.pool = pool
         self.head = head
+        self.task = task
+        self.num_tasks = num_tasks
+        self.num_classes = num_classes
 
-    def forward(self, node_representation, data):
+    def forward(self, data):
         """
         Forward pass for the GNN head module.
 
         Parameters
         ----------
-        node_representation: torch.Tensor
-            The node representations after passing through the GNN layers.
-        data: BatchGraphData
-            The original input graph data.
+        data: tuple
+            A tuple containing the node representations and the input graph data.
+            node_representation is a torch.Tensor created after passing input through the GNN layers.
+            input_batch is the original input BatchGraphData.
         """
+        node_representation, input_batch = data
 
-        pooled = self.pool(node_representation, data.graph_index)
+        pooled = self.pool(node_representation, input_batch.graph_index)
         out = self.head(pooled)
+        if self.task == "classification":
+            out = torch.reshape(out, (-1, self.num_tasks, self.num_classes))
         return out
 
 
@@ -215,6 +225,7 @@ class GNNModular(ModularTorchModel):
                  num_layer: int = 3,
                  emb_dim: int = 64,
                  num_tasks: int = 1,
+                 num_classes: int = 2,
                  graph_pooling: str = "attention",
                  dropout: int = 0,
                  jump_knowledge: str = "concat",
@@ -223,12 +234,23 @@ class GNNModular(ModularTorchModel):
         self.gnn_type = gnn_type
         self.num_layer = num_layer
         self.emb_dim = emb_dim
+
         self.num_tasks = num_tasks
+        self.num_classes = num_classes
+        if task == "classification":
+            self.output_dim = num_classes * num_tasks
+            self.criterion = SoftmaxCrossEntropy()._create_pytorch_loss()
+        elif task == "regression":
+            self.output_dim = num_tasks
+            self.criterion = F.mse_loss
+        elif task == "edge_pred":
+            self.output_dim = num_tasks
+            self.edge_pred_loss = EdgePredictionLoss()._create_pytorch_loss()
+
         self.graph_pooling = graph_pooling
         self.dropout = dropout
         self.jump_knowledge = jump_knowledge
         self.task = task
-        self.criterion = torch.nn.BCEWithLogitsLoss()
 
         self.components = self.build_components()
         self.model = self.build_model()
@@ -302,9 +324,9 @@ class GNNModular(ModularTorchModel):
 
         if self.jump_knowledge == "concat":
             head = torch.nn.Linear(mult * (self.num_layer + 1) * self.emb_dim,
-                                   self.num_tasks)
+                                   self.output_dim)
         else:
-            head = torch.nn.Linear(mult * self.emb_dim, self.num_tasks)
+            head = torch.nn.Linear(mult * self.emb_dim, self.output_dim)
 
         components = {
             'atom_type_embedding':
@@ -324,7 +346,8 @@ class GNNModular(ModularTorchModel):
                        components['chirality_embedding'], components['gconvs'],
                        components['batch_norms'], self.dropout,
                        self.jump_knowledge)
-        self.gnn_head = GNNHead(components['pool'], components['head'])
+        self.gnn_head = GNNHead(components['pool'], components['head'],
+                                self.task, self.num_tasks, self.num_classes)
         return components
 
     def build_model(self):
@@ -338,36 +361,34 @@ class GNNModular(ModularTorchModel):
 
         if self.task == "edge_pred":  # unsupervised task, does not need pred head
             return self.gnn
-        else:
+        elif self.task in ("regression", "classification"):
             return torch.nn.Sequential(self.gnn, self.gnn_head)
+        else:
+            raise ValueError(f"Task {self.task} is not supported.")
 
     def loss_func(self, inputs, labels, weights):
         """
         The loss function executed in the training loop, which is based on the specified task.
         """
         if self.task == "edge_pred":
-            return self.edge_pred_loss(inputs, labels, weights)
+            node_emb, inputs = self.model(inputs)
+            loss = self.edge_pred_loss(node_emb, inputs)
+        elif self.task == "regression":
+            loss = self.regression_loss(inputs, labels)
+        elif self.task == "classification":
+            loss = self.classification_loss(inputs, labels)
+        return (loss * weights).mean()
 
-    def edge_pred_loss(self, inputs, labels, weights):
-        """
-        The loss function for the graph edge prediction task.
+    def regression_loss(self, inputs, labels):
+        out = self.model(inputs)
+        reg_loss = self.criterion(out, labels)
+        return reg_loss
 
-        The inputs in this loss must be a BatchGraphData object transformed by the NegativeEdge molecule feature utility.
-        """
-        node_emb, _ = self.model(
-            inputs)  # node_emb shape == [num_nodes x emb_dim]
-
-        positive_score = torch.sum(node_emb[inputs.edge_index[0, ::2]] *
-                                   node_emb[inputs.edge_index[1, ::2]],
-                                   dim=1)
-        negative_score = torch.sum(node_emb[inputs.negative_edge_index[0]] *
-                                   node_emb[inputs.negative_edge_index[1]],
-                                   dim=1)
-
-        loss = self.criterion(
-            positive_score, torch.ones_like(positive_score)) + self.criterion(
-                negative_score, torch.zeros_like(negative_score))
-        return (loss * weights[0]).mean()
+    def classification_loss(self, inputs, labels):
+        out = self.model(inputs)
+        out = F.softmax(out, dim=2)
+        class_loss = self.criterion(out, labels)
+        return class_loss
 
     def _prepare_batch(self, batch):
         """
@@ -399,6 +420,27 @@ class GNNModular(ModularTorchModel):
             weights = weights[0]
 
         return inputs, labels, weights
+
+    def default_generator(
+            self,
+            dataset: Dataset,
+            epochs: int = 1,
+            mode: str = 'fit',
+            deterministic: bool = True,
+            pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
+        """
+        This default generator is modified from the default generator in dc.models.tensorgraph.tensor_graph.py to support multitask classification. If the task is classification, the labels y_b are converted to a one-hot encoding and reshaped according to the number of tasks and classes.
+        """
+
+        for epoch in range(epochs):
+            for (X_b, y_b, w_b,
+                 ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                               deterministic=deterministic,
+                                               pad_batches=pad_batches):
+                if self.task == 'classification' and y_b is not None:
+                    y_b = to_one_hot(y_b.flatten(), self.num_classes).reshape(
+                        -1, self.num_tasks, self.num_classes)
+                yield ([X_b], [y_b], [w_b])
 
 
 def negative_edge_sampler(data: BatchGraphData):
