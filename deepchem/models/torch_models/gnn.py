@@ -620,17 +620,17 @@ def mask_nodes(data: BatchGraphData,
     mask_node_labels_list = []
     for node_idx in masked_node_indices:
         mask_node_labels_list.append(data.node_features[node_idx].view(1, -1))
-    data.mask_node_label = torch.cat(mask_node_labels_list, dim=0)
+    data.mask_node_label = torch.cat(mask_node_labels_list, dim=0)[:, 0].long()
     data.masked_node_indices = torch.tensor(masked_node_indices)
 
     # modify the original node feature of the masked node
     num_node_feats = data.node_features.size()[1]
     for node_idx in masked_node_indices:
-        data.node_features[node_idx] = torch.tensor(
-            [[0] * (num_node_feats - 2) +  # zero out all node features
-             [num_node_type - 1] +  # last token is the mask token
-             [0]  # signifies that the edge is masked
-            ]).squeeze()
+        data.node_features[node_idx] = torch.zeros((1, num_node_feats))
+    # zeros are meant to represent the masked features. This is distinct from the
+    # original implementation, where the masked features are represented by the
+    # the last feature token 119.
+    # link to source: https://github.com/snap-stanford/pretrain-gnns/blob/08f126ac13623e551a396dd5e511d766f9d4f8ff/chem/util.py#L241
 
     if mask_edge:
         # create mask edge labels by copying edge features of edges that are connected to
@@ -653,15 +653,17 @@ def mask_nodes(data: BatchGraphData,
                 mask_edge_labels_list.append(data.edge_features[edge_idx].view(
                     1, -1))
 
-            data.mask_edge_label = torch.cat(mask_edge_labels_list, dim=0)
+            data.mask_edge_label = torch.cat(mask_edge_labels_list,
+                                             dim=0)[:, 0].long()
             # modify the original edge features of the edges connected to the mask nodes
             num_edge_feat = data.edge_features.size()[1]
             for edge_idx in connected_edge_indices:
-                data.edge_features[edge_idx] = torch.tensor(
-                    [0] * (num_edge_feat - 2) +  # zero out all edge features
-                    [num_edge_type] +  # last token is the mask token
-                    [0]).squeeze()  # signifies that the edge is masked
-
+                data.edge_features[edge_idx] = torch.zeros((1, num_edge_feat))
+            # zeros are meant to represent the masked features. This is distinct from the
+            # original implementation, where the masked features are represented by the
+            # the last feature token 4.
+            # link to source: https://github.com/snap-stanford/pretrain-gnns/blob/08f126ac13623e551a396dd5e511d766f9d4f8ff/chem/util.py#L268
+            
             data.connected_edge_indices = torch.tensor(
                 connected_edge_indices[::2])
         else:
@@ -728,9 +730,10 @@ def mask_edges(data: BatchGraphData,
     ]
     num_edge_feat = data.edge_features.size()[1]
     for idx in all_masked_edge_indices:
-        data.edge_features[idx] = torch.tensor(
-            [0] * (num_edge_feat - 2) +  # zero out all edge features
-            [num_edge_type] +  # last token is the mask token
-            [0]).squeeze()  # signifies that the edge is masked
+        data.edge_features[idx] = torch.zeros((1, num_edge_feat))
+    # zeros are meant to represent the masked features. This is distinct from the
+    # original implementation, where the masked features are represented by 0s and
+    # an additional mask feature
+    # link to source: https://github.com/snap-stanford/pretrain-gnns/blob/08f126ac13623e551a396dd5e511d766f9d4f8ff/bio/util.py#L101
 
     return data

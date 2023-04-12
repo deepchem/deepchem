@@ -986,6 +986,15 @@ class GraphNodeMaskingLoss(Loss):
 
     To use this loss function, the input must be a BatchGraphData object transformed by the mask_nodes function. The loss function takes the predicted node labels, predicted edge labels, and the input graph data (with masked node labels) as inputs and returns the node masking loss.
 
+    Parameters
+    ----------
+    pred_node: torch.Tensor
+        Predicted node labels
+    pred_edge: Optional(torch.Tensor)
+        Predicted edge labels
+    inputs: BatchGraphData
+        Input graph data with masked node and edge labels
+
     Examples
     --------
     >>> from deepchem.models.losses import GraphNodeMaskingLoss
@@ -996,18 +1005,18 @@ class GraphNodeMaskingLoss(Loss):
     >>> num_nodes_list, num_edge_list = [3, 4, 5], [2, 4, 5]
     >>> num_node_features, num_edge_features = 32, 32
     >>> edge_index_list = [
-    >>>     np.array([[0, 1], [1, 2]]),
-    >>>     np.array([[0, 1, 2, 3], [1, 2, 0, 2]]),
-    >>>     np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]]),
-    >>> ]
+    ...     np.array([[0, 1], [1, 2]]),
+    ...     np.array([[0, 1, 2, 3], [1, 2, 0, 2]]),
+    ...     np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]]),
+    ... ]
     >>> graph_list = [
-    >>>     GraphData(node_features=np.random.random_sample(
-    >>>         (num_nodes_list[i], num_node_features)),
-    >>>               edge_index=edge_index_list[i],
-    >>>               edge_features=np.random.random_sample(
-    >>>                   (num_edge_list[i], num_edge_features)),
-    >>>               node_pos_features=None) for i in range(len(num_edge_list))
-    >>> ]
+    ...     GraphData(node_features=np.random.random_sample(
+    ...         (num_nodes_list[i], num_node_features)),
+    ...               edge_index=edge_index_list[i],
+    ...               edge_features=np.random.random_sample(
+    ...                   (num_edge_list[i], num_edge_features)),
+    ...               node_pos_features=None) for i in range(len(num_edge_list))
+    ... ]
     >>> batched_graph = BatchGraphData(graph_list)
     >>> batched_graph = batched_graph.numpy_to_torch()
     >>> masked_graph = mask_nodes(batched_graph, 0.1)
@@ -1015,7 +1024,7 @@ class GraphNodeMaskingLoss(Loss):
     >>> pred_edge = torch.randn((sum(num_edge_list), num_edge_features))
     >>> loss_func = GraphNodeMaskingLoss()._create_pytorch_loss()
     >>> loss = loss_func(pred_node[masked_graph.masked_node_indices],
-    >>>                  pred_edge[masked_graph.masked_node_indices], masked_graph)
+    ...                  pred_edge[masked_graph.connected_edge_indices], masked_graph)
 
     References
     ----------
@@ -1030,12 +1039,12 @@ class GraphNodeMaskingLoss(Loss):
         def loss(pred_node, pred_edge, inputs):
 
             # loss for nodes
-            loss = self.criterion(pred_node,
-                                  inputs.mask_node_label[:, 0].long())
+            loss = self.criterion(
+                pred_node,
+                inputs.mask_node_label)
 
             if self.mask_edge:
-                loss += self.criterion(pred_edge,
-                                       inputs.mask_edge_label[:, 0].long())
+                loss += self.criterion(pred_edge, inputs.mask_edge_label)
             return loss
 
         return loss
@@ -1051,6 +1060,13 @@ class GraphEdgeMaskingLoss(Loss):
 
     To use this loss function, the input must be a BatchGraphData object transformed by the mask_edges function. The loss function takes the predicted edge labels and the true edge labels as inputs and returns the edge masking loss.
 
+    Parameters
+    ----------
+    pred_edge: torch.Tensor
+        Predicted edge labels.
+    inputs: BatchGraphData
+        Input graph data (with masked edge labels). The last two features of the inputs are reserved for the 
+
     Examples
     --------
     >>> from deepchem.models.losses import GraphEdgeMaskingLoss
@@ -1061,18 +1077,18 @@ class GraphEdgeMaskingLoss(Loss):
     >>> num_nodes_list, num_edge_list = [3, 4, 5], [2, 4, 5]
     >>> num_node_features, num_edge_features = 32, 32
     >>> edge_index_list = [
-    >>>     np.array([[0, 1], [1, 2]]),
-    >>>     np.array([[0, 1, 2, 3], [1, 2, 0, 2]]),
-    >>>     np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]]),
-    >>> ]
+    ...     np.array([[0, 1], [1, 2]]),
+    ...     np.array([[0, 1, 2, 3], [1, 2, 0, 2]]),
+    ...     np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]]),
+    ... ]
     >>> graph_list = [
-    >>>     GraphData(node_features=np.random.random_sample(
-    >>>         (num_nodes_list[i], num_node_features)),
-    >>>               edge_index=edge_index_list[i],
-    >>>               edge_features=np.random.random_sample(
-    >>>                   (num_edge_list[i], num_edge_features)),
-    >>>               node_pos_features=None) for i in range(len(num_edge_list))
-    >>> ]
+    ...     GraphData(node_features=np.random.random_sample(
+    ...         (num_nodes_list[i], num_node_features)),
+    ...               edge_index=edge_index_list[i],
+    ...               edge_features=np.random.random_sample(
+    ...                   (num_edge_list[i], num_edge_features)),
+    ...               node_pos_features=None) for i in range(len(num_edge_list))
+    ... ]
     >>> batched_graph = BatchGraphData(graph_list)
     >>> batched_graph = batched_graph.numpy_to_torch()
     >>> masked_graph = mask_edges(batched_graph, .1)
