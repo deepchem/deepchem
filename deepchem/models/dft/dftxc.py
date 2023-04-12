@@ -27,8 +27,8 @@ class DFTXC(torch.nn.Module):
             evl = XCNNSCF(hybridxc, entry)
             for system in entry.get_systems():
                 qcs = [evl.run(system)]
-            print(entry.get_val(qcs))
-            return(entry.get_val(qcs))
+            print("output", [entry.get_val(qcs)])
+            return [(entry.get_val(qcs))]
 
 
 class XCModel(TorchModel):
@@ -54,13 +54,20 @@ class XCModel(TorchModel):
                                       loss=loss,
                                       output_types=output_types,
                                       **kwargs)
-    def _prepare_batch(self, batch: Tuple[Any, Any, Any])-> Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]:
+
+    def _prepare_batch(self, batch):
 
         inputs, labels, weights = batch
-        print(inputs) 
-        labels = [torch.as_tensor(i[0].get_true_val()) for i in inputs]
+        print(inputs)
+        labels = [torch.from_numpy(inputs[0][0].get_true_val())
+                 ]  #for i in inputs
+        labels[0].requires_grad_()
+        weights = [torch.from_numpy(weights[0])]
+        print("labels", labels)
+        print("weights", weights)
         return (inputs, labels, weights)
-        
+
+
 class ExpM1Activation(torch.nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
