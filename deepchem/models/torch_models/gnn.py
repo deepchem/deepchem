@@ -1,4 +1,5 @@
 import random
+import copy
 import torch
 import numpy as np
 from torch_geometric.nn import GINEConv, global_add_pool, global_mean_pool, global_max_pool
@@ -337,7 +338,7 @@ class GNNModular(ModularTorchModel):
                                                 1)  # -1 to remove mask token
             linear_pred_edges = torch.nn.Linear(
                 self.emb_dim,
-                num_edge_type - 2)  # -2 to remove mask token and self-loop
+                num_edge_type - 1)  # -1 to remove mask token
             components.update({
                 'linear_pred_nodes': linear_pred_nodes,
                 'linear_pred_edges': linear_pred_edges
@@ -511,14 +512,14 @@ class GNNModular(ModularTorchModel):
                 yield ([X_b], [y_b], [w_b])
 
 
-def negative_edge_sampler(data: BatchGraphData):
+def negative_edge_sampler(input_graph: BatchGraphData):
     """
     NegativeEdge is a function that adds negative edges to the input graph data. It randomly samples negative edges (edges that do not exist in the original graph) and adds them to the input graph data.
     The number of negative edges added is equal to half the number of edges in the original graph. This is useful for tasks like edge prediction, where the model needs to learn to differentiate between existing and non-existing edges.
 
     Parameters
     ----------
-    data: dc.feat.graph_data.BatchGraphData
+    input_graph: dc.feat.graph_data.BatchGraphData
         The input graph data.
 
     Returns
@@ -551,7 +552,7 @@ def negative_edge_sampler(data: BatchGraphData):
     >>> batched_graph = batched_graph.numpy_to_torch()
     >>> neg_sampled = negative_edge_sampler(batched_graph)
     """
-    import torch
+    data = copy.deepcopy(input_graph)
 
     num_nodes = data.num_nodes
     num_edges = data.num_edges
@@ -580,16 +581,18 @@ def negative_edge_sampler(data: BatchGraphData):
     return data
 
 
-def mask_nodes(data: BatchGraphData,
+def mask_nodes(input_graph: BatchGraphData,
                mask_rate,
                masked_node_indices=None,
                mask_edge=True):
     """
-    Mask nodes and their connected edges in a PyTorch geometric data object.
+    Mask nodes and their connected edges in a BatchGraphData object.
+
+    This function assumes that the first node feature is the atomic number, for example with the SNAPFeaturizer. It will set masked nodes' features to 0.
 
     Parameters
     ----------
-    data: dc.feat.BatchGraphData
+    input_graph: dc.feat.BatchGraphData
         Assume that the edge ordering is the default PyTorch geometric ordering, where the two directions of a single edge occur in pairs.
         Eg. data.edge_index = tensor([[0, 1, 1, 2, 2, 3],
                                     [1, 0, 2, 1, 3, 2]])
@@ -608,6 +611,7 @@ def mask_nodes(data: BatchGraphData,
         - data.mask_edge_label
 
         """
+    data = copy.deepcopy(input_graph)
 
     if masked_node_indices is None:
         # sample x distinct nodes to be masked, based on mask rate. But
@@ -679,7 +683,7 @@ def mask_nodes(data: BatchGraphData,
     return data
 
 
-def mask_edges(data: BatchGraphData,
+def mask_edges(input_graph: BatchGraphData,
                mask_rate: float,
                masked_edge_indices=None):
     """
@@ -689,7 +693,7 @@ def mask_edges(data: BatchGraphData,
 
     Parameters
     ----------
-    data: dc.feat.BatchGraphData
+    input_graph: dc.feat.BatchGraphData
         Assume that the edge ordering is the default PyTorch geometric ordering, where the two directions of a single edge occur in pairs.
         Eg. data.edge_index = tensor([[0, 1, 1, 2, 2, 3],
                                       [1, 0, 2, 1, 3, 2]])
@@ -704,6 +708,8 @@ def mask_edges(data: BatchGraphData,
         - data.mask_edge_labels: corresponding ground truth edge feature for each masked edge
         - data.edge_attr: modified in place: the edge features (both directions) that correspond to the masked edges have the masked edge feature
         """
+    data = copy.deepcopy(input_graph)
+
     if masked_edge_indices is None:
         # sample x distinct edges to be masked, based on mask rate. But
         # will sample at least 1 edge

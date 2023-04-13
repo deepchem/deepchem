@@ -5,7 +5,7 @@ from deepchem.feat.graph_data import GraphData
 
 allowable_features = {
     'possible_atomic_num_list':
-    list(range(1, 119)),
+        list(range(0, 119)),  # 0 represents a masked atom
     'possible_formal_charge_list': [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5],
     'possible_chirality_list': [
         Chem.rdchem.ChiralType.CHI_UNSPECIFIED,
@@ -23,8 +23,11 @@ allowable_features = {
     'possible_implicit_valence_list': [0, 1, 2, 3, 4, 5, 6],
     'possible_degree_list': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     'possible_bonds': [
-        Chem.rdchem.BondType.SINGLE, Chem.rdchem.BondType.DOUBLE,
-        Chem.rdchem.BondType.TRIPLE, Chem.rdchem.BondType.AROMATIC
+        0,  # 0 represents a masked bond
+        Chem.rdchem.BondType.SINGLE,
+        Chem.rdchem.BondType.DOUBLE,
+        Chem.rdchem.BondType.TRIPLE,
+        Chem.rdchem.BondType.AROMATIC
     ],
     'possible_bond_dirs': [  # only for double bond stereo information
         Chem.rdchem.BondDir.NONE, Chem.rdchem.BondDir.ENDUPRIGHT,

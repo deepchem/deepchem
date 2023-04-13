@@ -92,7 +92,7 @@ def test_GNN_node_masking():
     from deepchem.models.torch_models.gnn import GNNModular
 
     dataset, _ = get_regression_dataset()
-    model = GNNModular(task="mask_nodes")
+    model = GNNModular(task="mask_nodes", device="cpu")
     loss1 = model.fit(dataset, nb_epoch=5)
     loss2 = model.fit(dataset, nb_epoch=5)
     assert loss2 < loss1
