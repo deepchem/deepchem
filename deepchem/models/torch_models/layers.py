@@ -2861,14 +2861,14 @@ class SetGather(nn.Module):
             f'{self.__class__.__name__}(M={self.M}, batch_size={self.batch_size}, n_hidden={self.n_hidden}, init={self.init})'
         )
 
-    def forward(self, inputs: Sequence[np.ndarray]) -> torch.Tensor:
+    def forward(self, inputs: List) -> torch.Tensor:
         """Perform M steps of set2set gather,
 
         Detailed descriptions in: https://arxiv.org/abs/1511.06391
 
         Parameters
         ----------
-        inputs: Sequence[np.ndarray]
+        inputs: List
             This contains two elements.
             atom_features: np.ndarray
             atom_split: np.ndarray
@@ -2903,7 +2903,7 @@ class SetGather(nn.Module):
                         torch.from_numpy(atom_split).long(),
                         dim=0)
             # Model using this layer must set `pad_batches=True`
-            q_star = torch.cat([h, r], axis=1)
+            q_star = torch.cat([h, r], dim=1)
             h, c = self._LSTMStep(q_star, c)
         return q_star
 
