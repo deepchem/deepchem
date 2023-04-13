@@ -6,6 +6,7 @@ from deepchem.models.dft.nnxc import HybridXC
 from deepchem.models.losses import Loss, L2Loss
 from deepchem.models.torch_models.torch_model import TorchModel
 from typing import List, Optional, Tuple, Any
+import numpy as np
 
 
 class DFTXC(torch.nn.Module):
@@ -25,9 +26,9 @@ class DFTXC(torch.nn.Module):
         hybridxc = HybridXC("lda_x", self.model, aweight0=0.0)
         for entry in inputs:
             evl = XCNNSCF(hybridxc, entry)
+            qcs = []
             for system in entry.get_systems():
-                qcs = [evl.run(system)]
-            print("output", [entry.get_val(qcs)])
+                qcs.append(evl.run(system))
             return [(entry.get_val(qcs))]
 
 
@@ -58,13 +59,10 @@ class XCModel(TorchModel):
     def _prepare_batch(self, batch):
 
         inputs, labels, weights = batch
-        print(inputs)
-        labels = [torch.from_numpy(inputs[0][0].get_true_val())
-                 ]  #for i in inputs
+        labels = [torch.from_numpy(inputs[0][0].get_true_val())]
         labels[0].requires_grad_()
-        weights = [torch.from_numpy(weights[0])]
-        print("labels", labels)
-        print("weights", weights)
+        w = np.array([1.0])
+        weights = [torch.from_numpy(w)]
         return (inputs, labels, weights)
 
 

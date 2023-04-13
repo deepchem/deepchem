@@ -1672,6 +1672,7 @@ class DiskDataset(Dataset):
             if batch_size is None:
                 num_global_batches = num_shards
             else:
+                print(batch_size)
                 num_global_batches = math.ceil(dataset.get_shape()[0][0] /
                                                batch_size)
 

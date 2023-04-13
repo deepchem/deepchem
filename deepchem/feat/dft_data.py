@@ -40,6 +40,12 @@ class DFTSystem():
         self.system = system
         self.moldesc = system["moldesc"]
         self.basis = system["basis"]
+        self.spin = 0
+        self.charge = 0
+        if 'spin' in system.keys():
+            self.spin = int(system["spin"])
+        if 'charge' in system.keys():
+            self.charge = int(system["charge"])
         """
         Parameters
         ----------
@@ -63,7 +69,7 @@ class DFTSystem():
         atomzs, atomposs = dqc.parse_moldesc(self.moldesc)
         if pos_reqgrad:
             atomposs.requires_grad_()
-        mol = Mol(self.moldesc, self.basis)
+        mol = Mol(self.moldesc, self.basis, spin=self.spin, charge=self.charge)
         return mol
 
 
@@ -106,7 +112,8 @@ class DFTEntry():
             the DQC or PYSCF format. The systems needs to be entered in a
             specific order, i.e ; the main atom/molecule needs to be the
             first element. (This is for objects containing equations, such
-            as ae and ie entry objects).
+            as ae and ie entry objects). Spin and charge of the system are
+            optional parameters and are considered '0' if not specified.
         Returns
         -------
         DFTEntry object based on entry type
@@ -161,7 +168,7 @@ class DFTEntry():
         return np.array(0)
 
     @abstractmethod
-    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
+    def get_val(self, qcs: List[KSCalc]):
         """
         Return the energy value of the entry, using a DQC-DFT calculation, where the XC has been
         replaced by the trained neural network. This method does not carry out any calculations, it is
@@ -204,8 +211,9 @@ class _EntryDM(DFTEntry):
         dm = np.load(self.true_val)
         return dm
 
-    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
+    def get_val(self, qcs: List[KSCalc]):
         return (qcs[0].aodmtot())
+
 
 class _EntryDens(DFTEntry):
     """
@@ -234,7 +242,7 @@ class _EntryDens(DFTEntry):
         dens = np.load(self.true_val)
         return dens
 
-    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
+    def get_val(self, qcs: List[KSCalc]):
         """
         This method calculates the integration grid which is then used to calculate the
         density profile of an entry object.
@@ -301,7 +309,7 @@ class _EntryIE(DFTEntry):
     def get_true_val(self) -> np.ndarray:
         return np.array([self.true_val])
 
-    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
+    def get_val(self, qcs: List[KSCalc]):
         """
         This method calculates the energy of an entry based on the systems and command present
         in the data object. For example; for a Lithium hydride molecule the total energy
