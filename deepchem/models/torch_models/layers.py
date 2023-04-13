@@ -2868,23 +2868,23 @@ class SetGather(nn.Module):
 
         Parameters
         ----------
-        inputs: Sequence[nd.array]
+        inputs: Sequence[np.ndarray]
             This contains two elements.
-            atom_features: (n_atoms, n_atom_feat)
-            atom_split: (n_atoms,)
+            atom_features: np.ndarray
+            atom_split: np.ndarray
 
         Returns
         -------
         q_star: torch.Tensor
             Final state of the model after all M steps.
-    
+
         """
         atom_features, atom_split = inputs
         c = torch.zeros((self.batch_size, self.n_hidden))
         h = torch.zeros((self.batch_size, self.n_hidden))
 
         for i in range(self.M):
-            q_expanded = h[atom_split]  # Fine
+            q_expanded = h[atom_split]
             e = (torch.from_numpy(atom_features) * q_expanded).sum(dim=-1)
             e_mols = self._dynamic_partition(e, atom_split, self.batch_size)
 
