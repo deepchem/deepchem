@@ -9,4 +9,3 @@ def test_snap_featurizer():
     assert features[0].node_features.shape == (6, 2)
     assert features[1].edge_index.shape == (2, 6)
     assert features[2].edge_features.shape == (0, 2)
-

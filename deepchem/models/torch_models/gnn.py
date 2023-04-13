@@ -612,7 +612,7 @@ def mask_nodes(data: BatchGraphData,
     if masked_node_indices is None:
         # sample x distinct nodes to be masked, based on mask rate. But
         # will sample at least 1 node
-        num_nodes = data.node_features.size()[0]
+        num_nodes = data.node_features.size()[0]  # type: ignore
         sample_size = int(num_nodes * mask_rate + 1)
         masked_node_indices = random.sample(range(num_nodes), sample_size)
 
@@ -624,7 +624,7 @@ def mask_nodes(data: BatchGraphData,
     data.masked_node_indices = torch.tensor(masked_node_indices)  # type: ignore
 
     # modify the original node feature of the masked node
-    num_node_feats = data.node_features.size()[1]
+    num_node_feats = data.node_features.size()[1]  # type: ignore
     for node_idx in masked_node_indices:
         data.node_features[node_idx] = torch.zeros((1, num_node_feats))
     # zeros are meant to represent the masked features. This is distinct from the
@@ -636,7 +636,8 @@ def mask_nodes(data: BatchGraphData,
         # create mask edge labels by copying edge features of edges that are connected to
         # mask nodes
         connected_edge_indices = []
-        for edge_idx, (u, v) in enumerate(data.edge_index.cpu().numpy().T):
+        for edge_idx, (u, v) in enumerate(
+                data.edge_index.cpu().numpy().T):  # type: ignore
             for node_idx in masked_node_indices:
                 if node_idx in set(
                     (u, v)) and edge_idx not in connected_edge_indices:
@@ -650,14 +651,14 @@ def mask_nodes(data: BatchGraphData,
                 # edge ordering is such that two directions of a single
                 # edge occur in pairs, so to get the unique undirected
                 # edge indices, we take every 2nd edge index from list
-                mask_edge_labels_list.append(data.edge_features[edge_idx].view(
-                    1, -1))
+                mask_edge_labels_list.append(
+                    data.edge_features[edge_idx].view(  # type: ignore
+                        1, -1))
 
             data.mask_edge_label = torch.cat(  # type: ignore
-                mask_edge_labels_list,
-                dim=0)[:, 0].long()
+                mask_edge_labels_list, dim=0)[:, 0].long()  # type: ignore
             # modify the original edge features of the edges connected to the mask nodes
-            num_edge_feat = data.edge_features.size()[1]
+            num_edge_feat = data.edge_features.size()[1]  # type: ignore
             for edge_idx in connected_edge_indices:
                 data.edge_features[edge_idx] = torch.zeros((1, num_edge_feat))
             # zeros are meant to represent the masked features. This is distinct from the
@@ -703,7 +704,8 @@ def mask_edges(data: BatchGraphData,
     if masked_edge_indices is None:
         # sample x distinct edges to be masked, based on mask rate. But
         # will sample at least 1 edge
-        num_edges = int(data.edge_index.size()[1] / 2)  # num unique edges
+        num_edges = int(data.edge_index.size()[1] /
+                        2)  # num unique edges  # type: ignore
         sample_size = int(num_edges * mask_rate + 1)
         # during sampling, we only pick the 1st direction of a particular
         # edge pair
@@ -718,7 +720,8 @@ def mask_edges(data: BatchGraphData,
     # the masked indices
     mask_edge_labels_list = []
     for idx in masked_edge_indices:
-        mask_edge_labels_list.append(data.edge_features[idx].view(1, -1))
+        mask_edge_labels_list.append(data.edge_features[idx].view(
+            1, -1))  # type: ignore
     data.mask_edge_label = torch.cat(mask_edge_labels_list,  # type: ignore
                                      dim=0)
 
@@ -729,7 +732,7 @@ def mask_edges(data: BatchGraphData,
     all_masked_edge_indices = masked_edge_indices + [
         i + 1 for i in masked_edge_indices
     ]
-    num_edge_feat = data.edge_features.size()[1]
+    num_edge_feat = data.edge_features.size()[1]  # type: ignore
     for idx in all_masked_edge_indices:
         data.edge_features[idx] = torch.zeros((1, num_edge_feat))
     # zeros are meant to represent the masked features. This is distinct from the
