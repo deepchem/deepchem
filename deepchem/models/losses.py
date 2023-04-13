@@ -1039,9 +1039,7 @@ class GraphNodeMaskingLoss(Loss):
         def loss(pred_node, pred_edge, inputs):
 
             # loss for nodes
-            loss = self.criterion(
-                pred_node,
-                inputs.mask_node_label)
+            loss = self.criterion(pred_node, inputs.mask_node_label)
 
             if self.mask_edge:
                 loss += self.criterion(pred_edge, inputs.mask_edge_label)
@@ -1065,7 +1063,7 @@ class GraphEdgeMaskingLoss(Loss):
     pred_edge: torch.Tensor
         Predicted edge labels.
     inputs: BatchGraphData
-        Input graph data (with masked edge labels). The last two features of the inputs are reserved for the 
+        Input graph data (with masked edge labels).
 
     Examples
     --------
