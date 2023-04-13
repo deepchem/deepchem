@@ -589,8 +589,8 @@ def mask_nodes(data: BatchGraphData,
 
     Parameters
     ----------
-    data: torch_geometric.data.Data
-        PyTorch geometric data object. Assume that the edge ordering is the default PyTorch geometric ordering, where the two directions of a single edge occur in pairs.
+    data: dc.feat.BatchGraphData
+        Assume that the edge ordering is the default PyTorch geometric ordering, where the two directions of a single edge occur in pairs.
         Eg. data.edge_index = tensor([[0, 1, 1, 2, 2, 3],
                                     [1, 0, 2, 1, 3, 2]])
     masked_node_indices: list, optional
@@ -600,7 +600,7 @@ def mask_nodes(data: BatchGraphData,
 
     Returns
     -------
-    None
+    data: dc.feat.BatchGraphData
         Creates new attributes in the original data object:
         - data.mask_node_idx
         - data.mask_node_label
@@ -679,14 +679,14 @@ def mask_edges(data: BatchGraphData,
                mask_rate: float,
                masked_edge_indices=None):
     """
-    Mask edges in a PyTorch geometric data object.
+    Mask edges in a BatchGraphData object.
 
     This is separate from the mask_nodes function because we want to be able to mask edges without masking any nodes.
 
     Parameters
     ----------
-    data : torch_geometric.data.Data
-        PyTorch geometric data object. Assume that the edge ordering is the default PyTorch geometric ordering, where the two directions of a single edge occur in pairs.
+    data: dc.feat.BatchGraphData
+        Assume that the edge ordering is the default PyTorch geometric ordering, where the two directions of a single edge occur in pairs.
         Eg. data.edge_index = tensor([[0, 1, 1, 2, 2, 3],
                                       [1, 0, 2, 1, 3, 2]])
     masked_edge_indices : list, optional
@@ -694,8 +694,8 @@ def mask_edges(data: BatchGraphData,
 
     Returns
     -------
-    None
-        Creates new attributes in the original data object:
+    data: dc.feat.BatchGraphData
+        Creates new attributes in the original  object:
         - data.mask_edge_idx: indices of masked edges
         - data.mask_edge_labels: corresponding ground truth edge feature for each masked edge
         - data.edge_attr: modified in place: the edge features (both directions) that correspond to the masked edges have the masked edge feature
