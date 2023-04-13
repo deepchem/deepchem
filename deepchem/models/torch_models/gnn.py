@@ -620,9 +620,8 @@ def mask_nodes(data: BatchGraphData,
     mask_node_labels_list = []
     for node_idx in masked_node_indices:
         mask_node_labels_list.append(data.node_features[node_idx].view(1, -1))
-    data.mask_node_label = torch.cat(
-        mask_node_labels_list,  # type: ignore
-        dim=0)[:, 0].long()
+    data.mask_node_label = torch.cat(  # type: ignore
+        mask_node_labels_list, dim=0)[:, 0].long()
     data.masked_node_indices = torch.tensor(masked_node_indices)  # type: ignore
 
     # modify the original node feature of the masked node
@@ -739,8 +738,8 @@ def mask_edges(data: BatchGraphData,
     ]
     num_edge_feat = data.edge_features.size()[1]  # type: ignore
     for idx in all_masked_edge_indices:
-        data.edge_features[idx] = torch.zeros(
-            (1, num_edge_feat))  # type: ignore
+        data.edge_features[idx] = torch.zeros(  # type: ignore
+            (1, num_edge_feat))
     # zeros are meant to represent the masked features. This is distinct from the
     # original implementation, where the masked features are represented by 0s and
     # an additional mask feature
