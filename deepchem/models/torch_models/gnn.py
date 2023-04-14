@@ -336,9 +336,8 @@ class GNNModular(ModularTorchModel):
             self.emb_dim = (self.num_layer + 1) * self.emb_dim
             linear_pred_nodes = torch.nn.Linear(self.emb_dim, num_node_type -
                                                 1)  # -1 to remove mask token
-            linear_pred_edges = torch.nn.Linear(
-                self.emb_dim,
-                num_edge_type - 1)  # -1 to remove mask token
+            linear_pred_edges = torch.nn.Linear(self.emb_dim, num_edge_type -
+                                                1)  # -1 to remove mask token
             components.update({
                 'linear_pred_nodes': linear_pred_nodes,
                 'linear_pred_edges': linear_pred_edges
