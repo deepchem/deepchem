@@ -409,9 +409,9 @@ class GNNModular(ModularTorchModel):
             node_emb, inputs = self.model(inputs)
             loss = self.edge_pred_loss(node_emb, inputs)
         elif self.task == "mask_nodes":
-            loss = self.masked_node_loss(inputs, labels)
+            loss = self.masked_node_loss(inputs)
         elif self.task == "mask_edges":
-            loss = self.masked_edge_loss(inputs, labels)
+            loss = self.masked_edge_loss(inputs)
         elif self.task == "regression":
             loss = self.regression_loss(inputs, labels)
         elif self.task == "classification":
@@ -429,7 +429,11 @@ class GNNModular(ModularTorchModel):
         class_loss = self.criterion(out, labels)
         return class_loss
 
-    def masked_node_loss(self, inputs, labels):
+    def masked_node_loss(self, inputs):
+        """
+        Produces the loss between the predicted node features and the true node features for masked nodes.  Set mask_edge to True to also predict the edge types for masked edges.
+        """
+
         node_emb, inputs = self.model(inputs)
         pred_node = self.components['linear_pred_nodes'](
             node_emb[inputs.masked_node_indices])
@@ -443,7 +447,11 @@ class GNNModular(ModularTorchModel):
             pred_edge = None
         return self.node_mask_loss(pred_node, pred_edge, inputs)
 
-    def masked_edge_loss(self, inputs, labels):
+    def masked_edge_loss(self, inputs):
+        """
+        Produces the loss between the predicted edge types and the true edge types for masked edges.
+        """
+
         node_emb, inputs = self.model(inputs)
 
         # predict the edge types.
