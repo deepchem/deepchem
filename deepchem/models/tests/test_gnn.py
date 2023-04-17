@@ -141,3 +141,17 @@ def test_GNN_multitask_classification():
     model.fit(dataset, nb_epoch=200)
     scores = model.evaluate(dataset, [metric])
     assert scores['mean-roc_auc_score'] >= 0.8
+
+@pytest.mark.torch
+def test_GNN_infomax():
+
+    from deepchem.models.torch_models.gnn import GNNModular
+
+    dataset, _ = get_regression_dataset()
+    model = GNNModular(task="infomax")
+    loss1 = model.fit(dataset, nb_epoch=5)
+    loss2 = model.fit(dataset, nb_epoch=5)
+    assert loss2 < loss1
+
+
+test_GNN_infomax()

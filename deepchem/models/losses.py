@@ -1112,6 +1112,56 @@ class GraphEdgeMaskingLoss(Loss):
         return loss
 
 
+class GraphInfomaxLoss(Loss):
+    """
+    Loss that maximizes mutual information between local node representations and a pooled global graph representation. This is to encourage nearby nodes to have similar embeddings.
+
+    Parameters
+    ----------
+    positive_score: torch.Tensor
+        Positive score. This score measures the similarity between the local node embeddings (`node_emb`) and the global graph representation (`positive_expanded_summary_emb`) derived from the same graph. The goal is to maximize this score, as it indicates that the local node embeddings and the global graph representation are highly correlated, capturing the mutual information between them.
+    negative_score: torch.Tensor
+        Negative score. This score measures the similarity between the local node embeddings (`node_emb`) and the global graph representation (`negative_expanded_summary_emb`) derived from a different graph (shifted by one position in this case). The goal is to minimize this score, as it indicates that the local node embeddings and the global graph representation from different graphs are not correlated, ensuring that the model learns meaningful representations that are specific to each graph.
+
+    Examples
+    --------
+    >>> import torch
+    >>> import numpy as np
+    >>> from deepchem.feat.graph_data import GraphData
+    >>> from torch_geometric.nn import global_mean_pool
+    >>> from deepchem.models.losses import GraphInfomaxLoss
+    >>> x = np.array([[1, 0], [0, 1], [1, 1], [0, 0]])
+    >>> edge_index = np.array([[0, 1, 2, 0, 3], [1, 0, 1, 3, 2]])
+    >>> graph_index = np.array([0, 0, 1, 1])
+    >>> data = GraphData(node_features=x, edge_index=edge_index, graph_index=graph_index).numpy_to_torch()
+    >>> graph_infomax_loss = GraphInfomaxLoss()._create_pytorch_loss()
+    >>> # Initialize node_emb randomly
+    >>> num_nodes = data.num_nodes
+    >>> embedding_dim = 8
+    >>> node_emb = torch.randn(num_nodes, embedding_dim)
+    >>> # Compute the global graph representation
+    >>> summary_emb = global_mean_pool(node_emb, data.graph_index)
+    >>> # Compute positive and negative scores
+    >>> positive_score = torch.matmul(node_emb, summary_emb.t())
+    >>> negative_score = torch.matmul(node_emb, summary_emb.roll(1, dims=0).t())
+    >>> loss = graph_infomax_loss(positive_score, negative_score)
+
+    References
+    ----------
+    .. [1] Veličković, P. et al. Deep Graph Infomax. Preprint at https://doi.org/10.48550/arXiv.1809.10341 (2018).
+
+    """
+    def _create_pytorch_loss(self):
+        import torch
+        self.criterion = torch.nn.BCEWithLogitsLoss()
+
+        def loss(positive_score, negative_score):
+
+            return self.criterion(positive_score, torch.ones_like(positive_score)) + self.criterion(negative_score, torch.zeros_like(negative_score))
+
+        return loss
+
+
 def _make_tf_shapes_consistent(output, labels):
     """Try to make inputs have the same shape by adding dimensions of size 1."""
     import tensorflow as tf
