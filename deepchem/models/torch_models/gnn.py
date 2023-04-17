@@ -8,7 +8,7 @@ from torch_geometric.nn.inits import uniform
 import torch.nn as nn
 from torch.functional import F
 from deepchem.data import Dataset
-from deepchem.models.losses import SoftmaxCrossEntropy, EdgePredictionLoss, GraphNodeMaskingLoss, GraphEdgeMaskingLoss, GraphInfomaxLoss
+from deepchem.models.losses import SoftmaxCrossEntropy, EdgePredictionLoss, GraphNodeMaskingLoss, GraphEdgeMaskingLoss, DeepGraphInfomaxLoss
 from deepchem.models.torch_models import ModularTorchModel
 from deepchem.feat.graph_data import BatchGraphData
 from typing import Iterable, List, Tuple
@@ -181,8 +181,15 @@ class GNNHead(torch.nn.Module):
 
 
 class Discriminator(nn.Module):
-
+    """
+    This discriminator module is a linear layer without bias, used to measure the similarity between local node representations (`x`) and global graph representations (`summary`). The goal of the discriminator is to distinguish between positive and negative pairs of local and global representations.
+    """
     def __init__(self, hidden_dim):
+        """
+        `self.weight` is a learnable weight matrix of shape `(hidden_dim, hidden_dim)`.
+
+        Parameters are tensors that require gradients and are optimized during the training process.
+        """
         super(Discriminator, self).__init__()
         self.weight = nn.Parameter(torch.Tensor(hidden_dim, hidden_dim))
         self.reset_parameters()
@@ -192,6 +199,9 @@ class Discriminator(nn.Module):
         uniform(size, self.weight)
 
     def forward(self, x, summary):
+        """
+        The forward method takes two inputs, `x` (local node representations) and `summary` (global graph representations), both of shape `(batch_size, hidden_dim)`. It computes the product of `summary` and `self.weight`, and then calculates the element-wise product of `x` and the resulting matrix `h`. Finally, it returns the sum of the element-wise product along dimension 1 (i.e., summing over the `hidden_dim`), resulting in a tensor of shape `(batch_size,)`, which represents the similarity scores between the local and global representations.
+        """
         h = torch.matmul(summary, self.weight)
         return torch.sum(x * h, dim=1)
 
@@ -285,7 +295,7 @@ class GNNModular(ModularTorchModel):
             self.mask_rate = mask_rate
             self.edge_mask_loss = GraphEdgeMaskingLoss()._create_pytorch_loss()
         elif task == "infomax":
-            self.graph_infomax_loss = GraphInfomaxLoss()._create_pytorch_loss()
+            self.graph_infomax_loss = DeepGraphInfomaxLoss()._create_pytorch_loss()
 
         self.graph_pooling = graph_pooling
         self.dropout = dropout
