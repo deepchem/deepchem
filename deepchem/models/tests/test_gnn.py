@@ -144,7 +144,6 @@ def test_GNN_multitask_classification():
 
 @pytest.mark.torch
 def test_GNN_infomax():
-
     from deepchem.models.torch_models.gnn import GNNModular
 
     dataset, _ = get_regression_dataset()
@@ -152,6 +151,3 @@ def test_GNN_infomax():
     loss1 = model.fit(dataset, nb_epoch=5)
     loss2 = model.fit(dataset, nb_epoch=5)
     assert loss2 < loss1
-
-
-test_GNN_infomax()

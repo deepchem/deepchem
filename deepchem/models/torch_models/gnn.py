@@ -407,7 +407,10 @@ class GNNModular(ModularTorchModel):
         elif self.task == 'infomax':
             self.emb_dim = (self.num_layer + 1) * self.emb_dim
             descrim = Discriminator(self.emb_dim)
-            components.update({'discriminator': descrim, 'pool': global_mean_pool})
+            components.update({
+                'discriminator': descrim,
+                'pool': global_mean_pool
+            })
 
         return components
 
@@ -492,7 +495,7 @@ class GNNModular(ModularTorchModel):
 
     def infomax_loss(self, inputs):
         """
-        Loss that maximizes mutual information between local node representations and a pooled global graph representation. The positive and negative scores represent the similarity between local node representations and global graph representations of similar and dissimilar graphs, respectively.
+        Loss that maximizes mutual information between local node representations and a pooled global graph representation. The positive and negative scores represent the similarity between local node representations and global graph representations of simlar and dissimilar graphs, respectively.
         """
         node_emb, inputs = self.model(inputs)
         summary_emb = torch.sigmoid(self.components['pool'](node_emb,
