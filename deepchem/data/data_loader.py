@@ -1690,12 +1690,10 @@ class DFTYamlLoader(DataLoader):
 
         def shard_generator():
             entries = self._get_shards(inputs)
-            i = 0
-            for shard in entries:
+            for i, shard in enumerate(entries):
                 X = np.array(self._featurize_shard(shard))
                 y = np.array([0])
                 w = np.array([1.0])
-                i = i + 1
                 ids = np.array([i])
                 yield X, y, w, ids
 
