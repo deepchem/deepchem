@@ -1112,7 +1112,7 @@ class GraphEdgeMaskingLoss(Loss):
         return loss
 
 
-class GraphInfomaxLoss(Loss):
+class DeepGraphInfomaxLoss(Loss):
     """
     Loss that maximizes mutual information between local node representations and a pooled global graph representation. This is to encourage nearby nodes to have similar embeddings.
 

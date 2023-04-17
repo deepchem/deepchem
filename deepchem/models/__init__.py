@@ -57,7 +57,7 @@ except ModuleNotFoundError as e:
 # Pytorch models with torch-geometric dependency
 try:
     # TODO We should clean up DMPNN and remove torch_geometric dependency during import
-    from deepchem.models.torch_models import DMPNN, DMPNNModel
+    from deepchem.models.torch_models import DMPNN, DMPNNModel, GNNModular
 except ImportError as e:
     logger.warning(
         f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'
