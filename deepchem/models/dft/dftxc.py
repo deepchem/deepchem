@@ -29,7 +29,10 @@ class DFTXC(torch.nn.Module):
             qcs = []
             for system in entry.get_systems():
                 qcs.append(evl.run(system))
-            return [(entry.get_val(qcs))]
+            if entry.entry_type == 'dm':
+                return torch.as_tensor(entry.get_val(qcs)[0])
+            else:
+                return torch.as_tensor(entry.get_val(qcs))
 
 
 class XCModel(TorchModel):
@@ -42,14 +45,14 @@ class XCModel(TorchModel):
                  modeltype: int = 1,
                  n_tasks: int = 0,
                  log_frequency: int = 0,
-                 mode: str = 'regression',
+                 mode: str = 'classification',
                  device: Optional[torch.device] = None,
                  **kwargs) -> None:
         model = DFTXC(xc_type, ninp, nhid, ndepths, modeltype)
         self.xc = xc_type
         self.model = model
         loss: Loss = L2Loss()
-        output_types = ['loss']
+        output_types = ['loss', 'predict']
         self.mode = mode
         super(XCModel, self).__init__(model,
                                       loss=loss,
