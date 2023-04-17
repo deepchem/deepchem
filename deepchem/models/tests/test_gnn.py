@@ -142,6 +142,7 @@ def test_GNN_multitask_classification():
     scores = model.evaluate(dataset, [metric])
     assert scores['mean-roc_auc_score'] >= 0.8
 
+
 @pytest.mark.torch
 def test_GNN_infomax():
     from deepchem.models.torch_models.gnn import GNNModular
