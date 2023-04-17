@@ -3,6 +3,7 @@ try:
     has_dqc = True
 except ModuleNotFoundError:
     has_dqc = False
+    pass
 import pytest
 
 
