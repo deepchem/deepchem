@@ -86,9 +86,8 @@ class ModularTorchModel(TorchModel):
         super().__init__(self.model, self.loss_func, **kwargs)
         self.model.to(self.device)
         self.components = {
-            k: v.to(self.device)
+            k: v.to(self.device) if isinstance(v, nn.Module) else v
             for k, v in self.components.items()
-            if isinstance(v, nn.Module)
         }
 
     def build_model(self) -> nn.Module:
@@ -348,7 +347,8 @@ class ModularTorchModel(TorchModel):
         }
 
         for name, component in self.components.items():
-            data[name] = component.state_dict()
+            if hasattr(component, 'state_dict'):
+                data[name] = component.state_dict()
 
         temp_file = os.path.join(model_dir, 'temp_checkpoint.pt')
         torch.save(data, temp_file)
