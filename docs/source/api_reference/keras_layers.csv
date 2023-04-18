@@ -1,0 +1,8 @@
+﻿Layer,Reference
+InteratomicL2Distances,
+GraphConv,`ref <https://arxiv.org/abs/1509.09292>`_
+GraphPool,
+GraphGather,
+MolGANConvolutionLayer,
+MolGANAggregationLayer,
+MolGANMultiConvolutionLayer,
