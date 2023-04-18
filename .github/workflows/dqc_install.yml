@@ -25,6 +25,10 @@ jobs:
       uses: actions/setup-python@v4.5.0
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Build DeepChem
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e '.[dqc]'
     - name: Create env.yml
       shell: bash
       run: |
@@ -52,6 +56,9 @@ jobs:
     - name: Import numpy
       shell: bash -l {0}
       run: python -c 'import numpy as np; print ("numpy version is %s" % np.__version__)'
+    - name: Import torch models
+      shell: bash -l {0}
+      run: python -c 'import deepchem.models.torch_models'
     - name: Test Install
       shell: bash -l {0}
       run: |
