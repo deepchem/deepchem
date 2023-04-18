@@ -10,19 +10,39 @@ import numpy as np
 
 
 class DFTXC(torch.nn.Module):
-
+    """
+    """
     def __init__(self,
-                 xc_type: str,
+                 xcstr: str,
                  ninp: int = 2,
                  nhid: int = 10,
                  ndepths: int = 1,
                  modeltype: int = 1):
-
+        """
+        Parameters
+        ----------
+        xcstr: str
+            The choice of xc to use. Some of the commonly used ones are:
+            lda_x, lda_c_pw, lda_c_ow, lda_c_pz, lda_xc_lp_a, lda_xc_lp_b.
+            The rest of the possible values can be found under the
+            "LDA Functionals" section in the reference given below.
+        """
         super(DFTXC, self).__init__()
         self.model = construct_nn_model(ninp, nhid, ndepths,
                                         modeltype).to(torch.double)
 
     def forward(self, inputs):
+        """
+        Parameters
+        ----------
+        inputs: list of tensors containing dataset 
+        
+        Returns
+        -------
+        torch.Tensor
+            Calculated value of the data point after running the Kohn Sham iterations
+            using the neural network XC functional"
+        """ 
         hybridxc = HybridXC("lda_x", self.model, aweight0=0.0)
         for entry in inputs:
             evl = XCNNSCF(hybridxc, entry)
