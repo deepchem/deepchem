@@ -15,5 +15,5 @@ dependencies:
    - pylibxc2
    - pytest
    - PyYAML
+   - torch_geometric
    - yamlloader
-   - flaky
