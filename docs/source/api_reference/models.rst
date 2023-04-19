@@ -460,6 +460,12 @@ GroverModel
 .. autoclass:: deepchem.models.torch_models.GroverModel
   :members:
 
+Density Functional Theory Model - XCModel
+-----------------------------------------
+
+.. autoclass:: deepchem.models.dft.dftxc.XCModel
+  :members:
+
 PyTorch Lightning Models
 ==============
 

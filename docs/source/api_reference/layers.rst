@@ -248,3 +248,6 @@ Density Functional Theory Layers
 
 .. autoclass:: deepchem.models.dft.scf.XCNNSCF
    :members:
+
+.. autoclass:: deepchem.models.dft.dftxc.DFTXC
+   :members:
