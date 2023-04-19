@@ -976,6 +976,142 @@ class EdgePredictionLoss(Loss):
         return loss
 
 
+class GraphNodeMaskingLoss(Loss):
+    """
+    GraphNodeMaskingLoss is an unsupervised graph node masking loss function that calculates the loss based on the predicted node labels and true node labels. This loss function is designed for graph neural networks and is particularly useful for pre-training tasks.
+
+    This loss function encourages the model to learn node embeddings that can effectively predict the masked node labels in the graph.
+
+    The loss is computed using the CrossEntropyLoss between the predicted node labels and the true node labels.
+
+    To use this loss function, the input must be a BatchGraphData object transformed by the mask_nodes function. The loss function takes the predicted node labels, predicted edge labels, and the input graph data (with masked node labels) as inputs and returns the node masking loss.
+
+    Parameters
+    ----------
+    pred_node: torch.Tensor
+        Predicted node labels
+    pred_edge: Optional(torch.Tensor)
+        Predicted edge labels
+    inputs: BatchGraphData
+        Input graph data with masked node and edge labels
+
+    Examples
+    --------
+    >>> from deepchem.models.losses import GraphNodeMaskingLoss
+    >>> from deepchem.feat.graph_data import BatchGraphData, GraphData
+    >>> from deepchem.models.torch_models.gnn import mask_nodes
+    >>> import torch
+    >>> import numpy as np
+    >>> num_nodes_list, num_edge_list = [3, 4, 5], [2, 4, 5]
+    >>> num_node_features, num_edge_features = 32, 32
+    >>> edge_index_list = [
+    ...     np.array([[0, 1], [1, 2]]),
+    ...     np.array([[0, 1, 2, 3], [1, 2, 0, 2]]),
+    ...     np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]]),
+    ... ]
+    >>> graph_list = [
+    ...     GraphData(node_features=np.random.random_sample(
+    ...         (num_nodes_list[i], num_node_features)),
+    ...               edge_index=edge_index_list[i],
+    ...               edge_features=np.random.random_sample(
+    ...                   (num_edge_list[i], num_edge_features)),
+    ...               node_pos_features=None) for i in range(len(num_edge_list))
+    ... ]
+    >>> batched_graph = BatchGraphData(graph_list)
+    >>> batched_graph = batched_graph.numpy_to_torch()
+    >>> masked_graph = mask_nodes(batched_graph, 0.1)
+    >>> pred_node = torch.randn((sum(num_nodes_list), num_node_features))
+    >>> pred_edge = torch.randn((sum(num_edge_list), num_edge_features))
+    >>> loss_func = GraphNodeMaskingLoss()._create_pytorch_loss()
+    >>> loss = loss_func(pred_node[masked_graph.masked_node_indices],
+    ...                  pred_edge[masked_graph.connected_edge_indices], masked_graph)
+
+    References
+    ----------
+    .. [1] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
+    """
+
+    def _create_pytorch_loss(self, mask_edge=True):
+        import torch
+        self.mask_edge = mask_edge
+        self.criterion = torch.nn.CrossEntropyLoss()
+
+        def loss(pred_node, pred_edge, inputs):
+
+            # loss for nodes
+            loss = self.criterion(pred_node, inputs.mask_node_label)
+
+            if self.mask_edge:
+                loss += self.criterion(pred_edge, inputs.mask_edge_label)
+            return loss
+
+        return loss
+
+
+class GraphEdgeMaskingLoss(Loss):
+    """
+    GraphEdgeMaskingLoss is an unsupervised graph edge masking loss function that calculates the loss based on the predicted edge labels and true edge labels. This loss function is designed for graph neural networks and is particularly useful for pre-training tasks.
+
+    This loss function encourages the model to learn node embeddings that can effectively predict the masked edge labels in the graph.
+
+    The loss is computed using the CrossEntropyLoss between the predicted edge labels and the true edge labels.
+
+    To use this loss function, the input must be a BatchGraphData object transformed by the mask_edges function. The loss function takes the predicted edge labels and the true edge labels as inputs and returns the edge masking loss.
+
+    Parameters
+    ----------
+    pred_edge: torch.Tensor
+        Predicted edge labels.
+    inputs: BatchGraphData
+        Input graph data (with masked edge labels).
+
+    Examples
+    --------
+    >>> from deepchem.models.losses import GraphEdgeMaskingLoss
+    >>> from deepchem.feat.graph_data import BatchGraphData, GraphData
+    >>> from deepchem.models.torch_models.gnn import mask_edges
+    >>> import torch
+    >>> import numpy as np
+    >>> num_nodes_list, num_edge_list = [3, 4, 5], [2, 4, 5]
+    >>> num_node_features, num_edge_features = 32, 32
+    >>> edge_index_list = [
+    ...     np.array([[0, 1], [1, 2]]),
+    ...     np.array([[0, 1, 2, 3], [1, 2, 0, 2]]),
+    ...     np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]]),
+    ... ]
+    >>> graph_list = [
+    ...     GraphData(node_features=np.random.random_sample(
+    ...         (num_nodes_list[i], num_node_features)),
+    ...               edge_index=edge_index_list[i],
+    ...               edge_features=np.random.random_sample(
+    ...                   (num_edge_list[i], num_edge_features)),
+    ...               node_pos_features=None) for i in range(len(num_edge_list))
+    ... ]
+    >>> batched_graph = BatchGraphData(graph_list)
+    >>> batched_graph = batched_graph.numpy_to_torch()
+    >>> masked_graph = mask_edges(batched_graph, .1)
+    >>> pred_edge = torch.randn((sum(num_edge_list), num_edge_features))
+    >>> loss_func = GraphEdgeMaskingLoss()._create_pytorch_loss()
+    >>> loss = loss_func(pred_edge[masked_graph.masked_edge_idx], masked_graph)
+
+    References
+    ----------
+    .. [1] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
+    """
+
+    def _create_pytorch_loss(self):
+        import torch
+        self.criterion = torch.nn.CrossEntropyLoss()
+
+        def loss(pred_edge, inputs):
+            # converting the binary classification to multiclass classification
+            labels = torch.argmax(inputs.mask_edge_label, dim=1)
+            loss = self.criterion(pred_edge, labels)
+            return loss
+
+        return loss
+
+
 def _make_tf_shapes_consistent(output, labels):
     """Try to make inputs have the same shape by adding dimensions of size 1."""
     import tensorflow as tf
