@@ -182,8 +182,8 @@ class GNNHead(torch.nn.Module):
 
 class Discriminator(nn.Module):
     """
-    This discriminator module is a linear layer without bias, used to measure the similarity between local node representations (`x`) and global graph representations (`summary`). 
-    
+    This discriminator module is a linear layer without bias, used to measure the similarity between local node representations (`x`) and global graph representations (`summary`).
+
     The goal of the discriminator is to distinguish between positive and negative pairs of local and global representations.
     """
     def __init__(self, hidden_dim):
@@ -202,8 +202,8 @@ class Discriminator(nn.Module):
 
     def forward(self, x, summary):
         """
-        The forward method takes two inputs, `x` (local node representations) and `summary` (global graph representations), both of shape `(batch_size, hidden_dim)`. 
-        It computes the product of `summary` and `self.weight`, and then calculates the element-wise product of `x` and the resulting matrix `h`. 
+        The forward method takes two inputs, `x` (local node representations) and `summary` (global graph representations), both of shape `(batch_size, hidden_dim)`.
+        It computes the product of `summary` and `self.weight`, and then calculates the element-wise product of `x` and the resulting matrix `h`.
         Finally, it returns the sum of the element-wise product along dimension 1 (i.e., summing over the `hidden_dim`), resulting in a tensor of shape `(batch_size,)`, which represents the similarity scores between the local and global representations.
         """
         h = torch.matmul(summary, self.weight)

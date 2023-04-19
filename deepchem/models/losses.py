@@ -1119,9 +1119,11 @@ class DeepGraphInfomaxLoss(Loss):
     Parameters
     ----------
     positive_score: torch.Tensor
-        Positive score. This score measures the similarity between the local node embeddings (`node_emb`) and the global graph representation (`positive_expanded_summary_emb`) derived from the same graph. The goal is to maximize this score, as it indicates that the local node embeddings and the global graph representation are highly correlated, capturing the mutual information between them.
+        Positive score. This score measures the similarity between the local node embeddings (`node_emb`) and the global graph representation (`positive_expanded_summary_emb`) derived from the same graph.
+        The goal is to maximize this score, as it indicates that the local node embeddings and the global graph representation are highly correlated, capturing the mutual information between them.
     negative_score: torch.Tensor
-        Negative score. This score measures the similarity between the local node embeddings (`node_emb`) and the global graph representation (`negative_expanded_summary_emb`) derived from a different graph (shifted by one position in this case). The goal is to minimize this score, as it indicates that the local node embeddings and the global graph representation from different graphs are not correlated, ensuring that the model learns meaningful representations that are specific to each graph.
+        Negative score. This score measures the similarity between the local node embeddings (`node_emb`) and the global graph representation (`negative_expanded_summary_emb`) derived from a different graph (shifted by one position in this case).
+        The goal is to minimize this score, as it indicates that the local node embeddings and the global graph representation from different graphs are not correlated, ensuring that the model learns meaningful representations that are specific to each graph.
 
     Examples
     --------
