@@ -1690,11 +1690,11 @@ class DFTYamlLoader(DataLoader):
 
         def shard_generator():
             entries = self._get_shards(inputs)
-            for shard in entries:
+            for i, shard in enumerate(entries):
                 X = np.array(self._featurize_shard(shard))
                 y = np.array([0])
-                w = None
-                ids = np.array([0])
+                w = np.array([1.0])
+                ids = np.array([i])
                 yield X, y, w, ids
 
         return DiskDataset.create_dataset(shard_generator(), data_dir)
@@ -1740,4 +1740,4 @@ class DFTYamlLoader(DataLoader):
                 "Unknown key in yaml file. Please check format for correctness."
             )
         x = DFTEntry.create(e_type, true_val, systems)
-        return x
+        return [x]
