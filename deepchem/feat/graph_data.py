@@ -82,7 +82,7 @@ class GraphData:
             elif edge_index.shape[1] != edge_features.shape[0]:
                 raise ValueError(
                     'The first dimension of edge_features must be the \
-                          same as the second dimension of edge_index.')
+                          same as the second dimension of edge_index.'                                                                      )
 
         if node_pos_features is not None:
             if isinstance(node_pos_features, np.ndarray) is False:
@@ -91,7 +91,7 @@ class GraphData:
             elif node_pos_features.shape[0] != node_features.shape[0]:
                 raise ValueError(
                     'The length of node_pos_features must be the same as the \
-                          length of node_features.')
+                          length of node_features.'                                                   )
 
         self.node_features = node_features
         self.edge_index = edge_index
@@ -254,6 +254,56 @@ class GraphData:
 
         return graph_copy
 
+    def subgraph(self, nodes):
+        """Returns a subgraph induced on `nodes`.
+    
+        Parameters
+        ----------
+        nodes : list, iterable
+            A container of nodes which will be iterated through once.
+    
+        Returns
+        -------
+        subgraph_data : GraphData
+            A new GraphData object containing the subgraph induced on `nodes`.
+        """
+        nodes = set(nodes)
+        if not nodes.issubset(range(self.num_nodes)):
+            raise ValueError("Some nodes are not in the original graph")
+
+        # Create a mapping from the original node indices to the new node indices
+        node_mapping = {
+            old_idx: new_idx
+            for new_idx, old_idx in enumerate(nodes)
+        }
+
+        # Filter and reindex node features
+        subgraph_node_features = self.node_features[list(nodes)]
+        node_pos_features = self.node_pos_features[list(nodes)]
+
+        # Filter and reindex edge indices and edge features
+        subgraph_edge_indices = []
+        subgraph_edge_features = []
+        if self.edge_features is not None:
+            for i in range(self.num_edges):
+                src, dest = self.edge_index[:, i]
+                if src in nodes and dest in nodes:
+                    subgraph_edge_indices.append(
+                        (node_mapping[src], node_mapping[dest]))
+                    subgraph_edge_features.append(self.edge_features[i])
+
+        subgraph_edge_index = np.array(subgraph_edge_indices, dtype=np.int64).T
+        subgraph_edge_features = np.array(subgraph_edge_features)
+
+        # Create a new GraphData object for the subgraph
+        subgraph_data = GraphData(node_features=subgraph_node_features,
+                                  edge_index=subgraph_edge_index,
+                                  edge_features=subgraph_edge_features,
+                                  node_pos_features=node_pos_features,
+                                  **self.kwargs)
+
+        return subgraph_data, node_mapping
+
 
 class BatchGraphData(GraphData):
     """Batch GraphData class
@@ -321,6 +371,7 @@ class BatchGraphData(GraphData):
             batch_node_pos_features: Optional[np.ndarray] = np.vstack([
                 graph.node_pos_features for graph in graph_list  # type: ignore
             ])
+
         else:
             batch_node_pos_features = None
 
@@ -346,8 +397,11 @@ class BatchGraphData(GraphData):
         user_defined_attribute_names = self._get_user_defined_attributes(
             graph_list[0])
         for name in user_defined_attribute_names:
-            kwargs[name] = np.vstack(
-                [getattr(graph, name) for graph in graph_list])
+            try:
+                kwargs[name] = np.vstack(
+                    [getattr(graph, name) for graph in graph_list])
+            except ValueError:
+                kwargs[name] = [getattr(graph, name) for graph in graph_list]
 
         super().__init__(node_features=batch_node_features,
                          edge_index=batch_edge_index,

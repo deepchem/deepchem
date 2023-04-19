@@ -11,7 +11,7 @@ from torch.functional import F
 from deepchem.data import Dataset
 from deepchem.models.losses import SoftmaxCrossEntropy, EdgePredictionLoss, GraphNodeMaskingLoss, GraphEdgeMaskingLoss, DeepGraphInfomaxLoss
 from deepchem.models.torch_models import ModularTorchModel
-from deepchem.feat.graph_data import BatchGraphData
+from deepchem.feat.graph_data import BatchGraphData, GraphData
 from typing import Iterable, List, Tuple
 from deepchem.metrics import to_one_hot
 
@@ -275,6 +275,7 @@ class GNNModular(ModularTorchModel):
                  task: str = "edge_pred",
                  mask_rate: float = .1,
                  mask_edge: bool = True,
+                 context_size: int = 2,
                  **kwargs):
         self.gnn_type = gnn_type
         self.num_layer = num_layer
@@ -301,6 +302,8 @@ class GNNModular(ModularTorchModel):
             self.edge_mask_loss = GraphEdgeMaskingLoss()._create_pytorch_loss()
         elif task == "infomax":
             self.graph_infomax_loss = DeepGraphInfomaxLoss()._create_pytorch_loss()
+        elif task == "context_pred":
+            self.context_size = context_size
 
         self.graph_pooling = graph_pooling
         self.dropout = dropout
@@ -438,7 +441,7 @@ class GNNModular(ModularTorchModel):
         Supervised tasks such as node classification and graph regression require a prediction head, so the model is a sequential module consisting of the GNN module followed by the GNN_head module.
         """
         # unsupervised tasks do not need a pred head
-        if self.task in ("edge_pred", "mask_nodes", "mask_edges", "infomax"):
+        if self.task in ("edge_pred", "mask_nodes", "mask_edges", "infomax", "context_pred"):
             return self.gnn
         elif self.task in ("regression", "classification"):
             return torch.nn.Sequential(self.gnn, self.gnn_head)
@@ -462,6 +465,8 @@ class GNNModular(ModularTorchModel):
             loss = self.regression_loss(inputs, labels)
         elif self.task == "classification":
             loss = self.classification_loss(inputs, labels)
+        elif self.task == "context_pred": # TODO: add context_pred_loss
+            loss = self.context_pred_loss(inputs, labels)
         return (loss * weights).mean()
 
     def regression_loss(self, inputs, labels):
@@ -546,13 +551,18 @@ class GNNModular(ModularTorchModel):
             The weights for the batch, moved to the device.
         """
         inputs, labels, weights = batch
-        inputs = BatchGraphData(inputs[0]).numpy_to_torch(self.device)
         if self.task == "edge_pred":
+            inputs = BatchGraphData(inputs[0]).numpy_to_torch(self.device)
             inputs = negative_edge_sampler(inputs)
         elif self.task == "mask_nodes":
+            inputs = BatchGraphData(inputs[0]).numpy_to_torch(self.device)
             inputs = mask_nodes(inputs, self.mask_rate)
         elif self.task == "mask_edges":
+            inputs = BatchGraphData(inputs[0]).numpy_to_torch(self.device)
             inputs = mask_edges(inputs, self.mask_rate)
+        elif self.task == "context_pred":
+            inputs = [context_pred_sampler(graph, self.context_size) for graph in inputs[0]]
+            inputs = BatchGraphData(inputs).numpy_to_torch(self.device)
 
         _, labels, weights = super()._prepare_batch(([], labels, weights))
 
@@ -843,7 +853,7 @@ def cycle_index(num, shift):
     return arr
 
 
-def context_pred_sampler(input_graph: BatchGraphData,
+def context_pred_sampler(input_graph: GraphData,
                          l1: int,
                          center=True,
                          root_idx=None):
@@ -856,7 +866,7 @@ def context_pred_sampler(input_graph: BatchGraphData,
 
     Parameters
     ----------
-    input_graph: dc.feat.BatchGraphData
+    input_graph: dc.feat.GraphData
         The input graph data.
     l1: int
         The distance threshold for context substructures.
@@ -868,7 +878,7 @@ def context_pred_sampler(input_graph: BatchGraphData,
 
     Returns
     -------
-    BatchGraphData
+    GraphData
         A new BatchGraphData object with the additional attributes:
         - data.center_substruct_idx
         - data.x_substruct
@@ -880,40 +890,45 @@ def context_pred_sampler(input_graph: BatchGraphData,
         - data.overlap_context_substruct_idx
     """
     data = copy.deepcopy(input_graph)
+    data.node_pos_features = np.array([i for i in range(data.num_nodes)])
+    # num_atoms = data.num_nodes
+    # G = graph_data_obj_to_nx(data)
 
-    num_atoms = data.node_features.size()[0]
-    G = graph_data_obj_to_nx(data)
-
-    if root_idx is None:
-        if center:
-            root_idx = data.center_node_idx.item()
-        else:
-            root_idx = random.sample(range(num_atoms), 1)[0]
+    # if root_idx is None:
+    #     if center:
+    #         root_idx = data.center_node_idx.item()
+    #     else:
+    # remove root_idx as the center node, not always possible
+    root_idx = random.sample(range(data.num_nodes), 1)[0]
 
     # In the PPI case, the subgraph is the entire PPI graph
     data.x_substruct = data.node_features
     data.edge_attr_substruct = data.edge_features
     data.edge_index_substruct = data.edge_index
-    data.center_substruct_idx = data.center_node_idx
+    data.center_substruct_idx = root_idx
 
-    # Get context that is between l1 and the max diameter of the PPI graph
-    l1_node_idxes = nx.single_source_shortest_path_length(G, root_idx,
-                                                          l1).keys()
-    l2_node_idxes = range(num_atoms)
+    # Get context that is between l1 and the max diameter
+    # l1_node_idxes = nx.single_source_shortest_path_length(G, root_idx,
+    #                                                       l1).keys()
+    l1_node_idxes = graph_data_single_source_shortest_path_length(
+        data, root_idx, l1).keys()
+    l2_node_idxes = range(data.num_nodes)
     context_node_idxes = set(l1_node_idxes).symmetric_difference(
         set(l2_node_idxes))
 
-    if len(context_node_idxes) > 0:
-        context_G = G.subgraph(context_node_idxes)
-        context_G, context_node_map = reset_idxes(context_G)
-        context_data = nx_to_graph_data_obj(context_G, 0)
+    if len(context_node_idxes) > 1:
+        # context_G = G.subgraph(context_node_idxes)
+        context_G, context_node_map = data.subgraph(context_node_idxes)
+        # context_G, context_node_map = reset_indices(context_G)
+        context_data = context_G
+        # context_data = nx_to_graph_data_obj(context_G, 0)
         data.x_context = context_data.node_features
         data.edge_attr_context = context_data.edge_features
         data.edge_index_context = context_data.edge_index
 
     # Get indices of overlapping nodes between substruct and context, WRT context ordering
     context_substruct_overlap_idxes = list(context_node_idxes)
-    if len(context_substruct_overlap_idxes) > 0:
+    if len(context_substruct_overlap_idxes) > 1:
         context_substruct_overlap_idxes_reorder = [
             context_node_map[old_idx]
             for old_idx in context_substruct_overlap_idxes
@@ -921,149 +936,57 @@ def context_pred_sampler(input_graph: BatchGraphData,
         data.overlap_context_substruct_idx = torch.tensor(
             context_substruct_overlap_idxes_reorder)
 
+    data.node_pos_features = None  # in order to batch
+
     return data
 
 
-def reset_idxes(G):
-    """
-    Resets node indices such that they are numbered from 0 to num_nodes - 1
-    :param G:
-    :return: copy of G with relabelled node indices, mapping
-    """
-    mapping = {}
-    for new_idx, old_idx in enumerate(G.nodes()):
-        mapping[old_idx] = new_idx
-    new_G = nx.relabel_nodes(G, mapping, copy=True)
-    return new_G, mapping
-
-def graph_data_obj_to_nx(data):
-    """
-    Converts GraphData obj to network x data object.
-    """
-    G = nx.Graph()
-
-    # edges
-    edge_index = data.edge_index.cpu().numpy()
-    edge_attr = data.edge_attr.cpu().numpy()
-    n_edges = edge_index.shape[1]
-    for j in range(0, n_edges, 2):
-        begin_idx = int(edge_index[0, j])
-        end_idx = int(edge_index[1, j])
-        edge_attributes = edge_attr[j].astype(bool)
-        if not G.has_edge(begin_idx, end_idx):
-            G.add_edge(
-                begin_idx, end_idx,
-                **{f'w{i+1}': attr
-                   for i, attr in enumerate(edge_attributes)})
-
-    return G
-
-
-def nx_to_graph_data_obj(g,
-                         center_id,
-                         allowable_features_downstream=None,
-                         allowable_features_pretrain=None,
-                         node_id_to_go_labels=None):
-    """
-    Converts nx graph of PPI to pytorch geometric Data object.
+def graph_data_single_source_shortest_path_length(graph_data, source, cutoff=None):
+    """Compute the shortest path lengths from source to all reachable nodes in a GraphData object.
 
     Parameters
     ----------
-    g : networkx.Graph
-        nx graph object of ego graph
-    center_id : int
-        node id of center node in the ego graph
-    allowable_features_downstream : list, optional
-        list of possible go function node features for the downstream task.
-        The resulting go_target_downstream node feature vector will be in this order.
-    allowable_features_pretrain : list, optional
-        list of possible go function node features for the pretraining task.
-        The resulting go_target_pretrain node feature vector will be in this order.
-    node_id_to_go_labels : dict, optional
-        dict that maps node id to a list of its corresponding go labels
+    graph_data : GraphData
+        GraphData object containing the graph information
+
+    source : int
+       Starting node index for path
+
+    cutoff : int, optional
+        Depth to stop the search. Only paths of length <= cutoff are returned.
 
     Returns
     -------
-    data : torch_geometric.data.Data
-        pytorch geometric Data object with the following attributes:
-        edge_attr, edge_index, x, species_id, center_node_idx,
-        go_target_downstream (only if node_id_to_go_labels is not None),
-        go_target_pretrain (only if node_id_to_go_labels is not None)
+    lengths : dict
+        Dict keyed by node index to shortest path length to source.
     """
-    n_nodes = g.number_of_nodes()
-    n_edges = g.number_of_edges()
+    if source >= graph_data.num_nodes:
+        raise ValueError(f"Source {source} is not in graph_data")
+    if cutoff is None:
+        cutoff = float("inf")
 
-    # nodes
-    nx_node_ids = [n_i for n_i in g.nodes()]  # contains list of nx node ids
-    # in a particular ordering. Will be used as a mapping to convert
-    # between nx node ids and data obj node indices
+    # Convert edge_index to adjacency list
+    adj_list = [[] for _ in range(graph_data.num_nodes)]
+    for i in range(graph_data.num_edges):
+        src, dest = graph_data.edge_index[:, i]
+        adj_list[src].append(dest)
+        adj_list[dest].append(src)  # Assuming undirected graph
 
-    x = torch.tensor(np.ones(n_nodes).reshape(-1, 1), dtype=torch.float)
-    # we don't have any node labels, so set to dummy 1. dim n_nodes x 1
+    # Breadth-first search
+    visited = np.full(graph_data.num_nodes, False)
+    distances = np.full(graph_data.num_nodes, np.inf)
+    queue = [source]
+    visited[source] = True
+    distances[source] = 0
 
-    center_node_idx = nx_node_ids.index(center_id)
-    center_node_idx = torch.tensor([center_node_idx], dtype=torch.long)
+    while queue:
+        node = queue.pop(0)
+        for neighbor in adj_list[node]:
+            if not visited[neighbor]:
+                visited[neighbor] = True
+                distances[neighbor] = distances[node] + 1
+                if distances[neighbor] < cutoff:
+                    queue.append(neighbor)
 
-    # edges
-    edges_list = []
-    edge_features_list = []
-    for node_1, node_2, attr_dict in g.edges(data=True):
-        edge_feature = [attr_dict[f'w{i+1}'] for i in range(len(attr_dict))]
-        edge_feature.extend([0, 0])  # last 2 indicate self-loop and masking
-        edge_feature = np.array(edge_feature, dtype=int)
-        # convert nx node ids to data obj node index
-        i = nx_node_ids.index(node_1)
-        j = nx_node_ids.index(node_2)
-        edges_list.append((i, j))
-        edge_features_list.append(edge_feature)
-        edges_list.append((j, i))
-        edge_features_list.append(edge_feature)
+    return {i: d for i, d in enumerate(distances) if d <= cutoff}
 
-    # data.edge_index: Graph connectivity in COO format with shape [2, num_edges]
-    edge_index = torch.tensor(np.array(edges_list).T, dtype=torch.long)
-
-    # data.edge_attr: Edge feature matrix with shape [num_edges, num_edge_features]
-    edge_attr = torch.tensor(np.array(edge_features_list), dtype=torch.float)
-
-    try:
-        species_id = int(
-            nx_node_ids[0].split('.')[0])  # nx node id is of the form:
-        # species_id.protein_id
-        species_id = torch.tensor([species_id], dtype=torch.long)
-    except:  # occurs when nx node id has no species id info. For the extract
-        # substructure context pair transform, where we convert a data obj to
-        # a nx graph obj (which does not have original node id info)
-        species_id = torch.tensor([0], dtype=torch.long)  # dummy species
-        # id is 0
-
-    # construct data obj
-    data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
-    data.species_id = species_id
-    data.center_node_idx = center_node_idx
-
-    if node_id_to_go_labels:  # supervised case with go node labels
-        # Construct a dim n_pretrain_go_classes tensor and a
-        # n_downstream_go_classes tensor for the center node. 0 is no data
-        # or negative, 1 is positive.
-        downstream_go_node_feature = [0] * len(allowable_features_downstream)
-        pretrain_go_node_feature = [0] * len(allowable_features_pretrain)
-        if center_id in node_id_to_go_labels:
-            go_labels = node_id_to_go_labels[center_id]
-            # get indices of allowable_features_downstream that match with elements
-            # in go_labels
-            _, node_feature_indices, _ = np.intersect1d(
-                allowable_features_downstream, go_labels, return_indices=True)
-            for idx in node_feature_indices:
-                downstream_go_node_feature[idx] = 1
-            # get indices of allowable_features_pretrain that match with
-            # elements in go_labels
-            _, node_feature_indices, _ = np.intersect1d(
-                allowable_features_pretrain, go_labels, return_indices=True)
-            for idx in node_feature_indices:
-                pretrain_go_node_feature[idx] = 1
-        data.go_target_downstream = torch.tensor(
-            np.array(downstream_go_node_feature), dtype=torch.long)
-        data.go_target_pretrain = torch.tensor(
-            np.array(pretrain_go_node_feature), dtype=torch.long)
-
-    return data
