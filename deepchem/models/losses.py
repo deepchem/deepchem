@@ -1168,6 +1168,81 @@ class DeepGraphInfomaxLoss(Loss):
         return loss
 
 
+class GraphContextPredLoss(Loss):
+    """
+    Parameters
+    ----------
+    mode: str
+        The mode of the model. It can be either "cbow" or "skipgram".
+    neg_samples: int
+        The number of negative samples to use for negative sampling.
+
+    """
+
+    def _create_pytorch_loss(self, mode, neg_samples):
+        import torch
+        from deepchem.models.torch_models.gnn import cycle_index
+        self.mode = mode
+        self.neg_samples = neg_samples
+        self.criterion = torch.nn.BCEWithLogitsLoss()
+
+        def loss(substruct_rep, overlapped_node_rep, context_rep, neg_context_rep, inputs):
+
+            #  Contexts are represented by
+            if self.mode == "cbow":
+                # positive context representation
+                pred_pos = torch.sum(substruct_rep * context_rep, dim=1)
+                pred_neg = torch.sum(substruct_rep.repeat(
+                    (self.neg_samples, 1)) * neg_context_rep,
+                                     dim=1)
+
+            elif self.mode == "skipgram":
+                expanded_substruct_rep = torch.cat([
+                    substruct_rep[i].repeat(
+                        (inputs.overlapped_context_size[i], 1))
+                    for i in range(len(substruct_rep))
+                ],
+                                                   dim=0)
+                pred_pos = torch.sum(expanded_substruct_rep *
+                                     overlapped_node_rep,
+                                     dim=1)
+
+                #shift indices of substructures to create negative examples
+                shifted_expanded_substruct_rep = []
+                for i in range(self.neg_samples):
+                    shifted_substruct_rep = substruct_rep[cycle_index(
+                        len(substruct_rep), i + 1)]
+                    shifted_expanded_substruct_rep.append(
+                        torch.cat([
+                            shifted_substruct_rep[i].repeat(
+                                (inputs.overlapped_context_size[i], 1))
+                            for i in range(len(shifted_substruct_rep))
+                        ],
+                                  dim=0))
+
+                shifted_expanded_substruct_rep = torch.cat(
+                    shifted_expanded_substruct_rep, dim=0)
+                pred_neg = torch.sum(shifted_expanded_substruct_rep *
+                                     overlapped_node_rep.repeat(
+                                         (self.neg_samples, 1)),
+                                     dim=1)
+
+            else:
+                raise ValueError("Invalid mode!")
+
+            loss_pos = self.criterion(
+                pred_pos.double(),
+                torch.ones(len(pred_pos)).to(pred_pos.device).double())
+            loss_neg = self.criterion(
+                pred_neg.double(),
+                torch.zeros(len(pred_neg)).to(pred_neg.device).double())
+
+            loss = loss_pos + self.neg_samples * loss_neg
+            return loss
+
+        return loss
+
+
 def _make_tf_shapes_consistent(output, labels):
     """Try to make inputs have the same shape by adding dimensions of size 1."""
     import tensorflow as tf

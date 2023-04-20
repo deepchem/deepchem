@@ -82,7 +82,7 @@ class GraphData:
             elif edge_index.shape[1] != edge_features.shape[0]:
                 raise ValueError(
                     'The first dimension of edge_features must be the \
-                          same as the second dimension of edge_index.'                                                                      )
+                          same as the second dimension of edge_index.'                                                                                                                                            )
 
         if node_pos_features is not None:
             if isinstance(node_pos_features, np.ndarray) is False:
@@ -91,7 +91,7 @@ class GraphData:
             elif node_pos_features.shape[0] != node_features.shape[0]:
                 raise ValueError(
                     'The length of node_pos_features must be the same as the \
-                          length of node_features.'                                                   )
+                          length of node_features.'                                                                                                      )
 
         self.node_features = node_features
         self.edge_index = edge_index
@@ -256,12 +256,12 @@ class GraphData:
 
     def subgraph(self, nodes):
         """Returns a subgraph induced on `nodes`.
-    
+
         Parameters
         ----------
         nodes : list, iterable
             A container of nodes which will be iterated through once.
-    
+
         Returns
         -------
         subgraph_data : GraphData
@@ -462,3 +462,55 @@ class BatchGraphData(GraphData):
         graph_copy.graph_index = graph_index
 
         return graph_copy
+
+
+def shortest_path_length(graph_data, source, cutoff=None):
+    """Compute the shortest path lengths from source to all reachable nodes in a GraphData object.
+
+    This function only works with undirected graphs.
+
+    Parameters
+    ----------
+    graph_data : GraphData
+        GraphData object containing the graph information
+
+    source : int
+       Starting node index for path
+
+    cutoff : int, optional
+        Depth to stop the search. Only paths of length <= cutoff are returned.
+
+    Returns
+    -------
+    lengths : dict
+        Dict keyed by node index to shortest path length to source.
+    """
+    if source >= graph_data.num_nodes:
+        raise ValueError(f"Source {source} is not in graph_data")
+    if cutoff is None:
+        cutoff = float("inf")
+
+    # Convert edge_index to adjacency list
+    adj_list = [[] for _ in range(graph_data.num_nodes)]
+    for i in range(graph_data.num_edges):
+        src, dest = graph_data.edge_index[:, i]
+        adj_list[src].append(dest)
+        adj_list[dest].append(src)  # Assuming undirected graph
+
+    # Breadth-first search
+    visited = np.full(graph_data.num_nodes, False)
+    distances = np.full(graph_data.num_nodes, np.inf)
+    queue = [source]
+    visited[source] = True
+    distances[source] = 0
+
+    while queue:
+        node = queue.pop(0)
+        for neighbor in adj_list[node]:
+            if not visited[neighbor]:
+                visited[neighbor] = True
+                distances[neighbor] = distances[node] + 1
+                if distances[neighbor] < cutoff:
+                    queue.append(neighbor)
+
+    return {i: d for i, d in enumerate(distances) if d <= cutoff}

@@ -9,9 +9,9 @@ from torch_geometric.nn.inits import uniform
 import torch.nn as nn
 from torch.functional import F
 from deepchem.data import Dataset
-from deepchem.models.losses import SoftmaxCrossEntropy, EdgePredictionLoss, GraphNodeMaskingLoss, GraphEdgeMaskingLoss, DeepGraphInfomaxLoss
+from deepchem.models.losses import SoftmaxCrossEntropy, EdgePredictionLoss, GraphNodeMaskingLoss, GraphEdgeMaskingLoss, DeepGraphInfomaxLoss, GraphContextPredLoss
 from deepchem.models.torch_models import ModularTorchModel
-from deepchem.feat.graph_data import BatchGraphData, GraphData
+from deepchem.feat.graph_data import BatchGraphData, GraphData, shortest_path_length
 from typing import Iterable, List, Tuple
 from deepchem.metrics import to_one_hot
 
@@ -272,6 +272,10 @@ class GNNModular(ModularTorchModel):
         mask_edges: Masking edges. Predicts the masked edge.
         Supervised tasks:
         "regression" or "classification".
+    context_mode: str, optional (default "cbow")
+        The context mode to use for context prediction tasks. Must be one of "cbow" or "skipgram".
+    neg_samples: int, optional (default 1)
+        The number of negative samples to use for context prediction.
 
     Examples
     --------
@@ -298,13 +302,15 @@ class GNNModular(ModularTorchModel):
                  emb_dim: int = 64,
                  num_tasks: int = 1,
                  num_classes: int = 2,
-                 graph_pooling: str = "attention",
+                 graph_pooling: str = "mean",
                  dropout: int = 0,
                  jump_knowledge: str = "concat",
                  task: str = "edge_pred",
                  mask_rate: float = .1,
                  mask_edge: bool = True,
                  context_size: int = 2,
+                 context_mode: str = "cbow",
+                 neg_samples: int = 1,
                  **kwargs):
         self.gnn_type = gnn_type
         self.num_layer = num_layer
@@ -330,9 +336,14 @@ class GNNModular(ModularTorchModel):
             self.mask_rate = mask_rate
             self.edge_mask_loss = GraphEdgeMaskingLoss()._create_pytorch_loss()
         elif task == "infomax":
-            self.graph_infomax_loss = DeepGraphInfomaxLoss()._create_pytorch_loss()
+            self.graph_infomax_loss = DeepGraphInfomaxLoss(
+            )._create_pytorch_loss()
         elif task == "context_pred":
             self.context_size = context_size
+            self.neg_samples = neg_samples
+            self.context_mode = context_mode
+            self.context_pred_loss = GraphContextPredLoss(
+            )._create_pytorch_loss(context_mode, neg_samples)
 
         self.graph_pooling = graph_pooling
         self.dropout = dropout
@@ -459,6 +470,17 @@ class GNNModular(ModularTorchModel):
                 'pool': global_mean_pool
             })
 
+        elif self.task == 'context_pred':
+            if self.graph_pooling == "sum":
+                pool = global_add_pool
+            elif self.graph_pooling == "mean":
+                pool = global_mean_pool
+            elif self.graph_pooling == "max":
+                pool = global_max_pool
+
+            self.substruct_gnn = copy.deepcopy(self.gnn)
+            components.update({'pool': pool})
+
         return components
 
     def build_model(self):
@@ -470,7 +492,8 @@ class GNNModular(ModularTorchModel):
         Supervised tasks such as node classification and graph regression require a prediction head, so the model is a sequential module consisting of the GNN module followed by the GNN_head module.
         """
         # unsupervised tasks do not need a pred head
-        if self.task in ("edge_pred", "mask_nodes", "mask_edges", "infomax", "context_pred"):
+        if self.task in ("edge_pred", "mask_nodes", "mask_edges", "infomax",
+                         "context_pred"):
             return self.gnn
         elif self.task in ("regression", "classification"):
             return torch.nn.Sequential(self.gnn, self.gnn_head)
@@ -494,9 +517,45 @@ class GNNModular(ModularTorchModel):
             loss = self.regression_loss(inputs, labels)
         elif self.task == "classification":
             loss = self.classification_loss(inputs, labels)
-        elif self.task == "context_pred": # TODO: add context_pred_loss
-            loss = self.context_pred_loss(inputs, labels)
+        elif self.task == "context_pred":  # TODO: add context_pred_loss
+            loss = self.context_pred_loss_loader(inputs, labels)
         return (loss * weights).mean()
+
+    def context_pred_loss_loader(self, inputs, labels):
+        # creating substructure representation
+        substruct_graphs = GraphData(
+            node_features=inputs.x_substruct.cpu().numpy(),
+            edge_index=inputs.edge_index_substruct,
+            edge_features=inputs.edge_attr_substruct.cpu().numpy(
+            )).numpy_to_torch(self.device)
+        substruct_rep = self.substruct_gnn(substruct_graphs)[
+            inputs.center_substruct_idx]
+
+        ### creating context representations
+        # context gnn
+        context_graphs = GraphData(
+            node_features=inputs.x_context.cpu().numpy(),
+            edge_index=np.array(inputs.edge_index_context),
+            edge_features=inputs.edge_attr_context.cpu().numpy(
+            )).numpy_to_torch(self.device)
+        overlapped_node_rep = self.gnn(context_graphs)[
+            inputs.overlap_context_substruct_idx]
+
+        context_rep = self.components['pool'](overlapped_node_rep,
+                                              inputs.batch_overlapped_context)
+        # negative contexts are obtained by shifting the indicies of context embeddings
+        neg_context_rep = torch.cat([
+            context_rep[cycle_index(len(context_rep), i + 1)]
+            for i in range(self.neg_samples)
+        ],
+                                    dim=0)
+
+        context_pred_loss = self.context_pred_loss(substruct_rep,
+                                                   overlapped_node_rep,
+                                                   context_rep, neg_context_rep,
+                                                   inputs)
+
+        return context_pred_loss
 
     def regression_loss(self, inputs, labels):
         out = self.model(inputs)
@@ -595,7 +654,10 @@ class GNNModular(ModularTorchModel):
             inputs = BatchGraphData(inputs[0]).numpy_to_torch(self.device)
             inputs = mask_edges(inputs, self.mask_rate)
         elif self.task == "context_pred":
-            inputs = [context_pred_sampler(graph, self.context_size) for graph in inputs[0]]
+            inputs = [
+                context_pred_sampler(graph, self.context_size)
+                for graph in inputs[0]
+            ]
             inputs = BatchGraphData(inputs).numpy_to_torch(self.device)
 
         _, labels, weights = super()._prepare_batch(([], labels, weights))
@@ -894,10 +956,11 @@ def cycle_index(num, shift):
     return arr
 
 
-def context_pred_sampler(input_graph: GraphData,
-                         l1: int,
-                         center=True,
-                         root_idx=None):
+def context_pred_sampler(
+        input_graph: GraphData,
+        l1: int,
+        center=True,  # XXX
+        root_idx=None):
     """
     Randomly selects a node from the input graph, and adds attributes
     that contain the substructure that corresponds to the whole graph, and the
@@ -932,37 +995,24 @@ def context_pred_sampler(input_graph: GraphData,
     """
     data = copy.deepcopy(input_graph)
     data.node_pos_features = np.array([i for i in range(data.num_nodes)])
-    # num_atoms = data.num_nodes
-    # G = graph_data_obj_to_nx(data)
 
-    # if root_idx is None:
-    #     if center:
-    #         root_idx = data.center_node_idx.item()
-    #     else:
-    # remove root_idx as the center node, not always possible
     root_idx = random.sample(range(data.num_nodes), 1)[0]
 
-    # In the PPI case, the subgraph is the entire PPI graph
+    # In the PPI case, the subgraph is the entire PPI graph ??? XXX
     data.x_substruct = data.node_features
     data.edge_attr_substruct = data.edge_features
     data.edge_index_substruct = data.edge_index
     data.center_substruct_idx = root_idx
 
     # Get context that is between l1 and the max diameter
-    # l1_node_idxes = nx.single_source_shortest_path_length(G, root_idx,
-    #                                                       l1).keys()
-    l1_node_idxes = graph_data_single_source_shortest_path_length(
-        data, root_idx, l1).keys()
+    l1_node_idxes = shortest_path_length(data, root_idx, l1).keys()
     l2_node_idxes = range(data.num_nodes)
     context_node_idxes = set(l1_node_idxes).symmetric_difference(
         set(l2_node_idxes))
 
     if len(context_node_idxes) > 1:
-        # context_G = G.subgraph(context_node_idxes)
         context_G, context_node_map = data.subgraph(context_node_idxes)
-        # context_G, context_node_map = reset_indices(context_G)
         context_data = context_G
-        # context_data = nx_to_graph_data_obj(context_G, 0)
         data.x_context = context_data.node_features
         data.edge_attr_context = context_data.edge_features
         data.edge_index_context = context_data.edge_index
@@ -977,57 +1027,8 @@ def context_pred_sampler(input_graph: GraphData,
         data.overlap_context_substruct_idx = torch.tensor(
             context_substruct_overlap_idxes_reorder)
 
-    data.node_pos_features = None  # in order to batch
+    # node_pos_features different sizes, remove in order to batch XXX
+    data.node_pos_features = None  # padding to max_node_size
 
     return data
-
-
-def graph_data_single_source_shortest_path_length(graph_data, source, cutoff=None):
-    """Compute the shortest path lengths from source to all reachable nodes in a GraphData object.
-
-    Parameters
-    ----------
-    graph_data : GraphData
-        GraphData object containing the graph information
-
-    source : int
-       Starting node index for path
-
-    cutoff : int, optional
-        Depth to stop the search. Only paths of length <= cutoff are returned.
-
-    Returns
-    -------
-    lengths : dict
-        Dict keyed by node index to shortest path length to source.
-    """
-    if source >= graph_data.num_nodes:
-        raise ValueError(f"Source {source} is not in graph_data")
-    if cutoff is None:
-        cutoff = float("inf")
-
-    # Convert edge_index to adjacency list
-    adj_list = [[] for _ in range(graph_data.num_nodes)]
-    for i in range(graph_data.num_edges):
-        src, dest = graph_data.edge_index[:, i]
-        adj_list[src].append(dest)
-        adj_list[dest].append(src)  # Assuming undirected graph
-
-    # Breadth-first search
-    visited = np.full(graph_data.num_nodes, False)
-    distances = np.full(graph_data.num_nodes, np.inf)
-    queue = [source]
-    visited[source] = True
-    distances[source] = 0
-
-    while queue:
-        node = queue.pop(0)
-        for neighbor in adj_list[node]:
-            if not visited[neighbor]:
-                visited[neighbor] = True
-                distances[neighbor] = distances[node] + 1
-                if distances[neighbor] < cutoff:
-                    queue.append(neighbor)
-
-    return {i: d for i, d in enumerate(distances) if d <= cutoff}
 
