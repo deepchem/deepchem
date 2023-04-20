@@ -175,6 +175,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.gnn.GNNHead
   :members:
 
+.. autoclass:: deepchem.models.torch_models.gnn.LocalGlobalDiscriminator
+  :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 
