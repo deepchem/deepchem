@@ -1153,13 +1153,17 @@ class DeepGraphInfomaxLoss(Loss):
     .. [1] Veličković, P. et al. Deep Graph Infomax. Preprint at https://doi.org/10.48550/arXiv.1809.10341 (2018).
 
     """
+
     def _create_pytorch_loss(self):
         import torch
         self.criterion = torch.nn.BCEWithLogitsLoss()
 
         def loss(positive_score, negative_score):
 
-            return self.criterion(positive_score, torch.ones_like(positive_score)) + self.criterion(negative_score, torch.zeros_like(negative_score))
+            return self.criterion(
+                positive_score,
+                torch.ones_like(positive_score)) + self.criterion(
+                    negative_score, torch.zeros_like(negative_score))
 
         return loss
 

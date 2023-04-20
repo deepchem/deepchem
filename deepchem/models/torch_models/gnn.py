@@ -189,14 +189,15 @@ class LocalGlobalDiscriminator(nn.Module):
     Examples
     --------
     >>> import torch
-    >>> from deepchem.models.torch_models.gnn import Discriminator
-    >>> discriminator = Discriminator(hidden_dim=64)
+    >>> from deepchem.models.torch_models.gnn import LocalGlobalDiscriminator
+    >>> discriminator = LocalGlobalDiscriminator(hidden_dim=64)
     >>> x = torch.randn(32, 64)  # Local node representations
     >>> summary = torch.randn(32, 64)  # Global graph representations
     >>> similarity_scores = discriminator(x, summary)
     >>> print(similarity_scores.shape)
     torch.Size([32])
     """
+
     def __init__(self, hidden_dim):
         """
         `self.weight` is a learnable weight matrix of shape `(hidden_dim, hidden_dim)`.
@@ -219,8 +220,8 @@ class LocalGlobalDiscriminator(nn.Module):
 
     def forward(self, x, summary):
         """
-        The forward method takes two inputs, `x` (local node representations) and `summary` (global graph representations), both of shape `(batch_size, hidden_dim)`.
-        Computes the product of `summary` and `self.weight`, and then calculates the element-wise product of `x` and the resulting matrix `h`. It then sums over the `hidden_dim` dimension, resulting in a tensor of shape `(batch_size,)`, which represents the similarity scores between the local and global representations.
+        Computes the product of `summary` and `self.weight`, and then calculates the element-wise product of `x` and the resulting matrix `h`.
+        It then sums over the `hidden_dim` dimension, resulting in a tensor of shape `(batch_size,)`, which represents the similarity scores between the local and global representations.
 
         Parameters
         ----------
@@ -327,7 +328,8 @@ class GNNModular(ModularTorchModel):
             self.mask_rate = mask_rate
             self.edge_mask_loss = GraphEdgeMaskingLoss()._create_pytorch_loss()
         elif task == "infomax":
-            self.graph_infomax_loss = DeepGraphInfomaxLoss()._create_pytorch_loss()
+            self.graph_infomax_loss = DeepGraphInfomaxLoss(
+            )._create_pytorch_loss()
 
         self.graph_pooling = graph_pooling
         self.dropout = dropout
