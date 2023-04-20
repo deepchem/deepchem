@@ -180,7 +180,7 @@ class GNNHead(torch.nn.Module):
         return out
 
 
-class Discriminator(nn.Module):
+class LocalGlobalDiscriminator(nn.Module):
     """
     This discriminator module is a linear layer without bias, used to measure the similarity between local node representations (`x`) and global graph representations (`summary`).
 
@@ -209,7 +209,7 @@ class Discriminator(nn.Module):
             The size of the hidden dimension for the weight matrix.
 
         """
-        super(Discriminator, self).__init__()
+        super().__init__()
         self.weight = nn.Parameter(torch.Tensor(hidden_dim, hidden_dim))
         self.reset_parameters()
 
@@ -448,7 +448,7 @@ class GNNModular(ModularTorchModel):
 
         elif self.task == 'infomax':
             self.emb_dim = (self.num_layer + 1) * self.emb_dim
-            descrim = Discriminator(self.emb_dim)
+            descrim = LocalGlobalDiscriminator(self.emb_dim)
             components.update({
                 'discriminator': descrim,
                 'pool': global_mean_pool

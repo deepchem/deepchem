@@ -922,3 +922,24 @@ def test_torch_weighted_linear_combo():
     expected = torch.Tensor(input1) * layer.input_weights[0] + torch.Tensor(
         input2) * layer.input_weights[1]
     assert torch.allclose(result, expected)
+
+
+@pytest.mark.torch
+def test_local_global_discriminator():
+    import torch
+    from deepchem.models.torch_models.gnn import LocalGlobalDiscriminator
+
+    hidden_dim = 10
+    discriminator = LocalGlobalDiscriminator(hidden_dim=hidden_dim)
+
+    # Create random local node representations and global graph representations
+    batch_size = 6
+    x = torch.randn(batch_size, hidden_dim)
+    summary = torch.randn(batch_size, hidden_dim)
+
+    # Compute similarity scores using the discriminator
+    similarity_scores = discriminator(x, summary)
+
+    # Check if the output has the correct shape and dtype
+    assert similarity_scores.shape == (batch_size,)
+    assert similarity_scores.dtype == torch.float32
