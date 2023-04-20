@@ -185,12 +185,29 @@ class Discriminator(nn.Module):
     This discriminator module is a linear layer without bias, used to measure the similarity between local node representations (`x`) and global graph representations (`summary`).
 
     The goal of the discriminator is to distinguish between positive and negative pairs of local and global representations.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.torch_models.gnn import Discriminator
+    >>> discriminator = Discriminator(hidden_dim=64)
+    >>> x = torch.randn(32, 64)  # Local node representations
+    >>> summary = torch.randn(32, 64)  # Global graph representations
+    >>> similarity_scores = discriminator(x, summary)
+    >>> print(similarity_scores.shape)
+    torch.Size([32])
     """
     def __init__(self, hidden_dim):
         """
         `self.weight` is a learnable weight matrix of shape `(hidden_dim, hidden_dim)`.
 
-        Parameters are tensors that require gradients and are optimized during the training process.
+        nn.Parameters are tensors that require gradients and are optimized during the training process.
+
+        Parameters
+        ----------
+        hidden_dim : int
+            The size of the hidden dimension for the weight matrix.
+
         """
         super(Discriminator, self).__init__()
         self.weight = nn.Parameter(torch.Tensor(hidden_dim, hidden_dim))
@@ -203,8 +220,19 @@ class Discriminator(nn.Module):
     def forward(self, x, summary):
         """
         The forward method takes two inputs, `x` (local node representations) and `summary` (global graph representations), both of shape `(batch_size, hidden_dim)`.
-        It computes the product of `summary` and `self.weight`, and then calculates the element-wise product of `x` and the resulting matrix `h`.
-        Finally, it returns the sum of the element-wise product along dimension 1 (i.e., summing over the `hidden_dim`), resulting in a tensor of shape `(batch_size,)`, which represents the similarity scores between the local and global representations.
+        Computes the product of `summary` and `self.weight`, and then calculates the element-wise product of `x` and the resulting matrix `h`. It then sums over the `hidden_dim` dimension, resulting in a tensor of shape `(batch_size,)`, which represents the similarity scores between the local and global representations.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Local node representations of shape `(batch_size, hidden_dim)`.
+        summary : torch.Tensor
+            Global graph representations of shape `(batch_size, hidden_dim)`.
+
+        Returns
+        -------
+        torch.Tensor
+            A tensor of shape `(batch_size,)`, representing the similarity scores between the local and global representations.
         """
         h = torch.matmul(summary, self.weight)
         return torch.sum(x * h, dim=1)
@@ -510,6 +538,11 @@ class GNNModular(ModularTorchModel):
     def infomax_loss(self, inputs):
         """
         Loss that maximizes mutual information between local node representations and a pooled global graph representation. The positive and negative scores represent the similarity between local node representations and global graph representations of simlar and dissimilar graphs, respectively.
+
+        Parameters
+        ----------
+        inputs: BatchedGraphData
+            BatchedGraphData object containing the node features, edge indices, and graph indices for the batch of graphs.
         """
         node_emb, inputs = self.model(inputs)
         summary_emb = torch.sigmoid(self.components['pool'](node_emb,
@@ -828,6 +861,13 @@ def mask_edges(input_graph: BatchGraphData,
 def cycle_index(num, shift):
     """
     Creates a 1-dimensional tensor of integers with a specified length (`num`) and a cyclic shift (`shift`). The tensor starts with integers from `shift` to `num - 1`, and then wraps around to include integers from `0` to `shift - 1` at the end.
+
+    Parameters
+    ----------
+    num: int
+        Length of the tensor.
+    shift: int
+        Amount to shift the tensor by.
 
     Example
     -------
