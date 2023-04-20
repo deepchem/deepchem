@@ -478,7 +478,7 @@ class GNNModular(ModularTorchModel):
             elif self.graph_pooling == "max":
                 pool = global_max_pool
 
-            self.substruct_gnn = copy.deepcopy(self.gnn)
+            self.context_gnn = copy.deepcopy(self.gnn)
             components.update({'pool': pool})
 
         return components
@@ -523,26 +523,20 @@ class GNNModular(ModularTorchModel):
 
     def context_pred_loss_loader(self, inputs, labels):
         # creating substructure representation
-        substruct_graphs = GraphData(
-            node_features=inputs.x_substruct.cpu().numpy(),
-            edge_index=inputs.edge_index_substruct,
-            edge_features=inputs.edge_attr_substruct.cpu().numpy(
-            )).numpy_to_torch(self.device)
-        substruct_rep = self.substruct_gnn(substruct_graphs)[
-            inputs.center_substruct_idx]
+        substruct_batch = inputs[0]
+        overlap = inputs[2]
+        substruct_rep = self.gnn(substruct_batch)[0][
+            overlap]  # 0 for node representation index
 
         ### creating context representations
         # context gnn
-        context_graphs = GraphData(
-            node_features=inputs.x_context.cpu().numpy(),
-            edge_index=np.array(inputs.edge_index_context),
-            edge_features=inputs.edge_attr_context.cpu().numpy(
-            )).numpy_to_torch(self.device)
-        overlapped_node_rep = self.gnn(context_graphs)[
-            inputs.overlap_context_substruct_idx]
+        context_graphs = inputs[1]
+        overlapped_node_rep = self.context_gnn(context_graphs)[0][
+            overlap]  # 0 for node representation index
+        # no context graph, return 0 loss
+        # return torch.tensor(0.0, device=self.device)
 
-        context_rep = self.components['pool'](overlapped_node_rep,
-                                              inputs.batch_overlapped_context)
+        context_rep = self.components['pool'](overlapped_node_rep, overlap)
         # negative contexts are obtained by shifting the indicies of context embeddings
         neg_context_rep = torch.cat([
             context_rep[cycle_index(len(context_rep), i + 1)]
@@ -654,11 +648,18 @@ class GNNModular(ModularTorchModel):
             inputs = BatchGraphData(inputs[0]).numpy_to_torch(self.device)
             inputs = mask_edges(inputs, self.mask_rate)
         elif self.task == "context_pred":
-            inputs = [
+            sampled_g = [
                 context_pred_sampler(graph, self.context_size)
                 for graph in inputs[0]
             ]
-            inputs = BatchGraphData(inputs).numpy_to_torch(self.device)
+            # inputs = list[(subgraph, context_G, overlap)]
+            subgraphs_list = [x[0] for x in sampled_g]
+            context_list = [x[1] for x in sampled_g]
+            overlap_list = [x[2] for x in sampled_g]
+            b_subgraphs = BatchGraphData(subgraphs_list).numpy_to_torch(
+                self.device)
+            b_context = BatchGraphData(context_list).numpy_to_torch(self.device)
+            inputs = (b_subgraphs, b_context, overlap_list)
 
         _, labels, weights = super()._prepare_batch(([], labels, weights))
 
@@ -994,41 +995,45 @@ def context_pred_sampler(
         - data.overlap_context_substruct_idx
     """
     data = copy.deepcopy(input_graph)
-    data.node_pos_features = np.array([i for i in range(data.num_nodes)])
+
+    node_pos_features = np.array([i for i in range(data.num_nodes)])
 
     root_idx = random.sample(range(data.num_nodes), 1)[0]
 
     # In the PPI case, the subgraph is the entire PPI graph ??? XXX
-    data.x_substruct = data.node_features
-    data.edge_attr_substruct = data.edge_features
-    data.edge_index_substruct = data.edge_index
-    data.center_substruct_idx = root_idx
+    # k-hops neighbordhood of the root node
+    x_substruct = data.node_features
+    edge_attr_substruct = data.edge_features
+    edge_index_substruct = data.edge_index
+    # center_substruct_idx = root_idx
+
+    subgraph = GraphData(node_features=x_substruct,
+                         edge_features=edge_attr_substruct,
+                         edge_index=edge_index_substruct,
+                         node_pos_features=node_pos_features)
 
     # Get context that is between l1 and the max diameter
     l1_node_idxes = shortest_path_length(data, root_idx, l1).keys()
     l2_node_idxes = range(data.num_nodes)
+    # l2_node_idxes = nx.single_source_shortest_path_length(G, root_idx,
+    #                                                       self.l2).
     context_node_idxes = set(l1_node_idxes).symmetric_difference(
-        set(l2_node_idxes))
+        set(l2_node_idxes)
+    )  # how does this find the context, ie a ring around the root node?
 
-    if len(context_node_idxes) > 1:
+    if len(context_node_idxes) > 0:
         context_G, context_node_map = data.subgraph(context_node_idxes)
-        context_data = context_G
-        data.x_context = context_data.node_features
-        data.edge_attr_context = context_data.edge_features
-        data.edge_index_context = context_data.edge_index
 
     # Get indices of overlapping nodes between substruct and context, WRT context ordering
     context_substruct_overlap_idxes = list(context_node_idxes)
-    if len(context_substruct_overlap_idxes) > 1:
+    if len(context_substruct_overlap_idxes) > 0:
         context_substruct_overlap_idxes_reorder = [
             context_node_map[old_idx]
             for old_idx in context_substruct_overlap_idxes
         ]
-        data.overlap_context_substruct_idx = torch.tensor(
-            context_substruct_overlap_idxes_reorder)
+        overlap = torch.tensor(context_substruct_overlap_idxes_reorder)
 
     # node_pos_features different sizes, remove in order to batch XXX
-    data.node_pos_features = None  # padding to max_node_size
+    # data.node_pos_features = None  # padding to max_node_size
 
-    return data
-
+    return (subgraph, context_G, overlap)

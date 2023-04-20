@@ -1170,6 +1170,10 @@ class DeepGraphInfomaxLoss(Loss):
 
 class GraphContextPredLoss(Loss):
     """
+    Context prediction is the task of predicting the context of a node given its substructure. The context of a node is essentially the ring of nodes around it. 
+
+    This loss compares the representation of a node's neighborhood with the representation of the node's context. It then uses negative sampling to compare the representation of the node's neighborhood with the representation of a random node's context.
+
     Parameters
     ----------
     mode: str
