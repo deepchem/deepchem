@@ -4,7 +4,7 @@ import torch
 from deepchem.models.dft.nnxc import HybridXC
 from deepchem.models.losses import Loss, L2Loss
 from deepchem.models.torch_models.torch_model import TorchModel
-from typing import Optional
+from typing import Optional, List, Any
 import numpy as np
 
 
@@ -12,52 +12,71 @@ class DFTXC(torch.nn.Module):
     """
     This layer initializes the neural network exchange correlation functional and
     the hybrid functional. It is then used to run the Kohn Sham iterations.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.feat.dft_data import DFTEntry
+    >>> from deepchem.models.dft.dftxc import DFTXC
+    >>> e_type = 'ie'
+    >>> true_val= '0.53411947056'
+    >>> systems = [{'moldesc': 'N 0 0 0',
+    >>>       'basis': '6-311++G(3df,3pd)',
+    >>>        'spin': '3'},
+    >>>       {'moldesc': 'N 0 0 0',
+    >>>       'basis': '6-311++G(3df,3pd)',
+    >>>       'charge': 1,
+    >>>        'spin': '2'}]
+    >>> entry = DFTEntry.create(e_type, true_val, systems)
+    >>> nnmodel = _construct_nn_model(ninp=2, nhid=10, ndepths=1,modeltype=1).to(torch.double)
+    >>> model = DFTXC("lda_x")
+    >>> output = model([entry])
+
     """
 
-    def __init__(self,
-                 xcstr: str,
-                 ninp: int = 2,
-                 nhid: int = 10,
-                 ndepths: int = 1,
-                 modeltype: int = 1):
+    def __init__(self, xcstr: str, nnmodel: torch.nn.Module):
         """
         Parameters
         ----------
         xcstr: str
             The choice of xc to use. Some of the commonly used ones are:
             lda_x, lda_c_pw, lda_c_ow, lda_c_pz, lda_xc_lp_a, lda_xc_lp_b.
-        ninp: int
-        nhid: int
-        ndepths: int
-        modeltype: int
+        nnmodel: torch.nn.Module
+            the PyTorch model implementing the calculation
+
+        Notes
+        -----
+        It is not necessary to use the default method(_construct_nn_model) with the XCModel.
         """
         super(DFTXC, self).__init__()
         self.xcstr = xcstr
-        self.model = _construct_nn_model(ninp, nhid, ndepths,
-                                         modeltype).to(torch.double)
+        self.nnmodel = nnmodel
 
     def forward(self, inputs):
         """
         Parameters
         ----------
-        inputs: list of tensors containing dataset
+        inputs: list
+            list of entry objects that have been defined using DFTEntry
 
         Returns
         -------
-        torch.Tensor
+        output: list of torch.Tensor
             Calculated value of the data point after running the Kohn Sham iterations
             using the neural network XC functional.
         """
-        hybridxc = HybridXC(self.xcstr, self.model, aweight0=0.0)
+        hybridxc = HybridXC(self.xcstr, self.nnmodel, aweight0=0.0)
+        output = []
         for entry in inputs:
             evl = XCNNSCF(hybridxc, entry)
             qcs = []
             for system in entry.get_systems():
                 qcs.append(evl.run(system))
             if entry.entry_type == 'dm':
-                return torch.as_tensor(entry.get_val(qcs)[0])
+                output.append(torch.as_tensor(entry.get_val(qcs)[0]))
             else:
-                return torch.as_tensor(entry.get_val(qcs))
+                output.append(torch.as_tensor(entry.get_val(qcs)))
+        return output
 
 
 class XCModel(TorchModel):
@@ -77,19 +96,23 @@ class XCModel(TorchModel):
     >>> from deepchem.data.data_loader import DFTYamlLoader
     >>> inputs = 'deepchem/models/tests/assets/test_dftxcdata.yaml'
     >>> data = DFTYamlLoader()
-    >>> dataset = (data.create_dataset(inputs))
+    >>> dataset = data.create_dataset(inputs)
+    >>> dataset.get_shape()
     >>> model = XCModel("lda_x", batch_size=1)
     >>> loss = model.fit(dataset, nb_epoch=1, checkpoint_interval=1)
 
     Notes
     -----
+    There are 4 types of DFT data object implementations that are used to determine the type
+    of calculation to be carried out on the entry object. These types are: "ae", "ie", "dm",    "dens", that stand for atomization energy, ionization energy, density matrix and
+    density profile respectively.
     The entry type "Density Matrix" cannot be used on model.evaluate as of now.
     To run predictions on this data type, a dataset containing only "dm" entries must
     be used.
 
     References
     ----------
-    deepchem.models.dft.nnxc
+    https://github.com/deepchem/deepchem/blob/3f06168a6c9c16fd90cde7f5246b94f484ea3890/deepchem/models/dft/nnxc.py
     Encyclopedia of Condensed Matter Physics, 2005.
     Kasim, Muhammad F., and Sam M. Vinko. "Learning the exchange-correlation
     functional from nature with fully differentiable density functional
@@ -98,6 +121,7 @@ class XCModel(TorchModel):
 
     def __init__(self,
                  xcstr: str,
+                 nnmodel: Optional[torch.nn.Module] = None,
                  ninp: int = 2,
                  nhid: int = 10,
                  ndepths: int = 1,
@@ -112,19 +136,23 @@ class XCModel(TorchModel):
         ----------
         xcstr: str
             The choice of xc to use.
+        nnmodel: torch.nn.Module
+            the PyTorch model implementing the calculation
         ninp: int
-            size of neural input
+            size of neural network input
         nhid: int
-            hidden layer size
+            size of the hidden layers ; the number of hidden layers is fixed
+            in the default method.
         ndepths: int
-            depth of neural network
+            number of layers in the neural network
         modeltype: int
             model type 2 includes an activation layer whereas type 1 does not.
         """
-
-        model = DFTXC(xcstr, ninp, nhid, ndepths, modeltype)
+        if nnmodel is None:
+            nnmodel = _construct_nn_model(ninp, nhid, ndepths,
+                                          modeltype).to(torch.double)
+        model = DFTXC(xcstr, nnmodel)
         self.xc = xcstr
-        self.model = model
         loss: Loss = L2Loss()
         output_types = ['loss', 'predict']
         self.mode = mode
@@ -134,10 +162,20 @@ class XCModel(TorchModel):
                                       **kwargs)
 
     def _prepare_batch(self, batch):
+        """
+        Method to compute inputs, labels and weight for the Torch Model.
 
+        Parameters
+        ----------
+        batch: Tuple[Any, Any, Any]
+
+        Returns
+        ------
+        Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]
+        """
         inputs, labels, weights = batch
-        labels = [torch.from_numpy(inputs[0][0].get_true_val())]
-        labels[0].requires_grad_()
+        labels = [(torch.from_numpy(i.get_true_val())).requires_grad_()
+                  for i in inputs[0]]
         w = np.array([1.0])
         weights = [torch.from_numpy(w)]
         return (inputs, labels, weights)
@@ -146,6 +184,14 @@ class XCModel(TorchModel):
 class ExpM1Activation(torch.nn.Module):
     """
     This class is an activation layer that is used with model_type 2.
+
+    Examples
+    --------
+    >>> from deepchem.models.dft.dftxc import ExpM1Activation
+    >>> import torch
+    >>> model = ExpM1Activation()
+    >>> x = torch.tensor(2.5)
+    >>> output = model(x)
     """
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -159,19 +205,25 @@ def _construct_nn_model(ninp: int, nhid: int, ndepths: int, modeltype: int):
     Parameters
     ----------
     ninp: int
-        size of neural input
+        size of neural network input
     nhid: int
-        hidden layer size
+        size of the hidden layers ; there are 3 hidden layers in this method
     ndepths: int
-        depth of neural network
+        number of layers in the neural network
     modeltype: int
         model type 2 includes an activation layer whereas type 1 does not.
 
     Returns
     -------
     torch.nn.Sequential(*layers)
+
+    Notes
+    -----
+    It is not necessary to use this method with the XCModel, user defined pytorch
+    models will work.
     """
     if modeltype == 1:
+        layers: List[Any]
         layers = []
         for i in range(ndepths):
             n1 = ninp if i == 0 else nhid
