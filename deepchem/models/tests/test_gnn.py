@@ -153,6 +153,7 @@ def test_GNN_infomax():
     loss2 = model.fit(dataset, nb_epoch=5)
     assert loss2 < loss1
 
+
 @pytest.mark.torch
 def test_GNN_context_pred():
     from deepchem.models.torch_models.gnn import GNNModular
@@ -162,5 +163,3 @@ def test_GNN_context_pred():
     loss1 = model.fit(dataset, nb_epoch=5)
     loss2 = model.fit(dataset, nb_epoch=5)
     assert loss2 < loss1
-
-test_GNN_context_pred()

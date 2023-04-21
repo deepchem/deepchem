@@ -82,7 +82,7 @@ class GraphData:
             elif edge_index.shape[1] != edge_features.shape[0]:
                 raise ValueError(
                     'The first dimension of edge_features must be the \
-                          same as the second dimension of edge_index.')
+                          same as the second dimension of edge_index.'                                                                                                                                                                                                                                                                                        )
 
         if node_pos_features is not None:
             if isinstance(node_pos_features, np.ndarray) is False:
@@ -91,7 +91,7 @@ class GraphData:
             elif node_pos_features.shape[0] != node_features.shape[0]:
                 raise ValueError(
                     'The length of node_pos_features must be the same as the \
-                          length of node_features.')
+                          length of node_features.'                                                                                                                                                                                                            )
 
         self.node_features = node_features
         self.edge_index = edge_index
@@ -279,7 +279,6 @@ class GraphData:
 
         # Filter and reindex node features
         subgraph_node_features = self.node_features[list(nodes)]
-        node_pos_features = self.node_pos_features[list(nodes)]
 
         # Filter and reindex edge indices and edge features
         subgraph_edge_indices = []
@@ -299,7 +298,6 @@ class GraphData:
         subgraph_data = GraphData(node_features=subgraph_node_features,
                                   edge_index=subgraph_edge_index,
                                   edge_features=subgraph_edge_features,
-                                  node_pos_features=node_pos_features,
                                   **self.kwargs)
 
         return subgraph_data, node_mapping
@@ -397,25 +395,8 @@ class BatchGraphData(GraphData):
         user_defined_attribute_names = self._get_user_defined_attributes(
             graph_list[0])
         for name in user_defined_attribute_names:
-            try:
-                kwargs[name] = np.vstack(
-                    [getattr(graph, name) for graph in graph_list])
-            except ValueError:
-                # Find the largest size for both dimensions
-                max_size_0 = max(
-                    [getattr(graph, name).shape[0] for graph in graph_list])
-                max_size_1 = max(
-                    [getattr(graph, name).shape[1] for graph in graph_list])
-
-                # Pad the attributes to the largest size
-                padded_attrs = pad_attribute(
-                    [getattr(graph, name) for graph in graph_list], max_size_0,
-                    max_size_1)
-
-                # XXX This is batching the edge_index vertically, not right shape [2, num_edges]. hard to generalize batching for user defined attributes
-
-                # Stack the padded attributes
-                kwargs[name] = np.vstack(padded_attrs)
+            kwargs[name] = np.vstack(
+                                [getattr(graph, name) for graph in graph_list])
 
         super().__init__(node_features=batch_node_features,
                          edge_index=batch_edge_index,
@@ -529,13 +510,3 @@ def shortest_path_length(graph_data, source, cutoff=None):
 
     return {i: d for i, d in enumerate(distances) if d <= cutoff}
 
-
-def pad_attribute(attr_list, max_size_0, max_size_1):
-    padded_list = []
-    for attr in attr_list:
-        pad_size_0 = max_size_0 - attr.shape[0]
-        pad_size_1 = max_size_1 - attr.shape[1]
-        padded_attr = np.pad(attr, ((0, pad_size_0), (0, pad_size_1)),
-                             mode='constant')
-        padded_list.append(padded_attr)
-    return padded_list
