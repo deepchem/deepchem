@@ -122,9 +122,9 @@ class XCModel(TorchModel):
     def __init__(self,
                  xcstr: str,
                  nnmodel: Optional[torch.nn.Module] = None,
-                 ninp: int = 2,
-                 nhid: int = 10,
-                 ndepths: int = 1,
+                 input_size: int = 2,
+                 hidden_size: int = 10,
+                 n_layers: int = 1,
                  modeltype: int = 1,
                  n_tasks: int = 0,
                  log_frequency: int = 0,
@@ -138,18 +138,18 @@ class XCModel(TorchModel):
             The choice of xc to use.
         nnmodel: torch.nn.Module
             the PyTorch model implementing the calculation
-        ninp: int
+        input_size: int
             size of neural network input
-        nhid: int
+        hidden_size: int
             size of the hidden layers ; the number of hidden layers is fixed
             in the default method.
-        ndepths: int
+        n_layers: int
             number of layers in the neural network
         modeltype: int
             model type 2 includes an activation layer whereas type 1 does not.
         """
         if nnmodel is None:
-            nnmodel = _construct_nn_model(ninp, nhid, ndepths,
+            nnmodel = _construct_nn_model(input_size, hidden_size, n_layers,
                                           modeltype).to(torch.double)
         model = DFTXC(xcstr, nnmodel)
         self.xc = xcstr
@@ -174,10 +174,14 @@ class XCModel(TorchModel):
         Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]
         """
         inputs, labels, weights = batch
+        # The default_generator method returns an array of dc.feat.dft_data.DFTEntry objects
+        # nested inside a list. To access the nested array of objects, we are
+        # indexing by 0 here.
         labels = [(torch.from_numpy(i.get_true_val())).requires_grad_()
                   for i in inputs[0]]
         w = np.array([1.0])
         weights = [torch.from_numpy(w)]
+        _, _, _ = super(XCModel, self)._prepare_batch(([], [], []))
         return (inputs, labels, weights)
 
 
@@ -198,17 +202,18 @@ class ExpM1Activation(torch.nn.Module):
         return torch.exp(x) - 1
 
 
-def _construct_nn_model(ninp: int, nhid: int, ndepths: int, modeltype: int):
+def _construct_nn_model(input_size: int, hidden_size: int, n_layers: int,
+                        modeltype: int):
     """
     Constructs Neural Network
 
     Parameters
     ----------
-    ninp: int
+    input_size: int
         size of neural network input
-    nhid: int
+    hidden_size: int
         size of the hidden layers ; there are 3 hidden layers in this method
-    ndepths: int
+    n_layers: int
         number of layers in the neural network
     modeltype: int
         model type 2 includes an activation layer whereas type 1 does not.
@@ -225,20 +230,20 @@ def _construct_nn_model(ninp: int, nhid: int, ndepths: int, modeltype: int):
     if modeltype == 1:
         layers: List[Any]
         layers = []
-        for i in range(ndepths):
-            n1 = ninp if i == 0 else nhid
-            layers.append(torch.nn.Linear(n1, nhid))
+        for i in range(n_layers):
+            n1 = input_size if i == 0 else hidden_size
+            layers.append(torch.nn.Linear(n1, hidden_size))
             layers.append(torch.nn.Softplus())
-        layers.append(torch.nn.Linear(nhid, 1, bias=False))
+        layers.append(torch.nn.Linear(hidden_size, 1, bias=False))
         return torch.nn.Sequential(*layers)
     elif modeltype == 2:
         layers = []
-        for i in range(ndepths):
-            n1 = ninp if i == 0 else nhid
-            layers.append(torch.nn.Linear(n1, nhid))
-            if i < ndepths - 1:
+        for i in range(n_layers):
+            n1 = input_size if i == 0 else hidden_size
+            layers.append(torch.nn.Linear(n1, hidden_size))
+            if i < n_layers - 1:
                 layers.append(torch.nn.Softplus())
             else:
                 layers.append(ExpM1Activation())
-        layers.append(torch.nn.Linear(nhid, 1, bias=False))
+        layers.append(torch.nn.Linear(hidden_size, 1, bias=False))
         return torch.nn.Sequential(*layers)
