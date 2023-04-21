@@ -519,7 +519,7 @@ class TestLosses(unittest.TestCase):
         assert torch.allclose(result, expected_result)
 
     @pytest.mark.torch
-    def test_deep_graph_infomax_loss():
+    def test_deep_graph_infomax_loss(self):
         import torch
         import numpy as np
         from deepchem.feat.graph_data import GraphData
