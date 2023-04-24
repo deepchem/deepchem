@@ -1131,12 +1131,12 @@ class DeepGraphInfomaxLoss(Loss):
     >>> import numpy as np
     >>> from deepchem.feat.graph_data import GraphData
     >>> from torch_geometric.nn import global_mean_pool
-    >>> from deepchem.models.losses import GraphInfomaxLoss
+    >>> from deepchem.models.losses import DeepGraphInfomaxLoss
     >>> x = np.array([[1, 0], [0, 1], [1, 1], [0, 0]])
     >>> edge_index = np.array([[0, 1, 2, 0, 3], [1, 0, 1, 3, 2]])
     >>> graph_index = np.array([0, 0, 1, 1])
     >>> data = GraphData(node_features=x, edge_index=edge_index, graph_index=graph_index).numpy_to_torch()
-    >>> graph_infomax_loss = GraphInfomaxLoss()._create_pytorch_loss()
+    >>> graph_infomax_loss = DeepGraphInfomaxLoss()._create_pytorch_loss()
     >>> # Initialize node_emb randomly
     >>> num_nodes = data.num_nodes
     >>> embedding_dim = 8
