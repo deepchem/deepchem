@@ -1193,7 +1193,7 @@ class GraphContextPredLoss(Loss):
     >>> mode = "cbow"
     >>> neg_samples = 2
     >>> graph_context_pred_loss = GraphContextPredLoss()._create_pytorch_loss(mode, neg_samples)
-    >>> loss = graph_context_pred_loss(substruct_rep, overlapped_node_rep, context_rep, neg_context_rep, inputs)
+    >>> loss = graph_context_pred_loss(substruct_rep, overlapped_node_rep, context_rep, neg_context_rep, overlapped_context_size)
     """
 
     def _create_pytorch_loss(self, mode, neg_samples):
