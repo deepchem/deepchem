@@ -293,7 +293,6 @@ class GraphData:
         subgraph_edge_index = np.array(subgraph_edge_indices, dtype=np.int64).T
         subgraph_edge_features = np.array(subgraph_edge_features)
 
-        # Create a new GraphData object for the subgraph
         subgraph_data = GraphData(node_features=subgraph_node_features,
                                   edge_index=subgraph_edge_index,
                                   edge_features=subgraph_edge_features,
