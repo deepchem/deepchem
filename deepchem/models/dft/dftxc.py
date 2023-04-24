@@ -177,12 +177,12 @@ class XCModel(TorchModel):
         # The default_generator method returns an array of dc.feat.dft_data.DFTEntry objects
         # nested inside a list. To access the nested array of objects, we are
         # indexing by 0 here.
-        labels = [(torch.from_numpy(i.get_true_val())).requires_grad_()
-                  for i in inputs[0]]
+        labels = [i.get_true_val() for i in inputs[0]]
+        label_tensors = [(torch.as_tensor(x, device = self.device)).requires_grad_() for x in labels]
         w = np.array([1.0])
-        weights = [torch.from_numpy(w)]
+        weights = [torch.tensor(w, device = self.device ) for i in inputs[0]]
         _, _, _ = super(XCModel, self)._prepare_batch(([], [], []))
-        return (inputs, labels, weights)
+        return (inputs, label_tensors, weights)
 
 
 class ExpM1Activation(torch.nn.Module):
