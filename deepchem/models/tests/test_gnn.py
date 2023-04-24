@@ -159,7 +159,15 @@ def test_GNN_context_pred():
     from deepchem.models.torch_models.gnn import GNNModular
 
     dataset, _ = get_regression_dataset()
-    model = GNNModular(task="context_pred", context_mode="skipgram")
+    model = GNNModular(task="context_pred",
+                       context_mode="skipgram", jump_knowledge="concat")
+    loss1 = model.fit(dataset, nb_epoch=5)
+    loss2 = model.fit(dataset, nb_epoch=5)
+    assert loss2 < loss1
+
+    model = GNNModular(task="context_pred",
+                       context_mode="cbow",
+                       jump_knowledge="last")
     loss1 = model.fit(dataset, nb_epoch=5)
     loss2 = model.fit(dataset, nb_epoch=5)
     assert loss2 < loss1

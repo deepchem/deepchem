@@ -1223,9 +1223,9 @@ class GraphContextPredLoss(Loss):
 
                 # shift indices of substructures to create negative examples
                 shifted_expanded_substruct_rep = []
-                for i in range(self.neg_samples):
+                for j in range(self.neg_samples):
                     shifted_substruct_rep = substruct_rep[cycle_index(
-                        len(substruct_rep), i + 1)]
+                        len(substruct_rep), j + 1)]
                     shifted_expanded_substruct_rep.append(
                         torch.cat([
                             shifted_substruct_rep[i].repeat((i, 1))

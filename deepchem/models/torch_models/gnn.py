@@ -122,6 +122,7 @@ class GNN(torch.nn.Module):
         # Different implementations of jump_knowledge
         if self.jump_knowledge == "concat":
             node_representation = torch.cat(h_list, dim=1)
+            # reshapes node_representation to (num_nodes, num_layers * emb_dim)
         elif self.jump_knowledge == "last":
             node_representation = h_list[-1]
         elif self.jump_knowledge == "max":
@@ -255,20 +256,23 @@ class GNNModular(ModularTorchModel):
         The number of tasks.
     graph_pooling: str
         The type of graph pooling to use. Must be one of "sum", "mean", "max", "attention" or "set2set".
+        "sum" may cause issues with positive prediction loss.
     dropout: float, optional (default 0)
         The dropout probability.
     jump_knowledge: str, optional (default "last")
-        The type of jump knowledge to use. [1] Must be one of "last", "sum", "max", "concat" or "none".
+        The type of jump knowledge to use. [1] Must be one of "last", "sum", "max", or "concat".
         "last": Use the node representation from the last GNN layer.
-        "concat": Concatenate the node representations from all GNN layers.
+        "concat": Concatenate the node representations from all GNN layers. This will increase the dimensionality of the node representations by a factor of `num_layer`.
         "max": Take the element-wise maximum of the node representations from all GNN layers.
-        "sum": Take the element-wise sum of the node representations from all GNN layers.
+        "sum": Take the element-wise sum of the node representations from all GNN layers. This may cause issues with positive prediction loss.
     task: str, optional (default "regression")
         The type of task.
         Unsupervised tasks:
         edge_pred: Edge prediction. Predicts whether an edge exists between two nodes.
         mask_nodes: Masking nodes. Predicts the masked node.
         mask_edges: Masking edges. Predicts the masked edge.
+        infomax: Infomax. Maximizes mutual information between local node representations and a pooled global graph representation.
+        context_pred: Context prediction. Predicts the surrounding context of a node.
         Supervised tasks:
         "regression" or "classification".
     context_mode: str, optional (default "cbow")
@@ -303,7 +307,7 @@ class GNNModular(ModularTorchModel):
                  num_classes: int = 2,
                  graph_pooling: str = "mean",
                  dropout: int = 0,
-                 jump_knowledge: str = "concat",
+                 jump_knowledge: str = "last",
                  task: str = "edge_pred",
                  mask_rate: float = .1,
                  mask_edge: bool = True,
@@ -375,27 +379,8 @@ class GNNModular(ModularTorchModel):
 
         These components are then used to construct the GNN and GNN_head modules for the GNNModular model.
         """
-        encoders = []
-        batch_norms = []
-        for layer in range(self.num_layer):
-            # do we need input layer? bio/model.py/ginconv L 31
-            if self.gnn_type == "gin":
-                encoders.append(
-                    GINEConv(
-                        torch.nn.Linear(self.emb_dim, self.emb_dim),
-                        edge_dim=2,  # edge type, edge direction
-                        aggr="add"))
-            else:
-                raise ValueError("Only GIN is supported for now")
-            # Relevent for future PRs
-            # elif self.gnn_type == "gcn":
-            #     encoders.append(GCNConv(self.emb_dim))
-            # elif self.gnn_type == "gat":
-            #     encoders.append(GATConv(self.emb_dim))
-            batch_norms.append(torch.nn.BatchNorm1d(self.emb_dim))
-        encoders = torch.nn.ModuleList(encoders)
-        batch_norms = torch.nn.ModuleList(batch_norms)
 
+        encoders, batch_norms = self.build_gnn(self.num_layer)
         components = {
             'node_type_embedding':
                 torch.nn.Embedding(num_node_type, self.emb_dim),  # XXX 120
@@ -432,7 +417,7 @@ class GNNModular(ModularTorchModel):
                 pool = global_max_pool
             elif self.graph_pooling == "attention":
                 if self.jump_knowledge == "concat":
-                    # self.emb_dim = (self.num_layer + 1) * self.emb_dim ?
+                    # self.emb_dim = (self.num_layer + 1) * self.emb_dim XXX
                     pool = AttentionalAggregation(
                         gate_nn=torch.nn.Linear((self.num_layer + 1) *
                                                 self.emb_dim, 1))
@@ -478,11 +463,63 @@ class GNNModular(ModularTorchModel):
                 pool = global_mean_pool
             elif self.graph_pooling == "max":
                 pool = global_max_pool
+            elif self.graph_pooling == "attention":
+                raise NotImplementedError(
+                    "Attentional pooling not implemented for context prediction task."
+                )
+            elif self.graph_pooling == "set2set":
+                raise NotImplementedError(
+                    "Set2set pooling not implemented for context prediction task."
+                )
 
-            context_gnn = copy.deepcopy(self.gnn)
-            components.update({'pool': pool, 'context_gnn': context_gnn})
+            if self.jump_knowledge == "concat":  # concat changes the emb_dim
+                c_gconvs, c_batch_norms = self.build_gnn(self.num_layer)
+            else:
+                c_gconvs, c_batch_norms = self.build_gnn(self.neighborhood_size - self.context_size)
+            context_gnn_components = {
+                'c_node_type_embedding':
+                    torch.nn.Embedding(num_node_type, self.emb_dim),
+                'c_chirality_embedding':
+                    torch.nn.Embedding(num_chirality_tag, self.emb_dim),
+                'c_gconvs':
+                    c_gconvs,
+                'c_batch_norms':
+                    c_batch_norms
+            }
+
+            self.context_gnn = GNN(
+                context_gnn_components['c_node_type_embedding'],
+                context_gnn_components['c_chirality_embedding'],
+                context_gnn_components['c_gconvs'],
+                context_gnn_components['c_batch_norms'], self.dropout,
+                self.jump_knowledge)
+            components.update({'pool': pool, **context_gnn_components})
 
         return components
+
+    def build_gnn(self, num_layer):
+        encoders = []
+        batch_norms = []
+        for layer in range(num_layer):
+            # do we need input layer? bio/model.py/ginconv L 31
+            if self.gnn_type == "gin":
+                encoders.append(
+                    GINEConv(
+                        torch.nn.Linear(self.emb_dim, self.emb_dim),
+                        edge_dim=2,  # edge type, edge direction
+                        aggr="add"))
+            else:
+                raise ValueError("Only GIN is supported for now")
+            # Relevent for future PRs
+            # elif self.gnn_type == "gcn":
+            #     encoders.append(GCNConv(self.emb_dim))
+            # elif self.gnn_type == "gat":
+            #     encoders.append(GATConv(self.emb_dim))
+            batch_norms.append(torch.nn.BatchNorm1d(self.emb_dim))
+        encoders = torch.nn.ModuleList(encoders)
+        batch_norms = torch.nn.ModuleList(batch_norms)
+
+        return encoders, batch_norms
 
     def build_model(self):
         """
@@ -599,7 +636,7 @@ class GNNModular(ModularTorchModel):
 
         substruct_rep = self.gnn(substruct_batch)[0][
             s_overlap]  # 0 for node representation index
-        overlapped_node_rep = self.components['context_gnn'](context_graphs)[0][
+        overlapped_node_rep = self.context_gnn(context_graphs)[0][
             c_overlap]  # 0 for node representation index
 
         context_rep = self.components['pool'](overlapped_node_rep, c_overlap)
@@ -672,11 +709,15 @@ class GNNModular(ModularTorchModel):
                                      self.neighborhood_size)
                 for graph in inputs[0]
             ]
-
-            subgraphs_list = [x[0] for x in sampled_g]
-            s_overlap_list = [x[1] for x in sampled_g]
-            context_list = [x[2] for x in sampled_g]
-            c_overlap_list = [x[3] for x in sampled_g]
+            try:
+                subgraphs_list = [x[0] for x in sampled_g]
+                s_overlap_list = [x[1] for x in sampled_g]
+                context_list = [x[2] for x in sampled_g]
+                c_overlap_list = [x[3] for x in sampled_g]
+            except ValueError:
+                raise ValueError(
+                    "Not enough nodes in graph to sample context, use a smaller context or a larger neighborhood size."
+                )
 
             s_overlap, c_overlap, overlap_size = self.overlap_batcher(
                 subgraphs_list, s_overlap_list, context_list, c_overlap_list)
@@ -985,43 +1026,53 @@ def cycle_index(num, shift):
     return arr
 
 
-def context_pred_sampler(
-        input_graph: GraphData,
-        l1: int,
-        l2: int,
-        center=True,  # XXX
-        root_idx=None):
+def context_pred_sampler(input_graph: GraphData,
+                         l1: int,
+                         l2: int,
+                         root_idx=None):
     """
-    Randomly selects a node from the input graph, and adds attributes
-    that contain the substructure that corresponds to the whole graph, and the
-    context substructures that correspond to
-    the subgraph that is between l1 and the edge of the graph. If
-    center=True, then will select the center node as the root node.
+    Generate subgraph and context graph for context prediction.
+
+    This function takes an input graph and generates a subgraph and a context graph for context prediction. The subgraph is the entire input graph, while the context graph is a ring around the root node outside of l1 and inside of l2.
 
     Parameters
     ----------
-    input_graph: dc.feat.GraphData
-        The input graph data.
-    l1: int
-        The distance threshold for context substructures.
-    center: bool, optional
-        If True, will select a center node as root node, otherwise
-        randomly selects a node.
-    root_idx: int, optional
-        Usually None. Otherwise directly sets node idx of root (for debugging only).
+    input_graph : GraphData
+        The input graph for which the subgraph and context graph are to be generated.
+    l1 : int
+        The inner diameter of the context graph.
+    l2 : int
+        The outer diameter of the context graph.
+    root_idx : int, optional
+        The index of the root node. If not provided, a random node will be selected as the root.
 
     Returns
     -------
-    GraphData
-        A new BatchGraphData object with the additional attributes:
-        - data.center_substruct_idx
-        - data.x_substruct
-        - data.edge_attr_substruct
-        - data.edge_index_substruct
-        - data.x_context
-        - data.edge_attr_context
-        - data.edge_index_context
-        - data.overlap_context_substruct_idx
+    subgraph : GraphData
+        The subgraph generated from the input graph.
+    s_overlap : list
+        The indices of overlapping nodes between substruct and context, with respect to the substruct ordering.
+    context_G : GraphData
+        The context graph generated from the input graph.
+    c_overlap : list
+        The indices of overlapping nodes between substruct and context, with respect to the context ordering.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from deepchem.feat.graph_data import GraphData
+    >>> from deepchem.models.torch_models.gnn import context_pred_sampler
+    >>> x = np.array([[1, 0], [0, 1], [1, 1], [0, 0], [1, 0], [0, 1], [1, 1], [0, 0]])
+    >>> edge_index = np.array([[0, 1, 2, 3, 4, 5, 6, 7], [1, 0, 3, 2, 5, 4, 7, 6]])
+    >>> edge_feats = np.array([[1, 0], [0, 1], [1, 1], [0, 0], [1, 0], [0, 1], [1, 1], [0, 0]])
+    >>> graph_index = np.array([0, 0, 1, 1, 2, 2, 3, 3])
+    >>> data = GraphData(node_features=x,
+    ...                  edge_index=edge_index,
+    ...                  edge_features=edge_feats,
+    ...                  graph_index=graph_index)
+    >>> l1 = 1
+    >>> l2 = 2
+    >>> subgraph, s_overlap, context_G, c_overlap = context_pred_sampler(data, l1, l2)
     """
     data = copy.deepcopy(input_graph)
 
@@ -1047,10 +1098,9 @@ def context_pred_sampler(
 
     if len(context_node_idxes) > 0:
         context_G, context_node_map = data.subgraph(context_node_idxes)
-
-    # Get indices of overlapping nodes between substruct and context, WRT context ordering
-    s_overlap = list(context_node_idxes)
-    if len(s_overlap) > 0:
+        # Get indices of overlapping nodes between substruct and context, WRT context ordering
+        s_overlap = list(context_node_idxes)
         c_overlap = [context_node_map[old_idx] for old_idx in s_overlap]
-
-    return (subgraph, s_overlap, context_G, c_overlap)
+        return (subgraph, s_overlap, context_G, c_overlap)
+    else:
+        return (subgraph, [], None, [])
