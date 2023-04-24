@@ -523,32 +523,6 @@ class GNNModular(ModularTorchModel):
             loss = self.context_pred_loss_loader(inputs, labels)
         return (loss * weights).mean()
 
-    def context_pred_loss_loader(self, inputs, labels):
-        substruct_batch = inputs[0]
-        s_overlap = inputs[1]
-        context_graphs = inputs[2]
-        c_overlap = inputs[3]
-
-        substruct_rep = self.gnn(substruct_batch)[0][
-            s_overlap]  # 0 for node representation index
-        overlapped_node_rep = self.components['context_gnn'](context_graphs)[0][
-            c_overlap]  # 0 for node representation index
-
-        context_rep = self.components['pool'](overlapped_node_rep, c_overlap)
-        # negative contexts are obtained by shifting the indicies of context embeddings
-        neg_context_rep = torch.cat([
-            context_rep[cycle_index(len(context_rep), i + 1)]
-            for i in range(self.neg_samples)
-        ],
-                                    dim=0)
-
-        context_pred_loss = self.context_pred_loss(substruct_rep,
-                                                   overlapped_node_rep,
-                                                   context_rep, neg_context_rep,
-                                                   inputs)
-
-        return context_pred_loss
-
     def regression_loss(self, inputs, labels):
         out = self.model(inputs)
         reg_loss = self.criterion(out, labels)
@@ -617,6 +591,54 @@ class GNNModular(ModularTorchModel):
 
         return self.graph_infomax_loss(positive_score, negative_score)
 
+    def context_pred_loss_loader(self, inputs, labels):
+        substruct_batch = inputs[0]
+        s_overlap = inputs[1]
+        context_graphs = inputs[2]
+        c_overlap = inputs[3]
+        overlap_size = inputs[4]
+
+        substruct_rep = self.gnn(substruct_batch)[0][
+            s_overlap]  # 0 for node representation index
+        overlapped_node_rep = self.components['context_gnn'](context_graphs)[0][
+            c_overlap]  # 0 for node representation index
+
+        context_rep = self.components['pool'](overlapped_node_rep, c_overlap)
+        # negative contexts are obtained by shifting the indicies of context embeddings
+        neg_context_rep = torch.cat([
+            context_rep[cycle_index(len(context_rep), i + 1)]
+            for i in range(self.neg_samples)
+        ],
+                                    dim=0)
+
+        context_pred_loss = self.context_pred_loss(substruct_rep,
+                                                   overlapped_node_rep,
+                                                   context_rep, neg_context_rep,
+                                                   overlap_size)
+
+        return context_pred_loss
+
+    def overlap_batcher(self, substruct_graphs, s_overlap, context_graphs,
+                        c_overlap):
+        cumsum_substruct = 0
+        cumsum_context = 0
+
+        for i, (sub, context) in enumerate(zip(substruct_graphs,
+                                               context_graphs)):
+            num_nodes_substruct = len(sub.node_features)
+            num_nodes_context = len(context.node_features)
+
+            s_overlap[i] = [s + cumsum_substruct for s in s_overlap[i]]
+            c_overlap[i] = [c + cumsum_context for c in c_overlap[i]]
+
+            cumsum_substruct += num_nodes_substruct
+            cumsum_context += num_nodes_context
+
+        flat_s_overlap = [item for sublist in s_overlap for item in sublist]
+        flat_c_overlap = [item for sublist in c_overlap for item in sublist]
+        overlap_size = [len(s) for s in c_overlap]
+        return flat_s_overlap, flat_c_overlap, overlap_size
+
     def _prepare_batch(self, batch):
         """
         Prepares the batch for the model by converting the GraphData numpy arrays to BatchedGraphData torch tensors and moving them to the device, then transforming the input to the appropriate format for the task.
@@ -647,7 +669,8 @@ class GNNModular(ModularTorchModel):
             inputs = mask_edges(inputs, self.mask_rate)
         elif self.task == "context_pred":
             sampled_g = [
-                context_pred_sampler(graph, self.context_size, self.neighborhood_size)
+                context_pred_sampler(graph, self.context_size,
+                                     self.neighborhood_size)
                 for graph in inputs[0]
             ]
 
@@ -656,17 +679,16 @@ class GNNModular(ModularTorchModel):
             context_list = [x[2] for x in sampled_g]
             c_overlap_list = [x[3] for x in sampled_g]
 
-            s_overlap, c_overlap = self.overlap_batcher(subgraphs_list,
-                                                        s_overlap_list,
-                                                        context_list,
-                                                        c_overlap_list)
+            s_overlap, c_overlap, overlap_size = self.overlap_batcher(
+                subgraphs_list, s_overlap_list, context_list, c_overlap_list)
             s_overlap = torch.tensor(s_overlap).to(self.device)
             c_overlap = torch.tensor(c_overlap).to(self.device)
 
             b_subgraphs = BatchGraphData(subgraphs_list).numpy_to_torch(
                 self.device)
             b_context = BatchGraphData(context_list).numpy_to_torch(self.device)
-            inputs = (b_subgraphs, s_overlap, b_context, c_overlap)
+            inputs = (b_subgraphs, s_overlap, b_context, c_overlap,
+                      overlap_size)
 
         _, labels, weights = super()._prepare_batch(([], labels, weights))
 
@@ -675,24 +697,6 @@ class GNNModular(ModularTorchModel):
             weights = weights[0]
 
         return inputs, labels, weights
-
-    def overlap_batcher(self, substruct_graphs, s_overlap, context_graphs, c_overlap):
-        cumsum_substruct = 0
-        cumsum_context = 0
-
-        for i, (sub, context) in enumerate(zip(substruct_graphs, context_graphs)):
-            num_nodes_substruct = len(sub.node_features)
-            num_nodes_context = len(context.node_features)
-
-            s_overlap[i] = [s + cumsum_substruct for s in s_overlap[i]]
-            c_overlap[i] = [c + cumsum_context for c in c_overlap[i]]
-
-            cumsum_substruct += num_nodes_substruct
-            cumsum_context += num_nodes_context
-
-        flat_s_overlap = [item for sublist in s_overlap for item in sublist]
-        flat_c_overlap = [item for sublist in c_overlap for item in sublist]
-        return flat_s_overlap, flat_c_overlap
 
     def default_generator(
             self,
@@ -1040,8 +1044,7 @@ def context_pred_sampler(
 
     # takes a ring around the root node outside of l1 and inside of l2
     context_node_idxes = set(l1_node_idxes).symmetric_difference(
-        set(l2_node_idxes)
-    ) 
+        set(l2_node_idxes))
 
     if len(context_node_idxes) > 0:
         context_G, context_node_map = data.subgraph(context_node_idxes)
@@ -1049,9 +1052,6 @@ def context_pred_sampler(
     # Get indices of overlapping nodes between substruct and context, WRT context ordering
     s_overlap = list(context_node_idxes)
     if len(s_overlap) > 0:
-        c_overlap = [
-            context_node_map[old_idx]
-            for old_idx in s_overlap
-        ]
+        c_overlap = [context_node_map[old_idx] for old_idx in s_overlap]
 
     return (subgraph, s_overlap, context_G, c_overlap)

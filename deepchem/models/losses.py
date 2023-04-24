@@ -1170,7 +1170,7 @@ class DeepGraphInfomaxLoss(Loss):
 
 class GraphContextPredLoss(Loss):
     """
-    Context prediction is the task of predicting the context of a node given its substructure. The context of a node is essentially the ring of nodes around it. 
+    Context prediction is the task of predicting the context of a node given its substructure. The context of a node is essentially the ring of nodes around it.
 
     This loss compares the representation of a node's neighborhood with the representation of the node's context. It then uses negative sampling to compare the representation of the node's neighborhood with the representation of a random node's context.
 
@@ -1181,6 +1181,19 @@ class GraphContextPredLoss(Loss):
     neg_samples: int
         The number of negative samples to use for negative sampling.
 
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.losses import GraphContextPredLoss
+    >>> substruct_rep = torch.randn(4, 8)
+    >>> overlapped_node_rep = torch.randn(8, 8)
+    >>> context_rep = torch.randn(4, 8)
+    >>> neg_context_rep = torch.randn(2 * 4, 8)
+    >>> overlapped_context_size = torch.tensor([2, 2, 2, 2])
+    >>> mode = "cbow"
+    >>> neg_samples = 2
+    >>> graph_context_pred_loss = GraphContextPredLoss()._create_pytorch_loss(mode, neg_samples)
+    >>> loss = graph_context_pred_loss(substruct_rep, overlapped_node_rep, context_rep, neg_context_rep, inputs)
     """
 
     def _create_pytorch_loss(self, mode, neg_samples):
@@ -1190,7 +1203,7 @@ class GraphContextPredLoss(Loss):
         self.neg_samples = neg_samples
         self.criterion = torch.nn.BCEWithLogitsLoss()
 
-        def loss(substruct_rep, overlapped_node_rep, context_rep, neg_context_rep, inputs):
+        def loss(substruct_rep, overlapped_node_rep, context_rep, neg_context_rep, overlap_size):
 
             #  Contexts are represented by
             if self.mode == "cbow":
@@ -1201,26 +1214,22 @@ class GraphContextPredLoss(Loss):
                                      dim=1)
 
             elif self.mode == "skipgram":
-                expanded_substruct_rep = torch.cat([
-                    substruct_rep[i].repeat(
-                        (inputs.overlapped_context_size[i], 1))
-                    for i in range(len(substruct_rep))
-                ],
-                                                   dim=0)
+                expanded_substruct_rep = torch.cat(
+                    [substruct_rep[i].repeat((i, 1)) for i in overlap_size],
+                    dim=0)
                 pred_pos = torch.sum(expanded_substruct_rep *
                                      overlapped_node_rep,
                                      dim=1)
 
-                #shift indices of substructures to create negative examples
+                # shift indices of substructures to create negative examples
                 shifted_expanded_substruct_rep = []
                 for i in range(self.neg_samples):
                     shifted_substruct_rep = substruct_rep[cycle_index(
                         len(substruct_rep), i + 1)]
                     shifted_expanded_substruct_rep.append(
                         torch.cat([
-                            shifted_substruct_rep[i].repeat(
-                                (inputs.overlapped_context_size[i], 1))
-                            for i in range(len(shifted_substruct_rep))
+                            shifted_substruct_rep[i].repeat((i, 1))
+                            for i in overlap_size
                         ],
                                   dim=0))
 
