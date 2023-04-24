@@ -4,9 +4,11 @@ import torch
 import numpy as np
 from torch_geometric.nn import GINEConv, global_add_pool, global_mean_pool, global_max_pool
 from torch_geometric.nn.aggr import AttentionalAggregation, Set2Set
+from torch_geometric.nn.inits import uniform
+import torch.nn as nn
 from torch.functional import F
 from deepchem.data import Dataset
-from deepchem.models.losses import SoftmaxCrossEntropy, EdgePredictionLoss, GraphNodeMaskingLoss, GraphEdgeMaskingLoss
+from deepchem.models.losses import SoftmaxCrossEntropy, EdgePredictionLoss, GraphNodeMaskingLoss, GraphEdgeMaskingLoss, DeepGraphInfomaxLoss
 from deepchem.models.torch_models import ModularTorchModel
 from deepchem.feat.graph_data import BatchGraphData
 from typing import Iterable, List, Tuple
@@ -178,6 +180,65 @@ class GNNHead(torch.nn.Module):
         return out
 
 
+class LocalGlobalDiscriminator(nn.Module):
+    """
+    This discriminator module is a linear layer without bias, used to measure the similarity between local node representations (`x`) and global graph representations (`summary`).
+
+    The goal of the discriminator is to distinguish between positive and negative pairs of local and global representations.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.torch_models.gnn import LocalGlobalDiscriminator
+    >>> discriminator = LocalGlobalDiscriminator(hidden_dim=64)
+    >>> x = torch.randn(32, 64)  # Local node representations
+    >>> summary = torch.randn(32, 64)  # Global graph representations
+    >>> similarity_scores = discriminator(x, summary)
+    >>> print(similarity_scores.shape)
+    torch.Size([32])
+    """
+
+    def __init__(self, hidden_dim):
+        """
+        `self.weight` is a learnable weight matrix of shape `(hidden_dim, hidden_dim)`.
+
+        nn.Parameters are tensors that require gradients and are optimized during the training process.
+
+        Parameters
+        ----------
+        hidden_dim : int
+            The size of the hidden dimension for the weight matrix.
+
+        """
+        super().__init__()
+        self.weight = nn.Parameter(torch.Tensor(hidden_dim, hidden_dim))
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        size = self.weight.size(0)
+        uniform(size, self.weight)
+
+    def forward(self, x, summary):
+        """
+        Computes the product of `summary` and `self.weight`, and then calculates the element-wise product of `x` and the resulting matrix `h`.
+        It then sums over the `hidden_dim` dimension, resulting in a tensor of shape `(batch_size,)`, which represents the similarity scores between the local and global representations.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Local node representations of shape `(batch_size, hidden_dim)`.
+        summary : torch.Tensor
+            Global graph representations of shape `(batch_size, hidden_dim)`.
+
+        Returns
+        -------
+        torch.Tensor
+            A tensor of shape `(batch_size,)`, representing the similarity scores between the local and global representations.
+        """
+        h = torch.matmul(summary, self.weight)
+        return torch.sum(x * h, dim=1)
+
+
 class GNNModular(ModularTorchModel):
     """
     Modular GNN which allows for easy swapping of GNN layers.
@@ -266,6 +327,9 @@ class GNNModular(ModularTorchModel):
         elif task == "mask_edges":
             self.mask_rate = mask_rate
             self.edge_mask_loss = GraphEdgeMaskingLoss()._create_pytorch_loss()
+        elif task == "infomax":
+            self.graph_infomax_loss = DeepGraphInfomaxLoss(
+            )._create_pytorch_loss()
 
         self.graph_pooling = graph_pooling
         self.dropout = dropout
@@ -344,7 +408,7 @@ class GNNModular(ModularTorchModel):
             })
 
         # for supervised tasks, add prediction head
-        if self.task in ("regression", "classification"):
+        elif self.task in ("regression", "classification"):
             if self.graph_pooling == "sum":
                 pool = global_add_pool
             elif self.graph_pooling == "mean":
@@ -383,6 +447,15 @@ class GNNModular(ModularTorchModel):
 
             self.gnn_head = GNNHead(components['pool'], components['head'],
                                     self.task, self.num_tasks, self.num_classes)
+
+        elif self.task == 'infomax':
+            self.emb_dim = (self.num_layer + 1) * self.emb_dim
+            descrim = LocalGlobalDiscriminator(self.emb_dim)
+            components.update({
+                'discriminator': descrim,
+                'pool': global_mean_pool
+            })
+
         return components
 
     def build_model(self):
@@ -394,7 +467,7 @@ class GNNModular(ModularTorchModel):
         Supervised tasks such as node classification and graph regression require a prediction head, so the model is a sequential module consisting of the GNN module followed by the GNN_head module.
         """
         # unsupervised tasks do not need a pred head
-        if self.task in ("edge_pred", "mask_nodes", "mask_edges"):
+        if self.task in ("edge_pred", "mask_nodes", "mask_edges", "infomax"):
             return self.gnn
         elif self.task in ("regression", "classification"):
             return torch.nn.Sequential(self.gnn, self.gnn_head)
@@ -412,6 +485,8 @@ class GNNModular(ModularTorchModel):
             loss = self.masked_node_loss(inputs)
         elif self.task == "mask_edges":
             loss = self.masked_edge_loss(inputs)
+        elif self.task == "infomax":
+            loss = self.infomax_loss(inputs)
         elif self.task == "regression":
             loss = self.regression_loss(inputs, labels)
         elif self.task == "classification":
@@ -461,6 +536,30 @@ class GNNModular(ModularTorchModel):
         pred_edge = self.components['linear_pred_edges'](edge_emb)
 
         return self.edge_mask_loss(pred_edge, inputs)
+
+    def infomax_loss(self, inputs):
+        """
+        Loss that maximizes mutual information between local node representations and a pooled global graph representation. The positive and negative scores represent the similarity between local node representations and global graph representations of simlar and dissimilar graphs, respectively.
+
+        Parameters
+        ----------
+        inputs: BatchedGraphData
+            BatchedGraphData object containing the node features, edge indices, and graph indices for the batch of graphs.
+        """
+        node_emb, inputs = self.model(inputs)
+        summary_emb = torch.sigmoid(self.components['pool'](node_emb,
+                                                            inputs.graph_index))
+        positive_expanded_summary_emb = summary_emb[inputs.graph_index]
+
+        shifted_summary_emb = summary_emb[cycle_index(len(summary_emb), 1)]
+        negative_expanded_summary_emb = shifted_summary_emb[inputs.graph_index]
+
+        positive_score = self.components['discriminator'](
+            node_emb, positive_expanded_summary_emb)
+        negative_score = self.components['discriminator'](
+            node_emb, negative_expanded_summary_emb)
+
+        return self.graph_infomax_loss(positive_score, negative_score)
 
     def _prepare_batch(self, batch):
         """
@@ -759,3 +858,27 @@ def mask_edges(input_graph: BatchGraphData,
     # link to source: https://github.com/snap-stanford/pretrain-gnns/blob/08f126ac13623e551a396dd5e511d766f9d4f8ff/bio/util.py#L101
 
     return data
+
+
+def cycle_index(num, shift):
+    """
+    Creates a 1-dimensional tensor of integers with a specified length (`num`) and a cyclic shift (`shift`). The tensor starts with integers from `shift` to `num - 1`, and then wraps around to include integers from `0` to `shift - 1` at the end.
+
+    Parameters
+    ----------
+    num: int
+        Length of the tensor.
+    shift: int
+        Amount to shift the tensor by.
+
+    Example
+    -------
+    >>> num = 10
+    >>> shift = 3
+    >>> arr = cycle_index(num, shift)
+    >>> print(arr)
+    tensor([3, 4, 5, 6, 7, 8, 9, 0, 1, 2])
+    """
+    arr = torch.arange(num) + shift
+    arr[-shift:] = torch.arange(shift)
+    return arr
