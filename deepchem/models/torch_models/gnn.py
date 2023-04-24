@@ -1,7 +1,6 @@
 import random
 import copy
 import torch
-import networkx as nx
 import numpy as np
 from torch_geometric.nn import GINEConv, global_add_pool, global_mean_pool, global_max_pool
 from torch_geometric.nn.aggr import AttentionalAggregation, Set2Set

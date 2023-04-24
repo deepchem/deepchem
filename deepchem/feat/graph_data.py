@@ -82,7 +82,7 @@ class GraphData:
             elif edge_index.shape[1] != edge_features.shape[0]:
                 raise ValueError(
                     'The first dimension of edge_features must be the \
-                          same as the second dimension of edge_index.'                                                                                                                                                                                                                                                                                        )
+                          same as the second dimension of edge_index.')
 
         if node_pos_features is not None:
             if isinstance(node_pos_features, np.ndarray) is False:
@@ -91,7 +91,7 @@ class GraphData:
             elif node_pos_features.shape[0] != node_features.shape[0]:
                 raise ValueError(
                     'The length of node_pos_features must be the same as the \
-                          length of node_features.'                                                                                                                                                                                                            )
+                          length of node_features.')
 
         self.node_features = node_features
         self.edge_index = edge_index
@@ -273,8 +273,7 @@ class GraphData:
 
         # Create a mapping from the original node indices to the new node indices
         node_mapping = {
-            old_idx: new_idx
-            for new_idx, old_idx in enumerate(nodes)
+            old_idx: new_idx for new_idx, old_idx in enumerate(nodes)
         }
 
         # Filter and reindex node features
@@ -396,7 +395,7 @@ class BatchGraphData(GraphData):
             graph_list[0])
         for name in user_defined_attribute_names:
             kwargs[name] = np.vstack(
-                                [getattr(graph, name) for graph in graph_list])
+                [getattr(graph, name) for graph in graph_list])
 
         super().__init__(node_features=batch_node_features,
                          edge_index=batch_edge_index,
@@ -509,4 +508,3 @@ def shortest_path_length(graph_data, source, cutoff=None):
                     queue.append(neighbor)
 
     return {i: d for i, d in enumerate(distances) if d <= cutoff}
-
