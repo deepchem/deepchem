@@ -60,11 +60,11 @@ class GNN(torch.nn.Module):
     >>> featurizer = SNAPFeaturizer()
     >>> smiles = ["C1=CC=CC=C1", "C1=CC=CC=C1C=O", "C1=CC=CC=C1C(=O)O"]
     >>> features = featurizer.featurize(smiles)
-    >>> batched_graph = BatchGraphData(features).numpy_to_torch(device="cuda")
+    >>> batched_graph = BatchGraphData(features).numpy_to_torch()
     >>> modular = GNNModular(emb_dim = 8, task = "edge_pred")
     >>> gnnmodel = modular.gnn
     >>> print(gnnmodel(batched_graph)[0].shape)
-    torch.Size([23, 32])
+    torch.Size([23, 8])
 
     """
 
@@ -383,7 +383,7 @@ class GNNModular(ModularTorchModel):
         encoders, batch_norms = self.build_gnn(self.num_layer)
         components = {
             'node_type_embedding':
-                torch.nn.Embedding(num_node_type, self.emb_dim),  # XXX 120
+                torch.nn.Embedding(num_node_type, self.emb_dim),
             'chirality_embedding':
                 torch.nn.Embedding(num_chirality_tag, self.emb_dim),
             'gconvs':
@@ -397,7 +397,7 @@ class GNNModular(ModularTorchModel):
                        self.jump_knowledge)
 
         if self.task in ("mask_nodes", "mask_edges"):
-            self.emb_dim = (self.num_layer + 1) * self.emb_dim
+            # self.emb_dim = (self.num_layer + 1) * self.emb_dim
             linear_pred_nodes = torch.nn.Linear(self.emb_dim, num_node_type -
                                                 1)  # -1 to remove mask token
             linear_pred_edges = torch.nn.Linear(self.emb_dim, num_edge_type -
@@ -417,7 +417,7 @@ class GNNModular(ModularTorchModel):
                 pool = global_max_pool
             elif self.graph_pooling == "attention":
                 if self.jump_knowledge == "concat":
-                    # self.emb_dim = (self.num_layer + 1) * self.emb_dim XXX
+                    # self.emb_dim = (self.num_layer + 1) * self.emb_dim? XXX
                     pool = AttentionalAggregation(
                         gate_nn=torch.nn.Linear((self.num_layer + 1) *
                                                 self.emb_dim, 1))
@@ -449,7 +449,6 @@ class GNNModular(ModularTorchModel):
                                     self.task, self.num_tasks, self.num_classes)
 
         elif self.task == 'infomax':
-            self.emb_dim = (self.num_layer + 1) * self.emb_dim
             descrim = LocalGlobalDiscriminator(self.emb_dim)
             components.update({
                 'discriminator': descrim,
@@ -475,7 +474,8 @@ class GNNModular(ModularTorchModel):
             if self.jump_knowledge == "concat":  # concat changes the emb_dim
                 c_gconvs, c_batch_norms = self.build_gnn(self.num_layer)
             else:
-                c_gconvs, c_batch_norms = self.build_gnn(self.neighborhood_size - self.context_size)
+                c_gconvs, c_batch_norms = self.build_gnn(
+                    self.neighborhood_size - self.context_size)
             context_gnn_components = {
                 'c_node_type_embedding':
                     torch.nn.Embedding(num_node_type, self.emb_dim),
@@ -694,6 +694,8 @@ class GNNModular(ModularTorchModel):
             The weights for the batch, moved to the device.
         """
         inputs, labels, weights = batch
+        if self.task in ("regression", "classification", "infomax"):
+            inputs = BatchGraphData(inputs[0]).numpy_to_torch(self.device)
         if self.task == "edge_pred":
             inputs = BatchGraphData(inputs[0]).numpy_to_torch(self.device)
             inputs = negative_edge_sampler(inputs)

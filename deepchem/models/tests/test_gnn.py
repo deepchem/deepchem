@@ -119,7 +119,7 @@ def test_GNN_regression():
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
     assert scores['mean_absolute_error'] < 0.2
-
+test_GNN_regression()
 
 @pytest.mark.torch
 def test_GNN_multitask_regression():
@@ -153,6 +153,8 @@ def test_GNN_infomax():
     loss2 = model.fit(dataset, nb_epoch=5)
     assert loss2 < loss1
 
+
+test_GNN_infomax()
 
 @pytest.mark.torch
 def test_GNN_context_pred():
