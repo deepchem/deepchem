@@ -1203,7 +1203,8 @@ class GraphContextPredLoss(Loss):
         self.neg_samples = neg_samples
         self.criterion = torch.nn.BCEWithLogitsLoss()
 
-        def loss(substruct_rep, overlapped_node_rep, context_rep, neg_context_rep, overlap_size):
+        def loss(substruct_rep, overlapped_node_rep, context_rep,
+                 neg_context_rep, overlap_size):
 
             #  Contexts are represented by
             if self.mode == "cbow":

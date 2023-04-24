@@ -60,8 +60,8 @@ class GNN(torch.nn.Module):
     >>> featurizer = SNAPFeaturizer()
     >>> smiles = ["C1=CC=CC=C1", "C1=CC=CC=C1C=O", "C1=CC=CC=C1C(=O)O"]
     >>> features = featurizer.featurize(smiles)
-    >>> batched_graph = BatchGraphData(features).numpy_to_torch()
     >>> modular = GNNModular(emb_dim = 8, task = "edge_pred")
+    >>> batched_graph = BatchGraphData(features).numpy_to_torch(device=modular.device)
     >>> gnnmodel = modular.gnn
     >>> print(gnnmodel(batched_graph)[0].shape)
     torch.Size([23, 8])
@@ -340,8 +340,7 @@ class GNNModular(ModularTorchModel):
             self.mask_rate = mask_rate
             self.edge_mask_loss = GraphEdgeMaskingLoss()._create_pytorch_loss()
         elif task == "infomax":
-            self.graph_infomax_loss = DeepGraphInfomaxLoss(
-            )._create_pytorch_loss()
+            self.infomax_loss = DeepGraphInfomaxLoss()._create_pytorch_loss()
         elif task == "context_pred":
             self.context_size = context_size
             self.neighborhood_size = neighborhood_size
@@ -546,31 +545,31 @@ class GNNModular(ModularTorchModel):
             node_emb, inputs = self.model(inputs)
             loss = self.edge_pred_loss(node_emb, inputs)
         elif self.task == "mask_nodes":
-            loss = self.masked_node_loss(inputs)
+            loss = self.masked_node_loss_loader(inputs)
         elif self.task == "mask_edges":
-            loss = self.masked_edge_loss(inputs)
+            loss = self.masked_edge_loss_loader(inputs)
         elif self.task == "infomax":
-            loss = self.infomax_loss(inputs)
+            loss = self.infomax_loss_loader(inputs)
         elif self.task == "regression":
-            loss = self.regression_loss(inputs, labels)
+            loss = self.regression_loss_loader(inputs, labels)
         elif self.task == "classification":
-            loss = self.classification_loss(inputs, labels)
+            loss = self.classification_loss_loader(inputs, labels)
         elif self.task == "context_pred":
             loss = self.context_pred_loss_loader(inputs, labels)
         return (loss * weights).mean()
 
-    def regression_loss(self, inputs, labels):
+    def regression_loss_loader(self, inputs, labels):
         out = self.model(inputs)
         reg_loss = self.criterion(out, labels)
         return reg_loss
 
-    def classification_loss(self, inputs, labels):
+    def classification_loss_loader(self, inputs, labels):
         out = self.model(inputs)
         out = F.softmax(out, dim=2)
         class_loss = self.criterion(out, labels)
         return class_loss
 
-    def masked_node_loss(self, inputs):
+    def masked_node_loss_loader(self, inputs):
         """
         Produces the loss between the predicted node features and the true node features for masked nodes.  Set mask_edge to True to also predict the edge types for masked edges.
         """
@@ -588,14 +587,12 @@ class GNNModular(ModularTorchModel):
             pred_edge = None
         return self.node_mask_loss(pred_node, pred_edge, inputs)
 
-    def masked_edge_loss(self, inputs):
+    def masked_edge_loss_loader(self, inputs):
         """
         Produces the loss between the predicted edge types and the true edge types for masked edges.
         """
-
         node_emb, inputs = self.model(inputs)
-
-        # predict the edge types.
+        # predict the edge types
         masked_edge_index = inputs.edge_index[:, inputs.masked_edge_idx]
         edge_emb = node_emb[masked_edge_index[0]] + node_emb[
             masked_edge_index[1]]
@@ -603,7 +600,7 @@ class GNNModular(ModularTorchModel):
 
         return self.edge_mask_loss(pred_edge, inputs)
 
-    def infomax_loss(self, inputs):
+    def infomax_loss_loader(self, inputs):
         """
         Loss that maximizes mutual information between local node representations and a pooled global graph representation. The positive and negative scores represent the similarity between local node representations and global graph representations of simlar and dissimilar graphs, respectively.
 
@@ -625,7 +622,7 @@ class GNNModular(ModularTorchModel):
         negative_score = self.components['discriminator'](
             node_emb, negative_expanded_summary_emb)
 
-        return self.graph_infomax_loss(positive_score, negative_score)
+        return self.infomax_loss(positive_score, negative_score)
 
     def context_pred_loss_loader(self, inputs, labels):
         substruct_batch = inputs[0]
@@ -654,8 +651,13 @@ class GNNModular(ModularTorchModel):
 
         return context_pred_loss
 
-    def overlap_batcher(self, substruct_graphs, s_overlap, context_graphs,
-                        c_overlap):
+    def _overlap_batcher(self, substruct_graphs, s_overlap, context_graphs,
+                         c_overlap):
+        """
+        This method provides batching for the context prediction task.
+
+        It handles the batching of the overlapping indicies between the subgraph and context graphs.
+        """
         cumsum_substruct = 0
         cumsum_context = 0
 
@@ -721,7 +723,7 @@ class GNNModular(ModularTorchModel):
                     "Not enough nodes in graph to sample context, use a smaller context or a larger neighborhood size."
                 )
 
-            s_overlap, c_overlap, overlap_size = self.overlap_batcher(
+            s_overlap, c_overlap, overlap_size = self._overlap_batcher(
                 subgraphs_list, s_overlap_list, context_list, c_overlap_list)
             s_overlap = torch.tensor(s_overlap).to(self.device)
             c_overlap = torch.tensor(c_overlap).to(self.device)
