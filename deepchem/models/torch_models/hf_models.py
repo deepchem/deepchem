@@ -58,7 +58,16 @@ class HuggingFaceModel(TorchModel):
                                     return_tensors="pt")
             inputs, labels = self.data_collator.torch_mask_tokens(
                 tokens['input_ids'])
-            return inputs, labels, w
+            inputs = {'input_ids': inputs, 'labels': labels}
+            return inputs, None, w
+        elif self.task == 'finetuning':
+            smiles_batch, y, w = batch
+            tokens = self.tokenizer(smiles_batch[0].tolist(),
+                                    padding=True,
+                                    return_tensors="pt")
+            tensor_y = torch.from_numpy(y[0])
+            inputs = {**tokens, 'labels': tensor_y}
+            return inputs, _, w
 
     def fit_generator(self,
                       generator: Iterable[Tuple[Any, Any, Any]],
@@ -141,7 +150,7 @@ class HuggingFaceModel(TorchModel):
                 inputs = inputs[0]
 
             optimizer.zero_grad()
-            outputs = self.model(input_ids=inputs, labels=labels)
+            outputs = self.model(**inputs)
             if isinstance(outputs, torch.Tensor):
                 outputs = [outputs]
             if self._loss_outputs is not None:
