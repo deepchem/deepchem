@@ -4,7 +4,7 @@ import torch
 from deepchem.models.dft.nnxc import HybridXC
 from deepchem.models.losses import Loss, L2Loss
 from deepchem.models.torch_models.torch_model import TorchModel
-from typing import Optional, List, Any
+from typing import Tuple, Optional, List, Any
 import numpy as np
 
 
@@ -73,9 +73,9 @@ class DFTXC(torch.nn.Module):
             for system in entry.get_systems():
                 qcs.append(evl.run(system))
             if entry.entry_type == 'dm':
-                output.append(torch.as_tensor(entry.get_val(qcs)[0]))
+                output.append((torch.as_tensor(entry.get_val(qcs)[0])))
             else:
-                output.append(torch.as_tensor(entry.get_val(qcs)))
+                output.append(torch.tensor(entry.get_val(qcs), requires_grad = True))
         return output
 
 
@@ -161,29 +161,45 @@ class XCModel(TorchModel):
                                       output_types=output_types,
                                       **kwargs)
 
-    def _prepare_batch(self, batch):
-        """
-        Method to compute inputs, labels and weight for the Torch Model.
+    def _prepare_batch(self, batch) -> Tuple[List[Any], List[torch.Tensor], List[torch.Tensor]]:
+  #      """
+  #      Method to compute inputs, labels and weight for the Torch Model.
 
-        Parameters
-        ----------
-        batch: Tuple[Any, Any, Any]
+  #      Parameters
+  #      ----------
+  #      batch: Tuple[Any, Any, Any]
 
-        Returns
-        ------
-        Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]
-        """
-        inputs, labels, weights = batch
-        # The default_generator method returns an array of dc.feat.dft_data.DFTEntry objects
-        # nested inside a list. To access the nested array of objects, we are
-        # indexing by 0 here.
-        labels = [i.get_true_val() for i in inputs[0]]
-        label_tensors = [(torch.as_tensor(x, device = self.device)).requires_grad_() for x in labels]
-        w = np.array([1.0])
-        weights = [torch.tensor(w, device = self.device ) for i in inputs[0]]
-        _, _, _ = super(XCModel, self)._prepare_batch(([], [], []))
-        return (inputs, label_tensors, weights)
+  #      Returns
+  #      ------
+  #      Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]
+  #      """
+         inputs, labels, weights = batch
+  #      # The default_generator method returns an array of dc.feat.dft_data.DFTEntry objects
+  #      # nested inside a list. To access the nested array of objects, we are
+  #      # indexing by 0 here.
 
+         if labels is not None:
+            labels = [
+                x.astype(np.float32) if x.dtype == np.float64 else x
+                for x in labels
+            ]
+            label_tensors = [
+                torch.as_tensor(x, dtype=torch.float64  ,device=self.device).requires_grad_() for x in labels
+            ]
+         else:
+            label_tensors = []        
+         if weights is not None:
+            weights = [
+                x.astype(np.float32) if x.dtype == np.float64 else x
+                for x in weights
+            ]
+            weight_tensors = [
+                torch.as_tensor(x, dtype=torch.float64 , device=self.device) for x in weights
+            ]
+         else:
+            weight_tensors = []
+#         _, _, _ = super(XCModel, self)._prepare_batch(([], [], []))
+         return (inputs, label_tensors, weight_tensors)
 
 class ExpM1Activation(torch.nn.Module):
     """
