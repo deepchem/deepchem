@@ -657,6 +657,26 @@ class GNNModular(ModularTorchModel):
         This method provides batching for the context prediction task.
 
         It handles the batching of the overlapping indicies between the subgraph and context graphs.
+
+        Parameters
+        ----------
+        substruct_graphs: BatchedGraphData
+            Batched subgraph, or neighborhood, graphs.
+        s_overlap: List[List[int]]
+            List of lists of overlapping subgraph node indicies between the subgraph and context graphs.
+        context_graphs: BatchedGraphData
+            Batched context graphs.
+        c_overlap: List[List[int]]
+            List of lists of overlapping context node indicies between the subgraph and context graphs.
+
+        Returns
+        -------
+        flat_s_overlap: List[int]
+            List of overlapping subgraph node indicies between the subgraph and context graphs.
+        flat_c_overlap: List[int]
+            List of overlapping context node indicies between the subgraph and context graphs.
+        overlap_size: List[int]
+            List of the number of overlapping nodes between the subgraph and context graphs.
         """
         cumsum_substruct = 0
         cumsum_context = 0
