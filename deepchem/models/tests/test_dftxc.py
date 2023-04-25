@@ -33,6 +33,12 @@ def test_dftxc_eval():
     metric = dc.metrics.Metric(dc.metrics.mae_score)
     scores = model.evaluate(dataset, [metric])
     assert scores['mae_score'] < 0.3
+    model2 = XCModel("lda_x",
+                     batch_size=2,
+                     log_frequency=1,
+                     mode="classification")
+    loss2 = model2.fit(dataset, nb_epoch=2, checkpoint_interval=2)
+    assert loss2 < 0.2
 
 
 def test_dm_predict():

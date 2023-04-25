@@ -75,7 +75,8 @@ class DFTXC(torch.nn.Module):
             if entry.entry_type == 'dm':
                 output.append((torch.as_tensor(entry.get_val(qcs)[0])))
             else:
-                output.append(torch.tensor(entry.get_val(qcs), requires_grad = True))
+                output.append(
+                    torch.tensor(entry.get_val(qcs), requires_grad=True))
         return output
 
 
@@ -161,45 +162,50 @@ class XCModel(TorchModel):
                                       output_types=output_types,
                                       **kwargs)
 
-    def _prepare_batch(self, batch) -> Tuple[List[Any], List[torch.Tensor], List[torch.Tensor]]:
-  #      """
-  #      Method to compute inputs, labels and weight for the Torch Model.
+    def _prepare_batch(
+            self,
+            batch) -> Tuple[List[Any], List[torch.Tensor], List[torch.Tensor]]:
+        """
+        Method to compute inputs, labels and weight for the Torch Model.
 
-  #      Parameters
-  #      ----------
-  #      batch: Tuple[Any, Any, Any]
+        Parameters
+        ----------
+        batch: Tuple[Any, Any, Any]
 
-  #      Returns
-  #      ------
-  #      Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]
-  #      """
-         inputs, labels, weights = batch
-  #      # The default_generator method returns an array of dc.feat.dft_data.DFTEntry objects
-  #      # nested inside a list. To access the nested array of objects, we are
-  #      # indexing by 0 here.
+        Returns
+        ------
+        Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]
+        """
+        inputs, labels, weights = batch
 
-         if labels is not None:
+        if labels is not None:
             labels = [
                 x.astype(np.float32) if x.dtype == np.float64 else x
                 for x in labels
             ]
             label_tensors = [
-                torch.as_tensor(x, dtype=torch.float64  ,device=self.device).requires_grad_() for x in labels
+                torch.as_tensor(x, dtype=torch.float64,
+                                device=self.device).requires_grad_()
+                for x in labels
             ]
-         else:
-            label_tensors = []        
-         if weights is not None:
+        else:
+            label_tensors = []
+        if weights is not None:
             weights = [
                 x.astype(np.float32) if x.dtype == np.float64 else x
                 for x in weights
             ]
             weight_tensors = [
-                torch.as_tensor(x, dtype=torch.float64 , device=self.device) for x in weights
+                torch.as_tensor(x, dtype=torch.float64, device=self.device)
+                for x in weights
             ]
-         else:
+        else:
             weight_tensors = []
+
+
 #         _, _, _ = super(XCModel, self)._prepare_batch(([], [], []))
-         return (inputs, label_tensors, weight_tensors)
+        return (inputs, label_tensors, weight_tensors)
+
 
 class ExpM1Activation(torch.nn.Module):
     """
