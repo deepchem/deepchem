@@ -476,7 +476,7 @@ def shortest_path_length(graph_data, source, cutoff=None):
     Returns
     -------
     lengths : dict
-        Dict keyed by node index to shortest path length to source.
+        Dict of node index and shortest path length from source to that node.
 
     Examples
     --------
