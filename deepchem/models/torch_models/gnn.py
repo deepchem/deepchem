@@ -2,7 +2,7 @@ import random
 import copy
 import torch
 import numpy as np
-from torch_geometric.nn import GINEConv, global_add_pool, global_mean_pool, global_max_pool
+from torch_geometric.nn import GINEConv, GCNConv, GATConv, SAGEConv, global_add_pool, global_mean_pool, global_max_pool
 from torch_geometric.nn.aggr import AttentionalAggregation, Set2Set
 from torch_geometric.nn.inits import uniform
 import torch.nn as nn
@@ -16,9 +16,7 @@ from deepchem.metrics import to_one_hot
 
 num_node_type = 120  # including the extra mask tokens
 num_chirality_tag = 3
-# Relevant in future PRs
 num_edge_type = 6  # including aromatic and self-loop edge, and extra masked tokens
-# num_edge_direction = 3
 
 
 class GNN(torch.nn.Module):
@@ -109,7 +107,10 @@ class GNN(torch.nn.Module):
 
         h_list = [x]
         for i, conv_layer in enumerate(self.gconv):
-            h = conv_layer(h_list[i], data.edge_index, data.edge_features)
+            if isinstance(conv_layer, (GINEConv, GATConv)):
+                h = conv_layer(h_list[i], data.edge_index, data.edge_features)
+            elif isinstance(conv_layer, (GCNConv, SAGEConv)):
+                h = conv_layer(h_list[i], data.edge_index)
             h = self.batch_norms[i](h)
             h = F.dropout(F.relu(h), self.dropout, training=self.training)
             if i == self.num_layer - 1:
@@ -119,7 +120,6 @@ class GNN(torch.nn.Module):
                 h = F.dropout(F.relu(h), self.dropout, training=self.training)
             h_list.append(h)
 
-        # Different implementations of jump_knowledge
         if self.jump_knowledge == "concat":
             node_representation = torch.cat(h_list, dim=1)
             # reshapes node_representation to (num_nodes, num_layers * emb_dim)
@@ -396,7 +396,6 @@ class GNNModular(ModularTorchModel):
                        self.jump_knowledge)
 
         if self.task in ("mask_nodes", "mask_edges"):
-            # self.emb_dim = (self.num_layer + 1) * self.emb_dim
             linear_pred_nodes = torch.nn.Linear(self.emb_dim, num_node_type -
                                                 1)  # -1 to remove mask token
             linear_pred_edges = torch.nn.Linear(self.emb_dim, num_edge_type -
@@ -416,7 +415,6 @@ class GNNModular(ModularTorchModel):
                 pool = global_max_pool
             elif self.graph_pooling == "attention":
                 if self.jump_knowledge == "concat":
-                    # self.emb_dim = (self.num_layer + 1) * self.emb_dim? XXX
                     pool = AttentionalAggregation(
                         gate_nn=torch.nn.Linear((self.num_layer + 1) *
                                                 self.emb_dim, 1))
@@ -507,13 +505,14 @@ class GNNModular(ModularTorchModel):
                         torch.nn.Linear(self.emb_dim, self.emb_dim),
                         edge_dim=2,  # edge type, edge direction
                         aggr="add"))
+            elif self.gnn_type == "gcn":
+                encoders.append(GCNConv(self.emb_dim, self.emb_dim))
+            elif self.gnn_type == "gat":
+                encoders.append(GATConv(self.emb_dim, self.emb_dim))
+            elif self.gnn_type == "sage":
+                encoders.append(SAGEConv(self.emb_dim, self.emb_dim))
             else:
-                raise ValueError("Only GIN is supported for now")
-            # Relevent for future PRs
-            # elif self.gnn_type == "gcn":
-            #     encoders.append(GCNConv(self.emb_dim))
-            # elif self.gnn_type == "gat":
-            #     encoders.append(GATConv(self.emb_dim))
+                raise ValueError("Unsuppported GNN type.")
             batch_norms.append(torch.nn.BatchNorm1d(self.emb_dim))
         encoders = torch.nn.ModuleList(encoders)
         batch_norms = torch.nn.ModuleList(batch_norms)
@@ -592,7 +591,6 @@ class GNNModular(ModularTorchModel):
         Produces the loss between the predicted edge types and the true edge types for masked edges.
         """
         node_emb, inputs = self.model(inputs)
-        # predict the edge types
         masked_edge_index = inputs.edge_index[:, inputs.masked_edge_idx]
         edge_emb = node_emb[masked_edge_index[0]] + node_emb[
             masked_edge_index[1]]
