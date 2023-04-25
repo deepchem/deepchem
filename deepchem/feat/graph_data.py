@@ -82,7 +82,7 @@ class GraphData:
             elif edge_index.shape[1] != edge_features.shape[0]:
                 raise ValueError(
                     'The first dimension of edge_features must be the \
-                          same as the second dimension of edge_index.')
+                          same as the second dimension of edge_index.'                                                                                                                                            )
 
         if node_pos_features is not None:
             if isinstance(node_pos_features, np.ndarray) is False:
@@ -91,7 +91,7 @@ class GraphData:
             elif node_pos_features.shape[0] != node_features.shape[0]:
                 raise ValueError(
                     'The length of node_pos_features must be the same as the \
-                          length of node_features.')
+                          length of node_features.'                                                                                                      )
 
         self.node_features = node_features
         self.edge_index = edge_index
@@ -255,12 +255,12 @@ class GraphData:
         return graph_copy
 
     def subgraph(self, nodes):
-        """Returns a subgraph induced on `nodes`.
+        """Returns a subgraph of `nodes` indicies.
 
         Parameters
         ----------
         nodes : list, iterable
-            A container of nodes which will be iterated through once.
+            A list of node indices to be included in the subgraph.
 
         Returns
         -------
@@ -477,6 +477,18 @@ def shortest_path_length(graph_data, source, cutoff=None):
     -------
     lengths : dict
         Dict keyed by node index to shortest path length to source.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> node_features = np.random.rand(5, 10)
+    >>> edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=np.int64)
+    >>> graph_data = GraphData(node_features, edge_index)
+    >>> shortest_path_length(graph_data, 0)
+    {0: 0, 1: 1, 2: 2, 3: 2, 4: 1}
+    >>> shortest_path_length(graph_data, 0, cutoff=1)
+    {0: 0, 1: 1, 4: 1}
+
     """
     if source >= graph_data.num_nodes:
         raise ValueError(f"Source {source} is not in graph_data")
@@ -506,4 +518,4 @@ def shortest_path_length(graph_data, source, cutoff=None):
                 if distances[neighbor] < cutoff:
                     queue.append(neighbor)
 
-    return {i: d for i, d in enumerate(distances) if d <= cutoff}
+    return {i: int(d) for i, d in enumerate(distances) if d <= cutoff}
