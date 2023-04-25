@@ -17,14 +17,6 @@ if TYPE_CHECKING:
     from transformers.modeling_utils import PreTrainedModel
 
 
-def hf_loss_fct(outputs, labels, weights):
-    # Hacking around DeepChem's TorchModel.
-    # In HuggingFace, the forward pass method also returns the loss - in the forward pass,
-    # we pass in both inputs and labels, hence the forward pass can compute both predictions
-    # and loss. So, we retrieve the loss attribute and return it.
-    return outputs.get("loss")
-
-
 class HuggingFaceModel(TorchModel):
     """HuggingFace model wrapper
 
@@ -49,7 +41,9 @@ class HuggingFaceModel(TorchModel):
         if self.task == 'pretraining':
             self.data_collator = DataCollatorForLanguageModeling(
                 tokenizer=tokenizer)
-        super(HuggingFaceModel, self).__init__(model=model, loss=hf_loss_fct)
+        # For TorchModel, loss is a required argument but HuggingFace computes
+        # loss during the forward iteration, removing the need for a loss function.
+        super(HuggingFaceModel, self).__init__(model=model, loss=None)
 
     def load_from_pretrained(self, path: str):
         if isinstance(str, path):
