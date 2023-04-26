@@ -92,7 +92,7 @@ class DFTEntry():
     """
 
     @classmethod
-    def create(self, e_type: str, true_val: str, systems: List[Dict]):
+    def create(self, e_type: str, true_val: Optional[str], systems: List[Dict]):
         """
         This method is used to initialise the DFTEntry class. The entry objects are created
         based on their entry type.
@@ -119,6 +119,8 @@ class DFTEntry():
         DFTEntry object based on entry type
 
         """
+        if true_val is None:
+            true_val = '0.0'
         if e_type == "ae":
             return _EntryAE(e_type, true_val, systems)
         elif e_type == "ie":
@@ -130,7 +132,8 @@ class DFTEntry():
         else:
             raise NotImplementedError("Unknown entry type: %s" % e_type)
 
-    def __init__(self, e_type: str, true_val: str, systems: List[Dict]):
+    def __init__(self, e_type: str, true_val: Optional[str],
+                 systems: List[Dict]):
         self._systems = [DFTSystem(p) for p in systems]
 
     def get_systems(self) -> List[DFTSystem]:
@@ -310,7 +313,7 @@ class _EntryIE(DFTEntry):
     def get_true_val(self) -> np.ndarray:
         return np.array([self.true_val])
 
-    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
+    def get_val(self, qcs: List[KSCalc]):
         """
         This method calculates the energy of an entry based on the systems and command present
         in the data object. For example; for a Lithium hydride molecule the total energy

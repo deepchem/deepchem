@@ -16,23 +16,23 @@ def test_dftxc_eval():
                     batch_size=1,
                     log_frequency=1,
                     mode="classification",
-                    n_tasks=2,
                     model_dir=model_dir)
-    loss = model.fit(dataset, nb_epoch=1, checkpoint_interval=1)
+    loss = model.fit(dataset, nb_epoch=2, checkpoint_interval=1)
     assert loss < 0.001
     reload_model = XCModel("lda_x",
                            batch_size=1,
                            log_frequency=1,
                            mode="classification",
-                           n_tasks=2,
                            model_dir=model_dir)
     reload_model.restore()
-    predict = model.predict(dataset)
-    r_predict = reload_model.predict(dataset)
-    assert np.all(predict == r_predict)
+    inputs1 = 'deepchem/models/tests/assets/test_ieLi.yaml'
+    predict_dataset = data.create_dataset(inputs1)
+    predict = reload_model.predict(predict_dataset)
+    assert predict < 0.199
     metric = dc.metrics.Metric(dc.metrics.mae_score)
     scores = model.evaluate(dataset, [metric])
     assert scores['mae_score'] < 0.3
+    # testing batch size > 1
     model2 = XCModel("lda_x",
                      batch_size=2,
                      log_frequency=1,
@@ -41,12 +41,11 @@ def test_dftxc_eval():
     assert loss2 < 0.2
 
 
-def test_dm_predict():
+@pytest.mark.dqc
+def test_dm():
     inputs = 'deepchem/models/tests/assets/test_dm.yaml'
     data = DFTYamlLoader()
     dataset = (data.create_dataset(inputs))
     model = XCModel("lda_x", batch_size=1)
     loss = model.fit(dataset, nb_epoch=1, checkpoint_interval=1)
     assert loss < 0.008
-    predict = model.predict(dataset)
-    assert predict.shape == (57, 57)

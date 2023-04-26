@@ -1,0 +1,7 @@
+- e_type : 'ie'
+  systems: [{'moldesc': 'Li 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+       'spin': '1'},
+      {'moldesc': 'Li 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'charge': '1'}]

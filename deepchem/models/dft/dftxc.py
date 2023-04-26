@@ -28,7 +28,7 @@ class DFTXC(torch.nn.Module):
     >>>       'charge': 1,
     >>>        'spin': '2'}]
     >>> entry = DFTEntry.create(e_type, true_val, systems)
-    >>> nnmodel = _construct_nn_model(ninp=2, nhid=10, ndepths=1,modeltype=1).to(torch.double)
+    >>> nnmodel = _construct_nn_model(ninp=2, nhid=10, ndepths=1,modeltype=1).to(device = device, dtype = torch.double)
     >>> model = DFTXC("lda_x")
     >>> output = model([entry])
 
@@ -152,7 +152,7 @@ class XCModel(TorchModel):
         if nnmodel is None:
             nnmodel = _construct_nn_model(input_size, hidden_size, n_layers,
                                           modeltype).to(torch.double)
-        model = DFTXC(xcstr, nnmodel)
+        model = (DFTXC(xcstr, nnmodel)).to(device)
         self.xc = xcstr
         loss: Loss = L2Loss()
         output_types = ['loss', 'predict']
@@ -177,7 +177,6 @@ class XCModel(TorchModel):
         Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]
         """
         inputs, labels, weights = batch
-
         if labels is not None:
             labels = [
                 x.astype(np.float32) if x.dtype == np.float64 else x
@@ -202,8 +201,6 @@ class XCModel(TorchModel):
         else:
             weight_tensors = []
 
-
-#         _, _, _ = super(XCModel, self)._prepare_batch(([], [], []))
         return (inputs, label_tensors, weight_tensors)
 
 

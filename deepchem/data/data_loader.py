@@ -1733,7 +1733,10 @@ class DFTYamlLoader(DataLoader):
         """
         try:
             e_type = shard['e_type']
-            true_val = shard['true_val']
+            if 'true_val' in shard.keys():
+                true_val = shard['true_val']
+            else:
+                true_val = '0.0'
             systems = shard['systems']
         except KeyError:
             raise ValueError(
