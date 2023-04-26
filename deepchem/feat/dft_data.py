@@ -313,7 +313,7 @@ class _EntryIE(DFTEntry):
     def get_true_val(self) -> np.ndarray:
         return np.array([self.true_val])
 
-    def get_val(self, qcs: List[KSCalc]):
+    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         """
         This method calculates the energy of an entry based on the systems and command present
         in the data object. For example; for a Lithium hydride molecule the total energy
