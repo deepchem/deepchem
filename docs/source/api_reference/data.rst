@@ -104,12 +104,24 @@ FASTALoader
 .. autoclass:: deepchem.data.FASTALoader
   :members: __init__, create_dataset
 
+FASTQLoader
+^^^^^^^^^^^
+
+.. autoclass:: deepchem.data.FASTQLoader
+  :members: __init__, create_dataset
+
 InMemoryLoader
 ^^^^^^^^^^^^^^
 The :code:`dc.data.InMemoryLoader` is designed to facilitate the processing of large datasets
 where you already hold the raw data in-memory (say in a pandas dataframe).
 
 .. autoclass:: deepchem.data.InMemoryLoader
+  :members: __init__, create_dataset
+
+
+Density Functional Theory YAML Loader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. autoclass:: deepchem.data.data_loader.DFTYamlLoader
   :members: __init__, create_dataset
 
 
@@ -145,6 +157,14 @@ On the other hand, the graph convolution models which inherit :code:`TorchModel`
 .. autoclass:: deepchem.feat.graph_data.GraphData
   :members:
 
+Density Functional Theory Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+These Data classes are used to create entry objects for DFT calculations.
+
+.. autoclass:: deepchem.feat.dft_data.DFTSystem
+   :members:
+.. autoclass:: deepchem.feat.dft_data.DFTEntry
+   :members:
 
 Base Classes (for develop)
 --------------------------

@@ -1,81 +1,78 @@
-try:
-  import torch
-  import pytorch_lightning as pl  # noqa
-  PYTORCH_LIGHTNING_IMPORT_FAILED = False
-except ImportError:
-  PYTORCH_LIGHTNING_IMPORT_FAILED = True
+import torch
+import pytorch_lightning as pl  # noqa
 
 
 class DCLightningModule(pl.LightningModule):
-  """DeepChem Lightning Module to be used with Lightning trainer.
+    """DeepChem Lightning Module to be used with Lightning trainer.
 
-  TODO: Add dataloader, example code and fit, once datasetmodule
-  is ready
-  The lightning module is a wrapper over deepchem's torch model.
-  This module directly works with pytorch lightning trainer
-  which runs training for multiple epochs and also is responsible
-  for setting up and training models on multiple GPUs.
-  https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.core.LightningModule.html?highlight=LightningModule
+    TODO: Add dataloader, example code and fit, once datasetmodule
+    is ready
+    The lightning module is a wrapper over deepchem's torch model.
+    This module directly works with pytorch lightning trainer
+    which runs training for multiple epochs and also is responsible
+    for setting up and training models on multiple GPUs.
+    https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.core.LightningModule.html?highlight=LightningModule
 
-  Notes
-  -----
-  This class requires PyTorch to be installed.
-  """
-
-  def __init__(self, dc_model):
-    """Create a new DCLightningModule.
-
-    Parameters
-    ----------
-    dc_model: deepchem.models.torch_models.torch_model.TorchModel
-      TorchModel to be wrapped inside the lightning module.
+    Notes
+    -----
+    This class requires PyTorch to be installed.
     """
-    super().__init__()
-    self.dc_model = dc_model
 
-    self.pt_model = self.dc_model.model
-    self.loss = self.dc_model._loss_fn
+    def __init__(self, dc_model):
+        """Create a new DCLightningModule.
 
-  def configure_optimizers(self):
-    return self.dc_model.optimizer._create_pytorch_optimizer(
-        self.pt_model.parameters(),)
+        Parameters
+        ----------
+        dc_model: deepchem.models.torch_models.torch_model.TorchModel
+            TorchModel to be wrapped inside the lightning module.
+        """
+        super().__init__()
+        self.dc_model = dc_model
 
-  def training_step(self, batch, batch_idx):
-    """Perform a training step.
+        self.pt_model = self.dc_model.model
+        self.loss = self.dc_model._loss_fn
 
-    Parameters
-    ----------
-    batch: A tensor, tuple or list.
-    batch_idx: Integer displaying index of this batch
-    optimizer_idx: When using multiple optimizers, this argument will also be present.
+    def configure_optimizers(self):
+        return self.dc_model.optimizer._create_pytorch_optimizer(
+            self.pt_model.parameters(),)
 
-    Returns
-    -------
-    loss_outputs: outputs of losses.
-    """
-    batch = batch.batch_list
-    inputs, labels, weights = self.dc_model._prepare_batch(batch)
-    if isinstance(inputs, list):
-      assert len(inputs) == 1
-      inputs = inputs[0]
+    def training_step(self, batch, batch_idx):
+        """Perform a training step.
 
-    outputs = self.pt_model(inputs)
+        Parameters
+        ----------
+        batch: A tensor, tuple or list.
+        batch_idx: Integer displaying index of this batch
+        optimizer_idx: When using multiple optimizers, this argument will also be present.
 
-    if isinstance(outputs, torch.Tensor):
-      outputs = [outputs]
+        Returns
+        -------
+        loss_outputs: outputs of losses.
+        """
+        batch = batch.batch_list
+        inputs, labels, weights = self.dc_model._prepare_batch(batch)
+        if isinstance(inputs, list):
+            assert len(inputs) == 1
+            inputs = inputs[0]
 
-    if self.dc_model._loss_outputs is not None:
-      outputs = [outputs[i] for i in self.dc_model._loss_outputs]
+        outputs = self.pt_model(inputs)
 
-    loss_outputs = self.loss(outputs, labels, weights)
+        if isinstance(outputs, torch.Tensor):
+            outputs = [outputs]
 
-    self.log(
-        "train_loss",
-        loss_outputs,
-        on_epoch=True,
-        sync_dist=True,
-        reduce_fx="mean",
-        prog_bar=True,
-    )
+        if self.dc_model._loss_outputs is not None:
+            outputs = [outputs[i] for i in self.dc_model._loss_outputs]
 
-    return loss_outputs
+        loss_outputs = self.loss(outputs, labels, weights)
+
+        self.log(
+            "train_loss",
+            loss_outputs,
+            on_epoch=True,
+            sync_dist=True,
+            reduce_fx="mean",
+            prog_bar=True,
+            batch_size=self.dc_model.batch_size,
+        )
+
+        return loss_outputs

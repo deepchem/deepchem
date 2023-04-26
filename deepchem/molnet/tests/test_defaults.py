@@ -9,24 +9,22 @@ from deepchem.molnet.defaults import get_defaults
 
 
 class TestDefaults(unittest.TestCase):
-  """
-  Tests for getting featurizer, transformer, and splitter classes.
-  """
+    """Tests for getting featurizer, transformer, and splitter classes."""
 
-  def test_defaults(self):
-    """Test getting defaults for MolNet loaders."""
-    feats = get_defaults("feat")
-    trans = get_defaults("trans")
-    splits = get_defaults("splits")
+    def test_defaults(self):
+        """Test getting defaults for MolNet loaders."""
+        feats = get_defaults("feat")
+        trans = get_defaults("trans")
+        splits = get_defaults("splits")
 
-    fkey = next(iter(feats))
-    assert type(fkey) == str
-    assert issubclass(feats[fkey], Featurizer)
+        fkey = next(iter(feats))
+        assert type(fkey) == str
+        assert issubclass(feats[fkey], Featurizer)
 
-    tkey = next(iter(trans))
-    assert type(tkey) == str
-    assert issubclass(trans[tkey], Transformer)
+        tkey = next(iter(trans))
+        assert type(tkey) == str
+        assert issubclass(trans[tkey], Transformer)
 
-    skey = next(iter(splits))
-    assert type(skey) == str
-    assert issubclass(splits[skey], Splitter)
+        skey = next(iter(splits))
+        assert type(skey) == str
+        assert issubclass(splits[skey], Splitter)

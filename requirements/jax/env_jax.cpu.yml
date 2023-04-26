@@ -1,5 +1,7 @@
 dependencies:
   - pip:
-    - jax[cpu]
+    - jax[cpu]<0.3.25
+    # 0.3.25 contains breaking change not compatible with haiku
+    # https://github.com/deepmind/dm-haiku/issues/565
     - dm-haiku
     - optax

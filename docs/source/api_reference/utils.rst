@@ -193,6 +193,10 @@ Graph Convolution Utilities
 
 .. autofunction:: deepchem.utils.molecule_feature_utils.get_bond_graph_distance_one_hot
 
+Grover Utilities
+----------------
+
+.. autofunction:: deepchem.utils.grover.extract_grover_attributes
 
 Debug Utilities
 ---------------
@@ -247,3 +251,13 @@ like Variational Monte Carlo, etc.
 
 .. autoclass:: deepchem.utils.electron_sampler.ElectronSampler
   :members:
+
+Density Functional Theory Utilities
+-----------------------------------
+
+The utilites here are used to create an object that contains information about a system's self-consistent iteration steps and other processes.
+
+.. autoclass:: deepchem.utils.dftutils.KSCalc
+  :members:
+
+.. autofunction:: deepchem.utils.dftutils.hashstr

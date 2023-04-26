@@ -1,4 +1,4 @@
-name: Test for DeepChem Core
+name: Test for Build
 on:
   push: # ci work when pushing master branch
     branches:
@@ -7,18 +7,22 @@ on:
     branches:
       - master
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  core-build:
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.7]
+        os: [ubuntu-latest]
+        python-version: ['3.8', '3.10']
+        include:
+        - os: windows-latest
+          python-version: '3.9'
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       # using cached dependencies to speed up workflow
       # ref: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
     - name: Cache pip modules for Linux
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         # the key is used to search for cache
@@ -27,7 +31,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
     - name: Build DeepChem
@@ -43,15 +47,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.7, 3.8, 3.9]
+        python-version: ['3.8', '3.10']
         include:
           - os: windows-latest
-            python-version: 3.7
+            python-version: 3.9
     env:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 0
     # https://github.com/galaxyproject/tools-iuc/blob/master/.github/workflows/pr.yaml
@@ -71,7 +75,7 @@ jobs:
         echo "COMMIT_RANGE=origin/master..." >> $GITHUB_ENV
     - name: Cache pip packages for Linux
       if: runner.os == 'Linux'
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**') }}
@@ -79,7 +83,7 @@ jobs:
           ${{ runner.os }}-pip-
     - name: Cache pip packages for MacOS
       if: runner.os == 'macOS'
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/Library/Caches/pip
         key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/**') }}
@@ -87,14 +91,14 @@ jobs:
           ${{ runner.os }}-pip-
     - name: Cache pip packages for Windows
       if: runner.os == 'Windows'
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~\AppData\Local\pip\Cache
         key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install prerequisites for XGBoost and LightGBM (MacOS)
@@ -115,63 +119,34 @@ jobs:
         fi;
         cd ..
         cp requirements/env.yml env.yml
-    - name: Install all dependencies
-      uses: conda-incubator/setup-miniconda@v2
+    - name: Install all dependencies using micromamba
+      uses: mamba-org/provision-with-micromamba@main
       with:
-        miniconda-version: "latest"
-        auto-update-conda: true
-        activate-environment: deepchem
-        channels: conda-forge,defaults
-        python-version: ${{ matrix.python-version }}
         environment-file: env.yml
-    - name: Install DeepChem
-      id: install
-      shell: bash -l {0}
-      run: pip install -e .
-    - name: Yapf (version 0.32.0)
-      id: yapf
-      # on Windows, yapf raise the strange error..., so ignore
-      if: runner.os == 'Linux' || runner.os == 'macOS'
-      shell: bash -l {0}
-      run: |
-        CHANGED_FILES=`git diff --name-only $COMMIT_RANGE | grep .py$ | grep -v contrib/ || true`
-        if [ -n "$CHANGED_FILES" ]; then
-          yapf -d $CHANGED_FILES
-        fi
-    - name: Flake8
-      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
-      shell: bash -l {0}
-      run: source scripts/flake8_for_ci.sh
-    - name: Mypy
-      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
-      shell: bash -l {0}
-      run: |
-        mypy -p deepchem
-    - name: Doctest Linux
-      if: ${{ (runner.os == 'Linux') && always() }}
-      shell: bash -l {0}
-      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem --doctest-continue-on-failure
-    - name: Doctest Windows
-      if: ${{ (runner.os == 'Windows') && always() }}
-      # Seperate test avoiding Jax in windows since Jax is not supported in Windows
-      shell: bash -l {0}
-      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --ignore-glob='deepchem/models/jax_models/*' --doctest-modules deepchem --doctest-continue-on-failure
-    - name: Upload coverage to Codecov
-      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
-      uses: codecov/codecov-action@v1
-      with:
-        file: ./coverage.xml
+        environment-name: deepchem
+        channels: conda-forge,defaults
+        extra-specs: python=${{ matrix.python-version }}
+
+#    - name: Install all dependencies using conda
+#      uses: conda-incubator/setup-miniconda@v2
+#      with:
+#        miniconda-version: "latest"
+#        auto-update-conda: true
+#        activate-environment: deepchem
+#        channels: conda-forge,defaults
+#        python-version: ${{ matrix.python-version }}
+#        environment-file: env.yml
 
   pypi-build:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    needs: [build]
+    needs: [core-build]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v3
       with:
-        python-version: '3.7'
+        python-version: '3.9'
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -186,15 +161,15 @@ jobs:
 
   docker-build:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    needs: [build, pypi-build]
+    needs: [core-build, pypi-build]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Docker Buildx
       id: buildx
       uses: docker/setup-buildx-action@master
     - name: Cache Docker layers
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: /tmp/.buildx-cache
         key: ${{ runner.os }}-buildx-${{ github.sha }}

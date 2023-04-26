@@ -96,6 +96,27 @@ Losses
 .. autoclass:: deepchem.models.losses.ShannonEntropy
   :members:
 
+.. autoclass:: deepchem.models.losses.GlobalMutualInformationLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.LocalMutualInformationLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.GroverPretrainLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.EdgePredictionLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.GraphNodeMaskingLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.GraphEdgeMaskingLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.GraphInfomaxLoss
+  :members:
+
 Optimizers
 ----------
 
@@ -321,6 +342,14 @@ You can wrap an arbitrary :code:`torch.nn.Module` in a :code:`TorchModel` object
 .. autoclass:: deepchem.models.TorchModel
   :members:
 
+ModularTorchModel
+-----------------
+
+You can modify networks for different tasks by using a :code:`ModularTorchModel`.
+
+.. autoclass:: deepchem.models.torch_models.modular.ModularTorchModel
+  :members:
+
 CNN
 ---
 
@@ -385,6 +414,26 @@ Note that this is an alternative implementation for MPNN and currently you can o
 .. autoclass:: deepchem.models.torch_models.MPNNModel
   :members:
 
+InfoGraphModel
+--------------
+
+.. autoclass:: deepchem.models.torch_models.InfoGraphModel
+  :members:
+
+InfoGraphStarModel
+------------------
+
+.. autoclass:: deepchem.models.torch_models.InfoGraphStarModel
+  :members:
+
+
+GNNModular
+----------
+
+.. autoclass:: deepchem.models.torch_models.gnn.GNNModular
+  :members:
+
+
 LCNNModel
 ---------
 
@@ -414,6 +463,11 @@ DMPNNModel
 .. autoclass:: deepchem.models.torch_models.DMPNNModel
   :members:
 
+GroverModel
+-----------
+
+.. autoclass:: deepchem.models.torch_models.GroverModel
+  :members:
 
 PyTorch Lightning Models
 ==============
