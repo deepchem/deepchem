@@ -31,6 +31,60 @@ class HuggingFaceModel(TorchModel):
         Pretraining or finetuning task
     tokenizer: transformers.tokenization_utils.PreTrainedTokenizer
         Tokenizer
+
+    Example
+    -------
+    >>> import os
+    >>> import tempfile
+    >>> tempdir = tempfile.mkdtemp()
+
+    >>> # preparing dataset
+    >>> filepath = os.path.join(tempdir, 'smiles.txt')
+    >>> with open(filepath, 'w') as f:
+    ...     f.write('CN(c1ccccc1)c1ccccc1C(=O)NCC1(O)CCOCC1\nCC[NH+](CC)C1CCC([NH2+]C2CC2)(C(=O)[O-])C1\n')
+    ...     f.write('COCC(CNC(=O)c1ccc2c(c1)NC(=O)C2)OC\nOCCn1cc(CNc2cccc3c2CCCC3)nn1\n')
+    ...     f.write('CCCCCCc1ccc(C#Cc2ccc(C#CC3=CC=C(CCC)CC3)c(C3CCCCC3)c2)c(F)c1\nO=C(NCc1ccc(F)cc1)N1CC=C(c2c[nH]c3ccccc23)CC1\n')
+
+    >>> # preparing tokenizer
+    >>> from tokenizers import ByteLevelBPETokenizer
+    >>> from transformers.models.roberta import RobertaTokenizerFast
+    >>> tokenizer = ByteLevelBPETokenizer()
+    >>> tokenizer.train(files=filepath, vocab_size=1_000, min_frequency=2,
+    ...     special_tokens=["<s>", "<pad>", "</s>", "<unk>", "<mask>"])
+    >>> tokenizer_path = os.path.join(tempdir, 'tokenizer')
+    >>> tokenizer.save_model(tokenizer_path)
+    >>> tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_path)
+
+    >>> # preparing dataset
+    >>> import pandas as pd
+    >>> import deepchem as dc
+    >>> smiles = ["CCN(CCSC)C(=O)N[C@@](C)(CC)C(F)(F)F","CC1(C)CN(C(=O)Nc2cc3ccccc3nn2)C[C@@]2(CCOC2)O1"]
+    >>> labels = [3.112,2.432]
+    >>> df = pd.DataFrame(list(zip(smiles, labels)), columns=["smiles", "task1"])
+    >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
+    ...     df.to_csv(tmpfile.name)
+    ...     loader = dc.data.CSVLoader(["task1"], feature_field="smiles",
+    ...                              featurizer=dc.feat.DummyFeaturizer())
+    ...     dataset = loader.create_dataset(tmpfile.name)
+
+    >>> # pretraining
+    >>> from deepchem.models.torch_models.hf_models import HuggingFaceModel
+    >>> from transformers.models.roberta import RobertaForMaskedLM, RobertaModel, RobertaConfig
+    >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
+    >>> model = RobertaForMaskedLM(config)
+    >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='pretraining')
+    >>> hf_model.fit(dataset, nb_epoch=1)
+
+    >>> # TODO Save and Load pretrained model here
+    >>> # finetuning a regression model
+    >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
+    >>> config.problem_type = 'regression'
+    >>> config.num_labels = 1
+    >>> model = RobertaForSequenceClassification(config)
+    >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='finetuning')
+    >>> hf_model.fit(dataset, nb_epoch=1)
+
+    >>> # TODO Evaluate model
     """
 
     def __init__(
@@ -66,8 +120,10 @@ class HuggingFaceModel(TorchModel):
                                     padding=True,
                                     return_tensors="pt")
             tensor_y = torch.from_numpy(y[0])
+            if self.model.config.problem_type == 'regression':
+                tensor_y = tensor_y.float()
             inputs = {**tokens, 'labels': tensor_y}
-            return inputs, _, w
+            return inputs, tensor_y, w
 
     def fit_generator(self,
                       generator: Iterable[Tuple[Any, Any, Any]],
