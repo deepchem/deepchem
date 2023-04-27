@@ -551,6 +551,7 @@ class TestLosses(unittest.TestCase):
     def test_graph_context_pred_loss(self):
         import torch
         from deepchem.models.losses import GraphContextPredLoss
+        torch.manual_seed(1234)
 
         mode = "cbow"
         neg_samples = 2
@@ -567,8 +568,7 @@ class TestLosses(unittest.TestCase):
                                        context_rep, neg_context_rep,
                                        overlapped_context_size)
 
-        assert loss.dim() == 0
-        assert loss.dtype == torch.float64
+        assert torch.allclose(loss, torch.tensor(4.4781, dtype=torch.float64))
 
         mode = "skipgram"
         graph_context_pred_loss = GraphContextPredLoss()._create_pytorch_loss(
@@ -578,5 +578,4 @@ class TestLosses(unittest.TestCase):
                                        context_rep, neg_context_rep,
                                        overlapped_context_size)
 
-        assert loss.dim() == 0
-        assert loss.dtype == torch.float64
+        assert torch.allclose(loss, torch.tensor(2.8531, dtype=torch.float64))
