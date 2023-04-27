@@ -555,7 +555,7 @@ class GNNModular(ModularTorchModel):
         elif self.task == "classification":
             loss = self.classification_loss_loader(inputs, labels)
         elif self.task == "context_pred":
-            loss = self.context_pred_loss_loader(inputs, labels)
+            loss = self.context_pred_loss_loader(inputs)
         return (loss * weights).mean()
 
     def regression_loss_loader(self, inputs, labels):
@@ -624,7 +624,25 @@ class GNNModular(ModularTorchModel):
 
         return self.infomax_loss(positive_score, negative_score)
 
-    def context_pred_loss_loader(self, inputs, labels):
+    def context_pred_loss_loader(self, inputs):
+        """
+        Loads the context prediction loss for the given input by taking the batched subgraph and context graphs and computing the context prediction loss for each subgraph and context graph pair.
+
+        Parameters
+        ----------
+        inputs : tuple
+            A tuple containing the following elements:
+            - substruct_batch (BatchedGraphData): Batched subgraph, or neighborhood, graphs.
+            - s_overlap (List[int]): List of overlapping subgraph node indices between the subgraph and context graphs.
+            - context_graphs (BatchedGraphData): Batched context graphs.
+            - c_overlap (List[int]): List of overlapping context node indices between the subgraph and context graphs.
+            - overlap_size (List[int]): List of the number of overlapping nodes between the subgraph and context graphs.
+
+        Returns
+        -------
+        context_pred_loss : torch.Tensor
+            The context prediction loss
+        """
         substruct_batch = inputs[0]
         s_overlap = inputs[1]
         context_graphs = inputs[2]
