@@ -232,8 +232,7 @@ class TestGraph(unittest.TestCase):
 
     def test_subgraph(self):
         node_features = np.random.rand(5, 10)
-        edge_index = np.array([[0, 1, 2, 3, 4],
-                               [1, 2, 3, 4, 0]],
+        edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]],
                               dtype=np.int64)
         edge_features = np.random.rand(5, 3)
         graph_data = GraphData(node_features, edge_index, edge_features)
@@ -249,8 +248,7 @@ class TestGraph(unittest.TestCase):
                                       expected_node_features)
 
         expected_edge_index = np.array([[0, 1, 3], [1, 2, 0]], dtype=np.int64)
-        np.testing.assert_array_equal(subgraph.edge_index,
-                                      expected_edge_index)
+        np.testing.assert_array_equal(subgraph.edge_index, expected_edge_index)
 
         expected_edge_features = edge_features[[0, 1, 4]]
         np.testing.assert_array_equal(subgraph.edge_features,
