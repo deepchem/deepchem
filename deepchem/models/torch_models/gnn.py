@@ -275,6 +275,14 @@ class GNNModular(ModularTorchModel):
         context_pred: Context prediction. Predicts the surrounding context of a node.
         Supervised tasks:
         "regression" or "classification".
+    mask_rate: float, optional (default 0.1)
+        The rate at which to mask nodes or edges for mask_nodes and mask_edges tasks.
+    mask_edge: bool, optional (default True)
+        Whether to also mask connecting edges for mask_nodes tasks.
+    context_size: int, optional (default 1)
+        The size of the context to use for context prediction tasks.
+    neighborhood_size: int, optional (default 3)
+        The size of the neighborhood to use for context prediction tasks.
     context_mode: str, optional (default "cbow")
         The context mode to use for context prediction tasks. Must be one of "cbow" or "skipgram".
     neg_samples: int, optional (default 1)
@@ -396,7 +404,6 @@ class GNNModular(ModularTorchModel):
                        self.jump_knowledge)
 
         if self.task in ("mask_nodes", "mask_edges"):
-            # self.emb_dim = (self.num_layer + 1) * self.emb_dim
             linear_pred_nodes = torch.nn.Linear(self.emb_dim, num_node_type -
                                                 1)  # -1 to remove mask token
             linear_pred_edges = torch.nn.Linear(self.emb_dim, num_edge_type -
@@ -416,7 +423,6 @@ class GNNModular(ModularTorchModel):
                 pool = global_max_pool
             elif self.graph_pooling == "attention":
                 if self.jump_knowledge == "concat":
-                    # self.emb_dim = (self.num_layer + 1) * self.emb_dim? XXX
                     pool = AttentionalAggregation(
                         gate_nn=torch.nn.Linear((self.num_layer + 1) *
                                                 self.emb_dim, 1))
@@ -497,10 +503,25 @@ class GNNModular(ModularTorchModel):
         return components
 
     def build_gnn(self, num_layer):
+        """
+        Build graph neural network encoding layers by specifying the number of GNN layers.
+
+        Parameters
+        ----------
+        num_layer : int
+            The number of GNN layers to be created.
+
+        Returns
+        -------
+        tuple of (torch.nn.ModuleList, torch.nn.ModuleList)
+            A tuple containing two ModuleLists:
+            1. encoders: A ModuleList of GNN layers (currently only GIN is supported).
+            2. batch_norms: A ModuleList of batch normalization layers corresponding to each GNN layer.
+        """
+
         encoders = []
         batch_norms = []
         for layer in range(num_layer):
-            # do we need input layer? bio/model.py/ginconv L 31
             if self.gnn_type == "gin":
                 encoders.append(
                     GINEConv(
