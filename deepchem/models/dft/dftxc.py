@@ -75,6 +75,7 @@ class DFTXC(torch.nn.Module):
             if entry.entry_type == 'dm':
                 output.append((torch.as_tensor(entry.get_val(qcs)[0])))
             else:
+                print("aw", hybridxc.aweight)
                 output.append(
                     torch.tensor(entry.get_val(qcs), requires_grad=True))
         return output
