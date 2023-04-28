@@ -275,6 +275,14 @@ class GNNModular(ModularTorchModel):
         context_pred: Context prediction. Predicts the surrounding context of a node.
         Supervised tasks:
         "regression" or "classification".
+    mask_rate: float, optional (default 0.1)
+        The rate at which to mask nodes or edges for mask_nodes and mask_edges tasks.
+    mask_edge: bool, optional (default True)
+        Whether to also mask connecting edges for mask_nodes tasks.
+    context_size: int, optional (default 1)
+        The size of the context to use for context prediction tasks.
+    neighborhood_size: int, optional (default 3)
+        The size of the neighborhood to use for context prediction tasks.
     context_mode: str, optional (default "cbow")
         The context mode to use for context prediction tasks. Must be one of "cbow" or "skipgram".
     neg_samples: int, optional (default 1)
@@ -495,10 +503,25 @@ class GNNModular(ModularTorchModel):
         return components
 
     def build_gnn(self, num_layer):
+        """
+        Build graph neural network encoding layers by specifying the number of GNN layers.
+
+        Parameters
+        ----------
+        num_layer : int
+            The number of GNN layers to be created.
+
+        Returns
+        -------
+        tuple of (torch.nn.ModuleList, torch.nn.ModuleList)
+            A tuple containing two ModuleLists:
+            1. encoders: A ModuleList of GNN layers (currently only GIN is supported).
+            2. batch_norms: A ModuleList of batch normalization layers corresponding to each GNN layer.
+        """
+
         encoders = []
         batch_norms = []
         for layer in range(num_layer):
-            # do we need input layer? bio/model.py/ginconv L 31
             if self.gnn_type == "gin":
                 encoders.append(
                     GINEConv(
@@ -554,7 +577,7 @@ class GNNModular(ModularTorchModel):
         elif self.task == "classification":
             loss = self.classification_loss_loader(inputs, labels)
         elif self.task == "context_pred":
-            loss = self.context_pred_loss_loader(inputs, labels)
+            loss = self.context_pred_loss_loader(inputs)
         return (loss * weights).mean()
 
     def regression_loss_loader(self, inputs, labels):
@@ -622,7 +645,25 @@ class GNNModular(ModularTorchModel):
 
         return self.infomax_loss(positive_score, negative_score)
 
-    def context_pred_loss_loader(self, inputs, labels):
+    def context_pred_loss_loader(self, inputs):
+        """
+        Loads the context prediction loss for the given input by taking the batched subgraph and context graphs and computing the context prediction loss for each subgraph and context graph pair.
+
+        Parameters
+        ----------
+        inputs : tuple
+            A tuple containing the following elements:
+            - substruct_batch (BatchedGraphData): Batched subgraph, or neighborhood, graphs.
+            - s_overlap (List[int]): List of overlapping subgraph node indices between the subgraph and context graphs.
+            - context_graphs (BatchedGraphData): Batched context graphs.
+            - c_overlap (List[int]): List of overlapping context node indices between the subgraph and context graphs.
+            - overlap_size (List[int]): List of the number of overlapping nodes between the subgraph and context graphs.
+
+        Returns
+        -------
+        context_pred_loss : torch.Tensor
+            The context prediction loss
+        """
         substruct_batch = inputs[0]
         s_overlap = inputs[1]
         context_graphs = inputs[2]
