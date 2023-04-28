@@ -1206,20 +1206,19 @@ class GraphContextPredLoss(Loss):
         def loss(substruct_rep, overlapped_node_rep, context_rep,
                  neg_context_rep, overlap_size):
 
-            # If the mode is "cbow", positive context representation is computed
             if self.mode == "cbow":
-                # positive context representation
+                # positive context prediction is the dot product of substructure representation and true context representation
                 pred_pos = torch.sum(substruct_rep * context_rep, dim=1)
-                # negative context representation
+                # negative context prediction is the dot product of substructure representation and negative (random) context representation.
                 pred_neg = torch.sum(substruct_rep.repeat(
                     (self.neg_samples, 1)) * neg_context_rep,
                                      dim=1)
 
-            # If the mode is "skipgram", positive and negative context representations are computed differently
             elif self.mode == "skipgram":
                 expanded_substruct_rep = torch.cat(
                     [substruct_rep[i].repeat((i, 1)) for i in overlap_size],
                     dim=0)
+                # positive substructure prediction is the dot product of expanded substructure representation and true overlapped node representation.
                 pred_pos = torch.sum(expanded_substruct_rep *
                                      overlapped_node_rep,
                                      dim=1)
@@ -1238,6 +1237,7 @@ class GraphContextPredLoss(Loss):
 
                 shifted_expanded_substruct_rep = torch.cat(
                     shifted_expanded_substruct_rep, dim=0)
+                # negative substructure prediction is the dot product of shifted expanded substructure representation and true overlapped node representation.
                 pred_neg = torch.sum(shifted_expanded_substruct_rep *
                                      overlapped_node_rep.repeat(
                                          (self.neg_samples, 1)),
