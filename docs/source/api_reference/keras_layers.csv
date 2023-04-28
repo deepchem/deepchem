@@ -1,0 +1,36 @@
+﻿Layer,Reference, Model
+InteratomicL2Distances,,
+GraphConv,`ref <https://arxiv.org/abs/1509.09292>`_,
+GraphPool, `ref <https://arxiv.org/abs/1509.09292>`_,
+GraphGather, `ref <https://arxiv.org/abs/1509.09292>`_,
+MolGANConvolutionLayer,`ref <https://arxiv.org/abs/1805.11973>`_, MolGan
+MolGANAggregationLayer, `ref <https://arxiv.org/abs/1805.11973>`_, MolGan
+MolGANMultiConvolutionLayer, `ref <https://arxiv.org/abs/1805.11973>`_, MolGan
+MolGANEncoderLayer, `ref <https://arxiv.org/abs/1805.11973>`_, MolGan
+LSTMStep,,
+AttnLSTMEmbedding, `ref <https://arxiv.org/abs/1606.04080>`_,
+IterRefLSTMEmbedding, ,
+SwitchedDropout, ,
+WeightedLinearCombo, ,
+CombineMeanSt, ,
+Stack,,
+VinaFreeEnergy,,
+NeighborList,,
+AtomicConvolution, `ref <https://arxiv.org/abs/1703.10603>`_,
+AlphaShareLayer,, Sluice Network
+SluiceLoss,, Sluice Network
+BetaShare,, Sluice Network
+ANIFeat,,
+GraphEmbedPoolLayer,`ref <https://arxiv.org/abs/1703.00792>`_,
+Highway,`ref <https://arxiv.org/abs/11505.00387>`_,
+WeaveLayer,`ref <https://pubmed.ncbi.nlm.nih.gov/27558503/>`_,
+WeaveGather,`ref <https://pubmed.ncbi.nlm.nih.gov/27558503/>`_,
+DTNNEmbedding, ,
+DTNNStep, ,
+DTNNGather,,
+DAGLayer, `ref <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3739985/>`_,
+DAGGather,,
+MessagePassing, `ref <https://arxiv.org/abs/1511.06391>`_,
+EdgeNetwork, `ref <https://arxiv.org/abs/1511.06391>`_, MessagePassing
+GatedRecurrentUnit, `ref <https://arxiv.org/abs/1511.06391>`_, MessagePassing
+SetGather,,

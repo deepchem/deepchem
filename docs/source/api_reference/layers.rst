@@ -8,6 +8,8 @@ transformations. For now, most layers are Keras only but over
 time we expect this support to expand to other types of models
 and layers.
 
+.. include:: layers_cheatsheet.rst
+
 Keras Layers
 ------------
 
