@@ -5,6 +5,8 @@ One of the most important parts of machine learning applications is finding a su
 The MoleculeNet suite has curated a whole range of datasets and loaded them into DeepChem
 :code:`dc.data.Dataset` objects for convenience.
 
+.. include:: moleculenet_cheatsheet.rst
+
 Contributing a new dataset to MoleculeNet
 -----------------------------------------
 
