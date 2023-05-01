@@ -546,3 +546,36 @@ class TestLosses(unittest.TestCase):
         # Check if the loss is a scalar and has the correct dtype
         assert loss.dim() == 0
         assert loss.dtype == torch.float32
+
+    @pytest.mark.torch
+    def test_graph_context_pred_loss(self):
+        import torch
+        from deepchem.models.losses import GraphContextPredLoss
+        torch.manual_seed(1234)
+
+        mode = "cbow"
+        neg_samples = 2
+        substruct_rep = torch.randn(4, 8)
+        overlapped_node_rep = torch.randn(8, 8)
+        context_rep = torch.randn(4, 8)
+        neg_context_rep = torch.randn(2 * 4, 8)
+        overlapped_context_size = torch.tensor([2, 2, 2, 2])
+
+        graph_context_pred_loss = GraphContextPredLoss()._create_pytorch_loss(
+            mode, neg_samples)
+
+        loss = graph_context_pred_loss(substruct_rep, overlapped_node_rep,
+                                       context_rep, neg_context_rep,
+                                       overlapped_context_size)
+
+        assert torch.allclose(loss, torch.tensor(4.4781, dtype=torch.float64))
+
+        mode = "skipgram"
+        graph_context_pred_loss = GraphContextPredLoss()._create_pytorch_loss(
+            mode, neg_samples)
+
+        loss = graph_context_pred_loss(substruct_rep, overlapped_node_rep,
+                                       context_rep, neg_context_rep,
+                                       overlapped_context_size)
+
+        assert torch.allclose(loss, torch.tensor(2.8531, dtype=torch.float64))

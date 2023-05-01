@@ -1168,6 +1168,100 @@ class DeepGraphInfomaxLoss(Loss):
         return loss
 
 
+class GraphContextPredLoss(Loss):
+    """
+    GraphContextPredLoss is a loss function designed for graph neural networks that aims to predict the context of a node given its substructure. The context of a node is essentially the ring of nodes around it outside of an inner k1-hop diameter and inside an outer k2-hop diameter.
+
+    This loss compares the representation of a node's neighborhood with the representation of the node's context. It then uses negative sampling to compare the representation of the node's neighborhood with the representation of a random node's context.
+
+    Parameters
+    ----------
+    mode: str
+        The mode of the model. It can be either "cbow" (continuous bag of words) or "skipgram".
+    neg_samples: int
+        The number of negative samples to use for negative sampling.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.losses import GraphContextPredLoss
+    >>> substruct_rep = torch.randn(4, 8)
+    >>> overlapped_node_rep = torch.randn(8, 8)
+    >>> context_rep = torch.randn(4, 8)
+    >>> neg_context_rep = torch.randn(2 * 4, 8)
+    >>> overlapped_context_size = torch.tensor([2, 2, 2, 2])
+    >>> mode = "cbow"
+    >>> neg_samples = 2
+    >>> graph_context_pred_loss = GraphContextPredLoss()._create_pytorch_loss(mode, neg_samples)
+    >>> loss = graph_context_pred_loss(substruct_rep, overlapped_node_rep, context_rep, neg_context_rep, overlapped_context_size)
+    """
+
+    def _create_pytorch_loss(self, mode, neg_samples):
+        import torch
+        from deepchem.models.torch_models.gnn import cycle_index
+        self.mode = mode
+        self.neg_samples = neg_samples
+        self.criterion = torch.nn.BCEWithLogitsLoss()
+
+        def loss(substruct_rep, overlapped_node_rep, context_rep,
+                 neg_context_rep, overlap_size):
+
+            if self.mode == "cbow":
+                # positive context prediction is the dot product of substructure representation and true context representation
+                pred_pos = torch.sum(substruct_rep * context_rep, dim=1)
+                # negative context prediction is the dot product of substructure representation and negative (random) context representation.
+                pred_neg = torch.sum(substruct_rep.repeat(
+                    (self.neg_samples, 1)) * neg_context_rep,
+                                     dim=1)
+
+            elif self.mode == "skipgram":
+                expanded_substruct_rep = torch.cat(
+                    [substruct_rep[i].repeat((i, 1)) for i in overlap_size],
+                    dim=0)
+                # positive substructure prediction is the dot product of expanded substructure representation and true overlapped node representation.
+                pred_pos = torch.sum(expanded_substruct_rep *
+                                     overlapped_node_rep,
+                                     dim=1)
+
+                # shift indices of substructures to create negative examples
+                shifted_expanded_substruct_rep = []
+                for j in range(self.neg_samples):
+                    shifted_substruct_rep = substruct_rep[cycle_index(
+                        len(substruct_rep), j + 1)]
+                    shifted_expanded_substruct_rep.append(
+                        torch.cat([
+                            shifted_substruct_rep[i].repeat((i, 1))
+                            for i in overlap_size
+                        ],
+                                  dim=0))
+
+                shifted_expanded_substruct_rep = torch.cat(
+                    shifted_expanded_substruct_rep, dim=0)
+                # negative substructure prediction is the dot product of shifted expanded substructure representation and true overlapped node representation.
+                pred_neg = torch.sum(shifted_expanded_substruct_rep *
+                                     overlapped_node_rep.repeat(
+                                         (self.neg_samples, 1)),
+                                     dim=1)
+
+            else:
+                raise ValueError(
+                    "Invalid mode. Must be either cbow or skipgram.")
+
+            # Compute the loss for positive and negative context representations
+            loss_pos = self.criterion(
+                pred_pos.double(),
+                torch.ones(len(pred_pos)).to(pred_pos.device).double())
+            loss_neg = self.criterion(
+                pred_neg.double(),
+                torch.zeros(len(pred_neg)).to(pred_neg.device).double())
+
+            # The final loss is the sum of positive and negative context losses
+            loss = loss_pos + self.neg_samples * loss_neg
+            return loss
+
+        return loss
+
+
 def _make_tf_shapes_consistent(output, labels):
     """Try to make inputs have the same shape by adding dimensions of size 1."""
     import tensorflow as tf
