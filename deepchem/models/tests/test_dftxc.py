@@ -1,8 +1,11 @@
 import deepchem as dc
-from deepchem.models.dft.dftxc import XCModel
-from deepchem.data.data_loader import DFTYamlLoader
+try:
+    from deepchem.models.dft.dftxc import XCModel
+    from deepchem.data.data_loader import DFTYamlLoader
+    has_dqc = True
+except ModuleNotFoundError:
+    has_dqc = False
 import pytest
-import numpy as np
 import tempfile
 
 
