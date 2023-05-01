@@ -39,6 +39,8 @@ def test_dftxc_eval():
                      mode="classification")
     loss2 = model2.fit(dataset, nb_epoch=2, checkpoint_interval=2)
     assert loss2 < 0.2
+    # testing true values
+    assert dataset.y[0] != dataset.y[1]
 
 
 @pytest.mark.dqc
