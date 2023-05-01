@@ -35,7 +35,7 @@ class HuggingFaceModel(TorchModel):
         Tokenizer
 
    .. code-block:: python
-         
+
         import os
         import tempfile
         tempdir = tempfile.mkdtemp()
@@ -77,7 +77,7 @@ class HuggingFaceModel(TorchModel):
         model = RobertaForMaskedLM(config)
         hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='pretraining', model_dir='model-dir')
         hf_model.fit(dataset, nb_epoch=1)
- 
+
         # finetuning a regression model
         from transformers.models.roberta import RobertaForSequenceClassification
         config = RobertaConfig(vocab_size=tokenizer.vocab_size, problem_type='regression', num_labels=1)
@@ -92,12 +92,12 @@ class HuggingFaceModel(TorchModel):
         # making dataset suitable for classification
         import numpy as np
         y = np.random.choice([0, 1], size=dataset.y.shape)
-        dataset = dc.data.NumpyDataset(X=dataset.X, y=y, w=dataset.w, ids=dataset.ids) 
+        dataset = dc.data.NumpyDataset(X=dataset.X, y=y, w=dataset.w, ids=dataset.ids)
 
-        from transformers import RobertaForSequenceClassification        
+        from transformers import RobertaForSequenceClassification
         config = RobertaConfig(vocab_size=tokenizer.vocab_size)
         model = RobertaForSequenceClassification(config)
-        hf_model = HuggingFaceModel(model=model, task='finetuning', tokenizer=tokenizer) 
+        hf_model = HuggingFaceModel(model=model, task='finetuning', tokenizer=tokenizer)
         hf_model.fit(dataset, nb_epoch=1)
         hf_model.predict(dataset)
         hf_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.f1_score))
@@ -119,15 +119,31 @@ class HuggingFaceModel(TorchModel):
             loss=None,  # type: ignore
             **kwargs)
 
-    def load_from_pretrained(self, path: str):  # type: ignore
-        """Load HuggingFace mode from pretrained checkpoint
+    def load_from_pretrained(  # type: ignore
+            self, model_dir: Optional[str] = None):
+        """Load HuggingFace model from a pretrained checkpoint
 
-        Parameters
+        Parameter
         ----------
-        path: str
+        model_dir: str
             Directory containing model checkpoint
         """
-        self.model.model.load_from_pretrained(path)
+        if model_dir is None:
+            model_dir = self.model_dir
+        if not os.path.exists(model_dir):
+            # Load from huggingface model hub
+            self.model.load_from_pretrained(model_dir)
+        else:
+            checkpoints = sorted(self.get_checkpoints(model_dir))
+            if len(checkpoints) == 0:
+                # No DeepChem model checkpoints, hence it model must be saved as a huggingface checkpoint.
+                self.model.load_from_pretrained(model_dir)
+            else:
+                # Model saved as a deepchem checkpoint
+                checkpoint = checkpoints[0]
+                data = torch.load(checkpoint)
+                self.model.load_state_dict(data['model_state_dict'],
+                                           strict=False)
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
         if self.task == 'pretraining':
