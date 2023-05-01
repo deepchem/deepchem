@@ -50,6 +50,7 @@ try:
     from deepchem.models.torch_models import CNN
     from deepchem.models.torch_models import ScaledDotProductAttention, SelfAttention
     from deepchem.models.torch_models import GroverReadout
+    from deepchem.models.torch_models import HuggingFaceModel
 except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading some PyTorch models, missing a dependency. {e}')

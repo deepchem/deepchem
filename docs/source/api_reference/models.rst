@@ -353,6 +353,14 @@ You can modify networks for different tasks by using a :code:`ModularTorchModel`
 .. autoclass:: deepchem.models.torch_models.modular.ModularTorchModel
   :members:
 
+HuggingFaceModel
+----------------
+
+HuggingFace models can wrapped using the wrapper :code:`HuggingFaceModel`
+
+.. autoclass:: deepchem.models.torch_models.hf_models.HuggingFaceModel
+  :members:
+
 CNN
 ---
 
