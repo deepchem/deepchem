@@ -1,12 +1,12 @@
+import os
 import logging
 import time
 import numpy as np
 from collections.abc import Sequence as SequenceCollection
 from typing import (TYPE_CHECKING, Any, Callable, Iterable, List, Optional,
                     Tuple, Union)
-
 import torch
-from deepchem.trans import Transformer
+from deepchem.trans import Transformer, undo_transforms
 from deepchem.models.optimizers import LearningRateSchedule
 from deepchem.models.torch_models import TorchModel
 from deepchem.utils.typing import LossFn, OneOrMany
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 class HuggingFaceModel(TorchModel):
-    """HuggingFace model wrapper
+    r"""HuggingFace model wrapper
 
     The class provides a wrapper for wrapping models from the `HuggingFace
     ecosystem in DeepChem and training it via DeepChem's api.
@@ -34,59 +34,73 @@ class HuggingFaceModel(TorchModel):
     tokenizer: transformers.tokenization_utils.PreTrainedTokenizer
         Tokenizer
 
-    Example
-    -------
-    >>> import os
-    >>> import tempfile
-    >>> tempdir = tempfile.mkdtemp()
+   .. code-block:: python
+         
+        import os
+        import tempfile
+        tempdir = tempfile.mkdtemp()
 
-    >>> # preparing dataset
-    >>> filepath = os.path.join(tempdir, 'smiles.txt')
-    >>> with open(filepath, 'w') as f:
-    ...     f.write('CN(c1ccccc1)c1ccccc1C(=O)NCC1(O)CCOCC1\nCC[NH+](CC)C1CCC([NH2+]C2CC2)(C(=O)[O-])C1\n')
-    ...     f.write('COCC(CNC(=O)c1ccc2c(c1)NC(=O)C2)OC\nOCCn1cc(CNc2cccc3c2CCCC3)nn1\n')
-    ...     f.write('CCCCCCc1ccc(C#Cc2ccc(C#CC3=CC=C(CCC)CC3)c(C3CCCCC3)c2)c(F)c1\nO=C(NCc1ccc(F)cc1)N1CC=C(c2c[nH]c3ccccc23)CC1\n')
+        # preparing dataset
+        filepath = os.path.join(tempdir, 'smiles.txt')
+        with open(filepath, 'w') as f:
+            f.write('CN(c1ccccc1)c1ccccc1C(=O)NCC1(O)CCOCC1\nCC[NH+](CC)C1CCC([NH2+]C2CC2)(C(=O)[O-])C1\n')
+            f.write('COCC(CNC(=O)c1ccc2c(c1)NC(=O)C2)OC\nOCCn1cc(CNc2cccc3c2CCCC3)nn1\n')
+            f.write('CCCCCCc1ccc(C#Cc2ccc(C#CC3=CC=C(CCC)CC3)c(C3CCCCC3)c2)c(F)c1\nO=C(NCc1ccc(F)cc1)N1CC=C(c2c[nH]c3ccccc23)CC1\n')
 
-    >>> # preparing tokenizer
-    >>> from tokenizers import ByteLevelBPETokenizer
-    >>> from transformers.models.roberta import RobertaTokenizerFast
-    >>> tokenizer = ByteLevelBPETokenizer()
-    >>> tokenizer.train(files=filepath, vocab_size=1_000, min_frequency=2,
-    ...     special_tokens=["<s>", "<pad>", "</s>", "<unk>", "<mask>"])
-    >>> tokenizer_path = os.path.join(tempdir, 'tokenizer')
-    >>> tokenizer.save_model(tokenizer_path)
-    >>> tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_path)
+        # preparing tokenizer
+        from tokenizers import ByteLevelBPETokenizer
+        from transformers.models.roberta import RobertaTokenizerFast
+        tokenizer = ByteLevelBPETokenizer()
+        tokenizer.train(files=filepath, vocab_size=1_000, min_frequency=2,
+            special_tokens=["<s>", "<pad>", "</s>", "<unk>", "<mask>"])
+        tokenizer_path = os.path.join(tempdir, 'tokenizer')
+        os.makedirs(tokenizer_path)
+        tokenizer.save_model(tokenizer_path)
+        tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_path)
 
-    >>> # preparing dataset
-    >>> import pandas as pd
-    >>> import deepchem as dc
-    >>> smiles = ["CCN(CCSC)C(=O)N[C@@](C)(CC)C(F)(F)F","CC1(C)CN(C(=O)Nc2cc3ccccc3nn2)C[C@@]2(CCOC2)O1"]
-    >>> labels = [3.112,2.432]
-    >>> df = pd.DataFrame(list(zip(smiles, labels)), columns=["smiles", "task1"])
-    >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
-    ...     df.to_csv(tmpfile.name)
-    ...     loader = dc.data.CSVLoader(["task1"], feature_field="smiles",
-    ...                              featurizer=dc.feat.DummyFeaturizer())
-    ...     dataset = loader.create_dataset(tmpfile.name)
+        # preparing dataset
+        import pandas as pd
+        import deepchem as dc
+        smiles = ["CCN(CCSC)C(=O)N[C@@](C)(CC)C(F)(F)F","CC1(C)CN(C(=O)Nc2cc3ccccc3nn2)C[C@@]2(CCOC2)O1"]
+        labels = [3.112,2.432]
+        df = pd.DataFrame(list(zip(smiles, labels)), columns=["smiles", "task1"])
+        with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
+            df.to_csv(tmpfile.name)
+            loader = dc.data.CSVLoader(["task1"], feature_field="smiles",
+                                     featurizer=dc.feat.DummyFeaturizer())
+            dataset = loader.create_dataset(tmpfile.name)
 
-    >>> # pretraining
-    >>> from deepchem.models.torch_models.hf_models import HuggingFaceModel
-    >>> from transformers.models.roberta import RobertaForMaskedLM, RobertaModel, RobertaConfig
-    >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
-    >>> model = RobertaForMaskedLM(config)
-    >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='pretraining')
-    >>> hf_model.fit(dataset, nb_epoch=1)
+        # pretraining
+        from deepchem.models.torch_models.hf_models import HuggingFaceModel
+        from transformers.models.roberta import RobertaForMaskedLM, RobertaModel, RobertaConfig
+        config = RobertaConfig(vocab_size=tokenizer.vocab_size)
+        model = RobertaForMaskedLM(config)
+        hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='pretraining', model_dir='model-dir')
+        hf_model.fit(dataset, nb_epoch=1)
+ 
+        # finetuning a regression model
+        from transformers.models.roberta import RobertaForSequenceClassification
+        config = RobertaConfig(vocab_size=tokenizer.vocab_size, problem_type='regression', num_labels=1)
+        model = RobertaForSequenceClassification(config)
+        hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='finetuning', model_dir='model-dir')
+        hf_model.load_from_pretrained()
+        hf_model.fit(dataset, nb_epoch=1)
+        hf_model.predict(dataset)  # prediction
+        hf_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.mae_score))  # evaluation
 
-    >>> # TODO Save and Load pretrained model here
-    >>> # finetuning a regression model
-    >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
-    >>> config.problem_type = 'regression'
-    >>> config.num_labels = 1
-    >>> model = RobertaForSequenceClassification(config)
-    >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='finetuning')
-    >>> hf_model.fit(dataset, nb_epoch=1)
+        # finetune a classification model
+        # making dataset suitable for classification
+        import numpy as np
+        y = np.random.choice([0, 1], size=dataset.y.shape)
+        dataset = dc.data.NumpyDataset(X=dataset.X, y=y, w=dataset.w, ids=dataset.ids) 
 
-    >>> # TODO Evaluate model
+        from transformers import RobertaForSequenceClassification        
+        config = RobertaConfig(vocab_size=tokenizer.vocab_size)
+        model = RobertaForSequenceClassification(config)
+        hf_model = HuggingFaceModel(model=model, task='finetuning', tokenizer=tokenizer) 
+        hf_model.fit(dataset, nb_epoch=1)
+        hf_model.predict(dataset)
+        hf_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.f1_score))
     """
 
     def __init__(
@@ -98,14 +112,22 @@ class HuggingFaceModel(TorchModel):
         if self.task == 'pretraining':
             self.data_collator = DataCollatorForLanguageModeling(
                 tokenizer=tokenizer)
-        # For TorchModel, loss is a required argument but HuggingFace computes
+        # Ignoring type. For TorchModel, loss is a required argument but HuggingFace computes
         # loss during the forward iteration, removing the need for a loss function.
-        super(HuggingFaceModel, self).__init__(model=model, loss=None, **kwargs)
+        super(HuggingFaceModel, self).__init__(
+            model=model,
+            loss=None,  # type: ignore
+            **kwargs)
 
-    def load_from_pretrained(self, path: str):
-        if isinstance(str, path):
-            self.model.model.load_from_pretrained(path)
-        # TODO Load from deepchem model checkpoint
+    def load_from_pretrained(self, path: str):  # type: ignore
+        """Load HuggingFace mode from pretrained checkpoint
+
+        Parameters
+        ----------
+        path: str
+            Directory containing model checkpoint
+        """
+        self.model.model.load_from_pretrained(path)
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
         if self.task == 'pretraining':
@@ -208,13 +230,9 @@ class HuggingFaceModel(TorchModel):
             inputs: OneOrMany[torch.Tensor]
             inputs, labels, weights = self._prepare_batch(batch)
 
-            if isinstance(inputs, list) and len(inputs) == 1:
-                inputs = inputs[0]
-
             optimizer.zero_grad()
             outputs = self.model(**inputs)
-            if isinstance(outputs, torch.Tensor):
-                outputs = [outputs]
+
             if self._loss_outputs is not None:
                 outputs = [outputs[i] for i in self._loss_outputs]
             batch_loss = outputs.get("loss")
@@ -322,8 +340,6 @@ class HuggingFaceModel(TorchModel):
             inputs, _, _ = self._prepare_batch((inputs, None, None))
 
             # Invoke the model.
-            if isinstance(inputs, list) and len(inputs) == 1:
-                inputs = inputs[0]
             output_values = self.model(**inputs)
             output_values = output_values.get('logits').detach().cpu().numpy()
 
