@@ -1,14 +1,15 @@
-import os
 import logging
+import os
 import time
-import numpy as np
 from collections.abc import Sequence as SequenceCollection
 from typing import (TYPE_CHECKING, Any, Callable, Iterable, List, Optional,
                     Tuple, Union)
+
+import numpy as np
 import torch
-from deepchem.trans import Transformer, undo_transforms
 from deepchem.models.optimizers import LearningRateSchedule
 from deepchem.models.torch_models import TorchModel
+from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
 from transformers.data.data_collator import DataCollatorForLanguageModeling
 

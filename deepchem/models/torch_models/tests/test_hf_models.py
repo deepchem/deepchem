@@ -1,15 +1,20 @@
 import os
-import pytest
-import numpy as np
-import torch
+
 import deepchem as dc
-from deepchem.models.torch_models.hf_models import HuggingFaceModel
+import numpy as np
+import pytest
+
+try:
+    import torch
+    from deepchem.models.torch_models.hf_models import HuggingFaceModel
+except ModuleNotFoundError:
+    pass
 
 
 @pytest.fixture
 def smiles_dataset(tmpdir):
-    import pandas as pd
     import deepchem as dc
+    import pandas as pd
     smiles = [
         "CCN(CCSC)C(=O)N[C@@](C)(CC)C(F)(F)F",
         "CC1(C)CN(C(=O)Nc2cc3ccccc3nn2)C[C@@]2(CCOC2)O1"
@@ -56,7 +61,7 @@ def hf_tokenizer(tmpdir):
 @pytest.mark.torch
 def test_pretraining(hf_tokenizer, smiles_dataset):
     from deepchem.models.torch_models.hf_models import HuggingFaceModel
-    from transformers.models.roberta import RobertaForMaskedLM, RobertaConfig
+    from transformers.models.roberta import RobertaConfig, RobertaForMaskedLM
 
     config = RobertaConfig(vocab_size=hf_tokenizer.vocab_size)
     model = RobertaForMaskedLM(config)
@@ -71,7 +76,8 @@ def test_pretraining(hf_tokenizer, smiles_dataset):
 
 @pytest.mark.torch
 def test_hf_model_regression(hf_tokenizer, smiles_dataset):
-    from transformers.models.roberta import RobertaForSequenceClassification, RobertaConfig
+    from transformers.models.roberta import (RobertaConfig,
+                                             RobertaForSequenceClassification)
 
     config = RobertaConfig(vocab_size=hf_tokenizer.vocab_size,
                            problem_type='regression',
@@ -96,7 +102,7 @@ def test_hf_model_classification(hf_tokenizer, smiles_dataset):
                                    w=smiles_dataset.w,
                                    ids=smiles_dataset.ids)
 
-    from transformers import RobertaForSequenceClassification, RobertaConfig
+    from transformers import RobertaConfig, RobertaForSequenceClassification
 
     config = RobertaConfig(vocab_size=hf_tokenizer.vocab_size)
     model = RobertaForSequenceClassification(config)
@@ -115,7 +121,8 @@ def test_hf_model_classification(hf_tokenizer, smiles_dataset):
 @pytest.mark.torch
 def test_load_from_pretrained(tmpdir, hf_tokenizer):
     # Create pretrained model
-    from transformers.models.roberta import RobertaForMaskedLM, RobertaConfig, RobertaForSequenceClassification
+    from transformers.models.roberta import (RobertaConfig, RobertaForMaskedLM,
+                                             RobertaForSequenceClassification)
 
     config = RobertaConfig(vocab_size=hf_tokenizer.vocab_size)
     model = RobertaForMaskedLM(config)
@@ -156,7 +163,8 @@ def test_load_from_pretrained(tmpdir, hf_tokenizer):
 
 @pytest.mark.torch
 def test_model_save_reload(tmpdir, hf_tokenizer):
-    from transformers.models.roberta import RobertaForSequenceClassification, RobertaConfig
+    from transformers.models.roberta import (RobertaConfig,
+                                             RobertaForSequenceClassification)
 
     config = RobertaConfig(vocab_size=hf_tokenizer.vocab_size)
     model = RobertaForSequenceClassification(config)

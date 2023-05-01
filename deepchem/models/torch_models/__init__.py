@@ -21,7 +21,6 @@ from deepchem.models.torch_models.cnn import CNN
 from deepchem.models.torch_models.attention import ScaledDotProductAttention, SelfAttention
 from deepchem.models.torch_models.grover import GroverModel, GroverPretrain, GroverFinetune
 from deepchem.models.torch_models.readout import GroverReadout
-from deepchem.models.torch_models.hf_models import HuggingFaceModel
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
     from deepchem.models.torch_models.gnn import GNN, GNNHead, GNNModular
@@ -29,3 +28,7 @@ except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'
     )
+try:
+    from deepchem.models.torch_models.hf_models import HuggingFaceModel
+except ModuleNotFoundError as e:
+    logger.warning(f'Skipped loading modules with transformers dependency. {e}')
