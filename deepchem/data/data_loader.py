@@ -1692,7 +1692,7 @@ class DFTYamlLoader(DataLoader):
             entries = self._get_shards(inputs)
             for i, shard in enumerate(entries):
                 X = np.array(self._featurize_shard(shard))
-                y = np.array([0])
+                y = X[0].get_true_val()
                 w = np.array([1.0])
                 ids = np.array([i])
                 yield X, y, w, ids
@@ -1733,7 +1733,10 @@ class DFTYamlLoader(DataLoader):
         """
         try:
             e_type = shard['e_type']
-            true_val = shard['true_val']
+            if 'true_val' in shard.keys():
+                true_val = shard['true_val']
+            else:
+                true_val = '0.0'
             systems = shard['systems']
         except KeyError:
             raise ValueError(
