@@ -5,7 +5,7 @@ import torch
 from deepchem.feat.graph_data import GraphData
 from deepchem.feat import MolecularFeaturizer
 
-# similar to snap featurizer. both taken from OGB github.com/snap-stanford/ogb
+# similar to snap featurizer. both taken from Open Graph Benchmark (OGB) github.com/snap-stanford/ogb
 allowable_features = {
     'possible_atomic_num_list': list(range(1, 119)) + ['misc'],
     'possible_chirality_list': [
@@ -68,7 +68,7 @@ def safe_index(feature_list, e):
         return len(feature_list) - 1
 
 
-class ConformerFeaturizer(MolecularFeaturizer):
+class RDKitConformerFeaturizer(MolecularFeaturizer):
     """
     A featurizer that converts a molecule into a graph representation with 3D coordinates.
 

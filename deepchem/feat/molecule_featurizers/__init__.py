@@ -22,3 +22,4 @@ from deepchem.feat.molecule_featurizers.mat_featurizer import MATFeaturizer
 from deepchem.feat.molecule_featurizers.dmpnn_featurizer import DMPNNFeaturizer
 from deepchem.feat.molecule_featurizers.grover_featurizer import GroverFeaturizer
 from deepchem.feat.molecule_featurizers.snap_featurizer import SNAPFeaturizer
+from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
