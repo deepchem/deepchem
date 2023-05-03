@@ -4,7 +4,7 @@ Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcc
 """
 from __future__ import annotations
 from abc import abstractmethod, abstractproperty
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 import numpy as np
 
 # dqc depend
@@ -178,7 +178,7 @@ class DFTEntry():
         return np.array(0)
 
     @abstractmethod
-    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
+    def get_val(self, qcs: List[KSCalc], entry: Any[DFTEntry]) -> np.ndarray:
         """
         Return the energy value of the entry, using a DQC-DFT calculation, where the XC has been
         replaced by the trained neural network. This method does not carry out any calculations, it is
@@ -221,7 +221,8 @@ class _EntryDM(DFTEntry):
         dm = np.load(self.true_val)
         return dm
 
-    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
+    def get_val(self, qcs: List[KSCalc],
+                entry: Optional[DFTEntry]) -> np.ndarray:
         val = qcs[0].aodmtot()
         return np.array([val.tolist()])
 
@@ -253,7 +254,8 @@ class _EntryDens(DFTEntry):
         dens = np.load(self.true_val)
         return dens
 
-    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
+    def get_val(self, qcs: List[KSCalc],
+                entry: Optional[DFTEntry]) -> np.ndarray:
         """
         This method calculates the integration grid which is then used to calculate the
         density profile of an entry object.
@@ -336,7 +338,6 @@ class _EntryIE(DFTEntry):
         """
         systems = [i.no for i in entry.get_systems()]
         e_1 = [m.energy() for m in qcs]
-        #        e = np.multiply(systems, e_1)
         e = [item1 * item2 for item1, item2 in zip(systems, e_1)]
         val = sum(e) - 2 * e[0]
         return np.array([val.tolist()])
