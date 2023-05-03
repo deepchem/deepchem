@@ -114,7 +114,7 @@ Losses
 .. autoclass:: deepchem.models.losses.GraphEdgeMaskingLoss
   :members:
 
-.. autoclass:: deepchem.models.losses.GraphInfomaxLoss
+.. autoclass:: deepchem.models.losses.DeepGraphInfomaxLoss
   :members:
 
 .. autoclass:: deepchem.models.losses.GraphContextPredLoss
