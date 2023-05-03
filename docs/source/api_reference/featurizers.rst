@@ -99,7 +99,6 @@ RDKitConformerFeaturizer
 
 .. autoclass:: deepchem.feat.RDKitConformerFeaturizer
   :members:
-  :inherited-members:
 
 Utilities
 *********
