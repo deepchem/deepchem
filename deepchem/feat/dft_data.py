@@ -42,10 +42,13 @@ class DFTSystem():
         self.basis = system["basis"]
         self.spin = 0
         self.charge = 0
+        self.no = 1
         if 'spin' in system.keys():
             self.spin = int(system["spin"])
         if 'charge' in system.keys():
             self.charge = int(system["charge"])
+        if 'number' in system.keys():
+            self.no = int(system["number"])
         """
         Parameters
         ----------
@@ -114,6 +117,10 @@ class DFTEntry():
             first element. (This is for objects containing equations, such
             as ae and ie entry objects). Spin and charge of the system are
             optional parameters and are considered '0' if not specified.
+            The system number refers to the number of times the systems is
+            present in the molecule - this is for polyatomic molecules and the
+            default value is 1. For example ; system number of Hydrogen in water
+            is 2.
         Returns
         -------
         DFTEntry object based on entry type
@@ -313,7 +320,7 @@ class _EntryIE(DFTEntry):
     def get_true_val(self) -> np.ndarray:
         return np.array([self.true_val])
 
-    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
+    def get_val(self, qcs: List[KSCalc], entry: DFTEntry) -> np.ndarray:
         """
         This method calculates the energy of an entry based on the systems and command present
         in the data object. For example; for a Lithium hydride molecule the total energy
@@ -327,7 +334,10 @@ class _EntryIE(DFTEntry):
         -------
         Total Energy of a data object for entry types IE and AE
         """
-        e = [m.energy() for m in qcs]
+        systems = [i.no for i in entry.get_systems()]
+        e_1 = [m.energy() for m in qcs]
+        #        e = np.multiply(systems, e_1)
+        e = [item1 * item2 for item1, item2 in zip(systems, e_1)]
         val = sum(e) - 2 * e[0]
         return np.array([val.tolist()])
 
