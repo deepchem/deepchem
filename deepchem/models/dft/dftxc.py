@@ -76,7 +76,7 @@ class DFTXC(torch.nn.Module):
                 output.append((torch.as_tensor(entry.get_val(qcs)[0])))
             else:
                 output.append(
-                    torch.tensor(entry.get_val(qcs, entry), requires_grad=True))
+                    torch.tensor(entry.get_val(qcs), requires_grad=True))
         return output
 
 

@@ -59,5 +59,5 @@ def test_entryAE():
 
     qcs = [run(syst) for syst in ae_entry_for_LiH.get_systems()]
     val = np.array(0.05362133)
-    calc_val = ae_entry_for_LiH.get_val(qcs, ae_entry_for_LiH)
+    calc_val = ae_entry_for_LiH.get_val(qcs)
     assert np.allclose(val, calc_val)

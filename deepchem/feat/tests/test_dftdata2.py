@@ -24,6 +24,6 @@ def test_multiatom():
     qcs = []
     for system in entry.get_systems():
         qcs.append(evl.run(system))
-    val = entry.get_val(qcs, entry)
+    val = entry.get_val(qcs)
     expected_val = np.array([0.19325158])
     assert np.allclose(val, expected_val)
