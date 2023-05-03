@@ -35,73 +35,74 @@ class HuggingFaceModel(TorchModel):
     tokenizer: transformers.tokenization_utils.PreTrainedTokenizer
         Tokenizer
 
-   .. code-block:: python
+    Example
+    -------
+    >>> import os
+    >>> import tempfile
+    >>> tempdir = tempfile.mkdtemp()
 
-        import os
-        import tempfile
-        tempdir = tempfile.mkdtemp()
+    >>> # preparing dataset
+    >>> smiles = ['CN(c1ccccc1)c1ccccc1C(=O)NCC1(O)CCOCC1', 'CC[NH+](CC)C1CCC([NH2+]C2CC2)(C(=O)[O-])C1', \
+    ...     'COCC(CNC(=O)c1ccc2c(c1)NC(=O)C2)OC', 'OCCn1cc(CNc2cccc3c2CCCC3)nn1', \
+    ...     'CCCCCCc1ccc(C#Cc2ccc(C#CC3=CC=C(CCC)CC3)c(C3CCCCC3)c2)c(F)c1', 'nO=C(NCc1ccc(F)cc1)N1CC=C(c2c[nH]c3ccccc23)CC1']
+    >>> filepath = os.path.join(tempdir, 'smiles.txt')
+    >>> f = open(filepath, 'w')
+    >>> f.write('\n'.join(smiles))
+    253
+    >>> f.close()
 
-        # preparing dataset
-        filepath = os.path.join(tempdir, 'smiles.txt')
-        with open(filepath, 'w') as f:
-            f.write('CN(c1ccccc1)c1ccccc1C(=O)NCC1(O)CCOCC1\nCC[NH+](CC)C1CCC([NH2+]C2CC2)(C(=O)[O-])C1\n')
-            f.write('COCC(CNC(=O)c1ccc2c(c1)NC(=O)C2)OC\nOCCn1cc(CNc2cccc3c2CCCC3)nn1\n')
-            f.write('CCCCCCc1ccc(C#Cc2ccc(C#CC3=CC=C(CCC)CC3)c(C3CCCCC3)c2)c(F)c1\nO=C(NCc1ccc(F)cc1)N1CC=C(c2c[nH]c3ccccc23)CC1\n')
+    >>> # preparing tokenizer
+    >>> from tokenizers import ByteLevelBPETokenizer
+    >>> from transformers.models.roberta import RobertaTokenizerFast
+    >>> tokenizer = ByteLevelBPETokenizer()
+    >>> tokenizer.train(files=filepath, vocab_size=1_000, min_frequency=2, special_tokens=["<s>", "<pad>", "</s>", "<unk>", "<mask>"])
+    >>> tokenizer_path = os.path.join(tempdir, 'tokenizer')
+    >>> os.makedirs(tokenizer_path)
+    >>> result = tokenizer.save_model(tokenizer_path)
+    >>> tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_path)
 
-        # preparing tokenizer
-        from tokenizers import ByteLevelBPETokenizer
-        from transformers.models.roberta import RobertaTokenizerFast
-        tokenizer = ByteLevelBPETokenizer()
-        tokenizer.train(files=filepath, vocab_size=1_000, min_frequency=2,
-            special_tokens=["<s>", "<pad>", "</s>", "<unk>", "<mask>"])
-        tokenizer_path = os.path.join(tempdir, 'tokenizer')
-        os.makedirs(tokenizer_path)
-        tokenizer.save_model(tokenizer_path)
-        tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_path)
+    >>> # preparing dataset
+    >>> import pandas as pd
+    >>> import deepchem as dc
+    >>> smiles = ["CCN(CCSC)C(=O)N[C@@](C)(CC)C(F)(F)F","CC1(C)CN(C(=O)Nc2cc3ccccc3nn2)C[C@@]2(CCOC2)O1"]
+    >>> labels = [3.112,2.432]
+    >>> df = pd.DataFrame(list(zip(smiles, labels)), columns=["smiles", "task1"])
+    >>> with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
+    ...     df.to_csv(tmpfile.name)
+    ...     loader = dc.data.CSVLoader(["task1"], feature_field="smiles", featurizer=dc.feat.DummyFeaturizer())
+    ...     dataset = loader.create_dataset(tmpfile.name)
 
-        # preparing dataset
-        import pandas as pd
-        import deepchem as dc
-        smiles = ["CCN(CCSC)C(=O)N[C@@](C)(CC)C(F)(F)F","CC1(C)CN(C(=O)Nc2cc3ccccc3nn2)C[C@@]2(CCOC2)O1"]
-        labels = [3.112,2.432]
-        df = pd.DataFrame(list(zip(smiles, labels)), columns=["smiles", "task1"])
-        with dc.utils.UniversalNamedTemporaryFile(mode='w') as tmpfile:
-            df.to_csv(tmpfile.name)
-            loader = dc.data.CSVLoader(["task1"], feature_field="smiles",
-                                     featurizer=dc.feat.DummyFeaturizer())
-            dataset = loader.create_dataset(tmpfile.name)
+    >>> # pretraining
+    >>> from deepchem.models.torch_models.hf_models import HuggingFaceModel
+    >>> from transformers.models.roberta import RobertaForMaskedLM, RobertaModel, RobertaConfig
+    >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
+    >>> model = RobertaForMaskedLM(config)
+    >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='pretraining', model_dir='model-dir')
+    >>> training_loss = hf_model.fit(dataset, nb_epoch=1)
 
-        # pretraining
-        from deepchem.models.torch_models.hf_models import HuggingFaceModel
-        from transformers.models.roberta import RobertaForMaskedLM, RobertaModel, RobertaConfig
-        config = RobertaConfig(vocab_size=tokenizer.vocab_size)
-        model = RobertaForMaskedLM(config)
-        hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='pretraining', model_dir='model-dir')
-        hf_model.fit(dataset, nb_epoch=1)
+    >>> # finetuning a regression model
+    >>> from transformers.models.roberta import RobertaForSequenceClassification
+    >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size, problem_type='regression', num_labels=1)
+    >>> model = RobertaForSequenceClassification(config)
+    >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='finetuning', model_dir='model-dir')
+    >>> hf_model.load_from_pretrained()
+    >>> training_loss = hf_model.fit(dataset, nb_epoch=1)
+    >>> prediction = hf_model.predict(dataset)  # prediction
+    >>> eval_results = hf_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.mae_score))
 
-        # finetuning a regression model
-        from transformers.models.roberta import RobertaForSequenceClassification
-        config = RobertaConfig(vocab_size=tokenizer.vocab_size, problem_type='regression', num_labels=1)
-        model = RobertaForSequenceClassification(config)
-        hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='finetuning', model_dir='model-dir')
-        hf_model.load_from_pretrained()
-        hf_model.fit(dataset, nb_epoch=1)
-        hf_model.predict(dataset)  # prediction
-        hf_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.mae_score))  # evaluation
+    >>> # finetune a classification model
+    >>> # making dataset suitable for classification
+    >>> import numpy as np
+    >>> y = np.random.choice([0, 1], size=dataset.y.shape)
+    >>> dataset = dc.data.NumpyDataset(X=dataset.X, y=y, w=dataset.w, ids=dataset.ids)
 
-        # finetune a classification model
-        # making dataset suitable for classification
-        import numpy as np
-        y = np.random.choice([0, 1], size=dataset.y.shape)
-        dataset = dc.data.NumpyDataset(X=dataset.X, y=y, w=dataset.w, ids=dataset.ids)
-
-        from transformers import RobertaForSequenceClassification
-        config = RobertaConfig(vocab_size=tokenizer.vocab_size)
-        model = RobertaForSequenceClassification(config)
-        hf_model = HuggingFaceModel(model=model, task='finetuning', tokenizer=tokenizer)
-        hf_model.fit(dataset, nb_epoch=1)
-        hf_model.predict(dataset)
-        hf_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.f1_score))
+    >>> from transformers import RobertaForSequenceClassification
+    >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
+    >>> model = RobertaForSequenceClassification(config)
+    >>> hf_model = HuggingFaceModel(model=model, task='finetuning', tokenizer=tokenizer)
+    >>> training_loss = hf_model.fit(dataset, nb_epoch=1)
+    >>> predictions = hf_model.predict(dataset)
+    >>> eval_result = hf_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.f1_score))
     """
 
     def __init__(
