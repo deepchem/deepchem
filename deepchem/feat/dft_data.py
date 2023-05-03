@@ -40,6 +40,12 @@ class DFTSystem():
         self.system = system
         self.moldesc = system["moldesc"]
         self.basis = system["basis"]
+        self.spin = 0
+        self.charge = 0
+        if 'spin' in system.keys():
+            self.spin = int(system["spin"])
+        if 'charge' in system.keys():
+            self.charge = int(system["charge"])
         """
         Parameters
         ----------
@@ -63,7 +69,7 @@ class DFTSystem():
         atomzs, atomposs = dqc.parse_moldesc(self.moldesc)
         if pos_reqgrad:
             atomposs.requires_grad_()
-        mol = Mol(self.moldesc, self.basis)
+        mol = Mol(self.moldesc, self.basis, spin=self.spin, charge=self.charge)
         return mol
 
 
@@ -86,7 +92,7 @@ class DFTEntry():
     """
 
     @classmethod
-    def create(self, e_type: str, true_val: str, systems: List[Dict]):
+    def create(self, e_type: str, true_val: Optional[str], systems: List[Dict]):
         """
         This method is used to initialise the DFTEntry class. The entry objects are created
         based on their entry type.
@@ -106,12 +112,15 @@ class DFTEntry():
             the DQC or PYSCF format. The systems needs to be entered in a
             specific order, i.e ; the main atom/molecule needs to be the
             first element. (This is for objects containing equations, such
-            as ae and ie entry objects).
+            as ae and ie entry objects). Spin and charge of the system are
+            optional parameters and are considered '0' if not specified.
         Returns
         -------
         DFTEntry object based on entry type
 
         """
+        if true_val is None:
+            true_val = '0.0'
         if e_type == "ae":
             return _EntryAE(e_type, true_val, systems)
         elif e_type == "ie":
@@ -123,7 +132,8 @@ class DFTEntry():
         else:
             raise NotImplementedError("Unknown entry type: %s" % e_type)
 
-    def __init__(self, e_type: str, true_val: str, systems: List[Dict]):
+    def __init__(self, e_type: str, true_val: Optional[str],
+                 systems: List[Dict]):
         self._systems = [DFTSystem(p) for p in systems]
 
     def get_systems(self) -> List[DFTSystem]:
@@ -205,7 +215,8 @@ class _EntryDM(DFTEntry):
         return dm
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
-        return (qcs[0].aodmtot()).numpy()
+        val = qcs[0].aodmtot()
+        return np.array([val.tolist()])
 
 
 class _EntryDens(DFTEntry):
@@ -300,7 +311,7 @@ class _EntryIE(DFTEntry):
         return "ie"
 
     def get_true_val(self) -> np.ndarray:
-        return (self.true_val)
+        return np.array([self.true_val])
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         """
@@ -317,7 +328,8 @@ class _EntryIE(DFTEntry):
         Total Energy of a data object for entry types IE and AE
         """
         e = [m.energy() for m in qcs]
-        return (sum(e) - 2 * e[0]).numpy()
+        val = sum(e) - 2 * e[0]
+        return np.array([val.tolist()])
 
 
 class _EntryAE(_EntryIE):

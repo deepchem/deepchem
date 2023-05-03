@@ -8,6 +8,8 @@ transformations. For now, most layers are Keras only but over
 time we expect this support to expand to other types of models
 and layers.
 
+.. include:: layers_cheatsheet.rst
+
 Keras Layers
 ------------
 
@@ -166,6 +168,18 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.InfoGraphEncoder
   :members:
 
+.. autoclass:: deepchem.models.torch_models.GINEncoder
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.gnn.GNN
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.gnn.GNNHead
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.gnn.LocalGlobalDiscriminator
+  :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 
@@ -198,6 +212,12 @@ The following layers are used for implementing GROVER model as described in the 
 .. autoclass:: deepchem.models.torch_models.grover_layers.GroverFunctionalGroupPredictor
   :members:
 
+.. autoclass:: deepchem.models.torch_models.grover.GroverPretrain
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover.GroverFinetune
+  :members:
+
 Attention Layers
 ^^^^^^^^^^^^^^^^
 
@@ -218,3 +238,21 @@ Jax Layers
 
 .. autoclass:: deepchem.models.jax_models.layers.Linear
   :members:
+
+Density Functional Theory Layers
+--------------------------------
+
+.. autoclass:: deepchem.models.dft.nnxc.BaseNNXC
+   :members:
+
+.. autoclass:: deepchem.models.dft.nnxc.NNLDA
+   :members:
+
+.. autoclass:: deepchem.models.dft.nnxc.HybridXC
+   :members:
+
+.. autoclass:: deepchem.models.dft.scf.XCNNSCF
+   :members:
+
+.. autoclass:: deepchem.models.dft.dftxc.DFTXC
+   :members:

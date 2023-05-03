@@ -21,8 +21,8 @@ class GroverReadout(nn.Module):
     ----------
     rtype: str
         Readout type, can be 'mean' or 'self-attention'
-    hidden_size: int
-        Input layer hidden size
+    in_features: int
+        Size fof input features
     attn_hidden_size: int
         If readout type is attention, size of hidden layer in attention network.
     attn_out_size: int

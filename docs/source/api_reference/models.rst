@@ -102,6 +102,24 @@ Losses
 .. autoclass:: deepchem.models.losses.LocalMutualInformationLoss
   :members:
 
+.. autoclass:: deepchem.models.losses.GroverPretrainLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.EdgePredictionLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.GraphNodeMaskingLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.GraphEdgeMaskingLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.GraphInfomaxLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.GraphContextPredLoss
+  :members:
+
 Optimizers
 ----------
 
@@ -405,6 +423,20 @@ InfoGraphModel
 .. autoclass:: deepchem.models.torch_models.InfoGraphModel
   :members:
 
+InfoGraphStarModel
+------------------
+
+.. autoclass:: deepchem.models.torch_models.InfoGraphStarModel
+  :members:
+
+
+GNNModular
+----------
+
+.. autoclass:: deepchem.models.torch_models.gnn.GNNModular
+  :members:
+
+
 LCNNModel
 ---------
 
@@ -434,6 +466,17 @@ DMPNNModel
 .. autoclass:: deepchem.models.torch_models.DMPNNModel
   :members:
 
+GroverModel
+-----------
+
+.. autoclass:: deepchem.models.torch_models.GroverModel
+  :members:
+
+Density Functional Theory Model - XCModel
+-----------------------------------------
+
+.. autoclass:: deepchem.models.dft.dftxc.XCModel
+  :members:
 
 PyTorch Lightning Models
 ==============

@@ -46,8 +46,7 @@ from deepchem.feat.complex_featurizers import RdkitGridFeaturizer
 from deepchem.feat.complex_featurizers import NeighborListAtomicCoordinates
 from deepchem.feat.complex_featurizers import NeighborListComplexAtomicCoordinates
 from deepchem.feat.complex_featurizers import AtomicConvFeaturizer
-from deepchem.feat.complex_featurizers import (
-    ComplexNeighborListFragmentAtomicCoordinates, )
+from deepchem.feat.complex_featurizers import ComplexNeighborListFragmentAtomicCoordinates
 from deepchem.feat.complex_featurizers import ContactCircularFingerprint
 from deepchem.feat.complex_featurizers import ContactCircularVoxelizer
 from deepchem.feat.complex_featurizers import SplifFingerprint
@@ -79,6 +78,8 @@ try:
     from deepchem.feat.reaction_featurizer import RxnFeaturizer
 except ModuleNotFoundError:
     pass
+
+from deepchem.feat.vocabulary_builders import HuggingFaceVocabularyBuilder
 
 # support classes
 from deepchem.feat.molecule_featurizers import GraphMatrix

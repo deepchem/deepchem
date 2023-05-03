@@ -119,6 +119,12 @@ where you already hold the raw data in-memory (say in a pandas dataframe).
   :members: __init__, create_dataset
 
 
+Density Functional Theory YAML Loader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. autoclass:: deepchem.data.data_loader.DFTYamlLoader
+  :members: __init__, create_dataset
+
+
 Data Classes
 ------------
 DeepChem featurizers often transform members into "data classes". These are

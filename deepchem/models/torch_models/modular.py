@@ -1,6 +1,6 @@
 import time
 import logging
-import copy
+import os
 from collections.abc import Sequence as SequenceCollection
 from typing import Any, Callable, Iterable, List, Optional, Tuple, Union, Sequence
 import torch
@@ -62,7 +62,7 @@ class ModularTorchModel(TorchModel):
     ...     return (torch.nn.functional.mse_loss(pretrain_model(inputs), labels[0]) * weights[0]).mean()
     >>> pretrain_modular_model.loss_func = example_pt_loss_func
     >>> pt_loss = pretrain_modular_model.fit(dataset_pt, nb_epoch=1)
-    >>> modular_model.load_pretrained_components(pretrain_modular_model, components=['linear'])
+    >>> modular_model.load_from_pretrained(pretrain_modular_model, components=['linear'])
     >>> ft_loss = modular_model.fit(dataset_ft, nb_epoch=1)
 
     """
@@ -81,10 +81,13 @@ class ModularTorchModel(TorchModel):
 
         self.model = model
         self.components = components
+        # FIXME self.loss_func is an incorrect argument for TorchModel.loss because
+        # it performs more than computing loss
         super().__init__(self.model, self.loss_func, **kwargs)
         self.model.to(self.device)
         self.components = {
-            k: v.to(self.device) for k, v in self.components.items()
+            k: v.to(self.device) if isinstance(v, nn.Module) else v
+            for k, v in self.components.items()
         }
 
     def build_model(self) -> nn.Module:
@@ -130,77 +133,6 @@ class ModularTorchModel(TorchModel):
         for component in components:
             for param in self.components[component].parameters():
                 param.requires_grad = True
-
-    def load_pretrained_components(
-            self,
-            source_model: Optional['ModularTorchModel'] = None,
-            checkpoint: Optional[str] = None,
-            model_dir: Optional[str] = None,
-            components: Optional[list] = None) -> None:
-        """Modifies the TorchModel load_from_pretrained method to allow for loading
-        from a ModularTorchModel and specifying which components to load.
-
-        If the user does not a specify a source model, a checkpoint is used to load
-        the weights. In this case, the user cannot specify which components to load
-        because the components are not stored in the checkpoint. All layers will
-        then be loaded if they have the same name and shape. This can cause issues
-        if a pretrained model has similar but not identical layers to the model where
-        a user may expect the weights to be loaded. ModularTorchModel subclasses
-        should be written such that the components are atomic and will be preserved
-        across as many tasks as possible. For example, an encoder may have varying
-        input dimensions for different datasets, so the encoder should be written
-        such that the input layer is not included in the encoder, allowing the
-        encoder to be loaded with any input dimension.
-
-        Parameters
-        ----------
-        source_model: Optional[ModularTorchModel]
-            The model to load the weights from.
-        checkpoint: Optional[str]
-            The path to the checkpoint to load the weights from.
-        model_dir: Optional[str]
-            The path to the directory containing the checkpoint to load the weights.
-        components: Optional[list]
-            The components to load the weights from. If None, all components will be
-            loaded.
-        """
-
-        # generate the source state dict
-        if source_model is not None:
-            source_state_dict = source_model.model.state_dict()
-        elif checkpoint is not None:
-            source_state_dict = torch.load(checkpoint)['model_state_dict']
-        elif model_dir is not None:
-            checkpoints = sorted(self.get_checkpoints(model_dir))
-            source_state_dict = torch.load(checkpoints[0])['model_state_dict']
-        else:
-            raise ValueError(
-                "Must provide a source model, checkpoint, or model_dir")
-
-        if components is not None:  # load the specified components
-            if source_model is not None:
-                assignment_map = {
-                    k: v
-                    for k, v in source_model.components.items()
-                    if k in components
-                }
-                assignment_map_copy = copy.deepcopy(
-                    assignment_map)  # deep copy to avoid modifying source_model
-                self.components.update(assignment_map_copy)
-                self.model = self.build_model()
-            else:
-                raise ValueError(
-                    "If loading from checkpoint, you cannot pass a list of components to load"
-                )
-        else:  # or all components with matching names and shapes
-            model_dict = self.model.state_dict()
-            assignment_map = {
-                k: v
-                for k, v in source_state_dict.items()
-                if k in model_dict and v.shape == model_dict[k].shape
-            }
-            model_dict.update(assignment_map)
-            self.model.load_state_dict(model_dict)
 
     def fit_generator(self,
                       generator: Iterable[Tuple[Any, Any, Any]],
@@ -257,6 +189,7 @@ class ModularTorchModel(TorchModel):
         avg_loss = 0.0
         last_avg_loss = 0.0
         averaged_batches = 0
+        # FIXME This line is not needed as loss is computed inside the call to loss_func
         if loss is None:
             loss = self._loss_fn
         if variables is None:
@@ -342,3 +275,128 @@ class ModularTorchModel(TorchModel):
         time2 = time.time()
         logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
         return last_avg_loss
+
+    def load_from_pretrained(  # type: ignore
+            self,
+            source_model: Optional["ModularTorchModel"] = None,
+            components: Optional[List[str]] = None,
+            checkpoint: Optional[str] = None,
+            model_dir: Optional[str] = None,
+            inputs: Optional[Sequence[Any]] = None,
+            **kwargs) -> None:
+        """Copies parameter values from a pretrained model. The pretrained model can be loaded as a source_model (ModularTorchModel object), checkpoint (pytorch .ckpt file) or a model_dir (directory with .ckpt files).
+        Specific components can be chosen by passing a list of strings with the desired component names. If both a source_model and a checkpoint/model_dir are loaded, the source_model weights will be loaded.
+
+        Parameters
+        ----------
+        source_model: dc.ModularTorchModel, required
+            source_model can either be the pretrained model or a dc.TorchModel with
+            the same architecture as the pretrained model. It is used to restore from
+            a checkpoint, if value_map is None and to create a default assignment map
+            if assignment_map is None
+        checkpoint: str, default None
+            the path to the checkpoint file to load.  If this is None, the most recent
+            checkpoint will be chosen automatically.  Call get_checkpoints() to get a
+            list of all available checkpoints
+        model_dir: str, default None
+            Restore source model from custom model directory if needed
+        inputs: List, input tensors for model
+            if not None, then the weights are built for both the source and self.
+        """
+        if inputs is not None:
+            # Ensure weights for both models are built.
+            if source_model:
+                source_model.model(inputs)
+            self.model(inputs)
+
+        self._ensure_built()
+
+        if source_model is not None:
+            for name, module in source_model.components.items():
+                if components is None or name in components:
+                    self.components[name].load_state_dict(module.state_dict())
+            self.build_model()
+
+        elif source_model is None:
+            self.restore(components=components,
+                         checkpoint=checkpoint,
+                         model_dir=model_dir)
+
+    def save_checkpoint(self, max_checkpoints_to_keep=5, model_dir=None):
+        """
+        Saves the current state of the model and its components as a checkpoint file in the specified model directory.
+        It maintains a maximum number of checkpoint files, deleting the oldest one when the limit is reached.
+
+        Parameters
+        ----------
+        max_checkpoints_to_keep: int, default 5
+            Maximum number of checkpoint files to keep.
+        model_dir: str, default None
+            The directory to save the checkpoint file in. If None, the model_dir specified in the constructor is used.
+        """
+
+        if model_dir is None:
+            model_dir = self.model_dir
+        if not os.path.exists(model_dir):
+            os.makedirs(model_dir)
+
+        data = {
+            'model': self.model.state_dict(),
+            'optimizer_state_dict': self._pytorch_optimizer.state_dict(),
+            'global_step': self._global_step
+        }
+
+        for name, component in self.components.items():
+            if hasattr(component, 'state_dict'):
+                data[name] = component.state_dict()
+
+        temp_file = os.path.join(model_dir, 'temp_checkpoint.pt')
+        torch.save(data, temp_file)
+
+        # Rename and delete older files.
+
+        paths = [
+            os.path.join(model_dir, 'checkpoint%d.pt' % (i + 1))
+            for i in range(max_checkpoints_to_keep)
+        ]
+        if os.path.exists(paths[-1]):
+            os.remove(paths[-1])
+        for i in reversed(range(max_checkpoints_to_keep - 1)):
+            if os.path.exists(paths[i]):
+                os.rename(paths[i], paths[i + 1])
+        os.rename(temp_file, paths[0])
+
+    def restore(  # type: ignore
+            self,
+            components: Optional[List[str]] = None,
+            checkpoint: Optional[str] = None,
+            model_dir: Optional[str] = None) -> None:
+        """
+        Restores the state of a ModularTorchModel from a checkpoint file.
+
+        If no checkpoint file is provided, it will use the latest checkpoint found in the model directory. If a list of component names is provided, only the state of those components will be restored.
+
+        Parameters
+        ----------
+        components: Optional[List[str]]
+            A list of component names to restore. If None, all components will be restored.
+        checkpoint: Optional[str]
+            The path to the checkpoint file. If None, the latest checkpoint in the model directory will
+            be used.
+        model_dir: Optional[str]
+            The path to the model directory. If None, the model directory used to initialize the model will be used.
+        """
+        if checkpoint is None:
+            checkpoints = sorted(self.get_checkpoints(model_dir))
+            if len(checkpoints) == 0:
+                raise ValueError('No checkpoint found')
+            checkpoint = checkpoints[0]
+        data = torch.load(checkpoint)
+        for name, state_dict in data.items():
+            if name != 'model' and name in self.components.keys():
+                if components is None or name in components:
+                    self.components[name].load_state_dict(state_dict)
+
+        self.build_model()
+        self._pytorch_optimizer.load_state_dict(data['optimizer_state_dict'])
+        self._global_step = data['global_step']
