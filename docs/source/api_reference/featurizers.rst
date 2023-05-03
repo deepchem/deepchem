@@ -94,11 +94,12 @@ GroverFeaturizer
 .. autoclass:: deepchem.feat.GroverFeaturizer
   :members:
 
-RDKitConforomerFeaturizer
+RDKitConformerFeaturizer
 *************************
 
 .. autoclass:: deepchem.feat.RDKitConformerFeaturizer
   :members:
+  :inherited-members:
 
 Utilities
 *********
