@@ -4,7 +4,7 @@ Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcc
 """
 from __future__ import annotations
 from abc import abstractmethod, abstractproperty
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional
 import numpy as np
 
 # dqc depend
