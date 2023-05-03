@@ -21,10 +21,25 @@ if TYPE_CHECKING:
 
 
 class HuggingFaceModel(TorchModel):
-    r"""HuggingFace model wrapper
+    r"""Wrapper class that wraps HuggingFace models as DeepChem models
 
-    The class provides a wrapper for wrapping models from the `HuggingFace
-    ecosystem in DeepChem and training it via DeepChem's api.
+    The class provides a wrapper for wrapping models from HuggingFace
+    ecosystem in DeepChem and training it via DeepChem's api. The reason
+    for this might be that you might want to do an apples-to-apples comparison
+    between HuggingFace from the transformers library and DeepChem library.
+
+    The `HuggingFaceModel` has a Has-A relationship by wrapping models from
+    `transformers` library. Once a model is wrapped, DeepChem's API are used
+    for training, prediction, evaluation and other downstream tasks.
+
+    A `HuggingFaceModel` wrapper also has a `tokenizer` which tokenizes raw
+    SMILES strings into tokens to be used by downstream models.  The SMILES
+    strings are generally stored in the `X` attribute of deepchem.data.Dataset object'.
+    This differs from the DeepChem standard workflow as tokenization is done
+    on the fly here. The approach allows us to leverage `transformers` library's fast
+    tokenization algorithms and other utilities like data collation, random masking of tokens
+    for masked language model training etc.
+
 
     Parameters
     ----------
