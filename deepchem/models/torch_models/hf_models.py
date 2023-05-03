@@ -138,18 +138,44 @@ class HuggingFaceModel(TorchModel):
 
     def load_from_pretrained(  # type: ignore
             self, model_dir: Optional[str] = None):
-        """Load HuggingFace model from a pretrained checkpoint
+        """Load HuggingFace model from a pretrained checkpoint.
+
+        The utility can be used for loading a model from a checkpoint.
+        Given `model_dir`, it checks for existing checkpoint in the directory.
+        If a checkpoint exists, the models state is loaded from the checkpoint.
+
+        If a checkpoint does not exist, the method searches for `model_dir` of a
+        pretrained model hosted inside a model repo on huggingface.co and loads it.
 
         Parameter
         ----------
         model_dir: str
             Directory containing model checkpoint
+
+        Example
+        -------
+        >>> from transformers import RobertaTokenizerFast
+        >>> tokenizer = RobertaTokenizerFast.from_pretrained("seyonec/PubChem10M_SMILES_BPE_60k")
+
+        >>> from deepchem.models.torch_models.hf_models import HuggingFaceModel
+        >>> from transformers.models.roberta import RobertaForMaskedLM, RobertaModel, RobertaConfig
+        >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
+        >>> model = RobertaForMaskedLM(config)
+        >>> pretrain_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='pretraining', model_dir='model-dir')
+        >>> pretrain_model.save_checkpoint()
+
+        >>> from transformers import RobertaForSequenceClassification
+        >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
+        >>> model = RobertaForSequenceClassification(config)
+        >>> finetune_model = HuggingFaceModel(model=model, task='finetuning', tokenizer=tokenizer, model_dir='model-dir')
+
+        >>> finetune_model.load_from_pretrained()
         """
         if model_dir is None:
             model_dir = self.model_dir
         if not os.path.exists(model_dir):
             # Load from huggingface model hub
-            self.model.load_from_pretrained(model_dir)
+            self.model.from_pretrained(model_dir)
         else:
             checkpoints = sorted(self.get_checkpoints(model_dir))
             if len(checkpoints) == 0:
