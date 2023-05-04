@@ -1289,6 +1289,8 @@ class DensityProfileLoss(Loss):
             output, labels = _make_pytorch_shapes_consistent(output, labels)
             return torch.sum((labels - output)**2 * volume)
 
+        return loss
+
 
 def _make_tf_shapes_consistent(output, labels):
     """Try to make inputs have the same shape by adding dimensions of size 1."""
