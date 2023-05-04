@@ -1659,10 +1659,29 @@ class DFTYamlLoader(DataLoader):
 
     """
 
-    def __init__(self):
+    def __init__(self,
+                 ae_weight: int = 1,
+                 ie_weight: int = 1,
+                 dm_weight: int = 1,
+                 dp_weight: int = 1):
         """
         Initialize DFTYAML loader
+
+        Parameters
+        ----------
+        ae_weight: int
+            Weights used for atomization energy - entry type
+        ie_weight: int
+            Weights used for ionization potential - entry type
+        dm_weight: int
+            Weights used for density matrix - entry type
+        dp_weight: int
+            Weights used for density profile - entry type
         """
+        self.ae_w = ae_weight
+        self.ie_w = ie_weight
+        self.dm_w = dm_weight
+        self.dp_w = dp_weight
 
     def create_dataset(self,
                        inputs: OneOrMany[Any],
@@ -1693,7 +1712,14 @@ class DFTYamlLoader(DataLoader):
             for i, shard in enumerate(entries):
                 X = np.array(self._featurize_shard(shard))
                 y = X[0].get_true_val()
-                w = np.array([1.0])
+                if X[0].entry_type == 'ae':
+                    w = np.array([self.ae_w])
+                if X[0].entry_type == 'ie':
+                    w = np.array([self.ie_w])
+                if X[0].entry_type == 'dm':
+                    w = np.array([self.dm_w])
+                if X[0].entry_type == 'dp':
+                    w = np.array([self.dp_w])
                 ids = np.array([i])
                 yield X, y, w, ids
 
