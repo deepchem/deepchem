@@ -37,24 +37,28 @@ allowable_features = {
 }
 
 full_atom_feature_dims = list(
-    map(len, [  # type: ignore
-        allowable_features['possible_atomic_num_list'],
-        allowable_features['possible_chirality_list'],
-        allowable_features['possible_degree_list'],
-        allowable_features['possible_formal_charge_list'],
-        allowable_features['possible_numH_list'],
-        allowable_features['possible_number_radical_e_list'],
-        allowable_features['possible_hybridization_list'],
-        allowable_features['possible_is_aromatic_list'],
-        allowable_features['possible_is_in_ring_list']
-    ]))
+    map(
+        len,  # type: ignore
+        [
+            allowable_features['possible_atomic_num_list'],
+            allowable_features['possible_chirality_list'],
+            allowable_features['possible_degree_list'],
+            allowable_features['possible_formal_charge_list'],
+            allowable_features['possible_numH_list'],
+            allowable_features['possible_number_radical_e_list'],
+            allowable_features['possible_hybridization_list'],
+            allowable_features['possible_is_aromatic_list'],
+            allowable_features['possible_is_in_ring_list']
+        ]))
 
 full_bond_feature_dims = list(
-    map(len, [  # type: ignore
-        allowable_features['possible_bond_type_list'],
-        allowable_features['possible_bond_stereo_list'],
-        allowable_features['possible_is_conjugated_list']
-    ]))
+    map(
+        len,  # type: ignore
+        [
+            allowable_features['possible_bond_type_list'],
+            allowable_features['possible_bond_stereo_list'],
+            allowable_features['possible_is_conjugated_list']
+        ]))
 
 
 def safe_index(feature_list, e):
