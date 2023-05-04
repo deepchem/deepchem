@@ -1,7 +1,6 @@
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
-import torch
 from deepchem.feat.graph_data import GraphData
 from deepchem.feat import MolecularFeaturizer
 
@@ -187,12 +186,10 @@ class RDKitConformerFeaturizer(MolecularFeaturizer):
             edge_features_list.append(edge_feature)
             edges_list.append((j, i))
             edge_features_list.append(edge_feature)
-        # Graph connectivity in COO format with shape [2, num_edges]
-        edge_index = torch.tensor(edges_list, dtype=torch.long).T
-        edge_features = torch.tensor(edge_features_list, dtype=torch.long)
 
+        # Graph connectivity in COO format with shape [2, num_edges]
         graph = GraphData(node_pos_features=np.array(coordinates),
                           node_features=np.array(atom_features_list),
-                          edge_features=np.array(edge_features),
-                          edge_index=np.array(edge_index))
+                          edge_features=np.array(edge_features_list),
+                          edge_index=np.array(edges_list).T)
         return graph

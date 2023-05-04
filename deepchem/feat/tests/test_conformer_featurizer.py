@@ -1,7 +1,5 @@
-from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
-
-
 def test_conformer_featurizer():
+    from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
     smiles = ["C1=CC=NC=C1", "CC(=O)C", "C"]
     featurizzer = RDKitConformerFeaturizer()
     features = featurizzer.featurize(smiles)
@@ -13,3 +11,6 @@ def test_conformer_featurizer():
         for graph in features
     ])
     assert features[2].edge_features.shape[1] == 3  # 3 bond features
+
+
+test_conformer_featurizer()
