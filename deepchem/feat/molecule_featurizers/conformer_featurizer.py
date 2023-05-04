@@ -73,11 +73,9 @@ def safe_index(feature_list, e):
 
 class RDKitConformerFeaturizer(MolecularFeaturizer):
     """
-    A featurizer that converts a molecule into a graph representation with 3D coordinates.
+    A featurizer that featurizes an RDKit mol object as a GraphData object with 3D coordinates.
 
-    This featurizer converts a molecule into a graph representation including atom features,
-    bond features, and 3D coordinates of the atoms. The featurization is based on the RDKit
-    library and the Open Graph Benchmark (OGB) implementation.
+    This featurization requires RDKit.
 
     Examples
     --------
