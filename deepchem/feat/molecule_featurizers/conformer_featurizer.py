@@ -6,7 +6,7 @@ from deepchem.feat import MolecularFeaturizer
 
 # similar to snap featurizer. both taken from Open Graph Benchmark (OGB) github.com/snap-stanford/ogb
 allowable_features = {
-    'possible_atomic_num_list': list(range(1, 119)) + ['misc'],
+    'possible_atomic_num_list': list(range(1, 119)) + ['misc'],  # type: ignore
     'possible_chirality_list': [
         'CHI_UNSPECIFIED', 'CHI_TETRAHEDRAL_CW', 'CHI_TETRAHEDRAL_CCW',
         'CHI_OTHER', 'misc'
@@ -37,7 +37,7 @@ allowable_features = {
 }
 
 full_atom_feature_dims = list(
-    map(len, [
+    map(len, [  # type: ignore
         allowable_features['possible_atomic_num_list'],
         allowable_features['possible_chirality_list'],
         allowable_features['possible_degree_list'],
@@ -50,7 +50,7 @@ full_atom_feature_dims = list(
     ]))
 
 full_bond_feature_dims = list(
-    map(len, [
+    map(len, [  # type: ignore
         allowable_features['possible_bond_type_list'],
         allowable_features['possible_bond_stereo_list'],
         allowable_features['possible_is_conjugated_list']

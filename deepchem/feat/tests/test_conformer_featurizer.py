@@ -11,6 +11,3 @@ def test_conformer_featurizer():
         for graph in features
     ])
     assert features[2].edge_features.shape[1] == 3  # 3 bond features
-
-
-test_conformer_featurizer()
