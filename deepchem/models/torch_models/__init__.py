@@ -28,3 +28,7 @@ except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'
     )
+try:
+    from deepchem.models.torch_models.hf_models import HuggingFaceModel
+except ModuleNotFoundError as e:
+    logger.warning(f'Skipped loading modules with transformers dependency. {e}')

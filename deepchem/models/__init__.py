@@ -54,6 +54,11 @@ except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading some PyTorch models, missing a dependency. {e}')
 
+try:
+    from deepchem.models.torch_models import HuggingFaceModel
+except ImportError as e:
+    logger.warning(e)
+
 # Pytorch models with torch-geometric dependency
 try:
     # TODO We should clean up DMPNN and remove torch_geometric dependency during import
