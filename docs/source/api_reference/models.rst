@@ -120,6 +120,9 @@ Losses
 .. autoclass:: deepchem.models.losses.GraphContextPredLoss
   :members:
 
+.. autoclass:: deepchem.models.losses.DensityProfileLoss
+  :members:
+
 Optimizers
 ----------
 
