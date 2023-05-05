@@ -135,7 +135,6 @@ class DFTEntry():
         if true_val is None:
             true_val = '0.0'
         if e_type == "ae":
-            print("before passing w", weight)
             return _EntryAE(e_type, true_val, systems, weight)
         elif e_type == "ie":
             return _EntryIE(e_type, true_val, systems, weight)
