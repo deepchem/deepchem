@@ -270,8 +270,8 @@ class _EntryDens(DFTEntry):
 
         grid = self.get_integration_grid()
         rgrid = grid.get_rgrid()
-
-        return (qc.dens(rgrid)).numpy()
+        val = qc.dens(rgrid)
+        return np.array(val.tolist())
 
     def get_integration_grid(self) -> BaseGrid:
         """

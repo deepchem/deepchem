@@ -1268,6 +1268,23 @@ class DensityProfileLoss(Loss):
     It is an integration of the squared difference between ground truth and calculated
     values, at all spaces in the integration grid.
 
+    Examples
+    --------
+    >>> from deepchem.models.losses import DensityProfileLoss
+    >>> import torch
+    >>> volume = torch.Tensor([2.0])
+    >>> output = torch.Tensor([3.0])
+    >>> labels = torch.Tensor([4.0])
+    >>> loss = (DensityProfileLoss()._create_pytorch_loss(volume))(output, labels)
+    >>> # Generating volume tensor for an entry object:
+    >>> from deepchem.feat.dft_data import DFTEntry
+    >>> e_type = 'dens'
+    >>> true_val = 0
+    >>> systems =[{'moldesc': 'H 0.86625 0 0; F -0.86625 0 0','basis' : '6-311++G(3df,3pd)'}]
+    >>> dens_entry_for_HF = DFTEntry.create(e_type, true_val, systems)
+    >>> grid = (dens_entry_for_HF).get_integration_grid()
+    >>> volume = grid.get_dvolume()
+
     References
     ----------
     Kasim, Muhammad F., and Sam M. Vinko. "Learning the exchange-correlation
