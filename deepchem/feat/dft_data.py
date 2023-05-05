@@ -95,7 +95,11 @@ class DFTEntry():
     """
 
     @classmethod
-    def create(self, e_type: str, true_val: Optional[str], systems: List[Dict]):
+    def create(self,
+               e_type: str,
+               true_val: Optional[str],
+               systems: List[Dict],
+               weight: Optional[int] = 1):
         """
         This method is used to initialise the DFTEntry class. The entry objects are created
         based on their entry type.
@@ -121,6 +125,8 @@ class DFTEntry():
             present in the molecule - this is for polyatomic molecules and the
             default value is 1. For example ; system number of Hydrogen in water
             is 2.
+        weight: int
+            Weight of the entry object.
         Returns
         -------
         DFTEntry object based on entry type
@@ -129,19 +135,24 @@ class DFTEntry():
         if true_val is None:
             true_val = '0.0'
         if e_type == "ae":
-            return _EntryAE(e_type, true_val, systems)
+            print("before passing w", weight)
+            return _EntryAE(e_type, true_val, systems, weight)
         elif e_type == "ie":
-            return _EntryIE(e_type, true_val, systems)
+            return _EntryIE(e_type, true_val, systems, weight)
         elif e_type == "dm":
-            return _EntryDM(e_type, true_val, systems)
+            return _EntryDM(e_type, true_val, systems, weight)
         elif e_type == "dens":
-            return _EntryDens(e_type, true_val, systems)
+            return _EntryDens(e_type, true_val, systems, weight)
         else:
             raise NotImplementedError("Unknown entry type: %s" % e_type)
 
-    def __init__(self, e_type: str, true_val: Optional[str],
-                 systems: List[Dict]):
+    def __init__(self,
+                 e_type: str,
+                 true_val: Optional[str],
+                 systems: List[Dict],
+                 weight: Optional[int] = 1):
         self._systems = [DFTSystem(p) for p in systems]
+        self._weight = weight
 
     def get_systems(self) -> List[DFTSystem]:
         """
@@ -186,6 +197,14 @@ class DFTEntry():
         """
         pass
 
+    def get_weight(self):
+        """
+        Returns
+        -------
+        Weight of the entry object
+        """
+        return self._weight
+
 
 class _EntryDM(DFTEntry):
     """
@@ -198,7 +217,7 @@ class _EntryDM(DFTEntry):
     dm entry can only have 1 system
     """
 
-    def __init__(self, e_type, true_val, systems):
+    def __init__(self, e_type, true_val, systems, weight):
         """
         Parameters
         ----------
@@ -211,6 +230,7 @@ class _EntryDM(DFTEntry):
         super().__init__(e_type, true_val, systems)
         self.true_val = true_val
         assert len(self.get_systems()) == 1
+        self._weight = weight
 
     @property
     def entry_type(self) -> str:
@@ -231,7 +251,7 @@ class _EntryDens(DFTEntry):
     Entry for density profile (dens), compared with CCSD calculation
     """
 
-    def __init__(self, e_type, true_val, systems):
+    def __init__(self, e_type, true_val, systems, weight):
         """
         Parameters
         ----------
@@ -244,6 +264,7 @@ class _EntryDens(DFTEntry):
         self.true_val = true_val
         assert len(self.get_systems()) == 1
         self._grid: Optional[BaseGrid] = None
+        self._weight = weight
 
     @property
     def entry_type(self) -> str:
@@ -302,7 +323,7 @@ class _EntryIE(DFTEntry):
     Entry for Ionization Energy (IE)
     """
 
-    def __init__(self, e_type, true_val, systems):
+    def __init__(self, e_type, true_val, systems, weight):
         """
         Parameters
         ----------
@@ -312,6 +333,7 @@ class _EntryIE(DFTEntry):
         """
         super().__init__(e_type, true_val, systems)
         self.true_val = float(true_val)
+        self._weight = weight
 
     @property
     def entry_type(self) -> str:
