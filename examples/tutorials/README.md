@@ -30,73 +30,37 @@ practitioners. By enabling the growth of open source tools for drug discovery,
 you can help democratize these skills and open up drug discovery to more
 competition. Increased competition can help drive down the cost of medicine.
 
-The tutorial is organized as follows:
 
-### Introduction to DeepChem
-The following tutorials covers the core features of DeepChem. Covering these
-tutorials will help you in getting started with DeepChem for machine learning. The later
-tutorials discuss about using DeepChem for specific applications.
 
-* [1 The Basic Tools of the Deep Life Sciences](The_Basic_Tools_of_the_Deep_Life_Sciences.ipynb)
-* [2 Working With Datasets](Working_With_Datasets.ipynb)
-* [3 An Introduction to MoleculeNet](An_Introduction_To_MoleculeNet.ipynb)
-* [4 Molecular Fingerprints](Molecular_Fingerprints.ipynb)
-* [5 Creating Models with Tensorflow and Pytorch](Creating_Models_with_TensorFlow_and_PyTorch.ipynb)
-* [6 Introduction to Graph Convolutions](Introduction_to_Graph_Convolutions.ipynb)
-* [7 Going Deeper on Molecular Featurizations](Going_Deeper_on_Molecular_Featurizations.ipynb)
-* [8 Working With Splitters](Working_With_Splitters.ipynb)
-* [9 Advanced Model Training](Advanced_Model_Training.ipynb)
-* [10 Creating a high fidelity model from experimental data](Creating_a_high_fidelity_model_from_experimental_data.ipynb)
-* [11 Putting Multitask Learning to Work](Putting_Multitask_Learning_to_Work.ipynb)
-* [12 Modeling Protein Ligand Interactions](Modeling_Protein_Ligand_Interactions.ipynb)
-* [13 Modeling Protein Ligand Interactions with Atomic Convolutions](Modeling_Protein_Ligand_Interactions_With_Atomic_Convolutions.ipynb)
-* [14 Conditional Generative Adversarial Networks](Conditional_Generative_Adversarial_Networks.ipynb)
-* [15 Training a Generative Adversarial Network on MNIST](Training_a_Generative_Adversarial_Network_on_MNIST.ipynb)
-* [16 Distributed Multi-GPU Training of DeepChem Models with LitMatter](https://github.com/ncfrey/litmatter/blob/main/LitDeepChem.ipynb)
-* [17 Advanced model training using Hyperopt](Advanced_model_training_using_hyperopt.ipynb)
-* [18 Introduction to Gaussian Processes](Introduction_to_Gaussian_Processes.ipynb)
-* [19 Pytorch-Lightning Integration for DeepChem Models](PytorchLightning_Integration.ipynb)
 
-### Molecular Machine Learning
-* [1 Molecular Fingerprints](Molecular_Fingerprints.ipynb)
-* [2 Going Deeper on Molecular Featurizations](Going_Deeper_on_Molecular_Featurizations.ipynb)
-* [3 Learning Unsupervised Embeddings for Molecules](Learning_Unsupervised_Embeddings_for_Molecules.ipynb)
-* [4 Synthetic Feasibility Scoring](Synthetic_Feasibility_Scoring.ipynb)
-* [5 Atomic Contributions for Molecules](Atomic_Contributions_for_Molecules.ipynb)
-* [6 Interactive Model Evaluation with Trident Chemwidgets](Interactive_Model_Evaluation_with_Trident_Chemwidgets.ipynb)
-* [7 Transfer Learning with ChemBERTa Transformers](Transfer_Learning_With_ChemBERTa_Transformers.ipynb)
-* [8 Training a Normalizing Flow on QM9](Training_a_Normalizing_Flow_on_QM9.ipynb)
-* [9 Large Scale Chemical Screens](Large_Scale_Chemical_Screens.ipynb)
-* [10 Introduction to Molecular Attention Transformer](Introduction_to_Molecular_Attention_Transformer.ipynb)
-* [11 Generating Molecules with MolGAN](Generating_molecules_with_MolGAN.ipynb)
-* [12 Introduction to GROVER](Introduction_to_GROVER.ipynb)
+The tutorial is organized as follows. Each section is linked to a CSV file containing the order in which the tutorials
+should be followed. 
 
-### Modeling Proteins
-* [1 Protein Deep Learning](Protein_Deep_Learning.ipynb)
+The rendered tutorials are available to read at the [Deepchem Website](https://deepchem.io/tutorials)
 
-### Protein Ligand Modeling
-* [1 Modeling Protein Ligand Interactions](Modeling_Protein_Ligand_Interactions.ipynb)
-* [2 Modeling Protein Ligand Interactions with Atomic Convolutions](Modeling_Protein_Ligand_Interactions_With_Atomic_Convolutions.ipynb)
+**We highly recommend you to visit the Deepchem website to read the tutorials.**
 
-### Quantum Chemistry
-* [1 Exploring Quantum Chemistry with GDB1k](Exploring_Quantum_Chemistry_with_GDB1k.ipynb)
-* [2 Finding ground state energy of molecules with DeepQMC](DeepQMC_tutorial.ipynb)
+## Introduction to DeepChem - [Introduction to Deepchem](./website-render-order/1-introduction-to-deepchem.csv)
 
-### Bioinformatics
-* [1 Introduction to BioInformatics](Introduction_to_Bioinformatics.ipynb)
-* [2 Multisequence Alignments](Multisequence_Alignments.ipynb)
-* [3 Scanpy](Scanpy.ipynb)
-* [4 Deep probabilistic analysis of omics data](Deep_probabilistic_analysis_of_single-cell_omics_data.ipynb)
+These tutorials covers the core features of DeepChem. Covering these
+tutorials will help you in getting started with DeepChem for machine learning. 
 
-### Material Science
-* [1 Introduction to Material Science](Introduction_To_Material_Science.ipynb)
 
-### Machine Learning Methods
-* [1 Using Reinforcement Learning to Play Pong](Using_Reinforcement_Learning_to_Play_Pong.ipynb)
-* [2 Introduction to Model Interpretability](Introduction_to_Model_Interpretability.ipynb)
-* [3 Uncertainty in Deep Learning](Uncertainty_In_Deep_Learning.ipynb)
 
-### Deep Differential Equations
-* [1 Physics Informed Neural Networks (Burgers Equation)](Physics_Informed_Neural_Networks.ipynb) 
-* [2 Introducing_JaxModel_and_PINNModel](Introducing_JaxModel_and_PINNModel.ipynb)
-* [3 About_nODE_Using_Torchdiffeq_in_Deepchem](About_nODE_Using_Torchdiffeq_in_Deepchem.ipynb)
+The following tutorials discuss about using DeepChem for specific applications.
+
+## Molecular Machine Learning - [Molecular Machine Learning](./website-render-order/2-molecular-machine-learning.csv)
+
+## Modeling Proteins - [Modeling Proteins](./website-render-order/3-modeling-proteins.csv)
+
+## Protein Ligand Modeling - [Protein Ligand Modeling](./website-render-order/4-protein-ligand-modeling.csv)
+
+## Quantum Chemistry - [Quantum Chemistry](./website-render-order/5-quantum-chemistry.csv)
+
+## Bioinformatics - [Bioinformatics](./website-render-order/6-bioinformatics.csv)
+
+## Material Science - [Material Science](./website-render-order/7-material-science.csv)
+
+## Machine Learning Methods - [Machine Learning Methods](./website-render-order/8-machine-learning-methods.csv)
+
+## Deep Differential Equations - [Deep Differential Equations](./website-render-order/9-deep-differential-equations.csv)
