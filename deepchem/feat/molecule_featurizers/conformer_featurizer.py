@@ -64,6 +64,13 @@ full_bond_feature_dims = list(
 def safe_index(feature_list, e):
     """
     Return index of element e in list l. If e is not present, return the last index
+
+    Parameters
+    ----------
+    feature_list : list
+        Feature vector
+    e : int
+        Element index to find in feature vector
     """
     try:
         return feature_list.index(e)
@@ -73,15 +80,22 @@ def safe_index(feature_list, e):
 
 class RDKitConformerFeaturizer(MolecularFeaturizer):
     """
-    A featurizer that featurizes an RDKit mol object as a GraphData object with 3D coordinates.
+    A featurizer that featurizes an RDKit mol object as a GraphData object with 3D coordinates. The 3D coordinates are represented in the node_pos_features attribute of the GraphData object of shape [num_atoms * num_conformers, 3].
+
+    The ETKDGv2 algorithm is used to generate 3D coordinates for the molecule.
+    The RDKit source for this algorithm can be found in RDkit/Code/GraphMol/DistGeomHelpers/Embedder.cpp
+    The documentation can be found here:
+    https://rdkit.org/docs/source/rdkit.Chem.rdDistGeom.html#rdkit.Chem.rdDistGeom.ETKDGv2
 
     This featurization requires RDKit.
 
     Examples
     --------
-    >>> featurizer = ConformerFeaturizer()
+    >>> featurizer = RdkitConformerFeaturizer()
     >>> molecule = "CCO"
     >>> features = featurizer.featurize([molecule])
+    >>> print(features[0].node_pos_features.shape)
+    (9, 3)
     """
 
     def atom_to_feature_vector(self, atom):
@@ -160,7 +174,6 @@ class RDKitConformerFeaturizer(MolecularFeaturizer):
         """
         # add hydrogen bonds to molecule because they are not in the smiles representation
         mol = Chem.AddHs(datapoint)
-
         try:
             ps = AllChem.ETKDGv2()
             ps.useRandomCoords = True
