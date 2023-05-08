@@ -68,8 +68,8 @@ class MultilayerPerceptron(nn.Module):
         self.d_output = d_output
         self.dropout = nn.Dropout(dropout)
         if batch_norm:
-            self.batch_norm = nn.BatchNorm1d(
-                d_output, momentum=batch_norm_momentum)
+            self.batch_norm = nn.BatchNorm1d(d_output,
+                                             momentum=batch_norm_momentum)
         self.activation_fn = get_activation(activation_fn)
         self.model = nn.Sequential(*self.build_layers())
         self.skip = nn.Linear(d_input, d_output) if skip_connection else None
