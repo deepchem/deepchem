@@ -658,10 +658,13 @@ def test_position_wise_feed_forward():
 
 
 @pytest.mark.torch
-@pytest.mark.parametrize('skip_connection,expected',
-                         [(False, [[0.2795, 0.4243], [0.2795, 0.4243]]),
-                          (True, [[-0.9612, 2.3846], [-4.1104, 5.7606]])])
-def test_MultilayerPerceptron(skip_connection, expected):
+@pytest.mark.parametrize(
+    'skip_connection,batch_norm,expected',
+    [(False, False, [[0.2795, 0.4243], [0.2795, 0.4243]]),
+     (True, False, [[-0.9612, 2.3846], [-4.1104, 5.7606]]),
+     (False, True, [[2.4198e-07, 4.6656e-06], [2.4198e-07, 4.6656e-06]]),
+     (True, True, [[-1.2407, 1.9603], [-4.3899, 5.3363]])])
+def test_MultilayerPerceptron(skip_connection, batch_norm, expected):
     """Test invoking MLP."""
     torch.manual_seed(0)
     input_ar = torch.tensor([[1., 2.], [5., 6.]])
@@ -670,10 +673,24 @@ def test_MultilayerPerceptron(skip_connection, expected):
                                               d_hidden=(2, 2),
                                               activation_fn='relu',
                                               dropout=0.0,
+                                              batch_norm=batch_norm,
                                               skip_connection=skip_connection)
     result = layer(input_ar)
     output_ar = torch.tensor(expected)
     assert torch.allclose(result, output_ar, atol=1e-4)
+
+
+torch.manual_seed(0)
+input_ar = torch.tensor([[1., 2.], [5., 6.]])
+layer = torch_layers.MultilayerPerceptron(d_input=2,
+                                          d_output=2,
+                                          d_hidden=(2, 2),
+                                          activation_fn='relu',
+                                          dropout=0.0,
+                                          batch_norm=True,
+                                          skip_connection=True)
+result = layer(input_ar)
+print(result)
 
 
 @pytest.mark.torch
