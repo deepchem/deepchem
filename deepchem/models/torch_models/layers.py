@@ -67,9 +67,8 @@ class MultilayerPerceptron(nn.Module):
         self.d_hidden = d_hidden
         self.d_output = d_output
         self.dropout = nn.Dropout(dropout)
-        if batch_norm:
-            self.batch_norm = nn.BatchNorm1d(d_output,
-                                             momentum=batch_norm_momentum)
+        self.batch_norm = batch_norm
+        self.batch_norm_momentum = batch_norm_momentum
         self.activation_fn = get_activation(activation_fn)
         self.model = nn.Sequential(*self.build_layers())
         self.skip = nn.Linear(d_input, d_output) if skip_connection else None
@@ -85,6 +84,9 @@ class MultilayerPerceptron(nn.Module):
             for d in self.d_hidden:
                 layer_list.append(nn.Linear(layer_dim, d))
                 layer_list.append(self.dropout)
+                if self.batch_norm:
+                    layer_list.append(
+                        nn.BatchNorm1d(d, momentum=self.batch_norm_momentum))
                 layer_dim = d
         layer_list.append(nn.Linear(layer_dim, self.d_output))
         return layer_list
@@ -98,8 +100,6 @@ class MultilayerPerceptron(nn.Module):
                 x = self.activation_fn(
                     x
                 )  # Done because activation_fn returns a torch.nn.functional
-            if hasattr(self, 'batch_norm'):
-                x = self.batch_norm(x)
         if self.skip is not None:
             return x + self.skip(input)
         else:
