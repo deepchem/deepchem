@@ -12,6 +12,7 @@
         'basis': '6-311++G(3df,3pd)',
         'spin': 1
     }]
+  weight : 1340 
 - e_type : 'dm'
   true_val : 'deepchem/feat/tests/data/dftHF_output.npy'
   systems : [{

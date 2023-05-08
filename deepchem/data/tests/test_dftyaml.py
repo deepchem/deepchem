@@ -13,4 +13,5 @@ def test_dftloader():
     data = k.create_dataset(inputs)
     assert data.X.dtype == ('O')
     assert len(data) == 2
+    assert ((data.X)[0]).get_weight() == 1340
     assert ((data.X)[0]).get_true_val() == 0.09194410469
