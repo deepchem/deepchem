@@ -38,7 +38,7 @@ should be followed.
 
 The rendered tutorials are available to read at the [Deepchem Website](https://deepchem.io/tutorials)
 
-**We highly recommend you to visit the Deepchem website to read the tutorials.**
+We recommend you to visit the Deepchem website to read the tutorials.
 
 ## Introduction to DeepChem - [Introduction to Deepchem](./website-render-order/1-introduction-to-deepchem.csv)
 
