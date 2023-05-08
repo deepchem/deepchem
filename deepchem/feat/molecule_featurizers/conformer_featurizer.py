@@ -91,7 +91,8 @@ class RDKitConformerFeaturizer(MolecularFeaturizer):
 
     Examples
     --------
-    >>> featurizer = RdkitConformerFeaturizer()
+    >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
+    >>> featurizer = RDKitConformerFeaturizer()
     >>> molecule = "CCO"
     >>> features = featurizer.featurize([molecule])
     >>> print(features[0].node_pos_features.shape)
