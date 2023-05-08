@@ -37,6 +37,7 @@ class MultilayerPerceptron(nn.Module):
                  d_output: int,
                  d_hidden: Optional[tuple] = None,
                  dropout: float = 0.0,
+                 batch_norm: bool = False,
                  activation_fn: Union[Callable, str] = 'relu',
                  skip_connection: bool = False):
         """Initialize the model.
@@ -51,6 +52,8 @@ class MultilayerPerceptron(nn.Module):
             the dimensions of the hidden layers
         dropout: float
             the dropout probability
+        batch_norm: bool
+            whether to use batch normalization
         activation_fn: str
             the activation function to use in the hidden layers
         skip_connection: bool
@@ -61,6 +64,7 @@ class MultilayerPerceptron(nn.Module):
         self.d_hidden = d_hidden
         self.d_output = d_output
         self.dropout = nn.Dropout(dropout)
+        self.batch_norm = batch_norm
         self.activation_fn = get_activation(activation_fn)
         self.model = nn.Sequential(*self.build_layers())
         self.skip = nn.Linear(d_input, d_output) if skip_connection else None
@@ -76,6 +80,8 @@ class MultilayerPerceptron(nn.Module):
             for d in self.d_hidden:
                 layer_list.append(nn.Linear(layer_dim, d))
                 layer_list.append(self.dropout)
+                if self.batch_norm:
+                    layer_list.append(nn.BatchNorm1d(d))
                 layer_dim = d
         layer_list.append(nn.Linear(layer_dim, self.d_output))
         return layer_list
