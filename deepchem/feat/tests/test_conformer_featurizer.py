@@ -1,13 +1,12 @@
 def test_conformer_featurizer():
     from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
+    from deepchem.feat.graph_data import BatchGraphData
+    import numpy as np
     smiles = ["C1=CC=NC=C1", "CC(=O)C", "C"]
-    featurizer = RDKitConformerFeaturizer()
-    features = featurizer.featurize(smiles)
-    assert len(features) == 3  # 3 molecules
-    assert features[0].node_features.shape[1] == 9  # 9 atom features
-    # every edge index has a feature
-    assert all([
-        graph.edge_index.shape[1] == graph.edge_features.shape[0]
-        for graph in features
-    ])
-    assert features[2].edge_features.shape[1] == 3  # 3 bond features
+    featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    features_list = featurizer.featurize(smiles)
+    features = BatchGraphData(np.concatenate(features_list).ravel())
+    assert features.num_edge_features == 3  # 3 bond features
+    assert features.num_node_features == 9  # 9 atom features
+    assert features.num_nodes == len(features.graph_index)
+    assert features.num_edges == 96

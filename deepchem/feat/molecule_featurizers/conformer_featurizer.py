@@ -92,12 +92,18 @@ class RDKitConformerFeaturizer(MolecularFeaturizer):
     Examples
     --------
     >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
-    >>> featurizer = RDKitConformerFeaturizer()
+    >>> from deepchem.feat.graph_data import BatchGraphData
+    >>> import numpy as np
+    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
     >>> molecule = "CCO"
-    >>> features = featurizer.featurize([molecule])
-    >>> print(features[0].node_pos_features.shape)
-    (9, 3)
+    >>> features_list = featurizer.featurize([molecule])
+    >>> batched_feats = BatchGraphData(np.concatenate(features_list).ravel())
+    >>> print(batched_feats.node_pos_features.shape)
+    (18, 3)
     """
+
+    def __init__(self, num_conformers: int = 1):
+        self.num_conformers = num_conformers
 
     def atom_to_feature_vector(self, atom):
         """
@@ -170,8 +176,8 @@ class RDKitConformerFeaturizer(MolecularFeaturizer):
 
         Returns
         -------
-        graph: GraphData
-            Graph representation of the molecule with 3D coordinates.
+        graph: List[GraphData]
+            list of GraphData objects of the molecule conformers with 3D coordinates.
         """
         # add hydrogen bonds to molecule because they are not in the smiles representation
         mol = Chem.AddHs(datapoint)
@@ -179,9 +185,12 @@ class RDKitConformerFeaturizer(MolecularFeaturizer):
             ps = AllChem.ETKDGv2()
             ps.useRandomCoords = True
             AllChem.EmbedMolecule(mol, ps)
-            AllChem.MMFFOptimizeMolecule(mol, confId=0)
-            conf = mol.GetConformer()
-            coordinates = conf.GetPositions()
+            AllChem.EmbedMultipleConfs(mol, self.num_conformers)
+            AllChem.MMFFOptimizeMolecule(mol)
+            conformers = [
+                mol.GetConformer(i) for i in range(self.num_conformers)
+            ]
+            coordinates = [conf.GetPositions() for conf in conformers]
         except Exception as e:
             print(e)
             print("Error featurizing molecule: ", datapoint)
@@ -204,8 +213,11 @@ class RDKitConformerFeaturizer(MolecularFeaturizer):
             edge_features_list.append(edge_feature)
 
         # Graph connectivity in COO format with shape [2, num_edges]
-        graph = GraphData(node_pos_features=np.array(coordinates),
+        graph_list = []
+        for i in range(self.num_conformers):
+            graph_list.append(
+                GraphData(node_pos_features=np.array(coordinates[i]),
                           node_features=np.array(atom_features_list),
                           edge_features=np.array(edge_features_list),
-                          edge_index=np.array(edges_list).T)
-        return graph
+                          edge_index=np.array(edges_list).T))
+        return graph_list
