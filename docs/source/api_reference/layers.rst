@@ -8,6 +8,8 @@ transformations. For now, most layers are Keras only but over
 time we expect this support to expand to other types of models
 and layers.
 
+.. include:: layers_cheatsheet.rst
+
 Keras Layers
 ------------
 
@@ -178,6 +180,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.gnn.GNNHead
   :members:
 
+.. autoclass:: deepchem.models.torch_models.gnn.LocalGlobalDiscriminator
+  :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 
@@ -250,4 +255,7 @@ Density Functional Theory Layers
    :members:
 
 .. autoclass:: deepchem.models.dft.scf.XCNNSCF
+   :members:
+
+.. autoclass:: deepchem.models.dft.dftxc.DFTXC
    :members:

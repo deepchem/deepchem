@@ -976,6 +976,339 @@ class EdgePredictionLoss(Loss):
         return loss
 
 
+class GraphNodeMaskingLoss(Loss):
+    """
+    GraphNodeMaskingLoss is an unsupervised graph node masking loss function that calculates the loss based on the predicted node labels and true node labels. This loss function is designed for graph neural networks and is particularly useful for pre-training tasks.
+
+    This loss function encourages the model to learn node embeddings that can effectively predict the masked node labels in the graph.
+
+    The loss is computed using the CrossEntropyLoss between the predicted node labels and the true node labels.
+
+    To use this loss function, the input must be a BatchGraphData object transformed by the mask_nodes function. The loss function takes the predicted node labels, predicted edge labels, and the input graph data (with masked node labels) as inputs and returns the node masking loss.
+
+    Parameters
+    ----------
+    pred_node: torch.Tensor
+        Predicted node labels
+    pred_edge: Optional(torch.Tensor)
+        Predicted edge labels
+    inputs: BatchGraphData
+        Input graph data with masked node and edge labels
+
+    Examples
+    --------
+    >>> from deepchem.models.losses import GraphNodeMaskingLoss
+    >>> from deepchem.feat.graph_data import BatchGraphData, GraphData
+    >>> from deepchem.models.torch_models.gnn import mask_nodes
+    >>> import torch
+    >>> import numpy as np
+    >>> num_nodes_list, num_edge_list = [3, 4, 5], [2, 4, 5]
+    >>> num_node_features, num_edge_features = 32, 32
+    >>> edge_index_list = [
+    ...     np.array([[0, 1], [1, 2]]),
+    ...     np.array([[0, 1, 2, 3], [1, 2, 0, 2]]),
+    ...     np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]]),
+    ... ]
+    >>> graph_list = [
+    ...     GraphData(node_features=np.random.random_sample(
+    ...         (num_nodes_list[i], num_node_features)),
+    ...               edge_index=edge_index_list[i],
+    ...               edge_features=np.random.random_sample(
+    ...                   (num_edge_list[i], num_edge_features)),
+    ...               node_pos_features=None) for i in range(len(num_edge_list))
+    ... ]
+    >>> batched_graph = BatchGraphData(graph_list)
+    >>> batched_graph = batched_graph.numpy_to_torch()
+    >>> masked_graph = mask_nodes(batched_graph, 0.1)
+    >>> pred_node = torch.randn((sum(num_nodes_list), num_node_features))
+    >>> pred_edge = torch.randn((sum(num_edge_list), num_edge_features))
+    >>> loss_func = GraphNodeMaskingLoss()._create_pytorch_loss()
+    >>> loss = loss_func(pred_node[masked_graph.masked_node_indices],
+    ...                  pred_edge[masked_graph.connected_edge_indices], masked_graph)
+
+    References
+    ----------
+    .. [1] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
+    """
+
+    def _create_pytorch_loss(self, mask_edge=True):
+        import torch
+        self.mask_edge = mask_edge
+        self.criterion = torch.nn.CrossEntropyLoss()
+
+        def loss(pred_node, pred_edge, inputs):
+
+            # loss for nodes
+            loss = self.criterion(pred_node, inputs.mask_node_label)
+
+            if self.mask_edge:
+                loss += self.criterion(pred_edge, inputs.mask_edge_label)
+            return loss
+
+        return loss
+
+
+class GraphEdgeMaskingLoss(Loss):
+    """
+    GraphEdgeMaskingLoss is an unsupervised graph edge masking loss function that calculates the loss based on the predicted edge labels and true edge labels. This loss function is designed for graph neural networks and is particularly useful for pre-training tasks.
+
+    This loss function encourages the model to learn node embeddings that can effectively predict the masked edge labels in the graph.
+
+    The loss is computed using the CrossEntropyLoss between the predicted edge labels and the true edge labels.
+
+    To use this loss function, the input must be a BatchGraphData object transformed by the mask_edges function. The loss function takes the predicted edge labels and the true edge labels as inputs and returns the edge masking loss.
+
+    Parameters
+    ----------
+    pred_edge: torch.Tensor
+        Predicted edge labels.
+    inputs: BatchGraphData
+        Input graph data (with masked edge labels).
+
+    Examples
+    --------
+    >>> from deepchem.models.losses import GraphEdgeMaskingLoss
+    >>> from deepchem.feat.graph_data import BatchGraphData, GraphData
+    >>> from deepchem.models.torch_models.gnn import mask_edges
+    >>> import torch
+    >>> import numpy as np
+    >>> num_nodes_list, num_edge_list = [3, 4, 5], [2, 4, 5]
+    >>> num_node_features, num_edge_features = 32, 32
+    >>> edge_index_list = [
+    ...     np.array([[0, 1], [1, 2]]),
+    ...     np.array([[0, 1, 2, 3], [1, 2, 0, 2]]),
+    ...     np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]]),
+    ... ]
+    >>> graph_list = [
+    ...     GraphData(node_features=np.random.random_sample(
+    ...         (num_nodes_list[i], num_node_features)),
+    ...               edge_index=edge_index_list[i],
+    ...               edge_features=np.random.random_sample(
+    ...                   (num_edge_list[i], num_edge_features)),
+    ...               node_pos_features=None) for i in range(len(num_edge_list))
+    ... ]
+    >>> batched_graph = BatchGraphData(graph_list)
+    >>> batched_graph = batched_graph.numpy_to_torch()
+    >>> masked_graph = mask_edges(batched_graph, .1)
+    >>> pred_edge = torch.randn((sum(num_edge_list), num_edge_features))
+    >>> loss_func = GraphEdgeMaskingLoss()._create_pytorch_loss()
+    >>> loss = loss_func(pred_edge[masked_graph.masked_edge_idx], masked_graph)
+
+    References
+    ----------
+    .. [1] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
+    """
+
+    def _create_pytorch_loss(self):
+        import torch
+        self.criterion = torch.nn.CrossEntropyLoss()
+
+        def loss(pred_edge, inputs):
+            # converting the binary classification to multiclass classification
+            labels = torch.argmax(inputs.mask_edge_label, dim=1)
+            loss = self.criterion(pred_edge, labels)
+            return loss
+
+        return loss
+
+
+class DeepGraphInfomaxLoss(Loss):
+    """
+    Loss that maximizes mutual information between local node representations and a pooled global graph representation. This is to encourage nearby nodes to have similar embeddings.
+
+    Parameters
+    ----------
+    positive_score: torch.Tensor
+        Positive score. This score measures the similarity between the local node embeddings (`node_emb`) and the global graph representation (`positive_expanded_summary_emb`) derived from the same graph.
+        The goal is to maximize this score, as it indicates that the local node embeddings and the global graph representation are highly correlated, capturing the mutual information between them.
+    negative_score: torch.Tensor
+        Negative score. This score measures the similarity between the local node embeddings (`node_emb`) and the global graph representation (`negative_expanded_summary_emb`) derived from a different graph (shifted by one position in this case).
+        The goal is to minimize this score, as it indicates that the local node embeddings and the global graph representation from different graphs are not correlated, ensuring that the model learns meaningful representations that are specific to each graph.
+
+    Examples
+    --------
+    >>> import torch
+    >>> import numpy as np
+    >>> from deepchem.feat.graph_data import GraphData
+    >>> from torch_geometric.nn import global_mean_pool
+    >>> from deepchem.models.losses import DeepGraphInfomaxLoss
+    >>> x = np.array([[1, 0], [0, 1], [1, 1], [0, 0]])
+    >>> edge_index = np.array([[0, 1, 2, 0, 3], [1, 0, 1, 3, 2]])
+    >>> graph_index = np.array([0, 0, 1, 1])
+    >>> data = GraphData(node_features=x, edge_index=edge_index, graph_index=graph_index).numpy_to_torch()
+    >>> graph_infomax_loss = DeepGraphInfomaxLoss()._create_pytorch_loss()
+    >>> # Initialize node_emb randomly
+    >>> num_nodes = data.num_nodes
+    >>> embedding_dim = 8
+    >>> node_emb = torch.randn(num_nodes, embedding_dim)
+    >>> # Compute the global graph representation
+    >>> summary_emb = global_mean_pool(node_emb, data.graph_index)
+    >>> # Compute positive and negative scores
+    >>> positive_score = torch.matmul(node_emb, summary_emb.t())
+    >>> negative_score = torch.matmul(node_emb, summary_emb.roll(1, dims=0).t())
+    >>> loss = graph_infomax_loss(positive_score, negative_score)
+
+    References
+    ----------
+    .. [1] Veličković, P. et al. Deep Graph Infomax. Preprint at https://doi.org/10.48550/arXiv.1809.10341 (2018).
+
+    """
+
+    def _create_pytorch_loss(self):
+        import torch
+        self.criterion = torch.nn.BCEWithLogitsLoss()
+
+        def loss(positive_score, negative_score):
+
+            return self.criterion(
+                positive_score,
+                torch.ones_like(positive_score)) + self.criterion(
+                    negative_score, torch.zeros_like(negative_score))
+
+        return loss
+
+
+class GraphContextPredLoss(Loss):
+    """
+    GraphContextPredLoss is a loss function designed for graph neural networks that aims to predict the context of a node given its substructure. The context of a node is essentially the ring of nodes around it outside of an inner k1-hop diameter and inside an outer k2-hop diameter.
+
+    This loss compares the representation of a node's neighborhood with the representation of the node's context. It then uses negative sampling to compare the representation of the node's neighborhood with the representation of a random node's context.
+
+    Parameters
+    ----------
+    mode: str
+        The mode of the model. It can be either "cbow" (continuous bag of words) or "skipgram".
+    neg_samples: int
+        The number of negative samples to use for negative sampling.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.losses import GraphContextPredLoss
+    >>> substruct_rep = torch.randn(4, 8)
+    >>> overlapped_node_rep = torch.randn(8, 8)
+    >>> context_rep = torch.randn(4, 8)
+    >>> neg_context_rep = torch.randn(2 * 4, 8)
+    >>> overlapped_context_size = torch.tensor([2, 2, 2, 2])
+    >>> mode = "cbow"
+    >>> neg_samples = 2
+    >>> graph_context_pred_loss = GraphContextPredLoss()._create_pytorch_loss(mode, neg_samples)
+    >>> loss = graph_context_pred_loss(substruct_rep, overlapped_node_rep, context_rep, neg_context_rep, overlapped_context_size)
+    """
+
+    def _create_pytorch_loss(self, mode, neg_samples):
+        import torch
+        from deepchem.models.torch_models.gnn import cycle_index
+        self.mode = mode
+        self.neg_samples = neg_samples
+        self.criterion = torch.nn.BCEWithLogitsLoss()
+
+        def loss(substruct_rep, overlapped_node_rep, context_rep,
+                 neg_context_rep, overlap_size):
+
+            if self.mode == "cbow":
+                # positive context prediction is the dot product of substructure representation and true context representation
+                pred_pos = torch.sum(substruct_rep * context_rep, dim=1)
+                # negative context prediction is the dot product of substructure representation and negative (random) context representation.
+                pred_neg = torch.sum(substruct_rep.repeat(
+                    (self.neg_samples, 1)) * neg_context_rep,
+                                     dim=1)
+
+            elif self.mode == "skipgram":
+                expanded_substruct_rep = torch.cat(
+                    [substruct_rep[i].repeat((i, 1)) for i in overlap_size],
+                    dim=0)
+                # positive substructure prediction is the dot product of expanded substructure representation and true overlapped node representation.
+                pred_pos = torch.sum(expanded_substruct_rep *
+                                     overlapped_node_rep,
+                                     dim=1)
+
+                # shift indices of substructures to create negative examples
+                shifted_expanded_substruct_rep = []
+                for j in range(self.neg_samples):
+                    shifted_substruct_rep = substruct_rep[cycle_index(
+                        len(substruct_rep), j + 1)]
+                    shifted_expanded_substruct_rep.append(
+                        torch.cat([
+                            shifted_substruct_rep[i].repeat((i, 1))
+                            for i in overlap_size
+                        ],
+                                  dim=0))
+
+                shifted_expanded_substruct_rep = torch.cat(
+                    shifted_expanded_substruct_rep, dim=0)
+                # negative substructure prediction is the dot product of shifted expanded substructure representation and true overlapped node representation.
+                pred_neg = torch.sum(shifted_expanded_substruct_rep *
+                                     overlapped_node_rep.repeat(
+                                         (self.neg_samples, 1)),
+                                     dim=1)
+
+            else:
+                raise ValueError(
+                    "Invalid mode. Must be either cbow or skipgram.")
+
+            # Compute the loss for positive and negative context representations
+            loss_pos = self.criterion(
+                pred_pos.double(),
+                torch.ones(len(pred_pos)).to(pred_pos.device).double())
+            loss_neg = self.criterion(
+                pred_neg.double(),
+                torch.zeros(len(pred_neg)).to(pred_neg.device).double())
+
+            # The final loss is the sum of positive and negative context losses
+            loss = loss_pos + self.neg_samples * loss_neg
+            return loss
+
+        return loss
+
+
+class DensityProfileLoss(Loss):
+    """
+    Loss for the density profile entry type for Quantum Chemistry calculations.
+    It is an integration of the squared difference between ground truth and calculated
+    values, at all spaces in the integration grid.
+
+    Examples
+    --------
+    >>> from deepchem.models.losses import DensityProfileLoss
+    >>> import torch
+    >>> volume = torch.Tensor([2.0])
+    >>> output = torch.Tensor([3.0])
+    >>> labels = torch.Tensor([4.0])
+    >>> loss = (DensityProfileLoss()._create_pytorch_loss(volume))(output, labels)
+    >>> # Generating volume tensor for an entry object:
+    >>> from deepchem.feat.dft_data import DFTEntry
+    >>> e_type = 'dens'
+    >>> true_val = 0
+    >>> systems =[{'moldesc': 'H 0.86625 0 0; F -0.86625 0 0','basis' : '6-311++G(3df,3pd)'}]
+    >>> dens_entry_for_HF = DFTEntry.create(e_type, true_val, systems)
+    >>> grid = (dens_entry_for_HF).get_integration_grid()
+    >>> volume = grid.get_dvolume()
+
+    References
+    ----------
+    Kasim, Muhammad F., and Sam M. Vinko. "Learning the exchange-correlation
+    functional from nature with fully differentiable density functional
+    theory." Physical Review Letters 127.12 (2021): 126403.
+    https://github.com/deepchem/deepchem/blob/0bc3139bb99ae7700ba2325a6756e33b6c327842/deepchem/models/dft/dftxc.py
+    """
+
+    def _create_pytorch_loss(self, volume):
+        """
+        Parameters
+        ----------
+        volume: torch.Tensor
+            Shape of the tensor depends on the molecule/crystal and the integration grid
+        """
+        import torch
+
+        def loss(output, labels):
+            output, labels = _make_pytorch_shapes_consistent(output, labels)
+            return torch.sum((labels - output)**2 * volume)
+
+        return loss
+
+
 def _make_tf_shapes_consistent(output, labels):
     """Try to make inputs have the same shape by adding dimensions of size 1."""
     import tensorflow as tf

@@ -81,8 +81,8 @@ class GraphData:
                 raise ValueError('edge_features must be np.ndarray or None.')
             elif edge_index.shape[1] != edge_features.shape[0]:
                 raise ValueError(
-                    'The first dimension of edge_features must be the \
-                          same as the second dimension of edge_index.')
+                    'The first dimension of edge_features must be the same as the second dimension of edge_index.'
+                )
 
         if node_pos_features is not None:
             if isinstance(node_pos_features, np.ndarray) is False:
@@ -90,8 +90,8 @@ class GraphData:
                     'node_pos_features must be np.ndarray or None.')
             elif node_pos_features.shape[0] != node_features.shape[0]:
                 raise ValueError(
-                    'The length of node_pos_features must be the same as the \
-                          length of node_features.')
+                    'The length of node_pos_features must be the same as the length of node_features.'
+                )
 
         self.node_features = node_features
         self.edge_index = edge_index
@@ -254,6 +254,63 @@ class GraphData:
 
         return graph_copy
 
+    def subgraph(self, nodes):
+        """Returns a subgraph of `nodes` indicies.
+
+        Parameters
+        ----------
+        nodes : list, iterable
+            A list of node indices to be included in the subgraph.
+
+        Returns
+        -------
+        subgraph_data : GraphData
+            A new GraphData object containing the subgraph induced on `nodes`.
+
+        Example
+        -------
+        >>> import numpy as np
+        >>> from deepchem.feat.graph_data import GraphData
+        >>> node_features = np.random.rand(5, 10)
+        >>> edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=np.int64)
+        >>> edge_features = np.random.rand(5, 3)
+        >>> graph_data = GraphData(node_features, edge_index, edge_features)
+        >>> nodes = [0, 2, 4]
+        >>> subgraph_data, node_mapping = graph_data.subgraph(nodes)
+        """
+        nodes = set(nodes)
+        if not nodes.issubset(range(self.num_nodes)):
+            raise ValueError("Some nodes are not in the original graph")
+
+        # Create a mapping from the original node indices to the new node indices
+        node_mapping = {
+            old_idx: new_idx for new_idx, old_idx in enumerate(nodes)
+        }
+
+        # Filter and reindex node features
+        subgraph_node_features = self.node_features[list(nodes)]
+
+        # Filter and reindex edge indices and edge features
+        subgraph_edge_indices = []
+        subgraph_edge_features = []
+        if self.edge_features is not None:
+            for i in range(self.num_edges):
+                src, dest = self.edge_index[:, i]
+                if src in nodes and dest in nodes:
+                    subgraph_edge_indices.append(
+                        (node_mapping[src], node_mapping[dest]))
+                    subgraph_edge_features.append(self.edge_features[i])
+
+        subgraph_edge_index = np.array(subgraph_edge_indices, dtype=np.int64).T
+        subgraph_edge_features = np.array(subgraph_edge_features)
+
+        subgraph_data = GraphData(node_features=subgraph_node_features,
+                                  edge_index=subgraph_edge_index,
+                                  edge_features=subgraph_edge_features,
+                                  **self.kwargs)
+
+        return subgraph_data, node_mapping
+
 
 class BatchGraphData(GraphData):
     """Batch GraphData class
@@ -321,6 +378,7 @@ class BatchGraphData(GraphData):
             batch_node_pos_features: Optional[np.ndarray] = np.vstack([
                 graph.node_pos_features for graph in graph_list  # type: ignore
             ])
+
         else:
             batch_node_pos_features = None
 
@@ -408,3 +466,67 @@ class BatchGraphData(GraphData):
         graph_copy.graph_index = graph_index
 
         return graph_copy
+
+
+def shortest_path_length(graph_data, source, cutoff=None):
+    """Compute the shortest path lengths from source to all reachable nodes in a GraphData object.
+
+    This function only works with undirected graphs.
+
+    Parameters
+    ----------
+    graph_data : GraphData
+        GraphData object containing the graph information
+
+    source : int
+       Starting node index for path
+
+    cutoff : int, optional
+        Depth to stop the search. Only paths of length <= cutoff are returned.
+
+    Returns
+    -------
+    lengths : dict
+        Dict of node index and shortest path length from source to that node.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> node_features = np.random.rand(5, 10)
+    >>> edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=np.int64)
+    >>> graph_data = GraphData(node_features, edge_index)
+    >>> shortest_path_length(graph_data, 0)
+    {0: 0, 1: 1, 2: 2, 3: 2, 4: 1}
+    >>> shortest_path_length(graph_data, 0, cutoff=1)
+    {0: 0, 1: 1, 4: 1}
+
+    """
+    if source >= graph_data.num_nodes:
+        raise ValueError(f"Source {source} is not in graph_data")
+    if cutoff is None:
+        cutoff = float("inf")
+
+    # Convert edge_index to adjacency list
+    adj_list = [[] for _ in range(graph_data.num_nodes)]
+    for i in range(graph_data.num_edges):
+        src, dest = graph_data.edge_index[:, i]
+        adj_list[src].append(dest)
+        adj_list[dest].append(src)  # Assuming undirected graph
+
+    # Breadth-first search
+    visited = np.full(graph_data.num_nodes, False)
+    distances = np.full(graph_data.num_nodes, np.inf)
+    queue = [source]
+    visited[source] = True
+    distances[source] = 0
+
+    while queue:
+        node = queue.pop(0)
+        for neighbor in adj_list[node]:
+            if not visited[neighbor]:
+                visited[neighbor] = True
+                distances[neighbor] = distances[node] + 1
+                if distances[neighbor] < cutoff:
+                    queue.append(neighbor)
+
+    return {i: int(d) for i, d in enumerate(distances) if d <= cutoff}

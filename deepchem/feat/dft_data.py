@@ -40,6 +40,15 @@ class DFTSystem():
         self.system = system
         self.moldesc = system["moldesc"]
         self.basis = system["basis"]
+        self.spin = 0
+        self.charge = 0
+        self.no = 1
+        if 'spin' in system.keys():
+            self.spin = int(system["spin"])
+        if 'charge' in system.keys():
+            self.charge = int(system["charge"])
+        if 'number' in system.keys():
+            self.no = int(system["number"])
         """
         Parameters
         ----------
@@ -63,7 +72,7 @@ class DFTSystem():
         atomzs, atomposs = dqc.parse_moldesc(self.moldesc)
         if pos_reqgrad:
             atomposs.requires_grad_()
-        mol = Mol(self.moldesc, self.basis)
+        mol = Mol(self.moldesc, self.basis, spin=self.spin, charge=self.charge)
         return mol
 
 
@@ -86,7 +95,11 @@ class DFTEntry():
     """
 
     @classmethod
-    def create(self, e_type: str, true_val: str, systems: List[Dict]):
+    def create(self,
+               e_type: str,
+               true_val: Optional[str],
+               systems: List[Dict],
+               weight: Optional[int] = 1):
         """
         This method is used to initialise the DFTEntry class. The entry objects are created
         based on their entry type.
@@ -106,25 +119,39 @@ class DFTEntry():
             the DQC or PYSCF format. The systems needs to be entered in a
             specific order, i.e ; the main atom/molecule needs to be the
             first element. (This is for objects containing equations, such
-            as ae and ie entry objects).
+            as ae and ie entry objects). Spin and charge of the system are
+            optional parameters and are considered '0' if not specified.
+            The system number refers to the number of times the systems is
+            present in the molecule - this is for polyatomic molecules and the
+            default value is 1. For example ; system number of Hydrogen in water
+            is 2.
+        weight: int
+            Weight of the entry object.
         Returns
         -------
         DFTEntry object based on entry type
 
         """
+        if true_val is None:
+            true_val = '0.0'
         if e_type == "ae":
-            return _EntryAE(e_type, true_val, systems)
+            return _EntryAE(e_type, true_val, systems, weight)
         elif e_type == "ie":
-            return _EntryIE(e_type, true_val, systems)
+            return _EntryIE(e_type, true_val, systems, weight)
         elif e_type == "dm":
-            return _EntryDM(e_type, true_val, systems)
+            return _EntryDM(e_type, true_val, systems, weight)
         elif e_type == "dens":
-            return _EntryDens(e_type, true_val, systems)
+            return _EntryDens(e_type, true_val, systems, weight)
         else:
             raise NotImplementedError("Unknown entry type: %s" % e_type)
 
-    def __init__(self, e_type: str, true_val: str, systems: List[Dict]):
+    def __init__(self,
+                 e_type: str,
+                 true_val: Optional[str],
+                 systems: List[Dict],
+                 weight: Optional[int] = 1):
         self._systems = [DFTSystem(p) for p in systems]
+        self._weight = weight
 
     def get_systems(self) -> List[DFTSystem]:
         """
@@ -169,6 +196,14 @@ class DFTEntry():
         """
         pass
 
+    def get_weight(self):
+        """
+        Returns
+        -------
+        Weight of the entry object
+        """
+        return self._weight
+
 
 class _EntryDM(DFTEntry):
     """
@@ -181,7 +216,7 @@ class _EntryDM(DFTEntry):
     dm entry can only have 1 system
     """
 
-    def __init__(self, e_type, true_val, systems):
+    def __init__(self, e_type, true_val, systems, weight):
         """
         Parameters
         ----------
@@ -194,6 +229,7 @@ class _EntryDM(DFTEntry):
         super().__init__(e_type, true_val, systems)
         self.true_val = true_val
         assert len(self.get_systems()) == 1
+        self._weight = weight
 
     @property
     def entry_type(self) -> str:
@@ -205,7 +241,8 @@ class _EntryDM(DFTEntry):
         return dm
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
-        return (qcs[0].aodmtot()).numpy()
+        val = qcs[0].aodmtot()
+        return np.array([val.tolist()])
 
 
 class _EntryDens(DFTEntry):
@@ -213,7 +250,7 @@ class _EntryDens(DFTEntry):
     Entry for density profile (dens), compared with CCSD calculation
     """
 
-    def __init__(self, e_type, true_val, systems):
+    def __init__(self, e_type, true_val, systems, weight):
         """
         Parameters
         ----------
@@ -226,6 +263,7 @@ class _EntryDens(DFTEntry):
         self.true_val = true_val
         assert len(self.get_systems()) == 1
         self._grid: Optional[BaseGrid] = None
+        self._weight = weight
 
     @property
     def entry_type(self) -> str:
@@ -252,8 +290,8 @@ class _EntryDens(DFTEntry):
 
         grid = self.get_integration_grid()
         rgrid = grid.get_rgrid()
-
-        return (qc.dens(rgrid)).numpy()
+        val = qc.dens(rgrid)
+        return np.array(val.tolist())
 
     def get_integration_grid(self) -> BaseGrid:
         """
@@ -284,7 +322,7 @@ class _EntryIE(DFTEntry):
     Entry for Ionization Energy (IE)
     """
 
-    def __init__(self, e_type, true_val, systems):
+    def __init__(self, e_type, true_val, systems, weight):
         """
         Parameters
         ----------
@@ -294,13 +332,14 @@ class _EntryIE(DFTEntry):
         """
         super().__init__(e_type, true_val, systems)
         self.true_val = float(true_val)
+        self._weight = weight
 
     @property
     def entry_type(self) -> str:
         return "ie"
 
     def get_true_val(self) -> np.ndarray:
-        return (self.true_val)
+        return np.array([self.true_val])
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         """
@@ -316,8 +355,11 @@ class _EntryIE(DFTEntry):
         -------
         Total Energy of a data object for entry types IE and AE
         """
-        e = [m.energy() for m in qcs]
-        return (sum(e) - 2 * e[0]).numpy()
+        systems = [i.no for i in self.get_systems()]
+        e_1 = [m.energy() for m in qcs]
+        e = [item1 * item2 for item1, item2 in zip(systems, e_1)]
+        val = sum(e) - 2 * e[0]
+        return np.array([val.tolist()])
 
 
 class _EntryAE(_EntryIE):

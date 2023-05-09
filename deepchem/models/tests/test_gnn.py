@@ -87,6 +87,30 @@ def test_GNN_edge_pred():
 
 
 @pytest.mark.torch
+def test_GNN_node_masking():
+    """Tests the unsupervised node masking task"""
+    from deepchem.models.torch_models.gnn import GNNModular
+
+    dataset, _ = get_regression_dataset()
+    model = GNNModular(task="mask_nodes", device="cpu")
+    loss1 = model.fit(dataset, nb_epoch=5)
+    loss2 = model.fit(dataset, nb_epoch=5)
+    assert loss2 < loss1
+
+
+@pytest.mark.torch
+def test_GNN_edge_masking():
+    """Tests the unsupervised node masking task"""
+    from deepchem.models.torch_models.gnn import GNNModular
+
+    dataset, _ = get_regression_dataset()
+    model = GNNModular(task="mask_edges")
+    loss1 = model.fit(dataset, nb_epoch=5)
+    loss2 = model.fit(dataset, nb_epoch=5)
+    assert loss2 < loss1
+
+
+@pytest.mark.torch
 def test_GNN_regression():
     from deepchem.models.torch_models.gnn import GNNModular
 
@@ -117,3 +141,34 @@ def test_GNN_multitask_classification():
     model.fit(dataset, nb_epoch=200)
     scores = model.evaluate(dataset, [metric])
     assert scores['mean-roc_auc_score'] >= 0.8
+
+
+@pytest.mark.torch
+def test_GNN_infomax():
+    from deepchem.models.torch_models.gnn import GNNModular
+
+    dataset, _ = get_regression_dataset()
+    model = GNNModular(task="infomax")
+    loss1 = model.fit(dataset, nb_epoch=5)
+    loss2 = model.fit(dataset, nb_epoch=5)
+    assert loss2 < loss1
+
+
+@pytest.mark.torch
+def test_GNN_context_pred():
+    from deepchem.models.torch_models.gnn import GNNModular
+
+    dataset, _ = get_regression_dataset()
+    model = GNNModular(task="context_pred",
+                       context_mode="skipgram",
+                       jump_knowledge="concat")
+    loss1 = model.fit(dataset, nb_epoch=5)
+    loss2 = model.fit(dataset, nb_epoch=5)
+    assert loss2 < loss1
+
+    model = GNNModular(task="context_pred",
+                       context_mode="cbow",
+                       jump_knowledge="last")
+    loss1 = model.fit(dataset, nb_epoch=5)
+    loss2 = model.fit(dataset, nb_epoch=5)
+    assert loss2 < loss1
