@@ -207,7 +207,8 @@ class RDKitConformerFeaturizer(MolecularFeaturizer):
             # insert 0 RMSD for first conformer
             rmsd_list.insert(0, 0)
             conformers = [
-                mol.GetConformer(i) for i in range(self.num_conformers)
+                mol.GetConformer(i)
+                for i in range(self.num_conformers)
                 if rmsd_list[i] < self.rmsd_cutoff
             ]
             # if conformer list is less than num_conformers, pad by repeating conformers
