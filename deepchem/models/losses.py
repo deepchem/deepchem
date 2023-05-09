@@ -1262,7 +1262,7 @@ class GraphContextPredLoss(Loss):
         return loss
 
 
-class DensityProfileLoss(Loss):
+class XCLoss(Loss):
     """
     Loss for the density profile entry type for Quantum Chemistry calculations.
     It is an integration of the squared difference between ground truth and calculated
@@ -1304,7 +1304,10 @@ class DensityProfileLoss(Loss):
 
         def loss(output, labels):
             output, labels = _make_pytorch_shapes_consistent(output, labels)
-            return torch.sum((labels - output)**2 * volume)
+            if output.shape[0] > 1 and len(output.shape) == 1:
+                return torch.sum((labels - output)**2 * volume)
+            else:
+                return( L2Loss()._create_pytorch_loss()(output, labels))
 
         return loss
 
