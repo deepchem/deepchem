@@ -134,7 +134,7 @@ class HuggingFaceModel(TorchModel):
             self.data_collator = DataCollatorForLanguageModeling(
                 tokenizer=tokenizer)
         else:
-            self.data_collator = None
+            self.data_collator = None  # type: ignore
         # Ignoring type. For TorchModel, loss is a required argument but HuggingFace computes
         # loss during the forward iteration, removing the need for a loss function.
         super(HuggingFaceModel, self).__init__(
