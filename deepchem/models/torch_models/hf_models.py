@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 from collections.abc import Sequence as SequenceCollection
 from typing import (TYPE_CHECKING, Any, Callable, Iterable, List, Optional,
@@ -137,20 +136,27 @@ class HuggingFaceModel(TorchModel):
             **kwargs)
 
     def load_from_pretrained(  # type: ignore
-            self, model_dir: Optional[str] = None):
+            self,
+            model_dir: Optional[str] = None,
+            from_hf_checkpoint: bool = False):
         """Load HuggingFace model from a pretrained checkpoint.
 
         The utility can be used for loading a model from a checkpoint.
         Given `model_dir`, it checks for existing checkpoint in the directory.
         If a checkpoint exists, the models state is loaded from the checkpoint.
 
-        If a checkpoint does not exist, the method searches for `model_dir` of a
-        pretrained model hosted inside a model repo on huggingface.co and loads it.
+        If the option `from_hf_checkpoint` is set as True, then it loads a pretrained
+        model using HuggingFace models `from_pretrained` method. This option
+        interprets model_dir as a model id of a pretrained model hosted inside a model repo
+        on huggingface.co or path to directory containing model weights saved using `save_pretrained`
+        method of a HuggingFace model.
 
         Parameter
         ----------
         model_dir: str
             Directory containing model checkpoint
+        from_hf_checkpoint: bool, default False
+            Loads a pretrained model from HuggingFace checkpoint.
 
         Example
         -------
@@ -173,16 +179,14 @@ class HuggingFaceModel(TorchModel):
         """
         if model_dir is None:
             model_dir = self.model_dir
-        if not os.path.exists(model_dir):
-            # Load from huggingface model hub
-            self.model.from_pretrained(model_dir)
-        else:
+
+        if from_hf_checkpoint:
+            setattr(self, 'model', self.model.from_pretrained(model_dir))
+        elif not from_hf_checkpoint:
             checkpoints = sorted(self.get_checkpoints(model_dir))
             if len(checkpoints) == 0:
-                # No DeepChem model checkpoints, hence it model must be saved as a huggingface checkpoint.
-                self.model.load_from_pretrained(model_dir)
+                raise ValueError('No checkpoint found')
             else:
-                # Model saved as a deepchem checkpoint
                 checkpoint = checkpoints[0]
                 data = torch.load(checkpoint)
                 self.model.load_state_dict(data['model_state_dict'],
