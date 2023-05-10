@@ -1,10 +1,13 @@
 import numpy as np
 from rdkit import Chem
-from rdkit.Chem import AllChem
+from rdkit.Chem import AllChem, rdMolAlign
+
 from deepchem.feat.graph_data import GraphData
 from deepchem.feat import MolecularFeaturizer
 
-# similar to snap featurizer. both taken from Open Graph Benchmark (OGB) github.com/snap-stanford/ogb
+# similar to SNAP featurizer. both taken from Open Graph Benchmark (OGB) github.com/snap-stanford/ogb
+# The difference between this and the SNAP features is the lack of masking tokens, possible_implicit_valence_list, possible_bond_dirs
+# and the prescence of possible_bond_stereo_list,  possible_is_conjugated_list, possible_is_in_ring_list,
 allowable_features = {
     'possible_atomic_num_list': list(range(1, 119)) + ['misc'],  # type: ignore
     'possible_chirality_list': [
@@ -102,8 +105,20 @@ class RDKitConformerFeaturizer(MolecularFeaturizer):
     (18, 3)
     """
 
-    def __init__(self, num_conformers: int = 1):
+    def __init__(self, num_conformers: int = 1, rmsd_cutoff: float = 2):
+        """
+        Initialize the RDKitConformerFeaturizer with the given parameters.
+
+        Parameters
+        ----------
+        num_conformers : int, optional, default=1
+            The number of conformers to generate for each molecule.
+        rmsd_cutoff : float, optional, default=2
+            The root-mean-square deviation (RMSD) cutoff value. Conformers with an RMSD
+            greater than this value will be discarded.
+        """
         self.num_conformers = num_conformers
+        self.rmsd_cutoff = rmsd_cutoff
 
     def atom_to_feature_vector(self, atom):
         """
@@ -187,9 +202,21 @@ class RDKitConformerFeaturizer(MolecularFeaturizer):
             AllChem.EmbedMolecule(mol, ps)
             AllChem.EmbedMultipleConfs(mol, self.num_conformers)
             AllChem.MMFFOptimizeMolecule(mol)
+            rmsd_list = []
+            rdMolAlign.AlignMolConformers(mol, RMSlist=rmsd_list)
+            # insert 0 RMSD for first conformer
+            rmsd_list.insert(0, 0)
             conformers = [
-                mol.GetConformer(i) for i in range(self.num_conformers)
+                mol.GetConformer(i)
+                for i in range(self.num_conformers)
+                if rmsd_list[i] < self.rmsd_cutoff
             ]
+            # if conformer list is less than num_conformers, pad by repeating conformers
+            conf_idx = 0
+            while len(conformers) < self.num_conformers:
+                conformers.append(conformers[conf_idx])
+                conf_idx += 1
+
             coordinates = [conf.GetPositions() for conf in conformers]
         except Exception as e:
             print(e)
