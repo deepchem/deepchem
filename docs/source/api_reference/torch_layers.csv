@@ -22,3 +22,7 @@ GroverFunctionalGroupPredictor, `ref <https://drug.ai.tencent.com/publications/G
 ScaledDotProductAttention, `ref <https://arxiv.org/abs/1706.03762>`_, Transformer
 SelfAttention, `ref <https://arxiv.org/abs/1706.03762>`_, Transformer
 GroverReadout, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+DFTXC, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
+NNLDA, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
+HybridXC, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
+XCNNSCF, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT

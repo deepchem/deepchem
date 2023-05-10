@@ -1262,6 +1262,53 @@ class GraphContextPredLoss(Loss):
         return loss
 
 
+class DensityProfileLoss(Loss):
+    """
+    Loss for the density profile entry type for Quantum Chemistry calculations.
+    It is an integration of the squared difference between ground truth and calculated
+    values, at all spaces in the integration grid.
+
+    Examples
+    --------
+    >>> from deepchem.models.losses import DensityProfileLoss
+    >>> import torch
+    >>> volume = torch.Tensor([2.0])
+    >>> output = torch.Tensor([3.0])
+    >>> labels = torch.Tensor([4.0])
+    >>> loss = (DensityProfileLoss()._create_pytorch_loss(volume))(output, labels)
+    >>> # Generating volume tensor for an entry object:
+    >>> from deepchem.feat.dft_data import DFTEntry
+    >>> e_type = 'dens'
+    >>> true_val = 0
+    >>> systems =[{'moldesc': 'H 0.86625 0 0; F -0.86625 0 0','basis' : '6-311++G(3df,3pd)'}]
+    >>> dens_entry_for_HF = DFTEntry.create(e_type, true_val, systems)
+    >>> grid = (dens_entry_for_HF).get_integration_grid()
+    >>> volume = grid.get_dvolume()
+
+    References
+    ----------
+    Kasim, Muhammad F., and Sam M. Vinko. "Learning the exchange-correlation
+    functional from nature with fully differentiable density functional
+    theory." Physical Review Letters 127.12 (2021): 126403.
+    https://github.com/deepchem/deepchem/blob/0bc3139bb99ae7700ba2325a6756e33b6c327842/deepchem/models/dft/dftxc.py
+    """
+
+    def _create_pytorch_loss(self, volume):
+        """
+        Parameters
+        ----------
+        volume: torch.Tensor
+            Shape of the tensor depends on the molecule/crystal and the integration grid
+        """
+        import torch
+
+        def loss(output, labels):
+            output, labels = _make_pytorch_shapes_consistent(output, labels)
+            return torch.sum((labels - output)**2 * volume)
+
+        return loss
+
+
 def _make_tf_shapes_consistent(output, labels):
     """Try to make inputs have the same shape by adding dimensions of size 1."""
     import tensorflow as tf
