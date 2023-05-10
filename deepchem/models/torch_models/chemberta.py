@@ -1,4 +1,3 @@
-from typing import Optional
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
 from transformers.models.roberta.modeling_roberta import (
     RobertaConfig, RobertaForMaskedLM, RobertaForSequenceClassification)
@@ -10,9 +9,16 @@ class Chemberta(HuggingFaceModel):
     """Chemberta Model
 
     Chemberta is a transformer style model for learning on SMILES strings.
-    The model architecture is based on the RoBERTa architecture with a masked
-    language modeling task for pretraining. The pretrained model can be finetuned for
-    downstream applications in regression and classification mode.
+    The model architecture is based on the RoBERTa architecture. The model
+    has can be used for both pretraining an embedding and finetuning for
+    downstream applications.
+
+    The model supports two types of pretraining tasks - pretraining via masked language
+    modeling and pretraining via multi-task regression. To pretrain via masked language
+    modeling task, use task = `mlm` and for pretraining via multitask regression task,
+    use task = `mtr`. The model supports the regression, classification and multitask
+    regression finetuning tasks and they can be specified using `regression`, `classification`
+    and `mtr` as arguments to the `task` keyword during model initialisation.
 
     The model uses a tokenizer To create input tokens for the models from the SMILES strings.
     The default tokenizer model is a byte-pair encoding tokenizer trained on PubChem10M dataset
@@ -22,11 +28,15 @@ class Chemberta(HuggingFaceModel):
     Parameters
     ----------
     task: str
-        Pretraining or finetuning task
-    mode: str, default None
-        regression mode or finetuning mode. Mode is None for pretraining task.
+        The task defines the type of learning task in the model. The supported tasks are
+         - `mlm` - masked language modeling commonly used in pretraining
+         - `mtr` - multitask regression - a task used for both pretraining base models and finetuning
+         - `regression` - use it for regression tasks, like property prediction
+         - `classification` - use it for classification tasks
     tokenizer_path: str
         Path containing pretrained tokenizer used to tokenize SMILES string for model inputs. The tokenizer path can either be a huggingFace tokenizer model or a path in the local machine containing the tokenizer.
+    n_tasks: int, default 1
+        Number of prediction targets for a multitask learning model
 
     Example
     -------
@@ -49,12 +59,12 @@ class Chemberta(HuggingFaceModel):
     >>> from deepchem.models.torch_models.chemberta import Chemberta
     >>> pretrain_model_dir = os.path.join(tempdir, 'pretrain-model')
     >>> tokenizer_path = "seyonec/PubChem10M_SMILES_BPE_60k"
-    >>> pretrain_model = Chemberta(task='pretraining', model_dir=pretrain_model_dir, tokenizer_path=tokenizer_path)
+    >>> pretrain_model = Chemberta(task='pretraining', model_dir=pretrain_model_dir, tokenizer_path=tokenizer_path, mode='mlm')
     >>> pretraining_loss = pretrain_model.fit(dataset, nb_epoch=1)
 
     >>> # finetuning in regression mode
     >>> finetune_model_dir = os.path.join(tempdir, 'finetune-model')
-    >>> finetune_model = Chemberta(task='finetuning', model_dir=finetune_model_dir, tokenizer_path=tokenizer_path, mode='regression')
+    >>> finetune_model = Chemberta(task='regression', model_dir=finetune_model_dir, tokenizer_path=tokenizer_path, mode='regression')
     >>> finetune_model.load_from_pretrained(pretrain_model_dir)
     >>> finetuning_loss = finetune_model.fit(dataset, nb_epoch=1)
 
@@ -65,30 +75,33 @@ class Chemberta(HuggingFaceModel):
 
     Reference
     ---------
+    .. Chithrananda, S., Grand, G., & Ramsundar, B. (2020). Chemberta: Large-scale self-supervised pretraining for molecular property prediction. arXiv preprint arXiv:2010.09885.
     .. Ahmad, Walid, et al. "Chemberta-2: Towards chemical foundation models." arXiv preprint arXiv:2209.01712 (2022).
     """
 
     def __init__(self,
                  task: str,
-                 mode: Optional[str] = None,
                  tokenizer_path: str = 'seyonec/PubChem10M_SMILES_BPE_60k',
+                 n_tasks: int = 1,
                  **kwargs):
+        self.n_tasks = n_tasks
         tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_path)
-        if task == 'pretraining':
+        if task == 'mlm':
             config = RobertaConfig(vocab_size=tokenizer.vocab_size)
             model = RobertaForMaskedLM(config)
-        elif task == 'finetuning':
-            assert mode, 'specify finetuning mode - classification or regression'
-            if mode == 'regression':
-                config = RobertaConfig(vocab_size=tokenizer.vocab_size,
-                                       problem_type='regression',
-                                       num_labels=1)
-                model = RobertaForSequenceClassification(config)
-            elif mode == 'classification':
-                config = RobertaConfig(vocab_size=tokenizer.vocab_size)
-                model = RobertaForSequenceClassification(config)
-            else:
-                raise ValueError('invalid mode specification')
+        elif task == 'mtr':
+            config = RobertaConfig(vocab_size=tokenizer.vocab_size,
+                                   problem_type='regression',
+                                   num_labels=n_tasks)
+            model = RobertaForSequenceClassification(config)
+        elif task == 'regression':
+            config = RobertaConfig(vocab_size=tokenizer.vocab_size,
+                                   problem_type='regression',
+                                   num_labels=n_tasks)
+            model = RobertaForSequenceClassification(config)
+        elif task == 'classification':
+            config = RobertaConfig(vocab_size=tokenizer.vocab_size)
+            model = RobertaForSequenceClassification(config)
         else:
             raise ValueError('invalid task specification')
 
