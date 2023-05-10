@@ -46,7 +46,11 @@ class HuggingFaceModel(TorchModel):
     models: transformers.modeling_utils.PreTrainedModel
         The HuggingFace model to wrap.
     task: str
-        Pretraining or finetuning task
+        The task defines the type of learning task in the model. The supported tasks are
+         - `mlm` - masked language modeling commonly used in pretraining
+         - `mtr` - multitask regression - a task used for both pretraining base models and finetuning
+         - `regression` - use it for regression tasks, like property prediction
+         - `classification` - use it for classification tasks
     tokenizer: transformers.tokenization_utils.PreTrainedTokenizer
         Tokenizer
 
@@ -92,14 +96,14 @@ class HuggingFaceModel(TorchModel):
     >>> from transformers.models.roberta import RobertaForMaskedLM, RobertaModel, RobertaConfig
     >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
     >>> model = RobertaForMaskedLM(config)
-    >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='pretraining', model_dir='model-dir')
+    >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='mlm', model_dir='model-dir')
     >>> training_loss = hf_model.fit(dataset, nb_epoch=1)
 
     >>> # finetuning a regression model
     >>> from transformers.models.roberta import RobertaForSequenceClassification
     >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size, problem_type='regression', num_labels=1)
     >>> model = RobertaForSequenceClassification(config)
-    >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='finetuning', model_dir='model-dir')
+    >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='regression', model_dir='model-dir')
     >>> hf_model.load_from_pretrained()
     >>> training_loss = hf_model.fit(dataset, nb_epoch=1)
     >>> prediction = hf_model.predict(dataset)  # prediction
@@ -114,7 +118,7 @@ class HuggingFaceModel(TorchModel):
     >>> from transformers import RobertaForSequenceClassification
     >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
     >>> model = RobertaForSequenceClassification(config)
-    >>> hf_model = HuggingFaceModel(model=model, task='finetuning', tokenizer=tokenizer)
+    >>> hf_model = HuggingFaceModel(model=model, task='classification', tokenizer=tokenizer)
     >>> training_loss = hf_model.fit(dataset, nb_epoch=1)
     >>> predictions = hf_model.predict(dataset)
     >>> eval_result = hf_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.f1_score))
@@ -126,9 +130,11 @@ class HuggingFaceModel(TorchModel):
             **kwargs):
         self.task = task
         self.tokenizer = tokenizer
-        if self.task == 'pretraining':
+        if self.task == 'mlm':
             self.data_collator = DataCollatorForLanguageModeling(
                 tokenizer=tokenizer)
+        else:
+            self.data_collator = None
         # Ignoring type. For TorchModel, loss is a required argument but HuggingFace computes
         # loss during the forward iteration, removing the need for a loss function.
         super(HuggingFaceModel, self).__init__(
@@ -161,13 +167,13 @@ class HuggingFaceModel(TorchModel):
         >>> from transformers.models.roberta import RobertaForMaskedLM, RobertaModel, RobertaConfig
         >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
         >>> model = RobertaForMaskedLM(config)
-        >>> pretrain_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='pretraining', model_dir='model-dir')
+        >>> pretrain_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='mlm', model_dir='model-dir')
         >>> pretrain_model.save_checkpoint()
 
         >>> from transformers import RobertaForSequenceClassification
         >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
         >>> model = RobertaForSequenceClassification(config)
-        >>> finetune_model = HuggingFaceModel(model=model, task='finetuning', tokenizer=tokenizer, model_dir='model-dir')
+        >>> finetune_model = HuggingFaceModel(model=model, task='classification', tokenizer=tokenizer, model_dir='model-dir')
 
         >>> finetune_model.load_from_pretrained()
         """
@@ -189,24 +195,21 @@ class HuggingFaceModel(TorchModel):
                                            strict=False)
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
-        if self.task == 'pretraining':
-            smiles_batch, _, w = batch
-            tokens = self.tokenizer(smiles_batch[0].tolist(),
-                                    padding=True,
-                                    return_tensors="pt")
+        smiles_batch, y, w = batch
+        tokens = self.tokenizer(smiles_batch[0].tolist(),
+                                padding=True,
+                                return_tensors="pt")
+
+        if self.task == 'mlm':
             inputs, labels = self.data_collator.torch_mask_tokens(
                 tokens['input_ids'])
             inputs = {'input_ids': inputs, 'labels': labels}
             return inputs, None, w
-        elif self.task == 'finetuning':
-            smiles_batch, y, w = batch
-            tokens = self.tokenizer(smiles_batch[0].tolist(),
-                                    padding=True,
-                                    return_tensors="pt")
+        elif self.task in ['regression', 'classification', 'mtr']:
             if y is not None:
                 # y is None during predict
                 y = torch.from_numpy(y[0])
-                if self.model.config.problem_type == 'regression':
+                if self.task == 'regression' or self.task == 'mtr':
                     y = y.float()
 
             inputs = {**tokens, 'labels': y}
