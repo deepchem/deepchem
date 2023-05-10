@@ -257,6 +257,12 @@ class HuggingFaceModel(TorchModel):
         Returns
         -------
         The average loss over the most recent checkpoint interval
+
+        Note
+        ----
+        A HuggingFace model can return embeddings (last hidden state), attentions.
+        Support must be added to return the embeddings to the user, so that it can
+        be used for other downstream applications.
         """
         if not isinstance(callbacks, SequenceCollection):
             callbacks = [callbacks]
@@ -375,6 +381,13 @@ class HuggingFaceModel(TorchModel):
         -------
             a NumPy array of the model produces a single output, or a list of arrays
             if it produces multiple outputs
+
+        Note
+        ----
+        A HuggingFace model does not output uncertainity. The argument is here
+        since it is also present in TorchModel. Similarly, other variables like
+        other_output_types are also not used. Instead, a HuggingFace model outputs
+        loss, logits, hidden state and attentions.
         """
         results: Optional[List[List[np.ndarray]]] = None
         variances: Optional[List[List[np.ndarray]]] = None
@@ -403,8 +416,11 @@ class HuggingFaceModel(TorchModel):
 
             # Invoke the model.
             output_values = self.model(**inputs)
-            output_values = output_values.get('logits').detach().cpu().numpy()
+            output_values = output_values.get('logits')
 
+            if isinstance(output_values, torch.Tensor):
+                output_values = [output_values]
+            output_values = [t.detach().cpu().numpy() for t in output_values]
             # Apply tranformers and record results.
             if uncertainty:
                 var = [output_values[i] for i in self._variance_outputs]
@@ -442,10 +458,12 @@ class HuggingFaceModel(TorchModel):
         if results is not None:
             for r in results:
                 final_results.append(np.concatenate(r, axis=0))
+
         if uncertainty and variances is not None:
             for v in variances:
                 final_variances.append(np.concatenate(v, axis=0))
             return zip(final_results, final_variances)
+
         if len(final_results) == 1:
             return final_results[0]
         else:
