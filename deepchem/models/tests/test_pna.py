@@ -39,5 +39,8 @@ def test_AtomEncoder():
     from deepchem.models.torch_models.pna_gnn import AtomEncoder
 
     atom_encoder = AtomEncoder(emb_dim=32)
-    atom_features = torch.tensor([[1, 6, 0], [2, 7, 1]])
+    atom_features = torch.randn(3, 9)
     atom_embeddings = atom_encoder(atom_features)
+
+
+test_AtomEncoder()
