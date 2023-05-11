@@ -72,7 +72,7 @@ class MultilayerPerceptron(nn.Module):
         self.activation_fn = get_activation(activation_fn)
         self.model = nn.Sequential(*self.build_layers())
         self.skip = nn.Linear(d_input, d_output) if skip_connection else None
-
+ 
     def build_layers(self):
         """
         Build the layers of the model, iterating through the hidden dimensions to produce a list of layers.
