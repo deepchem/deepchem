@@ -2,7 +2,6 @@ from functools import partial
 from math import sqrt
 from typing import Callable, Dict, List, Union
 
-import dgl
 import numpy as np
 import torch
 from torch import nn
@@ -230,7 +229,7 @@ class AtomEncoder(torch.nn.Module):
         self.atom_embedding_list = torch.nn.ModuleList()
         self.padding = padding
 
-        for i, dim in enumerate(full_atom_feature_dims):
+        for dim in full_atom_feature_dims:
             if padding:
                 emb = torch.nn.Embedding(dim + 1, emb_dim, padding_idx=0)
             else:
@@ -239,7 +238,7 @@ class AtomEncoder(torch.nn.Module):
             self.atom_embedding_list.append(emb)
 
     def reset_parameters(self):
-        for i, embedder in enumerate(self.atom_embedding_list):
+        for embedder in self.atom_embedding_list:
             embedder.weight.data.uniform_(-sqrt(3), sqrt(3))
 
     def forward(self, x):
