@@ -207,7 +207,7 @@ class PNALayer(nn.Module):
 
 class AtomEncoder(torch.nn.Module):
     """
-    Encodes atom features into embeddings.
+    Encodes atom features into embeddings for use in PNA.
 
     Parameters
     ----------
