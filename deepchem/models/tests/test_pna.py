@@ -1,5 +1,4 @@
 def test_pna():
-    import dgl
     import torch
 
     from deepchem.models.torch_models.pna_gnn import PNA
@@ -32,3 +31,13 @@ def test_pnagnn():
     g.edata['edge_attr'] = torch.randn(3, 3)
     y = model(g)
     assert y.shape == (3, 1)
+
+
+def test_AtomEncoder():
+    import torch
+
+    from deepchem.models.torch_models.pna_gnn import AtomEncoder
+
+    atom_encoder = AtomEncoder(emb_dim=32)
+    atom_features = torch.tensor([[1, 6, 0], [2, 7, 1]])
+    atom_embeddings = atom_encoder(atom_features)

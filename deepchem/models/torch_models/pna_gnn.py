@@ -77,8 +77,8 @@ class PNA(nn.Module):
     """
 
     def __init__(self,
-                 hidden_dim,
-                 target_dim,
+                 hidden_dim: int,
+                 target_dim: int,
                  aggregators: List[str],
                  scalers: List[str],
                  readout_aggregators: List[str],
@@ -135,7 +135,7 @@ class PNA(nn.Module):
 
 class PNAGNN(nn.Module):
     """
-    Principal Neighbourhood Aggregation Graph Neural Network
+    Principal Neighbourhood Aggregation Graph Neural Network. This defines the message passing layers of the PNA model.
 
     Parameters
     ----------
@@ -277,12 +277,9 @@ class PNALayer(nn.Module):
         aggregators: List[str],
         scalers: List[str],
         activation: Union[Callable, str] = "relu",
-        last_activation: Union[Callable, str] = "none",
         dropout: float = 0.0,
         residual: bool = True,
         pairwise_distances: bool = False,
-        mid_batch_norm: bool = False,
-        last_batch_norm: bool = False,
         batch_norm_momentum=0.1,
         avg_d: Dict[str, float] = {"log": 1.0},
         posttrans_layers: int = 2,
