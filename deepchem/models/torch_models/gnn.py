@@ -306,7 +306,7 @@ class GNNModular(ModularTorchModel):
     .. [1] Xu, K. et al. Representation Learning on Graphs with Jumping Knowledge Networks. Preprint at https://doi.org/10.48550/arXiv.1806.03536 (2018).
     .. [2] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
     """
-
+ 
     def __init__(self,
                  gnn_type: str = "gin",
                  num_layer: int = 3,
