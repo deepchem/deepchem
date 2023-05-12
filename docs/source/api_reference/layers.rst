@@ -180,6 +180,12 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.gnn.LocalGlobalDiscriminator
   :members:
 
+.. autoclass:: deepchem.models.torch_models.AtomEncoder
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.BondEncoder
+  :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 
