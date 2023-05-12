@@ -46,10 +46,29 @@ class AtomEncoder(torch.nn.Module):
             self.atom_embedding_list.append(emb)
 
     def reset_parameters(self):
+        """
+        Reset the parameters of the atom embeddings.
+
+        This method resets the weights of the atom embeddings by initializing
+        them with a uniform distribution between -sqrt(3) and sqrt(3).
+        """
         for embedder in self.atom_embedding_list:
             embedder.weight.data.uniform_(-sqrt(3), sqrt(3))
 
     def forward(self, x):
+        """
+        Compute the atom embeddings for the given atom features.
+
+        Parameters
+        ----------
+        x : torch.Tensor, shape (batch_size, num_atoms, num_features)
+            The input atom features tensor.
+
+        Returns
+        -------
+        x_embedding : torch.Tensor, shape (batch_size, num_atoms, emb_dim)
+            The computed atom embeddings.
+        """
         x_embedding = 0
         for i in range(x.shape[1]):
             if self.padding:
@@ -98,6 +117,19 @@ class BondEncoder(torch.nn.Module):
             self.bond_embedding_list.append(emb)
 
     def forward(self, edge_attr):
+        """
+        Compute the bond embeddings for the given bond features.
+
+        Parameters
+        ----------
+        edge_attr : torch.Tensor, shape (batch_size, num_edges, num_features)
+            The input bond features tensor.
+
+        Returns
+        -------
+        bond_embedding : torch.Tensor, shape (batch_size, num_edges, emb_dim)
+            The computed bond embeddings.
+        """
         bond_embedding = 0
         for i in range(edge_attr.shape[1]):
             if self.padding:
