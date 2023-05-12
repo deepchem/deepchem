@@ -190,3 +190,22 @@ def test_model_save_reload(tmpdir, hf_tokenizer):
 
     # all keys should match
     assert all(matches)
+
+
+@pytest.mark.torch
+def test_load_from_hf_checkpoint():
+    from transformers.models.t5 import T5Config, T5Model
+    config = T5Config()
+    model = T5Model(config)
+    hf_model = HuggingFaceModel(model=model, tokenizer=None, task='regression')
+    old_state_dict = hf_model.model.state_dict()
+    hf_model_checkpoint = 't5-small'
+    hf_model.load_from_pretrained(hf_model_checkpoint, from_hf_checkpoint=True)
+    new_state_dict = hf_model.model.state_dict()
+    not_matches = [
+        not torch.allclose(old_state_dict[key], new_state_dict[key])
+        for key in old_state_dict.keys()
+    ]
+
+    # keys should not match
+    assert all(not_matches)
