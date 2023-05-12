@@ -287,12 +287,16 @@ class PNALayer(nn.Module):
         h_in = nodes.data['feat']
         h = nodes.mailbox["e"]
         D = h.shape[-2]
-        h_to_cat = [aggr(h=h, h_in=h_in) for aggr in self.aggregators]
+        h_to_cat = [aggr(h=h, h_in=h_in)  # type: ignore
+                    for aggr in self.aggregators]
         h = torch.cat(h_to_cat, dim=-1)
 
         if len(self.scalers) > 1:
             h = torch.cat(
-                [scale(h, D=D, avg_d=self.avg_d) for scale in self.scalers],
+                [
+                    scale(h, D=D, avg_d=self.avg_d)  # type: ignore
+                    for scale in self.scalers
+                ],
                 dim=-1)
 
         return {'feat': h}
