@@ -658,10 +658,12 @@ def test_position_wise_feed_forward():
 
 
 @pytest.mark.torch
-@pytest.mark.parametrize('skip_connection,expected',
-                         [(False, [[0.2795, 0.4243], [0.2795, 0.4243]]),
-                          (True, [[-0.9612, 2.3846], [-4.1104, 5.7606]])])
-def test_MultilayerPerceptron(skip_connection, expected):
+@pytest.mark.parametrize('skip_connection,batch_norm,expected',
+                         [(False, False, [[0.2795, 0.4243], [0.2795, 0.4243]]),
+                          (True, False, [[-0.9612, 2.3846], [-4.1104, 5.7606]]),
+                          (False, True, [[0.2795, 0.4243], [0.2795, 0.4243]]),
+                          (True, True, [[-0.9612, 2.3846], [-4.1104, 5.7606]])])
+def test_MultilayerPerceptron(skip_connection, batch_norm, expected):
     """Test invoking MLP."""
     torch.manual_seed(0)
     input_ar = torch.tensor([[1., 2.], [5., 6.]])
@@ -670,10 +672,34 @@ def test_MultilayerPerceptron(skip_connection, expected):
                                               d_hidden=(2, 2),
                                               activation_fn='relu',
                                               dropout=0.0,
+                                              batch_norm=batch_norm,
                                               skip_connection=skip_connection)
     result = layer(input_ar)
     output_ar = torch.tensor(expected)
     assert torch.allclose(result, output_ar, atol=1e-4)
+
+
+@pytest.mark.torch
+def test_MultilayerPerceptron_overfit():
+    import torch
+    import deepchem.models.torch_models.layers as torch_layers
+    from deepchem.data import NumpyDataset
+    from deepchem.models.torch_models.torch_model import TorchModel
+    from deepchem.models.losses import L1Loss
+    import numpy as np
+
+    torch.manual_seed(0)
+    x = torch.randn(10, 10)
+    y = torch.ones(10, 1)
+    data = NumpyDataset(x, y)
+    layer = torch_layers.MultilayerPerceptron(d_input=10,
+                                              d_output=1,
+                                              d_hidden=(2, 2),
+                                              activation_fn='relu')
+    model = TorchModel(layer, loss=L1Loss())
+    model.fit(data, nb_epoch=1000)
+    output = model.predict_on_batch(data.X)
+    assert np.allclose(output, y, atol=1e-2)
 
 
 @pytest.mark.torch
