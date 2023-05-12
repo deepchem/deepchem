@@ -23,6 +23,7 @@ class AtomEncoder(torch.nn.Module):
     --------
     >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import full_atom_feature_dims
     >>> atom_encoder = AtomEncoder(emb_dim=32)
+    >>> num_rows = 10
     >>> atom_features = torch.stack([
     ... torch.randint(low=0, high=dim, size=(num_rows,))
     ... for dim in full_atom_feature_dims
@@ -74,9 +75,10 @@ class BondEncoder(torch.nn.Module):
     --------
     >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import full_bond_feature_dims
     >>> bond_encoder = BondEncoder(emb_dim=32)
+    >>> num_rows = 10
     >>> bond_features = torch.stack([
     ... torch.randint(low=0, high=dim, size=(num_rows,))
-    ... for dim in full_atom_feature_dims
+    ... for dim in full_bond_feature_dims
     ... ], dim=1)
     >>> bond_embeddings = bond_encoder(bond_features)
     """
