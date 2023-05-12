@@ -66,9 +66,7 @@ def test_pretraining(hf_tokenizer, smiles_dataset):
     config = RobertaConfig(vocab_size=hf_tokenizer.vocab_size)
     model = RobertaForMaskedLM(config)
 
-    hf_model = HuggingFaceModel(model=model,
-                                tokenizer=hf_tokenizer,
-                                task='pretraining')
+    hf_model = HuggingFaceModel(model=model, tokenizer=hf_tokenizer, task='mlm')
     loss = hf_model.fit(smiles_dataset, nb_epoch=1)
 
     assert loss
@@ -85,7 +83,7 @@ def test_hf_model_regression(hf_tokenizer, smiles_dataset):
     model = RobertaForSequenceClassification(config)
     hf_model = HuggingFaceModel(model=model,
                                 tokenizer=hf_tokenizer,
-                                task='finetuning')
+                                task='regression')
     hf_model.fit(smiles_dataset, nb_epoch=1)
     result = hf_model.predict(smiles_dataset)
     assert result.all()
@@ -107,7 +105,7 @@ def test_hf_model_classification(hf_tokenizer, smiles_dataset):
     config = RobertaConfig(vocab_size=hf_tokenizer.vocab_size)
     model = RobertaForSequenceClassification(config)
     hf_model = HuggingFaceModel(model=model,
-                                task='finetuning',
+                                task='classification',
                                 tokenizer=hf_tokenizer)
 
     hf_model.fit(dataset, nb_epoch=1)
@@ -128,7 +126,7 @@ def test_load_from_pretrained(tmpdir, hf_tokenizer):
     model = RobertaForMaskedLM(config)
     pretrained_model = HuggingFaceModel(model=model,
                                         tokenizer=hf_tokenizer,
-                                        task='pretraining',
+                                        task='mlm',
                                         model_dir=tmpdir)
     pretrained_model.save_checkpoint()
 
@@ -139,7 +137,7 @@ def test_load_from_pretrained(tmpdir, hf_tokenizer):
     model = RobertaForSequenceClassification(config)
     finetune_model = HuggingFaceModel(model=model,
                                       tokenizer=hf_tokenizer,
-                                      task='finetuning',
+                                      task='regression',
                                       model_dir=tmpdir)
 
     # Load pretrained model
@@ -170,7 +168,7 @@ def test_model_save_reload(tmpdir, hf_tokenizer):
     model = RobertaForSequenceClassification(config)
     hf_model = HuggingFaceModel(model=model,
                                 tokenizer=hf_tokenizer,
-                                task='finetuning',
+                                task='classification',
                                 model_dir=tmpdir)
     hf_model._ensure_built()
     hf_model.save_checkpoint()
@@ -178,7 +176,7 @@ def test_model_save_reload(tmpdir, hf_tokenizer):
     model = RobertaForSequenceClassification(config)
     hf_model2 = HuggingFaceModel(model=model,
                                  tokenizer=hf_tokenizer,
-                                 task='finetuning',
+                                 task='classification',
                                  model_dir=tmpdir)
 
     hf_model2.restore()
