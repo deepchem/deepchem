@@ -1,7 +1,7 @@
 from functools import partial
 from math import sqrt
 from typing import Callable, Dict, List, Union
-
+import copy
 import dgl
 import torch
 from torch import nn
@@ -442,14 +442,20 @@ class PNAGNN(nn.Module):
 
     Examples
     --------
-    >>> import dgl
-    >>> import torch
-    >>> from deepchem.models.torch_models.infomax3d import PNAGNN
-    >>> g = dgl.graph(([0, 1, 2], [1, 2, 0]))
-    >>> g.ndata['x'] = torch.randn(3, 3)
-    >>> g.edata['edge_attr'] = torch.randn(3, 3)
-    >>> model = PNAGNN(hidden_dim=16, aggregators=['mean', 'sum'], scalers=['identity'])
-    >>> model(g)
+    >>> import numpy as np
+    >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
+    >>> from deepchem.feat.graph_data import BatchGraphData
+    >>> from deepchem.models.torch_models.pna_gnn import PNAGNN
+    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    >>> smiles = ['C1=CC=NC=C1', 'CC(=O)C', 'C']
+    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2, rmsd_cutoff=1)
+    >>> data = featurizer.featurize(smiles)
+    >>> features = BatchGraphData(np.concatenate(data).ravel())
+    >>> features = features.to_dgl_graph()
+    >>> model = PNAGNN(hidden_dim=16,
+    ...                aggregators=['mean', 'sum'],
+    ...                scalers=['identity'])
+    >>> output = model(features)
     """
 
     def __init__(self,
@@ -459,9 +465,6 @@ class PNAGNN(nn.Module):
                  residual: bool = True,
                  pairwise_distances: bool = False,
                  activation: Union[Callable, str] = "relu",
-                 last_activation: Union[Callable, str] = "none",
-                 mid_batch_norm: bool = False,
-                 last_batch_norm: bool = False,
                  batch_norm_momentum=0.1,
                  propagation_depth: int = 5,
                  dropout: float = 0.0,
@@ -483,9 +486,6 @@ class PNAGNN(nn.Module):
                          residual=residual,
                          dropout=dropout,
                          activation=activation,
-                         last_activation=last_activation,
-                         mid_batch_norm=mid_batch_norm,
-                         last_batch_norm=last_batch_norm,
                          avg_d={"log": 1.0},
                          posttrans_layers=posttrans_layers,
                          pretrans_layers=pretrans_layers,
@@ -493,7 +493,8 @@ class PNAGNN(nn.Module):
         self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
         self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
 
-    def forward(self, graph: dgl.DGLGraph):
+    def forward(self, input_graph: dgl.DGLGraph):
+        graph = copy.deepcopy(input_graph)
         graph.ndata['feat'] = self.atom_encoder(graph.ndata['x'])
         graph.edata['feat'] = self.bond_encoder(graph.edata['edge_attr'])
 
