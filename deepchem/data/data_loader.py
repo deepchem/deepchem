@@ -1663,6 +1663,7 @@ class DFTYamlLoader(DataLoader):
         """
         Initialize DFTYAML loader
         """
+        pass
 
     def create_dataset(self,
                        inputs: OneOrMany[Any],
@@ -1689,17 +1690,16 @@ class DFTYamlLoader(DataLoader):
         """
 
         def shard_generator():
-            entries = self._get_shards(inputs)
-            for i, shard in enumerate(entries):
-                X = np.array(self._featurize_shard(shard))
-                y = X[0].get_true_val()
-                w = np.array([X[0].get_weight()])
-                ids = np.array([i])
+            for shard_num, shard in enumerate(
+                    self._get_shards(inputs, shard_size)):
+                X, y = self._featurize_shard(shard)
+                w = np.array([x.get_weight() for x in X])
+                ids = np.array([shard_num])
                 yield X, y, w, ids
 
         return DiskDataset.create_dataset(shard_generator(), data_dir)
 
-    def _get_shards(self, inputs):
+    def _get_shards(self, inputs, shard_size):
         """
         Loads and divides the .yaml file into shards.
 
@@ -1710,13 +1710,21 @@ class DFTYamlLoader(DataLoader):
 
         Returns
         -------
-        data
-            list of dictionaries where each dictionary corresponds to one
-            shard and is then featurized into one entry object.
+        current_shard
         """
-        with open(inputs) as f:
-            data = yaml.load(f, Loader=SafeLoader)
-        return (data)
+        data = []
+        for file in inputs:
+            with open(file) as f:
+                data_new = yaml.load(f, Loader=SafeLoader)
+            data.extend(data_new)
+        current_shard: List = []
+        for i, datapoint in enumerate(data):
+            if i != 0 and shard_size is not None and i % shard_size == 0:
+                shard_data = current_shard
+                current_shard = []
+                yield shard_data
+            current_shard.append(datapoint)
+        yield current_shard
 
     def _featurize_shard(self, shard):
         """
@@ -1724,27 +1732,34 @@ class DFTYamlLoader(DataLoader):
 
         Parameters
         ----------
-        shard: dict
+        shard: List[Dict]
             Dictionary containing values to initialize the DFTEntry object.
 
         Returns
         -------
-        x: featurized shard (DFTEntry objects)
+        x: np.array
+            featurized shard (DFTEntry objects)
         """
-        try:
-            e_type = shard['e_type']
-            if 'true_val' in shard.keys():
-                true_val = shard['true_val']
+        x1 = []
+        y1 = []
+        for entry in shard:
+
+            try:
+                e_type = entry['e_type']
+                if 'true_val' in entry.keys():
+                    true_val = entry['true_val']
+                else:
+                    true_val = '0.0'
+                systems = entry['systems']
+            except KeyError:
+                raise ValueError(
+                    "Unknown key in yaml file. Please check format for correctness."
+                )
+            if 'weight' in entry.keys():
+                weight = entry['weight']
+                x = DFTEntry.create(e_type, true_val, systems, weight)
             else:
-                true_val = '0.0'
-            systems = shard['systems']
-        except KeyError:
-            raise ValueError(
-                "Unknown key in yaml file. Please check format for correctness."
-            )
-        if 'weight' in shard.keys():
-            weight = shard['weight']
-            x = DFTEntry.create(e_type, true_val, systems, weight)
-        else:
-            x = DFTEntry.create(e_type, true_val, systems)
-        return [x]
+                x = DFTEntry.create(e_type, true_val, systems)
+            x1.append(x)
+            y1.append(x.get_true_val())
+        return np.array(x1), np.array(y1)

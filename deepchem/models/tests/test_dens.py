@@ -13,10 +13,10 @@ import pytest
 
 @pytest.mark.dqc
 def test_densHF():
-    inputs = 'deepchem/models/tests/assets/test_HFdp.yaml'
+    inputs = ['deepchem/models/tests/assets/test_HFdp.yaml']
     data = DFTYamlLoader()
     dataset = data.create_dataset(inputs)
-    labels = torch.as_tensor(dataset.y)
+    labels = torch.as_tensor(dataset.y[0])
     nnmodel = (torch.nn.Sequential(torch.nn.Linear(2, 10), torch.nn.Softplus(),
                                    torch.nn.Linear(10, 1, bias=False))).to(
                                        torch.double)

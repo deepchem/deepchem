@@ -72,11 +72,11 @@ class DFTXC(torch.nn.Module):
             qcs = []
             for system in entry.get_systems():
                 qcs.append(evl.run(system))
+            val = entry.get_val(qcs)
             if entry.entry_type == 'dm':
-                output.append((torch.as_tensor(entry.get_val(qcs)[0])))
-            else:
-                output.append(
-                    torch.tensor(entry.get_val(qcs), requires_grad=True))
+                n = val.shape[0]
+                val = val.reshape(1, n, n)
+            output.append((torch.tensor(val, requires_grad=True)))
         return output
 
 
