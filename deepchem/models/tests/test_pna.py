@@ -71,6 +71,3 @@ def test_pnalayer():
     g.ndata['feat'] = pna_layer(g)
 
     assert g.ndata['feat'].shape == (num_nodes, out_dim)
-
-
-test_pnalayer()
