@@ -21,7 +21,8 @@ def test_dftloader():
 def test_dftshard():
     data = DFTYamlLoader()
     dataset = data.create_dataset([
-        'deepchem/data/tests/dftdata.yaml',
+        'deepchem/models/tests/assets/test_beh2.yaml',
+        'deepchem/models/tests/assets/test_ieLi.yaml',
         'deepchem/models/tests/assets/test_dftxcdata.yaml'
     ],
                                   shard_size=4)
