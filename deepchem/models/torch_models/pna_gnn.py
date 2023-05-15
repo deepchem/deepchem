@@ -1,12 +1,15 @@
 from functools import partial
 from math import sqrt
+from typing import Callable, Dict, List, Union
 
 import torch
+from torch import nn
 
 from deepchem.feat.molecule_featurizers.conformer_featurizer import (
     full_atom_feature_dims,
     full_bond_feature_dims,
 )
+from deepchem.models.torch_models.layers import MultilayerPerceptron
 from deepchem.utils.graph_utils import (
     aggregate_max,
     aggregate_mean,
@@ -345,6 +348,7 @@ class PNALayer(nn.Module):
         h_in = nodes.data['feat']
         h = nodes.mailbox["e"]
         D = h.shape[-2]
+
         h_to_cat = [
             aggr(h=h, h_in=h_in)  # type: ignore
             for aggr in self.aggregators
