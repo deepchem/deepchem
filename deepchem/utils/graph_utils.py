@@ -1,11 +1,4 @@
-from functools import partial
-
 import numpy as np
-
-try:
-    import torch
-except ImportError:
-    pass
 
 
 def fourier_encode_dist(x, num_encodings=4, include_self=True):
@@ -55,15 +48,15 @@ def aggregate_mean(h, **kwargs):
 
     Parameters
     ----------
-    h : torch.Tensor
+    h : np.array
         Input tensor.
 
     Returns
     -------
-    torch.Tensor
+    np.array
         Mean of the input tensor along the second to last dimension.
     """
-    return torch.mean(h, dim=-2)
+    return np.mean(h, axis=-2)
 
 
 def aggregate_max(h, **kwargs):
@@ -72,15 +65,15 @@ def aggregate_max(h, **kwargs):
 
     Parameters
     ----------
-    h : torch.Tensor
+    h : np.array
         Input tensor.
 
     Returns
     -------
-    torch.Tensor
+    np.array
         Max of the input tensor along the second to last dimension.
     """
-    return torch.max(h, dim=-2)[0]
+    return np.max(h, axis=-2)
 
 
 def aggregate_min(h, **kwargs):
@@ -89,17 +82,17 @@ def aggregate_min(h, **kwargs):
 
     Parameters
     ----------
-    h : torch.Tensor
+    h : np.array
         Input tensor.
     **kwargs
         Additional keyword arguments.
 
     Returns
     -------
-    torch.Tensor
+    np.array
         Min of the input tensor along the second to last dimension.
     """
-    return torch.min(h, dim=-2)[0]
+    return np.min(h, axis=-2)
 
 
 def aggregate_std(h, **kwargs):
@@ -108,15 +101,15 @@ def aggregate_std(h, **kwargs):
 
     Parameters
     ----------
-    h : torch.Tensor
+    h : np.array
         Input tensor.
 
     Returns
     -------
-    torch.Tensor
+    np.array
         Standard deviation of the input tensor along the second to last dimension.
     """
-    return torch.sqrt(aggregate_var(h) + EPS)
+    return np.sqrt(aggregate_var(h) + 1e-5)
 
 
 def aggregate_var(h, **kwargs):
@@ -125,17 +118,17 @@ def aggregate_var(h, **kwargs):
 
     Parameters
     ----------
-    h : torch.Tensor
+    h : np.array
         Input tensor.
 
     Returns
     -------
-    torch.Tensor
+    np.array
         Variance of the input tensor along the second to last dimension.
     """
-    h_mean_squares = torch.mean(h * h, dim=-2)
-    h_mean = torch.mean(h, dim=-2)
-    var = torch.relu(h_mean_squares - h_mean * h_mean)
+    h_mean_squares = np.mean(h * h, axis=-2)
+    h_mean = np.mean(h, axis=-2)
+    var = np.maximum(h_mean_squares - h_mean * h_mean, 0)
     return var
 
 
@@ -145,21 +138,21 @@ def aggregate_moment(h, n=3, **kwargs):
 
     Parameters
     ----------
-    h : torch.Tensor
+    h : np.array
         Input tensor.
     n : int, optional, default=3
         The order of the moment to compute.
 
     Returns
     -------
-    torch.Tensor
+    np.array
         Nth moment of the input tensor along the second to last dimension.
     """
     # for each node (E[(X-E[X])^n])^{1/n}
     # EPS is added to the absolute value of expectation before taking the nth root for stability
-    h_mean = torch.mean(h, dim=-2, keepdim=True)
-    h_n = torch.mean(torch.pow(h - h_mean, n), dim=-2)
-    rooted_h_n = torch.sign(h_n) * torch.pow(torch.abs(h_n) + EPS, 1.0 / n)
+    h_mean = np.mean(h, axis=-2, keepdims=True)
+    h_n = np.mean(np.power(h - h_mean, n), axis=-2)
+    rooted_h_n = np.sign(h_n) * np.power(np.abs(h_n) + 1e-5, 1.0 / n)
     return rooted_h_n
 
 
@@ -169,15 +162,15 @@ def aggregate_sum(h, **kwargs):
 
     Parameters
     ----------
-    h : torch.Tensor
+    h : np.array
         Input tensor.
 
     Returns
     -------
-    torch.Tensor
+    np.array
         Sum of the input tensor along the second to last dimension.
     """
-    return torch.sum(h, dim=-2)
+    return np.sum(h, axis=-2)
 
 
 # each scaler is a function that takes as input X (B x N x Din), adj (B x N x N) and
@@ -188,16 +181,16 @@ def scale_identity(h, D=None, avg_d=None):
 
     Parameters
     ----------
-    h : torch.Tensor
+    h : np.array
         Input tensor.
-    D : torch.Tensor, optional
+    D : np.array, optional
         Degree tensor.
     avg_d : dict, optional
         Dictionary containing averages over the training set.
 
     Returns
     -------
-    torch.Tensor
+    np.array
         Scaled input tensor.
     """
     return h
@@ -209,16 +202,16 @@ def scale_amplification(h, D, avg_d):
 
     Parameters
     ----------
-    h : torch.Tensor
+    h : np.array
         Input tensor.
-    D : torch.Tensor
+    D : np.array
         Degree tensor.
     avg_d : dict
         Dictionary containing averages over the training set.
 
     Returns
     -------
-    torch.Tensor
+    np.array
         Scaled input tensor.
     """
     return h * (np.log(D + 1) / avg_d["log"])
@@ -230,35 +223,16 @@ def scale_attenuation(h, D, avg_d):
 
     Parameters
     ----------
-    h : torch.Tensor
+    h : np.array
         Input tensor.
-    D : torch.Tensor
+    D : np.array
         Degree tensor.
     avg_d : dict
         Dictionary containing averages over the training set.
 
     Returns
     -------
-    torch.Tensor
+    np.array
         Scaled input tensor.
     """
     return h * (avg_d["log"] / np.log(D + 1))
-
-
-PNA_AGGREGATORS = {
-    "mean": aggregate_mean,
-    "sum": aggregate_sum,
-    "max": aggregate_max,
-    "min": aggregate_min,
-    "std": aggregate_std,
-    "var": aggregate_var,
-    "moment3": partial(aggregate_moment, n=3),
-    "moment4": partial(aggregate_moment, n=4),
-    "moment5": partial(aggregate_moment, n=5),
-}
-
-PNA_SCALERS = {
-    "identity": scale_identity,
-    "amplification": scale_amplification,
-    "attenuation": scale_attenuation,
-}
