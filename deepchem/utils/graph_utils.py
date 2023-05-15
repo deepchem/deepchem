@@ -1,44 +1,48 @@
 from functools import partial
 
 import numpy as np
-import torch
+
+try:
+    import torch
+except ImportError:
+    pass
 
 
 def fourier_encode_dist(x, num_encodings=4, include_self=True):
     """
-    Fourier encode the input tensor `x` based on the specified number of encodings.
+    Fourier encode the input array `x` based on the specified number of encodings.
 
-    This function applies a Fourier encoding to the input tensor `x` by dividing
+    This function applies a Fourier encoding to the input array `x` by dividing
     it by a range of scales (2^i for i in range(num_encodings)) and then
     concatenating the sine and cosine of the scaled values. Optionally, the
-    original input tensor can be included in the output.
+    original input array can be included in the output.
 
     Parameters
     ----------
-    x : torch.Tensor
-        Input tensor to be Fourier encoded.
+    x : np.ndarray
+        Input array to be Fourier encoded.
     num_encodings : int, optional, default=4
         Number of Fourier encodings to apply.
     include_self : bool, optional, default=True
-        Whether to include the original input tensor in the output.
+        Whether to include the original input array in the output.
 
     Returns
     -------
-    torch.Tensor
-        Fourier encoded tensor.
+    np.ndarray
+        Fourier encoded array.
 
     Examples
     --------
-    >>> import torch
-    >>> x = torch.tensor([1.0, 2.0, 3.0])
-    >>> encoded_x = fourier_encode_dist(x, num_encodings=4, include_self=True)
+    >>> import numpy as np
+    >>> x = np.array([1.0, 2.0, 3.0])
+    >>> encoded_x = fourier_encode_dist_np(x, num_encodings=4, include_self=True)
     """
-    x = x.unsqueeze(-1)
-    device, dtype, orig_x = x.device, x.dtype, x
-    scales = 2**torch.arange(num_encodings, device=device, dtype=dtype)
+    x = x[..., np.newaxis]
+    dtype, orig_x = x.dtype, x
+    scales = 2**np.arange(num_encodings, dtype=dtype)
     x = x / scales
-    x = torch.cat([x.sin(), x.cos()], dim=-1)
-    x = torch.cat((x, orig_x), dim=-1) if include_self else x
+    x = np.concatenate([np.sin(x), np.cos(x)], axis=-1)
+    x = np.concatenate((x, orig_x), axis=-1) if include_self else x
     return x.squeeze()
 
 
