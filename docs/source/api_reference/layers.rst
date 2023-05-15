@@ -186,6 +186,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.BondEncoder
   :members:
 
+.. autoclass:: deepchem.models.torch_models.PNALayer
+  :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 
