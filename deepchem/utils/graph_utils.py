@@ -28,7 +28,7 @@ def fourier_encode_dist(x, num_encodings=4, include_self=True):
     --------
     >>> import numpy as np
     >>> x = np.array([1.0, 2.0, 3.0])
-    >>> encoded_x = fourier_encode_dist_np(x, num_encodings=4, include_self=True)
+    >>> encoded_x = fourier_encode_dist(x, num_encodings=4, include_self=True)
     """
     x = x[..., np.newaxis]
     dtype, orig_x = x.dtype, x
