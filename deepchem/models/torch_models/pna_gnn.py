@@ -215,6 +215,8 @@ class PNALayer(nn.Module):
     pretrans_layers : int, optional, default=1
         Number of pre-transformation layers.
 
+    Examples
+    --------
     >>> import dgl
     >>> import numpy as np
     >>> import torch
