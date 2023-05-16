@@ -1,3 +1,4 @@
+from functools import partial
 from math import sqrt
 
 import torch
@@ -6,6 +7,36 @@ from deepchem.feat.molecule_featurizers.conformer_featurizer import (
     full_atom_feature_dims,
     full_bond_feature_dims,
 )
+from deepchem.utils.graph_utils import (
+    aggregate_max,
+    aggregate_mean,
+    aggregate_min,
+    aggregate_moment,
+    aggregate_std,
+    aggregate_sum,
+    aggregate_var,
+    scale_amplification,
+    scale_attenuation,
+    scale_identity,
+)
+
+PNA_AGGREGATORS = {
+    "mean": aggregate_mean,
+    "sum": aggregate_sum,
+    "max": aggregate_max,
+    "min": aggregate_min,
+    "std": aggregate_std,
+    "var": aggregate_var,
+    "moment3": partial(aggregate_moment, n=3),
+    "moment4": partial(aggregate_moment, n=4),
+    "moment5": partial(aggregate_moment, n=5),
+}
+
+PNA_SCALERS = {
+    "identity": scale_identity,
+    "amplification": scale_amplification,
+    "attenuation": scale_attenuation,
+}
 
 
 class AtomEncoder(torch.nn.Module):

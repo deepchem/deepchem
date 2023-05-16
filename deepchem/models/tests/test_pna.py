@@ -1,6 +1,8 @@
 def test_AtomEncoder():
     import torch
-    from deepchem.feat.molecule_featurizers.conformer_featurizer import full_atom_feature_dims
+
+    from deepchem.feat.molecule_featurizers.conformer_featurizer import (
+        full_atom_feature_dims,)
     from deepchem.models.torch_models.pna_gnn import AtomEncoder
 
     atom_encoder = AtomEncoder(emb_dim=32)
@@ -19,7 +21,9 @@ def test_AtomEncoder():
 
 def test_BondEncoder():
     import torch
-    from deepchem.feat.molecule_featurizers.conformer_featurizer import full_bond_feature_dims
+
+    from deepchem.feat.molecule_featurizers.conformer_featurizer import (
+        full_bond_feature_dims,)
     from deepchem.models.torch_models.pna_gnn import BondEncoder
 
     bond_encoder = BondEncoder(emb_dim=32)
