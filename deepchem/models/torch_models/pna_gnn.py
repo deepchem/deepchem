@@ -3,10 +3,7 @@ from functools import partial
 from math import sqrt
 from typing import Callable, Dict, List, Union
 
-try:
-    import dgl
-except ImportError:
-    print("This class requires dgl.")
+import dgl
 import torch
 from torch import nn
 
@@ -529,3 +526,4 @@ class PNAGNN(nn.Module):
             graph.ndata['feat'] = mp_layer(graph)
 
         return graph
+
