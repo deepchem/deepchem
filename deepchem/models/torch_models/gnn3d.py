@@ -39,8 +39,6 @@ class Net3DLayer(nn.Module):
     ----------
     .. [1] Stärk, H. et al. 3D Infomax improves GNNs for Molecular Property Prediction. Preprint at https://doi.org/10.48550/arXiv.2110.04126 (2022).
 
-
-
     Examples
     --------
     >>> net3d_layer = Net3DLayer(edge_dim=3, hidden_dim=3)
