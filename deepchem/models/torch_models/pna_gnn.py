@@ -414,7 +414,7 @@ class PNALayer(nn.Module):
 
 class PNAGNN(nn.Module):
     """
-    Principal Neighbourhood Aggregation Graph Neural Network. This defines the message passing layers of the PNA model.
+    Principal Neighbourhood Aggregation Graph Neural Network [1]. This defines the message passing layers of the PNA model.
 
     Parameters
     ----------
@@ -446,6 +446,10 @@ class PNAGNN(nn.Module):
         Number of post-transformation layers.
     pretrans_layers : int, optional, default=1
         Number of pre-transformation layers.
+
+    References
+    ----------
+    .. [1] Corso, G., Cavalleri, L., Beaini, D., Liò, P. & Veličković, P. Principal Neighbourhood Aggregation for Graph Nets. Preprint at https://doi.org/10.48550/arXiv.2004.05718 (2020).
 
     Examples
     --------
