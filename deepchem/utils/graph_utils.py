@@ -1,5 +1,9 @@
 import numpy as np
-import torch
+
+try:
+    import torch
+except ImportError:
+    print("This module requires PyTorch to be installed.")
 
 
 def fourier_encode_dist(x, num_encodings=4, include_self=True):
