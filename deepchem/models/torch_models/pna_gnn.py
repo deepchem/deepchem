@@ -4,6 +4,7 @@ from math import sqrt
 from typing import Callable, Dict, List, Union
 
 import dgl
+import dgl.function as fn
 import torch
 from torch import nn
 
@@ -518,3 +519,4 @@ class PNAGNN(nn.Module):
             graph.ndata['feat'] = mp_layer(graph)
 
         return graph
+
