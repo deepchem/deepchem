@@ -1,7 +1,10 @@
 import copy
 
-import dgl
-import dgl.function as fn
+try:
+    import dgl
+    import dgl.function as fn
+except ImportError:
+    print("This class requires dgl to be installed.")
 import torch
 from torch import nn
 
