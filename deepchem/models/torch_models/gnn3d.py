@@ -12,7 +12,7 @@ class Net3DLayer(nn.Module):
     """
     Net3DLayer is a single layer of a 3D graph neural network.
 
-    This class expects a DGL graph with node features stored under the name 'feat' and edge features stored under the name 'd' for distance. The edge features are updated by the message network and the node features are updated by the update network.
+    This class expects a DGL graph with node features stored under the name 'feat' and edge features stored under the name 'd' (representing 3D distances). The edge features are updated by the message network and the node features are updated by the update network.
 
     Parameters
     ----------
@@ -37,8 +37,10 @@ class Net3DLayer(nn.Module):
 
     Examples
     --------
-    >>> net3d_layer = Net3DLayer(edge_dim=3, hidden_dim=16)
-    >>> graph = dgl.DGLGraph()
+    >>> net3d_layer = Net3DLayer(edge_dim=3, hidden_dim=3)
+    >>> graph = dgl.graph(([0, 1], [1, 2]))
+    >>> graph.ndata['feat'] = torch.tensor([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]])
+    >>> graph.edata['d'] = torch.tensor([[0.5, 0.6, 0.7], [0.8, 0.9, 1.0]])
     >>> output = net3d_layer(graph)
     """
 

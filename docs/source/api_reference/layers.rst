@@ -192,6 +192,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.PNAGNN
   :members:
 
+.. autoclass:: deepchem.models.torch_models.Net3DLayer
+  :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 
