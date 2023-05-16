@@ -10,7 +10,7 @@ from deepchem.models.torch_models.layers import MultilayerPerceptron
 
 class Net3DLayer(nn.Module):
     """
-    Net3DLayer is a single layer of a 3D graph neural network.
+    Net3DLayer is a single layer of a 3D graph neural network based on the 3D Infomax architecture [1].
 
     This class expects a DGL graph with node features stored under the name 'feat' and edge features stored under the name 'd' (representing 3D distances). The edge features are updated by the message network and the node features are updated by the update network.
 
@@ -34,6 +34,12 @@ class Net3DLayer(nn.Module):
         The number of message network layers.
     update_net_layers : int, optional (default=2)
         The number of update network layers.
+
+    References
+    ----------
+    .. [1] Stärk, H. et al. 3D Infomax improves GNNs for Molecular Property Prediction. Preprint at https://doi.org/10.48550/arXiv.2110.04126 (2022).
+
+
 
     Examples
     --------
