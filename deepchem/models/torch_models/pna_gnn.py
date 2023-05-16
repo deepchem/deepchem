@@ -178,7 +178,7 @@ class BondEncoder(torch.nn.Module):
 
 class PNALayer(nn.Module):
     """
-    Principal Neighbourhood Aggregation Layer.
+    Principal Neighbourhood Aggregation Layer (PNA) from [1].
 
     Parameters
     ----------
@@ -214,6 +214,10 @@ class PNALayer(nn.Module):
         Number of post-transformation layers.
     pretrans_layers : int, optional, default=1
         Number of pre-transformation layers.
+
+    References
+    ----------
+    .. [1] Corso, G., Cavalleri, L., Beaini, D., Liò, P. & Veličković, P. Principal Neighbourhood Aggregation for Graph Nets. Preprint at https://doi.org/10.48550/arXiv.2004.05718 (2020).
 
     Examples
     --------
