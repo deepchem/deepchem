@@ -16,24 +16,17 @@ def test_Net3DLayer():
                              hidden_dim=hidden_dim,
                              batch_norm=batch_norm,
                              batch_norm_momentum=batch_norm_momentum,
-                             dropout=dropout,
-                             reduce_func='sum',
-                             message_net_layers=2,
-                             update_net_layers=2)
+                             dropout=dropout)
 
     output_graph = net3d_layer(g)
 
-    # Check the output graph has the same number of nodes and edges as the input graph
     assert output_graph.number_of_nodes() == g.number_of_nodes()
     assert output_graph.number_of_edges() == g.number_of_edges()
 
-    # Check the output graph has the expected node features
     output_feats = output_graph.ndata['feat'].detach().numpy()
     assert output_feats.shape == (3, 3)
     assert not np.allclose(output_feats, g.ndata['feat'].detach().numpy())
 
-    # Check the output graph has the expected edge features
     output_edge_feats = output_graph.edata['d'].detach().numpy()
     assert output_edge_feats.shape == (2, 3)
     assert not np.allclose(output_edge_feats, g.edata['d'].detach().numpy())
-

@@ -12,14 +12,16 @@ class Net3DLayer(nn.Module):
     """
     Net3DLayer is a single layer of a 3D graph neural network.
 
+    This class expects a DGL graph with node features stored under the name 'feat' and edge features stored under the name 'd' for distance. The edge features are updated by the message network and the node features are updated by the update network.
+
     Parameters
     ----------
     edge_dim : int
         The dimension of the edge features.
-    reduce_func : str
-        The reduce function to use for aggregating messages.
     hidden_dim : int
         The dimension of the hidden layers.
+    reduce_func : str
+        The reduce function to use for aggregating messages. Can be either 'sum' or 'mean'.
     batch_norm : bool, optional (default=False)
         Whether to use batch normalization.
     batch_norm_momentum : float, optional (default=0.1)
@@ -35,14 +37,20 @@ class Net3DLayer(nn.Module):
 
     Examples
     --------
-    >>> net3d_layer = Net3DLayer(edge_dim=32, reduce_func='sum', hidden_dim=32)
+    >>> net3d_layer = Net3DLayer(edge_dim=3, hidden_dim=16)
     >>> graph = dgl.DGLGraph()
-    >>> net3d_layer(graph)
+    >>> output = net3d_layer(graph)
     """
 
-    def __init__(self, edge_dim, reduce_func, hidden_dim, batch_norm,
-                 batch_norm_momentum, dropout, message_net_layers,
-                 update_net_layers):
+    def __init__(self,
+                 edge_dim: int,
+                 hidden_dim: int,
+                 reduce_func: str = 'sum',
+                 batch_norm: bool = False,
+                 batch_norm_momentum: float = 0.1,
+                 dropout: float = 0.0,
+                 message_net_layers: int = 2,
+                 update_net_layers: int = 2):
         super(Net3DLayer, self).__init__()
 
         self.message_network = nn.Sequential(
