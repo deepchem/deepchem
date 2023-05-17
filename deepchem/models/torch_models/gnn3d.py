@@ -160,24 +160,23 @@ class Net3D(nn.Module):
     .. [1] Stärk, H. et al. 3D Infomax improves GNNs for Molecular Property Prediction. Preprint at https://doi.org/10.48550/arXiv.2110.04126 (2022).
     """
 
-    def __init__(self,
-                 hidden_dim,
-                 target_dim,
-                 readout_aggregators: List[str],
-                 batch_norm=False,
-                 node_wise_output_layers=2,
-                 readout_batchnorm=True,
-                 batch_norm_momentum=0.1,
-                 reduce_func='sum',
-                 dropout=0.0,
-                 propagation_depth: int = 4,
-                 readout_layers: int = 2,
-                 readout_hidden_dim=None,
-                 fourier_encodings=4,
-                 #  activation: str = 'SiLU',
-                 update_net_layers=2,
-                 message_net_layers=2,
-                 use_node_features=False):
+    def __init__(
+            self,
+            hidden_dim,
+            target_dim,
+            readout_aggregators: List[str],
+            batch_norm=False,
+            node_wise_output_layers=2,
+            batch_norm_momentum=0.1,
+            reduce_func='sum',
+            dropout=0.0,
+            propagation_depth: int = 4,
+            readout_layers: int = 2,
+            readout_hidden_dim=None,
+            fourier_encodings=4,
+            update_net_layers=2,
+            message_net_layers=2,
+            use_node_features=False):
         super(Net3D, self).__init__()
         self.fourier_encodings = fourier_encodings
         edge_in_dim = 1 if fourier_encodings == 0 else 2 * fourier_encodings + 1
@@ -228,12 +227,11 @@ class Net3D(nn.Module):
             d_hidden=(readout_hidden_dim,) *
             (readout_layers -
              1),  # -1 because the input layer is not considered a hidden layer
-            batch_norm=readout_batchnorm,
-            batch_norm_momentum=batch_norm_momentum)
+            batch_norm=False)
 
     def forward(self, graph: dgl.DGLGraph):
         if self.use_node_features:
-            graph.ndata['feat'] = self.atom_encoder(graph.ndata['feat'])
+            graph.ndata['feat'] = self.atom_encoder(graph.ndata['x'])
         else:
             graph.ndata['feat'] = self.node_embedding[None, :].expand(
                 graph.number_of_nodes(), -1)

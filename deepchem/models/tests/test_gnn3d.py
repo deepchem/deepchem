@@ -71,6 +71,3 @@ def test_net3d():
     output = net3d(graph)
 
     assert output.shape[1] == target_dim
-
-
-test_net3d()
