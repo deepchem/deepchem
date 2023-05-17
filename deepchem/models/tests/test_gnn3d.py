@@ -55,40 +55,22 @@ def get_regression_dataset():
 
 
 def test_net3d():
-    # import dgl
     import numpy as np
 
-    # import torch
-    # # Create a DGL graph
-    # graph = dgl.graph(([0, 1], [1, 2]))
-    # graph.ndata['feat'] = torch.tensor([[1., 2., 3.], [4., 5., 6.],
-    #                                     [7., 8., 9.]])
-    # graph.edata['d'] = torch.tensor([[0.5, 0.6, 0.7], [0.8, 0.9, 1.0]])
     from deepchem.feat.graph_data import BatchGraphData
     from deepchem.models.torch_models.gnn3d import Net3D
-    # from deepchem.models.torch_models.pna_gnn import PNAGNN
-    import torch
     data, _ = get_regression_dataset()
     features = BatchGraphData(np.concatenate(data.X).ravel())
     graph = features.to_dgl_graph()
     target_dim = 2
 
-    # Instantiate a Net3D model
     net3d = Net3D(hidden_dim=3,
                   target_dim=target_dim,
                   readout_aggregators=['sum', 'mean'])
 
-    graph.edata['d'] = torch.norm(graph.ndata['x'][graph.edges()[0]] -
-                                  graph.ndata['x'][graph.edges()[1]],
-                                  p=2,
-                                  dim=-1).unsqueeze(-1).detach()
-    # Perform a forward pass on the graph
     output = net3d(graph)
 
-    # Check the output shape and values
     assert output.shape[1] == target_dim
 
 
-
-# test_Net3DLayer()
 test_net3d()

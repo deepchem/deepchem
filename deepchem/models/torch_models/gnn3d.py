@@ -166,7 +166,7 @@ class Net3D(nn.Module):
                  readout_aggregators: List[str],
                  batch_norm=False,
                  node_wise_output_layers=2,
-                #  readout_batchnorm=True,
+                 readout_batchnorm=True,
                  batch_norm_momentum=0.1,
                  reduce_func='sum',
                  dropout=0.0,
@@ -180,7 +180,7 @@ class Net3D(nn.Module):
                  use_node_features=False):
         super(Net3D, self).__init__()
         self.fourier_encodings = fourier_encodings
-        edge_in_dim = 1 if fourier_encodings == 0 else 2 * fourier_encodings + 1  # originally 1 XXX
+        edge_in_dim = 1 if fourier_encodings == 0 else 2 * fourier_encodings + 1
 
         self.edge_input = nn.Sequential(
             MultilayerPerceptron(d_input=edge_in_dim,
@@ -228,7 +228,8 @@ class Net3D(nn.Module):
             d_hidden=(readout_hidden_dim,) *
             (readout_layers -
              1),  # -1 because the input layer is not considered a hidden layer
-            batch_norm=False)
+            batch_norm=readout_batchnorm,
+            batch_norm_momentum=batch_norm_momentum)
 
     def forward(self, graph: dgl.DGLGraph):
         if self.use_node_features:
