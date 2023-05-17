@@ -46,10 +46,7 @@ def test_pretraining(hf_tokenizer, smiles_regression_dataset):
     config = RobertaConfig(vocab_size=hf_tokenizer.vocab_size)
     model = RobertaForMaskedLM(config)
 
-
-    hf_model = HuggingFaceModel(model=model,
-                                tokenizer=hf_tokenizer,
-                                task='mlm')
+    hf_model = HuggingFaceModel(model=model, tokenizer=hf_tokenizer, task='mlm')
     loss = hf_model.fit(smiles_regression_dataset, nb_epoch=1)
 
     assert loss

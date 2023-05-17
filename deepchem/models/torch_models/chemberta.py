@@ -3,6 +3,7 @@ from transformers.models.roberta.modeling_roberta import (
     RobertaConfig, RobertaForMaskedLM, RobertaForSequenceClassification)
 from transformers.models.roberta.tokenization_roberta_fast import \
     RobertaTokenizerFast
+from transformers.modeling_utils import PreTrainedModel
 
 
 class Chemberta(HuggingFaceModel):
@@ -86,6 +87,7 @@ class Chemberta(HuggingFaceModel):
                  **kwargs):
         self.n_tasks = n_tasks
         tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_path)
+        model: PreTrainedModel
         if task == 'mlm':
             config = RobertaConfig(vocab_size=tokenizer.vocab_size)
             model = RobertaForMaskedLM(config)
