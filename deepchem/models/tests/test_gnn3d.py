@@ -30,3 +30,6 @@ def test_Net3DLayer():
     output_edge_feats = output_graph.edata['d'].detach().numpy()
     assert output_edge_feats.shape == (2, 3)
     assert not np.allclose(output_edge_feats, g.edata['d'].detach().numpy())
+
+def test_Net3D():
+    from deepchem.models.torch_models.gnn3d import Net3D

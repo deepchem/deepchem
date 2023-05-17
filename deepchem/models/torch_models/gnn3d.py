@@ -1,11 +1,15 @@
 import copy
+from typing import List
 
 import dgl
 import dgl.function as fn
 import torch
 from torch import nn
+from torch.nn import functional as F
 
 from deepchem.models.torch_models.layers import MultilayerPerceptron
+from deepchem.models.torch_models.pna_gnn import AtomEncoder
+from deepchem.utils.graph_utils import fourier_encode_dist
 
 
 class Net3DLayer(nn.Module):
@@ -104,3 +108,155 @@ class Net3DLayer(nn.Module):
         h_new = self.update_network(input)
         output = h_new + h
         return {'feat': output}
+
+
+class Net3D(nn.Module):
+    """
+    Net3D is a 3D graph neural network that expects a DGL graph input with 3D coordiantes.
+
+    Parameters
+    ----------
+    hidden_dim : int
+        The dimension of the hidden layers.
+    target_dim : int
+        The dimension of the output layer.
+    readout_aggregators : List[str]
+        A list of aggregator functions for the readout layer.
+    batch_norm : bool, optional (default=False)
+        Whether to use batch normalization.
+    node_wise_output_layers : int, optional (default=2)
+        The number of output layers for each node.
+    readout_batchnorm : bool, optional (default=True)
+        Whether to use batch normalization in the readout layer.
+    batch_norm_momentum : float, optional (default=0.1)
+        The momentum for the batch normalization layers.
+    reduce_func : str, optional (default='sum')
+        The reduce function to use for aggregating messages.
+    dropout : float, optional (default=0.0)
+        The dropout rate for the layers.
+    propagation_depth : int, optional (default=4)
+        The number of propagation layers in the network.
+    readout_layers : int, optional (default=2)
+        The number of readout layers in the network.
+    readout_hidden_dim : int, optional (default=None)
+        The dimension of the hidden layers in the readout network.
+    fourier_encodings : int, optional (default=0)
+        The number of Fourier encodings to use.
+    activation : str, optional (default='SiLU')
+        The activation function to use in the network.
+    update_net_layers : int, optional (default=2)
+        The number of update network layers.
+    message_net_layers : int, optional (default=2)
+        The number of message network layers.
+    use_node_features : bool, optional (default=False)
+        Whether to use node features as input.
+
+    Examples
+    --------
+    >>> net3d = Net3D(hidden_dim=32, target_dim=1, readout_aggregators=['mean'])
+    >>> graph = dgl.DGLGraph()
+    >>> output = net3d(graph)
+    """
+
+    def __init__(self,
+                 hidden_dim,
+                 target_dim,
+                 readout_aggregators: List[str],
+                 batch_norm=False,
+                 node_wise_output_layers=2,
+                 readout_batchnorm=True,
+                 batch_norm_momentum=0.1,
+                 reduce_func='sum',
+                 dropout=0.0,
+                 propagation_depth: int = 4,
+                 readout_layers: int = 2,
+                 readout_hidden_dim=None,
+                 fourier_encodings=0,
+                 activation: str = 'SiLU',
+                 update_net_layers=2,
+                 message_net_layers=2,
+                 use_node_features=False):
+        super(Net3D, self).__init__()
+        self.fourier_encodings = fourier_encodings
+        edge_in_dim = 3 if fourier_encodings == 0 else 2 * fourier_encodings + 1  # originally 1 XXX
+
+        self.edge_input = nn.Sequential(
+            MultilayerPerceptron(d_input=edge_in_dim,
+                                 d_output=hidden_dim,
+                                 d_hidden=(hidden_dim,),
+                                 batch_norm=True,
+                                 batch_norm_momentum=batch_norm_momentum),
+            torch.nn.SiLU())
+
+        self.use_node_features = use_node_features
+        if self.use_node_features:
+            self.atom_encoder = AtomEncoder(hidden_dim)
+        else:
+            self.node_embedding = nn.Parameter(torch.empty((hidden_dim,)))
+            nn.init.normal_(self.node_embedding)
+
+        self.mp_layers = nn.ModuleList()
+        for _ in range(propagation_depth):
+            self.mp_layers.append(
+                Net3DLayer(edge_dim=hidden_dim,
+                           hidden_dim=hidden_dim,
+                           batch_norm=batch_norm,
+                           batch_norm_momentum=batch_norm_momentum,
+                           dropout=dropout,
+                           mid_activation=activation,
+                           reduce_func=reduce_func,
+                           message_net_layers=message_net_layers,
+                           update_net_layers=update_net_layers))
+
+        self.node_wise_output_layers = node_wise_output_layers
+        if self.node_wise_output_layers > 0:
+            self.node_wise_output_network = MultilayerPerceptron(
+                d_input=hidden_dim,
+                d_output=hidden_dim,
+                d_hidden=(hidden_dim,),
+                batch_norm=True,
+                batch_norm_momentum=batch_norm_momentum)
+
+        if readout_hidden_dim is None:
+            readout_hidden_dim = hidden_dim
+        self.readout_aggregators = readout_aggregators
+
+        self.output = MultilayerPerceptron(
+            d_input=hidden_dim * len(self.readout_aggregators),
+            d_output=target_dim,
+            d_hidden=(readout_hidden_dim,) *
+            (readout_layers -
+             1),  # -1 because the input layer is not considered a hidden layer
+            batch_norm=readout_batchnorm,
+            batch_norm_momentum=batch_norm_momentum)
+
+    def forward(self, graph: dgl.DGLGraph):
+        if self.use_node_features:
+            graph.ndata['feat'] = self.atom_encoder(graph.ndata['feat'])
+        else:
+            graph.ndata['feat'] = self.node_embedding[None, :].expand(
+                graph.number_of_nodes(), -1)
+
+        if self.fourier_encodings > 0:
+            graph.edata['d'] = fourier_encode_dist(
+                graph.edata['d'], num_encodings=self.fourier_encodings)
+        graph.apply_edges(self.input_edge_func)
+
+        for mp_layer in self.mp_layers:
+            mp_layer(graph)
+
+        if self.node_wise_output_layers > 0:
+            graph.apply_nodes(self.output_node_func)
+
+        readouts_to_cat = [
+            dgl.readout_nodes(graph, 'feat', op=aggr)
+            for aggr in self.readout_aggregators
+        ]
+        readout = torch.cat(readouts_to_cat, dim=-1)
+        return self.output(readout)
+
+    def output_node_func(self, nodes):
+        return {'feat': self.node_wise_output_network(nodes.data['feat'])}
+
+    def input_edge_func(self, edges):
+        return {'d': F.silu(self.edge_input(edges.data['edge_attr']))}
