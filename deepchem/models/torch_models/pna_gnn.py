@@ -526,4 +526,3 @@ class PNAGNN(nn.Module):
             graph.ndata['feat'] = mp_layer(graph)
 
         return graph
-
