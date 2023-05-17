@@ -88,7 +88,11 @@ class Net3DLayer(nn.Module):
         self.soft_edge_network = nn.Linear(hidden_dim, 1)
 
     def forward(self, input_graph: dgl.DGLGraph):
-        graph = copy.deepcopy(input_graph)
+        # copy the input graph to avoid in-place operations
+        graph = input_graph.local_var()
+        graph.ndata['feat'] = input_graph.ndata['feat'].clone()
+        graph.edata['d'] = input_graph.edata['d'].clone()
+
         graph.update_all(message_func=self.message_function,
                          reduce_func=self.reduce_func(msg='m', out='m_sum'),
                          apply_node_func=self.update_function)
@@ -112,7 +116,7 @@ class Net3DLayer(nn.Module):
 
 class Net3D(nn.Module):
     """
-    Net3D is a 3D graph neural network that expects a DGL graph input with 3D coordiantes.
+    Net3D is a 3D graph neural network that expects a DGL graph input with 3D coordinates stored under the name 'd' and node features stored under the name 'feat'. It is based on the 3D Infomax architecture [1].
 
     Parameters
     ----------
@@ -151,11 +155,9 @@ class Net3D(nn.Module):
     use_node_features : bool, optional (default=False)
         Whether to use node features as input.
 
-    Examples
-    --------
-    >>> net3d = Net3D(hidden_dim=32, target_dim=1, readout_aggregators=['mean'])
-    >>> graph = dgl.DGLGraph()
-    >>> output = net3d(graph)
+    References
+    ----------
+    .. [1] Stärk, H. et al. 3D Infomax improves GNNs for Molecular Property Prediction. Preprint at https://doi.org/10.48550/arXiv.2110.04126 (2022).
     """
 
     def __init__(self,
@@ -164,21 +166,21 @@ class Net3D(nn.Module):
                  readout_aggregators: List[str],
                  batch_norm=False,
                  node_wise_output_layers=2,
-                 readout_batchnorm=True,
+                #  readout_batchnorm=True,
                  batch_norm_momentum=0.1,
                  reduce_func='sum',
                  dropout=0.0,
                  propagation_depth: int = 4,
                  readout_layers: int = 2,
                  readout_hidden_dim=None,
-                 fourier_encodings=0,
-                 activation: str = 'SiLU',
+                 fourier_encodings=4,
+                 #  activation: str = 'SiLU',
                  update_net_layers=2,
                  message_net_layers=2,
                  use_node_features=False):
         super(Net3D, self).__init__()
         self.fourier_encodings = fourier_encodings
-        edge_in_dim = 3 if fourier_encodings == 0 else 2 * fourier_encodings + 1  # originally 1 XXX
+        edge_in_dim = 1 if fourier_encodings == 0 else 2 * fourier_encodings + 1  # originally 1 XXX
 
         self.edge_input = nn.Sequential(
             MultilayerPerceptron(d_input=edge_in_dim,
@@ -203,7 +205,6 @@ class Net3D(nn.Module):
                            batch_norm=batch_norm,
                            batch_norm_momentum=batch_norm_momentum,
                            dropout=dropout,
-                           mid_activation=activation,
                            reduce_func=reduce_func,
                            message_net_layers=message_net_layers,
                            update_net_layers=update_net_layers))
@@ -227,8 +228,7 @@ class Net3D(nn.Module):
             d_hidden=(readout_hidden_dim,) *
             (readout_layers -
              1),  # -1 because the input layer is not considered a hidden layer
-            batch_norm=readout_batchnorm,
-            batch_norm_momentum=batch_norm_momentum)
+            batch_norm=False)
 
     def forward(self, graph: dgl.DGLGraph):
         if self.use_node_features:
@@ -243,7 +243,7 @@ class Net3D(nn.Module):
         graph.apply_edges(self.input_edge_func)
 
         for mp_layer in self.mp_layers:
-            mp_layer(graph)
+            graph = mp_layer(graph)
 
         if self.node_wise_output_layers > 0:
             graph.apply_nodes(self.output_node_func)
@@ -259,4 +259,4 @@ class Net3D(nn.Module):
         return {'feat': self.node_wise_output_network(nodes.data['feat'])}
 
     def input_edge_func(self, edges):
-        return {'d': F.silu(self.edge_input(edges.data['edge_attr']))}
+        return {'d': F.silu(self.edge_input(edges.data['d']))}
