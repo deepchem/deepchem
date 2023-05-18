@@ -1,4 +1,3 @@
-import copy
 from typing import List
 
 import dgl
@@ -160,23 +159,22 @@ class Net3D(nn.Module):
     .. [1] Stärk, H. et al. 3D Infomax improves GNNs for Molecular Property Prediction. Preprint at https://doi.org/10.48550/arXiv.2110.04126 (2022).
     """
 
-    def __init__(
-            self,
-            hidden_dim,
-            target_dim,
-            readout_aggregators: List[str],
-            batch_norm=False,
-            node_wise_output_layers=2,
-            batch_norm_momentum=0.1,
-            reduce_func='sum',
-            dropout=0.0,
-            propagation_depth: int = 4,
-            readout_layers: int = 2,
-            readout_hidden_dim=None,
-            fourier_encodings=4,
-            update_net_layers=2,
-            message_net_layers=2,
-            use_node_features=False):
+    def __init__(self,
+                 hidden_dim,
+                 target_dim,
+                 readout_aggregators: List[str],
+                 batch_norm=False,
+                 node_wise_output_layers=2,
+                 batch_norm_momentum=0.1,
+                 reduce_func='sum',
+                 dropout=0.0,
+                 propagation_depth: int = 4,
+                 readout_layers: int = 2,
+                 readout_hidden_dim=None,
+                 fourier_encodings=4,
+                 update_net_layers=2,
+                 message_net_layers=2,
+                 use_node_features=False):
         super(Net3D, self).__init__()
         self.fourier_encodings = fourier_encodings
         edge_in_dim = 1 if fourier_encodings == 0 else 2 * fourier_encodings + 1
@@ -230,6 +228,19 @@ class Net3D(nn.Module):
             batch_norm=False)
 
     def forward(self, graph: dgl.DGLGraph):
+        """
+        Forward pass of the Net3D model.
+
+        Parameters
+        ----------
+        graph : dgl.DGLGraph
+            The input graph with node features stored under the key 'x' and edge distances stored under the key 'd'.
+
+        Returns
+        -------
+        torch.Tensor
+            The output tensor of shape (1, target_dim).
+        """
         if self.use_node_features:
             graph.ndata['feat'] = self.atom_encoder(graph.ndata['x'])
         else:
@@ -255,7 +266,33 @@ class Net3D(nn.Module):
         return self.output(readout)
 
     def output_node_func(self, nodes):
+        """
+        Apply the node-wise output network to the node features.
+
+        Parameters
+        ----------
+        nodes : dgl.NodeBatch
+            A batch of nodes with features stored under the key 'feat'.
+
+        Returns
+        -------
+        dict
+            A dictionary with the updated node features under the key 'feat'.
+        """
         return {'feat': self.node_wise_output_network(nodes.data['feat'])}
 
     def input_edge_func(self, edges):
+        """
+        Apply the edge input network to the edge features.
+
+        Parameters
+        ----------
+        edges : dgl.EdgeBatch
+            A batch of edges with distances stored under the key 'd'.
+
+        Returns
+        -------
+        dict
+            A dictionary with the updated edge features under the key 'd'.
+        """
         return {'d': F.silu(self.edge_input(edges.data['d']))}

@@ -34,12 +34,10 @@ def test_Net3DLayer():
 
 def get_regression_dataset():
     import os
-
     import numpy as np
-
     import deepchem as dc
-    from deepchem.feat.molecule_featurizers.conformer_featurizer import (
-        RDKitConformerFeaturizer,)
+    from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
+
     np.random.seed(123)
     featurizer = RDKitConformerFeaturizer(num_conformers=2)
     dir = os.path.dirname(os.path.abspath(__file__))
