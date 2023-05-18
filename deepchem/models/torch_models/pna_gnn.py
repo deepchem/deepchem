@@ -191,9 +191,9 @@ class PNALayer(nn.Module):
     in_dim_edges : int
         Input dimension of the edge features.
     aggregators : List[str]
-        List of aggregator functions to use.
+        List of aggregator functions to use. Options are "mean", "sum", "max", "min", "std", "var", "moment3", "moment4", "moment5".
     scalers : List[str]
-        List of scaler functions to use.
+        List of scaler functions to use. Options are "identity", "amplification", "attenuation".
     activation : Union[Callable, str], optional, default="relu"
         Activation function to use.
     last_activation : Union[Callable, str], optional, default="none"
@@ -274,6 +274,7 @@ class PNALayer(nn.Module):
         self.residual = residual
         if in_dim != out_dim:
             self.residual = False
+        batch_norm = True if batch_norm_momentum > 0 else False
 
         self.pretrans = MultilayerPerceptron(
             d_input=(2 * in_dim + in_dim_edges +
@@ -281,7 +282,7 @@ class PNALayer(nn.Module):
             (2 * in_dim + in_dim_edges),
             d_output=in_dim,
             d_hidden=(in_dim,) * (pretrans_layers - 1),
-            batch_norm=True,
+            batch_norm=batch_norm,
             batch_norm_momentum=batch_norm_momentum,
             dropout=dropout)
 
@@ -289,7 +290,7 @@ class PNALayer(nn.Module):
             d_input=(len(self.aggregators) * len(self.scalers) + 1) * in_dim,
             d_hidden=(out_dim,) * (posttrans_layers - 1),
             d_output=out_dim,
-            batch_norm=True,
+            batch_norm=batch_norm,
             batch_norm_momentum=batch_norm_momentum,
             dropout=dropout)
 

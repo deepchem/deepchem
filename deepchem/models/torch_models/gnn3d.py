@@ -1,4 +1,4 @@
-from typing import List
+from typing import Callable, List, Union
 
 import dgl
 import dgl.function as fn
@@ -6,10 +6,11 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from deepchem.models.torch_models.layers import MultilayerPerceptron
-from deepchem.models.torch_models.pna_gnn import AtomEncoder
-from deepchem.utils.graph_utils import fourier_encode_dist
 from deepchem.models.torch_models import ModularTorchModel
+from deepchem.models.torch_models.layers import MultilayerPerceptron
+from deepchem.models.torch_models.pna_gnn import PNAGNN, AtomEncoder
+from deepchem.utils.graph_utils import fourier_encode_dist
+
 
 class Net3DLayer(nn.Module):
     """
@@ -178,6 +179,7 @@ class Net3D(nn.Module):
         super(Net3D, self).__init__()
         self.fourier_encodings = fourier_encodings
         edge_in_dim = 1 if fourier_encodings == 0 else 2 * fourier_encodings + 1
+        batch_norm = True if batch_norm_momentum > 0 else False
 
         self.edge_input = nn.Sequential(
             MultilayerPerceptron(d_input=edge_in_dim,
@@ -299,4 +301,68 @@ class Net3D(nn.Module):
 
 
 class InfoMax3DModular(ModularTorchModel):
-    pass
+
+    def __init__(self,
+                 hidden_dim,
+                 target_dim,
+                 aggregators: List[str],
+                 scalers: List[str],
+                 residual: bool = True,
+                 pairwise_distances: bool = False,
+                 activation: Union[Callable, str] = "relu",
+                 batch_norm_momentum=0.1,
+                 propagation_depth: int = 5,
+                 dropout: float = 0.0,
+                 posttrans_layers: int = 1,
+                 pretrans_layers: int = 1,
+                 **kwargs):
+        self.hidden_dim = hidden_dim
+        self.target_dim = target_dim
+        self.aggregators = aggregators
+        self.scalers = scalers
+        self.residual = residual
+        self.pairwise_distances = pairwise_distances
+        self.activation = activation
+        self.batch_norm_momentum = batch_norm_momentum
+        self.propagation_depth = propagation_depth
+        self.dropout = dropout
+        self.posttrans_layers = posttrans_layers
+        self.pretrans_layers = pretrans_layers
+        self.kwargs = kwargs
+        self.criterion = torch.nn.MSELoss()
+        self.components = self.build_components()
+        self.model = self.build_model()
+        super().__init__(self.model, self.components, **kwargs)
+
+    def build_components(self):
+        return {
+            '2d':
+                PNAGNN(hidden_dim=self.hidden_dim,
+                       aggregators=self.aggregators,
+                       scalers=self.scalers,
+                       residual=self.residual,
+                       pairwise_distances=self.pairwise_distances,
+                       activation=self.activation,
+                       batch_norm_momentum=self.batch_norm_momentum,
+                       propagation_depth=self.propagation_depth,
+                       dropout=self.dropout,
+                       posttrans_layers=self.posttrans_layers,
+                       pretrans_layers=self.pretrans_layers,
+                       **self.kwargs),
+            '3d':
+                Net3D(
+                    **self.kwargs)
+        }
+
+    def build_model(self):
+        return self.components['2d']
+
+    def loss_func(self, inputs, labels, weights):
+        view2d = self.components['2d'](inputs)
+        view3d = self.components['3d'](inputs)
+        loss = self.criterion(view2d, view3d)
+        return loss
+
+    def _prepare_batch(self, batch):
+        inputs, labels, weights = batch
+        return inputs, labels, weights
