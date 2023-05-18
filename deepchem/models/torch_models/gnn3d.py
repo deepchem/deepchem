@@ -239,7 +239,7 @@ class Net3D(nn.Module):
         Returns
         -------
         torch.Tensor
-            The output tensor of shape (1, target_dim).
+            The graph representation tensor of shape (1, target_dim).
         """
         if self.use_node_features:
             graph.ndata['feat'] = self.atom_encoder(graph.ndata['x'])
