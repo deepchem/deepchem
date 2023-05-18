@@ -308,24 +308,41 @@ class InfoMax3DModular(ModularTorchModel):
                  readout_aggregators: List[str],
                  scalers: List[str],
                  residual: bool = True,
+                 node_wise_output_layers: int = 2,
                  pairwise_distances: bool = False,
                  activation: Union[Callable, str] = "relu",
+                 reduce_func: str = 'sum',
                  batch_norm_momentum=0.1,
                  propagation_depth: int = 5,
                  dropout: float = 0.0,
+                 readout_layers: int = 2,
+                 readout_hidden_dim=None,
+                 fourier_encodings=4,
+                 update_net_layers=2,
+                 message_net_layers=2,
+                 use_node_features=False,
                  posttrans_layers: int = 1,
                  pretrans_layers: int = 1,
                  **kwargs):
         self.hidden_dim = hidden_dim
         self.target_dim = target_dim
         self.aggregators = aggregators
+        self.readout_aggregators = readout_aggregators
         self.scalers = scalers
         self.residual = residual
+        self.node_wise_output_layers = node_wise_output_layers
         self.pairwise_distances = pairwise_distances
         self.activation = activation
+        self.reduce_func = reduce_func
         self.batch_norm_momentum = batch_norm_momentum
         self.propagation_depth = propagation_depth
         self.dropout = dropout
+        self.readout_layers = readout_layers
+        self.readout_hidden_dim = readout_hidden_dim
+        self.fourier_encodings = fourier_encodings
+        self.update_net_layers = update_net_layers
+        self.message_net_layers = message_net_layers
+        self.use_node_features = use_node_features
         self.posttrans_layers = posttrans_layers
         self.pretrans_layers = pretrans_layers
         self.kwargs = kwargs
@@ -350,8 +367,22 @@ class InfoMax3DModular(ModularTorchModel):
                        pretrans_layers=self.pretrans_layers,
                        **self.kwargs),
             '3d':
-                Net3D(
-                    **self.kwargs)
+                Net3D(hidden_dim=self.hidden_dim,
+                      target_dim=self.target_dim,
+                      readout_aggregators=self.readout_aggregators,
+                      node_wise_output_layers=self.node_wise_output_layers,
+                      batch_norm=True,
+                      batch_norm_momentum=self.batch_norm_momentum,
+                      reduce_func=self.reduce_func,
+                      dropout=self.dropout,
+                      propagation_depth=self.propagation_depth,
+                      readout_layers=self.readout_layers,
+                      readout_hidden_dim=self.readout_hidden_dim,
+                      fourier_encodings=self.fourier_encodings,
+                      update_net_layers=self.update_net_layers,
+                      message_net_layers=self.message_net_layers,
+                      use_node_features=self.use_node_features,
+                      **self.kwargs)
         }
 
     def build_model(self):
