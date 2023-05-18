@@ -195,6 +195,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.gnn3d.Net3DLayer
   :members:
 
+.. autoclass:: deepchem.models.torch_models.gnn3d.Net3D
+  :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 
