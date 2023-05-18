@@ -9,7 +9,7 @@ from torch.nn import functional as F
 from deepchem.models.torch_models.layers import MultilayerPerceptron
 from deepchem.models.torch_models.pna_gnn import AtomEncoder
 from deepchem.utils.graph_utils import fourier_encode_dist
-
+from deepchem.models.torch_models import ModularTorchModel
 
 class Net3DLayer(nn.Module):
     """
@@ -296,3 +296,7 @@ class Net3D(nn.Module):
             A dictionary with the updated edge features under the key 'd'.
         """
         return {'d': F.silu(self.edge_input(edges.data['d']))}
+
+
+class InfoMax3DModular(ModularTorchModel):
+    pass
