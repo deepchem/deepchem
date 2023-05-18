@@ -125,7 +125,7 @@ class Net3D(nn.Module):
     target_dim : int
         The dimension of the output layer.
     readout_aggregators : List[str]
-        A list of aggregator functions for the readout layer.
+        A list of aggregator functions for the readout layer. Options are 'sum', 'max', 'min', 'mean'.
     batch_norm : bool, optional (default=False)
         Whether to use batch normalization.
     node_wise_output_layers : int, optional (default=2)
@@ -164,8 +164,8 @@ class Net3D(nn.Module):
                  hidden_dim,
                  target_dim,
                  readout_aggregators: List[str],
-                 batch_norm=False,
                  node_wise_output_layers=2,
+                 batch_norm=True,
                  batch_norm_momentum=0.1,
                  reduce_func='sum',
                  dropout=0.0,
@@ -179,13 +179,12 @@ class Net3D(nn.Module):
         super(Net3D, self).__init__()
         self.fourier_encodings = fourier_encodings
         edge_in_dim = 1 if fourier_encodings == 0 else 2 * fourier_encodings + 1
-        batch_norm = True if batch_norm_momentum > 0 else False
 
         self.edge_input = nn.Sequential(
             MultilayerPerceptron(d_input=edge_in_dim,
                                  d_output=hidden_dim,
                                  d_hidden=(hidden_dim,),
-                                 batch_norm=True,
+                                 batch_norm=batch_norm,
                                  batch_norm_momentum=batch_norm_momentum),
             torch.nn.SiLU())
 
@@ -214,7 +213,7 @@ class Net3D(nn.Module):
                 d_input=hidden_dim,
                 d_output=hidden_dim,
                 d_hidden=(hidden_dim,),
-                batch_norm=True,
+                batch_norm=batch_norm,
                 batch_norm_momentum=batch_norm_momentum)
 
         if readout_hidden_dim is None:
@@ -306,6 +305,7 @@ class InfoMax3DModular(ModularTorchModel):
                  hidden_dim,
                  target_dim,
                  aggregators: List[str],
+                 readout_aggregators: List[str],
                  scalers: List[str],
                  residual: bool = True,
                  pairwise_distances: bool = False,

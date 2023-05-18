@@ -259,6 +259,7 @@ class PNALayer(nn.Module):
         dropout: float = 0.0,
         residual: bool = True,
         pairwise_distances: bool = False,
+        batch_norm=True,
         batch_norm_momentum=0.1,
         avg_d: Dict[str, float] = {"log": 1.0},
         posttrans_layers: int = 2,
@@ -274,7 +275,6 @@ class PNALayer(nn.Module):
         self.residual = residual
         if in_dim != out_dim:
             self.residual = False
-        batch_norm = True if batch_norm_momentum > 0 else False
 
         self.pretrans = MultilayerPerceptron(
             d_input=(2 * in_dim + in_dim_edges +
