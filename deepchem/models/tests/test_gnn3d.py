@@ -1,3 +1,7 @@
+import pytest
+
+
+@pytest.mark.pytorch
 def test_Net3DLayer():
     import dgl
     import numpy as np
@@ -34,9 +38,12 @@ def test_Net3DLayer():
 
 def get_regression_dataset():
     import os
+
     import numpy as np
+
     import deepchem as dc
-    from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
+    from deepchem.feat.molecule_featurizers.conformer_featurizer import (
+        RDKitConformerFeaturizer,)
 
     np.random.seed(123)
     featurizer = RDKitConformerFeaturizer(num_conformers=2)
@@ -52,6 +59,7 @@ def get_regression_dataset():
     return dataset, metric
 
 
+@pytest.mark.pytorch
 def test_net3d():
     import numpy as np
 
@@ -69,3 +77,19 @@ def test_net3d():
     output = net3d(graph)
 
     assert output.shape[1] == target_dim
+
+
+@pytest.mark.pytorch
+def test_InfoMax3DModular():
+    from deepchem.models.torch_models.gnn3d import InfoMax3DModular
+
+    data, _ = get_regression_dataset()
+
+    model = InfoMax3DModular(hidden_dim=64,
+                             target_dim=1,
+                             aggregators=['sum', 'mean', 'max'],
+                             readout_aggregators=['sum', 'mean'])
+
+    loss1 = model.fit(data, nb_epoch=1)
+    loss2 = model.fit(data, nb_epoch=1)
+    assert loss1 > loss2
