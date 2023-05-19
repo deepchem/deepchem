@@ -88,22 +88,19 @@ class Chemberta(HuggingFaceModel):
         self.n_tasks = n_tasks
         tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_path)
         model: PreTrainedModel
+        chemberta_config = RobertaConfig(vocab_size=tokenizer.vocab_size)
         if task == 'mlm':
-            config = RobertaConfig(vocab_size=tokenizer.vocab_size)
-            model = RobertaForMaskedLM(config)
+            model = RobertaForMaskedLM(chemberta_config)
         elif task == 'mtr':
-            config = RobertaConfig(vocab_size=tokenizer.vocab_size,
-                                   problem_type='regression',
-                                   num_labels=n_tasks)
-            model = RobertaForSequenceClassification(config)
+            chemberta_config.problem_type = 'regression'
+            chemberta_config.num_labels = n_tasks
+            model = RobertaForSequenceClassification(chemberta_config)
         elif task == 'regression':
-            config = RobertaConfig(vocab_size=tokenizer.vocab_size,
-                                   problem_type='regression',
-                                   num_labels=n_tasks)
-            model = RobertaForSequenceClassification(config)
+            chemberta_config.problem_type = 'regression'
+            chemberta_config.num_labels = n_tasks
+            model = RobertaForSequenceClassification(chemberta_config)
         elif task == 'classification':
-            config = RobertaConfig(vocab_size=tokenizer.vocab_size)
-            model = RobertaForSequenceClassification(config)
+            model = RobertaForSequenceClassification(chemberta_config)
         else:
             raise ValueError('invalid task specification')
 
