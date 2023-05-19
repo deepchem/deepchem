@@ -20,3 +20,4 @@ DMPNNModel,`ref <https://arxiv.org/pdf/1904.01561.pdf>`_,Classifier/ Regressor,D
 InfoGraph,`ref <https://arxiv.org/abs/1908.01000>`_,Classifier/ Regressor,MolGraphConvFeaturizer,PyTorch
 InfoGraphStar,`ref <https://arxiv.org/abs/1908.01000>`_,Classifier/ Regressor,MolGraphConvFeaturizer,PyTorch
 GNNModular,`ref <https://arxiv.org/abs/1905.12265>`_,Classifier/ Regressor,SNAPFeaturizer,PyTorch
+Chemberta, `ref <https://arxiv.org/abs/2209.01712>`_,Classifier/ Regressor, RobertaTokenizer, PyTorch
