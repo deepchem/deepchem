@@ -2850,7 +2850,9 @@ class SetGather(nn.Module):
                 torch.Tensor(input_shape[0], input_shape[1]).normal_(mean=0.0,
                                                                      std=0.1))
 
-        self.U = initFunc((2 * self.n_hidden, 4 * self.n_hidden))
+        self.U = nn.Parameter(
+            torch.Tensor(2 * self.n_hidden, 4 * self.n_hidden).normal_(mean=0.0,
+                                                                       std=0.1))
         self.b = nn.Parameter(
             torch.cat((torch.zeros(self.n_hidden), torch.ones(self.n_hidden),
                        torch.zeros(self.n_hidden), torch.zeros(self.n_hidden))))
