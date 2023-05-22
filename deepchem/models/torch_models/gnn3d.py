@@ -10,7 +10,7 @@ from torch.nn import functional as F
 from deepchem.feat.graph_data import BatchGraphData
 from deepchem.models.torch_models import ModularTorchModel
 from deepchem.models.torch_models.layers import MultilayerPerceptron
-from deepchem.models.torch_models.pna_gnn import PNAGNN, AtomEncoder
+from deepchem.models.torch_models.pna_gnn import PNA, AtomEncoder
 from deepchem.utils.graph_utils import fourier_encode_dist
 
 
@@ -302,6 +302,81 @@ class Net3D(nn.Module):
 
 
 class InfoMax3DModular(ModularTorchModel):
+    """
+    InfoMax3DModular is a modular torch model that uses a 2D PNA model and a 3D Net3D model to maximize the mutual information between their representations. The 2D model can then be used for downstream tasks without the need for 3D coordinates. This is based off the work in [1].
+
+    Parameters
+    ----------
+    hidden_dim : int
+        The dimension of the hidden layers.
+    target_dim : int
+        The dimension of the output layer.
+    aggregators : List[str]
+        A list of aggregator functions for the PNA model.
+    readout_aggregators : List[str]
+        A list of aggregator functions for the readout layer.
+    scalers : List[str]
+        A list of scaler functions for the PNA model.
+    residual : bool, optional (default=True)
+        Whether to use residual connections in the PNA model.
+    node_wise_output_layers : int, optional (default=2)
+        The number of output layers for each node in the Net3D model.
+    pairwise_distances : bool, optional (default=False)
+        Whether to use pairwise distances in the PNA model.
+    activation : Union[Callable, str], optional (default="relu")
+        The activation function to use in the PNA model.
+    reduce_func : str, optional (default='sum')
+        The reduce function to use for aggregating messages in the Net3D model.
+    batch_norm : bool, optional (default=True)
+        Whether to use batch normalization in the PNA model.
+    batch_norm_momentum : float, optional (default=0.1)
+        The momentum for the batch normalization layers.
+    propagation_depth : int, optional (default=5)
+        The number of propagation layers in the PNA and Net3D models.
+    dropout : float, optional (default=0.0)
+        The dropout rate for the layers in the PNA and Net3D models.
+    readout_layers : int, optional (default=2)
+        The number of readout layers in the PNA and Net3D models.
+    readout_hidden_dim : int, optional (default=None)
+        The dimension of the hidden layers in the readout network.
+    fourier_encodings : int, optional (default=4)
+        The number of Fourier encodings to use in the Net3D model.
+    update_net_layers : int, optional (default=2)
+        The number of update network layers in the Net3D model.
+    message_net_layers : int, optional (default=2)
+        The number of message network layers in the Net3D model.
+    use_node_features : bool, optional (default=False)
+        Whether to use node features as input in the Net3D model.
+    posttrans_layers : int, optional (default=1)
+        The number of post-transformation layers in the PNA model.
+    pretrans_layers : int, optional (default=1)
+        The number of pre-transformation layers in the PNA model.
+    kwargs : dict
+        Additional keyword arguments.
+
+    References
+    ----------
+    .. [1] Stärk, H. et al. 3D Infomax improves GNNs for Molecular Property Prediction. Preprint at https://doi.org/10.48550/arXiv.2110.04126 (2022).
+
+    Examples
+    --------
+    >>> from deepchem.feat.graph_data import BatchGraphData
+    >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
+    >>> from deepchem.models.torch_models.gnn3d import InfoMax3DModular
+    >>> import numpy as np
+    >>> import deepchem as dc
+    >>> from deepchem.data.datasets import NumpyDataset
+    >>> smiles = ["C[C@H](F)Cl", "C[C@@H](F)Cl"]
+    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    >>> data = featurizer.featurize(smiles)
+    >>> dataset = NumpyDataset(X=data)
+    >>> model = InfoMax3DModular(hidden_dim=64,
+    ...                          target_dim=10,
+    ...                          aggregators=['max'],
+    ...                          readout_aggregators=['mean'],
+    ...                          scalers=['identity'])
+    >>> loss = model.fit(dataset, nb_epoch=1)
+    """
 
     def __init__(self,
                  hidden_dim,
@@ -314,7 +389,8 @@ class InfoMax3DModular(ModularTorchModel):
                  pairwise_distances: bool = False,
                  activation: Union[Callable, str] = "relu",
                  reduce_func: str = 'sum',
-                 batch_norm_momentum=0.1,
+                 batch_norm: bool = True,
+                 batch_norm_momentum: float = 0.1,
                  propagation_depth: int = 5,
                  dropout: float = 0.0,
                  readout_layers: int = 2,
@@ -322,7 +398,7 @@ class InfoMax3DModular(ModularTorchModel):
                  fourier_encodings=4,
                  update_net_layers=2,
                  message_net_layers=2,
-                 use_node_features=False,
+                 use_node_features: bool = False,
                  posttrans_layers: int = 1,
                  pretrans_layers: int = 1,
                  **kwargs):
@@ -336,6 +412,7 @@ class InfoMax3DModular(ModularTorchModel):
         self.pairwise_distances = pairwise_distances
         self.activation = activation
         self.reduce_func = reduce_func
+        self.batch_norm = batch_norm
         self.batch_norm_momentum = batch_norm_momentum
         self.propagation_depth = propagation_depth
         self.dropout = dropout
@@ -354,20 +431,33 @@ class InfoMax3DModular(ModularTorchModel):
         super().__init__(self.model, self.components, **kwargs)
 
     def build_components(self):
+        """
+        Build the components of the InfoMax3DModular model.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the '2d' PNA model and the '3d' Net3D model.
+        """
         return {
             '2d':
-                PNAGNN(hidden_dim=self.hidden_dim,
-                       aggregators=self.aggregators,
-                       scalers=self.scalers,
-                       residual=self.residual,
-                       pairwise_distances=self.pairwise_distances,
-                       activation=self.activation,
-                       batch_norm_momentum=self.batch_norm_momentum,
-                       propagation_depth=self.propagation_depth,
-                       dropout=self.dropout,
-                       posttrans_layers=self.posttrans_layers,
-                       pretrans_layers=self.pretrans_layers,
-                       **self.kwargs),
+                PNA(hidden_dim=self.hidden_dim,
+                    target_dim=self.target_dim,
+                    aggregators=self.aggregators,
+                    scalers=self.scalers,
+                    readout_aggregators=self.readout_aggregators,
+                    readout_hidden_dim=self.readout_hidden_dim,
+                    readout_layers=self.readout_layers,
+                    residual=self.residual,
+                    pairwise_distances=self.pairwise_distances,
+                    activation=self.activation,
+                    batch_norm=self.batch_norm,
+                    batch_norm_momentum=self.batch_norm_momentum,
+                    propagation_depth=self.propagation_depth,
+                    dropout=self.dropout,
+                    posttrans_layers=self.posttrans_layers,
+                    pretrans_layers=self.pretrans_layers,
+                    **self.kwargs),
             '3d':
                 Net3D(hidden_dim=self.hidden_dim,
                       target_dim=self.target_dim,
@@ -388,15 +478,53 @@ class InfoMax3DModular(ModularTorchModel):
         }
 
     def build_model(self):
+        """
+        Build the InfoMax3DModular model. This is the 2D network which is meant to be used for inference.
+
+        Returns
+        -------
+        PNA
+            The 2D PNA model component.
+        """
         return self.components['2d']
 
     def loss_func(self, inputs, labels, weights):
+        """
+        Compute the loss function for the InfoMax3DModular model.
+
+        Parameters
+        ----------
+        inputs : dgl.DGLGraph
+            The input graph with node features stored under the key 'x' and edge distances stored under the key 'd'.
+        labels : torch.Tensor
+            The ground truth labels.
+        weights : torch.Tensor
+            The weights for each sample.
+
+        Returns
+        -------
+        torch.Tensor
+            The computed loss value.
+        """
         view2d = self.components['2d'](inputs)
         view3d = self.components['3d'](inputs)
         loss = self.criterion(view2d, view3d)
         return loss
 
     def _prepare_batch(self, batch):
+        """
+        Prepare a batch of data for the InfoMax3DModular model.
+
+        Parameters
+        ----------
+        batch : tuple
+            A tuple containing the inputs, labels, and weights.
+
+        Returns
+        -------
+        tuple
+            A tuple containing the prepared batch graph, labels, and weights.
+        """
         inputs, labels, weights = batch
         features = BatchGraphData(np.concatenate(inputs[0]).ravel())
         graph = features.to_dgl_graph().to(self.device)
