@@ -204,10 +204,8 @@ class PNALayer(nn.Module):
         Whether to use residual connections.
     pairwise_distances : bool, optional, default=False
         Whether to use pairwise distances.
-    mid_batch_norm : bool, optional, default=False
-        Whether to use batch normalization in the middle layers.
-    last_batch_norm : bool, optional, default=False
-        Whether to use batch normalization in the last layer.
+    batch_norm : bool, optional, default=True
+        Whether to use batch normalization.
     batch_norm_momentum : float, optional, default=0.1
         Momentum for the batch normalization layers.
     avg_d : Dict[str, float], optional, default={"log": 1.0}
@@ -259,6 +257,7 @@ class PNALayer(nn.Module):
         dropout: float = 0.0,
         residual: bool = True,
         pairwise_distances: bool = False,
+        batch_norm: bool = True,
         batch_norm_momentum=0.1,
         avg_d: Dict[str, float] = {"log": 1.0},
         posttrans_layers: int = 2,
@@ -281,7 +280,7 @@ class PNALayer(nn.Module):
             (2 * in_dim + in_dim_edges),
             d_output=in_dim,
             d_hidden=(in_dim,) * (pretrans_layers - 1),
-            batch_norm=True,
+            batch_norm=batch_norm,
             batch_norm_momentum=batch_norm_momentum,
             dropout=dropout)
 
@@ -289,7 +288,7 @@ class PNALayer(nn.Module):
             d_input=(len(self.aggregators) * len(self.scalers) + 1) * in_dim,
             d_hidden=(out_dim,) * (posttrans_layers - 1),
             d_output=out_dim,
-            batch_norm=True,
+            batch_norm=batch_norm,
             batch_norm_momentum=batch_norm_momentum,
             dropout=dropout)
 
@@ -430,12 +429,8 @@ class PNAGNN(nn.Module):
         Whether to use pairwise distances.
     activation : Union[Callable, str], optional, default="relu"
         Activation function to use.
-    last_activation : Union[Callable, str], optional, default="none"
-        Last activation function to use.
-    mid_batch_norm : bool, optional, default=False
-        Whether to use batch normalization in the middle layers.
-    last_batch_norm : bool, optional, default=False
-        Whether to use batch normalization in the last layer.
+    batch_norm : bool, optional, default=True
+        Whether to use batch normalization in the layers before the aggregator.
     batch_norm_momentum : float, optional, default=0.1
         Momentum for the batch normalization layers.
     propagation_depth : int, optional, default=5
@@ -476,6 +471,7 @@ class PNAGNN(nn.Module):
                  residual: bool = True,
                  pairwise_distances: bool = False,
                  activation: Union[Callable, str] = "relu",
+                 batch_norm: bool = True,
                  batch_norm_momentum=0.1,
                  propagation_depth: int = 5,
                  dropout: float = 0.0,
@@ -500,6 +496,7 @@ class PNAGNN(nn.Module):
                          avg_d={"log": 1.0},
                          posttrans_layers=posttrans_layers,
                          pretrans_layers=pretrans_layers,
+                         batch_norm=batch_norm,
                          batch_norm_momentum=batch_norm_momentum),)
         self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
         self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
@@ -526,3 +523,114 @@ class PNAGNN(nn.Module):
             graph.ndata['feat'] = mp_layer(graph)
 
         return graph
+
+
+class PNA(nn.Module):
+    """
+    Message passing neural network for graph representation learning [1]_.
+
+    Parameters
+    ----------
+    hidden_dim : int
+        Hidden dimension size.
+    target_dim : int
+        Dimensionality of the output, for example for binary classification target_dim = 1.
+    aggregators : List[str]
+        Type of message passing functions. Options are 'mean','sum','max','min','std','var','moment3','moment4','moment5'.
+    scalers : List[str]
+        Type of normalization layers in the message passing network. Options are 'identity','amplification','attenuation'.
+    readout_aggregators : List[str]
+        Type of aggregators in the readout network.
+    readout_hidden_dim : int, default None
+       The dimension of the hidden layer in the readout network. If not provided, the readout has the same dimensionality of the final layer of the PNA layer, which is the hidden dimension size.
+    readout_layers : int, default 1
+        The number of linear layers in the readout network.
+    residual : bool, default True
+        Whether to use residual connections.
+    pairwise_distances : bool, default False
+        Whether to use pairwise distances.
+    activation : Union[Callable, str]
+        Activation function to use.
+    batch_norm : bool, default True
+        Whether to use batch normalization in the layers before the aggregator..
+    batch_norm_momentum : float, default 0.1
+        Momentum for the batch normalization layers.
+    propagation_depth : int, default
+        Number of propagation layers.
+    dropout : float, default 0.0
+        Dropout probability in the message passing layers.
+    posttrans_layers : int, default 1
+        Number of post-transformation layers.
+    pretrans_layers : int, default 1
+        Number of pre-transformation layers.
+
+    References
+    ----------
+    .. [1] Corso, G., Cavalleri, L., Beaini, D., Liò, P. & Veličković, P. Principal Neighbourhood Aggregation for Graph Nets. Preprint at https://doi.org/10.48550/arXiv.2004.05718 (2020).
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from deepchem.feat.graph_data import BatchGraphData
+    >>> from deepchem.models.torch_models.pna_gnn import PNA
+    >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
+    >>> smiles = ["C1=CC=CN=C1", "C1CCC1"]
+    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    >>> data = featurizer.featurize(smiles)
+    >>> features = BatchGraphData(np.concatenate(data).ravel())
+    >>> features = features.to_dgl_graph()
+    >>> target_dim = 1
+    >>> model = PNA(hidden_dim=16, target_dim=target_dim)
+    >>> output = model(features)
+    >>> print(output.shape)
+    torch.Size([1, 1])
+    """
+
+    def __init__(self,
+                 hidden_dim: int,
+                 target_dim: int,
+                 aggregators: List[str] = ['mean'],
+                 scalers: List[str] = ['identity'],
+                 readout_aggregators: List[str] = ['mean'],
+                 readout_hidden_dim=None,
+                 readout_layers: int = 2,
+                 residual: bool = True,
+                 pairwise_distances: bool = False,
+                 activation: Union[Callable, str] = "relu",
+                 batch_norm: bool = True,
+                 batch_norm_momentum=0.1,
+                 propagation_depth: int = 5,
+                 dropout: float = 0.0,
+                 posttrans_layers: int = 1,
+                 pretrans_layers: int = 1,
+                 **kwargs):
+        super(PNA, self).__init__()
+        self.node_gnn = PNAGNN(hidden_dim=hidden_dim,
+                               aggregators=aggregators,
+                               scalers=scalers,
+                               residual=residual,
+                               pairwise_distances=pairwise_distances,
+                               activation=activation,
+                               batch_norm=batch_norm,
+                               batch_norm_momentum=batch_norm_momentum,
+                               propagation_depth=propagation_depth,
+                               dropout=dropout,
+                               posttrans_layers=posttrans_layers,
+                               pretrans_layers=pretrans_layers)
+        if readout_hidden_dim is None:
+            readout_hidden_dim = hidden_dim
+        self.readout_aggregators = readout_aggregators
+        self.output = MultilayerPerceptron(
+            d_input=hidden_dim * len(self.readout_aggregators),
+            d_hidden=(readout_hidden_dim,) * readout_layers,
+            batch_norm=False,
+            d_output=target_dim)
+
+    def forward(self, graph: dgl.DGLGraph):
+        graph = self.node_gnn(graph)
+        readouts_to_cat = [
+            dgl.readout_nodes(graph, 'feat', op=aggr)
+            for aggr in self.readout_aggregators
+        ]
+        readout = torch.cat(readouts_to_cat, dim=-1)
+        return self.output(readout)
