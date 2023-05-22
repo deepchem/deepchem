@@ -88,8 +88,12 @@ def test_InfoMax3DModular():
     model = InfoMax3DModular(hidden_dim=64,
                              target_dim=1,
                              aggregators=['sum', 'mean', 'max'],
-                             readout_aggregators=['sum', 'mean'])
+                             readout_aggregators=['sum', 'mean'],
+                             scalers=['identity'])
 
     loss1 = model.fit(data, nb_epoch=1)
-    loss2 = model.fit(data, nb_epoch=1)
+    loss2 = model.fit(data, nb_epoch=9)
     assert loss1 > loss2
+
+
+test_InfoMax3DModular()

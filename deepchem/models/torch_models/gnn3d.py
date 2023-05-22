@@ -2,10 +2,12 @@ from typing import Callable, List, Union
 
 import dgl
 import dgl.function as fn
+import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
 
+from deepchem.feat.graph_data import BatchGraphData
 from deepchem.models.torch_models import ModularTorchModel
 from deepchem.models.torch_models.layers import MultilayerPerceptron
 from deepchem.models.torch_models.pna_gnn import PNAGNN, AtomEncoder
@@ -396,4 +398,6 @@ class InfoMax3DModular(ModularTorchModel):
 
     def _prepare_batch(self, batch):
         inputs, labels, weights = batch
-        return inputs, labels, weights
+        features = BatchGraphData(np.concatenate(inputs[0]).ravel())
+        graph = features.to_dgl_graph().to(self.device)
+        return graph, labels, weights

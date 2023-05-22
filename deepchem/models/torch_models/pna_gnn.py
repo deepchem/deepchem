@@ -424,7 +424,7 @@ class PNAGNN(nn.Module):
     aggregators : List[str]
         List of aggregator functions to use.
     scalers : List[str]
-        List of scaler functions to use.
+        List of scaler functions to use. Options are "identity", "amplification", "attenuation".
     residual : bool, optional, default=True
         Whether to use residual connections.
     pairwise_distances : bool, optional, default=False
