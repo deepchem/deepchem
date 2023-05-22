@@ -125,6 +125,3 @@ def test_PNA():
     model = PNA(hidden_dim=16, target_dim=target_dim)
     output = model(features)
     assert output.shape[1] == target_dim
-
-
-test_PNA()

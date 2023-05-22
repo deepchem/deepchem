@@ -536,9 +536,9 @@ class PNA(nn.Module):
     target_dim : int
         Dimensionality of the output, for example for binary classification target_dim = 1.
     aggregators : List[str]
-        Type of message passing functions.
+        Type of message passing functions. Options are 'mean','sum','max','min','std','var','moment3','moment4','moment5'.
     scalers : List[str]
-        Type of normalization layers in the message passing network.
+        Type of normalization layers in the message passing network. Options are 'identity','amplification','attenuation'.
     readout_aggregators : List[str]
         Type of aggregators in the readout network.
     readout_hidden_dim : int, default None
@@ -546,14 +546,44 @@ class PNA(nn.Module):
     readout_layers : int, default 1
         The number of linear layers in the readout network.
     residual : bool, default True
-        Flag indicating whether to add a residual connection from the input to the output in the message passing layers.
+        Whether to use residual connections.
     pairwise_distances : bool, default False
-        Flag indicating whether to use the pairwise distance for message passing.
+        Whether to use pairwise distances.
     activation : Union[Callable, str]
-        The activation function after the aggregation in the message passing network.
-    last_activation : Union[Callable, str], default 'none'
-        The activation function in the final layer of the readout network. If last_activation = "none", then no non-linearity is applied.
-    mid_
+        Activation function to use.
+    batch_norm : bool, default True
+        Whether to use batch normalization in the layers before the aggregator..
+    batch_norm_momentum : float, default 0.1
+        Momentum for the batch normalization layers.
+    propagation_depth : int, default
+        Number of propagation layers.
+    dropout : float, default 0.0
+        Dropout probability in the message passing layers.
+    posttrans_layers : int, default 1
+        Number of post-transformation layers.
+    pretrans_layers : int, default 1
+        Number of pre-transformation layers.
+
+    References
+    ----------
+    .. [1] Corso, G., Cavalleri, L., Beaini, D., Liò, P. & Veličković, P. Principal Neighbourhood Aggregation for Graph Nets. Preprint at https://doi.org/10.48550/arXiv.2004.05718 (2020).
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from deepchem.feat.graph_data import BatchGraphData
+    >>> from deepchem.models.torch_models.pna_gnn import PNA
+    >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
+    >>> smiles = ["C1=CC=CN=C1", "C1CCC1"]
+    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    >>> data = featurizer.featurize(smiles)
+    >>> features = BatchGraphData(np.concatenate(data).ravel())
+    >>> features = features.to_dgl_graph()
+    >>> target_dim = 1
+    >>> model = PNA(hidden_dim=16, target_dim=target_dim)
+    >>> output = model(features)
+    >>> print(output.shape)
+    torch.Size([1, 1])
     """
 
     def __init__(self,
