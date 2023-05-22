@@ -112,3 +112,19 @@ def test_PNAGNN():
     output = model(features)
 
     assert output.ndata['feat'].shape == (features.ndata['x'].shape[0], 16)
+
+
+def test_PNA():
+    from deepchem.feat.graph_data import BatchGraphData
+    from deepchem.models.torch_models.pna_gnn import PNA
+
+    data, _ = get_regression_dataset()
+    features = BatchGraphData(np.concatenate(data.X).ravel())
+    features = features.to_dgl_graph()
+    target_dim = 1
+    model = PNA(hidden_dim=16, target_dim=target_dim)
+    output = model(features)
+    assert output.shape[1] == target_dim
+
+
+test_PNA()
