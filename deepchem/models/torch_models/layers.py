@@ -2805,6 +2805,15 @@ class SetGather(nn.Module):
 
     Torch Equivalent of Keras SetGather layer
 
+    Parameters
+    ----------
+    M: int
+        Number of LSTM steps
+    batch_size: int
+        Number of samples in a batch(all batches must have same size)
+    n_hidden: int, optional
+        number of hidden units in the passing phase
+
     Examples
     --------
     >>> import deepchem as dc
@@ -2827,28 +2836,12 @@ class SetGather(nn.Module):
                  n_hidden: int = 100,
                  init='orthogonal',
                  **kwargs):
-        """
-        Parameters
-        ----------
-        M: int
-            Number of LSTM steps
-        batch_size: int
-            Number of samples in a batch(all batches must have same size)
-        n_hidden: int, optional
-            number of hidden units in the passing phase
-
-        """
 
         super(SetGather, self).__init__(**kwargs)
         self.M = M
         self.batch_size = batch_size
         self.n_hidden = n_hidden
         self.init = init
-
-        def initFunc(input_shape):
-            return nn.Parameter(
-                torch.Tensor(input_shape[0], input_shape[1]).normal_(mean=0.0,
-                                                                     std=0.1))
 
         self.U = nn.Parameter(
             torch.Tensor(2 * self.n_hidden, 4 * self.n_hidden).normal_(mean=0.0,
