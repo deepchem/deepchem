@@ -567,14 +567,12 @@ class PNA(nn.Module):
                  residual: bool = True,
                  pairwise_distances: bool = False,
                  activation: Union[Callable, str] = "relu",
-                 last_activation: Union[Callable, str] = "none",
-                 mid_batch_norm: bool = False,
-                 last_batch_norm: bool = False,
+                 batch_norm: bool = True,
+                 batch_norm_momentum=0.1,
                  propagation_depth: int = 5,
                  dropout: float = 0.0,
                  posttrans_layers: int = 1,
                  pretrans_layers: int = 1,
-                 batch_norm_momentum=0.1,
                  **kwargs):
         super(PNA, self).__init__()
         self.node_gnn = PNAGNN(hidden_dim=hidden_dim,
@@ -583,14 +581,12 @@ class PNA(nn.Module):
                                residual=residual,
                                pairwise_distances=pairwise_distances,
                                activation=activation,
-                               last_activation=last_activation,
-                               mid_batch_norm=mid_batch_norm,
-                               last_batch_norm=last_batch_norm,
+                               batch_norm=batch_norm,
+                               batch_norm_momentum=batch_norm_momentum,
                                propagation_depth=propagation_depth,
                                dropout=dropout,
                                posttrans_layers=posttrans_layers,
-                               pretrans_layers=pretrans_layers,
-                               batch_norm_momentum=batch_norm_momentum)
+                               pretrans_layers=pretrans_layers)
         if readout_hidden_dim is None:
             readout_hidden_dim = hidden_dim
         self.readout_aggregators = readout_aggregators
