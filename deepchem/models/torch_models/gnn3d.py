@@ -312,11 +312,11 @@ class InfoMax3DModular(ModularTorchModel):
     target_dim : int
         The dimension of the output layer.
     aggregators : List[str]
-        A list of aggregator functions for the PNA model.
+        A list of aggregator functions for the PNA model. Options are 'mean', 'sum', 'min', 'max', 'std', 'var', 'moment3', 'moment4', 'moment5'.
     readout_aggregators : List[str]
-        A list of aggregator functions for the readout layer.
+        A list of aggregator functions for the readout layer. Options are 'sum', 'max', 'min', 'mean'.
     scalers : List[str]
-        A list of scaler functions for the PNA model.
+        A list of scaler functions for the PNA model. Options are 'identity', 'amplification', 'attenuation'.
     residual : bool, optional (default=True)
         Whether to use residual connections in the PNA model.
     node_wise_output_layers : int, optional (default=2)
@@ -394,10 +394,10 @@ class InfoMax3DModular(ModularTorchModel):
                  propagation_depth: int = 5,
                  dropout: float = 0.0,
                  readout_layers: int = 2,
-                 readout_hidden_dim=None,
-                 fourier_encodings=4,
-                 update_net_layers=2,
-                 message_net_layers=2,
+                 readout_hidden_dim: bool = None,
+                 fourier_encodings: int = 4,
+                 update_net_layers: int = 2,
+                 message_net_layers: int = 2,
                  use_node_features: bool = False,
                  posttrans_layers: int = 1,
                  pretrans_layers: int = 1,

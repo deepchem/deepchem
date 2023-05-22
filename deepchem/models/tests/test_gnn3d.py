@@ -94,29 +94,3 @@ def test_InfoMax3DModular():
     loss1 = model.fit(data, nb_epoch=1)
     loss2 = model.fit(data, nb_epoch=9)
     assert loss1 > loss2
-
-
-def doctest():
-    from deepchem.feat.graph_data import BatchGraphData
-    from deepchem.feat.molecule_featurizers.conformer_featurizer import (
-        RDKitConformerFeaturizer,)
-    from deepchem.models.torch_models.gnn3d import InfoMax3DModular
-    import numpy as np
-    import deepchem as dc
-    from deepchem.data.datasets import NumpyDataset
-
-    smiles = ["C[C@H](F)Cl", "C[C@@H](F)Cl"]
-    featurizer = RDKitConformerFeaturizer(num_conformers=2)
-    data = featurizer.featurize(smiles)
-
-    dataset = NumpyDataset(X=data)
-
-    model = InfoMax3DModular(hidden_dim=64,
-                             target_dim=10,
-                             aggregators=['max'],
-                             readout_aggregators=['mean'],
-                             scalers=['identity'])
-
-    loss = model.fit(dataset, nb_epoch=1)
-
-doctest()
