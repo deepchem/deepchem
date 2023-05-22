@@ -447,6 +447,11 @@ GNNModular
 .. autoclass:: deepchem.models.torch_models.gnn.GNNModular
   :members:
 
+InfoMax3DModular
+
+.. autoclass:: deepchem.models.torch_models.gnn3d.InfoMax3DModular
+  :members:
+
 
 LCNNModel
 ---------
