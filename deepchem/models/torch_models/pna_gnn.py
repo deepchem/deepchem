@@ -204,10 +204,8 @@ class PNALayer(nn.Module):
         Whether to use residual connections.
     pairwise_distances : bool, optional, default=False
         Whether to use pairwise distances.
-    mid_batch_norm : bool, optional, default=False
-        Whether to use batch normalization in the middle layers.
-    last_batch_norm : bool, optional, default=False
-        Whether to use batch normalization in the last layer.
+    batch_norm : bool, optional, default=True
+        Whether to use batch normalization.
     batch_norm_momentum : float, optional, default=0.1
         Momentum for the batch normalization layers.
     avg_d : Dict[str, float], optional, default={"log": 1.0}
@@ -259,6 +257,7 @@ class PNALayer(nn.Module):
         dropout: float = 0.0,
         residual: bool = True,
         pairwise_distances: bool = False,
+        batch_norm: bool = True,
         batch_norm_momentum=0.1,
         avg_d: Dict[str, float] = {"log": 1.0},
         posttrans_layers: int = 2,
@@ -281,7 +280,7 @@ class PNALayer(nn.Module):
             (2 * in_dim + in_dim_edges),
             d_output=in_dim,
             d_hidden=(in_dim,) * (pretrans_layers - 1),
-            batch_norm=True,
+            batch_norm=batch_norm,
             batch_norm_momentum=batch_norm_momentum,
             dropout=dropout)
 
@@ -289,7 +288,7 @@ class PNALayer(nn.Module):
             d_input=(len(self.aggregators) * len(self.scalers) + 1) * in_dim,
             d_hidden=(out_dim,) * (posttrans_layers - 1),
             d_output=out_dim,
-            batch_norm=True,
+            batch_norm=batch_norm,
             batch_norm_momentum=batch_norm_momentum,
             dropout=dropout)
 
@@ -430,12 +429,8 @@ class PNAGNN(nn.Module):
         Whether to use pairwise distances.
     activation : Union[Callable, str], optional, default="relu"
         Activation function to use.
-    last_activation : Union[Callable, str], optional, default="none"
-        Last activation function to use.
-    mid_batch_norm : bool, optional, default=False
-        Whether to use batch normalization in the middle layers.
-    last_batch_norm : bool, optional, default=False
-        Whether to use batch normalization in the last layer.
+    batch_norm : bool, optional, default=True
+        Whether to use batch normalization in the layers before the aggregator.
     batch_norm_momentum : float, optional, default=0.1
         Momentum for the batch normalization layers.
     propagation_depth : int, optional, default=5
@@ -476,6 +471,7 @@ class PNAGNN(nn.Module):
                  residual: bool = True,
                  pairwise_distances: bool = False,
                  activation: Union[Callable, str] = "relu",
+                 batch_norm: bool = True,
                  batch_norm_momentum=0.1,
                  propagation_depth: int = 5,
                  dropout: float = 0.0,
@@ -500,6 +496,7 @@ class PNAGNN(nn.Module):
                          avg_d={"log": 1.0},
                          posttrans_layers=posttrans_layers,
                          pretrans_layers=pretrans_layers,
+                         batch_norm=batch_norm,
                          batch_norm_momentum=batch_norm_momentum),)
         self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
         self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
