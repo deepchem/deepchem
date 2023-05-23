@@ -1,3 +1,10 @@
+import os
+
+import numpy as np
+
+import deepchem as dc
+
+
 def test_AtomEncoder():
     import torch
 
@@ -71,3 +78,37 @@ def test_pnalayer():
     g.ndata['feat'] = pna_layer(g)
 
     assert g.ndata['feat'].shape == (num_nodes, out_dim)
+
+
+def get_regression_dataset():
+    from deepchem.feat.molecule_featurizers.conformer_featurizer import (
+        RDKitConformerFeaturizer,)
+    np.random.seed(123)
+    featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    dir = os.path.dirname(os.path.abspath(__file__))
+
+    input_file = os.path.join(dir, 'assets/example_regression.csv')
+    loader = dc.data.CSVLoader(tasks=["outcome"],
+                               feature_field="smiles",
+                               featurizer=featurizer)
+    dataset = loader.create_dataset(input_file)
+    metric = dc.metrics.Metric(dc.metrics.mean_absolute_error,
+                               mode="regression")
+    return dataset, metric
+
+
+def test_PNAGNN():
+    import numpy as np
+
+    from deepchem.feat.graph_data import BatchGraphData
+    from deepchem.models.torch_models.pna_gnn import PNAGNN
+
+    data, _ = get_regression_dataset()
+    features = BatchGraphData(np.concatenate(data.X).ravel())
+    features = features.to_dgl_graph()
+    model = PNAGNN(hidden_dim=16,
+                   aggregators=['mean', 'sum'],
+                   scalers=['identity'])
+    output = model(features)
+
+    assert output.ndata['feat'].shape == (features.ndata['x'].shape[0], 16)

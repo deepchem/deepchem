@@ -1,7 +1,9 @@
+import copy
 from functools import partial
 from math import sqrt
 from typing import Callable, Dict, List, Union
 
+import dgl
 import torch
 from torch import nn
 
@@ -202,10 +204,8 @@ class PNALayer(nn.Module):
         Whether to use residual connections.
     pairwise_distances : bool, optional, default=False
         Whether to use pairwise distances.
-    mid_batch_norm : bool, optional, default=False
-        Whether to use batch normalization in the middle layers.
-    last_batch_norm : bool, optional, default=False
-        Whether to use batch normalization in the last layer.
+    batch_norm : bool, optional, default=True
+        Whether to use batch normalization.
     batch_norm_momentum : float, optional, default=0.1
         Momentum for the batch normalization layers.
     avg_d : Dict[str, float], optional, default={"log": 1.0}
@@ -257,6 +257,7 @@ class PNALayer(nn.Module):
         dropout: float = 0.0,
         residual: bool = True,
         pairwise_distances: bool = False,
+        batch_norm: bool = True,
         batch_norm_momentum=0.1,
         avg_d: Dict[str, float] = {"log": 1.0},
         posttrans_layers: int = 2,
@@ -279,7 +280,7 @@ class PNALayer(nn.Module):
             (2 * in_dim + in_dim_edges),
             d_output=in_dim,
             d_hidden=(in_dim,) * (pretrans_layers - 1),
-            batch_norm=True,
+            batch_norm=batch_norm,
             batch_norm_momentum=batch_norm_momentum,
             dropout=dropout)
 
@@ -287,7 +288,7 @@ class PNALayer(nn.Module):
             d_input=(len(self.aggregators) * len(self.scalers) + 1) * in_dim,
             d_hidden=(out_dim,) * (posttrans_layers - 1),
             d_output=out_dim,
-            batch_norm=True,
+            batch_norm=batch_norm,
             batch_norm_momentum=batch_norm_momentum,
             dropout=dropout)
 
@@ -408,3 +409,117 @@ class PNALayer(nn.Module):
         else:
             z2 = torch.cat([edges.src['feat'], edges.dst['feat']], dim=-1)
         return {"e": self.pretrans(z2)}
+
+
+class PNAGNN(nn.Module):
+    """
+    Principal Neighbourhood Aggregation Graph Neural Network [1]. This defines the message passing layers of the PNA model.
+
+    Parameters
+    ----------
+    hidden_dim : int
+        Dimension of the hidden layers.
+    aggregators : List[str]
+        List of aggregator functions to use.
+    scalers : List[str]
+        List of scaler functions to use.
+    residual : bool, optional, default=True
+        Whether to use residual connections.
+    pairwise_distances : bool, optional, default=False
+        Whether to use pairwise distances.
+    activation : Union[Callable, str], optional, default="relu"
+        Activation function to use.
+    batch_norm : bool, optional, default=True
+        Whether to use batch normalization in the layers before the aggregator.
+    batch_norm_momentum : float, optional, default=0.1
+        Momentum for the batch normalization layers.
+    propagation_depth : int, optional, default=5
+        Number of propagation layers.
+    dropout : float, optional, default=0.0
+        Dropout rate.
+    posttrans_layers : int, optional, default=1
+        Number of post-transformation layers.
+    pretrans_layers : int, optional, default=1
+        Number of pre-transformation layers.
+
+    References
+    ----------
+    .. [1] Corso, G., Cavalleri, L., Beaini, D., Liò, P. & Veličković, P. Principal Neighbourhood Aggregation for Graph Nets. Preprint at https://doi.org/10.48550/arXiv.2004.05718 (2020).
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
+    >>> from deepchem.feat.graph_data import BatchGraphData
+    >>> from deepchem.models.torch_models.pna_gnn import PNAGNN
+    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    >>> smiles = ['C1=CC=NC=C1', 'CC(=O)C', 'C']
+    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2, rmsd_cutoff=1)
+    >>> data = featurizer.featurize(smiles)
+    >>> features = BatchGraphData(np.concatenate(data).ravel())
+    >>> features = features.to_dgl_graph()
+    >>> model = PNAGNN(hidden_dim=16,
+    ...                aggregators=['mean', 'sum'],
+    ...                scalers=['identity'])
+    >>> output = model(features)
+    """
+
+    def __init__(self,
+                 hidden_dim,
+                 aggregators: List[str],
+                 scalers: List[str],
+                 residual: bool = True,
+                 pairwise_distances: bool = False,
+                 activation: Union[Callable, str] = "relu",
+                 batch_norm: bool = True,
+                 batch_norm_momentum=0.1,
+                 propagation_depth: int = 5,
+                 dropout: float = 0.0,
+                 posttrans_layers: int = 1,
+                 pretrans_layers: int = 1,
+                 **kwargs):
+        super(PNAGNN, self).__init__()
+
+        self.mp_layers = nn.ModuleList()
+
+        for _ in range(propagation_depth):
+            self.mp_layers.append(
+                PNALayer(in_dim=hidden_dim,
+                         out_dim=int(hidden_dim),
+                         in_dim_edges=hidden_dim,
+                         aggregators=aggregators,
+                         scalers=scalers,
+                         pairwise_distances=pairwise_distances,
+                         residual=residual,
+                         dropout=dropout,
+                         activation=activation,
+                         avg_d={"log": 1.0},
+                         posttrans_layers=posttrans_layers,
+                         pretrans_layers=pretrans_layers,
+                         batch_norm=batch_norm,
+                         batch_norm_momentum=batch_norm_momentum),)
+        self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
+        self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
+
+    def forward(self, input_graph: dgl.DGLGraph):
+        """
+        Forward pass of the PNAGNN model.
+
+        Parameters
+        ----------
+        input_graph : dgl.DGLGraph
+            Input graph with node and edge features.
+
+        Returns
+        -------
+        graph : dgl.DGLGraph
+            Output graph with updated node features after applying the message passing layers.
+        """
+        graph = copy.deepcopy(input_graph)
+        graph.ndata['feat'] = self.atom_encoder(graph.ndata['x'])
+        graph.edata['feat'] = self.bond_encoder(graph.edata['edge_attr'])
+
+        for mp_layer in self.mp_layers:
+            graph.ndata['feat'] = mp_layer(graph)
+
+        return graph
