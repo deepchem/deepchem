@@ -384,6 +384,7 @@ class InfoMax3DModular(ModularTorchModel):
                  aggregators: List[str],
                  readout_aggregators: List[str],
                  scalers: List[str],
+                 num_conformers: int,
                  residual: bool = True,
                  node_wise_output_layers: int = 2,
                  pairwise_distances: bool = False,
@@ -407,6 +408,7 @@ class InfoMax3DModular(ModularTorchModel):
         self.aggregators = aggregators
         self.readout_aggregators = readout_aggregators
         self.scalers = scalers
+        self.num_conformers = num_conformers
         self.residual = residual
         self.node_wise_output_layers = node_wise_output_layers
         self.pairwise_distances = pairwise_distances
