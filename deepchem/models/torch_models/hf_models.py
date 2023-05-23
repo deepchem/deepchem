@@ -201,8 +201,10 @@ class HuggingFaceModel(TorchModel):
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
         smiles_batch, y, w = batch
         tokens = self.tokenizer(smiles_batch[0].tolist(),
-                                padding=True,
-                                return_tensors="pt")
+                                return_tensors="pt",
+                                padding='max_length',
+                                max_length=100,
+                                truncation=True)
 
         if self.task == 'mlm':
             inputs, labels = self.data_collator.torch_mask_tokens(
