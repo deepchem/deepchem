@@ -6,9 +6,12 @@ from typing import (TYPE_CHECKING, Any, Callable, Iterable, List, Optional,
 
 import numpy as np
 import torch
+from deepchem.data.datasets import Dataset
+from deepchem.metrics import Metric
+from deepchem.trans import Transformer, undo_transforms
+
 from deepchem.models.optimizers import LearningRateSchedule
 from deepchem.models.torch_models import TorchModel
-from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
 from transformers.data.data_collator import DataCollatorForLanguageModeling
 
@@ -474,3 +477,51 @@ class HuggingFaceModel(TorchModel):
             return final_results[0]
         else:
             return np.array(final_results)
+
+    def evaluate(self,
+                 dataset: Dataset,
+                 metrics: List[Metric],
+                 transformers: List[Transformer] = [],
+                 per_task_metrics: bool = False,
+                 use_sample_weights: bool = False,
+                 n_classes: int = 2):
+        self.model.train(False)
+        if self.task == 'mlm':
+            metric = metrics[0]
+            assertion_error = 'Accuracy Score is the only supported metric for masked language modeling models'
+            assert metric.name == 'accuracy_score' and (
+                len(metrics)) == 1, assertion_error
+
+            scores = {}
+            # compute y and y_pred here
+            labels = []
+            input_ids = []
+            out_logits = []
+
+            for batch in self.default_generator(dataset):
+                inputs, _, _ = self._prepare_batch(batch)
+                out = self.model(**inputs)
+                out_logit = out.get('logits')
+                labels.extend(inputs['labels'])
+                input_ids.extend(inputs['input_ids'])
+                out_logits.extend(out_logit)
+
+            y_true = []
+            y_pred = []
+
+            for row in range(len(labels)):
+                for col, x in enumerate(labels[row]):
+                    if x != -100:
+                        y_true.append(x.numpy())
+                        y_pred.append(
+                            torch.argmax(out_logits[row][col]).numpy())
+
+            # compute accuracy here
+            accuracy = metric.metric(y_true, y_pred)
+            scores[metric.name] = accuracy
+            return scores
+        else:
+            super(HuggingFaceModel,
+                  self).evaluate(dataset, metrics, transformers,
+                                 per_task_metrics, use_sample_weights,
+                                 n_classes)
