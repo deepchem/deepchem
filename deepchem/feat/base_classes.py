@@ -319,7 +319,7 @@ molecule.
                 logger.warning("Exception message: {}".format(e))
                 features.append(np.array([]))
 
-        return np.asarray(features)
+        return np.asarray(features, dtype=object)
 
 
 class MaterialStructureFeaturizer(Featurizer):
@@ -496,9 +496,9 @@ class DummyFeaturizer(Featurizer):
     >>> smi_feat = Featurizer.featurize(smi_map)
     >>> smi_feat
     array([['N#C[S-].O=C(CBr)c1ccc(C(F)(F)F)cc1>CCO.[K+]',
-        'N#CSCC(=O)c1ccc(C(F)(F)F)cc1'],
-    ['C1COCCN1.FCC(Br)c1cccc(Br)n1>CCN(C(C)C)C(C)C.CN(C)C=O.O',
-        'FCC(c1cccc(Br)n1)N1CCOCC1']], dtype='<U55')
+            'N#CSCC(=O)c1ccc(C(F)(F)F)cc1'],
+           ['C1COCCN1.FCC(Br)c1cccc(Br)n1>CCN(C(C)C)C(C)C.CN(C)C=O.O',
+            'FCC(c1cccc(Br)n1)N1CCOCC1']], dtype='<U55')
     """
 
     def featurize(self,
