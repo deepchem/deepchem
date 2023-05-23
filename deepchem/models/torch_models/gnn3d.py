@@ -7,7 +7,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from deepchem.feat.graph_data import BatchGraphData
+from deepchem.feat.graph_data import GraphData
 from deepchem.models.torch_models import ModularTorchModel
 from deepchem.models.torch_models.layers import MultilayerPerceptron
 from deepchem.models.torch_models.pna_gnn import PNA, AtomEncoder
@@ -430,7 +430,8 @@ class InfoMax3DModular(ModularTorchModel):
         self.posttrans_layers = posttrans_layers
         self.pretrans_layers = pretrans_layers
         self.kwargs = kwargs
-        self.criterion = torch.nn.MSELoss()
+        # self.criterion = torch.nn.MSELoss()
+        self.criterion = NTXent()
         self.components = self.build_components()
         self.model = self.build_model()
         super().__init__(self.model, self.components, **kwargs)
@@ -511,8 +512,14 @@ class InfoMax3DModular(ModularTorchModel):
         torch.Tensor
             The computed loss value.
         """
-        view2d = self.components['2d'](inputs)
-        view3d = self.components['3d'](inputs)
+        batch_size = len(inputs)
+        for i, conformers in enumerate(inputs):
+            # find random index between 0 and batch_size that isn't i
+            k = np.random.choice([x for x in range(batch_size) if x != i])
+            # how does the criterion know when it's negative or positive?
+            view2d = self.components['2d'](conformers)
+            view3d = self.components['3d'](conformers)
+
         loss = self.criterion(view2d, view3d)
         return loss
 
@@ -532,6 +539,81 @@ class InfoMax3DModular(ModularTorchModel):
         """
         inputs, labels, weights = batch
         inputs = inputs[0]
-        features = [BatchGraphData(i) for i in inputs]
-        graph = features.to_dgl_graph().to(self.device)
-        return graph, labels, weights
+
+        # convert the GraphData objects to DGL graphs
+        graphs = [[
+            graph_data.to_dgl_graph().to(self.device) for graph_data in row
+        ] for row in inputs]
+        return graphs, labels, weights
+
+
+
+from torch.nn.modules.loss import _Loss
+from torch import Tensor
+
+
+def std_loss(x):
+    std = torch.sqrt(x.var(dim=0) + 1e-04)
+    return torch.mean(torch.relu(1 - std))
+
+
+def uniformity_loss(x1: Tensor, x2: Tensor, t=2) -> Tensor:
+    sq_pdist_x1 = torch.pdist(x1, p=2).pow(2)
+    uniformity_x1 = sq_pdist_x1.mul(-t).exp().mean().log()
+    sq_pdist_x2 = torch.pdist(x2, p=2).pow(2)
+    uniformity_x2 = sq_pdist_x2.mul(-t).exp().mean().log()
+    return (uniformity_x1 + uniformity_x2) / 2
+
+
+def cov_loss(x):
+    batch_size, metric_dim = x.size()
+    x = x - x.mean(dim=0)
+    cov = (x.T @ x) / (batch_size - 1)
+    off_diag_cov = cov.flatten()[:-1].view(metric_dim - 1,
+                                           metric_dim + 1)[:, 1:].flatten()
+    return off_diag_cov.pow_(2).sum() / metric_dim
+
+class NTXent(_Loss):
+    '''
+        Normalized Temperature-scaled Cross Entropy Loss from SimCLR paper
+        Args:
+            z1, z2: Tensor of shape [batch_size, z_dim]
+            tau: Float. Usually in (0,1].
+            norm: Boolean. Whether to apply normlization.
+        '''
+
+    def __init__(self,
+                 norm: bool = True,
+                 tau: float = 0.5,
+                 uniformity_reg=0,
+                 variance_reg=0,
+                 covariance_reg=0) -> None:
+        super(NTXent, self).__init__()
+        self.norm = norm
+        self.tau = tau
+        self.uniformity_reg = uniformity_reg
+        self.variance_reg = variance_reg
+        self.covariance_reg = covariance_reg
+
+    def forward(self, z1, z2, **kwargs) -> Tensor:
+        batch_size, _ = z1.size()
+        sim_matrix = torch.einsum('ik,jk->ij', z1, z2)
+
+        if self.norm:
+            z1_abs = z1.norm(dim=1)
+            z2_abs = z2.norm(dim=1)
+            sim_matrix = sim_matrix / (torch.einsum('i,j->ij', z1_abs, z2_abs) +
+                                       1e-8)
+
+        sim_matrix = torch.exp(sim_matrix / self.tau)
+        pos_sim = torch.diagonal(sim_matrix)
+        loss = pos_sim / (sim_matrix.sum(dim=1) - pos_sim)
+        loss = -torch.log(loss).mean()
+
+        if self.variance_reg > 0:
+            loss += self.variance_reg * (std_loss(z1) + std_loss(z2))
+        if self.covariance_reg > 0:
+            loss += self.covariance_reg * (cov_loss(z1) + cov_loss(z2))
+        if self.uniformity_reg > 0:
+            loss += self.uniformity_reg * uniformity_loss(z1, z2)
+        return loss

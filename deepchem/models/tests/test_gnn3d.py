@@ -97,4 +97,4 @@ def test_InfoMax3DModular():
     assert loss1 > loss2
 
 
-# test_InfoMax3DModular()
+test_InfoMax3DModular()
