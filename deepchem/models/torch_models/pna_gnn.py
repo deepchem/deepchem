@@ -456,7 +456,7 @@ class PNAGNN(nn.Module):
     >>> smiles = ['C1=CC=NC=C1', 'CC(=O)C', 'C']
     >>> featurizer = RDKitConformerFeaturizer(num_conformers=2, rmsd_cutoff=1)
     >>> data = featurizer.featurize(smiles)
-    >>> features = BatchGraphData(np.concatenate(data).ravel())
+    >>> features = BatchGraphData(np.concatenate(data))
     >>> features = features.to_dgl_graph()
     >>> model = PNAGNN(hidden_dim=16,
     ...                aggregators=['mean', 'sum'],
@@ -577,7 +577,7 @@ class PNA(nn.Module):
     >>> smiles = ["C1=CC=CN=C1", "C1CCC1"]
     >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
     >>> data = featurizer.featurize(smiles)
-    >>> features = BatchGraphData(np.concatenate(data).ravel())
+    >>> features = BatchGraphData(np.concatenate(data))
     >>> features = features.to_dgl_graph()
     >>> target_dim = 1
     >>> model = PNA(hidden_dim=16, target_dim=target_dim)

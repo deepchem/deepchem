@@ -305,6 +305,9 @@ class InfoMax3DModular(ModularTorchModel):
     """
     InfoMax3DModular is a modular torch model that uses a 2D PNA model and a 3D Net3D model to maximize the mutual information between their representations. The 2D model can then be used for downstream tasks without the need for 3D coordinates. This is based off the work in [1].
 
+    This class expects data in featurized by the RDKitConformerFeaturizer. This featurizer produces features of the type Array[Array[List[GraphData]]]. The outermost array is the dataset array, the second array is the molecule, the list contains the conformers for that molecule and the GraphData object is the featurized graph for that conformer with node_pos_features holding the 3D coordinates. If you are not using RDKitConformerFeaturizer, your input data features should look like this: Dataset[Molecule[Conformers[GraphData]]].
+
+
     Parameters
     ----------
     hidden_dim : int
@@ -528,6 +531,7 @@ class InfoMax3DModular(ModularTorchModel):
             A tuple containing the prepared batch graph, labels, and weights.
         """
         inputs, labels, weights = batch
-        features = BatchGraphData(np.concatenate(inputs[0]).ravel())
+        inputs = inputs[0]
+        features = [BatchGraphData(i) for i in inputs]
         graph = features.to_dgl_graph().to(self.device)
         return graph, labels, weights

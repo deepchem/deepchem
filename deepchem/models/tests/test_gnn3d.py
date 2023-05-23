@@ -46,7 +46,7 @@ def get_regression_dataset():
         RDKitConformerFeaturizer,)
 
     np.random.seed(123)
-    featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    featurizer = RDKitConformerFeaturizer(num_conformers=2, rmsd_cutoff=3)
     dir = os.path.dirname(os.path.abspath(__file__))
 
     input_file = os.path.join(dir, 'assets/example_regression.csv')
@@ -66,7 +66,7 @@ def test_net3d():
     from deepchem.feat.graph_data import BatchGraphData
     from deepchem.models.torch_models.gnn3d import Net3D
     data, _ = get_regression_dataset()
-    features = BatchGraphData(np.concatenate(data.X).ravel())
+    features = BatchGraphData(np.concatenate(data.X))
     graph = features.to_dgl_graph()
     target_dim = 2
 
@@ -97,4 +97,4 @@ def test_InfoMax3DModular():
     assert loss1 > loss2
 
 
-test_InfoMax3DModular()
+# test_InfoMax3DModular()
