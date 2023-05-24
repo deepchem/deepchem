@@ -1,6 +1,7 @@
 import deepchem as dc
 import numpy as np
 import pytest
+import os
 
 try:
     import tensorflow as tf
@@ -969,3 +970,25 @@ def test_local_global_discriminator():
     # Check if the output has the correct shape and dtype
     assert similarity_scores.shape == (batch_size,)
     assert similarity_scores.dtype == torch.float32
+
+
+@pytest.mark.torch
+def test_set_gather():
+    """Test invoking the Torch Equivalent of SetGather."""
+    # total_n_atoms = 4
+    # n_atom_feat = 4
+    # atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
+    atom_feat = np.load(
+        os.path.join(os.path.dirname(__file__), "assets",
+                     "atom_feat_SetGather.npy"))
+    atom_split = np.array([0, 0, 1, 1], dtype=np.int32)
+    torch_layer = torch_layers.SetGather(2, 2, 4)
+    weights = np.load(
+        os.path.join(os.path.dirname(__file__), "assets",
+                     "weights_SetGather_tf.npy"))
+    torch_layer.U = torch.nn.Parameter(torch.from_numpy(weights))
+    torch_result = torch_layer([atom_feat, atom_split])
+    tf_result = np.load(
+        os.path.join(os.path.dirname(__file__), "assets",
+                     "result_SetGather_tf.npy"))
+    assert np.allclose(np.array(tf_result), np.array(torch_result), atol=1e-4)
