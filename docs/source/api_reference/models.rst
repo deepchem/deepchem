@@ -123,6 +123,9 @@ Losses
 .. autoclass:: deepchem.models.losses.DensityProfileLoss
   :members:
 
+.. autoclass:: deepchem.models.losses.NTXentMultiplePositives
+  :members:
+
 Optimizers
 ----------
 
