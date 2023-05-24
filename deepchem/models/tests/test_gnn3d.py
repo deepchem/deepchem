@@ -94,6 +94,3 @@ def test_InfoMax3DModular():
     loss1 = model.fit(data, nb_epoch=1)
     loss2 = model.fit(data, nb_epoch=9)
     assert loss1 > loss2
-
-
-test_InfoMax3DModular()

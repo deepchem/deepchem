@@ -2,7 +2,6 @@ from typing import Callable, List, Union
 
 import dgl
 import dgl.function as fn
-import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -305,8 +304,9 @@ class InfoMax3DModular(ModularTorchModel):
     """
     InfoMax3DModular is a modular torch model that uses a 2D PNA model and a 3D Net3D model to maximize the mutual information between their representations. The 2D model can then be used for downstream tasks without the need for 3D coordinates. This is based off the work in [1].
 
-    This class expects data in featurized by the RDKitConformerFeaturizer. This featurizer produces features of the type Array[Array[List[GraphData]]]. The outermost array is the dataset array, the second array is the molecule, the list contains the conformers for that molecule and the GraphData object is the featurized graph for that conformer with node_pos_features holding the 3D coordinates. If you are not using RDKitConformerFeaturizer, your input data features should look like this: Dataset[Molecule[Conformers[GraphData]]].
-
+    This class expects data in featurized by the RDKitConformerFeaturizer. This featurizer produces features of the type Array[Array[List[GraphData]]].
+    The outermost array is the dataset array, the second array is the molecule, the list contains the conformers for that molecule and the GraphData object is the featurized graph for that conformer with node_pos_features holding the 3D coordinates.
+    If you are not using RDKitConformerFeaturizer, your input data features should look like this: Dataset[Molecule[Conformers[GraphData]]].
 
     Parameters
     ----------
@@ -428,8 +428,7 @@ class InfoMax3DModular(ModularTorchModel):
         self.posttrans_layers = posttrans_layers
         self.pretrans_layers = pretrans_layers
         self.kwargs = kwargs
-        # self.criterion = torch.nn.MSELoss()
-        self.criterion = NTXentMultiplePositives()
+        self.criterion = NTXentMultiplePositives()._create_pytorch_loss()
         self.components = self.build_components()
         self.model = self.build_model()
         super().__init__(self.model, self.components, **kwargs)
@@ -510,19 +509,20 @@ class InfoMax3DModular(ModularTorchModel):
         torch.Tensor
             The computed loss value.
         """
-        # batch_size = len(inputs)
         encodings2d = []
         encodings3d = []
-        for i, conformers in enumerate(inputs):
+        for conformers in inputs:
             # 2d model takes only the first conformer
             encodings2d.append(self.components['2d'](conformers[0]))
             # 3d model takes all conformers
-            encodings3d.append([self.components['3d'](conf) for conf in conformers])
+            encodings3d.append(
+                [self.components['3d'](conf) for conf in conformers])
 
         # concat the lists such that the 2d encodings is of shape batch_size x target_dim
         # and the 3d encodings is of shape batch_size*num_conformers x target_dim
         encodings2d = torch.cat(encodings2d, dim=0)
-        encodings3d = torch.cat([torch.cat(conf, dim=0) for conf in encodings3d], dim=0)
+        encodings3d = torch.cat(
+            [torch.cat(conf, dim=0) for conf in encodings3d], dim=0)
         loss = self.criterion(encodings2d, encodings3d)
         return loss
 
