@@ -61,6 +61,7 @@ def load_zinc15(
     save_dir: Optional[str] = None,
     dataset_size: str = '250K',
     dataset_dimension: str = '2D',
+    tasks: List[str] = ZINC15_TASKS,
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
     """Load zinc15.
@@ -111,6 +112,9 @@ def load_zinc15(
         Size of dataset to download. '250K', '1M', '10M', and '270M' are supported.
     format : str (default '2D')
         Format of data to download. 2D SMILES strings or 3D SDF files.
+    tasks: List[str], (optional) default: `['molwt', 'logp', 'reactive']`
+        Specify the set of tasks to load. If no task is specified, then it loads
+    the default set of tasks which are molwt, logp, reactive.
 
     Returns
     -------
@@ -134,10 +138,12 @@ def load_zinc15(
     ----------
     .. [1] Sterling and Irwin. J. Chem. Inf. Model, 2015 http://pubs.acs.org/doi/abs/10.1021/acs.jcim.5b00559.
     """
+    for task in tasks:
+        assert task in ZINC15_TASKS, f'Invalid task name {task}. Task should be one of logp, mwt, reactive'
     loader = _Zinc15Loader(featurizer,
                            splitter,
                            transformers,
-                           ZINC15_TASKS,
+                           tasks,
                            data_dir,
                            save_dir,
                            dataset_size=dataset_size,

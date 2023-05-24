@@ -598,7 +598,7 @@ class PNA(nn.Module):
                  pairwise_distances: bool = False,
                  activation: Union[Callable, str] = "relu",
                  batch_norm: bool = True,
-                 batch_norm_momentum=0.1,
+                 batch_norm_momentum: float = 0.1,
                  propagation_depth: int = 5,
                  dropout: float = 0.0,
                  posttrans_layers: int = 1,

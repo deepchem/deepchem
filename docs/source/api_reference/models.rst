@@ -356,14 +356,6 @@ You can modify networks for different tasks by using a :code:`ModularTorchModel`
 .. autoclass:: deepchem.models.torch_models.modular.ModularTorchModel
   :members:
 
-HuggingFaceModel
-----------------
-
-HuggingFace models can wrapped using the wrapper :code:`HuggingFaceModel`
-
-.. autoclass:: deepchem.models.torch_models.hf_models.HuggingFaceModel
-  :members:
-
 CNN
 ---
 
@@ -414,7 +406,7 @@ AttentiveFPModel
   :members:
 
 PagtnModel
-----------------
+----------
 
 .. autoclass:: deepchem.models.PagtnModel
   :members:
@@ -490,14 +482,14 @@ Density Functional Theory Model - XCModel
   :members:
 
 PyTorch Lightning Models
-==============
+========================
 
 DeepChem supports the use of `PyTorch-Lightning`_ to build PyTorch models.
 
 .. _`PyTorch-Lightning`: https://www.pytorchlightning.ai/
 
 DCLightningModule
-----------
+-----------------
 
 You can wrap an arbitrary :code:`TorchModel` in a :code:`DCLightningModule` object.
 
@@ -505,20 +497,34 @@ You can wrap an arbitrary :code:`TorchModel` in a :code:`DCLightningModule` obje
   :members:
 
 Jax Models
-==============
+==========
 
 DeepChem supports the use of `Jax`_ to build deep learning models.
 
 .. _`Jax`: https://github.com/google/jax
 
 JaxModel
-----------
+--------
 
 .. autoclass:: deepchem.models.JaxModel
   :members:
 
 PinnModel
-----------
+---------
 
 .. autoclass:: deepchem.models.PINNModel
+  :members:
+
+Hugging Face Models
+===================
+
+HuggingFace models from the `transformers <https://huggingface.co/models>`_ library can wrapped using the wrapper :code:`HuggingFaceModel`
+
+.. autoclass:: deepchem.models.torch_models.hf_models.HuggingFaceModel
+  :members:
+
+Chemberta
+---------
+
+.. autoclass:: deepchem.models.torch_models.chemberta.Chemberta
   :members:
