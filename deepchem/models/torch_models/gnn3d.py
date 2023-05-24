@@ -387,7 +387,6 @@ class InfoMax3DModular(ModularTorchModel):
                  aggregators: List[str],
                  readout_aggregators: List[str],
                  scalers: List[str],
-                 num_conformers: int,
                  residual: bool = True,
                  node_wise_output_layers: int = 2,
                  pairwise_distances: bool = False,
@@ -411,7 +410,6 @@ class InfoMax3DModular(ModularTorchModel):
         self.aggregators = aggregators
         self.readout_aggregators = readout_aggregators
         self.scalers = scalers
-        self.num_conformers = num_conformers
         self.residual = residual
         self.node_wise_output_layers = node_wise_output_layers
         self.pairwise_distances = pairwise_distances
@@ -431,7 +429,7 @@ class InfoMax3DModular(ModularTorchModel):
         self.pretrans_layers = pretrans_layers
         self.kwargs = kwargs
         # self.criterion = torch.nn.MSELoss()
-        self.criterion = NTXent()
+        self.criterion = NTXentMultiplePositives()
         self.components = self.build_components()
         self.model = self.build_model()
         super().__init__(self.model, self.components, **kwargs)
@@ -512,15 +510,20 @@ class InfoMax3DModular(ModularTorchModel):
         torch.Tensor
             The computed loss value.
         """
-        batch_size = len(inputs)
+        # batch_size = len(inputs)
+        encodings2d = []
+        encodings3d = []
         for i, conformers in enumerate(inputs):
-            # find random index between 0 and batch_size that isn't i
-            k = np.random.choice([x for x in range(batch_size) if x != i])
-            # how does the criterion know when it's negative or positive?
-            view2d = self.components['2d'](conformers)
-            view3d = self.components['3d'](conformers)
+            # 2d model takes only the first conformer
+            encodings2d.append(self.components['2d'](conformers[0]))
+            # 3d model takes all conformers
+            encodings3d.append([self.components['3d'](conf) for conf in conformers])
 
-        loss = self.criterion(view2d, view3d)
+        # concat the lists such that the 2d encodings is of shape batch_size x target_dim
+        # and the 3d encodings is of shape batch_size*num_conformers x target_dim
+        encodings2d = torch.cat(encodings2d, dim=0)
+        encodings3d = torch.cat([torch.cat(conf, dim=0) for conf in encodings3d], dim=0)
+        loss = self.criterion(encodings2d, encodings3d)
         return loss
 
     def _prepare_batch(self, batch):
@@ -573,7 +576,8 @@ def cov_loss(x):
                                            metric_dim + 1)[:, 1:].flatten()
     return off_diag_cov.pow_(2).sum() / metric_dim
 
-class NTXent(_Loss):
+
+class NTXentMultiplePositives(_Loss):
     '''
         Normalized Temperature-scaled Cross Entropy Loss from SimCLR paper
         Args:
@@ -587,31 +591,49 @@ class NTXent(_Loss):
                  tau: float = 0.5,
                  uniformity_reg=0,
                  variance_reg=0,
-                 covariance_reg=0) -> None:
-        super(NTXent, self).__init__()
+                 covariance_reg=0,
+                 conformer_variance_reg=0) -> None:
+        super(NTXentMultiplePositives, self).__init__()
         self.norm = norm
         self.tau = tau
         self.uniformity_reg = uniformity_reg
         self.variance_reg = variance_reg
         self.covariance_reg = covariance_reg
+        self.conformer_variance_reg = conformer_variance_reg
 
     def forward(self, z1, z2, **kwargs) -> Tensor:
-        batch_size, _ = z1.size()
-        sim_matrix = torch.einsum('ik,jk->ij', z1, z2)
+        '''
+        :param z1: batchsize, metric dim
+        :param z2: batchsize*num_conformers, metric dim
+        '''
+        batch_size, metric_dim = z1.size()
+        z2 = z2.view(batch_size, -1,
+                     metric_dim)  # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(batch_size, -1,
+                     metric_dim)  # [batch_size, num_conformers, metric_dim]
+
+        sim_matrix = torch.einsum(
+            'ik,juk->iju', z1, z2)  # [batch_size, batch_size, num_conformers]
 
         if self.norm:
             z1_abs = z1.norm(dim=1)
-            z2_abs = z2.norm(dim=1)
-            sim_matrix = sim_matrix / (torch.einsum('i,j->ij', z1_abs, z2_abs) +
-                                       1e-8)
+            z2_abs = z2.norm(dim=2)
+            sim_matrix = sim_matrix / torch.einsum('i,ju->iju', z1_abs, z2_abs)
 
-        sim_matrix = torch.exp(sim_matrix / self.tau)
-        pos_sim = torch.diagonal(sim_matrix)
+        sim_matrix = torch.exp(
+            sim_matrix / self.tau)  # [batch_size, batch_size, num_conformers]
+
+        sim_matrix = sim_matrix.sum(dim=2)  # [batch_size, batch_size]
+        pos_sim = torch.diagonal(sim_matrix)  # [batch_size]
         loss = pos_sim / (sim_matrix.sum(dim=1) - pos_sim)
         loss = -torch.log(loss).mean()
 
         if self.variance_reg > 0:
             loss += self.variance_reg * (std_loss(z1) + std_loss(z2))
+        if self.conformer_variance_reg > 0:
+            std = torch.sqrt(z2.var(dim=1) + 1e-04)
+            std_conf_loss = torch.mean(torch.relu(1 - std))
+            loss += self.conformer_variance_reg * std_conf_loss
         if self.covariance_reg > 0:
             loss += self.covariance_reg * (cov_loss(z1) + cov_loss(z2))
         if self.uniformity_reg > 0:

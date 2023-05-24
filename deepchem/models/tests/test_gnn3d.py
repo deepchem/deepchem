@@ -89,8 +89,7 @@ def test_InfoMax3DModular():
                              target_dim=10,
                              aggregators=['sum', 'mean', 'max'],
                              readout_aggregators=['sum', 'mean'],
-                             scalers=['identity'],
-                             num_conformers=2)
+                             scalers=['identity'])
 
     loss1 = model.fit(data, nb_epoch=1)
     loss2 = model.fit(data, nb_epoch=9)
