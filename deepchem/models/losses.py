@@ -1,4 +1,4 @@
-from typing import Optional, List, Sequence
+from typing import List, Optional, Sequence
 
 
 class Loss:
@@ -1198,6 +1198,7 @@ class GraphContextPredLoss(Loss):
 
     def _create_pytorch_loss(self, mode, neg_samples):
         import torch
+
         from deepchem.models.torch_models.gnn import cycle_index
         self.mode = mode
         self.neg_samples = neg_samples
@@ -1305,6 +1306,173 @@ class DensityProfileLoss(Loss):
         def loss(output, labels):
             output, labels = _make_pytorch_shapes_consistent(output, labels)
             return torch.sum((labels - output)**2 * volume)
+
+        return loss
+
+
+class NTXentMultiplePositives(Loss):
+    """
+    This is a modification of the NTXent loss function from Chen [1]_. This loss is designed for contrastive learning of molecular representations, comparing the similarity of a molecule's latent representation to positive and negative samples.
+
+    The modifications proposed in [2]_ enable multiple conformers to be used as positive samples.
+
+    This loss function is designed for graph neural networks and is particularly useful for unsupervised pre-training tasks.
+
+    Parameters
+    ----------
+    norm : bool, optional (default=True)
+        Whether to normalize the similarity matrix.
+    tau : float, optional (default=0.5)
+        Temperature parameter for the similarity matrix.
+    uniformity_reg : float, optional (default=0)
+        Regularization weight for the uniformity loss.
+    variance_reg : float, optional (default=0)
+        Regularization weight for the variance loss.
+    covariance_reg : float, optional (default=0)
+        Regularization weight for the covariance loss.
+    conformer_variance_reg : float, optional (default=0)
+        Regularization weight for the conformer variance loss.
+
+    References
+    ----------
+    .. [1] Chen, T., Kornblith, S., Norouzi, M. & Hinton, G. A Simple Framework for Contrastive Learning of Visual Representations. Preprint at https://doi.org/10.48550/arXiv.2002.05709 (2020).
+
+    .. [2] Stärk, H. et al. 3D Infomax improves GNNs for Molecular Property Prediction. Preprint at https://doi.org/10.48550/arXiv.2110.04126 (2022).
+    """
+
+    def __init__(self,
+                 norm: bool = True,
+                 tau: float = 0.5,
+                 uniformity_reg=0,
+                 variance_reg=0,
+                 covariance_reg=0,
+                 conformer_variance_reg=0) -> None:
+        super(NTXentMultiplePositives, self).__init__()
+        self.norm = norm
+        self.tau = tau
+        self.uniformity_reg = uniformity_reg
+        self.variance_reg = variance_reg
+        self.covariance_reg = covariance_reg
+        self.conformer_variance_reg = conformer_variance_reg
+
+    def _create_pytorch_loss(self):
+        import torch
+        from torch import Tensor
+
+        def std_loss(x: Tensor)-> Tensor:
+            """
+            Compute the standard deviation loss.
+
+            Parameters
+            ----------
+            x : torch.Tensor
+                Input tensor.
+
+            Returns
+            -------
+            loss : torch.Tensor
+                The standard deviation loss.
+            """
+            std = torch.sqrt(x.var(dim=0) + 1e-04)
+            return torch.mean(torch.relu(1 - std))
+
+        def uniformity_loss(x1: Tensor, x2: Tensor, t=2) -> Tensor:
+            """
+            Compute the uniformity loss.
+
+            Parameters
+            ----------
+            x1 : torch.Tensor
+                First input tensor.
+            x2 : torch.Tensor
+                Second input tensor.
+            t : int, optional (default=2)
+                Exponent for the squared Euclidean distance.
+
+            Returns
+            -------
+            loss : torch.Tensor
+                The uniformity loss.
+            """
+            sq_pdist_x1 = torch.pdist(x1, p=2).pow(2)
+            uniformity_x1 = sq_pdist_x1.mul(-t).exp().mean().log()
+            sq_pdist_x2 = torch.pdist(x2, p=2).pow(2)
+            uniformity_x2 = sq_pdist_x2.mul(-t).exp().mean().log()
+            return (uniformity_x1 + uniformity_x2) / 2
+
+        def cov_loss(x: Tensor) -> Tensor:
+            """
+            Compute the covariance loss.
+
+            Parameters
+            ----------
+            x : torch.Tensor
+                Input tensor.
+
+            Returns
+            -------
+            loss : torch.Tensor
+                The covariance loss.
+            """
+            batch_size, metric_dim = x.size()
+            x = x - x.mean(dim=0)
+            cov = (x.T @ x) / (batch_size - 1)
+            off_diag_cov = cov.flatten()[:-1].view(metric_dim - 1, metric_dim +
+                                                   1)[:, 1:].flatten()
+            return off_diag_cov.pow_(2).sum() / metric_dim
+
+        def loss(z1: Tensor, z2: Tensor) -> Tensor:
+            """
+            Compute the NTXentMultiplePositives loss.
+
+            Parameters
+            ----------
+            z1 : torch.Tensor
+                First input tensor with shape (batch_size, metric_dim).
+            z2 : torch.Tensor
+                Second input tensor with shape (batch_size * num_conformers, metric_dim).
+
+            Returns
+            -------
+            loss : torch.Tensor
+                The NTXentMultiplePositives loss.
+            """
+            batch_size, metric_dim = z1.size()
+            z2 = z2.view(batch_size, -1,
+                         metric_dim)  # [batch_size, num_conformers, metric_dim]
+            z2 = z2.view(batch_size, -1,
+                         metric_dim)  # [batch_size, num_conformers, metric_dim]
+
+            sim_matrix = torch.einsum(
+                'ik,juk->iju', z1,
+                z2)  # [batch_size, batch_size, num_conformers]
+
+            if self.norm:
+                z1_abs = z1.norm(dim=1)
+                z2_abs = z2.norm(dim=2)
+                sim_matrix = sim_matrix / torch.einsum('i,ju->iju', z1_abs,
+                                                       z2_abs)
+
+            sim_matrix = torch.exp(
+                sim_matrix /
+                self.tau)  # [batch_size, batch_size, num_conformers]
+
+            sim_matrix = sim_matrix.sum(dim=2)  # [batch_size, batch_size]
+            pos_sim = torch.diagonal(sim_matrix)  # [batch_size]
+            loss = pos_sim / (sim_matrix.sum(dim=1) - pos_sim)
+            loss = -torch.log(loss).mean()
+
+            if self.variance_reg > 0:
+                loss += self.variance_reg * (std_loss(z1) + std_loss(z2))
+            if self.conformer_variance_reg > 0:
+                std = torch.sqrt(z2.var(dim=1) + 1e-04)
+                std_conf_loss = torch.mean(torch.relu(1 - std))
+                loss += self.conformer_variance_reg * std_conf_loss
+            if self.covariance_reg > 0:
+                loss += self.covariance_reg * (cov_loss(z1) + cov_loss(z2))
+            if self.uniformity_reg > 0:
+                loss += self.uniformity_reg * uniformity_loss(z1, z2)
+            return loss
 
         return loss
 
