@@ -1333,6 +1333,16 @@ class NTXentMultiplePositives(Loss):
     conformer_variance_reg : float, optional (default=0)
         Regularization weight for the conformer variance loss.
 
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.losses import NTXentMultiplePositives
+    >>> z1 = torch.randn(4, 8)
+    >>> z2 = torch.randn(4 * 3, 8)
+    >>> ntxent_loss = NTXentMultiplePositives(norm=True, tau=0.5)
+    >>> loss_fn = ntxent_loss._create_pytorch_loss()
+    >>> loss = loss_fn(z1, z2)
+
     References
     ----------
     .. [1] Chen, T., Kornblith, S., Norouzi, M. & Hinton, G. A Simple Framework for Contrastive Learning of Visual Representations. Preprint at https://doi.org/10.48550/arXiv.2002.05709 (2020).
@@ -1359,7 +1369,7 @@ class NTXentMultiplePositives(Loss):
         import torch
         from torch import Tensor
 
-        def std_loss(x: Tensor)-> Tensor:
+        def std_loss(x: Tensor) -> Tensor:
             """
             Compute the standard deviation loss.
 
