@@ -12,26 +12,6 @@ except ModuleNotFoundError:
 
 
 @pytest.fixture
-def smiles_dataset(tmpdir):
-    import deepchem as dc
-    import pandas as pd
-    smiles = [
-        "CCN(CCSC)C(=O)N[C@@](C)(CC)C(F)(F)F",
-        "CC1(C)CN(C(=O)Nc2cc3ccccc3nn2)C[C@@]2(CCOC2)O1"
-    ]
-    labels = [3.112, 2.432]
-    df = pd.DataFrame(list(zip(smiles, labels)), columns=["smiles", "task1"])
-    filepath = os.path.join(tmpdir, 'smiles.csv')
-    df.to_csv(filepath)
-
-    loader = dc.data.CSVLoader(["task1"],
-                               feature_field="smiles",
-                               featurizer=dc.feat.DummyFeaturizer())
-    dataset = loader.create_dataset(filepath)
-    return dataset
-
-
-@pytest.fixture
 def hf_tokenizer(tmpdir):
     filepath = os.path.join(tmpdir, 'smiles.txt')
     with open(filepath, 'w') as f:
@@ -59,7 +39,7 @@ def hf_tokenizer(tmpdir):
 
 
 @pytest.mark.torch
-def test_pretraining(hf_tokenizer, smiles_dataset):
+def test_pretraining(hf_tokenizer, smiles_regression_dataset):
     from deepchem.models.torch_models.hf_models import HuggingFaceModel
     from transformers.models.roberta import RobertaConfig, RobertaForMaskedLM
 
@@ -67,13 +47,13 @@ def test_pretraining(hf_tokenizer, smiles_dataset):
     model = RobertaForMaskedLM(config)
 
     hf_model = HuggingFaceModel(model=model, tokenizer=hf_tokenizer, task='mlm')
-    loss = hf_model.fit(smiles_dataset, nb_epoch=1)
+    loss = hf_model.fit(smiles_regression_dataset, nb_epoch=1)
 
     assert loss
 
 
 @pytest.mark.torch
-def test_hf_model_regression(hf_tokenizer, smiles_dataset):
+def test_hf_model_regression(hf_tokenizer, smiles_regression_dataset):
     from transformers.models.roberta import (RobertaConfig,
                                              RobertaForSequenceClassification)
 
@@ -84,21 +64,22 @@ def test_hf_model_regression(hf_tokenizer, smiles_dataset):
     hf_model = HuggingFaceModel(model=model,
                                 tokenizer=hf_tokenizer,
                                 task='regression')
-    hf_model.fit(smiles_dataset, nb_epoch=1)
-    result = hf_model.predict(smiles_dataset)
+    hf_model.fit(smiles_regression_dataset, nb_epoch=1)
+    result = hf_model.predict(smiles_regression_dataset)
+
     assert result.all()
-    score = hf_model.evaluate(smiles_dataset,
+    score = hf_model.evaluate(smiles_regression_dataset,
                               metrics=dc.metrics.Metric(dc.metrics.mae_score))
     assert score
 
 
 @pytest.mark.torch
-def test_hf_model_classification(hf_tokenizer, smiles_dataset):
-    y = np.random.choice([0, 1], size=smiles_dataset.y.shape)
-    dataset = dc.data.NumpyDataset(X=smiles_dataset.X,
+def test_hf_model_classification(hf_tokenizer, smiles_regression_dataset):
+    y = np.random.choice([0, 1], size=smiles_regression_dataset.y.shape)
+    dataset = dc.data.NumpyDataset(X=smiles_regression_dataset.X,
                                    y=y,
-                                   w=smiles_dataset.w,
-                                   ids=smiles_dataset.ids)
+                                   w=smiles_regression_dataset.w,
+                                   ids=smiles_regression_dataset.ids)
 
     from transformers import RobertaConfig, RobertaForSequenceClassification
 
