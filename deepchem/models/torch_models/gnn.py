@@ -1,18 +1,36 @@
-import random
 import copy
-import torch
+import random
+from typing import Iterable, List, Tuple
+
 import numpy as np
-from torch_geometric.nn import GINEConv, GCNConv, GATConv, SAGEConv, global_add_pool, global_mean_pool, global_max_pool
-from torch_geometric.nn.aggr import AttentionalAggregation, Set2Set
-from torch_geometric.nn.inits import uniform
+import torch
 import torch.nn as nn
 from torch.functional import F
+from torch_geometric.nn import (
+    GATConv,
+    GCNConv,
+    GINEConv,
+    SAGEConv,
+    global_add_pool,
+    global_max_pool,
+    global_mean_pool,
+)
+from torch_geometric.nn.aggr import AttentionalAggregation, Set2Set
+from torch_geometric.nn.inits import uniform
+
 from deepchem.data import Dataset
-from deepchem.models.losses import SoftmaxCrossEntropy, EdgePredictionLoss, GraphNodeMaskingLoss, GraphEdgeMaskingLoss, DeepGraphInfomaxLoss, GraphContextPredLoss
-from deepchem.models.torch_models import ModularTorchModel
 from deepchem.feat.graph_data import BatchGraphData, GraphData, shortest_path_length
-from typing import Iterable, List, Tuple
 from deepchem.metrics import to_one_hot
+from deepchem.models.losses import (
+    DeepGraphInfomaxLoss,
+    EdgePredictionLoss,
+    GraphContextPredLoss,
+    GraphEdgeMaskingLoss,
+    GraphNodeMaskingLoss,
+    SoftmaxCrossEntropy,
+)
+from deepchem.models.torch_models import ModularTorchModel
+from deepchem.tasks.task import Task
 
 num_node_type = 120  # including the extra mask tokens
 num_chirality_tag = 3
@@ -307,26 +325,31 @@ class GNNModular(ModularTorchModel):
     .. [2] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
     """
 
-    def __init__(self,
-                 gnn_type: str = "gin",
-                 num_layer: int = 3,
-                 emb_dim: int = 64,
-                 num_tasks: int = 1,
-                 num_classes: int = 2,
-                 graph_pooling: str = "mean",
-                 dropout: int = 0,
-                 jump_knowledge: str = "last",
-                 task: str = "edge_pred",
-                 mask_rate: float = .1,
-                 mask_edge: bool = True,
-                 context_size: int = 1,
-                 neighborhood_size: int = 3,
-                 context_mode: str = "cbow",
-                 neg_samples: int = 1,
-                 **kwargs):
+    def __init__(
+            self,
+            task: Task,
+            gnn_type: str = "gin",
+            num_layer: int = 3,
+            emb_dim: int = 64,
+            num_tasks: int = 1,
+            num_classes: int = 2,
+            graph_pooling: str = "mean",
+            dropout: int = 0,
+            jump_knowledge: str = "last",
+            #  task: str = "edge_pred",
+            mask_rate: float = .1,
+            mask_edge: bool = True,
+            context_size: int = 1,
+            neighborhood_size: int = 3,
+            context_mode: str = "cbow",
+            neg_samples: int = 1,
+            **kwargs):
         self.gnn_type = gnn_type
         self.num_layer = num_layer
         self.emb_dim = emb_dim
+        
+        self.task = task()
+        
 
         self.num_tasks = num_tasks
         self.num_classes = num_classes
