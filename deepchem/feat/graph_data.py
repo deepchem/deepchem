@@ -287,8 +287,7 @@ class GraphData:
 
         # Create a mapping from the original node indices to the new node indices
         node_mapping = {
-            old_idx: new_idx
-            for new_idx, old_idx in enumerate(nodes)
+            old_idx: new_idx for new_idx, old_idx in enumerate(nodes)
         }
 
         # Filter and reindex node features
