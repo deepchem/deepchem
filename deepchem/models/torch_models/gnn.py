@@ -589,24 +589,9 @@ class GNNModular(ModularTorchModel):
             loss = self.masked_edge_loss_loader(inputs)
         elif self.task == "infomax":
             loss = self.infomax_loss_loader(inputs)
-        # elif self.task == "regression":
-        #     loss = self.regression_loss_loader(inputs, labels)
-        # elif self.task == "classification":
-        #     loss = self.classification_loss_loader(inputs, labels)
         elif self.task == "context_pred":
             loss = self.context_pred_loss_loader(inputs)
         return (loss * weights).mean()
-
-    # def regression_loss_loader(self, inputs, labels):
-    #     out = self.model(inputs)
-    #     reg_loss = self.task.criterion(out, labels)
-    #     return reg_loss
-
-    # def classification_loss_loader(self, inputs, labels):
-    #     out = self.model(inputs)
-    #     out = F.softmax(out, dim=2)
-    #     class_loss = self.criterion(out, labels)
-    #     return class_loss
 
     def masked_node_loss_loader(self, inputs):
         """

@@ -115,13 +115,6 @@ class ModularTorchModel(TorchModel):
         # TODO: This could potentially be abstracted into ModularTorchModel
         raise NotImplementedError("Subclass must define the change_task method")
 
-    # def loss_func(self, inputs: OneOrMany[torch.Tensor], labels: Sequence,
-    #               weights: Sequence) -> torch.Tensor:
-    #     """Defines the loss function for the model which can access the components
-    #     using self.components. The loss function should take the inputs, labels, and
-    #     weights as arguments and return the loss."""
-    #     raise NotImplementedError("Subclass must define the loss function")
-
     def freeze_components(self, components: List[str]):
         """Freezes or unfreezes the parameters of the specified components.
 
