@@ -87,6 +87,18 @@ class Net3DLayer(nn.Module):
         self.soft_edge_network = nn.Linear(hidden_dim, 1)
 
     def forward(self, input_graph: dgl.DGLGraph):
+        """Perform a forward pass on the given graph.
+
+        Parameters
+        ----------
+        input_graph : dgl.DGLGraph
+            The graph to perform the forward pass on.
+
+        Returns
+        -------
+        dgl.DGLGraph
+            The updated graph after the forward pass.
+        """
         # copy the input graph to avoid in-place operations
         graph = input_graph.local_var()
         graph.ndata['feat'] = input_graph.ndata['feat'].clone()
@@ -98,6 +110,18 @@ class Net3DLayer(nn.Module):
         return graph
 
     def message_function(self, edges):
+        """Computes the message and edge weight for a given set of edges.
+
+        Parameters
+        ----------
+        edges : dgl.EdgeBatch
+            A dgl.EdgeBatch object containing the edges information (data, batch size, etc.).
+
+        Returns
+        -------
+        dict
+            A dictionary containing the message multiplied by the edge weight.
+        """
         message_input = torch.cat(
             [edges.src['feat'], edges.dst['feat'], edges.data['d']], dim=-1)
         message = self.message_network(message_input)
@@ -106,6 +130,21 @@ class Net3DLayer(nn.Module):
         return {'m': message * edge_weight}
 
     def update_function(self, nodes):
+        """
+        Update function for updating node features based on the aggregated messages.
+
+        This function is used in the forward method to perform a forward pass on the graph.
+
+        Parameters
+        ----------
+        nodes : dgl.NodeBatch
+            A node batch object containing the nodes information (data, batch size, etc.).
+
+        Returns
+        -------
+        dict
+            A dictionary containing the updated features.
+        """
         h = nodes.data['feat']
         input = torch.cat([nodes.data['m_sum'] + nodes.data['feat']], dim=-1)
         h_new = self.update_network(input)
@@ -153,6 +192,17 @@ class Net3D(nn.Module):
         The number of message network layers.
     use_node_features : bool, optional (default=False)
         Whether to use node features as input.
+
+    Examples
+    --------
+    >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
+    >>> from deepchem.models.torch_models.gnn3d import Net3D
+    >>> smiles = ["C[C@H](F)Cl", "C[C@@H](F)Cl"]
+    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    >>> data = featurizer.featurize(smiles)
+    >>> dgldata = [[graph.to_dgl_graph() for graph in conf] for conf in data]
+    >>> net3d = Net3D(hidden_dim=3, target_dim=2, readout_aggregators=['sum', 'mean'])
+    >>> output = [[net3d(graph) for graph in conf] for conf in dgldata]
 
     References
     ----------
