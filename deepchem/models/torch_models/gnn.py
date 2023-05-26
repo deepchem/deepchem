@@ -348,7 +348,7 @@ class GNNModular(ModularTorchModel):
         self.num_layer = num_layer
         self.emb_dim = emb_dim
         
-        self.task = task()
+        # for attr in task.attributes
         
 
         self.num_tasks = num_tasks
