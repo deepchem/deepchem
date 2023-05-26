@@ -1,14 +1,16 @@
-import time
 import logging
 import os
+import time
 from collections.abc import Sequence as SequenceCollection
-from typing import Any, Callable, Iterable, List, Optional, Tuple, Union, Sequence
+from typing import Any, Callable, Iterable, List, Optional, Sequence, Tuple, Union
+
 import torch
 import torch.nn as nn
-from deepchem.models.torch_models.torch_model import TorchModel
+
 from deepchem.models.optimizers import LearningRateSchedule
-from deepchem.utils.typing import LossFn, OneOrMany
+from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.tasks.task import Task
+from deepchem.utils.typing import LossFn, OneOrMany
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +70,8 @@ class ModularTorchModel(TorchModel):
 
     """
 
-    def __init__(self, model: nn.Module, components: dict, task: Task, **kwargs):
+    def __init__(self, model: nn.Module, components: dict, task: Task,
+                 **kwargs):
         """Create a ModularTorchModel.
 
         Parameters
@@ -100,6 +103,17 @@ class ModularTorchModel(TorchModel):
         """Creates the components dictionary, with the keys being the names of the
         components and the values being torch.nn.module objects."""
         raise NotImplementedError("Subclass must define the components")
+
+    def change_task(self, task: Task):
+        """Changes the task of the model.
+
+        Parameters
+        ----------
+        task: Task
+            The new task.
+        """
+        # TODO: This could potentially be abstracted into ModularTorchModel
+        raise NotImplementedError("Subclass must define the change_task method")
 
     # def loss_func(self, inputs: OneOrMany[torch.Tensor], labels: Sequence,
     #               weights: Sequence) -> torch.Tensor:
@@ -315,7 +329,8 @@ class ModularTorchModel(TorchModel):
 
         if source_model is not None:
             for name, module in source_model.components.items():
-                if components is None or name in components:
+                if (components is None or name in components) and isinstance(
+                        name, nn.Module):
                     self.components[name].load_state_dict(module.state_dict())
             self.build_model()
 

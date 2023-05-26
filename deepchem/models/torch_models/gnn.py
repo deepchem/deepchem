@@ -332,7 +332,7 @@ class GNNModular(ModularTorchModel):
             num_layer: int = 3,
             emb_dim: int = 64,
             num_tasks: int = 1,
-            num_classes: int = 2,
+            # num_classes: int = 2,
             graph_pooling: str = "mean",
             dropout: int = 0,
             jump_knowledge: str = "last",
@@ -864,8 +864,10 @@ class GNNModular(ModularTorchModel):
                                                deterministic=deterministic,
                                                pad_batches=pad_batches):
                 if isinstance(self.task, Classification) and y_b is not None:
-                    y_b = to_one_hot(y_b.flatten(), self.num_classes).reshape(
-                        -1, self.num_tasks, self.num_classes)
+                    y_b = to_one_hot(y_b.flatten(),
+                                     self.task.num_classes).reshape(
+                                         -1, self.task.num_tasks,
+                                         self.task.num_classes)
                 yield ([X_b], [y_b], [w_b])
 
 

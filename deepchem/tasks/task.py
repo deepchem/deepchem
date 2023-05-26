@@ -1,10 +1,6 @@
-# import numpy as np
 from torch.functional import F
 
-# import deepchem as dc
-# from deepchem.feat.molecule_featurizers import SNAPFeaturizer
 from deepchem.models.losses import SoftmaxCrossEntropy
-# from deepchem.models.torch_models.gnn import GNNModular
 
 
 class Task():
@@ -42,6 +38,7 @@ class Classification(Task):
     def __init__(self, num_tasks, num_classes, **kwargs):
         super().__init__()
         self.output_dim = num_tasks * num_classes
+        self.num_tasks = num_tasks
         self.num_classes = num_classes
         self.criterion = SoftmaxCrossEntropy()._create_pytorch_loss()
 
@@ -50,5 +47,3 @@ class Classification(Task):
         out = F.softmax(out, dim=2)
         loss = self.criterion(out, labels)
         return (loss * weights).mean()
-
-
