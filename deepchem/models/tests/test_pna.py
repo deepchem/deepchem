@@ -5,6 +5,7 @@ import numpy as np
 import deepchem as dc
 import pytest
 
+
 @pytest.mark.pytorch
 def test_AtomEncoder():
     import torch
@@ -26,6 +27,7 @@ def test_AtomEncoder():
     atom_embeddings = atom_encoder(graph_features)
     assert atom_embeddings.shape == (num_samples, 32)
 
+
 @pytest.mark.pytorch
 def test_BondEncoder():
     import torch
@@ -46,6 +48,7 @@ def test_BondEncoder():
                                  dim=1)
     bond_embeddings = bond_encoder(graph_features)
     assert bond_embeddings.shape == (num_samples, 32)
+
 
 @pytest.mark.pytorch
 def test_pnalayer():
@@ -96,6 +99,7 @@ def get_regression_dataset():
     metric = dc.metrics.Metric(dc.metrics.mean_absolute_error,
                                mode="regression")
     return dataset, metric
+
 
 @pytest.mark.pytorch
 def test_PNAGNN():
