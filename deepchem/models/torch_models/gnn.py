@@ -27,10 +27,11 @@ from deepchem.models.losses import (
     GraphContextPredLoss,
     GraphEdgeMaskingLoss,
     GraphNodeMaskingLoss,
-    SoftmaxCrossEntropy,
 )
+
+# SoftmaxCrossEntropy,
 from deepchem.models.torch_models import ModularTorchModel
-from deepchem.tasks.task import Task
+from deepchem.tasks.task import Classification, Regression, Task
 
 num_node_type = 120  # including the extra mask tokens
 num_chirality_tag = 3
@@ -171,13 +172,11 @@ class GNNHead(torch.nn.Module):
         Number of classes for classification.
     """
 
-    def __init__(self, pool, head, task, num_tasks, num_classes):
+    def __init__(self, pool, head, task):
         super().__init__()
         self.pool = pool
         self.head = head
         self.task = task
-        self.num_tasks = num_tasks
-        self.num_classes = num_classes
 
     def forward(self, data):
         """
@@ -194,8 +193,9 @@ class GNNHead(torch.nn.Module):
 
         pooled = self.pool(node_representation, input_batch.graph_index)
         out = self.head(pooled)
-        if self.task == "classification":
-            out = torch.reshape(out, (-1, self.num_tasks, self.num_classes))
+        if isinstance(self.task, Classification):
+            out = torch.reshape(
+                out, (-1, self.task.num_tasks, self.task.num_classes))
         return out
 
 
@@ -344,22 +344,21 @@ class GNNModular(ModularTorchModel):
             context_mode: str = "cbow",
             neg_samples: int = 1,
             **kwargs):
+        self.task = task
+
         self.gnn_type = gnn_type
         self.num_layer = num_layer
         self.emb_dim = emb_dim
-        
-        # for attr in task.attributes
-        
 
-        self.num_tasks = num_tasks
-        self.num_classes = num_classes
-        if task == "classification":
-            self.output_dim = num_classes * num_tasks
-            self.criterion = SoftmaxCrossEntropy()._create_pytorch_loss()
-        elif task == "regression":
-            self.output_dim = num_tasks
-            self.criterion = F.mse_loss
-        elif task == "edge_pred":
+        # self.num_tasks = num_tasks
+        # self.num_classes = num_classes
+        # if task == "classification":
+        #     self.output_dim = num_classes * num_tasks
+        #     self.criterion = SoftmaxCrossEntropy()._create_pytorch_loss()
+        # elif task == "regression":
+        #     self.output_dim = num_tasks
+        #     self.criterion = F.mse_loss
+        if task == "edge_pred":
             self.output_dim = num_tasks
             self.edge_pred_loss = EdgePredictionLoss()._create_pytorch_loss()
         elif task == "mask_nodes":
@@ -383,11 +382,27 @@ class GNNModular(ModularTorchModel):
         self.graph_pooling = graph_pooling
         self.dropout = dropout
         self.jump_knowledge = jump_knowledge
-        self.task = task
 
         self.components = self.build_components()
         self.model = self.build_model()
-        super().__init__(self.model, self.components, **kwargs)
+        super().__init__(self.model, self.components, self.task, **kwargs)
+        self.task.model = self.model
+
+    def change_task(self, task: Task):
+        old_model = self
+        self.__init__(task, self.gnn_type, self.num_layer, self.emb_dim,
+                      self.graph_pooling, self.dropout, self.jump_knowledge)
+        self.load_from_pretrained(old_model)
+
+    # @property
+    # def task(self):
+    #     return self._task
+
+    # @task.setter
+    # def task(self, task):
+    #     old_model = self
+    #     self.__init__(task, **old_model.__dict__)
+    #     self.load_from_pretrained(old_model)
 
     def build_components(self):
         """
@@ -437,7 +452,7 @@ class GNNModular(ModularTorchModel):
             })
 
         # for supervised tasks, add prediction head
-        elif self.task in ("regression", "classification"):
+        elif isinstance(self.task, (Regression, Classification)):
             if self.graph_pooling == "sum":
                 pool = global_add_pool
             elif self.graph_pooling == "mean":
@@ -459,6 +474,8 @@ class GNNModular(ModularTorchModel):
                                    set2setiter)
                 else:
                     pool = Set2Set(self.emb_dim, processing_steps=set2setiter)
+            else:
+                pool = global_mean_pool
 
             if self.graph_pooling == "set2set":
                 mult = 2
@@ -467,14 +484,16 @@ class GNNModular(ModularTorchModel):
 
             if self.jump_knowledge == "concat":
                 head = torch.nn.Linear(
-                    mult * (self.num_layer + 1) * self.emb_dim, self.output_dim)
+                    mult * (self.num_layer + 1) * self.emb_dim,
+                    self.task.output_dim)
             else:
-                head = torch.nn.Linear(mult * self.emb_dim, self.output_dim)
+                head = torch.nn.Linear(mult * self.emb_dim,
+                                       self.task.output_dim)
 
             components.update({'pool': pool, 'head': head})
 
             self.gnn_head = GNNHead(components['pool'], components['head'],
-                                    self.task, self.num_tasks, self.num_classes)
+                                    self.task)
 
         elif self.task == 'infomax':
             descrim = LocalGlobalDiscriminator(self.emb_dim)
@@ -577,7 +596,7 @@ class GNNModular(ModularTorchModel):
         if self.task in ("edge_pred", "mask_nodes", "mask_edges", "infomax",
                          "context_pred"):
             return self.gnn
-        elif self.task in ("regression", "classification"):
+        elif isinstance(self.task, (Regression, Classification)):
             return torch.nn.Sequential(self.gnn, self.gnn_head)
         else:
             raise ValueError(f"Task {self.task} is not supported.")
@@ -586,6 +605,9 @@ class GNNModular(ModularTorchModel):
         """
         The loss function executed in the training loop, which is based on the specified task.
         """
+        if isinstance(self.task, (Regression, Classification)):
+            return self.task.loss_func(inputs, labels, weights)
+
         if self.task == "edge_pred":
             node_emb, inputs = self.model(inputs)
             loss = self.edge_pred_loss(node_emb, inputs)
@@ -595,24 +617,24 @@ class GNNModular(ModularTorchModel):
             loss = self.masked_edge_loss_loader(inputs)
         elif self.task == "infomax":
             loss = self.infomax_loss_loader(inputs)
-        elif self.task == "regression":
-            loss = self.regression_loss_loader(inputs, labels)
-        elif self.task == "classification":
-            loss = self.classification_loss_loader(inputs, labels)
+        # elif self.task == "regression":
+        #     loss = self.regression_loss_loader(inputs, labels)
+        # elif self.task == "classification":
+        #     loss = self.classification_loss_loader(inputs, labels)
         elif self.task == "context_pred":
             loss = self.context_pred_loss_loader(inputs)
         return (loss * weights).mean()
 
-    def regression_loss_loader(self, inputs, labels):
-        out = self.model(inputs)
-        reg_loss = self.criterion(out, labels)
-        return reg_loss
+    # def regression_loss_loader(self, inputs, labels):
+    #     out = self.model(inputs)
+    #     reg_loss = self.task.criterion(out, labels)
+    #     return reg_loss
 
-    def classification_loss_loader(self, inputs, labels):
-        out = self.model(inputs)
-        out = F.softmax(out, dim=2)
-        class_loss = self.criterion(out, labels)
-        return class_loss
+    # def classification_loss_loader(self, inputs, labels):
+    #     out = self.model(inputs)
+    #     out = F.softmax(out, dim=2)
+    #     class_loss = self.criterion(out, labels)
+    #     return class_loss
 
     def masked_node_loss_loader(self, inputs):
         """
@@ -778,7 +800,8 @@ class GNNModular(ModularTorchModel):
             The weights for the batch, moved to the device.
         """
         inputs, labels, weights = batch
-        if self.task in ("regression", "classification", "infomax"):
+        if self.task == "infomax" or isinstance(self.task,
+                                                (Regression, Classification)):
             inputs = BatchGraphData(inputs[0]).numpy_to_torch(self.device)
         if self.task == "edge_pred":
             inputs = BatchGraphData(inputs[0]).numpy_to_torch(self.device)
@@ -840,7 +863,7 @@ class GNNModular(ModularTorchModel):
                  ids_b) in dataset.iterbatches(batch_size=self.batch_size,
                                                deterministic=deterministic,
                                                pad_batches=pad_batches):
-                if self.task == 'classification' and y_b is not None:
+                if isinstance(self.task, Classification) and y_b is not None:
                     y_b = to_one_hot(y_b.flatten(), self.num_classes).reshape(
                         -1, self.num_tasks, self.num_classes)
                 yield ([X_b], [y_b], [w_b])
