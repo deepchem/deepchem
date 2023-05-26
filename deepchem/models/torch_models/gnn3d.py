@@ -87,17 +87,37 @@ class Net3DLayer(nn.Module):
         self.soft_edge_network = nn.Linear(hidden_dim, 1)
 
     def forward(self, input_graph: dgl.DGLGraph):
-        # copy the input graph to avoid in-place operations
-        graph = input_graph.local_var()
-        graph.ndata['feat'] = input_graph.ndata['feat'].clone()
-        graph.edata['d'] = input_graph.edata['d'].clone()
+        """Perform a forward pass on the given graph.
 
+        Parameters
+        ----------
+        input_graph : dgl.DGLGraph
+            The graph to perform the forward pass on.
+
+        Returns
+        -------
+        dgl.DGLGraph
+            The updated graph after the forward pass.
+        """
+        graph = copy.deepcopy(input_graph)
         graph.update_all(message_func=self.message_function,
                          reduce_func=self.reduce_func(msg='m', out='m_sum'),
                          apply_node_func=self.update_function)
         return graph
 
     def message_function(self, edges):
+        """Computes the message and edge weight for a given set of edges.
+
+        Parameters
+        ----------
+        edges : dgl.EdgeBatch
+            A dgl.EdgeBatch object containing the edges information (data, batch size, etc.).
+
+        Returns
+        -------
+        dict
+            A dictionary containing the message multiplied by the edge weight.
+        """
         message_input = torch.cat(
             [edges.src['feat'], edges.dst['feat'], edges.data['d']], dim=-1)
         message = self.message_network(message_input)
@@ -106,6 +126,21 @@ class Net3DLayer(nn.Module):
         return {'m': message * edge_weight}
 
     def update_function(self, nodes):
+        """
+        Update function for updating node features based on the aggregated messages.
+
+        This function is used in the forward method to perform a forward pass on the graph.
+
+        Parameters
+        ----------
+        nodes : dgl.NodeBatch
+            A node batch object containing the nodes information (data, batch size, etc.).
+
+        Returns
+        -------
+        dict
+            A dictionary containing the updated features.
+        """
         h = nodes.data['feat']
         input = torch.cat([nodes.data['m_sum'] + nodes.data['feat']], dim=-1)
         h_new = self.update_network(input)
