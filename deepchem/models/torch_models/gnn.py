@@ -371,6 +371,7 @@ class GNNModular(ModularTorchModel):
         self.task.model = self.model
 
     def change_task(self, task: Task):
+        # This could probably get moved to the base class
         old_model = self
         self.__init__(task, self.gnn_type, self.num_layer, self.emb_dim,
                       self.graph_pooling, self.dropout, self.jump_knowledge)
