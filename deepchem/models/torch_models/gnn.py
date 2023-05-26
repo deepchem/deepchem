@@ -23,12 +23,12 @@ from deepchem.feat.graph_data import BatchGraphData, GraphData, shortest_path_le
 from deepchem.metrics import to_one_hot
 from deepchem.models.losses import (
     DeepGraphInfomaxLoss,
-    EdgePredictionLoss,
     GraphContextPredLoss,
     GraphEdgeMaskingLoss,
     GraphNodeMaskingLoss,
 )
 
+# EdgePredictionLoss,
 # SoftmaxCrossEntropy,
 from deepchem.models.torch_models import ModularTorchModel
 from deepchem.tasks.task import Classification, Regression, Task
@@ -331,7 +331,7 @@ class GNNModular(ModularTorchModel):
             gnn_type: str = "gin",
             num_layer: int = 3,
             emb_dim: int = 64,
-            num_tasks: int = 1,
+            # num_tasks: int = 1,
             # num_classes: int = 2,
             graph_pooling: str = "mean",
             dropout: int = 0,
@@ -358,10 +358,10 @@ class GNNModular(ModularTorchModel):
         # elif task == "regression":
         #     self.output_dim = num_tasks
         #     self.criterion = F.mse_loss
-        if task == "edge_pred":
-            self.output_dim = num_tasks
-            self.edge_pred_loss = EdgePredictionLoss()._create_pytorch_loss()
-        elif task == "mask_nodes":
+        # if task == "edge_pred":
+        #     self.output_dim = num_tasks
+        #     self.edge_pred_loss = EdgePredictionLoss()._create_pytorch_loss()
+        if task == "mask_nodes":
             self.mask_rate = mask_rate
             self.mask_edge = mask_edge
             self.node_mask_loss = GraphNodeMaskingLoss()._create_pytorch_loss(
@@ -394,15 +394,6 @@ class GNNModular(ModularTorchModel):
                       self.graph_pooling, self.dropout, self.jump_knowledge)
         self.load_from_pretrained(old_model)
 
-    # @property
-    # def task(self):
-    #     return self._task
-
-    # @task.setter
-    # def task(self, task):
-    #     old_model = self
-    #     self.__init__(task, **old_model.__dict__)
-    #     self.load_from_pretrained(old_model)
 
     def build_components(self):
         """

@@ -8,7 +8,7 @@ from deepchem.tasks.task import Classification, Regression
 featurizer = SNAPFeaturizer()
 smiles = ["C1=CC=CC=C1", "C1=CC=CC=C1C=O", "C1=CC=CC=C1C(=O)O"]
 features = featurizer.featurize(smiles)
-dataset = dc.data.NumpyDataset(features, np.zeros(len(features)))
+dataset = dc.data.NumpyDataset(features, np.zeros((len(features,), 1)))
 pt_task = Regression(1)
 model = GNNModular(pt_task)
 pt_loss = model.fit(dataset, nb_epoch=1)
