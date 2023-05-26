@@ -99,7 +99,11 @@ class Net3DLayer(nn.Module):
         dgl.DGLGraph
             The updated graph after the forward pass.
         """
-        graph = copy.deepcopy(input_graph)
+        # copy the input graph to avoid in-place operations
+        graph = input_graph.local_var()
+        graph.ndata['feat'] = input_graph.ndata['feat'].clone()
+        graph.edata['d'] = input_graph.edata['d'].clone()
+
         graph.update_all(message_func=self.message_function,
                          reduce_func=self.reduce_func(msg='m', out='m_sum'),
                          apply_node_func=self.update_function)
