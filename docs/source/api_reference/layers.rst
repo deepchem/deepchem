@@ -183,16 +183,19 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.gnn.LocalGlobalDiscriminator
   :members:
 
-.. autoclass:: deepchem.models.torch_models.AtomEncoder
+.. autoclass:: deepchem.models.torch_models.pna_gnn.AtomEncoder
   :members:
 
-.. autoclass:: deepchem.models.torch_models.BondEncoder
+.. autoclass:: deepchem.models.torch_models.pna_gnn.BondEncoder
   :members:
 
-.. autoclass:: deepchem.models.torch_models.PNALayer
+.. autoclass:: deepchem.models.torch_models.pna_gnn.PNALayer
   :members:
 
-.. autoclass:: deepchem.models.torch_models.PNAGNN
+.. autoclass:: deepchem.models.torch_models.pna_gnn.PNAGNN
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.gnn3d.Net3DLayer
   :members:
 
 .. autoclass:: deepchem.models.torch_models.PNA
