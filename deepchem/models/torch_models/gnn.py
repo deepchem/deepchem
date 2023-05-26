@@ -27,9 +27,6 @@ from deepchem.models.losses import (
     GraphEdgeMaskingLoss,
     GraphNodeMaskingLoss,
 )
-
-# EdgePredictionLoss,
-# SoftmaxCrossEntropy,
 from deepchem.models.torch_models import ModularTorchModel
 from deepchem.tasks.task import Classification, Regression, Task
 
@@ -325,42 +322,27 @@ class GNNModular(ModularTorchModel):
     .. [2] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
     """
 
-    def __init__(
-            self,
-            task: Task,
-            gnn_type: str = "gin",
-            num_layer: int = 3,
-            emb_dim: int = 64,
-            # num_tasks: int = 1,
-            # num_classes: int = 2,
-            graph_pooling: str = "mean",
-            dropout: int = 0,
-            jump_knowledge: str = "last",
-            #  task: str = "edge_pred",
-            mask_rate: float = .1,
-            mask_edge: bool = True,
-            context_size: int = 1,
-            neighborhood_size: int = 3,
-            context_mode: str = "cbow",
-            neg_samples: int = 1,
-            **kwargs):
+    def __init__(self,
+                 task: Task,
+                 gnn_type: str = "gin",
+                 num_layer: int = 3,
+                 emb_dim: int = 64,
+                 graph_pooling: str = "mean",
+                 dropout: int = 0,
+                 jump_knowledge: str = "last",
+                 mask_rate: float = .1,
+                 mask_edge: bool = True,
+                 context_size: int = 1,
+                 neighborhood_size: int = 3,
+                 context_mode: str = "cbow",
+                 neg_samples: int = 1,
+                 **kwargs):
         self.task = task
 
         self.gnn_type = gnn_type
         self.num_layer = num_layer
         self.emb_dim = emb_dim
 
-        # self.num_tasks = num_tasks
-        # self.num_classes = num_classes
-        # if task == "classification":
-        #     self.output_dim = num_classes * num_tasks
-        #     self.criterion = SoftmaxCrossEntropy()._create_pytorch_loss()
-        # elif task == "regression":
-        #     self.output_dim = num_tasks
-        #     self.criterion = F.mse_loss
-        # if task == "edge_pred":
-        #     self.output_dim = num_tasks
-        #     self.edge_pred_loss = EdgePredictionLoss()._create_pytorch_loss()
         if task == "mask_nodes":
             self.mask_rate = mask_rate
             self.mask_edge = mask_edge
@@ -393,7 +375,6 @@ class GNNModular(ModularTorchModel):
         self.__init__(task, self.gnn_type, self.num_layer, self.emb_dim,
                       self.graph_pooling, self.dropout, self.jump_knowledge)
         self.load_from_pretrained(old_model)
-
 
     def build_components(self):
         """
