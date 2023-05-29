@@ -2972,3 +2972,43 @@ class SetGather(nn.Module):
         partitions = [input_tensor[mask] for mask in partition_masks]
 
         return partitions
+
+
+class DTNNEmbedding(nn.Module):
+    """
+
+    Parameters
+    ----------
+    n_embedding: int, optional
+        Number of features for each atom
+    periodic_table_length: int, optional
+        Length of embedding, 83=Bi
+    init: str, optional
+        Weight initialization for filters.
+
+    """
+
+    def __init__(self,
+                 n_embedding: int = 30,
+                 periodic_table_length: int = 30,
+                 init: str = 'xavier_uniform_',
+                 **kwargs):
+
+        super(DTNNEmbedding, self).__init__(**kwargs)
+        self.n_embedding = n_embedding
+        self.periodic_table_length = periodic_table_length
+        self.init = init  # Set weight initialization
+
+        init_func: Callable = getattr(initializers, self.init)
+        self.embedding_list = init_func(
+            torch.empty([self.periodic_table_length, self.n_embedding]))
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, periodic_table_length={self.periodic_table_length}, init={self.init})'
+
+    def forward(self, inputs):
+        """
+        parent layers: atom_number
+        """
+        atom_number = inputs
+        return torch.nn.functional.embedding(atom_number, self.embedding_list)
