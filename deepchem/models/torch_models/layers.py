@@ -16,7 +16,7 @@ except ModuleNotFoundError:
     pass
 
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
-from deepchem.utils.pytorch_utils import get_activation
+from deepchem.utils.pytorch_utils import get_activation, segment_sum
 from torch.nn import init as initializers
 
 
@@ -2972,3 +2972,86 @@ class SetGather(nn.Module):
         partitions = [input_tensor[mask] for mask in partition_masks]
 
         return partitions
+
+
+class EdgeNetwork(nn.Module):
+    """Submodule for Message Passing
+    Examples
+    --------
+    >>> pair_features = torch.rand((4, 2), dtype=torch.float32)
+    >>> atom_features = torch.rand((5, 2), dtype=torch.float32)
+    >>> atom_to_pair = []
+    >>> n_atoms = 2
+    >>> start = 0
+    >>> C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
+    >>> atom_to_pair.append(np.transpose(np.array([C1.flatten() + start, C0.flatten() + start])))
+    >>> atom_to_pair = torch.Tensor(atom_to_pair)
+    >>> atom_to_pair = torch.squeeze(atom_to_pair.to(torch.int64), dim=0)
+    >>> inputs = [pair_features, atom_features, atom_to_pair]
+    >>> n_pair_features = 2
+    >>> n_hidden = 2
+    >>> init = 'xavier_uniform_'
+    >>> layer = EdgeNetwork(n_pair_features, n_hidden, init)
+    >>> result = layer(inputs)
+    >>> result.shape[1]
+    2
+    """
+
+    def __init__(self,
+                 n_pair_features: int = 8,
+                 n_hidden: int = 100,
+                 init: str = 'xavier_uniform_',
+                 **kwargs):
+        """Initalises a EdgeNetwork Layer
+        Parameters
+        ----------
+        n_pair_features: int, optional
+            The length of the pair features vector.
+        n_hidden: int, optional
+            number of hidden units in the passing phase
+        init: str, optional
+            Initialization function to be used in the message passing layer.
+        """
+
+        super(EdgeNetwork, self).__init__(**kwargs)
+        self.n_pair_features: int = n_pair_features
+        self.n_hidden: int = n_hidden
+        self.init: str = init
+
+        init_func: Callable = getattr(initializers, self.init)
+        self.W: torch.Tensor = init_func(
+            torch.empty([self.n_pair_features, self.n_hidden * self.n_hidden]))
+        self.b: torch.Tensor = torch.zeros((self.n_hidden * self.n_hidden,))
+        self.built: bool = True
+
+    def __repr__(self) -> str:
+        return (
+            f'{self.__class__.__name__}(n_pair_features:{self.n_pair_features},n_hidden:{self.n_hidden},init:{self.init})'
+        )
+
+    def forward(self, inputs: List[torch.Tensor]) -> torch.Tensor:
+        """
+        Parameters
+        ----------
+        inputs: List[torch.Tensor]
+            The length of atom_to_pair should be same as n_pair_features.
+        Returns
+        -------
+        result: torch.Tensor
+            Tensor containing the mapping of the edge vector to a d × d matrix, where d denotes the dimension of the internal hidden representation of each node in the graph.
+        """
+        pair_features: torch.Tensor
+        atom_features: torch.Tensor
+        atom_to_pair: torch.Tensor
+        pair_features, atom_features, atom_to_pair = inputs
+
+        A: torch.Tensor = torch.add(torch.matmul(pair_features, self.W), self.b)
+        A = torch.reshape(A, (-1, self.n_hidden, self.n_hidden))
+        out: torch.Tensor = torch.unsqueeze(atom_features[atom_to_pair[:, 1]],
+                                            dim=2)
+        out_squeeze: torch.Tensor = torch.squeeze(torch.matmul(A, out), dim=2)
+        ind: torch.Tensor = atom_to_pair[:, 0]
+
+        result: torch.Tensor = segment_sum(out_squeeze, ind)
+
+        return result
