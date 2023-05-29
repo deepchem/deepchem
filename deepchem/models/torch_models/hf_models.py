@@ -11,6 +11,7 @@ from deepchem.models.torch_models import TorchModel
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
 from transformers.data.data_collator import DataCollatorForLanguageModeling
+from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +188,17 @@ class HuggingFaceModel(TorchModel):
             model_dir = self.model_dir
 
         if from_hf_checkpoint:
-            setattr(self, 'model', self.model.from_pretrained(model_dir))
+            # FIXME Transformers library has an api like AutoModel.from_pretrained. It allows to
+            # initialise and create a model instance directly without requiring a class instance initialisation step.
+            # To use `load_from_pretrained` in DeepChem, we need to follow a two step process
+            # of initialising class instance and then loading weights via `load_from_pretrained`.
+            if self.task == 'mlm':
+                self.model = AutoModelForMaskedLM.from_pretrained(model_dir)
+            elif self.task in ['mtr', 'regression', 'classification']:
+                self.model = AutoModelForSequenceClassification.from_pretrained(
+                    model_dir)
+            else:
+                self.model = AutoModel.from_pretrained(model_dir)
         elif not from_hf_checkpoint:
             checkpoints = sorted(self.get_checkpoints(model_dir))
             if len(checkpoints) == 0:
