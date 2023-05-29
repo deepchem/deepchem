@@ -48,8 +48,11 @@ def test_pretraining(hf_tokenizer, smiles_regression_dataset):
 
     hf_model = HuggingFaceModel(model=model, tokenizer=hf_tokenizer, task='mlm')
     loss = hf_model.fit(smiles_regression_dataset, nb_epoch=1)
-
     assert loss
+
+    metrics = [dc.metrics.Metric(dc.metrics.accuracy_score)]
+    scores = hf_model.evaluate(smiles_regression_dataset, metrics=metrics)
+    assert scores['accuracy_score'] >= 0.0
 
 
 @pytest.mark.torch
