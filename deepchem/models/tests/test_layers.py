@@ -997,50 +997,6 @@ def test_set_gather():
 @pytest.mark.torch
 def test_edge_network():
     """Test invoking the Torch equivalent of EdgeNetwork."""
-    n_pair_features = 2
-    n_hidden = 2
-    torch_init = 'xavier_uniform_'
-
-    # generate arbitrary features
-    pair_features = [[0.6445, 0.4471], [0.6969, 0.9996], [0.376, 0.9932],
-                     [0.2218, 0.3679]]
-    atom_features = [[0.1511, 0.8192], [0.1503, 0.3962], [0.9362, 0.9546],
-                     [0.6296, 0.954], [0.3062, 0.6088]]
-
-    atom_to_pair = []
-    n_atoms = 2
-    start = 0
-    C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
-    atom_to_pair.append(
-        np.transpose(np.array([C1.flatten() + start,
-                               C0.flatten() + start])))
-
-    # tensors for torch layer
-    torch_pair_features = torch.Tensor(pair_features)
-    torch_atom_features = torch.Tensor(atom_features)
-    torch_atom_to_pair = torch.Tensor(atom_to_pair)
-    torch_atom_to_pair = torch.squeeze(torch_atom_to_pair.to(torch.int64),
-                                       dim=0)
-
-    torch_inputs = [
-        torch_pair_features, torch_atom_features, torch_atom_to_pair
-    ]
-
-    torch_layer = torch_layers.EdgeNetwork(n_pair_features, n_hidden,
-                                           torch_init)
-
-    # assigning tensorflow layer weights to torch layer
-    torch_layer.W = torch.from_numpy(np.load('assets/edgenetwork_weights.npy'))
-    torch_result = torch_layer(torch_inputs)
-
-    assert np.allclose(np.array(torch_result),
-                       np.load("assets/edgenetwork_result.npy"),
-                       atol=1e-04)
-
-
-@pytest.mark.torch
-def test_edge_network_data_based():
-    """Test invoking the Torch equivalent of EdgeNetwork."""
     # init parameters
     n_pair_features = 14
     n_hidden = 75  # based on weave featurizer
@@ -1094,14 +1050,10 @@ def test_edge_network_data_based():
                                            torch_init)
 
     # assigning tensorflow layer weights to torch layer
-    torch_layer.W = torch.from_numpy(
-        np.load('assets/edgenetwork_weights_new.npy'))
-    # from torch.nn import init as initializers
-    # init_func = getattr(initializers, torch_init)
-    # torch_layer.W = init_func(torch.empty([n_pair_features, n_hidden * n_hidden]))
+    torch_layer.W = torch.from_numpy(np.load('assets/edgenetwork_weights.npy'))
+
     torch_result = torch_layer(torch_inputs)
 
-    # assert 1 == 2
     assert np.allclose(np.array(torch_result),
-                       np.load("assets/edgenetwork_result_new.npy"),
+                       np.load("assets/edgenetwork_result.npy"),
                        atol=1e-04)
