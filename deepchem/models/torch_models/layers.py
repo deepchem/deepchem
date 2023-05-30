@@ -2975,7 +2975,7 @@ class SetGather(nn.Module):
 
 
 class DTNNEmbedding(nn.Module):
-    """
+    """DTNNEmbedding layer for DTNN model.
 
     Parameters
     ----------
@@ -2985,6 +2985,15 @@ class DTNNEmbedding(nn.Module):
         Length of embedding, 83=Bi
     init: str, optional
         Weight initialization for filters.
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models import layers
+    >>> import torch
+    >>> layer = layers.DTNNEmbedding(30, 30, 'xavier_uniform_')
+    >>> output = layer(torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))
+    >>> output.shape
+    torch.Size([10, 30])
 
     """
 
