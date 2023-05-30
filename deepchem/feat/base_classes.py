@@ -318,8 +318,11 @@ molecule.
                     i, mol)
                 logger.warning("Exception message: {}".format(e))
                 features.append(np.array([]))
-
-        return np.asarray(features, dtype=object)
+        try:
+            return np.asarray(features)
+        except ValueError as e:
+            logger.warning("Exception message: {}".format(e))
+            return np.asarray(features, dtype=object)
 
 
 class MaterialStructureFeaturizer(Featurizer):
