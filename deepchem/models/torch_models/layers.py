@@ -2976,6 +2976,7 @@ class SetGather(nn.Module):
 
 class DTNNEmbedding(nn.Module):
     """DTNNEmbedding layer for DTNN model.
+    Assign initial atomic descriptors.
 
     Parameters
     ----------

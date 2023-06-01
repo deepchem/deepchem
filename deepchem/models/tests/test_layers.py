@@ -1012,5 +1012,5 @@ def test_dtnn_embedding():
     embedding_layer_torch.embedding_list = embeddings_tf
     result_torch = embedding_layer_torch(torch.tensor([3, 2, 4]))
     assert np.allclose(results_tf, result_torch, atol=1e-4)
-    assert result_torch.shape == (3,5)
+    assert result_torch.shape == (3, 5)
     assert embedding_layer_torch.embedding_list == (5,)
