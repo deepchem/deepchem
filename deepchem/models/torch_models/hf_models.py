@@ -485,6 +485,41 @@ class HuggingFaceModel(TorchModel):
                  per_task_metrics: bool = False,
                  use_sample_weights: bool = False,
                  n_classes: int = 2):
+        """Evaluates the performance of this model on specified dataset.
+
+        Evaluating a masked language model (mlm) is a special scenario since
+        the input to mlm models are masked tokens which are generated on the fly
+        and hence the labels are not known beforehand. To handle this case, we
+        use a custom evaluator. The custom evaluator currently supports only accuracy metric
+        for evaluation model.
+
+        For other tasks, the implementation fall backs to using the evaluator of base class.
+
+        Example
+        -------
+        >>> import pandas as pd
+        >>> import os
+        >>> import tempfile
+        >>> import deepchem as dc
+        >>> from deepchem.models.torch_models.hf_models import HuggingFaceModel
+        >>> from transformers.models.roberta import RobertaConfig, RobertaForMaskedLM, RobertaTokenizerFast
+        >>>
+        >>> tmpdir = tempfile.mkdtemp()
+        >>> smiles = ["CCN(CCSC)C(=O)N[C@@](C)(CC)C(F)(F)F", "CC1(C)CN(C(=O)Nc2cc3ccccc3nn2)C[C@@]2(CCOC2)O1"]
+        >>> df = pd.DataFrame(smiles, columns=["smiles"])
+        >>> filepath = os.path.join(tmpdir, 'smiles.csv')
+        >>> df.to_csv(filepath)
+        >>> loader = dc.data.CSVLoader([], feature_field="smiles", featurizer=dc.feat.DummyFeaturizer())
+        >>> dataset = loader.create_dataset(filepath)
+
+        >>> tokenizer = RobertaTokenizerFast.from_pretrained('seyonec/PubChem10M_SMILES_BPE_60k')
+        >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
+        >>> model = RobertaForMaskedLM(config)
+        >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='mlm')
+
+        >>> metrics = [dc.metrics.Metric(dc.metrics.accuracy_score)]
+        >>> scores = hf_model.evaluate(dataset, metrics=metrics)
+        """
         self.model.train(False)
         if self.task == 'mlm':
             metric = metrics[0]
