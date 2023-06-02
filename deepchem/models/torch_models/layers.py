@@ -3010,10 +3010,22 @@ class DTNNEmbedding(nn.Module):
         self.init = init  # Set weight initialization
 
         init_func: Callable = getattr(initializers, self.init)
-        self.embedding_list = init_func(
+        self.embedding_list: torch.Tensor = init_func(
             torch.empty([self.periodic_table_length, self.n_embedding]))
 
     def __repr__(self) -> str:
+        """Returns a string representation for the layer.
+
+        Parameters
+        ----------
+        n_embedding: int, optional
+            Number of features for each atom
+        periodic_table_length: int, optional
+            Length of embedding, 83=Bi
+        init: str, optional
+            Weight initialization for filters.
+
+        """
         return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, periodic_table_length={self.periodic_table_length}, init={self.init})'
 
     def forward(self, inputs):

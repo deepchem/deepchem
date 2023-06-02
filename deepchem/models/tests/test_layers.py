@@ -1009,8 +1009,8 @@ def test_dtnn_embedding():
                   [-0.26653743, 0.15180665, 0.21961051, -0.7263894, -0.4521287],
                   [0.1925143, -0.5505201, -0.35381562, -0.7409675, 0.6427947]]
     embedding_layer_torch = torch_layers.DTNNEmbedding(5, 5, 'xavier_uniform_')
-    embedding_layer_torch.embedding_list = embeddings_tf
+    embedding_layer_torch.embedding_list = torch.tensor(embeddings_tf)
     result_torch = embedding_layer_torch(torch.tensor([3, 2, 4]))
-    assert np.allclose(results_tf, result_torch, atol=1e-4)
+    assert torch.allclose(torch.tensor(results_tf), result_torch)
     assert result_torch.shape == (3, 5)
     assert embedding_layer_torch.embedding_list == (5,)
