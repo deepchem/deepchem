@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 # Install some utilities
 RUN apt-get update && \
@@ -19,7 +19,7 @@ SHELL ["/bin/bash", "-c"]
 RUN conda update -n base conda && \
     git clone --depth 1 https://github.com/deepchem/deepchem.git && \
     cd deepchem && \
-    source scripts/light/install_deepchem.sh 3.8 cpu pytorch && \
+    source scripts/light/install_deepchem.sh 3.9 cpu pytorch && \
     conda activate deepchem && \
     pip install -e . && \
     conda clean -afy && \
