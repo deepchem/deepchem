@@ -2976,6 +2976,7 @@ class SetGather(nn.Module):
 
 class EdgeNetwork(nn.Module):
     """Submodule for Message Passing
+
     Examples
     --------
     >>> pair_features = torch.rand((4, 2), dtype=torch.float32)
@@ -3003,6 +3004,7 @@ class EdgeNetwork(nn.Module):
                  init: str = 'xavier_uniform_',
                  **kwargs):
         """Initalises a EdgeNetwork Layer
+
         Parameters
         ----------
         n_pair_features: int, optional

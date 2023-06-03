@@ -18,11 +18,16 @@ def get_activation(fn: Union[Callable, str]):
 
 def unsorted_segment_sum(data, segment_ids, num_segments):
     """Computes the sum along segments of a tensor. Analogous to tf.unsorted_segment_sum.
+
     Parameters
     ----------
-    data: A tensor whose segments are to be summed.
-    segment_ids: The segment indices tensor.
-    num_segments: The number of segments.
+    data: torch.Tensor
+        A tensor whose segments are to be summed.
+    segment_ids: torch.Tensor
+        The segment indices tensor.
+    num_segments: int
+        The number of segments.
+
     Returns
     -------
     tensor: torch.Tensor
@@ -45,10 +50,14 @@ def unsorted_segment_sum(data, segment_ids, num_segments):
 
 def segment_sum(data, segment_ids):
     """Analogous to tf.segment_sum (https://www.tensorflow.org/api_docs/python/tf/math/segment_sum).
+
     Parameters
     ----------
-    data: A pytorch tensor of the data for segmented summation.
-    segment_ids: A 1-D tensor containing the indices for the segmentation.
+    data: torch.Tensor
+        A pytorch tensor of the data for segmented summation.
+    segment_ids: torch.Tensor
+        A 1-D tensor containing the indices for the segmentation.
+
     Returns
     -------
     out_tensor: torch.Tensor
