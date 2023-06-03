@@ -3014,10 +3014,10 @@ class DTNNEmbedding(nn.Module):
             torch.empty([self.periodic_table_length, self.n_embedding]))
 
     def __repr__(self) -> str:
-        """Returns a string representation for the layer.
+        """Returns a string representing the configuration of the layer.
 
-        Parameters
-        ----------
+        Returns
+        -------
         n_embedding: int, optional
             Number of features for each atom
         periodic_table_length: int, optional
