@@ -43,14 +43,17 @@ class HuggingFaceModel(TorchModel):
 
     Parameters
     ----------
-    models: transformers.modeling_utils.PreTrainedModel
+    model: transformers.modeling_utils.PreTrainedModel
         The HuggingFace model to wrap.
-    task: str
+    task: str, (optional, default None)
         The task defines the type of learning task in the model. The supported tasks are
          - `mlm` - masked language modeling commonly used in pretraining
          - `mtr` - multitask regression - a task used for both pretraining base models and finetuning
          - `regression` - use it for regression tasks, like property prediction
          - `classification` - use it for classification tasks
+        When the task is not specified or None, the wrapper returns raw output of the HuggingFaceModel.
+        In cases where the HuggingFaceModel is a model without a task specific head, this output will be
+        the last hidden states.
     tokenizer: transformers.tokenization_utils.PreTrainedTokenizer
         Tokenizer
 
@@ -125,8 +128,10 @@ class HuggingFaceModel(TorchModel):
     """
 
     def __init__(
-            self, model: 'PreTrainedModel', task: str,
+            self,
+            model: 'PreTrainedModel',
             tokenizer: 'transformers.tokenization_utils.PreTrainedTokenizer',
+            task: Optional[str] = None,
             **kwargs):
         self.task = task
         self.tokenizer = tokenizer
