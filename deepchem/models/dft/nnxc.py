@@ -195,8 +195,8 @@ class NNPBE(BaseNNXC):
             s = safenorm(densinfo.u.grad + densinfo.d.grad, dim=-1).unsqueeze(-1)
 
         # normalize the gradient
-        print("s", s.shape)        
-        print("n", n.shape)
+#        print("s", s.shape)        
+#        print("n", n.shape)
         s = s / a * (safepow(n, -4.0 / 3))
   
 
