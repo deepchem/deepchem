@@ -4,7 +4,7 @@ import torch
 from dqc.utils.datastruct import ValGrad, SpinParam
 from dqc.api.getxc import get_xc
 from dqc.xc.base_xc import BaseXC
-
+from dqc.utils.safeops import safenorm, safepow
 
 class BaseNNXC(BaseXC, torch.nn.Module):
     """
@@ -153,6 +153,65 @@ class NNLDA(BaseNNXC):
         res = res.squeeze(-1)
         return res
 
+class NNPBE(BaseNNXC):
+    # neural network xc functional of GGA (receives the density and grad as inputs)
+
+    def __init__(self, nnmodel: torch.nn.Module):
+        # nnmodel should receives input with shape (..., 3)
+        # where the last dimension is for:
+        # (0) total density (n): (n_up + n_dn), and
+        # (1) spin density (xi): (n_up - n_dn) / (n_up + n_dn)
+        # (2) normalized gradients (s): |del(n)| / [2(3*pi^2)^(1/3) * n^(4/3)]
+        # the output of the model must have shape of (..., 1)
+        # it represents the energy density per density per volume
+        super().__init__()
+        self.nnmodel = nnmodel
+        
+
+    @property
+    def family(self) -> int:
+        return 2
+
+    def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
+        # densinfo.value: (*BD, nr)
+        # densinfo.grad : (*BD, nr, 3)
+
+        # collect the total density (n), spin density (xi), and normalized gradients (s)
+        a = 6.187335452560271  # 2 * (3 * np.pi ** 2) ** (1.0 / 3)
+        if isinstance(densinfo, ValGrad):  # unpolarized case
+            assert densinfo.grad is not None
+            n = densinfo.value.unsqueeze(-1)  # (*BD, nr, 1)
+            xi = torch.zeros_like(n)
+            n_offset = n + 1e-18  # avoiding nan
+            s = safenorm(densinfo.grad, dim=-1).unsqueeze(-1)
+        else:  # polarized case
+            assert densinfo.u.grad is not None
+            assert densinfo.d.grad is not None
+            nu = densinfo.u.value.unsqueeze(-1)
+            nd = densinfo.d.value.unsqueeze(-1)
+            n = nu + nd  # (*BD, nr, 1)
+            n_offset = n + 1e-18  # avoiding nan
+            xi = (nu - nd) / n_offset
+            s = safenorm(densinfo.u.grad + densinfo.d.grad, dim=-1).unsqueeze(-1)
+
+        # normalize the gradient
+        print("s", s.shape)        
+        print("n", n.shape)
+        s = s / a * (safepow(n, -4.0 / 3))
+  
+
+        # decide how to transform the density to be the input of nn
+        #ninp = get_n_input(n, self.ninpmode)
+        ninp = safepow(n, 1.0 / 3)
+        sinp = s
+
+        # get the neural network output
+        x = torch.cat((ninp, xi, sinp), dim=-1)  # (*BD, nr, 3)
+        nnout = self.nnmodel(x)  # (*BD, nr, 1)
+        res = nnout * n  # (*BD, nr, 1)
+
+        res = res.squeeze(-1)
+        return res
 
 class HybridXC(BaseNNXC):
     """
@@ -205,6 +264,8 @@ class HybridXC(BaseNNXC):
         k = self.xc.family
         if k == 1:
             self.nnxc = NNLDA(nnmodel)
+        else:
+            self.nnxc = NNPBE(nnmodel) 
         self.aweight = torch.nn.Parameter(
             torch.tensor(aweight0, requires_grad=True))
         self.bweight = torch.nn.Parameter(
