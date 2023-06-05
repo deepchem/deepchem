@@ -194,7 +194,10 @@ class GraphData:
 
         if self.node_pos_features is not None:
             g.ndata['pos'] = torch.from_numpy(self.node_pos_features).float()
-
+            g.edata['d'] = torch.norm(g.ndata['pos'][g.edges()[0]] -
+                                      g.ndata['pos'][g.edges()[1]],
+                                      p=2,
+                                      dim=-1).unsqueeze(-1).detach()
         if self.edge_features is not None:
             g.edata['edge_attr'] = torch.from_numpy(self.edge_features).float()
 
