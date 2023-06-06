@@ -108,3 +108,24 @@ class TestRDKitDescriptors(unittest.TestCase):
         assert len(features) == len(grover_props)
         assert sum(features) == 4  # expected number of functional groups in CCC
         assert (np.where(features == 1)[0] == (1, 10, 11, 23)).all()
+
+    def test_with_custom_descriptors_AvdIpc(self):
+        custom_desc = ['Ipc', 'AvgIpc']
+
+        with self.assertRaises(Exception) as error_message:
+            RDKitDescriptors(descriptors=custom_desc,
+                             labels_only=True,
+                             ipc_avg=True)
+
+        assert str(
+            error_message.exception
+        ) == "AvgIpc and Ipc are both present in descriptors list. This leads to descriptor duplication as 'ipc_avg is True'"
+
+        with self.assertRaises(Exception) as error_message:
+            RDKitDescriptors(descriptors=custom_desc,
+                             labels_only=True,
+                             ipc_avg=False)
+
+        assert str(
+            error_message.exception
+        ) == "AvgIpc is present in descriptors list. This contradicts the condition 'ipc_avg is False'"
