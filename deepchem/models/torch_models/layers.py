@@ -2976,7 +2976,12 @@ class SetGather(nn.Module):
 
 class DTNNEmbedding(nn.Module):
     """DTNNEmbedding layer for DTNN model.
-    Assign initial atomic descriptors.
+    Assign initial atomic descriptors. [1]_
+
+    References
+    ----------
+    .. [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
+        tensor neural networks." Nature communications 8.1 (2017): 1-8.
 
     Parameters
     ----------
@@ -2985,6 +2990,7 @@ class DTNNEmbedding(nn.Module):
     periodic_table_length: int, optional
         Length of embedding, 83=Bi
     init: str, optional
+        Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
         Weight initialization for filters.
 
     Examples
@@ -3023,14 +3029,20 @@ class DTNNEmbedding(nn.Module):
         periodic_table_length: int, optional
             Length of embedding, 83=Bi
         init: str, optional
+            Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
             Weight initialization for filters.
 
         """
         return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, periodic_table_length={self.periodic_table_length}, init={self.init})'
 
-    def forward(self, inputs):
+    def forward(self, inputs: torch.Tensor):
         """
         parent layers: atom_number
+
+        Parameters
+        ----------
+        inputs: torch.Tensor
+            Tensor recieved from parent layer.
         """
         atom_number = inputs
         return torch.nn.functional.embedding(atom_number, self.embedding_list)
