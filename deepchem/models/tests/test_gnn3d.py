@@ -85,6 +85,7 @@ def compare_weights(key, model1, model2):
         torch.eq(model1.components[key].weight,
                  model2.components[key].weight)).item()
 
+
 @pytest.mark.pytorch
 def test_InfoMax3DModular():
     from deepchem.models.torch_models.gnn3d import InfoMax3DModular
@@ -127,4 +128,3 @@ def test_InfoMax3DModular_save_reload():
         if hasattr(model.components[key], 'weight')
     ]
     assert all(compare_weights(key, model, model2) for key in keys_with_weights)
-

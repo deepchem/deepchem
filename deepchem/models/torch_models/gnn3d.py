@@ -315,7 +315,7 @@ class Net3D(nn.Module):
             for aggr in self.readout_aggregators
         ]
         readout = torch.cat(readouts_to_cat, dim=-1)
-        return self.output(readout)
+        return self.output(readout.squeeze())
 
     def output_node_func(self, nodes):
         """
@@ -447,7 +447,7 @@ class InfoMax3DModular(ModularTorchModel):
                  propagation_depth: int = 5,
                  dropout: float = 0.0,
                  readout_layers: int = 2,
-                 readout_hidden_dim: int = 0,
+                 readout_hidden_dim: int = 1,
                  fourier_encodings: int = 4,
                  update_net_layers: int = 2,
                  message_net_layers: int = 2,
