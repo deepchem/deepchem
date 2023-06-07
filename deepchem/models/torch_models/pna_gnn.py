@@ -592,7 +592,7 @@ class PNA(nn.Module):
                  aggregators: List[str] = ['mean'],
                  scalers: List[str] = ['identity'],
                  readout_aggregators: List[str] = ['mean'],
-                 readout_hidden_dim=None,
+                 readout_hidden_dim: int = 0,
                  readout_layers: int = 2,
                  residual: bool = True,
                  pairwise_distances: bool = False,
@@ -617,7 +617,7 @@ class PNA(nn.Module):
                                dropout=dropout,
                                posttrans_layers=posttrans_layers,
                                pretrans_layers=pretrans_layers)
-        if readout_hidden_dim is None:
+        if readout_hidden_dim == 0:
             readout_hidden_dim = hidden_dim
         self.readout_aggregators = readout_aggregators
         self.output = MultilayerPerceptron(

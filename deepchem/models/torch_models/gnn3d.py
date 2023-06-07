@@ -447,7 +447,7 @@ class InfoMax3DModular(ModularTorchModel):
                  propagation_depth: int = 5,
                  dropout: float = 0.0,
                  readout_layers: int = 2,
-                 readout_hidden_dim: bool = None,
+                 readout_hidden_dim: int = 0,
                  fourier_encodings: int = 4,
                  update_net_layers: int = 2,
                  message_net_layers: int = 2,

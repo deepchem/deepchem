@@ -79,6 +79,12 @@ def test_net3d():
     assert output.shape[1] == target_dim
 
 
+def compare_weights(key, model1, model2):
+    import torch
+    return torch.all(
+        torch.eq(model1.components[key].weight,
+                 model2.components[key].weight)).item()
+
 @pytest.mark.pytorch
 def test_InfoMax3DModular():
     from deepchem.models.torch_models.gnn3d import InfoMax3DModular
@@ -94,3 +100,31 @@ def test_InfoMax3DModular():
     loss1 = model.fit(data, nb_epoch=1)
     loss2 = model.fit(data, nb_epoch=9)
     assert loss1 > loss2
+
+
+@pytest.mark.pytorch
+def test_InfoMax3DModular_save_reload():
+    from deepchem.models.torch_models.gnn3d import InfoMax3DModular
+
+    data, _ = get_regression_dataset()
+    model = InfoMax3DModular(hidden_dim=64,
+                             target_dim=10,
+                             aggregators=['sum', 'mean', 'max'],
+                             readout_aggregators=['sum', 'mean'],
+                             scalers=['identity'])
+
+    model.fit(data, nb_epoch=1)
+    model2 = InfoMax3DModular(hidden_dim=64,
+                              target_dim=10,
+                              aggregators=['sum', 'mean', 'max'],
+                              readout_aggregators=['sum', 'mean'],
+                              scalers=['identity'])
+
+    model2.load_from_pretrained(model_dir=model.model_dir)
+    assert model.components.keys() == model2.components.keys()
+    keys_with_weights = [
+        key for key in model.components.keys()
+        if hasattr(model.components[key], 'weight')
+    ]
+    assert all(compare_weights(key, model, model2) for key in keys_with_weights)
+
