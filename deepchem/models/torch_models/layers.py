@@ -2989,9 +2989,9 @@ class DTNNEmbedding(nn.Module):
         Number of features for each atom
     periodic_table_length: int, optional
         Length of embedding, 83=Bi
-    init: str, optional
-        Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
+    initalizer: str, optional
         Weight initialization for filters.
+        Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
 
     Examples
     --------
@@ -3007,15 +3007,15 @@ class DTNNEmbedding(nn.Module):
     def __init__(self,
                  n_embedding: int = 30,
                  periodic_table_length: int = 30,
-                 init: str = 'xavier_uniform_',
+                 initalizer: str = 'xavier_uniform_',
                  **kwargs):
 
         super(DTNNEmbedding, self).__init__(**kwargs)
         self.n_embedding = n_embedding
         self.periodic_table_length = periodic_table_length
-        self.init = init  # Set weight initialization
+        self.initalizer = initalizer  # Set weight initialization
 
-        init_func: Callable = getattr(initializers, self.init)
+        init_func: Callable = getattr(initializers, self.initalizer)
         self.embedding_list: torch.Tensor = init_func(
             torch.empty([self.periodic_table_length, self.n_embedding]))
 
@@ -3028,21 +3028,21 @@ class DTNNEmbedding(nn.Module):
             Number of features for each atom
         periodic_table_length: int, optional
             Length of embedding, 83=Bi
-        init: str, optional
-            Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
+        initalizer: str, optional
             Weight initialization for filters.
+            Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
 
         """
-        return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, periodic_table_length={self.periodic_table_length}, init={self.init})'
+        return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, periodic_table_length={self.periodic_table_length}, initalizer={self.initalizer})'
 
     def forward(self, inputs: torch.Tensor):
-        """
-        parent layers: atom_number
+        """parent layers: atom_number
 
         Parameters
         ----------
         inputs: torch.Tensor
-            Tensor recieved from parent layer.
+            Tensor containing the Atom number of Atoms whose embeddings are requested.
+
         """
         atom_number = inputs
         return torch.nn.functional.embedding(atom_number, self.embedding_list)
