@@ -54,6 +54,7 @@ class MXMNetFeaturizer(MolecularFeaturizer):
     Note
     ----
     We are not explitly handling hydrogen atoms for now. We only support 'H', 'C', 'N', 'O' and 'F' atoms to be present in the smiles at this point for MXMNet Model.
+
     """
 
     def __init__(self):
