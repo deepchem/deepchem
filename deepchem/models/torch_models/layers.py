@@ -3036,13 +3036,19 @@ class DTNNEmbedding(nn.Module):
         return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, periodic_table_length={self.periodic_table_length}, initalizer={self.initalizer})'
 
     def forward(self, inputs: torch.Tensor):
-        """parent layers: atom_number
+        """Returns Embeddings according to indices.
 
         Parameters
         ----------
         inputs: torch.Tensor
-            Tensor containing the Atom number of Atoms whose embeddings are requested.
+            Indices of Atoms whose embeddings are requested.
+
+        Returns
+        -------
+        atom_embeddings: torch.Tensor
+            Embeddings of atoms accordings to indices.
 
         """
         atom_number = inputs
-        return torch.nn.functional.embedding(atom_number, self.embedding_list)
+        atom_enbeddings = torch.nn.functional.embedding(atom_number, self.embedding_list)
+        return atom_enbeddings
