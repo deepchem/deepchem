@@ -36,6 +36,7 @@ def test_entryDM():
 def test_entryAE():
     e_type = 'ae'
     true_val = '0.09194410469'
+    weight = 1340
     systems = [{
         'moldesc': 'Li 1.5070 0 0; H -1.5070 0 0',
         'basis': '6-311++G(3df,3pd)'
@@ -48,9 +49,10 @@ def test_entryAE():
         'basis': '6-311++G(3df,3pd)',
         'spin': 1
     }]
-    ae_entry_for_LiH = DFTEntry.create(e_type, true_val, systems)
+    ae_entry_for_LiH = DFTEntry.create(e_type, true_val, systems, weight)
     assert ae_entry_for_LiH.entry_type == 'ae'
     assert ae_entry_for_LiH.get_true_val() == 0.09194410469
+    assert ae_entry_for_LiH.get_weight() == 1340
 
     def run(syst):
         mol_dqc = syst.get_dqc_mol(ae_entry_for_LiH)

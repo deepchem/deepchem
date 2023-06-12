@@ -1,0 +1,13 @@
+Title,File Name
+Molecular Fingerprints,Molecular_Fingerprints.ipynb
+Going Deeper on Molecular Featurizations,Going_Deeper_on_Molecular_Featurizations.ipynb
+Learning Unsupervised Embeddings for Molecules,Learning_Unsupervised_Embeddings_for_Molecules.ipynb
+Synthetic Feasibility Scoring,Synthetic_Feasibility_Scoring.ipynb
+Atomic Contributions for Molecules,Atomic_Contributions_for_Molecules.ipynb
+Interactive Model Evaluation with Trident Chemwidgets,Interactive_Model_Evaluation_with_Trident_Chemwidgets.ipynb
+Transfer Learning with ChemBERTa Transformers,Transfer_Learning_With_ChemBERTa_Transformers.ipynb
+Training a Normalizing Flow on QM9,Training_a_Normalizing_Flow_on_QM9.ipynb
+Large Scale Chemical Screens,Large_Scale_Chemical_Screens.ipynb
+Introduction to Molecular Attention Transformer,Introduction_to_Molecular_Attention_Transformer.ipynb
+Generating Molecules with MolGAN,Generating_molecules_with_MolGAN.ipynb
+Introduction to GROVER,Introduction_to_GROVER.ipynb

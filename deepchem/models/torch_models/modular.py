@@ -81,10 +81,13 @@ class ModularTorchModel(TorchModel):
 
         self.model = model
         self.components = components
+        # FIXME self.loss_func is an incorrect argument for TorchModel.loss because
+        # it performs more than computing loss
         super().__init__(self.model, self.loss_func, **kwargs)
         self.model.to(self.device)
         self.components = {
-            k: v.to(self.device) for k, v in self.components.items()
+            k: v.to(self.device) if isinstance(v, nn.Module) else v
+            for k, v in self.components.items()
         }
 
     def build_model(self) -> nn.Module:
@@ -186,6 +189,7 @@ class ModularTorchModel(TorchModel):
         avg_loss = 0.0
         last_avg_loss = 0.0
         averaged_batches = 0
+        # FIXME This line is not needed as loss is computed inside the call to loss_func
         if loss is None:
             loss = self._loss_fn
         if variables is None:
@@ -310,7 +314,7 @@ class ModularTorchModel(TorchModel):
         if source_model is not None:
             for name, module in source_model.components.items():
                 if components is None or name in components:
-                    self.components[name] = module
+                    self.components[name].load_state_dict(module.state_dict())
             self.build_model()
 
         elif source_model is None:
@@ -343,7 +347,8 @@ class ModularTorchModel(TorchModel):
         }
 
         for name, component in self.components.items():
-            data[name] = component.state_dict()
+            if hasattr(component, 'state_dict'):
+                data[name] = component.state_dict()
 
         temp_file = os.path.join(model_dir, 'temp_checkpoint.pt')
         torch.save(data, temp_file)

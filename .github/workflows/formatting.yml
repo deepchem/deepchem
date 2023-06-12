@@ -1,4 +1,4 @@
-name: New Code Formatting
+name: Code Formatting
 
 on:
   push: # ci work when pushing master branch
@@ -10,7 +10,7 @@ on:
 
 
 jobs:
-  test:
+  linting:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3

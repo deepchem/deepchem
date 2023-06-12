@@ -1,0 +1,34 @@
+﻿Layer,Reference, Model
+MultilayerPerceptron,,
+ScaleNorm,`ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
+MATEncoderLayer,`ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
+MultiHeadedMATAttention,`ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
+SublayerConnection,`ref <https://arxiv.org/abs/1706.03762>`_, Transformer
+MATEmbedding,`ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
+MATGenerator, `ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
+Affine,`ref <http://arxiv.org/abs/2110.15828>`_, Normalizing Flow
+RealNVPLayer,`ref <http://arxiv.org/abs/2110.15828>`_, Normalizing Flow
+DMPNNEncoderLayer,`ref <https://arxiv.org/pdf/1904.01561.pdf>`_, Normalizing Flow
+PositionwiseFeedForward,`ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
+GraphPool, `ref <https://arxiv.org/abs/1509.09292>`_,
+GroverMPNEncoder, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+GroverAttentionHead, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+GroverMTBlock, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+GroverTransEncoder, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+GroverEmbedding, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+GroverAtomVocabPredictor, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+GroverBondVocabPredictor, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+GroverFunctionalGroupPredictor, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+ScaledDotProductAttention, `ref <https://arxiv.org/abs/1706.03762>`_, Transformer
+SelfAttention, `ref <https://arxiv.org/abs/1706.03762>`_, Transformer
+GroverReadout, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+DFTXC, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
+NNLDA, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
+HybridXC, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
+XCNNSCF, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
+AtomEncoder, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
+BondEncoder, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
+Net3DLayer, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
+Net3D, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
+PNALayer, `https://arxiv.org/abs/2004.05718`_, Principal Neighbourhood Aggregation
+PNAGNN, `https://arxiv.org/abs/2004.05718`_, Principal Neighbourhood Aggregation

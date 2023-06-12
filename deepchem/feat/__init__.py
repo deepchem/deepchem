@@ -40,6 +40,7 @@ from deepchem.feat.molecule_featurizers import MATFeaturizer
 from deepchem.feat.molecule_featurizers import DMPNNFeaturizer
 from deepchem.feat.molecule_featurizers import GroverFeaturizer
 from deepchem.feat.molecule_featurizers import SNAPFeaturizer
+from deepchem.feat.molecule_featurizers import RDKitConformerFeaturizer
 
 # complex featurizers
 from deepchem.feat.complex_featurizers import RdkitGridFeaturizer
@@ -78,6 +79,8 @@ try:
     from deepchem.feat.reaction_featurizer import RxnFeaturizer
 except ModuleNotFoundError:
     pass
+
+from deepchem.feat.vocabulary_builders import HuggingFaceVocabularyBuilder
 
 # support classes
 from deepchem.feat.molecule_featurizers import GraphMatrix

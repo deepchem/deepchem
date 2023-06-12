@@ -7,7 +7,7 @@ on:
     branches:
       - master
 jobs:
-  build:
+  core-build:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -139,7 +139,7 @@ jobs:
 
   pypi-build:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    needs: [build]
+    needs: [core-build]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -161,7 +161,7 @@ jobs:
 
   docker-build:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    needs: [build, pypi-build]
+    needs: [core-build, pypi-build]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3

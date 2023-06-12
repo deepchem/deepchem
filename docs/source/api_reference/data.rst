@@ -121,7 +121,7 @@ where you already hold the raw data in-memory (say in a pandas dataframe).
 
 Density Functional Theory YAML Loader
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: deepchem.data.DFTYamlLoader
+.. autoclass:: deepchem.data.data_loader.DFTYamlLoader
   :members: __init__, create_dataset
 
 

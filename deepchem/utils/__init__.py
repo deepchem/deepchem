@@ -59,6 +59,18 @@ from deepchem.utils.geometry_utils import subtract_centroid
 from deepchem.utils.geometry_utils import compute_protein_range
 from deepchem.utils.geometry_utils import compute_pairwise_distances
 
+from deepchem.utils.graph_utils import fourier_encode_dist
+from deepchem.utils.graph_utils import aggregate_mean
+from deepchem.utils.graph_utils import aggregate_max
+from deepchem.utils.graph_utils import aggregate_min
+from deepchem.utils.graph_utils import aggregate_std
+from deepchem.utils.graph_utils import aggregate_var
+from deepchem.utils.graph_utils import aggregate_moment
+from deepchem.utils.graph_utils import aggregate_sum
+from deepchem.utils.graph_utils import scale_identity
+from deepchem.utils.graph_utils import scale_amplification
+from deepchem.utils.graph_utils import scale_attenuation
+
 from deepchem.utils.hash_utils import hash_ecfp
 from deepchem.utils.hash_utils import hash_ecfp_pair
 from deepchem.utils.hash_utils import vectorize

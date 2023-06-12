@@ -14,3 +14,7 @@ dm-haiku
 optax
 rdkit
 torch_geometric
+git+https://github.com/diffqc/dqc.git
+PyYAML
+yamlloader
+dgl

@@ -94,6 +94,11 @@ GroverFeaturizer
 .. autoclass:: deepchem.feat.GroverFeaturizer
   :members:
 
+RDKitConformerFeaturizer
+*************************
+
+.. autoclass:: deepchem.feat.RDKitConformerFeaturizer
+  :members:
 
 Utilities
 *********
@@ -564,4 +569,12 @@ If you're creating a vocabulary builder for generating vocabulary from a corpus 
 the vocabulary builder must inhere from :code:`VocabularyBuilder` base class.
 
 .. autoclass:: deepchem.feat.vocabulary_builders.VocabularyBuilder
+  :members:
+
+HuggingFaceVocabularyBuilder
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A wrapper class for building vocabulary from algorithms implemented in `tokenizers <https://huggingface.co/docs/tokenizers/index>`_ library.
+
+.. autoclass:: deepchem.feat.vocabulary_builders.hf_vocab
   :members:

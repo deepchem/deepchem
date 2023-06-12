@@ -105,6 +105,27 @@ Losses
 .. autoclass:: deepchem.models.losses.GroverPretrainLoss
   :members:
 
+.. autoclass:: deepchem.models.losses.EdgePredictionLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.GraphNodeMaskingLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.GraphEdgeMaskingLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.DeepGraphInfomaxLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.GraphContextPredLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.DensityProfileLoss
+  :members:
+
+.. autoclass:: deepchem.models.losses.NTXentMultiplePositives
+  :members:
+
 Optimizers
 ----------
 
@@ -388,7 +409,7 @@ AttentiveFPModel
   :members:
 
 PagtnModel
-----------------
+----------
 
 .. autoclass:: deepchem.models.PagtnModel
   :members:
@@ -413,6 +434,14 @@ InfoGraphStarModel
 
 .. autoclass:: deepchem.models.torch_models.InfoGraphStarModel
   :members:
+
+
+GNNModular
+----------
+
+.. autoclass:: deepchem.models.torch_models.gnn.GNNModular
+  :members:
+
 
 LCNNModel
 ---------
@@ -443,16 +472,27 @@ DMPNNModel
 .. autoclass:: deepchem.models.torch_models.DMPNNModel
   :members:
 
+GroverModel
+-----------
+
+.. autoclass:: deepchem.models.torch_models.GroverModel
+  :members:
+
+Density Functional Theory Model - XCModel
+-----------------------------------------
+
+.. autoclass:: deepchem.models.dft.dftxc.XCModel
+  :members:
 
 PyTorch Lightning Models
-==============
+========================
 
 DeepChem supports the use of `PyTorch-Lightning`_ to build PyTorch models.
 
 .. _`PyTorch-Lightning`: https://www.pytorchlightning.ai/
 
 DCLightningModule
-----------
+-----------------
 
 You can wrap an arbitrary :code:`TorchModel` in a :code:`DCLightningModule` object.
 
@@ -460,20 +500,34 @@ You can wrap an arbitrary :code:`TorchModel` in a :code:`DCLightningModule` obje
   :members:
 
 Jax Models
-==============
+==========
 
 DeepChem supports the use of `Jax`_ to build deep learning models.
 
 .. _`Jax`: https://github.com/google/jax
 
 JaxModel
-----------
+--------
 
 .. autoclass:: deepchem.models.JaxModel
   :members:
 
 PinnModel
-----------
+---------
 
 .. autoclass:: deepchem.models.PINNModel
+  :members:
+
+Hugging Face Models
+===================
+
+HuggingFace models from the `transformers <https://huggingface.co/models>`_ library can wrapped using the wrapper :code:`HuggingFaceModel`
+
+.. autoclass:: deepchem.models.torch_models.hf_models.HuggingFaceModel
+  :members:
+
+Chemberta
+---------
+
+.. autoclass:: deepchem.models.torch_models.chemberta.Chemberta
   :members:

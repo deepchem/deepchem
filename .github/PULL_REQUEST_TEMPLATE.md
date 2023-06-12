@@ -1,5 +1,3 @@
-# Pull Request Template
-
 ## Description
 
 Fix #(issue)

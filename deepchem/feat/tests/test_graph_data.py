@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import pytest
 
-from deepchem.feat.graph_data import BatchGraphData, GraphData
+from deepchem.feat.graph_data import BatchGraphData, GraphData, shortest_path_length
 
 
 class TestGraph(unittest.TestCase):
@@ -217,3 +217,42 @@ class TestGraph(unittest.TestCase):
         assert hasattr(g, 'user_defined_attribute1')
         assert (g.user_defined_attribute1 == np.array([[0, 1], [2, 3],
                                                        [4, 5]])).all()
+
+    def test_shortest_path_length(self):
+        node_features = np.random.rand(5, 10)
+        edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]],
+                              dtype=np.int64)
+        graph_data = GraphData(node_features, edge_index)
+
+        lengths = shortest_path_length(graph_data, 0)
+        assert lengths == {0: 0, 1: 1, 2: 2, 3: 2, 4: 1}
+
+        lengths_cutoff = shortest_path_length(graph_data, 0, cutoff=1)
+        assert lengths_cutoff == {0: 0, 1: 1, 4: 1}
+
+    def test_subgraph(self):
+        node_features = np.random.rand(5, 10)
+        edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]],
+                              dtype=np.int64)
+        edge_features = np.random.rand(5, 3)
+        graph_data = GraphData(node_features, edge_index, edge_features)
+
+        nodes = [0, 1, 2, 4]
+        subgraph, node_mapping = graph_data.subgraph(nodes)
+
+        assert subgraph.num_nodes == len(nodes)
+        assert subgraph.num_edges == 3
+
+        expected_node_features = node_features[nodes]
+        np.testing.assert_array_equal(subgraph.node_features,
+                                      expected_node_features)
+
+        expected_edge_index = np.array([[0, 1, 3], [1, 2, 0]], dtype=np.int64)
+        np.testing.assert_array_equal(subgraph.edge_index, expected_edge_index)
+
+        expected_edge_features = edge_features[[0, 1, 4]]
+        np.testing.assert_array_equal(subgraph.edge_features,
+                                      expected_edge_features)
+
+        expected_node_mapping = {0: 0, 1: 1, 2: 2, 4: 3}
+        assert node_mapping == expected_node_mapping
