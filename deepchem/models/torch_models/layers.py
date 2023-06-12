@@ -2976,11 +2976,14 @@ class SetGather(nn.Module):
 
 class DTNNEmbedding(nn.Module):
     """DTNNEmbedding layer for DTNN model.
+
     Assign initial atomic descriptors. [1]_
+
+    This layer creates 'n' number of embeddings as initial atomic descriptors. According to the required weight initializer and periodic_table_length (Total number of unique atoms).
 
     References
     ----------
-    .. [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
+    [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
         tensor neural networks." Nature communications 8.1 (2017): 1-8.
 
     Parameters
@@ -3050,5 +3053,6 @@ class DTNNEmbedding(nn.Module):
 
         """
         atom_number = inputs
-        atom_enbeddings = torch.nn.functional.embedding(atom_number, self.embedding_list)
+        atom_enbeddings = torch.nn.functional.embedding(atom_number,
+                                                        self.embedding_list)
         return atom_enbeddings
