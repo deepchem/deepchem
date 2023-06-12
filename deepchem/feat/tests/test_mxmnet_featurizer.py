@@ -19,7 +19,7 @@ edge_index = {
 node_features = {
     "C1=CC=NC=C1": np.asarray([[1.], [1.], [2.], [1.], [1.], [1.]]),
     "CC(=O)C": np.asarray([[1.], [1.], [3.], [1.]]),
-    "C": np.asarray([[1]])
+    "C": np.asarray([[1.]])
 }
 
 
@@ -32,7 +32,6 @@ class Test_MXMNet_Featurizer(unittest.TestCase):
         """
         Set up tests.
         """
-        # Set up tests.
         self.smiles = ["C1=CC=NC=C1", "CC(=O)C", "C", "CP"]
         self.edge_index = list(edge_index.values())
         self.node_features = list(node_features.values())
@@ -91,6 +90,7 @@ class Test_MXMNet_Featurizer(unittest.TestCase):
     def test_featurizer_other_atom(self):
         """
         Test for featurization of "CP" using `MXMNetFeaturizer` class.
+        Since the smile contains P which is not supported by featurizer, the featurization process terminates and the featurizer returns an empty numpy array.
         """
 
         featurizer = MXMNetFeaturizer()

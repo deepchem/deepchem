@@ -57,8 +57,15 @@ class MXMNetFeaturizer(MolecularFeaturizer):
 
     """
 
-    def __init__(self):
+    def __init__(self, is_adding_hs: bool = False):
+        """
+        Parameters
+        ----------
+        is_adding_hs: bool, default False
+            Whether to add Hs or not.
 
+        """
+        self.is_adding_hs = is_adding_hs
         super().__init__()
 
     def _construct_bond_index(self, datapoint: RDKitMol) -> np.ndarray:
@@ -114,15 +121,22 @@ class MXMNetFeaturizer(MolecularFeaturizer):
             - node_pos_features: np.ndarray, optional (default None)
                     Node position matrix with shape [num_nodes, num_dimensions].
         """
-        if not isinstance(datapoint, Chem.rdchem.Mol):
+
+        if isinstance(datapoint, Chem.rdchem.Mol):
+            if self.is_adding_hs:
+                datapoint = Chem.AddHs(datapoint)
+        else:
             raise ValueError(
                 "Feature field should contain smiles for DMPNN featurizer!")
 
         pos: List = []
+        pos_x: np.ndarray
+        pos_y: np.ndarray
+        pos_z: np.ndarray
 
         # load_sdf_files returns pos as strings but user can also specify
         # numpy arrays for atom coordinates
-        if 'pox_x' in kwargs and 'pos_y' in kwargs and 'posz' in kwargs:
+        if 'pos_x' in kwargs and 'pos_y' in kwargs and 'pos_z' in kwargs:
             if isinstance(kwargs['pos_x'], str):
                 pos_x = eval(kwargs['pos_x'])
             elif isinstance(kwargs['pos_x'], np.ndarray):
