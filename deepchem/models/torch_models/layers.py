@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from typing import Any, Tuple, Optional, Sequence, List, Union, Callable
+from typing import Any, Tuple, Optional, Sequence, List, Union, Callable, Dict
 from collections.abc import Sequence as SequenceCollection
 try:
     import torch
@@ -3141,3 +3141,339 @@ class EdgeNetwork(nn.Module):
         result: torch.Tensor = segment_sum(out_squeeze, ind)
 
         return result
+
+
+class WeaveLayer(nn.Module):
+    """This class implements the core Weave convolution from the Google graph convolution paper [1]_
+  This is the Torch equivalent of the original implementation using Keras.
+
+  This model contains atom features and bond features
+  separately.Here, bond features are also called pair features.
+  There are 2 types of transformation, atom->atom, atom->pair, pair->atom, pair->pair that this model implements.
+
+  Examples
+  --------
+  This layer expects 4 inputs in a list of the form `[atom_features,
+  pair_features, pair_split, atom_to_pair]`. We'll walk through the structure of these inputs. Let's start with some basic definitions.
+  >>> import deepchem as dc
+  >>> import numpy as np
+  >>> smiles = ["CCC", "C"]
+
+  Note that there are 4 atoms in total in this system. This layer expects its input molecules to be batched together.
+
+  >>> total_n_atoms = 4
+
+  Let's suppose that we have a featurizer that computes `n_atom_feat` features per atom.
+
+  >>> n_atom_feat = 75
+
+  Then conceptually, `atom_feat` is the array of shape `(total_n_atoms,
+  n_atom_feat)` of atomic features. For simplicity, let's just go with a
+  random such matrix.
+
+  >>> atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
+
+  Let's suppose we have `n_pair_feat` pairwise features
+
+  >>> n_pair_feat = 14
+
+  For each molecule, we compute a matrix of shape `(n_atoms*n_atoms,
+  n_pair_feat)` of pairwise features for each pair of atoms in the molecule.
+  Let's construct this conceptually for our example.
+
+  >>> pair_feat = [np.random.rand(3*3, n_pair_feat), np.random.rand(1*1,n_pair_feat)]
+  >>> pair_feat = np.concatenate(pair_feat, axis=0)
+  >>> pair_feat.shape
+  (10, 14)
+
+  `pair_split` is an index into `pair_feat` which tells us which atom each row belongs to. In our case, we hve
+
+  >>> pair_split = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 3])
+
+  That is, the first 9 entries belong to "CCC" and the last entry to "C". The
+  final entry `atom_to_pair` goes in a little more in-depth than `pair_split`
+  and tells us the precise pair each pair feature belongs to. In our case
+
+  >>> atom_to_pair = np.array([[0, 0],
+  ...                          [0, 1],
+  ...                          [0, 2],
+  ...                          [1, 0],
+  ...                          [1, 1],
+  ...                          [1, 2],
+  ...                          [2, 0],
+  ...                          [2, 1],
+  ...                          [2, 2],
+  ...                          [3, 3]])
+
+  Let's now define the actual layer
+
+  >>> layer = WeaveLayer()
+
+  And invoke it
+
+  >>> [A, P] = layer([atom_feat, pair_feat, pair_split, atom_to_pair])
+
+  The weave layer produces new atom/pair features. Let's check their shapes
+
+  >>> A = A.detach().numpy()
+  >>> A.shape
+  (4, 50)
+  >>> P = P.detach().numpy()
+  >>> P.shape
+  (10, 50)
+
+  The 4 is `total_num_atoms` and the 10 is the total number of pairs. Where
+  does `50` come from? It's from the default arguments `n_atom_input_feat` and
+  `n_pair_input_feat`.
+
+  References
+  ----------
+  .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
+        fingerprints." Journal of computer-aided molecular design 30.8 (2016):
+        595-608.
+  """
+
+    def __init__(self,
+                 n_atom_input_feat: int = 75,
+                 n_pair_input_feat: int = 14,
+                 n_atom_output_feat: int = 50,
+                 n_pair_output_feat: int = 50,
+                 n_hidden_AA: int = 50,
+                 n_hidden_PA: int = 50,
+                 n_hidden_AP: int = 50,
+                 n_hidden_PP: int = 50,
+                 update_pair: bool = True,
+                 init_: str = 'xavier_uniform_',
+                 activation: str = 'relu',
+                 batch_normalize: bool = True,
+                 **kwargs):
+        """
+    Parameters
+    ----------
+    n_atom_input_feat: int, optional (default 75)
+      Number of features for each atom in input.
+    n_pair_input_feat: int, optional (default 14)
+      Number of features for each pair of atoms in input.
+    n_atom_output_feat: int, optional (default 50)
+      Number of features for each atom in output.
+    n_pair_output_feat: int, optional (default 50)
+      Number of features for each pair of atoms in output.
+    n_hidden_AA: int, optional (default 50)
+      Number of units(convolution depths) in corresponding hidden layer
+    n_hidden_PA: int, optional (default 50)
+      Number of units(convolution depths) in corresponding hidden layer
+    n_hidden_AP: int, optional (default 50)
+      Number of units(convolution depths) in corresponding hidden layer
+    n_hidden_PP: int, optional (default 50)
+      Number of units(convolution depths) in corresponding hidden layer
+    update_pair: bool, optional (default True)
+      Whether to calculate for pair features,
+      could be turned off for last layer
+    init: str, optional (default 'xavier_uniform_')
+      Weight initialization for filters.
+    activation: str, optional (default 'relu')
+      Activation function applied
+    batch_normalize: bool, optional (default True)
+      If this is turned on, apply batch normalization before applying
+      activation functions on convolutional layers.
+    """
+        super(WeaveLayer, self).__init__(**kwargs)
+        self.init: str = init_  # Set weight initialization
+        self.activation: str = activation  # Get activations
+        self.activation_fn: torch.nn.Module = get_activation(activation)
+        self.update_pair: bool = update_pair  # last weave layer does not need to update
+        self.n_hidden_AA: int = n_hidden_AA
+        self.n_hidden_PA: int = n_hidden_PA
+        self.n_hidden_AP: int = n_hidden_AP
+        self.n_hidden_PP: int = n_hidden_PP
+        self.n_hidden_A: int = n_hidden_AA + n_hidden_PA
+        self.n_hidden_P: int = n_hidden_AP + n_hidden_PP
+        self.batch_normalize: bool = batch_normalize
+
+        self.n_atom_input_feat: int = n_atom_input_feat
+        self.n_pair_input_feat: int = n_pair_input_feat
+        self.n_atom_output_feat: int = n_atom_output_feat
+        self.n_pair_output_feat: int = n_pair_output_feat
+
+        # Construct internal trainable weights
+        init = getattr(initializers, self.init)
+        # Weight matrix and bias matrix required to compute new atom layer from the previous atom layer
+        self.W_AA: torch.Tensor = init(
+            torch.empty(self.n_atom_input_feat, self.n_hidden_AA))
+        self.b_AA: torch.Tensor = torch.zeros((self.n_hidden_AA,))
+        self.AA_bn: nn.BatchNorm1d = nn.BatchNorm1d(
+            num_features=self.n_hidden_AA,
+            eps=1e-3,
+            momentum=0.99,
+            affine=True,
+            track_running_stats=True)
+
+        # Weight matrix and bias matrix required to compute new atom layer from the previous pair layer
+        self.W_PA: torch.Tensor = init(
+            torch.empty(self.n_pair_input_feat, self.n_hidden_PA))
+        self.b_PA: torch.Tensor = torch.zeros((self.n_hidden_PA,))
+        self.PA_bn: nn.BatchNorm1d = nn.BatchNorm1d(
+            num_features=self.n_hidden_PA,
+            eps=1e-3,
+            momentum=0.99,
+            affine=True,
+            track_running_stats=True)
+
+        self.W_A: torch.Tensor = init(
+            torch.empty(self.n_hidden_A, self.n_atom_output_feat))
+        self.b_A: torch.Tensor = torch.zeros((self.n_atom_output_feat,))
+        self.A_bn: nn.BatchNorm1d = nn.BatchNorm1d(
+            num_features=self.n_atom_output_feat,
+            eps=1e-3,
+            momentum=0.99,
+            affine=True,
+            track_running_stats=True)
+
+        if self.update_pair:
+            # Weight matrix and bias matrix required to compute new pair layer from the previous atom layer
+            self.W_AP: torch.Tensor = init(
+                torch.empty(self.n_atom_input_feat * 2, self.n_hidden_AP))
+            self.b_AP: torch.Tensor = torch.zeros((self.n_hidden_AP,))
+            self.AP_bn: nn.BatchNorm1d = nn.BatchNorm1d(
+                num_features=self.n_hidden_AP,
+                eps=1e-3,
+                momentum=0.99,
+                affine=True,
+                track_running_stats=True)
+            # Weight matrix and bias matrix required to compute new pair layer from the previous pair layer
+            self.W_PP: torch.Tensor = init(
+                torch.empty(self.n_pair_input_feat, self.n_hidden_PP))
+            self.b_PP: torch.Tensor = torch.zeros((self.n_hidden_PP,))
+            self.PP_bn: nn.BatchNorm1d = nn.BatchNorm1d(
+                num_features=self.n_hidden_PP,
+                eps=1e-3,
+                momentum=0.99,
+                affine=True,
+                track_running_stats=True)
+
+            self.W_P: torch.Tensor = init(
+                torch.empty(self.n_hidden_P, self.n_pair_output_feat))
+            self.b_P: torch.Tensor = torch.zeros((self.n_pair_output_feat,))
+            self.P_bn: nn.BatchNorm1d = nn.BatchNorm1d(
+                num_features=self.n_pair_output_feat,
+                eps=1e-3,
+                momentum=0.99,
+                affine=True,
+                track_running_stats=True)
+        self.built = True
+
+    def __repr__(self) -> str:
+        """
+    Returns a string representation of the object.
+
+    Returns:
+    -------
+    str: A string that contains the class name followed by the values of its instance variable.
+    """
+        # flake8: noqa
+        return (
+            f'{self.__class__.__name__}(n_atom_input_feat:{self.n_atom_input_feat},n_pair_input_feat:{self.n_pair_input_feat},n_atom_output_feat:{self.n_atom_output_feat},n_pair_output_feat:{self.n_pair_output_feat},n_hidden_AA:{self.n_hidden_AA},n_hidden_PA:{self.n_hidden_PA},n_hidden_AP:{self.n_hidden_AP},n_hidden_PP:{self.n_hidden_PP},batch_normalize:{self.batch_normalize},update_pair:{self.update_pair},init:{self.init},activation:{self.activation})'
+        )
+
+    def forward(
+        self, inputs: List[Union[np.ndarray, np.ndarray, np.ndarray,
+                                 np.ndarray]]
+    ) -> List[Union[torch.Tensor, torch.Tensor]]:
+        """
+    Creates weave tensors.
+
+    Parameters
+    ----------
+    inputs: List[Union[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]
+    Should contain 4 tensors [atom_features, pair_features, pair_split,
+    atom_to_pair]
+
+    Returns:
+    -------
+    List[Union[torch.Tensor, torch.Tensor]]
+      A: Atom features tensor with shape[total_num_atoms,atom feature size]
+      P: Pair features tensor with shape[total num of pairs,bond feature size]
+    """
+        # Converting the input to torch tensors
+        atom_features: torch.Tensor = torch.tensor(inputs[0])
+        pair_features: torch.Tensor = torch.tensor(inputs[1])
+
+        pair_split: torch.Tensor = torch.tensor(inputs[2])
+        atom_to_pair: torch.Tensor = torch.tensor(inputs[3])
+
+        activation = self.activation_fn
+
+        # AA is a tensor with shape[total_num_atoms,n_hidden_AA]
+        AA: torch.Tensor = torch.matmul(atom_features.type(torch.float32),
+                                        self.W_AA) + self.b_AA
+        if self.batch_normalize:
+            self.AA_bn.eval()
+            AA = self.AA_bn(AA)
+        AA = activation(AA)
+        # PA is a tensor with shape[total number of pairs,n_hidden_PA]
+        PA: torch.Tensor = torch.matmul(pair_features.type(torch.float32),
+                                        self.W_PA) + self.b_PA
+        if self.batch_normalize:
+            self.PA_bn.eval()
+            PA = self.PA_bn(PA)
+        PA = activation(PA)
+
+        # Split the PA tensor according to the 'pair_split' tensor
+        t_grp: Dict[Tensor, Tensor] = {}
+        idx: int = 0
+        for i, s_id in enumerate(pair_split):
+            s_id = s_id.item()
+            if s_id in t_grp:
+                t_grp[s_id] = t_grp[s_id] + PA[idx]
+            else:
+                t_grp[s_id] = PA[idx]
+            idx = i + 1
+
+            lst = list(t_grp.values())
+            tensor = torch.stack(lst)
+        PA = tensor
+
+        A: torch.Tensor = torch.matmul(torch.concat([AA, PA], 1),
+                                       self.W_A) + self.b_A
+        if self.batch_normalize:
+            self.A_bn.eval()
+            A = self.A_bn(A)
+        A = activation(A)
+
+        if self.update_pair:
+            # Note that AP_ij and AP_ji share the same self.AP_bn batch
+            # normalization
+            AP_ij: torch.Tensor = torch.matmul(
+                torch.reshape(atom_features[atom_to_pair],
+                              [-1, 2 * self.n_atom_input_feat]).type(
+                                  torch.float32), self.W_AP) + self.b_AP
+            if self.batch_normalize:
+                self.AP_bn.eval()
+                AP_ij = self.AP_bn(AP_ij)
+            AP_ij = activation(AP_ij)
+            AP_ji: torch.Tensor = torch.matmul(
+                torch.reshape(atom_features[torch.flip(atom_to_pair, [1])],
+                              [-1, 2 * self.n_atom_input_feat]).type(
+                                  torch.float32), self.W_AP) + self.b_AP
+            if self.batch_normalize:
+                self.AP_bn.eval()
+                AP_ji = self.AP_bn(AP_ji)
+            AP_ji = activation(AP_ji)
+            # PP is a tensor with shape [total number of pairs,n_hidden_PP]
+            PP: torch.Tensor = torch.matmul(pair_features.type(torch.float32),
+                                            self.W_PP) + self.b_PP
+            if self.batch_normalize:
+                self.PP_bn.eval()
+                PP = self.PP_bn(PP)
+            PP = activation(PP)
+            P: torch.Tensor = torch.matmul(
+                torch.concat([AP_ij + AP_ji, PP], 1).type(torch.float32),
+                self.W_P) + self.b_P
+            if self.batch_normalize:
+                self.P_bn.eval()
+                P = self.P_bn(P)
+            P = activation(P)
+        else:
+            P = pair_features
+
+        return [A, P]
