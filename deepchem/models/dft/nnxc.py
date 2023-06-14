@@ -183,7 +183,7 @@ class NNPBE(BaseNNXC):
             n = densinfo.value.unsqueeze(-1)  # (*BD, nr, 1)
             xi = torch.zeros_like(n)
             n_offset = n + 1e-18  # avoiding nan
-            s = safenorm(densinfo.grad, dim=-1).unsqueeze(-1)
+            s = (densinfo.grad).unsqueeze(-1)
         else:  # polarized case
             assert densinfo.u.grad is not None
             assert densinfo.d.grad is not None
@@ -194,15 +194,18 @@ class NNPBE(BaseNNXC):
             xi = (nu - nd) / n_offset
             s = safenorm(densinfo.u.grad + densinfo.d.grad, dim=-1).unsqueeze(-1)
 
+        print("s_1", s.shape)
         # normalize the gradient
-#        print("s", s.shape)        
-#        print("n", n.shape)
         s = s / a * (safepow(n, -4.0 / 3))
+        print("s", s.shape)        
+        print("n", n.shape)
+        print("xi", xi.shape)
+        # s = s / a * (safepow(n, -4.0 / 3))
   
 
         # decide how to transform the density to be the input of nn
         #ninp = get_n_input(n, self.ninpmode)
-        ninp = safepow(n, 1.0 / 3)
+        ninp = n
         sinp = s
 
         # get the neural network output
