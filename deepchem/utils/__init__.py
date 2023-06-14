@@ -109,3 +109,6 @@ from deepchem.utils.voxel_utils import voxelize
 
 from deepchem.utils.sequence_utils import hhblits
 from deepchem.utils.sequence_utils import hhsearch
+
+from deepchem.utils.pytorch_utils import unsorted_segment_sum
+from deepchem.utils.pytorch_utils import segment_sum

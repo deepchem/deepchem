@@ -7,6 +7,8 @@ try:
 except ModuleNotFoundError:
     has_torch = False
 
+from deepchem.utils.pytorch_utils import unsorted_segment_sum
+
 
 @pytest.mark.torch
 def test_unsorted_segment_sum():
@@ -23,7 +25,6 @@ def test_unsorted_segment_sum():
     result = dc.utils.pytorch_utils.unsorted_segment_sum(
         data=data, segment_ids=segment_ids, num_segments=num_segments)
 
-    assert np.allclose(
-        np.array(result),
-        np.load("deepchem/utils/test/assets/result_segment_sum.npy"),
-        atol=1e-04)
+    assert np.allclose(np.array(result),
+                       np.load("deepchem/utils/test/assets/result_segment_sum.npy"),
+                       atol=1e-04)

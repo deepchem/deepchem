@@ -291,3 +291,5 @@ Pytorch Utilities
 -----------------
 
 .. autofunction:: deepchem.utils.pytorch_utils.unsorted_segment_sum
+
+.. autofunction:: deepchem.utils.pytorch_utils.segment_sum
