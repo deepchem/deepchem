@@ -34,10 +34,15 @@ def unsorted_segment_sum(data, segment_ids, num_segments):
 
     Examples
     --------
-    >>> c = tf.constant([[1,2,3,4], [4, 3, 2, 1], [5,6,7,8]])
-    >>> tf.math.segment_sum(c, tf.constant([0, 0, 1])).numpy()
-    array([[5, 5, 5, 5],
-           [5, 6, 7, 8]], dtype=int32)
+    >>> segment_ids = torch.Tensor([0, 1, 0]).to(torch.int64)
+    >>> data = torch.Tensor([[1, 2, 3, 4], [5, 6, 7, 8], [4, 3, 2, 1]])
+    >>> num_segments = 2
+    >>> result = unsorted_segment_sum(data=data,
+                                  segment_ids=segment_ids,
+                                  num_segments=num_segments)
+    >>> result
+    tensor([[5., 5., 5., 5.],
+        [5., 6., 7., 8.]])
 
     """
     # segment_ids.shape should be a prefix of data.shape
