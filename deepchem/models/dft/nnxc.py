@@ -148,6 +148,7 @@ class NNLDA(BaseNNXC):
         ninp = n
 
         x = torch.cat((ninp, xi), dim=-1)  # (*BD, nr, 2)
+        print(x.shape)
         nnout = self.nnmodel(x)  # (*BD, nr, 1)
         res = nnout * n  # (*BD, nr, 1)
         res = res.squeeze(-1)
@@ -183,7 +184,8 @@ class NNPBE(BaseNNXC):
             n = densinfo.value.unsqueeze(-1)  # (*BD, nr, 1)
             xi = torch.zeros_like(n)
             n_offset = n + 1e-18  # avoiding nan
-            s = (densinfo.grad).unsqueeze(-1)
+#            s = (densinfo.grad).unsqueeze(-1)
+            s = safenorm(densinfo.grad, dim=0).unsqueeze(-1) 
         else:  # polarized case
             assert densinfo.u.grad is not None
             assert densinfo.d.grad is not None
@@ -193,10 +195,9 @@ class NNPBE(BaseNNXC):
             n_offset = n + 1e-18  # avoiding nan
             xi = (nu - nd) / n_offset
             s = safenorm(densinfo.u.grad + densinfo.d.grad, dim=-1).unsqueeze(-1)
-
         print("s_1", s.shape)
         # normalize the gradient
-        s = s / a * (safepow(n, -4.0 / 3))
+        s = (s / a * (n**( -4.0 / 3)))
         print("s", s.shape)        
         print("n", n.shape)
         print("xi", xi.shape)
@@ -210,6 +211,7 @@ class NNPBE(BaseNNXC):
 
         # get the neural network output
         x = torch.cat((ninp, xi, sinp), dim=-1)  # (*BD, nr, 3)
+        print("x", x.shape)
         nnout = self.nnmodel(x)  # (*BD, nr, 1)
         res = nnout * n  # (*BD, nr, 1)
 
