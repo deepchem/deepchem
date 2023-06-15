@@ -1,11 +1,11 @@
-from typing import Optional, List, Tuple, Any
+from typing import  List, Tuple #, Any, Optional,
 
-import torch
-from torch import nn
-from torch.nn import functional as F
-from deepchem.feat.molecule_featurizers.molgan_featurizer import GraphMatrix
+# import torch
+# from torch import nn
+# from torch.nn import functional as F
+# from deepchem.feat.molecule_featurizers.molgan_featurizer import GraphMatrix
 from deepchem.models import WGAN
-from deepchem.models.layers import MolGANEncoderLayer
+# from deepchem.models.layers import MolGANEncoderLayer
 
 
 class BasicMolGANModel(WGAN):
@@ -80,8 +80,3 @@ class BasicMolGANModel(WGAN):
             (self.vertices, self.vertices, self.edges),
             (self.vertices, self.nodes),
         ]
-
-    
-
-
-
