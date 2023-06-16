@@ -49,7 +49,7 @@ def unsorted_segment_sum(data: torch.Tensor, segment_ids: torch.Tensor,
     # length of segment_ids.shape should be 1
     assert len(segment_ids.shape) == 1
 
-    # segment_ids.shape should be a prefix of data.shape
+    # Shape of segment_ids should be equal to first dimension of data
     assert segment_ids.shape[-1] == data.shape[0]
 
     if len(segment_ids.shape) == 1:
