@@ -1,7 +1,7 @@
 """Utility functions for working with PyTorch."""
 
 import torch
-from typing import Callable, Union
+from typing import Callable, Union, List
 
 
 def get_activation(fn: Union[Callable, str]):
@@ -16,7 +16,8 @@ def get_activation(fn: Union[Callable, str]):
     return fn
 
 
-def unsorted_segment_sum(data, segment_ids, num_segments):
+def unsorted_segment_sum(data: torch.Tensor, segment_ids: torch.Tensor,
+                         num_segments: int) -> torch.Tensor:
     """Computes the sum along segments of a tensor. Analogous to tf.unsorted_segment_sum.
 
     Parameters
@@ -45,8 +46,11 @@ def unsorted_segment_sum(data, segment_ids, num_segments):
         [5., 6., 7., 8.]])
 
     """
+    # length of segment_ids.shape should be 1
+    assert len(segment_ids.shape) == 1
+
     # segment_ids.shape should be a prefix of data.shape
-    assert all([i in data.shape for i in segment_ids.shape])
+    assert segment_ids.shape[-1] == data.shape[0]
 
     if len(segment_ids.shape) == 1:
         s = torch.prod(torch.tensor(data.shape[1:])).long()
@@ -55,7 +59,8 @@ def unsorted_segment_sum(data, segment_ids, num_segments):
 
     # data.shape and segment_ids.shape should be equal
     assert data.shape == segment_ids.shape
-    shape = [num_segments] + list(data.shape[1:])
-    tensor = torch.zeros(*shape).scatter_add(0, segment_ids, data.float())
+    shape: List[int] = [num_segments] + list(data.shape[1:])
+    tensor: torch.Tensor = torch.zeros(*shape).scatter_add(
+        0, segment_ids, data.float())
     tensor = tensor.type(data.dtype)
     return tensor
