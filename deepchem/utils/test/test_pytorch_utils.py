@@ -1,3 +1,4 @@
+import deepchem as dc
 import numpy as np
 import pytest
 try:
@@ -5,8 +6,6 @@ try:
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
-
-from deepchem.utils.pytorch_utils import unsorted_segment_sum
 
 
 @pytest.mark.torch
@@ -21,9 +20,8 @@ def test_unsorted_segment_sum():
 
     # Shape of segment_ids should be equal to first dimension of data
     assert segment_ids.shape[-1] == data.shape[0]
-    result = unsorted_segment_sum(data=data,
-                                  segment_ids=segment_ids,
-                                  num_segments=num_segments)
+    result = dc.utils.pytorch_utils.unsorted_segment_sum(
+        data=data, segment_ids=segment_ids, num_segments=num_segments)
 
     assert np.allclose(
         np.array(result),
