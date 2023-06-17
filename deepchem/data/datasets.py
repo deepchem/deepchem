@@ -1312,7 +1312,7 @@ class DiskDataset(Dataset):
 
     @staticmethod
     def _save_metadata(metadata_df: pd.DataFrame, data_dir: str,
-                       tasks: Optional[ArrayLike]) -> None:
+                       tasks: Optional[ArrayLike], overwrite: bool = False) -> None:
         """Saves the metadata for a DiskDataset
 
         Parameters
@@ -1324,7 +1324,14 @@ class DiskDataset(Dataset):
         tasks: Sequence, optional
             Tasks of DiskDataset. If `None`, an empty list of tasks is written to
             disk.
+        overwrite: bool, default false
+            If data_dir is not empty, then raise an exception if argument=false
         """
+
+        # Check directory is empty or not
+        if any(os.scandir(data_dir)) and not overwrite:
+            raise OSError(66, "Directory not empty", data_dir)
+        
         if tasks is None:
             tasks = []
         elif isinstance(tasks, np.ndarray):
