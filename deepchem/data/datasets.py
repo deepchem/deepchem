@@ -1311,8 +1311,10 @@ class DiskDataset(Dataset):
         raise ValueError("No Metadata Found On Disk")
 
     @staticmethod
-    def _save_metadata(metadata_df: pd.DataFrame, data_dir: str,
-                       tasks: Optional[ArrayLike], overwrite: bool = False) -> None:
+    def _save_metadata(metadata_df: pd.DataFrame,
+                       data_dir: str,
+                       tasks: Optional[ArrayLike],
+                       overwrite: bool = False) -> None:
         """Saves the metadata for a DiskDataset
 
         Parameters
@@ -1331,7 +1333,7 @@ class DiskDataset(Dataset):
         # Check directory is empty or not
         if any(os.scandir(data_dir)) and not overwrite:
             raise OSError(66, "Directory not empty", data_dir)
-        
+
         if tasks is None:
             tasks = []
         elif isinstance(tasks, np.ndarray):
