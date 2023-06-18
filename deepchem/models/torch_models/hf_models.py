@@ -11,6 +11,7 @@ from deepchem.models.torch_models import TorchModel
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
 from transformers.data.data_collator import DataCollatorForLanguageModeling
+from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM
 
 logger = logging.getLogger(__name__)
 
@@ -42,14 +43,17 @@ class HuggingFaceModel(TorchModel):
 
     Parameters
     ----------
-    models: transformers.modeling_utils.PreTrainedModel
+    model: transformers.modeling_utils.PreTrainedModel
         The HuggingFace model to wrap.
-    task: str
+    task: str, (optional, default None)
         The task defines the type of learning task in the model. The supported tasks are
          - `mlm` - masked language modeling commonly used in pretraining
          - `mtr` - multitask regression - a task used for both pretraining base models and finetuning
          - `regression` - use it for regression tasks, like property prediction
          - `classification` - use it for classification tasks
+        When the task is not specified or None, the wrapper returns raw output of the HuggingFaceModel.
+        In cases where the HuggingFaceModel is a model without a task specific head, this output will be
+        the last hidden states.
     tokenizer: transformers.tokenization_utils.PreTrainedTokenizer
         Tokenizer
 
@@ -124,8 +128,10 @@ class HuggingFaceModel(TorchModel):
     """
 
     def __init__(
-            self, model: 'PreTrainedModel', task: str,
+            self,
+            model: 'PreTrainedModel',
             tokenizer: 'transformers.tokenization_utils.PreTrainedTokenizer',
+            task: Optional[str] = None,
             **kwargs):
         self.task = task
         self.tokenizer = tokenizer
@@ -187,7 +193,17 @@ class HuggingFaceModel(TorchModel):
             model_dir = self.model_dir
 
         if from_hf_checkpoint:
-            setattr(self, 'model', self.model.from_pretrained(model_dir))
+            # FIXME Transformers library has an api like AutoModel.from_pretrained. It allows to
+            # initialise and create a model instance directly without requiring a class instance initialisation step.
+            # To use `load_from_pretrained` in DeepChem, we need to follow a two step process
+            # of initialising class instance and then loading weights via `load_from_pretrained`.
+            if self.task == 'mlm':
+                self.model = AutoModelForMaskedLM.from_pretrained(model_dir)
+            elif self.task in ['mtr', 'regression', 'classification']:
+                self.model = AutoModelForSequenceClassification.from_pretrained(
+                    model_dir)
+            else:
+                self.model = AutoModel.from_pretrained(model_dir)
         elif not from_hf_checkpoint:
             checkpoints = sorted(self.get_checkpoints(model_dir))
             if len(checkpoints) == 0:
