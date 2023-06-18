@@ -21,4 +21,3 @@ InfoGraph,`ref <https://arxiv.org/abs/1908.01000>`_,Classifier/ Regressor,MolGra
 InfoGraphStar,`ref <https://arxiv.org/abs/1908.01000>`_,Classifier/ Regressor,MolGraphConvFeaturizer,PyTorch
 GNNModular,`ref <https://arxiv.org/abs/1905.12265>`_,Classifier/ Regressor,SNAPFeaturizer,PyTorch
 InfoMax3DModular,`ref <https://arxiv.org/abs/2110.04126>`_,Unsupervised,RDKitConformerFeaturizer,PyTorch
-Chemberta, `ref <https://arxiv.org/abs/2209.01712>`_,Classifier/ Regressor, RobertaTokenizer, PyTorch
