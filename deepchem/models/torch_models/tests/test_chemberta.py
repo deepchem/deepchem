@@ -125,13 +125,14 @@ def test_chemberta_save_reload(tmpdir):
     assert all(matches)
 
 
-# @pytest.mark.torch
-# def test_chemberta_load_weights_from_hf_hub():
-#     # NOTE This test consumes about 179M of data as it downloads model
-#     # from huggingface model hub.
-#     pretrained_model_path = 'seyonec/ChemBERTa-zinc-base-v1'
-#     tokenizer_path = 'seyonec/PubChem10M_SMILES_BPE_60k'
-#     model = Chemberta(task='regression',
-#                       tokenizer_path=tokenizer_path)
-#
-#     model.load_from_pretrained(pretrained_model_path)
+@pytest.mark.torch
+def test_chemberta_load_weights_from_hf_hub():
+    pretrained_model_path = 'DeepChem/ChemBERTa-77M-MLM'
+    tokenizer_path = 'DeepChem/ChemBERTa-77M-MLM'
+    model = Chemberta(task='regression', tokenizer_path=tokenizer_path)
+    old_model_id = id(model.model)
+    model.load_from_pretrained(pretrained_model_path, from_hf_checkpoint=True)
+    new_model_id = id(model.model)
+    # new model's model attribute is an entirely new model initiated by AutoModel.load_from_pretrained
+    # and hence it should have a different identifier
+    assert old_model_id != new_model_id
