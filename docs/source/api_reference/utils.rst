@@ -286,3 +286,8 @@ The utilites here are used to create an object that contains information about a
   :members:
 
 .. autofunction:: deepchem.utils.dftutils.hashstr
+
+Pytorch Utilities
+-----------------
+
+.. autofunction:: deepchem.utils.pytorch_utils.unsorted_segment_sum
