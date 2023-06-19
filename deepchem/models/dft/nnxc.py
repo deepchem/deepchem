@@ -6,6 +6,7 @@ from dqc.api.getxc import get_xc
 from dqc.xc.base_xc import BaseXC
 from dqc.utils.safeops import safenorm, safepow
 
+
 class BaseNNXC(BaseXC, torch.nn.Module):
     """
     Base class for the Neural Network XC (NNXC)  and HybridXC classes.
@@ -148,80 +149,16 @@ class NNLDA(BaseNNXC):
         ninp = n
 
         x = torch.cat((ninp, xi), dim=-1)  # (*BD, nr, 2)
-        print(x.shape)
         nnout = self.nnmodel(x)  # (*BD, nr, 1)
         res = nnout * n  # (*BD, nr, 1)
         res = res.squeeze(-1)
         return res
 
-#class NNPBE(BaseNNXC):
-#    # neural network xc functional of GGA (receives the density and grad as inputs)
-#
-#    def __init__(self, nnmodel: torch.nn.Module):
-#        # nnmodel should receives input with shape (..., 3)
-#        # where the last dimension is for:
-#        # (0) total density (n): (n_up + n_dn), and
-#        # (1) spin density (xi): (n_up - n_dn) / (n_up + n_dn)
-#        # (2) normalized gradients (s): |del(n)| / [2(3*pi^2)^(1/3) * n^(4/3)]
-#        # the output of the model must have shape of (..., 1)
-#        # it represents the energy density per density per volume
-#        super().__init__()
-#        self.nnmodel = nnmodel
-#        
-#
-#    @property
-#    def family(self) -> int:
-#        return 2
-#
-#    def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
-#        # densinfo.value: (*BD, nr)
-#        # densinfo.grad : (*BD, nr, 3)
-#
-#        # collect the total density (n), spin density (xi), and normalized gradients (s)
-#        a = 6.187335452560271  # 2 * (3 * np.pi ** 2) ** (1.0 / 3)
-#        if isinstance(densinfo, ValGrad):  # unpolarized case
-#            assert densinfo.grad is not None
-#            n = densinfo.value.unsqueeze(-1)  # (*BD, nr, 1)
-#            xi = torch.zeros_like(n)
-#            n_offset = n + 1e-18  # avoiding nan
-##            s = (densinfo.grad).unsqueeze(-1)
-#            s = safenorm(densinfo.grad, dim=0).unsqueeze(-1) 
-#        else:  # polarized case
-#            assert densinfo.u.grad is not None
-#            assert densinfo.d.grad is not None
-#            nu = densinfo.u.value.unsqueeze(-1)
-#            nd = densinfo.d.value.unsqueeze(-1)
-#            n = nu + nd  # (*BD, nr, 1)
-#            n_offset = n + 1e-18  # avoiding nan
-#            xi = (nu - nd) / n_offset
-#            s = safenorm(densinfo.u.grad + densinfo.d.grad, dim=-1).unsqueeze(-1)
-#        print("s_1", s.shape)
-#        # normalize the gradient
-#        s = (s / a * (n**( -4.0 / 3)))
-#        print("s", s.shape)        
-#        print("n", n.shape)
-#        print("xi", xi.shape)
-#        # s = s / a * (safepow(n, -4.0 / 3))
-#  
-#
-#        # decide how to transform the density to be the input of nn
-#        #ninp = get_n_input(n, self.ninpmode)
-#        ninp = n
-#        sinp = s
-#
-#        # get the neural network output
-#        x = torch.cat((ninp, xi, sinp), dim=-1)  # (*BD, nr, 3)
-#        print("x", x.shape)
-#        nnout = self.nnmodel(x)  # (*BD, nr, 1)
-#        res = nnout * n  # (*BD, nr, 1)
-#
-#        res = res.squeeze(-1)
-#        return res
 
 class NNPBE(BaseNNXC):
     # neural network xc functional of GGA (receives the density and grad as inputs)
 
-    def __init__(self, nnmodel: torch.nn.Module, ninpmode: int = 1, sinpmode: int = 1, outmultmode: int = 1):
+    def __init__(self, nnmodel: torch.nn.Module):
         # nnmodel should receives input with shape (..., 3)
         # where the last dimension is for:
         # (0) total density (n): (n_up + n_dn), and
@@ -231,15 +168,13 @@ class NNPBE(BaseNNXC):
         # it represents the energy density per density per volume
         super().__init__()
         self.nnmodel = nnmodel
-        self.ninpmode = ninpmode
-        self.sinpmode = sinpmode
-        self.outmultmode = outmultmode
 
     @property
     def family(self) -> int:
         return 2
 
-    def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
+    def get_edensityxc(
+            self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
         # densinfo.value: (*BD, nr)
         # densinfo.grad : (*BD, nr, 3)
 
@@ -262,35 +197,19 @@ class NNPBE(BaseNNXC):
             s = safenorm(densinfo.u.grad + densinfo.d.grad, dim=0).unsqueeze(-1)
 
         # normalize the gradient
-        if self.sinpmode // 10 == 0:
-            s = s / a * safepow(n, -4.0 / 3)
+        s = s / a * safepow(n, -4.0 / 3)
 
         # decide how to transform the density to be the input of nn
-        ninp = get_n_input(n, self.ninpmode)
-        sinp = get_n_input(s, self.sinpmode % 10)
+        ninp = n
+        sinp = s
 
         # get the neural network output
         x = torch.cat((ninp, xi, sinp), dim=-1)  # (*BD, nr, 3)
         nnout = self.nnmodel(x)  # (*BD, nr, 1)
-#        res = get_out_from_nnout(nnout, n, self.outmultmode)  # (*BD, nr, 1)
         res = nnout * n
-        # # decide how to calculate the Exc from the NN output
-        # if self.nnxcmode == 1:
-        #     x = torch.cat((n, xi, s), dim=-1)  # (*BD, nr, 3)
-        #     res = self.nnmodel(x) * n  # (*BD, nr)
-        # elif self.nnxcmode == 2:
-        #     n_cbrt = safepow(n, 1.0 / 3)
-        #     exunif = b * n_cbrt
-        #     x = torch.cat((n_cbrt, xi, s), dim=-1)  # (*BD, nr, 3)
-        #     res = self.nnmodel(x) * n * exunif  # (*BD, nr)
-        # elif self.nnxcmode == 3:
-        #     n_cbrt = safepow(n, 1.0 / 3)
-        #     x = torch.cat((n_cbrt, xi, s), dim=-1)  # (*BD, nr, 3)
-        #     res = self.nnmodel(x) * n  # (*BD, nr)
-        # else:
-        #     raise RuntimeError("Unknown nnxcmode: %d" % self.nnxcmode)
         res = res.squeeze(-1)
         return res
+
 
 class HybridXC(BaseNNXC):
     """
@@ -340,11 +259,11 @@ class HybridXC(BaseNNXC):
         https://tddft.org/programs/libxc/functionals/
         """
         self.xc = get_xc(xcstr)
-        k = self.xc.family
-        if k == 1:
+        family = self.xc.family
+        if family == 1:
             self.nnxc = NNLDA(nnmodel)
         else:
-            self.nnxc = NNPBE(nnmodel) 
+            self.nnxc = NNPBE(nnmodel)
         self.aweight = torch.nn.Parameter(
             torch.tensor(aweight0, requires_grad=True))
         self.bweight = torch.nn.Parameter(
@@ -381,14 +300,3 @@ class HybridXC(BaseNNXC):
         aweight = self.weight_activation(self.aweight)
         bweight = self.weight_activation(self.bweight)
         return nnxc_ene * aweight + xc_ene * bweight
-
-def get_n_input(n: torch.Tensor, ninpmode: int) -> torch.Tensor:
-    # transform the density to the input of the neural network
-    if ninpmode == 1:
-        return n
-    elif ninpmode == 2:
-        return safepow(n, 1.0 / 3)
-    elif ninpmode == 3:
-        return torch.log1p(n)
-    else:
-        raise RuntimeError("Unknown ninpmode: %d" % ninpmode)
