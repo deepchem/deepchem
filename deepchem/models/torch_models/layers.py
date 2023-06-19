@@ -2972,3 +2972,87 @@ class SetGather(nn.Module):
         partitions = [input_tensor[mask] for mask in partition_masks]
 
         return partitions
+
+
+class DTNNEmbedding(nn.Module):
+    """DTNNEmbedding layer for DTNN model.
+
+    Assign initial atomic descriptors. [1]_
+
+    This layer creates 'n' number of embeddings as initial atomic descriptors. According to the required weight initializer and periodic_table_length (Total number of unique atoms).
+
+    References
+    ----------
+    [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
+        tensor neural networks." Nature communications 8.1 (2017): 1-8.
+
+    Parameters
+    ----------
+    n_embedding: int, optional
+        Number of features for each atom
+    periodic_table_length: int, optional
+        Length of embedding, 83=Bi
+    initalizer: str, optional
+        Weight initialization for filters.
+        Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models import layers
+    >>> import torch
+    >>> layer = layers.DTNNEmbedding(30, 30, 'xavier_uniform_')
+    >>> output = layer(torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))
+    >>> output.shape
+    torch.Size([10, 30])
+
+    """
+
+    def __init__(self,
+                 n_embedding: int = 30,
+                 periodic_table_length: int = 30,
+                 initalizer: str = 'xavier_uniform_',
+                 **kwargs):
+
+        super(DTNNEmbedding, self).__init__(**kwargs)
+        self.n_embedding = n_embedding
+        self.periodic_table_length = periodic_table_length
+        self.initalizer = initalizer  # Set weight initialization
+
+        init_func: Callable = getattr(initializers, self.initalizer)
+        self.embedding_list: torch.Tensor = init_func(
+            torch.empty([self.periodic_table_length, self.n_embedding]))
+
+    def __repr__(self) -> str:
+        """Returns a string representing the configuration of the layer.
+
+        Returns
+        -------
+        n_embedding: int, optional
+            Number of features for each atom
+        periodic_table_length: int, optional
+            Length of embedding, 83=Bi
+        initalizer: str, optional
+            Weight initialization for filters.
+            Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
+
+        """
+        return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, periodic_table_length={self.periodic_table_length}, initalizer={self.initalizer})'
+
+    def forward(self, inputs: torch.Tensor):
+        """Returns Embeddings according to indices.
+
+        Parameters
+        ----------
+        inputs: torch.Tensor
+            Indices of Atoms whose embeddings are requested.
+
+        Returns
+        -------
+        atom_embeddings: torch.Tensor
+            Embeddings of atoms accordings to indices.
+
+        """
+        atom_number = inputs
+        atom_enbeddings = torch.nn.functional.embedding(atom_number,
+                                                        self.embedding_list)
+        return atom_enbeddings

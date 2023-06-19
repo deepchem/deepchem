@@ -992,3 +992,24 @@ def test_set_gather():
         os.path.join(os.path.dirname(__file__), "assets",
                      "result_SetGather_tf.npy"))
     assert np.allclose(np.array(tf_result), np.array(torch_result), atol=1e-4)
+
+
+@pytest.mark.torch
+def test_dtnn_embedding():
+    """Test invoking the Torch Equivalent of DTNNEmbedding."""
+    # Embeddings and results from Tensorflow implementation
+    embeddings_tf = [
+        [0.51979446, -0.43430394, -0.73670053, -0.443037, 0.6706989],
+        [0.21077824, -0.62696636, 0.66158307, -0.25795913, 0.31941652],
+        [-0.26653743, 0.15180665, 0.21961051, -0.7263894, -0.4521287],
+        [0.64324486, -0.66274744, 0.2814387, 0.5478991, -0.32046735],
+        [0.1925143, -0.5505201, -0.35381562, -0.7409675, 0.6427947]
+    ]
+    results_tf = [[0.64324486, -0.66274744, 0.2814387, 0.5478991, -0.32046735],
+                  [-0.26653743, 0.15180665, 0.21961051, -0.7263894, -0.4521287],
+                  [0.1925143, -0.5505201, -0.35381562, -0.7409675, 0.6427947]]
+    embedding_layer_torch = torch_layers.DTNNEmbedding(5, 5, 'xavier_uniform_')
+    embedding_layer_torch.embedding_list = torch.tensor(embeddings_tf)
+    result_torch = embedding_layer_torch(torch.tensor([3, 2, 4]))
+    assert torch.allclose(torch.tensor(results_tf), result_torch)
+    assert result_torch.shape == (3, 5)
