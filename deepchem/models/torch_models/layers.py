@@ -3056,3 +3056,78 @@ class DTNNEmbedding(nn.Module):
         atom_enbeddings = torch.nn.functional.embedding(atom_number,
                                                         self.embedding_list)
         return atom_enbeddings
+
+
+class DTNNStep(nn.Module):
+
+    def __init__(self,
+                 n_embedding: int=30,
+                 n_distance: int=100,
+                 n_hidden: int=60,
+                 initializer: str='xavier_uniform_',
+                 activation='tanh',
+                 **kwargs):
+        """
+        Parameters
+        ----------
+        n_embedding: int, optional
+            Number of features for each atom
+        n_distance: int, optional
+            granularity of distance matrix
+        n_hidden: int, optional
+            Number of nodes in hidden layer
+        initializer: str, optional
+            Weight initialization for filters.
+        activation: str, optional
+            Activation function applied
+        """
+        super(DTNNStep, self).__init__(**kwargs)
+        self.n_embedding = n_embedding
+        self.n_distance = n_distance
+        self.n_hidden = n_hidden
+        self.initializer = initializer  # Set weight initialization
+        self.activation = activation  # Get activations
+        self.activation_fn = get_activation(self.activation)
+
+        init_func: Callable = getattr(initializers, self.initializer)
+
+        self.W_cf = init_func(torch.empty([self.n_embedding, self.n_hidden]))
+        self.W_df = init_func(torch.empty([self.n_distance, self.n_hidden]))
+        self.W_fc = init_func(torch.empty([self.n_hidden, self.n_embedding]))
+        self.b_cf = torch.zeros(size=[
+            self.n_hidden,
+        ])
+        self.b_df = torch.zeros(size=[
+            self.n_hidden,
+        ])
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, n_distance={self.n_distance}, n_hidden={self.n_hidden}, initializer={self.initializer}, activation={self.activation})'
+
+    def forward(self, inputs):
+        """
+        parent layers: atom_features, distance, distance_membership_i, distance_membership_j
+        """
+        atom_features = inputs[0]
+        distance = inputs[1]
+        distance_membership_i = inputs[2]
+        distance_membership_j = inputs[3]
+        distance_hidden = torch.matmul(distance, self.W_df) + self.b_df
+        atom_features_hidden = torch.matmul(atom_features, self.W_cf) + self.b_cf
+        outputs = torch.mul(
+            distance_hidden,
+            torch.gather(atom_features_hidden, 0, distance_membership_j))
+
+        # for atom i in a molecule m, this step multiplies together distance info of atom pair(i,j)
+        # and embeddings of atom j(both gone through a hidden layer)
+        outputs = torch.matmul(outputs, self.W_fc)
+        outputs = self.activation_fn(outputs)
+
+        output_ii = torch.mul(self.b_df, atom_features_hidden)
+        output_ii = torch.matmul(output_ii, self.W_fc)
+        output_ii = self.activation_fn(output_ii)
+
+        # for atom i, sum the influence from all other atom j in the molecule
+        return torch.math.segment_sum(
+            outputs, distance_membership_i) - output_ii + atom_features
+
