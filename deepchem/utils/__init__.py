@@ -2,6 +2,10 @@
 Miscellaneous utility functions.
 """
 # flake8: noqa
+import logging
+
+logger = logging.getLogger(__name__)
+
 from deepchem.utils.conformers import ConformerGenerator
 from deepchem.utils.evaluate import relative_difference
 from deepchem.utils.evaluate import Evaluator
@@ -110,5 +114,9 @@ from deepchem.utils.voxel_utils import voxelize
 from deepchem.utils.sequence_utils import hhblits
 from deepchem.utils.sequence_utils import hhsearch
 
-from deepchem.utils.pytorch_utils import unsorted_segment_sum
-from deepchem.utils.pytorch_utils import segment_sum
+try:
+    from deepchem.utils.pytorch_utils import unsorted_segment_sum
+    from deepchem.utils.pytorch_utils import segment_sum
+except ModuleNotFoundError as e:
+    logger.warning(
+        f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
