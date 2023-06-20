@@ -105,8 +105,20 @@ class RDKitDescriptors(MolecularFeaturizer):
                     continue
                 if self.use_bcut2d is False and desc_name.startswith('BCUT2D_'):
                     continue
+                if desc_name == 'AvgIpc':  # already handled by 'Ipc' during featurization
+                    continue
                 self.reqd_properties[desc_name] = function
         else:
+            if self.ipc_avg is True:
+                if 'AvgIpc' in descriptors and 'Ipc' in descriptors:
+                    raise Exception(
+                        "AvgIpc and Ipc are both present in descriptors list. This leads to descriptor duplication as 'ipc_avg is True'"
+                    )
+            else:
+                if 'AvgIpc' in descriptors:
+                    raise Exception(
+                        "AvgIpc is present in descriptors list. This contradicts the condition 'ipc_avg is False'"
+                    )
             for desc_name in descriptors:
                 if desc_name in all_descriptors:
                     self.reqd_properties[desc_name] = all_descriptors[desc_name]
