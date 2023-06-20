@@ -46,11 +46,13 @@ def unsorted_segment_sum(data: torch.Tensor, segment_ids: torch.Tensor,
         [5., 6., 7., 8.]])
 
     """
-    # length of segment_ids.shape should be 1
-    assert len(segment_ids.shape) == 1
 
-    # Shape of segment_ids should be equal to first dimension of data
-    assert segment_ids.shape[-1] == data.shape[0]
+    if len(segment_ids.shape) != 1:
+        raise AssertionError("segment_ids have be a 1-D tensor")
+
+    if data.shape[0] != segment_ids.shape[0]:
+        raise AssertionError(
+            "segment_ids should be the same size as dimension 0 of input.")
 
     s = torch.prod(torch.tensor(data.shape[1:])).long()
     segment_ids = segment_ids.repeat_interleave(s).view(segment_ids.shape[0],
@@ -65,19 +67,21 @@ def unsorted_segment_sum(data: torch.Tensor, segment_ids: torch.Tensor,
     return tensor
 
 
-def segment_sum(data, segment_ids):
-    """Analogous to tf.segment_sum (https://www.tensorflow.org/api_docs/python/tf/math/segment_sum).
+def segment_sum(data: torch.Tensor, segment_ids: torch.Tensor) -> torch.Tensor:
+    """ This function computes the sum of values along segments within a tensor. It is useful when you have a tensor with segment IDs and you want to compute the sum of values for each segment.
+    This function is analogous to tf.segment_sum. (https://www.tensorflow.org/api_docs/python/tf/math/segment_sum).
 
     Parameters
     ----------
     data: torch.Tensor
-        A pytorch tensor of the data for segmented summation.
+        A pytorch tensor containing the values to be summed. It can have any shape, but its rank (number of dimensions) should be at least 1.
     segment_ids: torch.Tensor
-        A 1-D tensor containing the indices for the segmentation.
+        A 1-D tensor containing the indices for the segmentation. The segments can be any non-negative integer values, but they must be sorted in non-decreasing order.
 
     Returns
     -------
     out_tensor: torch.Tensor
+        Tensor with the same shape as data, where each value corresponds to the sum of values within the corresponding segment.
 
     Examples
     --------
@@ -102,4 +106,5 @@ def segment_sum(data, segment_ids):
 
     num_segments = len(torch.unique(segment_ids))
     out_tensor = unsorted_segment_sum(data, segment_ids, num_segments)
+
     return out_tensor
