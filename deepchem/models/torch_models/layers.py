@@ -37,6 +37,8 @@ class MultilayerPerceptron(nn.Module):
                  d_output: int,
                  d_hidden: Optional[tuple] = None,
                  dropout: float = 0.0,
+                 batch_norm: bool = False,
+                 batch_norm_momentum: float = 0.1,
                  activation_fn: Union[Callable, str] = 'relu',
                  skip_connection: bool = False):
         """Initialize the model.
@@ -51,6 +53,10 @@ class MultilayerPerceptron(nn.Module):
             the dimensions of the hidden layers
         dropout: float
             the dropout probability
+        batch_norm: bool
+            whether to use batch normalization
+        batch_norm_momentum: float
+            the momentum for batch normalization
         activation_fn: str
             the activation function to use in the hidden layers
         skip_connection: bool
@@ -61,6 +67,8 @@ class MultilayerPerceptron(nn.Module):
         self.d_hidden = d_hidden
         self.d_output = d_output
         self.dropout = nn.Dropout(dropout)
+        self.batch_norm = batch_norm
+        self.batch_norm_momentum = batch_norm_momentum
         self.activation_fn = get_activation(activation_fn)
         self.model = nn.Sequential(*self.build_layers())
         self.skip = nn.Linear(d_input, d_output) if skip_connection else None
@@ -76,6 +84,9 @@ class MultilayerPerceptron(nn.Module):
             for d in self.d_hidden:
                 layer_list.append(nn.Linear(layer_dim, d))
                 layer_list.append(self.dropout)
+                if self.batch_norm:
+                    layer_list.append(
+                        nn.BatchNorm1d(d, momentum=self.batch_norm_momentum))
                 layer_dim = d
         layer_list.append(nn.Linear(layer_dim, self.d_output))
         return layer_list
@@ -2796,3 +2807,252 @@ class WeightedLinearCombo(nn.Module):
             else:
                 out_tensor += w * in_tensor
         return out_tensor
+
+
+class SetGather(nn.Module):
+    """set2set gather layer for graph-based model
+
+    Models using this layer must set `pad_batches=True`
+
+    Torch Equivalent of Keras SetGather layer
+
+    Parameters
+    ----------
+    M: int
+        Number of LSTM steps
+    batch_size: int
+        Number of samples in a batch(all batches must have same size)
+    n_hidden: int, optional
+        number of hidden units in the passing phase
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models import layers
+    >>> total_n_atoms = 4
+    >>> n_atom_feat = 4
+    >>> atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
+    >>> atom_split = np.array([0, 0, 1, 1], dtype=np.int32)
+    >>> gather = layers.SetGather(2, 2, n_hidden=4)
+    >>> output_molecules = gather([atom_feat, atom_split])
+    >>> print(output_molecules.shape)
+    torch.Size([2, 8])
+
+    """
+
+    def __init__(self,
+                 M: int,
+                 batch_size: int,
+                 n_hidden: int = 100,
+                 init='orthogonal',
+                 **kwargs):
+
+        super(SetGather, self).__init__(**kwargs)
+        self.M = M
+        self.batch_size = batch_size
+        self.n_hidden = n_hidden
+        self.init = init
+
+        self.U = nn.Parameter(
+            torch.Tensor(2 * self.n_hidden, 4 * self.n_hidden).normal_(mean=0.0,
+                                                                       std=0.1))
+        self.b = nn.Parameter(
+            torch.cat((torch.zeros(self.n_hidden), torch.ones(self.n_hidden),
+                       torch.zeros(self.n_hidden), torch.zeros(self.n_hidden))))
+        self.built = True
+
+    def __repr__(self) -> str:
+        return (
+            f'{self.__class__.__name__}(M={self.M}, batch_size={self.batch_size}, n_hidden={self.n_hidden}, init={self.init})'
+        )
+
+    def forward(self, inputs: List) -> torch.Tensor:
+        """Perform M steps of set2set gather,
+
+        Detailed descriptions in: https://arxiv.org/abs/1511.06391
+
+        Parameters
+        ----------
+        inputs: List
+            This contains two elements.
+            atom_features: np.ndarray
+            atom_split: np.ndarray
+
+        Returns
+        -------
+        q_star: torch.Tensor
+            Final state of the model after all M steps.
+
+        """
+        atom_features, atom_split = inputs
+        c = torch.zeros((self.batch_size, self.n_hidden))
+        h = torch.zeros((self.batch_size, self.n_hidden))
+
+        for i in range(self.M):
+            q_expanded = h[atom_split]
+            e = (torch.from_numpy(atom_features) * q_expanded).sum(dim=-1)
+            e_mols = self._dynamic_partition(e, atom_split, self.batch_size)
+
+            # Add another value(~-Inf) to prevent error in softmax
+            e_mols = [
+                torch.cat([e_mol, torch.tensor([-1000.])], dim=0)
+                for e_mol in e_mols
+            ]
+            a = torch.cat([
+                torch.nn.functional.softmax(e_mol[:-1], dim=0)
+                for e_mol in e_mols
+            ],
+                          dim=0)
+
+            r = scatter(torch.reshape(a, [-1, 1]) * atom_features,
+                        torch.from_numpy(atom_split).long(),
+                        dim=0)
+            # Model using this layer must set `pad_batches=True`
+            q_star = torch.cat([h, r], dim=1)
+            h, c = self._LSTMStep(q_star, c)
+        return q_star
+
+    def _LSTMStep(self,
+                  h: torch.Tensor,
+                  c: torch.Tensor,
+                  x=None) -> Tuple[torch.Tensor, torch.Tensor]:
+        """This methord performs a single step of a Long Short-Term Memory (LSTM) cell,
+
+        Parameters
+        ----------
+        h: torch.Tensor
+            The hidden state of the LSTM cell.
+        c: torch.Tensor
+            The cell state of the LSTM cell.
+
+        Returns
+        -------
+        h_out: torch.Tensor
+            The updated hidden state of the LSTM cell.
+        c_out: torch.Tensor
+            The updated cell state of the LSTM cell.
+
+        """
+        # z = torch.mm(h, self.U) + self.b
+        z = F.linear(h.float().detach(),
+                     self.U.float().T.detach(), self.b.detach())
+        i = torch.sigmoid(z[:, :self.n_hidden])
+        f = torch.sigmoid(z[:, self.n_hidden:2 * self.n_hidden])
+        o = torch.sigmoid(z[:, 2 * self.n_hidden:3 * self.n_hidden])
+        z3 = z[:, 3 * self.n_hidden:]
+        c_out = f * c + i * torch.tanh(z3)
+        h_out = o * torch.tanh(c_out)
+        return h_out, c_out
+
+    def _dynamic_partition(self, input_tensor: torch.Tensor,
+                           partition_tensor: np.ndarray,
+                           num_partitions: int) -> List[torch.Tensor]:
+        """Partitions `data` into `num_partitions` tensors using indices from `partitions`.
+
+        Parameters
+        ----------
+        input_tensor: torch.Tensor
+            The tensor to be partitioned.
+        partition_tensor: np.ndarray
+            A 1-D tensor whose size is equal to the first dimension of `input_tensor`.
+        num_partitions: int
+            The number of partitions to output.
+
+        Returns
+        -------
+        partitions: List[torch.Tensor]
+            A list of `num_partitions` `Tensor` objects with the same type as `data`.
+
+        """
+        # create a boolean mask for each partition
+        partition_masks = [partition_tensor == i for i in range(num_partitions)]
+
+        # partition the input tensor using the masks
+        partitions = [input_tensor[mask] for mask in partition_masks]
+
+        return partitions
+
+
+class DTNNEmbedding(nn.Module):
+    """DTNNEmbedding layer for DTNN model.
+
+    Assign initial atomic descriptors. [1]_
+
+    This layer creates 'n' number of embeddings as initial atomic descriptors. According to the required weight initializer and periodic_table_length (Total number of unique atoms).
+
+    References
+    ----------
+    [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
+        tensor neural networks." Nature communications 8.1 (2017): 1-8.
+
+    Parameters
+    ----------
+    n_embedding: int, optional
+        Number of features for each atom
+    periodic_table_length: int, optional
+        Length of embedding, 83=Bi
+    initalizer: str, optional
+        Weight initialization for filters.
+        Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models import layers
+    >>> import torch
+    >>> layer = layers.DTNNEmbedding(30, 30, 'xavier_uniform_')
+    >>> output = layer(torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))
+    >>> output.shape
+    torch.Size([10, 30])
+
+    """
+
+    def __init__(self,
+                 n_embedding: int = 30,
+                 periodic_table_length: int = 30,
+                 initalizer: str = 'xavier_uniform_',
+                 **kwargs):
+
+        super(DTNNEmbedding, self).__init__(**kwargs)
+        self.n_embedding = n_embedding
+        self.periodic_table_length = periodic_table_length
+        self.initalizer = initalizer  # Set weight initialization
+
+        init_func: Callable = getattr(initializers, self.initalizer)
+        self.embedding_list: torch.Tensor = init_func(
+            torch.empty([self.periodic_table_length, self.n_embedding]))
+
+    def __repr__(self) -> str:
+        """Returns a string representing the configuration of the layer.
+
+        Returns
+        -------
+        n_embedding: int, optional
+            Number of features for each atom
+        periodic_table_length: int, optional
+            Length of embedding, 83=Bi
+        initalizer: str, optional
+            Weight initialization for filters.
+            Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
+
+        """
+        return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, periodic_table_length={self.periodic_table_length}, initalizer={self.initalizer})'
+
+    def forward(self, inputs: torch.Tensor):
+        """Returns Embeddings according to indices.
+
+        Parameters
+        ----------
+        inputs: torch.Tensor
+            Indices of Atoms whose embeddings are requested.
+
+        Returns
+        -------
+        atom_embeddings: torch.Tensor
+            Embeddings of atoms accordings to indices.
+
+        """
+        atom_number = inputs
+        atom_enbeddings = torch.nn.functional.embedding(atom_number,
+                                                        self.embedding_list)
+        return atom_enbeddings

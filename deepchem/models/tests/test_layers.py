@@ -1,6 +1,7 @@
 import deepchem as dc
 import numpy as np
 import pytest
+import os
 
 try:
     import tensorflow as tf
@@ -658,10 +659,12 @@ def test_position_wise_feed_forward():
 
 
 @pytest.mark.torch
-@pytest.mark.parametrize('skip_connection,expected',
-                         [(False, [[0.2795, 0.4243], [0.2795, 0.4243]]),
-                          (True, [[-0.9612, 2.3846], [-4.1104, 5.7606]])])
-def test_MultilayerPerceptron(skip_connection, expected):
+@pytest.mark.parametrize('skip_connection,batch_norm,expected',
+                         [(False, False, [[0.2795, 0.4243], [0.2795, 0.4243]]),
+                          (True, False, [[-0.9612, 2.3846], [-4.1104, 5.7606]]),
+                          (False, True, [[0.2795, 0.4243], [0.2795, 0.4243]]),
+                          (True, True, [[-0.9612, 2.3846], [-4.1104, 5.7606]])])
+def test_MultilayerPerceptron(skip_connection, batch_norm, expected):
     """Test invoking MLP."""
     torch.manual_seed(0)
     input_ar = torch.tensor([[1., 2.], [5., 6.]])
@@ -670,10 +673,34 @@ def test_MultilayerPerceptron(skip_connection, expected):
                                               d_hidden=(2, 2),
                                               activation_fn='relu',
                                               dropout=0.0,
+                                              batch_norm=batch_norm,
                                               skip_connection=skip_connection)
     result = layer(input_ar)
     output_ar = torch.tensor(expected)
     assert torch.allclose(result, output_ar, atol=1e-4)
+
+
+@pytest.mark.torch
+def test_MultilayerPerceptron_overfit():
+    import torch
+    import deepchem.models.torch_models.layers as torch_layers
+    from deepchem.data import NumpyDataset
+    from deepchem.models.torch_models.torch_model import TorchModel
+    from deepchem.models.losses import L1Loss
+    import numpy as np
+
+    torch.manual_seed(0)
+    x = torch.randn(10, 10)
+    y = torch.ones(10, 1)
+    data = NumpyDataset(x, y)
+    layer = torch_layers.MultilayerPerceptron(d_input=10,
+                                              d_output=1,
+                                              d_hidden=(2, 2),
+                                              activation_fn='relu')
+    model = TorchModel(layer, loss=L1Loss())
+    model.fit(data, nb_epoch=1000)
+    output = model.predict_on_batch(data.X)
+    assert np.allclose(output, y, atol=1e-2)
 
 
 @pytest.mark.torch
@@ -943,3 +970,46 @@ def test_local_global_discriminator():
     # Check if the output has the correct shape and dtype
     assert similarity_scores.shape == (batch_size,)
     assert similarity_scores.dtype == torch.float32
+
+
+@pytest.mark.torch
+def test_set_gather():
+    """Test invoking the Torch Equivalent of SetGather."""
+    # total_n_atoms = 4
+    # n_atom_feat = 4
+    # atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
+    atom_feat = np.load(
+        os.path.join(os.path.dirname(__file__), "assets",
+                     "atom_feat_SetGather.npy"))
+    atom_split = np.array([0, 0, 1, 1], dtype=np.int32)
+    torch_layer = torch_layers.SetGather(2, 2, 4)
+    weights = np.load(
+        os.path.join(os.path.dirname(__file__), "assets",
+                     "weights_SetGather_tf.npy"))
+    torch_layer.U = torch.nn.Parameter(torch.from_numpy(weights))
+    torch_result = torch_layer([atom_feat, atom_split])
+    tf_result = np.load(
+        os.path.join(os.path.dirname(__file__), "assets",
+                     "result_SetGather_tf.npy"))
+    assert np.allclose(np.array(tf_result), np.array(torch_result), atol=1e-4)
+
+
+@pytest.mark.torch
+def test_dtnn_embedding():
+    """Test invoking the Torch Equivalent of DTNNEmbedding."""
+    # Embeddings and results from Tensorflow implementation
+    embeddings_tf = [
+        [0.51979446, -0.43430394, -0.73670053, -0.443037, 0.6706989],
+        [0.21077824, -0.62696636, 0.66158307, -0.25795913, 0.31941652],
+        [-0.26653743, 0.15180665, 0.21961051, -0.7263894, -0.4521287],
+        [0.64324486, -0.66274744, 0.2814387, 0.5478991, -0.32046735],
+        [0.1925143, -0.5505201, -0.35381562, -0.7409675, 0.6427947]
+    ]
+    results_tf = [[0.64324486, -0.66274744, 0.2814387, 0.5478991, -0.32046735],
+                  [-0.26653743, 0.15180665, 0.21961051, -0.7263894, -0.4521287],
+                  [0.1925143, -0.5505201, -0.35381562, -0.7409675, 0.6427947]]
+    embedding_layer_torch = torch_layers.DTNNEmbedding(5, 5, 'xavier_uniform_')
+    embedding_layer_torch.embedding_list = torch.tensor(embeddings_tf)
+    result_torch = embedding_layer_torch(torch.tensor([3, 2, 4]))
+    assert torch.allclose(torch.tensor(results_tf), result_torch)
+    assert result_torch.shape == (3, 5)

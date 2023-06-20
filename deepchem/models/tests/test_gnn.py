@@ -126,7 +126,7 @@ def test_GNN_multitask_regression():
     from deepchem.models.torch_models.gnn import GNNModular
 
     dataset, metric = get_multitask_regression_dataset()
-    model = GNNModular(task="regression", num_tasks=3)
+    model = GNNModular(task="regression", gnn_type="gcn", num_tasks=3)
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
     assert scores['mean_absolute_error'] < 0.2
@@ -137,7 +137,7 @@ def test_GNN_multitask_classification():
     from deepchem.models.torch_models.gnn import GNNModular
 
     dataset, metric = get_multitask_classification_dataset()
-    model = GNNModular(task="classification", num_tasks=3)
+    model = GNNModular(task="classification", gnn_type='sage', num_tasks=3)
     model.fit(dataset, nb_epoch=200)
     scores = model.evaluate(dataset, [metric])
     assert scores['mean-roc_auc_score'] >= 0.8
@@ -148,7 +148,7 @@ def test_GNN_infomax():
     from deepchem.models.torch_models.gnn import GNNModular
 
     dataset, _ = get_regression_dataset()
-    model = GNNModular(task="infomax")
+    model = GNNModular(task="infomax", gnn_type='gat')
     loss1 = model.fit(dataset, nb_epoch=5)
     loss2 = model.fit(dataset, nb_epoch=5)
     assert loss2 < loss1

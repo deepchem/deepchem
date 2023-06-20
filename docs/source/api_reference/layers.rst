@@ -171,6 +171,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.GINEncoder
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.SetGather
+  :members:
+
 .. autoclass:: deepchem.models.torch_models.gnn.GNN
   :members:
 
@@ -178,6 +181,30 @@ Torch Layers
   :members:
 
 .. autoclass:: deepchem.models.torch_models.gnn.LocalGlobalDiscriminator
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.pna_gnn.AtomEncoder
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.pna_gnn.BondEncoder
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.pna_gnn.PNALayer
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.pna_gnn.PNAGNN
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.PNA
+  :members:
+  
+.. autoclass:: deepchem.models.torch_models.gnn3d.Net3DLayer
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.gnn3d.Net3D
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.DTNNEmbedding
   :members:
 
 Grover Layers

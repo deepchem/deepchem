@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 from collections.abc import Sequence as SequenceCollection
 from typing import (TYPE_CHECKING, Any, Callable, Iterable, List, Optional,
@@ -12,6 +11,7 @@ from deepchem.models.torch_models import TorchModel
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
 from transformers.data.data_collator import DataCollatorForLanguageModeling
+from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM
 
 logger = logging.getLogger(__name__)
 
@@ -43,10 +43,17 @@ class HuggingFaceModel(TorchModel):
 
     Parameters
     ----------
-    models: transformers.modeling_utils.PreTrainedModel
+    model: transformers.modeling_utils.PreTrainedModel
         The HuggingFace model to wrap.
-    task: str
-        Pretraining or finetuning task
+    task: str, (optional, default None)
+        The task defines the type of learning task in the model. The supported tasks are
+         - `mlm` - masked language modeling commonly used in pretraining
+         - `mtr` - multitask regression - a task used for both pretraining base models and finetuning
+         - `regression` - use it for regression tasks, like property prediction
+         - `classification` - use it for classification tasks
+        When the task is not specified or None, the wrapper returns raw output of the HuggingFaceModel.
+        In cases where the HuggingFaceModel is a model without a task specific head, this output will be
+        the last hidden states.
     tokenizer: transformers.tokenization_utils.PreTrainedTokenizer
         Tokenizer
 
@@ -92,14 +99,14 @@ class HuggingFaceModel(TorchModel):
     >>> from transformers.models.roberta import RobertaForMaskedLM, RobertaModel, RobertaConfig
     >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
     >>> model = RobertaForMaskedLM(config)
-    >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='pretraining', model_dir='model-dir')
+    >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='mlm', model_dir='model-dir')
     >>> training_loss = hf_model.fit(dataset, nb_epoch=1)
 
     >>> # finetuning a regression model
     >>> from transformers.models.roberta import RobertaForSequenceClassification
     >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size, problem_type='regression', num_labels=1)
     >>> model = RobertaForSequenceClassification(config)
-    >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='finetuning', model_dir='model-dir')
+    >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='regression', model_dir='model-dir')
     >>> hf_model.load_from_pretrained()
     >>> training_loss = hf_model.fit(dataset, nb_epoch=1)
     >>> prediction = hf_model.predict(dataset)  # prediction
@@ -114,21 +121,25 @@ class HuggingFaceModel(TorchModel):
     >>> from transformers import RobertaForSequenceClassification
     >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
     >>> model = RobertaForSequenceClassification(config)
-    >>> hf_model = HuggingFaceModel(model=model, task='finetuning', tokenizer=tokenizer)
+    >>> hf_model = HuggingFaceModel(model=model, task='classification', tokenizer=tokenizer)
     >>> training_loss = hf_model.fit(dataset, nb_epoch=1)
     >>> predictions = hf_model.predict(dataset)
     >>> eval_result = hf_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.f1_score))
     """
 
     def __init__(
-            self, model: 'PreTrainedModel', task: str,
+            self,
+            model: 'PreTrainedModel',
             tokenizer: 'transformers.tokenization_utils.PreTrainedTokenizer',
+            task: Optional[str] = None,
             **kwargs):
         self.task = task
         self.tokenizer = tokenizer
-        if self.task == 'pretraining':
+        if self.task == 'mlm':
             self.data_collator = DataCollatorForLanguageModeling(
                 tokenizer=tokenizer)
+        else:
+            self.data_collator = None  # type: ignore
         # Ignoring type. For TorchModel, loss is a required argument but HuggingFace computes
         # loss during the forward iteration, removing the need for a loss function.
         super(HuggingFaceModel, self).__init__(
@@ -137,20 +148,27 @@ class HuggingFaceModel(TorchModel):
             **kwargs)
 
     def load_from_pretrained(  # type: ignore
-            self, model_dir: Optional[str] = None):
+            self,
+            model_dir: Optional[str] = None,
+            from_hf_checkpoint: bool = False):
         """Load HuggingFace model from a pretrained checkpoint.
 
         The utility can be used for loading a model from a checkpoint.
         Given `model_dir`, it checks for existing checkpoint in the directory.
         If a checkpoint exists, the models state is loaded from the checkpoint.
 
-        If a checkpoint does not exist, the method searches for `model_dir` of a
-        pretrained model hosted inside a model repo on huggingface.co and loads it.
+        If the option `from_hf_checkpoint` is set as True, then it loads a pretrained
+        model using HuggingFace models `from_pretrained` method. This option
+        interprets model_dir as a model id of a pretrained model hosted inside a model repo
+        on huggingface.co or path to directory containing model weights saved using `save_pretrained`
+        method of a HuggingFace model.
 
         Parameter
         ----------
         model_dir: str
             Directory containing model checkpoint
+        from_hf_checkpoint: bool, default False
+            Loads a pretrained model from HuggingFace checkpoint.
 
         Example
         -------
@@ -161,52 +179,57 @@ class HuggingFaceModel(TorchModel):
         >>> from transformers.models.roberta import RobertaForMaskedLM, RobertaModel, RobertaConfig
         >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
         >>> model = RobertaForMaskedLM(config)
-        >>> pretrain_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='pretraining', model_dir='model-dir')
+        >>> pretrain_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='mlm', model_dir='model-dir')
         >>> pretrain_model.save_checkpoint()
 
         >>> from transformers import RobertaForSequenceClassification
         >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
         >>> model = RobertaForSequenceClassification(config)
-        >>> finetune_model = HuggingFaceModel(model=model, task='finetuning', tokenizer=tokenizer, model_dir='model-dir')
+        >>> finetune_model = HuggingFaceModel(model=model, task='classification', tokenizer=tokenizer, model_dir='model-dir')
 
         >>> finetune_model.load_from_pretrained()
         """
         if model_dir is None:
             model_dir = self.model_dir
-        if not os.path.exists(model_dir):
-            # Load from huggingface model hub
-            self.model.from_pretrained(model_dir)
-        else:
+
+        if from_hf_checkpoint:
+            # FIXME Transformers library has an api like AutoModel.from_pretrained. It allows to
+            # initialise and create a model instance directly without requiring a class instance initialisation step.
+            # To use `load_from_pretrained` in DeepChem, we need to follow a two step process
+            # of initialising class instance and then loading weights via `load_from_pretrained`.
+            if self.task == 'mlm':
+                self.model = AutoModelForMaskedLM.from_pretrained(model_dir)
+            elif self.task in ['mtr', 'regression', 'classification']:
+                self.model = AutoModelForSequenceClassification.from_pretrained(
+                    model_dir)
+            else:
+                self.model = AutoModel.from_pretrained(model_dir)
+        elif not from_hf_checkpoint:
             checkpoints = sorted(self.get_checkpoints(model_dir))
             if len(checkpoints) == 0:
-                # No DeepChem model checkpoints, hence it model must be saved as a huggingface checkpoint.
-                self.model.load_from_pretrained(model_dir)
+                raise ValueError('No checkpoint found')
             else:
-                # Model saved as a deepchem checkpoint
                 checkpoint = checkpoints[0]
                 data = torch.load(checkpoint)
                 self.model.load_state_dict(data['model_state_dict'],
                                            strict=False)
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
-        if self.task == 'pretraining':
-            smiles_batch, _, w = batch
-            tokens = self.tokenizer(smiles_batch[0].tolist(),
-                                    padding=True,
-                                    return_tensors="pt")
+        smiles_batch, y, w = batch
+        tokens = self.tokenizer(smiles_batch[0].tolist(),
+                                padding=True,
+                                return_tensors="pt")
+
+        if self.task == 'mlm':
             inputs, labels = self.data_collator.torch_mask_tokens(
                 tokens['input_ids'])
             inputs = {'input_ids': inputs, 'labels': labels}
             return inputs, None, w
-        elif self.task == 'finetuning':
-            smiles_batch, y, w = batch
-            tokens = self.tokenizer(smiles_batch[0].tolist(),
-                                    padding=True,
-                                    return_tensors="pt")
+        elif self.task in ['regression', 'classification', 'mtr']:
             if y is not None:
                 # y is None during predict
                 y = torch.from_numpy(y[0])
-                if self.model.config.problem_type == 'regression':
+                if self.task == 'regression' or self.task == 'mtr':
                     y = y.float()
 
             inputs = {**tokens, 'labels': y}
@@ -254,6 +277,12 @@ class HuggingFaceModel(TorchModel):
         Returns
         -------
         The average loss over the most recent checkpoint interval
+
+        Note
+        ----
+        A HuggingFace model can return embeddings (last hidden state), attentions.
+        Support must be added to return the embeddings to the user, so that it can
+        be used for other downstream applications.
         """
         if not isinstance(callbacks, SequenceCollection):
             callbacks = [callbacks]
@@ -372,6 +401,13 @@ class HuggingFaceModel(TorchModel):
         -------
             a NumPy array of the model produces a single output, or a list of arrays
             if it produces multiple outputs
+
+        Note
+        ----
+        A HuggingFace model does not output uncertainity. The argument is here
+        since it is also present in TorchModel. Similarly, other variables like
+        other_output_types are also not used. Instead, a HuggingFace model outputs
+        loss, logits, hidden state and attentions.
         """
         results: Optional[List[List[np.ndarray]]] = None
         variances: Optional[List[List[np.ndarray]]] = None
@@ -400,8 +436,11 @@ class HuggingFaceModel(TorchModel):
 
             # Invoke the model.
             output_values = self.model(**inputs)
-            output_values = output_values.get('logits').detach().cpu().numpy()
+            output_values = output_values.get('logits')
 
+            if isinstance(output_values, torch.Tensor):
+                output_values = [output_values]
+            output_values = [t.detach().cpu().numpy() for t in output_values]
             # Apply tranformers and record results.
             if uncertainty:
                 var = [output_values[i] for i in self._variance_outputs]
@@ -439,10 +478,12 @@ class HuggingFaceModel(TorchModel):
         if results is not None:
             for r in results:
                 final_results.append(np.concatenate(r, axis=0))
+
         if uncertainty and variances is not None:
             for v in variances:
                 final_variances.append(np.concatenate(v, axis=0))
             return zip(final_results, final_variances)
+
         if len(final_results) == 1:
             return final_results[0]
         else:
