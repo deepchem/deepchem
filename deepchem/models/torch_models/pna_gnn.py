@@ -191,9 +191,9 @@ class PNALayer(nn.Module):
     in_dim_edges : int
         Input dimension of the edge features.
     aggregators : List[str]
-        List of aggregator functions to use.
+        List of aggregator functions to use. Options are "mean", "sum", "max", "min", "std", "var", "moment3", "moment4", "moment5".
     scalers : List[str]
-        List of scaler functions to use.
+        List of scaler functions to use. Options are "identity", "amplification", "attenuation".
     activation : Union[Callable, str], optional, default="relu"
         Activation function to use.
     last_activation : Union[Callable, str], optional, default="none"
@@ -422,7 +422,7 @@ class PNAGNN(nn.Module):
     aggregators : List[str]
         List of aggregator functions to use.
     scalers : List[str]
-        List of scaler functions to use.
+        List of scaler functions to use. Options are "identity", "amplification", "attenuation".
     residual : bool, optional, default=True
         Whether to use residual connections.
     pairwise_distances : bool, optional, default=False
@@ -456,7 +456,7 @@ class PNAGNN(nn.Module):
     >>> smiles = ['C1=CC=NC=C1', 'CC(=O)C', 'C']
     >>> featurizer = RDKitConformerFeaturizer(num_conformers=2, rmsd_cutoff=1)
     >>> data = featurizer.featurize(smiles)
-    >>> features = BatchGraphData(np.concatenate(data).ravel())
+    >>> features = BatchGraphData(np.concatenate(data))
     >>> features = features.to_dgl_graph()
     >>> model = PNAGNN(hidden_dim=16,
     ...                aggregators=['mean', 'sum'],
@@ -577,7 +577,7 @@ class PNA(nn.Module):
     >>> smiles = ["C1=CC=CN=C1", "C1CCC1"]
     >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
     >>> data = featurizer.featurize(smiles)
-    >>> features = BatchGraphData(np.concatenate(data).ravel())
+    >>> features = BatchGraphData(np.concatenate(data))
     >>> features = features.to_dgl_graph()
     >>> target_dim = 1
     >>> model = PNA(hidden_dim=16, target_dim=target_dim)
@@ -592,7 +592,7 @@ class PNA(nn.Module):
                  aggregators: List[str] = ['mean'],
                  scalers: List[str] = ['identity'],
                  readout_aggregators: List[str] = ['mean'],
-                 readout_hidden_dim=None,
+                 readout_hidden_dim: int = 1,
                  readout_layers: int = 2,
                  residual: bool = True,
                  pairwise_distances: bool = False,
@@ -617,7 +617,7 @@ class PNA(nn.Module):
                                dropout=dropout,
                                posttrans_layers=posttrans_layers,
                                pretrans_layers=pretrans_layers)
-        if readout_hidden_dim is None:
+        if readout_hidden_dim == 1:
             readout_hidden_dim = hidden_dim
         self.readout_aggregators = readout_aggregators
         self.output = MultilayerPerceptron(

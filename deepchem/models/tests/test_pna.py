@@ -3,8 +3,10 @@ import os
 import numpy as np
 
 import deepchem as dc
+import pytest
 
 
+@pytest.mark.pytorch
 def test_AtomEncoder():
     import torch
 
@@ -26,6 +28,7 @@ def test_AtomEncoder():
     assert atom_embeddings.shape == (num_samples, 32)
 
 
+@pytest.mark.pytorch
 def test_BondEncoder():
     import torch
 
@@ -47,6 +50,7 @@ def test_BondEncoder():
     assert bond_embeddings.shape == (num_samples, 32)
 
 
+@pytest.mark.pytorch
 def test_pnalayer():
     import dgl
     import numpy as np
@@ -97,6 +101,7 @@ def get_regression_dataset():
     return dataset, metric
 
 
+@pytest.mark.pytorch
 def test_PNAGNN():
     import numpy as np
 
