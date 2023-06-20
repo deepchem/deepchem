@@ -483,6 +483,12 @@ GroverModel
 .. autoclass:: deepchem.models.torch_models.GroverModel
   :members:
 
+BasicMolGANModel
+---------
+
+.. autoclass:: deepchem.models.torch_models.BasicMolGANModel
+  :members:
+
 Density Functional Theory Model - XCModel
 -----------------------------------------
 
