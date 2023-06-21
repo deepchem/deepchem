@@ -41,6 +41,12 @@ def unsorted_segment_sum(data: torch.Tensor, segment_ids: torch.Tensor,
     >>> result = unsorted_segment_sum(data=data,
                                   segment_ids=segment_ids,
                                   num_segments=num_segments)
+    >>> data.shape[0]
+    3
+    >>> segment_ids.shape[0]
+    3
+    >>> len(segment_ids.shape)
+    1
     >>> result
     tensor([[5., 5., 5., 5.],
         [5., 6., 7., 8.]])
@@ -88,6 +94,12 @@ def segment_sum(data: torch.Tensor, segment_ids: torch.Tensor) -> torch.Tensor:
     >>> data = torch.Tensor([[1, 2, 3, 4], [4, 3, 2, 1], [5, 6, 7, 8]])
     >>> segment_ids = torch.Tensor([0, 0, 1]).to(torch.int64)
     >>> result = segment_sum(data=data, segment_ids=segment_ids)
+    >>> data.shape[0]
+    3
+    >>> segment_ids.shape[0]
+    3
+    >>> len(segment_ids.shape)
+    1
     >>> result
     tensor([[5., 5., 5., 5.],
         [5., 6., 7., 8.]])
