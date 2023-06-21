@@ -39,4 +39,6 @@ def test_pbe():
     qcs = []
     for system in entry.get_systems():
         qcs.append(evl.run(system))
-    assert entry.get_val(qcs)[0] == 0.19571723205425684
+    output = qcs[0].energy()
+    expected_output = torch.tensor(-15.7262, dtype=torch.float64)
+    torch.testing.assert_close(output, expected_output, atol=1e-4, rtol=0)

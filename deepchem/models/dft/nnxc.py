@@ -157,6 +157,42 @@ class NNLDA(BaseNNXC):
 
 class NNPBE(BaseNNXC):
     # neural network xc functional of GGA (receives the density and grad as inputs)
+    """
+    Neural network xc functional of GGA class of functionals
+
+    The Purdew-Burke-Ernzerhof (PBE) functional is a popular non-empirical
+    functional which falls under the Generalized Gradient Approximation (GGA)
+    class of functionals. GGA differs from LDA by incorporating nonlocal
+    corrections involving gradients (or derivatives) of the electron density.
+    In other words, the XC potential is a complicated function in 3D space
+    since it depends on the electron density and its gradient.
+
+    Hence, in this model we input the electron density as well as the
+    calculated gradients. We calculate these values using the DQC and Xitorch
+    libraries.
+
+    Examples
+    --------
+    >>> from deepchem.models.dft.nnxc import NNPBE
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> n_input, n_hidden = 3, 3
+    >>> nnmodel = (nn.Linear(n_input, n_hidden))
+    >>> output = NNPBE(nnmodel)
+
+    References
+    ----------
+    Perdew, John P., Kieron Burke, and Matthias Ernzerhof. "Generalized gradient approximation made simple." Physical review letters 77.18 (1996): 3865.
+    A.W. Ghosh,
+    5.09 - Electronics with Molecules,
+    Editor(s): Pallab Bhattacharya, Roberto Fornari, Hiroshi Kamimura,
+    Comprehensive Semiconductor Science and Technology,
+    Elsevier,
+    2011,
+    Pages 383-479,
+    ISBN 9780444531537,
+    https://doi.org/10.1016/B978-0-44-453153-7.00033-X.
+    """
 
     def __init__(self, nnmodel: torch.nn.Module):
         # nnmodel should receives input with shape (..., 3)
@@ -167,6 +203,12 @@ class NNPBE(BaseNNXC):
         # the output of the model must have shape of (..., 1)
         # it represents the energy density per density per volume
         super().__init__()
+        """
+        Parameters
+        ----------
+        nnmodel: torch.nn.Module
+            Neural network for xc functional. Shape; (3,...).
+        """
         self.nnmodel = nnmodel
 
     @property
@@ -175,6 +217,22 @@ class NNPBE(BaseNNXC):
 
     def get_edensityxc(
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
+        """
+        This method transform the local electron density (n), its gradient
+        and the spin density (xi) for polarized and unpolarized cases, to be
+        the input of the neural network.
+
+        Parameters
+        ----------
+        densinfo: Union[ValGrad, SpinParam[ValGrad]]
+            Density information calculated using DQC utilities.
+
+        Returns
+        -------
+        res
+            Neural network output by calculating total density (n) and the spin
+            density (xi). The shape of res is (ninp , ) where ninp is the number            of layers in nnmodel ; which is 3 for NNPBE.
+        """
         # densinfo.value: (*BD, nr)
         # densinfo.grad : (*BD, nr, 3)
 
