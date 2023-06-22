@@ -209,10 +209,6 @@ class NNPBE(BaseNNXC):
         super().__init__()
         self.nnmodel = nnmodel
 
-    @property
-    def family(self) -> int:
-        return 2
-
     def get_edensityxc(
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
         """
