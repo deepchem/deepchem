@@ -195,20 +195,18 @@ class NNPBE(BaseNNXC):
     """
 
     def __init__(self, nnmodel: torch.nn.Module):
-        # nnmodel should receives input with shape (..., 3)
-        # where the last dimension is for:
-        # (0) total density (n): (n_up + n_dn), and
-        # (1) spin density (xi): (n_up - n_dn) / (n_up + n_dn)
-        # (2) normalized gradients (s): |del(n)| / [2(3*pi^2)^(1/3) * n^(4/3)]
-        # the output of the model must have shape of (..., 1)
-        # it represents the energy density per density per volume
-        super().__init__()
         """
         Parameters
         ----------
         nnmodel: torch.nn.Module
-            Neural network for xc functional. Shape; (3,...).
+            Neural network for xc functional. Shape; (3,...). This is because
+            the nnmodel receives an input with the shape (....,3). This
+            dimension is for;
+            (0) total density (n): (n_up + n_dn), and
+            (1) spin density (xi): (n_up - n_dn) / (n_up + n_dn)
+            (2) normalized gradients (s): |del(n)| / [2(3*pi^2)^(1/3) * n^(4/3)]
         """
+        super().__init__()
         self.nnmodel = nnmodel
 
     @property
@@ -231,7 +229,7 @@ class NNPBE(BaseNNXC):
         -------
         res
             Neural network output by calculating total density (n) and the spin
-            density (xi). The shape of res is (ninp , ) where ninp is the number            of layers in nnmodel ; which is 3 for NNPBE.
+            density (xi). The shape of res is (ninp , ) where ninp is the number            of layers in nnmodel ; which is 3 for NNPBE. The shape of the output is (....,1) and it represents the energy density per density per unit volume.
         """
         # densinfo.value: (*BD, nr)
         # densinfo.grad : (*BD, nr, 3)
