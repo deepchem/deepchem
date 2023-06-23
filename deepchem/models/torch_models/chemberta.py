@@ -60,12 +60,12 @@ class Chemberta(HuggingFaceModel):
     >>> from deepchem.models.torch_models.chemberta import Chemberta
     >>> pretrain_model_dir = os.path.join(tempdir, 'pretrain-model')
     >>> tokenizer_path = "seyonec/PubChem10M_SMILES_BPE_60k"
-    >>> pretrain_model = Chemberta(task='pretraining', model_dir=pretrain_model_dir, tokenizer_path=tokenizer_path, mode='mlm')
+    >>> pretrain_model = Chemberta(task='pretraining', model_dir=pretrain_model_dir, tokenizer_path=tokenizer_path)
     >>> pretraining_loss = pretrain_model.fit(dataset, nb_epoch=1)
 
     >>> # finetuning in regression mode
     >>> finetune_model_dir = os.path.join(tempdir, 'finetune-model')
-    >>> finetune_model = Chemberta(task='regression', model_dir=finetune_model_dir, tokenizer_path=tokenizer_path, mode='regression')
+    >>> finetune_model = Chemberta(task='regression', model_dir=finetune_model_dir, tokenizer_path=tokenizer_path)
     >>> finetune_model.load_from_pretrained(pretrain_model_dir)
     >>> finetuning_loss = finetune_model.fit(dataset, nb_epoch=1)
 
