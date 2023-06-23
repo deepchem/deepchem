@@ -3059,6 +3059,36 @@ class DTNNEmbedding(nn.Module):
 
 
 class DTNNStep(nn.Module):
+    """DTNNStep Layer for DTNN model.
+
+    Encodes the atom's interaction with other atoms according to distance relationships. [1]_
+
+    This Layer implements the Eq (7) from DTNN Paper.
+
+    Eq (7): V_ij = tanh[W_fc . ((W_cf . C_j + b_cf) * (W_df . d_ij + b_df))]
+
+    Here : '.'=Matrix Multiplication , '*'=Multiplication
+
+    References
+    ----------
+    [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
+        tensor neural networks." Nature communications 8.1 (2017): 1-8.
+
+    Parameters
+    ----------
+    n_embedding: int, optional
+        Number of features for each atom
+    n_distance: int, optional
+        granularity of distance matrix
+    n_hidden: int, optional
+        Number of nodes in hidden layer
+    initializer: str, optional
+        Weight initialization for filters.
+        Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
+    activation: str, optional
+        Activation function applied
+
+    """
 
     def __init__(self,
                  n_embedding: int = 30,
@@ -3067,20 +3097,7 @@ class DTNNStep(nn.Module):
                  initializer: str = 'xavier_uniform_',
                  activation='tanh',
                  **kwargs):
-        """
-        Parameters
-        ----------
-        n_embedding: int, optional
-            Number of features for each atom
-        n_distance: int, optional
-            granularity of distance matrix
-        n_hidden: int, optional
-            Number of nodes in hidden layer
-        initializer: str, optional
-            Weight initialization for filters.
-        activation: str, optional
-            Activation function applied
-        """
+
         super(DTNNStep, self).__init__(**kwargs)
         self.n_embedding = n_embedding
         self.n_distance = n_distance
@@ -3102,11 +3119,38 @@ class DTNNStep(nn.Module):
         ])
 
     def __repr__(self):
+        """Returns a string representing the configuration of the layer.
+
+        Returns
+        -------
+        n_embedding: int, optional
+            Number of features for each atom
+        n_distance: int, optional
+            granularity of distance matrix
+        n_hidden: int, optional
+            Number of nodes in hidden layer
+        initializer: str, optional
+            Weight initialization for filters.
+            Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
+        activation: str, optional
+            Activation function applied
+
+        """
         return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, n_distance={self.n_distance}, n_hidden={self.n_hidden}, initializer={self.initializer}, activation={self.activation})'
 
     def forward(self, inputs):
-        """
-        parent layers: atom_features, distance, distance_membership_i, distance_membership_j
+        """Returns Embeddings according to indices.
+
+        Parameters
+        ----------
+        inputs: torch.Tensor
+            List of Tensors having atom_features, distance, distance_membership_i, distance_membership_j.
+
+        Returns
+        -------
+        interaction_vector: torch.Tensor
+            interaction of the atom with other atoms based on distance and distance_membership.
+
         """
         atom_features = inputs[0]
         distance = inputs[1]
