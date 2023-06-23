@@ -3061,10 +3061,10 @@ class DTNNEmbedding(nn.Module):
 class DTNNStep(nn.Module):
 
     def __init__(self,
-                 n_embedding: int=30,
-                 n_distance: int=100,
-                 n_hidden: int=60,
-                 initializer: str='xavier_uniform_',
+                 n_embedding: int = 30,
+                 n_distance: int = 100,
+                 n_hidden: int = 60,
+                 initializer: str = 'xavier_uniform_',
                  activation='tanh',
                  **kwargs):
         """
@@ -3113,10 +3113,11 @@ class DTNNStep(nn.Module):
         distance_membership_i = inputs[2]
         distance_membership_j = inputs[3]
         distance_hidden = torch.matmul(distance, self.W_df) + self.b_df
-        atom_features_hidden = torch.matmul(atom_features, self.W_cf) + self.b_cf
+        atom_features_hidden = torch.matmul(atom_features,
+                                            self.W_cf) + self.b_cf
         outputs = torch.mul(
             distance_hidden,
-            torch.gather(atom_features_hidden, 0, distance_membership_j))
+            torch.embedding(atom_features_hidden, distance_membership_j))
 
         # for atom i in a molecule m, this step multiplies together distance info of atom pair(i,j)
         # and embeddings of atom j(both gone through a hidden layer)
@@ -3128,6 +3129,5 @@ class DTNNStep(nn.Module):
         output_ii = self.activation_fn(output_ii)
 
         # for atom i, sum the influence from all other atom j in the molecule
-        return torch.math.segment_sum(
-            outputs, distance_membership_i) - output_ii + atom_features
-
+        return scatter(outputs, distance_membership_i,
+                       dim=0) - output_ii + atom_features
