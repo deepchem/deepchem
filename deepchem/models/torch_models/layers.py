@@ -3056,3 +3056,125 @@ class DTNNEmbedding(nn.Module):
         atom_enbeddings = torch.nn.functional.embedding(atom_number,
                                                         self.embedding_list)
         return atom_enbeddings
+
+class MolGANConvolutionLayer(nn.Module):
+    """
+    Graph convolution layer used in MolGAN model.
+    MolGAN is a WGAN type model for generation of small molecules.
+    Not used directly, higher level layers like MolGANMultiConvolutionLayer use it.
+    This layer performs basic convolution on one-hot encoded matrices containing
+    atom and bond information. This layer also accepts three inputs for the case
+    when convolution is performed more than once and results of previous convolution
+    need to used. It was done in such a way to avoid creating another layer that
+    accepts three inputs rather than two. The last input layer is so-called
+    hidden_layer and it hold results of the convolution while first two are unchanged
+    input tensors.
+
+    Example
+    -------
+    See: MolGANMultiConvolutionLayer for using in layers.
+
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+    >>> vertices = 9
+    >>> nodes = 5
+    >>> edges = 5
+    >>> units = 128
+
+    >>> layer1 = MolGANConvolutionLayer(units=units,edges=edges, name='layer1')
+    >>> layer2 = MolGANConvolutionLayer(units=units,edges=edges, name='layer2')
+    >>> adjacency_tensor= Input(shape=(vertices, vertices, edges))
+    >>> node_tensor = Input(shape=(vertices,nodes))
+    >>> hidden1 = layer1([adjacency_tensor,node_tensor])
+    >>> output = layer2(hidden1)
+    >>> model = Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
+
+    References
+    ----------
+    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+        for small molecular graphs", https://arxiv.org/abs/1805.11973
+    """
+
+    def __init__(self, units, activation=F.tanh, dropout_rate=0.0, edges=5, name="", **kwargs):
+        """
+        Initialize this layer.
+
+        Parameters
+        ---------
+        units: int
+            Dimesion of dense layers used for convolution
+        activation: function, optional (default=Tanh)
+            activation function used across model, default is Tanh
+        dropout_rate: float, optional (default=0.0)
+            Dropout rate used by dropout layer
+        edges: int, optional (default=5)
+            How many dense layers to use in convolution.
+            Typically equal to number of bond types used in the model.
+        name: string, optional (default="")
+            Name of the layer
+        """
+        super(MolGANConvolutionLayer, self).__init__()
+
+        self.activation = activation
+        self.dropout_rate = dropout_rate
+        self.units = units
+        self.edges = edges
+        self.name = name
+
+        self.dense1 = nn.ModuleList([nn.Linear(units, units) for _ in range(edges - 1)])
+        self.dense2 = nn.Linear(units, units)
+        self.dropout = nn.Dropout(dropout_rate)
+
+    def forward(self, inputs):
+        """
+        Invoke this layer
+
+        Parameters
+        ----------
+        inputs: list
+            List of two input matrices, adjacency tensor and node features tensors
+            in one-hot encoding format.
+        training: bool
+            Should this layer be run in training mode.
+            Typically decided by main model, influences things like dropout.
+
+        Returns
+        --------
+        tuple(tf.Tensor,tf.Tensor,tf.Tensor)
+            First and second are original input tensors
+            Third is the result of convolution
+        """
+        ic = len(inputs)
+        assert ic > 1, "MolGANConvolutionLayer requires at least two inputs: [adjacency_tensor, node_features_tensor]"
+
+        adjacency_tensor = inputs[0]
+        node_tensor = inputs[1]
+
+        if ic > 2:
+            hidden_tensor = inputs[2]
+            annotations = torch.cat((hidden_tensor, node_tensor), -1)
+        else:
+            annotations = node_tensor
+
+        output = torch.stack([dense(annotations) for dense in self.dense1], 1)
+        
+        adj = adjacency_tensor.permute(0, 3, 1, 2)[:, 1:, :, :]
+        
+        output = torch.matmul(adj, output)
+        output = torch.sum(output, dim=1) + self.dense2(node_tensor)
+        output = self.activation(output)
+        output = self.dropout(output)
+        return adjacency_tensor, node_tensor, output
+    
+    def get_config(self) -> Dict:
+        """
+        Returns config dictionary for this layer.
+        """
+
+        config = super(MolGANConvolutionLayer, self).get_config()
+        config["activation"] = self.activation
+        config["dropout_rate"] = self.dropout_rate
+        config["units"] = self.units
+        config["edges"] = self.edges
+        return config
