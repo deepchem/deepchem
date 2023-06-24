@@ -6,7 +6,7 @@ import pytest
 # from deepchem.feat.molecule_featurizers import MolGanFeaturizer
 # from deepchem.models.optimizers import ExponentialDecay
 try:
-    import torch 
+    # import torch
     from deepchem.models import BasicMolGANModel as MolGAN
     has_torch = True
 except:
@@ -48,7 +48,7 @@ class test_molgan_model(unittest.TestCase):
         assert model.nodes == self.nodes
         assert model.vertices == self.vertices
         assert model.dropout_rate == self.dropout_rate
-        
+
     @pytest.mark.torch
     def test_helper_functions(self):
         """
@@ -58,7 +58,10 @@ class test_molgan_model(unittest.TestCase):
         # test get_noise_input_shape
         assert model.get_noise_input_shape() == (self.embedding_dim,)
         # test get_data_input_shapes
-        assert model.get_data_input_shapes() == [(self.vertices, self.vertices, self.edges), (self.vertices, self.nodes)]
+        assert model.get_data_input_shapes() == [(self.vertices, self.vertices,
+                                                  self.edges),
+                                                 (self.vertices, self.nodes)]
+
 
 if __name__ == '__main__':
     unittest.main()
