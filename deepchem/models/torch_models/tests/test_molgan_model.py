@@ -5,12 +5,12 @@ import pytest
 # from deepchem.data import NumpyDataset
 # from deepchem.feat.molecule_featurizers import MolGanFeaturizer
 # from deepchem.models.optimizers import ExponentialDecay
-# try:
+try:
     # import torch
-from deepchem.models.torch_models.molgan import BasicMolGANModel as MolGAN
-has_torch = True
-# except:
-    # has_torch = False
+    from deepchem.models.torch_models import BasicMolGANModel as MolGAN
+    has_torch = True
+except:
+    has_torch = False
 
 
 class test_molgan_model(unittest.TestCase):
