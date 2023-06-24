@@ -3063,9 +3063,11 @@ class DTNNStep(nn.Module):
 
     Encodes the atom's interaction with other atoms according to distance relationships. [1]_
 
-    This Layer implements the Eq (7) from DTNN Paper.
+    This Layer implements the Eq (7) from DTNN Paper. Then sums them up to get the final output using Eq (6) from DTNN Paper.
 
     Eq (7): V_ij = tanh[W_fc . ((W_cf . C_j + b_cf) * (W_df . d_ij + b_df))]
+
+    Eq (6): C_i = C_i + sum(V_ij)
 
     Here : '.'=Matrix Multiplication , '*'=Multiplication
 
@@ -3155,7 +3157,7 @@ class DTNNStep(nn.Module):
         return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, n_distance={self.n_distance}, n_hidden={self.n_hidden}, initializer={self.initializer}, activation={self.activation})'
 
     def forward(self, inputs):
-        """Returns Embeddings according to indices.
+        """Executes the equations and Returns the intraction vector of the atom with other atoms.
 
         Parameters
         ----------
@@ -3189,5 +3191,6 @@ class DTNNStep(nn.Module):
         output_ii = self.activation_fn(output_ii)
 
         # for atom i, sum the influence from all other atom j in the molecule
-        return scatter(outputs, distance_membership_i,
-                       dim=0) - output_ii + atom_features
+        intraction_vector = scatter(outputs, distance_membership_i,
+                                    dim=0) - output_ii + atom_features
+        return intraction_vector
