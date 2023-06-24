@@ -3088,6 +3088,22 @@ class DTNNStep(nn.Module):
     activation: str, optional
         Activation function applied
 
+    Examples
+    --------
+    >>> from deepchem.models.torch_models import layers
+    >>> import torch
+    >>> embedding_layer = layers.DTNNEmbedding(4, 4)
+    >>> emb = embedding_layer(torch.Tensor([0,1,2,3]).to(torch.int64))
+    >>> step_layer = layers.DTNNStep(4, 6, 8)
+    >>> output_torch = step_layer([
+    ...     torch.Tensor(emb),
+    ...     torch.Tensor([0, 1, 2, 3, 4, 5]).to(torch.float32),
+    ...     torch.Tensor([1]).to(torch.int64),
+    ...     torch.Tensor([[1]]).to(torch.int64)
+    ... ])
+    >>> output_torch.shape
+    torch.Size([2, 4, 4])
+
     """
 
     def __init__(self,
