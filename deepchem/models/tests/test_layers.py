@@ -1061,10 +1061,10 @@ def test_dtnn_step():
                   [0.7284, -0.2149]],
                  [[0.2256, -0.1123], [1.1920, -0.3480], [1.2884, 0.5249],
                   [1.5340, 0.2171]]]
-    # embedding_layer = layers.DTNNEmbedding(4, 4)
+    # embedding_layer = torch_layers.DTNNEmbedding(4, 4)
     # emb = embedding_layer(torch.Tensor([0,1,2,3]).to(torch.int64))
 
-    step_layer = layers.DTNNStep(4, 6, 8)
+    step_layer = torch_layers.DTNNStep(4, 6, 8)
     step_layer.W_fc = torch.Tensor(W_fc)
     step_layer.W_cf = torch.Tensor(W_cf)
     step_layer.W_df = torch.Tensor(W_df)
