@@ -3178,9 +3178,6 @@ class MolGANConvolutionLayer(nn.Module):
         Returns config dictionary for this layer.
         """
 
-        # config = super(MolGANConvolutionLayer, self) #.get_config()
-        # for i in config.load_state_dict():
-        #     print(i)
         config = {}
         config["name"] = self.name
         config["activation"] = self.activation
