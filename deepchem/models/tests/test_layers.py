@@ -1013,3 +1013,70 @@ def test_dtnn_embedding():
     result_torch = embedding_layer_torch(torch.tensor([3, 2, 4]))
     assert torch.allclose(torch.tensor(results_tf), result_torch)
     assert result_torch.shape == (3, 5)
+
+
+@pytest.mark.torch
+def test_edge_network():
+    """Test invoking the Torch equivalent of EdgeNetwork."""
+    # init parameters
+    n_pair_features = 14
+    n_hidden = 75  # based on weave featurizer
+    torch_init = 'xavier_uniform_'
+
+    # generate features for testing
+    mols = ["CCC"]
+    featurizer = dc.feat.WeaveFeaturizer()
+    features = featurizer.featurize(mols)
+    X_b = np.asarray([features[0]])
+    X_b = dc.data.pad_features(1, X_b)
+
+    atom_feat = []
+    pair_feat = []
+    atom_to_pair = []
+    start = 0
+    for mol in X_b:
+        n_atoms = mol.get_num_atoms()
+
+        # index of pair features
+        C0, C1 = np.meshgrid(np.arange(n_atoms), np.arange(n_atoms))
+        atom_to_pair.append(
+            np.transpose(np.array([C1.flatten() + start,
+                                   C0.flatten() + start])))
+        start = start + n_atoms
+
+        # atom features
+        atom_feat.append(mol.get_atom_features())
+
+        # pair features
+        pair_feat.append(
+            np.reshape(mol.get_pair_features(),
+                       (n_atoms * n_atoms, n_pair_features)))
+
+    atom_features = np.concatenate(atom_feat, axis=0)
+    pair_features = np.concatenate(pair_feat, axis=0)
+    atom_to_pair_array = np.concatenate(atom_to_pair, axis=0)
+
+    # tensors for torch layer
+    torch_pair_features = torch.Tensor(pair_features)
+    torch_atom_features = torch.Tensor(atom_features)
+    torch_atom_to_pair = torch.Tensor(atom_to_pair_array)
+    torch_atom_to_pair = torch.squeeze(torch_atom_to_pair.to(torch.int64),
+                                       dim=0)
+
+    torch_inputs = [
+        torch_pair_features, torch_atom_features, torch_atom_to_pair
+    ]
+
+    torch_layer = dc.models.torch_models.layers.EdgeNetwork(
+        n_pair_features, n_hidden, torch_init)
+
+    # assigning tensorflow layer weights to torch layer
+    torch_layer.W = torch.from_numpy(
+        np.load("deepchem/models/tests/assets/edgenetwork_weights.npy"))
+
+    torch_result = torch_layer(torch_inputs)
+
+    assert np.allclose(
+        np.array(torch_result),
+        np.load("deepchem/models/tests/assets/edgenetwork_result.npy"),
+        atol=1e-04)
