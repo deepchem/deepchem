@@ -12,7 +12,6 @@
 # except:
 #     has_torch = False
 
-
 # class test_molgan_model(unittest.TestCase):
 #     """
 #   Unit testing for MolGAN basic layers
@@ -61,7 +60,6 @@
 #         assert model.get_data_input_shapes() == [(self.vertices, self.vertices,
 #                                                   self.edges),
 #                                                  (self.vertices, self.nodes)]
-
 
 # if __name__ == '__main__':
 #     unittest.main()

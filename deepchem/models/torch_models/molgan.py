@@ -8,7 +8,6 @@
 # from deepchem.models import WGAN
 # # from deepchem.models.layers import MolGANEncoderLayer
 
-
 # class BasicMolGANModel(WGAN):
 #     """
 #     Model for de-novo generation of small molecules based on work of Nicola De Cao et al. [1]_.
