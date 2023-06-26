@@ -1,5 +1,11 @@
 from rdkit import Chem
-import torch
+
+try:
+    import torch
+    has_torch = True
+except ModuleNotFoundError:
+    has_torch = False
+
 import numpy as np
 import logging
 from typing import List, Optional
