@@ -32,3 +32,4 @@ Net3DLayer, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
 Net3D, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
 PNALayer, `https://arxiv.org/abs/2004.05718`_, Principal Neighbourhood Aggregation
 PNAGNN, `https://arxiv.org/abs/2004.05718`_, Principal Neighbourhood Aggregation
+EdgeNetwork, `ref <https://arxiv.org/abs/1704.01212>`_, Message Passing Neural Network

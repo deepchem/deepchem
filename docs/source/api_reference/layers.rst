@@ -207,7 +207,10 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.DTNNEmbedding
   :members:
 
-.. autoclass:: deepchem.models.torch_models.layers.DTNNEmbedding
+.. autoclass:: deepchem.models.torch_models.layers.DTNNStep
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.EdgeNetwork
   :members:
 
 Grover Layers
