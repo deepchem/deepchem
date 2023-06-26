@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from typing import Any, Tuple, Optional, Sequence, List, Union, Callable
+from typing import Any, Tuple, Optional, Sequence, List, Union, Callable, Dict
 from collections.abc import Sequence as SequenceCollection
 try:
     import torch
@@ -3082,13 +3082,12 @@ class MolGANConvolutionLayer(nn.Module):
     >>> edges = 5
     >>> units = 128
 
-    >>> layer1 = MolGANConvolutionLayer(units=units,edges=edges, name='layer1')
-    >>> layer2 = MolGANConvolutionLayer(units=units,edges=edges, name='layer2')
-    >>> adjacency_tensor= Input(shape=(vertices, vertices, edges))
-    >>> node_tensor = Input(shape=(vertices,nodes))
-    >>> hidden1 = layer1([adjacency_tensor,node_tensor])
+    >>> layer1 = MolGANConvolutionLayer(units=units, edges=edges, nodes=nodes, name='layer1')
+    >>> layer2 = MolGANConvolutionLayer(units=units, edges=edges, nodes=2*units, name='layer2')  # nodes=2*units since it will be concatenation of hidden tensor and node tensor
+    >>> adjacency_tensor = torch.randn((1, vertices, vertices, edges))  # added batch dimension
+    >>> node_tensor = torch.randn((1, vertices, nodes))  # added batch dimension
+    >>> hidden1 = layer1([adjacency_tensor, node_tensor])
     >>> output = layer2(hidden1)
-    >>> model = Model(inputs=[adjacency_tensor,node_tensor], outputs=[output])
 
     References
     ----------
@@ -3096,7 +3095,7 @@ class MolGANConvolutionLayer(nn.Module):
         for small molecular graphs", https://arxiv.org/abs/1805.11973
     """
 
-    def __init__(self, units, activation=F.tanh, dropout_rate=0.0, edges=5, name="", **kwargs):
+    def __init__(self, units, nodes, activation=F.tanh, dropout_rate=0.0, edges=5, name="", **kwargs):
         """
         Initialize this layer.
 
@@ -3122,9 +3121,9 @@ class MolGANConvolutionLayer(nn.Module):
         self.edges = edges
         self.name = name
 
-        self.dense1 = nn.ModuleList([nn.Linear(units, units) for _ in range(edges - 1)])
-        self.dense2 = nn.Linear(units, units)
-        self.dropout = nn.Dropout(dropout_rate)
+        self.dense1 = nn.ModuleList([nn.Linear(nodes, self.units) for _ in range(edges - 1)])
+        self.dense2 = nn.Linear(nodes, self.units)
+        self.dropout = nn.Dropout(self.dropout_rate)
 
     def forward(self, inputs):
         """
@@ -3141,7 +3140,7 @@ class MolGANConvolutionLayer(nn.Module):
 
         Returns
         --------
-        tuple(tf.Tensor,tf.Tensor,tf.Tensor)
+        tuple(torch.Tensor,torch.Tensor,torch.Tensor)
             First and second are original input tensors
             Third is the result of convolution
         """
@@ -3171,8 +3170,12 @@ class MolGANConvolutionLayer(nn.Module):
         """
         Returns config dictionary for this layer.
         """
-
-        config = super(MolGANConvolutionLayer, self).get_config()
+        
+        # config = super(MolGANConvolutionLayer, self) #.get_config()
+        # for i in config.load_state_dict():
+        #     print(i)
+        config={}
+        config["name"] = self.name
         config["activation"] = self.activation
         config["dropout_rate"] = self.dropout_rate
         config["units"] = self.units
