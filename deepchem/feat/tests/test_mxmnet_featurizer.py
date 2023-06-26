@@ -2,7 +2,7 @@
 Test for MXMNet Featurizer class.
 """
 
-from deepchem.feat.molecule_featurizers.mxmnet_featurizer import MXMNetFeaturizer
+import deepchem as dc
 import numpy as np
 import unittest
 
@@ -41,7 +41,8 @@ class Test_MXMNet_Featurizer(unittest.TestCase):
         Test for featurization of "C1=CC=NC=C1" using `MXMNetFeaturizer` class.
         """
 
-        featurizer = MXMNetFeaturizer()
+        featurizer = dc.feat.molecule_featurizers.mxmnet_featurizer.MXMNetFeaturizer(
+        )
         graph_feat = featurizer.featurize(self.smiles)
         assert len(graph_feat) == 4
 
@@ -58,7 +59,8 @@ class Test_MXMNet_Featurizer(unittest.TestCase):
         Test for featurization of "CC(=O)C" using `MXMNetFeaturizer` class.
         """
 
-        featurizer = MXMNetFeaturizer()
+        featurizer = dc.feat.molecule_featurizers.mxmnet_featurizer.MXMNetFeaturizer(
+        )
         graph_feat = featurizer.featurize(self.smiles)
         assert len(graph_feat) == 4
 
@@ -75,7 +77,8 @@ class Test_MXMNet_Featurizer(unittest.TestCase):
         Test for featurization of "C" using `MXMNetFeaturizer` class.
         """
 
-        featurizer = MXMNetFeaturizer()
+        featurizer = dc.feat.molecule_featurizers.mxmnet_featurizer.MXMNetFeaturizer(
+        )
         graph_feat = featurizer.featurize(self.smiles)
         assert len(graph_feat) == 4
 
@@ -93,7 +96,8 @@ class Test_MXMNet_Featurizer(unittest.TestCase):
         Since the smile contains P which is not supported by featurizer, the featurization process terminates and the featurizer returns an empty numpy array.
         """
 
-        featurizer = MXMNetFeaturizer()
+        featurizer = dc.feat.molecule_featurizers.mxmnet_featurizer.MXMNetFeaturizer(
+        )
         graph_feat = featurizer.featurize(self.smiles)
         assert len(graph_feat) == 4
 
