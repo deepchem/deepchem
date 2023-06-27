@@ -3153,7 +3153,8 @@ class MolGANConvolutionLayer(nn.Module):
             Third is the result of convolution
         """
         ic = len(inputs)
-        assert ic > 1, "MolGANConvolutionLayer requires at least two inputs: [adjacency_tensor, node_features_tensor]"
+        if ic > 1: 
+            raise ValueError("MolGANConvolutionLayer requires at least two inputs: [adjacency_tensor, node_features_tensor]")
 
         adjacency_tensor = inputs[0]
         node_tensor = inputs[1]
