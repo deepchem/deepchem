@@ -3141,3 +3141,89 @@ class EdgeNetwork(nn.Module):
         result: torch.Tensor = segment_sum(out_squeeze, ind)
 
         return result
+
+
+class DTNNGather(nn.Module):
+
+    def __init__(self,
+                 n_embedding=30,
+                 n_outputs=100,
+                 layer_sizes=[100],
+                 output_activation=True,
+                 initializer='xavier_uniform_',
+                 activation='tanh',
+                 **kwargs):
+        """
+        Parameters
+        ----------
+        n_embedding: int, optional
+            Number of features for each atom
+        n_outputs: int, optional
+            Number of features for each molecule(output)
+        layer_sizes: list of int, optional(default=[1000])
+            Structure of hidden layer(s)
+        initializer: str, optional
+            Weight initialization for filters.
+        activation: str, optional
+            Activation function applied
+
+        """
+        super(DTNNGather, self).__init__(**kwargs)
+        self.n_embedding = n_embedding
+        self.n_outputs = n_outputs
+        self.layer_sizes = layer_sizes
+        self.output_activation = output_activation
+        self.initializer = initializer  # Set weight initialization
+        self.activation = activation  # Get activations
+        self.activation_fn = get_activation(self.activation)
+
+        self.W_list = []
+        self.b_list = []
+
+        init_func: Callable = getattr(initializers, self.initializer)
+
+        prev_layer_size = self.n_embedding
+        for i, layer_size in enumerate(self.layer_sizes):
+            self.W_list.append(init_func(torch.empty([prev_layer_size, layer_size])))
+            self.b_list.append(torch.zeros(size=[
+                layer_size,
+            ]))
+            prev_layer_size = layer_size
+        self.W_list.append(init_func(torch.empty([prev_layer_size, self.n_outputs])))
+        self.b_list.append(torch.zeros(size=[
+            self.n_outputs,
+        ]))
+
+    def __repr__(self):
+        """Returns a string representing the configuration of the layer.
+
+        Returns
+        ----------
+        n_embedding: int, optional
+            Number of features for each atom
+        n_outputs: int, optional
+            Number of features for each molecule(output)
+        layer_sizes: list of int, optional(default=[1000])
+            Structure of hidden layer(s)
+        initializer: str, optional
+            Weight initialization for filters.
+        activation: str, optional
+            Activation function applied
+
+        """
+        return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, n_outputs={self.n_outputs}, layer_sizes={self.layer_sizes}, output_activation={self.output_activation}, initializer={self.initializer}, activation={self.activation})'
+
+    def forward(self, inputs):
+        """
+        parent layers: atom_features, atom_membership
+        """
+        output = inputs[0]
+        atom_membership = inputs[1]
+
+        for i, W in enumerate(self.W_list[:-1]):
+            output = torch.matmul(output, W) + self.b_list[i]
+            output = self.activation_fn(output)
+        output = torch.matmul(output, self.W_list[-1]) + self.b_list[-1]
+        if self.output_activation:
+            output = self.activation_fn(output)
+        return scatter(output, atom_membership)
