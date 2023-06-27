@@ -548,15 +548,20 @@ class GroverModel(ModularTorchModel):
             batchgraph)
 
         atom_vocab_label = torch.Tensor(
-            self.atom_vocab_random_mask(self.atom_vocab, smiles_batch)).long()
+            self.atom_vocab_random_mask(self.atom_vocab,
+                                        smiles_batch)).long().to(self.device)
         bond_vocab_label = torch.Tensor(
-            self.bond_vocab_random_mask(self.bond_vocab, smiles_batch)).long()
+            self.bond_vocab_random_mask(self.bond_vocab,
+                                        smiles_batch)).long().to(self.device)
         labels = {
             "av_task": atom_vocab_label,
             "bv_task": bond_vocab_label,
-            "fg_task": torch.Tensor(fgroup_label)
+            "fg_task": torch.Tensor(fgroup_label).to(self.device)
         }
-        inputs = (f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a)
+        inputs = (f_atoms.to(self.device), f_bonds.to(self.device),
+                  a2b.to(self.device), b2a.to(self.device),
+                  b2revb.to(self.device), a_scope.to(self.device),
+                  b_scope.to(self.device), a2a.to(self.device))
         return inputs, labels, w
 
     def _prepare_batch_for_finetuning(self, batch: Tuple[Any, Any, Any]):
@@ -583,13 +588,16 @@ class GroverModel(ModularTorchModel):
         X, y, w = batch
         batchgraph = BatchGraphData(X[0])
         if y is not None:
-            labels = torch.FloatTensor(y[0])
+            labels = torch.FloatTensor(y[0]).to(self.device)
         else:
             labels = None
         f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, additional_features = extract_grover_attributes(
             batchgraph)
-        inputs = (f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope,
-                  a2a), additional_features
+        inputs = (f_atoms.to(self.device), f_bonds.to(self.device),
+                  a2b.to(self.device), b2a.to(self.device),
+                  b2revb.to(self.device), a_scope.to(self.device),
+                  b_scope.to(self.device),
+                  a2a.to(self.device)), additional_features.to(self.device)
         return inputs, labels, w
 
     def _pretraining_loss(self,

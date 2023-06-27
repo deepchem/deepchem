@@ -223,14 +223,20 @@ class HuggingFaceModel(TorchModel):
         if self.task == 'mlm':
             inputs, labels = self.data_collator.torch_mask_tokens(
                 tokens['input_ids'])
-            inputs = {'input_ids': inputs, 'labels': labels}
+            inputs = {
+                'input_ids': inputs.to(self.device),
+                'labels': labels.to(self.device)
+            }
             return inputs, None, w
         elif self.task in ['regression', 'classification', 'mtr']:
             if y is not None:
                 # y is None during predict
                 y = torch.from_numpy(y[0])
                 if self.task == 'regression' or self.task == 'mtr':
-                    y = y.float()
+                    y = y.float().to(self.device)
+
+            for key, value in tokens.items():
+                tokens[key] = value.to(self.device)
 
             inputs = {**tokens, 'labels': y}
             return inputs, y, w

@@ -209,6 +209,9 @@ Torch Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.MolGANConvolutionLayer
   :members:
+  
+.. autoclass:: deepchem.models.torch_models.layers.EdgeNetwork
+  :members:
 
 Grover Layers
 ^^^^^^^^^^^^^
