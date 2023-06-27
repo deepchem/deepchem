@@ -18,3 +18,4 @@ git+https://github.com/diffqc/dqc.git
 PyYAML
 yamlloader
 dgl
+sphinx-copybutton
