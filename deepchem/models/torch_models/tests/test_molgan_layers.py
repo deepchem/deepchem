@@ -23,6 +23,13 @@ def test_graph_convolution_layer():
     adjacency_tensor = torch.randn((1, vertices, vertices, edges))
     node_tensor = torch.randn((1, vertices, nodes))
     output = layer([adjacency_tensor, node_tensor])
+    output_tf = [
+        (1, 9, 9, 5), (1, 9, 5), (1, 9, 128)
+    ]  # None has been converted to 1 as batch size is taken as 1 in torch
+
+    assert output[0].shape == output_tf[0]  # adjacency_tensor
+    assert output[1].shape == output_tf[1]  # node_tensor
+    assert output[2].shape == output_tf[2]  # output of the layer
 
     assert output[0].shape == torch.Size([1, vertices, vertices,
                                           edges])  # adjacency_tensor
