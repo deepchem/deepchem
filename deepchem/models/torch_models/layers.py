@@ -3124,15 +3124,15 @@ class MolGANConvolutionLayer(nn.Module):
         super(MolGANConvolutionLayer, self).__init__()
 
         self.activation = activation
-        self.dropout_rate = dropout_rate
-        self.units = units
-        self.edges = edges
-        self.name = name
+        self.dropout_rate: float = dropout_rate
+        self.units: int = units
+        self.edges: int = edges
+        self.name: str = name
 
-        self.dense1 = nn.ModuleList(
+        self.dense1: nn.ModuleList = nn.ModuleList(
             [nn.Linear(nodes, self.units) for _ in range(edges - 1)])
-        self.dense2 = nn.Linear(nodes, self.units)
-        self.dropout = nn.Dropout(self.dropout_rate)
+        self.dense2: nn.Linear = nn.Linear(nodes, self.units)
+        self.dropout: nn.Dropout = nn.Dropout(self.dropout_rate)
 
     def forward(
             self,
@@ -3152,26 +3152,26 @@ class MolGANConvolutionLayer(nn.Module):
             First and second are original input tensors
             Third is the result of convolution
         """
-        ic = len(inputs)
-        if ic > 1: 
+        ic: int = len(inputs)
+        if ic < 2: 
             raise ValueError("MolGANConvolutionLayer requires at least two inputs: [adjacency_tensor, node_features_tensor]")
 
-        adjacency_tensor = inputs[0]
-        node_tensor = inputs[1]
+        adjacency_tensor: torch.Tensor = inputs[0]
+        node_tensor: torch.Tensor = inputs[1]
 
         if ic > 2:
-            hidden_tensor = inputs[2]
-            annotations = torch.cat((hidden_tensor, node_tensor), -1)
+            hidden_tensor: torch.Tensor = inputs[2]
+            annotations: torch.Tensor = torch.cat((hidden_tensor, node_tensor), -1)
         else:
-            annotations = node_tensor
+            annotations: torch.Tensor = node_tensor
 
-        output = torch.stack([dense(annotations) for dense in self.dense1], 1)
+        output: torch.Tensor = torch.stack([dense(annotations) for dense in self.dense1], 1)
 
-        adj = adjacency_tensor.permute(0, 3, 1, 2)[:, 1:, :, :]
+        adj: torch.Tensor = adjacency_tensor.permute(0, 3, 1, 2)[:, 1:, :, :]
 
-        output = torch.matmul(adj, output)
-        output = torch.sum(output, dim=1) + self.dense2(node_tensor)
-        output = self.activation(output)
+        output: torch.Tensor = torch.matmul(adj, output)
+        output: torch.Tensor = torch.sum(output, dim=1) + self.dense2(node_tensor)
+        output: torch.Tensor = self.activation(output)
         output = self.dropout(output)
         return adjacency_tensor, node_tensor, output
 
