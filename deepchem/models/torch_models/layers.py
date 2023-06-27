@@ -3185,7 +3185,8 @@ class MolGANConvolutionLayer(nn.Module):
         config["units"] = self.units
         config["edges"] = self.edges
         return config
-    
+
+
 class EdgeNetwork(nn.Module):
     """The EdgeNetwork module is a PyTorch submodule designed for message passing in graph neural networks.
 
