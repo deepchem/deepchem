@@ -27,6 +27,7 @@ def test_graph_convolution_layer():
         (1, 9, 9, 5), (1, 9, 5), (1, 9, 128)
     ]  # None has been converted to 1 as batch size is taken as 1 in torch
 
+    # Testing Shapes
     assert output[0].shape == output_tf[0]  # adjacency_tensor
     assert output[1].shape == output_tf[1]  # node_tensor
     assert output[2].shape == output_tf[2]  # output of the layer
@@ -36,6 +37,8 @@ def test_graph_convolution_layer():
     assert output[1].shape == torch.Size([1, vertices, nodes])  # node_tensor
     assert output[2].shape == torch.Size([1, vertices,
                                           units])  # output of the layer
+    
+    # Testing values
     assert layer.units == units
     assert layer.activation == F.tanh
     assert layer.edges == 5
