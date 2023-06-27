@@ -3153,24 +3153,29 @@ class MolGANConvolutionLayer(nn.Module):
             Third is the result of convolution
         """
         ic: int = len(inputs)
-        if ic < 2: 
-            raise ValueError("MolGANConvolutionLayer requires at least two inputs: [adjacency_tensor, node_features_tensor]")
+        if ic < 2:
+            raise ValueError(
+                "MolGANConvolutionLayer requires at least two inputs: [adjacency_tensor, node_features_tensor]"
+            )
 
         adjacency_tensor: torch.Tensor = inputs[0]
         node_tensor: torch.Tensor = inputs[1]
 
         if ic > 2:
             hidden_tensor: torch.Tensor = inputs[2]
-            annotations: torch.Tensor = torch.cat((hidden_tensor, node_tensor), -1)
+            annotations: torch.Tensor = torch.cat((hidden_tensor, node_tensor),
+                                                  -1)
         else:
             annotations: torch.Tensor = node_tensor
 
-        output: torch.Tensor = torch.stack([dense(annotations) for dense in self.dense1], 1)
+        output: torch.Tensor = torch.stack(
+            [dense(annotations) for dense in self.dense1], 1)
 
         adj: torch.Tensor = adjacency_tensor.permute(0, 3, 1, 2)[:, 1:, :, :]
 
         output: torch.Tensor = torch.matmul(adj, output)
-        output: torch.Tensor = torch.sum(output, dim=1) + self.dense2(node_tensor)
+        output: torch.Tensor = torch.sum(output,
+                                         dim=1) + self.dense2(node_tensor)
         output: torch.Tensor = self.activation(output)
         output = self.dropout(output)
         return adjacency_tensor, node_tensor, output
