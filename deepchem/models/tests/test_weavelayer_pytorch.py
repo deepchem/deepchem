@@ -51,19 +51,25 @@ def test_weave_layer():
     ]
     torch.set_printoptions(precision=8)
     # Assigning tensorflow equivalent weights to torch layer
-    weave.W_AA = torch.from_numpy(np.load('assets/W_AA.npy'))
-    weave.W_PA = torch.from_numpy(np.load('assets/W_PA.npy'))
-    weave.W_A = torch.from_numpy(np.load('assets/W_A.npy'))
+    weave.W_AA = torch.from_numpy(
+        np.load("deepchem/models/tests/assets/W_AA.npy"))
+    weave.W_PA = torch.from_numpy(
+        np.load("deepchem/models/tests/assets/W_PA.npy"))
+    weave.W_A = torch.from_numpy(
+        np.load("deepchem/models/tests/assets/W_A.npy"))
     if weave.update_pair:
-        weave.W_AP = torch.from_numpy(np.load('assets/W_AP.npy'))
-        weave.W_PP = torch.from_numpy(np.load('assets/W_PP.npy'))
-        weave.W_P = torch.from_numpy(np.load('assets/W_P.npy'))
+        weave.W_AP = torch.from_numpy(
+            np.load("deepchem/models/tests/assets/W_AP.npy"))
+        weave.W_PP = torch.from_numpy(
+            np.load("deepchem/models/tests/assets/W_PP.npy"))
+        weave.W_P = torch.from_numpy(
+            np.load("deepchem/models/tests/assets/W_P.npy"))
     # Outputs should be [A, P]
     outputs = weave(inputs)
     assert len(outputs) == 2
     assert np.allclose(outputs[0].detach().numpy(),
-                       np.load('assets/A.npy'),
+                       np.load("deepchem/models/tests/assets/A.npy"),
                        atol=1e-4)
     assert np.allclose(outputs[1].detach().numpy(),
-                       np.load('assets/P.npy'),
+                       np.load("deepchem/models/tests/assets/P.npy"),
                        atol=1e-4)
