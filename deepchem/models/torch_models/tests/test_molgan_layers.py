@@ -12,7 +12,7 @@ except ModuleNotFoundError:
     pass
 
 
-class test_molgan_layers(unittest.TestCase):
+class TestMolganLayers(unittest.TestCase):
     """
   Unit testing for MolGAN basic layers
   """
