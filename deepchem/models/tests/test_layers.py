@@ -1075,6 +1075,7 @@ def test_dtnn_step():
     assert output_torch.shape == (2, 4, 2)
 
 
+@pytest.mark.torch
 def test_edge_network():
     """Test invoking the Torch equivalent of EdgeNetwork."""
     # init parameters
