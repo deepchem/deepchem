@@ -210,6 +210,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.EdgeNetwork
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.WeaveLayer
+  :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 
