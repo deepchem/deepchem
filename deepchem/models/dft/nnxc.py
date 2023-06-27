@@ -4,6 +4,7 @@ import torch
 from dqc.utils.datastruct import ValGrad, SpinParam
 from dqc.api.getxc import get_xc
 from dqc.xc.base_xc import BaseXC
+from dqc.utils.safeops import safenorm, safepow
 
 
 class BaseNNXC(BaseXC, torch.nn.Module):
@@ -154,6 +155,114 @@ class NNLDA(BaseNNXC):
         return res
 
 
+class NNPBE(BaseNNXC):
+    # neural network xc functional of GGA (receives the density and grad as inputs)
+    """
+    Neural network xc functional of GGA class of functionals
+
+    The Purdew-Burke-Ernzerhof (PBE) functional is a popular non-empirical
+    functional which falls under the Generalized Gradient Approximation (GGA)
+    class of functionals. GGA differs from LDA by incorporating nonlocal
+    corrections involving gradients (or derivatives) of the electron density.
+    In other words, the XC potential is a complicated function in 3D space
+    since it depends on the electron density and its gradient.
+
+    Hence, in this model we input the electron density as well as the
+    calculated gradients. We calculate these values using the DQC and Xitorch
+    libraries.
+
+    Examples
+    --------
+    >>> from deepchem.models.dft.nnxc import NNPBE
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> n_input, n_hidden = 3, 3
+    >>> nnmodel = (nn.Linear(n_input, n_hidden))
+    >>> output = NNPBE(nnmodel)
+
+    References
+    ----------
+    Perdew, John P., Kieron Burke, and Matthias Ernzerhof. "Generalized gradient approximation made simple." Physical review letters 77.18 (1996): 3865.
+    A.W. Ghosh,
+    5.09 - Electronics with Molecules,
+    Editor(s): Pallab Bhattacharya, Roberto Fornari, Hiroshi Kamimura,
+    Comprehensive Semiconductor Science and Technology,
+    Elsevier,
+    2011,
+    Pages 383-479,
+    ISBN 9780444531537,
+    https://doi.org/10.1016/B978-0-44-453153-7.00033-X.
+    """
+
+    def __init__(self, nnmodel: torch.nn.Module):
+        """
+        Parameters
+        ----------
+        nnmodel: torch.nn.Module
+            Neural network for xc functional. Shape; (3,...). This is because
+            the nnmodel receives an input with the shape (....,3). This
+            dimension is for;
+            (0) total density (n): (n_up + n_dn), and
+            (1) spin density (xi): (n_up - n_dn) / (n_up + n_dn)
+            (2) normalized gradients (s): |del(n)| / [2(3*pi^2)^(1/3) * n^(4/3)]
+        """
+        super().__init__()
+        self.nnmodel = nnmodel
+
+    def get_edensityxc(
+            self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
+        """
+        This method transform the local electron density (n), its gradient
+        and the spin density (xi) for polarized and unpolarized cases, to be
+        the input of the neural network.
+
+        Parameters
+        ----------
+        densinfo: Union[ValGrad, SpinParam[ValGrad]]
+            Density information calculated using DQC utilities.
+
+        Returns
+        -------
+        res
+            Neural network output by calculating total density (n) and the spin
+            density (xi). The shape of res is (ninp , ) where ninp is the number            of layers in nnmodel ; which is 3 for NNPBE. The shape of the output is (....,1) and it represents the energy density per density per unit volume.
+        """
+        # densinfo.value: (*BD, nr)
+        # densinfo.grad : (*BD, nr, 3)
+
+        # collect the total density (n), spin density (xi), and normalized gradients (s)
+        a = 6.187335452560271  # 2 * (3 * np.pi ** 2) ** (1.0 / 3)
+        if isinstance(densinfo, ValGrad):  # unpolarized case
+            assert densinfo.grad is not None
+            n = densinfo.value.unsqueeze(-1)  # (*BD, nr, 1)
+            xi = torch.zeros_like(n)
+            n_offset = n + 1e-18  # avoiding nan
+            s = safenorm(densinfo.grad, dim=0).unsqueeze(-1)
+        else:  # polarized case
+            assert densinfo.u.grad is not None
+            assert densinfo.d.grad is not None
+            nu = densinfo.u.value.unsqueeze(-1)
+            nd = densinfo.d.value.unsqueeze(-1)
+            n = nu + nd  # (*BD, nr, 1)
+            n_offset = n + 1e-18  # avoiding nan
+            xi = (nu - nd) / n_offset
+            s = safenorm(densinfo.u.grad + densinfo.d.grad, dim=0).unsqueeze(-1)
+
+        # normalize the gradient
+        s = s / a * safepow(n, -4.0 / 3)
+
+        # decide how to transform the density to be the input of nn
+        ninp = n
+        sinp = s
+
+        # get the neural network output
+        x = torch.cat((ninp, xi, sinp), dim=-1)  # (*BD, nr, 3)
+        nnout = self.nnmodel(x)  # (*BD, nr, 1)
+        res = nnout * n
+        res = res.squeeze(-1)
+        return res
+
+
 class HybridXC(BaseNNXC):
     """
     The HybridXC module computes XC energy by summing XC energy computed
@@ -202,9 +311,11 @@ class HybridXC(BaseNNXC):
         https://tddft.org/programs/libxc/functionals/
         """
         self.xc = get_xc(xcstr)
-        k = self.xc.family
-        if k == 1:
+        family = self.xc.family
+        if family == 1:
             self.nnxc = NNLDA(nnmodel)
+        else:
+            self.nnxc = NNPBE(nnmodel)
         self.aweight = torch.nn.Parameter(
             torch.tensor(aweight0, requires_grad=True))
         self.bweight = torch.nn.Parameter(

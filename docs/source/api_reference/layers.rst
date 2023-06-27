@@ -213,6 +213,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.EdgeNetwork
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.WeaveLayer
+  :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 
@@ -279,6 +282,9 @@ Density Functional Theory Layers
    :members:
 
 .. autoclass:: deepchem.models.dft.nnxc.NNLDA
+   :members:
+
+.. autoclass:: deepchem.models.dft.nnxc.NNPBE
    :members:
 
 .. autoclass:: deepchem.models.dft.nnxc.HybridXC
