@@ -3084,8 +3084,8 @@ class MolGANConvolutionLayer(nn.Module):
     >>> units = 128
 
     >>> layer1 = MolGANConvolutionLayer(units=units, edges=edges, nodes=nodes, name='layer1')
-    >>> adjacency_tensor = torch.randn((1, vertices, vertices, edges))  # added batch dimension
-    >>> node_tensor = torch.randn((1, vertices, nodes))  # added batch dimension
+    >>> adjacency_tensor = torch.randn((1, vertices, vertices, edges))
+    >>> node_tensor = torch.randn((1, vertices, nodes))
     >>> output = layer1([adjacency_tensor, node_tensor])
 
     References
@@ -3095,12 +3095,12 @@ class MolGANConvolutionLayer(nn.Module):
     """
 
     def __init__(self,
-                 units,
-                 nodes,
+                 units: int,
+                 nodes: int,
                  activation=F.tanh,
-                 dropout_rate=0.0,
-                 edges=5,
-                 name="",
+                 dropout_rate: float = 0.0,
+                 edges: int = 5,
+                 name: str = "",
                  **kwargs):
         """
         Initialize this layer.
@@ -3109,6 +3109,8 @@ class MolGANConvolutionLayer(nn.Module):
         ---------
         units: int
             Dimesion of dense layers used for convolution
+        nodes: int
+            Number of features in node tensor
         activation: function, optional (default=Tanh)
             activation function used across model, default is Tanh
         dropout_rate: float, optional (default=0.0)
@@ -3132,7 +3134,9 @@ class MolGANConvolutionLayer(nn.Module):
         self.dense2 = nn.Linear(nodes, self.units)
         self.dropout = nn.Dropout(self.dropout_rate)
 
-    def forward(self, inputs):
+    def forward(
+            self,
+            inputs: List) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Invoke this layer
 
@@ -3141,9 +3145,6 @@ class MolGANConvolutionLayer(nn.Module):
         inputs: list
             List of two input matrices, adjacency tensor and node features tensors
             in one-hot encoding format.
-        training: bool
-            Should this layer be run in training mode.
-            Typically decided by main model, influences things like dropout.
 
         Returns
         --------
@@ -3176,6 +3177,11 @@ class MolGANConvolutionLayer(nn.Module):
     def get_config(self) -> Dict:
         """
         Returns config dictionary for this layer.
+
+        Returns
+        -------
+        Dict
+            Dictionary containing all parameters of this layer.
         """
 
         config = {}
