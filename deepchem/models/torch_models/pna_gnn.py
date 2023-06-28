@@ -501,7 +501,7 @@ class PNAGNN(nn.Module):
         self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
         self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
 
-    def forward(self, input_graph: dgl.DGLGraph):
+    def forward(self, input_graph: dgl.DGLGraph) -> dgl.DGLGraph:
         """
         Forward pass of the PNAGNN model.
 
