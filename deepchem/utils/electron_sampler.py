@@ -97,7 +97,7 @@ class ElectronSampler:
         self.steps_per_update = steps_per_update
         self.central_value = central_value
         self.batch_no = batch_no
-        self.sampled_electrons = np.array([])
+        self.sampled_electrons: np.ndarray = np.array([])
         if seed is not None:
             seed = int(seed)
             np.random.seed(seed)
