@@ -197,7 +197,7 @@ Torch Layers
 
 .. autoclass:: deepchem.models.torch_models.PNA
   :members:
-  
+
 .. autoclass:: deepchem.models.torch_models.gnn3d.Net3DLayer
   :members:
 
@@ -222,6 +222,8 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.WeaveLayer
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.WeaveGather
+  :members:
 Grover Layers
 ^^^^^^^^^^^^^
 
