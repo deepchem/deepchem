@@ -1,35 +1,26 @@
 from rdkit import Chem
-
-try:
-    import torch
-    has_torch = True
-except ModuleNotFoundError:
-    has_torch = False
-
 import numpy as np
 import logging
 from typing import List, Optional
 from deepchem.utils.typing import RDKitMol
-from rdkit.Chem.rdchem import BondType as BT
 
 from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.feat.graph_data import GraphData
 
 logger = logging.getLogger(__name__)
 
-types: dict = {'H': 0, 'C': 1, 'N': 2, 'O': 3, 'F': 4}
-bonds: dict = {BT.SINGLE: 0, BT.DOUBLE: 1, BT.TRIPLE: 2, BT.AROMATIC: 3}
+ATOM_TYPES: dict = {'H': 0, 'C': 1, 'N': 2, 'O': 3, 'F': 4}
 
 
 def atom_features(datapoint: RDKitMol) -> np.ndarray:
     for atom in datapoint.GetAtoms():
-        if atom.GetSymbol() not in types.keys():
+        if atom.GetSymbol() not in ATOM_TYPES.keys():
             raise Exception(
                 "We only support 'H', 'C', 'N', 'O' and 'F' at this point for MXMNet Model"
             )
 
     return np.asarray(
-        [[types[atom.GetSymbol()]] for atom in datapoint.GetAtoms()],
+        [[ATOM_TYPES[atom.GetSymbol()]] for atom in datapoint.GetAtoms()],
         dtype=float)
 
 
@@ -89,8 +80,6 @@ class MXMNetFeaturizer(MolecularFeaturizer):
             Edge (Bond) index
 
         """
-        edge_type: List = []
-        N: int = datapoint.GetNumAtoms()
 
         # row, col = edge_index
         src: List[int] = []
@@ -99,12 +88,6 @@ class MXMNetFeaturizer(MolecularFeaturizer):
             start, end = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
             src += [start, end]
             dest += [end, start]
-            edge_type += 2 * [bonds[bond.GetBondType()]]
-
-        edge_index: torch.Tensor = torch.tensor([src, dest], dtype=torch.long)
-
-        perm: torch.Tensor = (edge_index[0] * N + edge_index[1]).argsort()
-        edge_index = edge_index[:, perm]
 
         return np.asarray([src, dest], dtype=int)
 
@@ -133,7 +116,7 @@ class MXMNetFeaturizer(MolecularFeaturizer):
                 datapoint = Chem.AddHs(datapoint)
         else:
             raise ValueError(
-                "Feature field should contain smiles for DMPNN featurizer!")
+                "Feature field should contain smiles for MXMNet featurizer!")
 
         pos: List = []
         pos_x: np.ndarray

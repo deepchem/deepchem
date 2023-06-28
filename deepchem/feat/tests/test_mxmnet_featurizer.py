@@ -23,7 +23,7 @@ node_features = {
 }
 
 
-class Test_MXMNet_Featurizer(unittest.TestCase):
+class TestMXMNetFeaturizer(unittest.TestCase):
     """
     Test MXMNetFeaturizer.
     """
