@@ -3161,18 +3161,14 @@ class DTNNGather(nn.Module):
     [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
         tensor neural networks." Nature communications 8.1 (2017): 1-8.
 
-    Parameters
-    ----------
-    n_embedding: int, optional
-        Number of features for each atom
-    n_outputs: int, optional
-        Number of features for each molecule(output)
-    layer_sizes: list of int, optional(default=[1000])
-        Structure of hidden layer(s)
-    initializer: str, optional
-        Weight initialization for filters.
-    activation: str, optional
-        Activation function applied
+    Examples
+    --------
+    >>> from deepchem.models.torch_models import layers as layers_torch
+    >>> import torch
+    >>> gather_layer_torch = layers_torch.DTNNGather(3, 3, [10])
+    >>> result = gather_layer_torch([torch.Tensor([[3, 2, 1]]).to(torch.float32), torch.Tensor([0]).to(torch.int64)])
+    >>> result.shape
+    torch.Size([1, 3])
 
     """
 
@@ -3184,6 +3180,21 @@ class DTNNGather(nn.Module):
                  initializer='xavier_uniform_',
                  activation='tanh',
                  **kwargs):
+        """
+        Parameters
+        ----------
+        n_embedding: int, optional
+            Number of features for each atom
+        n_outputs: int, optional
+            Number of features for each molecule(output)
+        layer_sizes: list of int, optional(default=[1000])
+            Structure of hidden layer(s)
+        initializer: str, optional
+            Weight initialization for filters.
+        activation: str, optional
+            Activation function applied
+
+        """
 
         super(DTNNGather, self).__init__(**kwargs)
         self.n_embedding = n_embedding
