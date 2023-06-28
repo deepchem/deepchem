@@ -207,6 +207,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.DTNNEmbedding
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.DTNNGather
+  :members:
+
 .. autoclass:: deepchem.models.torch_models.layers.EdgeNetwork
   :members:
 
