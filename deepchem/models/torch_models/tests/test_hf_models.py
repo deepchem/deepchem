@@ -46,7 +46,10 @@ def test_pretraining(hf_tokenizer, smiles_regression_dataset):
     config = RobertaConfig(vocab_size=hf_tokenizer.vocab_size)
     model = RobertaForMaskedLM(config)
 
-    hf_model = HuggingFaceModel(model=model, tokenizer=hf_tokenizer, task='mlm')
+    hf_model = HuggingFaceModel(model=model,
+                                tokenizer=hf_tokenizer,
+                                task='mlm',
+                                device=torch.device('cpu'))
     loss = hf_model.fit(smiles_regression_dataset, nb_epoch=1)
 
     assert loss
@@ -63,7 +66,8 @@ def test_hf_model_regression(hf_tokenizer, smiles_regression_dataset):
     model = RobertaForSequenceClassification(config)
     hf_model = HuggingFaceModel(model=model,
                                 tokenizer=hf_tokenizer,
-                                task='regression')
+                                task='regression',
+                                device=torch.device('cpu'))
     hf_model.fit(smiles_regression_dataset, nb_epoch=1)
     result = hf_model.predict(smiles_regression_dataset)
 
@@ -87,7 +91,8 @@ def test_hf_model_classification(hf_tokenizer, smiles_regression_dataset):
     model = RobertaForSequenceClassification(config)
     hf_model = HuggingFaceModel(model=model,
                                 task='classification',
-                                tokenizer=hf_tokenizer)
+                                tokenizer=hf_tokenizer,
+                                device=torch.device('cpu'))
 
     hf_model.fit(dataset, nb_epoch=1)
     result = hf_model.predict(dataset)
@@ -108,7 +113,8 @@ def test_load_from_pretrained(tmpdir, hf_tokenizer):
     pretrained_model = HuggingFaceModel(model=model,
                                         tokenizer=hf_tokenizer,
                                         task='mlm',
-                                        model_dir=tmpdir)
+                                        model_dir=tmpdir,
+                                        device=torch.device('cpu'))
     pretrained_model.save_checkpoint()
 
     # Create finetuning model
@@ -119,7 +125,8 @@ def test_load_from_pretrained(tmpdir, hf_tokenizer):
     finetune_model = HuggingFaceModel(model=model,
                                       tokenizer=hf_tokenizer,
                                       task='regression',
-                                      model_dir=tmpdir)
+                                      model_dir=tmpdir,
+                                      device=torch.device('cpu'))
 
     # Load pretrained model
     finetune_model.load_from_pretrained()
@@ -150,7 +157,8 @@ def test_model_save_reload(tmpdir, hf_tokenizer):
     hf_model = HuggingFaceModel(model=model,
                                 tokenizer=hf_tokenizer,
                                 task='classification',
-                                model_dir=tmpdir)
+                                model_dir=tmpdir,
+                                device=torch.device('cpu'))
     hf_model._ensure_built()
     hf_model.save_checkpoint()
 
@@ -158,8 +166,8 @@ def test_model_save_reload(tmpdir, hf_tokenizer):
     hf_model2 = HuggingFaceModel(model=model,
                                  tokenizer=hf_tokenizer,
                                  task='classification',
-                                 model_dir=tmpdir)
-
+                                 model_dir=tmpdir,
+                                 device=torch.device('cpu'))
     hf_model2.restore()
 
     old_state = hf_model.model.state_dict()
@@ -178,7 +186,10 @@ def test_load_from_hf_checkpoint():
     from transformers.models.t5 import T5Config, T5Model
     config = T5Config()
     model = T5Model(config)
-    hf_model = HuggingFaceModel(model=model, tokenizer=None, task=None)
+    hf_model = HuggingFaceModel(model=model,
+                                tokenizer=None,
+                                task=None,
+                                device=torch.device('cpu'))
     old_state_dict = hf_model.model.state_dict()
     hf_model_checkpoint = 't5-small'
     hf_model.load_from_pretrained(hf_model_checkpoint, from_hf_checkpoint=True)
