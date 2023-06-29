@@ -77,8 +77,8 @@ class DFTXC(torch.nn.Module):
             elif entry.entry_type == 'dens':
                 val = torch.as_tensor(entry.get_val(qcs))
                 true_val = torch.as_tensor(entry.get_true_val())
-                volume = entry._get_integration_grid().get_dvolume() 
-                output = ((true_val - val) ** 2 * volume)
+                volume = entry.get_integration_grid().get_dvolume() 
+                output.append(torch.tensor((true_val - val) ** 2 * volume, requires_grad=True))
             else:
                 output.append(
                     torch.tensor(entry.get_val(qcs), requires_grad=True))

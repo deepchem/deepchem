@@ -54,3 +54,17 @@ def test_dm():
     model = XCModel("lda_x", batch_size=1)
     loss = model.fit(dataset, nb_epoch=1, checkpoint_interval=1)
     assert loss < 0.008
+@pytest.mark.dqc
+def test_newloss():
+    inputs = 'deepchem/models/tests/assets/dft_entries.yaml'
+    data = DFTYamlLoader()
+    model_dir = tempfile.mkdtemp()
+    dataset = (data.create_dataset(inputs))
+    model = XCModel("lda_x",
+                    batch_size=1,
+                    log_frequency=1,
+                    mode="classification",
+                    model_dir=model_dir)
+    loss = model.fit(dataset, nb_epoch=2, checkpoint_interval=1)
+    assert loss < 0.004
+    assert dataset.X[0].entry_type == 'dens'
