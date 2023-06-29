@@ -2,7 +2,7 @@
 from deepchem.models.dft.scf import XCNNSCF
 import torch
 from deepchem.models.dft.nnxc import HybridXC
-from deepchem.models.losses import Loss, L2Loss, XCLoss
+from deepchem.models.losses import Loss, XCLoss
 from deepchem.models.torch_models.torch_model import TorchModel
 from typing import Tuple, Optional, List, Any
 import numpy as np
@@ -77,8 +77,10 @@ class DFTXC(torch.nn.Module):
             elif entry.entry_type == 'dens':
                 val = torch.as_tensor(entry.get_val(qcs))
                 true_val = torch.as_tensor(entry.get_true_val())
-                volume = entry.get_integration_grid().get_dvolume() 
-                output.append(torch.tensor((true_val - val) ** 2 * volume, requires_grad=True))
+                volume = entry.get_integration_grid().get_dvolume()
+                output_a = (true_val - val)**2 * volume
+                output_a.requires_grad_()
+                output.append(output_a)
             else:
                 output.append(
                     torch.tensor(entry.get_val(qcs), requires_grad=True))

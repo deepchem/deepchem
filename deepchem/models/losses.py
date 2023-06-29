@@ -1268,15 +1268,17 @@ class XCLoss(Loss):
     Loss for the density profile entry type for Quantum Chemistry calculations.
     It is an integration of the squared difference between ground truth and calculated
     values, at all spaces in the integration grid.
-
+    For the rest of the entry object we use a simple L2Loss. We differentiate
+    between the types of entries and their outputs based on the shape of the
+    output. The output shape for a density profile entry would be [n(r)], which corresponds to the electron density at all positions 'r'.
     Examples
     --------
-    >>> from deepchem.models.losses import DensityProfileLoss
+    >>> from deepchem.models.losses import XCLoss
     >>> import torch
     >>> volume = torch.Tensor([2.0])
     >>> output = torch.Tensor([3.0])
     >>> labels = torch.Tensor([4.0])
-    >>> loss = (DensityProfileLoss()._create_pytorch_loss(volume))(output, labels)
+    >>> loss = (XCLoss()._create_pytorch_loss())(output, labels)
     >>> # Generating volume tensor for an entry object:
     >>> from deepchem.feat.dft_data import DFTEntry
     >>> e_type = 'dens'
@@ -1303,7 +1305,8 @@ class XCLoss(Loss):
             if output.shape[0] > 1 and len(output.shape) == 1:
                 return torch.sum(output)
             else:
-                return( L2Loss()._create_pytorch_loss()(output, labels))
+                return (L2Loss()._create_pytorch_loss()(output, labels))
+
         return loss
 
 
