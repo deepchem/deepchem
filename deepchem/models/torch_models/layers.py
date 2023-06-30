@@ -3058,6 +3058,144 @@ class DTNNEmbedding(nn.Module):
         return atom_enbeddings
 
 
+class DTNNStep(nn.Module):
+    """DTNNStep Layer for DTNN model.
+
+    Encodes the atom's interaction with other atoms according to distance relationships. [1]_
+
+    This Layer implements the Eq (7) from DTNN Paper. Then sums them up to get the final output using Eq (6) from DTNN Paper.
+
+    Eq (7): V_ij = tanh[W_fc . ((W_cf . C_j + b_cf) * (W_df . d_ij + b_df))]
+
+    Eq (6): C_i = C_i + sum(V_ij)
+
+    Here : '.'=Matrix Multiplication , '*'=Multiplication
+
+    References
+    ----------
+    [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
+        tensor neural networks." Nature communications 8.1 (2017): 1-8.
+
+    Parameters
+    ----------
+    n_embedding: int, optional
+        Number of features for each atom
+    n_distance: int, optional
+        granularity of distance matrix
+    n_hidden: int, optional
+        Number of nodes in hidden layer
+    initializer: str, optional
+        Weight initialization for filters.
+        Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
+    activation: str, optional
+        Activation function applied
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models import layers
+    >>> import torch
+    >>> embedding_layer = layers.DTNNEmbedding(4, 4)
+    >>> emb = embedding_layer(torch.Tensor([0,1,2,3]).to(torch.int64))
+    >>> step_layer = layers.DTNNStep(4, 6, 8)
+    >>> output_torch = step_layer([
+    ...     torch.Tensor(emb),
+    ...     torch.Tensor([0, 1, 2, 3, 4, 5]).to(torch.float32),
+    ...     torch.Tensor([1]).to(torch.int64),
+    ...     torch.Tensor([[1]]).to(torch.int64)
+    ... ])
+    >>> output_torch.shape
+    torch.Size([2, 4, 4])
+
+    """
+
+    def __init__(self,
+                 n_embedding: int = 30,
+                 n_distance: int = 100,
+                 n_hidden: int = 60,
+                 initializer: str = 'xavier_uniform_',
+                 activation='tanh',
+                 **kwargs):
+
+        super(DTNNStep, self).__init__(**kwargs)
+        self.n_embedding = n_embedding
+        self.n_distance = n_distance
+        self.n_hidden = n_hidden
+        self.initializer = initializer  # Set weight initialization
+        self.activation = activation  # Get activations
+        self.activation_fn = get_activation(self.activation)
+
+        init_func: Callable = getattr(initializers, self.initializer)
+
+        self.W_cf = init_func(torch.empty([self.n_embedding, self.n_hidden]))
+        self.W_df = init_func(torch.empty([self.n_distance, self.n_hidden]))
+        self.W_fc = init_func(torch.empty([self.n_hidden, self.n_embedding]))
+        self.b_cf = torch.zeros(size=[
+            self.n_hidden,
+        ])
+        self.b_df = torch.zeros(size=[
+            self.n_hidden,
+        ])
+
+    def __repr__(self):
+        """Returns a string representing the configuration of the layer.
+
+        Returns
+        -------
+        n_embedding: int, optional
+            Number of features for each atom
+        n_distance: int, optional
+            granularity of distance matrix
+        n_hidden: int, optional
+            Number of nodes in hidden layer
+        initializer: str, optional
+            Weight initialization for filters.
+            Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
+        activation: str, optional
+            Activation function applied
+
+        """
+        return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, n_distance={self.n_distance}, n_hidden={self.n_hidden}, initializer={self.initializer}, activation={self.activation})'
+
+    def forward(self, inputs):
+        """Executes the equations and Returns the intraction vector of the atom with other atoms.
+
+        Parameters
+        ----------
+        inputs: torch.Tensor
+            List of Tensors having atom_features, distance, distance_membership_i, distance_membership_j.
+
+        Returns
+        -------
+        interaction_vector: torch.Tensor
+            interaction of the atom with other atoms based on distance and distance_membership.
+
+        """
+        atom_features = inputs[0]
+        distance = inputs[1]
+        distance_membership_i = inputs[2]
+        distance_membership_j = inputs[3]
+        distance_hidden = torch.matmul(distance, self.W_df) + self.b_df
+        atom_features_hidden = torch.matmul(atom_features,
+                                            self.W_cf) + self.b_cf
+        outputs = torch.mul(
+            distance_hidden,
+            torch.embedding(atom_features_hidden, distance_membership_j))
+
+        # for atom i in a molecule m, this step multiplies together distance info of atom pair(i,j)
+        # and embeddings of atom j(both gone through a hidden layer)
+        outputs = torch.matmul(outputs, self.W_fc)
+        outputs = self.activation_fn(outputs)
+
+        output_ii = torch.mul(self.b_df, atom_features_hidden)
+        output_ii = torch.matmul(output_ii, self.W_fc)
+        output_ii = self.activation_fn(output_ii)
+
+        # for atom i, sum the influence from all other atom j in the molecule
+        intraction_vector = scatter(outputs, distance_membership_i,
+                                    dim=0) - output_ii + atom_features
+        return intraction_vector
+
+
 class EdgeNetwork(nn.Module):
     """The EdgeNetwork module is a PyTorch submodule designed for message passing in graph neural networks.
 
