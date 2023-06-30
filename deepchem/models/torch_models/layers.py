@@ -3128,11 +3128,17 @@ class MolGANConvolutionLayer(nn.Module):
         self.units: int = units
         self.edges: int = edges
         self.name: str = name
+        self.nodes: int = nodes
 
         self.dense1: nn.ModuleList = nn.ModuleList(
             [nn.Linear(nodes, self.units) for _ in range(edges - 1)])
         self.dense2: nn.Linear = nn.Linear(nodes, self.units)
         self.dropout: nn.Dropout = nn.Dropout(self.dropout_rate)
+
+    def __repr__(self) -> str:
+        return (
+            f'{self.__class__.__name__}(Units={self.units}, Nodes={self.nodes}, Activation={self.activation}, Dropout_rate={self.droput_rate}, Edges={self.edges}, Name={self.name})'
+        )
 
     def forward(
             self,
@@ -3168,35 +3174,17 @@ class MolGANConvolutionLayer(nn.Module):
         else:
             annotations: torch.Tensor = node_tensor
 
-        output: torch.Tensor = torch.stack(
+        output_dense: torch.Tensor = torch.stack(
             [dense(annotations) for dense in self.dense1], 1)
 
         adj: torch.Tensor = adjacency_tensor.permute(0, 3, 1, 2)[:, 1:, :, :]
 
-        output: torch.Tensor = torch.matmul(adj, output)
-        output: torch.Tensor = torch.sum(output,
+        output_mul: torch.Tensor = torch.matmul(adj, output_dense)
+        output_sum: torch.Tensor = torch.sum(output_mul,
                                          dim=1) + self.dense2(node_tensor)
-        output: torch.Tensor = self.activation(output)
-        output = self.dropout(output)
+        output_act: torch.Tensor = self.activation(output_sum)
+        output = self.dropout(output_act)
         return adjacency_tensor, node_tensor, output
-
-    def get_config(self) -> Dict:
-        """
-        Returns config dictionary for this layer.
-
-        Returns
-        -------
-        Dict
-            Dictionary containing all parameters of this layer.
-        """
-
-        config = {}
-        config["name"] = self.name
-        config["activation"] = self.activation
-        config["dropout_rate"] = self.dropout_rate
-        config["units"] = self.units
-        config["edges"] = self.edges
-        return config
 
 
 class EdgeNetwork(nn.Module):
