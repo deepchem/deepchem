@@ -37,7 +37,7 @@ def test_graph_convolution_layer():
     assert output[1].shape == torch.Size([1, vertices, nodes])  # node_tensor
     assert output[2].shape == torch.Size([1, vertices,
                                           units])  # output of the layer
-    
+
     # Testing values
     assert layer.units == units
     assert layer.activation == F.tanh
