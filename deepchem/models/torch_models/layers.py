@@ -3181,7 +3181,7 @@ class MolGANConvolutionLayer(nn.Module):
 
         output_mul: torch.Tensor = torch.matmul(adj, output_dense)
         output_sum: torch.Tensor = torch.sum(output_mul,
-                                         dim=1) + self.dense2(node_tensor)
+                                             dim=1) + self.dense2(node_tensor)
         output_act: torch.Tensor = self.activation(output_sum)
         output = self.dropout(output_act)
         return adjacency_tensor, node_tensor, output
