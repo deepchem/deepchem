@@ -45,7 +45,7 @@ def test_graph_convolution_layer():
     assert layer.edges == 5
     assert layer.dropout_rate == 0.0
 
-
+@pytest.mark.torch
 def test_graph_convolution_layer_values():
     from deepchem.models.torch_models.layers import MolGANConvolutionLayer
     vertices = 9
