@@ -3169,10 +3169,9 @@ class MolGANConvolutionLayer(nn.Module):
 
         if ic > 2:
             hidden_tensor: torch.Tensor = inputs[2]
-            annotations: torch.Tensor = torch.cat((hidden_tensor, node_tensor),
-                                                  -1)
+            annotations = torch.cat((hidden_tensor, node_tensor), -1)
         else:
-            annotations: torch.Tensor = node_tensor
+            annotations = node_tensor
 
         output_dense: torch.Tensor = torch.stack(
             [dense(annotations) for dense in self.dense1], 1)
