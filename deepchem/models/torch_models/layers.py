@@ -3184,6 +3184,8 @@ class MolGANConvolutionLayer(nn.Module):
         output_act: torch.Tensor = self.activation(output_sum)
         output = self.dropout(output_act)
         return adjacency_tensor, node_tensor, output
+
+
 class DTNNStep(nn.Module):
     """DTNNStep Layer for DTNN model.
 
