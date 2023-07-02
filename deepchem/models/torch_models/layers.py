@@ -3194,6 +3194,118 @@ class DTNNStep(nn.Module):
         intraction_vector = scatter(outputs, distance_membership_i,
                                     dim=0) - output_ii + atom_features
         return intraction_vector
+    
+class DTNNGather(nn.Module):
+    """DTNNGather Layer for DTNN Model.
+    Predict Molecular Energy using atom_features and atom_membership. [1]_
+    This Layer implements the Eq (8) to calculate Energy Contribution. Then calculates the Scaled Energy contribution using Eq (9). Then sum the Scaled Energy Contributions to calculate the Molecualar Energy.
+    Eq (8): O_i = tanh[W_out1 . C_i + b_out1]
+    Eq (9): E_i = W_out2 . O_i + b_out2
+    Here : '.'=Matrix Multiplication , '*'=Multiplication
+    References
+    ----------
+    [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
+        tensor neural networks." Nature communications 8.1 (2017): 1-8.
+    Examples
+    --------
+    >>> from deepchem.models.torch_models import layers as layers_torch
+    >>> import torch
+    >>> gather_layer_torch = layers_torch.DTNNGather(3, 3, [10])
+    >>> result = gather_layer_torch([torch.Tensor([[3, 2, 1]]).to(torch.float32), torch.Tensor([0]).to(torch.int64)])
+    >>> result.shape
+    torch.Size([1, 3])
+    """
+
+    def __init__(self,
+                 n_embedding=30,
+                 n_outputs=100,
+                 layer_sizes=[100],
+                 output_activation=True,
+                 initializer='xavier_uniform_',
+                 activation='tanh',
+                 **kwargs):
+        """
+        Parameters
+        ----------
+        n_embedding: int, optional
+            Number of features for each atom
+        n_outputs: int, optional
+            Number of features for each molecule(output)
+        layer_sizes: list of int, optional(default=[1000])
+            Structure of hidden layer(s)
+        initializer: str, optional
+            Weight initialization for filters.
+        activation: str, optional
+            Activation function applied
+        """
+
+        super(DTNNGather, self).__init__(**kwargs)
+        self.n_embedding = n_embedding
+        self.n_outputs = n_outputs
+        self.layer_sizes = layer_sizes
+        self.output_activation = output_activation
+        self.initializer = initializer  # Set weight initialization
+        self.activation = activation  # Get activations
+        self.activation_fn = get_activation(self.activation)
+
+        self.W_list = []
+        self.b_list = []
+
+        init_func: Callable = getattr(initializers, self.initializer)
+
+        prev_layer_size = self.n_embedding
+        for i, layer_size in enumerate(self.layer_sizes):
+            self.W_list.append(
+                init_func(torch.empty([prev_layer_size, layer_size])))
+            self.b_list.append(torch.zeros(size=[
+                layer_size,
+            ]))
+            prev_layer_size = layer_size
+        self.W_list.append(
+            init_func(torch.empty([prev_layer_size, self.n_outputs])))
+        self.b_list.append(torch.zeros(size=[
+            self.n_outputs,
+        ]))
+
+    def __repr__(self):
+        """Returns a string representing the configuration of the layer.
+        Returns
+        ----------
+        n_embedding: int, optional
+            Number of features for each atom
+        n_outputs: int, optional
+            Number of features for each molecule(output)
+        layer_sizes: list of int, optional(default=[1000])
+            Structure of hidden layer(s)
+        initializer: str, optional
+            Weight initialization for filters.
+        activation: str, optional
+            Activation function applied
+        """
+        return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, n_outputs={self.n_outputs}, layer_sizes={self.layer_sizes}, output_activation={self.output_activation}, initializer={self.initializer}, activation={self.activation})'
+
+    def forward(self, inputs):
+        """Executes the equation and Returns Molecular Energies according to atom_membership.
+        Parameters
+        ----------
+        inputs: torch.Tensor
+            List of Tensor containing atom_features and atom_membership
+        Returns
+        -------
+        molecular_energies: torch.Tensor
+            Tensor containing the Molecular Energies according to atom_membership.
+        """
+        output = inputs[0]
+        atom_membership = inputs[1]
+
+        for i, W in enumerate(self.W_list[:-1]):
+            output = torch.matmul(output, W) + self.b_list[i]
+            output = self.activation_fn(output)
+        output = torch.matmul(output, self.W_list[-1]) + self.b_list[-1]
+        if self.output_activation:
+            output = self.activation_fn(output)
+        return scatter(output, atom_membership)
+
 
 
 class EdgeNetwork(nn.Module):
