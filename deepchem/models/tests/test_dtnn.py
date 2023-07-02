@@ -9,7 +9,8 @@ from deepchem.models.torch_models import DTNNModel
 
 @pytest.mark.torch
 def test_dtnn():
-    input_file = os.path.join("assets/example_DTNN.mat")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    input_file = os.path.join(current_dir, "assets/example_DTNN.mat")
     dataset = scipy_io.loadmat(input_file)
     X = dataset['X']
     y = dataset['T']
@@ -29,3 +30,5 @@ def test_dtnn():
     pred = model.predict(dataset)
     mean_rel_error = np.mean(np.abs(1 - pred / y))
     assert mean_rel_error < 0.1
+
+test_dtnn()
