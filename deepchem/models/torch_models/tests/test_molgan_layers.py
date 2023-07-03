@@ -45,6 +45,7 @@ def test_graph_convolution_layer():
     assert layer.edges == 5
     assert layer.dropout_rate == 0.0
 
+
 @pytest.mark.torch
 def test_graph_convolution_layer_values():
     from deepchem.models.torch_models.layers import MolGANConvolutionLayer
@@ -53,14 +54,14 @@ def test_graph_convolution_layer_values():
     edges = 5
     units = 128
 
-    torch.manual_seed(21)
+    torch.manual_seed(21)  # Setting seed for reproducibility
     layer = MolGANConvolutionLayer(units=units, edges=edges, nodes=nodes)
     tf_weights = np.load(
         'deepchem/models/tests/assets/molgan_conv_layer_weights.npy',
         allow_pickle=True).item()
     with torch.no_grad():
         for idx, dense in enumerate(layer.dense1):
-            print(idx, dense)
+            # Dense1 is a list of dense layers
             weight_name = f'layer1/dense_{idx+4}/kernel:0'
             bias_name = f'layer1/dense_{idx+4}/bias:0'
             dense.weight.data = torch.from_numpy(
