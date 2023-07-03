@@ -3019,8 +3019,9 @@ class DTNNEmbedding(nn.Module):
         self.initalizer = initalizer  # Set weight initialization
 
         init_func: Callable = getattr(initializers, self.initalizer)
-        self.embedding_list: torch.Tensor = init_func(
-            torch.empty([self.periodic_table_length, self.n_embedding]))
+        self.embedding_list: torch.Tensor = nn.Parameter(
+            init_func(
+                torch.empty([self.periodic_table_length, self.n_embedding])))
 
     def __repr__(self) -> str:
         """Returns a string representing the configuration of the layer.
@@ -3126,15 +3127,18 @@ class DTNNStep(nn.Module):
 
         init_func: Callable = getattr(initializers, self.initializer)
 
-        self.W_cf = init_func(torch.empty([self.n_embedding, self.n_hidden]))
-        self.W_df = init_func(torch.empty([self.n_distance, self.n_hidden]))
-        self.W_fc = init_func(torch.empty([self.n_hidden, self.n_embedding]))
-        self.b_cf = torch.zeros(size=[
+        self.W_cf = nn.Parameter(
+            init_func(torch.empty([self.n_embedding, self.n_hidden])))
+        self.W_df = nn.Parameter(
+            init_func(torch.empty([self.n_distance, self.n_hidden])))
+        self.W_fc = nn.Parameter(
+            init_func(torch.empty([self.n_hidden, self.n_embedding])))
+        self.b_cf = nn.Parameter(torch.zeros(size=[
             self.n_hidden,
-        ])
-        self.b_df = torch.zeros(size=[
+        ]))
+        self.b_df = nn.Parameter(torch.zeros(size=[
             self.n_hidden,
-        ])
+        ]))
 
     def __repr__(self):
         """Returns a string representing the configuration of the layer.
@@ -3191,10 +3195,12 @@ class DTNNStep(nn.Module):
         output_ii = self.activation_fn(output_ii)
 
         # for atom i, sum the influence from all other atom j in the molecule
-        intraction_vector = scatter(outputs, distance_membership_i,
+        intraction_vector = scatter(outputs,
+                                    distance_membership_i.to(torch.int64),
                                     dim=0) - output_ii + atom_features
         return intraction_vector
-    
+
+
 class DTNNGather(nn.Module):
     """DTNNGather Layer for DTNN Model.
     Predict Molecular Energy using atom_features and atom_membership. [1]_
@@ -3248,24 +3254,26 @@ class DTNNGather(nn.Module):
         self.activation = activation  # Get activations
         self.activation_fn = get_activation(self.activation)
 
-        self.W_list = []
-        self.b_list = []
+        self.W_list = nn.ParameterList()
+        self.b_list = nn.ParameterList()
 
         init_func: Callable = getattr(initializers, self.initializer)
 
         prev_layer_size = self.n_embedding
         for i, layer_size in enumerate(self.layer_sizes):
             self.W_list.append(
-                init_func(torch.empty([prev_layer_size, layer_size])))
-            self.b_list.append(torch.zeros(size=[
+                nn.Parameter(
+                    init_func(torch.empty([prev_layer_size, layer_size]))))
+            self.b_list.append(nn.Parameter(torch.zeros(size=[
                 layer_size,
-            ]))
+            ])))
             prev_layer_size = layer_size
         self.W_list.append(
-            init_func(torch.empty([prev_layer_size, self.n_outputs])))
-        self.b_list.append(torch.zeros(size=[
+            nn.Parameter(
+                init_func(torch.empty([prev_layer_size, self.n_outputs]))))
+        self.b_list.append(nn.Parameter(torch.zeros(size=[
             self.n_outputs,
-        ]))
+        ])))
 
     def __repr__(self):
         """Returns a string representing the configuration of the layer.
@@ -3304,8 +3312,7 @@ class DTNNGather(nn.Module):
         output = torch.matmul(output, self.W_list[-1]) + self.b_list[-1]
         if self.output_activation:
             output = self.activation_fn(output)
-        return scatter(output, atom_membership)
-
+        return scatter(output, atom_membership.to(torch.int64))
 
 
 class EdgeNetwork(nn.Module):

@@ -1,11 +1,11 @@
 import numpy as np
 
-import torch
 import torch.nn as nn
 
 from deepchem.models.losses import L2Loss
 from deepchem.models.torch_models import layers
 from deepchem.models.torch_models import TorchModel
+
 
 class DTNN(nn.Module):
     """Deep Tensor Neural Networks
@@ -18,17 +18,18 @@ class DTNN(nn.Module):
         tensor neural networks." Nature communications 8.1 (2017): 1-8.
 
     """
+
     def __init__(self,
-             n_tasks,
-             n_embedding=30,
-             n_hidden=100,
-             n_distance=100,
-             distance_min=-1,
-             distance_max=18,
-             output_activation=True,
-             mode="regression",
-             dropout=0.0,
-             **kwargs):
+                 n_tasks,
+                 n_embedding=30,
+                 n_hidden=100,
+                 n_distance=100,
+                 distance_min=-1,
+                 distance_max=18,
+                 output_activation=True,
+                 mode="regression",
+                 dropout=0.0,
+                 **kwargs):
         """
         Parameters
         ----------
@@ -72,10 +73,18 @@ class DTNN(nn.Module):
         self.dtnn_embedding = layers.DTNNEmbedding(n_embedding=self.n_embedding)
 
         # get DTNNSteps
-        self.dtnn_step = layers.DTNNStep(n_embedding=self.n_embedding, n_distance=self.n_distance)
+        self.dtnn_step = layers.DTNNStep(n_embedding=self.n_embedding,
+                                         n_distance=self.n_distance)
 
         # get DTNNGather
-        self.dtnn_gather = layers.DTNNGather(n_embedding=self.n_embedding, layer_sizes=[self.n_hidden], n_outputs=self.n_tasks, output_activation=self.output_activation)
+        self.dtnn_gather = layers.DTNNGather(
+            n_embedding=self.n_embedding,
+            layer_sizes=[self.n_hidden],
+            n_outputs=self.n_tasks,
+            output_activation=self.output_activation)
+
+        # get Final Linear Layer
+        self.linear = nn.LazyLinear(self.n_tasks)
 
     def forward(self, inputs):
         """
@@ -88,7 +97,8 @@ class DTNN(nn.Module):
         dtnn_embedding = self.dtnn_embedding(inputs[0])
         if self.dropout > 0.0:
             dtnn_embedding = nn.Dropout(self.dropout)(dtnn_embedding)
-        dtnn_step = self.dtnn_step([dtnn_embedding, inputs[1], inputs[3], inputs[4]])
+        dtnn_step = self.dtnn_step(
+            [dtnn_embedding, inputs[1], inputs[3], inputs[4]])
         if self.dropout > 0.0:
             dtnn_step = nn.Dropout(self.dropout)(dtnn_step)
         dtnn_step = self.dtnn_step([dtnn_step, inputs[1], inputs[3], inputs[4]])
@@ -97,10 +107,10 @@ class DTNN(nn.Module):
         dtnn_gather = self.dtnn_gather([dtnn_step, inputs[2]])
         if self.dropout > 0.0:
             dtnn_gather = nn.Dropout(self.dropout)(dtnn_gather)
-        output = nn.Linear(dtnn_gather.shape[-1], self.n_tasks)(dtnn_gather)
+        output = self.linear(dtnn_gather)
         return output
-        
-    
+
+
 class DTNNModel(TorchModel):
     """Implements DTNN models for regression and classification.
     """
@@ -138,21 +148,21 @@ class DTNNModel(TorchModel):
             the dropout probablity to use.
 
         """
-        model = DTNN(
-            n_tasks=n_tasks,
-            n_embedding=n_embedding,
-            n_hidden=n_hidden,
-            n_distance=n_distance,
-            distance_min=distance_min,
-            distance_max=distance_max,
-            output_activation=output_activation,
-            mode=mode,
-            dropout=dropout,
-            **kwargs)
+        model = DTNN(n_tasks=n_tasks,
+                     n_embedding=n_embedding,
+                     n_hidden=n_hidden,
+                     n_distance=n_distance,
+                     distance_min=distance_min,
+                     distance_max=distance_max,
+                     output_activation=output_activation,
+                     mode=mode,
+                     dropout=dropout,
+                     **kwargs)
         if mode not in ['regression']:
             raise ValueError("Only 'regression' mode is currently supported")
-        super(DTNNModel, self).__init__(model, L2Loss(), ["prediction"], **kwargs)
-        
+        super(DTNNModel, self).__init__(model, L2Loss(), ["prediction"],
+                                        **kwargs)
+
     def compute_features_on_batch(self, X_b):
         """Computes the values for different Feature Layers on given batch
 
@@ -186,8 +196,8 @@ class DTNNModel(TorchModel):
 
         atom_number = np.concatenate(atom_number).astype(np.int32)
         distance = np.concatenate(distance, axis=0)
-        gaussian_dist = np.exp(-np.square(distance - self.steps) /
-                               (2 * self.step_size**2))
+        gaussian_dist = np.exp(-np.square(distance - self.model.steps) /
+                               (2 * self.model.step_size**2))
         gaussian_dist = gaussian_dist.astype(np.float32)
         atom_mem = np.concatenate(atom_membership).astype(np.int32)
         dist_mem_i = np.concatenate(distance_membership_i).astype(np.int32)
