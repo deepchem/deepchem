@@ -67,7 +67,8 @@ class ElectronSampler:
                  steps_per_update: int = 10,
                  seed: Optional[int] = None,
                  symmetric: bool = True,
-                 simultaneous: bool = True):
+                 simultaneous: bool = True,
+                 sampled_electrons: np.ndarray = np.ndarray([])):
         """
         Parameters:
         -----------
@@ -81,12 +82,16 @@ class ElectronSampler:
             Contains the electron's coordinates in a 4D array. The shape of the array should be(batch_no,no_of_electrons,1,3). Can be a 1D empty array, when electron's positions are yet to be initialized.
         steps: int, optional (default 10)
             The number of MCMC steps to be performed when the moves are called.
+        steps_per_update: int (default 10)
+            The number of steps after which the parameters of the MCMC gets updated.
         seed: int, optional (default None)
             Random seed to use.
         symmetric: bool, optional(default True)
             If true, symmetric moves will be used, else asymmetric moves will be followed.
         simultaneous: bool, optional(default True)
             If true, MCMC steps will be performed on all the electrons, else only a single electron gets updated.
+        sampled_electrons: np.ndarray (default np.ndarray([]))
+            Keeps track of the sampled electrons at every step, must be empty at start.
         """
         self.x = x
         self.f = f
@@ -97,7 +102,7 @@ class ElectronSampler:
         self.steps_per_update = steps_per_update
         self.central_value = central_value
         self.batch_no = batch_no
-        self.sampled_electrons: np.ndarray = np.array([])
+        self.sampled_electrons: np.ndarray = sampled_electrons
         if seed is not None:
             seed = int(seed)
             np.random.seed(seed)
@@ -171,6 +176,41 @@ class ElectronSampler:
                                  (self.batch_no, specific_sample, 1, ndim)),
                 axis=1)
 
+    def electron_update(self, lp1, lp2, move_prob, ratio, x2) -> np.ndarray:
+        """
+        Performs sampling & parameter updates of electrons and appends the sampled electrons to self.sampled_electrons.
+
+        Parameters:
+        -----------
+        lp1: np.ndarray
+            Log probability of initial parameter state.
+        lp2: np.ndarray
+            Log probability of the new sampled state.
+        move_prob: np.ndarray
+            Sampled log probabilty of the electron moving from the initial to final state, sampled assymetrically or symetrically.
+        ratio: np.ndarray
+            Ratio of lp1 and lp2 state.
+        x2: np.ndarray
+            Numpy array of the new sampled electrons.
+
+        Returns:
+        --------
+        lp1: np.ndarray
+            The update log probability of initial parameter state.
+        """
+        cond = move_prob < ratio
+        tmp_sampled = np.where(cond[:, None, None, None], x2, self.x)
+        if (self.steps % self.steps_per_update) == 0:
+            self.x = tmp_sampled
+            lp1 = np.where(cond, lp2, lp1)
+        if (np.shape(self.sampled_electrons)[0] == 0):
+            self.sampled_electrons = tmp_sampled
+        else:
+            self.sampled_electrons = np.concatenate(
+                (self.sampled_electrons, tmp_sampled))
+        self.num_accept += np.sum(cond)
+        return lp1
+
     def move(self,
              stddev: float = 0.02,
              asymmetric_func: Optional[Callable[[np.ndarray],
@@ -203,23 +243,12 @@ class ElectronSampler:
                 for i in range(self.steps):
                     x2 = np.random.normal(self.x, stddev, self.x.shape)
                     lp2 = self.f(x2)  # log probability of x2 state
-                    ratio = lp2 - lp1
                     move_prob = np.log(
                         np.random.uniform(low=0,
                                           high=1.0,
                                           size=np.shape(self.x)[0]))
-                    cond = move_prob < ratio
-                    lp1 = np.where(cond, lp2, lp1)
-                    tmp_sampled = np.where(cond[:, None, None, None], x2,
-                                           self.x)
-                    if (self.steps % self.steps_per_update) == 0:
-                        self.x = tmp_sampled
-                    if (np.shape(self.sampled_electrons)[0] == 0):
-                        self.sampled_electrons = tmp_sampled
-                    else:
-                        self.sampled_electrons = np.concatenate(
-                            (self.sampled_electrons, tmp_sampled))
-                    self.num_accept += np.sum(cond)
+                    ratio = lp2 - lp1
+                    lp1 = self.electron_update(lp1, lp2, move_prob, ratio, x2)
 
             elif asymmetric_func is not None:
                 for i in range(self.steps):
@@ -236,17 +265,7 @@ class ElectronSampler:
                         np.random.uniform(low=0,
                                           high=1.0,
                                           size=np.shape(self.x)[0]))
-                    cond = move_prob < ratio
-                    tmp_sampled = np.where(cond[:, None, None, None], x2,
-                                           self.x)
-                    if (self.steps % self.steps_per_update) == 0:
-                        self.x = tmp_sampled
-                    if (np.shape(self.sampled_electrons)[0] == 0):
-                        self.sampled_electrons = tmp_sampled
-                    else:
-                        self.sampled_electrons = np.concatenate(
-                            (self.sampled_electrons, tmp_sampled))
-                    self.num_accept += np.sum(cond)
+                    lp1 = self.electron_update(lp1, lp2, move_prob, ratio, x2)
 
         elif index is not None:
             index = int(index)
@@ -264,17 +283,7 @@ class ElectronSampler:
                         np.random.uniform(low=0,
                                           high=1.0,
                                           size=np.shape(self.x)[0]))
-                    cond = move_prob < ratio
-                    lp1 = np.where(cond, lp2, lp1)
-                    tmp_sampled = np.where(cond[:, None, None, None], x2,
-                                           self.x)
-                    if (self.steps % self.steps_per_update) == 0:
-                        self.x = tmp_sampled
-                    if (np.shape(self.sampled_electrons)[0] == 0):
-                        self.sampled_electrons = tmp_sampled
-                    else:
-                        self.sampled_electrons = np.concatenate(
-                            (self.sampled_electrons, tmp_sampled))
+                    lp1 = self.electron_update(lp1, lp2, move_prob, ratio, x2)
 
             elif asymmetric_func is not None:
                 init_dev = stddev * asymmetric_func(
@@ -296,18 +305,7 @@ class ElectronSampler:
                         np.random.uniform(low=0,
                                           high=1.0,
                                           size=np.shape(self.x)[0]))
-                    cond = move_prob < ratio
-                    tmp_sampled = np.where(cond[:, None, None, None], x2,
-                                           self.x)
-                    if (self.steps % self.steps_per_update) == 0:
-                        self.x = tmp_sampled
-                    if (np.shape(self.sampled_electrons)[0] == 0):
-                        self.sampled_electrons = tmp_sampled
-                    else:
-                        self.sampled_electrons = np.concatenate(
-                            (self.sampled_electrons, tmp_sampled))
-                    lp1 = np.where(cond, lp2, lp1)
-                    self.num_accept += np.sum(cond)
+                    lp1 = self.electron_update(lp1, lp2, move_prob, ratio, x2)
 
         return self.num_accept / (
             (i + 1) * np.shape(self.x)[0])  # accepted move ratio
