@@ -1,4 +1,5 @@
 import json
+import numpy as np
 from typing import Dict, Optional
 from collections import Counter
 from rdkit import Chem
@@ -76,7 +77,12 @@ class GroverAtomVocabularyBuilder(VocabularyBuilder):
         """
         counter: Dict[str, int] = Counter()
         for x, _, _, _ in dataset.itersamples():
-            smiles = x[0]
+            if isinstance(x, str):
+                smiles = x
+            elif isinstance(x, np.ndarray):
+                x = x.squeeze()
+                assert x.ndim == 0, 'expected x attribute of dataset to be a 1-D array of SMILES strings'
+                smiles = x.item()
             mol = Chem.MolFromSmiles(smiles)
             for atom in mol.GetAtoms():
                 v = self.atom_to_vocab(mol, atom)
@@ -266,7 +272,10 @@ class GroverBondVocabularyBuilder(VocabularyBuilder):
         """
         counter: Dict[str, int] = Counter()
         for x, _, _, _ in dataset.itersamples():
-            smiles = x[0]
+            if isinstance(x, str):
+                smiles = x
+            elif isinstance(x, np.ndarray):
+                smiles = x.squeeze().item()
             mol = Chem.MolFromSmiles(smiles)
             for bond in mol.GetBonds():
                 v = self.bond_to_vocab(mol, bond)
