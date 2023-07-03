@@ -3058,6 +3058,134 @@ class DTNNEmbedding(nn.Module):
         return atom_enbeddings
 
 
+class MolGANConvolutionLayer(nn.Module):
+    """
+    Graph convolution layer used in MolGAN model.
+    MolGAN is a WGAN type model for generation of small molecules.
+    Not used directly, higher level layers like MolGANMultiConvolutionLayer use it.
+    This layer performs basic convolution on one-hot encoded matrices containing
+    atom and bond information. This layer also accepts three inputs for the case
+    when convolution is performed more than once and results of previous convolution
+    need to used. It was done in such a way to avoid creating another layer that
+    accepts three inputs rather than two. The last input layer is so-called
+    hidden_layer and it hold results of the convolution while first two are unchanged
+    input tensors.
+
+    Example
+    -------
+    See: MolGANMultiConvolutionLayer for using in layers.
+
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+    >>> vertices = 9
+    >>> nodes = 5
+    >>> edges = 5
+    >>> units = 128
+
+    >>> layer1 = MolGANConvolutionLayer(units=units, edges=edges, nodes=nodes, name='layer1')
+    >>> adjacency_tensor = torch.randn((1, vertices, vertices, edges))
+    >>> node_tensor = torch.randn((1, vertices, nodes))
+    >>> output = layer1([adjacency_tensor, node_tensor])
+
+    References
+    ----------
+    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+        for small molecular graphs", https://arxiv.org/abs/1805.11973
+    """
+
+    def __init__(self,
+                 units: int,
+                 nodes: int,
+                 activation=F.tanh,
+                 dropout_rate: float = 0.0,
+                 edges: int = 5,
+                 name: str = "",
+                 **kwargs):
+        """
+        Initialize this layer.
+
+        Parameters
+        ---------
+        units: int
+            Dimesion of dense layers used for convolution
+        nodes: int
+            Number of features in node tensor
+        activation: function, optional (default=Tanh)
+            activation function used across model, default is Tanh
+        dropout_rate: float, optional (default=0.0)
+            Dropout rate used by dropout layer
+        edges: int, optional (default=5)
+            How many dense layers to use in convolution.
+            Typically equal to number of bond types used in the model.
+        name: string, optional (default="")
+            Name of the layer
+        """
+        super(MolGANConvolutionLayer, self).__init__()
+
+        self.activation = activation
+        self.dropout_rate: float = dropout_rate
+        self.units: int = units
+        self.edges: int = edges
+        self.name: str = name
+        self.nodes: int = nodes
+
+        self.dense1: nn.ModuleList = nn.ModuleList(
+            [nn.Linear(nodes, self.units) for _ in range(edges - 1)])
+        self.dense2: nn.Linear = nn.Linear(nodes, self.units)
+        self.dropout: nn.Dropout = nn.Dropout(self.dropout_rate)
+
+    def __repr__(self) -> str:
+        return (
+            f'{self.__class__.__name__}(Units={self.units}, Nodes={self.nodes}, Activation={self.activation}, Dropout_rate={self.droput_rate}, Edges={self.edges}, Name={self.name})'
+        )
+
+    def forward(
+            self,
+            inputs: List) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Invoke this layer
+
+        Parameters
+        ----------
+        inputs: list
+            List of two input matrices, adjacency tensor and node features tensors
+            in one-hot encoding format.
+
+        Returns
+        --------
+        tuple(torch.Tensor,torch.Tensor,torch.Tensor)
+            First and second are original input tensors
+            Third is the result of convolution
+        """
+        ic: int = len(inputs)
+        if ic < 2:
+            raise ValueError(
+                "MolGANConvolutionLayer requires at least two inputs: [adjacency_tensor, node_features_tensor]"
+            )
+
+        adjacency_tensor: torch.Tensor = inputs[0]
+        node_tensor: torch.Tensor = inputs[1]
+
+        if ic > 2:
+            hidden_tensor: torch.Tensor = inputs[2]
+            annotations = torch.cat((hidden_tensor, node_tensor), -1)
+        else:
+            annotations = node_tensor
+
+        output_dense: torch.Tensor = torch.stack(
+            [dense(annotations) for dense in self.dense1], 1)
+
+        adj: torch.Tensor = adjacency_tensor.permute(0, 3, 1, 2)[:, 1:, :, :]
+
+        output_mul: torch.Tensor = torch.matmul(adj, output_dense)
+        output_sum: torch.Tensor = torch.sum(output_mul,
+                                             dim=1) + self.dense2(node_tensor)
+        output_act: torch.Tensor = self.activation(output_sum)
+        output = self.dropout(output_act)
+        return adjacency_tensor, node_tensor, output
+
+
 class DTNNStep(nn.Module):
     """DTNNStep Layer for DTNN model.
 
