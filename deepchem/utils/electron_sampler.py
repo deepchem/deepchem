@@ -117,8 +117,8 @@ class ElectronSampler:
         y: np.ndarray
             Containing the data distribution. Shape of y should be (batch,no_of_electron,1,3)
 
-        Return
-        ------
+        Returns
+        -------
         np.ndarray
             Contains the harmonic mean of the data distribution of each batch. Shape of the array obtained (batch_no, no_of_electrons,1,1)
         """
@@ -140,8 +140,8 @@ class ElectronSampler:
         sigma: np.ndarray,
             The standard deviation of the log normal distribution. Same shape as x or should be brodcastable to x
 
-        Return
-        ------
+        Returns
+        -------
         np.ndarray
             Log probability of gaussian distribution, with the shape - (batch_no,).
         """
@@ -231,8 +231,8 @@ class ElectronSampler:
         index: int, optional (default None)
             Specifies the index of the electron to be updated in the case of a single electron move.
 
-        Return
-        ------
+        Returns
+        -------
         float
             accepted move ratio of the MCMC steps.
         """
