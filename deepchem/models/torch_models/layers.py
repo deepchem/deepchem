@@ -3019,8 +3019,9 @@ class DTNNEmbedding(nn.Module):
         self.initalizer = initalizer  # Set weight initialization
 
         init_func: Callable = getattr(initializers, self.initalizer)
-        self.embedding_list: torch.Tensor = init_func(
-            torch.empty([self.periodic_table_length, self.n_embedding]))
+        self.embedding_list: nn.Parameter = nn.Parameter(
+            init_func(
+                torch.empty([self.periodic_table_length, self.n_embedding])))
 
     def __repr__(self) -> str:
         """Returns a string representing the configuration of the layer.
