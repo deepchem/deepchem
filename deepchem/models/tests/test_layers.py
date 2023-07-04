@@ -13,6 +13,7 @@ except ModuleNotFoundError:
 
 try:
     import torch
+    import torch.nn as nn
     import deepchem.models.torch_models.layers as torch_layers
     has_torch = True
 except ModuleNotFoundError:
@@ -1105,7 +1106,7 @@ def test_dtnn_gather():
     result_tf = [[0.45788735, 0.9619317, -0.53767115]]
 
     gather_layer_torch = torch_layers.DTNNGather(3, 3, [10])
-    gather_layer_torch.W_list = []
+    gather_layer_torch.W_list = nn.ParameterList()
     gather_layer_torch.W_list.append(torch.tensor(W_list_1))
     gather_layer_torch.W_list.append(torch.tensor(W_list_2))
     result_torch = gather_layer_torch([

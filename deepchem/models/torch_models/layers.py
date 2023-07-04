@@ -3329,13 +3329,7 @@ class DTNNGather(nn.Module):
 
     Predict Molecular Energy using atom_features and atom_membership. [1]_
 
-    This Layer implements the Eq (8) to calculate Energy Contribution. Then calculates the Scaled Energy contribution using Eq (9). Then sum the Scaled Energy Contributions to calculate the Molecualar Energy.
-
-    Eq (8): O_i = tanh[W_out1 . C_i + b_out1]
-
-    Eq (9): E_i = W_out2 . O_i + b_out2
-
-    Here : '.'=Matrix Multiplication , '*'=Multiplication
+    This Layer gathers the inputs got from the step layer according to atom_membership and calulates the total Molecular Energy.
 
     References
     ----------
@@ -3386,24 +3380,26 @@ class DTNNGather(nn.Module):
         self.activation = activation  # Get activations
         self.activation_fn = get_activation(self.activation)
 
-        self.W_list = []
-        self.b_list = []
+        self.W_list = nn.ParameterList()
+        self.b_list = nn.ParameterList()
 
         init_func: Callable = getattr(initializers, self.initializer)
 
         prev_layer_size = self.n_embedding
         for i, layer_size in enumerate(self.layer_sizes):
             self.W_list.append(
-                init_func(torch.empty([prev_layer_size, layer_size])))
-            self.b_list.append(torch.zeros(size=[
+                nn.Parameter(
+                    init_func(torch.empty([prev_layer_size, layer_size]))))
+            self.b_list.append(nn.Parameter(torch.zeros(size=[
                 layer_size,
-            ]))
+            ])))
             prev_layer_size = layer_size
         self.W_list.append(
-            init_func(torch.empty([prev_layer_size, self.n_outputs])))
-        self.b_list.append(torch.zeros(size=[
+            nn.Parameter(
+                init_func(torch.empty([prev_layer_size, self.n_outputs]))))
+        self.b_list.append(nn.Parameter(torch.zeros(size=[
             self.n_outputs,
-        ]))
+        ])))
 
     def __repr__(self):
         """Returns a string representing the configuration of the layer.
