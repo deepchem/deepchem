@@ -34,3 +34,4 @@ PNALayer, `https://arxiv.org/abs/2004.05718`_, Principal Neighbourhood Aggregati
 PNAGNN, `https://arxiv.org/abs/2004.05718`_, Principal Neighbourhood Aggregation
 EdgeNetwork, `ref <https://arxiv.org/abs/1704.01212>`_, Message Passing Neural Network
 WeaveLayer,`ref <https://pubmed.ncbi.nlm.nih.gov/27558503/>`_, WeaveModel
+MolGANConvolutionLayer,`ref <https://arxiv.org/abs/1805.11973>`_, MolGan

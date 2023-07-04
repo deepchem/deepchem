@@ -267,7 +267,7 @@ MPNNModel
   :members:
 
 BasicMolGANModel
----------
+----------------
 
 .. autoclass:: deepchem.models.BasicMolGANModel
   :members:
@@ -443,6 +443,7 @@ GNNModular
   :members:
 
 InfoMax3DModular
+----------------
 
 .. autoclass:: deepchem.models.torch_models.gnn3d.InfoMax3DModular
   :members:
@@ -472,7 +473,7 @@ NormalizingFlowModel
 .. autoclass:: deepchem.models.torch_models.NormalizingFlow
 
 DMPNNModel
---------
+----------
 
 .. autoclass:: deepchem.models.torch_models.DMPNNModel
   :members:
@@ -482,6 +483,7 @@ GroverModel
 
 .. autoclass:: deepchem.models.torch_models.GroverModel
   :members:
+
 
 Density Functional Theory Model - XCModel
 -----------------------------------------
