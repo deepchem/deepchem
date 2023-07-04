@@ -67,11 +67,10 @@ class ElectronSampler:
                  steps_per_update: int = 10,
                  seed: Optional[int] = None,
                  symmetric: bool = True,
-                 simultaneous: bool = True,
-                 sampled_electrons: np.ndarray = np.ndarray([])):
+                 simultaneous: bool = True):
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         central_value: np.ndarray
             Contains each nucleus' coordinates in a 2D array. The shape of the array should be(number_of_nucleus,3).Ex: [[1,2,3],[3,4,5],..]
         f:Callable[[np.ndarray],np.ndarray]
@@ -90,7 +89,10 @@ class ElectronSampler:
             If true, symmetric moves will be used, else asymmetric moves will be followed.
         simultaneous: bool, optional(default True)
             If true, MCMC steps will be performed on all the electrons, else only a single electron gets updated.
-        sampled_electrons: np.ndarray (default np.ndarray([]))
+
+        Attributes
+        ----------
+        sampled_electrons: np.ndarray
             Keeps track of the sampled electrons at every step, must be empty at start.
         """
         self.x = x
@@ -116,7 +118,7 @@ class ElectronSampler:
             Containing the data distribution. Shape of y should be (batch,no_of_electron,1,3)
 
         Return
-        ----------
+        ------
         np.ndarray
             Contains the harmonic mean of the data distribution of each batch. Shape of the array obtained (batch_no, no_of_electrons,1,1)
         """
@@ -139,7 +141,7 @@ class ElectronSampler:
             The standard deviation of the log normal distribution. Same shape as x or should be brodcastable to x
 
         Return
-        ----------
+        ------
         np.ndarray
             Log probability of gaussian distribution, with the shape - (batch_no,).
         """
@@ -152,7 +154,7 @@ class ElectronSampler:
                                   no_sample: np.ndarray,
                                   stddev: float = 0.02):
         """Initializes the position around a central value as mean sampled from a gauss distribution and updates self.x.
-        Parameters:
+        Parameters
         ----------
         no_sample: np.ndarray,
             Contains the number of samples to initialize under each mean. should be in the form [[3],[2]..], where here it means 3 samples and 2 samples around the first entry and second entry,respectively in self.central_value is taken.
@@ -180,8 +182,8 @@ class ElectronSampler:
         """
         Performs sampling & parameter updates of electrons and appends the sampled electrons to self.sampled_electrons.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         lp1: np.ndarray
             Log probability of initial parameter state.
         lp2: np.ndarray
@@ -193,8 +195,8 @@ class ElectronSampler:
         x2: np.ndarray
             Numpy array of the new sampled electrons.
 
-        Returns:
-        --------
+        Returns
+        -------
         lp1: np.ndarray
             The update log probability of initial parameter state.
         """
@@ -219,8 +221,8 @@ class ElectronSampler:
         """Performs Metropolis-Hasting move for self.x(electrons). The type of moves to be followed -(simultaneous or single-electron, symmetric or asymmetric) have been specified when calling the class.
         The self.x array is replaced with a new array at the end of each step containing the new electron's positions.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         asymmetric_func: Callable[[np.ndarray],np.ndarray], optional(default None)
             Should be specified for an asymmetric move.The function should take in only 1 argument- y: a numpy array wrt to which mean should be calculated.
             This function should return the mean for the asymmetric proposal. For ferminet, this function is the harmonic mean of the distance between the electron and the nucleus.
