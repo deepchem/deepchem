@@ -3743,3 +3743,71 @@ class WeaveLayer(nn.Module):
             P = pair_features
 
         return [A, P]
+
+class Highway(nn.Module):
+    """
+        Highway layer used in TextCNN model.
+        The Highway layer is a nn module that incorporates gating mechanisms to control
+        the flow of information between linear transformations with a non-linear activation function.
+        This enables better gradient propagation and information flow during training,
+        improving the performance of deep neural networks.
+        Custom initializers and activation functions can be easily integrated into this layer.
+
+        Examples
+        --------
+        >>> import torch
+        >>> from deepchem.models.torch_models import layers
+        >>> layer = layers.Highway(30, 2, 'kaiming_uniform_')
+        >>> input = torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+        >>> output = layer(input)
+        >>> output.shape
+        torch.Size([10, 2])
+
+        """
+    def __init__(self,
+                 activation: str='relu',
+                 biases_initializer: str='zeros',
+                 weights_initializer='kaiming_uniform_',
+                 layer_shape=[5, 2],
+                 **kwargs):
+        """
+              Parameters
+              ----------
+              activation_fn: str , optional (default: ReLU)
+                  the PyTorch activation function to apply to the output
+              biases_initializer: str, optional
+                  the initializer for bias values.  This may be None, in which case the layer
+                  will not include biases.
+              weights_initializer: str, optional
+                  the initializer for weight values
+              """
+        super(Highway, self).__init__(**kwargs)
+        self.activation = activation
+        self.biases_initializer =  biases_initializer
+        self.weights_initializer = weights_initializer
+        self.activation_fn = get_activation(self.activation)
+
+        input_shape = layer_shape[0]
+        out_channels = layer_shape[1]
+
+        init_func = getattr(initializers, self.weights_initializer)
+
+        self.linear_H = init_func(torch.empty([input_shape, out_channels]))
+        self.linear_T = init_func(torch.empty([input_shape, out_channels]))
+
+    def __repr__(self) -> str:
+        return (
+            f'{self.__class__.__name__}(activation_fn={self.activation_fn}, '
+            f'biases_initializer={self.biases_initializer}, '
+            f'weights_initializer={self.weights_initializer})')
+
+    def forward(self, inputs: torch.Tensor):
+        if isinstance(inputs, (list, tuple)):
+            parent = inputs[0]
+        else:
+            parent = inputs
+
+        parent = parent.view(self.linear_H.shape)
+        linear_H = self.activation_fn(self.linear_H * parent)
+        linear_T = torch.sigmoid(self.linear_T * parent)
+        return linear_H * linear_T + parent * (1 - linear_T)
