@@ -126,4 +126,4 @@ class TestMXMNetFeaturizer(unittest.TestCase):
                                           pos_y=pos_y1,
                                           pos_z=pos_z1)
         assert type(graph_feat[0].node_pos_features) == np.ndarray
-        assert (graph_feat[0].node_pos_features == node_pos).all
+        assert np.allclose(graph_feat[0].node_pos_features, node_pos, atol=1e-3)
