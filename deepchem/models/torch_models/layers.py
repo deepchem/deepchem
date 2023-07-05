@@ -3097,7 +3097,7 @@ class MolGANConvolutionLayer(nn.Module):
     def __init__(self,
                  units: int,
                  nodes: int,
-                 activation=F.tanh,
+                 activation=torch.tanh,
                  dropout_rate: float = 0.0,
                  edges: int = 5,
                  name: str = "",

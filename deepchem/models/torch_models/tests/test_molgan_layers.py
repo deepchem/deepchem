@@ -3,9 +3,8 @@ import pytest
 try:
     import torch
     # import torch.nn as nn
-    import torch.nn.functional as F
+    # import torch.nn.functional as F
     import numpy as np
-    # , MolGANMultiConvolutionLayer, MolGANAggregationLayer, MolGANEncoderLayer
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
@@ -41,7 +40,7 @@ def test_graph_convolution_layer():
 
     # Testing values
     assert layer.units == units
-    assert layer.activation == F.tanh
+    assert layer.activation == torch.tanh
     assert layer.edges == 5
     assert layer.dropout_rate == 0.0
 
