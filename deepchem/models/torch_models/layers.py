@@ -3206,7 +3206,7 @@ class MolGANAggregationLayer(nn.Module):
     >>> units = 128
 
     >>> layer_1 = MolGANConvolutionLayer(units=units,nodes=nodes,edges=edges, name='layer1')
-    >>> layer_2 = MolGANAggregationLayer(units=128,nodes=nodes, name='layer2')
+    >>> layer_2 = MolGANAggregationLayer(units=128, name='layer2')
     >>> adjacency_tensor = torch.randn((1, vertices, vertices, edges))
     >>> node_tensor = torch.randn((1, vertices, nodes))
     >>> hidden_1 = layer_1([adjacency_tensor, node_tensor])
@@ -3219,9 +3219,8 @@ class MolGANAggregationLayer(nn.Module):
     """
 
     def __init__(self,
-                 nodes: int,
                  units: int = 128,
-                 activation=F.tanh,
+                 activation=torch.tanh,
                  dropout_rate: float = 0.0,
                  name: str = "",
                  **kwargs):
@@ -3230,8 +3229,6 @@ class MolGANAggregationLayer(nn.Module):
 
         Parameters
         ---------
-        nodes: int
-            Number of features in node tensor
         units: int, optional (default=128)
             Dimesion of dense layers used for aggregation
         activation: function, optional (default=Tanh)
@@ -3242,13 +3239,14 @@ class MolGANAggregationLayer(nn.Module):
             Name of the layer
         """
 
-        super(MolGANAggregationLayer, self).__init__(name=name, **kwargs)
+        super(MolGANAggregationLayer, self).__init__()
         self.units: int = units
         self.activation = activation
         self.dropout_rate: float = dropout_rate
+        self.name: str = name
 
-        self.d1 = nn.Linear(nodes, self.units)
-        self.d2 = nn.Linear(nodes, self.units)
+        self.d1 = nn.Linear(self.units, self.units)
+        self.d2 = nn.Linear(self.units, self.units)
         self.dropout_layer = nn.Dropout(dropout_rate)
 
     def __repr__(self) -> str:
@@ -3271,7 +3269,7 @@ class MolGANAggregationLayer(nn.Module):
 
         i = torch.sigmoid(self.d1(inputs))
         j = self.activation(self.d2(inputs))
-        output = torch.sum(i * j, 1)
+        output = torch.sum(i * j, dim=1)
         output = self.activation(output)
         output = self.dropout_layer(output)
         return output
