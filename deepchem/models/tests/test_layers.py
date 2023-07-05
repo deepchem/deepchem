@@ -1063,9 +1063,9 @@ def test_dtnn_step():
                  [[0.2256, -0.1123], [1.1920, -0.3480], [1.2884, 0.5249],
                   [1.5340, 0.2171]]]
     step_layer = torch_layers.DTNNStep(4, 6, 8)
-    step_layer.W_fc = torch.Tensor(W_fc)
-    step_layer.W_cf = torch.Tensor(W_cf)
-    step_layer.W_df = torch.Tensor(W_df)
+    step_layer.W_fc = torch.nn.Parameter(torch.Tensor(W_fc))
+    step_layer.W_cf = torch.nn.Parameter(torch.Tensor(W_cf))
+    step_layer.W_df = torch.nn.Parameter(torch.Tensor(W_df))
     output_torch = step_layer([
         torch.Tensor(emb),
         torch.Tensor([0, 1, 2, 3, 4, 5]).to(torch.float32),
