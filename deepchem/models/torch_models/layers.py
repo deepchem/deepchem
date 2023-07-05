@@ -3275,6 +3275,114 @@ class MolGANAggregationLayer(nn.Module):
         return output
 
 
+class MolGANMultiConvolutionLayer(nn.Module):
+    """
+    Multiple pass convolution layer used in MolGAN model.
+    MolGAN is a WGAN type model for generation of small molecules.
+    It takes outputs of previous convolution layer and uses
+    them as inputs for the next one.
+    It simplifies the overall framework, but might be moved to
+    MolGANEncoderLayer in the future in order to reduce number of layers.
+
+    Example
+    -------
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+    >>> vertices = 9
+    >>> nodes = 5
+    >>> edges = 5
+    >>> units = 128
+
+    >>> layer_1 = MolGANMultiConvolutionLayer(units=(128,64), name='layer1')
+    >>> layer_2 = MolGANAggregationLayer(units=128, name='layer2')
+    >>> adjacency_tensor = torch.randn((1, vertices, vertices, edges))
+    >>> node_tensor = torch.randn((1, vertices, nodes))
+    >>> hidden_1 = layer_1([adjacency_tensor, node_tensor])
+    >>> output = layer_2(hidden_1[2])
+
+    References
+    ----------
+    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+        for small molecular graphs", https://arxiv.org/abs/1805.11973
+    """
+
+    def __init__(self,
+                 units: Tuple = (128, 64),
+                 activation=torch.tanh,
+                 dropout_rate: float = 0.0,
+                 edges: int = 5,
+                 name: str = "",
+                 **kwargs):
+        """
+        Initialize the layer
+
+        Parameters
+        ---------
+        units: Tuple, optional (default=(128,64)), min_length=2
+            ist of dimensions used by consecutive convolution layers.
+            The more values the more convolution layers invoked.
+        activation: function, optional (default=Tanh)
+            activation function used across model, default is Tanh
+        dropout_rate: float, optional (default=0.0)
+            Used by dropout layer
+        edges: int, optional (default=5)
+            Controls how many dense layers use for single convolution unit.
+            Typically matches number of bond types used in the molecule.
+        name: string, optional (default="")
+            Name of the layer
+        """
+
+        super(MolGANMultiConvolutionLayer, self).__init__()
+        if len(units) < 2:
+            raise ValueError("units parameter must contain at least two values")
+        self.units: Tuple = units
+        self.activation = activation
+        self.dropout_rate: float = dropout_rate
+        self.edges: int = edges
+        self.name: str = name
+
+        self.first_convolution = MolGANConvolutionLayer(self.units[0],
+                                                        self.activation,
+                                                        self.dropout_rate,
+                                                        self.edges)
+        self.gcl = [
+            MolGANConvolutionLayer(u, self.activation, self.dropout_rate,
+                                   self.edges) for u in self.units[1:]
+        ]
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate}), edges={self.edges})"
+    
+    def forward(self, inputs: List) -> torch.Tensor:
+        """
+        Invoke this layer
+
+        Parameters
+        ----------
+        inputs: list
+            List of two input matrices, adjacency tensor and node features tensors
+            in one-hot encoding format.
+
+        Returns
+        --------
+        convolution tensor: tf.Tensor
+            Result of input tensors going through convolution a number of times.
+        """
+
+        adjacency_tensor = inputs[0]
+        node_tensor = inputs[1]
+
+        tensors = self.first_convolution([adjacency_tensor, node_tensor])
+
+        for layer in self.gcl:
+            tensors = layer(tensors)
+
+        _, _, hidden_tensor = tensors
+
+        return hidden_tensor
+    
+
 class DTNNStep(nn.Module):
     """DTNNStep Layer for DTNN model.
 
