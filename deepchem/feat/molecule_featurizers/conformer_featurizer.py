@@ -196,31 +196,27 @@ class RDKitConformerFeaturizer(MolecularFeaturizer):
         """
         # add hydrogen bonds to molecule because they are not in the smiles representation
         mol = Chem.AddHs(datapoint)
-        try:
-            ps = AllChem.ETKDGv2()
-            ps.useRandomCoords = True
-            AllChem.EmbedMolecule(mol, ps)
-            AllChem.EmbedMultipleConfs(mol, self.num_conformers)
-            AllChem.MMFFOptimizeMolecule(mol)
-            rmsd_list = []
-            rdMolAlign.AlignMolConformers(mol, RMSlist=rmsd_list)
-            # insert 0 RMSD for first conformer
-            rmsd_list.insert(0, 0)
-            conformers = [
-                mol.GetConformer(i)
-                for i in range(self.num_conformers)
-                if rmsd_list[i] < self.rmsd_cutoff
-            ]
-            # if conformer list is less than num_conformers, pad by repeating conformers
-            conf_idx = 0
-            while len(conformers) < self.num_conformers:
-                conformers.append(conformers[conf_idx])
-                conf_idx += 1
+        ps = AllChem.ETKDGv2()
+        ps.useRandomCoords = True
+        AllChem.EmbedMolecule(mol, ps)
+        AllChem.EmbedMultipleConfs(mol, self.num_conformers)
+        AllChem.MMFFOptimizeMolecule(mol)
+        rmsd_list = []
+        rdMolAlign.AlignMolConformers(mol, RMSlist=rmsd_list)
+        # insert 0 RMSD for first conformer
+        rmsd_list.insert(0, 0)
+        conformers = [
+            mol.GetConformer(i)
+            for i in range(self.num_conformers)
+            if rmsd_list[i] < self.rmsd_cutoff
+        ]
+        # if conformer list is less than num_conformers, pad by repeating conformers
+        conf_idx = 0
+        while len(conformers) < self.num_conformers:
+            conformers.append(conformers[conf_idx])
+            conf_idx += 1
 
-            coordinates = [conf.GetPositions() for conf in conformers]
-        except Exception as e:
-            print(e)
-            print("Error featurizing molecule: ", datapoint)
+        coordinates = [conf.GetPositions() for conf in conformers]
 
         atom_features_list = []
         for atom in mol.GetAtoms():
