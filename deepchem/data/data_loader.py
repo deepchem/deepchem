@@ -282,7 +282,8 @@ class CSVLoader(DataLoader):
     It's possible to directly featurize data from CSV files using
     pandas, but this class may prove useful if you're processing
     large CSV files that you don't want to manipulate directly in
-    memory.
+    memory. Note that samples which cannot be featurized are filtered
+    out in the creation of final dataset.
 
     Examples
     --------
