@@ -2986,16 +2986,6 @@ class DTNNEmbedding(nn.Module):
     [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
         tensor neural networks." Nature communications 8.1 (2017): 1-8.
 
-    Parameters
-    ----------
-    n_embedding: int, optional
-        Number of features for each atom
-    periodic_table_length: int, optional
-        Length of embedding, 83=Bi
-    initalizer: str, optional
-        Weight initialization for filters.
-        Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
-
     Examples
     --------
     >>> from deepchem.models.torch_models import layers
@@ -3012,14 +3002,25 @@ class DTNNEmbedding(nn.Module):
                  periodic_table_length: int = 30,
                  initalizer: str = 'xavier_uniform_',
                  **kwargs):
-
+        """
+        Parameters
+        ----------
+        n_embedding: int, optional
+            Number of features for each atom
+        periodic_table_length: int, optional
+            Length of embedding, 83=Bi
+        initalizer: str, optional
+            Weight initialization for filters.
+            Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
+        
+        """
         super(DTNNEmbedding, self).__init__(**kwargs)
         self.n_embedding = n_embedding
         self.periodic_table_length = periodic_table_length
         self.initalizer = initalizer  # Set weight initialization
 
         init_func: Callable = getattr(initializers, self.initalizer)
-        self.embedding_list: torch.Tensor = nn.Parameter(
+        self.embedding_list: nn.Parameter = nn.Parameter(
             init_func(
                 torch.empty([self.periodic_table_length, self.n_embedding])))
 
@@ -3205,20 +3206,6 @@ class DTNNStep(nn.Module):
     [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
         tensor neural networks." Nature communications 8.1 (2017): 1-8.
 
-    Parameters
-    ----------
-    n_embedding: int, optional
-        Number of features for each atom
-    n_distance: int, optional
-        granularity of distance matrix
-    n_hidden: int, optional
-        Number of nodes in hidden layer
-    initializer: str, optional
-        Weight initialization for filters.
-        Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
-    activation: str, optional
-        Activation function applied
-
     Examples
     --------
     >>> from deepchem.models.torch_models import layers
@@ -3244,7 +3231,22 @@ class DTNNStep(nn.Module):
                  initializer: str = 'xavier_uniform_',
                  activation='tanh',
                  **kwargs):
+        """
+        Parameters
+        ----------
+        n_embedding: int, optional
+            Number of features for each atom
+        n_distance: int, optional
+            granularity of distance matrix
+        n_hidden: int, optional
+            Number of nodes in hidden layer
+        initializer: str, optional
+            Weight initialization for filters.
+            Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
+        activation: str, optional
+            Activation function applied
 
+        """
         super(DTNNStep, self).__init__(**kwargs)
         self.n_embedding = n_embedding
         self.n_distance = n_distance
