@@ -14,7 +14,7 @@ def test_prepare_input_stream():
   # test for the prepare_input_stream function of Ferminet class
   h2_molecule = [['H', [0.0, 0.0, 1.0]], ['H', [0.0, 0.0, -1.0]]]
   li_atom = [["Li", [0.0, 0.0, 0.0]]]
-  molecule = FerminetModel(li_atom, spin=1, charge=0, seed=0, batch_no=4)
+  molecule = FerminetModel(li_atom, spin=1, charge=0, seed=0, batch_no=8)
   # assert np.shape(molecule.mo_values) == (2, 2)
   # input = torch.tensor([[0, 0, 0], [0, 0, 0.748]], requires_grad=True)
   # fermi = Ferminet(input,

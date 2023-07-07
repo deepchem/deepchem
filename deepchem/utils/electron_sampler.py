@@ -63,7 +63,8 @@ class ElectronSampler:
                  f: Callable[[np.ndarray], np.ndarray],
                  batch_no: int = 10,
                  x: np.ndarray = np.array([]),
-                 steps: int = 10,
+                 steps: int = 200,
+                 steps_per_update: int = 10,
                  seed: Optional[int] = None,
                  symmetric: bool = True,
                  simultaneous: bool = True):
@@ -93,8 +94,10 @@ class ElectronSampler:
         self.symmetric = symmetric
         self.simultaneous = simultaneous
         self.steps = steps
+        self.steps_per_update = steps_per_update
         self.central_value = central_value
         self.batch_no = batch_no
+        self.sampled_electrons = np.array([])
         if seed is not None:
             seed = int(seed)
             np.random.seed(seed)
@@ -191,6 +194,7 @@ class ElectronSampler:
         float
             accepted move ratio of the MCMC steps.
         """
+        self.sampled_electrons = np.array([])
 
         lp1 = self.f(self.x)  # log probability of self.x state
 
@@ -206,7 +210,15 @@ class ElectronSampler:
                                           size=np.shape(self.x)[0]))
                     cond = move_prob < ratio
                     lp1 = np.where(cond, lp2, lp1)
-                    self.x = np.where(cond[:, None, None, None], x2, self.x)
+                    tmp_sampled = np.where(cond[:, None, None, None], x2,
+                                           self.x)
+                    if (self.steps % self.steps_per_update) == 0:
+                        self.x = tmp_sampled
+                    if (np.shape(self.sampled_electrons)[0] == 0):
+                        self.sampled_electrons = tmp_sampled
+                    else:
+                        self.sampled_electrons = np.concatenate(
+                            (self.sampled_electrons, tmp_sampled))
                     self.num_accept += np.sum(cond)
 
             elif asymmetric_func is not None:
@@ -225,8 +237,15 @@ class ElectronSampler:
                                           high=1.0,
                                           size=np.shape(self.x)[0]))
                     cond = move_prob < ratio
-                    self.x = np.where(cond[:, None, None, None], x2, self.x)
-                    lp1 = np.where(cond, lp2, lp1)
+                    tmp_sampled = np.where(cond[:, None, None, None], x2,
+                                           self.x)
+                    if (self.steps % self.steps_per_update) == 0:
+                        self.x = tmp_sampled
+                    if (np.shape(self.sampled_electrons)[0] == 0):
+                        self.sampled_electrons = tmp_sampled
+                    else:
+                        self.sampled_electrons = np.concatenate(
+                            (self.sampled_electrons, tmp_sampled))
                     self.num_accept += np.sum(cond)
 
         elif index is not None:
@@ -247,7 +266,15 @@ class ElectronSampler:
                                           size=np.shape(self.x)[0]))
                     cond = move_prob < ratio
                     lp1 = np.where(cond, lp2, lp1)
-                    self.x = np.where(cond[:, None, None, None], x2, self.x)
+                    tmp_sampled = np.where(cond[:, None, None, None], x2,
+                                           self.x)
+                    if (self.steps % self.steps_per_update) == 0:
+                        self.x = tmp_sampled
+                    if (np.shape(self.sampled_electrons)[0] == 0):
+                        self.sampled_electrons = tmp_sampled
+                    else:
+                        self.sampled_electrons = np.concatenate(
+                            (self.sampled_electrons, tmp_sampled))
 
             elif asymmetric_func is not None:
                 init_dev = stddev * asymmetric_func(
@@ -270,7 +297,15 @@ class ElectronSampler:
                                           high=1.0,
                                           size=np.shape(self.x)[0]))
                     cond = move_prob < ratio
-                    self.x = np.where(cond[:, None, None, None], x2, self.x)
+                    tmp_sampled = np.where(cond[:, None, None, None], x2,
+                                           self.x)
+                    if (self.steps % self.steps_per_update) == 0:
+                        self.x = tmp_sampled
+                    if (np.shape(self.sampled_electrons)[0] == 0):
+                        self.sampled_electrons = tmp_sampled
+                    else:
+                        self.sampled_electrons = np.concatenate(
+                            (self.sampled_electrons, tmp_sampled))
                     lp1 = np.where(cond, lp2, lp1)
                     self.num_accept += np.sum(cond)
 
