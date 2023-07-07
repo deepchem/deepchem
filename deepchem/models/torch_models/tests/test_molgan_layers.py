@@ -145,3 +145,25 @@ def test_aggregation_layer_values():
 
     # Testing Values
     assert torch.allclose(output, output_tensor, atol=1e-04)
+
+
+@pytest.mark.torch
+def test_multigraph_convolution_layer_shape():
+    from deepchem.models.torch_models.layers import MolGANMultiConvolutionLayer
+    vertices = 9
+    nodes = 5
+    edges = 5
+    first_convolution_unit = 128
+    second_convolution_unit = 64
+    units = [first_convolution_unit, second_convolution_unit]
+
+    layer = MolGANMultiConvolutionLayer(units=units, edges=edges)
+    adjacency_tensor = torch.randn((1, vertices, vertices, edges))
+    node_tensor = torch.randn((1, vertices, nodes))
+    model = layer([adjacency_tensor, node_tensor])
+
+    assert model.shape == (1, vertices, second_convolution_unit)
+    assert layer.units == units
+    assert layer.activation == torch.tanh
+    assert layer.edges == 5
+    assert layer.dropout_rate == 0.0

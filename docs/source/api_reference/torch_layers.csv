@@ -36,3 +36,4 @@ EdgeNetwork, `ref <https://arxiv.org/abs/1704.01212>`_, Message Passing Neural N
 WeaveLayer,`ref <https://pubmed.ncbi.nlm.nih.gov/27558503/>`_, WeaveModel
 MolGANConvolutionLayer,`ref <https://arxiv.org/abs/1805.11973>`_, MolGan
 MolGANAggregationLayer,`ref <https://arxiv.org/abs/1805.11973>`_, MolGan
+MolGANMultiConvolutionLayer,`ref <https://arxiv.org/abs/1805.11973>`_, MolGan

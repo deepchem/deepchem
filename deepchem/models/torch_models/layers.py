@@ -3308,6 +3308,7 @@ class MolGANMultiConvolutionLayer(nn.Module):
     """
 
     def __init__(self,
+                 nodes: int = 5,
                  units: Tuple = (128, 64),
                  activation=torch.tanh,
                  dropout_rate: float = 0.0,
@@ -3319,6 +3320,7 @@ class MolGANMultiConvolutionLayer(nn.Module):
 
         Parameters
         ---------
+        nodes: int, optional (default=5)
         units: Tuple, optional (default=(128,64)), min_length=2
             ist of dimensions used by consecutive convolution layers.
             The more values the more convolution layers invoked.
@@ -3336,24 +3338,29 @@ class MolGANMultiConvolutionLayer(nn.Module):
         super(MolGANMultiConvolutionLayer, self).__init__()
         if len(units) < 2:
             raise ValueError("units parameter must contain at least two values")
+
+        self.nodes: int = nodes
         self.units: Tuple = units
         self.activation = activation
         self.dropout_rate: float = dropout_rate
         self.edges: int = edges
         self.name: str = name
 
-        self.first_convolution = MolGANConvolutionLayer(self.units[0],
-                                                        self.activation,
-                                                        self.dropout_rate,
-                                                        self.edges)
-        self.gcl = [
-            MolGANConvolutionLayer(u, self.activation, self.dropout_rate,
-                                   self.edges) for u in self.units[1:]
-        ]
+        self.first_convolution = MolGANConvolutionLayer(
+            units=self.units[0],
+            nodes=self.nodes,
+            activation=self.activation,
+            dropout_rate=self.dropout_rate,
+            edges=self.edges)
+        self.gcl = nn.Sequential(
+            *[MolGANConvolutionLayer(u, self.activation, self.dropout_rate, self.edges)
+              for u in self.units[1:]],
+            MolGANAggregationLayer(units=self.units[0])
+        )
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate}), edges={self.edges})"
-    
+
     def forward(self, inputs: List) -> torch.Tensor:
         """
         Invoke this layer
@@ -3381,7 +3388,7 @@ class MolGANMultiConvolutionLayer(nn.Module):
         _, _, hidden_tensor = tensors
 
         return hidden_tensor
-    
+
 
 class DTNNStep(nn.Module):
     """DTNNStep Layer for DTNN model.
