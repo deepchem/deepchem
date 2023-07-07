@@ -196,7 +196,7 @@ class FerminetModel(TorchModel):
         super(FerminetModel,
               self).__init__(model,
                              optimizer=adam,
-                             loss=dc.models.losses.L2Loss()
+                             loss=deepchem.models.losses.L2Loss()
                             )  # will update the loss in successive PRs
 
     def prepare_hf_solution(self, x: np.ndarray) -> np.ndarray:
