@@ -177,7 +177,7 @@ class FerminetModel(TorchModel):
         nucl = torch.from_numpy(self.nucleon_pos)
         model = Ferminet(nucl,
                          spin=(self.up_spin, self.down_spin),
-                         nuclear_charge=charge,
+                         nuclear_charge=torch.tensor(charge),
                          inter_atom=torch.tensor(
                              compute_pairwise_distances(self.nucleon_pos,
                                                         self.nucleon_pos)))
@@ -193,9 +193,11 @@ class FerminetModel(TorchModel):
         self.molecule.gauss_initialize_position(
             self.electron_no)  # initialize the position of the electrons
         adam = optimizers.AdamW()
-        super(FerminetModel, self).__init__(model,
-                                            optimizer=adam,
-                                            loss=torch.nn.CrossEntropyLoss)
+        super(FerminetModel,
+              self).__init__(model,
+                             optimizer=adam,
+                             loss=dc.models.losses.L2Loss()
+                            )  # will update the loss in successive PRs
 
     def prepare_hf_solution(self, x: np.ndarray) -> np.ndarray:
         """Prepares the HF solution for the molecule system which is to be used in pretraining
