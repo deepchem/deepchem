@@ -9,6 +9,7 @@ import numpy as np
 from deepchem.utils.molecule_feature_utils import ALLEN_ELECTRONEGATIVTY
 from deepchem.utils.geometry_utils import compute_pairwise_distances
 from deepchem.models.torch_models import TorchModel
+from deepchem.models.losses import L2Loss
 import deepchem.models.optimizers as optimizers
 import torch
 
@@ -193,11 +194,9 @@ class FerminetModel(TorchModel):
         self.molecule.gauss_initialize_position(
             self.electron_no)  # initialize the position of the electrons
         adam = optimizers.AdamW()
-        super(FerminetModel,
-              self).__init__(model,
-                             optimizer=adam,
-                             loss=deepchem.models.losses.L2Loss()
-                            )  # will update the loss in successive PRs
+        super(FerminetModel, self).__init__(
+            model, optimizer=adam,
+            loss=L2Loss())  # will update the loss in successive PRs
 
     def prepare_hf_solution(self, x: np.ndarray) -> np.ndarray:
         """Prepares the HF solution for the molecule system which is to be used in pretraining
