@@ -10,7 +10,6 @@ from deepchem.utils.molecule_feature_utils import ALLEN_ELECTRONEGATIVTY
 from deepchem.utils.geometry_utils import compute_pairwise_distances
 from deepchem.models.torch_models import TorchModel
 import deepchem.models.optimizers as optimizers
-import pyscf
 import torch
 
 from deepchem.utils.electron_sampler import ElectronSampler
@@ -211,6 +210,11 @@ class FerminetModel(TorchModel):
         hf_value: np.ndarray
         Numpy array of shape (number of electrons, number of electrons ) where ith row & jth value corresponds to the ith hartree fock orbital at the jth electron's coordinate
     """
+        try:
+            import pyscf
+        except ModuleNotFoundError:
+            raise ImportError("This module requires PyTorch Geometric")
+
         molecule = ""
         for i in range(len(self.nucleon_pos)):
             molecule = molecule + self.nucleon_coordinates[i][0] + " " + str(
