@@ -3071,8 +3071,8 @@ class MolGANConvolutionLayer(nn.Module):
     hidden_layer and it hold results of the convolution while first two are unchanged
     input tensors.
 
-    Example
-    -------
+    Examples
+    --------
     See: MolGANMultiConvolutionLayer for using in layers.
 
     >>> import torch
@@ -3195,8 +3195,8 @@ class MolGANAggregationLayer(nn.Module):
     MolGANEncoderLayer.
 
 
-    Example
-    -------
+    Examples
+    --------
     >>> import torch
     >>> import torch.nn as nn
     >>> import torch.nn.functional as F
