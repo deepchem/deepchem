@@ -3250,6 +3250,14 @@ class MolGANAggregationLayer(nn.Module):
         self.dropout_layer = nn.Dropout(dropout_rate)
 
     def __repr__(self) -> str:
+        """
+        String representation of the layer
+        
+        Returns
+        -------
+        string
+            String representation of the layer    
+        """
         return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate})"
 
     def forward(self, inputs: List) -> torch.Tensor:
