@@ -28,23 +28,23 @@ class Ferminet(torch.nn.Module):
   """
 
     def __init__(self,
-                 nucleon_pos: torch.tensor,
-                 nuclear_charge: torch.tensor,
+                 nucleon_pos: torch.Tensor,
+                 nuclear_charge: torch.Tensor,
                  spin: tuple,
-                 inter_atom: torch.tensor,
+                 inter_atom: torch.Tensor,
                  n_one: List = [256, 256, 256, 256],
                  n_two: List = [32, 32, 32, 32],
                  determinant: int = 16) -> None:
         """
     Parameters:
     -----------
-    nucleon_pos: torch.tensor
+    nucleon_pos: torch.Tensor
         Torch tensor containing nucleus information of the molecule
-    nuclear_charge: torch.tensor
+    nuclear_charge: torch.Tensor
         Torch tensor containing the number of electron for each atom in the molecule
     spin: tuple
         Tuple in the format of (up_spin, down_spin)
-    inter_atom: torch.tensor
+    inter_atom: torch.Tensor
         Torch tensor containing the pairwise distances between the atoms in the molecule
     n_one: List
       List of hidden units for the one-electron stream in each layer
@@ -111,9 +111,9 @@ class FerminetModel(TorchModel):
 
     Attributes:
     -----------
-    nucleon_pos: torch.tensor
-        Torch tensor value of nucleon_coordinates
-    electron_no: torch.tensor
+    nucleon_pos: np.ndarray
+        numpy array value of nucleon_coordinates
+    electron_no: np.ndarray
         Torch tensor containing electrons for each atom in the nucleus
     self.molecule: ElectronSampler
         ElectronSampler object which performs MCMC and samples electrons
@@ -192,7 +192,7 @@ class FerminetModel(TorchModel):
         )  # sample the electrons using the electron sampler
         self.molecule.gauss_initialize_position(
             self.electron_no)  # initialize the position of the electrons
-        adam = optimizers.Adam()
+        adam = optimizers.AdamW()
         super(FerminetModel, self).__init__(model,
                                             optimizer=adam,
                                             loss=torch.nn.CrossEntropyLoss)
