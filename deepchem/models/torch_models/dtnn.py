@@ -10,7 +10,7 @@ from deepchem.models.torch_models import TorchModel
 class DTNN(nn.Module):
     """Deep Tensor Neural Networks
 
-    This class implements deep tensor neural networks as first defined in [1]_
+    In this class, we establish a sequential model for the Deep Tensor Neural Network (DTNN) [1]_.
 
     References
     ----------
@@ -112,7 +112,34 @@ class DTNN(nn.Module):
 
 
 class DTNNModel(TorchModel):
-    """Implements DTNN models for regression and classification.
+    """Implements DTNN models for regression.
+
+    This class implements the Directed Message Passing Neural Network (D-MPNN) [1]_.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> import os
+    >>> model_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    >>> input_file = os.path.join(model_dir, 'assets/example_DTNN.mat')
+    >>> X = dataset['X']
+    >>> y = dataset['T']
+    >>> w = np.ones_like(y)
+    >>> dataset = NumpyDataset(X, y, w, ids=None)
+    >>> n_tasks = y.shape[1]
+    >>> model = DTNNModel(n_tasks,
+    ...               n_embedding=20,
+    ...               n_distance=100,
+    ...               learning_rate=1.0,
+    ...               mode="regression")
+    >>> model.fit(dataset, nb_epoch=250)
+    >>> pred = model.predict(dataset)
+
+    References
+    ----------
+    .. [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
+        tensor neural networks." Nature communications 8.1 (2017): 1-8.
+
     """
 
     def __init__(self,
