@@ -526,8 +526,7 @@ class InfoMax3DModular(ModularTorchModel):
                       fourier_encodings=self.fourier_encodings,
                       update_net_layers=self.update_net_layers,
                       message_net_layers=self.message_net_layers,
-                      use_node_features=self.use_node_features,
-                      **self.kwargs)
+                      use_node_features=self.use_node_features),
         }
 
     def build_model(self):

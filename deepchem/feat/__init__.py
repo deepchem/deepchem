@@ -41,6 +41,7 @@ from deepchem.feat.molecule_featurizers import DMPNNFeaturizer
 from deepchem.feat.molecule_featurizers import GroverFeaturizer
 from deepchem.feat.molecule_featurizers import SNAPFeaturizer
 from deepchem.feat.molecule_featurizers import RDKitConformerFeaturizer
+from deepchem.feat.molecule_featurizers import MXMNetFeaturizer
 
 # complex featurizers
 from deepchem.feat.complex_featurizers import RdkitGridFeaturizer
