@@ -1,4 +1,3 @@
-import copy
 from functools import partial
 from math import sqrt
 from typing import Callable, Dict, List, Union
@@ -501,7 +500,7 @@ class PNAGNN(nn.Module):
         self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
         self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
 
-    def forward(self, input_graph: dgl.DGLGraph):
+    def forward(self, input_graph: dgl.DGLGraph) -> dgl.DGLGraph:
         """
         Forward pass of the PNAGNN model.
 
@@ -515,7 +514,7 @@ class PNAGNN(nn.Module):
         graph : dgl.DGLGraph
             Output graph with updated node features after applying the message passing layers.
         """
-        graph = copy.deepcopy(input_graph)
+        graph = input_graph.clone()
         graph.ndata['feat'] = self.atom_encoder(graph.ndata['x'])
         graph.edata['feat'] = self.bond_encoder(graph.edata['edge_attr'])
 
