@@ -27,4 +27,3 @@ dependencies:
     - xgboost
     - gensim  # used by mol2vec
     - tensorboard
-    - pyscf
