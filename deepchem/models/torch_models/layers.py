@@ -2986,16 +2986,6 @@ class DTNNEmbedding(nn.Module):
     [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
         tensor neural networks." Nature communications 8.1 (2017): 1-8.
 
-    Parameters
-    ----------
-    n_embedding: int, optional
-        Number of features for each atom
-    periodic_table_length: int, optional
-        Length of embedding, 83=Bi
-    initalizer: str, optional
-        Weight initialization for filters.
-        Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
-
     Examples
     --------
     >>> from deepchem.models.torch_models import layers
@@ -3012,15 +3002,27 @@ class DTNNEmbedding(nn.Module):
                  periodic_table_length: int = 30,
                  initalizer: str = 'xavier_uniform_',
                  **kwargs):
-
+        """
+        Parameters
+        ----------
+        n_embedding: int, optional
+            Number of features for each atom
+        periodic_table_length: int, optional
+            Length of embedding, 83=Bi
+        initalizer: str, optional
+            Weight initialization for filters.
+            Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
+        
+        """
         super(DTNNEmbedding, self).__init__(**kwargs)
         self.n_embedding = n_embedding
         self.periodic_table_length = periodic_table_length
         self.initalizer = initalizer  # Set weight initialization
 
         init_func: Callable = getattr(initializers, self.initalizer)
-        self.embedding_list: torch.Tensor = init_func(
-            torch.empty([self.periodic_table_length, self.n_embedding]))
+        self.embedding_list: nn.Parameter = nn.Parameter(
+            init_func(
+                torch.empty([self.periodic_table_length, self.n_embedding])))
 
     def __repr__(self) -> str:
         """Returns a string representing the configuration of the layer.
@@ -3071,8 +3073,8 @@ class MolGANConvolutionLayer(nn.Module):
     hidden_layer and it hold results of the convolution while first two are unchanged
     input tensors.
 
-    Example
-    -------
+    Examples
+    --------
     See: MolGANMultiConvolutionLayer for using in layers.
 
     >>> import torch
@@ -3097,7 +3099,7 @@ class MolGANConvolutionLayer(nn.Module):
     def __init__(self,
                  units: int,
                  nodes: int,
-                 activation=F.tanh,
+                 activation=torch.tanh,
                  dropout_rate: float = 0.0,
                  edges: int = 5,
                  name: str = "",
@@ -3186,6 +3188,103 @@ class MolGANConvolutionLayer(nn.Module):
         return adjacency_tensor, node_tensor, output
 
 
+class MolGANAggregationLayer(nn.Module):
+    """
+    Graph Aggregation layer used in MolGAN model.
+    MolGAN is a WGAN type model for generation of small molecules.
+    Performs aggregation on tensor resulting from convolution layers.
+    Given its simple nature it might be removed in future and moved to
+    MolGANEncoderLayer.
+
+
+    Examples
+    --------
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+    >>> vertices = 9
+    >>> nodes = 5
+    >>> edges = 5
+    >>> units = 128
+
+    >>> layer_1 = MolGANConvolutionLayer(units=units,nodes=nodes,edges=edges, name='layer1')
+    >>> layer_2 = MolGANAggregationLayer(units=128, name='layer2')
+    >>> adjacency_tensor = torch.randn((1, vertices, vertices, edges))
+    >>> node_tensor = torch.randn((1, vertices, nodes))
+    >>> hidden_1 = layer_1([adjacency_tensor, node_tensor])
+    >>> output = layer_2(hidden_1[2])
+
+    References
+    ----------
+    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+        for small molecular graphs", https://arxiv.org/abs/1805.11973
+    """
+
+    def __init__(self,
+                 units: int = 128,
+                 activation=torch.tanh,
+                 dropout_rate: float = 0.0,
+                 name: str = "",
+                 **kwargs):
+        """
+        Initialize the layer
+
+        Parameters
+        ---------
+        units: int, optional (default=128)
+            Dimesion of dense layers used for aggregation
+        activation: function, optional (default=Tanh)
+            activation function used across model, default is Tanh
+        dropout_rate: float, optional (default=0.0)
+            Used by dropout layer
+        name: string, optional (default="")
+            Name of the layer
+        """
+
+        super(MolGANAggregationLayer, self).__init__()
+        self.units: int = units
+        self.activation = activation
+        self.dropout_rate: float = dropout_rate
+        self.name: str = name
+
+        self.d1 = nn.Linear(self.units, self.units)
+        self.d2 = nn.Linear(self.units, self.units)
+        self.dropout_layer = nn.Dropout(dropout_rate)
+
+    def __repr__(self) -> str:
+        """
+        String representation of the layer
+        
+        Returns
+        -------
+        string
+            String representation of the layer    
+        """
+        return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate})"
+
+    def forward(self, inputs: List) -> torch.Tensor:
+        """
+        Invoke this layer
+
+        Parameters
+        ----------
+        inputs: List
+            Single tensor resulting from graph convolution layer
+
+        Returns
+        --------
+        aggregation tensor: torch.Tensor
+          Result of aggregation function on input convolution tensor.
+        """
+
+        i = torch.sigmoid(self.d1(inputs))
+        j = self.activation(self.d2(inputs))
+        output = torch.sum(i * j, dim=1)
+        output = self.activation(output)
+        output = self.dropout_layer(output)
+        return output
+
+
 class DTNNStep(nn.Module):
     """DTNNStep Layer for DTNN model.
 
@@ -3203,20 +3302,6 @@ class DTNNStep(nn.Module):
     ----------
     [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
         tensor neural networks." Nature communications 8.1 (2017): 1-8.
-
-    Parameters
-    ----------
-    n_embedding: int, optional
-        Number of features for each atom
-    n_distance: int, optional
-        granularity of distance matrix
-    n_hidden: int, optional
-        Number of nodes in hidden layer
-    initializer: str, optional
-        Weight initialization for filters.
-        Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
-    activation: str, optional
-        Activation function applied
 
     Examples
     --------
@@ -3243,7 +3328,22 @@ class DTNNStep(nn.Module):
                  initializer: str = 'xavier_uniform_',
                  activation='tanh',
                  **kwargs):
+        """
+        Parameters
+        ----------
+        n_embedding: int, optional
+            Number of features for each atom
+        n_distance: int, optional
+            granularity of distance matrix
+        n_hidden: int, optional
+            Number of nodes in hidden layer
+        initializer: str, optional
+            Weight initialization for filters.
+            Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
+        activation: str, optional
+            Activation function applied
 
+        """
         super(DTNNStep, self).__init__(**kwargs)
         self.n_embedding = n_embedding
         self.n_distance = n_distance
@@ -3254,15 +3354,18 @@ class DTNNStep(nn.Module):
 
         init_func: Callable = getattr(initializers, self.initializer)
 
-        self.W_cf = init_func(torch.empty([self.n_embedding, self.n_hidden]))
-        self.W_df = init_func(torch.empty([self.n_distance, self.n_hidden]))
-        self.W_fc = init_func(torch.empty([self.n_hidden, self.n_embedding]))
-        self.b_cf = torch.zeros(size=[
+        self.W_cf = nn.Parameter(
+            init_func(torch.empty([self.n_embedding, self.n_hidden])))
+        self.W_df = nn.Parameter(
+            init_func(torch.empty([self.n_distance, self.n_hidden])))
+        self.W_fc = nn.Parameter(
+            init_func(torch.empty([self.n_hidden, self.n_embedding])))
+        self.b_cf = nn.Parameter(torch.zeros(size=[
             self.n_hidden,
-        ])
-        self.b_df = torch.zeros(size=[
+        ]))
+        self.b_df = nn.Parameter(torch.zeros(size=[
             self.n_hidden,
-        ])
+        ]))
 
     def __repr__(self):
         """Returns a string representing the configuration of the layer.
