@@ -3847,6 +3847,7 @@ class WeaveLayer(nn.Module):
 
         return [A, P]
 
+
 class Highway(nn.Module):
     """
         Highway layer used in TextCNN model.
@@ -3867,9 +3868,10 @@ class Highway(nn.Module):
         torch.Size([10, 2])
 
         """
+
     def __init__(self,
-                 activation: str='relu',
-                 biases_initializer: str='zeros',
+                 activation: str = 'relu',
+                 biases_initializer: str = 'zeros',
                  weights_initializer='kaiming_uniform_',
                  layer_shape=[5, 2],
                  **kwargs):
@@ -3877,7 +3879,7 @@ class Highway(nn.Module):
               Parameters
               ----------
               activation_fn: str , optional (default: ReLU)
-                  the PyTorch activation function to apply to the output
+                  Activation function to apply to the output
               biases_initializer: str, optional
                   the initializer for bias values.  This may be None, in which case the layer
                   will not include biases.
@@ -3886,7 +3888,7 @@ class Highway(nn.Module):
               """
         super(Highway, self).__init__(**kwargs)
         self.activation = activation
-        self.biases_initializer =  biases_initializer
+        self.biases_initializer = biases_initializer
         self.weights_initializer = weights_initializer
         self.activation_fn = get_activation(self.activation)
 
@@ -3899,12 +3901,41 @@ class Highway(nn.Module):
         self.linear_T = init_func(torch.empty([input_shape, out_channels]))
 
     def __repr__(self) -> str:
+        """Returns a string representing the configuration of the layer.
+
+        Returns
+        -------
+        activation_fn: str, optional
+            Activation function applied
+        biases_initializer: str, optional
+            The initializer for bias values
+        weights_initializer: str, optional
+            The initializer for weight values
+
+        """
         return (
             f'{self.__class__.__name__}(activation_fn={self.activation_fn}, '
             f'biases_initializer={self.biases_initializer}, '
             f'weights_initializer={self.weights_initializer})')
 
     def forward(self, inputs: torch.Tensor):
+        """Applies the Highway transformation to the input tensor.
+
+        Parameters
+        ----------
+        inputs: torch.Tensor
+            It should be a 2-dimensional tensor with shape [batch_size, input_shape],
+            where `batch_size` is the number of samples in the batch and `input_shape
+            is the size of the input features.
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of the Highway layer. It has the same shape as the input tensor,
+            [batch_size, input_shape], and represents the result of applying the Highway
+            transformation to the input.
+
+        """
         if isinstance(inputs, (list, tuple)):
             parent = inputs[0]
         else:

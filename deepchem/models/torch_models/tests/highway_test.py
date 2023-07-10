@@ -25,3 +25,24 @@ def test_highway():
   result3 = layer(input)
   assert torch.allclose(result, result3)
 
+
+def test_highway_layer_shape():
+  from deepchem.models.torch_models.layers import HighwayLayer
+  width = 5
+  batch_size = 10
+
+  layer = HighwayLayer(inputs=inputs)
+  layer_H = torch.randn([input_shape, out_channels])
+  output = layer(inputs)
+  output_tf = (
+      5, 3
+     )
+     # Testing Shapes with TF Model Output
+  assert output.shape == output_tf
+  assert dense_H.shape == dense_H
+  assert dense_T.shape == dense_T
+
+     # Testing Shapes
+  assert output.shape == (width,batch_size)
+  assert layer.activation == torch.ReLU
+
