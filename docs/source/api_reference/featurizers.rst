@@ -100,6 +100,13 @@ RDKitConformerFeaturizer
 .. autoclass:: deepchem.feat.RDKitConformerFeaturizer
   :members:
 
+MXMNetFeaturizer
+**********************
+
+.. autoclass:: deepchem.feat.MXMNetFeaturizer
+  :members:
+  :inherited-members:
+
 Utilities
 *********
 
