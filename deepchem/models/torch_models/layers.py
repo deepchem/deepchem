@@ -3885,7 +3885,8 @@ class Highway(nn.Module):
                   will not include biases.
               weights_initializer: str, optional
                   the initializer for weight values
-              """
+
+        """
         super(Highway, self).__init__(**kwargs)
         self.activation = activation
         self.biases_initializer = biases_initializer
@@ -3930,7 +3931,7 @@ class Highway(nn.Module):
 
         Returns
         -------
-        torch.Tensor
+        outputs: torch.Tensor
             Output tensor of the Highway layer. It has the same shape as the input tensor,
             [batch_size, input_shape], and represents the result of applying the Highway
             transformation to the input.

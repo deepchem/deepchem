@@ -34,9 +34,7 @@ def test_highway_layer_shape():
   layer = HighwayLayer(inputs=inputs)
   layer_H = torch.randn([input_shape, out_channels])
   output = layer(inputs)
-  output_tf = (
-      5, 3
-     )
+  output_tf = (5, 3)
      # Testing Shapes with TF Model Output
   assert output.shape == output_tf
   assert dense_H.shape == dense_H
