@@ -167,3 +167,6 @@ def test_multigraph_convolution_layer_shape():
     assert layer.activation == torch.tanh
     assert layer.edges == 5
     assert layer.dropout_rate == 0.0
+
+if __name__ == "__main__":
+    test_multigraph_convolution_layer_shape()

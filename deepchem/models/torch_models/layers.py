@@ -3138,6 +3138,14 @@ class MolGANConvolutionLayer(nn.Module):
         self.dropout: nn.Dropout = nn.Dropout(self.dropout_rate)
 
     def __repr__(self) -> str:
+        """
+        Returns a string representing the configuration of the layer.
+        
+        Returns
+        -------
+        str
+            String representation of the layer
+        """
         return (
             f'{self.__class__.__name__}(Units={self.units}, Nodes={self.nodes}, Activation={self.activation}, Dropout_rate={self.droput_rate}, Edges={self.edges}, Name={self.name})'
         )
@@ -3318,8 +3326,8 @@ class MolGANMultiConvolutionLayer(nn.Module):
     """
 
     def __init__(self,
-                 nodes: int = 5,
                  units: Tuple = (128, 64),
+                 nodes: int = 5,
                  activation=torch.tanh,
                  dropout_rate: float = 0.0,
                  edges: int = 5,
@@ -3330,10 +3338,11 @@ class MolGANMultiConvolutionLayer(nn.Module):
 
         Parameters
         ---------
-        nodes: int, optional (default=5)
         units: Tuple, optional (default=(128,64)), min_length=2
             ist of dimensions used by consecutive convolution layers.
             The more values the more convolution layers invoked.
+        nodes: int, optional (default=5)
+            Number of features in node tensor
         activation: function, optional (default=Tanh)
             activation function used across model, default is Tanh
         dropout_rate: float, optional (default=0.0)
@@ -3362,13 +3371,23 @@ class MolGANMultiConvolutionLayer(nn.Module):
             activation=self.activation,
             dropout_rate=self.dropout_rate,
             edges=self.edges)
-        self.gcl = nn.Sequential(
-            *[MolGANConvolutionLayer(u, self.activation, self.dropout_rate, self.edges)
-              for u in self.units[1:]],
-            MolGANAggregationLayer(units=self.units[0])
-        )
+        self.gcl = nn.ModuleList([
+            MolGANConvolutionLayer(units=u,
+                                   nodes=self.nodes,
+                                   activation=self.activation,
+                                   dropout_rate=self.dropout_rate,
+                                   edges=self.edges) for u in self.units[1:]
+        ])
 
     def __repr__(self) -> str:
+        """
+        String representation of the layer
+        
+        Returns
+        -------
+        string
+            String representation of the layer
+        """
         return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate}), edges={self.edges})"
 
     def forward(self, inputs: List) -> torch.Tensor:
@@ -3383,7 +3402,7 @@ class MolGANMultiConvolutionLayer(nn.Module):
 
         Returns
         --------
-        convolution tensor: tf.Tensor
+        convolution tensor: torch.Tensor
             Result of input tensors going through convolution a number of times.
         """
 
@@ -3392,7 +3411,9 @@ class MolGANMultiConvolutionLayer(nn.Module):
 
         tensors = self.first_convolution([adjacency_tensor, node_tensor])
 
+        # Loop over the remaining convolution layers
         for layer in self.gcl:
+            # Apply the current layer to the outputs from the previous layer
             tensors = layer(tensors)
 
         _, _, hidden_tensor = tensors
