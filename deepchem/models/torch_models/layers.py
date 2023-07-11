@@ -3073,8 +3073,8 @@ class MolGANConvolutionLayer(nn.Module):
     hidden_layer and it hold results of the convolution while first two are unchanged
     input tensors.
 
-    Example
-    -------
+    Examples
+    --------
     See: MolGANMultiConvolutionLayer for using in layers.
 
     >>> import torch
@@ -3099,7 +3099,7 @@ class MolGANConvolutionLayer(nn.Module):
     def __init__(self,
                  units: int,
                  nodes: int,
-                 activation=F.tanh,
+                 activation=torch.tanh,
                  dropout_rate: float = 0.0,
                  edges: int = 5,
                  name: str = "",
@@ -3186,6 +3186,103 @@ class MolGANConvolutionLayer(nn.Module):
         output_act: torch.Tensor = self.activation(output_sum)
         output = self.dropout(output_act)
         return adjacency_tensor, node_tensor, output
+
+
+class MolGANAggregationLayer(nn.Module):
+    """
+    Graph Aggregation layer used in MolGAN model.
+    MolGAN is a WGAN type model for generation of small molecules.
+    Performs aggregation on tensor resulting from convolution layers.
+    Given its simple nature it might be removed in future and moved to
+    MolGANEncoderLayer.
+
+
+    Examples
+    --------
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+    >>> vertices = 9
+    >>> nodes = 5
+    >>> edges = 5
+    >>> units = 128
+
+    >>> layer_1 = MolGANConvolutionLayer(units=units,nodes=nodes,edges=edges, name='layer1')
+    >>> layer_2 = MolGANAggregationLayer(units=128, name='layer2')
+    >>> adjacency_tensor = torch.randn((1, vertices, vertices, edges))
+    >>> node_tensor = torch.randn((1, vertices, nodes))
+    >>> hidden_1 = layer_1([adjacency_tensor, node_tensor])
+    >>> output = layer_2(hidden_1[2])
+
+    References
+    ----------
+    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+        for small molecular graphs", https://arxiv.org/abs/1805.11973
+    """
+
+    def __init__(self,
+                 units: int = 128,
+                 activation=torch.tanh,
+                 dropout_rate: float = 0.0,
+                 name: str = "",
+                 **kwargs):
+        """
+        Initialize the layer
+
+        Parameters
+        ---------
+        units: int, optional (default=128)
+            Dimesion of dense layers used for aggregation
+        activation: function, optional (default=Tanh)
+            activation function used across model, default is Tanh
+        dropout_rate: float, optional (default=0.0)
+            Used by dropout layer
+        name: string, optional (default="")
+            Name of the layer
+        """
+
+        super(MolGANAggregationLayer, self).__init__()
+        self.units: int = units
+        self.activation = activation
+        self.dropout_rate: float = dropout_rate
+        self.name: str = name
+
+        self.d1 = nn.Linear(self.units, self.units)
+        self.d2 = nn.Linear(self.units, self.units)
+        self.dropout_layer = nn.Dropout(dropout_rate)
+
+    def __repr__(self) -> str:
+        """
+        String representation of the layer
+        
+        Returns
+        -------
+        string
+            String representation of the layer    
+        """
+        return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate})"
+
+    def forward(self, inputs: List) -> torch.Tensor:
+        """
+        Invoke this layer
+
+        Parameters
+        ----------
+        inputs: List
+            Single tensor resulting from graph convolution layer
+
+        Returns
+        --------
+        aggregation tensor: torch.Tensor
+          Result of aggregation function on input convolution tensor.
+        """
+
+        i = torch.sigmoid(self.d1(inputs))
+        j = self.activation(self.d2(inputs))
+        output = torch.sum(i * j, dim=1)
+        output = self.activation(output)
+        output = self.dropout_layer(output)
+        return output
 
 
 class DTNNStep(nn.Module):
