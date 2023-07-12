@@ -1181,3 +1181,73 @@ def test_global_MP():
         np.load("deepchem/models/tests/assets/global_MP_result.npy"),
         atol=1e-04)
     assert output.shape == (5, 1)
+
+
+@pytest.mark.torch
+def test_local_MP():
+
+    seed = 123
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+
+    dim = 1
+    n_layer = 2
+    cutoff = 5
+
+    config = {'dim': dim, 'n_layer': n_layer, 'cutoff': cutoff}
+
+    h = torch.tensor([[0.8343], [1.2713], [1.2713], [1.2713], [1.2713]])
+
+    rbf = torch.tensor([[-0.2628], [-0.2628], [-0.2628], [-0.2628], [-0.2629],
+                        [-0.2629], [-0.2628], [-0.2628]])
+
+    sbf1 = torch.tensor([[-0.2767], [-0.2767], [-0.2767], [-0.2767], [-0.2767],
+                         [-0.2767], [-0.2767], [-0.2767], [-0.2767], [-0.2767],
+                         [-0.2767], [-0.2767]])
+
+    sbf2 = torch.tensor([[-0.0301], [-0.0301], [-0.1483], [-0.1486], [-0.1484],
+                         [-0.0301], [-0.1483], [-0.0301], [-0.1485], [-0.1483],
+                         [-0.0301], [-0.1486], [-0.1485], [-0.0301], [-0.1486],
+                         [-0.0301], [-0.1484], [-0.1483], [-0.1486], [-0.0301]])
+
+    idx_kj = torch.tensor([3, 5, 7, 1, 5, 7, 1, 3, 7, 1, 3, 5])
+
+    idx_ji_1 = torch.tensor([0, 0, 0, 2, 2, 2, 4, 4, 4, 6, 6, 6])
+
+    idx_jj = torch.tensor(
+        [0, 1, 3, 5, 7, 2, 1, 3, 5, 7, 4, 1, 3, 5, 7, 6, 1, 3, 5, 7])
+
+    idx_ji_2 = torch.tensor(
+        [0, 1, 1, 1, 1, 2, 3, 3, 3, 3, 4, 5, 5, 5, 5, 6, 7, 7, 7, 7])
+
+    edge_index = torch.tensor([[0, 1, 0, 2, 0, 3, 0, 4],
+                               [1, 0, 2, 0, 3, 0, 4, 0]])
+
+    out = dc.models.torch_models.layers.LocalMessagePassing(config)
+    output = out(h,
+                 rbf,
+                 sbf1,
+                 sbf2,
+                 idx_kj,
+                 idx_ji_1,
+                 idx_jj,
+                 idx_ji_2,
+                 edge_index,
+                 num_nodes=None)
+
+    assert np.allclose(
+        output[0].detach().numpy(),
+        np.load("deepchem/models/tests/assets/Local_MP_result_y.npy"),
+        atol=1e-04)
+
+    assert np.allclose(
+        output[1].detach().numpy(),
+        np.load("deepchem/models/tests/assets/Local_MP_result_t.npy"),
+        atol=1e-04)
+
+    assert output[0].shape == (5, 1)
+    assert output[1].shape == (5, 1)
