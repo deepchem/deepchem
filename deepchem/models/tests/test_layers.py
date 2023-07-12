@@ -1173,7 +1173,7 @@ def test_global_MP():
         [[0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4],
          [1, 2, 3, 4, 0, 2, 3, 4, 0, 1, 3, 4, 0, 1, 2, 4, 0, 1, 2, 3]])
 
-    out = dc.models.torch_models.layers.Global_MP(config)
+    out = dc.models.torch_models.layers.GlobalMessagePassing(config)
     output = out(h, edge_attr, edge_index)
 
     assert np.allclose(

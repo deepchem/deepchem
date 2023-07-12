@@ -3753,10 +3753,10 @@ class WeaveLayer(nn.Module):
         return [A, P]
 
 
-class Global_MP(MessagePassing):
+class GlobalMessagePassing(MessagePassing):
 
     def __init__(self, config):
-        super(Global_MP, self).__init__()
+        super(GlobalMessagePassing, self).__init__()
 
         self.dim = config['dim']
         self.mlp = MultilayerPerceptron(d_input=self.dim,
