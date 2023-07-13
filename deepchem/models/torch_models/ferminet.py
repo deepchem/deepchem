@@ -214,7 +214,7 @@ class FerminetModel(TorchModel):
         try:
             import pyscf
         except ModuleNotFoundError:
-            raise ImportError("This module requires PyTorch Geometric")
+            raise ImportError("This module requires pySCF")
 
         molecule = ""
         for i in range(len(self.nucleon_pos)):

@@ -29,6 +29,7 @@ def test_FerminetModel():
     assert mol.up_spin == 2 and mol.down_spin == 1
 
 
+@pytest.mark.dqc
 def test_prepare_hf_solution():
     # Test for the prepare_hf_solution function of FerminetModel class
     H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
