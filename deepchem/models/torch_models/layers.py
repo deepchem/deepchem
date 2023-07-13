@@ -3422,8 +3422,7 @@ class DTNNStep(nn.Module):
         output_ii = self.activation_fn(output_ii)
 
         # for atom i, sum the influence from all other atom j in the molecule
-        intraction_vector = scatter(outputs,
-                                    distance_membership_i.to(torch.int64),
+        intraction_vector = scatter(outputs, distance_membership_i,
                                     dim=0) - output_ii + atom_features
         return intraction_vector
 
