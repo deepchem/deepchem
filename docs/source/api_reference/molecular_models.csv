@@ -12,7 +12,7 @@ MPNNModel,`ref <https://arxiv.org/abs/1704.01212>`_,Classifier/ Regressor,MolGra
 PagtnModel,`ref <https://arxiv.org/abs/1905.12712>`_,Classifier/ Regressor,PagtnMolGraphFeaturizer MolGraphConvFeaturizer,DGL/PyTorch,
 Smiles2Vec,`ref <https://arxiv.org/abs/1712.02034>`_,Classifier/ Regressor,SmilesToSeq,Keras,
 TextCNNModel,`ref <https://arxiv.org/abs/1705.10843>`_,Classifier/ Regressor,,Keras,
-DTNNModel,`ref <https://arxiv.org/abs/1609.08259>`_,Regressor,CoulombMatrix,Keras/PyTorch,
+DTNNModel,`ref <https://arxiv.org/abs/1609.08259>`_,Regressor,CoulombMatrix,PyTorch,
 MATModel,`ref <https://arxiv.org/abs/2002.08264>`_,Regressor,MATFeaturizer,PyTorch,
 WeaveModel,`ref <https://arxiv.org/abs/1603.00856>`_,Regressor,WeaveFeaturizer,Keras,
 BasicMolGANModel,`ref <https://arxiv.org/abs/1805.11973>`_,Generator,MolGanFeaturizer,Keras,fit method: :code:`fit_gan`,
