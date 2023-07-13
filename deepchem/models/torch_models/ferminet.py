@@ -227,7 +227,7 @@ class FerminetModel(TorchModel):
         mol.unit = 'Bohr'
         mol.spin = (self.up_spin - self.down_spin)
         mol.charge = self.ion_charge
-        mol.build()
+        mol.build(parse_arg=False)
         mf = pyscf.scf.RHF(mol)
         mf.kernel()
 
