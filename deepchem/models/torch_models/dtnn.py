@@ -1,6 +1,8 @@
 import numpy as np
+from typing import List
 
 import torch.nn as nn
+import torch
 
 from deepchem.models.losses import L2Loss
 from deepchem.models.torch_models import layers
@@ -86,13 +88,23 @@ class DTNN(nn.Module):
         # get Final Linear Layer
         self.linear = nn.LazyLinear(self.n_tasks)
 
-    def forward(self, inputs):
+    def forward(self, inputs: List[torch.Tensor]):
         """
-        atom_number,
-        distance,
-        atom_membership,
-        distance_membership_i,
-        distance_membership_j
+        Parameters
+        ----------
+        inputs: List
+            List of Tensors containing.
+            - atom_number
+            - distance
+            - atom_membership
+            - distance_membership_i
+            - distance_membership_j
+
+        Returns
+        -------
+        output: torch.Tensor
+            Predictions of the Molecular Energy.
+
         """
         dtnn_embedding = self.dtnn_embedding(inputs[0])
         if self.dropout > 0.0:
@@ -225,10 +237,10 @@ class DTNNModel(TorchModel):
         distance = np.concatenate(distance, axis=0)
         gaussian_dist = np.exp(-np.square(distance - self.model.steps) /
                                (2 * self.model.step_size**2))
-        gaussian_dist = gaussian_dist.astype(np.float32)
-        atom_mem = np.concatenate(atom_membership).astype(np.int32)
-        dist_mem_i = np.concatenate(distance_membership_i).astype(np.int32)
-        dist_mem_j = np.concatenate(distance_membership_j).astype(np.int32)
+        gaussian_dist = gaussian_dist.astype(np.float64)
+        atom_mem = np.concatenate(atom_membership).astype(np.int64)
+        dist_mem_i = np.concatenate(distance_membership_i).astype(np.int64)
+        dist_mem_j = np.concatenate(distance_membership_j).astype(np.int64)
 
         features = [
             atom_number, gaussian_dist, atom_mem, dist_mem_i, dist_mem_j

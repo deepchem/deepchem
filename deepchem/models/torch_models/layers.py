@@ -3387,12 +3387,12 @@ class DTNNStep(nn.Module):
         """
         return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, n_distance={self.n_distance}, n_hidden={self.n_hidden}, initializer={self.initializer}, activation={self.activation})'
 
-    def forward(self, inputs):
+    def forward(self, inputs: List[torch.Tensor]):
         """Executes the equations and Returns the intraction vector of the atom with other atoms.
 
         Parameters
         ----------
-        inputs: torch.Tensor
+        inputs: List[torch.Tensor]
             List of Tensors having atom_features, distance, distance_membership_i, distance_membership_j.
 
         Returns
@@ -3523,12 +3523,12 @@ class DTNNGather(nn.Module):
         """
         return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, n_outputs={self.n_outputs}, layer_sizes={self.layer_sizes}, output_activation={self.output_activation}, initializer={self.initializer}, activation={self.activation})'
 
-    def forward(self, inputs):
+    def forward(self, inputs: List[torch.Tensor]):
         """Executes the equation and Returns Molecular Energies according to atom_membership.
 
         Parameters
         ----------
-        inputs: torch.Tensor
+        inputs: List[torch.Tensor]
             List of Tensor containing atom_features and atom_membership
 
         Returns
