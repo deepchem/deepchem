@@ -94,7 +94,7 @@ class DTNN(nn.Module):
         Parameters
         ----------
         inputs: List
-            List of Tensors containing.
+            List of Tensors containing. (In the specified order)
             - atom_number
             - distance
             - atom_membership
