@@ -18,6 +18,8 @@ except ModuleNotFoundError:
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
 from deepchem.utils.pytorch_utils import get_activation, segment_sum
 from torch.nn import init as initializers
+from torch_geometric.nn import MessagePassing
+from torch_geometric.utils import add_self_loops
 
 
 class MultilayerPerceptron(nn.Module):
@@ -4471,3 +4473,69 @@ class WeaveGather(nn.Module):
         output = output / torch.sum(output, dim=2, keepdim=True)
         output = output.view(-1, self.n_input * 11)
         return output
+
+
+class GlobalMessagePassing(MessagePassing):
+
+    def __init__(self, config):
+        super(GlobalMessagePassing, self).__init__()
+
+        self.dim = config['dim']
+        self.mlp = MultilayerPerceptron(d_input=self.dim,
+                                        d_output=self.dim,
+                                        activation_fn='silu')
+        self.x_edge_mlp = MultilayerPerceptron(d_input=self.dim * 3,
+                                               d_output=self.dim,
+                                               activation_fn='silu')
+        self.linear = nn.Linear(self.dim, self.dim, bias=False)
+
+    def Res(self, m):
+        self.mlp_res = MultilayerPerceptron(d_input=self.dim,
+                                            d_hidden=(self.dim,),
+                                            d_output=self.dim,
+                                            activation_fn='silu')
+        m1 = self.mlp_res(m)
+        m_out = m1 + m
+        return m_out
+
+    def forward(self, h, edge_attr, edge_index):
+        edge_index, _ = add_self_loops(edge_index, num_nodes=h.size(0))
+
+        res_h = h
+
+        # Integrate the Cross Layer Mapping inside the Global Message Passing
+        h = self.mlp(h)
+
+        # Message Passing operation
+        h = self.propagate(edge_index,
+                           x=h,
+                           num_nodes=h.size(0),
+                           edge_attr=edge_attr)
+
+        # Update function f_u
+        h = self.Res(h)
+        h = self.mlp(h) + res_h
+        h = self.Res(h)
+        h = self.Res(h)
+
+        # Message Passing operation
+        h = self.propagate(edge_index,
+                           x=h,
+                           num_nodes=h.size(0),
+                           edge_attr=edge_attr)
+        return h
+
+    def message(self, x_i, x_j, edge_attr):
+        num_edge = edge_attr.size()[0]
+
+        x_edge = torch.cat((x_i[:num_edge], x_j[:num_edge], edge_attr), -1)
+        x_edge = self.x_edge_mlp(x_edge)
+
+        x_j = torch.cat((self.linear(edge_attr) * x_edge, x_j[num_edge:]),
+                        dim=0)
+
+        return x_j
+
+    def update(self, aggr_out):
+
+        return aggr_out

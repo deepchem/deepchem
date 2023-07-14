@@ -1,5 +1,6 @@
 import deepchem as dc
 import numpy as np
+import random
 import pytest
 import os
 
@@ -1204,3 +1205,42 @@ def test_edge_network():
         np.array(torch_result),
         np.load("deepchem/models/tests/assets/edgenetwork_result.npy"),
         atol=1e-04)
+
+
+@pytest.mark.torch
+def test_global_MP():
+
+    seed = 123
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+
+    dim = 1
+    n_layer = 2
+    cutoff = 5
+
+    config = {'dim': dim, 'n_layer': n_layer, 'cutoff': cutoff}
+
+    h = torch.tensor([[0.8343], [1.2713], [1.2713], [1.2713], [1.2713]])
+
+    edge_attr = torch.tensor([[1.0004], [1.0004], [1.0005], [1.0004], [1.0004],
+                              [-0.2644], [-0.2644], [-0.2644], [1.0004],
+                              [-0.2644], [-0.2644], [-0.2644], [1.0005],
+                              [-0.2644], [-0.2644], [-0.2644], [1.0004],
+                              [-0.2644], [-0.2644], [-0.2644]])
+
+    edge_index = torch.tensor(
+        [[0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4],
+         [1, 2, 3, 4, 0, 2, 3, 4, 0, 1, 3, 4, 0, 1, 2, 4, 0, 1, 2, 3]])
+
+    out = dc.models.torch_models.layers.GlobalMessagePassing(config)
+    output = out(h, edge_attr, edge_index)
+
+    assert np.allclose(
+        output.detach().numpy(),
+        np.load("deepchem/models/tests/assets/global_MP_result.npy"),
+        atol=1e-04)
+    assert output.shape == (5, 1)
