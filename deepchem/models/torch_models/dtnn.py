@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List, Optional
+from typing import List
 
 import torch.nn as nn
 import torch
@@ -45,10 +45,12 @@ class DTNN(nn.Module):
         n_distance: int (default 100)
             granularity of distance matrix
             step size will be (distance_max-distance_min)/n_distance
-        distance_min: float, optional (default -1)
+        distance_min: float (default -1)
             minimum distance of atom pairs (in Angstrom)
-        distance_max: float, optional (default = 18)
+        distance_max: float (default 18)
             maximum distance of atom pairs (in Angstrom)
+        output_activation: bool (default True)
+            determines whether an activation function should be apply  to its output.
         mode: str (default "regression")
             Only "regression" is currently supported.
         dropout: float (default 0.0)
@@ -71,13 +73,20 @@ class DTNN(nn.Module):
         self.output_activation = output_activation
         self.mode = mode
         self.dropout = dropout
+        self.use_dropout = False
+
+        if self.dropout > 0.0:
+            self.use_dropout = True
 
         # get DTNNEmbedding
         self.dtnn_embedding = layers.DTNNEmbedding(n_embedding=self.n_embedding)
 
         # get DTNNSteps
-        self.dtnn_step = layers.DTNNStep(n_embedding=self.n_embedding,
-                                         n_distance=self.n_distance)
+        self.dtnn_step_1 = layers.DTNNStep(n_embedding=self.n_embedding,
+                                           n_distance=self.n_distance)
+
+        self.dtnn_step_2 = layers.DTNNStep(n_embedding=self.n_embedding,
+                                           n_distance=self.n_distance)
 
         # get DTNNGather
         self.dtnn_gather = layers.DTNNGather(
@@ -108,17 +117,18 @@ class DTNN(nn.Module):
 
         """
         dtnn_embedding = self.dtnn_embedding(inputs[0])
-        if self.dropout > 0.0:
+        if self.use_dropout:
             dtnn_embedding = nn.Dropout(self.dropout)(dtnn_embedding)
-        dtnn_step = self.dtnn_step(
+        dtnn_step = self.dtnn_step_1(
             [dtnn_embedding, inputs[1], inputs[3], inputs[4]])
-        if self.dropout > 0.0:
+        if self.use_dropout:
             dtnn_step = nn.Dropout(self.dropout)(dtnn_step)
-        dtnn_step = self.dtnn_step([dtnn_step, inputs[1], inputs[3], inputs[4]])
-        if self.dropout > 0.0:
+        dtnn_step = self.dtnn_step_2(
+            [dtnn_step, inputs[1], inputs[3], inputs[4]])
+        if self.use_dropout:
             dtnn_step = nn.Dropout(self.dropout)(dtnn_step)
         dtnn_gather = self.dtnn_gather([dtnn_step, inputs[2]])
-        if self.dropout > 0.0:
+        if self.use_dropout:
             dtnn_gather = nn.Dropout(self.dropout)(dtnn_gather)
         output = self.linear(dtnn_gather)
         return output
@@ -181,16 +191,21 @@ class DTNNModel(TorchModel):
         n_distance: int (default 100)
             granularity of distance matrix
             step size will be (distance_max-distance_min)/n_distance
-        distance_min: float, optional (default -1)
+        distance_min: float (default -1)
             minimum distance of atom pairs (in Angstrom)
-        distance_max: float, optional (default = 18)
+        distance_max: float (default = 18)
             maximum distance of atom pairs (in Angstrom)
+        output_activation: bool (default True)
+            determines whether an activation function should be apply  to its output.
         mode: str (default "regression")
             Only "regression" is currently supported.
         dropout: float (default 0.0)
             the dropout probablity to use.
 
         """
+        if dropout < 0 or dropout > 1:
+            raise ValueError("dropout probability has to be between 0 and 1, "
+                             "but got {}".format(dropout))
         model = DTNN(n_tasks=n_tasks,
                      n_embedding=n_embedding,
                      n_hidden=n_hidden,
