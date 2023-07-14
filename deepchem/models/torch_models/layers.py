@@ -4659,3 +4659,97 @@ class MXMNetGlobalMessagePassing(MessagePassing):
                         dim=0)
 
         return x_j
+
+
+class LocalMessagePassing(torch.nn.Module):
+
+    def __init__(self, config):
+        super(LocalMessagePassing, self).__init__()
+        self.dim = config['dim']
+
+        self.mlp = MultilayerPerceptron(d_input=self.dim,
+                                        d_output=self.dim,
+                                        activation_fn='silu')
+
+        self.mlp_kj = MultilayerPerceptron(d_input=3 * self.dim,
+                                           d_output=self.dim,
+                                           activation_fn='silu')
+        self.mlp_sbf = MultilayerPerceptron(d_input=self.dim,
+                                            d_hidden=(self.dim,),
+                                            d_output=self.dim,
+                                            activation_fn='silu')
+
+        self.lin_rbf = nn.Linear(self.dim, self.dim, bias=False)
+
+        self.y_mlp = MultilayerPerceptron(d_input=self.dim,
+                                          d_hidden=(
+                                              self.dim,
+                                              self.dim,
+                                          ),
+                                          d_output=self.dim,
+                                          activation_fn='silu')
+        self.y_W = nn.Linear(self.dim, 1)
+
+    def Res(self, m):
+        self.mlp_res = MultilayerPerceptron(d_input=self.dim,
+                                            d_hidden=(self.dim,),
+                                            d_output=self.dim,
+                                            activation_fn='silu')
+        m1 = self.mlp_res(m)
+        m_out = m1 + m
+        return m_out
+
+    def forward(self,
+                h,
+                rbf,
+                sbf1,
+                sbf2,
+                idx_kj,
+                idx_ji_1,
+                idx_jj,
+                idx_ji_2,
+                edge_index,
+                num_nodes=None):
+        res_h = h
+
+        # Integrate the Cross Layer Mapping inside the Local Message Passing
+        h = self.mlp(h)
+
+        # Message Passing 1
+        j, i = edge_index
+        m = torch.cat([h[i], h[j], rbf], dim=-1)
+
+        m_kj = self.mlp_kj(m)
+        m_kj = m_kj * self.lin_rbf(rbf)
+        m_kj = m_kj[idx_kj] * self.mlp_sbf(sbf1)
+        m_kj = scatter(m_kj, idx_ji_1, dim=0, dim_size=m.size(0), reduce='add')
+
+        m_ji_1 = self.mlp_kj(m)
+
+        m = m_ji_1 + m_kj
+
+        # Message Passing 2       (index jj denotes j'i in the main paper)
+        m_jj = self.mlp(m)
+        m_jj = m_jj * self.lin_rbf(rbf)
+        m_jj = m_jj[idx_jj] * self.mlp_sbf(sbf2)
+        m_jj = scatter(m_jj, idx_ji_2, dim=0, dim_size=m.size(0), reduce='add')
+
+        m_ji_2 = self.mlp(m)
+
+        m = m_ji_2 + m_jj
+
+        # Aggregation
+        m = self.lin_rbf(rbf) * m
+        h = scatter(m, i, dim=0, dim_size=h.size(0), reduce='add')
+
+        # Update function f_u
+        h = self.Res(h)
+        h = self.mlp(h) + res_h
+        h = self.Res(h)
+        h = self.Res(h)
+
+        # Output Module
+        y = self.y_mlp(h)
+        y = self.y_W(y)
+
+        return h, y
