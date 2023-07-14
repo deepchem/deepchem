@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List
+from typing import List, Optional
 
 import torch.nn as nn
 import torch
@@ -21,36 +21,37 @@ class DTNN(nn.Module):
 
     """
 
-    def __init__(self,
-                 n_tasks,
-                 n_embedding=30,
-                 n_hidden=100,
-                 n_distance=100,
-                 distance_min=-1,
-                 distance_max=18,
-                 output_activation=True,
-                 mode="regression",
-                 dropout=0.0,
-                 **kwargs):
+    def __init__(
+        self,
+        n_tasks: int,
+        n_embedding: int = 30,
+        n_hidden: int = 100,
+        n_distance: int = 100,
+        distance_min: Optional[float] = -1,
+        distance_max: Optional[float] = 18,
+        output_activation: bool = True,
+        mode: str = "regression",
+        dropout: float = 0.0,
+    ):
         """
         Parameters
         ----------
         n_tasks: int
             Number of tasks
-        n_embedding: int, optional
+        n_embedding: int (default 30)
             Number of features per atom.
-        n_hidden: int, optional
+        n_hidden: int (default 100)
             Number of features for each molecule after DTNNStep
-        n_distance: int, optional
+        n_distance: int (default 100)
             granularity of distance matrix
             step size will be (distance_max-distance_min)/n_distance
-        distance_min: float, optional
-            minimum distance of atom pairs, default = -1 Angstorm
-        distance_max: float, optional
-            maximum distance of atom pairs, default = 18 Angstorm
-        mode: str
+        distance_min: float, optional (default -1)
+            minimum distance of atom pairs (in Angstrom)
+        distance_max: float, optional (default = 18)
+            maximum distance of atom pairs (in Angstrom)
+        mode: str (default "regression")
             Only "regression" is currently supported.
-        dropout: float
+        dropout: float (default 0.0)
             the dropout probablity to use.
 
         """
@@ -132,8 +133,11 @@ class DTNNModel(TorchModel):
     --------
     >>> import deepchem as dc
     >>> import os
+    >>> from scipy import io as scipy_io
+    >>> from deepchem.data import NumpyDataset
     >>> model_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    >>> input_file = os.path.join(model_dir, 'assets/example_DTNN.mat')
+    >>> input_file = os.path.join(model_dir, 'tests/assets/example_DTNN.mat')
+    >>> dataset = scipy_io.loadmat(input_file)
     >>> X = dataset['X']
     >>> y = dataset['T']
     >>> w = np.ones_like(y)
@@ -144,7 +148,7 @@ class DTNNModel(TorchModel):
     ...               n_distance=100,
     ...               learning_rate=1.0,
     ...               mode="regression")
-    >>> model.fit(dataset, nb_epoch=250)
+    >>> loss = model.fit(dataset, nb_epoch=250)
     >>> pred = model.predict(dataset)
 
     References
@@ -155,35 +159,35 @@ class DTNNModel(TorchModel):
     """
 
     def __init__(self,
-                 n_tasks,
-                 n_embedding=30,
-                 n_hidden=100,
-                 n_distance=100,
-                 distance_min=-1,
-                 distance_max=18,
-                 output_activation=True,
-                 mode="regression",
-                 dropout=0.0,
+                 n_tasks: int,
+                 n_embedding: int = 30,
+                 n_hidden: int = 100,
+                 n_distance: int = 100,
+                 distance_min: Optional[float] = -1,
+                 distance_max: Optional[float] = 18,
+                 output_activation: bool = True,
+                 mode: str = "regression",
+                 dropout: float = 0.0,
                  **kwargs):
         """
         Parameters
         ----------
         n_tasks: int
             Number of tasks
-        n_embedding: int, optional
+        n_embedding: int (default 30)
             Number of features per atom.
-        n_hidden: int, optional
+        n_hidden: int (default 100)
             Number of features for each molecule after DTNNStep
-        n_distance: int, optional
+        n_distance: int (default 100)
             granularity of distance matrix
             step size will be (distance_max-distance_min)/n_distance
-        distance_min: float, optional
-            minimum distance of atom pairs, default = -1 Angstorm
-        distance_max: float, optional
-            maximum distance of atom pairs, default = 18 Angstorm
-        mode: str
+        distance_min: float, optional (default -1)
+            minimum distance of atom pairs (in Angstrom)
+        distance_max: float, optional (default = 18)
+            maximum distance of atom pairs (in Angstrom)
+        mode: str (default "regression")
             Only "regression" is currently supported.
-        dropout: float
+        dropout: float (default 0.0)
             the dropout probablity to use.
 
         """
@@ -195,8 +199,7 @@ class DTNNModel(TorchModel):
                      distance_max=distance_max,
                      output_activation=output_activation,
                      mode=mode,
-                     dropout=dropout,
-                     **kwargs)
+                     dropout=dropout)
         if mode not in ['regression']:
             raise ValueError("Only 'regression' mode is currently supported")
         super(DTNNModel, self).__init__(model, L2Loss(), ["prediction"],

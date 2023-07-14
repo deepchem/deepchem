@@ -4,8 +4,10 @@ import pytest
 from scipy import io as scipy_io
 
 from deepchem.data import NumpyDataset
-
-from deepchem.models.torch_models import DTNNModel
+try:
+    from deepchem.models.torch_models import DTNNModel
+except ModuleNotFoundError:
+    pass
 
 
 @pytest.mark.torch
