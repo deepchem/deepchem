@@ -117,19 +117,19 @@ class DTNN(nn.Module):
 
         """
         dtnn_embedding = self.dtnn_embedding(inputs[0])
-        if self.use_dropout:
-            dtnn_embedding = nn.Dropout(self.dropout)(dtnn_embedding)
+
+        dtnn_embedding = nn.Dropout(self.dropout)(dtnn_embedding)
         dtnn_step = self.dtnn_step_1(
             [dtnn_embedding, inputs[1], inputs[3], inputs[4]])
-        if self.use_dropout:
-            dtnn_step = nn.Dropout(self.dropout)(dtnn_step)
+
+        dtnn_step = nn.Dropout(self.dropout)(dtnn_step)
         dtnn_step = self.dtnn_step_2(
             [dtnn_step, inputs[1], inputs[3], inputs[4]])
-        if self.use_dropout:
-            dtnn_step = nn.Dropout(self.dropout)(dtnn_step)
+
+        dtnn_step = nn.Dropout(self.dropout)(dtnn_step)
         dtnn_gather = self.dtnn_gather([dtnn_step, inputs[2]])
-        if self.use_dropout:
-            dtnn_gather = nn.Dropout(self.dropout)(dtnn_gather)
+
+        dtnn_gather = nn.Dropout(self.dropout)(dtnn_gather)
         output = self.linear(dtnn_gather)
         return output
 
