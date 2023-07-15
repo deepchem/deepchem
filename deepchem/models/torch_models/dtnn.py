@@ -73,10 +73,6 @@ class DTNN(nn.Module):
         self.output_activation = output_activation
         self.mode = mode
         self.dropout = dropout
-        self.use_dropout = False
-
-        if self.dropout > 0.0:
-            self.use_dropout = True
 
         # get DTNNEmbedding
         self.dtnn_embedding = layers.DTNNEmbedding(n_embedding=self.n_embedding)
