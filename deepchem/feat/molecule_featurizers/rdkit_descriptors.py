@@ -155,9 +155,10 @@ class RDKitDescriptors(MolecularFeaturizer):
 
             features.append(feature)
 
+        features = np.asarray(features)
         if self.labels_only:
-            features[features != 0] = 1
-        return np.asarray(features)
+            np.putmask(features, features != 0, 1)
+        return features
 
     def _make_normalised_func_dict(self):
         """
