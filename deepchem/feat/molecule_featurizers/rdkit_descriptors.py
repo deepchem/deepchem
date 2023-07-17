@@ -142,7 +142,7 @@ class RDKitDescriptors(MolecularFeaturizer):
             The length is `len(self.descriptors)`.
 
         """
-        features: List[Union[int, float]] = []
+        features = []
         for desc_name, function in self.reqd_properties.items():
             if desc_name == 'Ipc' and self.ipc_avg:
                 feature = function(datapoint, avg=True)
@@ -155,10 +155,10 @@ class RDKitDescriptors(MolecularFeaturizer):
 
             features.append(feature)
 
-        features = np.asarray(features)
+        np_features = np.asarray(features)
         if self.labels_only:
-            np.putmask(features, features != 0, 1)
-        return features
+            np.putmask(np_features, np_features != 0, 1)
+        return np_features
 
     def _make_normalised_func_dict(self):
         """
