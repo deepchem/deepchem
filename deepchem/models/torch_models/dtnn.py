@@ -32,6 +32,7 @@ class DTNN(nn.Module):
         output_activation: bool = True,
         mode: str = "regression",
         dropout: float = 0.0,
+        n_steps: int =2
     ):
         """
         Parameters
@@ -55,11 +56,11 @@ class DTNN(nn.Module):
             Only "regression" is currently supported.
         dropout: float (default 0.0)
             the dropout probablity to use.
+        n_steps: int (default 2)
+            Number of DTNNStep Layers to use.
 
         """
         super(DTNN, self).__init__()
-        if mode not in ['regression']:
-            raise ValueError("Only 'regression' mode is currently supported")
         self.n_tasks = n_tasks
         self.n_embedding = n_embedding
         self.n_hidden = n_hidden
@@ -73,16 +74,16 @@ class DTNN(nn.Module):
         self.output_activation = output_activation
         self.mode = mode
         self.dropout = dropout
+        self.n_steps = n_steps
 
         # get DTNNEmbedding
         self.dtnn_embedding = layers.DTNNEmbedding(n_embedding=self.n_embedding)
 
         # get DTNNSteps
-        self.dtnn_step_1 = layers.DTNNStep(n_embedding=self.n_embedding,
-                                           n_distance=self.n_distance)
-
-        self.dtnn_step_2 = layers.DTNNStep(n_embedding=self.n_embedding,
-                                           n_distance=self.n_distance)
+        self.dtnn_step = nn.ModuleList()
+        for i in range(self.n_steps):
+            self.dtnn_step.append(layers.DTNNStep(n_embedding=self.n_embedding,
+                                           n_distance=self.n_distance))
 
         # get DTNNGather
         self.dtnn_gather = layers.DTNNGather(
@@ -114,15 +115,12 @@ class DTNN(nn.Module):
         """
         dtnn_embedding = self.dtnn_embedding(inputs[0])
 
-        dtnn_embedding = nn.Dropout(self.dropout)(dtnn_embedding)
-        dtnn_step = self.dtnn_step_1(
-            [dtnn_embedding, inputs[1], inputs[3], inputs[4]])
+        for i in range(self.n_steps):
+            dtnn_embedding = nn.Dropout(self.dropout)(dtnn_embedding)
+            dtnn_embedding = self.dtnn_step[i](
+                [dtnn_embedding, inputs[1], inputs[3], inputs[4]])
 
-        dtnn_step = nn.Dropout(self.dropout)(dtnn_step)
-        dtnn_step = self.dtnn_step_2(
-            [dtnn_step, inputs[1], inputs[3], inputs[4]])
-
-        dtnn_step = nn.Dropout(self.dropout)(dtnn_step)
+        dtnn_step = nn.Dropout(self.dropout)(dtnn_embedding)
         dtnn_gather = self.dtnn_gather([dtnn_step, inputs[2]])
 
         dtnn_gather = nn.Dropout(self.dropout)(dtnn_gather)
@@ -174,6 +172,7 @@ class DTNNModel(TorchModel):
                  output_activation: bool = True,
                  mode: str = "regression",
                  dropout: float = 0.0,
+                 n_steps:int =2,
                  **kwargs):
         """
         Parameters
@@ -197,6 +196,8 @@ class DTNNModel(TorchModel):
             Only "regression" is currently supported.
         dropout: float (default 0.0)
             the dropout probablity to use.
+        n_steps: int (default 2)
+            Number of DTNNStep Layers to use.
 
         """
         if dropout < 0 or dropout > 1:
@@ -210,7 +211,8 @@ class DTNNModel(TorchModel):
                      distance_max=distance_max,
                      output_activation=output_activation,
                      mode=mode,
-                     dropout=dropout)
+                     dropout=dropout,
+                     n_steps=n_steps)
         if mode not in ['regression']:
             raise ValueError("Only 'regression' mode is currently supported")
         super(DTNNModel, self).__init__(model, L2Loss(), ["prediction"],
@@ -238,9 +240,9 @@ class DTNNModel(TorchModel):
         dist_mem_i:
             Distance membership i are utilized to encode spatial information and capture the influence of atom distances on the properties and interactions within a molecule.
             The inner membership function assigns higher values to atoms that are closer to the atoms' interaction region, thereby emphasizing the impact of nearby atoms.
-        dist_mem_f:
+        dist_mem_j:
             It captures the long-range effects and influences between atoms that are not in direct proximity but still contribute to the overall molecular properties.
-            Distance membership f are utilized to encode spatial information and capture the influence of atom distances on the properties and interactions outside a molecule.
+            Distance membership j are utilized to encode spatial information and capture the influence of atom distances on the properties and interactions outside a molecule.
             The outer membership function assigns higher values to atoms that are farther to the atoms' interaction region, thereby emphasizing the impact of farther atoms.
 
         """
