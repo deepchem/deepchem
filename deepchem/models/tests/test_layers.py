@@ -1235,7 +1235,8 @@ def test_global_MP():
 
     config = {'dim': dim, 'n_layer': n_layer, 'cutoff': cutoff}
 
-    h = torch.tensor([[0.8343], [1.2713], [1.2713], [1.2713], [1.2713]])
+    node_features = torch.tensor([[0.8343], [1.2713], [1.2713], [1.2713],
+                                  [1.2713]])
 
     edge_attr = torch.tensor([[1.0004], [1.0004], [1.0005], [1.0004], [1.0004],
                               [-0.2644], [-0.2644], [-0.2644], [1.0004],
@@ -1243,15 +1244,15 @@ def test_global_MP():
                               [-0.2644], [-0.2644], [-0.2644], [1.0004],
                               [-0.2644], [-0.2644], [-0.2644]])
 
-    edge_index = torch.tensor(
+    edge_indices = torch.tensor(
         [[0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4],
          [1, 2, 3, 4, 0, 2, 3, 4, 0, 1, 3, 4, 0, 1, 2, 4, 0, 1, 2, 3]])
 
     out = dc.models.torch_models.layers.GlobalMessagePassing(config)
-    output = out(h, edge_attr, edge_index)
-
+    output = out(node_features, edge_attr, edge_indices)
+    output = output.detach().numpy()
     assert np.allclose(
-        output.detach().numpy(),
-        np.load("deepchem/models/tests/assets/global_MP_result.npy"),
+        output,
+        np.load("deepchem/models/tests/assets/MP_global_result.npy"),
         atol=1e-04)
     assert output.shape == (5, 1)

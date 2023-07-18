@@ -4540,60 +4540,178 @@ class _MXMNetEnvelope(torch.nn.Module):
         return output
 
 
+class ResidualBlock(nn.Module):
+    """
+    This class represents a residual block used in neural network architectures.
+    """
+
+    def __init__(self, dim: int):
+        """
+        Parameters:
+        -----------
+        dim : int
+            The input and output dimension of the residual block.
+
+        """
+        super(ResidualBlock, self).__init__()
+
+        self.mlp: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim, d_hidden=(dim,), d_output=dim, activation_fn='silu')
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Performs the forward pass of the residual block.
+
+        Parameters:
+        -----------
+        x : torch.Tensor
+            The input tensor.
+
+        Returns:
+        --------
+        torch.Tensor
+            The output tensor after applying the residual block.
+        """
+        x_residual: torch.Tensor = self.mlp(x)
+        x_out: torch.Tensor = x_residual + x
+        return x_out
+
+
 class GlobalMessagePassing(MessagePassing):
+    """This class implements the Global Message Passing Layer from the Molecular Mechanics-Driven Graph Neural Network
+    with Multiplex Graph for Molecular Structures(MXMNet) paper.
 
-    def __init__(self, config):
+    Examples
+    --------
+    The provided example demonstrates how to use the GlobalMessagePassing layer by creating an instance, passing input tensors (node_features, edge_attributes, edge_indices) through it, and checking the shape of the output.
+
+    Initializes variables and creates a configuration dictionary with specific values.
+
+    >>> dim = 1
+    >>> n_layer = 2
+    >>> cutoff = 5
+    >>> config = {'dim': dim, 'n_layer': n_layer, 'cutoff': cutoff}
+    >>> node_features = torch.tensor([[0.8343], [1.2713], [1.2713], [1.2713], [1.2713]])
+    >>> edge_attributes = torch.tensor([[1.0004], [1.0004], [1.0005], [1.0004], [1.0004],[-0.2644], [-0.2644], [-0.2644], [1.0004],[-0.2644], [-0.2644], [-0.2644], [1.0005],[-0.2644], [-0.2644], [-0.2644], [1.0004],[-0.2644], [-0.2644], [-0.2644]])
+    >>> edge_indices = torch.tensor([[0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4],[1, 2, 3, 4, 0, 2, 3, 4, 0, 1, 3, 4, 0, 1, 2, 4, 0, 1, 2, 3]])
+    >>> out = GlobalMessagePassing(config)
+    >>> output = out(node_features, edge_attributes, edge_indices)
+    >>> output.shape
+    torch.Size([5, 1])
+
+    """
+
+    def __init__(self, config: dict):
+        """Initializes the GlobalMessagePassing layer.
+
+        Parameters
+        -----------
+        config: dict
+            A dictionary containing the configuration parameters.
+        dim: int
+            The dimension of the input and output features.
+        h_mlp: MultilayerPerceptron
+            The multilayer perceptron module for processing node features.
+        res1: ResidualBlock
+            The first residual block module.
+        res2: ResidualBlock
+            The second residual block module.
+        res3: ResidualBlock
+            The third residual block module.
+        mlp: MultilayerPerceptron
+            The multilayer perceptron module for updating node features.
+        x_edge_mlp: MultilayerPerceptron
+            The multilayer perceptron module for processing edge information.
+        linear: nn.Linear
+            The linear layer for transforming edge attributes.
+        """
+
         super(GlobalMessagePassing, self).__init__()
+        self.dim: int = config['dim']
 
-        self.dim = config['dim']
-        self.mlp = MultilayerPerceptron(d_input=self.dim,
-                                        d_output=self.dim,
-                                        activation_fn='silu')
-        self.x_edge_mlp = MultilayerPerceptron(d_input=self.dim * 3,
-                                               d_output=self.dim,
-                                               activation_fn='silu')
-        self.linear = nn.Linear(self.dim, self.dim, bias=False)
+        self.h_mlp: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=self.dim, d_output=self.dim, activation_fn='silu')
 
-    def Res(self, m):
-        self.mlp_res = MultilayerPerceptron(d_input=self.dim,
-                                            d_hidden=(self.dim,),
-                                            d_output=self.dim,
-                                            activation_fn='silu')
-        m1 = self.mlp_res(m)
-        m_out = m1 + m
-        return m_out
+        self.res1: ResidualBlock = ResidualBlock(self.dim)
+        self.res2: ResidualBlock = ResidualBlock(self.dim)
+        self.res3: ResidualBlock = ResidualBlock(self.dim)
+        self.mlp: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=self.dim, d_output=self.dim, activation_fn='silu')
 
-    def forward(self, h, edge_attr, edge_index):
-        edge_index, _ = add_self_loops(edge_index, num_nodes=h.size(0))
+        self.x_edge_mlp: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=self.dim * 3, d_output=self.dim, activation_fn='silu')
+        self.linear: nn.Linear = nn.Linear(self.dim, self.dim, bias=False)
 
-        res_h = h
+    def forward(self, node_features: torch.Tensor,
+                edge_attributes: torch.Tensor,
+                edge_indices: torch.Tensor) -> torch.Tensor:
+        """
+        Performs the forward pass of the GlobalMessagePassing layer.
+
+        Parameters
+        -----------
+        node_features: torch.Tensor
+            The input node features tensor of shape (num_nodes, feature_dim).
+        edge_attributes: torch.Tensor
+            The input edge attribute tensor of shape (num_edges, attribute_dim).
+        edge_indices: torch.Tensor
+            The input edge index tensor of shape (2, num_edges).
+
+        Returns
+        --------
+        torch.Tensor
+            The updated node features tensor after message passing of shape (num_nodes, feature_dim).
+        """
+        edge_indices, _ = add_self_loops(edge_indices,
+                                         num_nodes=node_features.size(0))
+
+        residual_node_features: torch.Tensor = node_features
 
         # Integrate the Cross Layer Mapping inside the Global Message Passing
-        h = self.mlp(h)
+        node_features = self.h_mlp(node_features)
 
         # Message Passing operation
-        h = self.propagate(edge_index,
-                           x=h,
-                           num_nodes=h.size(0),
-                           edge_attr=edge_attr)
+        node_features = self.propagate(edge_indices,
+                                       x=node_features,
+                                       num_nodes=node_features.size(0),
+                                       edge_attr=edge_attributes)
 
         # Update function f_u
-        h = self.Res(h)
-        h = self.mlp(h) + res_h
-        h = self.Res(h)
-        h = self.Res(h)
+        node_features = self.res1(node_features)
+        node_features = self.mlp(node_features) + residual_node_features
+        node_features = self.res2(node_features)
+        node_features = self.res3(node_features)
 
         # Message Passing operation
-        h = self.propagate(edge_index,
-                           x=h,
-                           num_nodes=h.size(0),
-                           edge_attr=edge_attr)
-        return h
+        node_features = self.propagate(edge_indices,
+                                       x=node_features,
+                                       num_nodes=node_features.size(0),
+                                       edge_attr=edge_attributes)
 
-    def message(self, x_i, x_j, edge_attr):
-        num_edge = edge_attr.size()[0]
+        return node_features
 
-        x_edge = torch.cat((x_i[:num_edge], x_j[:num_edge], edge_attr), -1)
+    def message(self, x_i: torch.Tensor, x_j: torch.Tensor,
+                edge_attr: torch.Tensor) -> torch.Tensor:
+        """Constructs messages to be passed along the edges in the graph.
+
+        Parameters
+        -----------
+        x_i: torch.Tensor
+            The source node features tensor of shape (num_edges, feature_dim).
+        x_j: torch.Tensor
+            The target node features tensor of shape (num_edges, feature_dim).
+        edge_attributes: torch.Tensor
+            The edge attribute tensor of shape (num_edges, attribute_dim).
+
+        Returns
+        --------
+        torch.Tensor
+            The constructed messages tensor.
+        """
+        num_edge: int = edge_attr.size()[0]
+
+        x_edge: torch.Tensor = torch.cat(
+            (x_i[:num_edge], x_j[:num_edge], edge_attr), -1)
         x_edge = self.x_edge_mlp(x_edge)
 
         x_j = torch.cat((self.linear(edge_attr) * x_edge, x_j[num_edge:]),
@@ -4601,6 +4719,19 @@ class GlobalMessagePassing(MessagePassing):
 
         return x_j
 
-    def update(self, aggr_out):
+    def update(self, aggr_out: torch.Tensor) -> torch.Tensor:
+        """
+        Aggregates and updates the node features.
+
+        Parameters
+        -----------
+        aggr_out: torch.Tensor
+            The aggregated messages tensor.
+
+        Returns
+        --------
+        torch.Tensor
+            The updated node features tensor.
+        """
 
         return aggr_out
