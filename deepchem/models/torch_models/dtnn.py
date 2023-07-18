@@ -21,19 +21,17 @@ class DTNN(nn.Module):
 
     """
 
-    def __init__(
-        self,
-        n_tasks: int,
-        n_embedding: int = 30,
-        n_hidden: int = 100,
-        n_distance: int = 100,
-        distance_min: float = -1,
-        distance_max: float = 18,
-        output_activation: bool = True,
-        mode: str = "regression",
-        dropout: float = 0.0,
-        n_steps: int =2
-    ):
+    def __init__(self,
+                 n_tasks: int,
+                 n_embedding: int = 30,
+                 n_hidden: int = 100,
+                 n_distance: int = 100,
+                 distance_min: float = -1,
+                 distance_max: float = 18,
+                 output_activation: bool = True,
+                 mode: str = "regression",
+                 dropout: float = 0.0,
+                 n_steps: int = 2):
         """
         Parameters
         ----------
@@ -82,8 +80,9 @@ class DTNN(nn.Module):
         # get DTNNSteps
         self.dtnn_step = nn.ModuleList()
         for i in range(self.n_steps):
-            self.dtnn_step.append(layers.DTNNStep(n_embedding=self.n_embedding,
-                                           n_distance=self.n_distance))
+            self.dtnn_step.append(
+                layers.DTNNStep(n_embedding=self.n_embedding,
+                                n_distance=self.n_distance))
 
         # get DTNNGather
         self.dtnn_gather = layers.DTNNGather(
@@ -172,7 +171,7 @@ class DTNNModel(TorchModel):
                  output_activation: bool = True,
                  mode: str = "regression",
                  dropout: float = 0.0,
-                 n_steps:int =2,
+                 n_steps: int = 2,
                  **kwargs):
         """
         Parameters
