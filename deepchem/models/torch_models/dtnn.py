@@ -222,6 +222,27 @@ class DTNNModel(TorchModel):
         A tf.py_func wrapper is written around this when creating the
         input_fn for tf.Estimator
 
+        Computed Features
+        -----------------
+        atom_numbers:
+            Atom numbers are assigned to each atom based on their atomic properties.
+            The atomic numbers are derived from the periodic table of elements.
+            For example, hydrogen -> 1, carbon -> 6, and oxygen -> 8.
+        gaussian_dist:
+            Gaussian distance refers to the method of representing the pairwise distances between atoms in a molecule using Gaussian functions.
+            The Gaussian distance is calculated using the Euclidean distance between the Cartesian coordinates of two atoms.
+            The distance value is then passed through a Gaussian function, which transforms it into a continuous value.
+        atom_mem:
+            Atom membership refers to the binary representation of whether an atom belongs to a specific group or property within a molecule.
+            It allows the model to incorporate domain-specific information and enhance its understanding of the molecule's properties and interactions.
+        dist_mem_i:
+            Distance membership i are utilized to encode spatial information and capture the influence of atom distances on the properties and interactions within a molecule.
+            The inner membership function assigns higher values to atoms that are closer to the atoms' interaction region, thereby emphasizing the impact of nearby atoms.
+        dist_mem_f:
+            It captures the long-range effects and influences between atoms that are not in direct proximity but still contribute to the overall molecular properties.
+            Distance membership f are utilized to encode spatial information and capture the influence of atom distances on the properties and interactions outside a molecule.
+            The outer membership function assigns higher values to atoms that are farther to the atoms' interaction region, thereby emphasizing the impact of farther atoms.
+
         """
         distance = []
         atom_membership = []
