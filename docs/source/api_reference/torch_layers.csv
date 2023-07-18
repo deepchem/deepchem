@@ -43,3 +43,4 @@ DTNNEmbedding, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
 DTNNStep, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
 DTNNGather, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
 MXMNetGlobalMessagePassing, `ref <https://arxiv.org/pdf/2011.07457>`_, Global Message Passing Neural Network for MXMNet Model
+MXMNetLocalMessagePassing, `ref <https://arxiv.org/pdf/2011.07457>`_, Local Message Passing Neural Network for MXMNet Model
