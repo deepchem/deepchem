@@ -4543,6 +4543,7 @@ class _MXMNetEnvelope(torch.nn.Module):
 class ResidualBlock(nn.Module):
     """
     This class represents a residual block used in neural network architectures.
+    Each residual module consists of a two-layer MLP and a skip connection.
     """
 
     def __init__(self, dim: int):
@@ -4579,7 +4580,49 @@ class ResidualBlock(nn.Module):
 
 class GlobalMessagePassing(MessagePassing):
     """This class implements the Global Message Passing Layer from the Molecular Mechanics-Driven Graph Neural Network
-    with Multiplex Graph for Molecular Structures(MXMNet) paper.
+    with Multiplex Graph for Molecular Structures(MXMNet) paper [1]_.
+
+    This layer consists of two message passing steps and an update step between them.
+
+    Let:
+        - **x_i** : ``The node to be updated``
+        - **h_i** : ``The hidden state of x_i``
+        - **x_j** : ``The neighbour node connected to x_i by edge e_ij``
+        - **h_j** : ``The hidden state of x_j``
+        - **W** : ``The edge weights``
+        - **m_ij** : ``The message between x_i and x_j``
+        - **h_j (self_loop)** : ``The set of hidden states of atom features``
+        - **mlp** : ``MultilayerPerceptron``
+        - **res** : ``ResidualBlock``
+
+    **In each message passing step**
+
+        .. code-block:: python
+            
+            m_ij = mlp1([h_i || h_j || e_ij])*(e_ij W)
+
+        **To handle self loops**
+
+            .. code-block:: python
+            
+                m_ij = m_ij + h_j(self_loop)
+
+    **In each update step**
+
+        .. code-block:: python
+
+            hm_j = res1(sum(m_ij)) 
+            h_j_new = mlp2(hm_j) + h_j 
+            h_j_new = res2(h_j_new) 
+            h_j_new = res3(h_j_new) 
+
+    .. note::
+    Message passing and message aggregation(sum) is handled by ``self.propagate()``.
+
+    References
+    ----------
+    .. [1] Molecular Mechanics-Driven Graph Neural Network with Multiplex Graph for Molecular Structures. https://arxiv.org/pdf/2011.07457.pdf
+
 
     Examples
     --------
@@ -4588,46 +4631,27 @@ class GlobalMessagePassing(MessagePassing):
     Initializes variables and creates a configuration dictionary with specific values.
 
     >>> dim = 1
-    >>> n_layer = 2
-    >>> cutoff = 5
-    >>> config = {'dim': dim, 'n_layer': n_layer, 'cutoff': cutoff}
     >>> node_features = torch.tensor([[0.8343], [1.2713], [1.2713], [1.2713], [1.2713]])
     >>> edge_attributes = torch.tensor([[1.0004], [1.0004], [1.0005], [1.0004], [1.0004],[-0.2644], [-0.2644], [-0.2644], [1.0004],[-0.2644], [-0.2644], [-0.2644], [1.0005],[-0.2644], [-0.2644], [-0.2644], [1.0004],[-0.2644], [-0.2644], [-0.2644]])
     >>> edge_indices = torch.tensor([[0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4],[1, 2, 3, 4, 0, 2, 3, 4, 0, 1, 3, 4, 0, 1, 2, 4, 0, 1, 2, 3]])
-    >>> out = GlobalMessagePassing(config)
+    >>> out = GlobalMessagePassing(dim)
     >>> output = out(node_features, edge_attributes, edge_indices)
     >>> output.shape
     torch.Size([5, 1])
 
     """
 
-    def __init__(self, config: dict):
+    def __init__(self, dim: int):
         """Initializes the GlobalMessagePassing layer.
 
         Parameters
         -----------
-        config: dict
-            A dictionary containing the configuration parameters.
         dim: int
             The dimension of the input and output features.
-        h_mlp: MultilayerPerceptron
-            The multilayer perceptron module for processing node features.
-        res1: ResidualBlock
-            The first residual block module.
-        res2: ResidualBlock
-            The second residual block module.
-        res3: ResidualBlock
-            The third residual block module.
-        mlp: MultilayerPerceptron
-            The multilayer perceptron module for updating node features.
-        x_edge_mlp: MultilayerPerceptron
-            The multilayer perceptron module for processing edge information.
-        linear: nn.Linear
-            The linear layer for transforming edge attributes.
         """
 
         super(GlobalMessagePassing, self).__init__()
-        self.dim: int = config['dim']
+        self.dim = dim
 
         self.h_mlp: MultilayerPerceptron = MultilayerPerceptron(
             d_input=self.dim, d_output=self.dim, activation_fn='silu')
@@ -4718,20 +4742,3 @@ class GlobalMessagePassing(MessagePassing):
                         dim=0)
 
         return x_j
-
-    def update(self, aggr_out: torch.Tensor) -> torch.Tensor:
-        """
-        Aggregates and updates the node features.
-
-        Parameters
-        -----------
-        aggr_out: torch.Tensor
-            The aggregated messages tensor.
-
-        Returns
-        --------
-        torch.Tensor
-            The updated node features tensor.
-        """
-
-        return aggr_out
