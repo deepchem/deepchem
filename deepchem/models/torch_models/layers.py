@@ -3132,8 +3132,15 @@ class MolGANConvolutionLayer(nn.Module):
         self.name: str = name
         self.nodes: int = nodes
 
-        self.dense1: nn.ModuleList = nn.ModuleList(
-            [nn.Linear(nodes, self.units) for _ in range(edges - 1)])
+        # Case when >2 inputs are passed
+        if "prev_shape" in kwargs:
+            self.dense1 = nn.ModuleList([
+                nn.Linear(kwargs.get('prev_shape') + self.nodes, self.units)
+                for _ in range(edges - 1)
+            ])
+        else:
+            self.dense1 = nn.ModuleList(
+                [nn.Linear(self.nodes, self.units) for _ in range(edges - 1)])
         self.dense2: nn.Linear = nn.Linear(nodes, self.units)
         self.dropout: nn.Dropout = nn.Dropout(self.dropout_rate)
 
@@ -3180,10 +3187,6 @@ class MolGANConvolutionLayer(nn.Module):
         if ic > 2:
             hidden_tensor: torch.Tensor = inputs[2]
             annotations = torch.cat((hidden_tensor, node_tensor), -1)
-            self.dense1 = nn.ModuleList([
-                nn.Linear(annotations.shape[2], self.units)
-                for _ in range(self.edges - 1)
-            ])
         else:
             annotations = node_tensor
 
@@ -3380,7 +3383,9 @@ class MolGANMultiConvolutionLayer(nn.Module):
                                    nodes=self.nodes,
                                    activation=self.activation,
                                    dropout_rate=self.dropout_rate,
-                                   edges=self.edges) for u in self.units[1:]
+                                   edges=self.edges,
+                                   prev_shape=self.units[count])
+            for count, u in enumerate(self.units[1:])
         ])
 
     def __repr__(self) -> str:
