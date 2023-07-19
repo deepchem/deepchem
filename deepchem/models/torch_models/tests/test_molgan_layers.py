@@ -167,3 +167,59 @@ def test_multigraph_convolution_layer_shape():
     assert layer.activation == torch.tanh
     assert layer.edges == 5
     assert layer.dropout_rate == 0.0
+
+
+@pytest.mark.torch
+def test_multigraph_convolution_layer_values():
+    from deepchem.models.torch_models.layers import MolGANMultiConvolutionLayer
+    nodes = 5
+    edges = 5
+    first_convolution_unit = 128
+    second_convolution_unit = 64
+    units = [first_convolution_unit, second_convolution_unit]
+
+    torch.manual_seed(21)  # Setting seed for reproducibility
+    layer_multi_conv = MolGANMultiConvolutionLayer(units=units,
+                                                   nodes=nodes,
+                                                   edges=edges,
+                                                   name='layer1')
+    tf_weights = np.load(
+        'deepchem/models/tests/assets/molgan_multi_conv_layer_weights.npy',
+        allow_pickle=True).item()
+    with torch.no_grad():
+        x = 10
+        for idx, dense in enumerate(layer_multi_conv.first_convolution.dense1):
+            weight_name = f'layer1//dense_{idx+x}/kernel:0'
+            bias_name = f'layer1//dense_{idx+x}/bias:0'
+            dense.weight.data = torch.from_numpy(
+                np.transpose(tf_weights[weight_name]))
+            dense.bias.data = torch.from_numpy(tf_weights[bias_name])
+        idx += 1
+        layer_multi_conv.first_convolution.dense2.weight.data = torch.from_numpy(
+            np.transpose(tf_weights[f'layer1//dense_{idx+x}/kernel:0']))
+        layer_multi_conv.first_convolution.dense2.bias.data = torch.from_numpy(
+            tf_weights[f'layer1//dense_{idx+x}/bias:0'])
+        x += 5
+        for idx_, layer in enumerate(layer_multi_conv.gcl):
+            for idx, dense in enumerate(layer.dense1):
+                weight_name = f'layer1//dense_{idx+x}/kernel:0'
+                bias_name = f'layer1//dense_{idx+x}/bias:0'
+                dense.weight.data = torch.from_numpy(
+                    np.transpose(tf_weights[weight_name]))
+                dense.bias.data = torch.from_numpy(tf_weights[bias_name])
+            x += 1
+            layer.dense2.weight.data = torch.from_numpy(
+                np.transpose(tf_weights[f'layer1//dense_{idx+x}/kernel:0']))
+            layer.dense2.bias.data = torch.from_numpy(
+                tf_weights[f'layer1//dense_{idx+x}/bias:0'])
+    adjacency_tensor = torch.from_numpy(
+        np.load('deepchem/models/tests/assets/molgan_adj_tensor.npy').astype(
+            np.float32))
+    node_tensor = torch.from_numpy(
+        np.load('deepchem/models/tests/assets/molgan_nod_tensor.npy').astype(
+            np.float32))
+    output = layer_multi_conv([adjacency_tensor, node_tensor])
+    output_tensor = torch.from_numpy(
+        np.load('deepchem/models/tests/assets/molgan_multi_conv_layer_op.npy').
+        astype(np.float32))
+    assert torch.allclose(output, output_tensor, atol=1e-04)
