@@ -3056,3 +3056,57 @@ class DTNNEmbedding(nn.Module):
         atom_enbeddings = torch.nn.functional.embedding(atom_number,
                                                         self.embedding_list)
         return atom_enbeddings
+
+class Ferminet(torch.nn.Module):
+  """Approximates the log probability of the wave function of a molecule system using DNNs.
+  """
+
+  def __init__(self,
+               nucleon_pos: torch.tensor,
+               nuclear_charge: torch.tensor,
+               spin: tuple,
+               inter_atom: torch.tensor,
+               n_one: List = [256, 256, 256, 256],
+               n_two: List = [32, 32, 32, 32],
+               determinant: int = 16) -> None:
+    """
+    Parameters:
+    -----------
+    n_one: List
+      List of hidden units for the one-electron stream in each layer
+    n_two: List
+      List of hidden units for the two-electron stream in each layer
+    determinant: int
+      Number of determinants for the final solution
+    """
+    super(Ferminet, self).__init__()
+    if len(n_one) != len(n_two):
+      raise ValueError(
+          "The number of layers in one-electron and two-electron stream should be equal"
+      )
+    else:
+      self.layers = len(n_one)
+    self.nucleon_pos = nucleon_pos
+    self.determinant = determinant
+    self.spin = spin
+    self.total_electron = spin[0] + spin[1]
+    self.inter_atom = inter_atom
+    self.nuclear_charge = nuclear_charge
+    self.v = nn.ModuleList()
+    self.w = nn.ModuleList()
+    self.envelope_w = nn.ParameterList()
+    self.envelope_g = nn.ParameterList()
+    self.sigma = nn.ParameterList()
+    self.pi = nn.ParameterList()
+
+    for i in range(self.layers):
+        self.v.append(nn.LazyLinear(n_one[i]),bias=True)
+        self.w.append(nn.LazyLinear(n_two[i]),bias=True)
+
+    for i in range(self.determinant):
+        for j in range(self.total_electron):
+            self.envelope_w.append(torch.nn.init.kaiming_uniform_(torch.empty(n_one[-1])))
+            self.envelope_g.append(torch.nn.init.uniform_(torch.empty(1)).squeeze(0))
+            for k in range(self.nucleon_pos.size()[0]):
+                self.sigma.append(torch.nn.init.uniform_(torch.empty(1)).squeeze(0))
+                self.pi.append(torch.nn.init.uniform_(torch.empty(1)).squeeze(0))
