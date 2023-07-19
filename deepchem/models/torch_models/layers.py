@@ -3876,15 +3876,15 @@ class Highway(nn.Module):
                  layer_shape=[5, 2],
                  **kwargs):
         """
-              Parameters
-              ----------
-              activation_fn: str , optional (default: ReLU)
-                  Activation function to apply to the output
-              biases_initializer: str, optional
-                  the initializer for bias values.  This may be None, in which case the layer
-                  will not include biases.
-              weights_initializer: str, optional
-                  the initializer for weight values
+        Parameters
+        ----------
+        activation_fn: str , optional (default: ReLU)
+            Activation function to apply to the output
+        biases_initializer: str, optional
+            the initializer for bias values.  This may be None, in which case the layer
+            will not include biases.
+        weights_initializer: str, optional
+            the initializer for weight values
 
         """
         super(Highway, self).__init__(**kwargs)
@@ -3906,11 +3906,11 @@ class Highway(nn.Module):
 
         Returns
         -------
-        activation_fn: str, optional
+        activation_fn: str
             Activation function applied
-        biases_initializer: str, optional
+        biases_initializer: str
             The initializer for bias values
-        weights_initializer: str, optional
+        weights_initializer: str
             The initializer for weight values
 
         """
