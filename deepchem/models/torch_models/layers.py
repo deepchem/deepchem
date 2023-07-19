@@ -3850,24 +3850,24 @@ class WeaveLayer(nn.Module):
 
 class Highway(nn.Module):
     """
-        Highway layer used in TextCNN model.
-        The Highway layer is a nn module that incorporates gating mechanisms to control
-        the flow of information between linear transformations with a non-linear activation function.
-        This enables better gradient propagation and information flow during training,
-        improving the performance of deep neural networks.
-        Custom initializers and activation functions can be easily integrated into this layer.
+    Highway layer used in TextCNN model.
+    The Highway layer is a nn module that incorporates gating mechanisms to control
+    the flow of information between linear transformations with a non-linear activation function.
+    This enables better gradient propagation and information flow during training,
+    improving the performance of deep neural networks.
+    Custom initializers and activation functions can be easily integrated into this layer.
 
-        Examples
-        --------
-        >>> import torch
-        >>> from deepchem.models.torch_models import layers
-        >>> layer = layers.Highway(30, 2, 'kaiming_uniform_')
-        >>> input = torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-        >>> output = layer(input)
-        >>> output.shape
-        torch.Size([10, 2])
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.torch_models import layers
+    >>> layer = layers.Highway(30, 2, 'kaiming_uniform_')
+    >>> input = torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    >>> output = layer(input)
+    >>> output.shape
+    torch.Size([10, 2])
 
-        """
+    """
 
     def __init__(self,
                  activation: str = 'relu',
