@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.init as init
-
+import torch.nn.functional as F
 def test_highway():
   """Test invoking Highway."""
   width = 5
@@ -27,20 +27,31 @@ def test_highway():
 
 
 def test_highway_layer_shape():
-  from deepchem.models.torch_models.layers import HighwayLayer
-  width = 5
-  batch_size = 10
+    from deepchem.models.torch_models.layers import Highway
+    width = 5
+    batch_size = 10
+    torch.manual_seed(21)
 
-  layer = HighwayLayer(inputs=inputs)
-  layer_H = torch.randn([input_shape, out_channels])
-  output = layer(inputs)
-  output_tf = (5, 3)
-     # Testing Shapes with TF Model Output
-  assert output.shape == output_tf
-  assert dense_H.shape == dense_H
-  assert dense_T.shape == dense_T
+    layer = HighwayLayer(inputs=inputs)
 
-     # Testing Shapes
-  assert output.shape == (width,batch_size)
-  assert layer.activation == torch.ReLU
+    tf_weights = np.load(
+         'deepchem/models/tests/assets/Highway_weights.npy',
+         allow_pickle=True).item()
+    with torch.no_grad():
+        layer.H.weight.data.weight.data = torch.from_numpy(
+         np.transpose(tf_weights['deepchem/models/tests/assets/TF_weights_H.npy']))
+        layer.H.weight.data.bias.data = torch.from_numpy(
+         tf_weights['deepchem/models/tests/assets/TF_bias_T.npy'])
+        layer.T.weight.data.weight.data = torch.from_numpy(
+         np.transpose(tf_weights['deepchem/models/tests/assets/TF_weights_T.npy']))
+        layer.T.weight.data.bias.data = torch.from_numpy(
+         tf_weights['deepchem/models/tests/assets/TF_bias_T.npy'])   
+         
+    output_tensor = torch.from_numpy(
+         np.load('deepchem/models/tests/assets/highway_output.npy').astype(
+             np.float32))
+  
+    assert torch.allclose(output, output_tensor, atol=1e-04)
+
+
 
