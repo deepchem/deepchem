@@ -116,7 +116,7 @@ class FerminetModel(TorchModel):
         numpy array value of nucleon_coordinates
     electron_no: np.ndarray
         Torch tensor containing electrons for each atom in the nucleus
-    self.molecule: ElectronSampler
+    molecule: ElectronSampler
         ElectronSampler object which performs MCMC and samples electrons
     """
         self.nucleon_coordinates = nucleon_coordinates
@@ -187,7 +187,7 @@ class FerminetModel(TorchModel):
             batch_no=self.batch_no,
             central_value=self.nucleon_pos,
             seed=self.seed,
-            f=lambda x: test_f(x),  # Will be replaced in successive PRs
+            f=lambda x: test_f(x),  # Will be replaced in successive PR
             steps=1000,
             steps_per_update=20
         )  # sample the electrons using the electron sampler
@@ -196,7 +196,7 @@ class FerminetModel(TorchModel):
         adam = optimizers.AdamW()
         super(FerminetModel, self).__init__(
             model, optimizer=adam,
-            loss=L2Loss())  # will update the loss in successive PRs
+            loss=L2Loss())  # will update the loss in successive PR
 
     def prepare_hf_solution(self, x: np.ndarray) -> np.ndarray:
         """Prepares the HF solution for the molecule system which is to be used in pretraining
