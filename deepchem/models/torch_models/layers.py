@@ -3570,6 +3570,128 @@ class DTNNStep(nn.Module):
         return intraction_vector
 
 
+class DTNNGather(nn.Module):
+    """DTNNGather Layer for DTNN Model.
+
+    Predict Molecular Energy using atom_features and atom_membership. [1]_
+
+    This Layer gathers the inputs got from the step layer according to atom_membership and calulates the total Molecular Energy.
+
+    References
+    ----------
+    [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
+        tensor neural networks." Nature communications 8.1 (2017): 1-8.
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models import layers as layers_torch
+    >>> import torch
+    >>> gather_layer_torch = layers_torch.DTNNGather(3, 3, [10])
+    >>> result = gather_layer_torch([torch.Tensor([[3, 2, 1]]).to(torch.float32), torch.Tensor([0]).to(torch.int64)])
+    >>> result.shape
+    torch.Size([1, 3])
+
+    """
+
+    def __init__(self,
+                 n_embedding=30,
+                 n_outputs=100,
+                 layer_sizes=[100],
+                 output_activation=True,
+                 initializer='xavier_uniform_',
+                 activation='tanh',
+                 **kwargs):
+        """
+        Parameters
+        ----------
+        n_embedding: int, optional
+            Number of features for each atom
+        n_outputs: int, optional
+            Number of features for each molecule(output)
+        layer_sizes: list of int, optional(default=[1000])
+            Structure of hidden layer(s)
+        initializer: str, optional
+            Weight initialization for filters.
+        activation: str, optional
+            Activation function applied
+
+        """
+
+        super(DTNNGather, self).__init__(**kwargs)
+        self.n_embedding = n_embedding
+        self.n_outputs = n_outputs
+        self.layer_sizes = layer_sizes
+        self.output_activation = output_activation
+        self.initializer = initializer  # Set weight initialization
+        self.activation = activation  # Get activations
+        self.activation_fn = get_activation(self.activation)
+
+        self.W_list = nn.ParameterList()
+        self.b_list = nn.ParameterList()
+
+        init_func: Callable = getattr(initializers, self.initializer)
+
+        prev_layer_size = self.n_embedding
+        for i, layer_size in enumerate(self.layer_sizes):
+            self.W_list.append(
+                nn.Parameter(
+                    init_func(torch.empty([prev_layer_size, layer_size]))))
+            self.b_list.append(nn.Parameter(torch.zeros(size=[
+                layer_size,
+            ])))
+            prev_layer_size = layer_size
+        self.W_list.append(
+            nn.Parameter(
+                init_func(torch.empty([prev_layer_size, self.n_outputs]))))
+        self.b_list.append(nn.Parameter(torch.zeros(size=[
+            self.n_outputs,
+        ])))
+
+    def __repr__(self):
+        """Returns a string representing the configuration of the layer.
+
+        Returns
+        ----------
+        n_embedding: int, optional
+            Number of features for each atom
+        n_outputs: int, optional
+            Number of features for each molecule(output)
+        layer_sizes: list of int, optional(default=[1000])
+            Structure of hidden layer(s)
+        initializer: str, optional
+            Weight initialization for filters.
+        activation: str, optional
+            Activation function applied
+
+        """
+        return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, n_outputs={self.n_outputs}, layer_sizes={self.layer_sizes}, output_activation={self.output_activation}, initializer={self.initializer}, activation={self.activation})'
+
+    def forward(self, inputs):
+        """Executes the equation and Returns Molecular Energies according to atom_membership.
+
+        Parameters
+        ----------
+        inputs: torch.Tensor
+            List of Tensor containing atom_features and atom_membership
+
+        Returns
+        -------
+        molecular_energies: torch.Tensor
+            Tensor containing the Molecular Energies according to atom_membership.
+
+        """
+        output = inputs[0]
+        atom_membership = inputs[1]
+
+        for i, W in enumerate(self.W_list[:-1]):
+            output = torch.matmul(output, W) + self.b_list[i]
+            output = self.activation_fn(output)
+        output = torch.matmul(output, self.W_list[-1]) + self.b_list[-1]
+        if self.output_activation:
+            output = self.activation_fn(output)
+        return scatter(output, atom_membership)
+
+
 class EdgeNetwork(nn.Module):
     """The EdgeNetwork module is a PyTorch submodule designed for message passing in graph neural networks.
 
@@ -3989,3 +4111,222 @@ class WeaveLayer(nn.Module):
             P = pair_features
 
         return [A, P]
+
+
+class WeaveGather(nn.Module):
+    """Implements the weave-gathering section of weave convolutions.
+    This is the Torch equivalent of the original implementation using Keras.
+
+    Implements the gathering layer from [1]_. The weave gathering layer gathers
+    per-atom features to create a molecule-level fingerprint in a weave
+    convolutional network. This layer can also performs Gaussian histogram
+    expansion as detailed in [1]_. Note that the gathering function here is
+    simply addition as in [1]_>
+
+    Examples
+    --------
+    This layer expects 2 inputs in a list of the form `[atom_features,
+    pair_features]`. We'll walk through the structure
+    of these inputs. Let's start with some basic definitions.
+
+    >>> import deepchem as dc
+    >>> import numpy as np
+
+    Suppose you have a batch of molecules
+
+    >>> smiles = ["CCC", "C"]
+
+    Note that there are 4 atoms in total in this system. This layer expects its
+    input molecules to be batched together.
+
+    >>> total_n_atoms = 4
+
+    Let's suppose that we have `n_atom_feat` features per atom.
+
+    >>> n_atom_feat = 75
+
+    Then conceptually, `atom_feat` is the array of shape `(total_n_atoms,
+    n_atom_feat)` of atomic features. For simplicity, let's just go with a
+    random such matrix.
+
+    >>> atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
+
+    We then need to provide a mapping of indices to the atoms they belong to. In
+    ours case this would be
+
+    >>> atom_split = np.array([0, 0, 0, 1])
+
+    Let's now define the actual layer
+
+    >>> gather = WeaveGather(batch_size=2, n_input=n_atom_feat)
+    >>> output_molecules = gather([atom_feat, atom_split])
+    >>> len(output_molecules)
+    2
+
+    References
+    ----------
+    .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
+        fingerprints." Journal of computer-aided molecular design 30.8 (2016):
+        595-608.
+    """
+
+    def __init__(self,
+                 batch_size: int,
+                 n_input: int = 128,
+                 gaussian_expand: bool = True,
+                 compress_post_gaussian_expansion: bool = False,
+                 init_: str = 'xavier_uniform_',
+                 activation: str = 'tanh',
+                 **kwargs):
+        """
+        Parameters
+        ----------
+        batch_size: int
+            number of molecules in a batch
+        n_input: int, optional (default 128)
+            number of features for each input molecule
+        gaussian_expand: boolean, optional (default True)
+            Whether to expand each dimension of atomic features by gaussian histogram
+        compress_post_gaussian_expansion: bool, optional (default False)
+            If True, compress the results of the Gaussian expansion back to the
+            original dimensions of the input by using a linear layer with specified
+            activation function. Note that this compression was not in the original
+            paper, but was present in the original DeepChem implementation so is
+            left present for backwards compatibility.
+        init: str, optional (default 'xavier_uniform_')
+            Weight initialization for filters if `compress_post_gaussian_expansion`
+            is True.
+        activation: str, optional (default 'tanh')
+            Activation function applied for filters if
+            `compress_post_gaussian_expansion` is True.
+        """
+        super(WeaveGather, self).__init__(**kwargs)
+        self.n_input: int = n_input
+        self.batch_size: int = batch_size
+        self.gaussian_expand: bool = gaussian_expand
+        self.compress_post_gaussian_expansion: bool = compress_post_gaussian_expansion
+        self.init: str = init_  # Set weight initialization
+        self.activation: str = activation  # Get activations
+        self.activation_fn: torch.nn.Module = get_activation(activation)
+
+        if self.compress_post_gaussian_expansion:
+            init = getattr(initializers, self.init)
+            self.W: torch.Tensor = init(
+                torch.empty([self.n_input * 11, self.n_input]))
+            self.b: torch.Tensor = torch.zeros((self.n_input,))
+        self.built = True
+
+    def __repr__(self):
+        """
+        Returns a string representation of the object.
+
+        Returns:
+        -------
+        str: A string that contains the class name followed by the values of its instance variable.
+        """
+        return (
+            f'{self.__class__.__name__}(batch_size:{self.batch_size},n_input:{self.n_input},gaussian_expand:{self.gaussian_expand},init:{self.init},activation:{self.activation},compress_post_gaussian_expansion:{self.compress_post_gaussian_expansion})'
+        )
+
+    def forward(self, inputs: List[Union[np.ndarray,
+                                         np.ndarray]]) -> torch.Tensor:
+        """Creates weave tensors.
+
+        Parameters
+        ----------
+        inputs: List[Union[np.ndarray,np.ndarray]]
+            Should contain 2 tensors [atom_features, atom_split]
+
+        Returns
+        -------
+        output_molecules: torch.Tensor
+            Each entry in this list is of shape `(self.n_inputs,)`
+
+        """
+        outputs: torch.Tensor = torch.tensor(inputs[0])
+        atom_split: torch.Tensor = torch.tensor(inputs[1])
+
+        if self.gaussian_expand:
+            outputs = self.gaussian_histogram(outputs)
+
+        t_grp: Dict[Tensor, Tensor] = {}
+        idx: int = 0
+        for i, s_id in enumerate(atom_split):
+            s_id = s_id.item()
+            if s_id in t_grp:
+                t_grp[s_id] = t_grp[s_id] + outputs[idx]
+            else:
+                t_grp[s_id] = outputs[idx]
+            idx = i + 1
+
+            lst = list(t_grp.values())
+            tensor = torch.stack(lst)
+        output_molecules: torch.Tensor = tensor
+
+        if self.compress_post_gaussian_expansion:
+            output_molecules = torch.matmul(
+                output_molecules.type(torch.float32), self.W) + self.b
+            output_molecules = self.activation_fn(output_molecules)
+
+        return output_molecules
+
+    def gaussian_histogram(self, x: torch.Tensor) -> torch.Tensor:
+        """Expands input into a set of gaussian histogram bins.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Of shape `(N, n_feat)`
+
+        Examples
+        --------
+        This method uses 11 bins spanning portions of a Gaussian with zero mean
+        and unit standard deviation.
+
+        >>> gaussian_memberships = [(-1.645, 0.283), (-1.080, 0.170),
+        ...                         (-0.739, 0.134), (-0.468, 0.118),
+        ...                         (-0.228, 0.114), (0., 0.114),
+        ...                         (0.228, 0.114), (0.468, 0.118),
+        ...                         (0.739, 0.134), (1.080, 0.170),
+        ...                         (1.645, 0.283)]
+
+        We construct a Gaussian at `gaussian_memberships[i][0]` with standard
+        deviation `gaussian_memberships[i][1]`. Each feature in `x` is assigned
+        the probability of falling in each Gaussian, and probabilities are
+        normalized across the 11 different Gaussians.
+
+        Returns
+        -------
+        outputs: torch.Tensor
+            Of shape `(N, 11*n_feat)`
+        """
+        import torch.distributions as dist
+        gaussian_memberships: List[Tuple[float, float]] = [(-1.645, 0.283),
+                                                           (-1.080, 0.170),
+                                                           (-0.739, 0.134),
+                                                           (-0.468, 0.118),
+                                                           (-0.228, 0.114),
+                                                           (0., 0.114),
+                                                           (0.228, 0.114),
+                                                           (0.468, 0.118),
+                                                           (0.739, 0.134),
+                                                           (1.080, 0.170),
+                                                           (1.645, 0.283)]
+
+        distributions: List[dist.Normal] = [
+            dist.Normal(torch.tensor(p[0]), torch.tensor(p[1]))
+            for p in gaussian_memberships
+        ]
+        dist_max: List[torch.Tensor] = [
+            distributions[i].log_prob(torch.tensor(
+                gaussian_memberships[i][0])).exp() for i in range(11)
+        ]
+
+        outputs: List[torch.Tensor] = [
+            distributions[i].log_prob(torch.tensor(x)).exp() / dist_max[i]
+            for i in range(11)
+        ]
+        output: torch.Tensor = torch.stack(outputs, dim=2)
+        output = output / torch.sum(output, dim=2, keepdim=True)
+        output = output.view(-1, self.n_input * 11)
+        return output
