@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from typing import Any, Tuple, Optional, Sequence, List, Union, Callable, Dict
+from typing import Any, Tuple, Optional, Sequence, List, Union, Callable, Dict, TypedDict
 from collections.abc import Sequence as SequenceCollection
 try:
     import torch
@@ -3103,7 +3103,7 @@ class MolGANConvolutionLayer(nn.Module):
                  dropout_rate: float = 0.0,
                  edges: int = 5,
                  name: str = "",
-                 **kwargs):
+                 prev_shape: int = 0):
         """
         Initialize this layer.
 
@@ -3133,9 +3133,9 @@ class MolGANConvolutionLayer(nn.Module):
         self.nodes: int = nodes
 
         # Case when >2 inputs are passed
-        if "prev_shape" in kwargs:
+        if "prev_shape":
             self.dense1 = nn.ModuleList([
-                nn.Linear(kwargs.get('prev_shape') + self.nodes, self.units)
+                nn.Linear(prev_shape + self.nodes, self.units)
                 for _ in range(edges - 1)
             ])
         else:
@@ -3317,14 +3317,12 @@ class MolGANMultiConvolutionLayer(nn.Module):
     >>> vertices = 9
     >>> nodes = 5
     >>> edges = 5
-    >>> units = 128
+    >>> units = (128,64)
 
-    >>> layer_1 = MolGANMultiConvolutionLayer(units=(128,64), name='layer1')
-    >>> layer_2 = MolGANAggregationLayer(units=128, name='layer2')
+    >>> layer_1 = MolGANMultiConvolutionLayer(units=units, nodes=nodes, edges=edges, name='layer1')
     >>> adjacency_tensor = torch.randn((1, vertices, vertices, edges))
     >>> node_tensor = torch.randn((1, vertices, nodes))
-    >>> hidden_1 = layer_1([adjacency_tensor, node_tensor])
-    >>> output = layer_2(hidden_1[2])
+    >>> output = layer_1([adjacency_tensor, node_tensor])
 
     References
     ----------
