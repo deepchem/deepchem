@@ -1,6 +1,5 @@
 import deepchem as dc
 import numpy as np
-import random
 import pytest
 import os
 
@@ -1215,15 +1214,8 @@ def test_global_MP():
     torch.backends.cudnn.benchmark = False
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    np.random.seed(seed)
-    random.seed(seed)
 
     dim = 1
-    n_layer = 2
-    cutoff = 5
-
-    config = {'dim': dim, 'n_layer': n_layer, 'cutoff': cutoff}
-
     node_features = torch.tensor([[0.8343], [1.2713], [1.2713], [1.2713],
                                   [1.2713]])
 
@@ -1237,11 +1229,10 @@ def test_global_MP():
         [[0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4],
          [1, 2, 3, 4, 0, 2, 3, 4, 0, 1, 3, 4, 0, 1, 2, 4, 0, 1, 2, 3]])
 
-    out = dc.models.torch_models.layers.GlobalMessagePassing(config)
+    out = dc.models.torch_models.layers.GlobalMessagePassing(dim)
     output = out(node_features, edge_attr, edge_indices)
     output = output.detach().numpy()
-    assert np.allclose(
-        output,
-        np.load("deepchem/models/tests/assets/MP_global_result.npy"),
-        atol=1e-04)
+    result = np.array([[1.1720], [1.2731], [1.2731], [1.2731], [1.2731]])
+
+    assert np.allclose(output, result, atol=1e-04)
     assert output.shape == (5, 1)
