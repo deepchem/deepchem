@@ -3428,6 +3428,132 @@ class MolGANMultiConvolutionLayer(nn.Module):
         return hidden_tensor
 
 
+class MolGANEncoderLayer(nn.Module):
+    """
+    Main learning layer used by MolGAN model.
+    MolGAN is a WGAN type model for generation of small molecules.
+    It role is to further simplify model.
+    This layer can be manually built by stacking graph convolution layers
+    followed by graph aggregation.
+    
+    Example
+    -------
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+    >>> vertices = 9
+    >>> nodes = 5
+    >>> edges = 5
+    >>> dropout_rate = 0.0
+    >>> adjacency_tensor = torch.randn((1, vertices, vertices, edges))
+    >>> node_tensor = torch.randn((1, vertices, nodes))
+    
+    >>> graph = MolGANEncoderLayer(units = [(128,64),128], dropout_rate= dropout_rate, edges=edges, nodes=nodes)([adjacency_tensor,node_tensor])
+    >>> dense = nn.Linear(,128)(graph)
+    >>> dense = torch.tanh(dense)
+    >>> dense = nn.Dropout(dropout_rate)(dense)
+    >>> dense = nn.linear(,64)(dense)
+    >>> dense = torch.tanh(dense)
+    >>> dense = nn.Dropout(dropout_rate)(dense)
+    >>> output = nn.linear(,1)(dense)
+    
+    References
+    ----------
+    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+        for small molecular graphs", https://arxiv.org/abs/1805.11973
+    """
+
+    def __init__(self,
+                 units: List = [(128, 64), 128],
+                 activation: Callable = torch.tanh,
+                 dropout_rate: float = 0.0,
+                 edges: int = 5,
+                 nodes: int = 5,
+                 name: str = "",
+                 **kwargs):
+        """
+        Initialize the layer
+        
+        Parameters
+        ----------
+        units: List, optional (default=[(128,64),128])
+            List of dimensions used by consecutive convolution layers.
+            The more values the more convolution layers invoked.
+        activation: function, optional (default=Tanh)
+            activation function used across model, default is Tanh
+        dropout_rate: float, optional (default=0.0)
+            Used by dropout layer
+        edges: int, optional (default=5)
+            Controls how many dense layers use for single convolution unit.
+            Typically matches number of bond types used in the molecule.
+        nodes: int, optional (default=5)
+            Number of features in node tensor
+        name: string, optional (default="")
+            Name of the layer
+        """
+
+        super(MolGANEncoderLayer, self).__init__()
+        if len(units) != 2:
+            raise ValueError("units parameter must contain two values")
+        self.graph_convolution_units, self.auxiliary_units = units
+        self.activation = activation
+        self.dropout_rate = dropout_rate
+        self.edges = edges
+
+        self.multi_graph_convolution_layer = MolGANMultiConvolutionLayer(
+            units=self.graph_convolution_units,
+            nodes=nodes,
+            activation=self.activation,
+            dropout_rate=self.dropout_rate,
+            edges=self.edges)
+        self.graph_aggregation_layer = MolGANAggregationLayer(
+            units=self.auxiliary_units,
+            activation=self.activation,
+            dropout_rate=self.dropout_rate)
+
+    def __repr__(self) -> str:
+        """
+        String representation of the layer
+        
+        Returns
+        -------
+        string
+            String representation of the layer
+        """
+        return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate}), edges={self.edges})"
+
+    def forward(self, inputs: List) -> torch.Tensor:
+        """
+        Invoke this layer
+
+        Parameters
+        ----------
+        inputs: list
+            List of two input matrices, adjacency tensor and node features tensors
+            in one-hot encoding format.
+
+        Returns
+        --------
+        encoder tensor: tf.Tensor
+            Tensor that been through number of convolutions followed
+            by aggregation.
+        """
+
+        output = self.multi_graph_convolution_layer(inputs)
+
+        node_tensor = inputs[1]
+
+        if len(inputs) > 2:
+            hidden_tensor = inputs[2]
+            annotations = torch.cat((output, hidden_tensor, node_tensor), -1)
+        else:
+            _, node_tensor = inputs
+            annotations = torch.cat((output, node_tensor), -1)
+
+        output = self.graph_aggregation_layer(annotations)
+        return output
+
+
 class DTNNStep(nn.Module):
     """DTNNStep Layer for DTNN model.
 
