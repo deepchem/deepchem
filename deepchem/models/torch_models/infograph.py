@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import GRU, Linear, ReLU, Sequential
-from typing import Iterable, List, Tuple, Optional
+from typing import Iterable, List, Tuple, Optional, Dict
 from deepchem.metrics import to_one_hot
 
 import deepchem as dc
@@ -390,7 +390,7 @@ class InfoGraphModel(ModularTorchModel):
         fc1: MultilayerPerceptron, dense layer used during finetuning
         fc2: MultilayerPerceptron, dense layer used during finetuning
         """
-        components = {}
+        components: Dict[str, nn.Module] = {}
         if self.task == 'pretraining':
             components['encoder'] = GINEncoder(self.num_features,
                                                self.embedding_dim,
@@ -413,15 +413,17 @@ class InfoGraphModel(ModularTorchModel):
                                                self.num_gc_layers)
             components['fc1'] = torch.nn.Linear(self.embedding_dim,
                                                 self.embedding_dim)
+            # n_tasks is Optional[int] while argument 2 of nn.Linear has to be of type int
             components['fc2'] = torch.nn.Linear(self.embedding_dim,
-                                                self.n_tasks)
+                                                self.n_tasks)  # type: ignore
         return components
 
     def build_model(self) -> nn.Module:
         if self.task == 'pretraining':
-            return InfoGraph(**self.components)
+            model = InfoGraph(**self.components)
         elif self.task == 'regression':
-            return InfoGraphFinetune(**self.components)
+            model = InfoGraphFinetune(**self.components)  # type: ignore
+        return model
 
     def loss_func(self, inputs, labels, weights):
         if self.task == 'pretraining':
