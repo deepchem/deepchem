@@ -3122,6 +3122,8 @@ class MolGANConvolutionLayer(nn.Module):
             Typically equal to number of bond types used in the model.
         name: string, optional (default="")
             Name of the layer
+        prev_shape: int, optional (default=0)
+            Shape of the previous layer, used when more than two inputs are passed
         """
         super(MolGANConvolutionLayer, self).__init__()
 
@@ -3254,6 +3256,8 @@ class MolGANAggregationLayer(nn.Module):
             Used by dropout layer
         name: string, optional (default="")
             Name of the layer
+        prev_shape: int, optional (default=0)
+            Shape of the input tensor
         """
 
         super(MolGANAggregationLayer, self).__init__()
