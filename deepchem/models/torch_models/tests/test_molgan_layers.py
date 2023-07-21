@@ -271,7 +271,6 @@ def test_graph_encoder_layer_values():
                                              edges=edges,
                                              name='layer1')
 
-    # Assuming the names of the weights are like 'dense/kernel:0', 'dense_1/kernel:0' etc.
     x = 12
     with torch.no_grad():
         for idx, dense in enumerate(
