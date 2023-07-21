@@ -3453,13 +3453,13 @@ class MolGANEncoderLayer(nn.Module):
     >>> node_tensor = torch.randn((1, vertices, nodes))
     
     >>> graph = MolGANEncoderLayer(units = [(128,64),128], dropout_rate= dropout_rate, edges=edges, nodes=nodes)([adjacency_tensor,node_tensor])
-    >>> dense = nn.Linear(,128)(graph)
+    >>> dense = nn.Linear(128,128)(graph)
     >>> dense = torch.tanh(dense)
     >>> dense = nn.Dropout(dropout_rate)(dense)
-    >>> dense = nn.linear(,64)(dense)
+    >>> dense = nn.Linear(128,64)(dense)
     >>> dense = torch.tanh(dense)
     >>> dense = nn.Dropout(dropout_rate)(dense)
-    >>> output = nn.linear(,1)(dense)
+    >>> output = nn.Linear(64,1)(dense)
     
     References
     ----------

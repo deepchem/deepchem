@@ -224,6 +224,7 @@ def test_multigraph_convolution_layer_values():
         astype(np.float32))
     assert torch.allclose(output, output_tensor, atol=1e-04)
 
+
 @pytest.mark.torch
 def test_graph_encoder_layer_shape():
     from deepchem.models.torch_models.layers import MolGANEncoderLayer
@@ -234,7 +235,7 @@ def test_graph_encoder_layer_shape():
     second_convolution_unit = 64
     aggregation_unit = 128
     units = [(first_convolution_unit, second_convolution_unit),
-                aggregation_unit]
+             aggregation_unit]
 
     layer = MolGANEncoderLayer(units=units, edges=edges)
     adjacency_tensor = torch.randn((1, vertices, vertices, edges))
@@ -243,11 +244,8 @@ def test_graph_encoder_layer_shape():
 
     assert model.shape == (1, aggregation_unit)
     assert layer.graph_convolution_units == (first_convolution_unit,
-                                                second_convolution_unit)
+                                             second_convolution_unit)
     assert layer.auxiliary_units == aggregation_unit
     assert layer.activation == torch.tanh
     assert layer.edges == 5
     assert layer.dropout_rate == 0.0
-    
-if __name__ == "__main__":
-    test_graph_encoder_layer_shape()
