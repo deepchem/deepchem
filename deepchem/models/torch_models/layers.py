@@ -3240,7 +3240,7 @@ class MolGANAggregationLayer(nn.Module):
                  activation=torch.tanh,
                  dropout_rate: float = 0.0,
                  name: str = "",
-                 **kwargs):
+                 prev_shape: int = 0):
         """
         Initialize the layer
 
@@ -3262,8 +3262,12 @@ class MolGANAggregationLayer(nn.Module):
         self.dropout_rate: float = dropout_rate
         self.name: str = name
 
-        self.d1 = nn.Linear(self.units, self.units)
-        self.d2 = nn.Linear(self.units, self.units)
+        if prev_shape:
+            self.d1 = nn.Linear(prev_shape, self.units)
+            self.d2 = nn.Linear(prev_shape, self.units)
+        else:
+            self.d1 = nn.Linear(self.units, self.units)
+            self.d2 = nn.Linear(self.units, self.units)
         self.dropout_layer = nn.Dropout(dropout_rate)
 
     def __repr__(self) -> str:
@@ -3469,8 +3473,7 @@ class MolGANEncoderLayer(nn.Module):
                  dropout_rate: float = 0.0,
                  edges: int = 5,
                  nodes: int = 5,
-                 name: str = "",
-                 **kwargs):
+                 name: str = ""):
         """
         Initialize the layer
         
@@ -3509,7 +3512,8 @@ class MolGANEncoderLayer(nn.Module):
         self.graph_aggregation_layer = MolGANAggregationLayer(
             units=self.auxiliary_units,
             activation=self.activation,
-            dropout_rate=self.dropout_rate)
+            dropout_rate=self.dropout_rate,
+            prev_shape=self.graph_convolution_units[-1] + nodes)
 
     def __repr__(self) -> str:
         """
