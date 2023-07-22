@@ -20,6 +20,7 @@ from deepchem.models.torch_models.layers import MultilayerPerceptron, CNNModule,
 from deepchem.models.torch_models.cnn import CNN
 from deepchem.models.torch_models.attention import ScaledDotProductAttention, SelfAttention
 from deepchem.models.torch_models.grover import GroverModel, GroverPretrain, GroverFinetune
+from deepchem.models.torch_models.seqtoseq import SeqToSeqModel
 from deepchem.models.torch_models.readout import GroverReadout
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
