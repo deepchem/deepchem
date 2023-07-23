@@ -3135,7 +3135,7 @@ class MolGANConvolutionLayer(nn.Module):
         self.nodes: int = nodes
 
         # Case when >2 inputs are passed
-        if "prev_shape":
+        if prev_shape:
             self.dense1 = nn.ModuleList([
                 nn.Linear(prev_shape + self.nodes, self.units)
                 for _ in range(edges - 1)
