@@ -3122,6 +3122,8 @@ class MolGANConvolutionLayer(nn.Module):
             Typically equal to number of bond types used in the model.
         name: string, optional (default="")
             Name of the layer
+        prev_shape: int, optional (default=0)
+            Shape of the previous layer, used when more than two inputs are passed
         """
         super(MolGANConvolutionLayer, self).__init__()
 
@@ -3133,7 +3135,7 @@ class MolGANConvolutionLayer(nn.Module):
         self.nodes: int = nodes
 
         # Case when >2 inputs are passed
-        if "prev_shape":
+        if prev_shape:
             self.dense1 = nn.ModuleList([
                 nn.Linear(prev_shape + self.nodes, self.units)
                 for _ in range(edges - 1)
