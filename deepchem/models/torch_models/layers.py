@@ -3847,7 +3847,6 @@ class WeaveLayer(nn.Module):
 
         return [A, P]
 
-
 class Highway(nn.Module):
     """
     Highway layer used in TextCNN model.
@@ -3871,7 +3870,7 @@ class Highway(nn.Module):
 
     def __init__(self,
                  activation: str = 'relu',
-                 biases_initializer: str = 'zeros',
+                 biases_initializer: str = 'constant_',
                  weights_initializer='kaiming_uniform_',
                  layer_shape=[5, 2],
                  **kwargs):
@@ -3898,8 +3897,20 @@ class Highway(nn.Module):
 
         init_func = getattr(initializers, self.weights_initializer)
 
-        self.linear_H = init_func(torch.empty([input_shape, out_channels]))
-        self.linear_T = init_func(torch.empty([input_shape, out_channels]))
+        self.linear_H = nn.Linear(input_shape, out_channels)
+        self.linear_T = nn.Linear(input_shape, out_channels)
+
+        init_func = getattr(nn.init, self.weights_initializer)
+        init_func(self.linear_H.weight)
+        init_func(self.linear_T.weight)
+
+        if self.biases_initializer is not None and isinstance(self.biases_initializer, str):
+            bias_init_func = getattr(nn.init, self.biases_initializer)
+            bias_init_func(self.linear_H.bias,-1)
+            bias_init_func(self.linear_T.bias,-1)
+
+        self.Sigmoid_layer=nn.Sigmoid()
+        
 
     def __repr__(self) -> str:
         """Returns a string representing the configuration of the layer.
@@ -3942,7 +3953,9 @@ class Highway(nn.Module):
         else:
             parent = inputs
 
-        parent = parent.view(self.linear_H.shape)
-        linear_H = self.activation_fn(self.linear_H * parent)
-        linear_T = torch.sigmoid(self.linear_T * parent)
+        parent = parent.view(parent.size(0), -1)
+
+        linear_H = self.activation_fn(self.linear_H(parent))
+        linear_T = self.Sigmoid_layer(self.linear_T(parent))
+
         return linear_H * linear_T + parent * (1 - linear_T)
