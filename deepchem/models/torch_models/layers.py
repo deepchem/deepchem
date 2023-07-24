@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from typing import Any, Tuple, Optional, Sequence, List, Union, Callable, Dict
+from typing import Any, Tuple, Optional, Sequence, List, Union, Callable, Dict, TypedDict
 from collections.abc import Sequence as SequenceCollection
 try:
     import torch
@@ -3103,7 +3103,7 @@ class MolGANConvolutionLayer(nn.Module):
                  dropout_rate: float = 0.0,
                  edges: int = 5,
                  name: str = "",
-                 **kwargs):
+                 prev_shape: int = 0):
         """
         Initialize this layer.
 
@@ -3122,6 +3122,8 @@ class MolGANConvolutionLayer(nn.Module):
             Typically equal to number of bond types used in the model.
         name: string, optional (default="")
             Name of the layer
+        prev_shape: int, optional (default=0)
+            Shape of the previous layer, used when more than two inputs are passed
         """
         super(MolGANConvolutionLayer, self).__init__()
 
@@ -3132,12 +3134,27 @@ class MolGANConvolutionLayer(nn.Module):
         self.name: str = name
         self.nodes: int = nodes
 
-        self.dense1: nn.ModuleList = nn.ModuleList(
-            [nn.Linear(nodes, self.units) for _ in range(edges - 1)])
+        # Case when >2 inputs are passed
+        if prev_shape:
+            self.dense1 = nn.ModuleList([
+                nn.Linear(prev_shape + self.nodes, self.units)
+                for _ in range(edges - 1)
+            ])
+        else:
+            self.dense1 = nn.ModuleList(
+                [nn.Linear(self.nodes, self.units) for _ in range(edges - 1)])
         self.dense2: nn.Linear = nn.Linear(nodes, self.units)
         self.dropout: nn.Dropout = nn.Dropout(self.dropout_rate)
 
     def __repr__(self) -> str:
+        """
+        Returns a string representing the configuration of the layer.
+        
+        Returns
+        -------
+        str
+            String representation of the layer
+        """
         return (
             f'{self.__class__.__name__}(Units={self.units}, Nodes={self.nodes}, Activation={self.activation}, Dropout_rate={self.droput_rate}, Edges={self.edges}, Name={self.name})'
         )
@@ -3283,6 +3300,134 @@ class MolGANAggregationLayer(nn.Module):
         output = self.activation(output)
         output = self.dropout_layer(output)
         return output
+
+
+class MolGANMultiConvolutionLayer(nn.Module):
+    """
+    Multiple pass convolution layer used in MolGAN model.
+    MolGAN is a WGAN type model for generation of small molecules.
+    It takes outputs of previous convolution layer and uses
+    them as inputs for the next one.
+    It simplifies the overall framework, but might be moved to
+    MolGANEncoderLayer in the future in order to reduce number of layers.
+
+    Example
+    -------
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+    >>> vertices = 9
+    >>> nodes = 5
+    >>> edges = 5
+    >>> units = (128,64)
+
+    >>> layer_1 = MolGANMultiConvolutionLayer(units=units, nodes=nodes, edges=edges, name='layer1')
+    >>> adjacency_tensor = torch.randn((1, vertices, vertices, edges))
+    >>> node_tensor = torch.randn((1, vertices, nodes))
+    >>> output = layer_1([adjacency_tensor, node_tensor])
+
+    References
+    ----------
+    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+        for small molecular graphs", https://arxiv.org/abs/1805.11973
+    """
+
+    def __init__(self,
+                 units: Tuple = (128, 64),
+                 nodes: int = 5,
+                 activation=torch.tanh,
+                 dropout_rate: float = 0.0,
+                 edges: int = 5,
+                 name: str = "",
+                 **kwargs):
+        """
+        Initialize the layer
+
+        Parameters
+        ---------
+        units: Tuple, optional (default=(128,64)), min_length=2
+            ist of dimensions used by consecutive convolution layers.
+            The more values the more convolution layers invoked.
+        nodes: int, optional (default=5)
+            Number of features in node tensor
+        activation: function, optional (default=Tanh)
+            activation function used across model, default is Tanh
+        dropout_rate: float, optional (default=0.0)
+            Used by dropout layer
+        edges: int, optional (default=5)
+            Controls how many dense layers use for single convolution unit.
+            Typically matches number of bond types used in the molecule.
+        name: string, optional (default="")
+            Name of the layer
+        """
+
+        super(MolGANMultiConvolutionLayer, self).__init__()
+        if len(units) < 2:
+            raise ValueError("units parameter must contain at least two values")
+
+        self.nodes: int = nodes
+        self.units: Tuple = units
+        self.activation = activation
+        self.dropout_rate: float = dropout_rate
+        self.edges: int = edges
+        self.name: str = name
+
+        self.first_convolution = MolGANConvolutionLayer(
+            units=self.units[0],
+            nodes=self.nodes,
+            activation=self.activation,
+            dropout_rate=self.dropout_rate,
+            edges=self.edges)
+        self.gcl = nn.ModuleList([
+            MolGANConvolutionLayer(units=u,
+                                   nodes=self.nodes,
+                                   activation=self.activation,
+                                   dropout_rate=self.dropout_rate,
+                                   edges=self.edges,
+                                   prev_shape=self.units[count])
+            for count, u in enumerate(self.units[1:])
+        ])
+
+    def __repr__(self) -> str:
+        """
+        String representation of the layer
+        
+        Returns
+        -------
+        string
+            String representation of the layer
+        """
+        return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate}), edges={self.edges})"
+
+    def forward(self, inputs: List) -> torch.Tensor:
+        """
+        Invoke this layer
+
+        Parameters
+        ----------
+        inputs: list
+            List of two input matrices, adjacency tensor and node features tensors
+            in one-hot encoding format.
+
+        Returns
+        --------
+        convolution tensor: torch.Tensor
+            Result of input tensors going through convolution a number of times.
+        """
+
+        adjacency_tensor = inputs[0]
+        node_tensor = inputs[1]
+
+        tensors = self.first_convolution([adjacency_tensor, node_tensor])
+
+        # Loop over the remaining convolution layers
+        for layer in self.gcl:
+            # Apply the current layer to the outputs from the previous layer
+            tensors = layer(tensors)
+
+        _, _, hidden_tensor = tensors
+
+        return hidden_tensor
 
 
 class DTNNStep(nn.Module):
