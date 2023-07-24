@@ -286,6 +286,9 @@ def test_graph_encoder_layer_values():
     x = 12
     with torch.no_grad():
         # Testing MultiConvolution Layer
+
+        # Testing First Convolution Layer
+        # dense1 layer - list of dense layers
         for idx, dense in enumerate(
                 torch_model_encoder.multi_graph_convolution_layer.
                 first_convolution.dense1):
@@ -296,13 +299,18 @@ def test_graph_encoder_layer_values():
                 np.transpose(tf_weights[weight_name]))
             dense.bias.data = torch.from_numpy(tf_weights[bias_name])
         idx += 1
+
+        # dense2 layer - single dense layer
         torch_model_encoder.multi_graph_convolution_layer.first_convolution.dense2.weight.data = torch.from_numpy(
             np.transpose(tf_weights[f'layer1///dense_{idx+x}/kernel:0']))
         torch_model_encoder.multi_graph_convolution_layer.first_convolution.dense2.bias.data = torch.from_numpy(
             tf_weights[f'layer1///dense_{idx+x}/bias:0'])
         x += 5
+
+        # Testing rest of the Multi convolution layer
         for idx_, layer in enumerate(
                 torch_model_encoder.multi_graph_convolution_layer.gcl):
+            # dense1 layer - list of dense layers
             for idx, dense in enumerate(layer.dense1):
                 weight_name = f'layer1///dense_{idx+x}/kernel:0'
                 bias_name = f'layer1///dense_{idx+x}/bias:0'
@@ -311,11 +319,12 @@ def test_graph_encoder_layer_values():
                 dense.bias.data = torch.from_numpy(tf_weights[bias_name])
             x += 1
 
+            # dense2 layer - single dense layer
             layer.dense2.weight.data = torch.from_numpy(
                 np.transpose(tf_weights[f'layer1///dense_{idx+x}/kernel:0']))
             layer.dense2.bias.data = torch.from_numpy(
                 tf_weights[f'layer1///dense_{idx+x}/bias:0'])
-        
+
         # Testing Aggregation Layer
         torch_model_encoder.graph_aggregation_layer.d1.weight.data = torch.from_numpy(
             np.transpose(tf_weights['layer1//dense_22/kernel:0']))
@@ -325,7 +334,7 @@ def test_graph_encoder_layer_values():
             np.transpose(tf_weights['layer1//dense_23/kernel:0']))
         torch_model_encoder.graph_aggregation_layer.d2.bias.data = torch.from_numpy(
             tf_weights['layer1//dense_23/bias:0'])
-    
+
     # Loading input tensors
     adjacency_tensor = torch.from_numpy(
         np.load('deepchem/models/tests/assets/molgan_adj_tensor.npy').astype(
@@ -333,7 +342,7 @@ def test_graph_encoder_layer_values():
     node_tensor = torch.from_numpy(
         np.load('deepchem/models/tests/assets/molgan_nod_tensor.npy').astype(
             np.float32))
-    
+
     # Testing output
     output = torch_model_encoder([adjacency_tensor, node_tensor])
     output_tensor = torch.from_numpy(
