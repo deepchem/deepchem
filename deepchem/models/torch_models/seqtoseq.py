@@ -53,20 +53,112 @@ class VariationalRandomizer(nn.Module):
     def get_loss(self):
         return self.kl_loss
 
+class _create_encoder(nn.Module):
+    """Encoder as a nn.Module."""
+    def __init__(self, input_size, n_layers, _embedding_dimension, dropout):
+        super(_create_encoder, self).__init__()
+        self.input_size = input_size
+        self.n_layers = n_layers
+        self._embedding_dimension = _embedding_dimension
+        self.dropout = dropout
+        self.GRU = nn.GRU(self.input_size, self._embedding_dimension, self.n_layers, dropout=self.dropout)
+        self.l = torch.Tensor([])
+    def forward(self, inputs):
+        input_ = inputs[0]
+        gather_indices = inputs[1]
+        l = []
+        for i in range(input_.shape[0]):
+            l.append(self.GRU(input_[i])[0])
+        output = torch.stack(l, 0)
+        #output, hn = self.GRU(input_)
+        def mapper(data: torch.Tensor, indices: torch.Tensor):
+            l = list()
+            for i in range(len(data)):
+                l.append(data[indices[i][0]][indices[i][1]])
+            return torch.stack(l, 0)
+        a = lambda x: mapper(x[0], x[1])
+        output = a([output, gather_indices])
+        return output
+
+
+class _create_decoder(nn.Module):
+    """Decoder as a nn.Module."""
+    def __init__(self, n_layers, embedding_dimension, max_output_length, output_tokens, dropout):
+        super(_create_decoder, self).__init__()
+        #self.input_size = input_size
+        self.n_layers = n_layers
+        self._embedding_dimension = embedding_dimension
+        self._max_output_length = max_output_length
+        self._output_tokens = output_tokens
+        self.dropout = dropout
+        self.GRU = nn.GRU(self._embedding_dimension, self._embedding_dimension, self.n_layers, dropout=self.dropout)
+        self.final_linear = nn.LazyLinear(len(self._output_tokens))
+        self.act = get_activation("softmax")
+    def forward(self, inputs: torch.Tensor):
+        inputs = torch.stack(self._max_output_length * [inputs], 1)
+        l=[]
+        for i in range(inputs.shape[0]):
+            l.append(self.GRU(inputs[i])[0])
+        output = torch.stack(l,0)
+        #output, hn = self.GRU(inputs)
+        output = self.final_linear(output)
+        output = self.act(output)
+        return output
+
+
 class SeqToSeq(nn.Module):
     def __init__(self,
-                 input_tokens,
-                 output_tokens,
-                 max_output_length,
-                 encoder_layers=4,
-                 decoder_layers=4,
-                 embedding_dimension=512,
-                 dropout=0.0,
-                 reverse_input=True,
-                 variational=False,
-                 annealing_start_step=5000,
-                 annealing_final_step=10000,):
+                 input_tokens: List,
+                 output_tokens: List,
+                 max_output_length: int,
+                 encoder_layers: int=4,
+                 decoder_layers: int=4,
+                 embedding_dimension: int=512,
+                 dropout: float=0.0,
+                 reverse_input: bool=True,
+                 variational: bool=False,
+                 annealing_start_step: int=5000,
+                 annealing_final_step: int=10000):
         super(SeqToSeq, self).__init__()
+        self._input_tokens = input_tokens
+        self._output_tokens = output_tokens
+        self._max_output_length = max_output_length
+        self.encoder_layers = encoder_layers
+        self.decoder_layers = decoder_layers
+        self._embedding_dimension = embedding_dimension
+        self.dropout = dropout
+        self._reverse_input = reverse_input
+        self.variational = variational
+        self.annealing_start_step = annealing_start_step
+        self.annealing_final_step = annealing_final_step
+        self.encoder = _create_encoder(len(self._input_tokens), self.encoder_layers, self._embedding_dimension, self.dropout)
+        self.decoder = _create_decoder(self.decoder_layers, self._embedding_dimension, self._max_output_length, self._output_tokens, self.dropout)
+        if self.variational:
+            self.randomizer = VariationalRandomizer(self._embedding_dimension,
+                                               self.annealing_start_step,
+                                               self.annealing_final_step)
+    def forward(self, inputs):
+        """
+        - features
+        - gather_indices
+        - global_step
+        """
+        features = inputs[0]
+        gather_indices = inputs[1]
+        global_step = inputs[2]
+        embedding = self.encoder([features, gather_indices])
+        self.encoder.training = False
+        self._embedding = self.encoder([features, gather_indices])
+        self.encoder.training = True
+
+        if self.variational:
+            embedding = self.randomizer([self._embedding, global_step])
+            self.randomizer.training = False
+            self._embedding = self.randomizer([self._embedding, global_step])
+            self.randomizer.training = True
+        output = self.decoder(embedding)
+        return output
+
 
 class SeqToSeqModel(TorchModel):
     sequence_end = object()
@@ -95,6 +187,32 @@ class SeqToSeqModel(TorchModel):
         self._max_output_length = max_output_length
         self._embedding_dimension = embedding_dimension
         self._reverse_input = reverse_input
+        self.variational=False
+        self.annealing_start_step=5000
+        self.annealing_final_step=10000
+
+        model = SeqToSeq(input_tokens,
+                 output_tokens,
+                 max_output_length,
+                 encoder_layers,
+                 decoder_layers,
+                 embedding_dimension,
+                 dropout,
+                 reverse_input,
+                 variational,
+                 annealing_start_step,
+                 annealing_final_step)
+        super(SeqToSeqModel, self).__init__(model, self._create_loss(), **kwargs)
+
+    def _create_loss(self):
+        """Create the loss function."""
+        def loss_fn(outputs, labels, weights):
+            prob = torch.sum(outputs[0] * labels[0], dim=2)
+            mask = torch.sum(labels[0], dim=2)
+            log_prob = torch.log(prob + 1e-20) * mask
+            loss = -torch.mean(torch.sum(log_prob, dim=1))
+            return loss
+        return loss_fn
 
     def fit_sequences(self,
                       sequences,
@@ -164,7 +282,7 @@ class SeqToSeqModel(TorchModel):
                 (self.batch_size, self._embedding_dimension), dtype=np.float32)
             for i, e in enumerate(batch):
                 embedding_array[i] = e
-            probs = self.decoder(embedding_array, training=False)
+            probs = self.model.decoder(embedding_array, training=False)
             probs = probs.numpy()
             for i in range(len(batch)):
                 result.append(self._beam_search(probs[i], beam_width))
@@ -274,6 +392,8 @@ class SeqToSeqModel(TorchModel):
 
     def _generate_batches(self, sequences):
         """Create feed_dicts for fitting."""
+        #for i in sequences:
+        #    print(i)
         for batch in self._batch_elements(sequences):
             inputs = []
             outputs = []
@@ -289,43 +409,3 @@ class SeqToSeqModel(TorchModel):
                                       ])
             yield ([features, gather_indices,
                     np.array(self.get_global_step())], [labels], [])
-
-
-class _create_encoder(nn.Module):
-    """Encoder as a nn.Module."""
-    def __init__(self, input_size, n_layers, _embedding_dimension, dropout):
-        super(_create_encoder, self).__init__()
-        self.input_size = input_size
-        self.n_layers = n_layers
-        self._embedding_dimension = _embedding_dimension
-        self.dropout = dropout
-        self.GRU = nn.GRU(self.input_size, self._embedding_dimension, self.n_layers, dropout=self.dropout)
-    def forward(self, inputs):
-        input_ = inputs[0]
-        gather_indices = inputs[1]
-        output, hn = self.GRU(input_)
-        print(output)
-        output = output[tuple(gather_indices)]
-        return output
-
-
-class _create_decoder(nn.Module):
-    """Decoder as a nn.Module."""
-    def __init__(self, n_layers, embedding_dimension, max_output_length, output_tokens, dropout):
-        super(_create_decoder, self).__init__()
-        #self.input_size = input_size
-        self.n_layers = n_layers
-        self._embedding_dimension = embedding_dimension
-        self._max_output_length = max_output_length
-        self._output_tokens = output_tokens
-        self.dropout = dropout
-        self.GRU = nn.GRU(self._embedding_dimension, self._embedding_dimension, self.n_layers, dropout=self.dropout, bidirectional=True)
-        self.final_linear = nn.LazyLinear(len(self._output_tokens))
-        self.act = get_activation("softmax")
-    def forward(self, inputs: torch.Tensor):
-        inputs = torch.stack(self._max_output_length * [inputs], 1)
-        print(inputs)
-        output, hn = self.GRU(inputs)
-        output = self.final_linear(output)
-        output = self.act(output)
-        return output
