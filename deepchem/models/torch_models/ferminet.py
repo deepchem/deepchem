@@ -71,7 +71,7 @@ class Ferminet(torch.nn.Module):
 
 
 class FerminetModel(TorchModel):
-    """A deep-learning based Variational Monte Carlo method for calculating the ab-initio
+    """A deep-learning based Variational Monte Carlo method [1]_ for calculating the ab-initio
     solution of a many-electron system.
 
     This model aims to calculate the ground state energy of a multi-electron system
@@ -83,8 +83,13 @@ class FerminetModel(TorchModel):
 
     This method is based on the following paper:
 
-    Spencer, James S., et al. Better, Faster Fermionic Neural Networks. arXiv:2011.07125,
-    arXiv, 13 Nov. 2020. arXiv.org, http://arxiv.org/abs/2011.07125.
+    References
+    ----------
+    .. [1] Spencer, James S., et al. Better, Faster Fermionic Neural Networks. arXiv:2011.07125, arXiv, 13 Nov. 2020. arXiv.org, http://arxiv.org/abs/2011.07125.
+
+    Note
+    ----
+    This class requires pySCF to be installed.
     """
 
     def __init__(
