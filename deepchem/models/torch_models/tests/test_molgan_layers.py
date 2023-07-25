@@ -265,6 +265,16 @@ def test_graph_encoder_layer_shape():
 
 @pytest.mark.torch
 def test_graph_encoder_layer_values():
+    """
+    Test to check the Values of the Graph Encoder Layer
+    It first loads the weights of the TF model
+    Then it starts transfering the weights to the torch model
+        1. MultiConvolution Layer
+            1.1 First Convolution Layer
+            1.2 Rest of the Convolution Layers
+        2. Aggregation Layer
+    Then it loads the input tensors and checks the output
+    """
     from deepchem.models.torch_models.layers import MolGANEncoderLayer
     nodes = 5
     edges = 5
@@ -283,7 +293,7 @@ def test_graph_encoder_layer_values():
                                              edges=edges,
                                              name='layer1')
 
-    x = 12
+    x = 12  # the starting number for the dense layers in the tf model weights
     with torch.no_grad():
         # Testing MultiConvolution Layer
 
