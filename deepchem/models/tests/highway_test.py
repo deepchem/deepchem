@@ -1,4 +1,3 @@
-#%%
 import torch
 import torch.nn as nn
 import torch.nn.init as init
@@ -40,8 +39,6 @@ class Highway(torch.nn.Module):
 
     assert not torch.allclose(result, result2)
 
-#%%
-
 def test_highway_output():
     from deepchem.models.torch_models.layers import Highway
     width = 5
@@ -71,10 +68,10 @@ def test_highway_output():
     assert torch.allclose(output, output_tensor, atol=1e-04)
 
 
-#%%
 
 
 
 
 
-# %%
+
+
