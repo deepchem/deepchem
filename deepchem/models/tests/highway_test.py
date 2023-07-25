@@ -39,7 +39,7 @@ class Highway(torch.nn.Module):
 
     assert not torch.allclose(result, result2)
 
-def test_highway_output():
+def test_highway_layer_shape():
     from deepchem.models.torch_models.layers import Highway
     width = 5
     batch_size = 2
@@ -66,12 +66,3 @@ def test_highway_output():
          np.load('assets/highway_output.npy').astype(
              np.float32))
     assert torch.allclose(output, output_tensor, atol=1e-04)
-
-
-
-
-
-
-
-
-
