@@ -4578,7 +4578,7 @@ class ResidualBlock(nn.Module):
         return x_out
 
 
-class GlobalMessagePassing(MessagePassing):
+class MXMNetGlobalMessagePassing(MessagePassing):
     """This class implements the Global Message Passing Layer from the Molecular Mechanics-Driven Graph Neural Network
     with Multiplex Graph for Molecular Structures(MXMNet) paper [1]_.
 
@@ -4634,15 +4634,15 @@ class GlobalMessagePassing(MessagePassing):
     >>> node_features = torch.tensor([[0.8343], [1.2713], [1.2713], [1.2713], [1.2713]])
     >>> edge_attributes = torch.tensor([[1.0004], [1.0004], [1.0005], [1.0004], [1.0004],[-0.2644], [-0.2644], [-0.2644], [1.0004],[-0.2644], [-0.2644], [-0.2644], [1.0005],[-0.2644], [-0.2644], [-0.2644], [1.0004],[-0.2644], [-0.2644], [-0.2644]])
     >>> edge_indices = torch.tensor([[0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4],[1, 2, 3, 4, 0, 2, 3, 4, 0, 1, 3, 4, 0, 1, 2, 4, 0, 1, 2, 3]])
-    >>> out = GlobalMessagePassing(dim)
+    >>> out = MXMNETGlobalMessagePassing(dim)
     >>> output = out(node_features, edge_attributes, edge_indices)
     >>> output.shape
     torch.Size([5, 1])
 
     """
 
-    def __init__(self, dim: int):
-        """Initializes the GlobalMessagePassing layer.
+    def __init__(self, dim: int, activation_fn: Union[Callable, str] = 'relu'):
+        """Initializes the MXMNETGlobalMessagePassing layer.
 
         Parameters
         -----------
@@ -4650,20 +4650,23 @@ class GlobalMessagePassing(MessagePassing):
             The dimension of the input and output features.
         """
 
-        super(GlobalMessagePassing, self).__init__()
+        super(MXMNetGlobalMessagePassing, self).__init__()
         self.dim = dim
+        self.activation_fn = get_activation(activation_fn)
 
         self.h_mlp: MultilayerPerceptron = MultilayerPerceptron(
-            d_input=self.dim, d_output=self.dim, activation_fn='silu')
+            d_input=self.dim, d_output=self.dim, activation_fn=activation_fn)
 
         self.res1: ResidualBlock = ResidualBlock(self.dim)
         self.res2: ResidualBlock = ResidualBlock(self.dim)
         self.res3: ResidualBlock = ResidualBlock(self.dim)
         self.mlp: MultilayerPerceptron = MultilayerPerceptron(
-            d_input=self.dim, d_output=self.dim, activation_fn='silu')
+            d_input=self.dim, d_output=self.dim, activation_fn=activation_fn)
 
         self.x_edge_mlp: MultilayerPerceptron = MultilayerPerceptron(
-            d_input=self.dim * 3, d_output=self.dim, activation_fn='silu')
+            d_input=self.dim * 3,
+            d_output=self.dim,
+            activation_fn=activation_fn)
         self.linear: nn.Linear = nn.Linear(self.dim, self.dim, bias=False)
 
     def forward(self, node_features: torch.Tensor,
@@ -4721,9 +4724,9 @@ class GlobalMessagePassing(MessagePassing):
         Parameters
         -----------
         x_i: torch.Tensor
-            The source node features tensor of shape (num_edges, feature_dim).
+            The source node features tensor of shape (num_edges+num_nodes, feature_dim).
         x_j: torch.Tensor
-            The target node features tensor of shape (num_edges, feature_dim).
+            The target node features tensor of shape (num_edges+num_nodes, feature_dim).
         edge_attributes: torch.Tensor
             The edge attribute tensor of shape (num_edges, attribute_dim).
 
