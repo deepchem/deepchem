@@ -197,7 +197,7 @@ Torch Layers
 
 .. autoclass:: deepchem.models.torch_models.PNA
   :members:
-  
+
 .. autoclass:: deepchem.models.torch_models.gnn3d.Net3DLayer
   :members:
 
@@ -213,7 +213,13 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.MolGANAggregationLayer
   :members:
   
+.. autoclass:: deepchem.models.torch_models.layers.MolGANMultiConvolutionLayer
+  :members:
+
 .. autoclass:: deepchem.models.torch_models.layers.DTNNStep
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.DTNNGather
   :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.EdgeNetwork
@@ -223,6 +229,9 @@ Torch Layers
   :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.Highway
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.WeaveGather
   :members:
 
 Grover Layers

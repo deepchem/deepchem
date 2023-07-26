@@ -1077,6 +1077,48 @@ def test_dtnn_step():
 
 
 @pytest.mark.torch
+def test_dtnn_gather():
+    """Test invoking the Torch equivalent of EdgeNetwork."""
+    W_list_1 = [[
+        0.54732025, -0.627077, -0.2903021, -0.53665423, -0.00559229,
+        -0.32349566, 0.1962483, 0.5581455, 0.11647487, 0.13117266
+    ],
+                [
+                    -0.66846573, -0.28275022, 0.06701428, 0.43692493,
+                    -0.24846172, 0.41073883, -0.04701298, -0.23764172,
+                    -0.16597754, -0.23689681
+                ],
+                [
+                    -0.41830233, -0.2093746, 0.11161888, -0.61909866,
+                    -0.07230109, 0.20211416, 0.07490742, -0.52804005,
+                    -0.4896497, 0.63919294
+                ]]
+    W_list_2 = [[-0.33358562, -0.5884317, 0.26542962],
+                [-0.6087704, -0.5719125, -0.05134851],
+                [0.19017327, -0.5240722, 0.28907597],
+                [0.09558785, 0.2324171, 0.395795],
+                [0.04189491, -0.2537845, 0.1019693],
+                [-0.27015388, -0.53264153, 0.04725528],
+                [-0.03956562, 0.678604, 0.37642324],
+                [0.3477502, 0.48643565, -0.48160803],
+                [0.29909176, -0.4186227, 0.53793466],
+                [0.05536985, 0.64485407, 0.5148499]]
+    result_tf = [[0.45788735, 0.9619317, -0.53767115]]
+
+    gather_layer_torch = torch_layers.DTNNGather(3, 3, [10])
+    gather_layer_torch.W_list = torch.nn.ParameterList()
+    gather_layer_torch.W_list.append(torch.tensor(W_list_1))
+    gather_layer_torch.W_list.append(torch.tensor(W_list_2))
+    result_torch = gather_layer_torch([
+        torch.Tensor([[3, 2, 1]]).to(torch.float32),
+        torch.Tensor([0]).to(torch.int64)
+    ])
+
+    assert torch.allclose(result_torch, torch.tensor(result_tf), atol=1e-4)
+    assert result_torch.shape == (1, 3)
+
+
+@pytest.mark.torch
 def test_edge_network():
     """Test invoking the Torch equivalent of EdgeNetwork."""
     # init parameters
