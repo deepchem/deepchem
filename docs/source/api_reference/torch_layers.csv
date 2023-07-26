@@ -42,4 +42,4 @@ MolGANEncoderLayer, `ref <https://arxiv.org/abs/1805.11973>`_, MolGan
 DTNNEmbedding, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
 DTNNStep, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
 DTNNGather, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
-GlobalMessagePassing, `ref <https://arxiv.org/pdf/2011.07457.pdf>`_, Global Message Passing Neural Network
+MXMNETGlobalMessagePassing, `ref <https://arxiv.org/pdf/2011.07457.pdf>`_, Global Message Passing Neural Network for MXMNET Model
