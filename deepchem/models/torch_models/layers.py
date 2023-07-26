@@ -104,10 +104,11 @@ class MultilayerPerceptron(nn.Module):
                 x = self.activation_fn(
                     x
                 )  # Done because activation_fn returns a torch.nn.functional
-        if not self.weighted_skip:
-            return x + input
-        elif self.skip is not None:
-            return x + self.skip(input)
+        if self.skip is not None:
+            if not self.weighted_skip:
+                return x + input
+            else:
+                return x + self.skip(input)
         else:
             return x
 
