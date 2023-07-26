@@ -704,6 +704,30 @@ def test_MultilayerPerceptron_overfit():
 
 
 @pytest.mark.torch
+def test_weighted_skip_MultilayerPerceptron():
+    "Test for weighted skip connection from the input to the output"
+    seed = 123
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    dim = 1
+    features = torch.Tensor([[0.8343], [1.2713], [1.2713], [1.2713], [1.2713]])
+    layer = dc.models.torch_models.layers.MultilayerPerceptron(
+        d_input=dim,
+        d_hidden=(dim,),
+        d_output=dim,
+        activation_fn='silu',
+        weighted_skip=False)
+    output = layer(features)
+    output = output.detach().numpy()
+    result = np.array([[1.1032], [1.5598], [1.5598], [1.5598], [1.5598]])
+    assert np.allclose(output, result, atol=1e-04)
+    assert output.shape == (5, 1)
+
+
+@pytest.mark.torch
 def test_position_wise_feed_forward_dropout_at_input():
     """Test invoking PositionwiseFeedForward."""
     torch.manual_seed(0)
