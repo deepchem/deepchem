@@ -66,11 +66,7 @@ class _create_encoder(nn.Module):
     def forward(self, inputs):
         input_ = inputs[0]
         gather_indices = inputs[1]
-        l = []
-        for i in range(input_.shape[0]):
-            l.append(self.GRU(input_[i])[0])
-        output = torch.stack(l, 0)
-        #output, hn = self.GRU(input_)
+        output = self.GRU(input_.transpose(1,0))[0].transpose(1,0)
         def mapper(data: torch.Tensor, indices: torch.Tensor):
             l = list()
             for i in range(len(data)):
@@ -96,11 +92,7 @@ class _create_decoder(nn.Module):
         self.act = get_activation("softmax")
     def forward(self, inputs: torch.Tensor):
         inputs = torch.stack(self._max_output_length * [inputs], 1)
-        l=[]
-        for i in range(inputs.shape[0]):
-            l.append(self.GRU(inputs[i])[0])
-        output = torch.stack(l,0)
-        #output, hn = self.GRU(inputs)
+        output = self.GRU(inputs.transpose(1,0))[0].transpose(1,0)
         output = self.final_linear(output)
         output = self.act(output)
         return output
