@@ -234,7 +234,7 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.WeaveGather
   :members:
   
-.. autoclass:: deepchem.models.torch_models.layers.MXMNETGlobalMessagePassing
+.. autoclass:: deepchem.models.torch_models.layers.MXMNetGlobalMessagePassing
    :members:
 
 Grover Layers
