@@ -40,7 +40,8 @@ class MultilayerPerceptron(nn.Module):
                  batch_norm: bool = False,
                  batch_norm_momentum: float = 0.1,
                  activation_fn: Union[Callable, str] = 'relu',
-                 skip_connection: bool = False):
+                 skip_connection: bool = False,
+                 weighted_skip: bool = True):
         """Initialize the model.
 
         Parameters
@@ -61,6 +62,8 @@ class MultilayerPerceptron(nn.Module):
             the activation function to use in the hidden layers
         skip_connection: bool
             whether to add a skip connection from the input to the output
+        weighted_skip: bool
+            whether to add a weighted skip connection from the input to the output
         """
         super(MultilayerPerceptron, self).__init__()
         self.d_input = d_input
@@ -72,6 +75,7 @@ class MultilayerPerceptron(nn.Module):
         self.activation_fn = get_activation(activation_fn)
         self.model = nn.Sequential(*self.build_layers())
         self.skip = nn.Linear(d_input, d_output) if skip_connection else None
+        self.weighted_skip = weighted_skip
 
     def build_layers(self):
         """
@@ -101,7 +105,10 @@ class MultilayerPerceptron(nn.Module):
                     x
                 )  # Done because activation_fn returns a torch.nn.functional
         if self.skip is not None:
-            return x + self.skip(input)
+            if not self.weighted_skip:
+                return x + input
+            else:
+                return x + self.skip(input)
         else:
             return x
 

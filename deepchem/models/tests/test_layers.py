@@ -664,7 +664,7 @@ def test_position_wise_feed_forward():
                           (True, False, [[-0.9612, 2.3846], [-4.1104, 5.7606]]),
                           (False, True, [[0.2795, 0.4243], [0.2795, 0.4243]]),
                           (True, True, [[-0.9612, 2.3846], [-4.1104, 5.7606]])])
-def test_MultilayerPerceptron(skip_connection, batch_norm, expected):
+def test_multilayer_perceptron(skip_connection, batch_norm, expected):
     """Test invoking MLP."""
     torch.manual_seed(0)
     input_ar = torch.tensor([[1., 2.], [5., 6.]])
@@ -681,7 +681,7 @@ def test_MultilayerPerceptron(skip_connection, batch_norm, expected):
 
 
 @pytest.mark.torch
-def test_MultilayerPerceptron_overfit():
+def test_multilayer_perceptron_overfit():
     import torch
     import deepchem.models.torch_models.layers as torch_layers
     from deepchem.data import NumpyDataset
@@ -701,6 +701,27 @@ def test_MultilayerPerceptron_overfit():
     model.fit(data, nb_epoch=1000)
     output = model.predict_on_batch(data.X)
     assert np.allclose(output, y, atol=1e-2)
+
+
+@pytest.mark.torch
+def test_weighted_skip_multilayer_perceptron():
+    "Test for weighted skip connection from the input to the output"
+    seed = 123
+    torch.manual_seed(seed)
+    dim = 1
+    features = torch.Tensor([[0.8343], [1.2713], [1.2713], [1.2713], [1.2713]])
+    layer = dc.models.torch_models.layers.MultilayerPerceptron(
+        d_input=dim,
+        d_hidden=(dim,),
+        d_output=dim,
+        activation_fn='silu',
+        skip_connection=True,
+        weighted_skip=False)
+    output = layer(features)
+    output = output.detach().numpy()
+    result = np.array([[1.1032], [1.5598], [1.5598], [1.5598], [1.5598]])
+    assert np.allclose(output, result, atol=1e-04)
+    assert output.shape == (5, 1)
 
 
 @pytest.mark.torch
