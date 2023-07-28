@@ -1,8 +1,9 @@
 from deepchem.feat import Featurizer
-from typing import Any, List
 import numpy as np
 
+
 class DTNNFeaturizer(Featurizer):
+
     def __init__(self, steps, step_size):
         self.steps = steps
         self.step_size = step_size
@@ -15,13 +16,15 @@ class DTNNFeaturizer(Featurizer):
         num_atoms = list(map(sum, datapoint.astype(bool)[:, :, 0]))
         atom_number = [
             np.round(
-                np.power(2 * np.diag(datapoint[i, :num_atoms[i], :num_atoms[i]]),
-                         1 / 2.4)).astype(int) for i in range(len(num_atoms))
+                np.power(
+                    2 * np.diag(datapoint[i, :num_atoms[i], :num_atoms[i]]),
+                    1 / 2.4)).astype(int) for i in range(len(num_atoms))
         ]
         start = 0
         for im, molecule in enumerate(atom_number):
             distance_matrix = np.outer(
-                molecule, molecule) / datapoint[im, :num_atoms[im], :num_atoms[im]]
+                molecule,
+                molecule) / datapoint[im, :num_atoms[im], :num_atoms[im]]
             np.fill_diagonal(distance_matrix, -100)
             distance.append(np.expand_dims(distance_matrix.flatten(), 1))
             atom_membership.append([im] * num_atoms[im])
