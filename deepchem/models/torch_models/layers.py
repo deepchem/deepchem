@@ -4488,21 +4488,22 @@ class _MXMNetEnvelope(torch.nn.Module):
     'b' = p * (p + 2)
     'c' = -p * (p + 1) / 2
 
-    Parameters:
-    -----------
-    exponent: float 
-        The exponent 'e' used in the envelope function.
-
-    Examples:
-    ---------
-    env = _MXMNetEnvelope(exponent=2.0)
-    input_tensor = torch.tensor([0.5, 1.0, 2.0, 3.0])
-    output = env(input_tensor)
-    output.shape()
-    torch.Size([1, 4])
+    Examples
+    --------
+    >>> env = _MXMNetEnvelope(exponent=2.0)
+    >>> input_tensor = torch.tensor([0.5, 1.0, 2.0, 3.0])
+    >>> output = env(input_tensor)
+    >>> output.shape
+    torch.Size([4])
     """
 
     def __init__(self, exponent):
+        """
+        Parameters
+        ----------
+        exponent: float 
+            The exponent 'e' used in the envelope function.
+        """
         super(_MXMNetEnvelope, self).__init__()
         self.e = exponent
         self.a = -(self.e + 1) * (self.e + 2) / 2
@@ -4510,10 +4511,24 @@ class _MXMNetEnvelope(torch.nn.Module):
         self.c = -self.e * (self.e + 1) / 2
 
     def forward(self, x):
+        """
+        Compute the envelope function for the input tensor 'x'.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The Input tensor
+
+        Returns
+        -------
+        output: torch.Tensor
+            The tensor containing the computed envelope values for each element of 'x'.
+        """
         e, a, b, c = self.e, self.a, self.b, self.c
         x_pow_p0 = x.pow(e)
         x_pow_p1 = x_pow_p0 * x
         env_val = 1. / x + a * x_pow_p0 + b * x_pow_p1 + c * x_pow_p1 * x
 
         zero = torch.zeros_like(x)
-        return torch.where(x < 1, env_val, zero)
+        output = torch.where(x < 1, env_val, zero)
+        return output
