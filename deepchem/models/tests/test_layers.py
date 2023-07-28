@@ -1306,3 +1306,13 @@ def test_local_MP():
 
     assert output[0].shape == (5, 1)
     assert output[1].shape == (5, 1)
+
+
+@pytest.mark.torch
+def test_mxmnet_envelope():
+    env = dc.models.torch_models.layers._MXMNetEnvelope(exponent=2.0)
+    input_tensor = torch.tensor([0.5, 1.0, 2.0, 3.0])
+    output = env(input_tensor)
+    output = output.detach().numpy()
+    result = np.array([1.3125, 0.0000, 0.0000, 0.0000])
+    assert np.allclose(result, output, atol=1e-04)
