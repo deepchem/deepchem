@@ -4753,3 +4753,21 @@ class LocalMessagePassing(torch.nn.Module):
         y = self.y_W(y)
 
         return h, y
+
+
+class _MXMNetEnvelope(torch.nn.Module):
+    def __init__(self, exponent):
+        super(_MXMNetEnvelope, self).__init__()
+        self.e = exponent
+        self.a = -(self.e + 1) * (self.e + 2) / 2
+        self.b = self.e * (self.e + 2)
+        self.c = -self.e * (self.e + 1) / 2
+
+    def forward(self, x):
+        e, a, b, c = self.e, self.a, self.b, self.c
+        x_pow_p0 = x.pow(e)
+        x_pow_p1 = x_pow_p0 * x
+        env_val = 1. / x + a * x_pow_p0 + b * x_pow_p1 + c * x_pow_p1 * x
+
+        zero = torch.zeros_like(x)
+        return torch.where(x < 1, env_val, zero)
