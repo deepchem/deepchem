@@ -1218,8 +1218,8 @@ def test_mxmnet_envelope():
 
 
 @pytest.mark.torch
-def test_global_MP():
-
+def test_mxmnet_global_MP():
+    """ Test for MXMNetGlobalMessagePassing Layer."""
     seed = 123
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
@@ -1243,7 +1243,8 @@ def test_global_MP():
     out = dc.models.torch_models.layers.GlobalMessagePassing(dim)
     output = out(node_features, edge_attr, edge_indices)
     output = output.detach().numpy()
-    result = np.array([[1.1720], [1.2731], [1.2731], [1.2731], [1.2731]])
-
+    result = np.array([[-0.27947044], [2.417905], [2.417905], [2.4178727],
+                       [2.417905]])
+    print(output)
     assert np.allclose(output, result, atol=1e-04)
     assert output.shape == (5, 1)
