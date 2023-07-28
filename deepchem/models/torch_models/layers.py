@@ -4756,6 +4756,34 @@ class LocalMessagePassing(torch.nn.Module):
 
 
 class _MXMNetEnvelope(torch.nn.Module):
+    """
+    A PyTorch module implementing an envelope function. This is a helper class for MXMNetSphericalBasisLayer and MXMNetBesselBasisLayer to be used in MXMNet Model.
+
+    The envelope function is defined as follows:
+    env(x) = 1 / x + a * x^e + b * x^(e+1) + c * x^(e+2)        if x < 1
+    env(x) = 0                                                  if x >= 1
+
+    where 
+    'x' is the input tensor
+    'e' is the exponent parameter
+    'a' = -(p + 1) * (p + 2) / 2
+    'b' = p * (p + 2)
+    'c' = -p * (p + 1) / 2
+
+    Parameters:
+    -----------
+    exponent: float 
+        The exponent 'e' used in the envelope function.
+
+    Examples:
+    ---------
+    env = _MXMNetEnvelope(exponent=2.0)
+    input_tensor = torch.tensor([0.5, 1.0, 2.0, 3.0])
+    output = env(input_tensor)
+    output.shape()
+    torch.Size([1, 4])
+    """
+
     def __init__(self, exponent):
         super(_MXMNetEnvelope, self).__init__()
         self.e = exponent
