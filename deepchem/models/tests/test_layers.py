@@ -1204,3 +1204,14 @@ def test_edge_network():
         np.array(torch_result),
         np.load("deepchem/models/tests/assets/edgenetwork_result.npy"),
         atol=1e-04)
+
+
+@pytest.mark.torch
+def test_mxmnet_envelope():
+    """Test for _MXMNetEnvelope helper layer."""
+    env = dc.models.torch_models.layers._MXMNetEnvelope(exponent=2.0)
+    input_tensor = torch.tensor([0.5, 1.0, 2.0, 3.0])
+    output = env(input_tensor)
+    output = output.detach().numpy()
+    result = np.array([1.3125, 0.0000, 0.0000, 0.0000])
+    assert np.allclose(result, output, atol=1e-04)
