@@ -1310,6 +1310,7 @@ def test_local_MP():
 
 @pytest.mark.torch
 def test_mxmnet_envelope():
+    """Test for _MXMNetEnvelope helper layer."""
     env = dc.models.torch_models.layers._MXMNetEnvelope(exponent=2.0)
     input_tensor = torch.tensor([0.5, 1.0, 2.0, 3.0])
     output = env(input_tensor)
