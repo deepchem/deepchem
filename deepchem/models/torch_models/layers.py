@@ -4484,9 +4484,9 @@ class _MXMNetEnvelope(torch.nn.Module):
     where 
     'x' is the input tensor
     'e' is the exponent parameter
-    'a' = -(p + 1) * (p + 2) / 2
-    'b' = p * (p + 2)
-    'c' = -p * (p + 1) / 2
+    'a' = -(e + 1) * (e + 2) / 2
+    'b' = e * (e + 2)
+    'c' = -e * (e + 1) / 2
 
     Examples
     --------
@@ -4497,7 +4497,7 @@ class _MXMNetEnvelope(torch.nn.Module):
     torch.Size([4])
     """
 
-    def __init__(self, exponent):
+    def __init__(self, exponent: float):
         """
         Parameters
         ----------
@@ -4505,12 +4505,12 @@ class _MXMNetEnvelope(torch.nn.Module):
             The exponent 'e' used in the envelope function.
         """
         super(_MXMNetEnvelope, self).__init__()
-        self.e = exponent
-        self.a = -(self.e + 1) * (self.e + 2) / 2
-        self.b = self.e * (self.e + 2)
-        self.c = -self.e * (self.e + 1) / 2
+        self.e: float = exponent
+        self.a: float = -(self.e + 1) * (self.e + 2) / 2
+        self.b: float = self.e * (self.e + 2)
+        self.c: float = -self.e * (self.e + 1) / 2
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         """
         Compute the envelope function for the input tensor 'x'.
 
@@ -4524,11 +4524,15 @@ class _MXMNetEnvelope(torch.nn.Module):
         output: torch.Tensor
             The tensor containing the computed envelope values for each element of 'x'.
         """
-        e, a, b, c = self.e, self.a, self.b, self.c
-        x_pow_p0 = x.pow(e)
-        x_pow_p1 = x_pow_p0 * x
-        env_val = 1. / x + a * x_pow_p0 + b * x_pow_p1 + c * x_pow_p1 * x
+        e: float = self.e
+        a: float = self.a
+        b: float = self.b
+        c: float = self.c
 
-        zero = torch.zeros_like(x)
-        output = torch.where(x < 1, env_val, zero)
+        x_pow_p0: torch.Tensor = x.pow(e)
+        x_pow_p1: torch.Tensor = x_pow_p0 * x
+        env_val: torch.Tensor = 1. / x + a * x_pow_p0 + b * x_pow_p1 + c * x_pow_p1 * x
+
+        zero: torch.Tensor = torch.zeros_like(x)
+        output: torch.Tensor = torch.where(x < 1, env_val, zero)
         return output
