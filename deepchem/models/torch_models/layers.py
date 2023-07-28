@@ -4475,44 +4475,6 @@ class WeaveGather(nn.Module):
         return output
 
 
-class ResidualBlock(nn.Module):
-    """
-    This class represents a residual block used in neural network architectures.
-    Each residual module consists of a two-layer MLP and a skip connection.
-    """
-
-    def __init__(self, dim: int):
-        """
-        Parameters:
-        -----------
-        dim : int
-            The input and output dimension of the residual block.
-
-        """
-        super(ResidualBlock, self).__init__()
-
-        self.mlp: MultilayerPerceptron = MultilayerPerceptron(
-            d_input=dim, d_hidden=(dim,), d_output=dim, activation_fn='silu')
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Performs the forward pass of the residual block.
-
-        Parameters:
-        -----------
-        x : torch.Tensor
-            The input tensor.
-
-        Returns:
-        --------
-        torch.Tensor
-            The output tensor after applying the residual block.
-        """
-        x_residual: torch.Tensor = self.mlp(x)
-        x_out: torch.Tensor = x_residual + x
-        return x_out
-
-
 class MXMNetGlobalMessagePassing(MessagePassing):
     """This class implements the Global Message Passing Layer from the Molecular Mechanics-Driven Graph Neural Network
     with Multiplex Graph for Molecular Structures(MXMNet) paper [1]_.
@@ -4569,7 +4531,7 @@ class MXMNetGlobalMessagePassing(MessagePassing):
     >>> node_features = torch.tensor([[0.8343], [1.2713], [1.2713], [1.2713], [1.2713]])
     >>> edge_attributes = torch.tensor([[1.0004], [1.0004], [1.0005], [1.0004], [1.0004],[-0.2644], [-0.2644], [-0.2644], [1.0004],[-0.2644], [-0.2644], [-0.2644], [1.0005],[-0.2644], [-0.2644], [-0.2644], [1.0004],[-0.2644], [-0.2644], [-0.2644]])
     >>> edge_indices = torch.tensor([[0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4],[1, 2, 3, 4, 0, 2, 3, 4, 0, 1, 3, 4, 0, 1, 2, 4, 0, 1, 2, 3]])
-    >>> out = MXMNETGlobalMessagePassing(dim)
+    >>> out = MXMNetGlobalMessagePassing(dim)
     >>> output = out(node_features, edge_attributes, edge_indices)
     >>> output.shape
     torch.Size([5, 1])
@@ -4586,23 +4548,40 @@ class MXMNetGlobalMessagePassing(MessagePassing):
         """
 
         super(MXMNetGlobalMessagePassing, self).__init__()
-        self.dim = dim
-        self.activation_fn = get_activation(activation_fn)
+        dim = dim
+        activation_fn = get_activation(activation_fn)
 
         self.h_mlp: MultilayerPerceptron = MultilayerPerceptron(
-            d_input=self.dim, d_output=self.dim, activation_fn=activation_fn)
+            d_input=dim, d_output=dim, activation_fn=activation_fn)
 
-        self.res1: ResidualBlock = ResidualBlock(self.dim)
-        self.res2: ResidualBlock = ResidualBlock(self.dim)
-        self.res3: ResidualBlock = ResidualBlock(self.dim)
+        self.res1: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim,),
+            d_output=dim,
+            activation_fn=activation_fn,
+            skip_connection=True,
+            weighted_skip=False)
+        self.res2: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim,),
+            d_output=dim,
+            activation_fn=activation_fn,
+            skip_connection=True,
+            weighted_skip=False)
+        self.res3: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim,),
+            d_output=dim,
+            activation_fn=activation_fn,
+            skip_connection=True,
+            weighted_skip=False)
+
         self.mlp: MultilayerPerceptron = MultilayerPerceptron(
-            d_input=self.dim, d_output=self.dim, activation_fn=activation_fn)
+            d_input=dim, d_output=dim, activation_fn=activation_fn)
 
         self.x_edge_mlp: MultilayerPerceptron = MultilayerPerceptron(
-            d_input=self.dim * 3,
-            d_output=self.dim,
-            activation_fn=activation_fn)
-        self.linear: nn.Linear = nn.Linear(self.dim, self.dim, bias=False)
+            d_input=dim * 3, d_output=dim, activation_fn=activation_fn)
+        self.linear: nn.Linear = nn.Linear(dim, dim, bias=False)
 
     def forward(self, node_features: torch.Tensor,
                 edge_attributes: torch.Tensor,
