@@ -109,29 +109,17 @@ class NNLDA(BaseNNXC):
     R. O. Jones and O. Gunnarsson, Rev. Mod. Phys. 61, 689 (1989)
     """
 
-    def __init__(self, nnmodel: torch.nn.Module, device: Optional[torch.device] = None):
+    def __init__(self, nnmodel: torch.nn.Module, device: torch.device = "cpu"):
         super().__init__()
         """
         Parameters
         ----------
         nnmodel: torch.nn.Module
             Neural network for xc functional
-        device: torch.device, optional (default None)
-            the device on which to run computations.  If None, a device is
-            chosen automatically.
+        device: torch.device, (default "cpu")
+            the device on which to run computations.
         """
         self.nnmodel = nnmodel
-        self.device = device
-
-        # Select a device.
-
-        if device is None:
-            if torch.cuda.is_available():
-                device = torch.device('cuda')
-            elif torch.backends.mps.is_available():
-                device = torch.device('mps')
-            else:
-                device = torch.device('cpu')
         self.device = device
 
     def get_edensityxc(
@@ -210,7 +198,7 @@ class NNPBE(BaseNNXC):
     https://doi.org/10.1016/B978-0-44-453153-7.00033-X.
     """
 
-    def __init__(self, nnmodel: torch.nn.Module, device: Optional[torch.device] = None):
+    def __init__(self, nnmodel: torch.nn.Module, device: torch.device = "cpu"):
         """
         Parameters
         ----------
@@ -221,23 +209,12 @@ class NNPBE(BaseNNXC):
             (0) total density (n): (n_up + n_dn), and
             (1) spin density (xi): (n_up - n_dn) / (n_up + n_dn)
             (2) normalized gradients (s): |del(n)| / [2(3*pi^2)^(1/3) * n^(4/3)]
-        device: torch.device, optional (default None)
-            the device on which to run computations.  If None, a device is
-            chosen automatically.
+        device: torch.device, (default "cpu")
+            the device on which to run computations.
         """
         super().__init__()
         self.nnmodel = nnmodel
-        # Select a device.
-
-        if device is None:
-            if torch.cuda.is_available():
-                device = torch.device('cuda')
-            elif torch.backends.mps.is_available():
-                device = torch.device('mps')
-            else:
-                device = torch.device('cpu')
         self.device = device
-
 
     def get_edensityxc(
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
@@ -320,7 +297,7 @@ class HybridXC(BaseNNXC):
                  nnmodel: torch.nn.Module,
                  aweight0: float = 0.0,
                  bweight0: float = 1.0,
-                 device: Optional[torch.device] = None):
+                 device: torch.device = "cpu"):
 
         super().__init__()
         """
@@ -337,7 +314,7 @@ class HybridXC(BaseNNXC):
             weight of the neural network
         bweight0: float
             weight of the default xc
-        device: torch.device, optional (default None)
+        device: torch.device, (default "cpu")
             the device on which to run computations.  If None, a device is
             chosen automatically.
 
@@ -348,15 +325,6 @@ class HybridXC(BaseNNXC):
         self.xc = get_xc(xcstr)
         family = self.xc.family
 
-        # Select a device.
-
-        if device is None:
-            if torch.cuda.is_available():
-                device = torch.device('cuda')
-            elif torch.backends.mps.is_available():
-                device = torch.device('mps')
-            else:
-                device = torch.device('cpu')
         self.device = device
 
         if family == 1:
