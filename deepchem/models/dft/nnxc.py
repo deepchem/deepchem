@@ -109,7 +109,7 @@ class NNLDA(BaseNNXC):
     R. O. Jones and O. Gunnarsson, Rev. Mod. Phys. 61, 689 (1989)
     """
 
-    def __init__(self, nnmodel: torch.nn.Module, device:str="cpu"):
+    def __init__(self, nnmodel: torch.nn.Module, device: str = "cpu"):
         super().__init__()
         """
         Parameters
@@ -196,7 +196,7 @@ class NNPBE(BaseNNXC):
     https://doi.org/10.1016/B978-0-44-453153-7.00033-X.
     """
 
-    def __init__(self, nnmodel: torch.nn.Module, device:str = "cpu"):
+    def __init__(self, nnmodel: torch.nn.Module, device: str = "cpu"):
         """
         Parameters
         ----------
@@ -260,7 +260,7 @@ class NNPBE(BaseNNXC):
 
         # get the neural network output
         x = torch.cat((ninp, xi, sinp), dim=-1)  # (*BD, nr, 3)
-        nnout = self.nnmodel(x.to(self.device))  # (*BD, nr, 1)
+        nnout = self.nnmodel(x)  # (*BD, nr, 1)
         res = nnout * n
         res = res.squeeze(-1)
         return res
