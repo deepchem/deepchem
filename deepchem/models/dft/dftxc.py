@@ -34,7 +34,7 @@ class DFTXC(torch.nn.Module):
 
     """
 
-    def __init__(self, xcstr: str, nnmodel: torch.nn.Module):
+    def __init__(self, xcstr: str, nnmodel: torch.nn.Module, device:str = "cpu"):
         """
         Parameters
         ----------
@@ -51,6 +51,7 @@ class DFTXC(torch.nn.Module):
         super(DFTXC, self).__init__()
         self.xcstr = xcstr
         self.nnmodel = nnmodel
+        self.device = device
 
     def forward(self, inputs):
         """
@@ -65,7 +66,7 @@ class DFTXC(torch.nn.Module):
             Calculated value of the data point after running the Kohn Sham iterations
             using the neural network XC functional.
         """
-        hybridxc = HybridXC(self.xcstr, self.nnmodel, aweight0=0.0)
+        hybridxc = HybridXC(self.xcstr, self.nnmodel, aweight0=0.0, device=self.device)
         output = []
         for entry in inputs:
             evl = XCNNSCF(hybridxc, entry)
@@ -130,7 +131,7 @@ class XCModel(TorchModel):
                  n_tasks: int = 0,
                  log_frequency: int = 0,
                  mode: str = 'classification',
-                 device: Optional[torch.device] = None,
+                 device: Optional[torch.device] = "cpu",
                  **kwargs) -> None:
         """
         Parameters

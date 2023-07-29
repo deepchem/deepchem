@@ -109,7 +109,7 @@ class NNLDA(BaseNNXC):
     R. O. Jones and O. Gunnarsson, Rev. Mod. Phys. 61, 689 (1989)
     """
 
-    def __init__(self, nnmodel: torch.nn.Module):
+    def __init__(self, nnmodel: torch.nn.Module, device:str="cpu"):
         super().__init__()
         """
         Parameters
@@ -118,6 +118,7 @@ class NNLDA(BaseNNXC):
             Neural network for xc functional
         """
         self.nnmodel = nnmodel
+        self.device = device
 
     def get_edensityxc(
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
@@ -149,8 +150,9 @@ class NNLDA(BaseNNXC):
         ninp = n
 
         x = torch.cat((ninp, xi), dim=-1)  # (*BD, nr, 2)
-        nnout = self.nnmodel(x)  # (*BD, nr, 1)
-        res = nnout * n  # (*BD, nr, 1)
+        self.nnmodel = self.nnmodel.to(self.device)
+        nnout = self.nnmodel(x.to(self.device))  # (*BD, nr, 1)
+        res = nnout.to(self.device) * n.to(self.device)  # (*BD, nr, 1)
         res = res.squeeze(-1)
         return res
 
@@ -194,7 +196,7 @@ class NNPBE(BaseNNXC):
     https://doi.org/10.1016/B978-0-44-453153-7.00033-X.
     """
 
-    def __init__(self, nnmodel: torch.nn.Module):
+    def __init__(self, nnmodel: torch.nn.Module, device:str = "cpu"):
         """
         Parameters
         ----------
@@ -208,6 +210,7 @@ class NNPBE(BaseNNXC):
         """
         super().__init__()
         self.nnmodel = nnmodel
+        self.device == device
 
     def get_edensityxc(
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
@@ -257,7 +260,7 @@ class NNPBE(BaseNNXC):
 
         # get the neural network output
         x = torch.cat((ninp, xi, sinp), dim=-1)  # (*BD, nr, 3)
-        nnout = self.nnmodel(x)  # (*BD, nr, 1)
+        nnout = self.nnmodel(x.to(self.device))  # (*BD, nr, 1)
         res = nnout * n
         res = res.squeeze(-1)
         return res
@@ -288,7 +291,8 @@ class HybridXC(BaseNNXC):
                  xcstr: str,
                  nnmodel: torch.nn.Module,
                  aweight0: float = 0.0,
-                 bweight0: float = 1.0):
+                 bweight0: float = 1.0,
+                 device: str = "cpu"):
 
         super().__init__()
         """
@@ -312,10 +316,11 @@ class HybridXC(BaseNNXC):
         """
         self.xc = get_xc(xcstr)
         family = self.xc.family
+        self.device = device
         if family == 1:
-            self.nnxc = NNLDA(nnmodel)
+            self.nnxc = NNLDA(nnmodel, self.device)
         else:
-            self.nnxc = NNPBE(nnmodel)
+            self.nnxc = NNPBE(nnmodel, self.device)
         self.aweight = torch.nn.Parameter(
             torch.tensor(aweight0, requires_grad=True))
         self.bweight = torch.nn.Parameter(
@@ -347,8 +352,8 @@ class HybridXC(BaseNNXC):
         -------
         Total calculated electron density with tunable weights.
         """
-        nnxc_ene = self.nnxc.get_edensityxc(densinfo)
-        xc_ene = self.xc.get_edensityxc(densinfo)
-        aweight = self.weight_activation(self.aweight)
-        bweight = self.weight_activation(self.bweight)
+        nnxc_ene = self.nnxc.get_edensityxc(densinfo).to(self.device)
+        xc_ene = self.xc.get_edensityxc(densinfo).to(self.device)
+        aweight = self.weight_activation(self.aweight).to(self.device)
+        bweight = self.weight_activation(self.bweight).to(self.device)
         return nnxc_ene * aweight + xc_ene * bweight
