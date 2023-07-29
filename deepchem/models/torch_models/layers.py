@@ -4490,14 +4490,14 @@ class _MXMNetEnvelope(torch.nn.Module):
 
     Examples
     --------
-    >>> env = _MXMNetEnvelope(exponent=2.0)
+    >>> env = _MXMNetEnvelope(exponent=2)
     >>> input_tensor = torch.tensor([0.5, 1.0, 2.0, 3.0])
     >>> output = env(input_tensor)
     >>> output.shape
     torch.Size([4])
     """
 
-    def __init__(self, exponent: float):
+    def __init__(self, exponent: int):
         """
         Parameters
         ----------
@@ -4505,7 +4505,7 @@ class _MXMNetEnvelope(torch.nn.Module):
             The exponent 'e' used in the envelope function.
         """
         super(_MXMNetEnvelope, self).__init__()
-        self.e: float = exponent
+        self.e: int = exponent
         self.a: float = -(self.e + 1) * (self.e + 2) / 2
         self.b: float = self.e * (self.e + 2)
         self.c: float = -self.e * (self.e + 1) / 2
@@ -4524,7 +4524,7 @@ class _MXMNetEnvelope(torch.nn.Module):
         output: torch.Tensor
             The tensor containing the computed envelope values for each element of 'x'.
         """
-        e: float = self.e
+        e: int = self.e
         a: float = self.a
         b: float = self.b
         c: float = self.c
