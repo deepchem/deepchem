@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Union, List
+from typing import Union, List, Optional
 import torch
 from dqc.utils.datastruct import ValGrad, SpinParam
 from dqc.api.getxc import get_xc
@@ -109,15 +109,29 @@ class NNLDA(BaseNNXC):
     R. O. Jones and O. Gunnarsson, Rev. Mod. Phys. 61, 689 (1989)
     """
 
-    def __init__(self, nnmodel: torch.nn.Module, device: str = "cpu"):
+    def __init__(self, nnmodel: torch.nn.Module, device: Optional[torch.device] = None):
         super().__init__()
         """
         Parameters
         ----------
         nnmodel: torch.nn.Module
             Neural network for xc functional
+        device: torch.device, optional (default None)
+            the device on which to run computations.  If None, a device is
+            chosen automatically.
         """
         self.nnmodel = nnmodel
+        self.device = device
+
+        # Select a device.
+
+        if device is None:
+            if torch.cuda.is_available():
+                device = torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                device = torch.device('mps')
+            else:
+                device = torch.device('cpu')
         self.device = device
 
     def get_edensityxc(
@@ -196,7 +210,7 @@ class NNPBE(BaseNNXC):
     https://doi.org/10.1016/B978-0-44-453153-7.00033-X.
     """
 
-    def __init__(self, nnmodel: torch.nn.Module, device: str = "cpu"):
+    def __init__(self, nnmodel: torch.nn.Module, device: Optional[torch.device] = None):
         """
         Parameters
         ----------
@@ -207,10 +221,23 @@ class NNPBE(BaseNNXC):
             (0) total density (n): (n_up + n_dn), and
             (1) spin density (xi): (n_up - n_dn) / (n_up + n_dn)
             (2) normalized gradients (s): |del(n)| / [2(3*pi^2)^(1/3) * n^(4/3)]
+        device: torch.device, optional (default None)
+            the device on which to run computations.  If None, a device is
+            chosen automatically.
         """
         super().__init__()
         self.nnmodel = nnmodel
-        self.device == device
+        # Select a device.
+
+        if device is None:
+            if torch.cuda.is_available():
+                device = torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                device = torch.device('mps')
+            else:
+                device = torch.device('cpu')
+        self.device = device
+
 
     def get_edensityxc(
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
@@ -259,9 +286,10 @@ class NNPBE(BaseNNXC):
         sinp = s
 
         # get the neural network output
-        x = torch.cat((ninp, xi, sinp), dim=-1)  # (*BD, nr, 3)
-        nnout = self.nnmodel(x)  # (*BD, nr, 1)
-        res = nnout * n
+        x = torch.cat((ninp, xi), dim=-1)  # (*BD, nr, 2)
+        self.nnmodel = self.nnmodel.to(self.device)
+        nnout = self.nnmodel(x.to(self.device))  # (*BD, nr, 1)
+        res = nnout.to(self.device) * n.to(self.device)  # (*BD, nr, 1)
         res = res.squeeze(-1)
         return res
 
@@ -292,7 +320,7 @@ class HybridXC(BaseNNXC):
                  nnmodel: torch.nn.Module,
                  aweight0: float = 0.0,
                  bweight0: float = 1.0,
-                 device: str = "cpu"):
+                 device: Optional[torch.device] = None):
 
         super().__init__()
         """
@@ -309,6 +337,9 @@ class HybridXC(BaseNNXC):
             weight of the neural network
         bweight0: float
             weight of the default xc
+        device: torch.device, optional (default None)
+            the device on which to run computations.  If None, a device is
+            chosen automatically.
 
         References
         ----------
@@ -316,15 +347,26 @@ class HybridXC(BaseNNXC):
         """
         self.xc = get_xc(xcstr)
         family = self.xc.family
+
+        # Select a device.
+
+        if device is None:
+            if torch.cuda.is_available():
+                device = torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                device = torch.device('mps')
+            else:
+                device = torch.device('cpu')
         self.device = device
+
         if family == 1:
             self.nnxc = NNLDA(nnmodel, self.device)
         else:
             self.nnxc = NNPBE(nnmodel, self.device)
         self.aweight = torch.nn.Parameter(
-            torch.tensor(aweight0, requires_grad=True))
+            torch.tensor(aweight0, requires_grad=True, device=self.device))
         self.bweight = torch.nn.Parameter(
-            torch.tensor(bweight0, requires_grad=True))
+            torch.tensor(bweight0, requires_grad=True, device=self.device))
         self.weight_activation = torch.nn.Identity()
 
     @property

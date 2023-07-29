@@ -434,8 +434,6 @@ class TorchModel(Model):
                 outputs = [
                     outputs[i].to(self.device) for i in self._loss_outputs
                 ]
-            weights = [item.to(self.device) for item in weights]
-            labels = [item.to(self.device) for item in labels]
             batch_loss = loss(outputs, labels, weights)
             batch_loss.backward()
             optimizer.step()

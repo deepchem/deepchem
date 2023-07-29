@@ -37,7 +37,7 @@ class DFTXC(torch.nn.Module):
     def __init__(self,
                  xcstr: str,
                  nnmodel: torch.nn.Module,
-                 device: str = "cpu"):
+                 device: Optional[torch.device] = None):
         """
         Parameters
         ----------
@@ -46,6 +46,9 @@ class DFTXC(torch.nn.Module):
             lda_x, lda_c_pw, lda_c_ow, lda_c_pz, lda_xc_lp_a, lda_xc_lp_b.
         nnmodel: torch.nn.Module
             the PyTorch model implementing the calculation
+        device: torch.device, optional (default None)
+            the device on which to run computations.  If None, a device is
+            chosen automatically.
 
         Notes
         -----
@@ -54,6 +57,16 @@ class DFTXC(torch.nn.Module):
         super(DFTXC, self).__init__()
         self.xcstr = xcstr
         self.nnmodel = nnmodel
+
+        # Select a device.
+
+        if device is None:
+            if torch.cuda.is_available():
+                device = torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                device = torch.device('mps')
+            else:
+                device = torch.device('cpu')
         self.device = device
 
     def forward(self, inputs):
@@ -80,10 +93,10 @@ class DFTXC(torch.nn.Module):
             for system in entry.get_systems():
                 qcs.append(evl.run(system))
             if entry.entry_type == 'dm':
-                output.append((torch.as_tensor(entry.get_val(qcs)[0])))
+                output.append((torch.as_tensor(entry.get_val(qcs)[0], device=self.device)))
             else:
                 output.append(
-                    torch.tensor(entry.get_val(qcs), requires_grad=True))
+                    torch.tensor(entry.get_val(qcs), requires_grad=True, device=self.device))
         return output
 
 
@@ -137,7 +150,7 @@ class XCModel(TorchModel):
                  n_tasks: int = 0,
                  log_frequency: int = 0,
                  mode: str = 'classification',
-                 device: Optional[torch.device] = "cpu",
+                 device: Optional[torch.device] = None,
                  **kwargs) -> None:
         """
         Parameters
@@ -155,11 +168,25 @@ class XCModel(TorchModel):
             number of layers in the neural network
         modeltype: int
             model type 2 includes an activation layer whereas type 1 does not.
+        device: torch.device, optional (default None)
+            the device on which to run computations.  If None, a device is
+            chosen automatically.
         """
         if nnmodel is None:
             nnmodel = _construct_nn_model(input_size, hidden_size, n_layers,
                                           modeltype).to(torch.double)
-        model = (DFTXC(xcstr, nnmodel)).to(device)
+        # Select a device.
+
+        if device is None:
+            if torch.cuda.is_available():
+                device = torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                device = torch.device('mps')
+            else:
+                device = torch.device('cpu')
+        self.device = device
+
+        model = (DFTXC(xcstr, nnmodel, self.device)).to(self.device)
         self.xc = xcstr
         loss: Loss = L2Loss()
         output_types = ['loss', 'predict']
@@ -167,6 +194,7 @@ class XCModel(TorchModel):
         super(XCModel, self).__init__(model,
                                       loss=loss,
                                       output_types=output_types,
+                                      device=self.device,
                                       **kwargs)
 
     def _prepare_batch(
