@@ -1366,3 +1366,23 @@ def test_mxmnet_local_message_passing():
 
     assert output[0].shape == (5, 1)
     assert output[1].shape == (5, 1)
+
+
+@pytest.mark.torch
+def test_mxmnet_sphericalbasis():
+    """Test for MXMNetSphericalBasisLayer"""
+
+    dist = torch.tensor([0.5, 1.0, 2.0, 3.0])
+    angle = torch.tensor([0.1, 0.2, 0.3, 0.4])
+    idx_kj = torch.tensor([0, 1, 2, 3])
+    spherical_layer = dc.models.torch_models.layers.MXMNetSphericalBasisLayer(
+        envelope_exponent=2, num_spherical=2, num_radial=2, cutoff=2.0)
+    output = spherical_layer(dist, angle, idx_kj)
+    output = output.detach().numpy()
+
+    result = np.array([[4.2182e+00, 5.9654e+00, 3.8959e+00, 8.6795e+00],
+                       [1.0472e+00, -9.1551e-08, 1.7717e+00, 1.0400e+00],
+                       [-0.0000e+00, 0.0000e+00, -0.0000e+00, -0.0000e+00],
+                       [-0.0000e+00, -0.0000e+00, -0.0000e+00, -0.0000e+00]])
+
+    assert np.allclose(output, result, atol=1e-04)

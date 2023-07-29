@@ -1,6 +1,7 @@
 import math
 from math import pi as PI
 import numpy as np
+import sympy as sym
 from typing import Any, Tuple, Optional, Sequence, List, Union, Callable, Dict, TypedDict
 from collections.abc import Sequence as SequenceCollection
 try:
@@ -21,6 +22,7 @@ from deepchem.utils.pytorch_utils import get_activation, segment_sum
 from torch.nn import init as initializers
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import add_self_loops
+from torch_geometric.nn.models.dimenet_utils import bessel_basis, real_sph_harm
 
 
 class MultilayerPerceptron(nn.Module):
@@ -5547,3 +5549,93 @@ class MXMNetLocalMessagePassing(nn.Module):
         output: torch.Tensor = self.out_W(out)
 
         return node_features, output
+
+
+class MXMNetSphericalBasisLayer(torch.nn.Module):
+    """This layer combines radial basis functions (RBF) and spherical harmonic functions
+    to transform input distances and angles.
+
+    Examples
+    --------
+    >>> dist = torch.tensor([0.5, 1.0, 2.0, 3.0])
+    >>> angle = torch.tensor([0.1, 0.2, 0.3, 0.4])
+    >>> idx_kj = torch.tensor([0, 1, 2, 3])
+    >>> spherical_layer = MXMNetSphericalBasisLayer(envelope_exponent=2, num_spherical=2, num_radial=2, cutoff=2.0)
+    >>> output = spherical_layer(dist, angle, idx_kj)
+    >>> output.shape
+    torch.Size([4, 4])
+    """
+
+    def __init__(self,
+                 num_spherical: int,
+                 num_radial: int,
+                 cutoff: float = 5.0,
+                 envelope_exponent: int = 5):
+        """Initialize the MXMNetSphericalBasisLayer.
+
+        Parameters
+        ----------
+        num_spherical: int
+            The number of spherical harmonic functions to use. These functions capture orientation information related to atom positions.
+        num_radial: int
+            The number of radial basis functions to use. These functions capture information about pairwise distances between atoms.
+        cutoff: float, optional (default 5.0)
+            The cutoff distance for the radial basis functions. It specifies the distance beyond which the interactions are ignored.
+        envelope_exponent: int, optional (default 5)
+            The exponent for the envelope function. It controls the degree of damping for the radial basis functions.
+        """
+        super(MXMNetSphericalBasisLayer, self).__init__()
+
+        assert num_radial <= 64
+        self.num_spherical = num_spherical
+        self.num_radial = num_radial
+        self.cutoff = cutoff
+        self.envelope: _MXMNetEnvelope = _MXMNetEnvelope(envelope_exponent)
+
+        bessel_forms: List = bessel_basis(num_spherical, num_radial)
+        sph_harm_forms: List[List[str]] = real_sph_harm(num_spherical)
+        self.sph_funcs: List = []
+        self.bessel_funcs: List = []
+
+        x, theta = sym.symbols('x theta')
+        modules: Dict = {'sin': torch.sin, 'cos': torch.cos}
+        for i in range(num_spherical):
+            if i == 0:
+                sph1: Any = sym.lambdify([theta], sph_harm_forms[i][0],
+                                         modules)(0)
+                self.sph_funcs.append(lambda x: torch.zeros_like(x) + sph1)
+            else:
+                sph: Any = sym.lambdify([theta], sph_harm_forms[i][0], modules)
+                self.sph_funcs.append(sph)
+            for j in range(num_radial):
+                bessel: Any = sym.lambdify([x], bessel_forms[i][j], modules)
+                self.bessel_funcs.append(bessel)
+
+    def forward(self, dist: torch.Tensor, angle: torch.Tensor,
+                idx_kj: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the MXMNetSphericalBasisLayer.
+
+        Parameters
+        ----------
+        dist: torch.Tensor
+            Input tensor representing pairwise distances between atoms.
+        angle: torch.Tensor 
+            Input tensor representing pairwise angles between atoms.
+        idx_kj: torch.Tensor
+            Tensor containing indices for the k and j atoms.
+
+        Returns:
+            Tensor: The output tensor containing the fixed-size representation.
+        """
+        dist = dist / self.cutoff
+        rbf: torch.Tensor = torch.stack([f(dist) for f in self.bessel_funcs],
+                                        dim=1)
+        rbf = self.envelope(dist).unsqueeze(-1) * rbf
+
+        cbf: torch.Tensor = torch.stack([f(angle) for f in self.sph_funcs],
+                                        dim=1)
+        n: int = self.num_spherical
+        k: int = self.num_radial
+
+        return (rbf[idx_kj].view(-1, n, k) * cbf.view(-1, n, 1)).view(-1, n * k)
