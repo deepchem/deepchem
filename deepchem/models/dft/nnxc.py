@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Union, List, Optional
+from typing import Union, List
 import torch
 from dqc.utils.datastruct import ValGrad, SpinParam
 from dqc.api.getxc import get_xc
