@@ -4510,7 +4510,7 @@ class _MXMNetEnvelope(torch.nn.Module):
         self.b: float = self.e * (self.e + 2)
         self.c: float = -self.e * (self.e + 1) / 2
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Compute the envelope function for the input tensor 'x'.
 
