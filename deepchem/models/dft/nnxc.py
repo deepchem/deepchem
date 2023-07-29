@@ -315,8 +315,7 @@ class HybridXC(BaseNNXC):
         bweight0: float
             weight of the default xc
         device: torch.device, (default "cpu")
-            the device on which to run computations.  If None, a device is
-            chosen automatically.
+            the device on which to run computations.
 
         References
         ----------
