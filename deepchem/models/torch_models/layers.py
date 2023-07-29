@@ -1,4 +1,5 @@
 import math
+from math import pi as PI
 import numpy as np
 from typing import Any, Tuple, Optional, Sequence, List, Union, Callable, Dict, TypedDict
 from collections.abc import Sequence as SequenceCollection
@@ -4723,3 +4724,71 @@ class MXMNetGlobalMessagePassing(MessagePassing):
                         dim=0)
 
         return x_j
+
+
+class MXMNetBesselBasisLayer(torch.nn.Module):
+    """This layer implements a basis layer for the MXMNet model using Bessel functions.
+    The basis layer is used to model radial symmetry in molecular systems.
+
+    The output of the layer is given by:
+    output = envelope(dist / cutoff) * (freq * dist / cutoff).sin()
+
+    Examples
+    --------
+    >>> radial_layer = MXMNetBesselBasisLayer(num_radial=2, cutoff=2.0, envelope_exponent=2)
+    >>> distances = torch.tensor([0.5, 1.0, 2.0, 3.0])
+    >>> output = radial_layer(distances)
+    >>> output.shape
+    torch.Size([4, 2])
+    """
+
+    def __init__(self,
+                 num_radial: int,
+                 cutoff: float = 5.0,
+                 envelope_exponent: int = 5):
+        """Initialize the MXMNet Bessel Basis Layer.
+
+        Parameters
+        ----------
+        num_radial: int
+            The number of radial basis functions to use.
+        cutoff: float, optional (default 5.0)
+            The radial cutoff distance used to scale the distances.
+        envelope_exponent: int, optional (default 5)
+            The exponent of the envelope function.
+        """
+
+        super(MXMNetBesselBasisLayer, self).__init__()
+        self.cutoff = cutoff
+        self.envelope: _MXMNetEnvelope = _MXMNetEnvelope(envelope_exponent)
+        self.freq: torch.Tensor = torch.nn.Parameter(torch.empty(num_radial))
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        """Reset and initialize the learnable parameters of the MXMNet Bessel Basis Layer.
+
+        The 'freq' tensor, representing the frequencies of the Bessel functions, is set up with initial values proportional to π (PI) and becomes a learnable parameter.
+
+        The 'freq' tensor will be updated during the training process to optimize the performance of the MXMNet model for the specific task it is being trained on.
+        """
+
+        with torch.no_grad():
+            torch.arange(1, self.freq.numel() + 1, out=self.freq).mul_(PI)
+        self.freq.requires_grad_()
+
+    def forward(self, dist: torch.Tensor) -> torch.Tensor:
+        """Compute the output of the MXMNet Bessel Basis Layer.
+
+        Parameters
+        ----------
+        dist: torch.Tensor
+            The input tensor representing the pairwise distances between atoms.
+
+        Returns
+        -------
+        output: torch.Tensor
+            The output tensor representing the radial basis functions applied to the input distances.
+        """
+        dist = dist.unsqueeze(-1) / self.cutoff
+        output: torch.Tensor = self.envelope(dist) * (self.freq * dist).sin()
+        return output
