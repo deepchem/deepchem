@@ -431,9 +431,7 @@ class TorchModel(Model):
             if isinstance(outputs, torch.Tensor):
                 outputs = [outputs]
             if self._loss_outputs is not None:
-                outputs = [
-                    outputs[i].to(self.device) for i in self._loss_outputs
-                ]
+                outputs = [outputs[i] for i in self._loss_outputs]
             batch_loss = loss(outputs, labels, weights)
             batch_loss.backward()
             optimizer.step()
