@@ -59,7 +59,7 @@ def get_regression_dataset():
     return dataset, metric
 
 
-@pytest.mark.pytorch
+@pytest.mark.torch
 def test_net3d():
     import numpy as np
 
@@ -86,7 +86,7 @@ def compare_weights(key, model1, model2):
                  model2.components[key].weight)).item()
 
 
-@pytest.mark.pytorch
+@pytest.mark.torch
 def test_InfoMax3DModular():
     from deepchem.models.torch_models.gnn3d import InfoMax3DModular
 
@@ -103,7 +103,7 @@ def test_InfoMax3DModular():
     assert loss1 > loss2
 
 
-@pytest.mark.pytorch
+@pytest.mark.torch
 def test_InfoMax3DModular_save_reload():
     from deepchem.models.torch_models.gnn3d import InfoMax3DModular
 

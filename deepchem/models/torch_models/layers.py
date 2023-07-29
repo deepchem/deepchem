@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from typing import Any, Tuple, Optional, Sequence, List, Union, Callable, Dict
+from typing import Any, Tuple, Optional, Sequence, List, Union, Callable, Dict, TypedDict
 from collections.abc import Sequence as SequenceCollection
 try:
     import torch
@@ -40,7 +40,8 @@ class MultilayerPerceptron(nn.Module):
                  batch_norm: bool = False,
                  batch_norm_momentum: float = 0.1,
                  activation_fn: Union[Callable, str] = 'relu',
-                 skip_connection: bool = False):
+                 skip_connection: bool = False,
+                 weighted_skip: bool = True):
         """Initialize the model.
 
         Parameters
@@ -61,6 +62,8 @@ class MultilayerPerceptron(nn.Module):
             the activation function to use in the hidden layers
         skip_connection: bool
             whether to add a skip connection from the input to the output
+        weighted_skip: bool
+            whether to add a weighted skip connection from the input to the output
         """
         super(MultilayerPerceptron, self).__init__()
         self.d_input = d_input
@@ -72,6 +75,7 @@ class MultilayerPerceptron(nn.Module):
         self.activation_fn = get_activation(activation_fn)
         self.model = nn.Sequential(*self.build_layers())
         self.skip = nn.Linear(d_input, d_output) if skip_connection else None
+        self.weighted_skip = weighted_skip
 
     def build_layers(self):
         """
@@ -101,7 +105,10 @@ class MultilayerPerceptron(nn.Module):
                     x
                 )  # Done because activation_fn returns a torch.nn.functional
         if self.skip is not None:
-            return x + self.skip(input)
+            if not self.weighted_skip:
+                return x + input
+            else:
+                return x + self.skip(input)
         else:
             return x
 
@@ -3103,7 +3110,7 @@ class MolGANConvolutionLayer(nn.Module):
                  dropout_rate: float = 0.0,
                  edges: int = 5,
                  name: str = "",
-                 **kwargs):
+                 prev_shape: int = 0):
         """
         Initialize this layer.
 
@@ -3122,6 +3129,8 @@ class MolGANConvolutionLayer(nn.Module):
             Typically equal to number of bond types used in the model.
         name: string, optional (default="")
             Name of the layer
+        prev_shape: int, optional (default=0)
+            Shape of the previous layer, used when more than two inputs are passed
         """
         super(MolGANConvolutionLayer, self).__init__()
 
@@ -3132,12 +3141,27 @@ class MolGANConvolutionLayer(nn.Module):
         self.name: str = name
         self.nodes: int = nodes
 
-        self.dense1: nn.ModuleList = nn.ModuleList(
-            [nn.Linear(nodes, self.units) for _ in range(edges - 1)])
+        # Case when >2 inputs are passed
+        if prev_shape:
+            self.dense1 = nn.ModuleList([
+                nn.Linear(prev_shape + self.nodes, self.units)
+                for _ in range(edges - 1)
+            ])
+        else:
+            self.dense1 = nn.ModuleList(
+                [nn.Linear(self.nodes, self.units) for _ in range(edges - 1)])
         self.dense2: nn.Linear = nn.Linear(nodes, self.units)
         self.dropout: nn.Dropout = nn.Dropout(self.dropout_rate)
 
     def __repr__(self) -> str:
+        """
+        Returns a string representing the configuration of the layer.
+        
+        Returns
+        -------
+        str
+            String representation of the layer
+        """
         return (
             f'{self.__class__.__name__}(Units={self.units}, Nodes={self.nodes}, Activation={self.activation}, Dropout_rate={self.droput_rate}, Edges={self.edges}, Name={self.name})'
         )
@@ -3225,7 +3249,7 @@ class MolGANAggregationLayer(nn.Module):
                  activation=torch.tanh,
                  dropout_rate: float = 0.0,
                  name: str = "",
-                 **kwargs):
+                 prev_shape: int = 0):
         """
         Initialize the layer
 
@@ -3239,6 +3263,8 @@ class MolGANAggregationLayer(nn.Module):
             Used by dropout layer
         name: string, optional (default="")
             Name of the layer
+        prev_shape: int, optional (default=0)
+            Shape of the input tensor
         """
 
         super(MolGANAggregationLayer, self).__init__()
@@ -3247,8 +3273,12 @@ class MolGANAggregationLayer(nn.Module):
         self.dropout_rate: float = dropout_rate
         self.name: str = name
 
-        self.d1 = nn.Linear(self.units, self.units)
-        self.d2 = nn.Linear(self.units, self.units)
+        if prev_shape:
+            self.d1 = nn.Linear(prev_shape, self.units)
+            self.d2 = nn.Linear(prev_shape, self.units)
+        else:
+            self.d1 = nn.Linear(self.units, self.units)
+            self.d2 = nn.Linear(self.units, self.units)
         self.dropout_layer = nn.Dropout(dropout_rate)
 
     def __repr__(self) -> str:
@@ -3282,6 +3312,260 @@ class MolGANAggregationLayer(nn.Module):
         output = torch.sum(i * j, dim=1)
         output = self.activation(output)
         output = self.dropout_layer(output)
+        return output
+
+
+class MolGANMultiConvolutionLayer(nn.Module):
+    """
+    Multiple pass convolution layer used in MolGAN model.
+    MolGAN is a WGAN type model for generation of small molecules.
+    It takes outputs of previous convolution layer and uses
+    them as inputs for the next one.
+    It simplifies the overall framework, but might be moved to
+    MolGANEncoderLayer in the future in order to reduce number of layers.
+
+    Example
+    -------
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+    >>> vertices = 9
+    >>> nodes = 5
+    >>> edges = 5
+    >>> units = (128,64)
+
+    >>> layer_1 = MolGANMultiConvolutionLayer(units=units, nodes=nodes, edges=edges, name='layer1')
+    >>> adjacency_tensor = torch.randn((1, vertices, vertices, edges))
+    >>> node_tensor = torch.randn((1, vertices, nodes))
+    >>> output = layer_1([adjacency_tensor, node_tensor])
+
+    References
+    ----------
+    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+        for small molecular graphs", https://arxiv.org/abs/1805.11973
+    """
+
+    def __init__(self,
+                 units: Tuple = (128, 64),
+                 nodes: int = 5,
+                 activation=torch.tanh,
+                 dropout_rate: float = 0.0,
+                 edges: int = 5,
+                 name: str = "",
+                 **kwargs):
+        """
+        Initialize the layer
+
+        Parameters
+        ---------
+        units: Tuple, optional (default=(128,64)), min_length=2
+            ist of dimensions used by consecutive convolution layers.
+            The more values the more convolution layers invoked.
+        nodes: int, optional (default=5)
+            Number of features in node tensor
+        activation: function, optional (default=Tanh)
+            activation function used across model, default is Tanh
+        dropout_rate: float, optional (default=0.0)
+            Used by dropout layer
+        edges: int, optional (default=5)
+            Controls how many dense layers use for single convolution unit.
+            Typically matches number of bond types used in the molecule.
+        name: string, optional (default="")
+            Name of the layer
+        """
+
+        super(MolGANMultiConvolutionLayer, self).__init__()
+        if len(units) < 2:
+            raise ValueError("units parameter must contain at least two values")
+
+        self.nodes: int = nodes
+        self.units: Tuple = units
+        self.activation = activation
+        self.dropout_rate: float = dropout_rate
+        self.edges: int = edges
+        self.name: str = name
+
+        self.first_convolution = MolGANConvolutionLayer(
+            units=self.units[0],
+            nodes=self.nodes,
+            activation=self.activation,
+            dropout_rate=self.dropout_rate,
+            edges=self.edges)
+        self.gcl = nn.ModuleList([
+            MolGANConvolutionLayer(units=u,
+                                   nodes=self.nodes,
+                                   activation=self.activation,
+                                   dropout_rate=self.dropout_rate,
+                                   edges=self.edges,
+                                   prev_shape=self.units[count])
+            for count, u in enumerate(self.units[1:])
+        ])
+
+    def __repr__(self) -> str:
+        """
+        String representation of the layer
+        
+        Returns
+        -------
+        string
+            String representation of the layer
+        """
+        return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate}), edges={self.edges})"
+
+    def forward(self, inputs: List) -> torch.Tensor:
+        """
+        Invoke this layer
+
+        Parameters
+        ----------
+        inputs: list
+            List of two input matrices, adjacency tensor and node features tensors
+            in one-hot encoding format.
+
+        Returns
+        --------
+        convolution tensor: torch.Tensor
+            Result of input tensors going through convolution a number of times.
+        """
+
+        adjacency_tensor = inputs[0]
+        node_tensor = inputs[1]
+
+        tensors = self.first_convolution([adjacency_tensor, node_tensor])
+
+        # Loop over the remaining convolution layers
+        for layer in self.gcl:
+            # Apply the current layer to the outputs from the previous layer
+            tensors = layer(tensors)
+
+        _, _, hidden_tensor = tensors
+
+        return hidden_tensor
+
+
+class MolGANEncoderLayer(nn.Module):
+    """
+    Main learning layer used by MolGAN model.
+    MolGAN is a WGAN type model for generation of small molecules.
+    It role is to further simplify model.
+    This layer can be manually built by stacking graph convolution layers
+    followed by graph aggregation.
+    
+    Example
+    -------
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+    >>> vertices = 9
+    >>> nodes = 5
+    >>> edges = 5
+    >>> dropout_rate = 0.0
+    >>> adjacency_tensor = torch.randn((1, vertices, vertices, edges))
+    >>> node_tensor = torch.randn((1, vertices, nodes))
+    
+    >>> graph = MolGANEncoderLayer(units = [(128,64),128], dropout_rate= dropout_rate, edges=edges, nodes=nodes)([adjacency_tensor,node_tensor])
+    >>> dense = nn.Linear(128,128)(graph)
+    >>> dense = torch.tanh(dense)
+    >>> dense = nn.Dropout(dropout_rate)(dense)
+    >>> dense = nn.Linear(128,64)(dense)
+    >>> dense = torch.tanh(dense)
+    >>> dense = nn.Dropout(dropout_rate)(dense)
+    >>> output = nn.Linear(64,1)(dense)
+    
+    References
+    ----------
+    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+        for small molecular graphs", https://arxiv.org/abs/1805.11973
+    """
+
+    def __init__(self,
+                 units: List = [(128, 64), 128],
+                 activation: Callable = torch.tanh,
+                 dropout_rate: float = 0.0,
+                 edges: int = 5,
+                 nodes: int = 5,
+                 name: str = ""):
+        """
+        Initialize the layer
+        
+        Parameters
+        ----------
+        units: List, optional (default=[(128,64),128])
+            List of dimensions used by consecutive convolution layers.
+            The more values the more convolution layers invoked.
+        activation: function, optional (default=Tanh)
+            activation function used across model, default is Tanh
+        dropout_rate: float, optional (default=0.0)
+            Used by dropout layer
+        edges: int, optional (default=5)
+            Controls how many dense layers use for single convolution unit.
+            Typically matches number of bond types used in the molecule.
+        nodes: int, optional (default=5)
+            Number of features in node tensor
+        name: string, optional (default="")
+            Name of the layer
+        """
+
+        super(MolGANEncoderLayer, self).__init__()
+        if len(units) != 2:
+            raise ValueError("units parameter must contain two values")
+        self.graph_convolution_units, self.auxiliary_units = units
+        self.activation = activation
+        self.dropout_rate = dropout_rate
+        self.edges = edges
+
+        self.multi_graph_convolution_layer = MolGANMultiConvolutionLayer(
+            units=self.graph_convolution_units,
+            nodes=nodes,
+            activation=self.activation,
+            dropout_rate=self.dropout_rate,
+            edges=self.edges)
+        self.graph_aggregation_layer = MolGANAggregationLayer(
+            units=self.auxiliary_units,
+            activation=self.activation,
+            dropout_rate=self.dropout_rate,
+            prev_shape=self.graph_convolution_units[-1] + nodes)
+
+    def __repr__(self) -> str:
+        """
+        String representation of the layer
+        
+        Returns
+        -------
+        string
+            String representation of the layer
+        """
+        return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate}), edges={self.edges})"
+
+    def forward(self, inputs: List) -> torch.Tensor:
+        """
+        Invoke this layer
+
+        Parameters
+        ----------
+        inputs: list
+            List of two input matrices, adjacency tensor and node features tensors
+            in one-hot encoding format.
+
+        Returns
+        --------
+        encoder tensor: tf.Tensor
+            Tensor that been through number of convolutions followed
+            by aggregation.
+        """
+
+        output = self.multi_graph_convolution_layer(inputs)
+
+        node_tensor = inputs[1]
+
+        if len(inputs) > 2:
+            hidden_tensor = inputs[2]
+            annotations = torch.cat((output, hidden_tensor, node_tensor), -1)
+        else:
+            _, node_tensor = inputs
+            annotations = torch.cat((output, node_tensor), -1)
+
+        output = self.graph_aggregation_layer(annotations)
         return output
 
 
@@ -3968,3 +4252,222 @@ class WeaveLayer(nn.Module):
             P = pair_features
 
         return [A, P]
+
+
+class WeaveGather(nn.Module):
+    """Implements the weave-gathering section of weave convolutions.
+    This is the Torch equivalent of the original implementation using Keras.
+
+    Implements the gathering layer from [1]_. The weave gathering layer gathers
+    per-atom features to create a molecule-level fingerprint in a weave
+    convolutional network. This layer can also performs Gaussian histogram
+    expansion as detailed in [1]_. Note that the gathering function here is
+    simply addition as in [1]_>
+
+    Examples
+    --------
+    This layer expects 2 inputs in a list of the form `[atom_features,
+    pair_features]`. We'll walk through the structure
+    of these inputs. Let's start with some basic definitions.
+
+    >>> import deepchem as dc
+    >>> import numpy as np
+
+    Suppose you have a batch of molecules
+
+    >>> smiles = ["CCC", "C"]
+
+    Note that there are 4 atoms in total in this system. This layer expects its
+    input molecules to be batched together.
+
+    >>> total_n_atoms = 4
+
+    Let's suppose that we have `n_atom_feat` features per atom.
+
+    >>> n_atom_feat = 75
+
+    Then conceptually, `atom_feat` is the array of shape `(total_n_atoms,
+    n_atom_feat)` of atomic features. For simplicity, let's just go with a
+    random such matrix.
+
+    >>> atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
+
+    We then need to provide a mapping of indices to the atoms they belong to. In
+    ours case this would be
+
+    >>> atom_split = np.array([0, 0, 0, 1])
+
+    Let's now define the actual layer
+
+    >>> gather = WeaveGather(batch_size=2, n_input=n_atom_feat)
+    >>> output_molecules = gather([atom_feat, atom_split])
+    >>> len(output_molecules)
+    2
+
+    References
+    ----------
+    .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
+        fingerprints." Journal of computer-aided molecular design 30.8 (2016):
+        595-608.
+    """
+
+    def __init__(self,
+                 batch_size: int,
+                 n_input: int = 128,
+                 gaussian_expand: bool = True,
+                 compress_post_gaussian_expansion: bool = False,
+                 init_: str = 'xavier_uniform_',
+                 activation: str = 'tanh',
+                 **kwargs):
+        """
+        Parameters
+        ----------
+        batch_size: int
+            number of molecules in a batch
+        n_input: int, optional (default 128)
+            number of features for each input molecule
+        gaussian_expand: boolean, optional (default True)
+            Whether to expand each dimension of atomic features by gaussian histogram
+        compress_post_gaussian_expansion: bool, optional (default False)
+            If True, compress the results of the Gaussian expansion back to the
+            original dimensions of the input by using a linear layer with specified
+            activation function. Note that this compression was not in the original
+            paper, but was present in the original DeepChem implementation so is
+            left present for backwards compatibility.
+        init: str, optional (default 'xavier_uniform_')
+            Weight initialization for filters if `compress_post_gaussian_expansion`
+            is True.
+        activation: str, optional (default 'tanh')
+            Activation function applied for filters if
+            `compress_post_gaussian_expansion` is True.
+        """
+        super(WeaveGather, self).__init__(**kwargs)
+        self.n_input: int = n_input
+        self.batch_size: int = batch_size
+        self.gaussian_expand: bool = gaussian_expand
+        self.compress_post_gaussian_expansion: bool = compress_post_gaussian_expansion
+        self.init: str = init_  # Set weight initialization
+        self.activation: str = activation  # Get activations
+        self.activation_fn: torch.nn.Module = get_activation(activation)
+
+        if self.compress_post_gaussian_expansion:
+            init = getattr(initializers, self.init)
+            self.W: torch.Tensor = init(
+                torch.empty([self.n_input * 11, self.n_input]))
+            self.b: torch.Tensor = torch.zeros((self.n_input,))
+        self.built = True
+
+    def __repr__(self):
+        """
+        Returns a string representation of the object.
+
+        Returns:
+        -------
+        str: A string that contains the class name followed by the values of its instance variable.
+        """
+        return (
+            f'{self.__class__.__name__}(batch_size:{self.batch_size},n_input:{self.n_input},gaussian_expand:{self.gaussian_expand},init:{self.init},activation:{self.activation},compress_post_gaussian_expansion:{self.compress_post_gaussian_expansion})'
+        )
+
+    def forward(self, inputs: List[Union[np.ndarray,
+                                         np.ndarray]]) -> torch.Tensor:
+        """Creates weave tensors.
+
+        Parameters
+        ----------
+        inputs: List[Union[np.ndarray,np.ndarray]]
+            Should contain 2 tensors [atom_features, atom_split]
+
+        Returns
+        -------
+        output_molecules: torch.Tensor
+            Each entry in this list is of shape `(self.n_inputs,)`
+
+        """
+        outputs: torch.Tensor = torch.tensor(inputs[0])
+        atom_split: torch.Tensor = torch.tensor(inputs[1])
+
+        if self.gaussian_expand:
+            outputs = self.gaussian_histogram(outputs)
+
+        t_grp: Dict[Tensor, Tensor] = {}
+        idx: int = 0
+        for i, s_id in enumerate(atom_split):
+            s_id = s_id.item()
+            if s_id in t_grp:
+                t_grp[s_id] = t_grp[s_id] + outputs[idx]
+            else:
+                t_grp[s_id] = outputs[idx]
+            idx = i + 1
+
+            lst = list(t_grp.values())
+            tensor = torch.stack(lst)
+        output_molecules: torch.Tensor = tensor
+
+        if self.compress_post_gaussian_expansion:
+            output_molecules = torch.matmul(
+                output_molecules.type(torch.float32), self.W) + self.b
+            output_molecules = self.activation_fn(output_molecules)
+
+        return output_molecules
+
+    def gaussian_histogram(self, x: torch.Tensor) -> torch.Tensor:
+        """Expands input into a set of gaussian histogram bins.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Of shape `(N, n_feat)`
+
+        Examples
+        --------
+        This method uses 11 bins spanning portions of a Gaussian with zero mean
+        and unit standard deviation.
+
+        >>> gaussian_memberships = [(-1.645, 0.283), (-1.080, 0.170),
+        ...                         (-0.739, 0.134), (-0.468, 0.118),
+        ...                         (-0.228, 0.114), (0., 0.114),
+        ...                         (0.228, 0.114), (0.468, 0.118),
+        ...                         (0.739, 0.134), (1.080, 0.170),
+        ...                         (1.645, 0.283)]
+
+        We construct a Gaussian at `gaussian_memberships[i][0]` with standard
+        deviation `gaussian_memberships[i][1]`. Each feature in `x` is assigned
+        the probability of falling in each Gaussian, and probabilities are
+        normalized across the 11 different Gaussians.
+
+        Returns
+        -------
+        outputs: torch.Tensor
+            Of shape `(N, 11*n_feat)`
+        """
+        import torch.distributions as dist
+        gaussian_memberships: List[Tuple[float, float]] = [(-1.645, 0.283),
+                                                           (-1.080, 0.170),
+                                                           (-0.739, 0.134),
+                                                           (-0.468, 0.118),
+                                                           (-0.228, 0.114),
+                                                           (0., 0.114),
+                                                           (0.228, 0.114),
+                                                           (0.468, 0.118),
+                                                           (0.739, 0.134),
+                                                           (1.080, 0.170),
+                                                           (1.645, 0.283)]
+
+        distributions: List[dist.Normal] = [
+            dist.Normal(torch.tensor(p[0]), torch.tensor(p[1]))
+            for p in gaussian_memberships
+        ]
+        dist_max: List[torch.Tensor] = [
+            distributions[i].log_prob(torch.tensor(
+                gaussian_memberships[i][0])).exp() for i in range(11)
+        ]
+
+        outputs: List[torch.Tensor] = [
+            distributions[i].log_prob(torch.tensor(x)).exp() / dist_max[i]
+            for i in range(11)
+        ]
+        output: torch.Tensor = torch.stack(outputs, dim=2)
+        output = output / torch.sum(output, dim=2, keepdim=True)
+        output = output.view(-1, self.n_input * 11)
+        return output
