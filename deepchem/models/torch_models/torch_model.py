@@ -426,7 +426,6 @@ class TorchModel(Model):
                 inputs = inputs[0]
 
             optimizer.zero_grad()
-
             outputs = self.model(inputs)
             if isinstance(outputs, torch.Tensor):
                 outputs = [outputs]
