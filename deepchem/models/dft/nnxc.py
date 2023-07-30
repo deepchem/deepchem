@@ -109,14 +109,14 @@ class NNLDA(BaseNNXC):
     R. O. Jones and O. Gunnarsson, Rev. Mod. Phys. 61, 689 (1989)
     """
 
-    def __init__(self, nnmodel: torch.nn.Module, device: torch.device = "cpu"):
+    def __init__(self, nnmodel: torch.nn.Module, device: str = "cpu"):
         super().__init__()
         """
         Parameters
         ----------
         nnmodel: torch.nn.Module
             Neural network for xc functional
-        device: torch.device, (default "cpu")
+        device: str, (default "cpu")
             the device on which to run computations.
         """
         self.nnmodel = nnmodel
@@ -152,7 +152,6 @@ class NNLDA(BaseNNXC):
         ninp = n
 
         x = torch.cat((ninp, xi), dim=-1)  # (*BD, nr, 2)
-        self.nnmodel = self.nnmodel.to(self.device)
         nnout = self.nnmodel(x.to(self.device))  # (*BD, nr, 1)
         res = nnout.to(self.device) * n.to(self.device)  # (*BD, nr, 1)
         res = res.squeeze(-1)
@@ -198,7 +197,7 @@ class NNPBE(BaseNNXC):
     https://doi.org/10.1016/B978-0-44-453153-7.00033-X.
     """
 
-    def __init__(self, nnmodel: torch.nn.Module, device: torch.device = "cpu"):
+    def __init__(self, nnmodel: torch.nn.Module, device: str = "cpu"):
         """
         Parameters
         ----------
@@ -209,7 +208,7 @@ class NNPBE(BaseNNXC):
             (0) total density (n): (n_up + n_dn), and
             (1) spin density (xi): (n_up - n_dn) / (n_up + n_dn)
             (2) normalized gradients (s): |del(n)| / [2(3*pi^2)^(1/3) * n^(4/3)]
-        device: torch.device, (default "cpu")
+        device: str, (default "cpu")
             the device on which to run computations.
         """
         super().__init__()
@@ -263,8 +262,7 @@ class NNPBE(BaseNNXC):
         sinp = s
 
         # get the neural network output
-        x = torch.cat((ninp, xi), dim=-1)  # (*BD, nr, 2)
-        self.nnmodel = self.nnmodel.to(self.device)
+        x = torch.cat((ninp, xi, sinp), dim=-1)  # (*BD, nr, 2)
         nnout = self.nnmodel(x.to(self.device))  # (*BD, nr, 1)
         res = nnout.to(self.device) * n.to(self.device)  # (*BD, nr, 1)
         res = res.squeeze(-1)
@@ -297,7 +295,7 @@ class HybridXC(BaseNNXC):
                  nnmodel: torch.nn.Module,
                  aweight0: float = 0.0,
                  bweight0: float = 1.0,
-                 device: torch.device = "cpu"):
+                 device: str = "cpu"):
 
         super().__init__()
         """
@@ -314,7 +312,7 @@ class HybridXC(BaseNNXC):
             weight of the neural network
         bweight0: float
             weight of the default xc
-        device: torch.device, (default "cpu")
+        device: str, (default "cpu")
             the device on which to run computations.
 
         References

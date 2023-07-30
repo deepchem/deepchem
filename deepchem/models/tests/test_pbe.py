@@ -12,7 +12,7 @@ import pytest
 
 @pytest.mark.dqc
 def test_pbe():
-    input_size = 2
+    input_size = 3
     hidden_size = 3
     n_layers = 3
     modeltype = 1

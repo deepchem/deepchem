@@ -37,7 +37,7 @@ class DFTXC(torch.nn.Module):
     def __init__(self,
                  xcstr: str,
                  nnmodel: torch.nn.Module,
-                 device: torch.device = "cpu"):
+                 device: str = "cpu"):
         """
         Parameters
         ----------
@@ -46,7 +46,7 @@ class DFTXC(torch.nn.Module):
             lda_x, lda_c_pw, lda_c_ow, lda_c_pz, lda_xc_lp_a, lda_xc_lp_b.
         nnmodel: torch.nn.Module
             the PyTorch model implementing the calculation
-        device: torch.device, (default "cpu")
+        device: str, (default "cpu")
             the device on which to run computations.
 
         Notes
@@ -144,7 +144,7 @@ class XCModel(TorchModel):
                  n_tasks: int = 0,
                  log_frequency: int = 0,
                  mode: str = 'classification',
-                 device: torch.device = "cpu",
+                 device: str = "cpu",
                  **kwargs) -> None:
         """
         Parameters
@@ -162,7 +162,7 @@ class XCModel(TorchModel):
             number of layers in the neural network
         modeltype: int
             model type 2 includes an activation layer whereas type 1 does not.
-        device: torch.device, optional (default "cpu")
+        device: str, optional (default "cpu")
             the device on which to run computations.
         """
         if nnmodel is None:
