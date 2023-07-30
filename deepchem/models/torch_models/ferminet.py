@@ -12,6 +12,7 @@ from deepchem.models.torch_models import TorchModel
 from deepchem.models.losses import L2Loss
 import deepchem.models.optimizers as optimizers
 import torch
+from torch import nn
 
 from deepchem.utils.electron_sampler import ElectronSampler
 
@@ -25,28 +26,20 @@ def test_f(x: np.ndarray) -> np.ndarray:
 
 
 class Ferminet(torch.nn.Module):
-    """Approximates the log probability of the wave function of a molecule system using DNNs.
+  """Approximates the log probability of the wave function of a molecule system using DNNs.
   """
 
-    def __init__(self,
-                 nucleon_pos: torch.Tensor,
-                 nuclear_charge: torch.Tensor,
-                 spin: tuple,
-                 inter_atom: torch.Tensor,
-                 n_one: List = [256, 256, 256, 256],
-                 n_two: List = [32, 32, 32, 32],
-                 determinant: int = 16) -> None:
-        """
+  def __init__(self,
+               nucleon_pos: torch.tensor,
+               nuclear_charge: torch.tensor,
+               spin: tuple,
+               inter_atom: torch.tensor,
+               n_one: List = [256, 256, 256, 256],
+               n_two: List = [32, 32, 32, 32],
+               determinant: int = 16) -> None:
+    """
     Parameters:
     -----------
-    nucleon_pos: torch.Tensor
-        Torch tensor containing nucleus information of the molecule
-    nuclear_charge: torch.Tensor
-        Torch tensor containing the number of electron for each atom in the molecule
-    spin: tuple
-        Tuple in the format of (up_spin, down_spin)
-    inter_atom: torch.Tensor
-        Torch tensor containing the pairwise distances between the atoms in the molecule
     n_one: List
       List of hidden units for the one-electron stream in each layer
     n_two: List
@@ -54,20 +47,37 @@ class Ferminet(torch.nn.Module):
     determinant: int
       Number of determinants for the final solution
     """
-        super(Ferminet, self).__init__()
-        if len(n_one) != len(n_two):
-            raise ValueError(
-                "The number of layers in one-electron and two-electron stream should be equal"
-            )
-        else:
-            self.layers = len(n_one)
-        self.nucleon_pos = nucleon_pos
-        self.determinant = determinant
-        self.spin = spin
-        self.inter_atom = inter_atom
-        self.n_one = n_one
-        self.n_two = n_two
-        self.determinant = determinant
+    super(Ferminet, self).__init__()
+    if len(n_one) != len(n_two):
+      raise ValueError(
+          "The number of layers in one-electron and two-electron stream should be equal"
+      )
+    else:
+      self.layers = len(n_one)
+    self.nucleon_pos = nucleon_pos
+    self.determinant = determinant
+    self.spin = spin
+    self.total_electron = spin[0] + spin[1]
+    self.inter_atom = inter_atom
+    self.nuclear_charge = nuclear_charge
+    self.v = nn.ModuleList()
+    self.w = nn.ModuleList()
+    self.envelope_w = nn.ParameterList()
+    self.envelope_g = nn.ParameterList()
+    self.sigma = nn.ParameterList()
+    self.pi = nn.ParameterList()
+
+    for i in range(self.layers):
+        self.v.append(nn.LazyLinear(n_one[i]),bias=True)
+        self.w.append(nn.LazyLinear(n_two[i]),bias=True)
+
+    for i in range(self.determinant):
+        for j in range(self.total_electron):
+            self.envelope_w.append(torch.nn.init.kaiming_uniform_(torch.empty(n_one[-1])))
+            self.envelope_g.append(torch.nn.init.uniform_(torch.empty(1)).squeeze(0))
+            for k in range(self.nucleon_pos.size()[0]):
+                self.sigma.append(torch.nn.init.uniform_(torch.empty(1)).squeeze(0))
+                self.pi.append(torch.nn.init.uniform_(torch.empty(1)).squeeze(0))
 
 
 class FerminetModel(TorchModel):
