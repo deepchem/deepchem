@@ -1347,7 +1347,9 @@ def test_local_MP():
     edge_index = torch.tensor([[0, 1, 0, 2, 0, 3, 0, 4],
                                [1, 0, 2, 0, 3, 0, 4, 0]])
 
-    out = dc.models.torch_models.layers.LocalMessagePassing(config)
+    out = dc.models.torch_models.layers.MXMNetLocalMessagePassing(
+        dim, activation_fn='silu')
+    
     output = out(h,
                  rbf,
                  sbf1,
@@ -1356,18 +1358,12 @@ def test_local_MP():
                  idx_ji_1,
                  idx_jj,
                  idx_ji_2,
-                 edge_index,
-                 num_nodes=None)
+                 edge_index)
+    result0 = np.array([[0.7916],[1.2796],[1.2796],[1.2796],[1.2796]])
+    result1 = np.array([[0.3439],[0.3441],[0.3441],[0.3441],[0.3441]])
 
-    assert np.allclose(
-        output[0].detach().numpy(),
-        np.load("deepchem/models/tests/assets/Local_MP_result_y.npy"),
-        atol=1e-04)
-
-    assert np.allclose(
-        output[1].detach().numpy(),
-        np.load("deepchem/models/tests/assets/Local_MP_result_t.npy"),
-        atol=1e-04)
+    assert np.allclose(result0, output[0].detach().numpy(), atol=1e-04)
+    assert np.allclose(result1, output[1].detach().numpy(), atol=1e-04)
 
     assert output[0].shape == (5, 1)
     assert output[1].shape == (5, 1)
