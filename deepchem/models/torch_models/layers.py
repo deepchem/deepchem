@@ -4471,3 +4471,68 @@ class WeaveGather(nn.Module):
         output = output / torch.sum(output, dim=2, keepdim=True)
         output = output.view(-1, self.n_input * 11)
         return output
+
+
+class _MXMNetEnvelope(torch.nn.Module):
+    """
+    A PyTorch module implementing an envelope function. This is a helper class for MXMNetSphericalBasisLayer and MXMNetBesselBasisLayer to be used in MXMNet Model.
+
+    The envelope function is defined as follows:
+    env(x) = 1 / x + a * x^e + b * x^(e+1) + c * x^(e+2)        if x < 1
+    env(x) = 0                                                  if x >= 1
+
+    where 
+    'x' is the input tensor
+    'e' is the exponent parameter
+    'a' = -(e + 1) * (e + 2) / 2
+    'b' = e * (e + 2)
+    'c' = -e * (e + 1) / 2
+
+    Examples
+    --------
+    >>> env = _MXMNetEnvelope(exponent=2)
+    >>> input_tensor = torch.tensor([0.5, 1.0, 2.0, 3.0])
+    >>> output = env(input_tensor)
+    >>> output.shape
+    torch.Size([4])
+    """
+
+    def __init__(self, exponent: int):
+        """
+        Parameters
+        ----------
+        exponent: float 
+            The exponent 'e' used in the envelope function.
+        """
+        super(_MXMNetEnvelope, self).__init__()
+        self.e: int = exponent
+        self.a: float = -(self.e + 1) * (self.e + 2) / 2
+        self.b: float = self.e * (self.e + 2)
+        self.c: float = -self.e * (self.e + 1) / 2
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Compute the envelope function for the input tensor 'x'.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The Input tensor
+
+        Returns
+        -------
+        output: torch.Tensor
+            The tensor containing the computed envelope values for each element of 'x'.
+        """
+        e: int = self.e
+        a: float = self.a
+        b: float = self.b
+        c: float = self.c
+
+        x_pow_p0: torch.Tensor = x.pow(e)
+        x_pow_p1: torch.Tensor = x_pow_p0 * x
+        env_val: torch.Tensor = 1. / x + a * x_pow_p0 + b * x_pow_p1 + c * x_pow_p1 * x
+
+        zero: torch.Tensor = torch.zeros_like(x)
+        output: torch.Tensor = torch.where(x < 1, env_val, zero)
+        return output
