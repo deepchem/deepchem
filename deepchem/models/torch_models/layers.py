@@ -5625,8 +5625,10 @@ class MXMNetSphericalBasisLayer(torch.nn.Module):
         idx_kj: torch.Tensor
             Tensor containing indices for the k and j atoms.
 
-        Returns:
-            Tensor: The output tensor containing the fixed-size representation.
+        Returns
+        -------
+        output: torch.Tensor
+            The output tensor containing the fixed-size representation.
         """
         dist = dist / self.cutoff
         rbf: torch.Tensor = torch.stack([f(dist) for f in self.bessel_funcs],
@@ -5638,4 +5640,6 @@ class MXMNetSphericalBasisLayer(torch.nn.Module):
         n: int = self.num_spherical
         k: int = self.num_radial
 
-        return (rbf[idx_kj].view(-1, n, k) * cbf.view(-1, n, 1)).view(-1, n * k)
+        output = (rbf[idx_kj].view(-1, n, k) * cbf.view(-1, n, 1)).view(
+            -1, n * k)
+        return output
