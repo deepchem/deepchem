@@ -4603,7 +4603,7 @@ class MXMNetGlobalMessagePassing(MessagePassing):
 
     """
 
-    def __init__(self, dim: int, activation_fn: Union[Callable, str] = 'relu'):
+    def __init__(self, dim: int, activation_fn: Union[Callable, str] = 'silu'):
         """Initializes the MXMNETGlobalMessagePassing layer.
 
         Parameters
@@ -4613,7 +4613,6 @@ class MXMNetGlobalMessagePassing(MessagePassing):
         """
 
         super(MXMNetGlobalMessagePassing, self).__init__()
-        dim = dim
         activation_fn = get_activation(activation_fn)
 
         self.h_mlp: MultilayerPerceptron = MultilayerPerceptron(
