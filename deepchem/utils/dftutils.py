@@ -2,13 +2,16 @@
 Density Functional Theory Utilities
 Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcca3e314a538ca/xcdnn2/kscalc.py """
 try:
-    import torch
     from dqc.utils.datastruct import SpinParam
     from dqc.qccalc.base_qccalc import BaseQCCalc
 except ModuleNotFoundError:
     pass
 
+import torch
 import hashlib
+import xitorch as xt
+from typing import List
+from abc import abstractmethod, abstractproperty
 
 
 class KSCalc(object):
@@ -99,3 +102,53 @@ def hashstr(s: str) -> str:
     s : str
     """
     return str(hashlib.blake2s(str.encode(s)).hexdigest())
+
+
+class BaseGrid(xt.EditableModule):
+    """
+    Grid is a class that regulates the integration points over the spatial
+    dimensions.
+    """
+    @abstractproperty
+    def dtype(self) -> torch.dtype:
+        pass
+
+    @abstractproperty
+    def device(self) -> torch.device:
+        pass
+
+    @abstractproperty
+    def coord_type(self) -> str:
+        """
+        Returns the type of the coordinate returned in get_rgrid
+        """
+        pass
+
+    @abstractmethod
+    def get_dvolume(self) -> torch.Tensor:
+        """
+        Obtain the torch.tensor containing the dV elements for the integration.
+
+        Returns
+        -------
+        torch.tensor (*BG, ngrid)
+            The dV elements for the integration
+        """
+        pass
+
+    @abstractmethod
+    def get_rgrid(self) -> torch.Tensor:
+        """
+        Returns the grid points position in the specified coordinate in
+        self.coord_type.
+
+        Returns
+        -------
+        torch.tensor (*BG, ngrid, ndim)
+            The grid points position.
+        """
+        pass
+
+    @abstractmethod
+    def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+        pass
