@@ -2,12 +2,12 @@
 Density Functional Theory Utilities
 Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcca3e314a538ca/xcdnn2/kscalc.py """
 try:
+    import torch
     from dqc.utils.datastruct import SpinParam
     from dqc.qccalc.base_qccalc import BaseQCCalc
 except ModuleNotFoundError:
     pass
 
-import torch
 import hashlib
 import xitorch as xt
 from typing import List
@@ -106,9 +106,21 @@ def hashstr(s: str) -> str:
 
 class BaseGrid(xt.EditableModule):
     """
-    Grid is a class that regulates the integration points over the spatial
+    Interface to DQC's BaseGrid class. BaseGrid is a class that regulates the integration points over the spatial
     dimensions.
+
+    Parameters
+    ----------
+    qc: BaseQCCalc
+        object often acts as a wrapper around an engine class (from dqc.qccalc) that contains information about the self-consistent iterations.
+
+    References
+    ----------
+    Kasim, Muhammad F., and Sam M. Vinko. "Learning the exchange-correlation functional from nature with fully differentiable density functional theory." Physical Review Letters 127.12 (2021): 126403.
+    https://github.com/diffqc/dqc/blob/0fe821fc92cb3457fb14f6dff0c223641c514ddb/dqc/grid/base_grid.py
     """
+
+
     @abstractproperty
     def dtype(self) -> torch.dtype:
         pass
