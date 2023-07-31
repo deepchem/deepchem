@@ -36,7 +36,8 @@ class Ferminet(torch.nn.Module):
                inter_atom: torch.tensor,
                n_one: List = [256, 256, 256, 256],
                n_two: List = [32, 32, 32, 32],
-               determinant: int = 16) -> None:
+               determinant: int = 16,
+               batch_size:int = 8) -> None:
     """
     Parameters:
     -----------
@@ -56,6 +57,7 @@ class Ferminet(torch.nn.Module):
       self.layers = len(n_one)
     self.nucleon_pos = nucleon_pos
     self.determinant = determinant
+    self.batch_size = batch_size
     self.spin = spin
     self.total_electron = spin[0] + spin[1]
     self.inter_atom = inter_atom
@@ -68,16 +70,25 @@ class Ferminet(torch.nn.Module):
     self.pi = nn.ParameterList()
 
     for i in range(self.layers):
-        self.v.append(nn.LazyLinear(n_one[i]),bias=True)
-        self.w.append(nn.LazyLinear(n_two[i]),bias=True)
+        self.v.append(nn.LazyLinear(n_one[i],bias=True))
+        self.w.append(nn.LazyLinear(n_two[i],bias=True))
 
     for i in range(self.determinant):
         for j in range(self.total_electron):
-            self.envelope_w.append(torch.nn.init.kaiming_uniform_(torch.empty(n_one[-1])))
+            self.envelope_w.append(torch.nn.init.kaiming_uniform_(torch.empty(n_one[-1],1)).squeeze(-1))
             self.envelope_g.append(torch.nn.init.uniform_(torch.empty(1)).squeeze(0))
             for k in range(self.nucleon_pos.size()[0]):
                 self.sigma.append(torch.nn.init.uniform_(torch.empty(1)).squeeze(0))
                 self.pi.append(torch.nn.init.uniform_(torch.empty(1)).squeeze(0))
+
+    def forward(self, input):
+
+        input = torch.from_numpy(input)
+        input.requires_grad = True
+        input = input.reshape((batch_size, -1, -1))
+        two_electron_vector = input.unsqueeze(1) - input.unsqueeze(2)
+        two_electron_distance = torch.cdist(input, input, p=2).unsqueeze(2)
+        two_electron = torch.concatenate((two_electron_vector, two_electron_distance), dim=2)
 
 
 class FerminetModel(TorchModel):
