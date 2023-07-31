@@ -38,3 +38,14 @@ def test_prepare_hf_solution():
     hf_solution = mol.prepare_hf_solution(electron_coordinates)
     # The solution should be of the shape (number of electrons, number of electrons)
     assert np.shape(hf_solution) == (2, 2)
+
+@pytest.mark.torch
+def test_forward():
+    import torch
+    FH_molecule = [['F', [0.424, 0.424, 0.23]], ['H', [0.4, 0.5, 0.5]]]
+    # Testing ionic initialization
+    mol = FerminetModel(FH_molecule, spin=1, ion_charge=-1)
+    mol.model = mol.model.to("cpu")
+    result = mol.model.forward(mol.molecule.x)
+    print(torch.autograd.grad(result[0],mol.model.input))
+    raise IndexError
