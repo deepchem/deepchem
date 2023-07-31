@@ -26,69 +26,127 @@ def test_f(x: np.ndarray) -> np.ndarray:
 
 
 class Ferminet(torch.nn.Module):
-  """Approximates the log probability of the wave function of a molecule system using DNNs.
-  """
+    """Approximates the log probability of the wave function of a molecule system using DNNs.
+    """
 
-  def __init__(self,
+    def __init__(self,
                nucleon_pos: torch.tensor,
                nuclear_charge: torch.tensor,
                spin: tuple,
-               inter_atom: torch.tensor,
                n_one: List = [256, 256, 256, 256],
                n_two: List = [32, 32, 32, 32],
                determinant: int = 16,
                batch_size:int = 8) -> None:
-    """
-    Parameters:
-    -----------
-    n_one: List
-      List of hidden units for the one-electron stream in each layer
-    n_two: List
-      List of hidden units for the two-electron stream in each layer
-    determinant: int
-      Number of determinants for the final solution
-    """
-    super(Ferminet, self).__init__()
-    if len(n_one) != len(n_two):
-      raise ValueError(
-          "The number of layers in one-electron and two-electron stream should be equal"
-      )
-    else:
-      self.layers = len(n_one)
-    self.nucleon_pos = nucleon_pos
-    self.determinant = determinant
-    self.batch_size = batch_size
-    self.spin = spin
-    self.total_electron = spin[0] + spin[1]
-    self.inter_atom = inter_atom
-    self.nuclear_charge = nuclear_charge
-    self.v = nn.ModuleList()
-    self.w = nn.ModuleList()
-    self.envelope_w = nn.ParameterList()
-    self.envelope_g = nn.ParameterList()
-    self.sigma = nn.ParameterList()
-    self.pi = nn.ParameterList()
+        """
+        Parameters:
+        -----------
+        n_one: List
+            List of hidden units for the one-electron stream in each layer
+        n_two: List
+            List of hidden units for the two-electron stream in each layer
+        determinant: int
+            Number of determinants for the final solution
+        """
+        super(Ferminet, self).__init__()
+        if len(n_one) != len(n_two):
+            raise ValueError(
+              "The number of layers in one-electron and two-electron stream should be equal"
+        )
+        else:
+            self.layers = len(n_one)
 
-    for i in range(self.layers):
-        self.v.append(nn.LazyLinear(n_one[i],bias=True))
-        self.w.append(nn.LazyLinear(n_two[i],bias=True))
+        self.nucleon_pos = nucleon_pos
+        self.determinant = determinant
+        self.batch_size = batch_size
+        self.spin = spin
+        self.total_electron = spin[0] + spin[1]
+        self.nuclear_charge = nuclear_charge
+        self.v = nn.ModuleList()
+        self.w = nn.ModuleList()
+        self.envelope_w = nn.ParameterList()
+        self.envelope_g = nn.ParameterList()
+        self.sigma = nn.ParameterList()
+        self.pi = nn.ParameterList()
+        self.n_one = n_one
+        self.n_two = n_two
 
-    for i in range(self.determinant):
-        for j in range(self.total_electron):
-            self.envelope_w.append(torch.nn.init.kaiming_uniform_(torch.empty(n_one[-1],1)).squeeze(-1))
-            self.envelope_g.append(torch.nn.init.uniform_(torch.empty(1)).squeeze(0))
-            for k in range(self.nucleon_pos.size()[0]):
-                self.sigma.append(torch.nn.init.uniform_(torch.empty(1)).squeeze(0))
-                self.pi.append(torch.nn.init.uniform_(torch.empty(1)).squeeze(0))
+        self.v.append(nn.Linear(8+3*4*self.nucleon_pos.size()[0],n_one[0],bias=True))
+        self.w.append(nn.Linear(4,n_two[0],bias=True))
+        for i in range(1,self.layers):
+            self.v.append(nn.Linear(3*n_one[i-1]+2*n_two[i-1],n_one[i],bias=True))
+            self.w.append(nn.Linear(n_two[i-1],n_two[i],bias=True))
+
+        for i in range(self.determinant):
+            for j in range(self.total_electron):
+                self.envelope_w.append(torch.nn.init.kaiming_uniform(torch.empty(n_one[-1],1)).squeeze(-1))
+                self.envelope_g.append(torch.nn.init.uniform(torch.empty(1)).squeeze(0))
+                for k in range(self.nucleon_pos.size()[0]):
+                    self.sigma.append(torch.nn.init.uniform(torch.empty(self.nucleon_pos.size()[0],1)).squeeze(0))
+                    self.pi.append(torch.nn.init.uniform(torch.empty(self.nucleon_pos.size()[0],1)).squeeze(0))
 
     def forward(self, input):
+        # creating one and two electron features
+        self.input = torch.from_numpy(input)
+        self.input.requires_grad = True
+        self.input = self.input.reshape((self.batch_size, -1, 3))
+        two_electron_vector = self.input.unsqueeze(1) - self.input.unsqueeze(2)
+        two_electron_distance = torch.norm(two_electron_vector, dim=3).unsqueeze(3)
+        two_electron = torch.cat((two_electron_vector, two_electron_distance), dim=3)
+        two_electron = torch.reshape(two_electron,(self.batch_size, self.total_electron,self.total_electron,-1))
 
-        input = torch.from_numpy(input)
-        input.requires_grad = True
-        input = input.reshape((batch_size, -1, -1))
-        two_electron_vector = input.unsqueeze(1) - input.unsqueeze(2)
-        two_electron_distance = torch.cdist(input, input, p=2).unsqueeze(2)
-        two_electron = torch.concatenate((two_electron_vector, two_electron_distance), dim=2)
+
+        one_electron_vector = self.input.unsqueeze(1) - self.nucleon_pos.unsqueeze(1)
+        one_electron_distance = torch.norm(one_electron_vector, dim=3)
+        one_electron = torch.cat((one_electron_vector, one_electron_distance.unsqueeze(-1)),dim=3)
+        one_electron = torch.reshape(one_electron.permute(0,2,1,3),(self.batch_size, self.total_electron, -1))
+        one_electron_vector_permuted = one_electron_vector.permute(0,2,1,3)
+
+        for l in range(len(self.n_one)):
+            g_one_up = torch.mean(one_electron[:,:self.spin[0],:],dim=-2)
+            g_one_down = torch.mean(one_electron[:,self.spin[0]:,:],dim=-2)
+            one_electron_tmp = torch.zeros(self.batch_size, self.total_electron,  self.n_one[l])
+            two_electron_tmp = torch.zeros(self.batch_size, self.total_electron, self.total_electron, self.n_two[l])
+            for i in range(self.total_electron):
+                g_two_up = torch.mean(two_electron[:,i,:self.spin[0],:],dim=1)
+                g_two_down = torch.mean(two_electron[:,i,self.spin[0]:,:],dim=1)
+                f = torch.cat((one_electron[:,i,:],g_one_up,g_one_down,g_two_up,g_two_down),dim=1)
+                if l==0 or (self.n_one[l]!=self.n_one[l-1]) or (self.n_two[l]!=self.n_two[l-1]):
+                    one_electron_tmp[:,i,:] = torch.tanh(self.v[l](f.to(torch.float32)))
+                    two_electron_tmp[:,i,:,:] = torch.tanh(self.w[l](two_electron[:,i,:,:].to(torch.float32)))
+                else:
+                    one_electron_tmp[:,i,:] = torch.tanh(self.v[l](f.to(torch.float32))) + one_electron[:,i,:].to(torch.float32)
+                    two_electron_tmp[:,i,:,:] = torch.tanh(self.w[l](two_electron[:,i,:,:].to(torch.float32))) + two_electron[:,i,:].to(torch.float32)
+            one_electron = one_electron_tmp
+            two_electron = two_electron_tmp
+
+        psi = torch.zeros(self.batch_size)
+        psi_up = torch.zeros(self.batch_size, self.determinant, self.spin[0], self.spin[0])
+        psi_down = torch.zeros(self.batch_size, self.determinant, self.spin[1], self.spin[1])
+        #psi_up.requires_grad = True
+        #psi_down.requires_grad =  True
+        for k in range(self.determinant):
+            for i in range(self.spin[0]):
+                one_d_index = (k * (self.total_electron)) + i
+                for j in range(self.spin[0]):
+                    psi_up[:,k,i,j]=(torch.sum((self.envelope_w[one_d_index]*one_electron[:,j,:])+self.envelope_g[one_d_index],dim=1))*torch.sum(
+                        torch.exp(-torch.abs(torch.norm(self.sigma[one_d_index]*one_electron_vector_permuted[:,j,:,:],dim=2
+                                                               )))*self.pi[one_d_index].T,dim=1)
+
+            for i in range(self.spin[1]):
+                one_d_index = (k * (self.total_electron)) + i
+                for j in range(self.spin[0],self.spin[0]+self.spin[1]):
+                    psi_down[:,k,i,j-self.spin[0]]=(torch.sum((self.envelope_w[one_d_index]*one_electron[:,j,:])+self.envelope_g[one_d_index],dim=1))*torch.sum(
+                        torch.exp(-torch.abs(torch.norm(self.sigma[one_d_index]*one_electron_vector_permuted[:,j,:,:],dim=2
+                                                               )))*self.pi[one_d_index].T,dim=1)
+            #print(torch.det(psi_up[:,k,:,:])[0])
+            #print(torch.det(psi_down[:,k,:,:])[0])
+            d_down = torch.det(psi_down[:,k,:,:].clone())
+            d_up = torch.det(psi_up[:,k,:,:].clone())
+            d= d_up * d_down
+            psi = psi + d
+        return psi
+
+
 
 
 class FerminetModel(TorchModel):
@@ -202,12 +260,10 @@ class FerminetModel(TorchModel):
             raise ValueError("Given spin is not feasible")
 
         nucl = torch.from_numpy(self.nucleon_pos)
-        model = Ferminet(nucl,
+        self.model = Ferminet(nucl,
                          spin=(self.up_spin, self.down_spin),
                          nuclear_charge=torch.tensor(charge),
-                         inter_atom=torch.tensor(
-                             compute_pairwise_distances(self.nucleon_pos,
-                                                        self.nucleon_pos)))
+                         batch_size=self.batch_no)
 
         self.molecule: ElectronSampler = ElectronSampler(
             batch_no=self.batch_no,
@@ -221,7 +277,7 @@ class FerminetModel(TorchModel):
             self.electron_no)  # initialize the position of the electrons
         adam = optimizers.AdamW()
         super(FerminetModel, self).__init__(
-            model, optimizer=adam,
+            self.model, optimizer=adam,
             loss=L2Loss())  # will update the loss in successive PR
 
     def prepare_hf_solution(self, x: np.ndarray) -> np.ndarray:
