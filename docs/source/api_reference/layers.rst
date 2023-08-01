@@ -216,6 +216,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.MolGANMultiConvolutionLayer
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.MolGANEncoderLayer
+  :members:
+
 .. autoclass:: deepchem.models.torch_models.layers.DTNNStep
   :members:
 

@@ -40,7 +40,8 @@ class MultilayerPerceptron(nn.Module):
                  batch_norm: bool = False,
                  batch_norm_momentum: float = 0.1,
                  activation_fn: Union[Callable, str] = 'relu',
-                 skip_connection: bool = False):
+                 skip_connection: bool = False,
+                 weighted_skip: bool = True):
         """Initialize the model.
 
         Parameters
@@ -61,6 +62,8 @@ class MultilayerPerceptron(nn.Module):
             the activation function to use in the hidden layers
         skip_connection: bool
             whether to add a skip connection from the input to the output
+        weighted_skip: bool
+            whether to add a weighted skip connection from the input to the output
         """
         super(MultilayerPerceptron, self).__init__()
         self.d_input = d_input
@@ -72,6 +75,7 @@ class MultilayerPerceptron(nn.Module):
         self.activation_fn = get_activation(activation_fn)
         self.model = nn.Sequential(*self.build_layers())
         self.skip = nn.Linear(d_input, d_output) if skip_connection else None
+        self.weighted_skip = weighted_skip
 
     def build_layers(self):
         """
@@ -101,7 +105,10 @@ class MultilayerPerceptron(nn.Module):
                     x
                 )  # Done because activation_fn returns a torch.nn.functional
         if self.skip is not None:
-            return x + self.skip(input)
+            if not self.weighted_skip:
+                return x + input
+            else:
+                return x + self.skip(input)
         else:
             return x
 
@@ -3242,7 +3249,7 @@ class MolGANAggregationLayer(nn.Module):
                  activation=torch.tanh,
                  dropout_rate: float = 0.0,
                  name: str = "",
-                 **kwargs):
+                 prev_shape: int = 0):
         """
         Initialize the layer
 
@@ -3256,6 +3263,8 @@ class MolGANAggregationLayer(nn.Module):
             Used by dropout layer
         name: string, optional (default="")
             Name of the layer
+        prev_shape: int, optional (default=0)
+            Shape of the input tensor
         """
 
         super(MolGANAggregationLayer, self).__init__()
@@ -3264,8 +3273,12 @@ class MolGANAggregationLayer(nn.Module):
         self.dropout_rate: float = dropout_rate
         self.name: str = name
 
-        self.d1 = nn.Linear(self.units, self.units)
-        self.d2 = nn.Linear(self.units, self.units)
+        if prev_shape:
+            self.d1 = nn.Linear(prev_shape, self.units)
+            self.d2 = nn.Linear(prev_shape, self.units)
+        else:
+            self.d1 = nn.Linear(self.units, self.units)
+            self.d2 = nn.Linear(self.units, self.units)
         self.dropout_layer = nn.Dropout(dropout_rate)
 
     def __repr__(self) -> str:
@@ -3428,6 +3441,132 @@ class MolGANMultiConvolutionLayer(nn.Module):
         _, _, hidden_tensor = tensors
 
         return hidden_tensor
+
+
+class MolGANEncoderLayer(nn.Module):
+    """
+    Main learning layer used by MolGAN model.
+    MolGAN is a WGAN type model for generation of small molecules.
+    It role is to further simplify model.
+    This layer can be manually built by stacking graph convolution layers
+    followed by graph aggregation.
+    
+    Example
+    -------
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+    >>> vertices = 9
+    >>> nodes = 5
+    >>> edges = 5
+    >>> dropout_rate = 0.0
+    >>> adjacency_tensor = torch.randn((1, vertices, vertices, edges))
+    >>> node_tensor = torch.randn((1, vertices, nodes))
+    
+    >>> graph = MolGANEncoderLayer(units = [(128,64),128], dropout_rate= dropout_rate, edges=edges, nodes=nodes)([adjacency_tensor,node_tensor])
+    >>> dense = nn.Linear(128,128)(graph)
+    >>> dense = torch.tanh(dense)
+    >>> dense = nn.Dropout(dropout_rate)(dense)
+    >>> dense = nn.Linear(128,64)(dense)
+    >>> dense = torch.tanh(dense)
+    >>> dense = nn.Dropout(dropout_rate)(dense)
+    >>> output = nn.Linear(64,1)(dense)
+    
+    References
+    ----------
+    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+        for small molecular graphs", https://arxiv.org/abs/1805.11973
+    """
+
+    def __init__(self,
+                 units: List = [(128, 64), 128],
+                 activation: Callable = torch.tanh,
+                 dropout_rate: float = 0.0,
+                 edges: int = 5,
+                 nodes: int = 5,
+                 name: str = ""):
+        """
+        Initialize the layer
+        
+        Parameters
+        ----------
+        units: List, optional (default=[(128,64),128])
+            List of dimensions used by consecutive convolution layers.
+            The more values the more convolution layers invoked.
+        activation: function, optional (default=Tanh)
+            activation function used across model, default is Tanh
+        dropout_rate: float, optional (default=0.0)
+            Used by dropout layer
+        edges: int, optional (default=5)
+            Controls how many dense layers use for single convolution unit.
+            Typically matches number of bond types used in the molecule.
+        nodes: int, optional (default=5)
+            Number of features in node tensor
+        name: string, optional (default="")
+            Name of the layer
+        """
+
+        super(MolGANEncoderLayer, self).__init__()
+        if len(units) != 2:
+            raise ValueError("units parameter must contain two values")
+        self.graph_convolution_units, self.auxiliary_units = units
+        self.activation = activation
+        self.dropout_rate = dropout_rate
+        self.edges = edges
+
+        self.multi_graph_convolution_layer = MolGANMultiConvolutionLayer(
+            units=self.graph_convolution_units,
+            nodes=nodes,
+            activation=self.activation,
+            dropout_rate=self.dropout_rate,
+            edges=self.edges)
+        self.graph_aggregation_layer = MolGANAggregationLayer(
+            units=self.auxiliary_units,
+            activation=self.activation,
+            dropout_rate=self.dropout_rate,
+            prev_shape=self.graph_convolution_units[-1] + nodes)
+
+    def __repr__(self) -> str:
+        """
+        String representation of the layer
+        
+        Returns
+        -------
+        string
+            String representation of the layer
+        """
+        return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate}), edges={self.edges})"
+
+    def forward(self, inputs: List) -> torch.Tensor:
+        """
+        Invoke this layer
+
+        Parameters
+        ----------
+        inputs: list
+            List of two input matrices, adjacency tensor and node features tensors
+            in one-hot encoding format.
+
+        Returns
+        --------
+        encoder tensor: tf.Tensor
+            Tensor that been through number of convolutions followed
+            by aggregation.
+        """
+
+        output = self.multi_graph_convolution_layer(inputs)
+
+        node_tensor = inputs[1]
+
+        if len(inputs) > 2:
+            hidden_tensor = inputs[2]
+            annotations = torch.cat((output, hidden_tensor, node_tensor), -1)
+        else:
+            _, node_tensor = inputs
+            annotations = torch.cat((output, node_tensor), -1)
+
+        output = self.graph_aggregation_layer(annotations)
+        return output
 
 
 class DTNNStep(nn.Module):
@@ -4333,7 +4472,7 @@ class WeaveGather(nn.Module):
         output = output.view(-1, self.n_input * 11)
         return output
 
-
+      
 class Highway(nn.Module):
     """
     Highway layer used in TextCNN model.
@@ -4441,3 +4580,67 @@ class Highway(nn.Module):
         linear_T = self.Sigmoid_layer(self.linear_T(parent))
         return linear_H * linear_T + parent * (1 - linear_T)
       
+
+class _MXMNetEnvelope(torch.nn.Module):
+    """
+    A PyTorch module implementing an envelope function. This is a helper class for MXMNetSphericalBasisLayer and MXMNetBesselBasisLayer to be used in MXMNet Model.
+
+    The envelope function is defined as follows:
+    env(x) = 1 / x + a * x^e + b * x^(e+1) + c * x^(e+2)        if x < 1
+    env(x) = 0                                                  if x >= 1
+
+    where 
+    'x' is the input tensor
+    'e' is the exponent parameter
+    'a' = -(e + 1) * (e + 2) / 2
+    'b' = e * (e + 2)
+    'c' = -e * (e + 1) / 2
+
+    Examples
+    --------
+    >>> env = _MXMNetEnvelope(exponent=2)
+    >>> input_tensor = torch.tensor([0.5, 1.0, 2.0, 3.0])
+    >>> output = env(input_tensor)
+    >>> output.shape
+    torch.Size([4])
+    """
+
+    def __init__(self, exponent: int):
+        """
+        Parameters
+        ----------
+        exponent: float 
+            The exponent 'e' used in the envelope function.
+        """
+        super(_MXMNetEnvelope, self).__init__()
+        self.e: int = exponent
+        self.a: float = -(self.e + 1) * (self.e + 2) / 2
+        self.b: float = self.e * (self.e + 2)
+        self.c: float = -self.e * (self.e + 1) / 2
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Compute the envelope function for the input tensor 'x'.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The Input tensor
+
+        Returns
+        -------
+        output: torch.Tensor
+            The tensor containing the computed envelope values for each element of 'x'.
+        """
+        e: int = self.e
+        a: float = self.a
+        b: float = self.b
+        c: float = self.c
+
+        x_pow_p0: torch.Tensor = x.pow(e)
+        x_pow_p1: torch.Tensor = x_pow_p0 * x
+        env_val: torch.Tensor = 1. / x + a * x_pow_p0 + b * x_pow_p1 + c * x_pow_p1 * x
+
+        zero: torch.Tensor = torch.zeros_like(x)
+        output: torch.Tensor = torch.where(x < 1, env_val, zero)
+        return output
