@@ -47,8 +47,7 @@ class Ferminet(torch.nn.Module):
         else:
             self.layers = len(n_one)
 
-        self.running_diff = torch.zeros(1).to("cuda:0")
-        self.nucleon_pos = nucleon_pos.to("cuda:0")
+        self.nucleon_pos = nucleon_pos.to("cpu")
         self.determinant = determinant
         self.batch_size = batch_size
         self.spin = spin
@@ -62,6 +61,8 @@ class Ferminet(torch.nn.Module):
         self.pi = nn.ParameterList()
         self.n_one = n_one
         self.n_two = n_two
+
+        self.running_diff = torch.zeros(self.batch_size).to("cpu")
 
         self.v.append(
             nn.Linear(8 + 3 * 4 * self.nucleon_pos.size()[0],
@@ -94,7 +95,7 @@ class Ferminet(torch.nn.Module):
 
     def forward(self, input):
         # creating one and two electron features
-        self.input = torch.from_numpy(input).to("cuda:0")
+        self.input = torch.from_numpy(input).to("cpu")
         self.input.requires_grad = True
         self.input = self.input.reshape((self.batch_size, -1, 3))
         two_electron_vector = self.input.unsqueeze(1) - self.input.unsqueeze(2)
@@ -134,25 +135,24 @@ class Ferminet(torch.nn.Module):
                               != self.n_one[l - 1]) or (self.n_two[l]
                                                         != self.n_two[l - 1]):
                     one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f.to(
-                        torch.float32).to("cuda:0")))
+                        torch.float32).to("cpu")))
                     two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
-                        two_electron[:,
-                                     i, :, :].to(torch.float32).to("cuda:0")))
+                        two_electron[:, i, :, :].to(torch.float32).to("cpu")))
                 else:
-                    one_electron_tmp[:, i, :] = torch.tanh(
-                        self.v[l](f.to(torch.float32).to("cuda:0"))
-                    ) + one_electron[:, i, :].to(torch.float32).to("cuda:0")
+                    one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f.to(
+                        torch.float32).to("cpu"))) + one_electron[:, i, :].to(
+                            torch.float32).to("cpu")
                     two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
-                        two_electron[:, i, :, :].to(torch.float32).to("cuda:0")
-                    )) + two_electron[:, i, :].to(torch.float32).to("cuda:0")
-            one_electron = one_electron_tmp.to("cuda:0")
-            two_electron = two_electron_tmp.to("cuda:0")
+                        two_electron[:, i, :, :].to(torch.float32).to("cpu")
+                    )) + two_electron[:, i, :].to(torch.float32).to("cpu")
+            one_electron = one_electron_tmp.to("cpu")
+            two_electron = two_electron_tmp.to("cpu")
 
-        psi = torch.zeros(self.batch_size).to("cuda:0")
+        psi = torch.zeros(self.batch_size).to("cpu")
         self.psi_up = torch.zeros(self.batch_size, self.determinant,
-                                  self.spin[0], self.spin[0]).to("cuda:0")
+                                  self.spin[0], self.spin[0]).to("cpu")
         self.psi_down = torch.zeros(self.batch_size, self.determinant,
-                                    self.spin[1], self.spin[1]).to("cuda:0")
+                                    self.spin[1], self.spin[1]).to("cpu")
         #psi_up.requires_grad = True
         #psi_down.requires_grad =  True
         for k in range(self.determinant):
@@ -191,11 +191,10 @@ class Ferminet(torch.nn.Module):
 
     def loss(self, psi_up_mo, psi_down_mo, pretrain=True):
         if pretrain == True:
-            psi_up_mo = torch.from_numpy(psi_up_mo).unsqueeze(1).to("cuda:0")
-            psi_down_mo = torch.from_numpy(psi_down_mo).unsqueeze(1).to(
-                "cuda:0")
-            self.running_diff = self.running_diff + torch.mean(
-                (self.psi_up - psi_up_mo)**2 + (self.psi_down - psi_down_mo)**2)
+            psi_up_mo = torch.from_numpy(psi_up_mo).unsqueeze(1).to("cpu")
+            psi_down_mo = torch.from_numpy(psi_down_mo).unsqueeze(1).to("cpu")
+            self.running_diff = self.running_diff + (
+                self.psi_up - psi_up_mo)**2 + (self.psi_down - psi_down_mo)**2
 
 
 class FerminetModel(TorchModel):
@@ -319,11 +318,12 @@ class FerminetModel(TorchModel):
             central_value=self.nucleon_pos,
             seed=self.seed,
             f=lambda x: self.f(x),  # Will be replaced in successive PR
-            steps=200,
-            steps_per_update=20
+            steps=10,
+            steps_per_update=10
         )  # sample the electrons using the electron sampler
         self.molecule.gauss_initialize_position(
             self.electron_no)  # initialize the position of the electrons
+        self.prepare_hf_solution()
         adam = optimizers.AdamW()
         super(FerminetModel, self).__init__(
             self.model,
@@ -334,14 +334,14 @@ class FerminetModel(TorchModel):
         # TODO replace this function with forward pass of the model in future
         output = self.model.forward(x)
         np_output = output.detach().cpu().numpy()
-        up_spin_mo, down_spin_mo = self.prepare_hf_solution(x)
+        up_spin_mo, down_spin_mo = self.evaluate_hf(x)
         hf_product = np.product(
             np.diagonal(up_spin_mo, axis1=1, axis2=2)**2, axis=1) * np.product(
                 np.diagonal(down_spin_mo, axis1=1, axis2=2)**2, axis=1)
         self.loss(up_spin_mo, down_spin_mo, pretrain=True)
         return np.log(hf_product + np_output**2) + np.log(0.5)
 
-    def prepare_hf_solution(self, x) -> np.ndarray:
+    def prepare_hf_solution(self) -> np.ndarray:
         """Prepares the HF solution for the molecule system which is to be used in pretraining
 
         Returns
@@ -360,21 +360,22 @@ class FerminetModel(TorchModel):
                 self.nucleon_coordinates[i][1][0]) + " " + str(
                     self.nucleon_coordinates[i][1][1]) + " " + str(
                         self.nucleon_coordinates[i][1][2]) + ";"
+        self.mol = pyscf.gto.Mole(atom=molecule, basis='sto-3g')
+        self.mol.parse_arg = False
+        self.mol.unit = 'Bohr'
+        self.mol.spin = (self.up_spin - self.down_spin)
+        self.mol.charge = self.ion_charge
+        self.mol.build(parse_arg=False)
+        self.mf = pyscf.scf.UHF(self.mol)
+        _ = self.mf.kernel()
+
+    def evaluate_hf(self, x):
         x = np.reshape(x, [-1, 3 * (self.up_spin + self.down_spin)])
         leading_dims = x.shape[:-1]
         x = np.reshape(x, [-1, 3])
-        mol = pyscf.gto.Mole(atom=molecule, basis='sto-3g')
-        mol.parse_arg = False
-        mol.unit = 'Bohr'
-        mol.spin = (self.up_spin - self.down_spin)
-        mol.charge = self.ion_charge
-        mol.build(parse_arg=False)
-        mf = pyscf.scf.UHF(mol)
-        _ = mf.kernel()
-
-        coeffs = mf.mo_coeff
+        coeffs = self.mf.mo_coeff
         gto_op = 'GTOval_sph'
-        ao_values = mol.eval_gto(gto_op, x)
+        ao_values = self.mol.eval_gto(gto_op, x)
         mo_values = tuple(np.matmul(ao_values, coeff) for coeff in coeffs)
         mo_values = [
             np.reshape(mo, leading_dims + (self.up_spin + self.down_spin, -1))
@@ -384,16 +385,19 @@ class FerminetModel(TorchModel):
         return mo_values[0][..., :self.up_spin, :self.up_spin], mo_values[1][
             ..., self.up_spin:, :self.down_spin]
 
-    def fit(self, nb_epoch: int = 200, nb_pretrain_epoch: int = 10):
+    def fit(self, nb_epoch: int = 200, nb_pretrain_epoch: int = 100):
         # burn - in
         # pretraining
-        optimizer = torch.optim.Adam(self.model.parameters())
+        optimizer = torch.optim.Adam(self.model.parameters(),
+                                     lr=0.05,
+                                     weight_decay=1.0)
         for i in range(nb_pretrain_epoch):
             optimizer.zero_grad()
             self.molecule.move()
-            self.model.running_diff = self.model.running_diff / self.molecule.steps
+            self.model.running_diff = torch.mean(self.model.running_diff /
+                                                 self.molecule.steps)
             self.model.running_diff.backward()
             optimizer.step()
             print("loss->>>>")
             print(self.model.running_diff)
-            self.model.running_diff = torch.zeros(1).to("cuda:0")
+            self.model.running_diff = torch.zeros(self.batch_no).to("cpu")

@@ -35,8 +35,9 @@ def test_FerminetMode_fit():
     FH_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
     # Testing ionic initialization
     mol = FerminetModel(FH_molecule, spin=0, ion_charge=0)
-    mol.model = mol.model.to("cuda:0")
+    mol.model = mol.model.to("cpu")
     mol.fit()
+    raise IndexError
 
 
 @pytest.mark.dqc
@@ -44,10 +45,9 @@ def test_prepare_hf_solution():
     # Test for the prepare_hf_solution function of FerminetModel class
     H2_molecule = [['F', [0, 0, 0]], ['He', [0, 0, 0.748]]]
     mol = FerminetModel(H2_molecule, spin=1, ion_charge=0)
-    mol.model = mol.model.to("cuda:0")
+    mol.model = mol.model.to("cpu")
     electron_coordinates = np.random.rand(10, 11, 3)
-    spin_up_orbitals, spin_down_orbitals = mol.prepare_hf_solution(
-        electron_coordinates)
+    spin_up_orbitals, spin_down_orbitals = mol.evaluate_hf(electron_coordinates)
     # The solution should be of the shape (number of electrons, number of electrons)
     assert np.shape(spin_up_orbitals) == (10, 6, 6)
     assert np.shape(spin_down_orbitals) == (10, 5, 5)
@@ -59,5 +59,5 @@ def test_forward():
     FH_molecule = [['F', [0.424, 0.424, 0.23]], ['H', [0.4, 0.5, 0.5]]]
     # Testing ionic initialization
     mol = FerminetModel(FH_molecule, spin=1, ion_charge=-1)
-    mol.model = mol.model.to("cuda:0")
+    mol.model = mol.model.to("cpu")
     result = mol.model.forward(mol.molecule.x)
