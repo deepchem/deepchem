@@ -7,7 +7,6 @@ import torch
 from deepchem.models.losses import L2Loss
 from deepchem.models.torch_models import layers
 from deepchem.models.torch_models import TorchModel
-from deepchem.feat.dtnn_featurizer import DTNNFeaturizer
 
 
 class DTNN(nn.Module):
@@ -296,4 +295,4 @@ class DTNNModel(TorchModel):
                  ids_b) in dataset.iterbatches(batch_size=self.batch_size,
                                                deterministic=deterministic,
                                                pad_batches=pad_batches):
-                yield (DTNNFeaturizer(self.model.steps, self.model.step_size).featurize(X_b), [y_b], [w_b])
+                yield (self.compute_features_on_batch(X_b), [y_b], [w_b])

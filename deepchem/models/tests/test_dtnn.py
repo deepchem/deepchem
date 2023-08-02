@@ -1,9 +1,10 @@
 import os
 import numpy as np
 import pytest
-from scipy import io as scipy_io
 
-from deepchem.data import NumpyDataset
+from deepchem.data import SDFLoader
+from deepchem.feat import CoulombMatrix
+
 try:
     from deepchem.models.torch_models import DTNNModel
 except ModuleNotFoundError:
@@ -12,28 +13,31 @@ except ModuleNotFoundError:
 
 @pytest.mark.torch
 def test_dtnn():
+    """Tests DTNN Model for Shape and prediction.
+
+    - Used dataset files: qm9_mini.sdf, qm9_mini.sdf.csv (A subset of qm9 dataset.)
+    - Tasks selected are only of regression type.
+
+    """
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    input_file = os.path.join(current_dir, "assets/example_DTNN.mat")
+    dataset_file = os.path.join(current_dir, "assets/qm9_mini.sdf")
+    TASKS = ["alpha", "homo"]
+    loader = SDFLoader(tasks=TASKS,
+                               featurizer=CoulombMatrix(29),
+                               sanitize=True)
+    data = loader.create_dataset(dataset_file, shard_size=100)
 
-    # Load Datasets
-    dataset = scipy_io.loadmat(input_file)
-    X = dataset['X']
-    y = dataset['T']
-    w = np.ones_like(y)
-    dataset = NumpyDataset(X, y, w, ids=None)
-    n_tasks = y.shape[1]
-    model = DTNNModel(n_tasks,
-                      n_embedding=20,
+    model = DTNNModel(data.y.shape[1],
+                      n_embedding=40,
                       n_distance=100,
-                      learning_rate=1.0,
+                      learning_rate=0.7,
                       mode="regression")
-
-    # Check Train
-    model.fit(dataset, nb_epoch=250)
+    model.fit(data, nb_epoch=1000)
 
     # Eval model on train
-    pred = model.predict(dataset)
+    pred = model.predict(data)
 
-    mean_rel_error = np.mean(np.abs(1 - pred / y))
+    mean_rel_error = np.mean(np.abs(1 - pred / (data.y)))
+
     assert mean_rel_error < 0.15
-    assert pred.shape == y.shape
+    assert pred.shape == data.y.shape
