@@ -22,9 +22,7 @@ def test_dtnn():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     dataset_file = os.path.join(current_dir, "assets/qm9_mini.sdf")
     TASKS = ["alpha", "homo"]
-    loader = SDFLoader(tasks=TASKS,
-                               featurizer=CoulombMatrix(29),
-                               sanitize=True)
+    loader = SDFLoader(tasks=TASKS, featurizer=CoulombMatrix(29), sanitize=True)
     data = loader.create_dataset(dataset_file, shard_size=100)
 
     model = DTNNModel(data.y.shape[1],
