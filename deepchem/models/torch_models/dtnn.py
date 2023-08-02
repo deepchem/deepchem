@@ -134,25 +134,24 @@ class DTNNModel(TorchModel):
 
     Examples
     --------
-    >>> import deepchem as dc
     >>> import os
-    >>> from scipy import io as scipy_io
-    >>> from deepchem.data import NumpyDataset
+    >>> import numpy as np
+    >>> from deepchem.data import SDFLoader
+    >>> from deepchem.feat import CoulombMatrix
+    >>> from deepchem.models.torch_models import DTNNModel
     >>> model_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    >>> input_file = os.path.join(model_dir, 'tests/assets/example_DTNN.mat')
-    >>> dataset = scipy_io.loadmat(input_file)
-    >>> X = dataset['X']
-    >>> y = dataset['T']
-    >>> w = np.ones_like(y)
-    >>> dataset = NumpyDataset(X, y, w, ids=None)
-    >>> n_tasks = y.shape[1]
+    >>> dataset_file = os.path.join(model_dir, 'tests/assets/qm9_mini.sdf')
+    >>> TASKS = ["alpha", "homo"]
+    >>> loader = SDFLoader(tasks=TASKS, featurizer=CoulombMatrix(29), sanitize=True)
+    >>> data = loader.create_dataset(dataset_file, shard_size=100)
+    >>> n_tasks = data.y.shape[1]
     >>> model = DTNNModel(n_tasks,
     ...               n_embedding=20,
     ...               n_distance=100,
     ...               learning_rate=1.0,
     ...               mode="regression")
-    >>> loss = model.fit(dataset, nb_epoch=250)
-    >>> pred = model.predict(dataset)
+    >>> loss = model.fit(data, nb_epoch=250)
+    >>> pred = model.predict(data)
 
     References
     ----------
