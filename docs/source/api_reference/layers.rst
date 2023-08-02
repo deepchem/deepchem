@@ -233,6 +233,10 @@ Torch Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.WeaveGather
   :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.Highway
+   :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 
