@@ -144,7 +144,7 @@ class BaseGrid(xt.EditableModule):
         Returns
         -------
         torch.tensor (*BG, ngrid)
-            The dV elements for the integration
+            The dV elements for the integration. *BG is the length of the BaseGrid.
         """
         pass
 
@@ -157,10 +157,20 @@ class BaseGrid(xt.EditableModule):
         Returns
         -------
         torch.tensor (*BG, ngrid, ndim)
-            The grid points position.
+            The grid points position. *BG is the length of the BaseGrid.
         """
         pass
 
     @abstractmethod
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+        """
+        Return a list with the parameter names corresponding to the given method 
+        (methodname)
+
+        Returns
+        -------
+        List[str]
+            List of parameter names of methodname
+
+        """
         pass
