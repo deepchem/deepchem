@@ -93,9 +93,11 @@ def load_bace_classification(
     save_dir: Optional[str] = None,
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
-    """ Load BACE dataset, classification labels
+    """Load BACE dataset with classification labels.
 
-    BACE dataset with classification labels ("class").
+    BACE dataset with classification labels ("class"). The BACE dataset
+    contains 1513 compounds and the dataset is a binary classification
+    dataset with labels 0 or 1.
 
     Parameters
     ----------
