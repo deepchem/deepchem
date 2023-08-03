@@ -307,3 +307,35 @@ def test_infographstar_fit_restore():
     model2.fit(dataset, nb_epoch=1, restore=True)
     prediction = model2.predict_on_batch(dataset.X).reshape(-1, 1)
     assert np.allclose(dataset.y, np.round(prediction))
+
+
+@pytest.mark.torch
+def test_infograph_pretrain_finetune(tmpdir):
+    from deepchem.models.torch_models.infograph import InfoGraphModel
+    import torch
+    torch.manual_seed(123)
+    np.random.seed(123)
+
+    dataset, _ = get_regression_dataset()
+    num_feat = 30
+    edge_dim = 11
+
+    pretrain_model = InfoGraphModel(num_feat,
+                                    edge_dim,
+                                    num_gc_layers=1,
+                                    model_dir=tmpdir,
+                                    device=torch.device('cpu'))
+    pretraining_loss = pretrain_model.fit(dataset, nb_epoch=1)
+    assert pretraining_loss
+    pretrain_model.save_checkpoint()
+
+    finetune_model = InfoGraphModel(num_feat,
+                                    edge_dim,
+                                    num_gc_layers=1,
+                                    task='regression',
+                                    n_tasks=1,
+                                    model_dir=tmpdir,
+                                    device=torch.device('cpu'))
+    finetune_model.restore(components=['encoder'])
+    finetuning_loss = finetune_model.fit(dataset, nb_epoch=1)
+    assert finetuning_loss
