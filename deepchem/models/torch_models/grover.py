@@ -221,9 +221,6 @@ class GroverFinetune(nn.Module):
                                                  atom_scope)
 
         if additional_features[0] is not None:
-            additional_features = torch.from_numpy(
-                np.stack(additional_features)).float()
-            additional_features.to(output["atom_from_bond"])
             if len(additional_features.shape) == 1:
                 additional_features = additional_features.view(
                     1, additional_features.shape[0])
