@@ -216,73 +216,6 @@ class DTNNModel(TorchModel):
         super(DTNNModel, self).__init__(model, L2Loss(), ["prediction"],
                                         **kwargs)
 
-    def compute_features_on_batch(self, X_b):
-        """Computes the values for different Feature Layers on given batch
-
-        A tf.py_func wrapper is written around this when creating the
-        input_fn for tf.Estimator
-
-        Computed Features
-        -----------------
-        atom_numbers:
-            Atom numbers are assigned to each atom based on their atomic properties.
-            The atomic numbers are derived from the periodic table of elements.
-            For example, hydrogen -> 1, carbon -> 6, and oxygen -> 8.
-        gaussian_dist:
-            Gaussian distance refers to the method of representing the pairwise distances between atoms in a molecule using Gaussian functions.
-            The Gaussian distance is calculated using the Euclidean distance between the Cartesian coordinates of two atoms.
-            The distance value is then passed through a Gaussian function, which transforms it into a continuous value.
-        atom_mem:
-            Atom membership refers to the binary representation of whether an atom belongs to a specific group or property within a molecule.
-            It allows the model to incorporate domain-specific information and enhance its understanding of the molecule's properties and interactions.
-        dist_mem_i:
-            Distance membership i are utilized to encode spatial information and capture the influence of atom distances on the properties and interactions within a molecule.
-            The inner membership function assigns higher values to atoms that are closer to the atoms' interaction region, thereby emphasizing the impact of nearby atoms.
-        dist_mem_j:
-            It captures the long-range effects and influences between atoms that are not in direct proximity but still contribute to the overall molecular properties.
-            Distance membership j are utilized to encode spatial information and capture the influence of atom distances on the properties and interactions outside a molecule.
-            The outer membership function assigns higher values to atoms that are farther to the atoms' interaction region, thereby emphasizing the impact of farther atoms.
-
-        """
-        distance = []
-        atom_membership = []
-        distance_membership_i = []
-        distance_membership_j = []
-        num_atoms = list(map(sum, X_b.astype(bool)[:, :, 0]))
-        atom_number = [
-            np.round(
-                np.power(2 * np.diag(X_b[i, :num_atoms[i], :num_atoms[i]]),
-                         1 / 2.4)).astype(int) for i in range(len(num_atoms))
-        ]
-        start = 0
-        for im, molecule in enumerate(atom_number):
-            distance_matrix = np.outer(
-                molecule, molecule) / X_b[im, :num_atoms[im], :num_atoms[im]]
-            np.fill_diagonal(distance_matrix, -100)
-            distance.append(np.expand_dims(distance_matrix.flatten(), 1))
-            atom_membership.append([im] * num_atoms[im])
-            membership = np.array([np.arange(num_atoms[im])] * num_atoms[im])
-            membership_i = membership.flatten(order='F')
-            membership_j = membership.flatten()
-            distance_membership_i.append(membership_i + start)
-            distance_membership_j.append(membership_j + start)
-            start = start + num_atoms[im]
-
-        atom_number = np.concatenate(atom_number).astype(np.int32)
-        distance = np.concatenate(distance, axis=0)
-        gaussian_dist = np.exp(-np.square(distance - self.model.steps) /
-                               (2 * self.model.step_size**2))
-        gaussian_dist = gaussian_dist.astype(np.float64)
-        atom_mem = np.concatenate(atom_membership).astype(np.int64)
-        dist_mem_i = np.concatenate(distance_membership_i).astype(np.int64)
-        dist_mem_j = np.concatenate(distance_membership_j).astype(np.int64)
-
-        features = [
-            atom_number, gaussian_dist, atom_mem, dist_mem_i, dist_mem_j
-        ]
-
-        return features
-
     def default_generator(self,
                           dataset,
                           epochs=1,
@@ -294,4 +227,65 @@ class DTNNModel(TorchModel):
                  ids_b) in dataset.iterbatches(batch_size=self.batch_size,
                                                deterministic=deterministic,
                                                pad_batches=pad_batches):
-                yield (self.compute_features_on_batch(X_b), [y_b], [w_b])
+                yield (_compute_features_on_batch(X_b, self.model.steps, self.model.step_size), [y_b], [w_b])
+
+def _compute_features_on_batch(X_b, steps, step_size):
+    """Computes the values for different Feature Layers on given   batch
+
+    Computed Features
+    -----------------
+    atom_numbers:
+        Atom numbers are assigned to each atom based on their atomic properties.
+        The atomic numbers are derived from the periodic table of elements.
+        For example, hydrogen -> 1, carbon -> 6, and oxygen -> 8.
+    gaussian_dist:
+        Gaussian distance refers to the method of representing the pairwise distances between atoms in a molecule using Gaussian functions.
+        The Gaussian distance is calculated using the Euclidean distance between the Cartesian coordinates of two atoms.
+        The distance value is then passed through a Gaussian function, which transforms it into a continuous value.
+    atom_mem:
+        Atom membership refers to the binary representation of whether an atom belongs to a specific group or property within a molecule.
+        It allows the model to incorporate domain-specific information and enhance its understanding of the molecule's properties and interactions.
+    dist_mem_i:
+        Distance membership i are utilized to encode spatial information and capture the influence of atom distances on the properties and interactions within a molecule.
+        The inner membership function assigns higher values to atoms that are closer to the atoms' interaction region, thereby emphasizing the impact of nearby atoms.
+    dist_mem_j:
+        It captures the long-range effects and influences between atoms that are not in direct proximity but still contribute to the overall molecular properties.
+        Distance membership j are utilized to encode spatial information and capture the influence of atom distances on the properties and interactions outside a molecule.
+        The outer membership function assigns higher values to atoms that are farther to the atoms' interaction region, thereby emphasizing the impact of farther atoms.
+
+    """
+    distance = []
+    atom_membership = []
+    distance_membership_i = []
+    distance_membership_j = []
+    num_atoms = list(map(sum, X_b.astype(bool)[:, :, 0]))
+    atom_number = [
+        np.round(
+            np.power(2 * np.diag(X_b[i, :num_atoms[i], :num_atoms[i]]),
+                     1 / 2.4)).astype(int) for i in range(len(num_atoms))
+    ]
+    start = 0
+    for im, molecule in enumerate(atom_number):
+        distance_matrix = np.outer(
+            molecule, molecule) / X_b[im, :num_atoms[im], :num_atoms[im]]
+        np.fill_diagonal(distance_matrix, -100)
+        distance.append(np.expand_dims(distance_matrix.flatten(), 1))
+        atom_membership.append([im] * num_atoms[im])
+        membership = np.array([np.arange(num_atoms[im])] * num_atoms[im])
+        membership_i = membership.flatten(order='F')
+        membership_j = membership.flatten()
+        distance_membership_i.append(membership_i + start)
+        distance_membership_j.append(membership_j + start)
+        start = start + num_atoms[im]
+    atom_number = np.concatenate(atom_number).astype(np.int32)
+    distance = np.concatenate(distance, axis=0)
+    gaussian_dist = np.exp(-np.square(distance - steps) /
+                           (2 * step_size**2))
+    gaussian_dist = gaussian_dist.astype(np.float64)
+    atom_mem = np.concatenate(atom_membership).astype(np.int64)
+    dist_mem_i = np.concatenate(distance_membership_i).astype(np.int64)
+    dist_mem_j = np.concatenate(distance_membership_j).astype(np.int64)
+    features = [
+        atom_number, gaussian_dist, atom_mem, dist_mem_i, dist_mem_j
+    ]
+    return features

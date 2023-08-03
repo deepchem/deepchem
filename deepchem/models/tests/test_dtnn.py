@@ -28,7 +28,7 @@ def test_dtnn():
     model = DTNNModel(data.y.shape[1],
                       n_embedding=40,
                       n_distance=100,
-                      learning_rate=0.7,
+                      learning_rate=0.8,
                       mode="regression")
     model.fit(data, nb_epoch=1000)
 
