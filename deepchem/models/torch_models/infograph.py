@@ -303,10 +303,10 @@ class InfoGraphModel(ModularTorchModel):
 
     Parameters
     ----------
-    num_features: int
-        Number of node features for each input
-    edge_features: int
-        Number of edge features for each input
+    node_fdim: int
+        Number of node features in input graph data
+    edge_fdim: int
+        Number of edge features in input graph data
     embedding_dim: int
         Dimension of the embedding
     num_gc_layers: int
@@ -345,8 +345,8 @@ class InfoGraphModel(ModularTorchModel):
     """
 
     def __init__(self,
-                 num_features,
-                 embedding_dim,
+                 node_fdim,
+                 edge_fdim,
                  num_gc_layers=5,
                  prior=True,
                  gamma=.1,
@@ -357,8 +357,9 @@ class InfoGraphModel(ModularTorchModel):
                  **kwargs):
         if task == 'regression':
             assert n_tasks, 'Number of prediction tasks required for building regression model'
-        self.num_features = num_features
-        self.embedding_dim = embedding_dim * num_gc_layers
+        # TODO Replace num_features with node_fdim in other instances for better readability
+        self.num_features = node_fdim
+        self.embedding_dim = edge_fdim * num_gc_layers
         self.num_gc_layers = num_gc_layers
         self.gamma = gamma
         self.prior = prior
