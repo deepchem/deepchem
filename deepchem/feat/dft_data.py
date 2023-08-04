@@ -429,18 +429,18 @@ class Hamiltonz(dqc.hamilton.hcgto.HamiltonCGTO):
         logger.log("Calculating the basis gradient values in the grid")
         self.is_grad_ao_set = True
         # (ndim, nao, ngrid)
-        self.grad_basis = intor.eval_gradgto(self.libcint_wrapper,
-                                             self.rgrid,
-                                             to_transpose=True)
+        self.grad_basis = eval_gradgto(self.libcint_wrapper,
+                                       self.rgrid,
+                                       to_transpose=True).to("cuda:0")
         if self.xcfamily == 2:  # GGA
             return
 
         # setup the laplacian of the basis
         self.is_lapl_ao_set = True
         logger.log("Calculating the basis laplacian values in the grid")
-        self.lapl_basis = intor.eval_laplgto(self.libcint_wrapper,
-                                             self.rgrid,
-                                             to_transpose=True)  # (nao, ngrid)
+        self.lapl_basis = eval_laplgto(self.libcint_wrapper,
+                                       self.rgrid,
+                                       to_transpose=True)  # (nao, ngrid)
 
     def get_vxc(self, dm):
         # dm: (*BD, nao, nao)
@@ -582,6 +582,7 @@ class Hamiltonz(dqc.hamilton.hcgto.HamiltonCGTO):
             if self.xcfamily in [2, 4]:  # GGA or MGGA
                 assert potinfo.grad is not None  # (..., ndim, nr)
                 vgrad = potinfo.grad[..., ioff:iend] * 2
+                vgrad = vgrad.to("cuda:0")
                 grad_basis0 = self.grad_basis[0, ioff:iend, :]  # (nr, nao)
                 grad_basis1 = self.grad_basis[1, ioff:iend, :]
                 grad_basis2 = self.grad_basis[2, ioff:iend, :]

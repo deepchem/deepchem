@@ -225,7 +225,6 @@ class NNPBE(BaseNNXC):
             chosen automatically.
         """
         super().__init__()
-        self.nnmodel = nnmodel
         if device is None:
             if torch.cuda.is_available():
                 device = torch.device('cuda')
@@ -234,6 +233,7 @@ class NNPBE(BaseNNXC):
             else:
                 device = torch.device('cpu')
         self.device = device
+        self.nnmodel = nnmodel.to(self.device)
 
     def get_edensityxc(
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
