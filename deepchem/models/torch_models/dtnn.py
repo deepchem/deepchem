@@ -7,6 +7,7 @@ import torch
 from deepchem.models.losses import L2Loss
 from deepchem.models.torch_models import layers
 from deepchem.models.torch_models import TorchModel
+from deepchem.data.datasets import Dataset
 
 
 class DTNN(nn.Module):
@@ -65,10 +66,6 @@ class DTNN(nn.Module):
         self.n_distance = n_distance
         self.distance_min = distance_min
         self.distance_max = distance_max
-        self.step_size = (distance_max - distance_min) / n_distance
-        self.steps = np.array(
-            [distance_min + i * self.step_size for i in range(n_distance)])
-        self.steps = np.expand_dims(self.steps, 0)
         self.output_activation = output_activation
         self.mode = mode
         self.dropout = dropout
@@ -217,24 +214,43 @@ class DTNNModel(TorchModel):
                                         **kwargs)
 
     def default_generator(self,
-                          dataset,
-                          epochs=1,
-                          mode='fit',
-                          deterministic=True,
-                          pad_batches=True):
+                          dataset: Dataset,
+                          epochs: int = 1,
+                          mode: str = 'fit',
+                          deterministic: bool = True,
+                          pad_batches: bool = True):
         for epoch in range(epochs):
             for (X_b, y_b, w_b,
                  ids_b) in dataset.iterbatches(batch_size=self.batch_size,
                                                deterministic=deterministic,
                                                pad_batches=pad_batches):
-                yield (_compute_features_on_batch(X_b, self.model.steps, self.model.step_size), [y_b], [w_b])
+                yield (_compute_features_on_batch(X_b, self.model.distance_max,
+                                                  self.model.distance_min,
+                                                  self.model.n_distance), [y_b],
+                       [w_b])
 
-def _compute_features_on_batch(X_b, steps, step_size):
-    """Computes the values for different Feature Layers on given   batch
+
+def _compute_features_on_batch(X_b: np.ndarray,
+                               distance_max: float = -1,
+                               distance_min: float = 18,
+                               n_distance: int = 100):
+    """Computes the values for different Feature Layers on given batch.
+
+    Parameters
+    ----------
+    X_b: np.ndarray
+        It is a 3d Matrix containing information of each the atom's ionic interaction with other atoms in the molecule.
+    distance_min: float (default -1)
+        minimum distance of atom pairs (in Angstrom)
+    distance_max: float (default = 18)
+        maximum distance of atom pairs (in Angstrom)
+    n_distance: int (default 100)
+        granularity of distance matrix
+        step size will be (distance_max-distance_min)/n_distance
 
     Computed Features
     -----------------
-    atom_numbers:
+    atom_number:
         Atom numbers are assigned to each atom based on their atomic properties.
         The atomic numbers are derived from the periodic table of elements.
         For example, hydrogen -> 1, carbon -> 6, and oxygen -> 8.
@@ -258,7 +274,16 @@ def _compute_features_on_batch(X_b, steps, step_size):
     atom_membership = []
     distance_membership_i = []
     distance_membership_j = []
+
+    # Calculation of Step Size and steps
+    step_size = (distance_max - distance_min) / n_distance
+    steps = np.array([distance_min + i * step_size for i in range(n_distance)])
+    steps = np.expand_dims(steps, 0)
+
+    # Number of atoms per molecule is calculated by counting all the non zero elements(numbers) of every molecule.
     num_atoms = list(map(sum, X_b.astype(bool)[:, :, 0]))
+
+    # It loops over the molecules in the Coulomb matrix and rounds the square root of the diagonal of each molecule to the nearest integer.
     atom_number = [
         np.round(
             np.power(2 * np.diag(X_b[i, :num_atoms[i], :num_atoms[i]]),
@@ -279,13 +304,12 @@ def _compute_features_on_batch(X_b, steps, step_size):
         start = start + num_atoms[im]
     atom_number = np.concatenate(atom_number).astype(np.int32)
     distance = np.concatenate(distance, axis=0)
-    gaussian_dist = np.exp(-np.square(distance - steps) /
-                           (2 * step_size**2))
+
+    # Calculates the Gaussian Distance by passing distance by a gaussian function.
+    gaussian_dist = np.exp(-np.square(distance - steps) / (2 * step_size**2))
     gaussian_dist = gaussian_dist.astype(np.float64)
     atom_mem = np.concatenate(atom_membership).astype(np.int64)
     dist_mem_i = np.concatenate(distance_membership_i).astype(np.int64)
     dist_mem_j = np.concatenate(distance_membership_j).astype(np.int64)
-    features = [
-        atom_number, gaussian_dist, atom_mem, dist_mem_i, dist_mem_j
-    ]
+    features = [atom_number, gaussian_dist, atom_mem, dist_mem_i, dist_mem_j]
     return features
