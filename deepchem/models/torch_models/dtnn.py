@@ -220,6 +220,7 @@ class DTNNModel(TorchModel):
                           deterministic: bool = True,
                           pad_batches: bool = True):
         """Create a generator that iterates batches for a dataset.
+        It processes inputs through the _compute_features_on_batch function to calculate required features of input.
 
         Parameters
         ----------
