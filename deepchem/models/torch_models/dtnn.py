@@ -250,21 +250,21 @@ def _compute_features_on_batch(X_b: np.ndarray,
 
     Computed Features
     -----------------
-    atom_number:
+    atom_number: np.ndarray
         Atom numbers are assigned to each atom based on their atomic properties.
         The atomic numbers are derived from the periodic table of elements.
         For example, hydrogen -> 1, carbon -> 6, and oxygen -> 8.
-    gaussian_dist:
+    gaussian_dist: np.ndarray
         Gaussian distance refers to the method of representing the pairwise distances between atoms in a molecule using Gaussian functions.
         The Gaussian distance is calculated using the Euclidean distance between the Cartesian coordinates of two atoms.
         The distance value is then passed through a Gaussian function, which transforms it into a continuous value.
-    atom_mem:
+    atom_mem: np.ndarray
         Atom membership refers to the binary representation of whether an atom belongs to a specific group or property within a molecule.
         It allows the model to incorporate domain-specific information and enhance its understanding of the molecule's properties and interactions.
-    dist_mem_i:
+    dist_mem_i: np.ndarray
         Distance membership i are utilized to encode spatial information and capture the influence of atom distances on the properties and interactions within a molecule.
         The inner membership function assigns higher values to atoms that are closer to the atoms' interaction region, thereby emphasizing the impact of nearby atoms.
-    dist_mem_j:
+    dist_mem_j: np.ndarray
         It captures the long-range effects and influences between atoms that are not in direct proximity but still contribute to the overall molecular properties.
         Distance membership j are utilized to encode spatial information and capture the influence of atom distances on the properties and interactions outside a molecule.
         The outer membership function assigns higher values to atoms that are farther to the atoms' interaction region, thereby emphasizing the impact of farther atoms.
