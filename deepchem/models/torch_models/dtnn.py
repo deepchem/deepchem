@@ -219,6 +219,30 @@ class DTNNModel(TorchModel):
                           mode: str = 'fit',
                           deterministic: bool = True,
                           pad_batches: bool = True):
+        """Create a generator that iterates batches for a dataset.
+
+        Parameters
+        ----------
+        dataset: Dataset
+            the data to iterate
+        epochs: int
+            the number of times to iterate over the full dataset
+        mode: str
+            allowed values are 'fit' (called during training), 'predict' (called
+            during prediction), and 'uncertainty' (called during uncertainty
+            prediction)
+        deterministic: bool
+            whether to iterate over the dataset in order, or randomly shuffle the
+            data for each epoch
+        pad_batches: bool
+            whether to pad each batch up to this model's preferred batch size
+
+        Returns
+        -------
+        a generator that iterates batches, each represented as a tuple of lists:
+        ([inputs], [outputs], [weights])
+
+        """
         for epoch in range(epochs):
             for (X_b, y_b, w_b,
                  ids_b) in dataset.iterbatches(batch_size=self.batch_size,
