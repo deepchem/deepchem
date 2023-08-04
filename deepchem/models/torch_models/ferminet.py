@@ -68,30 +68,40 @@ class Ferminet(torch.nn.Module):
             nn.Linear(8 + 3 * 4 * self.nucleon_pos.size()[0],
                       n_one[0],
                       bias=True))
+        self.v[0].weight.data.fill_(0.0001)
+        self.v[0].bias.data.fill_(0.0001)
         self.w.append(nn.Linear(4, n_two[0], bias=True))
+        self.w[0].weight.data.fill_(0.0001)
+        self.w[0].bias.data.fill_(0.0001)
         for i in range(1, self.layers):
             self.v.append(
                 nn.Linear(3 * n_one[i - 1] + 2 * n_two[i - 1],
                           n_one[i],
                           bias=True))
+            self.v[i].weight.data.fill_(0.001)
+            self.v[i].bias.data.fill_(0.001)
+
             self.w.append(nn.Linear(n_two[i - 1], n_two[i], bias=True))
+            self.w[i].weight.data.fill_(0.001)
+            self.w[i].bias.data.fill_(0.001)
+
 
         for i in range(self.determinant):
             for j in range(self.total_electron):
                 self.envelope_w.append(
-                    torch.nn.init.kaiming_uniform(torch.empty(n_one[-1],
-                                                              1)).squeeze(-1))
+                    torch.nn.init.uniform(torch.empty(n_one[-1],
+                                                              1),b=0.001).squeeze(-1))
                 self.envelope_g.append(
-                    torch.nn.init.uniform(torch.empty(1)).squeeze(0))
+                    torch.nn.init.uniform(torch.empty(1), b=0.001).squeeze(0))
                 for k in range(self.nucleon_pos.size()[0]):
                     self.sigma.append(
                         torch.nn.init.uniform(
                             torch.empty(self.nucleon_pos.size()[0],
-                                        1)).squeeze(0))
+                                        1), b=0.001).squeeze(0))
                     self.pi.append(
                         torch.nn.init.uniform(
                             torch.empty(self.nucleon_pos.size()[0],
-                                        1)).squeeze(0))
+                                        1), b=0.001).squeeze(0))
 
     def forward(self, input):
         # creating one and two electron features
@@ -195,7 +205,8 @@ class Ferminet(torch.nn.Module):
             psi_down_mo = torch.from_numpy(psi_down_mo).unsqueeze(1).to("cpu")
             self.running_diff = self.running_diff + (
                 self.psi_up - psi_up_mo)**2 + (self.psi_down - psi_down_mo)**2
-
+            print(self.psi_down)
+            print(psi_down_mo)
 
 class FerminetModel(TorchModel):
     """A deep-learning based Variational Monte Carlo method [1]_ for calculating the ab-initio
@@ -385,17 +396,16 @@ class FerminetModel(TorchModel):
         return mo_values[0][..., :self.up_spin, :self.up_spin], mo_values[1][
             ..., self.up_spin:, :self.down_spin]
 
-    def fit(self, nb_epoch: int = 200, nb_pretrain_epoch: int = 100):
+    def fit(self, nb_epoch: int = 200, nb_pretrain_epoch: int = 1000):
         # burn - in
         # pretraining
         optimizer = torch.optim.Adam(self.model.parameters(),
-                                     lr=0.05,
-                                     weight_decay=1.0)
+                                     lr=0.01,
+                                     weight_decay=1.5)
         for i in range(nb_pretrain_epoch):
             optimizer.zero_grad()
             self.molecule.move()
-            self.model.running_diff = torch.mean(self.model.running_diff /
-                                                 self.molecule.steps)
+            self.model.running_diff = torch.sum(self.model.running_diff)
             self.model.running_diff.backward()
             optimizer.step()
             print("loss->>>>")
