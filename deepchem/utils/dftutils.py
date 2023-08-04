@@ -5,6 +5,7 @@ try:
     import torch
     from dqc.utils.datastruct import SpinParam
     from dqc.qccalc.base_qccalc import BaseQCCalc
+    from dqc.qccalc.ks import KS
 except ModuleNotFoundError:
     pass
 

@@ -3,7 +3,7 @@ try:
     from deepchem.models.dft.nnxc import HybridXC
     from deepchem.models.dft.dftxc import _construct_nn_model
     from deepchem.models.dft.scf import XCNNSCF
-    from deepchem.feat.dft_data import DFTEntry
+    import deepchem.feat.dft_data
     has_dqc = True
 except ModuleNotFoundError:
     has_dqc = False
@@ -33,12 +33,12 @@ def test_pbe():
         'basis': '6-311++G(3df,3pd)'
     }]
 
-    entry = DFTEntry.create(e_type, true_val, systems)
-    hybridxc = HybridXC("gga_x_pbe", nnmodel, aweight0=0.0)
+    entry = deepchem.feat.dft_data.DFTEntry.create(e_type, true_val, systems)
+    hybridxc = HybridXC("gga_x_pbe", nnmodel, aweight0=0.0, device="cuda:0")
     evl = XCNNSCF(hybridxc, entry)
     qcs = []
     for system in entry.get_systems():
         qcs.append(evl.run(system))
     output = qcs[0].energy()
-    expected_output = torch.tensor(-15.7262, dtype=torch.float64)
+    expected_output = torch.tensor(-15.7262, dtype=torch.float64).to("cuda:0")
     torch.testing.assert_close(output, expected_output, atol=1e-4, rtol=0)

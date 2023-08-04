@@ -5,6 +5,7 @@ from deepchem.models.dft.nnxc import HybridXC
 from deepchem.models.losses import Loss, L2Loss
 from deepchem.models.torch_models.torch_model import TorchModel
 from typing import Tuple, Optional, List, Any
+from dqc.qccalc.ks import KS
 import numpy as np
 
 
@@ -37,7 +38,7 @@ class DFTXC(torch.nn.Module):
     def __init__(self,
                  xcstr: str,
                  nnmodel: torch.nn.Module,
-                 device: str = "cpu"):
+                 device: Optional[torch.device] = None):
         """
         Parameters
         ----------
@@ -46,8 +47,9 @@ class DFTXC(torch.nn.Module):
             lda_x, lda_c_pw, lda_c_ow, lda_c_pz, lda_xc_lp_a, lda_xc_lp_b.
         nnmodel: torch.nn.Module
             the PyTorch model implementing the calculation
-        device: str, (default "cpu")
-            the device on which to run computations.
+        device: str, (default None)
+            the device on which to run computations. If None, a device is
+            chosen automatically.
 
         Notes
         -----
@@ -58,6 +60,13 @@ class DFTXC(torch.nn.Module):
         self.nnmodel = nnmodel
 
         # Select a device.
+        if device is None:
+            if torch.cuda.is_available():
+                device = torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                device = torch.device('mps')
+            else:
+                device = torch.device('cpu')
         self.device = device
 
     def forward(self, inputs):
@@ -144,7 +153,7 @@ class XCModel(TorchModel):
                  n_tasks: int = 0,
                  log_frequency: int = 0,
                  mode: str = 'classification',
-                 device: str = "cpu",
+                 device: Optional[torch.device] = None,
                  **kwargs) -> None:
         """
         Parameters
@@ -162,14 +171,21 @@ class XCModel(TorchModel):
             number of layers in the neural network
         modeltype: int
             model type 2 includes an activation layer whereas type 1 does not.
-        device: str, optional (default "cpu")
-            the device on which to run computations.
+        device: torch.device, optional (default None)
+            the device on which to run computations. If None, a device is
+            chosen automatically.
         """
         if nnmodel is None:
             nnmodel = _construct_nn_model(input_size, hidden_size, n_layers,
                                           modeltype).to(torch.double)
+        if device is None:
+            if torch.cuda.is_available():
+                device = torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                device = torch.device('mps')
+            else:
+                device = torch.device('cpu')
         self.device = device
-
         model = (DFTXC(xcstr, nnmodel, self.device)).to(self.device)
         self.xc = xcstr
         loss: Loss = L2Loss()

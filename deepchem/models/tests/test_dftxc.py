@@ -19,14 +19,16 @@ def test_dftxc_eval():
                     batch_size=1,
                     log_frequency=1,
                     mode="classification",
-                    model_dir=model_dir)
+                    model_dir=model_dir,
+                    device="cuda:0")
     loss = model.fit(dataset, nb_epoch=2, checkpoint_interval=1)
     assert loss < 0.001
     reload_model = XCModel("lda_x",
                            batch_size=1,
                            log_frequency=1,
                            mode="classification",
-                           model_dir=model_dir)
+                           model_dir=model_dir,
+                           device="cuda:0")
     reload_model.restore()
     inputs1 = 'deepchem/models/tests/assets/test_ieLi.yaml'
     predict_dataset = data.create_dataset(inputs1)
@@ -39,7 +41,8 @@ def test_dftxc_eval():
     model2 = XCModel("lda_x",
                      batch_size=2,
                      log_frequency=1,
-                     mode="classification")
+                     mode="classification",
+                     device="cuda:0")
     loss2 = model2.fit(dataset, nb_epoch=2, checkpoint_interval=2)
     assert loss2 < 0.2
     # testing true values
@@ -51,6 +54,6 @@ def test_dm():
     inputs = 'deepchem/models/tests/assets/test_dm.yaml'
     data = DFTYamlLoader()
     dataset = (data.create_dataset(inputs))
-    model = XCModel("lda_x", batch_size=1)
+    model = XCModel("lda_x", batch_size=1, device="cuda:0")
     loss = model.fit(dataset, nb_epoch=1, checkpoint_interval=1)
     assert loss < 0.008
