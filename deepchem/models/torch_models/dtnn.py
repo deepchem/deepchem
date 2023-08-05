@@ -149,6 +149,136 @@ class DTNN(nn.Module):
         return output
 
 
+class DTNNModel(TorchModel):
+    """Implements DTNN models for regression.
+
+    This class implements the Directed Message Passing Neural Network (D-MPNN) [1]_.
+
+    Examples
+    --------
+    >>> import os
+    >>> from deepchem.data import SDFLoader
+    >>> from deepchem.feat import CoulombMatrix
+    >>> from deepchem.models.torch_models import DTNNModel
+    >>> model_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    >>> dataset_file = os.path.join(model_dir, 'tests/assets/qm9_mini.sdf')
+    >>> TASKS = ["alpha", "homo"]
+    >>> loader = SDFLoader(tasks=TASKS, featurizer=CoulombMatrix(29), sanitize=True)
+    >>> data = loader.create_dataset(dataset_file, shard_size=100)
+    >>> n_tasks = data.y.shape[1]
+    >>> model = DTNNModel(n_tasks,
+    ...                   n_embedding=20,
+    ...                   n_distance=100,
+    ...                   learning_rate=1.0,
+    ...                   mode="regression")
+    >>> loss = model.fit(data, nb_epoch=250)
+    >>> pred = model.predict(data)
+
+    References
+    ----------
+    .. [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
+        tensor neural networks." Nature communications 8.1 (2017): 1-8.
+
+    """
+
+    def __init__(self,
+                 n_tasks: int,
+                 n_embedding: int = 30,
+                 n_hidden: int = 100,
+                 n_distance: int = 100,
+                 distance_min: float = -1,
+                 distance_max: float = 18,
+                 output_activation: bool = True,
+                 mode: str = "regression",
+                 dropout: float = 0.0,
+                 n_steps: int = 2,
+                 **kwargs):
+        """
+        Parameters
+        ----------
+        n_tasks: int
+            Number of tasks
+        n_embedding: int (default 30)
+            Number of features per atom.
+        n_hidden: int (default 100)
+            Number of features for each molecule after DTNNStep
+        n_distance: int (default 100)
+            granularity of distance matrix
+            step size will be (distance_max-distance_min)/n_distance
+        distance_min: float (default -1)
+            minimum distance of atom pairs (in Angstrom)
+        distance_max: float (default = 18)
+            maximum distance of atom pairs (in Angstrom)
+        output_activation: bool (default True)
+            determines whether an activation function should be apply  to its output.
+        mode: str (default "regression")
+            Only "regression" is currently supported.
+        dropout: float (default 0.0)
+            the dropout probablity to use.
+        n_steps: int (default 2)
+            Number of DTNNStep Layers to use.
+
+        """
+        if dropout < 0 or dropout > 1:
+            raise ValueError("dropout probability has to be between 0 and 1, "
+                             "but got {}".format(dropout))
+        model = DTNN(n_tasks=n_tasks,
+                     n_embedding=n_embedding,
+                     n_hidden=n_hidden,
+                     n_distance=n_distance,
+                     distance_min=distance_min,
+                     distance_max=distance_max,
+                     output_activation=output_activation,
+                     mode=mode,
+                     dropout=dropout,
+                     n_steps=n_steps)
+        if mode not in ['regression']:
+            raise ValueError("Only 'regression' mode is currently supported")
+        super(DTNNModel, self).__init__(model, L2Loss(), ["prediction"],
+                                        **kwargs)
+
+    def default_generator(self,
+                          dataset: Dataset,
+                          epochs: int = 1,
+                          mode: str = 'fit',
+                          deterministic: bool = True,
+                          pad_batches: bool = True):
+        """Create a generator that iterates batches for a dataset.
+        It processes inputs through the _compute_features_on_batch function to calculate required features of input.
+
+        Parameters
+        ----------
+        dataset: Dataset
+            the data to iterate
+        epochs: int
+            the number of times to iterate over the full dataset
+        mode: str
+            allowed values are 'fit' (called during training), 'predict' (called
+            during prediction), and 'uncertainty' (called during uncertainty
+            prediction)
+        deterministic: bool
+            whether to iterate over the dataset in order, or randomly shuffle the
+            data for each epoch
+        pad_batches: bool
+            whether to pad each batch up to this model's preferred batch size
+
+        Returns
+        -------
+        a generator that iterates batches, each represented as a tuple of lists:
+        ([inputs], [outputs], [weights])
+
+        """
+        for epoch in range(epochs):
+            for (X_b, y_b, w_b,
+                 ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                               deterministic=deterministic,
+                                               pad_batches=pad_batches):
+                yield (_compute_features_on_batch(X_b, self.model.distance_max,
+                                                  self.model.distance_min,
+                                                  self.model.n_distance), [y_b],
+                       [w_b])
+
+
 def _compute_features_on_batch(X_b: np.ndarray,
                                distance_max: float = -1,
                                distance_min: float = 18,
