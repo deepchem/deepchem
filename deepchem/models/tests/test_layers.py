@@ -1349,18 +1349,11 @@ def test_local_MP():
 
     out = dc.models.torch_models.layers.MXMNetLocalMessagePassing(
         dim, activation_fn='silu')
-    
-    output = out(h,
-                 rbf,
-                 sbf1,
-                 sbf2,
-                 idx_kj,
-                 idx_ji_1,
-                 idx_jj,
-                 idx_ji_2,
+
+    output = out(h, rbf, sbf1, sbf2, idx_kj, idx_ji_1, idx_jj, idx_ji_2,
                  edge_index)
-    result0 = np.array([[0.7916],[1.2796],[1.2796],[1.2796],[1.2796]])
-    result1 = np.array([[0.3439],[0.3441],[0.3441],[0.3441],[0.3441]])
+    result0 = np.array([[0.7916], [1.2796], [1.2796], [1.2796], [1.2796]])
+    result1 = np.array([[0.3439], [0.3441], [0.3441], [0.3441], [0.3441]])
 
     assert np.allclose(result0, output[0].detach().numpy(), atol=1e-04)
     assert np.allclose(result1, output[1].detach().numpy(), atol=1e-04)
