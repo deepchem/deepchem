@@ -16,7 +16,9 @@ def test_dtnn():
     """Tests DTNN for Shape and trainable parameter count.
 
     - Used dataset files: qm9_mini.sdf, qm9_mini.sdf.csv (A subset of qm9 dataset.)
-    - Tasks selected are only of regression type."""
+    - Tasks selected are only of regression type.
+
+    """
     import os
     import torch
     from deepchem.models.torch_models import dtnn
