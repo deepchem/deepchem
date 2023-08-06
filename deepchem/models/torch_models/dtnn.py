@@ -22,7 +22,6 @@ class DTNN(nn.Module):
     >>> from deepchem.models.torch_models import dtnn
     >>> from deepchem.data import SDFLoader
     >>> from deepchem.feat import CoulombMatrix
-    >>> from deepchem.models.torch_models import dtnn
     >>> # Get Data
     >>> model_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     >>> dataset_file = os.path.join(model_dir, 'tests/assets/qm9_mini.sdf')
@@ -297,8 +296,8 @@ def _compute_features_on_batch(X_b: np.ndarray,
         granularity of distance matrix
         step size will be (distance_max-distance_min)/n_distance
 
-    Computed Features
-    -----------------
+    Returns
+    -------
     atom_number: np.ndarray
         Atom numbers are assigned to each atom based on their atomic properties.
         The atomic numbers are derived from the periodic table of elements.
