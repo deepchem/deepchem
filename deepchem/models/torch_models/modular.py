@@ -248,7 +248,6 @@ class ModularTorchModel(TorchModel):
                 last_avg_loss = avg_loss
                 avg_loss = 0.0
                 averaged_batches = 0
-
             if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
                 self.save_checkpoint(max_checkpoints_to_keep)
             for c in callbacks:
@@ -386,6 +385,7 @@ class ModularTorchModel(TorchModel):
         model_dir: Optional[str]
             The path to the model directory. If None, the model directory used to initialize the model will be used.
         """
+        logger.info('Restoring model')
         if checkpoint is None:
             checkpoints = sorted(self.get_checkpoints(model_dir))
             if len(checkpoints) == 0:
