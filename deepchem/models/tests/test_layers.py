@@ -1241,7 +1241,7 @@ def test_mxmnet_global_message_passing():
         [[0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4],
          [1, 2, 3, 4, 0, 2, 3, 4, 0, 1, 3, 4, 0, 1, 2, 4, 0, 1, 2, 3]])
 
-    out = dc.models.torch_models.layers.MXMNetMXMNetGlobalMessagePassing(
+    out = dc.models.torch_models.layers.MXMNetGlobalMessagePassing(
         dim, activation_fn='silu')
     output = out(node_features, edge_attr, edge_indices)
     output = output.detach().numpy()
