@@ -3,11 +3,11 @@ import pytest
 
 from deepchem.data import SDFLoader
 from deepchem.feat import CoulombMatrix
+from deepchem.utils import coulomb_matrix_features
 
 try:
     import torch
     from deepchem.models.torch_models import DTNN
-    from deepchem.models.torch_models.dtnn import _compute_features_on_batch
 except ModuleNotFoundError:
     pass
 
@@ -28,7 +28,7 @@ def test_dtnn():
     loader = SDFLoader(tasks=TASKS, featurizer=CoulombMatrix(29), sanitize=True)
     data = loader.create_dataset(dataset_file, shard_size=100)
 
-    inputs = _compute_features_on_batch(data.X)
+    inputs = coulomb_matrix_features(data.X)
     atom_number, distance, atom_membership, distance_membership_i, distance_membership_j = inputs
     inputs = [
         torch.tensor(atom_number).to(torch.int64),
