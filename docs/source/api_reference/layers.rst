@@ -231,8 +231,12 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.WeaveLayer
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.Highway
+  :members:
+
 .. autoclass:: deepchem.models.torch_models.layers.WeaveGather
   :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 

@@ -4472,6 +4472,114 @@ class WeaveGather(nn.Module):
         output = output.view(-1, self.n_input * 11)
         return output
 
+      
+class Highway(nn.Module):
+    """
+    Highway layer used in TextCNN model.
+    The Highway layer is a nn module that incorporates gating mechanisms to control
+    the flow of information between linear transformations with a non-linear activation function.
+    This enables better gradient propagation and information flow during training,
+    improving the performance of deep neural networks.
+    Custom initializers and activation functions can be easily integrated into this layer.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.torch_models import layers
+    >>> layer = layers.Highway(30, 2, 'kaiming_uniform_')
+    >>> input = torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    >>> output = layer(input)
+    >>> output.shape
+    torch.Size([10, 2])
+
+    """
+
+    def __init__(self,
+                 activation: str = 'relu',
+                 biases_initializer: str = 'constant_',
+                 weights_initializer='kaiming_uniform_',
+                 layer_shape=[5, 2],
+                 **kwargs):
+        """
+        Parameters
+        ----------
+        activation_fn: str , optional (default: ReLU)
+            Activation function to apply to the output
+        biases_initializer: str, optional
+            the initializer for bias values.  This may be None, in which case the layer
+            will not include biases.
+        weights_initializer: str, optional
+            the initializer for weight values
+
+        """
+        super(Highway, self).__init__(**kwargs)
+        self.activation = activation
+        self.biases_initializer = biases_initializer
+        self.weights_initializer = weights_initializer
+        self.activation_fn = get_activation(self.activation)
+
+        input_shape = layer_shape[0]
+        out_channels = layer_shape[1]
+
+        init_func = getattr(initializers, self.weights_initializer)
+
+        self.linear_H = nn.Linear(input_shape, out_channels)
+        self.linear_T = nn.Linear(input_shape, out_channels)
+
+        init_func = getattr(nn.init, self.weights_initializer)
+        init_func(self.linear_H.weight)
+        init_func(self.linear_T.weight)
+
+        if self.biases_initializer is not None and isinstance(
+                self.biases_initializer, str):
+            bias_init_func = getattr(nn.init, self.biases_initializer)
+            bias_init_func(self.linear_H.bias, -1)
+            bias_init_func(self.linear_T.bias, -1)
+        self.Sigmoid_layer = nn.Sigmoid()
+
+    def __repr__(self) -> str:
+        """Returns a string representing the configuration of the layer.
+
+        Returns
+        -------
+        activation_fn: str
+            Activation function applied
+        biases_initializer: str
+            The initializer for bias values
+        weights_initializer: str
+            The initializer for weight values
+
+        """
+        return (
+            f'{self.__class__.__name__}(activation_fn={self.activation_fn}, '
+            f'biases_initializer={self.biases_initializer}, '
+            f'weights_initializer={self.weights_initializer})')
+
+    def forward(self, inputs: torch.Tensor):
+        """Applies the Highway transformation to the input tensor.
+        Parameters
+        ----------
+        inputs: torch.Tensor
+            It should be a 2-dimensional tensor with shape [batch_size, input_shape],
+            where `batch_size` is the number of samples in the batch and `input_shape
+            is the size of the input features.
+        Returns
+        -------
+        outputs: torch.Tensor
+        Output tensor of the Highway layer. It has the same shape as the input tensor,
+            [batch_size, input_shape], and represents the result of applying the Highway
+            transformation to the input.
+            
+        """
+        if isinstance(inputs, (list, tuple)):
+            parent = inputs[0]
+        else:
+            parent = inputs
+        parent = parent.view(parent.size(0), -1)
+        linear_H = self.activation_fn(self.linear_H(parent))
+        linear_T = self.Sigmoid_layer(self.linear_T(parent))
+        return linear_H * linear_T + parent * (1 - linear_T)
+      
 
 class _MXMNetEnvelope(torch.nn.Module):
     """
