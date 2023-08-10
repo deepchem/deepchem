@@ -4,7 +4,21 @@ import torch.nn.init as init
 import torch.nn.functional as F
 from deepchem.models.torch_models.layers import Highway
 import numpy as np
+try:
+    import torch
+    from torch import Tensor
+    import torch.nn as nn
+    import torch.nn.functional as F
+except ModuleNotFoundError:
+    raise ImportError('These classes require PyTorch to be installed.')
 
+try:
+    from torch_geometric.utils import scatter
+except ModuleNotFoundError:
+    pass
+from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
+from deepchem.utils.pytorch_utils import get_activation, segment_sum
+from torch.nn import init as initializers
 
 def test_highway_shape_no_params():
 
@@ -37,7 +51,6 @@ def test_highway_layer_non_deterministic_output():
 
     assert not torch.allclose(result, result2)
 
-
 def test_highway_layer_shape():
     from deepchem.models.torch_models.layers import Highway
     width = 5
@@ -65,3 +78,4 @@ def test_highway_layer_shape():
     output_tensor = torch.from_numpy(
         np.load('assets/highway_output.npy').astype(np.float32))
     assert torch.allclose(output, output_tensor, atol=1e-04)
+
