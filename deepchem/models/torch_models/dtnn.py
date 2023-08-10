@@ -4,14 +4,16 @@ from typing import List
 import torch.nn as nn
 import torch
 
-from deepchem.models.losses import L2Loss
 from deepchem.models.torch_models import layers
-from deepchem.models.torch_models import TorchModel
-from deepchem.data.datasets import Dataset
 
 
 class DTNN(nn.Module):
     """Deep Tensor Neural Networks
+
+    DTNN is based on the many-body Hamiltonian concept, which is a fundamental principle in quantum mechanics.
+    The DTNN recieves a molecule's distance matrix and membership of its atom from its Coulomb Matrix representation.
+    Then, it iteratively refines the representation of each atom by considering its interactions with neighboring atoms.
+    Finally, it predicts the energy of the molecule by summing up the energies of the individual atoms.
 
     In this class, we establish a sequential model for the Deep Tensor Neural Network (DTNN) [1]_.
 
