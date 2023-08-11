@@ -4,40 +4,102 @@ from typing import Optional
 
 
 def su2_generators(j: int) -> torch.Tensor:
-    """Get the generators of the SU(2) Lie algebra for a given quantum angular momentum.
+    """Generate the generators of the special unitary group SU(2) in a given representation.
 
+    The function computes the generators of the SU(2) group for a specific representation
+    determined by the value of 'j'. These generators are commonly used in the study of
+    quantum mechanics, angular momentum, and related areas of physics and mathematics.
+    The generators are represented as matrices.
+
+    The SU(2) group is a fundamental concept in quantum mechanics and symmetry theory.
+    The generators of the group, denoted as J_x, J_y, and J_z, represent the three
+    components of angular momentum operators. These generators play a key role in
+    describing the transformation properties of physical systems under rotations.
+
+    The returned tensor contains three matrices corresponding to the x, y, and z generators,
+    usually denoted as J_x, J_y, and J_z. These matrices form a basis for the Lie algebra
+    of the SU(2) group.
+
+    In linear algebra, specifically within the context of quantum mechanics, lowering and
+    raising operators are fundamental concepts that play a crucial role in altering the
+    eigenvalues of certain operators while acting on quantum states. These operators are
+    often referred to collectively as "ladder operators."
+
+    A lowering operator is an operator that, when applied to a quantum state, reduces the
+    eigenvalue associated with a particular observable. In the context of SU(2), the lowering
+    operator corresponds to J_-.
+
+    Conversely, a raising operator is an operator that increases the eigenvalue of an
+    observable when applied to a quantum state. In the context of SU(2), the raising operator
+    corresponds to J_+.
+
+    The z-generator matrix represents the component of angular momentum along the z-axis,
+    often denoted as J_z. It commutes with both J_x and J_y and is responsible for quantizing
+    the angular momentum.
+
+    Note that the dimensions of the returned tensor will be (3, 2j+1, 2j+1), where each matrix
+    has a size of (2j+1) x (2j+1).
     Parameters
     ----------
-        j (int): The quantum angular momentum (spin) value.
+        j : int
+            The representation index, which determines the order of the representation.
 
     Returns
     -------
-        torch.Tensor: A stack of three SU(2) generators, corresponding to J_x, J_z, and J_y.
-    """
-    # Generate a range of quantum angular momentum projections along the z-axis from -j to j-1.
-    m = torch.arange(-j, j)
+        torch.Tensor
+            A stack of three SU(2) generators, corresponding to J_x, J_z, and J_y.
 
-    # Construct the raising operator (J_+) of the SU(2) algebra.
+    Notes
+    -----
+    A generating set of a group is a subset $S$ of the group $G$ such that every element
+    of $G$ can be expressed as a combination (under the group operation) of finitely many
+    elements of the subset $S$ and their inverses.
+
+    The special unitary group $SU_n(q)$ is the set of $n*n$ unitary matrices with determinant
+    +1. $SU(2)$ is homeomorphic with the orthogonal group $O_3^+(2)$. It is also called the
+    unitary unimodular group and is a Lie group.
+
+    References
+    ----------
+    .. [1] https://en.wikipedia.org/wiki/Ladder_operator
+    .. [2] https://en.wikipedia.org/wiki/Special_unitary_group#The_group_SU(2)
+    .. [3] https://en.wikipedia.org/wiki/Generating_set_of_a_group
+    .. [4] https://mathworld.wolfram.com/SpecialUnitaryGroup
+
+    Examples
+    --------
+    >>> su2_generators(1)
+    tensor([[[ 0.0000+0.0000j,  0.7071+0.0000j,  0.0000+0.0000j],
+             [-0.7071+0.0000j,  0.0000+0.0000j,  0.7071+0.0000j],
+             [ 0.0000+0.0000j, -0.7071+0.0000j,  0.0000+0.0000j]],
+    <BLANKLINE>
+            [[-0.0000-1.0000j,  0.0000+0.0000j,  0.0000+0.0000j],
+             [ 0.0000+0.0000j,  0.0000+0.0000j,  0.0000+0.0000j],
+             [ 0.0000+0.0000j,  0.0000+0.0000j,  0.0000+1.0000j]],
+    <BLANKLINE>
+            [[ 0.0000-0.0000j,  0.0000+0.7071j,  0.0000-0.0000j],
+             [ 0.0000+0.7071j,  0.0000-0.0000j,  0.0000+0.7071j],
+             [ 0.0000-0.0000j,  0.0000+0.7071j,  0.0000-0.0000j]]])
+    """
+    # Generate the raising operator matrix
+    m = torch.arange(-j, j)
     raising = torch.diag(-torch.sqrt(j * (j + 1) - m * (m + 1)), diagonal=-1)
 
-    # Generate a range of quantum angular momentum projections along the z-axis from -j+1 to j.
+    # Generate the lowering operator matrix
     m = torch.arange(-j + 1, j + 1)
-
-    # Construct the lowering operator (J_-) of the SU(2) algebra.
     lowering = torch.diag(torch.sqrt(j * (j + 1) - m * (m - 1)), diagonal=1)
 
-    # Generate a range of quantum angular momentum projections along the z-axis from -j to j.
+    # Generate the z-generator matrix
     m = torch.arange(-j, j + 1)
+    z_generator = torch.diag(1j * m)
 
-    # Stack the three generators (J_x, J_z, and J_y) of the SU(2) algebra.
-    generators = torch.stack(
-        [
-            0.5 * (raising + lowering),  # J_x
-            torch.diag(1j * m),  # J_z
-            -0.5j * (raising - lowering),  # -J_y
-        ],
-        dim=0,
-    )
+    # Combine the matrices to form the x, z, and y generators
+    x_generator = 0.5 * (raising + lowering)  # x (usually)
+    y_generator = -0.5j * (raising - lowering)  # -y (usually)
+
+    # Stack the generators along the first dimension to create a tensor
+    generators = torch.stack([x_generator, z_generator, y_generator], dim=0)
+
     return generators
 
 
@@ -47,22 +109,40 @@ def change_basis_real_to_complex(
         device: Optional[torch.device] = None) -> torch.Tensor:
     """Construct a transformation matrix to change the basis from real to complex spherical harmonics.
 
-    The function generates a matrix representing the transformation between the basis
-    of real and complex spherical harmonics. It is used to convert the representation of
-    the angular momentum states from the real basis (used in SO(3) group) to the complex
-    basis (used in SU(2) group).
+    This function constructs a transformation matrix Q that converts real spherical
+    harmonics (tesseral spherical harmonics) into complex spherical harmonics.
+    It operates on the basis functions $Y_{\ell m}$ and $Y_{\ell}^{m}$, and accounts
+    for the relationship between the real and complex forms of these harmonics
+    as defined in the provided mathematical expressions.
+
+    The resulting transformation matrix Q is used to change the basis of vectors or tensors of real spherical harmonics to
+    their complex counterparts.
 
     Parameters
     ----------
-        j (int): The quantum angular momentum (spin) value.
-        dtype (torch.dtype, optional): The data type for the output tensor. If not provided, the
-            function will use torch.complex128. Default is None.
-        device (torch.device, optional): The device where the output tensor will be placed.
-            If not provided, the function will use the default device. Default is None.
+        j : int
+            The representation index, which determines the order of the representation.
+        dtype : torch.dtype, optional
+            The data type for the output tensor. If not provided, the
+            function will infer it. Default is None.
+        device : torch.device, optional
+            The device where the output tensor will be placed. If not provided,
+            the function will use the default device. Default is None.
 
     Returns
     -------
         torch.Tensor: A transformation matrix Q that changes the basis from real to complex spherical harmonics.
+
+    Notes
+    -----
+    Spherical harmonics Y_l^m are a family of functions that are defined on the surface of a
+    unit sphere. They are used to represent various physical and mathematical phenomena that
+    exhibit spherical symmetry. The indices l and m represent the degree and order of the
+    spherical harmonics, respectively.
+
+    The conversion from real to complex spherical harmonics is achieved by applying specific
+    transformation coefficients to the real-valued harmonics. These coefficients are derived
+    from the properties of spherical harmonics.
 
     References
     ----------
@@ -106,21 +186,33 @@ def change_basis_real_to_complex(
 def so3_generators(j: int) -> torch.Tensor:
     """Construct the generators of the SO(3) Lie algebra for a given quantum angular momentum.
 
-    The function generates the generators of the SO(3) Lie algebra by converting the SU(2) generators
-    to the SO(3) basis using the transformation matrix from real to complex spherical harmonics.
+    The function generates the generators of the special orthogonal group SO(3), which represents the group
+    of rotations in three-dimensional space. Its Lie algebra, which consists of the generators of
+    infinitesimal rotations, is often used in physics to describe angular momentum operators.
+    The generators of the Lie algebra can be related to the SU(2) group, and this function uses
+    a transformation to convert the SU(2) generators to the SO(3) basis.
 
     Parameters
     ----------
-        j (int): The quantum angular momentum (spin) value.
+        j : int
+            The representation index, which determines the order of the representation.
 
     Returns
     -------
-        torch.Tensor: A stack of three SO(3) generators, corresponding to J_x, J_z, and J_y.
+        torch.Tensor
+            A stack of three SO(3) generators, corresponding to J_x, J_z, and J_y.
+
+    Notes
+    -----
+    The special orthogonal group $SO_n(q)$ is the subgroup of the elements of general orthogonal
+    group $GO_n(q)$ with determinant 1. $SO_3$ (often written $SO(3)$) is the rotation group
+    for three-dimensional space.
 
     References
     ----------
-    .. [1] https://www.pas.rochester.edu/assets/pdf/undergraduate/su-2s_double_covering_of_so-3.pdf
-
+    .. [1] https://en.wikipedia.org/wiki/Special_orthogonal_group
+    .. [2] https://en.wikipedia.org/wiki/3D_rotation_group#Connection_between_SO(3)_and_SU(2)
+    .. [3] https://www.pas.rochester.edu/assets/pdf/undergraduate/su-2s_double_covering_of_so-3.pdf
     """
     # Get the SU(2) generators for the given quantum angular momentum (spin) value.
     X = su2_generators(j)
@@ -147,14 +239,40 @@ def wigner_D(j: int, alpha: torch.Tensor, beta: torch.Tensor,
 
     Parameters
     ----------
-        j (int): The quantum angular momentum (spin) value.
-        alpha (torch.Tensor): Rotation angles (in radians) around the Y axis, applied third.
-        beta (torch.Tensor): Rotation angles (in radians) around the X axis, applied second.
-        gamma (torch.Tensor): Rotation angles (in radians) around the Y axis, applied first.
+        j : int
+            The representation index, which determines the order of the representation.
+        alpha : torch.Tensor
+            Rotation angles (in radians) around the Y axis, applied third.
+        beta : torch.Tensor
+            Rotation angles (in radians) around the X axis, applied second.
+        gamma : torch.Tensor)
+            Rotation angles (in radians) around the Y axis, applied first.
 
     Returns
     -------
-        torch.Tensor: The Wigner D matrix of shape (2l+1, 2l+1).
+        torch.Tensor
+            The Wigner D matrix of shape (2j+1, 2j+1).
+
+    Notes
+    -----
+    The Wigner D-matrix is a unitary matrix in an irreducible representation
+    of the groups SU(2) and SO(3).
+
+    Examples
+    --------
+    >>> j = 1
+    >>> alpha = torch.tensor([0.1, 0.2])
+    >>> beta = torch.tensor([0.3, 0.4])
+    >>> gamma = torch.tensor([0.5, 0.6])
+    >>> wigner_D_matrix = wigner_D(j, alpha, beta, gamma)
+    >>> wigner_D_matrix
+    tensor([[[ 0.8275,  0.0295,  0.5607],
+             [ 0.1417,  0.9553, -0.2593],
+             [-0.5433,  0.2940,  0.7863]],
+    <BLANKLINE>
+            [[ 0.7056,  0.0774,  0.7044],
+             [ 0.2199,  0.9211, -0.3214],
+             [-0.6737,  0.3816,  0.6329]]])
     """
     # Ensure that alpha, beta, and gamma have the same shape for broadcasting.
     alpha, beta, gamma = torch.broadcast_tensors(alpha, beta, gamma)
