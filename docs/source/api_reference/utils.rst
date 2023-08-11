@@ -293,3 +293,14 @@ Pytorch Utilities
 .. autofunction:: deepchem.utils.pytorch_utils.unsorted_segment_sum
 
 .. autofunction:: deepchem.utils.pytorch_utils.segment_sum
+
+Equivariance Utilities
+----------------------
+
+.. autofunction:: deepchem.utils.equivariance_utils.su2_generators
+
+.. autofunction:: deepchem.utils.equivariance_utils.so3_generators
+
+.. autofunction:: deepchem.utils.equivariance_utils.change_basis_real_to_complex
+
+.. autofunction:: deepchem.utils.equivariance_utils.wigner_D
