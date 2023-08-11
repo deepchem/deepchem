@@ -3,7 +3,6 @@ import os
 import deepchem as dc
 
 
-@pytest.mark.torch
 def test_coulomb_matrix_features():
     # Get Data
     model_dir = os.path.dirname(os.path.abspath(__file__))
