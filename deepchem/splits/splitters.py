@@ -1508,9 +1508,13 @@ class ScaffoldSplitter(Splitter):
     .. [1] Bemis, Guy W., and Mark A. Murcko. "The properties of known drugs.
         1. Molecular frameworks." Journal of medicinal chemistry 39.15 (1996): 2887-2893.
 
-    Note
-    ----
-    This class requires RDKit to be installed.
+    Notes
+    -----
+    - This class requires RDKit to be installed.
+
+    - When a SMILES representation of a molecule is invalid, the splitter skips processing
+    the datapoint i.e it will not include the molecule in any splits.
+
     """
 
     def split(
