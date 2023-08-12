@@ -6,7 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from deepchem.utils.batch_utils import coulomb_matrix_features
+from deepchem.utils.batch_utils import batch_coulomb_matrix_features
 
 from deepchem.utils.conformers import ConformerGenerator
 from deepchem.utils.evaluate import relative_difference
