@@ -4,6 +4,7 @@ Test for Ferminet Model.
 
 import pytest
 import numpy as np
+import deepchem as dc
 try:
     from deepchem.models.torch_models.ferminet import FerminetModel
     # When pytest runs without pytorch in the environment (ex: as in tensorflow workflow),
@@ -33,7 +34,9 @@ def test_FerminetModel():
 def test_prepare_hf_solution():
     # Test for the prepare_hf_solution function of FerminetModel class
     H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
-    mol = FerminetModel(H2_molecule, spin=0, ion_charge=0)
+    mol = dc.models.torch_models.ferminet.FerminetModel(H2_molecule,
+                                                        spin=0,
+                                                        ion_charge=0)
     electron_coordinates = np.random.rand(2, 3)
     hf_solution = mol.prepare_hf_solution(electron_coordinates)
     # The solution should be of the shape (number of electrons, number of electrons)
