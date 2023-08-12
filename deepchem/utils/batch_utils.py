@@ -71,6 +71,12 @@ def batch_coulomb_matrix_features(X_b: np.ndarray,
         Distance membership j are utilized to encode spatial information and capture the influence of atom distances on the properties and interactions outside a molecule.
         The outer membership function assigns higher values to atoms that are farther to the atoms' interaction region, thereby emphasizing the impact of farther atoms.
 
+    References
+    ----------
+    .. [1] Montavon, Grégoire, et al. "Learning invariant representations of
+        molecules for atomization energy prediction." Advances in neural information
+        processing systems. 2012.
+
     """
     distance = []
     atom_membership = []
