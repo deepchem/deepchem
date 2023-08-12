@@ -55,7 +55,7 @@ class VariationalRandomizer(nn.Module):
 
 class _create_encoder(nn.Module):
     """Encoder as a nn.Module."""
-    def __init__(self, input_size, n_layers, _embedding_dimension, dropout):
+    def __init__(self, input_size, n_layers, _embedding_dimension, dropout=0.1):
         super(_create_encoder, self).__init__()
         self.input_size = input_size
         self.n_layers = n_layers
@@ -66,14 +66,14 @@ class _create_encoder(nn.Module):
     def forward(self, inputs):
         input_ = inputs[0]
         gather_indices = inputs[1]
-        output = self.GRU(input_.transpose(1,0))[0].transpose(1,0)
+        input_ = self.GRU(input_)[0].squeeze()
         def mapper(data: torch.Tensor, indices: torch.Tensor):
             l = list()
             for i in range(len(data)):
                 l.append(data[indices[i][0]][indices[i][1]])
             return torch.stack(l, 0)
         a = lambda x: mapper(x[0], x[1])
-        output = a([output, gather_indices])
+        output = a([input_, gather_indices])
         return output
 
 
@@ -87,13 +87,14 @@ class _create_decoder(nn.Module):
         self._max_output_length = max_output_length
         self._output_tokens = output_tokens
         self.dropout = dropout
-        self.GRU = nn.GRU(self._embedding_dimension, self._embedding_dimension, self.n_layers, dropout=self.dropout)
+        self.GRU = nn.GRU(self._embedding_dimension, self._embedding_dimension, n_layers, dropout=self.dropout)
         self.final_linear = nn.LazyLinear(len(self._output_tokens))
         self.act = get_activation("softmax")
     def forward(self, inputs: torch.Tensor):
         inputs = torch.stack(self._max_output_length * [inputs], 1)
-        output = self.GRU(inputs.transpose(1,0))[0].transpose(1,0)
-        output = self.final_linear(output)
+        print(inputs.shape)
+        inputs = self.GRU(inputs)[0].squeeze()
+        output = self.final_linear(inputs)
         output = self.act(output)
         return output
 
@@ -397,7 +398,6 @@ class SeqToSeqModel(TorchModel):
                 outputs.append([])
             features = self._create_input_array(inputs)
             labels = self._create_output_array(outputs)
-            gather_indices = np.array([(i, len(x)) for i, x in enumerate(inputs)
-                                      ])
+            gather_indices = np.array([(i, len(x)) for i, x in enumerate(inputs)])
             yield ([features, gather_indices,
                     np.array(self.get_global_step())], [labels], [])
