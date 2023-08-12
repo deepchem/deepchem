@@ -1,9 +1,7 @@
-import pytest
 import os
 import deepchem as dc
 
 
-@pytest.mark.torch
 def test_batch_coulomb_matrix_features():
     # Get Data
     current_dir = os.path.dirname(os.path.abspath(__file__))
