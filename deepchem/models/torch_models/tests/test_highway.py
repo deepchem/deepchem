@@ -53,7 +53,7 @@ import pytest
 
      layer = Highway(layer_shape=layer_shape)
 
-     tf_weights = np.load('assets/highway_weights.npy', allow_pickle=True).item()
+     tf_weights = np.load('deepchem/models/tests/assets/highway_weights_new.npy', allow_pickle=True).item()
 
      with torch.no_grad():
          layer.linear_H.weight.data = torch.from_numpy(
@@ -66,5 +66,5 @@ import pytest
 
      output = layer(inputs)
      output_tensor = torch.from_numpy(
-         np.load('assets/highway_output.npy').astype(np.float32))
+         np.load('deepchem/models/tests/assets/highway_output_new.npy').astype(np.float32))
      assert torch.allclose(output, output_tensor, atol=1e-04)
