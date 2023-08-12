@@ -11,32 +11,27 @@ def batch_coulomb_matrix_features(X_b: np.ndarray,
     """Computes the values for different Feature on given batch.
     It works as a helper function to coulomb matrix.
 
-    This function takes in a batch of Molecular Representation as a Coulomb Matrix.
-    * It calculates the Number of atoms per molecule by counting all the non zero elements(numbers) of every
+    This function takes in a batch of Molecules represented as Coulomb Matrix.
+
+    It proceeds as follows:
+
+    - It calculates the Number of atoms per molecule by counting all the non zero elements(numbers) of every\
     molecule layer in matrix in one dimension.
-    * The Gaussian distance is calculated using the Euclidean distance between the Cartesian coordinates of two atoms.
+
+    - The Gaussian distance is calculated using the Euclidean distance between the Cartesian coordinates of two atoms.\
     The distance value is then passed through a Gaussian function, which transforms it into a continuous value.
-    * Then using it, calculates the atomic charge by looping over the molecule layer in the Coulomb matrix
+
+    - Then using number of atom per molecule, calculates the atomic charge by looping over the molecule layer in the Coulomb matrix\
     and takes the `2.4` root of the diagonal of `2X` of each molecule layer. `Undoing the Equation of coulomb matrix.`
-    * Atom_membership is assigned as a commomn repeating integers for all the atoms for a specific molecule.
-    * Distance Membership encodes spatial information, assigning closer values to atoms that are in that specific molecule.
+
+    - Atom_membership is assigned as a commomn repeating integers for all the atoms for a specific molecule.
+
+    - Distance Membership encodes spatial information, assigning closer values to atoms that are in that specific molecule.\
     All initial Distances are added a start value to them which are unique to each molecule.
 
     Models Used in:
-    - DTNN
 
-    Examples
-    --------
-    >>> import os
-    >>> import deepchem as dc
-    >>> current_dir = os.path.dirname(os.path.abspath(__file__))
-    >>> dataset_file = os.path.join(current_dir, 'test/assets/qm9_mini.sdf')
-    >>> TASKS = ["alpha", "homo"]
-    >>> loader = dc.data.SDFLoader(tasks=TASKS,
-    ...                            featurizer=dc.feat.CoulombMatrix(29),
-    ...                            sanitize=True)
-    >>> data = loader.create_dataset(dataset_file, shard_size=100)
-    >>> inputs = dc.utils.batch_utils.batch_coulomb_matrix_features(data.X)
+    * DTNN
 
     Parameters
     ----------
@@ -70,6 +65,19 @@ def batch_coulomb_matrix_features(X_b: np.ndarray,
         It captures the long-range effects and influences between atoms that are not in direct proximity but still contribute to the overall molecular properties.
         Distance membership j are utilized to encode spatial information and capture the influence of atom distances on the properties and interactions outside a molecule.
         The outer membership function assigns higher values to atoms that are farther to the atoms' interaction region, thereby emphasizing the impact of farther atoms.
+
+    Examples
+    --------
+    >>> import os
+    >>> import deepchem as dc
+    >>> current_dir = os.path.dirname(os.path.abspath(__file__))
+    >>> dataset_file = os.path.join(current_dir, 'test/assets/qm9_mini.sdf')
+    >>> TASKS = ["alpha", "homo"]
+    >>> loader = dc.data.SDFLoader(tasks=TASKS,
+    ...                            featurizer=dc.feat.CoulombMatrix(29),
+    ...                            sanitize=True)
+    >>> data = loader.create_dataset(dataset_file, shard_size=100)
+    >>> inputs = dc.utils.batch_utils.batch_coulomb_matrix_features(data.X)
 
     References
     ----------
