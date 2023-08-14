@@ -1,17 +1,12 @@
 from __future__ import annotations
 from abc import abstractmethod
-from typing import Union, Optional
-import ctypes
+from typing import Union
 import torch
 import numpy as np
 from dqc.utils.datastruct import SpinParam
 from deepchem.feat.dft_data import DFTEntry, DFTSystem
 from deepchem.utils.dftutils import KSCalc, hashstr
 from deepchem.models.dft.nnxc import BaseNNXC, HybridXC
-from dqc.system.base_system import BaseSystem
-from dqc.xc.base_xc import BaseXC
-from dqc.qccalc.hf import _HFEngine
-from dqc.api.getxc import get_xc
 from dqc.qccalc.ks import KS
 
 
