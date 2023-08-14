@@ -3,24 +3,6 @@ import torch
 from deepchem.utils import equivariance_utils
 
 
-def commutator(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
-    """Compute the commutator of two matrices.
-
-    Parameters
-    ----------
-        A : torch.Tensor
-            The first matrix.
-        B : torch.Tensor
-            The second matrix.
-
-    Returns
-    -------
-        torch.Tensor
-            The commutator of the two matrices.
-    """
-    return torch.matmul(A, B) - torch.matmul(B, A)
-
-
 class TestEquivarianceUtils(unittest.TestCase):
 
     def test_su2_generators_shape(self) -> None:
@@ -39,16 +21,22 @@ class TestEquivarianceUtils(unittest.TestCase):
         expected_generators = torch.zeros((3, 1, 1), dtype=torch.complex64)
         self.assertTrue(torch.allclose(generators, expected_generators))
 
-    def test_su2_generators_angular_momentum_one_half(self) -> None:
-        # Test for the case of momentum j=1/2 (spin-1/2).
+    def test_su2_generators_angular_momentum_one(self) -> None:
+        # Test for the case of momentum j=1 (spin-1).
         j = 0.5
         generators = equivariance_utils.su2_generators(j)
         # Expected J_x, J_z, J_y matrices for j=1/2
-        expected_J_x = torch.tensor([[0., 0.5], [-0.5, 0.]])
-        expected_J_z = torch.tensor([[-0.5j, 0.], [0., 0.5j]])
-        expected_J_y = torch.tensor([[0., 0.5j], [0.5j, 0.]])
-        expected_generators = torch.stack(
-            [expected_J_x, expected_J_z, expected_J_y], dim=0)
+
+        expected_generators = torch.tensor([[[ 0.0000+0.0000j,  0.7071+0.0000j,  0.0000+0.0000j],
+         [-0.7071+0.0000j,  0.0000+0.0000j,  0.7071+0.0000j],
+         [ 0.0000+0.0000j, -0.7071+0.0000j,  0.0000+0.0000j]],
+        [[-0.0000-1.0000j,  0.0000+0.0000j,  0.0000+0.0000j],
+         [ 0.0000+0.0000j,  0.0000+0.0000j,  0.0000+0.0000j],
+         [ 0.0000+0.0000j,  0.0000+0.0000j,  0.0000+1.0000j]],
+        [[ 0.0000-0.0000j,  0.0000+0.7071j,  0.0000-0.0000j],
+         [ 0.0000+0.7071j,  0.0000-0.0000j,  0.0000+0.7071j],
+         [ 0.0000-0.0000j,  0.0000+0.7071j,  0.0000-0.0000j]]])
+
         self.assertTrue(torch.allclose(generators, expected_generators))
 
     def test_su2_commutation(self):
@@ -57,8 +45,8 @@ class TestEquivarianceUtils(unittest.TestCase):
         for j in j_values:
             with self.subTest(j=j):
                 X = equivariance_utils.su2_generators(j)
-                self.assertTrue(torch.allclose(commutator(X[0], X[1]), X[2]))
-                self.assertTrue(torch.allclose(commutator(X[1], X[2]), X[0]))
+                self.assertTrue(torch.allclose(equivariance_utils.commutator(X[0], X[1]), X[2]))
+                self.assertTrue(torch.allclose(equivariance_utils.commutator(X[1], X[2]), X[0]))
 
     def test_change_basis_real_to_complex_j_0(self):
         # Test for j = 0, which means we have a 1x1 transformation matrix
@@ -129,8 +117,8 @@ class TestEquivarianceUtils(unittest.TestCase):
         for j in j_values:
             with self.subTest(j=j):
                 X = equivariance_utils.so3_generators(j)
-                self.assertTrue(torch.allclose(commutator(X[0], X[1]), X[2]))
-                self.assertTrue(torch.allclose(commutator(X[1], X[2]), X[0]))
+                self.assertTrue(torch.allclose(equivariance_utils.commutator(X[0], X[1]), X[2]))
+                self.assertTrue(torch.allclose(equivariance_utils.commutator(X[1], X[2]), X[0]))
 
     def test_so3_j0(self):
         j = 0

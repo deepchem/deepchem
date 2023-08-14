@@ -297,6 +297,11 @@ Pytorch Utilities
 Equivariance Utilities
 ----------------------
 
+The utilities here refer to equivariance tools that play a vital
+role in mathematics and applied sciences. They excel in preserving
+the relationships between objects or data points when undergoing transformations
+such as rotations or scaling. 
+
 .. autofunction:: deepchem.utils.equivariance_utils.su2_generators
 
 .. autofunction:: deepchem.utils.equivariance_utils.so3_generators

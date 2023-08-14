@@ -41,13 +41,13 @@ def su2_generators(j: int) -> torch.Tensor:
     has a size of (2j+1) x (2j+1).
     Parameters
     ----------
-        j : int
-            The representation index, which determines the order of the representation.
+    j : int
+        The representation index, which determines the order of the representation.
 
     Returns
     -------
-        torch.Tensor
-            A stack of three SU(2) generators, corresponding to J_x, J_z, and J_y.
+    torch.Tensor
+        A stack of three SU(2) generators, corresponding to J_x, J_z, and J_y.
 
     Notes
     -----
@@ -110,7 +110,7 @@ def change_basis_real_to_complex(
     """Construct a transformation matrix to change the basis from real to complex spherical harmonics.
 
     This function constructs a transformation matrix Q that converts real spherical
-    harmonics (tesseral spherical harmonics) into complex spherical harmonics.
+    harmonics into complex spherical harmonics.
     It operates on the basis functions $Y_{\ell m}$ and $Y_{\ell}^{m}$, and accounts
     for the relationship between the real and complex forms of these harmonics
     as defined in the provided mathematical expressions.
@@ -120,18 +120,19 @@ def change_basis_real_to_complex(
 
     Parameters
     ----------
-        j : int
-            The representation index, which determines the order of the representation.
-        dtype : torch.dtype, optional
-            The data type for the output tensor. If not provided, the
-            function will infer it. Default is None.
-        device : torch.device, optional
-            The device where the output tensor will be placed. If not provided,
-            the function will use the default device. Default is None.
+    j : int
+        The representation index, which determines the order of the representation.
+    dtype : torch.dtype, optional
+        The data type for the output tensor. If not provided, the
+        function will infer it. Default is None.
+    device : torch.device, optional
+        The device where the output tensor will be placed. If not provided,
+        the function will use the default device. Default is None.
 
     Returns
     -------
-        torch.Tensor: A transformation matrix Q that changes the basis from real to complex spherical harmonics.
+    torch.Tensor
+        A transformation matrix Q that changes the basis from real to complex spherical harmonics.
 
     Notes
     -----
@@ -147,6 +148,15 @@ def change_basis_real_to_complex(
     References
     ----------
     .. [1] https://en.wikipedia.org/wiki/Spherical_harmonics#Real_form
+
+    Examples
+    --------
+    # The transformation matrix generated is used to change the basis of a vector of
+    # real spherical harmonics with representation index 1 to complex spherical harmonics.
+    >>> change_basis_real_to_complex(1)
+    tensor([[-0.7071+0.0000j,  0.0000+0.0000j,  0.0000-0.7071j],
+            [ 0.0000+0.0000j,  0.0000-1.0000j,  0.0000+0.0000j],
+            [-0.7071+0.0000j,  0.0000+0.0000j,  0.0000+0.7071j]])
     """
     q = torch.zeros((2 * j + 1, 2 * j + 1), dtype=torch.complex128)
 
@@ -192,15 +202,20 @@ def so3_generators(j: int) -> torch.Tensor:
     The generators of the Lie algebra can be related to the SU(2) group, and this function uses
     a transformation to convert the SU(2) generators to the SO(3) basis.
 
+    The primary significance of the SO(3) group lies in its representation of three-dimensional
+    rotations. Each matrix in SO(3) corresponds to a unique rotation, capturing the intricate
+    ways in which objects can be oriented in 3D space. This concept finds application in
+    numerous fields, ranging from physics to engineering.
+
     Parameters
     ----------
-        j : int
-            The representation index, which determines the order of the representation.
+     j : int
+        The representation index, which determines the order of the representation.
 
     Returns
     -------
-        torch.Tensor
-            A stack of three SO(3) generators, corresponding to J_x, J_z, and J_y.
+    torch.Tensor
+        A stack of three SO(3) generators, corresponding to J_x, J_z, and J_y.
 
     Notes
     -----
@@ -208,11 +223,35 @@ def so3_generators(j: int) -> torch.Tensor:
     group $GO_n(q)$ with determinant 1. $SO_3$ (often written $SO(3)$) is the rotation group
     for three-dimensional space.
 
+    These matrices are orthogonal, which means their rows and columns form mutually perpendicular
+    unit vectors. This preservation of angles and lengths makes orthogonal matrices fundamental
+    in various mathematical and practical applications.
+
+    The "special" part of $SO(3)$ refers to the determinant of these matrices being $+1$. The
+    determinant is a scalar value that indicates how much a matrix scales volumes.
+    A determinant of $+1$ ensures that the matrix represents a rotation in three-dimensional
+    space without involving any reflection or scaling operations that would reverse the orientation of space.
+
     References
     ----------
     .. [1] https://en.wikipedia.org/wiki/Special_orthogonal_group
     .. [2] https://en.wikipedia.org/wiki/3D_rotation_group#Connection_between_SO(3)_and_SU(2)
     .. [3] https://www.pas.rochester.edu/assets/pdf/undergraduate/su-2s_double_covering_of_so-3.pdf
+
+    Examples
+    --------
+    >>> so3_generators(1)
+    tensor([[[ 0.0000,  0.0000,  0.0000],
+             [ 0.0000,  0.0000, -1.0000],
+             [ 0.0000,  1.0000,  0.0000]],
+    <BLANKLINE>
+            [[ 0.0000,  0.0000,  1.0000],
+             [ 0.0000,  0.0000,  0.0000],
+             [-1.0000,  0.0000,  0.0000]],
+    <BLANKLINE>
+            [[ 0.0000, -1.0000,  0.0000],
+             [ 1.0000,  0.0000,  0.0000],
+             [ 0.0000,  0.0000,  0.0000]]])
     """
     # Get the SU(2) generators for the given quantum angular momentum (spin) value.
     X = su2_generators(j)
@@ -234,29 +273,34 @@ def wigner_D(j: int, alpha: torch.Tensor, beta: torch.Tensor,
     """Wigner D matrix representation of the SO(3) rotation group.
 
     The function computes the Wigner D matrix representation of the SO(3) rotation group
-    for a given quantum angular momentum 'j' and rotation angles 'alpha', 'beta', and 'gamma'.
+    for a given representation index 'j' and rotation angles 'alpha', 'beta', and 'gamma'.
     The resulting matrix satisfies properties of the SO(3) group representation.
 
     Parameters
     ----------
-        j : int
-            The representation index, which determines the order of the representation.
-        alpha : torch.Tensor
-            Rotation angles (in radians) around the Y axis, applied third.
-        beta : torch.Tensor
-            Rotation angles (in radians) around the X axis, applied second.
-        gamma : torch.Tensor)
-            Rotation angles (in radians) around the Y axis, applied first.
+    j : int
+        The representation index, which determines the order of the representation.
+    alpha : torch.Tensor
+        Rotation angles (in radians) around the Y axis, applied third.
+    beta : torch.Tensor
+        Rotation angles (in radians) around the X axis, applied second.
+    gamma : torch.Tensor)
+        Rotation angles (in radians) around the Y axis, applied first.
 
     Returns
     -------
-        torch.Tensor
-            The Wigner D matrix of shape (2j+1, 2j+1).
+    torch.Tensor
+        The Wigner D matrix of shape (2j+1, 2j+1).
 
     Notes
     -----
     The Wigner D-matrix is a unitary matrix in an irreducible representation
     of the groups SU(2) and SO(3).
+
+    The Wigner D-matrix is used in quantum mechanics to describe the action
+    of rotations on states of particles with angular momentum. It is a key
+    concept in the representation theory of the rotation group SO(3), and
+    it plays a crucial role in various physical contexts.
 
     Examples
     --------
@@ -290,3 +334,29 @@ def wigner_D(j: int, alpha: torch.Tensor, beta: torch.Tensor,
     D_matrix = torch.matrix_exp(alpha * X[1]) @ torch.matrix_exp(
         beta * X[0]) @ torch.matrix_exp(gamma * X[1])
     return D_matrix
+
+
+def commutator(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
+    """Compute the commutator of two matrices.
+
+    Parameters
+    ----------
+    A : torch.Tensor
+        The first matrix.
+    B : torch.Tensor
+        The second matrix.
+
+    Returns
+    -------
+    torch.Tensor
+        The commutator of the two matrices.
+
+    Examples
+    --------
+    >>> A = torch.tensor([[1, 2], [3, 4]])
+    >>> B = torch.tensor([[5, 6], [7, 8]])
+    >>> commutator(A, B)
+    tensor([[ -4, -12],
+            [ 12,   4]])
+    """
+    return torch.matmul(A, B) - torch.matmul(B, A)
