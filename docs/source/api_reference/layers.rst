@@ -237,6 +237,10 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.MXMNetGlobalMessagePassing
   :members:
 
+
+.. autoclass:: deepchem.models.torch_models.layers.MXMNetBesselBasisLayer
+  :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 

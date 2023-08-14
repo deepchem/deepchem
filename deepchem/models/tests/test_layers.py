@@ -1248,3 +1248,17 @@ def test_mxmnet_global_message_passing():
     print(output)
     assert np.allclose(output, result, atol=1e-04)
     assert output.shape == (5, 1)
+
+
+@pytest.mark.torch
+def test_mxmnet_besselbasis():
+    """Test for MXMNetBesselBasisLayer"""
+
+    radial_layer = dc.models.torch_models.layers.MXMNetBesselBasisLayer(
+        num_radial=2, cutoff=2.0, envelope_exponent=2)
+    distances = torch.tensor([0.5, 1.0, 2.0, 3.0])
+    output = radial_layer(distances)
+    output = output.detach().numpy()
+    result = np.array([[2.6434e+00, 3.7383e+00], [1.3125e+00, -1.1474e-07],
+                       [-0.0000e+00, 0.0000e+00], [-0.0000e+00, -0.0000e+00]])
+    assert np.allclose(result, output, atol=1e-04)
