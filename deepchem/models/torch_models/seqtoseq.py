@@ -186,12 +186,17 @@ class _create_encoder(nn.Module):
         self.n_layers = n_layers
         self._embedding_dimension = _embedding_dimension
         self.dropout = dropout
-        self.GRU = GRU(self.input_size, self._embedding_dimension, self.n_layers, 'cuda', True)
+        self.GRU = GRU(input_size, _embedding_dimension, 1, 'cuda')
+        self.lama = nn.ModuleList()
+        for i in range(n_layers):
+            self.lama.append(GRU(_embedding_dimension,_embedding_dimension, 1, 'cuda'))
         self.l = torch.Tensor([])
     def forward(self, inputs):
         input_ = inputs[0]
         gather_indices = inputs[1]
         input_, hidden = self.GRU(input_)
+        for i in range(self.n_layers):
+            input_, hidden = self.lama[i](input_)
         def mapper(data: torch.Tensor, indices: torch.Tensor):
             l = list()
             for i in range(len(data)):
@@ -212,12 +217,15 @@ class _create_decoder(nn.Module):
         self._max_output_length = max_output_length
         self._output_tokens = output_tokens
         self.dropout = dropout
-        self.GRU = GRU(self._embedding_dimension, self._embedding_dimension, self.n_layers, 'cuda', True)
+        self.lama = nn.ModuleList()
+        for i in range(n_layers):
+            self.lama.append(GRU(self._embedding_dimension, self._embedding_dimension, 1, 'cuda'))
         self.final_linear = nn.LazyLinear(len(self._output_tokens))
         self.act = get_activation("softmax")
     def forward(self, inputs: torch.Tensor):
         inputs = torch.stack(self._max_output_length * [inputs], 1)
-        inputs, hidden = self.GRU(inputs)
+        for i in range(self.n_layers):
+            inputs, hidden = self.lama[i](inputs)
         output = self.final_linear(inputs)
         output = self.act(output)
         return output
