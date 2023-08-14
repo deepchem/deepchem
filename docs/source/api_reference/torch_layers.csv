@@ -43,4 +43,4 @@ DTNNEmbedding, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
 DTNNStep, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
 DTNNGather, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
 Highway,`ref <https://arxiv.org/abs/1505.00387>`_, TextCNNModel
-
+MXMNetGlobalMessagePassing, `ref <https://arxiv.org/pdf/2011.07457>`_, MXMNetModel

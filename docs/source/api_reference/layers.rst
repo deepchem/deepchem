@@ -236,6 +236,9 @@ Torch Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.Highway
    :members:
+  
+.. autoclass:: deepchem.models.torch_models.layers.MXMNetGlobalMessagePassing
+  :members:
 
 Grover Layers
 ^^^^^^^^^^^^^
