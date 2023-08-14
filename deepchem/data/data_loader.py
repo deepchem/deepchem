@@ -8,7 +8,11 @@ import time
 import logging
 import warnings
 from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator
-from dqc.qccalc.ks import KS
+
+try:
+    import torch
+except:
+    pass
 
 import pandas as pd
 import numpy as np
@@ -1661,15 +1665,24 @@ class DFTYamlLoader(DataLoader):
 
     """
 
-    def __init__(self):
+    def __init__(self, device: Optional[torch.device] = None):
         """
         Initialize DFTYAML loader
         """
+        if device is None:
+            if torch.cuda.is_available():
+                device = torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                device = torch.device('mps')
+            else:
+                device = torch.device('cpu')
+        self.device = device
 
     def create_dataset(self,
                        inputs: OneOrMany[Any],
                        data_dir: Optional[str] = None,
-                       shard_size: Optional[int] = 1) -> Dataset:
+                       shard_size: Optional[int] = 1,
+                       device: Optional[torch.device] = None) -> Dataset:
         """
         Creates and returns a `Dataset` object by featurizing provided YAML
         files.
@@ -1682,6 +1695,9 @@ class DFTYamlLoader(DataLoader):
             Name of directory where featurized data is stored.
         shard_size: int, optional (default 1)
             Shard size when loading data.
+        device: torch.device, optional[torch.device] (default None)
+            the device on which to run computations. If None, a device is
+            chosen automatically.
 
         Returns
         -------
@@ -1689,6 +1705,14 @@ class DFTYamlLoader(DataLoader):
             A `DiskDataset` object containing a featurized representation
             of data from `inputs`.
         """
+        if device is None:
+            if torch.cuda.is_available():
+                device = torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                device = torch.device('mps')
+            else:
+                device = torch.device('cpu')
+        self.device = device
 
         def shard_generator():
             entries = self._get_shards(inputs)
@@ -1746,7 +1770,11 @@ class DFTYamlLoader(DataLoader):
             )
         if 'weight' in shard.keys():
             weight = shard['weight']
-            x = DFTEntry.create(e_type, true_val, systems, weight)
+            x = DFTEntry.create(e_type,
+                                true_val,
+                                systems,
+                                weight,
+                                device=self.device)
         else:
-            x = DFTEntry.create(e_type, true_val, systems)
+            x = DFTEntry.create(e_type, true_val, systems, device=self.device)
         return [x]

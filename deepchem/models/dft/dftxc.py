@@ -5,7 +5,6 @@ from deepchem.models.dft.nnxc import HybridXC
 from deepchem.models.losses import Loss, L2Loss
 from deepchem.models.torch_models.torch_model import TorchModel
 from typing import Tuple, Optional, List, Any
-from dqc.qccalc.ks import KS
 import numpy as np
 
 
@@ -47,7 +46,7 @@ class DFTXC(torch.nn.Module):
             lda_x, lda_c_pw, lda_c_ow, lda_c_pz, lda_xc_lp_a, lda_xc_lp_b.
         nnmodel: torch.nn.Module
             the PyTorch model implementing the calculation
-        device: str, (default None)
+        device: Optional[torch.device], (default None)
             the device on which to run computations. If None, a device is
             chosen automatically.
 
@@ -171,7 +170,7 @@ class XCModel(TorchModel):
             number of layers in the neural network
         modeltype: int
             model type 2 includes an activation layer whereas type 1 does not.
-        device: torch.device, optional (default None)
+        device: torch.device, optional[torch.device] (default None)
             the device on which to run computations. If None, a device is
             chosen automatically.
         """
