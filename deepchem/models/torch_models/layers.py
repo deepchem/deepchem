@@ -5296,7 +5296,8 @@ class MXMNetLocalMessagePassing(nn.Module):
             hm_i = res1(m) 
             h_i_new = mlp2(hm_i) + h_i 
             h_i_new = res2(h_i_new) 
-            h_i_new = res3(h_i_new) 
+            h_i_new = res3(h_i_new)
+
     References
     ----------
     .. [1] Molecular Mechanics-Driven Graph Neural Network with Multiplex Graph for Molecular Structures. https://arxiv.org/pdf/2011.07457
