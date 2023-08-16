@@ -107,7 +107,7 @@ def change_basis_real_to_complex(
         j: int,
         dtype: Optional[torch.dtype] = None,
         device: Optional[torch.device] = None) -> torch.Tensor:
-    """Construct a transformation matrix to change the basis from real to complex spherical harmonics.
+    r"""Construct a transformation matrix to change the basis from real to complex spherical harmonics.
 
     This function constructs a transformation matrix Q that converts real spherical
     harmonics into complex spherical harmonics.
