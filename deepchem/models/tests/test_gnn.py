@@ -1,6 +1,5 @@
 import os
 import pytest
-import torch
 import numpy as np
 import deepchem as dc
 from deepchem.feat.molecule_featurizers import SNAPFeaturizer
@@ -77,6 +76,7 @@ def test_GNN_load_from_pretrained():
 
 @pytest.mark.torch
 def test_gnn_reload(tmpdir):
+    import torch
     from deepchem.models.torch_models.gnn import GNNModular
     model_config = {
         'gnn_type': 'gin',
