@@ -5339,6 +5339,7 @@ class MXMNetLocalMessagePassing(nn.Module):
 
     def __init__(self, dim: int, activation_fn: Union[Callable, str] = 'silu'):
         """Initializes the MXMNetLocalMessagePassing layer.
+        
         Parameters
         ----------
         dim : int
