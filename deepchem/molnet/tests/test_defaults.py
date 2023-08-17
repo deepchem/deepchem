@@ -18,13 +18,13 @@ class TestDefaults(unittest.TestCase):
         splits = get_defaults("splits")
 
         fkey = next(iter(feats))
-        assert type(fkey) == str
+        assert isinstance(fkey, str)
         assert issubclass(feats[fkey], Featurizer)
 
         tkey = next(iter(trans))
-        assert type(tkey) == str
+        assert isinstance(tkey, str)
         assert issubclass(trans[tkey], Transformer)
 
         skey = next(iter(splits))
-        assert type(skey) == str
+        assert isinstance(skey, str)
         assert issubclass(splits[skey], Splitter)
