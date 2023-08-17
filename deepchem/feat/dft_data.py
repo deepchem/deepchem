@@ -11,8 +11,7 @@ import numpy as np
 import dqc
 from dqc.system.mol import Mol
 from dqc.system.base_system import BaseSystem
-from dqc.grid.base_grid import BaseGrid
-from deepchem.utils.dftutils import KSCalc
+from deepchem.utils.dftutils import KSCalc, BaseGrid
 
 
 class DFTSystem():
