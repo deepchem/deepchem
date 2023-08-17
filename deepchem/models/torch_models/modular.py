@@ -398,5 +398,6 @@ class ModularTorchModel(TorchModel):
                     self.components[name].load_state_dict(state_dict)
 
         self.build_model()
+        self._ensure_built()
         self._pytorch_optimizer.load_state_dict(data['optimizer_state_dict'])
         self._global_step = data['global_step']
