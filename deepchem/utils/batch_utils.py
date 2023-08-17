@@ -4,12 +4,34 @@ Utility Functions for computing features on batch.
 import numpy as np
 
 
-def coulomb_matrix_features(X_b: np.ndarray,
-                            distance_max: float = -1,
-                            distance_min: float = 18,
-                            n_distance: int = 100):
-    """Computes the values for different Feature Layers on given batch.
+def batch_coulomb_matrix_features(X_b: np.ndarray,
+                                  distance_max: float = -1,
+                                  distance_min: float = 18,
+                                  n_distance: int = 100):
+    """Computes the values for different Feature on given batch.
     It works as a helper function to coulomb matrix.
+
+    This function takes in a batch of Molecules represented as Coulomb Matrix.
+
+    It proceeds as follows:
+
+    - It calculates the Number of atoms per molecule by counting all the non zero elements(numbers) of every\
+    molecule layer in matrix in one dimension.
+
+    - The Gaussian distance is calculated using the Euclidean distance between the Cartesian coordinates of two atoms.\
+    The distance value is then passed through a Gaussian function, which transforms it into a continuous value.
+
+    - Then using number of atom per molecule, calculates the atomic charge by looping over the molecule layer in the Coulomb matrix\
+    and takes the `2.4` root of the diagonal of `2X` of each molecule layer. `Undoing the Equation of coulomb matrix.`
+
+    - Atom_membership is assigned as a commomn repeating integers for all the atoms for a specific molecule.
+
+    - Distance Membership encodes spatial information, assigning closer values to atoms that are in that specific molecule.\
+    All initial Distances are added a start value to them which are unique to each molecule.
+
+    Models Used in:
+
+    * DTNN
 
     Parameters
     ----------
@@ -44,6 +66,25 @@ def coulomb_matrix_features(X_b: np.ndarray,
         Distance membership j are utilized to encode spatial information and capture the influence of atom distances on the properties and interactions outside a molecule.
         The outer membership function assigns higher values to atoms that are farther to the atoms' interaction region, thereby emphasizing the impact of farther atoms.
 
+    Examples
+    --------
+    >>> import os
+    >>> import deepchem as dc
+    >>> current_dir = os.path.dirname(os.path.abspath(__file__))
+    >>> dataset_file = os.path.join(current_dir, 'test/assets/qm9_mini.sdf')
+    >>> TASKS = ["alpha", "homo"]
+    >>> loader = dc.data.SDFLoader(tasks=TASKS,
+    ...                            featurizer=dc.feat.CoulombMatrix(29),
+    ...                            sanitize=True)
+    >>> data = loader.create_dataset(dataset_file, shard_size=100)
+    >>> inputs = dc.utils.batch_utils.batch_coulomb_matrix_features(data.X)
+
+    References
+    ----------
+    .. [1] Montavon, Grégoire, et al. "Learning invariant representations of
+        molecules for atomization energy prediction." Advances in neural information
+        processing systems. 2012.
+
     """
     distance = []
     atom_membership = []
@@ -58,7 +99,7 @@ def coulomb_matrix_features(X_b: np.ndarray,
     # Number of atoms per molecule is calculated by counting all the non zero elements(numbers) of every molecule.
     num_atoms = list(map(sum, X_b.astype(bool)[:, :, 0]))
 
-    # It loops over the molecules in the Coulomb matrix and rounds the square root of the diagonal of each molecule to the nearest integer.
+    # It loops over the molecules in the Coulomb matrix and takes the "2.4" root of the diagonal of "2X" of each molecule's representation.
     atom_number = [
         np.round(
             np.power(2 * np.diag(X_b[i, :num_atoms[i], :num_atoms[i]]),

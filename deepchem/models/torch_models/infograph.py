@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import GRU, Linear, ReLU, Sequential
-from typing import Iterable, List, Tuple, Optional, Dict
+from typing import Iterable, List, Tuple, Optional, Dict, Literal
 from deepchem.metrics import to_one_hot
 
 import deepchem as dc
@@ -631,8 +631,8 @@ class InfoGraphStarModel(ModularTorchModel):
                  num_features,
                  edge_features,
                  embedding_dim,
-                 task='supervised',
-                 mode='regression',
+                 task: Literal['supervised', 'semisupervised'] = 'supervised',
+                 mode: Literal['regression', 'classification'] = 'regression',
                  num_classes=2,
                  num_tasks=1,
                  measure='JSD',
@@ -640,6 +640,8 @@ class InfoGraphStarModel(ModularTorchModel):
                  num_gc_layers=5,
                  **kwargs):
 
+        assert task in ['supervised', 'unsupervised'], 'Invalid model task'
+        assert mode in ['regression', 'classification'], 'Invalid model mode'
         self.edge_features = edge_features
         self.local = True
         self.prior = False

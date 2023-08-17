@@ -297,4 +297,7 @@ Pytorch Utilities
 Batch Utilities
 ---------------
 
-.. autofunction:: deepchem.utils.batch_utils.coulomb_matrix_features
+The utilites here are used for computing features on batch of data.
+Can be used inside of default_generator function.
+
+.. autofunction:: deepchem.utils.batch_utils.batch_coulomb_matrix_features
