@@ -640,7 +640,7 @@ class InfoGraphStarModel(ModularTorchModel):
                  num_gc_layers=5,
                  **kwargs):
 
-        assert task in ['supervised', 'unsupervised'], 'Invalid model task'
+        assert task in ['supervised', 'semisupervised'], 'Invalid model task'
         assert mode in ['regression', 'classification'], 'Invalid model mode'
         self.edge_features = edge_features
         self.local = True
