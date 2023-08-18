@@ -7,11 +7,11 @@ try:
 except ModuleNotFoundError:
     has_torch = False
     pass
-from deepchem.models.torch_models.layers import Highway
 
 
 @pytest.mark.torch
 def test_highway_shape_no_params():
+    from deepchem.models.torch_models.layers import Highway
     width = 5
     batch_size = 2
     torch.manual_seed(42)
@@ -28,6 +28,7 @@ def test_highway_shape_no_params():
 
 @pytest.mark.torch
 def test_highway_layer_non_deterministic_output():
+    from deepchem.models.torch_models.layers import Highway
     width = 5
     batch_size = 2
     torch.manual_seed(42)
