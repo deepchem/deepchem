@@ -293,3 +293,11 @@ Pytorch Utilities
 .. autofunction:: deepchem.utils.pytorch_utils.unsorted_segment_sum
 
 .. autofunction:: deepchem.utils.pytorch_utils.segment_sum
+
+Batch Utilities
+---------------
+
+The utilites here are used for computing features on batch of data.
+Can be used inside of default_generator function.
+
+.. autofunction:: deepchem.utils.batch_utils.batch_coulomb_matrix_features

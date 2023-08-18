@@ -8,6 +8,7 @@ except:
 import time
 import logging
 import os
+import datetime
 
 from deepchem.data import Dataset, NumpyDataset
 from deepchem.metrics import Metric
@@ -971,6 +972,8 @@ class TorchModel(Model):
         ([inputs], [outputs], [weights])
         """
         for epoch in range(epochs):
+            logger.info("Starting training for epoch %d at %s" %
+                        (epoch, datetime.datetime.now().ctime()))
             for (X_b, y_b, w_b,
                  ids_b) in dataset.iterbatches(batch_size=self.batch_size,
                                                deterministic=deterministic,
@@ -1054,6 +1057,7 @@ class TorchModel(Model):
             Directory to restore checkpoint from. If None, use self.model_dir.  If
             checkpoint is not None, this is ignored.
         """
+        logger.info('Restoring model')
         self._ensure_built()
         if checkpoint is None:
             checkpoints = sorted(self.get_checkpoints(model_dir))
