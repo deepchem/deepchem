@@ -1240,8 +1240,7 @@ def test_mxmnet_global_message_passing():
         [[0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4],
          [1, 2, 3, 4, 0, 2, 3, 4, 0, 1, 3, 4, 0, 1, 2, 4, 0, 1, 2, 3]])
 
-    out = dc.models.torch_models.layers.MXMNetGlobalMessagePassing(
-        dim, activation_fn='silu')
+    out = dc.models.torch_models.layers.MXMNetGlobalMessagePassing(dim)
     output = out(node_features, edge_attr, edge_indices)
     output = output.detach().numpy()
     result = np.array([[-0.27947044], [2.417905], [2.417905], [2.4178727],
@@ -1305,8 +1304,21 @@ def test_FerminetEnvelope():
 
 
 @pytest.mark.torch
-def test_local_MP():
+def test_FerminetEnvelope():
+    "Test for FerminetEnvelope layer."
+    envelope_layer = dc.models.torch_models.layers.FerminetEnvelope(
+        [32, 32, 32], [16, 16, 16], 10, 8, [5, 5], 5, 16)
+    one_electron = torch.randn(8, 10, 32)
+    one_electron_permuted = torch.randn(8, 10, 5, 3)
+    psi_up, psi_down = envelope_layer.forward(one_electron,
+                                              one_electron_permuted)
+    assert psi_up.size() == torch.Size([8, 16, 5, 5])
+    assert psi_down.size() == torch.Size([8, 16, 5, 5])
 
+
+@pytest.mark.torch
+def test_mxmnet_local_message_passing():
+    """ Test for MXMNetLocalMessagePassing Layer."""
     seed = 123
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
@@ -1314,11 +1326,6 @@ def test_local_MP():
     torch.cuda.manual_seed_all(seed)
 
     dim = 1
-    n_layer = 2
-    cutoff = 5
-
-    config = {'dim': dim, 'n_layer': n_layer, 'cutoff': cutoff}
-
     h = torch.tensor([[0.8343], [1.2713], [1.2713], [1.2713], [1.2713]])
 
     rbf = torch.tensor([[-0.2628], [-0.2628], [-0.2628], [-0.2628], [-0.2629],
@@ -1346,11 +1353,11 @@ def test_local_MP():
     edge_index = torch.tensor([[0, 1, 0, 2, 0, 3, 0, 4],
                                [1, 0, 2, 0, 3, 0, 4, 0]])
 
-    out = dc.models.torch_models.layers.MXMNetLocalMessagePassing(
+    layer = dc.models.torch_models.layers.MXMNetLocalMessagePassing(
         dim, activation_fn='silu')
 
-    output = out(h, rbf, sbf1, sbf2, idx_kj, idx_ji_1, idx_jj, idx_ji_2,
-                 edge_index)
+    output = layer(h, rbf, sbf1, sbf2, idx_kj, idx_ji_1, idx_jj, idx_ji_2,
+                   edge_index)
     result0 = np.array([[0.7916], [1.2796], [1.2796], [1.2796], [1.2796]])
     result1 = np.array([[0.3439], [0.3441], [0.3441], [0.3441], [0.3441]])
 
