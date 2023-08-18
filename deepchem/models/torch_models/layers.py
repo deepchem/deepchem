@@ -4793,6 +4793,7 @@ class MXMNetBesselBasisLayer(torch.nn.Module):
         output: torch.Tensor = self.envelope(dist) * (self.freq * dist).sin()
         return output
 
+
 class Highway(nn.Module):
     """
     Highway layer used in TextCNN model.
