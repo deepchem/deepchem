@@ -3,11 +3,11 @@ import torch
 from typing import Optional
 
 
-def su2_generators(j: int) -> torch.Tensor:
+def su2_generators(k: int) -> torch.Tensor:
     """Generate the generators of the special unitary group SU(2) in a given representation.
 
     The function computes the generators of the SU(2) group for a specific representation
-    determined by the value of 'j'. These generators are commonly used in the study of
+    determined by the value of 'k'. These generators are commonly used in the study of
     quantum mechanics, angular momentum, and related areas of physics and mathematics.
     The generators are represented as matrices.
 
@@ -41,7 +41,7 @@ def su2_generators(j: int) -> torch.Tensor:
     has a size of (2j+1) x (2j+1).
     Parameters
     ----------
-    j : int
+    k : int
         The representation index, which determines the order of the representation.
 
     Returns
@@ -82,15 +82,15 @@ def su2_generators(j: int) -> torch.Tensor:
              [ 0.0000-0.0000j,  0.0000+0.7071j,  0.0000-0.0000j]]])
     """
     # Generate the raising operator matrix
-    m = torch.arange(-j, j)
-    raising = torch.diag(-torch.sqrt(j * (j + 1) - m * (m + 1)), diagonal=-1)
+    m = torch.arange(-k, k)
+    raising = torch.diag(-torch.sqrt(k * (k + 1) - m * (m + 1)), diagonal=-1)
 
     # Generate the lowering operator matrix
-    m = torch.arange(-j + 1, j + 1)
-    lowering = torch.diag(torch.sqrt(j * (j + 1) - m * (m - 1)), diagonal=1)
+    m = torch.arange(-k + 1, k + 1)
+    lowering = torch.diag(torch.sqrt(k * (k + 1) - m * (m - 1)), diagonal=1)
 
     # Generate the z-generator matrix
-    m = torch.arange(-j, j + 1)
+    m = torch.arange(-k, k + 1)
     z_generator = torch.diag(1j * m)
 
     # Combine the matrices to form the x, z, and y generators
@@ -104,7 +104,7 @@ def su2_generators(j: int) -> torch.Tensor:
 
 
 def change_basis_real_to_complex(
-        j: int,
+        k: int,
         dtype: Optional[torch.dtype] = None,
         device: Optional[torch.device] = None) -> torch.Tensor:
     r"""Construct a transformation matrix to change the basis from real to complex spherical harmonics.
@@ -120,7 +120,7 @@ def change_basis_real_to_complex(
 
     Parameters
     ----------
-    j : int
+    k : int
         The representation index, which determines the order of the representation.
     dtype : torch.dtype, optional
         The data type for the output tensor. If not provided, the
@@ -158,23 +158,23 @@ def change_basis_real_to_complex(
             [ 0.0000+0.0000j,  0.0000-1.0000j,  0.0000+0.0000j],
             [-0.7071+0.0000j,  0.0000+0.0000j,  0.0000+0.7071j]])
     """
-    q = torch.zeros((2 * j + 1, 2 * j + 1), dtype=torch.complex128)
+    q = torch.zeros((2 * k + 1, 2 * k + 1), dtype=torch.complex128)
 
-    # Construct the transformation matrix Q for m in range(-j, 0)
-    for m in range(-j, 0):
-        q[j + m, j + abs(m)] = 1 / 2**0.5
-        q[j + m, j - abs(m)] = -1j / 2**0.5
+    # Construct the transformation matrix Q for m in range(-k, 0)
+    for m in range(-k, 0):
+        q[k + m, k + abs(m)] = 1 / 2**0.5
+        q[k + m, k - abs(m)] = -1j / 2**0.5
 
     # Set the diagonal elements for m = 0
-    q[j, j] = 1
+    q[k, k] = 1
 
-    # Construct the transformation matrix Q for m in range(1, j + 1)
-    for m in range(1, j + 1):
-        q[j + m, j + abs(m)] = (-1)**m / 2**0.5
-        q[j + m, j - abs(m)] = 1j * (-1)**m / 2**0.5
+    # Construct the transformation matrix Q for m in range(1, k + 1)
+    for m in range(1, k + 1):
+        q[k + m, k + abs(m)] = (-1)**m / 2**0.5
+        q[k + m, k - abs(m)] = 1j * (-1)**m / 2**0.5
 
-    # Apply the factor of (-1j)**j to make the Clebsch-Gordan coefficients real
-    q = (-1j)**j * q
+    # Apply the factor of (-1j)**k to make the Clebsch-Gordan coefficients real
+    q = (-1j)**k * q
 
     # Handle dtype and device options
     if dtype is None:
@@ -193,7 +193,7 @@ def change_basis_real_to_complex(
                 memory_format=torch.contiguous_format)
 
 
-def so3_generators(j: int) -> torch.Tensor:
+def so3_generators(k: int) -> torch.Tensor:
     """Construct the generators of the SO(3) Lie algebra for a given quantum angular momentum.
 
     The function generates the generators of the special orthogonal group SO(3), which represents the group
@@ -209,7 +209,7 @@ def so3_generators(j: int) -> torch.Tensor:
 
     Parameters
     ----------
-     j : int
+     k : int
         The representation index, which determines the order of the representation.
 
     Returns
@@ -254,10 +254,10 @@ def so3_generators(j: int) -> torch.Tensor:
              [ 0.0000,  0.0000,  0.0000]]])
     """
     # Get the SU(2) generators for the given quantum angular momentum (spin) value.
-    X = su2_generators(j)
+    X = su2_generators(k)
 
     # Get the transformation matrix to change the basis from real to complex spherical harmonics.
-    Q = change_basis_real_to_complex(j)
+    Q = change_basis_real_to_complex(k)
 
     # Convert the SU(2) generators to the SO(3) basis using the transformation matrix Q.
     # X represents the SU(2) generators, and Q is the transformation matrix from real to complex spherical harmonics.
@@ -268,17 +268,17 @@ def so3_generators(j: int) -> torch.Tensor:
     return torch.real(X)
 
 
-def wigner_D(j: int, alpha: torch.Tensor, beta: torch.Tensor,
+def wigner_D(k: int, alpha: torch.Tensor, beta: torch.Tensor,
              gamma: torch.Tensor) -> torch.Tensor:
     """Wigner D matrix representation of the SO(3) rotation group.
 
     The function computes the Wigner D matrix representation of the SO(3) rotation group
-    for a given representation index 'j' and rotation angles 'alpha', 'beta', and 'gamma'.
+    for a given representation index 'k' and rotation angles 'alpha', 'beta', and 'gamma'.
     The resulting matrix satisfies properties of the SO(3) group representation.
 
     Parameters
     ----------
-    j : int
+    k : int
         The representation index, which determines the order of the representation.
     alpha : torch.Tensor
         Rotation angles (in radians) around the Y axis, applied third.
@@ -304,11 +304,11 @@ def wigner_D(j: int, alpha: torch.Tensor, beta: torch.Tensor,
 
     Examples
     --------
-    >>> j = 1
+    >>> k = 1
     >>> alpha = torch.tensor([0.1, 0.2])
     >>> beta = torch.tensor([0.3, 0.4])
     >>> gamma = torch.tensor([0.5, 0.6])
-    >>> wigner_D_matrix = wigner_D(j, alpha, beta, gamma)
+    >>> wigner_D_matrix = wigner_D(k, alpha, beta, gamma)
     >>> wigner_D_matrix
     tensor([[[ 0.8275,  0.0295,  0.5607],
              [ 0.1417,  0.9553, -0.2593],
@@ -326,8 +326,8 @@ def wigner_D(j: int, alpha: torch.Tensor, beta: torch.Tensor,
     beta = beta[..., None, None] % (2 * math.pi)
     gamma = gamma[..., None, None] % (2 * math.pi)
 
-    # Get the SO(3) generators for the given quantum angular momentum (spin) value 'j'.
-    X = so3_generators(j)
+    # Get the SO(3) generators for the given quantum angular momentum (spin) value 'k'.
+    X = so3_generators(k)
 
     # Calculate the Wigner D matrix using the matrix exponential of the generators
     # and the rotation angles alpha, beta, and gamma in the appropriate order.
