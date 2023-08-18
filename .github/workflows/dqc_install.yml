@@ -52,11 +52,13 @@ jobs:
     - name: Import numpy
       shell: bash -l {0}
       run: python -c 'import numpy as np; print ("numpy version is %s" % np.__version__)'
+    - name: Import torch
+      shell: bash -l {0}
+      run: python -c 'import torch; print("Torch version %s" % torch.__version__)'
     - name: Test Install
       shell: bash -l {0}
       run: |
         python -c 'import deepchem; print("DeepChem version %s" % deepchem.__version__)'
-        python -c 'import torch; print("Torch version %s" % torch.__version__)'
         python -c 'import dqc; print("DQC version %s" % dqc.__version__)'
         python -c 'import xitorch; print("Xitorch version %s" % xitorch.__version__)'
         python -c 'import pylibxc; print("pylibxc version %s" % pylibxc.version.__version__)'
