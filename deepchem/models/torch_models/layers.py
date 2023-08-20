@@ -4811,8 +4811,9 @@ class DecoderRNN(nn.Module):
     >>> num_input_tokens = 12
     >>> max_length = 4
     >>> batch_size = 2
+    >>> device = 'cuda' if torch.cuda.is_available() else 'cpu'
     >>> layer = DecoderRNN(embedding_dimensions, num_output_tokens,
-    ...                                 max_length, batch_size)
+    ...                                 max_length, device)
     >>> embeddings = torch.randn(batch_size, num_input_tokens, embedding_dimensions)
     >>> output, hidden, _ = layer([embeddings,
     ...                            embeddings[:, -1].unsqueeze(0).contiguous(), None])
@@ -4829,7 +4830,6 @@ class DecoderRNN(nn.Module):
                  hidden_size:int,
                  output_size:int,
                  max_length:int,
-                 batch_size:int,
                  device: torch.device,
                  **kwargs):
         """Initialize the DecoderRNN layer.
@@ -4842,8 +4842,6 @@ class DecoderRNN(nn.Module):
             The number of expected features.
         max_length: int
             The maximum length of the sequence.
-        batch_size: int
-            The batch size of the input.
         device: torch.device
             The device on which the layer is initialized.
 
