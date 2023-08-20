@@ -4792,3 +4792,131 @@ class MXMNetBesselBasisLayer(torch.nn.Module):
         dist = dist.unsqueeze(-1) / self.cutoff
         output: torch.Tensor = self.envelope(dist) * (self.freq * dist).sin()
         return output
+
+
+class DecoderRNN(nn.Module):
+    """Decoder Layer for SeqToSeq Model.
+
+    The decoder transforms the embedding vector into the output
+    sequence. It is trained to predict the next token in the sequence given the
+    previous tokens in the sequence. It uses the context vector from the encoder
+    to help generate the correct token in the sequence.
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models.layers import DecoderRNN
+    >>> import torch
+    >>> embedding_dimensions = 5
+    >>> num_output_tokens = 7
+    >>> num_input_tokens = 12
+    >>> max_length = 4
+    >>> batch_size = 2
+    >>> layer = DecoderRNN(embedding_dimensions, num_output_tokens,
+    ...                                 max_length, batch_size)
+    >>> embeddings = torch.randn(batch_size, num_input_tokens, embedding_dimensions)
+    >>> output, hidden, _ = layer([embeddings,
+    ...                            embeddings[:, -1].unsqueeze(0).contiguous(), None])
+    >>> output.shape
+    torch.Size([2, 4, 7])
+
+    References
+    ----------
+    .. [1] Sutskever et al., "Sequence to Sequence Learning with Neural Networks"
+
+    """
+
+    def __init__(self,
+                 hidden_size:int,
+                 output_size:int,
+                 max_length:int,
+                 batch_size:int,
+                 device: torch.device,
+                 **kwargs):
+        """Initialize the DecoderRNN layer.
+        
+        Parameters
+        ----------
+        hidden_size: int
+            The number of features in the hidden state.
+        output_size: int
+            The number of expected features.
+        max_length: int
+            The maximum length of the sequence.
+        batch_size: int
+            The batch size of the input.
+        device: torch.device
+            The device on which the layer is initialized.
+
+        """
+        super(DecoderRNN, self).__init__(**kwargs)
+        self.embedding = nn.Embedding(output_size, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True)
+        self.out = nn.Linear(hidden_size, output_size)
+        self.act = get_activation("log_softmax")
+        self.step_act = get_activation("relu")
+        self.MAX_LENGTH = max_length
+        self.device = device
+
+    def __repr__(self) -> str:
+        """Returns a string representing the configuration of the layer.
+
+        Returns
+        -------
+        hidden_size: int
+            Number of features in the hidden state.
+        output_size: int
+            Number of expected features.
+        max_length: int
+            Maximum length of the sequence.
+        batch_size: int
+            Batch size of the input.
+
+        """
+        return f'{self.__class__.__name__}(hidden_size={self.hidden_size}, output_size={self.output_size}, max_length={self.max_length}, batch_size={self.batch_size})'
+
+    def forward(self, inputs: List[torch.Tensor]):
+        """
+        Parameters
+        ----------
+        inputs: List[torch.Tensor]
+            A list of tensor containg encoder_output, encoder_hidden and target_tensor
+
+        Returns
+        -------
+        decoder_outputs: torch.Tensor
+            Predicted output sequences
+        decoder_hidden: torch.Tensor
+            Hidden state of the decoder
+
+        """
+        encoder_outputs, encoder_hidden, target_tensor = inputs
+        batch_size = encoder_outputs.size(0)
+        decoder_input = torch.ones(batch_size, 1, dtype=torch.long, device=self.device)
+        decoder_hidden = encoder_hidden
+        decoder_outputs = []
+
+        for i in range(self.MAX_LENGTH):
+            decoder_output, decoder_hidden = self.forward_step(
+                decoder_input, decoder_hidden)
+            decoder_outputs.append(decoder_output)
+
+            if target_tensor is not None:
+                # Teacher forcing: Feed the target as the next input
+                decoder_input = target_tensor[:,
+                                              i].unsqueeze(1)  # Teacher forcing
+            else:
+                # Without teacher forcing: use its own predictions as the next input
+                _, topi = decoder_output.topk(1)
+                decoder_input = topi.squeeze(
+                    -1).detach()  # detach from history as input
+
+        decoder_outputs = torch.cat(decoder_outputs, dim=1)
+        decoder_outputs = self.act(decoder_outputs, dim=-1)
+        return decoder_outputs, decoder_hidden, None  # We return `None` for consistency in the training loop
+
+    def forward_step(self, input, hidden):
+        output = self.embedding(input)
+        output = self.step_act(output)
+        output, hidden = self.gru(output, hidden)
+        output = self.out(output)
+        return output, hidden
