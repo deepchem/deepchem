@@ -1,13 +1,15 @@
 import os
 import pytest
 
+import numpy as np
+
 from deepchem.data import SDFLoader
 from deepchem.feat import CoulombMatrix
 from deepchem.utils import batch_coulomb_matrix_features
 
 try:
     import torch
-    from deepchem.models.torch_models import DTNN
+    from deepchem.models.torch_models import DTNN, DTNNModel
 except ModuleNotFoundError:
     pass
 

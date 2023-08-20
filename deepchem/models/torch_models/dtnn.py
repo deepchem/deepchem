@@ -274,7 +274,8 @@ class DTNNModel(TorchModel):
                  ids_b) in dataset.iterbatches(batch_size=self.batch_size,
                                                deterministic=deterministic,
                                                pad_batches=pad_batches):
-                yield (batch_coulomb_matrix_features(X_b, self.model.distance_max,
-                                                  self.model.distance_min,
-                                                  self.model.n_distance), [y_b],
-                       [w_b])
+                yield (batch_coulomb_matrix_features(X_b,
+                                                     self.model.distance_max,
+                                                     self.model.distance_min,
+                                                     self.model.n_distance),
+                       [y_b], [w_b])
