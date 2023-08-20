@@ -58,7 +58,7 @@ def get_multitask_classification_dataset():
 
 
 @pytest.mark.torch
-def test_GNN_save_reload():
+def test_GNN_load_from_pretrained():
     from deepchem.models.torch_models.gnn import GNNModular
 
     dataset, _ = get_regression_dataset()
@@ -72,6 +72,31 @@ def test_GNN_save_reload():
         if hasattr(model.components[key], 'weight')
     ]
     assert all(compare_weights(key, model, model2) for key in keys_with_weights)
+
+
+@pytest.mark.torch
+def test_gnn_reload(tmpdir):
+    import torch
+    from deepchem.models.torch_models.gnn import GNNModular
+    model_config = {
+        'gnn_type': 'gin',
+        'num_layers': 3,
+        'emb_dim': 64,
+        'task': 'regression',
+        'mask_edge': True,
+        'model_dir': tmpdir,
+        'device': torch.device('cpu')
+    }
+    old_model = GNNModular(**model_config)
+    old_model._ensure_built()
+    old_model.save_checkpoint()
+    old_model_state = old_model.model.state_dict()
+
+    new_model = GNNModular(**model_config)
+    new_model.restore()
+    new_model_state = new_model.model.state_dict()
+    for key in new_model_state.keys():
+        assert torch.allclose(old_model_state[key], new_model_state[key])
 
 
 @pytest.mark.torch
