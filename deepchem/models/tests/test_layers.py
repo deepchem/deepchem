@@ -1262,3 +1262,17 @@ def test_mxmnet_besselbasis():
     result = np.array([[2.6434e+00, 3.7383e+00], [1.3125e+00, -1.1474e-07],
                        [-0.0000e+00, 0.0000e+00], [-0.0000e+00, -0.0000e+00]])
     assert np.allclose(result, output, atol=1e-04)
+
+
+@pytest.mark.torch
+def test_encoder_rnn():
+    """Test for Encoder Layer of SeqToSeq Model"""
+    hidden_size = 7
+    num_input_token = 4
+    input = torch.tensor([[1, 0, 2, 3, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]])
+    layer = torch_layers.EncoderRNN(num_input_token, hidden_size)
+    emb, hidden = layer(input)
+
+    assert emb.shape == emb.shape == (input.shape[0], input.shape[1],
+                                      hidden_size)
+    assert hidden.shape == (1, input.shape[0], hidden_size)
