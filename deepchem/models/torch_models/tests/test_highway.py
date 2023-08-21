@@ -72,3 +72,5 @@ def test_highway_layer_shape():
         np.load('deepchem/models/tests/assets/highway_output_new.npy').astype(
             np.float32))
     assert torch.allclose(output, output_tensor, atol=1e-04)
+
+
