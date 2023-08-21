@@ -4812,6 +4812,8 @@ class EncoderRNN(nn.Module):
     >>> input = torch.tensor([[1, 0, 2, 3, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]])
     >>> layer = EncoderRNN(num_input_token, embedding_dimensions)
     >>> emb, hidden = layer(input)
+    >>> emb.shape
+    torch.Size([3, 5, 7])
 
     References
     ----------
