@@ -1262,3 +1262,15 @@ def test_mxmnet_besselbasis():
     result = np.array([[2.6434e+00, 3.7383e+00], [1.3125e+00, -1.1474e-07],
                        [-0.0000e+00, 0.0000e+00], [-0.0000e+00, -0.0000e+00]])
     assert np.allclose(result, output, atol=1e-04)
+
+
+@pytest.mark.torch
+def test_FerminetElectronFeature():
+    "Test for FerminetElectronFeature layer."
+    electron_layer = dc.models.torch_models.layers.FerminetElectronFeature(
+        [32, 32, 32], [16, 16, 16], 4, 8, 10, [5, 5])
+    one_electron_test = torch.randn(8, 10, 4 * 4)
+    two_electron_test = torch.randn(8, 10, 10, 4)
+    one, two = electron_layer.forward(one_electron_test, two_electron_test)
+    assert one.size() == torch.Size([8, 10, 32])
+    assert two.size() == torch.Size([8, 10, 10, 16])
