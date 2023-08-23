@@ -234,7 +234,8 @@ class HuggingFaceModel(TorchModel):
                 y = torch.from_numpy(y[0])
                 if self.task == 'regression' or self.task == 'mtr':
                     y = y.float().to(self.device)
-
+                elif self.task == 'classification':
+                    y = y.long().to(self.device)
             for key, value in tokens.items():
                 tokens[key] = value.to(self.device)
 
