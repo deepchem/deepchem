@@ -240,7 +240,7 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.MXMNetBesselBasisLayer
   :members:
 
-.. autoclass:: deepchem.models.torch_models.dtnn.DTNN
+.. autoclass:: deepchem.models.torch_models.layers.FerminetElectronFeature
   :members:
 
 Grover Layers
