@@ -1026,3 +1026,42 @@ def test_textCNN_singletask_regression_overfit():
     scores = model.evaluate(dataset, [regression_metric])
 
     assert scores[regression_metric.name] > .9
+
+
+@pytest.mark.torch
+def test_dtnn_singletask_regression_overfit():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    dataset_file = os.path.join(current_dir, "assets/qm9_mini.sdf")
+    TASKS = ["alpha"]
+    loader = dc.data.SDFLoader(tasks=TASKS,
+                               featurizer=dc.feat.CoulombMatrix(29),
+                               sanitize=True)
+    data = loader.create_dataset(dataset_file, shard_size=100)
+    dataset = data.select(range(10))
+
+    regression_metric = dc.metrics.Metric(dc.metrics.pearson_r2_score,
+                                          task_averager=np.mean)
+    model = dc.models.torch_models.DTNNModel(dataset.y.shape[1])
+    model.fit(dataset, nb_epoch=100)
+    scores = model.evaluate(dataset, [regression_metric])
+    assert scores[regression_metric.name] > .7
+
+
+@flaky()
+@pytest.mark.torch
+def test_dtnn_multitask_regression_overfit():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    dataset_file = os.path.join(current_dir, "assets/qm9_mini.sdf")
+    TASKS = ["alpha"]
+    loader = dc.data.SDFLoader(tasks=TASKS,
+                               featurizer=dc.feat.CoulombMatrix(29),
+                               sanitize=True)
+    data = loader.create_dataset(dataset_file, shard_size=100)
+    dataset = data.select(range(10))
+
+    regression_metric = dc.metrics.Metric(dc.metrics.pearson_r2_score,
+                                          task_averager=np.mean)
+    model = dc.models.torch_models.DTNNModel(dataset.y.shape[1])
+    model.fit(dataset, nb_epoch=100)
+    scores = model.evaluate(dataset, [regression_metric])
+    assert scores[regression_metric.name] > .7
