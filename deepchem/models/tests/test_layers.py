@@ -1276,3 +1276,14 @@ def test_encoder_rnn():
     assert emb.shape == emb.shape == (input.shape[0], input.shape[1],
                                       hidden_size)
     assert hidden.shape == (1, input.shape[0], hidden_size)
+
+@pytest.mark.torch
+def test_FerminetElectronFeature():
+    "Test for FerminetElectronFeature layer."
+    electron_layer = dc.models.torch_models.layers.FerminetElectronFeature(
+        [32, 32, 32], [16, 16, 16], 4, 8, 10, [5, 5])
+    one_electron_test = torch.randn(8, 10, 4 * 4)
+    two_electron_test = torch.randn(8, 10, 10, 4)
+    one, two = electron_layer.forward(one_electron_test, two_electron_test)
+    assert one.size() == torch.Size([8, 10, 32])
+    assert two.size() == torch.Size([8, 10, 10, 16])
