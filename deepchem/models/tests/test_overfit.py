@@ -1052,7 +1052,7 @@ def test_dtnn_singletask_regression_overfit():
 def test_dtnn_multitask_regression_overfit():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     dataset_file = os.path.join(current_dir, "assets/qm9_mini.sdf")
-    TASKS = ["alpha"]
+    TASKS = ["alpha", "u0_atom"]
     loader = dc.data.SDFLoader(tasks=TASKS,
                                featurizer=dc.feat.CoulombMatrix(29),
                                sanitize=True)
