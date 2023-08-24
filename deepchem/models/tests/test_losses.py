@@ -579,3 +579,19 @@ class TestLosses(unittest.TestCase):
                                        overlapped_context_size)
 
         assert torch.allclose(loss, torch.tensor(2.8531, dtype=torch.float64))
+
+    @pytest.mark.torch
+    def test_NTXentMultiplePositives_loss(self):
+        from deepchem.models.losses import NTXentMultiplePositives
+
+        z1 = torch.randn(4, 8)
+        z2 = torch.randn(4 * 3, 8)
+
+        ntxent_loss = NTXentMultiplePositives(norm=True, tau=0.5)
+
+        loss_fn = ntxent_loss._create_pytorch_loss()
+        loss = loss_fn(z1, z2)
+
+        # Check if the loss is a scalar and non-negative
+        assert loss.dim() == 0
+        assert loss.item() >= 0

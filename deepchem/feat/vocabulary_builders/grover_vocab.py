@@ -1,4 +1,6 @@
 import json
+import logging
+import numpy as np
 from typing import Dict, Optional
 from collections import Counter
 from rdkit import Chem
@@ -6,6 +8,8 @@ from deepchem.data import Dataset
 from deepchem.feat.base_classes import Featurizer
 from deepchem.utils.typing import RDKitMol, RDKitAtom, RDKitBond
 from deepchem.feat.vocabulary_builders.vocabulary_builder import VocabularyBuilder
+
+logger = logging.getLogger(__name__)
 
 
 class GroverAtomVocabularyBuilder(VocabularyBuilder):
@@ -66,22 +70,33 @@ class GroverAtomVocabularyBuilder(VocabularyBuilder):
         self.pad_index = 0
         self.other_index = 1
 
-    def build(self, dataset: Dataset) -> None:
+    def build(self, dataset: Dataset, log_every_n: int = 1000) -> None:
         """Builds vocabulary
 
         Parameters
         ----------
         dataset: dc.data.Dataset
             A dataset object with SMILEs strings in X attribute.
+        log_every_n: int, default 1000
+            Logs vocabulary building progress every `log_every_n` steps.
         """
         counter: Dict[str, int] = Counter()
-        for x, _, _, _ in dataset.itersamples():
-            smiles = x[0]
+        logger.info('Starting to build atom vocabulary')
+        for i, (x, _, _, _) in enumerate(dataset.itersamples()):
+            if i % log_every_n == 0:
+                logger.info(
+                    'Computing contextual property of atoms in molecule %i' % i)
+            if isinstance(x, str):
+                smiles = x
+            elif isinstance(x, np.ndarray):
+                x = x.squeeze()
+                assert x.ndim == 0, 'expected x attribute of dataset to be a 1-D array of SMILES strings'
+                smiles = x.item()
             mol = Chem.MolFromSmiles(smiles)
             for atom in mol.GetAtoms():
                 v = self.atom_to_vocab(mol, atom)
                 counter[v] += 1
-
+        logger.info('Completed enumeration of atom contextual properties.')
         # sort first by frequency, then alphabetically
         words_and_frequencies = sorted(counter.items(), key=lambda tup: tup[0])
         words_and_frequencies.sort(key=lambda tup: tup[1], reverse=True)
@@ -92,6 +107,7 @@ class GroverAtomVocabularyBuilder(VocabularyBuilder):
         if self.size is None:
             self.size = len(self.itos)
         self.stoi = self._make_reverse_mapping(self.itos)
+        logger.info('Completed building of atom vocabulary')
 
     def save(self, fname: str) -> None:
         """Saves a vocabulary in json format
@@ -256,21 +272,31 @@ class GroverBondVocabularyBuilder(VocabularyBuilder):
         self.pad_index = 0
         self.other_index = 1
 
-    def build(self, dataset: Dataset) -> None:
+    def build(self, dataset: Dataset, log_every_n: int = 1000) -> None:
         """Builds vocabulary
 
         Parameters
         ----------
         dataset: dc.data.Dataset
             A dataset object with SMILEs strings in X attribute.
+        log_every_n: int, default 1000
+            Logs vocabulary building progress every `log_every_n` steps.
         """
         counter: Dict[str, int] = Counter()
-        for x, _, _, _ in dataset.itersamples():
-            smiles = x[0]
+        logger.info('Starting to build bond vocabulary')
+        for i, (x, _, _, _) in enumerate(dataset.itersamples()):
+            if i % log_every_n == 0:
+                logger.info(
+                    'Computing contextual property of bonds in molecule %i' % i)
+            if isinstance(x, str):
+                smiles = x
+            elif isinstance(x, np.ndarray):
+                smiles = x.squeeze().item()
             mol = Chem.MolFromSmiles(smiles)
             for bond in mol.GetBonds():
                 v = self.bond_to_vocab(mol, bond)
                 counter[v] += 1
+        logger.info('Completed enumeration of bond contextual properties.')
 
         # sort first by frequency, then alphabetically
         words_and_frequencies = sorted(counter.items(), key=lambda tup: tup[0])
@@ -282,6 +308,7 @@ class GroverBondVocabularyBuilder(VocabularyBuilder):
         if self.size is None:
             self.size = len(self.itos)
         self.stoi = self._make_reverse_mapping(self.itos)
+        logger.info('Completed building of bond vocabulary')
 
     def save(self, fname: str) -> None:
         """Saves a vocabulary in json format

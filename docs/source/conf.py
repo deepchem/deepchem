@@ -41,6 +41,7 @@ extensions = [
     'sphinx.ext.linkcode',
     'sphinx.ext.mathjax',
     'sphinx.ext.autosectionlabel',
+    'sphinx_copybutton',
 ]
 
 # Options for autodoc directives
@@ -99,29 +100,31 @@ html_theme_options = {
     'display_version': True,
 }
 
+copybutton_remove_prompts = True
+
 # -- Source code links ---------------------------------------------------
 
 
 # Resolve function for the linkcode extension.
 def linkcode_resolve(domain, info):
 
-  def find_source():
-    # try to find the file and line number, based on code from numpy:
-    # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
-    obj = sys.modules[info['module']]
-    for part in info['fullname'].split('.'):
-      obj = getattr(obj, part)
-    fn = inspect.getsourcefile(obj)
-    fn = os.path.relpath(fn, start=os.path.dirname(deepchem.__file__))
-    source, lineno = inspect.getsourcelines(obj)
-    return fn, lineno, lineno + len(source) - 1
+    def find_source():
+        # try to find the file and line number, based on code from numpy:
+        # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
+        obj = sys.modules[info['module']]
+        for part in info['fullname'].split('.'):
+            obj = getattr(obj, part)
+        fn = inspect.getsourcefile(obj)
+        fn = os.path.relpath(fn, start=os.path.dirname(deepchem.__file__))
+        source, lineno = inspect.getsourcelines(obj)
+        return fn, lineno, lineno + len(source) - 1
 
-  if domain != 'py' or not info['module']:
-    return None
-  try:
-    filename = 'deepchem/%s#L%d-L%d' % find_source()
-  except Exception:
-    filename = info['module'].replace('.', '/') + '.py'
+    if domain != 'py' or not info['module']:
+        return None
+    try:
+        filename = 'deepchem/%s#L%d-L%d' % find_source()
+    except Exception:
+        filename = info['module'].replace('.', '/') + '.py'
 
-  tag = 'master' if 'dev' in release else release
-  return "https://github.com/deepchem/deepchem/blob/%s/%s" % (tag, filename)
+    tag = 'master' if 'dev' in release else release
+    return "https://github.com/deepchem/deepchem/blob/%s/%s" % (tag, filename)

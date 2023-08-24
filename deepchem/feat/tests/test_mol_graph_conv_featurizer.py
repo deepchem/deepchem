@@ -1,5 +1,8 @@
+import os
 import unittest
 import numpy as np
+import pandas as pd
+import deepchem as dc
 from deepchem.feat import MolGraphConvFeaturizer
 from deepchem.feat import PagtnMolGraphFeaturizer
 
@@ -88,6 +91,23 @@ class TestMolGraphConvFeaturizer(unittest.TestCase):
         assert graph_feat[0].node_pos_features.shape == (6, 3)
         assert graph_feat[1].num_nodes == 2
         assert graph_feat[1].node_pos_features.shape == (2, 3)
+
+    def test_featurizer_freesolv(self):
+        """
+        Test freesolv sample dataset on MolGraphConvFeaturizer.
+        It contains 5 molecule smiles, out of which 3 can be featurized and 2 cannot be featurized.
+        """
+
+        # load sample dataset
+        dir = os.path.dirname(os.path.abspath(__file__))
+        input_file = os.path.join(dir, 'data/freesolv_imperfect_sample.csv')
+        loader = dc.data.CSVLoader(tasks=["y"],
+                                   feature_field="smiles",
+                                   featurizer=MolGraphConvFeaturizer())
+        dataset = loader.create_dataset(input_file)
+        assert len(pd.read_csv(input_file)) == 5
+        assert len(dataset) == 3
+        assert isinstance(dataset.X[0], dc.feat.GraphData)
 
 
 class TestPagtnMolGraphConvFeaturizer(unittest.TestCase):

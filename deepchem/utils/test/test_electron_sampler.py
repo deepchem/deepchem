@@ -55,6 +55,7 @@ def test_steps():
     x1 = distribution.x
     distribution.move(asymmetric_func=distribution.harmonic_mean)
     assert ((distribution.x - x1) != 0).all()
+    assert np.shape(distribution.sampled_electrons) == (2000, 3, 1, 3)
 
     # testing symmetric single_move
     distribution = ElectronSampler(np.array([[1, 1, 3], [3, 2, 3]]),
@@ -67,6 +68,7 @@ def test_steps():
     distribution.move(index=1)
     assert ((distribution.x[:, 1, :, :] - x1[:, 1, :, :]) != 0).all()
     assert ((distribution.x[:, 2, :, :] - x1[:, 2, :, :]) == 0).all()
+    assert np.shape(distribution.sampled_electrons) == (2000, 3, 1, 3)
 
     # testing asymmetric single_move
     distribution = ElectronSampler(np.array([[1, 1, 3], [3, 2, 3]]),
@@ -80,3 +82,4 @@ def test_steps():
     distribution.move(asymmetric_func=distribution.harmonic_mean, index=1)
     assert ((distribution.x[:, 1, :, :] - x1[:, 1, :, :]) != 0).all()
     assert ((distribution.x[:, 2, :, :] - x1[:, 2, :, :]) == 0).all()
+    assert np.shape(distribution.sampled_electrons) == (2000, 3, 1, 3)

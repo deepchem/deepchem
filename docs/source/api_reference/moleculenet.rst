@@ -10,8 +10,8 @@ The MoleculeNet suite has curated a whole range of datasets and loaded them into
 Contributing a new dataset to MoleculeNet
 -----------------------------------------
 
-If you are proposing a new dataset to be included in the 
-MoleculeNet benchmarking suite, please follow the instructions below. 
+If you are proposing a new dataset to be included in the
+MoleculeNet benchmarking suite, please follow the instructions below.
 Please review the `datasets already available in MolNet`_ before contributing.
 
 0. Read the `Contribution guidelines`_.
@@ -45,9 +45,12 @@ Below is an example of how to load a MoleculeNet dataset and featurizer. This ap
     train, valid, test = dataset
 
     x,y,w,ids = train.X, train.y, train.w, train.ids
- 
+
 
 Note that the "w" matrix represents the weight of each sample. Some assays may have missing values, in which case the weight is 0. Otherwise, the weight is 1.
+
+
+Additionally, the environment variable ``DEEPCHEM_DATA_DIR`` can be set like ``os.environ['DEEPCHEM_DATA_DIR'] = path/to/store/featurized/dataset``. When the ``DEEPCHEM_DATA_DIR`` environment variable is set, molnet loader stores the featurized dataset in the specified directory and when the dataset has to be reloaded the next time, it will be fetched from the data directory directly rather than featurizing the raw dataset from scratch.
 
 BACE Dataset
 ------------
@@ -147,12 +150,12 @@ Materials Datasets
 Materials datasets include inorganic crystal structures, chemical
 compositions, and target properties like formation energies and band
 gaps. Machine learning problems in materials science commonly include
-predicting the value of a continuous (regression) or categorical 
+predicting the value of a continuous (regression) or categorical
 (classification) property of a material based on its chemical composition
 or crystal structure. "Inverse design" is also of great interest, in which
-ML methods generate crystal structures that have a desired property. 
-Other areas where ML is applicable in materials include: discovering new 
-or modified phenomenological models that describe material behavior 
+ML methods generate crystal structures that have a desired property.
+Other areas where ML is applicable in materials include: discovering new
+or modified phenomenological models that describe material behavior
 
 .. autofunction:: deepchem.molnet.load_bandgap
 .. autofunction:: deepchem.molnet.load_perovskite

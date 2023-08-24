@@ -106,5 +106,14 @@ class TestRDKitDescriptors(unittest.TestCase):
                                       labels_only=True)
         features = featurizer.featurize(smiles)[0]
         assert len(features) == len(grover_props)
-        assert sum(features) == 4  # expected number of functional groups in CCC
-        assert (np.where(features == 1)[0] == (1, 10, 11, 23)).all()
+        assert sum(
+            features) == 3  # expected number of functional groups in CCC(=O)
+        assert (np.where(features == 1)[0] == (10, 11, 23)).all()
+
+    def test_with_labels_only(self):
+        descriptors = ['fr_Al_COO', 'fr_Al_OH', 'fr_allylic_oxid']
+        smiles = 'CC(C)=CCCC(C)=CC(=O)'
+        featurizer = RDKitDescriptors(descriptors=descriptors, labels_only=True)
+        features = featurizer.featurize(smiles)[0]
+        assert len(features) == len(descriptors)
+        assert (features == [0, 0, 1]).all()

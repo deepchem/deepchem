@@ -26,3 +26,22 @@ DFTXC, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
 NNLDA, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
 HybridXC, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
 XCNNSCF, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
+AtomEncoder, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
+BondEncoder, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
+Net3DLayer, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
+Net3D, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
+PNALayer, `https://arxiv.org/abs/2004.05718`_, Principal Neighbourhood Aggregation
+PNAGNN, `https://arxiv.org/abs/2004.05718`_, Principal Neighbourhood Aggregation
+EdgeNetwork, `ref <https://arxiv.org/abs/1704.01212>`_, Message Passing Neural Network
+WeaveLayer,`ref <https://pubmed.ncbi.nlm.nih.gov/27558503/>`_, WeaveModel
+WeaveGather,`ref <https://pubmed.ncbi.nlm.nih.gov/27558503/>`_, WeaveModel
+MolGANConvolutionLayer,`ref <https://arxiv.org/abs/1805.11973>`_, MolGan
+MolGANAggregationLayer,`ref <https://arxiv.org/abs/1805.11973>`_, MolGan
+MolGANMultiConvolutionLayer,`ref <https://arxiv.org/abs/1805.11973>`_, MolGan
+MolGANEncoderLayer, `ref <https://arxiv.org/abs/1805.11973>`_, MolGan
+DTNNEmbedding, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
+DTNNStep, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
+DTNNGather, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
+MXMNetGlobalMessagePassing, `ref <https://arxiv.org/pdf/2011.07457>`_, MXMNetModel
+MXMNetBesselBasisLayer, `ref <https://arxiv.org/pdf/2011.07457>`_, MXMNetModel
+FerminetElectronFeature, `ref <https://arxiv.org/pdf/1909.02487.pdf>`_, FerminetModel

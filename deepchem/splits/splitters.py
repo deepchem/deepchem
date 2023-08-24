@@ -2,17 +2,16 @@
 Contains an abstract base class that supports chemically aware data splits.
 """
 import inspect
+import itertools
+import logging
 import os
 import random
 import tempfile
-import itertools
-import logging
-from typing import Any, Dict, List, Iterator, Optional, Sequence, Tuple
-
-import numpy as np
-import pandas as pd
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import deepchem as dc
+import numpy as np
+import pandas as pd
 from deepchem.data import Dataset, DiskDataset
 from deepchem.utils import get_print_threshold
 
@@ -1274,7 +1273,8 @@ class ButinaSplitter(Splitter):
         return train_inds, valid_inds, test_inds
 
 
-def _generate_scaffold(smiles: str, include_chirality: bool = False) -> str:
+def _generate_scaffold(smiles: str,
+                       include_chirality: bool = False) -> Union[str, None]:
     """Compute the Bemis-Murcko scaffold for a SMILES string.
 
     Bemis-Murcko scaffolds are described in DOI: 10.1021/jm9602928.
@@ -1309,6 +1309,12 @@ def _generate_scaffold(smiles: str, include_chirality: bool = False) -> str:
         raise ImportError("This function requires RDKit to be installed.")
 
     mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        logger.info(
+            'Not generating scaffold for smiles %s - invalid smiles string' %
+            smiles)
+        return None
+
     scaffold = MurckoScaffoldSmiles(mol=mol, includeChirality=include_chirality)
     return scaffold
 
@@ -1502,9 +1508,13 @@ class ScaffoldSplitter(Splitter):
     .. [1] Bemis, Guy W., and Mark A. Murcko. "The properties of known drugs.
         1. Molecular frameworks." Journal of medicinal chemistry 39.15 (1996): 2887-2893.
 
-    Note
-    ----
-    This class requires RDKit to be installed.
+    Notes
+    -----
+    - This class requires RDKit to be installed.
+
+    - When a SMILES representation of a molecule is invalid, the splitter skips processing
+    the datapoint i.e it will not include the molecule in any splits.
+
     """
 
     def split(
@@ -1588,10 +1598,11 @@ class ScaffoldSplitter(Splitter):
             if ind % log_every_n == 0:
                 logger.info("Generating scaffold %d/%d" % (ind, data_len))
             scaffold = _generate_scaffold(smiles)
-            if scaffold not in scaffolds:
-                scaffolds[scaffold] = [ind]
-            else:
-                scaffolds[scaffold].append(ind)
+            if scaffold is not None:
+                if scaffold not in scaffolds:
+                    scaffolds[scaffold] = [ind]
+                else:
+                    scaffolds[scaffold].append(ind)
 
         # Sort from largest to smallest scaffold sets
         scaffolds = {key: sorted(value) for key, value in scaffolds.items()}

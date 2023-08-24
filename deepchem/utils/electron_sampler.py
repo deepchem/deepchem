@@ -63,13 +63,14 @@ class ElectronSampler:
                  f: Callable[[np.ndarray], np.ndarray],
                  batch_no: int = 10,
                  x: np.ndarray = np.array([]),
-                 steps: int = 10,
+                 steps: int = 200,
+                 steps_per_update: int = 10,
                  seed: Optional[int] = None,
                  symmetric: bool = True,
                  simultaneous: bool = True):
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         central_value: np.ndarray
             Contains each nucleus' coordinates in a 2D array. The shape of the array should be(number_of_nucleus,3).Ex: [[1,2,3],[3,4,5],..]
         f:Callable[[np.ndarray],np.ndarray]
@@ -80,12 +81,19 @@ class ElectronSampler:
             Contains the electron's coordinates in a 4D array. The shape of the array should be(batch_no,no_of_electrons,1,3). Can be a 1D empty array, when electron's positions are yet to be initialized.
         steps: int, optional (default 10)
             The number of MCMC steps to be performed when the moves are called.
+        steps_per_update: int (default 10)
+            The number of steps after which the parameters of the MCMC gets updated.
         seed: int, optional (default None)
             Random seed to use.
         symmetric: bool, optional(default True)
             If true, symmetric moves will be used, else asymmetric moves will be followed.
         simultaneous: bool, optional(default True)
             If true, MCMC steps will be performed on all the electrons, else only a single electron gets updated.
+
+        Attributes
+        ----------
+        sampled_electrons: np.ndarray
+            Keeps track of the sampled electrons at every step, must be empty at start.
         """
         self.x = x
         self.f = f
@@ -93,8 +101,10 @@ class ElectronSampler:
         self.symmetric = symmetric
         self.simultaneous = simultaneous
         self.steps = steps
+        self.steps_per_update = steps_per_update
         self.central_value = central_value
         self.batch_no = batch_no
+        self.sampled_electrons: np.ndarray = np.array([])
         if seed is not None:
             seed = int(seed)
             np.random.seed(seed)
@@ -107,8 +117,8 @@ class ElectronSampler:
         y: np.ndarray
             Containing the data distribution. Shape of y should be (batch,no_of_electron,1,3)
 
-        Return
-        ----------
+        Returns
+        -------
         np.ndarray
             Contains the harmonic mean of the data distribution of each batch. Shape of the array obtained (batch_no, no_of_electrons,1,1)
         """
@@ -130,8 +140,8 @@ class ElectronSampler:
         sigma: np.ndarray,
             The standard deviation of the log normal distribution. Same shape as x or should be brodcastable to x
 
-        Return
-        ----------
+        Returns
+        -------
         np.ndarray
             Log probability of gaussian distribution, with the shape - (batch_no,).
         """
@@ -144,7 +154,7 @@ class ElectronSampler:
                                   no_sample: np.ndarray,
                                   stddev: float = 0.02):
         """Initializes the position around a central value as mean sampled from a gauss distribution and updates self.x.
-        Parameters:
+        Parameters
         ----------
         no_sample: np.ndarray,
             Contains the number of samples to initialize under each mean. should be in the form [[3],[2]..], where here it means 3 samples and 2 samples around the first entry and second entry,respectively in self.central_value is taken.
@@ -168,6 +178,41 @@ class ElectronSampler:
                                  (self.batch_no, specific_sample, 1, ndim)),
                 axis=1)
 
+    def electron_update(self, lp1, lp2, move_prob, ratio, x2) -> np.ndarray:
+        """
+        Performs sampling & parameter updates of electrons and appends the sampled electrons to self.sampled_electrons.
+
+        Parameters
+        ----------
+        lp1: np.ndarray
+            Log probability of initial parameter state.
+        lp2: np.ndarray
+            Log probability of the new sampled state.
+        move_prob: np.ndarray
+            Sampled log probabilty of the electron moving from the initial to final state, sampled assymetrically or symetrically.
+        ratio: np.ndarray
+            Ratio of lp1 and lp2 state.
+        x2: np.ndarray
+            Numpy array of the new sampled electrons.
+
+        Returns
+        -------
+        lp1: np.ndarray
+            The update log probability of initial parameter state.
+        """
+        cond = move_prob < ratio
+        tmp_sampled = np.where(cond[:, None, None, None], x2, self.x)
+        if (self.steps % self.steps_per_update) == 0:
+            self.x = tmp_sampled
+            lp1 = np.where(cond, lp2, lp1)
+        if (np.shape(self.sampled_electrons)[0] == 0):
+            self.sampled_electrons = tmp_sampled
+        else:
+            self.sampled_electrons = np.concatenate(
+                (self.sampled_electrons, tmp_sampled))
+        self.num_accept += np.sum(cond)
+        return lp1
+
     def move(self,
              stddev: float = 0.02,
              asymmetric_func: Optional[Callable[[np.ndarray],
@@ -176,8 +221,8 @@ class ElectronSampler:
         """Performs Metropolis-Hasting move for self.x(electrons). The type of moves to be followed -(simultaneous or single-electron, symmetric or asymmetric) have been specified when calling the class.
         The self.x array is replaced with a new array at the end of each step containing the new electron's positions.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         asymmetric_func: Callable[[np.ndarray],np.ndarray], optional(default None)
             Should be specified for an asymmetric move.The function should take in only 1 argument- y: a numpy array wrt to which mean should be calculated.
             This function should return the mean for the asymmetric proposal. For ferminet, this function is the harmonic mean of the distance between the electron and the nucleus.
@@ -186,11 +231,12 @@ class ElectronSampler:
         index: int, optional (default None)
             Specifies the index of the electron to be updated in the case of a single electron move.
 
-        Return
-        ------
+        Returns
+        -------
         float
             accepted move ratio of the MCMC steps.
         """
+        self.sampled_electrons = np.array([])
 
         lp1 = self.f(self.x)  # log probability of self.x state
 
@@ -199,15 +245,12 @@ class ElectronSampler:
                 for i in range(self.steps):
                     x2 = np.random.normal(self.x, stddev, self.x.shape)
                     lp2 = self.f(x2)  # log probability of x2 state
-                    ratio = lp2 - lp1
                     move_prob = np.log(
                         np.random.uniform(low=0,
                                           high=1.0,
                                           size=np.shape(self.x)[0]))
-                    cond = move_prob < ratio
-                    lp1 = np.where(cond, lp2, lp1)
-                    self.x = np.where(cond[:, None, None, None], x2, self.x)
-                    self.num_accept += np.sum(cond)
+                    ratio = lp2 - lp1
+                    lp1 = self.electron_update(lp1, lp2, move_prob, ratio, x2)
 
             elif asymmetric_func is not None:
                 for i in range(self.steps):
@@ -224,10 +267,7 @@ class ElectronSampler:
                         np.random.uniform(low=0,
                                           high=1.0,
                                           size=np.shape(self.x)[0]))
-                    cond = move_prob < ratio
-                    self.x = np.where(cond[:, None, None, None], x2, self.x)
-                    lp1 = np.where(cond, lp2, lp1)
-                    self.num_accept += np.sum(cond)
+                    lp1 = self.electron_update(lp1, lp2, move_prob, ratio, x2)
 
         elif index is not None:
             index = int(index)
@@ -245,9 +285,7 @@ class ElectronSampler:
                         np.random.uniform(low=0,
                                           high=1.0,
                                           size=np.shape(self.x)[0]))
-                    cond = move_prob < ratio
-                    lp1 = np.where(cond, lp2, lp1)
-                    self.x = np.where(cond[:, None, None, None], x2, self.x)
+                    lp1 = self.electron_update(lp1, lp2, move_prob, ratio, x2)
 
             elif asymmetric_func is not None:
                 init_dev = stddev * asymmetric_func(
@@ -269,10 +307,7 @@ class ElectronSampler:
                         np.random.uniform(low=0,
                                           high=1.0,
                                           size=np.shape(self.x)[0]))
-                    cond = move_prob < ratio
-                    self.x = np.where(cond[:, None, None, None], x2, self.x)
-                    lp1 = np.where(cond, lp2, lp1)
-                    self.num_accept += np.sum(cond)
+                    lp1 = self.electron_update(lp1, lp2, move_prob, ratio, x2)
 
         return self.num_accept / (
             (i + 1) * np.shape(self.x)[0])  # accepted move ratio

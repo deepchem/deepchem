@@ -166,7 +166,8 @@ def test_grover_pretraining_task_overfit(tmpdir):
                         features_dim=2048,
                         hidden_size=128,
                         functional_group_size=85,
-                        task='pretraining')
+                        task='pretraining',
+                        device=torch.device('cpu'))
 
     # since pretraining is a self-supervision task where labels are generated during
     # preparing batch, we mock _prepare_batch_for_pretraining to set all labels to 0.
@@ -240,7 +241,8 @@ def test_grover_model_overfit_finetune(tmpdir):
                         functional_group_size=85,
                         mode='regression',
                         task='finetuning',
-                        model_dir='gm_ft')
+                        model_dir='gm_ft',
+                        device=torch.device('cpu'))
 
     loss = model.fit(graph_data, nb_epoch=200)
     scores = model.evaluate(
@@ -275,11 +277,11 @@ def test_grover_model_save_restore(tmpdir, task):
         'task': task
     }
 
-    old_model = GroverModel(**model_config)
+    old_model = GroverModel(**model_config, device=torch.device('cpu'))
     old_model._ensure_built()
     old_model.save_checkpoint()
 
-    new_model = GroverModel(**model_config)
+    new_model = GroverModel(**model_config, device=torch.device('cpu'))
     new_model._ensure_built()
     # checking weights don't match before restore
     old_state = old_model.model.state_dict()
@@ -323,14 +325,14 @@ def test_load_from_pretrained_embeddings(tmpdir):
     }
     model_config['task'] = 'pretraining'
 
-    pretrain_model = GroverModel(**model_config)
+    pretrain_model = GroverModel(**model_config, device=torch.device('cpu'))
     pretrain_model._ensure_built()
     pretrain_model.save_checkpoint()
 
     model_config['task'] = 'finetuning'
     model_config['model_dir'] = os.path.join(tmpdir, 'finetune_model')
 
-    finetune_model = GroverModel(**model_config)
+    finetune_model = GroverModel(**model_config, device=torch.device('cpu'))
     finetune_model._ensure_built()
 
     pm_e_sdict = pretrain_model.model.embedding.state_dict()

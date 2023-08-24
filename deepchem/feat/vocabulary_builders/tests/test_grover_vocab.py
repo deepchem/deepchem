@@ -6,19 +6,20 @@ import deepchem as dc
 def testGroverAtomVocabularyBuilder():
     from deepchem.feat.vocabulary_builders.grover_vocab import GroverAtomVocabularyBuilder
     file = tempfile.NamedTemporaryFile()
-    dataset = dc.data.NumpyDataset(X=[['CC(=O)C', 'CCC']])
+    dataset = dc.data.NumpyDataset(X=[['CC(=O)C'], ['CCC']])
     vocab = GroverAtomVocabularyBuilder()
     vocab.build(dataset)
     assert vocab.stoi == {
         '<pad>': 0,
         '<other>': 1,
         'C_C-SINGLE1': 2,
-        'C_C-SINGLE2_O-DOUBLE1': 3,
-        'O_C-DOUBLE1': 4
+        'C_C-SINGLE2': 3,
+        'C_C-SINGLE2_O-DOUBLE1': 4,
+        'O_C-DOUBLE1': 5
     }
     assert vocab.itos == [
-        '<pad>', '<other>', 'C_C-SINGLE1', 'C_C-SINGLE2_O-DOUBLE1',
-        'O_C-DOUBLE1'
+        '<pad>', '<other>', 'C_C-SINGLE1', 'C_C-SINGLE2',
+        'C_C-SINGLE2_O-DOUBLE1', 'O_C-DOUBLE1'
     ]
     vocab.save(file.name)
 
@@ -38,7 +39,7 @@ def testGroverAtomVocabularyBuilder():
 def testGroverBondVocabularyBuilder():
     from deepchem.feat.vocabulary_builders.grover_vocab import GroverBondVocabularyBuilder
     file = tempfile.NamedTemporaryFile()
-    dataset = dc.data.NumpyDataset(X=[['CC(=O)C', 'CCC']])
+    dataset = dc.data.NumpyDataset(X=[['CC(=O)C'], ['CCC']])
     vocab = GroverBondVocabularyBuilder()
     vocab.build(dataset)
     assert vocab.stoi == {
@@ -48,12 +49,15 @@ def testGroverBondVocabularyBuilder():
             1,
         '(SINGLE-STEREONONE-NONE)_C-(DOUBLE-STEREONONE-NONE)1_C-(SINGLE-STEREONONE-NONE)1':
             2,
+        '(SINGLE-STEREONONE-NONE)_C-(SINGLE-STEREONONE-NONE)1':
+            3,
         '(DOUBLE-STEREONONE-NONE)_C-(SINGLE-STEREONONE-NONE)2':
-            3
+            4,
     }
     assert vocab.itos == [
         '<pad>', '<other>',
         '(SINGLE-STEREONONE-NONE)_C-(DOUBLE-STEREONONE-NONE)1_C-(SINGLE-STEREONONE-NONE)1',
+        '(SINGLE-STEREONONE-NONE)_C-(SINGLE-STEREONONE-NONE)1',
         '(DOUBLE-STEREONONE-NONE)_C-(SINGLE-STEREONONE-NONE)2'
     ]
     vocab.save(file.name)
@@ -76,7 +80,7 @@ def testGroverBondVocabularyBuilder():
 def testGroverAtomVocabTokenizer():
     from deepchem.feat.vocabulary_builders.grover_vocab import GroverAtomVocabularyBuilder, GroverAtomVocabTokenizer
     file = tempfile.NamedTemporaryFile()
-    dataset = dc.data.NumpyDataset(X=[['CC(=O)C', 'CCC']])
+    dataset = dc.data.NumpyDataset(X=[['CC(=O)C'], ['CCC']])
     vocab = GroverAtomVocabularyBuilder()
     vocab.build(dataset)
     vocab.save(file.name)  # build and save the vocabulary
@@ -91,7 +95,7 @@ def testGroverAtomVocabTokenizer():
 def testGroverBondVocabTokenizer():
     from deepchem.feat.vocabulary_builders.grover_vocab import GroverBondVocabularyBuilder, GroverBondVocabTokenizer
     file = tempfile.NamedTemporaryFile()
-    dataset = dc.data.NumpyDataset(X=[['CC(=O)C', 'CCC']])
+    dataset = dc.data.NumpyDataset(X=[['CC(=O)C'], ['CCC']])
     vocab = GroverBondVocabularyBuilder()
     vocab.build(dataset)
     vocab.save(file.name)  # build and save the vocabulary
