@@ -1277,6 +1277,7 @@ def test_encoder_rnn():
                                       hidden_size)
     assert hidden.shape == (1, input.shape[0], hidden_size)
 
+
 @pytest.mark.torch
 def test_FerminetElectronFeature():
     "Test for FerminetElectronFeature layer."
