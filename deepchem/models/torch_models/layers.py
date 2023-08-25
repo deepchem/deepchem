@@ -5552,9 +5552,15 @@ class MXMNetLocalMessagePassing(nn.Module):
 
 
 class MXMNetSphericalBasisLayer(torch.nn.Module):
-    """This layer combines radial basis functions (RBF) and spherical harmonic functions
-    to transform input distances and angles.
-
+    """It takes pairwise distances and angles between atoms as input and combines radial basis functions with spherical harmonic 
+    functions to generate a fixed-size representation that captures both radial and orientation information. This type of 
+    representation is commonly used in molecular modeling and simulations to capture the behavior of atoms and molecules in 
+    chemical systems. 
+    
+    Inside the initialization, Bessel basis functions and real spherical harmonic functions are generated. 
+    The Bessel basis functions capture the radial information, and the spherical harmonic functions capture the orientation information. 
+    These functions are generated based on the provided num_spherical and num_radial parameters.
+    
     Examples
     --------
     >>> dist = torch.tensor([0.5, 1.0, 2.0, 3.0])
