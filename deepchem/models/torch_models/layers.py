@@ -4934,3 +4934,141 @@ class FerminetElectronFeature(torch.nn.Module):
             two_electron = two_electron_tmp
 
         return one_electron, two_electron
+
+
+class FerminetEnvelope(torch.nn.Module):
+    """
+    A Pytorch Module implementing the ferminet's envlope layer [1]_, which is used to calculate the spin up and spin down orbital values.
+    This is a helper class for the Ferminet model.
+    The layer consists of 4 types of parameter lists - envelope_w, envelope_g, sigma and pi, which helps to calculate the orbital vlaues.
+
+    References
+    ----------
+    .. [1] Spencer, James S., et al. Better, Faster Fermionic Neural Networks. arXiv:2011.07125, arXiv, 13 Nov. 2020. arXiv.org, http://arxiv.org/abs/2011.07125.
+
+    Examples
+    --------
+    >>> electron_layer = dc.models.torch_models.layers.FerminetElectronFeature([32,32,32],[16,16,16], 4, 8, 10, [5,5])
+    >>> one_electron_test = torch.randn(8, 10, 4*4)
+    >>> two_electron_test = torch.randn(8, 10, 10, 4)
+    >>> one, two = electron_layer.forward(one_electron_test, two_electron_test)
+    >>> one.size()
+    torch.Size([8, 10, 32])
+    >>> two.size()
+    torch.Size([8, 10, 10, 16])
+    """
+
+    def __init__(self, n_one: List[int], n_two: List[int], total_electron: int,
+                 batch_size: int, spin: List[int], no_of_atoms: int,
+                 determinant: int):
+        """
+        Parameters
+        ----------
+        n_one: List[int]
+            List of integer values containing the dimensions of each n_one layer's output
+        n_two: List[int]
+            List of integer values containing the dimensions of each n_one layer's output
+        total_electron: int
+            Value containing the total number of electrons in the molecule system
+        batch_size: int
+            Value containing the number of batches for the input provided
+        spin: List[int]
+            List data structure in the format of [number of up-spin electrons, number of down-spin electrons]
+        no_of_atoms: int
+            Value containing the number of atoms in the molecule system
+        determinant: int
+            The number of determinants to be incorporated in the post-HF solution.
+        envelope_w: torch.nn.ParameterList
+            torch ParameterList containing the torch Tensor with n_one layer's dimension size.
+        envelope_g: torch.nn.ParameterList
+            torch ParameterList containing the torch Tensor with the unit dimension size, which acts as bias.
+        sigma: torch.nn.ParameterList
+            torch ParameterList containing the torch Tensor with the unit dimension size.
+        pi: torch.nn.ParameterList
+            torch ParameterList containing the linear layer with the n_two layer's dimension size.
+        layer_size: int
+            Value containing the number of n_one and n_two layers
+        """
+
+        super(FerminetElectronFeature, self).__init__()
+        self.n_one = n_one
+        self.n_two = n_two
+        self.total_electron = total_electron
+        self.batch_size = batch_size
+        self.spin = spin
+        self.no_of_atoms = no_of_atoms
+        self.determinant = determinant
+
+        self.layer_size: int = len(self.n_one)
+
+        self.envelope_w = torch.nn.ParameterList()
+        self.envelope_g = torch.nn.ParameterList()
+        self.sigma = torch.nn.ParameterList()
+        self.pi = torch.nn.ParameterList()
+
+        for i in range(self.determinant):
+            for j in range(self.total_electron):
+                self.envelope_w.append(
+                    torch.nn.init.uniform(torch.empty(n_one[-1], 1),
+                                          b=0.00001).squeeze(-1))
+                self.envelope_g.append(
+                    torch.nn.init.uniform(torch.empty(1),
+                                          b=0.000001).squeeze(0))
+                for k in range(self.no_of_atoms):
+                    self.sigma.append(
+                        torch.nn.init.uniform(torch.empty(self.no_of_atoms, 1),
+                                              b=0.000001).squeeze(0))
+                    self.pi.append(
+                        torch.nn.init.uniform(torch.empty(self.no_of_atoms, 1),
+                                              b=0.00001).squeeze(0))
+
+    def forward(self, one_electron: torch.Tensor,
+                one_electron_vector_permuted: torch.Tensor):
+        """
+        Parameters
+        ----------
+        one_electron: torch.Tensor
+            Torch tensor which is output from FerminElectronFeature layer in the shape of (batch_size, number of elctrons, n_one layer size).
+        one_electron_vector_permuted: torch.Tensor
+            Torch tensor which is shape permuted vector of the original one_electron vector tensor. shape of the tensor should be (batch_size, number of atoms, number of electrons, 3).
+
+        Returns
+        -------
+        psi_up: torch.Tensor
+            Torch tensor with up spin electron values in a the shape of (batch_size, determinant, up_spin, up_spin)
+        psi_down: torch.Tensor
+            Torch tensor with down spin electron values in a the shape of (batch_size, determinant, down_spin, down_spin)
+        """
+        psi_up = torch.zeros(self.batch_size, self.determinant, self.spin[0],
+                             self.spin[0])
+        psi_down = torch.zeros(self.batch_size, self.determinant, self.spin[1],
+                               self.spin[1])
+
+        for k in range(self.determinant):
+            for i in range(self.spin[0]):
+                one_d_index = (k * (self.total_electron)) + i
+                for j in range(self.spin[0]):
+                    psi_up[:, k, i, j] = (torch.sum(
+                        (self.envelope_w[one_d_index] * one_electron[:, j, :]) +
+                        self.envelope_g[one_d_index],
+                        dim=1)) * torch.sum(torch.exp(-torch.abs(
+                            torch.norm(self.sigma[one_d_index] *
+                                       one_electron_vector_permuted[:, j, :, :],
+                                       dim=2))) * self.pi[one_d_index].T,
+                                            dim=1)
+
+            for i in range(self.spin[0], self.spin[0] + self.spin[1]):
+                one_d_index = (k * (self.total_electron)) + i
+                for j in range(self.spin[0], self.spin[0] + self.spin[1]):
+                    psi_down[:, k, i - self.spin[0], j - self.spin[0]] = (
+                        torch.sum((self.envelope_w[one_d_index] *
+                                   one_electron[:, j, :]) +
+                                  self.envelope_g[one_d_index],
+                                  dim=1)
+                    ) * torch.sum(torch.exp(-torch.abs(
+                        torch.norm(self.sigma[one_d_index] *
+                                   one_electron_vector_permuted[:, j, :, :],
+                                   dim=2))) * self.pi[one_d_index].T,
+                                  dim=1)
+
+        return psi_up, psi_down
