@@ -5001,8 +5001,9 @@ class FerminetElectronFeature(torch.nn.Module):
                 f: torch.Tensor = torch.cat((one_electron[:, i, :], g_one_up,
                                              g_one_down, g_two_up, g_two_down),
                                             dim=1)
-                if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
-                        self.n_two[l] != self.n_two[l - 1]):
+                if l == 0 or (self.n_one[l]
+                              != self.n_one[l - 1]) or (self.n_two[l]
+                                                        != self.n_two[l - 1]):
                     one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f.to(
                         torch.float32)))
                     two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
@@ -5258,13 +5259,15 @@ class MXMNetLocalMessagePassing(nn.Module):
     The MXMNetLocalMessagePassing class defines a local message passing layer used in the MXMNet model [1]_.
     This layer integrates cross-layer mappings inside the local message passing, allowing for the transformation
     of input tensors representing pairwise distances and angles between atoms in a molecular system.
-    The layer aggregates information using message passing and updates atom representations accordingly.
-    The 3-step message passing scheme is proposed in the paper [1]_.
-    1. Step 1 contains Message Passing 1 that captures the two-hop angles and related pairwise distances to update edge-level embeddings {mji}.
+    The layer aggregates information using message passing and updates atom representations accordingly. 
+    The 3-step message passing scheme is proposed in the paper [1]_. 
+
+    1. Step 1 contains Message Passing 1 that captures the two-hop angles and related pairwise distances to update edge-level embeddings {mji}. 
     2. Step 2 contains Message Passing 2 that captures the one-hop angles and related pairwise distances to further update {mji}. 
-    3. Step 3 finally aggregates {mji} to update the node-level embedding hi.
+    3. Step 3 finally aggregates {mji} to update the node-level embedding hi. 
     
-    These steps in the t-th iteration can be formulated as follows:
+    These steps in the t-th iteration can be formulated as follows: 
+
     Let:
         - **mlp** : ``MultilayerPerceptron``
         - **res** : ``ResidualBlock``
@@ -5278,21 +5281,34 @@ class MXMNetLocalMessagePassing(nn.Module):
         - **rbf** : ``Input tensor representing radial basis functions``
         - **sbf** : ``Input tensor representing the spherical basis functions``
         - **idx_jj** : ``Tensor containing indices for the j and j' where j' is other neighbours of i``
+
     Step 1: Message Passing 1
+
         .. code-block:: python
+
             m = [h[i] || h[j] || rbf] 
             m_kj = mlp_kj(m[idx_kj]) * (rbf*W) * mlp_sbf1(sbf1) 
             m_ji = mlp_ji_1(m) + reduce_sum(m_kj) 
-    Step 2: Message Passing 2
+
+    Step 2: Message Passing 2 
+        
         .. code-block:: python
+
             m_ji = mlp_jj(m_ji[idx_jj]) * (rbf*W) * mlp_sbf2(sbf2) 
             m_ji = mlp_ji_2(m_ji) + reduce_sum(m_ji) 
+
     Step 3: Aggregation and Update
+
         **In each aggregation step**
+
         .. code-block:: python
+
             m = reduce_sum(m_ji*(rbf*W))
+
         **In each update step**
+
         .. code-block:: python
+
             hm_i = res1(m) 
             h_i_new = mlp2(hm_i) + h_i 
             h_i_new = res2(h_i_new) 
@@ -5321,7 +5337,6 @@ class MXMNetLocalMessagePassing(nn.Module):
     >>> edge_index = torch.tensor([[0, 1, 0, 2, 0, 3, 0, 4],
     ...                           [1, 0, 2, 0, 3, 0, 4, 0]])
     >>> out = MXMNetLocalMessagePassing(dim, activation_fn='silu')
-    
     >>> output = out(h,
     ...             rbf,
     ...             sbf1,
@@ -5414,6 +5429,7 @@ class MXMNetLocalMessagePassing(nn.Module):
                 edge_index: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """The forward method performs the computation for the MXMNetLocalMessagePassing Layer.
         This method processes the input tensors representing atom features, radial basis functions (RBF), and spherical basis functions (SBF) using message passing over the molecular graph. The message passing updates the atom representations, and the resulting tensor represents the updated atom feature after local message passing.
+
         Parameters
         ----------
         node_features : torch.Tensor
@@ -5434,12 +5450,13 @@ class MXMNetLocalMessagePassing(nn.Module):
             Tensor containing indices for the j and i atoms involved in the second message passing step.
         edge_index : torch.Tensor
             Tensor containing the edge indices of the molecular graph, with shape (2, M), where M is the number of edges.
+
         Returns
         -------
-        node_features, output: Tuple[torch.Tensor, torch.Tensor]
-            A tuple containing two output tensors:
-            - Updated atom representations after local message passing.
-            - Output tensor representing a fixed-size representation, with shape (N, 1).
+        node_features: torch.Tensor
+            Updated atom representations after local message passing.
+        output: torch.Tensor
+            Output tensor representing a fixed-size representation, with shape (N, 1).
         """
 
         residual_node_features: torch.Tensor = node_features
