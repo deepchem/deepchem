@@ -5001,9 +5001,8 @@ class FerminetElectronFeature(torch.nn.Module):
                 f: torch.Tensor = torch.cat((one_electron[:, i, :], g_one_up,
                                              g_one_down, g_two_up, g_two_down),
                                             dim=1)
-                if l == 0 or (self.n_one[l]
-                              != self.n_one[l - 1]) or (self.n_two[l]
-                                                        != self.n_two[l - 1]):
+                if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
+                        self.n_two[l] != self.n_two[l - 1]):
                     one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f.to(
                         torch.float32)))
                     two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
