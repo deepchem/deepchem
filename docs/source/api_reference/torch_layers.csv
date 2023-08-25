@@ -45,3 +45,4 @@ DTNNGather, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
 MXMNetGlobalMessagePassing, `ref <https://arxiv.org/pdf/2011.07457>`_, MXMNetModel
 MXMNetBesselBasisLayer, `ref <https://arxiv.org/pdf/2011.07457>`_, MXMNetModel
 FerminetElectronFeature, `ref <https://arxiv.org/pdf/1909.02487.pdf>`_, FerminetModel
+FerminetEnvelope, `ref <https://arxiv.org/pdf/1909.02487.pdf>`_, FerminetModel
