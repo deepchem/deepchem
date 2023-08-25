@@ -4794,6 +4794,91 @@ class MXMNetBesselBasisLayer(torch.nn.Module):
         return output
 
 
+class EncoderRNN(nn.Module):
+    """Encoder Layer for SeqToSeq Model.
+
+    It takes input sequences and converts them into a fixed-size context vector
+    called the "embedding". This vector contains all relevant information from
+    the input sequence. This context vector is then used by the decoder to
+    generate the output sequence and can also be used as a representation of the
+    input sequence for other Models.
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models.layers import EncoderRNN
+    >>> import torch 
+    >>> embedding_dimensions = 7
+    >>> num_input_token = 4
+    >>> input = torch.tensor([[1, 0, 2, 3, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]])
+    >>> layer = EncoderRNN(num_input_token, embedding_dimensions)
+    >>> emb, hidden = layer(input)
+    >>> emb.shape
+    torch.Size([3, 5, 7])
+
+    References
+    ----------
+    .. [1] Sutskever et al., "Sequence to Sequence Learning with Neural Networks"
+
+    """
+
+    def __init__(self,
+                 input_size: int,
+                 hidden_size: int,
+                 dropout_p: float = 0.1,
+                 **kwargs):
+        """Initialize the EncoderRNN layer.
+
+        Parameters
+        ----------
+        input_size: int
+            The number of expected features.
+        hidden_size: int
+            The number of features in the hidden state.
+        dropout_p: float (default 0.1)
+            The dropout probability to use during training.
+
+        """
+        super(EncoderRNN, self).__init__(**kwargs)
+        self.embedding = nn.Embedding(input_size, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True)
+        self.dropout = nn.Dropout(dropout_p)
+
+    def __repr__(self) -> str:
+        """Returns a string representing the configuration of the layer.
+
+        Returns
+        -------
+        input_size: int
+            Number of expected features.
+        hidden_size: int
+            Number of features in the hidden state.
+        dropout_p: float (default 0.1)
+            Dropout probability to use during training.
+
+        """
+        return f'{self.__class__.__name__}(input_size={self.input_size}, hidden_size={self.hidden_size}, dropout_p={self.dropout_p})'
+
+    def forward(self, input: torch.Tensor):
+        """Returns Embeddings according to provided sequences.
+
+        Parameters
+        ----------
+        input: torch.Tensor
+            Batch of input sequences.
+        
+        Returns
+        -------
+        output: torch.Tensor
+            Batch of Embeddings.
+        hidden: torch.Tensor
+            Batch of hidden states.
+
+        """
+        embedded = self.dropout(self.embedding(input))
+        output, hidden = self.gru(embedded)
+        return output, hidden
+
+
 class FerminetElectronFeature(torch.nn.Module):
     """
     A Pytorch Module implementing the ferminet's electron features interaction layer _[1]. This is a helper class for the Ferminet model.
