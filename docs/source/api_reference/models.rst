@@ -484,6 +484,11 @@ GroverModel
 .. autoclass:: deepchem.models.torch_models.GroverModel
   :members:
 
+DTNNModel
+---------
+
+.. autoclass:: deepchem.models.torch_models.DTNNModel
+  :members:
 
 Density Functional Theory Model - XCModel
 -----------------------------------------

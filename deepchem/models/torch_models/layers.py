@@ -3752,7 +3752,7 @@ class DTNNGather(nn.Module):
             Number of features for each atom
         n_outputs: int, optional
             Number of features for each molecule(output)
-        layer_sizes: list of int, optional(default=[1000])
+        layer_sizes: list of int, optional(default=[100])
             Structure of hidden layer(s)
         initializer: str, optional
             Weight initialization for filters.
