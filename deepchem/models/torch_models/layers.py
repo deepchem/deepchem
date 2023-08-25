@@ -4948,14 +4948,14 @@ class FerminetEnvelope(torch.nn.Module):
 
     Examples
     --------
-    >>> electron_layer = dc.models.torch_models.layers.FerminetElectronFeature([32,32,32],[16,16,16], 4, 8, 10, [5,5])
-    >>> one_electron_test = torch.randn(8, 10, 4*4)
-    >>> two_electron_test = torch.randn(8, 10, 10, 4)
-    >>> one, two = electron_layer.forward(one_electron_test, two_electron_test)
-    >>> one.size()
-    torch.Size([8, 10, 32])
+    >>> envelope_layer = dc.models.torch_models.layers.FerminetEnvelope([32, 32, 32], [16, 16, 16], 10, 8, [5, 5], 5, 16)
+    >>> one_electron = torch.randn(8, 10, 32)
+    >>> one_electron_permuted = torch.randn(8, 5, 10, 3)
+    >>> psi_up, psi_down = envelope_layer.forward(one_electron, one_electron_permuted)
+    >>> psi_up.size()
+    torch.Size([8, 16, 5, 5])
     >>> two.size()
-    torch.Size([8, 10, 10, 16])
+    torch.Size([8, 16, 5, 5])
     """
 
     def __init__(self, n_one: List[int], n_two: List[int], total_electron: int,
@@ -4990,7 +4990,7 @@ class FerminetEnvelope(torch.nn.Module):
             Value containing the number of n_one and n_two layers
         """
 
-        super(FerminetElectronFeature, self).__init__()
+        super(FerminetEnvelope, self).__init__()
         self.n_one = n_one
         self.n_two = n_two
         self.total_electron = total_electron
