@@ -118,7 +118,6 @@ class BaseGrid(xt.EditableModule):
     https://github.com/diffqc/dqc/blob/0fe821fc92cb3457fb14f6dff0c223641c514ddb/dqc/grid/base_grid.py
     """
 
-
     @abstractproperty
     def dtype(self) -> torch.dtype:
         pass
@@ -160,7 +159,7 @@ class BaseGrid(xt.EditableModule):
     @abstractmethod
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
         """
-        Return a list with the parameter names corresponding to the given method 
+        Return a list with the parameter names corresponding to the given method
         (methodname)
         Returns
         -------
