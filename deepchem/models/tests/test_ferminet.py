@@ -32,6 +32,7 @@ def test_FerminetModel():
 @pytest.mark.dqc
 def test_prepare_hf_solution():
     # Test for the prepare_hf_solution function of FerminetModel class
+    from deepchem.models.torch_models.ferminet import FerminetModel
     H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
     mol = FerminetModel(H2_molecule, spin=0, ion_charge=0)
     electron_coordinates = np.random.rand(2, 3)
