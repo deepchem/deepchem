@@ -52,9 +52,6 @@ jobs:
     - name: Import numpy
       shell: bash -l {0}
       run: python -c 'import numpy as np; print ("numpy version is %s" % np.__version__)'
-    - name: Import torch
-      shell: bash -l {0}
-      run: python -c 'import torch; print("Torch version %s" % torch.__version__)'
     - name: Test Install
       shell: bash -l {0}
       run: |
