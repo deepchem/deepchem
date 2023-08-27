@@ -3752,7 +3752,7 @@ class DTNNGather(nn.Module):
             Number of features for each atom
         n_outputs: int, optional
             Number of features for each molecule(output)
-        layer_sizes: list of int, optional(default=[1000])
+        layer_sizes: list of int, optional(default=[100])
             Structure of hidden layer(s)
         initializer: str, optional
             Weight initialization for filters.
@@ -4794,6 +4794,92 @@ class MXMNetBesselBasisLayer(torch.nn.Module):
         return output
 
 
+class EncoderRNN(nn.Module):
+    """Encoder Layer for SeqToSeq Model.
+
+    It takes input sequences and converts them into a fixed-size context vector
+    called the "embedding". This vector contains all relevant information from
+    the input sequence. This context vector is then used by the decoder to
+    generate the output sequence and can also be used as a representation of the
+    input sequence for other Models.
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models.layers import EncoderRNN
+    >>> import torch 
+    >>> embedding_dimensions = 7
+    >>> num_input_token = 4
+    >>> input = torch.tensor([[1, 0, 2, 3, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]])
+    >>> layer = EncoderRNN(num_input_token, embedding_dimensions)
+    >>> emb, hidden = layer(input)
+    >>> emb.shape
+    torch.Size([3, 5, 7])
+
+    References
+    ----------
+    .. [1] Sutskever et al., "Sequence to Sequence Learning with Neural Networks"
+
+    """
+
+
+    def __init__(self,
+                 input_size: int,
+                 hidden_size: int,
+                 dropout_p: float = 0.1,
+                 **kwargs):
+        """Initialize the EncoderRNN layer.
+
+        Parameters
+        ----------
+        input_size: int
+            The number of expected features.
+        hidden_size: int
+            The number of features in the hidden state.
+        dropout_p: float (default 0.1)
+            The dropout probability to use during training.
+
+        """
+        super(EncoderRNN, self).__init__(**kwargs)
+        self.embedding = nn.Embedding(input_size, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True)
+        self.dropout = nn.Dropout(dropout_p)
+
+    def __repr__(self) -> str:
+        """Returns a string representing the configuration of the layer.
+
+        Returns
+        -------
+                input_size: int
+            Number of expected features.
+        hidden_size: int
+            Number of features in the hidden state.
+        dropout_p: float (default 0.1)
+            Dropout probability to use during training.
+
+        """
+        return f'{self.__class__.__name__}(input_size={self.input_size}, hidden_size={self.hidden_size}, dropout_p={self.dropout_p})'
+
+    def forward(self, input: torch.Tensor):
+        """Returns Embeddings according to provided sequences.
+
+        Parameters
+        ----------
+        input: torch.Tensor
+            Batch of input sequences
+
+        Returns
+        -------
+        output: torch.Tensor
+            Batch of Embeddings.
+        hidden: torch.Tensor
+            Batch of hidden states.
+
+        """
+        embedded = self.dropout(self.embedding(input))
+        output, hidden = self.gru(embedded)
+        return output, hidden
+
+
 class DecoderRNN(nn.Module):
     """Decoder Layer for SeqToSeq Model.
 
@@ -4855,7 +4941,7 @@ class DecoderRNN(nn.Module):
         self.MAX_LENGTH = max_length
         self.device = device
 
-    def __repr__(self) -> str:
+        def __repr__(self) -> str:
         """Returns a string representing the configuration of the layer.
 
         Returns
@@ -4918,3 +5004,145 @@ class DecoderRNN(nn.Module):
         output, hidden = self.gru(output, hidden)
         output = self.out(output)
         return output, hidden
+
+
+class FerminetElectronFeature(torch.nn.Module):
+    """
+    A Pytorch Module implementing the ferminet's electron features interaction layer _[1]. This is a helper class for the Ferminet model.
+
+    The layer consists of 2 types of linear layers - v for the one elctron features and w for the two electron features. The number and dimensions
+    of each layer depends on the number of atoms and electrons in the molecule system.
+
+    References
+    ----------
+    .. [1] Spencer, James S., et al. Better, Faster Fermionic Neural Networks. arXiv:2011.07125, arXiv, 13 Nov. 2020. arXiv.org, http://arxiv.org/abs/2011.07125.
+
+    Examples
+    --------
+    >>> electron_layer = dc.models.torch_models.layers.FerminetElectronFeature([32,32,32],[16,16,16], 4, 8, 10, [5,5])
+    >>> one_electron_test = torch.randn(8, 10, 4*4)
+    >>> two_electron_test = torch.randn(8, 10, 10, 4)
+    >>> one, two = electron_layer.forward(one_electron_test, two_electron_test)
+    >>> one.size()
+    torch.Size([8, 10, 32])
+    >>> two.size()
+    torch.Size([8, 10, 10, 16])
+    """
+
+    def __init__(self, n_one: List[int], n_two: List[int], no_of_atoms: int,
+                 batch_size: int, total_electron: int, spin: List[int]):
+        """
+        Parameters
+        ----------
+        n_one: List[int]
+            List of integer values containing the dimensions of each n_one layer's output
+        n_two: List[int]
+            List of integer values containing the dimensions of each n_one layer's output
+        no_of_atoms: int:
+            Value containing the number of atoms in the molecule system
+        batch_size: int
+            Value containing the number of batches for the input provided
+        total_electron: int
+            Value containing the total number of electrons in the molecule system
+        spin: List[int]
+            List data structure in the format of [number of up-spin electrons, number of down-spin electrons]
+        v: torch.nn.ModuleList
+            torch ModuleList containing the linear layer with the n_one layer's dimension size.
+        w: torch.nn.ModuleList
+            torch ModuleList containing the linear layer with the n_two layer's dimension size.
+        layer_size: int
+            Value containing the number of n_one and n_two layers
+        """
+
+        super(FerminetElectronFeature, self).__init__()
+        self.n_one = n_one
+        self.n_two = n_two
+        self.no_of_atoms = no_of_atoms
+        self.batch_size = batch_size
+        self.total_electron = total_electron
+        self.spin = spin
+
+        self.v: torch.nn.ModuleList = torch.nn.ModuleList()
+        self.w: torch.nn.ModuleList = torch.nn.ModuleList()
+        self.layer_size: int = len(self.n_one)
+
+        # Initializing the first layer (first layer has different dims than others)
+        self.v.append(
+            nn.Linear(8 + 3 * 4 * self.no_of_atoms, self.n_one[0], bias=True))
+        #filling the weights with 1e-9 for faster convergence
+        self.v[0].weight.data.fill_(1e-9)
+        self.v[0].bias.data.fill_(1e-9)
+
+        self.w.append(nn.Linear(4, self.n_two[0], bias=True))
+        self.w[0].weight.data.fill_(1e-9)
+        self.w[0].bias.data.fill_(1e-9)
+
+        for i in range(1, self.layer_size):
+            self.v.append(
+                nn.Linear(3 * self.n_one[i - 1] + 2 * self.n_two[i - 1],
+                          n_one[i],
+                          bias=True))
+            self.v[i].weight.data.fill_(1e-9)
+            self.v[i].bias.data.fill_(1e-9)
+
+            self.w.append(nn.Linear(self.n_two[i - 1], self.n_two[i],
+                                    bias=True))
+            self.w[i].weight.data.fill_(1e-9)
+            self.w[i].bias.data.fill_(1e-9)
+
+    def forward(self, one_electron: torch.Tensor, two_electron: torch.Tensor):
+        """
+        Parameters
+        ----------
+        one_electron: torch.Tensor
+            The one electron feature which has the shape (batch_size, number of electrons, number of atoms * 4). Here the last dimension contains
+            the electron's distance from each of the atom as a vector concatenated with norm of that vector.
+        two_electron: torch.Tensor
+            The two electron feature which has the shape (batch_size, number of electrons, number of electron , 4). Here the last dimension contains
+            the electron's distance from the other electrons as a vector concatenated with norm of that vector.
+
+        Returns
+        -------
+        one_electron: torch.Tensor
+            The one electron feature after passing through the layer which has the shape (batch_size, number of electrons, n_one shape).
+        two_electron: torch.Tensor
+            The two electron feature after passing through the layer which has the shape (batch_size, number of electrons, number of electron , n_two shape).   
+        """
+        for l in range(self.layer_size):
+            # Calculating one-electron feature's average
+            g_one_up: torch.Tensor = torch.mean(
+                one_electron[:, :self.spin[0], :], dim=-2)
+            g_one_down: torch.Tensor = torch.mean(
+                one_electron[:, self.spin[0]:, :], dim=-2)
+            one_electron_tmp: torch.Tensor = torch.zeros(
+                self.batch_size, self.total_electron, self.n_one[l])
+            two_electron_tmp: torch.Tensor = torch.zeros(
+                self.batch_size, self.total_electron, self.total_electron,
+                self.n_two[l])
+            for i in range(self.total_electron):
+                # Calculating two-electron feature's average
+                g_two_up: torch.Tensor = torch.mean(
+                    two_electron[:, i, :self.spin[0], :], dim=1)
+                g_two_down: torch.Tensor = torch.mean(
+                    two_electron[:, i, self.spin[0]:, :], dim=1)
+                f: torch.Tensor = torch.cat((one_electron[:, i, :], g_one_up,
+                                             g_one_down, g_two_up, g_two_down),
+                                            dim=1)
+                if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
+                        self.n_two[l] != self.n_two[l - 1]):
+                    one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f.to(
+                        torch.float32)))
+                    two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
+                        two_electron[:, i, :, :].to(torch.float32)))
+                else:
+                    one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f.to(
+                        torch.float32))) + one_electron[:, i, :].to(
+                            torch.float32)
+                    two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
+                        two_electron[:, i, :, :].to(
+                            torch.float32))) + two_electron[:, i, :].to(
+                                torch.float32)
+            one_electron = one_electron_tmp
+            two_electron = two_electron_tmp
+
+        return one_electron, two_electron
