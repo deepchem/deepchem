@@ -13,7 +13,7 @@ try:
     from deepchem.models.torch_models.infograph import InfoGraphStar, InfoGraphStarModel, InfoGraphEncoder, GINEncoder, InfoGraph, InfoGraphModel, InfoGraphEncoder
     from deepchem.models.torch_models.megnet import MEGNetModel
     from deepchem.models.torch_models.layers import MultilayerPerceptron, CNNModule, CombineMeanStd, WeightedLinearCombo, AtomicConvolution, NeighborList, SetGather, EdgeNetwork, WeaveLayer, WeaveGather, MolGANConvolutionLayer, MolGANAggregationLayer, MolGANMultiConvolutionLayer, MolGANEncoderLayer, EncoderRNN, FerminetElectronFeature
-except:
+except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'
     )
