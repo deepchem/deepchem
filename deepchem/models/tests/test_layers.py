@@ -1286,12 +1286,11 @@ def test_decoder_rnn():
     num_input_tokens = 12
     max_length = 4
     batch_size = 2
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     layer = torch_layers.DecoderRNN(embedding_dimensions, num_output_tokens,
-                                    max_length, device).to(device)
-    embeddings = torch.randn(batch_size, num_input_tokens, embedding_dimensions, device=device)
-    output, hidden, _ = layer([embeddings,
-                              embeddings[:, -1].unsqueeze(0).contiguous(), None])
+                                    max_length)
+    embeddings = torch.randn(batch_size, num_input_tokens, embedding_dimensions)
+    output, hidden, _ = layer(
+        [embeddings, embeddings[:, -1].unsqueeze(0).contiguous(), None])
     assert output.shape == (batch_size, max_length, num_output_tokens)
     assert hidden.shape == (1, batch_size, embedding_dimensions)
 

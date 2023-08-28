@@ -4896,12 +4896,9 @@ class DecoderRNN(nn.Module):
     >>> num_input_tokens = 12
     >>> max_length = 4
     >>> batch_size = 2
-    >>> device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    >>> layer = DecoderRNN(embedding_dimensions, num_output_tokens,
-    ...                                 max_length, device)
+    >>> layer = DecoderRNN(embedding_dimensions, num_output_tokens, max_length)
     >>> embeddings = torch.randn(batch_size, num_input_tokens, embedding_dimensions)
-    >>> output, hidden, _ = layer([embeddings,
-    ...                            embeddings[:, -1].unsqueeze(0).contiguous(), None])
+    >>> output, hidden, _ = layer([embeddings, embeddings[:, -1].unsqueeze(0).contiguous(), None])
     >>> output.shape
     torch.Size([2, 4, 7])
 
@@ -4911,11 +4908,7 @@ class DecoderRNN(nn.Module):
 
     """
 
-    def __init__(self,
-                 hidden_size:int,
-                 output_size:int,
-                 max_length:int,
-                 device: torch.device,
+    def __init__(self, hidden_size: int, output_size: int, max_length: int,
                  **kwargs):
         """Initialize the DecoderRNN layer.
         
@@ -4938,7 +4931,6 @@ class DecoderRNN(nn.Module):
         self.act = get_activation("log_softmax")
         self.step_act = get_activation("relu")
         self.MAX_LENGTH = max_length
-        self.device = device
 
     def __repr__(self) -> str:
         """Returns a string representing the configuration of the layer.
@@ -4974,7 +4966,10 @@ class DecoderRNN(nn.Module):
         """
         encoder_outputs, encoder_hidden, target_tensor = inputs
         batch_size = encoder_outputs.size(0)
-        decoder_input = torch.ones(batch_size, 1, dtype=torch.long, device=self.device)
+        decoder_input = torch.ones(batch_size,
+                                   1,
+                                   dtype=torch.long,
+                                   device=encoder_hidden.device)
         decoder_hidden = encoder_hidden
         decoder_outputs = []
 
@@ -5127,8 +5122,9 @@ class FerminetElectronFeature(torch.nn.Module):
                 f: torch.Tensor = torch.cat((one_electron[:, i, :], g_one_up,
                                              g_one_down, g_two_up, g_two_down),
                                             dim=1)
-                if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
-                        self.n_two[l] != self.n_two[l - 1]):
+                if l == 0 or (self.n_one[l]
+                              != self.n_one[l - 1]) or (self.n_two[l]
+                                                        != self.n_two[l - 1]):
                     one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f.to(
                         torch.float32)))
                     two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
