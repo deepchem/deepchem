@@ -4988,9 +4988,9 @@ class DecoderRNN(nn.Module):
                 decoder_input = topi.squeeze(
                     -1).detach()  # detach from history as input
 
-        decoder_outputs = torch.cat(decoder_outputs, dim=1)
-        decoder_outputs = self.act(decoder_outputs, dim=-1)
-        return decoder_outputs, decoder_hidden, None  # We return `None` for consistency in the training loop
+        decoder_output = torch.cat(decoder_outputs, dim=1)
+        decoder_output = self.act(decoder_outputs, dim=-1)
+        return decoder_output, decoder_hidden, None  # We return `None` for consistency in the training loop
 
     def forward_step(self, input, hidden):
         output = self.embedding(input)
