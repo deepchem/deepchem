@@ -4821,7 +4821,6 @@ class EncoderRNN(nn.Module):
 
     """
 
-
     def __init__(self,
                  input_size: int,
                  hidden_size: int,
@@ -4849,7 +4848,7 @@ class EncoderRNN(nn.Module):
 
         Returns
         -------
-                input_size: int
+        input_size: int
             Number of expected features.
         hidden_size: int
             Number of features in the hidden state.
@@ -4865,8 +4864,8 @@ class EncoderRNN(nn.Module):
         Parameters
         ----------
         input: torch.Tensor
-            Batch of input sequences
-
+            Batch of input sequences.
+        
         Returns
         -------
         output: torch.Tensor
@@ -4941,7 +4940,7 @@ class DecoderRNN(nn.Module):
         self.MAX_LENGTH = max_length
         self.device = device
 
-        def __repr__(self) -> str:
+    def __repr__(self) -> str:
         """Returns a string representing the configuration of the layer.
 
         Returns
