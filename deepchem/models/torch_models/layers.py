@@ -4989,7 +4989,7 @@ class DecoderRNN(nn.Module):
                     -1).detach()  # detach from history as input
 
         decoder_output = torch.cat(decoder_outputs, dim=1)
-        decoder_output = self.act(decoder_outputs, dim=-1)
+        decoder_output = self.act(decoder_output, dim=-1)
         return decoder_output, decoder_hidden, None  # We return `None` for consistency in the training loop
 
     def forward_step(self, input, hidden):
