@@ -4974,8 +4974,8 @@ class DecoderRNN(nn.Module):
         decoder_outputs = []
 
         for i in range(self.MAX_LENGTH):
-            decoder_output, decoder_hidden = self.forward_step(
-                decoder_input, decoder_hidden)
+            decoder_output, decoder_hidden = self.step(decoder_input,
+                                                       decoder_hidden)
             decoder_outputs.append(decoder_output)
 
             if target_tensor is not None:
@@ -4992,7 +4992,7 @@ class DecoderRNN(nn.Module):
         decoder_output = self.act(decoder_output, dim=-1)
         return decoder_output, decoder_hidden, None  # We return `None` for consistency in the training loop
 
-    def forward_step(self, input, hidden):
+    def step(self, input, hidden):
         output = self.embedding(input)
         output = self.step_act(output)
         output, hidden = self.gru(output, hidden)
