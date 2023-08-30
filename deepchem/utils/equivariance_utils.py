@@ -1,6 +1,9 @@
 import math
+from math import factorial
+from typing import Optional, Tuple
+from fractions import Fraction
+import numpy as np
 import torch
-from typing import Optional
 
 
 def su2_generators(k: int) -> torch.Tensor:
@@ -360,3 +363,234 @@ def commutator(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
             [ 12,   4]])
     """
     return torch.matmul(A, B) - torch.matmul(B, A)
+
+
+def calculate_clebsch_gordan_coefficient(j1_m1: Tuple[float, float],
+                                         j2_m2: Tuple[float, float],
+                                         j3_m3: Tuple[float, float]) -> float:
+    """Calculate the Clebsch-Gordan coefficient for coupling two angular
+    momenta (j1,m1) and (j2,m2) to give (j3,m3).
+
+    The Clebsch-Gordan coefficients are numbers used in quantum mechanics
+    for combining angular momenta. They represent the expansion of total
+    angular momentum states in a basis of uncoupled tensor products.
+
+    Mathematically, they're crucial in representation theory, especially
+    for compact Lie groups. They help break down a tensor product of
+    irreducible representations into its constituent parts.
+
+    Parameters:
+    -----------
+    j1_m1 : Tuple[float, float]
+        Tuple representing angular momentum and its z-component for particle 1.
+    j2_m2 : Tuple[float, float]
+        Tuple representing angular momentum and its z-component for particle 2.
+    j3_m3 : Tuple[float, float]
+        Tuple representing angular momentum and its z-component for the coupled system.
+
+    Returns:
+    --------
+    cg_coefficient : float
+        Clebsch-Gordan coefficient for the given coupling.
+
+    References:
+    -----------
+    .. [1] https://en.wikipedia.org/wiki/Clebsch_Gordan_coefficients
+    .. [2] https://en.wikipedia.org/wiki/Clebsch–Gordan_coefficients#Relation_to_Wigner_3-j_symbols
+    .. [3] https://qutip.org/docs/3.1.0/modules/qutip/utilities.html#clebsch_gordan
+
+    Examples:
+    ---------
+    >>> j1_m1 = (1, 1)
+    >>> j2_m2 = (1, -1)
+    >>> j3_m3 = (1, 0)
+    >>> calculate_clebsch_gordan_coefficient(j1_m1, j2_m2, j3_m3)
+    0.7071067811865476
+    """
+    # Unpack input tuples to extract angular momentum and z-component values
+    j1, m1 = j1_m1
+    j2, m2 = j2_m2
+    j3, m3 = j3_m3
+
+    # Check if z-components can be coupled to result in desired z-component
+    if m3 != m1 + m2:
+        return 0.0
+
+    # Calculate the allowed range of summation indices
+    vmin = max(-j1 + j2 + m3, -j1 + m1, 0)
+    vmax = min(j2 + j3 + m1, j3 - j1 + j2, j3 + m3)
+
+    # Define a function to calculate the factorial of a rounded number
+    def factorial_round(n: float) -> float:
+        return factorial(round(n))
+
+    # Calculate the overall Clebsch-Gordan coefficient (C)
+    C = ((2.0 * j3 + 1.0) * Fraction(
+        factorial_round(j3 + j1 - j2) * factorial_round(j3 - j1 + j2) *
+        factorial_round(j1 + j2 - j3) * factorial_round(j3 + m3) *
+        factorial_round(j3 - m3),
+        factorial_round(j1 + j2 + j3 + 1) * factorial_round(j1 - m1) *
+        factorial_round(j1 + m1) * factorial_round(j2 - m2) *
+        factorial_round(j2 + m2),
+    ))**0.5
+
+    # Calculate the summation term (S) in the Clebsch-Gordan formula
+    S = sum((-1)**int(v + j2 + m2) * Fraction(
+        factorial_round(j2 + j3 + m1 - v) * factorial_round(j1 - m1 + v),
+        factorial_round(v) * factorial_round(j3 - j1 + j2 - v) *
+        factorial_round(j3 + m3 - v) * factorial_round(v + j1 - j2 - m3))
+            for v in range(int(vmin),
+                           int(vmax) + 1))
+
+    # Multiply the calculated coefficient (C) by the summation term (S)
+    C *= S
+
+    # Return the Clebsch-Gordan coefficient as a float
+    return float(C)
+
+
+def calculate_su2_clebsch_gordan(j1: float, j2: float,
+                                 j3: float) -> torch.tensor:
+    """Calculate the Clebsch-Gordan coefficients for SU(2) coupling.
+
+    Calculates the Clebsch-Gordan coefficients for coupling two angular
+    momenta (j1) and (j2) to give (j3). This function computes the Clebsch-Gordan
+    coefficients for a range of possible magnetic quantum numbers (m1, m2, m3),
+    based on the triangle inequalities for angular momenta.
+
+    Parameters:
+    -----------
+    j1 : float
+        Angular momentum for particle 1.
+    j2 : float
+        Angular momentum for particle 2.
+    j3 : float
+        Angular momentum for the coupled system.
+
+    Returns:
+    --------
+    cg_matrix : torch.tensor
+        Matrix of Clebsch-Gordan coefficients for the given coupling.
+        The dimensions of the matrix are (2*j1+1) x (2*j2+1) x (2*j3+1).
+
+    See Also:
+    ---------
+    calculate_clebsch_gordan_coefficient
+
+    Notes:
+    ------
+    The Clebsch-Gordan coefficients describe the coupling of two angular momenta (j1 and j2)
+    to form a resultant angular momentum (j3). This function calculates the Clebsch-Gordan
+    coefficients for valid combinations of quantum numbers (m1, m2, m3), which satisfy
+    the triangle inequalities for angular momenta.
+
+    The matrix dimensions are based on the quantum numbers j1, j2, and j3, and the
+    Clebsch-Gordan coefficients are computed for valid combinations within this matrix.
+
+    References:
+    -----------
+    .. [1] https://en.wikipedia.org/wiki/Clebsch–Gordan_coefficients
+
+    Examples:
+    ---------
+    >>> cg_matrix = calculate_su2_clebsch_gordan(1.0, 1.0, 1.0)
+    >>> print(cg_matrix)
+    tensor([[[ 0.0000,  0.0000,  0.0000],
+             [-0.7071,  0.0000,  0.0000],
+             [ 0.0000, -0.7071,  0.0000]],
+    <BLANKLINE>
+            [[ 0.7071,  0.0000,  0.0000],
+             [ 0.0000,  0.0000,  0.0000],
+             [ 0.0000,  0.0000, -0.7071]],
+    <BLANKLINE>
+            [[ 0.0000,  0.7071,  0.0000],
+             [ 0.0000,  0.0000,  0.7071],
+             [ 0.0000,  0.0000,  0.0000]]], dtype=torch.float64)
+    """
+    # Calculate the matrix dimensions based on quantum numbers.
+    matrix_shape = (int(2 * j1 + 1), int(2 * j2 + 1), int(2 * j3 + 1))
+    cg_matrix = np.zeros(matrix_shape, dtype=np.float64)
+
+    for m1 in (x / 2 for x in range(-int(2 * j1), int(2 * j1) + 1, 2)):
+        for m2 in (x / 2 for x in range(-int(2 * j2), int(2 * j2) + 1, 2)):
+            m3 = m1 + m2
+            if abs(m3) <= j3:
+                coefficient = calculate_clebsch_gordan_coefficient(
+                    (j1, m1), (j2, m2), (j3, m3))
+                cg_matrix[int(j1 + m1),
+                          int(j2 + m2),
+                          int(j3 + m3)] = coefficient
+
+    cg_matrix = torch.from_numpy(cg_matrix)
+    return cg_matrix
+
+
+def calculate_so3_clebsch_gordan(j1: int, j2: int, j3: int) -> torch.Tensor:
+    """
+    Calculate the Clebsch-Gordan coefficients for coupling three angular momenta (j1, j2, j3) in SO(3).
+
+    Parameters
+    ----------
+    j1 : int
+        Angular momentum value for the first particle.
+    j2 : int
+        Angular momentum value for the second particle.
+    j3 : int
+        Angular momentum value for the coupled system.
+
+    Returns
+    -------
+    C : torch.Tensor
+        Clebsch-Gordan coefficients for the given angular momenta.
+
+    Notes
+    -----
+    This function calculates Clebsch-Gordan coefficients for coupling three angular momenta (j1, j2, j3)
+    using the provided basis transformation matrices and the pre-calculated SU(2) Clebsch-Gordan coefficients.
+
+    The resulting coefficients are normalized and returned as a torch tensor.
+
+    References
+    ----------
+    .. [1] https://en.wikipedia.org/wiki/Clebsch–Gordan_coefficients#Relation_to_Wigner_3-j_symbols
+
+    Examples
+    --------
+    >>> j1 = 1
+    >>> j2 = 1
+    >>> j3 = 1
+    >>> coefficients = calculate_so3_clebsch_gordan(j1, j2, j3)
+    >>> print(coefficients)
+    tensor([[[ 0.0000,  0.0000,  0.0000],
+             [ 0.0000,  0.0000,  0.4082],
+             [ 0.0000, -0.4082,  0.0000]],
+    <BLANKLINE>
+            [[ 0.0000,  0.0000, -0.4082],
+             [ 0.0000,  0.0000,  0.0000],
+             [ 0.4082,  0.0000,  0.0000]],
+    <BLANKLINE>
+            [[ 0.0000,  0.4082,  0.0000],
+             [-0.4082,  0.0000,  0.0000],
+             [ 0.0000,  0.0000,  0.0000]]], dtype=torch.float64)
+    """
+    # Transform real basis to complex basis
+    Q1 = change_basis_real_to_complex(j1, dtype=torch.complex128)
+    Q2 = change_basis_real_to_complex(j2, dtype=torch.complex128)
+    Q3 = change_basis_real_to_complex(j3, dtype=torch.complex128)
+
+    # Calculate SU(2) Clebsch-Gordan coefficients and convert to complex dtype
+    C_su2 = calculate_su2_clebsch_gordan(j1, j2, j3).to(dtype=torch.complex128)
+
+    # Calculate final Clebsch-Gordan coefficients using Einstein summation (torch.einsum)
+    # The einsum expression "ij,kl,mn,ikn->jlm" performs the following operations:
+    # - Contracts index 'i' of Q1 with index 'k' of Q3, and index 'k' of Q3 with index 'i' of C_su2
+    # - Contracts index 'j' of Q1 with index 'm' of Q3, and index 'm' of Q3 with index 'j' of C_su2
+    # - Contracts index 'k' of Q2 with index 'n' of Q3, and index 'i' of C_su2 with index 'k' of Q2
+    # The result is a tensor with dimensions (j, l, m) containing the Clebsch-Gordan coefficients.
+    C = torch.einsum("ij,kl,mn,ikn->jlm", Q1, Q2, torch.conj(Q3.T),
+                     C_su2.to(torch.complex128)).real
+
+    # Normalize the coefficients
+    C /= torch.norm(C)
+
+    return C
