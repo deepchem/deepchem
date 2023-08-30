@@ -2721,9 +2721,13 @@ class CombineMeanStd(nn.Module):
 
         mean_parent, std_parent = torch.tensor(inputs[0]), torch.tensor(
             inputs[1])
-        noise_scale = torch.tensor(training or
-                                   not self.training_only, dtype=torch.float, device=mean_parent.device)
-        sample_noise = torch.normal(0.0, self.noise_epsilon, mean_parent.shape, device=mean_parent.device)
+        noise_scale = torch.tensor(training or not self.training_only,
+                                   dtype=torch.float,
+                                   device=mean_parent.device)
+        sample_noise = torch.normal(0.0,
+                                    self.noise_epsilon,
+                                    mean_parent.shape,
+                                    device=mean_parent.device)
         return mean_parent + noise_scale * std_parent * sample_noise
 
 
@@ -4796,11 +4800,9 @@ class MXMNetBesselBasisLayer(torch.nn.Module):
 
 class VariationalRandomizer(nn.Module):
     """Add random noise to the embedding and include a corresponding loss."""
-    def __init__(self,
-                 embedding_dimension: int,
-                 annealing_start_step: int,
-                 annealing_final_step: int,
-                 **kwargs):
+
+    def __init__(self, embedding_dimension: int, annealing_start_step: int,
+                 annealing_final_step: int, **kwargs):
         super(VariationalRandomizer, self).__init__(**kwargs)
         self._embedding_dimension = embedding_dimension
         self._annealing_final_step = annealing_final_step
@@ -4808,7 +4810,7 @@ class VariationalRandomizer(nn.Module):
         self.dense_mean = nn.LazyLinear(embedding_dimension)
         self.dense_stddev = nn.LazyLinear(embedding_dimension)
         self.combine = CombineMeanStd(training_only=True)
-        self.loss_list = []
+        self.loss_list: List = list()
 
     def forward(self, inputs, training=True):
         input, global_step = inputs
@@ -4821,14 +4823,17 @@ class VariationalRandomizer(nn.Module):
         kl = mean_sq + stddev_sq - torch.log(stddev_sq + 1e-20) - 1
         anneal_steps = self._annealing_final_step - self._annealing_start_step
         if anneal_steps > 0:
-            current_step = global_step.to(torch.float32) - self._annealing_start_step
-            anneal_frac = torch.maximum(torch.tensor(0.0), current_step) / anneal_steps
-            kl_scale = torch.minimum(torch.tensor(1.0), anneal_frac * anneal_frac)
+            current_step = global_step.to(
+                torch.float32) - self._annealing_start_step
+            anneal_frac = torch.maximum(torch.tensor(0.0),
+                                        current_step) / anneal_steps
+            kl_scale = torch.minimum(torch.tensor(1.0),
+                                     anneal_frac * anneal_frac)
         else:
             kl_scale = 1.0
         self.add_loss(0.5 * kl_scale * torch.mean(kl))
         return embedding
-    
+
     def add_loss(self, loss):
         self.loss_list.append(loss)
 
