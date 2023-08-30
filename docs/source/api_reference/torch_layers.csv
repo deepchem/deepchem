@@ -44,3 +44,6 @@ DTNNStep, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
 DTNNGather, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
 MXMNetGlobalMessagePassing, `ref <https://arxiv.org/pdf/2011.07457>`_, MXMNetModel
 MXMNetBesselBasisLayer, `ref <https://arxiv.org/pdf/2011.07457>`_, MXMNetModel
+EncoderRNN, `ref <https://arxiv.org/abs/1409.3215>`_, SeqToSeqModel
+FerminetElectronFeature, `ref <https://arxiv.org/pdf/1909.02487.pdf>`_, FerminetModel
+FerminetEnvelope, `ref <https://arxiv.org/pdf/1909.02487.pdf>`_, FerminetModel

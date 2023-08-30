@@ -1262,3 +1262,42 @@ def test_mxmnet_besselbasis():
     result = np.array([[2.6434e+00, 3.7383e+00], [1.3125e+00, -1.1474e-07],
                        [-0.0000e+00, 0.0000e+00], [-0.0000e+00, -0.0000e+00]])
     assert np.allclose(result, output, atol=1e-04)
+
+
+@pytest.mark.torch
+def test_encoder_rnn():
+    """Test for Encoder Layer of SeqToSeq Model"""
+    hidden_size = 7
+    num_input_token = 4
+    input = torch.tensor([[1, 0, 2, 3, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]])
+    layer = torch_layers.EncoderRNN(num_input_token, hidden_size)
+    emb, hidden = layer(input)
+
+    assert emb.shape == emb.shape == (input.shape[0], input.shape[1],
+                                      hidden_size)
+    assert hidden.shape == (1, input.shape[0], hidden_size)
+
+
+@pytest.mark.torch
+def test_FerminetElectronFeature():
+    "Test for FerminetElectronFeature layer."
+    electron_layer = dc.models.torch_models.layers.FerminetElectronFeature(
+        [32, 32, 32], [16, 16, 16], 4, 8, 10, [5, 5])
+    one_electron_test = torch.randn(8, 10, 4 * 4)
+    two_electron_test = torch.randn(8, 10, 10, 4)
+    one, two = electron_layer.forward(one_electron_test, two_electron_test)
+    assert one.size() == torch.Size([8, 10, 32])
+    assert two.size() == torch.Size([8, 10, 10, 16])
+
+
+@pytest.mark.torch
+def test_FerminetEnvelope():
+    "Test for FerminetEnvelope layer."
+    envelope_layer = dc.models.torch_models.layers.FerminetEnvelope(
+        [32, 32, 32], [16, 16, 16], 10, 8, [5, 5], 5, 16)
+    one_electron = torch.randn(8, 10, 32)
+    one_electron_permuted = torch.randn(8, 10, 5, 3)
+    psi_up, psi_down = envelope_layer.forward(one_electron,
+                                              one_electron_permuted)
+    assert psi_up.size() == torch.Size([8, 16, 5, 5])
+    assert psi_down.size() == torch.Size([8, 16, 5, 5])

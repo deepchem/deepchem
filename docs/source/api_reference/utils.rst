@@ -287,6 +287,9 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.dftutils.hashstr
 
+.. autoclass:: deepchem.utils.dftutils.BaseGrid
+  :members:
+
 Pytorch Utilities
 -----------------
 
