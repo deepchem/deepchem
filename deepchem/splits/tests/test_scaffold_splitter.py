@@ -23,3 +23,14 @@ class TestScaffoldSplitter(unittest.TestCase):
         # has to be smaller or equal than number of total molecules
         scaffolds_separate_cnt = len(scaffolds_separate)
         self.assertTrue(scaffolds_separate_cnt <= train_dataset.X.shape[0])
+
+    def test_generate_scaffold(self):
+        from deepchem.splits.splitters import _generate_scaffold
+        valid_smiles = r's1cc(nc1\[N]=C(\N)N)C'
+        scaffold = _generate_scaffold(valid_smiles)
+        self.assertTrue(scaffold == 'c1cscn1')
+
+        # Invalid because valence for atom 5 N is greater than permitted (4)
+        invalid_smiles = r's1cc(nc1\[NH]=C(\N)N)C'
+        scaffold = _generate_scaffold(invalid_smiles)
+        self.assertIsNone(scaffold)

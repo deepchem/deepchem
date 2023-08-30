@@ -22,7 +22,7 @@ class TestMATFeaturizer(unittest.TestCase):
         """
         featurizer = MATFeaturizer()
         out = featurizer.featurize(self.mol)
-        assert (type(out) == np.ndarray)
+        assert isinstance(out, np.ndarray)
         assert (out[0].node_features.shape == (3, 36))
         assert (out[0].adjacency_matrix.shape == (3, 3))
         assert (out[0].distance_matrix.shape == (3, 3))
