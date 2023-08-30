@@ -249,6 +249,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.FerminetElectronFeature
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.FerminetEnvelope
+  :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 
