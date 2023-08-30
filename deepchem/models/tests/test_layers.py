@@ -1291,6 +1291,19 @@ def test_FerminetElectronFeature():
 
 
 @pytest.mark.torch
+def test_FerminetEnvelope():
+    "Test for FerminetEnvelope layer."
+    envelope_layer = dc.models.torch_models.layers.FerminetEnvelope(
+        [32, 32, 32], [16, 16, 16], 10, 8, [5, 5], 5, 16)
+    one_electron = torch.randn(8, 10, 32)
+    one_electron_permuted = torch.randn(8, 10, 5, 3)
+    psi_up, psi_down = envelope_layer.forward(one_electron,
+                                              one_electron_permuted)
+    assert psi_up.size() == torch.Size([8, 16, 5, 5])
+    assert psi_down.size() == torch.Size([8, 16, 5, 5])
+
+
+@pytest.mark.torch
 def test_mxmnet_local_message_passing():
     """ Test for MXMNetLocalMessagePassing Layer."""
     seed = 123
