@@ -2722,8 +2722,8 @@ class CombineMeanStd(nn.Module):
         mean_parent, std_parent = torch.tensor(inputs[0]), torch.tensor(
             inputs[1])
         noise_scale = torch.tensor(training or
-                                   not self.training_only).to(torch.float)
-        sample_noise = torch.normal(0.0, self.noise_epsilon, mean_parent.shape)
+                                   not self.training_only, dtype=torch.float, device=mean_parent.device)
+        sample_noise = torch.normal(0.0, self.noise_epsilon, mean_parent.shape, device=mean_parent.device)
         return mean_parent + noise_scale * std_parent * sample_noise
 
 
