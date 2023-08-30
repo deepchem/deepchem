@@ -300,9 +300,9 @@ Equivariance Utilities
 The utilities here refer to equivariance tools that play a vital
 role in mathematics and applied sciences. They excel in preserving
 the relationships between objects or data points when undergoing transformations
-such as rotations or scaling. 
+such as rotations or scaling.
 
-You can refer to the `tutorials <https://deepchem.io/tutorials/introduction-to-equivariance/>`_ 
+You can refer to the `tutorials <https://deepchem.io/tutorials/introduction-to-equivariance/>`_
 for additional information regarding equivariance and Deepchem's support for equivariance.
 
 .. autofunction:: deepchem.utils.equivariance_utils.su2_generators
