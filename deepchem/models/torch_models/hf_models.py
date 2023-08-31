@@ -188,6 +188,12 @@ class HuggingFaceModel(TorchModel):
         >>> finetune_model = HuggingFaceModel(model=model, task='classification', tokenizer=tokenizer, model_dir='model-dir')
 
         >>> finetune_model.load_from_pretrained()
+
+        Note
+        ----
+        Use `load_from_pretrained` method only to load a pretrained model - a
+        model trained on a different task like Masked Language Modeling or
+        Multitask Regression. To `restore` a model, use the `restore` method.
         """
         if model_dir is None:
             model_dir = self.model_dir
@@ -211,6 +217,14 @@ class HuggingFaceModel(TorchModel):
             else:
                 checkpoint = checkpoints[0]
                 data = torch.load(checkpoint, map_location=self.device)
+                # Delete keys of output projection layer (last layer) as the number of
+                # tasks (projections) in pretrain model and the current model
+                # might vary.
+                keys = data['model_state_dict'].keys()
+                if 'classifier.out_proj.weight' in keys:
+                    del data['model_state_dict']['classifier.out_proj.weight']
+                if 'classifier.out_proj.bias' in keys:
+                    del data['model_state_dict']['classifier.out_proj.bias']
                 self.model.load_state_dict(data['model_state_dict'],
                                            strict=False)
 
