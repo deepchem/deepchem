@@ -2713,7 +2713,8 @@ class DiskDataset(Dataset):
 
     def get_label_means(self) -> pd.DataFrame:
         """Return pandas series of label means."""
-        return self.metadata_df["y_means"]
+        label_means = np.mean(self.metadata_df['y'],axis=0)
+        return label_means
 
     def get_label_stds(self) -> pd.DataFrame:
         """Return pandas series of label stds."""
