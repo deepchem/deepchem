@@ -2,9 +2,14 @@ import math
 import deepchem as dc
 import torch
 import torch.nn as nn
+from deepchem.data import Dataset
+from torch_geometric.data import Batch
+from deepchem.models.torch_models import TorchModel
+from deepchem.models.losses import Loss, L1Loss
 from torch_geometric.nn import global_add_pool, radius
 from torch_geometric.utils import remove_self_loops
 from torch_sparse import SparseTensor
+from typing import List, Iterable, Tuple
 from deepchem.utils.pytorch_utils import get_activation
 
 
@@ -168,3 +173,121 @@ class MXMNet(nn.Module):
         # Readout
         output = global_add_pool(node_sum, batch)
         return output.view(-1)
+
+
+class MXMNetModel(TorchModel):
+
+    def __init__(self,
+                 dim: int,
+                 n_layer: int,
+                 cutoff: int,
+                 batch_size: int = 2,
+                 mode: str = 'regression',
+                 n_tasks: int = 1,
+                 activation_fn: str = 'silu',
+                 num_spherical: int = 7,
+                 num_radial: int = 6,
+                 envelope_exponent: int = 5,
+                 **kwargs):
+
+        model: nn.Module = MXMNet(activation_fn=activation_fn,
+                                  dim=dim,
+                                  n_layer=n_layer,
+                                  n_tasks=n_tasks,
+                                  cutoff=cutoff,
+                                  num_spherical=num_spherical,
+                                  num_radial=num_radial,
+                                  envelope_exponent=envelope_exponent)
+
+        if mode == 'regression':
+            loss: Loss = L1Loss()
+            output_types: List[str] = ['prediction']
+
+        super(MXMNetModel, self).__init__(model,
+                                          loss=loss,
+                                          output_types=output_types,
+                                          batch_size=batch_size,
+                                          **kwargs)
+
+    def _prepare_batch(
+        self, batch: Tuple[List, List, List]
+    ) -> Tuple[Batch, List[torch.Tensor], List[torch.Tensor]]:
+        """Method to prepare pytorch-geometric batches from inputs.
+
+        Overrides the existing ``_prepare_batch`` method to customize how model batches are
+        generated from the inputs.
+
+        .. note::
+            This method requires PyTorch Geometric to be installed.
+
+        Parameters
+        ----------
+        batch: Tuple[List, List, List]
+            batch data from ``default_generator``
+
+        Returns
+        -------
+        Tuple[Batch, List[torch.Tensor], List[torch.Tensor]]
+        """
+        graphs_list: List
+        labels: List
+        weights: List
+
+        graphs_list, labels, weights = batch
+        pyg_batch: Batch = Batch()
+        pyg_batch = pyg_batch.from_data_list(graphs_list)
+
+        _, labels, weights = super(MXMNetModel, self)._prepare_batch(
+            ([], labels, weights))
+        return pyg_batch, labels, weights
+
+    def default_generator(self,
+                          dataset: Dataset,
+                          epochs: int = 1,
+                          mode: str = 'fit',
+                          deterministic: bool = True,
+                          pad_batches: bool = False,
+                          **kwargs) -> Iterable[Tuple[List, List, List]]:
+        """Create a generator that iterates batches for a dataset.
+
+        Overrides the existing ``default_generator`` method to customize how model inputs are
+        generated from the data.
+
+        Then data from each molecule is converted to a ``_ModData`` object and stored as list of graphs.
+        The graphs are modified such that all tensors have same size in 0th dimension. (important requirement for batching)
+
+        Parameters
+        ----------
+        dataset: Dataset
+            the data to iterate
+        epochs: int
+            the number of times to iterate over the full dataset
+        mode: str
+            allowed values are 'fit' (called during training), 'predict' (called
+            during prediction), and 'uncertainty' (called during uncertainty
+            prediction)
+        deterministic: bool
+            whether to iterate over the dataset in order, or randomly shuffle the
+            data for each epoch
+        pad_batches: bool
+            whether to pad each batch up to this model's preferred batch size
+
+        Returns
+        -------
+        a generator that iterates batches, each represented as a tuple of lists:
+        ([inputs], [outputs], [weights])
+        Here, [inputs] is list of graphs.
+        """
+        for epoch in range(epochs):
+            for (X_b, y_b, w_b,
+                 ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                               deterministic=deterministic,
+                                               pad_batches=pad_batches):
+                pyg_graphs_list: List = []
+
+                for graph in X_b:
+                    # generate concatenated feature vector and mapping
+                    pyg_graph = graph.to_pyg_graph()
+                    pyg_graphs_list.append(pyg_graph)
+
+                yield (pyg_graphs_list, [y_b], [w_b])
