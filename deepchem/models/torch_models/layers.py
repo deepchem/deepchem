@@ -5157,3 +5157,258 @@ class FerminetEnvelope(torch.nn.Module):
                                   dim=1)
 
         return psi_up, psi_down
+
+
+class MXMNetLocalMessagePassing(nn.Module):
+    """
+    The MXMNetLocalMessagePassing class defines a local message passing layer used in the MXMNet model [1]_.
+    This layer integrates cross-layer mappings inside the local message passing, allowing for the transformation
+    of input tensors representing pairwise distances and angles between atoms in a molecular system.
+    The layer aggregates information using message passing and updates atom representations accordingly. 
+    The 3-step message passing scheme is proposed in the paper [1]_. 
+
+    1. Step 1 contains Message Passing 1 that captures the two-hop angles and related pairwise distances to update edge-level embeddings {mji}. 
+    2. Step 2 contains Message Passing 2 that captures the one-hop angles and related pairwise distances to further update {mji}. 
+    3. Step 3 finally aggregates {mji} to update the node-level embedding hi. 
+    
+    These steps in the t-th iteration can be formulated as follows: 
+
+    Let:
+        - **mlp** : ``MultilayerPerceptron``
+        - **res** : ``ResidualBlock``
+        - **h** : ``node_features``
+        - **m** : ``message with radial basis function``
+        - **idx_kj**: ``Tensor containing indices for the k and j atoms``
+        - **x_i** : ``The node to be updated``
+        - **h_i** : ``The hidden state of x_i``
+        - **x_j** : ``The neighbour node connected to x_i by edge e_ij``
+        - **h_j** : ``The hidden state of x_j``
+        - **rbf** : ``Input tensor representing radial basis functions``
+        - **sbf** : ``Input tensor representing the spherical basis functions``
+        - **idx_jj** : ``Tensor containing indices for the j and j' where j' is other neighbours of i``
+
+    Step 1: Message Passing 1
+
+        .. code-block:: python
+
+            m = [h[i] || h[j] || rbf] 
+            m_kj = mlp_kj(m[idx_kj]) * (rbf*W) * mlp_sbf1(sbf1) 
+            m_ji = mlp_ji_1(m) + reduce_sum(m_kj) 
+
+    Step 2: Message Passing 2 
+        
+        .. code-block:: python
+
+            m_ji = mlp_jj(m_ji[idx_jj]) * (rbf*W) * mlp_sbf2(sbf2) 
+            m_ji = mlp_ji_2(m_ji) + reduce_sum(m_ji) 
+
+    Step 3: Aggregation and Update
+
+        **In each aggregation step**
+
+        .. code-block:: python
+
+            m = reduce_sum(m_ji*(rbf*W))
+
+        **In each update step**
+
+        .. code-block:: python
+
+            hm_i = res1(m) 
+            h_i_new = mlp2(hm_i) + h_i 
+            h_i_new = res2(h_i_new) 
+            h_i_new = res3(h_i_new)
+
+    References
+    ----------
+    .. [1] Molecular Mechanics-Driven Graph Neural Network with Multiplex Graph for Molecular Structures. https://arxiv.org/pdf/2011.07457
+    Examples
+    --------
+    >>> dim = 1
+    >>> h = torch.tensor([[0.8343], [1.2713], [1.2713], [1.2713], [1.2713]])
+    >>> rbf = torch.tensor([[-0.2628], [-0.2628], [-0.2628], [-0.2628], 
+    ...                     [-0.2629], [-0.2629], [-0.2628], [-0.2628]])
+    >>> sbf1 = torch.tensor([[-0.2767], [-0.2767], [-0.2767], [-0.2767],
+    ...                      [-0.2767], [-0.2767], [-0.2767], [-0.2767], 
+    ...                      [-0.2767], [-0.2767], [-0.2767], [-0.2767]])
+    >>> sbf2 = torch.tensor([[-0.0301], [-0.0301], [-0.1483], [-0.1486], [-0.1484],
+    ...                      [-0.0301], [-0.1483], [-0.0301], [-0.1485], [-0.1483],
+    ...                      [-0.0301], [-0.1486], [-0.1485], [-0.0301], [-0.1486],
+    ...                      [-0.0301], [-0.1484], [-0.1483], [-0.1486], [-0.0301]])
+    >>> idx_kj = torch.tensor([3, 5, 7, 1, 5, 7, 1, 3, 7, 1, 3, 5])
+    >>> idx_ji_1 = torch.tensor([0, 0, 0, 2, 2, 2, 4, 4, 4, 6, 6, 6])
+    >>> idx_jj = torch.tensor([0, 1, 3, 5, 7, 2, 1, 3, 5, 7, 4, 1, 3, 5, 7, 6, 1, 3, 5, 7])
+    >>> idx_ji_2 = torch.tensor([0, 1, 1, 1, 1, 2, 3, 3, 3, 3, 4, 5, 5, 5, 5, 6, 7, 7, 7, 7])
+    >>> edge_index = torch.tensor([[0, 1, 0, 2, 0, 3, 0, 4],
+    ...                           [1, 0, 2, 0, 3, 0, 4, 0]])
+    >>> out = MXMNetLocalMessagePassing(dim, activation_fn='silu')
+    >>> output = out(h,
+    ...             rbf,
+    ...             sbf1,
+    ...             sbf2,
+    ...             idx_kj,
+    ...             idx_ji_1,
+    ...             idx_jj,
+    ...             idx_ji_2,
+    ...             edge_index)
+    >>> output[0].shape
+    torch.Size([5, 1])
+    >>> output[1].shape
+    torch.Size([5, 1])
+    """
+
+    def __init__(self, dim: int, activation_fn: Union[Callable, str] = 'silu'):
+        """Initializes the MXMNetLocalMessagePassing layer.
+        
+        Parameters
+        ----------
+        dim : int
+            The dimension of the input and output tensors for the local message passing layer.
+        activation_fn : Union[Callable, str], optional (default: 'silu')
+            The activation function to be used in the multilayer perceptrons (MLPs) within the layer.
+        """
+        super(MXMNetLocalMessagePassing, self).__init__()
+
+        activation_fn = get_activation(activation_fn)
+        self.h_mlp: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim, d_output=dim, activation_fn=activation_fn)
+        self.mlp_kj: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=3 * dim, d_output=dim, activation_fn=activation_fn)
+        self.mlp_ji_1: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=3 * dim, d_output=dim, activation_fn=activation_fn)
+        self.mlp_ji_2: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim, d_output=dim, activation_fn=activation_fn)
+        self.mlp_jj: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim, d_output=dim, activation_fn=activation_fn)
+
+        self.mlp_sbf1: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim,),
+            d_output=dim,
+            activation_fn=activation_fn)
+        self.mlp_sbf2: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim,),
+            d_output=dim,
+            activation_fn=activation_fn)
+
+        self.res1: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim,),
+            d_output=dim,
+            activation_fn=activation_fn,
+            skip_connection=True,
+            weighted_skip=False)
+        self.res2: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim,),
+            d_output=dim,
+            activation_fn=activation_fn,
+            skip_connection=True,
+            weighted_skip=False)
+        self.res3: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim,),
+            d_output=dim,
+            activation_fn=activation_fn,
+            skip_connection=True,
+            weighted_skip=False)
+
+        self.lin_rbf1: nn.Linear = nn.Linear(dim, dim, bias=False)
+        self.lin_rbf2: nn.Linear = nn.Linear(dim, dim, bias=False)
+        self.lin_rbf_out: nn.Linear = nn.Linear(dim, dim, bias=False)
+
+        self.mlp: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim, d_output=dim, activation_fn=activation_fn)
+        self.out_mlp: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim, dim),
+            d_output=dim,
+            activation_fn=activation_fn)
+        self.out_W: nn.Linear = nn.Linear(dim, 1)
+
+    def forward(self, node_features: torch.Tensor, rbf: torch.Tensor,
+                sbf1: torch.Tensor, sbf2: torch.Tensor, idx_kj: torch.Tensor,
+                idx_ji_1: torch.Tensor, idx_jj: torch.Tensor,
+                idx_ji_2: torch.Tensor,
+                edge_index: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """The forward method performs the computation for the MXMNetLocalMessagePassing Layer.
+        This method processes the input tensors representing atom features, radial basis functions (RBF), and spherical basis functions (SBF) using message passing over the molecular graph. The message passing updates the atom representations, and the resulting tensor represents the updated atom feature after local message passing.
+
+        Parameters
+        ----------
+        node_features : torch.Tensor
+            Input tensor representing atom features.
+        rbf : torch.Tensor
+            Input tensor representing radial basis functions.
+        sbf1 : torch.Tensor
+            Input tensor representing the first set of spherical basis functions.
+        sbf2 : torch.Tensor
+            Input tensor representing the second set of spherical basis functions.
+        idx_kj : torch.Tensor
+            Tensor containing indices for the k and j atoms involved in each interaction.
+        idx_ji_1 : torch.Tensor
+            Tensor containing indices for the j and i atoms involved in the first message passing step.
+        idx_jj : torch.Tensor
+            Tensor containing indices for the j and j' atoms involved in the second message passing step.
+        idx_ji_2 : torch.Tensor
+            Tensor containing indices for the j and i atoms involved in the second message passing step.
+        edge_index : torch.Tensor
+            Tensor containing the edge indices of the molecular graph, with shape (2, M), where M is the number of edges.
+
+        Returns
+        -------
+        node_features: torch.Tensor
+            Updated atom representations after local message passing.
+        output: torch.Tensor
+            Output tensor representing a fixed-size representation, with shape (N, 1).
+        """
+
+        residual_node_features: torch.Tensor = node_features
+
+        # Integrate the Cross Layer Mapping inside the Local Message Passing
+        node_features = self.h_mlp(node_features)
+
+        # Message Passing 1
+        j, i = edge_index
+        m: torch.Tensor = torch.cat([node_features[i], node_features[j], rbf],
+                                    dim=-1)
+
+        m_kj: torch.Tensor = self.mlp_kj(m)
+        m_kj = m_kj * self.lin_rbf1(rbf)
+        m_kj = m_kj[idx_kj] * self.mlp_sbf1(sbf1)
+        m_kj = scatter(m_kj, idx_ji_1, dim=0, dim_size=m.size(0), reduce='add')
+
+        m_ji_1: torch.Tensor = self.mlp_ji_1(m)
+
+        m = m_ji_1 + m_kj
+
+        # Message Passing 2
+        m_jj: torch.Tensor = self.mlp_jj(m)
+        m_jj = m_jj * self.lin_rbf2(rbf)
+        m_jj = m_jj[idx_jj] * self.mlp_sbf2(sbf2)
+        m_jj = scatter(m_jj, idx_ji_2, dim=0, dim_size=m.size(0), reduce='add')
+
+        m_ji_2: torch.Tensor = self.mlp_ji_2(m)
+
+        m = m_ji_2 + m_jj
+
+        # Aggregation
+        m = self.lin_rbf_out(rbf) * m
+        node_features = scatter(m,
+                                i,
+                                dim=0,
+                                dim_size=node_features.size(0),
+                                reduce='add')
+
+        # Update function f_u
+        node_features = self.res1(node_features)
+        node_features = self.mlp(node_features) + residual_node_features
+        node_features = self.res2(node_features)
+        node_features = self.res3(node_features)
+
+        # Output Module
+        out: torch.Tensor = self.out_mlp(node_features)
+        output: torch.Tensor = self.out_W(out)
+
+        return node_features, output

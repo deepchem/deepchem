@@ -1301,3 +1301,55 @@ def test_FerminetEnvelope():
                                               one_electron_permuted)
     assert psi_up.size() == torch.Size([8, 16, 5, 5])
     assert psi_down.size() == torch.Size([8, 16, 5, 5])
+
+
+@pytest.mark.torch
+def test_mxmnet_local_message_passing():
+    """ Test for MXMNetLocalMessagePassing Layer."""
+    seed = 123
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    dim = 1
+    h = torch.tensor([[0.8343], [1.2713], [1.2713], [1.2713], [1.2713]])
+
+    rbf = torch.tensor([[-0.2628], [-0.2628], [-0.2628], [-0.2628], [-0.2629],
+                        [-0.2629], [-0.2628], [-0.2628]])
+
+    sbf1 = torch.tensor([[-0.2767], [-0.2767], [-0.2767], [-0.2767], [-0.2767],
+                         [-0.2767], [-0.2767], [-0.2767], [-0.2767], [-0.2767],
+                         [-0.2767], [-0.2767]])
+
+    sbf2 = torch.tensor([[-0.0301], [-0.0301], [-0.1483], [-0.1486], [-0.1484],
+                         [-0.0301], [-0.1483], [-0.0301], [-0.1485], [-0.1483],
+                         [-0.0301], [-0.1486], [-0.1485], [-0.0301], [-0.1486],
+                         [-0.0301], [-0.1484], [-0.1483], [-0.1486], [-0.0301]])
+
+    idx_kj = torch.tensor([3, 5, 7, 1, 5, 7, 1, 3, 7, 1, 3, 5])
+
+    idx_ji_1 = torch.tensor([0, 0, 0, 2, 2, 2, 4, 4, 4, 6, 6, 6])
+
+    idx_jj = torch.tensor(
+        [0, 1, 3, 5, 7, 2, 1, 3, 5, 7, 4, 1, 3, 5, 7, 6, 1, 3, 5, 7])
+
+    idx_ji_2 = torch.tensor(
+        [0, 1, 1, 1, 1, 2, 3, 3, 3, 3, 4, 5, 5, 5, 5, 6, 7, 7, 7, 7])
+
+    edge_index = torch.tensor([[0, 1, 0, 2, 0, 3, 0, 4],
+                               [1, 0, 2, 0, 3, 0, 4, 0]])
+
+    layer = dc.models.torch_models.layers.MXMNetLocalMessagePassing(
+        dim, activation_fn='silu')
+
+    output = layer(h, rbf, sbf1, sbf2, idx_kj, idx_ji_1, idx_jj, idx_ji_2,
+                   edge_index)
+    result0 = np.array([[0.7916], [1.2796], [1.2796], [1.2796], [1.2796]])
+    result1 = np.array([[0.3439], [0.3441], [0.3441], [0.3441], [0.3441]])
+
+    assert np.allclose(result0, output[0].detach().numpy(), atol=1e-04)
+    assert np.allclose(result1, output[1].detach().numpy(), atol=1e-04)
+
+    assert output[0].shape == (5, 1)
+    assert output[1].shape == (5, 1)
