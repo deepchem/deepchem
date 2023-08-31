@@ -14,7 +14,7 @@ QM9_TASKS = [
 ]
 
 
-class _QM9Loader(_MolnetLoader):
+class QM9SampleLoader(_MolnetLoader):
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "datasets/qm9_sample.zip")
@@ -44,12 +44,12 @@ def test_mxmnet_regression():
     n_layer = 6
     cutoff = 5
     feat = MXMNetFeaturizer()
-    qm9 = _QM9Loader(featurizer=feat,
-                     tasks=QM9_TASKS,
-                     data_dir=None,
-                     save_dir=None,
-                     splitter='random',
-                     transformer_generators=['normalization'])
+    qm9 = QM9SampleLoader(featurizer=feat,
+                          tasks=QM9_TASKS,
+                          data_dir=None,
+                          save_dir=None,
+                          splitter='random',
+                          transformer_generators=['normalization'])
     dataset_dc = qm9.load_dataset('qm9', reload=True)
 
     model = MXMNet(dim=dim, n_layer=n_layer, cutoff=cutoff)
