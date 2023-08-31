@@ -210,7 +210,7 @@ class HuggingFaceModel(TorchModel):
                 raise ValueError('No checkpoint found')
             else:
                 checkpoint = checkpoints[0]
-                data = torch.load(checkpoint)
+                data = torch.load(checkpoint, map_location=self.device)
                 self.model.load_state_dict(data['model_state_dict'],
                                            strict=False)
 
