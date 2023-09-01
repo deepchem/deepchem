@@ -4876,7 +4876,8 @@ class VariationalRandomizer(nn.Module):
         Parameters
         ----------
         inputs: List[torch.Tensor]
-            A list of two tensors, the first of which is the input to the layer and the second of which is the global step.
+            A list of two tensors, the first of which is the input to the layer
+            and the second of which is the global step.
         training: bool, optional (default True)
             Whether to use the layer in training mode or inference mode.
 
@@ -4903,7 +4904,7 @@ class VariationalRandomizer(nn.Module):
             kl_scale = torch.minimum(torch.tensor(1.0),
                                      anneal_frac * anneal_frac)
         else:
-            kl_scale = 1.0
+            kl_scale = torch.tensor(1.0)
         self.add_loss(0.5 * kl_scale * torch.mean(kl))
         return embedding
 
