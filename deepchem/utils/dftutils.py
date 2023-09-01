@@ -5,14 +5,12 @@ try:
     import torch
 except ModuleNotFoundError:
     pass
-    
 
 import hashlib
-import numpy as np
 import xitorch as xt
 from dataclasses import dataclass
 from abc import abstractmethod, abstractproperty
-from typing import Optional, Union, List, TypeVar, Generic, Callable, overload, Dict
+from typing import Union, List, TypeVar, Generic, Callable
 
 __all__ = ["SpinParam"]
 
@@ -49,7 +47,6 @@ class SpinParam(Generic[T]):
 
         return self.u + self.d
 
-
     def reduce(self, fcn: Callable) -> T:
         """
         Reduce up and down parameters with the given function
@@ -79,7 +76,6 @@ class BaseQCCalc(object):
         """
         pass
 
-
     @abstractmethod
     def run(self, **kwargs):
         """
@@ -89,14 +85,12 @@ class BaseQCCalc(object):
         """
         pass
 
-
     @abstractmethod
     def energy(self) -> torch.Tensor:
         """
         Obtain the energy of the system.
         """
         pass
-
 
     @abstractmethod
     def aodm(self) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
@@ -108,9 +102,10 @@ class BaseQCCalc(object):
         # return: (nao, nao)
         pass
 
-
     @abstractmethod
-    def dm2energy(self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> torch.Tensor:
+    def dm2energy(
+            self, dm: Union[torch.Tensor,
+                            SpinParam[torch.Tensor]]) -> torch.Tensor:
         """
         Calculate the energy from the given density matrix.
 
@@ -127,11 +122,10 @@ class BaseQCCalc(object):
         """
         pass
 
-
     @abstractmethod
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
         """
-        Return a list with the parameter names corresponding to the given method 
+        Return a list with the parameter names corresponding to the given method
         (methodname)
 
         Returns
