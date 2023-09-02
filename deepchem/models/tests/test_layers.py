@@ -1264,6 +1264,7 @@ def test_mxmnet_besselbasis():
     assert np.allclose(result, output, atol=1e-04)
 
 
+@pytest.mark.torch
 def test_variational_randomiser():
     """Test invoking the Torch equivalent of VariationalRandomizer"""
     dense_mean_W = np.array(
