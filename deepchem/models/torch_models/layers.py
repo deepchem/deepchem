@@ -4848,8 +4848,12 @@ class VariationalRandomizer(nn.Module):
         self._embedding_dimension = embedding_dimension
         self._annealing_final_step = annealing_final_step
         self._annealing_start_step = annealing_start_step
-        self.dense_mean = nn.Linear(embedding_dimension, embedding_dimension, bias=False)
-        self.dense_stddev = nn.Linear(embedding_dimension, embedding_dimension, bias=False)
+        self.dense_mean = nn.Linear(embedding_dimension,
+                                    embedding_dimension,
+                                    bias=False)
+        self.dense_stddev = nn.Linear(embedding_dimension,
+                                      embedding_dimension,
+                                      bias=False)
         self.combine = CombineMeanStd(training_only=True)
         self.loss_list: List = list()
 
