@@ -1264,6 +1264,53 @@ def test_mxmnet_besselbasis():
     assert np.allclose(result, output, atol=1e-04)
 
 
+def test_variational_randomiser():
+    """Test invoking the Torch equivalent of VariationalRandomizer"""
+    dense_mean_W = np.array(
+        [[ 0.14599681, -0.57214814, -0.09179449, -0.56948453, -0.00163919],
+         [-0.00663584,  0.08912718, -0.5397246 ,  0.62155735, -0.55921054],
+         [-0.40077654, -0.7022078 , -0.65213305,  0.13691288,  0.21464229],
+         [-0.31985036,  0.30251813, -0.28222048, -0.7732454 , -0.58668435],
+         [ 0.13017195,  0.5091233 ,  0.6633384 , -0.6581168 ,  0.31816483]])
+    dense_stddev_W = np.array(
+        [[-0.59771556,  0.18744493, -0.1720407 , -0.48102698,  0.15075064],
+         [-0.3724205 ,  0.55220056,  0.739933  ,  0.2427752 , -0.00584781],
+         [-0.6358649 ,  0.631323  ,  0.6159171 ,  0.5158607 ,  0.28268492],
+         [ 0.54178894,  0.20224595,  0.04413438, -0.7469158 ,  0.28610182],
+         [-0.332127  ,  0.35822368, -0.28074694,  0.16514707, -0.768287  ]])
+    embeddings = np.array(
+        [[[-1.7328764 , -1.0216347 , -0.03802864,  0.4724247 , 0.45277336],
+          [-0.64516085,  1.2509763 ,  1.1879151 , -0.36354527, 2.1101253 ],
+          [-0.05635107,  0.7441244 , -0.29123098,  0.29690874, 1.6139926 ]],
+         [[-1.7231425 , -0.09280606,  1.0805027 , -0.3756243 , 0.50924677],
+          [-0.66316897,  0.5539947 , -0.32553753, -0.61652315,-0.50795805],
+          [ 0.9577992 ,  0.4545413 ,  1.883168  , -0.10543215,-0.7342148 ]]])
+    tf_output = np.array(
+        [[[-0.32314086,  1.3005452 ,  0.90228367, -0.31664285, 0.43287927],
+          [-0.18762197,  0.6107953 ,  0.11168798,  0.20000434, 0.44112915],
+          [ 0.21868376,  1.2146091 ,  0.7803014 , -0.83704513,-0.13921635]],
+         [[-0.4975644 ,  0.36452   , -0.05255505,  1.0268594 , 0.6690416 ],
+          [ 0.16104428,  0.2122792 , -0.18878815,  1.4884531 ,-0.17849664],
+          [-0.6797619 , -2.2355673 , -2.0186017 ,  0.5596257 ,-0.02329272]]])
+
+    embedding_dimension = 5
+    annealing_start_step = 10
+    annealing_final_step = 20
+    embedding_shape = embeddings.shape
+    global_step = torch.tensor(range(5), dtype=torch.int32)
+    layer = torch_layers.VariationalRandomizer(embedding_dimension,
+                                               annealing_start_step,
+                                               annealing_final_step)
+
+    layer.dense_mean.weight = torch.nn.Parameter(
+        torch.tensor(dense_mean_W.transpose(), dtype=torch.float32))
+    layer.dense_stddev.weight = torch.nn.Parameter(
+        torch.tensor(dense_stddev_W.transpose(), dtype=torch.float32))
+    output = layer([torch.tensor(embeddings, dtype=torch.float32), global_step], False)
+
+    assert output.shape == embedding_shape
+    assert np.allclose(output.detach().numpy(), tf_output, atol=1e-4)
+
 @pytest.mark.torch
 def test_encoder_rnn():
     """Test for Encoder Layer of SeqToSeq Model"""

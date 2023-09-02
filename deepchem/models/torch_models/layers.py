@@ -4817,7 +4817,7 @@ class VariationalRandomizer(nn.Module):
     >>> embeddings = torch.rand(embedding_shape)
     >>> global_step = torch.tensor([100])
     >>> layer = VariationalRandomizer(embedding_dimension, annealing_start_step, annealing_final_step)
-    >>> output = layer([embeddings, global_step])\
+    >>> output = layer([embeddings, global_step])
     >>> output.shape
     torch.Size([2, 5, 20])
 
@@ -4848,8 +4848,8 @@ class VariationalRandomizer(nn.Module):
         self._embedding_dimension = embedding_dimension
         self._annealing_final_step = annealing_final_step
         self._annealing_start_step = annealing_start_step
-        self.dense_mean = nn.LazyLinear(embedding_dimension)
-        self.dense_stddev = nn.LazyLinear(embedding_dimension)
+        self.dense_mean = nn.Linear(embedding_dimension, embedding_dimension, bias=False)
+        self.dense_stddev = nn.Linear(embedding_dimension, embedding_dimension, bias=False)
         self.combine = CombineMeanStd(training_only=True)
         self.loss_list: List = list()
 
