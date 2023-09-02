@@ -243,6 +243,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.dtnn.DTNN
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.VariationalRandomizer
+  :members:
+
 .. autoclass:: deepchem.models.torch_models.layers.EncoderRNN
   :members:
 
