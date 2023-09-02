@@ -74,7 +74,7 @@ setup(name='deepchem',
           'numpy>=1.21',
           'pandas',
           'scikit-learn',
-          'sympy'
+          'sympy',
           'scipy>=1.10.1',
           'rdkit',
       ],
