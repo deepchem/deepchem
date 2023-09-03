@@ -34,6 +34,7 @@ def load_tox21(
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
+    tasks: List[str] = TOX21_TASKS,
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
     """Load Tox21 dataset
@@ -75,11 +76,15 @@ def load_tox21(
         a directory to save the raw data in
     save_dir: str
         a directory to save the dataset in
+    tasks: List[str], (optional)
+        Specify the set of tasks to load. If no task is specified, then it loads
+    the default set of tasks which are NR-AR, NR-AR-LBD, NR-AhR, NR-Aromatase, NR-ER,
+    NR-ER-LBD, NR-PPAR-gamma, SR-ARE, SR-ATAD5, SR-HSE, SR-MMP, SR-p53.
 
     References
     ----------
     .. [1] Tox21 Challenge. https://tripod.nih.gov/tox21/challenge/
     """
-    loader = _Tox21Loader(featurizer, splitter, transformers, TOX21_TASKS,
-                          data_dir, save_dir, **kwargs)
+    loader = _Tox21Loader(featurizer, splitter, transformers, tasks, data_dir,
+                          save_dir, **kwargs)
     return loader.load_dataset('tox21', reload)

@@ -197,7 +197,7 @@ Torch Layers
 
 .. autoclass:: deepchem.models.torch_models.PNA
   :members:
-  
+
 .. autoclass:: deepchem.models.torch_models.gnn3d.Net3DLayer
   :members:
 
@@ -207,22 +207,52 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.DTNNEmbedding
   :members:
 
-.. autoclass:: deepchem.models.torch_models.layers.MolGANConvolutionLayer
-  :members:
-
-.. autoclass:: deepchem.models.torch_models.layers.MolGANAggregationLayer
-  :members:
-  
 .. autoclass:: deepchem.models.torch_models.layers.DTNNStep
   :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.DTNNGather
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.MolGANConvolutionLayer
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.MolGANAggregationLayer
+  :members:
+  
+.. autoclass:: deepchem.models.torch_models.layers.MolGANMultiConvolutionLayer
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.MolGANEncoderLayer
+  :members:
+
 .. autoclass:: deepchem.models.torch_models.layers.EdgeNetwork
   :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.WeaveLayer
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.WeaveGather
+  :members:
+  
+.. autoclass:: deepchem.models.torch_models.layers.MXMNetGlobalMessagePassing
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.MXMNetBesselBasisLayer
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.dtnn.DTNN
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.EncoderRNN
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.FerminetElectronFeature
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.FerminetEnvelope
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.MXMNetLocalMessagePassing
   :members:
 
 Grover Layers

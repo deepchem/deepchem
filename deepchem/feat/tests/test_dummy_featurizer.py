@@ -23,5 +23,5 @@ class TestDummyFeaturizer(unittest.TestCase):
              ]])
         featurizer = dc.feat.DummyFeaturizer()
         out = featurizer.featurize(input_array)
-        assert (type(out) == np.ndarray)
+        assert isinstance(out, np.ndarray)
         assert (out.shape == input_array.shape)

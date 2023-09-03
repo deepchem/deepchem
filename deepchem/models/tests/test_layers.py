@@ -664,7 +664,7 @@ def test_position_wise_feed_forward():
                           (True, False, [[-0.9612, 2.3846], [-4.1104, 5.7606]]),
                           (False, True, [[0.2795, 0.4243], [0.2795, 0.4243]]),
                           (True, True, [[-0.9612, 2.3846], [-4.1104, 5.7606]])])
-def test_MultilayerPerceptron(skip_connection, batch_norm, expected):
+def test_multilayer_perceptron(skip_connection, batch_norm, expected):
     """Test invoking MLP."""
     torch.manual_seed(0)
     input_ar = torch.tensor([[1., 2.], [5., 6.]])
@@ -681,7 +681,7 @@ def test_MultilayerPerceptron(skip_connection, batch_norm, expected):
 
 
 @pytest.mark.torch
-def test_MultilayerPerceptron_overfit():
+def test_multilayer_perceptron_overfit():
     import torch
     import deepchem.models.torch_models.layers as torch_layers
     from deepchem.data import NumpyDataset
@@ -701,6 +701,27 @@ def test_MultilayerPerceptron_overfit():
     model.fit(data, nb_epoch=1000)
     output = model.predict_on_batch(data.X)
     assert np.allclose(output, y, atol=1e-2)
+
+
+@pytest.mark.torch
+def test_weighted_skip_multilayer_perceptron():
+    "Test for weighted skip connection from the input to the output"
+    seed = 123
+    torch.manual_seed(seed)
+    dim = 1
+    features = torch.Tensor([[0.8343], [1.2713], [1.2713], [1.2713], [1.2713]])
+    layer = dc.models.torch_models.layers.MultilayerPerceptron(
+        d_input=dim,
+        d_hidden=(dim,),
+        d_output=dim,
+        activation_fn='silu',
+        skip_connection=True,
+        weighted_skip=False)
+    output = layer(features)
+    output = output.detach().numpy()
+    result = np.array([[1.1032], [1.5598], [1.5598], [1.5598], [1.5598]])
+    assert np.allclose(output, result, atol=1e-04)
+    assert output.shape == (5, 1)
 
 
 @pytest.mark.torch
@@ -1183,3 +1204,152 @@ def test_edge_network():
         np.array(torch_result),
         np.load("deepchem/models/tests/assets/edgenetwork_result.npy"),
         atol=1e-04)
+
+
+@pytest.mark.torch
+def test_mxmnet_envelope():
+    """Test for _MXMNetEnvelope helper layer."""
+    env = dc.models.torch_models.layers._MXMNetEnvelope(exponent=2)
+    input_tensor = torch.tensor([0.5, 1.0, 2.0, 3.0])
+    output = env(input_tensor)
+    output = output.detach().numpy()
+    result = np.array([1.3125, 0.0000, 0.0000, 0.0000])
+    assert np.allclose(result, output, atol=1e-04)
+
+
+@pytest.mark.torch
+def test_mxmnet_global_message_passing():
+    """ Test for MXMNetGlobalMessagePassing Layer."""
+    seed = 123
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    dim = 1
+    node_features = torch.tensor([[0.8343], [1.2713], [1.2713], [1.2713],
+                                  [1.2713]])
+
+    edge_attr = torch.tensor([[1.0004], [1.0004], [1.0005], [1.0004], [1.0004],
+                              [-0.2644], [-0.2644], [-0.2644], [1.0004],
+                              [-0.2644], [-0.2644], [-0.2644], [1.0005],
+                              [-0.2644], [-0.2644], [-0.2644], [1.0004],
+                              [-0.2644], [-0.2644], [-0.2644]])
+
+    edge_indices = torch.tensor(
+        [[0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4],
+         [1, 2, 3, 4, 0, 2, 3, 4, 0, 1, 3, 4, 0, 1, 2, 4, 0, 1, 2, 3]])
+
+    out = dc.models.torch_models.layers.MXMNetGlobalMessagePassing(dim)
+    output = out(node_features, edge_attr, edge_indices)
+    output = output.detach().numpy()
+    result = np.array([[-0.27947044], [2.417905], [2.417905], [2.4178727],
+                       [2.417905]])
+    print(output)
+    assert np.allclose(output, result, atol=1e-04)
+    assert output.shape == (5, 1)
+
+
+@pytest.mark.torch
+def test_mxmnet_besselbasis():
+    """Test for MXMNetBesselBasisLayer"""
+
+    radial_layer = dc.models.torch_models.layers.MXMNetBesselBasisLayer(
+        num_radial=2, cutoff=2.0, envelope_exponent=2)
+    distances = torch.tensor([0.5, 1.0, 2.0, 3.0])
+    output = radial_layer(distances)
+    output = output.detach().numpy()
+    result = np.array([[2.6434e+00, 3.7383e+00], [1.3125e+00, -1.1474e-07],
+                       [-0.0000e+00, 0.0000e+00], [-0.0000e+00, -0.0000e+00]])
+    assert np.allclose(result, output, atol=1e-04)
+
+
+@pytest.mark.torch
+def test_encoder_rnn():
+    """Test for Encoder Layer of SeqToSeq Model"""
+    hidden_size = 7
+    num_input_token = 4
+    input = torch.tensor([[1, 0, 2, 3, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]])
+    layer = torch_layers.EncoderRNN(num_input_token, hidden_size)
+    emb, hidden = layer(input)
+
+    assert emb.shape == emb.shape == (input.shape[0], input.shape[1],
+                                      hidden_size)
+    assert hidden.shape == (1, input.shape[0], hidden_size)
+
+
+@pytest.mark.torch
+def test_FerminetElectronFeature():
+    "Test for FerminetElectronFeature layer."
+    electron_layer = dc.models.torch_models.layers.FerminetElectronFeature(
+        [32, 32, 32], [16, 16, 16], 4, 8, 10, [5, 5])
+    one_electron_test = torch.randn(8, 10, 4 * 4)
+    two_electron_test = torch.randn(8, 10, 10, 4)
+    one, two = electron_layer.forward(one_electron_test, two_electron_test)
+    assert one.size() == torch.Size([8, 10, 32])
+    assert two.size() == torch.Size([8, 10, 10, 16])
+
+
+@pytest.mark.torch
+def test_FerminetEnvelope():
+    "Test for FerminetEnvelope layer."
+    envelope_layer = dc.models.torch_models.layers.FerminetEnvelope(
+        [32, 32, 32], [16, 16, 16], 10, 8, [5, 5], 5, 16)
+    one_electron = torch.randn(8, 10, 32)
+    one_electron_permuted = torch.randn(8, 10, 5, 3)
+    psi_up, psi_down = envelope_layer.forward(one_electron,
+                                              one_electron_permuted)
+    assert psi_up.size() == torch.Size([8, 16, 5, 5])
+    assert psi_down.size() == torch.Size([8, 16, 5, 5])
+
+
+@pytest.mark.torch
+def test_mxmnet_local_message_passing():
+    """ Test for MXMNetLocalMessagePassing Layer."""
+    seed = 123
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    dim = 1
+    h = torch.tensor([[0.8343], [1.2713], [1.2713], [1.2713], [1.2713]])
+
+    rbf = torch.tensor([[-0.2628], [-0.2628], [-0.2628], [-0.2628], [-0.2629],
+                        [-0.2629], [-0.2628], [-0.2628]])
+
+    sbf1 = torch.tensor([[-0.2767], [-0.2767], [-0.2767], [-0.2767], [-0.2767],
+                         [-0.2767], [-0.2767], [-0.2767], [-0.2767], [-0.2767],
+                         [-0.2767], [-0.2767]])
+
+    sbf2 = torch.tensor([[-0.0301], [-0.0301], [-0.1483], [-0.1486], [-0.1484],
+                         [-0.0301], [-0.1483], [-0.0301], [-0.1485], [-0.1483],
+                         [-0.0301], [-0.1486], [-0.1485], [-0.0301], [-0.1486],
+                         [-0.0301], [-0.1484], [-0.1483], [-0.1486], [-0.0301]])
+
+    idx_kj = torch.tensor([3, 5, 7, 1, 5, 7, 1, 3, 7, 1, 3, 5])
+
+    idx_ji_1 = torch.tensor([0, 0, 0, 2, 2, 2, 4, 4, 4, 6, 6, 6])
+
+    idx_jj = torch.tensor(
+        [0, 1, 3, 5, 7, 2, 1, 3, 5, 7, 4, 1, 3, 5, 7, 6, 1, 3, 5, 7])
+
+    idx_ji_2 = torch.tensor(
+        [0, 1, 1, 1, 1, 2, 3, 3, 3, 3, 4, 5, 5, 5, 5, 6, 7, 7, 7, 7])
+
+    edge_index = torch.tensor([[0, 1, 0, 2, 0, 3, 0, 4],
+                               [1, 0, 2, 0, 3, 0, 4, 0]])
+
+    layer = dc.models.torch_models.layers.MXMNetLocalMessagePassing(
+        dim, activation_fn='silu')
+
+    output = layer(h, rbf, sbf1, sbf2, idx_kj, idx_ji_1, idx_jj, idx_ji_2,
+                   edge_index)
+    result0 = np.array([[0.7916], [1.2796], [1.2796], [1.2796], [1.2796]])
+    result1 = np.array([[0.3439], [0.3441], [0.3441], [0.3441], [0.3441]])
+
+    assert np.allclose(result0, output[0].detach().numpy(), atol=1e-04)
+    assert np.allclose(result1, output[1].detach().numpy(), atol=1e-04)
+
+    assert output[0].shape == (5, 1)
+    assert output[1].shape == (5, 1)

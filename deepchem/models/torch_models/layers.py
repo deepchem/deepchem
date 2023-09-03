@@ -1,6 +1,7 @@
 import math
+from math import pi as PI
 import numpy as np
-from typing import Any, Tuple, Optional, Sequence, List, Union, Callable, Dict
+from typing import Any, Tuple, Optional, Sequence, List, Union, Callable, Dict, TypedDict
 from collections.abc import Sequence as SequenceCollection
 try:
     import torch
@@ -18,6 +19,8 @@ except ModuleNotFoundError:
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
 from deepchem.utils.pytorch_utils import get_activation, segment_sum
 from torch.nn import init as initializers
+from torch_geometric.nn import MessagePassing
+from torch_geometric.utils import add_self_loops
 
 
 class MultilayerPerceptron(nn.Module):
@@ -40,7 +43,8 @@ class MultilayerPerceptron(nn.Module):
                  batch_norm: bool = False,
                  batch_norm_momentum: float = 0.1,
                  activation_fn: Union[Callable, str] = 'relu',
-                 skip_connection: bool = False):
+                 skip_connection: bool = False,
+                 weighted_skip: bool = True):
         """Initialize the model.
 
         Parameters
@@ -61,6 +65,8 @@ class MultilayerPerceptron(nn.Module):
             the activation function to use in the hidden layers
         skip_connection: bool
             whether to add a skip connection from the input to the output
+        weighted_skip: bool
+            whether to add a weighted skip connection from the input to the output
         """
         super(MultilayerPerceptron, self).__init__()
         self.d_input = d_input
@@ -72,6 +78,7 @@ class MultilayerPerceptron(nn.Module):
         self.activation_fn = get_activation(activation_fn)
         self.model = nn.Sequential(*self.build_layers())
         self.skip = nn.Linear(d_input, d_output) if skip_connection else None
+        self.weighted_skip = weighted_skip
 
     def build_layers(self):
         """
@@ -101,7 +108,10 @@ class MultilayerPerceptron(nn.Module):
                     x
                 )  # Done because activation_fn returns a torch.nn.functional
         if self.skip is not None:
-            return x + self.skip(input)
+            if not self.weighted_skip:
+                return x + input
+            else:
+                return x + self.skip(input)
         else:
             return x
 
@@ -3103,7 +3113,7 @@ class MolGANConvolutionLayer(nn.Module):
                  dropout_rate: float = 0.0,
                  edges: int = 5,
                  name: str = "",
-                 **kwargs):
+                 prev_shape: int = 0):
         """
         Initialize this layer.
 
@@ -3122,6 +3132,8 @@ class MolGANConvolutionLayer(nn.Module):
             Typically equal to number of bond types used in the model.
         name: string, optional (default="")
             Name of the layer
+        prev_shape: int, optional (default=0)
+            Shape of the previous layer, used when more than two inputs are passed
         """
         super(MolGANConvolutionLayer, self).__init__()
 
@@ -3132,12 +3144,27 @@ class MolGANConvolutionLayer(nn.Module):
         self.name: str = name
         self.nodes: int = nodes
 
-        self.dense1: nn.ModuleList = nn.ModuleList(
-            [nn.Linear(nodes, self.units) for _ in range(edges - 1)])
+        # Case when >2 inputs are passed
+        if prev_shape:
+            self.dense1 = nn.ModuleList([
+                nn.Linear(prev_shape + self.nodes, self.units)
+                for _ in range(edges - 1)
+            ])
+        else:
+            self.dense1 = nn.ModuleList(
+                [nn.Linear(self.nodes, self.units) for _ in range(edges - 1)])
         self.dense2: nn.Linear = nn.Linear(nodes, self.units)
         self.dropout: nn.Dropout = nn.Dropout(self.dropout_rate)
 
     def __repr__(self) -> str:
+        """
+        Returns a string representing the configuration of the layer.
+        
+        Returns
+        -------
+        str
+            String representation of the layer
+        """
         return (
             f'{self.__class__.__name__}(Units={self.units}, Nodes={self.nodes}, Activation={self.activation}, Dropout_rate={self.droput_rate}, Edges={self.edges}, Name={self.name})'
         )
@@ -3225,7 +3252,7 @@ class MolGANAggregationLayer(nn.Module):
                  activation=torch.tanh,
                  dropout_rate: float = 0.0,
                  name: str = "",
-                 **kwargs):
+                 prev_shape: int = 0):
         """
         Initialize the layer
 
@@ -3239,6 +3266,8 @@ class MolGANAggregationLayer(nn.Module):
             Used by dropout layer
         name: string, optional (default="")
             Name of the layer
+        prev_shape: int, optional (default=0)
+            Shape of the input tensor
         """
 
         super(MolGANAggregationLayer, self).__init__()
@@ -3247,8 +3276,12 @@ class MolGANAggregationLayer(nn.Module):
         self.dropout_rate: float = dropout_rate
         self.name: str = name
 
-        self.d1 = nn.Linear(self.units, self.units)
-        self.d2 = nn.Linear(self.units, self.units)
+        if prev_shape:
+            self.d1 = nn.Linear(prev_shape, self.units)
+            self.d2 = nn.Linear(prev_shape, self.units)
+        else:
+            self.d1 = nn.Linear(self.units, self.units)
+            self.d2 = nn.Linear(self.units, self.units)
         self.dropout_layer = nn.Dropout(dropout_rate)
 
     def __repr__(self) -> str:
@@ -3282,6 +3315,260 @@ class MolGANAggregationLayer(nn.Module):
         output = torch.sum(i * j, dim=1)
         output = self.activation(output)
         output = self.dropout_layer(output)
+        return output
+
+
+class MolGANMultiConvolutionLayer(nn.Module):
+    """
+    Multiple pass convolution layer used in MolGAN model.
+    MolGAN is a WGAN type model for generation of small molecules.
+    It takes outputs of previous convolution layer and uses
+    them as inputs for the next one.
+    It simplifies the overall framework, but might be moved to
+    MolGANEncoderLayer in the future in order to reduce number of layers.
+
+    Example
+    -------
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+    >>> vertices = 9
+    >>> nodes = 5
+    >>> edges = 5
+    >>> units = (128,64)
+
+    >>> layer_1 = MolGANMultiConvolutionLayer(units=units, nodes=nodes, edges=edges, name='layer1')
+    >>> adjacency_tensor = torch.randn((1, vertices, vertices, edges))
+    >>> node_tensor = torch.randn((1, vertices, nodes))
+    >>> output = layer_1([adjacency_tensor, node_tensor])
+
+    References
+    ----------
+    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+        for small molecular graphs", https://arxiv.org/abs/1805.11973
+    """
+
+    def __init__(self,
+                 units: Tuple = (128, 64),
+                 nodes: int = 5,
+                 activation=torch.tanh,
+                 dropout_rate: float = 0.0,
+                 edges: int = 5,
+                 name: str = "",
+                 **kwargs):
+        """
+        Initialize the layer
+
+        Parameters
+        ---------
+        units: Tuple, optional (default=(128,64)), min_length=2
+            ist of dimensions used by consecutive convolution layers.
+            The more values the more convolution layers invoked.
+        nodes: int, optional (default=5)
+            Number of features in node tensor
+        activation: function, optional (default=Tanh)
+            activation function used across model, default is Tanh
+        dropout_rate: float, optional (default=0.0)
+            Used by dropout layer
+        edges: int, optional (default=5)
+            Controls how many dense layers use for single convolution unit.
+            Typically matches number of bond types used in the molecule.
+        name: string, optional (default="")
+            Name of the layer
+        """
+
+        super(MolGANMultiConvolutionLayer, self).__init__()
+        if len(units) < 2:
+            raise ValueError("units parameter must contain at least two values")
+
+        self.nodes: int = nodes
+        self.units: Tuple = units
+        self.activation = activation
+        self.dropout_rate: float = dropout_rate
+        self.edges: int = edges
+        self.name: str = name
+
+        self.first_convolution = MolGANConvolutionLayer(
+            units=self.units[0],
+            nodes=self.nodes,
+            activation=self.activation,
+            dropout_rate=self.dropout_rate,
+            edges=self.edges)
+        self.gcl = nn.ModuleList([
+            MolGANConvolutionLayer(units=u,
+                                   nodes=self.nodes,
+                                   activation=self.activation,
+                                   dropout_rate=self.dropout_rate,
+                                   edges=self.edges,
+                                   prev_shape=self.units[count])
+            for count, u in enumerate(self.units[1:])
+        ])
+
+    def __repr__(self) -> str:
+        """
+        String representation of the layer
+        
+        Returns
+        -------
+        string
+            String representation of the layer
+        """
+        return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate}), edges={self.edges})"
+
+    def forward(self, inputs: List) -> torch.Tensor:
+        """
+        Invoke this layer
+
+        Parameters
+        ----------
+        inputs: list
+            List of two input matrices, adjacency tensor and node features tensors
+            in one-hot encoding format.
+
+        Returns
+        --------
+        convolution tensor: torch.Tensor
+            Result of input tensors going through convolution a number of times.
+        """
+
+        adjacency_tensor = inputs[0]
+        node_tensor = inputs[1]
+
+        tensors = self.first_convolution([adjacency_tensor, node_tensor])
+
+        # Loop over the remaining convolution layers
+        for layer in self.gcl:
+            # Apply the current layer to the outputs from the previous layer
+            tensors = layer(tensors)
+
+        _, _, hidden_tensor = tensors
+
+        return hidden_tensor
+
+
+class MolGANEncoderLayer(nn.Module):
+    """
+    Main learning layer used by MolGAN model.
+    MolGAN is a WGAN type model for generation of small molecules.
+    It role is to further simplify model.
+    This layer can be manually built by stacking graph convolution layers
+    followed by graph aggregation.
+    
+    Example
+    -------
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+    >>> vertices = 9
+    >>> nodes = 5
+    >>> edges = 5
+    >>> dropout_rate = 0.0
+    >>> adjacency_tensor = torch.randn((1, vertices, vertices, edges))
+    >>> node_tensor = torch.randn((1, vertices, nodes))
+    
+    >>> graph = MolGANEncoderLayer(units = [(128,64),128], dropout_rate= dropout_rate, edges=edges, nodes=nodes)([adjacency_tensor,node_tensor])
+    >>> dense = nn.Linear(128,128)(graph)
+    >>> dense = torch.tanh(dense)
+    >>> dense = nn.Dropout(dropout_rate)(dense)
+    >>> dense = nn.Linear(128,64)(dense)
+    >>> dense = torch.tanh(dense)
+    >>> dense = nn.Dropout(dropout_rate)(dense)
+    >>> output = nn.Linear(64,1)(dense)
+    
+    References
+    ----------
+    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+        for small molecular graphs", https://arxiv.org/abs/1805.11973
+    """
+
+    def __init__(self,
+                 units: List = [(128, 64), 128],
+                 activation: Callable = torch.tanh,
+                 dropout_rate: float = 0.0,
+                 edges: int = 5,
+                 nodes: int = 5,
+                 name: str = ""):
+        """
+        Initialize the layer
+        
+        Parameters
+        ----------
+        units: List, optional (default=[(128,64),128])
+            List of dimensions used by consecutive convolution layers.
+            The more values the more convolution layers invoked.
+        activation: function, optional (default=Tanh)
+            activation function used across model, default is Tanh
+        dropout_rate: float, optional (default=0.0)
+            Used by dropout layer
+        edges: int, optional (default=5)
+            Controls how many dense layers use for single convolution unit.
+            Typically matches number of bond types used in the molecule.
+        nodes: int, optional (default=5)
+            Number of features in node tensor
+        name: string, optional (default="")
+            Name of the layer
+        """
+
+        super(MolGANEncoderLayer, self).__init__()
+        if len(units) != 2:
+            raise ValueError("units parameter must contain two values")
+        self.graph_convolution_units, self.auxiliary_units = units
+        self.activation = activation
+        self.dropout_rate = dropout_rate
+        self.edges = edges
+
+        self.multi_graph_convolution_layer = MolGANMultiConvolutionLayer(
+            units=self.graph_convolution_units,
+            nodes=nodes,
+            activation=self.activation,
+            dropout_rate=self.dropout_rate,
+            edges=self.edges)
+        self.graph_aggregation_layer = MolGANAggregationLayer(
+            units=self.auxiliary_units,
+            activation=self.activation,
+            dropout_rate=self.dropout_rate,
+            prev_shape=self.graph_convolution_units[-1] + nodes)
+
+    def __repr__(self) -> str:
+        """
+        String representation of the layer
+        
+        Returns
+        -------
+        string
+            String representation of the layer
+        """
+        return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate}), edges={self.edges})"
+
+    def forward(self, inputs: List) -> torch.Tensor:
+        """
+        Invoke this layer
+
+        Parameters
+        ----------
+        inputs: list
+            List of two input matrices, adjacency tensor and node features tensors
+            in one-hot encoding format.
+
+        Returns
+        --------
+        encoder tensor: tf.Tensor
+            Tensor that been through number of convolutions followed
+            by aggregation.
+        """
+
+        output = self.multi_graph_convolution_layer(inputs)
+
+        node_tensor = inputs[1]
+
+        if len(inputs) > 2:
+            hidden_tensor = inputs[2]
+            annotations = torch.cat((output, hidden_tensor, node_tensor), -1)
+        else:
+            _, node_tensor = inputs
+            annotations = torch.cat((output, node_tensor), -1)
+
+        output = self.graph_aggregation_layer(annotations)
         return output
 
 
@@ -3465,7 +3752,7 @@ class DTNNGather(nn.Module):
             Number of features for each atom
         n_outputs: int, optional
             Number of features for each molecule(output)
-        layer_sizes: list of int, optional(default=[1000])
+        layer_sizes: list of int, optional(default=[100])
             Structure of hidden layer(s)
         initializer: str, optional
             Weight initialization for filters.
@@ -3968,3 +4255,1160 @@ class WeaveLayer(nn.Module):
             P = pair_features
 
         return [A, P]
+
+
+class WeaveGather(nn.Module):
+    """Implements the weave-gathering section of weave convolutions.
+    This is the Torch equivalent of the original implementation using Keras.
+
+    Implements the gathering layer from [1]_. The weave gathering layer gathers
+    per-atom features to create a molecule-level fingerprint in a weave
+    convolutional network. This layer can also performs Gaussian histogram
+    expansion as detailed in [1]_. Note that the gathering function here is
+    simply addition as in [1]_>
+
+    Examples
+    --------
+    This layer expects 2 inputs in a list of the form `[atom_features,
+    pair_features]`. We'll walk through the structure
+    of these inputs. Let's start with some basic definitions.
+
+    >>> import deepchem as dc
+    >>> import numpy as np
+
+    Suppose you have a batch of molecules
+
+    >>> smiles = ["CCC", "C"]
+
+    Note that there are 4 atoms in total in this system. This layer expects its
+    input molecules to be batched together.
+
+    >>> total_n_atoms = 4
+
+    Let's suppose that we have `n_atom_feat` features per atom.
+
+    >>> n_atom_feat = 75
+
+    Then conceptually, `atom_feat` is the array of shape `(total_n_atoms,
+    n_atom_feat)` of atomic features. For simplicity, let's just go with a
+    random such matrix.
+
+    >>> atom_feat = np.random.rand(total_n_atoms, n_atom_feat)
+
+    We then need to provide a mapping of indices to the atoms they belong to. In
+    ours case this would be
+
+    >>> atom_split = np.array([0, 0, 0, 1])
+
+    Let's now define the actual layer
+
+    >>> gather = WeaveGather(batch_size=2, n_input=n_atom_feat)
+    >>> output_molecules = gather([atom_feat, atom_split])
+    >>> len(output_molecules)
+    2
+
+    References
+    ----------
+    .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
+        fingerprints." Journal of computer-aided molecular design 30.8 (2016):
+        595-608.
+    """
+
+    def __init__(self,
+                 batch_size: int,
+                 n_input: int = 128,
+                 gaussian_expand: bool = True,
+                 compress_post_gaussian_expansion: bool = False,
+                 init_: str = 'xavier_uniform_',
+                 activation: str = 'tanh',
+                 **kwargs):
+        """
+        Parameters
+        ----------
+        batch_size: int
+            number of molecules in a batch
+        n_input: int, optional (default 128)
+            number of features for each input molecule
+        gaussian_expand: boolean, optional (default True)
+            Whether to expand each dimension of atomic features by gaussian histogram
+        compress_post_gaussian_expansion: bool, optional (default False)
+            If True, compress the results of the Gaussian expansion back to the
+            original dimensions of the input by using a linear layer with specified
+            activation function. Note that this compression was not in the original
+            paper, but was present in the original DeepChem implementation so is
+            left present for backwards compatibility.
+        init: str, optional (default 'xavier_uniform_')
+            Weight initialization for filters if `compress_post_gaussian_expansion`
+            is True.
+        activation: str, optional (default 'tanh')
+            Activation function applied for filters if
+            `compress_post_gaussian_expansion` is True.
+        """
+        super(WeaveGather, self).__init__(**kwargs)
+        self.n_input: int = n_input
+        self.batch_size: int = batch_size
+        self.gaussian_expand: bool = gaussian_expand
+        self.compress_post_gaussian_expansion: bool = compress_post_gaussian_expansion
+        self.init: str = init_  # Set weight initialization
+        self.activation: str = activation  # Get activations
+        self.activation_fn: torch.nn.Module = get_activation(activation)
+
+        if self.compress_post_gaussian_expansion:
+            init = getattr(initializers, self.init)
+            self.W: torch.Tensor = init(
+                torch.empty([self.n_input * 11, self.n_input]))
+            self.b: torch.Tensor = torch.zeros((self.n_input,))
+        self.built = True
+
+    def __repr__(self):
+        """
+        Returns a string representation of the object.
+
+        Returns:
+        -------
+        str: A string that contains the class name followed by the values of its instance variable.
+        """
+        return (
+            f'{self.__class__.__name__}(batch_size:{self.batch_size},n_input:{self.n_input},gaussian_expand:{self.gaussian_expand},init:{self.init},activation:{self.activation},compress_post_gaussian_expansion:{self.compress_post_gaussian_expansion})'
+        )
+
+    def forward(self, inputs: List[Union[np.ndarray,
+                                         np.ndarray]]) -> torch.Tensor:
+        """Creates weave tensors.
+
+        Parameters
+        ----------
+        inputs: List[Union[np.ndarray,np.ndarray]]
+            Should contain 2 tensors [atom_features, atom_split]
+
+        Returns
+        -------
+        output_molecules: torch.Tensor
+            Each entry in this list is of shape `(self.n_inputs,)`
+
+        """
+        outputs: torch.Tensor = torch.tensor(inputs[0])
+        atom_split: torch.Tensor = torch.tensor(inputs[1])
+
+        if self.gaussian_expand:
+            outputs = self.gaussian_histogram(outputs)
+
+        t_grp: Dict[Tensor, Tensor] = {}
+        idx: int = 0
+        for i, s_id in enumerate(atom_split):
+            s_id = s_id.item()
+            if s_id in t_grp:
+                t_grp[s_id] = t_grp[s_id] + outputs[idx]
+            else:
+                t_grp[s_id] = outputs[idx]
+            idx = i + 1
+
+            lst = list(t_grp.values())
+            tensor = torch.stack(lst)
+        output_molecules: torch.Tensor = tensor
+
+        if self.compress_post_gaussian_expansion:
+            output_molecules = torch.matmul(
+                output_molecules.type(torch.float32), self.W) + self.b
+            output_molecules = self.activation_fn(output_molecules)
+
+        return output_molecules
+
+    def gaussian_histogram(self, x: torch.Tensor) -> torch.Tensor:
+        """Expands input into a set of gaussian histogram bins.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Of shape `(N, n_feat)`
+
+        Examples
+        --------
+        This method uses 11 bins spanning portions of a Gaussian with zero mean
+        and unit standard deviation.
+
+        >>> gaussian_memberships = [(-1.645, 0.283), (-1.080, 0.170),
+        ...                         (-0.739, 0.134), (-0.468, 0.118),
+        ...                         (-0.228, 0.114), (0., 0.114),
+        ...                         (0.228, 0.114), (0.468, 0.118),
+        ...                         (0.739, 0.134), (1.080, 0.170),
+        ...                         (1.645, 0.283)]
+
+        We construct a Gaussian at `gaussian_memberships[i][0]` with standard
+        deviation `gaussian_memberships[i][1]`. Each feature in `x` is assigned
+        the probability of falling in each Gaussian, and probabilities are
+        normalized across the 11 different Gaussians.
+
+        Returns
+        -------
+        outputs: torch.Tensor
+            Of shape `(N, 11*n_feat)`
+        """
+        import torch.distributions as dist
+        gaussian_memberships: List[Tuple[float, float]] = [(-1.645, 0.283),
+                                                           (-1.080, 0.170),
+                                                           (-0.739, 0.134),
+                                                           (-0.468, 0.118),
+                                                           (-0.228, 0.114),
+                                                           (0., 0.114),
+                                                           (0.228, 0.114),
+                                                           (0.468, 0.118),
+                                                           (0.739, 0.134),
+                                                           (1.080, 0.170),
+                                                           (1.645, 0.283)]
+
+        distributions: List[dist.Normal] = [
+            dist.Normal(torch.tensor(p[0]), torch.tensor(p[1]))
+            for p in gaussian_memberships
+        ]
+        dist_max: List[torch.Tensor] = [
+            distributions[i].log_prob(torch.tensor(
+                gaussian_memberships[i][0])).exp() for i in range(11)
+        ]
+
+        outputs: List[torch.Tensor] = [
+            distributions[i].log_prob(torch.tensor(x)).exp() / dist_max[i]
+            for i in range(11)
+        ]
+        output: torch.Tensor = torch.stack(outputs, dim=2)
+        output = output / torch.sum(output, dim=2, keepdim=True)
+        output = output.view(-1, self.n_input * 11)
+        return output
+
+
+class _MXMNetEnvelope(torch.nn.Module):
+    """
+    A PyTorch module implementing an envelope function. This is a helper class for MXMNetSphericalBasisLayer and MXMNetBesselBasisLayer to be used in MXMNet Model.
+
+    The envelope function is defined as follows:
+    env(x) = 1 / x + a * x^e + b * x^(e+1) + c * x^(e+2)        if x < 1
+    env(x) = 0                                                  if x >= 1
+
+    where 
+    'x' is the input tensor
+    'e' is the exponent parameter
+    'a' = -(e + 1) * (e + 2) / 2
+    'b' = e * (e + 2)
+    'c' = -e * (e + 1) / 2
+
+    Examples
+    --------
+    >>> env = _MXMNetEnvelope(exponent=2)
+    >>> input_tensor = torch.tensor([0.5, 1.0, 2.0, 3.0])
+    >>> output = env(input_tensor)
+    >>> output.shape
+    torch.Size([4])
+    """
+
+    def __init__(self, exponent: int):
+        """
+        Parameters
+        ----------
+        exponent: float 
+            The exponent 'e' used in the envelope function.
+        """
+        super(_MXMNetEnvelope, self).__init__()
+        self.e: int = exponent
+        self.a: float = -(self.e + 1) * (self.e + 2) / 2
+        self.b: float = self.e * (self.e + 2)
+        self.c: float = -self.e * (self.e + 1) / 2
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Compute the envelope function for the input tensor 'x'.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The Input tensor
+
+        Returns
+        -------
+        output: torch.Tensor
+            The tensor containing the computed envelope values for each element of 'x'.
+        """
+        e: int = self.e
+        a: float = self.a
+        b: float = self.b
+        c: float = self.c
+
+        x_pow_p0: torch.Tensor = x.pow(e)
+        x_pow_p1: torch.Tensor = x_pow_p0 * x
+        env_val: torch.Tensor = 1. / x + a * x_pow_p0 + b * x_pow_p1 + c * x_pow_p1 * x
+
+        zero: torch.Tensor = torch.zeros_like(x)
+        output: torch.Tensor = torch.where(x < 1, env_val, zero)
+        return output
+
+
+class MXMNetGlobalMessagePassing(MessagePassing):
+    """This class implements the Global Message Passing Layer from the Molecular Mechanics-Driven Graph Neural Network
+    with Multiplex Graph for Molecular Structures(MXMNet) paper [1]_.
+
+    This layer consists of two message passing steps and an update step between them.
+
+    Let:
+        - **x_i** : ``The node to be updated``
+        - **h_i** : ``The hidden state of x_i``
+        - **x_j** : ``The neighbour node connected to x_i by edge e_ij``
+        - **h_j** : ``The hidden state of x_j``
+        - **W** : ``The edge weights``
+        - **m_ij** : ``The message between x_i and x_j``
+        - **h_j (self_loop)** : ``The set of hidden states of atom features``
+        - **mlp** : ``MultilayerPerceptron``
+        - **res** : ``ResidualBlock``
+
+    **In each message passing step**
+
+        .. code-block:: python
+            
+            m_ij = mlp1([h_i || h_j || e_ij])*(e_ij W)
+
+        **To handle self loops**
+
+            .. code-block:: python
+            
+                m_ij = m_ij + h_j(self_loop)
+
+    **In each update step**
+
+        .. code-block:: python
+
+            hm_j = res1(sum(m_ij)) 
+            h_j_new = mlp2(hm_j) + h_j 
+            h_j_new = res2(h_j_new) 
+            h_j_new = res3(h_j_new) 
+
+    .. note::
+    Message passing and message aggregation(sum) is handled by ``self.propagate()``.
+
+    References
+    ----------
+    .. [1] Molecular Mechanics-Driven Graph Neural Network with Multiplex Graph for Molecular Structures. https://arxiv.org/pdf/2011.07457.pdf
+
+
+    Examples
+    --------
+    The provided example demonstrates how to use the GlobalMessagePassing layer by creating an instance, passing input tensors (node_features, edge_attributes, edge_indices) through it, and checking the shape of the output.
+
+    Initializes variables and creates a configuration dictionary with specific values.
+
+    >>> dim = 1
+    >>> node_features = torch.tensor([[0.8343], [1.2713], [1.2713], [1.2713], [1.2713]])
+    >>> edge_attributes = torch.tensor([[1.0004], [1.0004], [1.0005], [1.0004], [1.0004],[-0.2644], [-0.2644], [-0.2644], [1.0004],[-0.2644], [-0.2644], [-0.2644], [1.0005],[-0.2644], [-0.2644], [-0.2644], [1.0004],[-0.2644], [-0.2644], [-0.2644]])
+    >>> edge_indices = torch.tensor([[0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4],[1, 2, 3, 4, 0, 2, 3, 4, 0, 1, 3, 4, 0, 1, 2, 4, 0, 1, 2, 3]])
+    >>> out = MXMNetGlobalMessagePassing(dim)
+    >>> output = out(node_features, edge_attributes, edge_indices)
+    >>> output.shape
+    torch.Size([5, 1])
+
+    """
+
+    def __init__(self, dim: int, activation_fn: Union[Callable, str] = 'silu'):
+        """Initializes the MXMNETGlobalMessagePassing layer.
+
+        Parameters
+        -----------
+        dim: int
+            The dimension of the input and output features.
+        """
+
+        super(MXMNetGlobalMessagePassing, self).__init__()
+        activation_fn = get_activation(activation_fn)
+
+        self.h_mlp: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim, d_output=dim, activation_fn=activation_fn)
+
+        self.res1: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim,),
+            d_output=dim,
+            activation_fn=activation_fn,
+            skip_connection=True,
+            weighted_skip=False)
+        self.res2: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim,),
+            d_output=dim,
+            activation_fn=activation_fn,
+            skip_connection=True,
+            weighted_skip=False)
+        self.res3: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim,),
+            d_output=dim,
+            activation_fn=activation_fn,
+            skip_connection=True,
+            weighted_skip=False)
+
+        self.mlp: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim, d_output=dim, activation_fn=activation_fn)
+
+        self.x_edge_mlp: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim * 3, d_output=dim, activation_fn=activation_fn)
+        self.linear: nn.Linear = nn.Linear(dim, dim, bias=False)
+
+    def forward(self, node_features: torch.Tensor,
+                edge_attributes: torch.Tensor,
+                edge_indices: torch.Tensor) -> torch.Tensor:
+        """
+        Performs the forward pass of the GlobalMessagePassing layer.
+
+        Parameters
+        -----------
+        node_features: torch.Tensor
+            The input node features tensor of shape (num_nodes, feature_dim).
+        edge_attributes: torch.Tensor
+            The input edge attribute tensor of shape (num_edges, attribute_dim).
+        edge_indices: torch.Tensor
+            The input edge index tensor of shape (2, num_edges).
+
+        Returns
+        --------
+        torch.Tensor
+            The updated node features tensor after message passing of shape (num_nodes, feature_dim).
+        """
+        edge_indices, _ = add_self_loops(edge_indices,
+                                         num_nodes=node_features.size(0))
+
+        residual_node_features: torch.Tensor = node_features
+
+        # Integrate the Cross Layer Mapping inside the Global Message Passing
+        node_features = self.h_mlp(node_features)
+
+        # Message Passing operation
+        node_features = self.propagate(edge_indices,
+                                       x=node_features,
+                                       num_nodes=node_features.size(0),
+                                       edge_attr=edge_attributes)
+
+        # Update function f_u
+        node_features = self.res1(node_features)
+        node_features = self.mlp(node_features) + residual_node_features
+        node_features = self.res2(node_features)
+        node_features = self.res3(node_features)
+
+        # Message Passing operation
+        node_features = self.propagate(edge_indices,
+                                       x=node_features,
+                                       num_nodes=node_features.size(0),
+                                       edge_attr=edge_attributes)
+
+        return node_features
+
+    def message(self, x_i: torch.Tensor, x_j: torch.Tensor,
+                edge_attr: torch.Tensor) -> torch.Tensor:
+        """Constructs messages to be passed along the edges in the graph.
+
+        Parameters
+        -----------
+        x_i: torch.Tensor
+            The source node features tensor of shape (num_edges+num_nodes, feature_dim).
+        x_j: torch.Tensor
+            The target node features tensor of shape (num_edges+num_nodes, feature_dim).
+        edge_attributes: torch.Tensor
+            The edge attribute tensor of shape (num_edges, attribute_dim).
+
+        Returns
+        --------
+        torch.Tensor
+            The constructed messages tensor.
+        """
+        num_edge: int = edge_attr.size()[0]
+
+        x_edge: torch.Tensor = torch.cat(
+            (x_i[:num_edge], x_j[:num_edge], edge_attr), -1)
+        x_edge = self.x_edge_mlp(x_edge)
+
+        x_j = torch.cat((self.linear(edge_attr) * x_edge, x_j[num_edge:]),
+                        dim=0)
+
+        return x_j
+
+
+class MXMNetBesselBasisLayer(torch.nn.Module):
+    """This layer implements a basis layer for the MXMNet model using Bessel functions.
+    The basis layer is used to model radial symmetry in molecular systems.
+
+    The output of the layer is given by:
+    output = envelope(dist / cutoff) * (freq * dist / cutoff).sin()
+
+    Examples
+    --------
+    >>> radial_layer = MXMNetBesselBasisLayer(num_radial=2, cutoff=2.0, envelope_exponent=2)
+    >>> distances = torch.tensor([0.5, 1.0, 2.0, 3.0])
+    >>> output = radial_layer(distances)
+    >>> output.shape
+    torch.Size([4, 2])
+    """
+
+    def __init__(self,
+                 num_radial: int,
+                 cutoff: float = 5.0,
+                 envelope_exponent: int = 5):
+        """Initialize the MXMNet Bessel Basis Layer.
+
+        Parameters
+        ----------
+        num_radial: int
+            The number of radial basis functions to use.
+        cutoff: float, optional (default 5.0)
+            The radial cutoff distance used to scale the distances.
+        envelope_exponent: int, optional (default 5)
+            The exponent of the envelope function.
+        """
+
+        super(MXMNetBesselBasisLayer, self).__init__()
+        self.cutoff = cutoff
+        self.envelope: _MXMNetEnvelope = _MXMNetEnvelope(envelope_exponent)
+        self.freq: torch.Tensor = torch.nn.Parameter(torch.empty(num_radial))
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        """Reset and initialize the learnable parameters of the MXMNet Bessel Basis Layer.
+
+        The 'freq' tensor, representing the frequencies of the Bessel functions, is set up with initial values proportional to π (PI) and becomes a learnable parameter.
+
+        The 'freq' tensor will be updated during the training process to optimize the performance of the MXMNet model for the specific task it is being trained on.
+        """
+
+        with torch.no_grad():
+            torch.arange(1, self.freq.numel() + 1, out=self.freq).mul_(PI)
+        self.freq.requires_grad_()
+
+    def forward(self, dist: torch.Tensor) -> torch.Tensor:
+        """Compute the output of the MXMNet Bessel Basis Layer.
+
+        Parameters
+        ----------
+        dist: torch.Tensor
+            The input tensor representing the pairwise distances between atoms.
+
+        Returns
+        -------
+        output: torch.Tensor
+            The output tensor representing the radial basis functions applied to the input distances.
+        """
+        dist = dist.unsqueeze(-1) / self.cutoff
+        output: torch.Tensor = self.envelope(dist) * (self.freq * dist).sin()
+        return output
+
+
+class EncoderRNN(nn.Module):
+    """Encoder Layer for SeqToSeq Model.
+
+    It takes input sequences and converts them into a fixed-size context vector
+    called the "embedding". This vector contains all relevant information from
+    the input sequence. This context vector is then used by the decoder to
+    generate the output sequence and can also be used as a representation of the
+    input sequence for other Models.
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models.layers import EncoderRNN
+    >>> import torch 
+    >>> embedding_dimensions = 7
+    >>> num_input_token = 4
+    >>> input = torch.tensor([[1, 0, 2, 3, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]])
+    >>> layer = EncoderRNN(num_input_token, embedding_dimensions)
+    >>> emb, hidden = layer(input)
+    >>> emb.shape
+    torch.Size([3, 5, 7])
+
+    References
+    ----------
+    .. [1] Sutskever et al., "Sequence to Sequence Learning with Neural Networks"
+
+    """
+
+    def __init__(self,
+                 input_size: int,
+                 hidden_size: int,
+                 dropout_p: float = 0.1,
+                 **kwargs):
+        """Initialize the EncoderRNN layer.
+
+        Parameters
+        ----------
+        input_size: int
+            The number of expected features.
+        hidden_size: int
+            The number of features in the hidden state.
+        dropout_p: float (default 0.1)
+            The dropout probability to use during training.
+
+        """
+        super(EncoderRNN, self).__init__(**kwargs)
+        self.embedding = nn.Embedding(input_size, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True)
+        self.dropout = nn.Dropout(dropout_p)
+
+    def __repr__(self) -> str:
+        """Returns a string representing the configuration of the layer.
+
+        Returns
+        -------
+        input_size: int
+            Number of expected features.
+        hidden_size: int
+            Number of features in the hidden state.
+        dropout_p: float (default 0.1)
+            Dropout probability to use during training.
+
+        """
+        return f'{self.__class__.__name__}(input_size={self.input_size}, hidden_size={self.hidden_size}, dropout_p={self.dropout_p})'
+
+    def forward(self, input: torch.Tensor):
+        """Returns Embeddings according to provided sequences.
+
+        Parameters
+        ----------
+        input: torch.Tensor
+            Batch of input sequences.
+        
+        Returns
+        -------
+        output: torch.Tensor
+            Batch of Embeddings.
+        hidden: torch.Tensor
+            Batch of hidden states.
+
+        """
+        embedded = self.dropout(self.embedding(input))
+        output, hidden = self.gru(embedded)
+        return output, hidden
+
+
+class FerminetElectronFeature(torch.nn.Module):
+    """
+    A Pytorch Module implementing the ferminet's electron features interaction layer _[1]. This is a helper class for the Ferminet model.
+
+    The layer consists of 2 types of linear layers - v for the one elctron features and w for the two electron features. The number and dimensions
+    of each layer depends on the number of atoms and electrons in the molecule system.
+
+    References
+    ----------
+    .. [1] Spencer, James S., et al. Better, Faster Fermionic Neural Networks. arXiv:2011.07125, arXiv, 13 Nov. 2020. arXiv.org, http://arxiv.org/abs/2011.07125.
+
+    Examples
+    --------
+    >>> electron_layer = dc.models.torch_models.layers.FerminetElectronFeature([32,32,32],[16,16,16], 4, 8, 10, [5,5])
+    >>> one_electron_test = torch.randn(8, 10, 4*4)
+    >>> two_electron_test = torch.randn(8, 10, 10, 4)
+    >>> one, two = electron_layer.forward(one_electron_test, two_electron_test)
+    >>> one.size()
+    torch.Size([8, 10, 32])
+    >>> two.size()
+    torch.Size([8, 10, 10, 16])
+    """
+
+    def __init__(self, n_one: List[int], n_two: List[int], no_of_atoms: int,
+                 batch_size: int, total_electron: int, spin: List[int]):
+        """
+        Parameters
+        ----------
+        n_one: List[int]
+            List of integer values containing the dimensions of each n_one layer's output
+        n_two: List[int]
+            List of integer values containing the dimensions of each n_one layer's output
+        no_of_atoms: int:
+            Value containing the number of atoms in the molecule system
+        batch_size: int
+            Value containing the number of batches for the input provided
+        total_electron: int
+            Value containing the total number of electrons in the molecule system
+        spin: List[int]
+            List data structure in the format of [number of up-spin electrons, number of down-spin electrons]
+        v: torch.nn.ModuleList
+            torch ModuleList containing the linear layer with the n_one layer's dimension size.
+        w: torch.nn.ModuleList
+            torch ModuleList containing the linear layer with the n_two layer's dimension size.
+        layer_size: int
+            Value containing the number of n_one and n_two layers
+        """
+
+        super(FerminetElectronFeature, self).__init__()
+        self.n_one = n_one
+        self.n_two = n_two
+        self.no_of_atoms = no_of_atoms
+        self.batch_size = batch_size
+        self.total_electron = total_electron
+        self.spin = spin
+
+        self.v: torch.nn.ModuleList = torch.nn.ModuleList()
+        self.w: torch.nn.ModuleList = torch.nn.ModuleList()
+        self.layer_size: int = len(self.n_one)
+
+        # Initializing the first layer (first layer has different dims than others)
+        self.v.append(
+            nn.Linear(8 + 3 * 4 * self.no_of_atoms, self.n_one[0], bias=True))
+        #filling the weights with 1e-9 for faster convergence
+        self.v[0].weight.data.fill_(1e-9)
+        self.v[0].bias.data.fill_(1e-9)
+
+        self.w.append(nn.Linear(4, self.n_two[0], bias=True))
+        self.w[0].weight.data.fill_(1e-9)
+        self.w[0].bias.data.fill_(1e-9)
+
+        for i in range(1, self.layer_size):
+            self.v.append(
+                nn.Linear(3 * self.n_one[i - 1] + 2 * self.n_two[i - 1],
+                          n_one[i],
+                          bias=True))
+            self.v[i].weight.data.fill_(1e-9)
+            self.v[i].bias.data.fill_(1e-9)
+
+            self.w.append(nn.Linear(self.n_two[i - 1], self.n_two[i],
+                                    bias=True))
+            self.w[i].weight.data.fill_(1e-9)
+            self.w[i].bias.data.fill_(1e-9)
+
+    def forward(self, one_electron: torch.Tensor, two_electron: torch.Tensor):
+        """
+        Parameters
+        ----------
+        one_electron: torch.Tensor
+            The one electron feature which has the shape (batch_size, number of electrons, number of atoms * 4). Here the last dimension contains
+            the electron's distance from each of the atom as a vector concatenated with norm of that vector.
+        two_electron: torch.Tensor
+            The two electron feature which has the shape (batch_size, number of electrons, number of electron , 4). Here the last dimension contains
+            the electron's distance from the other electrons as a vector concatenated with norm of that vector.
+
+        Returns
+        -------
+        one_electron: torch.Tensor
+            The one electron feature after passing through the layer which has the shape (batch_size, number of electrons, n_one shape).
+        two_electron: torch.Tensor
+            The two electron feature after passing through the layer which has the shape (batch_size, number of electrons, number of electron , n_two shape).   
+        """
+        for l in range(self.layer_size):
+            # Calculating one-electron feature's average
+            g_one_up: torch.Tensor = torch.mean(
+                one_electron[:, :self.spin[0], :], dim=-2)
+            g_one_down: torch.Tensor = torch.mean(
+                one_electron[:, self.spin[0]:, :], dim=-2)
+            one_electron_tmp: torch.Tensor = torch.zeros(
+                self.batch_size, self.total_electron, self.n_one[l])
+            two_electron_tmp: torch.Tensor = torch.zeros(
+                self.batch_size, self.total_electron, self.total_electron,
+                self.n_two[l])
+            for i in range(self.total_electron):
+                # Calculating two-electron feature's average
+                g_two_up: torch.Tensor = torch.mean(
+                    two_electron[:, i, :self.spin[0], :], dim=1)
+                g_two_down: torch.Tensor = torch.mean(
+                    two_electron[:, i, self.spin[0]:, :], dim=1)
+                f: torch.Tensor = torch.cat((one_electron[:, i, :], g_one_up,
+                                             g_one_down, g_two_up, g_two_down),
+                                            dim=1)
+                if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
+                        self.n_two[l] != self.n_two[l - 1]):
+                    one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f.to(
+                        torch.float32)))
+                    two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
+                        two_electron[:, i, :, :].to(torch.float32)))
+                else:
+                    one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f.to(
+                        torch.float32))) + one_electron[:, i, :].to(
+                            torch.float32)
+                    two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
+                        two_electron[:, i, :, :].to(
+                            torch.float32))) + two_electron[:, i, :].to(
+                                torch.float32)
+            one_electron = one_electron_tmp
+            two_electron = two_electron_tmp
+
+        return one_electron, two_electron
+
+
+class FerminetEnvelope(torch.nn.Module):
+    """
+    A Pytorch Module implementing the ferminet's envlope layer [1]_, which is used to calculate the spin up and spin down orbital values.
+    This is a helper class for the Ferminet model.
+    The layer consists of 4 types of parameter lists - envelope_w, envelope_g, sigma and pi, which helps to calculate the orbital vlaues.
+
+    References
+    ----------
+    .. [1] Spencer, James S., et al. Better, Faster Fermionic Neural Networks. arXiv:2011.07125, arXiv, 13 Nov. 2020. arXiv.org, http://arxiv.org/abs/2011.07125.
+
+    Examples
+    --------
+    >>> envelope_layer = dc.models.torch_models.layers.FerminetEnvelope([32, 32, 32], [16, 16, 16], 10, 8, [5, 5], 5, 16)
+    >>> one_electron = torch.randn(8, 10, 32)
+    >>> one_electron_permuted = torch.randn(8, 10, 5, 3)
+    >>> psi_up, psi_down = envelope_layer.forward(one_electron, one_electron_permuted)
+    >>> psi_up.size()
+    torch.Size([8, 16, 5, 5])
+    >>> two.size()
+    torch.Size([8, 16, 5, 5])
+    """
+
+    def __init__(self, n_one: List[int], n_two: List[int], total_electron: int,
+                 batch_size: int, spin: List[int], no_of_atoms: int,
+                 determinant: int):
+        """
+        Parameters
+        ----------
+        n_one: List[int]
+            List of integer values containing the dimensions of each n_one layer's output
+        n_two: List[int]
+            List of integer values containing the dimensions of each n_one layer's output
+        total_electron: int
+            Value containing the total number of electrons in the molecule system
+        batch_size: int
+            Value containing the number of batches for the input provided
+        spin: List[int]
+            List data structure in the format of [number of up-spin electrons, number of down-spin electrons]
+        no_of_atoms: int
+            Value containing the number of atoms in the molecule system
+        determinant: int
+            The number of determinants to be incorporated in the post-HF solution.
+        envelope_w: torch.nn.ParameterList
+            torch ParameterList containing the torch Tensor with n_one layer's dimension size.
+        envelope_g: torch.nn.ParameterList
+            torch ParameterList containing the torch Tensor with the unit dimension size, which acts as bias.
+        sigma: torch.nn.ParameterList
+            torch ParameterList containing the torch Tensor with the unit dimension size.
+        pi: torch.nn.ParameterList
+            torch ParameterList containing the linear layer with the n_two layer's dimension size.
+        layer_size: int
+            Value containing the number of n_one and n_two layers
+        """
+
+        super(FerminetEnvelope, self).__init__()
+        self.n_one = n_one
+        self.n_two = n_two
+        self.total_electron = total_electron
+        self.batch_size = batch_size
+        self.spin = spin
+        self.no_of_atoms = no_of_atoms
+        self.determinant = determinant
+
+        self.layer_size: int = len(self.n_one)
+
+        self.envelope_w = torch.nn.ParameterList()
+        self.envelope_g = torch.nn.ParameterList()
+        self.sigma = torch.nn.ParameterList()
+        self.pi = torch.nn.ParameterList()
+
+        for i in range(self.determinant):
+            for j in range(self.total_electron):
+                self.envelope_w.append(
+                    torch.nn.init.uniform(torch.empty(n_one[-1], 1),
+                                          b=0.00001).squeeze(-1))
+                self.envelope_g.append(
+                    torch.nn.init.uniform(torch.empty(1),
+                                          b=0.000001).squeeze(0))
+                for k in range(self.no_of_atoms):
+                    self.sigma.append(
+                        torch.nn.init.uniform(torch.empty(self.no_of_atoms, 1),
+                                              b=0.000001).squeeze(0))
+                    self.pi.append(
+                        torch.nn.init.uniform(torch.empty(self.no_of_atoms, 1),
+                                              b=0.00001).squeeze(0))
+
+    def forward(self, one_electron: torch.Tensor,
+                one_electron_vector_permuted: torch.Tensor):
+        """
+        Parameters
+        ----------
+        one_electron: torch.Tensor
+            Torch tensor which is output from FerminElectronFeature layer in the shape of (batch_size, number of elctrons, n_one layer size).
+        one_electron_vector_permuted: torch.Tensor
+            Torch tensor which is shape permuted vector of the original one_electron vector tensor. shape of the tensor should be (batch_size, number of atoms, number of electrons, 3).
+
+        Returns
+        -------
+        psi_up: torch.Tensor
+            Torch tensor with up spin electron values in a the shape of (batch_size, determinant, up_spin, up_spin)
+        psi_down: torch.Tensor
+            Torch tensor with down spin electron values in a the shape of (batch_size, determinant, down_spin, down_spin)
+        """
+        psi_up = torch.zeros(self.batch_size, self.determinant, self.spin[0],
+                             self.spin[0])
+        psi_down = torch.zeros(self.batch_size, self.determinant, self.spin[1],
+                               self.spin[1])
+
+        for k in range(self.determinant):
+            for i in range(self.spin[0]):
+                one_d_index = (k * (self.total_electron)) + i
+                for j in range(self.spin[0]):
+                    psi_up[:, k, i, j] = (torch.sum(
+                        (self.envelope_w[one_d_index] * one_electron[:, j, :]) +
+                        self.envelope_g[one_d_index],
+                        dim=1)) * torch.sum(torch.exp(-torch.abs(
+                            torch.norm(self.sigma[one_d_index] *
+                                       one_electron_vector_permuted[:, j, :, :],
+                                       dim=2))) * self.pi[one_d_index].T,
+                                            dim=1)
+
+            for i in range(self.spin[0], self.spin[0] + self.spin[1]):
+                one_d_index = (k * (self.total_electron)) + i
+                for j in range(self.spin[0], self.spin[0] + self.spin[1]):
+                    psi_down[:, k, i - self.spin[0], j - self.spin[0]] = (
+                        torch.sum((self.envelope_w[one_d_index] *
+                                   one_electron[:, j, :]) +
+                                  self.envelope_g[one_d_index],
+                                  dim=1)
+                    ) * torch.sum(torch.exp(-torch.abs(
+                        torch.norm(self.sigma[one_d_index] *
+                                   one_electron_vector_permuted[:, j, :, :],
+                                   dim=2))) * self.pi[one_d_index].T,
+                                  dim=1)
+
+        return psi_up, psi_down
+
+
+class MXMNetLocalMessagePassing(nn.Module):
+    """
+    The MXMNetLocalMessagePassing class defines a local message passing layer used in the MXMNet model [1]_.
+    This layer integrates cross-layer mappings inside the local message passing, allowing for the transformation
+    of input tensors representing pairwise distances and angles between atoms in a molecular system.
+    The layer aggregates information using message passing and updates atom representations accordingly. 
+    The 3-step message passing scheme is proposed in the paper [1]_. 
+
+    1. Step 1 contains Message Passing 1 that captures the two-hop angles and related pairwise distances to update edge-level embeddings {mji}. 
+    2. Step 2 contains Message Passing 2 that captures the one-hop angles and related pairwise distances to further update {mji}. 
+    3. Step 3 finally aggregates {mji} to update the node-level embedding hi. 
+    
+    These steps in the t-th iteration can be formulated as follows: 
+
+    Let:
+        - **mlp** : ``MultilayerPerceptron``
+        - **res** : ``ResidualBlock``
+        - **h** : ``node_features``
+        - **m** : ``message with radial basis function``
+        - **idx_kj**: ``Tensor containing indices for the k and j atoms``
+        - **x_i** : ``The node to be updated``
+        - **h_i** : ``The hidden state of x_i``
+        - **x_j** : ``The neighbour node connected to x_i by edge e_ij``
+        - **h_j** : ``The hidden state of x_j``
+        - **rbf** : ``Input tensor representing radial basis functions``
+        - **sbf** : ``Input tensor representing the spherical basis functions``
+        - **idx_jj** : ``Tensor containing indices for the j and j' where j' is other neighbours of i``
+
+    Step 1: Message Passing 1
+
+        .. code-block:: python
+
+            m = [h[i] || h[j] || rbf] 
+            m_kj = mlp_kj(m[idx_kj]) * (rbf*W) * mlp_sbf1(sbf1) 
+            m_ji = mlp_ji_1(m) + reduce_sum(m_kj) 
+
+    Step 2: Message Passing 2 
+        
+        .. code-block:: python
+
+            m_ji = mlp_jj(m_ji[idx_jj]) * (rbf*W) * mlp_sbf2(sbf2) 
+            m_ji = mlp_ji_2(m_ji) + reduce_sum(m_ji) 
+
+    Step 3: Aggregation and Update
+
+        **In each aggregation step**
+
+        .. code-block:: python
+
+            m = reduce_sum(m_ji*(rbf*W))
+
+        **In each update step**
+
+        .. code-block:: python
+
+            hm_i = res1(m) 
+            h_i_new = mlp2(hm_i) + h_i 
+            h_i_new = res2(h_i_new) 
+            h_i_new = res3(h_i_new)
+
+    References
+    ----------
+    .. [1] Molecular Mechanics-Driven Graph Neural Network with Multiplex Graph for Molecular Structures. https://arxiv.org/pdf/2011.07457
+    Examples
+    --------
+    >>> dim = 1
+    >>> h = torch.tensor([[0.8343], [1.2713], [1.2713], [1.2713], [1.2713]])
+    >>> rbf = torch.tensor([[-0.2628], [-0.2628], [-0.2628], [-0.2628], 
+    ...                     [-0.2629], [-0.2629], [-0.2628], [-0.2628]])
+    >>> sbf1 = torch.tensor([[-0.2767], [-0.2767], [-0.2767], [-0.2767],
+    ...                      [-0.2767], [-0.2767], [-0.2767], [-0.2767], 
+    ...                      [-0.2767], [-0.2767], [-0.2767], [-0.2767]])
+    >>> sbf2 = torch.tensor([[-0.0301], [-0.0301], [-0.1483], [-0.1486], [-0.1484],
+    ...                      [-0.0301], [-0.1483], [-0.0301], [-0.1485], [-0.1483],
+    ...                      [-0.0301], [-0.1486], [-0.1485], [-0.0301], [-0.1486],
+    ...                      [-0.0301], [-0.1484], [-0.1483], [-0.1486], [-0.0301]])
+    >>> idx_kj = torch.tensor([3, 5, 7, 1, 5, 7, 1, 3, 7, 1, 3, 5])
+    >>> idx_ji_1 = torch.tensor([0, 0, 0, 2, 2, 2, 4, 4, 4, 6, 6, 6])
+    >>> idx_jj = torch.tensor([0, 1, 3, 5, 7, 2, 1, 3, 5, 7, 4, 1, 3, 5, 7, 6, 1, 3, 5, 7])
+    >>> idx_ji_2 = torch.tensor([0, 1, 1, 1, 1, 2, 3, 3, 3, 3, 4, 5, 5, 5, 5, 6, 7, 7, 7, 7])
+    >>> edge_index = torch.tensor([[0, 1, 0, 2, 0, 3, 0, 4],
+    ...                           [1, 0, 2, 0, 3, 0, 4, 0]])
+    >>> out = MXMNetLocalMessagePassing(dim, activation_fn='silu')
+    >>> output = out(h,
+    ...             rbf,
+    ...             sbf1,
+    ...             sbf2,
+    ...             idx_kj,
+    ...             idx_ji_1,
+    ...             idx_jj,
+    ...             idx_ji_2,
+    ...             edge_index)
+    >>> output[0].shape
+    torch.Size([5, 1])
+    >>> output[1].shape
+    torch.Size([5, 1])
+    """
+
+    def __init__(self, dim: int, activation_fn: Union[Callable, str] = 'silu'):
+        """Initializes the MXMNetLocalMessagePassing layer.
+        
+        Parameters
+        ----------
+        dim : int
+            The dimension of the input and output tensors for the local message passing layer.
+        activation_fn : Union[Callable, str], optional (default: 'silu')
+            The activation function to be used in the multilayer perceptrons (MLPs) within the layer.
+        """
+        super(MXMNetLocalMessagePassing, self).__init__()
+
+        activation_fn = get_activation(activation_fn)
+        self.h_mlp: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim, d_output=dim, activation_fn=activation_fn)
+        self.mlp_kj: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=3 * dim, d_output=dim, activation_fn=activation_fn)
+        self.mlp_ji_1: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=3 * dim, d_output=dim, activation_fn=activation_fn)
+        self.mlp_ji_2: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim, d_output=dim, activation_fn=activation_fn)
+        self.mlp_jj: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim, d_output=dim, activation_fn=activation_fn)
+
+        self.mlp_sbf1: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim,),
+            d_output=dim,
+            activation_fn=activation_fn)
+        self.mlp_sbf2: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim,),
+            d_output=dim,
+            activation_fn=activation_fn)
+
+        self.res1: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim,),
+            d_output=dim,
+            activation_fn=activation_fn,
+            skip_connection=True,
+            weighted_skip=False)
+        self.res2: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim,),
+            d_output=dim,
+            activation_fn=activation_fn,
+            skip_connection=True,
+            weighted_skip=False)
+        self.res3: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim,),
+            d_output=dim,
+            activation_fn=activation_fn,
+            skip_connection=True,
+            weighted_skip=False)
+
+        self.lin_rbf1: nn.Linear = nn.Linear(dim, dim, bias=False)
+        self.lin_rbf2: nn.Linear = nn.Linear(dim, dim, bias=False)
+        self.lin_rbf_out: nn.Linear = nn.Linear(dim, dim, bias=False)
+
+        self.mlp: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim, d_output=dim, activation_fn=activation_fn)
+        self.out_mlp: MultilayerPerceptron = MultilayerPerceptron(
+            d_input=dim,
+            d_hidden=(dim, dim),
+            d_output=dim,
+            activation_fn=activation_fn)
+        self.out_W: nn.Linear = nn.Linear(dim, 1)
+
+    def forward(self, node_features: torch.Tensor, rbf: torch.Tensor,
+                sbf1: torch.Tensor, sbf2: torch.Tensor, idx_kj: torch.Tensor,
+                idx_ji_1: torch.Tensor, idx_jj: torch.Tensor,
+                idx_ji_2: torch.Tensor,
+                edge_index: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """The forward method performs the computation for the MXMNetLocalMessagePassing Layer.
+        This method processes the input tensors representing atom features, radial basis functions (RBF), and spherical basis functions (SBF) using message passing over the molecular graph. The message passing updates the atom representations, and the resulting tensor represents the updated atom feature after local message passing.
+
+        Parameters
+        ----------
+        node_features : torch.Tensor
+            Input tensor representing atom features.
+        rbf : torch.Tensor
+            Input tensor representing radial basis functions.
+        sbf1 : torch.Tensor
+            Input tensor representing the first set of spherical basis functions.
+        sbf2 : torch.Tensor
+            Input tensor representing the second set of spherical basis functions.
+        idx_kj : torch.Tensor
+            Tensor containing indices for the k and j atoms involved in each interaction.
+        idx_ji_1 : torch.Tensor
+            Tensor containing indices for the j and i atoms involved in the first message passing step.
+        idx_jj : torch.Tensor
+            Tensor containing indices for the j and j' atoms involved in the second message passing step.
+        idx_ji_2 : torch.Tensor
+            Tensor containing indices for the j and i atoms involved in the second message passing step.
+        edge_index : torch.Tensor
+            Tensor containing the edge indices of the molecular graph, with shape (2, M), where M is the number of edges.
+
+        Returns
+        -------
+        node_features: torch.Tensor
+            Updated atom representations after local message passing.
+        output: torch.Tensor
+            Output tensor representing a fixed-size representation, with shape (N, 1).
+        """
+
+        residual_node_features: torch.Tensor = node_features
+
+        # Integrate the Cross Layer Mapping inside the Local Message Passing
+        node_features = self.h_mlp(node_features)
+
+        # Message Passing 1
+        j, i = edge_index
+        m: torch.Tensor = torch.cat([node_features[i], node_features[j], rbf],
+                                    dim=-1)
+
+        m_kj: torch.Tensor = self.mlp_kj(m)
+        m_kj = m_kj * self.lin_rbf1(rbf)
+        m_kj = m_kj[idx_kj] * self.mlp_sbf1(sbf1)
+        m_kj = scatter(m_kj, idx_ji_1, dim=0, dim_size=m.size(0), reduce='add')
+
+        m_ji_1: torch.Tensor = self.mlp_ji_1(m)
+
+        m = m_ji_1 + m_kj
+
+        # Message Passing 2
+        m_jj: torch.Tensor = self.mlp_jj(m)
+        m_jj = m_jj * self.lin_rbf2(rbf)
+        m_jj = m_jj[idx_jj] * self.mlp_sbf2(sbf2)
+        m_jj = scatter(m_jj, idx_ji_2, dim=0, dim_size=m.size(0), reduce='add')
+
+        m_ji_2: torch.Tensor = self.mlp_ji_2(m)
+
+        m = m_ji_2 + m_jj
+
+        # Aggregation
+        m = self.lin_rbf_out(rbf) * m
+        node_features = scatter(m,
+                                i,
+                                dim=0,
+                                dim_size=node_features.size(0),
+                                reduce='add')
+
+        # Update function f_u
+        node_features = self.res1(node_features)
+        node_features = self.mlp(node_features) + residual_node_features
+        node_features = self.res2(node_features)
+        node_features = self.res3(node_features)
+
+        # Output Module
+        out: torch.Tensor = self.out_mlp(node_features)
+        output: torch.Tensor = self.out_W(out)
+
+        return node_features, output

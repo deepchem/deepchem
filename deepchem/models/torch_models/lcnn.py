@@ -492,7 +492,7 @@ class LCNNModel(TorchModel):
         """
 
         def init_weights(m):
-            if type(m) == nn.Linear:
+            if isinstance(m, nn.Linear):
                 torch.nn.init.xavier_uniform_(m.weight)
 
         model = LCNN(n_occupancy, n_neighbor_sites_list, n_permutation_list,

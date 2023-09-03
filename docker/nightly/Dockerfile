@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.1-cudnn7-devel
+FROM nvidia/cuda:11.3.0-cudnn8-devel
 
 # Install some utilities
 RUN apt-get update && \

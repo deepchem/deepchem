@@ -210,7 +210,7 @@ class HuggingFaceModel(TorchModel):
                 raise ValueError('No checkpoint found')
             else:
                 checkpoint = checkpoints[0]
-                data = torch.load(checkpoint)
+                data = torch.load(checkpoint, map_location=self.device)
                 self.model.load_state_dict(data['model_state_dict'],
                                            strict=False)
 
@@ -234,7 +234,8 @@ class HuggingFaceModel(TorchModel):
                 y = torch.from_numpy(y[0])
                 if self.task == 'regression' or self.task == 'mtr':
                     y = y.float().to(self.device)
-
+                elif self.task == 'classification':
+                    y = y.long().to(self.device)
             for key, value in tokens.items():
                 tokens[key] = value.to(self.device)
 
