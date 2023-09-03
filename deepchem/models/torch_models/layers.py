@@ -5116,7 +5116,7 @@ class DecoderRNN(nn.Module):
 
         decoder_output = torch.cat(decoder_outputs, dim=1)
         decoder_output = self.act(decoder_output, dim=-1)
-        return decoder_output, decoder_hidden, None  # We return `None` for consistency in the training loop
+        return decoder_output, decoder_hidden
 
     def step(self, input, hidden):
         output = self.embedding(input)
