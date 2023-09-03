@@ -305,18 +305,3 @@ class FerminetModel(TorchModel):
         self.mol.build(parse_arg=False)
         self.mf = pyscf.scf.UHF(self.mol)
         _ = self.mf.kernel()
-
-    def evaluate_hf(self, x):
-        x = np.reshape(x, [-1, 3 * (self.up_spin + self.down_spin)])
-        leading_dims = x.shape[:-1]
-        x = np.reshape(x, [-1, 3])
-        coeffs = self.mf.mo_coeff
-        gto_op = 'GTOval_sph'
-        ao_values = self.mol.eval_gto(gto_op, x)
-        mo_values = tuple(np.matmul(ao_values, coeff) for coeff in coeffs)
-        mo_values = [
-            np.reshape(mo, leading_dims + (self.up_spin + self.down_spin, -1))
-            for mo in mo_values
-        ]
-        return mo_values[0][..., :self.up_spin, :self.up_spin], mo_values[1][
-            ..., self.up_spin:, :self.down_spin]
