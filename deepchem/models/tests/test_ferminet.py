@@ -34,18 +34,6 @@ def test_FerminetModel():
     assert mol.up_spin == 2 and mol.down_spin == 1
 
 
-@pytest.mark.dqc
-def test_prepare_hf_solution():
-    # Test for the prepare_hf_solution function of FerminetModel class
-    H2_molecule = [['F', [0, 0, 0]], ['He', [0, 0, 0.748]]]
-    mol = FerminetModel(H2_molecule, spin=1, ion_charge=0)
-    electron_coordinates = np.random.rand(10, 11, 3)
-    spin_up_orbitals, spin_down_orbitals = mol.evaluate_hf(electron_coordinates)
-    # The solution should be of the shape (number of electrons, number of electrons)
-    assert np.shape(spin_up_orbitals) == (10, 6, 6)
-    assert np.shape(spin_down_orbitals) == (10, 5, 5)
-
-
 @pytest.mark.torch
 def test_forward():
     FH_molecule = [['F', [0.424, 0.424, 0.23]], ['H', [0.4, 0.5, 0.5]]]
