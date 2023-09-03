@@ -2617,4 +2617,3 @@ def test_mxmnet_local_message_passing():
 
     assert output[0].shape == (5, 1)
     assert output[1].shape == (5, 1)
-
