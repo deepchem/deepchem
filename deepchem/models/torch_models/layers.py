@@ -4794,6 +4794,132 @@ class MXMNetBesselBasisLayer(torch.nn.Module):
         return output
 
 
+class VariationalRandomizer(nn.Module):
+    """Add random noise to the embedding and include a corresponding loss.
+    
+    This adds random noise to the encoder, and also adds a constraint term to
+    the loss that forces the embedding vector to have a unit Gaussian distribution.
+    We can then pick random vectors from a Gaussian distribution, and the output
+    sequences should follow the same distribution as the training data.
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models.layers import VariationalRandomizer
+    >>> import torch
+    >>> embedding_dimension = 20
+    >>> annealing_start_step = 1000
+    >>> annealing_final_step = 2000
+    >>> embedding_shape = (2, 5, embedding_dimension)
+    >>> embeddings = torch.rand(embedding_shape)
+    >>> global_step = torch.tensor([100])
+    >>> layer = VariationalRandomizer(embedding_dimension, annealing_start_step, annealing_final_step)
+    >>> output = layer([embeddings, global_step])
+    >>> output.shape
+    torch.Size([2, 5, 20])
+
+    References
+    ----------
+    .. [1] Samuel R. Bowman et al., "Generating Sentences from a Continuous Space"
+
+    """
+
+    def __init__(self, embedding_dimension: int, annealing_start_step: int,
+                 annealing_final_step: int, **kwargs):
+        """Initialize the VariationalRandomizer layer.
+
+        Parameters
+        ----------
+        embedding_dimension: int
+            The dimension of the embedding.
+        annealing_start_step: int
+            the step (that is, batch) at which to begin turning on the constraint
+            term for KL cost annealing.
+        annealing_final_step: int
+            the step (that is, batch) at which to finish turning on the constraint
+            term for KL cost annealing.
+
+        """
+
+        super(VariationalRandomizer, self).__init__(**kwargs)
+        self._embedding_dimension = embedding_dimension
+        self._annealing_final_step = annealing_final_step
+        self._annealing_start_step = annealing_start_step
+        self.dense_mean = nn.Linear(embedding_dimension,
+                                    embedding_dimension,
+                                    bias=False)
+        self.dense_stddev = nn.Linear(embedding_dimension,
+                                      embedding_dimension,
+                                      bias=False)
+        self.combine = CombineMeanStd(training_only=True)
+        self.loss_list: List = list()
+
+    def __repr__(self) -> str:
+        """Returns a string representing the configuration of the layer.
+
+        Returns
+        -------
+        embedding_dimension: int
+            The dimension of the embedding.
+        annealing_start_step: int
+            The step (that is, batch) at which to begin turning on the constraint
+            term for KL cost annealing.
+        annealing_final_step: int
+            The step (that is, batch) at which to finish turning on the constraint
+            term for KL cost annealing.
+
+        """
+        return f'{self.__class__.__name__}(embedding_dimension={self.embedding_dimension}, annealing_start_step={self.annealing_start_step}, annealing_final_step={self.annealing_final_step})'
+
+    def forward(self, inputs: List[torch.Tensor], training=True):
+        """Returns the Variationally Randomized Embedding.
+
+        Parameters
+        ----------
+        inputs: List[torch.Tensor]
+            A list of two tensors, the first of which is the input to the layer
+            and the second of which is the global step.
+        training: bool, optional (default True)
+            Whether to use the layer in training mode or inference mode.
+
+        Returns
+        -------
+        embedding: torch.Tensor
+            The embedding tensor.
+
+        """
+        input, global_step = inputs
+        embedding_mean = self.dense_mean(input)
+        embedding_stddev = self.dense_stddev(input)
+        embedding = self.combine([embedding_mean, embedding_stddev],
+                                 training=training)
+        mean_sq = embedding_mean * embedding_mean
+        stddev_sq = embedding_stddev * embedding_stddev
+        kl = mean_sq + stddev_sq - torch.log(stddev_sq + 1e-20) - 1
+        anneal_steps = self._annealing_final_step - self._annealing_start_step
+        if anneal_steps > 0:
+            current_step = global_step.to(
+                torch.float32) - self._annealing_start_step
+            anneal_frac = torch.maximum(torch.tensor(0.0),
+                                        current_step) / anneal_steps
+            kl_scale = torch.minimum(torch.tensor(1.0),
+                                     anneal_frac * anneal_frac)
+        else:
+            kl_scale = torch.tensor(1.0)
+        self.add_loss(0.5 * kl_scale * torch.mean(kl))
+        return embedding
+
+    def add_loss(self, loss):
+        """Add a loss term to the layer.
+        
+        Parameters
+        ----------
+        loss: torch.Tensor
+            The loss tensor to add to the layer.
+
+        """
+        self.loss_list.append(loss)
+
+
 class EncoderRNN(nn.Module):
     """Encoder Layer for SeqToSeq Model.
 
