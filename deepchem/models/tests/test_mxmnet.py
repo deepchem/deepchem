@@ -1,10 +1,7 @@
-import os
 import deepchem as dc
 import torch
 import tempfile
 import numpy as np
-from deepchem.molnet.load_function.molnet_loader import _MolnetLoader
-from deepchem.data import Dataset
 from deepchem.feat.molecule_featurizers import MXMNetFeaturizer
 from deepchem.models.torch_models.mxmnet import MXMNet
 
@@ -12,18 +9,6 @@ QM9_TASKS = [
     "mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv", "u0", "u298",
     "h298", "g298"
 ]
-
-
-class QM9SampleLoader(_MolnetLoader):
-
-    def create_dataset(self) -> Dataset:
-        dataset_file = os.path.join(self.data_dir, "datasets/qm9_sample.zip")
-        if not os.path.exists(dataset_file):
-            print("ulllu")
-        loader = dc.data.SDFLoader(tasks=self.tasks,
-                                   featurizer=self.featurizer,
-                                   sanitize=True)
-        return loader.create_dataset(dataset_file, shard_size=1)
 
 
 def test_mxmnet_regression():
@@ -44,22 +29,19 @@ def test_mxmnet_regression():
     n_layer = 6
     cutoff = 5
     feat = MXMNetFeaturizer()
-    qm9 = QM9SampleLoader(featurizer=feat,
-                          tasks=QM9_TASKS,
-                          data_dir=None,
-                          save_dir=None,
-                          splitter='random',
-                          transformer_generators=['normalization'])
-    dataset_dc = qm9.load_dataset('qm9', reload=True)
+
+    loader = dc.data.SDFLoader(tasks=[QM9_TASKS[0]],
+                               featurizer=feat,
+                               sanitize=True)
+
+    dataset = loader.create_dataset(inputs="assets/qm9_mini.sdf", shard_size=1)
 
     model = MXMNet(dim=dim, n_layer=n_layer, cutoff=cutoff)
 
-    tasks, dataset, transformers = dataset_dc
-    train, valid, test = dataset
     train_dir = None
     if train_dir is None:
         train_dir = tempfile.mkdtemp()
-    data = train.select([i for i in range(1, 3)], train_dir)
+    data = dataset.select([i for i in range(1, 3)], train_dir)
 
     # prepare batch (size 2)
     data = data.X
@@ -69,7 +51,7 @@ def test_mxmnet_regression():
 
     model.to(device)
     output = model(pyg_batch)
-    required_output = np.asarray([[-0.2781], [-0.4035]])
+    required_output = np.asarray([0.0869, 0.1744])
     assert np.allclose(output[0].detach().numpy(),
                        required_output[0],
                        atol=1e-04)
