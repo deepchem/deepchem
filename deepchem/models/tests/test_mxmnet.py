@@ -2,6 +2,7 @@ import deepchem as dc
 import torch
 import tempfile
 import numpy as np
+import pytest
 from deepchem.feat.molecule_featurizers import MXMNetFeaturizer
 from deepchem.models.torch_models.mxmnet import MXMNet
 
@@ -11,6 +12,7 @@ QM9_TASKS = [
 ]
 
 
+@pytest.mark.torch
 def test_mxmnet_regression():
     """
     Test MXMNet class for regression
