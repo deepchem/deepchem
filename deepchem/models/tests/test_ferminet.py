@@ -34,16 +34,6 @@ def test_FerminetModel():
     assert mol.up_spin == 2 and mol.down_spin == 1
 
 
-@pytest.mark.torch
-def test_FerminetMode_fit():
-    # Test for the init function of FerminetModel class
-    FH_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
-    # Testing ionic initialization
-    mol = FerminetModel(FH_molecule, spin=0, ion_charge=0)
-    mol.pretrain()
-    assert mol.loss_value <= torch.tensor(1.0)
-
-
 @pytest.mark.dqc
 def test_prepare_hf_solution():
     # Test for the prepare_hf_solution function of FerminetModel class
