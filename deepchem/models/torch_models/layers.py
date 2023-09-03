@@ -4942,26 +4942,26 @@ class FerminetElectronFeature(torch.nn.Module):
         # Initializing the first layer (first layer has different dims than others)
         self.v.append(
             nn.Linear(8 + 3 * 4 * self.no_of_atoms, self.n_one[0], bias=True))
-        #filling the weights with 1e-9 for faster convergence
-        self.v[0].weight.data.fill_(1e-9)
-        self.v[0].bias.data.fill_(1e-9)
+        #filling the weights with 2.5e-7 for faster convergence
+        self.v[0].weight.data.fill_(2.5e-7)
+        self.v[0].bias.data.fill_(2.5e-7)
 
         self.w.append(nn.Linear(4, self.n_two[0], bias=True))
-        self.w[0].weight.data.fill_(1e-9)
-        self.w[0].bias.data.fill_(1e-9)
+        self.w[0].weight.data.fill_(2.5e-7)
+        self.w[0].bias.data.fill_(2.5e-7)
 
         for i in range(1, self.layer_size):
             self.v.append(
                 nn.Linear(3 * self.n_one[i - 1] + 2 * self.n_two[i - 1],
                           n_one[i],
                           bias=True))
-            self.v[i].weight.data.fill_(1e-9)
-            self.v[i].bias.data.fill_(1e-9)
+            self.v[i].weight.data.fill_(2.5e-7)
+            self.v[i].bias.data.fill_(2.5e-7)
 
             self.w.append(nn.Linear(self.n_two[i - 1], self.n_two[i],
                                     bias=True))
-            self.w[i].weight.data.fill_(1e-9)
-            self.w[i].bias.data.fill_(1e-9)
+            self.w[i].weight.data.fill_(2.5e-7)
+            self.w[i].bias.data.fill_(2.5e-7)
 
     def forward(self, one_electron: torch.Tensor, two_electron: torch.Tensor):
         """
@@ -4988,10 +4988,10 @@ class FerminetElectronFeature(torch.nn.Module):
             g_one_down: torch.Tensor = torch.mean(
                 one_electron[:, self.spin[0]:, :], dim=-2)
             one_electron_tmp: torch.Tensor = torch.zeros(
-                self.batch_size, self.total_electron, self.n_one[l])
+                self.batch_size, self.total_electron, self.n_one[l]).double()
             two_electron_tmp: torch.Tensor = torch.zeros(
                 self.batch_size, self.total_electron, self.total_electron,
-                self.n_two[l])
+                self.n_two[l]).double()
             for i in range(self.total_electron):
                 # Calculating two-electron feature's average
                 g_two_up: torch.Tensor = torch.mean(
@@ -5003,18 +5003,14 @@ class FerminetElectronFeature(torch.nn.Module):
                                             dim=1)
                 if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
                         self.n_two[l] != self.n_two[l - 1]):
-                    one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f.to(
-                        torch.float32)))
+                    one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f))
                     two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
-                        two_electron[:, i, :, :].to(torch.float32)))
+                        two_electron[:, i, :, :]))
                 else:
-                    one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f.to(
-                        torch.float32))) + one_electron[:, i, :].to(
-                            torch.float32)
+                    one_electron_tmp[:, i, :] = torch.tanh(
+                        self.v[l](f)) + one_electron[:, i, :]
                     two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
-                        two_electron[:, i, :, :].to(
-                            torch.float32))) + two_electron[:, i, :].to(
-                                torch.float32)
+                        two_electron[:, i, :, :])) + two_electron[:, i, :]
             one_electron = one_electron_tmp
             two_electron = two_electron_tmp
 
@@ -5095,17 +5091,17 @@ class FerminetEnvelope(torch.nn.Module):
             for j in range(self.total_electron):
                 self.envelope_w.append(
                     torch.nn.init.uniform(torch.empty(n_one[-1], 1),
-                                          b=0.00001).squeeze(-1))
+                                          b=2.5e-7).squeeze(-1))
                 self.envelope_g.append(
                     torch.nn.init.uniform(torch.empty(1),
-                                          b=0.000001).squeeze(0))
+                                          b=2.5e-7).squeeze(0).double())
                 for k in range(self.no_of_atoms):
                     self.sigma.append(
                         torch.nn.init.uniform(torch.empty(self.no_of_atoms, 1),
-                                              b=0.000001).squeeze(0))
+                                              b=2.5e-7).squeeze(0))
                     self.pi.append(
                         torch.nn.init.uniform(torch.empty(self.no_of_atoms, 1),
-                                              b=0.00001).squeeze(0))
+                                              b=2.5e-7).squeeze(0))
 
     def forward(self, one_electron: torch.Tensor,
                 one_electron_vector_permuted: torch.Tensor):
@@ -5120,14 +5116,13 @@ class FerminetEnvelope(torch.nn.Module):
         Returns
         -------
         psi_up: torch.Tensor
-            Torch tensor with up spin electron values in a the shape of (batch_size, determinant, up_spin, up_spin)
-        psi_down: torch.Tensor
-            Torch tensor with down spin electron values in a the shape of (batch_size, determinant, down_spin, down_spin)
+            Torch tensor with a scalar value containing the sampled wavefunction value for each batch.
         """
+        psi = torch.zeros(self.batch_size).double()
         psi_up = torch.zeros(self.batch_size, self.determinant, self.spin[0],
-                             self.spin[0])
+                             self.spin[0]).double()
         psi_down = torch.zeros(self.batch_size, self.determinant, self.spin[1],
-                               self.spin[1])
+                               self.spin[1]).double()
 
         for k in range(self.determinant):
             for i in range(self.spin[0]):
@@ -5156,7 +5151,11 @@ class FerminetEnvelope(torch.nn.Module):
                                    dim=2))) * self.pi[one_d_index].T,
                                   dim=1)
 
-        return psi_up, psi_down
+            d_down = torch.det(psi_down[:, k, :, :].clone())
+            d_up = torch.det(psi_up[:, k, :, :].clone())
+            det = d_up * d_down
+            psi = psi + det
+        return psi, psi_up, psi_down
 
 
 class MXMNetLocalMessagePassing(nn.Module):

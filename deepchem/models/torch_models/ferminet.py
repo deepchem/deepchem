@@ -14,12 +14,6 @@ from deepchem.models.torch_models.layers import FerminetElectronFeature, Fermine
 from deepchem.utils.electron_sampler import ElectronSampler
 
 
-def test_f(x: np.ndarray) -> np.ndarray:
-    # dummy function which can be passed as the parameter f. f gives the log probability
-    # TODO replace this function with forward pass of the model in future
-    return 2 * np.log(np.random.uniform(low=0, high=1.0, size=np.shape(x)[0]))
-
-
 class Ferminet(torch.nn.Module):
     """Approximates the log probability of the wave function of a molecule system using DNNs.
     """
@@ -134,6 +128,29 @@ class Ferminet(torch.nn.Module):
         psi, self.psi_up, self.psi_down = self.ferminet_layer_envelope[
             0].forward(one_electron, one_electron_vector_permuted)
         return psi
+
+    def loss(self,
+             psi_up_mo: Optional[np.ndarray] = None,
+             psi_down_mo: Optional[np.ndarray] = None,
+             pretrain: bool = True):
+        """
+        Implements the loss function for both pretraining and the actual training parts.
+
+        Parameters
+        ----------
+        psi_up_mo: Optional[np.ndarray] (default None)
+            numpy array containing the sampled hartreee fock up-spin orbitals
+        psi_down_mo: Optional[np.ndarray] (default None)
+            numpy array containing the sampled hartreee fock down-spin orbitals
+        pretrain: bool (default True)
+            indicates whether the model is pretraining
+        """
+        if pretrain:
+            psi_up_mo = torch.from_numpy(psi_up_mo).unsqueeze(1).double()
+            psi_down_mo = torch.from_numpy(psi_down_mo).unsqueeze(1).double()
+            self.running_diff = self.running_diff + self.criterion(
+                self.psi_up, psi_up_mo) + self.criterion(
+                    self.psi_down, psi_down_mo)
 
 
 class FerminetModel(TorchModel):
@@ -267,16 +284,32 @@ class FerminetModel(TorchModel):
             batch_no=self.batch_no,
             central_value=self.nucleon_pos,
             seed=self.seed,
-            f=lambda x: test_f(x),  # Will be replaced in successive PR
+            f=lambda x: self.random_walk(x),
             steps=self.random_walk_steps,
             steps_per_update=self.steps_per_update
         )  # sample the electrons using the electron sampler
         self.molecule.gauss_initialize_position(
             self.electron_no)  # initialize the position of the electrons
         self.prepare_hf_solution()
-        super(FerminetModel, self).__init__(
-            self.model,
-            loss=torch.nn.MSELoss())  # will update the loss in successive PR
+        super(FerminetModel, self).__init__(self.model, loss=self.model.loss)
+
+    def random_walk(self, x: np.ndarray) -> np.ndarray:
+        """
+        Function to be passed on to electron sampler for random walk and gets called at each step of sampling
+
+        Parameters
+        ----------
+        x: np.ndarray
+            contains the sampled electrons coordinate in the shape (batch_size,number_of_electrons*3)
+        """
+        output = self.model.forward(x)
+        np_output = output.detach().cpu().numpy()
+        up_spin_mo, down_spin_mo = self.evaluate_hf(x)
+        hf_product = np.prod(
+            np.diagonal(up_spin_mo, axis1=1, axis2=2)**2, axis=1) * np.prod(
+                np.diagonal(down_spin_mo, axis1=1, axis2=2)**2, axis=1)
+        self.model.loss(up_spin_mo, down_spin_mo, pretrain=True)
+        return np.log(hf_product + np_output**2) + np.log(0.5)
 
     def prepare_hf_solution(self) -> np.ndarray:
         """Prepares the HF solution for the molecule system which is to be used in pretraining
@@ -320,3 +353,37 @@ class FerminetModel(TorchModel):
         ]
         return mo_values[0][..., :self.up_spin, :self.up_spin], mo_values[1][
             ..., self.up_spin:, :self.down_spin]
+
+    def pretrain(self,
+                 nb_epoch: int = 200,
+                 lr: float = 0.0075,
+                 weight_decay: float = 0.0001,
+                 burn_in: int = 50):
+        """
+        Overriden function from torch Model.
+
+        Parameters
+        ----------
+        nb_epoch: int (default: 200)
+            contains the number of pretraining steps to be performed
+        lr : float (default: 0.0075)
+            contains the learning rate for the model fitting
+        weight_decay: float (default: 0.0001)
+            contains the weight_decay for the model fitting
+        burn_in: int (default 100)
+            contains the number of steps for to perform burn-in to get better starting point
+        """
+        optimizer = torch.optim.Adam(self.model.parameters(),
+                                     lr=lr,
+                                     weight_decay=weight_decay)
+        for _ in range(burn_in):
+            self.molecule.gauss_initialize_position(
+                self.electron_no)  # initialize the position of the electrons
+        for _ in range(nb_epoch):
+            optimizer.zero_grad()
+            self.molecule.move()
+            self.loss_value = torch.mean(self.model.running_diff) / 10
+            self.pretraining_loss_list.append(self.loss_value)
+            self.loss_value.backward()
+            optimizer.step()
+            self.model.running_diff = torch.zeros(self.batch_no).double()
