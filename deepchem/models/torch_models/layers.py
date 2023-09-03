@@ -4945,14 +4945,10 @@ class FerminetElectronFeature(torch.nn.Module):
         #filling the weights with 2.5e-7 for faster convergence
         self.v[0].weight.data.fill_(2.5e-7)
         self.v[0].bias.data.fill_(2.5e-7)
-        self.v[0].weight.data = self.v[0].weight.data
-        self.v[0].bias.data = self.v[0].bias.data
 
         self.w.append(nn.Linear(4, self.n_two[0], bias=True))
         self.w[0].weight.data.fill_(2.5e-7)
         self.w[0].bias.data.fill_(2.5e-7)
-        self.w[0].weight.data = self.w[0].weight.data
-        self.w[0].bias.data = self.w[0].bias.data
 
         for i in range(1, self.layer_size):
             self.v.append(
@@ -4961,15 +4957,11 @@ class FerminetElectronFeature(torch.nn.Module):
                           bias=True))
             self.v[i].weight.data.fill_(2.5e-7)
             self.v[i].bias.data.fill_(2.5e-7)
-            self.v[i].weight.data = self.v[i].weight.data
-            self.v[i].bias.data = self.v[i].bias.data
 
             self.w.append(nn.Linear(self.n_two[i - 1], self.n_two[i],
                                     bias=True))
             self.w[i].weight.data.fill_(2.5e-7)
-            self.w[i].weight.data = self.w[i].weight.data
             self.w[i].bias.data.fill_(2.5e-7)
-            self.w[i].bias.data = self.w[i].bias.data
 
     def forward(self, one_electron: torch.Tensor, two_electron: torch.Tensor):
         """
@@ -4996,10 +4988,10 @@ class FerminetElectronFeature(torch.nn.Module):
             g_one_down: torch.Tensor = torch.mean(
                 one_electron[:, self.spin[0]:, :], dim=-2)
             one_electron_tmp: torch.Tensor = torch.zeros(
-                self.batch_size, self.total_electron, self.n_one[l])
+                self.batch_size, self.total_electron, self.n_one[l]).double()
             two_electron_tmp: torch.Tensor = torch.zeros(
                 self.batch_size, self.total_electron, self.total_electron,
-                self.n_two[l])
+                self.n_two[l]).double()
             for i in range(self.total_electron):
                 # Calculating two-electron feature's average
                 g_two_up: torch.Tensor = torch.mean(
@@ -5101,7 +5093,8 @@ class FerminetEnvelope(torch.nn.Module):
                     torch.nn.init.uniform(torch.empty(n_one[-1], 1),
                                           b=2.5e-7).squeeze(-1))
                 self.envelope_g.append(
-                    torch.nn.init.uniform(torch.empty(1), b=2.5e-7).squeeze(0))
+                    torch.nn.init.uniform(torch.empty(1),
+                                          b=2.5e-7).squeeze(0).double())
                 for k in range(self.no_of_atoms):
                     self.sigma.append(
                         torch.nn.init.uniform(torch.empty(self.no_of_atoms, 1),
@@ -5125,11 +5118,11 @@ class FerminetEnvelope(torch.nn.Module):
         psi_up: torch.Tensor
             Torch tensor with a scalar value containing the sampled wavefunction value for each batch.
         """
-        psi = torch.zeros(self.batch_size)
+        psi = torch.zeros(self.batch_size).double()
         psi_up = torch.zeros(self.batch_size, self.determinant, self.spin[0],
-                             self.spin[0])
+                             self.spin[0]).double()
         psi_down = torch.zeros(self.batch_size, self.determinant, self.spin[1],
-                               self.spin[1])
+                               self.spin[1]).double()
 
         for k in range(self.determinant):
             for i in range(self.spin[0]):
