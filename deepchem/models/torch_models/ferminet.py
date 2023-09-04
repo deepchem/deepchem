@@ -278,14 +278,9 @@ class FerminetModel(TorchModel):
             self.model,
             loss=torch.nn.MSELoss())  # will update the loss in successive PR
 
-    def prepare_hf_solution(self) -> np.ndarray:
+    def prepare_hf_solution(self):
         """Prepares the HF solution for the molecule system which is to be used in pretraining
-
-        Returns
-        -------
-        hf_value: np.ndarray
-        Numpy array of shape (number of electrons, number of electrons ) where ith row & jth value corresponds to the ith hartree fock orbital at the jth electron's coordinate
-    """
+        """
         try:
             import pyscf
         except ModuleNotFoundError:
