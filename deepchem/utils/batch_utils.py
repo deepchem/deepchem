@@ -2,6 +2,7 @@
 Utility Functions for computing features on batch.
 """
 import numpy as np
+from typing import Any, Dict
 
 
 def batch_coulomb_matrix_features(X_b: np.ndarray,
@@ -129,3 +130,63 @@ def batch_coulomb_matrix_features(X_b: np.ndarray,
     dist_mem_j = np.concatenate(distance_membership_j).astype(np.int64)
     features = [atom_number, gaussian_dist, atom_mem, dist_mem_i, dist_mem_j]
     return features
+
+
+def batch_elements(elements:Any, batch_size: int = 100):
+    """Combine elements into batches."""
+    batch = []
+    for s in elements:
+        batch.append(s)
+        if len(batch) == batch_size:
+            yield batch
+            batch = []
+    if len(batch) > 0:
+        yield batch
+
+
+def generate_batches(sequences,
+                     max_output_length: int,
+                     reverse_input: bool,
+                     batch_size: int,
+                     input_dict: Dict,
+                     output_dict: Dict,
+                     global_step: int,
+                     end_mark):
+    """Create feed_dicts for fitting."""
+    for batch in batch_elements(sequences):
+        inputs = []
+        outputs = []
+        for input, output in batch:
+            inputs.append(input)
+            outputs.append(output)
+        for i in range(len(inputs), batch_size):
+            inputs.append([])
+            outputs.append([])
+        features = create_input_array(inputs, reverse_input, batch_size, input_dict, end_mark)
+        labels = create_output_array(outputs, max_output_length, batch_size, output_dict, end_mark)
+        yield ([features, np.array(global_step)], [labels], [])
+
+
+def create_input_array(sequences, reverse_input, batch_size, input_dict, end_mark):
+    """Create the array describing the input sequences for a batch."""
+    lengths = [len(x) for x in sequences]
+    if reverse_input:
+        sequences = [reversed(s) for s in sequences]
+    features = np.zeros((batch_size, max(lengths) + 1), dtype=np.float32)
+    for i, sequence in enumerate(sequences):
+        for j, token in enumerate(sequence):
+            features[i, j] = input_dict[token]
+    features[np.arange(len(sequences)), lengths] = input_dict[end_mark]
+    return features
+
+
+def create_output_array(sequences, max_output_length, batch_size, output_dict, end_mark):
+    """Create the array describing the target sequences for a batch."""
+    lengths = [len(x) for x in sequences]
+    labels = np.zeros((batch_size, max_output_length), dtype=np.float32)
+    for i, sequence in enumerate(sequences):
+        for j, token in enumerate(sequence):
+            labels[i, j] = output_dict[token]
+        for j in range(lengths[i], max_output_length):
+            labels[i, j] = output_dict[end_mark]
+    return labels

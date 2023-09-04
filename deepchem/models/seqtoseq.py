@@ -214,6 +214,8 @@ class SeqToSeq(KerasModel):
         """Create the loss function."""
 
         def loss_fn(outputs, labels, weights):
+            print(outputs[0].shape)
+            print(labels[0].shape)
             prob = tf.reduce_sum(outputs[0] * labels[0], axis=2)
             mask = tf.reduce_sum(labels[0], axis=2)
             log_prob = tf.math.log(prob + 1e-20) * mask
@@ -413,6 +415,7 @@ class SeqToSeq(KerasModel):
             labels = self._create_output_array(outputs)
             gather_indices = np.array([(i, len(x)) for i, x in enumerate(inputs)
                                       ])
+            print(self.get_global_step())
             yield ([features, gather_indices,
                     np.array(self.get_global_step())], [labels], [])
 

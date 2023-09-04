@@ -1,10 +1,14 @@
-from typing import List
+from typing import List, Dict
+
+import numpy as np
 
 import torch.nn as nn
 import torch
 
 from deepchem.models.torch_models.layers import EncoderRNN, DecoderRNN, VariationalRandomizer
 from deepchem.models.torch_models import TorchModel
+
+from deepchem.utils.batch_utils import create_input_array, create_output_array, batch_elements
 
 
 class SeqToSeq(nn.Module):
@@ -73,9 +77,9 @@ class SeqToSeq(nn.Module):
 
         """
         input, global_step = inputs
-        embedding, _ = self.encoder(input)
+        embedding, _ = self.encoder(input.to(torch.long))
         self.encoder.training = False
-        self._embedding, _ = self.encoder(input)
+        self._embedding, _ = self.encoder(input.to(torch.long))
         self.encoder.training = True
         if self._variational:
             embedding = self.randomizer([self._embedding, global_step])
@@ -131,10 +135,10 @@ class SeqToSeqModel(TorchModel):
             for KL cost annealing
 
         """
-        if SeqToSeq.sequence_end not in input_tokens:
-            input_tokens = input_tokens + [SeqToSeq.sequence_end]
-        if SeqToSeq.sequence_end not in output_tokens:
-            output_tokens = output_tokens + [SeqToSeq.sequence_end]
+        if SeqToSeqModel.sequence_end not in input_tokens:
+            input_tokens = input_tokens + [SeqToSeqModel.sequence_end]
+        if SeqToSeqModel.sequence_end not in output_tokens:
+            output_tokens = output_tokens + [SeqToSeqModel.sequence_end]
         self._input_tokens = input_tokens
         self._output_tokens = output_tokens
         self._input_dict = dict((x, i) for i, x in enumerate(input_tokens))
@@ -159,7 +163,7 @@ class SeqToSeqModel(TorchModel):
             annealing_start_step=self._annealing_start_step,
             annealing_final_step=self._annealing_final_step)
 
-        super(SeqToSeq, self).__init__(model, self._create_loss(), **kwargs)
+        super(SeqToSeqModel, self).__init__(model, self._create_loss(), **kwargs)
 
     def _create_loss(self):
         """Create loss function for model."""
@@ -169,7 +173,9 @@ class SeqToSeqModel(TorchModel):
             loss = torch.tensor(0.0)
 
         def loss_fn(outputs, labels, weights):
-            loss_ = nn.NLLLoss(weights)(outputs, labels)
+            our = outputs[0].view(-1, outputs[0].size(-1))
+            your = labels[0].view(-1)
+            loss_ = nn.NLLLoss()(our.to(torch.float32), your.to(torch.int64))
             return loss + loss_
 
         return loss_fn
@@ -194,7 +200,39 @@ class SeqToSeqModel(TorchModel):
             if True, restore the model from the most recent checkpoint and continue training
             from there.  If False, retrain the model from scratch.
         """
-        self.fit_generator(self._generate_batches(sequences),
-                           max_checkpoints_to_keep=max_checkpoints_to_keep,
-                           checkpoint_interval=checkpoint_interval,
-                           restore=restore)
+        loss = self.fit_generator(_generate_batches(sequences,
+                                                         self,
+                                                   self._max_output_length,
+                                                   self._reverse_input,
+                                                   self.batch_size,
+                                                   self._input_dict,
+                                                   self._output_dict,
+                                                   SeqToSeqModel.sequence_end),
+                                  max_checkpoints_to_keep=max_checkpoints_to_keep,
+                                  checkpoint_interval=checkpoint_interval,
+                                  restore=restore)
+        return loss
+    
+def _generate_batches(sequences,
+                          model,
+                         max_output_length: int,
+                         reverse_input: bool,
+                         batch_size: int,
+                         input_dict: Dict,
+                         output_dict: Dict,
+                         end_mark):
+        """Create feed_dicts for fitting."""
+        for batch in batch_elements(sequences):
+            inputs = []
+            outputs = []
+            for input, output in batch:
+                inputs.append(input)
+                outputs.append(output)
+            for i in range(len(inputs), batch_size):
+                inputs.append([])
+                outputs.append([])
+            features = create_input_array(inputs, reverse_input, batch_size, input_dict, end_mark)
+            labels = create_output_array(outputs, max_output_length, batch_size, output_dict, end_mark)
+            yield ([features, np.array(model.get_global_step())], [labels], [])
+
+
