@@ -204,7 +204,7 @@ def create_output_array(sequences, max_output_length, batch_size, output_dict,
     Create the array describing the output sequences for a batch.
 
     It creates a 2d Matrix empty matrix according to batch size and max_length.
-    Then iteratively fills it with the key-values from the input dictionary.
+    Then iteratively fills it with the key-values from the output dictionary.
 
     These values can be used to generate embeddings for further processing.
 
@@ -215,16 +215,15 @@ def create_output_array(sequences, max_output_length, batch_size, output_dict,
     Parameters
     ----------
     sequences: list
-        List of sequences to be converted into input array.
-    reverse_input: bool
-        If True, reverse the order of input sequences before sending them into
-        the encoder. This can improve performance when working with long sequences.
+        List of sequences to be converted into output array.
+    max_output_length: bool
+        Maximum length of output sequence that may be generated
     batch_size: int
-        Batch size of the input array.
-    input_dict: dict
-        Dictionary containing the key-value pairs of input sequences.
+        Batch size of the output array.
+    output_dict: dict
+        Dictionary containing the key-value pairs of output sequences.
     end_mark: Any
-        End mark for the input sequences.
+        End mark for the output sequences.
 
     """
     lengths = [len(x) for x in sequences]
