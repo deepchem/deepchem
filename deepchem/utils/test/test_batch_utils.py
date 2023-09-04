@@ -31,7 +31,7 @@ def test_batch_coulomb_matrix_features():
 
 def test_batch_elements():
     # Prepare Data
-    inputs = [[i,i**2, i**3] for i in range(10)]
+    inputs = [[i, i**2, i**3] for i in range(10)]
     # Run
     output = list(dc.utils.batch_utils.batch_elements(inputs, 3))
     assert output == [[[0, 0, 0], [1, 1, 1], [2, 4, 8]],
