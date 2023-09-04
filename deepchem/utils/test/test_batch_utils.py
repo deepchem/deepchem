@@ -27,3 +27,14 @@ def test_batch_coulomb_matrix_features():
     # Check Distance Membership shape
     assert inputs[3].shape == (1215,)
     assert inputs[4].shape == (1215,)
+
+
+def test_batch_elements():
+    # Prepare Data
+    inputs = [[i,i**2, i**3] for i in range(10)]
+    # Run
+    output = list(dc.utils.batch_utils.batch_elements(inputs, 3))
+    assert output == [[[0, 0, 0], [1, 1, 1], [2, 4, 8]],
+                      [[3, 9, 27], [4, 16, 64], [5, 25, 125]],
+                      [[6, 36, 216], [7, 49, 343], [8, 64, 512]],
+                      [[9, 81, 729]]]
