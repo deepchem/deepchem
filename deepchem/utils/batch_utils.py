@@ -2,6 +2,7 @@
 Utility Functions for computing features on batch.
 """
 import numpy as np
+from typing import Any, List, Dict
 
 
 def batch_coulomb_matrix_features(X_b: np.ndarray,
@@ -129,3 +130,108 @@ def batch_coulomb_matrix_features(X_b: np.ndarray,
     dist_mem_j = np.concatenate(distance_membership_j).astype(np.int64)
     features = [atom_number, gaussian_dist, atom_mem, dist_mem_i, dist_mem_j]
     return features
+
+
+def batch_elements(elements: Any, batch_size: int):
+    """Combine elements into batches.
+
+    Parameters
+    ----------
+    elements: Any
+        Elements to be combined into batches.
+    batch_size: int
+        Batch size in which to divide.
+
+    Returns
+    -------
+    batch: Any
+        Batch of elements.
+
+    """
+    batch = []
+    for s in elements:
+        batch.append(s)
+        if len(batch) == batch_size:
+            yield batch
+            batch = []
+    if len(batch) > 0:
+        yield batch
+
+
+def create_input_array(sequences: List, reverse_input: bool, batch_size: int,
+                       input_dict: Dict, end_mark: Any):
+    """Create the array describing the input sequences for a batch.
+
+    It creates a 2d Matrix empty matrix according to batch size and max_length.
+    Then iteratively fills it with the key-values from the input dictionary.
+
+    These values can be used to generate embeddings for further processing.
+
+    Models used in:
+
+    * SeqToSeq
+
+    Parameters
+    ----------
+    sequences: list
+        List of sequences to be converted into input array.
+    reverse_input: bool
+        If True, reverse the order of input sequences before sending them into
+        the encoder. This can improve performance when working with long sequences.
+    batch_size: int
+        Batch size of the input array.
+    input_dict: dict
+        Dictionary containing the key-value pairs of input sequences.
+    end_mark: Any
+        End mark for the input sequences.
+
+    """
+    lengths = [len(x) for x in sequences]
+    if reverse_input:
+        sequences = [reversed(s) for s in sequences]
+    features = np.zeros((batch_size, max(lengths) + 1), dtype=np.float32)
+    for i, sequence in enumerate(sequences):
+        for j, token in enumerate(sequence):
+            features[i, j] = input_dict[token]
+    features[np.arange(len(sequences)), lengths] = input_dict[end_mark]
+    return features
+
+
+def create_output_array(sequences, max_output_length, batch_size, output_dict,
+                        end_mark):
+    """Create the array describing the target sequences for a batch.
+
+    Create the array describing the output sequences for a batch.
+
+    It creates a 2d Matrix empty matrix according to batch size and max_length.
+    Then iteratively fills it with the key-values from the input dictionary.
+
+    These values can be used to generate embeddings for further processing.
+
+    Models used in:
+
+    * SeqToSeq
+
+    Parameters
+    ----------
+    sequences: list
+        List of sequences to be converted into input array.
+    reverse_input: bool
+        If True, reverse the order of input sequences before sending them into
+        the encoder. This can improve performance when working with long sequences.
+    batch_size: int
+        Batch size of the input array.
+    input_dict: dict
+        Dictionary containing the key-value pairs of input sequences.
+    end_mark: Any
+        End mark for the input sequences.
+
+    """
+    lengths = [len(x) for x in sequences]
+    labels = np.zeros((batch_size, max_output_length), dtype=np.float32)
+    for i, sequence in enumerate(sequences):
+        for j, token in enumerate(sequence):
+            labels[i, j] = output_dict[token]
+        for j in range(lengths[i], max_output_length):
+            labels[i, j] = output_dict[end_mark]
+    return labels
