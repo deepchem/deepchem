@@ -2,7 +2,7 @@
 Utility Functions for computing features on batch.
 """
 import numpy as np
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 
 def batch_coulomb_matrix_features(X_b: np.ndarray,
@@ -132,8 +132,22 @@ def batch_coulomb_matrix_features(X_b: np.ndarray,
     return features
 
 
-def batch_elements(elements:Any, batch_size: int = 100):
-    """Combine elements into batches."""
+def batch_elements(elements: Any, batch_size: int):
+    """Combine elements into batches.
+    
+    Parameters
+    ----------
+    elements: Any
+        Elements to be combined into batches.
+    batch_size: int
+        Batch size in which to divide.
+
+    Returns
+    -------
+    batch: Any
+        Batch of elements.
+
+    """
     batch = []
     for s in elements:
         batch.append(s)
@@ -144,31 +158,37 @@ def batch_elements(elements:Any, batch_size: int = 100):
         yield batch
 
 
-def generate_batches(sequences,
-                     max_output_length: int,
-                     reverse_input: bool,
-                     batch_size: int,
-                     input_dict: Dict,
-                     output_dict: Dict,
-                     global_step: int,
-                     end_mark):
-    """Create feed_dicts for fitting."""
-    for batch in batch_elements(sequences):
-        inputs = []
-        outputs = []
-        for input, output in batch:
-            inputs.append(input)
-            outputs.append(output)
-        for i in range(len(inputs), batch_size):
-            inputs.append([])
-            outputs.append([])
-        features = create_input_array(inputs, reverse_input, batch_size, input_dict, end_mark)
-        labels = create_output_array(outputs, max_output_length, batch_size, output_dict, end_mark)
-        yield ([features, np.array(global_step)], [labels], [])
+def create_input_array(sequences: List,
+                       reverse_input: bool,
+                       batch_size: int,
+                       input_dict: Dict,
+                       end_mark: Any):
+    """Create the array describing the input sequences for a batch.
+    
+    It creates a 2d Matrix empty matrix according to batch size and max_length.
+    Then iteratively fills it with the key-values from the input dictionary.
 
+    These values can be used to generate embeddings for further processing.
 
-def create_input_array(sequences, reverse_input, batch_size, input_dict, end_mark):
-    """Create the array describing the input sequences for a batch."""
+    Models used in:
+
+    * SeqToSeq
+
+    Parameters
+    ----------
+    sequences: list
+        List of sequences to be converted into input array.
+    reverse_input: bool
+        If True, reverse the order of input sequences before sending them into
+        the encoder. This can improve performance when working with long sequences.
+    batch_size: int
+        Batch size of the input array.
+    input_dict: dict
+        Dictionary containing the key-value pairs of input sequences.
+    end_mark: Any
+        End mark for the input sequences.
+
+    """
     lengths = [len(x) for x in sequences]
     if reverse_input:
         sequences = [reversed(s) for s in sequences]
@@ -190,3 +210,26 @@ def create_output_array(sequences, max_output_length, batch_size, output_dict, e
         for j in range(lengths[i], max_output_length):
             labels[i, j] = output_dict[end_mark]
     return labels
+
+
+def generate_batches(sequences,
+                     model,
+                     max_output_length: int,
+                     reverse_input: bool,
+                     batch_size: int,
+                     input_dict: Dict,
+                     output_dict: Dict,
+                     end_mark):
+    """Create feed_dicts for fitting."""
+    for batch in batch_elements(sequences):
+        inputs = []
+        outputs = []
+        for input, output in batch:
+            inputs.append(input)
+            outputs.append(output)
+        for i in range(len(inputs), batch_size):
+            inputs.append([])
+            outputs.append([])
+        features = create_input_array(inputs, reverse_input, batch_size, input_dict, end_mark)
+        labels = create_output_array(outputs, max_output_length, batch_size, output_dict, end_mark)
+        yield ([features, np.array(model.get_global_step())], [labels], [])

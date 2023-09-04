@@ -8,7 +8,7 @@ import torch
 from deepchem.models.torch_models.layers import EncoderRNN, DecoderRNN, VariationalRandomizer
 from deepchem.models.torch_models import TorchModel
 
-from deepchem.utils.batch_utils import create_input_array, create_output_array, batch_elements
+from deepchem.utils.batch_utils import g
 
 
 class SeqToSeq(nn.Module):
@@ -200,7 +200,7 @@ class SeqToSeqModel(TorchModel):
             if True, restore the model from the most recent checkpoint and continue training
             from there.  If False, retrain the model from scratch.
         """
-        loss = self.fit_generator(_generate_batches(sequences,
+        loss = self.fit_generator(generate_batches(sequences,
                                                          self,
                                                    self._max_output_length,
                                                    self._reverse_input,
@@ -213,26 +213,3 @@ class SeqToSeqModel(TorchModel):
                                   restore=restore)
         return loss
     
-def _generate_batches(sequences,
-                          model,
-                         max_output_length: int,
-                         reverse_input: bool,
-                         batch_size: int,
-                         input_dict: Dict,
-                         output_dict: Dict,
-                         end_mark):
-        """Create feed_dicts for fitting."""
-        for batch in batch_elements(sequences):
-            inputs = []
-            outputs = []
-            for input, output in batch:
-                inputs.append(input)
-                outputs.append(output)
-            for i in range(len(inputs), batch_size):
-                inputs.append([])
-                outputs.append([])
-            features = create_input_array(inputs, reverse_input, batch_size, input_dict, end_mark)
-            labels = create_output_array(outputs, max_output_length, batch_size, output_dict, end_mark)
-            yield ([features, np.array(model.get_global_step())], [labels], [])
-
-
