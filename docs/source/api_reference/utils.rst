@@ -304,3 +304,9 @@ The utilites here are used for computing features on batch of data.
 Can be used inside of default_generator function.
 
 .. autofunction:: deepchem.utils.batch_utils.batch_coulomb_matrix_features
+
+.. autofunction:: deepchem.utils.batch_utils.batch_elements
+
+.. autofunction:: deepchem.utils.batch_utils.create_input_array
+
+.. autofunction:: deepchem.utils.batch_utils.create_output_array
