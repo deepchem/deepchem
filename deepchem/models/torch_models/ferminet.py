@@ -25,8 +25,8 @@ class Ferminet(torch.nn.Module):
     """
 
     def __init__(self,
-                 nucleon_pos: torch.tensor,
-                 nuclear_charge: torch.tensor,
+                 nucleon_pos: torch.Tensor,
+                 nuclear_charge: torch.Tensor,
                  spin: tuple,
                  n_one: List = [256, 256, 256, 256],
                  n_two: List = [32, 32, 32, 32],
@@ -35,9 +35,9 @@ class Ferminet(torch.nn.Module):
         """
         Parameters:
         -----------
-        nucleon_pos: torch.tensor
+        nucleon_pos: torch.Tensor
             tensor containing the nucleons coordinates, it is in the shape of (number of atoms, 3)
-        nuclear_charge: torch.tensor
+        nuclear_charge: torch.Tensor
             tensor containing the electron number associated with each nucleon, it is in the shape of (number of atoms, no_of_electron)
         n_one: List
             List of hidden units for the one-electron stream in each layer
@@ -52,7 +52,7 @@ class Ferminet(torch.nn.Module):
         ----------
         criterion: torch.nn.MSELoss()
             MSE Loss used to calculate pretraining loss
-        running_diff: torch.tensor
+        running_diff: torch.Tensor
             torch tensor containing the loss which gets updated for each random walk performed
         ferminet_layer: torch.nn.ModuleList
             Modulelist containing the ferminet electron feature layer
@@ -80,7 +80,7 @@ class Ferminet(torch.nn.Module):
         )
 
         self.criterion = torch.nn.MSELoss()
-        self.running_diff: torch.tensor = torch.zeros(self.batch_size).double()
+        self.running_diff: torch.Tensor = torch.zeros(self.batch_size).double()
 
         self.ferminet_layer.append(
             FerminetElectronFeature(self.n_one, self.n_two,
@@ -93,7 +93,7 @@ class Ferminet(torch.nn.Module):
                              self.nucleon_pos.size()[0],
                              self.determinant).double())
 
-    def forward(self, input) -> torch.tensor:
+    def forward(self, input) -> torch.Tensor:
         """
         forward function
 
@@ -104,7 +104,7 @@ class Ferminet(torch.nn.Module):
 
         Returns:
         --------
-        psi: torch.tensor
+        psi: torch.Tensor
             contains the wavefunction - 'psi' value. It is in the shape (batch_size), where each row corresponds to the solution of one of the batches
         """
         # creating one and two electron features
@@ -192,7 +192,7 @@ class FerminetModel(TorchModel):
         Torch tensor containing electrons for each atom in the nucleus
     molecule: ElectronSampler
         ElectronSampler object which performs MCMC and samples electrons
-    loss_value: Optional[torch.tensor] (default None)
+    loss_value: Optional[torch.Tensor] (default None)
         torch tensor storing the loss value from the last iteration
     pretraining_loss_list: List (default [])
         list with losses for every epoch
@@ -205,7 +205,7 @@ class FerminetModel(TorchModel):
         self.batch_no = batch_no
         self.random_walk_steps = random_walk_steps
         self.steps_per_update = steps_per_update
-        self.loss_value: Optional[torch.tensor] = None
+        self.loss_value: Optional[torch.Tensor] = None
         self.pretraining_loss_list: List = []
 
         no_electrons = []
@@ -260,7 +260,7 @@ class FerminetModel(TorchModel):
         nucl = torch.from_numpy(self.nucleon_pos)
         self.model = Ferminet(nucl,
                               spin=(self.up_spin, self.down_spin),
-                              nuclear_charge=torch.tensor(charge),
+                              nuclear_charge=torch.Tensor(charge),
                               batch_size=self.batch_no).double()
 
         self.molecule: ElectronSampler = ElectronSampler(
