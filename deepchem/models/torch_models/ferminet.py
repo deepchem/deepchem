@@ -2,7 +2,7 @@
 Implementation of the Ferminet class in pytorch
 """
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 # import torch.nn as nn
 from rdkit import Chem
 import numpy as np
@@ -130,27 +130,27 @@ class Ferminet(torch.nn.Module):
         return psi
 
     def loss(self,
-             psi_up_mo: Optional[np.ndarray] = None,
-             psi_down_mo: Optional[np.ndarray] = None,
-             pretrain: bool = True):
+             psi_up_mo: List[Optional[np.ndarray]] = [None],
+             psi_down_mo: List[Optional[np.ndarray]] = [None],
+             pretrain: List[bool] = [True]):
         """
         Implements the loss function for both pretraining and the actual training parts.
 
         Parameters
         ----------
-        psi_up_mo: Optional[np.ndarray] (default None)
+        psi_up_mo: List[Optional[np.ndarray]] (default [None])
             numpy array containing the sampled hartreee fock up-spin orbitals
-        psi_down_mo: Optional[np.ndarray] (default None)
+        psi_down_mo: List[Optional[np.ndarray]] (default [None])
             numpy array containing the sampled hartreee fock down-spin orbitals
-        pretrain: bool (default True)
+        pretrain: List[bool] (default [True])
             indicates whether the model is pretraining
         """
         if pretrain:
-            psi_up_mo = torch.from_numpy(psi_up_mo).unsqueeze(1).double()
-            psi_down_mo = torch.from_numpy(psi_down_mo).unsqueeze(1).double()
+            psi_up_mo_torch = torch.from_numpy(psi_up_mo).unsqueeze(1)
+            psi_down_mo_torch = torch.from_numpy(psi_down_mo).unsqueeze(1)
             self.running_diff = self.running_diff + self.criterion(
-                self.psi_up, psi_up_mo) + self.criterion(
-                    self.psi_down, psi_down_mo)
+                self.psi_up, psi_up_mo_torch) + self.criterion(
+                    self.psi_down, psi_down_mo_torch)
 
 
 class FerminetModel(TorchModel):
@@ -288,10 +288,10 @@ class FerminetModel(TorchModel):
             steps=self.random_walk_steps,
             steps_per_update=self.steps_per_update
         )  # sample the electrons using the electron sampler
+        super(FerminetModel, self).__init__(self.model, loss=self.model.loss)
         self.molecule.gauss_initialize_position(
             self.electron_no)  # initialize the position of the electrons
         self.prepare_hf_solution()
-        super(FerminetModel, self).__init__(self.model, loss=self.model.loss)
 
     def random_walk(self, x: np.ndarray) -> np.ndarray:
         """
@@ -301,6 +301,10 @@ class FerminetModel(TorchModel):
         ----------
         x: np.ndarray
             contains the sampled electrons coordinate in the shape (batch_size,number_of_electrons*3)
+
+        Returns:
+        --------
+        A numpy array containing the joint probability of the hartree fock and the sampled electron's position coordinates
         """
         output = self.model.forward(x)
         np_output = output.detach().cpu().numpy()
@@ -311,14 +315,10 @@ class FerminetModel(TorchModel):
         self.model.loss(up_spin_mo, down_spin_mo, pretrain=True)
         return np.log(hf_product + np_output**2) + np.log(0.5)
 
-    def prepare_hf_solution(self) -> np.ndarray:
-        """Prepares the HF solution for the molecule system which is to be used in pretraining
-
-        Returns
-        -------
-        hf_value: np.ndarray
-        Numpy array of shape (number of electrons, number of electrons ) where ith row & jth value corresponds to the ith hartree fock orbital at the jth electron's coordinate
-    """
+    def prepare_hf_solution(self):
+        """
+        Prepares the HF solution for the molecule system which is to be used in pretraining
+        """
         try:
             import pyscf
         except ModuleNotFoundError:
@@ -339,7 +339,19 @@ class FerminetModel(TorchModel):
         self.mf = pyscf.scf.UHF(self.mol)
         _ = self.mf.kernel()
 
-    def evaluate_hf(self, x):
+    def evaluate_hf(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Helper function to calculate orbital values at sampled electron's position.
+
+        Parameters:
+        -----------
+        x: np.ndarray
+            Contains the sampled electrons coordinates in a numpy array.
+
+        Returns:
+        --------
+        2 numpy arrays containing the up-spin and down-spin orbitals in a numpy array respectively.
+        """
         x = np.reshape(x, [-1, 3 * (self.up_spin + self.down_spin)])
         leading_dims = x.shape[:-1]
         x = np.reshape(x, [-1, 3])
@@ -347,12 +359,13 @@ class FerminetModel(TorchModel):
         gto_op = 'GTOval_sph'
         ao_values = self.mol.eval_gto(gto_op, x)
         mo_values = tuple(np.matmul(ao_values, coeff) for coeff in coeffs)
-        mo_values = [
+        mo_values_list = [
             np.reshape(mo, leading_dims + (self.up_spin + self.down_spin, -1))
             for mo in mo_values
         ]
-        return mo_values[0][..., :self.up_spin, :self.up_spin], mo_values[1][
-            ..., self.up_spin:, :self.down_spin]
+        return mo_values_list[0][
+            ..., :self.up_spin, :self.up_spin], mo_values_list[1][
+                ..., self.up_spin:, :self.down_spin]
 
     def pretrain(self,
                  nb_epoch: int = 200,
