@@ -3,15 +3,139 @@ Density Functional Theory Utilities
 Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcca3e314a538ca/xcdnn2/kscalc.py """
 try:
     import torch
-    from dqc.utils.datastruct import SpinParam
-    from dqc.qccalc.base_qccalc import BaseQCCalc
 except ModuleNotFoundError:
     pass
 
 import hashlib
 import xitorch as xt
-from typing import List
+from dataclasses import dataclass
 from abc import abstractmethod, abstractproperty
+from typing import Union, List, TypeVar, Generic, Callable
+
+__all__ = ["SpinParam"]
+
+T = TypeVar('T')
+
+
+@dataclass
+class SpinParam(Generic[T]):
+    """
+    Data structure to store different values for spin-up and spin-down electrons.
+
+    Attributes
+    ----------
+    u: any type
+        The parameters that corresponds to the spin-up electrons.
+    d: any type
+        The parameters that corresponds to the spin-down electrons.
+
+    References
+    ----------
+    Kasim, Muhammad F., and Sam M. Vinko. "Learning the exchange-correlation
+    functional from nature with fully differentiable density functional
+    theory." Physical Review Letters 127.12 (2021): 126403.
+    https://github.com/diffqc/dqc/blob/master/dqc/utils/datastruct.py
+    """
+
+    u: T
+    d: T
+
+    def sum(self):
+        """
+        Returns the sum of up and down parameters
+        """
+
+        return self.u + self.d
+
+    def reduce(self, fcn: Callable) -> T:
+        """
+        Reduce up and down parameters with the given function
+        """
+
+        return fcn(self.u, self.d)
+
+
+class BaseQCCalc(object):
+    """
+    Quantum Chemistry calculation. This class is the interface to the users
+    regarding parameters that can be calculated after the self-consistent
+    iterations (or other processes).
+
+    References
+    ----------
+    Kasim, Muhammad F., and Sam M. Vinko. "Learning the exchange-correlation
+    functional from nature with fully differentiable density functional
+    theory." Physical Review Letters 127.12 (2021): 126403.
+    https://github.com/diffqc/dqc/blob/master/dqc/utils/datastruct.py
+    """
+
+    @abstractmethod
+    def get_system(self):
+        """
+        Returns the system in the QC calculation
+        """
+        pass
+
+    @abstractmethod
+    def run(self, **kwargs):
+        """
+        Run the calculation.
+        Note that this method can be invoked several times for one object to
+        try for various self-consistent options to reach convergence.
+        """
+        pass
+
+    @abstractmethod
+    def energy(self) -> torch.Tensor:
+        """
+        Obtain the energy of the system.
+        """
+        pass
+
+    @abstractmethod
+    def aodm(self) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
+        """
+        Returns the density matrix in atomic orbital. For polarized case, it
+        returns a SpinParam of 2 tensors representing the density matrices for
+        spin-up and spin-down.
+        """
+        # return: (nao, nao)
+        pass
+
+    @abstractmethod
+    def dm2energy(
+            self, dm: Union[torch.Tensor,
+                            SpinParam[torch.Tensor]]) -> torch.Tensor:
+        """
+        Calculate the energy from the given density matrix.
+
+        Arguments
+        ---------
+        dm: torch.Tensor or SpinParam of torch.Tensor
+            The input density matrix. It is tensor if restricted, and SpinParam
+            of tensor if unrestricted.
+
+        Returns
+        -------
+        torch.Tensor
+            Tensor that represents the energy given the energy.
+        """
+        pass
+
+    @abstractmethod
+    def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+        """
+        Return a list with the parameter names corresponding to the given method
+        (methodname)
+
+        Returns
+        -------
+        List[str]
+            List of parameter names of methodname
+
+        """
+
+        pass
 
 
 class KSCalc(object):

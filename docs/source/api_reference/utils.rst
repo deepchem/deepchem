@@ -290,6 +290,12 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dftutils.BaseGrid
   :members:
 
+.. autoclass:: deepchem.utils.dftutils.BaseQCCalc
+  :members:
+
+.. autoclass:: deepchem.utils.dftutils.SpinParam
+  :members:
+
 Pytorch Utilities
 -----------------
 
