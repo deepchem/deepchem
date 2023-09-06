@@ -10,7 +10,7 @@ DeepChem officially supports Python 3.6 through 3.7 and requires these packages 
 - `NumPy`_
 - `pandas`_
 - `scikit-learn`_
-- `sympy`_
+- `SymPy`_
 - `SciPy`_
 - `TensorFlow`_
 
@@ -140,7 +140,7 @@ DeepChem has a number of "soft" requirements.
 .. _`NumPy`: https://numpy.org/
 .. _`pandas`: http://pandas.pydata.org/
 .. _`scikit-learn`: https://scikit-learn.org/stable/
-.. _`sympy`: https://www.sympy.org/en/index.html
+.. _`SymPy`: https://www.sympy.org/en/index.html
 .. _`SciPy`: https://www.scipy.org/
 .. _`TensorFlow`: https://www.tensorflow.org/
 .. _`BioPython`: https://biopython.org/wiki/Documentation
