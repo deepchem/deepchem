@@ -1,11 +1,12 @@
 import unittest
-from deepchem.utils import equivariance_utils
 try:
     import torch
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
 
+if has_torch:
+    from deepchem.utils import equivariance_utils
 
 class TestEquivarianceUtils(unittest.TestCase):
 
