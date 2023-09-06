@@ -8,6 +8,7 @@ except ModuleNotFoundError:
 if has_torch:
     from deepchem.utils import equivariance_utils
 
+
 class TestEquivarianceUtils(unittest.TestCase):
 
     @unittest.skipIf(not has_torch, "torch is not available")
