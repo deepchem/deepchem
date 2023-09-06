@@ -210,26 +210,3 @@ def create_output_array(sequences, max_output_length, batch_size, output_dict, e
         for j in range(lengths[i], max_output_length):
             labels[i, j] = output_dict[end_mark]
     return labels
-
-
-def generate_batches(sequences,
-                     model,
-                     max_output_length: int,
-                     reverse_input: bool,
-                     batch_size: int,
-                     input_dict: Dict,
-                     output_dict: Dict,
-                     end_mark):
-    """Create feed_dicts for fitting."""
-    for batch in batch_elements(sequences):
-        inputs = []
-        outputs = []
-        for input, output in batch:
-            inputs.append(input)
-            outputs.append(output)
-        for i in range(len(inputs), batch_size):
-            inputs.append([])
-            outputs.append([])
-        features = create_input_array(inputs, reverse_input, batch_size, input_dict, end_mark)
-        labels = create_output_array(outputs, max_output_length, batch_size, output_dict, end_mark)
-        yield ([features, np.array(model.get_global_step())], [labels], [])

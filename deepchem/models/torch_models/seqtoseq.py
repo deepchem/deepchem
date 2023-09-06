@@ -1,3 +1,4 @@
+from heapq import heappush, heappushpop
 from typing import List, Dict
 
 import numpy as np
@@ -8,7 +9,7 @@ import torch
 from deepchem.models.torch_models.layers import EncoderRNN, DecoderRNN, VariationalRandomizer
 from deepchem.models.torch_models import TorchModel
 
-from deepchem.utils.batch_utils import g
+from deepchem.utils.batch_utils import batch_elements, create_input_array, create_output_array
 
 
 class SeqToSeq(nn.Module):
@@ -17,11 +18,11 @@ class SeqToSeq(nn.Module):
                  n_input_tokens: int,
                  n_output_tokens: int,
                  max_output_length: int,
-                 embedding_dimension: int=512,
-                 dropout: float=0.0,
-                 variational: bool=False,
-                 annealing_start_step: int=5000,
-                 annealing_final_step: int=10000):
+                 embedding_dimension: int = 512,
+                 dropout: float = 0.0,
+                 variational: bool = False,
+                 annealing_start_step: int = 5000,
+                 annealing_final_step: int = 10000):
         """Initialize SeqToSeq model.
         
         Parameters
@@ -163,7 +164,8 @@ class SeqToSeqModel(TorchModel):
             annealing_start_step=self._annealing_start_step,
             annealing_final_step=self._annealing_final_step)
 
-        super(SeqToSeqModel, self).__init__(model, self._create_loss(), **kwargs)
+        super(SeqToSeqModel, self).__init__(model, self._create_loss(),
+                                            **kwargs)
 
     def _create_loss(self):
         """Create loss function for model."""
@@ -200,16 +202,51 @@ class SeqToSeqModel(TorchModel):
             if True, restore the model from the most recent checkpoint and continue training
             from there.  If False, retrain the model from scratch.
         """
-        loss = self.fit_generator(generate_batches(sequences,
-                                                         self,
-                                                   self._max_output_length,
-                                                   self._reverse_input,
-                                                   self.batch_size,
-                                                   self._input_dict,
-                                                   self._output_dict,
-                                                   SeqToSeqModel.sequence_end),
-                                  max_checkpoints_to_keep=max_checkpoints_to_keep,
-                                  checkpoint_interval=checkpoint_interval,
-                                  restore=restore)
+        loss = self.fit_generator(
+            self._generate_batches(sequences),
+            max_checkpoints_to_keep=max_checkpoints_to_keep,
+            checkpoint_interval=checkpoint_interval,
+            restore=restore)
         return loss
     
+    def predict_from_sequences(self, sequences, beam_width):
+        """Given a set of input sequences, predict the output sequences.
+
+        The prediction is done using a beam search with length normalization.
+
+        Parameters
+        ----------
+        sequences: iterable
+            the input sequences to generate a prediction for
+        beam_width: int
+            the beam width to use for searching.  Set to 1 to use a simple greedy search.
+        """
+        result = []
+        for batch in batch_elements(sequences, self.batch_size):
+            features = create_input_array(batch, self._reverse_input, self.batch_size, self._input_dict, SeqToSeqModel.sequence_end)
+            probs = self.predict_on_generator([[
+                (features, np.array(self.get_global_step())), None,
+                None
+            ]])
+            for i in range(len(batch)):
+                result.append(probs[i])
+        return result
+
+    def _generate_batches(self, sequences):
+        """Create feed_dicts for fitting."""
+        for batch in batch_elements(sequences, self.batch_size):
+            inputs = []
+            outputs = []
+            for input, output in batch:
+                inputs.append(input)
+                outputs.append(output)
+            for i in range(len(inputs), self.batch_size):
+                inputs.append([])
+                outputs.append([])
+            features = create_input_array(inputs, self._reverse_input,
+                                          self.batch_size, self._input_dict,
+                                          SeqToSeqModel.sequence_end)
+            labels = create_output_array(outputs, self._max_output_length,
+                                         self.batch_size, self._output_dict,
+                                         SeqToSeqModel.sequence_end)
+            yield ([features, np.array(self.get_global_step())], [labels], [])
