@@ -2,7 +2,7 @@
 Utility Functions for computing features on batch.
 """
 import numpy as np
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Collection
 
 
 def batch_coulomb_matrix_features(X_b: np.ndarray,
@@ -168,7 +168,7 @@ def batch_elements(elements: Any, batch_size: int):
         yield batch
 
 
-def create_input_array(sequences: Iterable, reverse_input: bool,
+def create_input_array(sequences: Collection, reverse_input: bool,
                        batch_size: int, input_dict: Dict, end_mark: Any):
     """Create the array describing the input sequences for a batch.
 
@@ -183,7 +183,7 @@ def create_input_array(sequences: Iterable, reverse_input: bool,
 
     Parameters
     ----------
-    sequences: Iterable
+    sequences: Collection
         List of sequences to be converted into input array.
     reverse_input: bool
         If True, reverse the order of input sequences before sending them into
@@ -231,7 +231,7 @@ def create_input_array(sequences: Iterable, reverse_input: bool,
     return features
 
 
-def create_output_array(sequences: Iterable, max_output_length: int,
+def create_output_array(sequences: Collection, max_output_length: int,
                         batch_size: int, output_dict: Dict, end_mark: Any):
     """Create the array describing the target sequences for a batch.
 
@@ -248,7 +248,7 @@ def create_output_array(sequences: Iterable, max_output_length: int,
 
     Parameters
     ----------
-    sequences: Iterable
+    sequences: Collection
         List of sequences to be converted into output array.
     max_output_length: bool
         Maximum length of output sequence that may be generated
