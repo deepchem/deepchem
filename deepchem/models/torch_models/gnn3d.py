@@ -361,9 +361,9 @@ class InfoMax3DModular(ModularTorchModel):
 
     Parameters
     ----------
-    hidden_dim : int
+    hidden_dim : int, optional, default = 64
         The dimension of the hidden layers.
-    target_dim : int
+    target_dim : int, optional, default = 10
         The dimension of the output layer.
     aggregators : List[str]
         A list of aggregator functions for the PNA model. Options are 'mean', 'sum', 'min', 'max', 'std', 'var', 'moment3', 'moment4', 'moment5'.
@@ -433,8 +433,8 @@ class InfoMax3DModular(ModularTorchModel):
     """
 
     def __init__(self,
-                 hidden_dim,
-                 target_dim,
+                 hidden_dim: int = 64,
+                 target_dim: int = 10,
                  aggregators: List[str] = ['mean'],
                  readout_aggregators: List[str] = ['mean'],
                  scalers: List[str] = ['identity'],
@@ -573,10 +573,12 @@ class InfoMax3DModular(ModularTorchModel):
         # encodings2d = torch.cat(encodings2d, dim=0)
         # encodings3d = torch.cat(
         #     [torch.cat(conf, dim=0) for conf in encodings3d], dim=0)
+
         # NOTE: The above one is logically correct but the below method is similar
         # to original implementation here: https://github.com/HannesStark/3DInfomax/blob/5cd32629c690e119bcae8726acedefdb0aa037fc/trainer/self_supervised_trainer.py#L26
         # The different between above and below is that the below one
         # cannot handle multiple conformers.
+
         encodings2d = self.components['2d'](inputs)
         encodings3d = self.components['3d'](inputs)
         loss = self.criterion(encodings2d, encodings3d)
