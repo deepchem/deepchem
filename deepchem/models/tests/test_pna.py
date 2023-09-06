@@ -88,7 +88,7 @@ def get_regression_dataset():
     from deepchem.feat.molecule_featurizers.conformer_featurizer import (
         RDKitConformerFeaturizer,)
     np.random.seed(123)
-    featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    featurizer = RDKitConformerFeaturizer()
     dir = os.path.dirname(os.path.abspath(__file__))
 
     input_file = os.path.join(dir, 'assets/example_regression.csv')
@@ -102,15 +102,12 @@ def get_regression_dataset():
 
 
 @pytest.mark.pytorch
-def test_PNAGNN():
-    import numpy as np
-
-    from deepchem.feat.graph_data import BatchGraphData
+def testPNAGNN():
+    import dgl
     from deepchem.models.torch_models.pna_gnn import PNAGNN
 
     data, _ = get_regression_dataset()
-    features = BatchGraphData(np.concatenate(data.X).ravel())
-    features = features.to_dgl_graph()
+    features = dgl.batch([conformer.to_dgl_graph() for conformer in data.X])
     model = PNAGNN(hidden_dim=16,
                    aggregators=['mean', 'sum'],
                    scalers=['identity'])
@@ -119,13 +116,13 @@ def test_PNAGNN():
     assert output.ndata['feat'].shape == (features.ndata['x'].shape[0], 16)
 
 
-def test_PNA():
-    from deepchem.feat.graph_data import BatchGraphData
+@pytest.mark.torch
+def testPNA():
+    import dgl
     from deepchem.models.torch_models.pna_gnn import PNA
 
     data, _ = get_regression_dataset()
-    features = BatchGraphData(np.concatenate(data.X).ravel())
-    features = features.to_dgl_graph()
+    features = dgl.batch([conformer.to_dgl_graph() for conformer in data.X])
     target_dim = 1
     model = PNA(hidden_dim=16, target_dim=target_dim)
     output = model(features)
