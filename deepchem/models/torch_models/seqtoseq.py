@@ -56,7 +56,7 @@ class SeqToSeq(nn.Module):
         self.decoder = DecoderRNN(embedding_dimension, n_output_tokens,
                                   max_output_length)
         if variational:
-            self.randomizer = VariationalRandomizer(self._embedding_dimension,
+            self.randomizer = VariationalRandomizer(embedding_dimension,
                                                     annealing_start_step,
                                                     annealing_final_step)
 
@@ -87,7 +87,7 @@ class SeqToSeq(nn.Module):
             self._embedding = self.randomizer([self._embedding, global_step],
                                               training=False)
         output, _ = self.decoder(
-            [embedding, embedding[:, -1].unsqueeze(0), None])
+            [embedding, embedding[:, -1].unsqueeze(0).contiguous(), None])
         return output
 
 
@@ -154,7 +154,7 @@ class SeqToSeqModel(TorchModel):
         self._annealing_start_step = annealing_start_step
         self._annealing_final_step = annealing_final_step
 
-        model: nn.Module = SeqToSeq(
+        self.model: nn.Module = SeqToSeq(
             n_input_tokens=self._n_input_tokens,
             n_output_tokens=self._n_output_tokens,
             max_output_length=self._max_output_length,
@@ -164,7 +164,7 @@ class SeqToSeqModel(TorchModel):
             annealing_start_step=self._annealing_start_step,
             annealing_final_step=self._annealing_final_step)
 
-        super(SeqToSeqModel, self).__init__(model, self._create_loss(),
+        super(SeqToSeqModel, self).__init__(self.model, self._create_loss(),
                                             **kwargs)
 
     def _create_loss(self):
