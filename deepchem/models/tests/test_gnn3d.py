@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.mark.pytorch
+@pytest.mark.torch
 def test_Net3DLayer():
     import dgl
     import numpy as np
