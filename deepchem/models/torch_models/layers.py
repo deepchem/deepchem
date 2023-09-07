@@ -5054,7 +5054,7 @@ class DecoderRNN(nn.Module):
         self.embedding = nn.Embedding(output_size, hidden_size)
         self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True)
         self.out = nn.Linear(hidden_size, output_size)
-        self.act = get_activation("log_softmax")
+        self.act = get_activation("softmax")
         self.step_act = get_activation("relu")
         self.MAX_LENGTH = max_length
 

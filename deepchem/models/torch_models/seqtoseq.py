@@ -177,7 +177,7 @@ class SeqToSeqModel(TorchModel):
         def loss_fn(outputs, labels, weights):
             our = outputs[0].view(-1, outputs[0].size(-1))
             your = labels[0].view(-1)
-            loss_ = nn.NLLLoss()(our.to(torch.float32), your.to(torch.int64))
+            loss_ = nn.NLLLoss()(torch.log(our.to(torch.float32)), your.to(torch.int64))
             return loss + loss_
 
         return loss_fn
