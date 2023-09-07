@@ -240,7 +240,7 @@ class ModularTorchModel(TorchModel):
             should_log = (current_step % self.log_frequency == 0)
             if should_log:
                 avg_loss = float(avg_loss) / averaged_batches
-                logger.info('Ending global_step %d: Average loss %g' %
+                logger.info('Ending global_step %d: Average loss %.10f' %
                             (current_step, avg_loss))
                 if all_losses is not None:
                     all_losses.append(avg_loss)

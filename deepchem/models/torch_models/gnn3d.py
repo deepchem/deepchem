@@ -1,4 +1,5 @@
 from typing import Callable, List, Union
+import itertools
 
 import dgl
 import dgl.function as fn
@@ -434,9 +435,9 @@ class InfoMax3DModular(ModularTorchModel):
     def __init__(self,
                  hidden_dim,
                  target_dim,
-                 aggregators: List[str],
-                 readout_aggregators: List[str],
-                 scalers: List[str],
+                 aggregators: List[str] = ['mean'],
+                 readout_aggregators: List[str] = ['mean'],
+                 scalers: List[str] = ['identity'],
                  residual: bool = True,
                  node_wise_output_layers: int = 2,
                  pairwise_distances: bool = False,
@@ -558,20 +559,26 @@ class InfoMax3DModular(ModularTorchModel):
         torch.Tensor
             The computed loss value.
         """
-        encodings2d = []
-        encodings3d = []
-        for conformers in inputs:
-            # 2d model takes only the first conformer
-            encodings2d.append(self.components['2d'](conformers[0]))
-            # 3d model takes all conformers
-            encodings3d.append(
-                [self.components['3d'](conf) for conf in conformers])
+        # encodings2d = []
+        # encodings3d = []
+        # for conformers in inputs:
+        #     # 2d model takes only the first conformer
+        #     encodings2d.append(self.components['2d'](conformers[0]))
+        #     # 3d model takes all conformers
+        #     encodings3d.append(
+        #         [self.components['3d'](conf) for conf in conformers])
 
-        # concat the lists such that the 2d encodings is of shape batch_size x target_dim
-        # and the 3d encodings is of shape batch_size*num_conformers x target_dim
-        encodings2d = torch.cat(encodings2d, dim=0)
-        encodings3d = torch.cat(
-            [torch.cat(conf, dim=0) for conf in encodings3d], dim=0)
+        # # concat the lists such that the 2d encodings is of shape batch_size x target_dim
+        # # and the 3d encodings is of shape batch_size*num_conformers x target_dim
+        # encodings2d = torch.cat(encodings2d, dim=0)
+        # encodings3d = torch.cat(
+        #     [torch.cat(conf, dim=0) for conf in encodings3d], dim=0)
+        # NOTE: The above one is logically correct but the below method is similar
+        # to original implementation here: https://github.com/HannesStark/3DInfomax/blob/5cd32629c690e119bcae8726acedefdb0aa037fc/trainer/self_supervised_trainer.py#L26
+        # The different between above and below is that the below one
+        # cannot handle multiple conformers.
+        encodings2d = self.components['2d'](inputs)
+        encodings3d = self.components['3d'](inputs)
         loss = self.criterion(encodings2d, encodings3d)
         return loss
 
@@ -592,8 +599,41 @@ class InfoMax3DModular(ModularTorchModel):
         inputs, labels, weights = batch
         inputs = inputs[0]
 
+        # graphs = [[
+        #     graph_data.to_dgl_graph().to(self.device) for graph_data in row
+        # ] for row in inputs]
+
         # convert the GraphData objects to DGL graphs
-        graphs = [[
-            graph_data.to_dgl_graph().to(self.device) for graph_data in row
-        ] for row in inputs]
+        graphs = dgl.batch([graph_data.to_dgl_graph() for graph_data in inputs])
         return graphs, labels, weights
+
+    def _ensure_built(self) -> None:
+        """The first time this is called, create internal data structures."""
+        if self._built:
+            return
+        self._built = True
+        self._global_step = 0
+        normal_params = [
+            v for k, v in itertools.chain(
+                self.components['2d'].named_parameters(),
+                self.components['3d'].named_parameters())
+            if 'batch_norm' not in k
+        ]
+        batch_norm_params = [
+            v for k, v in itertools.chain(
+                self.components['2d'].named_parameters(),
+                self.components['3d'].named_parameters()) if 'batch_norm' in k
+        ]
+
+        self._pytorch_optimizer = torch.optim.Adam([{
+            'params': batch_norm_params,
+            'weight_decay': 0
+        }, {
+            'params': normal_params
+        }],
+                                                   lr=8e-5)  # type: ignore
+        # TODO Ideally, we should use a lr schedule but we need to update lr_scheduler.step() method
+        # in ModularTorchModel.fit_generator to accept a metric.
+        self._lr_schedule = None
+        # self._lr_schedule = torch.optim.lr_scheduler.ReduceLROnPlateau(self._pytorch_optimizer,
+        #                                                            mode='min')
