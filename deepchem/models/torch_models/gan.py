@@ -1,6 +1,7 @@
 """Generative Adversarial Networks."""
 
-from deepchem.models import torch_model, layers
+from deepchem.models.torch_models import layers
+from deepchem.models.torch_models.torch_model import TorchModel
 # from tensorflow.keras.layers import Input, Lambda, Layer, Softmax, Reshape, Multiply
 
 import numpy as np
@@ -10,7 +11,7 @@ import torch.nn.functional as F
 import time
 
 
-class GAN(torch_model):
+class GAN(TorchModel):
     """Implements Generative Adversarial Networks.
 
     A Generative Adversarial Network (GAN) is a type of generative model.  It
@@ -63,7 +64,129 @@ class GAN(torch_model):
     predict_gan_generator() which generator to use for predicting samples.
     """
 
-    
+    def __init__(self, n_generators=1, n_discriminators=1):
+        """Construct a GAN.
+
+        In addition to the parameters listed below, this class accepts all the
+        keyword arguments from KerasModel.
+
+        Parameters
+        ----------
+        n_generators: int
+            the number of generators to include
+        n_discriminators: int
+            the number of discriminators to include
+        """
+        
+        self.n_generators = n_generators
+        self.n_discriminators = n_discriminators
+
+        # Create the inputs.
+
+        # self.noise_input = Input(shape=self.get_noise_input_shape())
+        self.noise_input = torch.randn(1, self.get_noise_input_shape())
+        self.data_input_layers = []
+        for shape in self.get_data_input_shapes():
+            self.data_input_layers.append(torch.randn(1, shape))
+        self.data_inputs = [i.ref() for i in self.data_input_layers]
+        self.conditional_input_layers = []
+        for shape in self.get_conditional_input_shapes():
+            self.conditional_input_layers.append(torch.randn(1, shape))
+        self.conditional_inputs = [
+            i.ref() for i in self.conditional_input_layers
+        ]
+
+        # Create the generators.
+
+        self.generators = []
+        self.gen_variables = []
+        generator_outputs = []
+        for i in range(n_generators):
+            generator = self.create_generator()
+            self.generators.append(generator)
+            generator_outputs.append(
+                generator(
+                    _list_or_tensor([self.noise_input] +
+                                    self.conditional_input_layers)))
+            self.gen_variables += generator.trainable_variables
+
+        # Create the discriminators.
+
+        self.discriminators = []
+        self.discrim_variables = []
+        discrim_train_outputs = []
+        discrim_gen_outputs = []
+        for i in range(n_discriminators):
+            discriminator = self.create_discriminator()
+            self.discriminators.append(discriminator)
+            discrim_train_outputs.append(
+                self._call_discriminator(discriminator, self.data_input_layers,
+                                         True))
+            for gen_output in generator_outputs:
+                if torch.is_tensor(gen_output):
+                    gen_output = [gen_output]
+                discrim_gen_outputs.append(
+                    self._call_discriminator(discriminator, gen_output, False))
+            self.discrim_variables += discriminator.trainable_variables
+
+        # Compute the loss functions.
+
+        gen_losses = [
+            self.create_generator_loss(d) for d in discrim_gen_outputs
+        ]
+        discrim_losses = []
+        for i in range(n_discriminators):
+            for j in range(n_generators):
+                discrim_losses.append(
+                    self.create_discriminator_loss(
+                        discrim_train_outputs[i],
+                        discrim_gen_outputs[i * n_generators + j]))
+        if n_generators == 1 and n_discriminators == 1:
+            total_gen_loss = gen_losses[0]
+            total_discrim_loss = discrim_losses[0]
+        else:
+            # Create learnable weights for the generators and discriminators.
+
+            gen_alpha = layers.Variable(np.ones((1, n_generators)),
+                                        dtype=torch.float32)
+            # We pass an input to the Variable layer to work around a bug in TF 1.14.
+            gen_weights = torch.softmax()(gen_alpha([self.noise_input]))
+            discrim_alpha = layers.Variable(np.ones((1, n_discriminators)),
+                                            dtype=torch.float32)
+            discrim_weights = torch.softmax()(discrim_alpha([self.noise_input]))
+
+            # Compute the weighted errors
+
+            weight_products = Reshape(
+                (n_generators * n_discriminators,))(Multiply()([
+                    Reshape((n_discriminators, 1))(discrim_weights),
+                    Reshape((1, n_generators))(gen_weights)
+                ]))
+            stacked_gen_loss = layers.Stack(axis=0)(gen_losses)
+            stacked_discrim_loss = layers.Stack(axis=0)(discrim_losses)
+            total_gen_loss = torch.sum(stacked_gen_loss * weight_products)
+            total_discrim_loss = torch.sum(stacked_discrim_loss *
+                                           weight_products)
+            self.gen_variables += gen_alpha.trainable_variables
+            self.discrim_variables += gen_alpha.trainable_variables
+            self.discrim_variables += discrim_alpha.trainable_variables
+
+            # Add an entropy term to the loss.
+
+            entropy = -(
+                torch.sum(torch.log(gen_weights)) / n_generators +
+                torch.sum(torch.log(discrim_weights)) / n_discriminators)
+            total_discrim_loss = total_discrim_loss + entropy
+
+        # Create the Keras model.
+
+        inputs = [self.noise_input
+                 ] + self.data_input_layers + self.conditional_input_layers
+        outputs = [total_gen_loss, total_discrim_loss]
+        self.gen_loss_fn = lambda outputs, labels, weights: outputs[0]
+        self.discrim_loss_fn = lambda outputs, labels, weights: outputs[1]
+        model = tf.keras.Model(inputs=inputs, outputs=outputs)
+        super(GAN, self).__init__(model, self.gen_loss_fn)
 
     def _call_discriminator(self, discriminator, inputs, train):
         """Invoke the discriminator on a set of inputs.
