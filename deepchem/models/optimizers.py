@@ -216,9 +216,9 @@ class Adam(Optimizer):
         else:
             learning_rate = self.learning_rate
         return tf.keras.optimizers.legacy.Adam(learning_rate=learning_rate,
-                                        beta_1=self.beta1,
-                                        beta_2=self.beta2,
-                                        epsilon=self.epsilon)
+                                               beta_1=self.beta1,
+                                               beta_2=self.beta2,
+                                               epsilon=self.epsilon)
 
     def _create_pytorch_optimizer(self, params):
         import torch
@@ -409,9 +409,9 @@ class RMSProp(Optimizer):
         else:
             learning_rate = self.learning_rate
         return tf.keras.optimizers.legacy.RMSprop(learning_rate=learning_rate,
-                                           momentum=self.momentum,
-                                           rho=self.decay,
-                                           epsilon=self.epsilon)
+                                                  momentum=self.momentum,
+                                                  rho=self.decay,
+                                                  epsilon=self.epsilon)
 
     def _create_pytorch_optimizer(self, params):
         import torch
