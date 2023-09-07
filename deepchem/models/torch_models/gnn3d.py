@@ -522,7 +522,7 @@ class InfoMax3DModular(ModularTorchModel):
                       dropout=self.dropout,
                       posttrans_layers=self.posttrans_layers,
                       pretrans_layers=self.pretrans_layers,
-                      **self.kwargs),
+                      **self.kwargs)
         if self.task == 'pretraining':
             return {
                 'model2d':
@@ -559,7 +559,7 @@ class InfoMax3DModular(ModularTorchModel):
         if self.task == 'pretraining':
             # FIXME Pretrain uses both model2d and model3d but the super class
             # can't handle two models for contrastive learning, hence we pass only model2d
-            return self.componenets['model2d']
+            return self.components['model2d']
         elif self.task in ['regression', 'classification']:
             if self.task == 'regression':
                 head = nn.Linear(self.target_dim, self.n_tasks)
@@ -640,6 +640,8 @@ class InfoMax3DModular(ModularTorchModel):
         """
         inputs, labels, weights = batch
         inputs = inputs[0]
+        if labels is not None:
+            labels = torch.from_numpy(labels[0]).float().to(self.device)
 
         # graphs = [[
         #     graph_data.to_dgl_graph().to(self.device) for graph_data in row
