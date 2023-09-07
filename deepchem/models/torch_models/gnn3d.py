@@ -1,5 +1,5 @@
-from typing import Callable, List, Union
 import itertools
+from typing import Callable, List, Union, Literal, Optional
 
 import dgl
 import dgl.function as fn
@@ -359,8 +359,15 @@ class InfoMax3DModular(ModularTorchModel):
     The outermost array is the dataset array, the second array is the molecule, the list contains the conformers for that molecule and the GraphData object is the featurized graph for that conformer with node_pos_features holding the 3D coordinates.
     If you are not using RDKitConformerFeaturizer, your input data features should look like this: Dataset[Molecule[Conformers[GraphData]]].
 
+    For pretraining, the original paper used a learning rate of 8e-5 with a batch size of 500.
+    For finetuning on quantum mechanical datasets, a learning rate of 7e-5 with a batch size of 128
+    was used. For finetuning on non-quantum mechanical datasets, a learning rate of 1e-3 with a
+    batch size of 32 was used in the original implementation.
+
     Parameters
     ----------
+    task : Literal['pretrain', 'regression', 'classification']
+        The task of the model
     hidden_dim : int, optional, default = 64
         The dimension of the hidden layers.
     target_dim : int, optional, default = 10
@@ -433,6 +440,7 @@ class InfoMax3DModular(ModularTorchModel):
     """
 
     def __init__(self,
+                 task: Literal['pretrain', 'regression', 'classification'],
                  hidden_dim: int = 64,
                  target_dim: int = 10,
                  aggregators: List[str] = ['mean'],
@@ -455,7 +463,10 @@ class InfoMax3DModular(ModularTorchModel):
                  use_node_features: bool = False,
                  posttrans_layers: int = 1,
                  pretrans_layers: int = 1,
+                 n_tasks: int = 1,
+                 n_classes: Optional[bool] = None,
                  **kwargs):
+        self.task = task
         self.hidden_dim = hidden_dim
         self.target_dim = target_dim
         self.aggregators = aggregators
@@ -479,6 +490,8 @@ class InfoMax3DModular(ModularTorchModel):
         self.posttrans_layers = posttrans_layers
         self.pretrans_layers = pretrans_layers
         self.kwargs = kwargs
+        self.n_tasks = n_tasks
+        self.n_classes = n_classes
         self.criterion = NTXentMultiplePositives()._create_pytorch_loss()
         self.components = self.build_components()
         self.model = self.build_model()
@@ -493,42 +506,46 @@ class InfoMax3DModular(ModularTorchModel):
         dict
             A dictionary containing the '2d' PNA model and the '3d' Net3D model.
         """
-        return {
-            '2d':
-                PNA(hidden_dim=self.hidden_dim,
-                    target_dim=self.target_dim,
-                    aggregators=self.aggregators,
-                    scalers=self.scalers,
-                    readout_aggregators=self.readout_aggregators,
-                    readout_hidden_dim=self.readout_hidden_dim,
-                    readout_layers=self.readout_layers,
-                    residual=self.residual,
-                    pairwise_distances=self.pairwise_distances,
-                    activation=self.activation,
-                    batch_norm=self.batch_norm,
-                    batch_norm_momentum=self.batch_norm_momentum,
-                    propagation_depth=self.propagation_depth,
-                    dropout=self.dropout,
-                    posttrans_layers=self.posttrans_layers,
-                    pretrans_layers=self.pretrans_layers,
-                    **self.kwargs),
-            '3d':
-                Net3D(hidden_dim=self.hidden_dim,
+        model2d = PNA(hidden_dim=self.hidden_dim,
                       target_dim=self.target_dim,
+                      aggregators=self.aggregators,
+                      scalers=self.scalers,
                       readout_aggregators=self.readout_aggregators,
-                      node_wise_output_layers=self.node_wise_output_layers,
-                      batch_norm=True,
-                      batch_norm_momentum=self.batch_norm_momentum,
-                      reduce_func=self.reduce_func,
-                      dropout=self.dropout,
-                      propagation_depth=self.propagation_depth,
-                      readout_layers=self.readout_layers,
                       readout_hidden_dim=self.readout_hidden_dim,
-                      fourier_encodings=self.fourier_encodings,
-                      update_net_layers=self.update_net_layers,
-                      message_net_layers=self.message_net_layers,
-                      use_node_features=self.use_node_features),
-        }
+                      readout_layers=self.readout_layers,
+                      residual=self.residual,
+                      pairwise_distances=self.pairwise_distances,
+                      activation=self.activation,
+                      batch_norm=self.batch_norm,
+                      batch_norm_momentum=self.batch_norm_momentum,
+                      propagation_depth=self.propagation_depth,
+                      dropout=self.dropout,
+                      posttrans_layers=self.posttrans_layers,
+                      pretrans_layers=self.pretrans_layers,
+                      **self.kwargs),
+        if self.task == 'pretrain':
+            return {
+                'model2d':
+                    model2d,
+                'model3d':
+                    Net3D(hidden_dim=self.hidden_dim,
+                          target_dim=self.target_dim,
+                          readout_aggregators=self.readout_aggregators,
+                          node_wise_output_layers=self.node_wise_output_layers,
+                          batch_norm=True,
+                          batch_norm_momentum=self.batch_norm_momentum,
+                          reduce_func=self.reduce_func,
+                          dropout=self.dropout,
+                          propagation_depth=self.propagation_depth,
+                          readout_layers=self.readout_layers,
+                          readout_hidden_dim=self.readout_hidden_dim,
+                          fourier_encodings=self.fourier_encodings,
+                          update_net_layers=self.update_net_layers,
+                          message_net_layers=self.message_net_layers,
+                          use_node_features=self.use_node_features),
+            }
+        elif self.task in ['regression', 'classification']:
+            return {'model2d': model2d}
 
     def build_model(self):
         """
@@ -539,7 +556,16 @@ class InfoMax3DModular(ModularTorchModel):
         PNA
             The 2D PNA model component.
         """
-        return self.components['2d']
+        if self.task == 'pretrain':
+            # FIXME Pretrain uses both model2d and model3d but the super class
+            # can't handle two models for contrastive learning, hence we pass only model2d
+            return self.componenets['model2d']
+        elif self.task in ['regression', 'classification']:
+            if self.task == 'regression':
+                head = nn.Linear(self.target_dim, self.n_tasks)
+            elif self.task == 'classification':
+                head = nn.Linear(self.target_dim, self.n_tasks * self.n_classes)
+            return nn.Sequential(self.components['model2d'], head)
 
     def loss_func(self, inputs, labels, weights):
         """
@@ -559,29 +585,43 @@ class InfoMax3DModular(ModularTorchModel):
         torch.Tensor
             The computed loss value.
         """
-        # encodings2d = []
-        # encodings3d = []
-        # for conformers in inputs:
-        #     # 2d model takes only the first conformer
-        #     encodings2d.append(self.components['2d'](conformers[0]))
-        #     # 3d model takes all conformers
-        #     encodings3d.append(
-        #         [self.components['3d'](conf) for conf in conformers])
+        if self.task == 'pretrain':
+            # encodings2d = []
+            # encodings3d = []
+            # for conformers in inputs:
+            #     # 2d model takes only the first conformer
+            #     encodings2d.append(self.components['2d'](conformers[0]))
+            #     # 3d model takes all conformers
+            #     encodings3d.append(
+            #         [self.components['3d'](conf) for conf in conformers])
 
-        # # concat the lists such that the 2d encodings is of shape batch_size x target_dim
-        # # and the 3d encodings is of shape batch_size*num_conformers x target_dim
-        # encodings2d = torch.cat(encodings2d, dim=0)
-        # encodings3d = torch.cat(
-        #     [torch.cat(conf, dim=0) for conf in encodings3d], dim=0)
+            # # concat the lists such that the 2d encodings is of shape batch_size x target_dim
+            # # and the 3d encodings is of shape batch_size*num_conformers x target_dim
+            # encodings2d = torch.cat(encodings2d, dim=0)
+            # encodings3d = torch.cat(
+            #     [torch.cat(conf, dim=0) for conf in encodings3d], dim=0)
 
-        # NOTE: The above one is logically correct but the below method is similar
-        # to original implementation here: https://github.com/HannesStark/3DInfomax/blob/5cd32629c690e119bcae8726acedefdb0aa037fc/trainer/self_supervised_trainer.py#L26
-        # The different between above and below is that the below one
-        # cannot handle multiple conformers.
+            # NOTE: The above one is logically correct but the below method is similar
+            # to original implementation here: https://github.com/HannesStark/3DInfomax/blob/5cd32629c690e119bcae8726acedefdb0aa037fc/trainer/self_supervised_trainer.py#L26
+            # The different between above and below is that the below one
+            # cannot handle multiple conformers.
 
-        encodings2d = self.components['2d'](inputs)
-        encodings3d = self.components['3d'](inputs)
-        loss = self.criterion(encodings2d, encodings3d)
+            encodings2d = self.components['model2d'](inputs)
+            encodings3d = self.components['model3d'](inputs)
+            loss = self.criterion(encodings2d, encodings3d)
+        elif self.task == 'regression':
+            preds = self.model(inputs)
+            loss = F.mse_loss(preds, labels)
+        elif self.task == 'classification':
+            preds = self.model(inputs)
+            if self.n_tasks == 1:
+                logits = preds.view(-1, self.n_classes)
+                softmax_dim = 1
+            else:
+                logits = preds.view(-1, self.n_tasks, self.n_classes)
+                softmax_dim = 2
+            proba = F.softmax(logits, dim=softmax_dim)
+            loss = F.binary_cross_entropy_with_logits(proba, labels)
         return loss
 
     def _prepare_batch(self, batch):
@@ -615,17 +655,28 @@ class InfoMax3DModular(ModularTorchModel):
             return
         self._built = True
         self._global_step = 0
-        normal_params = [
-            v for k, v in itertools.chain(
-                self.components['2d'].named_parameters(),
-                self.components['3d'].named_parameters())
-            if 'batch_norm' not in k
-        ]
-        batch_norm_params = [
-            v for k, v in itertools.chain(
-                self.components['2d'].named_parameters(),
-                self.components['3d'].named_parameters()) if 'batch_norm' in k
-        ]
+        if self.task == 'pretrain':
+            normal_params = [
+                v for k, v in itertools.chain(
+                    self.components['model2d'].named_parameters(),
+                    self.components['model3d'].named_parameters())
+                if 'batch_norm' not in k
+            ]
+            batch_norm_params = [
+                v for k, v in itertools.chain(
+                    self.components['model2d'].named_parameters(),
+                    self.components['model3d'].named_parameters())
+                if 'batch_norm' in k
+            ]
+
+        elif self.task in ['regression', 'classification']:
+            normal_params = [
+                v for k, v in self.model.named_parameters()
+                if 'batch_norm' not in k
+            ]
+            batch_norm_params = [
+                v for k, v in self.model.named_parameters() if 'batch_norm' in k
+            ]
 
         params = [{
             'params': batch_norm_params,
@@ -635,7 +686,7 @@ class InfoMax3DModular(ModularTorchModel):
         }]
         self._pytorch_optimizer = torch.optim.Adam(
             params,  # type: ignore
-            lr=8e-5)
+            lr=self.learning_rate)
         # TODO Ideally, we should use a lr schedule but we need to update lr_scheduler.step() method
         # in ModularTorchModel.fit_generator to accept a metric.
         self._lr_schedule = None
