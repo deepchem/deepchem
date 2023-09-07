@@ -249,6 +249,12 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.FerminetElectronFeature
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.FerminetEnvelope
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.MXMNetLocalMessagePassing
+  :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 
