@@ -440,7 +440,7 @@ class InfoMax3DModular(ModularTorchModel):
     """
 
     def __init__(self,
-                 task: Literal['pretrain', 'regression', 'classification'],
+                 task: Literal['pretraining', 'regression', 'classification'],
                  hidden_dim: int = 64,
                  target_dim: int = 10,
                  aggregators: List[str] = ['mean'],
@@ -523,7 +523,7 @@ class InfoMax3DModular(ModularTorchModel):
                       posttrans_layers=self.posttrans_layers,
                       pretrans_layers=self.pretrans_layers,
                       **self.kwargs),
-        if self.task == 'pretrain':
+        if self.task == 'pretraining':
             return {
                 'model2d':
                     model2d,
@@ -556,7 +556,7 @@ class InfoMax3DModular(ModularTorchModel):
         PNA
             The 2D PNA model component.
         """
-        if self.task == 'pretrain':
+        if self.task == 'pretraining':
             # FIXME Pretrain uses both model2d and model3d but the super class
             # can't handle two models for contrastive learning, hence we pass only model2d
             return self.componenets['model2d']
@@ -585,7 +585,7 @@ class InfoMax3DModular(ModularTorchModel):
         torch.Tensor
             The computed loss value.
         """
-        if self.task == 'pretrain':
+        if self.task == 'pretraining':
             # encodings2d = []
             # encodings3d = []
             # for conformers in inputs:
@@ -655,7 +655,7 @@ class InfoMax3DModular(ModularTorchModel):
             return
         self._built = True
         self._global_step = 0
-        if self.task == 'pretrain':
+        if self.task == 'pretraining':
             normal_params = [
                 v for k, v in itertools.chain(
                     self.components['model2d'].named_parameters(),
