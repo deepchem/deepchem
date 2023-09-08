@@ -175,6 +175,18 @@ def create_input_array(sequences: Collection, reverse_input: bool,
     It creates a 2d Matrix empty matrix according to batch size and max_length.
     Then iteratively fills it with the key-values from the input dictionary.
 
+    Many NLP Models like SeqToSeq has sentences as there inputs. We need to
+    convert these sentences into numbers so that the model can do computation
+    on them.
+
+    This function takes in the sentence then using the `input_dict` dictionary
+    picks up the words/letters equivalent numerical represntation. Then makes
+    an numpy array of it.
+
+    If the `reverse_input` is True, then the order of the input sequences is
+    reversed before sending them into the encoder. This can improve performance
+    when working with long sequences.
+
     These values can be used to generate embeddings for further processing.
 
     Models used in:
