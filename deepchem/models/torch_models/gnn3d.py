@@ -496,6 +496,9 @@ class InfoMax3DModular(ModularTorchModel):
         self.components = self.build_components()
         self.model = self.build_model()
         super().__init__(self.model, self.components, **kwargs)
+        for module_name, module in self.components.items():
+            self.components[module_name] = module.to(self.device)
+        self.model = self.model.to(self.device)
 
     def build_components(self):
         """
@@ -542,7 +545,7 @@ class InfoMax3DModular(ModularTorchModel):
                           fourier_encodings=self.fourier_encodings,
                           update_net_layers=self.update_net_layers,
                           message_net_layers=self.message_net_layers,
-                          use_node_features=self.use_node_features),
+                          use_node_features=self.use_node_features)
             }
         elif self.task in ['regression', 'classification']:
             return {'model2d': model2d}
@@ -628,7 +631,7 @@ class InfoMax3DModular(ModularTorchModel):
         # ] for row in inputs]
 
         # convert the GraphData objects to DGL graphs
-        graphs = dgl.batch([graph_data.to_dgl_graph() for graph_data in inputs])
+        graphs = dgl.batch([graph_data.to_dgl_graph() for graph_data in inputs]).to(self.device)
         return graphs, labels, weights
 
     def _ensure_built(self) -> None:
