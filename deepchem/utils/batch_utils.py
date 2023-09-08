@@ -170,7 +170,7 @@ def batch_elements(elements: List[Any], batch_size: int):
 
 def create_input_array(sequences: Collection, reverse_input: bool,
                        batch_size: int, input_dict: Dict, end_mark: Any):
-    """Create the array describing the input sequences for a batch.
+    """Create the array describing the input sequences.
 
     It creates a 2d Matrix empty matrix according to batch size and max_length.
     Then iteratively fills it with the key-values from the input dictionary.
@@ -245,12 +245,20 @@ def create_input_array(sequences: Collection, reverse_input: bool,
 
 def create_output_array(sequences: Collection, max_output_length: int,
                         batch_size: int, output_dict: Dict, end_mark: Any):
-    """Create the array describing the target sequences for a batch.
-
-    Create the array describing the output sequences for a batch.
+    """Create the array describing the target sequences.
 
     It creates a 2d Matrix empty matrix according to batch size and max_length.
     Then iteratively fills it with the key-values from the output dictionary.
+
+    This function is similar to `create_input_array` function. The only
+    difference is that it is used for output sequences and does not have the
+    `reverse_input` parameter as it is not required for output sequences.
+
+    It is used in NLP Models like SeqToSeq where the output is also a sentence
+    and we need to convert it into numbers so that the model can do computation
+    on them. This function takes in the sentence then using the `output_dict`
+    dictionary picks up the words/letters equivalent numerical represntation.
+    Then makes an numpy array of it.
 
     These values can be used to generate embeddings for further processing.
 
