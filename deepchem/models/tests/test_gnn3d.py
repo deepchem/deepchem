@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.mark.pytorch
+@pytest.mark.torch
 def test_Net3DLayer():
     import dgl
     import numpy as np
@@ -46,7 +46,7 @@ def get_regression_dataset():
         RDKitConformerFeaturizer,)
 
     np.random.seed(123)
-    featurizer = RDKitConformerFeaturizer(num_conformers=2, rmsd_cutoff=3)
+    featurizer = RDKitConformerFeaturizer()
     dir = os.path.dirname(os.path.abspath(__file__))
 
     input_file = os.path.join(dir, 'assets/example_regression.csv')
@@ -61,20 +61,17 @@ def get_regression_dataset():
 
 @pytest.mark.torch
 def test_net3d():
-    import numpy as np
-
-    from deepchem.feat.graph_data import BatchGraphData
     from deepchem.models.torch_models.gnn3d import Net3D
+    import dgl
     data, _ = get_regression_dataset()
-    features = BatchGraphData(np.concatenate(data.X))
-    graph = features.to_dgl_graph()
+    graphs = dgl.batch([conformer.to_dgl_graph() for conformer in data.X])
     target_dim = 2
 
     net3d = Net3D(hidden_dim=3,
                   target_dim=target_dim,
                   readout_aggregators=['sum', 'mean'])
 
-    output = net3d(graph)
+    output = net3d(graphs)
 
     assert output.shape[1] == target_dim
 
@@ -87,7 +84,8 @@ def compare_weights(key, model1, model2):
 
 
 @pytest.mark.torch
-def test_InfoMax3DModular():
+def testInfoMax3DModular():
+    import torch
     from deepchem.models.torch_models.gnn3d import InfoMax3DModular
 
     data, _ = get_regression_dataset()
@@ -96,7 +94,8 @@ def test_InfoMax3DModular():
                              target_dim=10,
                              aggregators=['sum', 'mean', 'max'],
                              readout_aggregators=['sum', 'mean'],
-                             scalers=['identity'])
+                             scalers=['identity'],
+                             device=torch.device('cpu'))
 
     loss1 = model.fit(data, nb_epoch=1)
     loss2 = model.fit(data, nb_epoch=9)
@@ -104,7 +103,8 @@ def test_InfoMax3DModular():
 
 
 @pytest.mark.torch
-def test_InfoMax3DModular_save_reload():
+def testInfoMax3DModularSaveReload():
+    import torch
     from deepchem.models.torch_models.gnn3d import InfoMax3DModular
 
     data, _ = get_regression_dataset()
@@ -112,7 +112,8 @@ def test_InfoMax3DModular_save_reload():
                              target_dim=10,
                              aggregators=['sum', 'mean', 'max'],
                              readout_aggregators=['sum', 'mean'],
-                             scalers=['identity'])
+                             scalers=['identity'],
+                             device=torch.device('cpu'))
 
     model.fit(data, nb_epoch=1)
     model2 = InfoMax3DModular(hidden_dim=64,
