@@ -2,7 +2,7 @@
 Utility Functions for computing features on batch.
 """
 import numpy as np
-from typing import Any, Dict, Collection
+from typing import Any, Dict, Collection, List
 
 
 def batch_coulomb_matrix_features(X_b: np.ndarray,
@@ -132,20 +132,20 @@ def batch_coulomb_matrix_features(X_b: np.ndarray,
     return features
 
 
-def batch_elements(elements: Any, batch_size: int):
+def batch_elements(elements: List[Any], batch_size: int):
     """Combine elements into batches.
 
     Parameters
     ----------
-    elements: Any
-        Elements to be combined into batches.
+    elements: List[Any]
+        List of Elements to be combined into batches.
     batch_size: int
         Batch size in which to divide.
 
     Returns
     -------
-    batch: Any
-        Batch of elements.
+    batch: List[Any]
+        List of Lists of elements divided into batches.
 
     Examples
     --------
