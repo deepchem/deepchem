@@ -4898,7 +4898,7 @@ class DecoderRNN(nn.Module):
     >>> batch_size = 2
     >>> layer = DecoderRNN(embedding_dimensions, num_output_tokens, max_length)
     >>> embeddings = torch.randn(batch_size, num_input_tokens, embedding_dimensions)
-    >>> output, hidden, _ = layer([embeddings, embeddings[:, -1].unsqueeze(0).contiguous(), None])
+    >>> output, hidden = layer([embeddings, embeddings[:, -1].unsqueeze(0).contiguous(), None])
     >>> output.shape
     torch.Size([2, 4, 7])
 

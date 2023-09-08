@@ -1289,7 +1289,7 @@ def test_decoder_rnn():
     layer = torch_layers.DecoderRNN(embedding_dimensions, num_output_tokens,
                                     max_length)
     embeddings = torch.randn(batch_size, num_input_tokens, embedding_dimensions)
-    output, hidden, _ = layer(
+    output, hidden = layer(
         [embeddings, embeddings[:, -1].unsqueeze(0).contiguous(), None])
     assert output.shape == (batch_size, max_length, num_output_tokens)
     assert hidden.shape == (1, batch_size, embedding_dimensions)
