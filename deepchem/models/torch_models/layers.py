@@ -4908,7 +4908,11 @@ class DecoderRNN(nn.Module):
 
     """
 
-    def __init__(self, hidden_size: int, output_size: int, max_length: int,
+    def __init__(self,
+                 hidden_size: int,
+                 output_size: int,
+                 max_length: int,
+                 step_activation: str = "relu",
                  **kwargs):
         """Initialize the DecoderRNN layer.
         
@@ -4920,8 +4924,8 @@ class DecoderRNN(nn.Module):
             The number of expected features.
         max_length: int
             The maximum length of the sequence.
-        device: torch.device
-            The device on which the layer is initialized.
+        step_activation: str (default "relu")
+            The activation function to use after every step.
 
         """
         super(DecoderRNN, self).__init__(**kwargs)
@@ -4929,7 +4933,7 @@ class DecoderRNN(nn.Module):
         self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True)
         self.out = nn.Linear(hidden_size, output_size)
         self.act = get_activation("softmax")
-        self.step_act = get_activation("relu")
+        self.step_act = get_activation(step_activation)
         self.MAX_LENGTH = max_length
 
     def __repr__(self) -> str:
