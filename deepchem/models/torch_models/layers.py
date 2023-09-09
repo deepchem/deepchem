@@ -4949,6 +4949,8 @@ class DecoderRNN(nn.Module):
             Maximum length of the sequence.
         batch_size: int
             Batch size of the input.
+        step_activation: str (default "relu")
+            Activation function to use after every step.
 
         """
         return f'{self.__class__.__name__}(hidden_size={self.hidden_size}, output_size={self.output_size}, max_length={self.max_length}, batch_size={self.batch_size})'
