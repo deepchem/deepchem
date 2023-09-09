@@ -1064,7 +1064,7 @@ class TorchModel(Model):
             if len(checkpoints) == 0:
                 raise ValueError('No checkpoint found')
             checkpoint = checkpoints[0]
-        data = torch.load(checkpoint)
+        data = torch.load(checkpoint, map_location=self.device)
         self.model.load_state_dict(data['model_state_dict'])
         self._pytorch_optimizer.load_state_dict(data['optimizer_state_dict'])
         self._global_step = data['global_step']
