@@ -1,7 +1,8 @@
 from abc import abstractmethod
 from typing import Union, List
 import torch
-from dqc.utils.datastruct import ValGrad, SpinParam
+from dqc.utils.datastruct import ValGrad
+from deepchem.utils.dftutils import SpinParam
 from dqc.api.getxc import get_xc
 from dqc.xc.base_xc import BaseXC
 from dqc.utils.safeops import safenorm, safepow

@@ -7,7 +7,7 @@ from abc import abstractmethod, abstractproperty
 from typing import List, Dict, Optional
 import numpy as np
 
-# dqc depend
+# dqc dependencies
 import dqc
 from dqc.system.mol import Mol
 from dqc.system.base_system import BaseSystem
