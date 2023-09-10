@@ -2721,9 +2721,12 @@ class CombineMeanStd(nn.Module):
 
         mean_parent, std_parent = torch.tensor(inputs[0]), torch.tensor(
             inputs[1])
-        noise_scale = torch.tensor(training or
-                                   not self.training_only, device=mean_parent.device).to(torch.float)
-        sample_noise = torch.normal(0.0, self.noise_epsilon, mean_parent.shape, device=mean_parent.device)
+        noise_scale = torch.tensor(training or not self.training_only,
+                                   device=mean_parent.device).to(torch.float)
+        sample_noise = torch.normal(0.0,
+                                    self.noise_epsilon,
+                                    mean_parent.shape,
+                                    device=mean_parent.device)
         return mean_parent + noise_scale * std_parent * sample_noise
 
 
@@ -5024,7 +5027,7 @@ class DecoderRNN(nn.Module):
     >>> batch_size = 2
     >>> layer = DecoderRNN(embedding_dimensions, num_output_tokens, max_length)
     >>> embeddings = torch.randn(batch_size, num_input_tokens, embedding_dimensions)
-    >>> output, hidden, _ = layer([embeddings, embeddings[:, -1].unsqueeze(0).contiguous(), None])
+    >>> output, hidden = layer([embeddings, embeddings[:, -1].unsqueeze(0).contiguous(), None])
     >>> output.shape
     torch.Size([2, 4, 7])
 
@@ -5034,7 +5037,11 @@ class DecoderRNN(nn.Module):
 
     """
 
-    def __init__(self, hidden_size: int, output_size: int, max_length: int,
+    def __init__(self,
+                 hidden_size: int,
+                 output_size: int,
+                 max_length: int,
+                 step_activation: str = 'relu',
                  **kwargs):
         """Initialize the DecoderRNN layer.
         
@@ -5046,8 +5053,8 @@ class DecoderRNN(nn.Module):
             The number of expected features.
         max_length: int
             The maximum length of the sequence.
-        device: torch.device
-            The device on which the layer is initialized.
+        step_activation: str (default 'relu')
+            The activation function to use for each step of the decoder.
 
         """
         super(DecoderRNN, self).__init__(**kwargs)
@@ -5055,7 +5062,7 @@ class DecoderRNN(nn.Module):
         self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True)
         self.out = nn.Linear(hidden_size, output_size)
         self.act = get_activation("softmax")
-        self.step_act = get_activation("relu")
+        self.step_act = get_activation(step_activation)
         self.MAX_LENGTH = max_length
 
     def __repr__(self) -> str:
@@ -5069,8 +5076,8 @@ class DecoderRNN(nn.Module):
             Number of expected features.
         max_length: int
             Maximum length of the sequence.
-        batch_size: int
-            Batch size of the input.
+        step_activation: str (default 'relu')
+            Activation function to use for each step of the decoder.
 
         """
         return f'{self.__class__.__name__}(hidden_size={self.hidden_size}, output_size={self.output_size}, max_length={self.max_length}, batch_size={self.batch_size})'

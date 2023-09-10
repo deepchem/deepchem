@@ -1,5 +1,5 @@
 from heapq import heappush, heappushpop
-from typing import List, Dict
+from typing import List
 
 import numpy as np
 
@@ -24,7 +24,7 @@ class SeqToSeq(nn.Module):
                  annealing_start_step: int = 5000,
                  annealing_final_step: int = 10000):
         """Initialize SeqToSeq model.
-        
+
         Parameters
         ----------
         n_input_tokens: int
@@ -63,14 +63,14 @@ class SeqToSeq(nn.Module):
     def forward(self, inputs: List):
         """Generates Embeddings using Encoder then passes it to Decoder to
         predict output sequences.
-        
+
         Parameters
         ----------
         inputs: List
-            List of two tensors. 
+            List of two tensors.
             First tensor is batch of input sequence.
             Second tensor is the current global_step.
-        
+
         Returns
         -------
         output: torch.Tensor
@@ -107,7 +107,7 @@ class SeqToSeqModel(TorchModel):
                  annealing_final_step=10000,
                  **kwargs):
         """Construct a SeqToSeq model.
-        
+
         Parameters
         ----------
         input_tokens: list
@@ -177,7 +177,8 @@ class SeqToSeqModel(TorchModel):
         def loss_fn(outputs, labels, weights):
             output = outputs[0].view(-1, outputs[0].size(-1))
             target = labels[0].view(-1)
-            loss_ = nn.NLLLoss()(torch.log(output.to(torch.float32)), target.to(torch.int64))
+            loss_ = nn.NLLLoss()(torch.log(output.to(torch.float32)),
+                                 target.to(torch.int64))
             return loss + loss_
 
         return loss_fn
@@ -208,7 +209,7 @@ class SeqToSeqModel(TorchModel):
             checkpoint_interval=checkpoint_interval,
             restore=restore)
         return loss
-    
+
     def predict_from_sequences(self, sequences, beam_width):
         """Given a set of input sequences, predict the output sequences.
 
@@ -223,14 +224,55 @@ class SeqToSeqModel(TorchModel):
         """
         result = []
         for batch in batch_elements(sequences, self.batch_size):
-            features = create_input_array(batch, self._reverse_input, self.batch_size, self._input_dict, SeqToSeqModel.sequence_end)
+            features = create_input_array(batch, self._reverse_input,
+                                          self.batch_size, self._input_dict,
+                                          SeqToSeqModel.sequence_end)
             probs = self.predict_on_generator([[
-                (features, np.array(self.get_global_step())), None,
-                None
+                (features, np.array(self.get_global_step())), None, None
             ]])
             for i in range(len(batch)):
-                result.append(probs[i])
+                result.append(self._beam_search(probs[i], beam_width))
         return result
+
+    def _beam_search(self, probs, beam_width):
+        """Perform a beam search for the most likely output sequence."""
+        if beam_width == 1:
+            # Do a simple greedy search.
+
+            s = []
+            for i in range(len(probs)):
+                token = self._output_tokens[np.argmax(probs[i])]
+                if token == SeqToSeqModel.sequence_end:
+                    break
+                s.append(token)
+            return s
+
+        # Do a beam search with length normalization.
+
+        logprobs = np.log(probs)
+        # Represent each candidate as (normalized prob, raw prob, sequence)
+        candidates = [(0.0, 0.0, [])]
+        for i in range(len(logprobs)):
+            new_candidates = []
+            for c in candidates:
+                if len(c[2]) > 0 and c[2][-1] == SeqToSeqModel.sequence_end:
+                    # This candidate sequence has already been terminated
+                    if len(new_candidates) < beam_width:
+                        heappush(new_candidates, c)
+                    else:
+                        heappushpop(new_candidates, c)
+                else:
+                    # Consider all possible tokens we could add to this candidate sequence.
+                    for j, logprob in enumerate(logprobs[i]):
+                        new_logprob = logprob + c[1]
+                        newc = (new_logprob / (len(c[2]) + 1), new_logprob,
+                                c[2] + [self._output_tokens[j]])
+                        if len(new_candidates) < beam_width:
+                            heappush(new_candidates, newc)
+                        else:
+                            heappushpop(new_candidates, newc)
+            candidates = new_candidates
+        return sorted(candidates)[-1][2][:-1]
 
     def _generate_batches(self, sequences):
         """Create feed_dicts for fitting."""
