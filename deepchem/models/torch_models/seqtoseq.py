@@ -258,7 +258,10 @@ class SeqToSeqModel(TorchModel):
                 (self.batch_size, self._embedding_dimension), dtype=np.float32)
             for i, e in enumerate(batch):
                 embedding_array[i] = e
-            probs, _ = self.model.decoder([torch.tensor(embedding_array, device=self.device).unsqueeze(0), None])
+            probs, _ = self.model.decoder([
+                torch.tensor(embedding_array, device=self.device).unsqueeze(0),
+                None
+            ])
             probs = probs.cpu().detach().numpy()
             for i in range(len(batch)):
                 result.append(self._beam_search(probs[i], beam_width))
