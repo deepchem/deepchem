@@ -240,6 +240,30 @@ class SeqToSeqModel(TorchModel):
                 result.append(self._beam_search(probs[i], beam_width))
         return result
 
+    def predict_from_embeddings(self, embeddings, beam_width=5):
+        """Given a set of embedding vectors, predict the output sequences.
+
+        The prediction is done using a beam search with length normalization.
+
+        Parameters
+        ----------
+        embeddings: iterable
+            the embedding vectors to generate predictions for
+        beam_width: int
+            the beam width to use for searching.  Set to 1 to use a simple greedy search.
+        """
+        result = []
+        for batch in batch_elements(embeddings, self.batch_size):
+            embedding_array = np.zeros(
+                (self.batch_size, self._embedding_dimension), dtype=np.float32)
+            for i, e in enumerate(batch):
+                embedding_array[i] = e
+            probs, _ = self.model.decoder([torch.tensor(embedding_array, device=self.device).unsqueeze(0), None])
+            probs = probs.cpu().detach().numpy()
+            for i in range(len(batch)):
+                result.append(self._beam_search(probs[i], beam_width))
+        return result
+
     def predict_embeddings(self, sequences):
         """Given a set of input sequences, compute the embedding vectors.
 
