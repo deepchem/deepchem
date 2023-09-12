@@ -159,6 +159,7 @@ def batch_elements(elements: Any, batch_size: int):
 
 
 def create_input_array(sequences: List,
+                       max_input_length: int,
                        reverse_input: bool,
                        batch_size: int,
                        input_dict: Dict,
@@ -192,7 +193,7 @@ def create_input_array(sequences: List,
     lengths = [len(x) for x in sequences]
     if reverse_input:
         sequences = [reversed(s) for s in sequences]
-    features = np.zeros((batch_size, max(lengths) + 1), dtype=np.float32)
+    features = np.zeros((batch_size, max_input_length + 1), dtype=np.float32)
     for i, sequence in enumerate(sequences):
         for j, token in enumerate(sequence):
             features[i, j] = input_dict[token]
