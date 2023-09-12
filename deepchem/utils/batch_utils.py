@@ -158,11 +158,8 @@ def batch_elements(elements: Any, batch_size: int):
         yield batch
 
 
-def create_input_array(sequences: List,
-                       max_input_length: int,
-                       reverse_input: bool,
-                       batch_size: int,
-                       input_dict: Dict,
+def create_input_array(sequences: List, max_input_length: int,
+                       reverse_input: bool, batch_size: int, input_dict: Dict,
                        end_mark: Any):
     """Create the array describing the input sequences for a batch.
     
@@ -201,7 +198,8 @@ def create_input_array(sequences: List,
     return features
 
 
-def create_output_array(sequences, max_output_length, batch_size, output_dict, end_mark):
+def create_output_array(sequences, max_output_length, batch_size, output_dict,
+                        end_mark):
     """Create the array describing the target sequences for a batch."""
     lengths = [len(x) for x in sequences]
     labels = np.zeros((batch_size, max_output_length), dtype=np.float32)

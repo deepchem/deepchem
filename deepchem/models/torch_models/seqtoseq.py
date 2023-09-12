@@ -224,8 +224,9 @@ class SeqToSeqModel(TorchModel):
         """
         result = []
         for batch in batch_elements(sequences, self.batch_size):
-            features = create_input_array(batch, self._max_output_length, self._reverse_input,
-                                          self.batch_size, self._input_dict,
+            features = create_input_array(batch, self._max_output_length,
+                                          self._reverse_input, self.batch_size,
+                                          self._input_dict,
                                           SeqToSeqModel.sequence_end)
             probs = self.predict_on_generator([[
                 (features, np.array(self.get_global_step())), None, None
@@ -285,8 +286,9 @@ class SeqToSeqModel(TorchModel):
             for i in range(len(inputs), self.batch_size):
                 inputs.append([])
                 outputs.append([])
-            features = create_input_array(inputs, self._max_output_length, self._reverse_input,
-                                          self.batch_size, self._input_dict,
+            features = create_input_array(inputs, self._max_output_length,
+                                          self._reverse_input, self.batch_size,
+                                          self._input_dict,
                                           SeqToSeqModel.sequence_end)
             labels = create_output_array(outputs, self._max_output_length,
                                          self.batch_size, self._output_dict,
