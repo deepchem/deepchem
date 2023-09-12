@@ -5041,6 +5041,7 @@ class DecoderRNN(nn.Module):
                  hidden_size: int,
                  output_size: int,
                  max_length: int,
+                 batch_size: int,
                  step_activation: str = 'relu',
                  **kwargs):
         """Initialize the DecoderRNN layer.
@@ -5064,6 +5065,7 @@ class DecoderRNN(nn.Module):
         self.act = get_activation("softmax")
         self.step_act = get_activation(step_activation)
         self.MAX_LENGTH = max_length
+        self.batch_size = batch_size
 
     def __repr__(self) -> str:
         """Returns a string representing the configuration of the layer.
@@ -5097,9 +5099,8 @@ class DecoderRNN(nn.Module):
             Hidden state of the decoder
 
         """
-        encoder_outputs, encoder_hidden, target_tensor = inputs
-        batch_size = encoder_outputs.size(0)
-        decoder_input = torch.ones(batch_size,
+        encoder_hidden, target_tensor = inputs
+        decoder_input = torch.ones(self.batch_size,
                                    1,
                                    dtype=torch.long,
                                    device=encoder_hidden.device)

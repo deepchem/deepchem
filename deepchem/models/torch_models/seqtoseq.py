@@ -18,6 +18,7 @@ class SeqToSeq(nn.Module):
                  n_input_tokens: int,
                  n_output_tokens: int,
                  max_output_length: int,
+                 batch_size: int = 100,
                  embedding_dimension: int = 512,
                  dropout: float = 0.0,
                  variational: bool = False,
@@ -54,7 +55,7 @@ class SeqToSeq(nn.Module):
         self._variational = variational
         self.encoder = EncoderRNN(n_input_tokens, embedding_dimension, dropout)
         self.decoder = DecoderRNN(embedding_dimension, n_output_tokens,
-                                  max_output_length)
+                                  max_output_length, batch_size)
         if variational:
             self.randomizer = VariationalRandomizer(embedding_dimension,
                                                     annealing_start_step,
@@ -87,7 +88,7 @@ class SeqToSeq(nn.Module):
             self._embedding = self.randomizer([self._embedding, global_step],
                                               training=False)
         output, _ = self.decoder(
-            [embedding, embedding[:, -1].unsqueeze(0).contiguous(), None])
+            [embedding[:, -1].unsqueeze(0).contiguous(), None])
         return output
 
 
@@ -99,6 +100,7 @@ class SeqToSeqModel(TorchModel):
                  input_tokens,
                  output_tokens,
                  max_output_length,
+                 batch_size=100,
                  embedding_dimension=512,
                  dropout=0.0,
                  reverse_input=True,
@@ -147,6 +149,7 @@ class SeqToSeqModel(TorchModel):
         self._n_input_tokens = len(input_tokens)
         self._n_output_tokens = len(output_tokens)
         self._max_output_length = max_output_length
+        self.batch_size = batch_size
         self._embedding_dimension = embedding_dimension
         self._dropout = dropout
         self._reverse_input = reverse_input
@@ -158,13 +161,16 @@ class SeqToSeqModel(TorchModel):
             n_input_tokens=self._n_input_tokens,
             n_output_tokens=self._n_output_tokens,
             max_output_length=self._max_output_length,
+            batch_size=self.batch_size,
             embedding_dimension=self._embedding_dimension,
             dropout=self._dropout,
             variational=self._variational,
             annealing_start_step=self._annealing_start_step,
             annealing_final_step=self._annealing_final_step)
 
-        super(SeqToSeqModel, self).__init__(self.model, self._create_loss(),
+        super(SeqToSeqModel, self).__init__(self.model,
+                                            self._create_loss(),
+                                            batch_size=self.batch_size,
                                             **kwargs)
 
     def _create_loss(self):
