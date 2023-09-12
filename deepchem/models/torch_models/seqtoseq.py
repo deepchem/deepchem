@@ -240,6 +240,29 @@ class SeqToSeqModel(TorchModel):
                 result.append(self._beam_search(probs[i], beam_width))
         return result
 
+    def predict_embeddings(self, sequences):
+        """Given a set of input sequences, compute the embedding vectors.
+
+        Parameters
+        ----------
+        sequences: iterable
+            the input sequences to generate an embedding vector for
+        """
+        result = []
+        for batch in batch_elements(sequences, self.batch_size):
+            features = create_input_array(batch, self._max_output_length,
+                                          self._reverse_input, self.batch_size,
+                                          self._input_dict,
+                                          SeqToSeqModel.sequence_end)
+            _ = self.predict_on_generator([[(features,
+                                             np.array(self.get_global_step())),
+                                            None, None]])
+            embeddings = np.squeeze(
+                self.model._embedding.cpu().detach().numpy())
+            for i in range(len(batch)):
+                result.append(embeddings[i])
+        return np.array(result, dtype=np.float32)
+
     def _beam_search(self, probs, beam_width):
         """Perform a beam search for the most likely output sequence."""
         if beam_width == 1:
