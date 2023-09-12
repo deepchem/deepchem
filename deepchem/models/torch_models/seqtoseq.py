@@ -79,16 +79,15 @@ class SeqToSeq(nn.Module):
 
         """
         input, global_step = inputs
-        embedding, _ = self.encoder(input.to(torch.long))
+        _, embedding = self.encoder(input.to(torch.long))
         self.encoder.training = False
-        self._embedding, _ = self.encoder(input.to(torch.long))
+        _, self._embedding = self.encoder(input.to(torch.long))
         self.encoder.training = True
         if self._variational:
             embedding = self.randomizer([self._embedding, global_step])
             self._embedding = self.randomizer([self._embedding, global_step],
                                               training=False)
-        output, _ = self.decoder(
-            [embedding[:, -1].unsqueeze(0).contiguous(), None])
+        output, _ = self.decoder([embedding, None])
         return output
 
 
