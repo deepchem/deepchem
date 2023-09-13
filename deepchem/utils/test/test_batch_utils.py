@@ -50,15 +50,16 @@ def test_create_input_array():
     max_length = max([len(x) for x in inputs])
 
     # Without reverse input
-    output_1 = dc.utils.batch_utils.create_input_array(inputs, False, 2,
-                                                       input_dict, "c")
+    output_1 = dc.utils.batch_utils.create_input_array(inputs, max_length,
+                                                       False, 2, input_dict,
+                                                       "c")
 
     assert output_1.shape == (2, max_length + 1)
     assert np.allclose(output_1, np.array([[1., 2., 0., 0.], [2., 2., 2., 0.]]))
 
     # With revercse input
-    output_2 = dc.utils.batch_utils.create_input_array(inputs, True, 2,
-                                                       input_dict, "c")
+    output_2 = dc.utils.batch_utils.create_input_array(inputs, max_length, True,
+                                                       2, input_dict, "c")
 
     assert output_2.shape == (2, max_length + 1)
     assert np.allclose(output_2, np.array([[2., 1., 0., 0.], [2., 2., 2., 0.]]))

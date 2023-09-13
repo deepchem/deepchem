@@ -168,8 +168,9 @@ def batch_elements(elements: List[Any], batch_size: int):
         yield batch
 
 
-def create_input_array(sequences: Collection, reverse_input: bool,
-                       batch_size: int, input_dict: Dict, end_mark: Any):
+def create_input_array(sequences: Collection, max_input_length: int,
+                       reverse_input: bool, batch_size: int, input_dict: Dict,
+                       end_mark: Any):
     """Create the array describing the input sequences.
 
     It creates a 2d Matrix empty matrix according to batch size and max_length.
@@ -221,13 +222,15 @@ def create_input_array(sequences: Collection, reverse_input: bool,
     >>> # Inputs property
     >>> max_length = max([len(x) for x in inputs])
     >>> # Without reverse input
-    >>> output_1 = dc.utils.batch_utils.create_input_array(inputs, False, 2,
-    ...                                                    input_dict, "c")
+    >>> output_1 = dc.utils.batch_utils.create_input_array(inputs, max_length,
+    ...                                                    False, 2, input_dict,
+    ...                                                    "c")
     >>> output_1.shape
     (2, 4)
     >>> # With revercse input
-    >>> output_2 = dc.utils.batch_utils.create_input_array(inputs, True, 2,
-    ...                                                    input_dict, "c")
+    >>> output_2 = dc.utils.batch_utils.create_input_array(inputs, max_length,
+    ...                                                    True, 2, input_dict,
+    ...                                                    "c")
     >>> output_2.shape
     (2, 4)
 
@@ -235,7 +238,7 @@ def create_input_array(sequences: Collection, reverse_input: bool,
     lengths = [len(x) for x in sequences]
     if reverse_input:
         sequences = [reversed(s) for s in sequences]
-    features = np.zeros((batch_size, max(lengths) + 1), dtype=np.float32)
+    features = np.zeros((batch_size, max_input_length + 1), dtype=np.float32)
     for i, sequence in enumerate(sequences):
         for j, token in enumerate(sequence):
             features[i, j] = input_dict[token]
