@@ -9,6 +9,7 @@ dependencies:
   - pip
   - pip:
     - numpy
+    - sympy
     - rdkit
     - pre-commit
     - biopython
@@ -27,4 +28,3 @@ dependencies:
     - xgboost
     - gensim  # used by mol2vec
     - tensorboard
-    - sympy
