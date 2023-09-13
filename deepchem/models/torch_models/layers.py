@@ -4891,16 +4891,15 @@ class DecoderRNN(nn.Module):
     --------
     >>> from deepchem.models.torch_models.layers import DecoderRNN
     >>> import torch
-    >>> embedding_dimensions = 5
+    >>> embedding_dimensions = 512
     >>> num_output_tokens = 7
-    >>> num_input_tokens = 12
-    >>> max_length = 4
-    >>> batch_size = 2
-    >>> layer = DecoderRNN(embedding_dimensions, num_output_tokens, max_length)
-    >>> embeddings = torch.randn(batch_size, num_input_tokens, embedding_dimensions)
-    >>> output, hidden = layer([embeddings, embeddings[:, -1].unsqueeze(0).contiguous(), None])
+    >>> max_length = 10
+    >>> batch_size = 100
+    >>> layer = DecoderRNN(embedding_dimensions, num_output_tokens, max_length, batch_size)
+    >>> embeddings = torch.randn(batch_size, embedding_dimensions)
+    >>> output, hidden = layer([embeddings.unsqueeze(0), None])
     >>> output.shape
-    torch.Size([2, 4, 7])
+    torch.Size([100, 10, 7])
 
     References
     ----------
