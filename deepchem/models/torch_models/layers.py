@@ -4882,10 +4882,10 @@ class EncoderRNN(nn.Module):
 class DecoderRNN(nn.Module):
     """Decoder Layer for SeqToSeq Model.
 
-    The decoder transforms the embedding vector into the output
-    sequence. It is trained to predict the next token in the sequence given the
-    previous tokens in the sequence. It uses the context vector from the encoder
-    to help generate the correct token in the sequence.
+    The decoder transforms the embedding vector into the output sequence.
+    It is trained to predict the next token in the sequence given the previous
+    tokens in the sequence. It uses the context vector from the encoder to
+    help generate the correct token in the sequence.
 
     Examples
     --------
@@ -4912,6 +4912,7 @@ class DecoderRNN(nn.Module):
                  hidden_size: int,
                  output_size: int,
                  max_length: int,
+                 batch_size: int,
                  step_activation: str = "relu",
                  **kwargs):
         """Initialize the DecoderRNN layer.
@@ -4919,13 +4920,15 @@ class DecoderRNN(nn.Module):
         Parameters
         ----------
         hidden_size: int
-            The number of features in the hidden state.
+            Number of features in the hidden state.
         output_size: int
-            The number of expected features.
+            Number of expected features.
         max_length: int
-            The maximum length of the sequence.
+            Maximum length of the sequence.
+        batch_size: int
+            Batch size of the input.
         step_activation: str (default "relu")
-            The activation function to use after every step.
+            Activation function to use after every step.
 
         """
         super(DecoderRNN, self).__init__(**kwargs)
@@ -4935,6 +4938,7 @@ class DecoderRNN(nn.Module):
         self.act = get_activation("softmax")
         self.step_act = get_activation(step_activation)
         self.MAX_LENGTH = max_length
+        self.batch_size = batch_size
 
     def __repr__(self) -> str:
         """Returns a string representing the configuration of the layer.
@@ -4960,19 +4964,18 @@ class DecoderRNN(nn.Module):
         Parameters
         ----------
         inputs: List[torch.Tensor]
-            A list of tensor containg encoder_output, encoder_hidden and target_tensor
+            A list of tensor containg encoder_hidden and target_tensor.
 
         Returns
         -------
         decoder_outputs: torch.Tensor
-            Predicted output sequences
+            Predicted output sequences.
         decoder_hidden: torch.Tensor
-            Hidden state of the decoder
+            Hidden state of the decoder.
 
         """
-        encoder_outputs, encoder_hidden, target_tensor = inputs
-        batch_size = encoder_outputs.size(0)
-        decoder_input = torch.ones(batch_size,
+        encoder_hidden, target_tensor = inputs
+        decoder_input = torch.ones(self.batch_size,
                                    1,
                                    dtype=torch.long,
                                    device=encoder_hidden.device)
