@@ -1283,8 +1283,8 @@ def test_FerminetElectronFeature():
     "Test for FerminetElectronFeature layer."
     electron_layer = dc.models.torch_models.layers.FerminetElectronFeature(
         [32, 32, 32], [16, 16, 16], 4, 8, 10, [5, 5])
-    one_electron_test = torch.randn(8, 10, 4 * 4).double()
-    two_electron_test = torch.randn(8, 10, 10, 4).double()
+    one_electron_test = torch.randn(8, 10, 4 * 4)
+    two_electron_test = torch.randn(8, 10, 10, 4)
     one, two = electron_layer.forward(one_electron_test, two_electron_test)
     assert one.size() == torch.Size([8, 10, 32])
     assert two.size() == torch.Size([8, 10, 10, 16])
@@ -1297,8 +1297,8 @@ def test_FerminetEnvelope():
     "Test for FerminetEnvelope layer."
     envelope_layer = dc.models.torch_models.layers.FerminetEnvelope(
         [32, 32, 32], [16, 16, 16], 10, 8, [5, 5], 5, 16)
-    one_electron = torch.randn(8, 10, 32).double()
-    one_electron_permuted = torch.randn(8, 10, 5, 3).double()
+    one_electron = torch.randn(8, 10, 32)
+    one_electron_permuted = torch.randn(8, 10, 5, 3)
     psi, _, _ = envelope_layer.forward(one_electron, one_electron_permuted)
     assert psi.size() == torch.Size([8])
     assert psi.dtype == torch.float64
