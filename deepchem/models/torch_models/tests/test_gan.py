@@ -26,18 +26,20 @@ try:
                 1,
                 self.get_conditional_input_shapes()[0])
             inputs = [noise_input, conditional_input]
-            gen_in = Concatenate(axis=1)(inputs)
-            output = nn.Linear(1)(gen_in)
-            return tf.keras.Model(inputs=inputs, outputs=output)
+            gen_in = torch.cat(inputs, axis=1)
+            output = nn.Linear(gen_in.shape[0], 1)
+            return nn.Sequential(*[output])
 
         def create_discriminator(self):
-            data_input = Input(self.get_data_input_shapes()[0])
-            conditional_input = Input(self.get_conditional_input_shapes()[0])
+            data_input = torch.randn(self.get_data_input_shapes()[0])
+            conditional_input = torch.randn(
+                1,
+                self.get_conditional_input_shapes()[0])
             inputs = [data_input, conditional_input]
-            discrim_in = Concatenate(axis=1)(inputs)
+            discrim_in = torch.cat(inputs, axis=1)
             dense = Dense(10, activation=tf.nn.relu)(discrim_in)
             output = Dense(1, activation=tf.sigmoid)(dense)
-            return tf.keras.Model(inputs=inputs, outputs=output)
+            return nn.Sequential(inputs=inputs, outputs=output)
 
     has_torch = True
 except:

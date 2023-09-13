@@ -77,7 +77,7 @@ class GAN(TorchModel):
         n_discriminators: int
             the number of discriminators to include
         """
-        
+
         self.n_generators = n_generators
         self.n_discriminators = n_discriminators
 
