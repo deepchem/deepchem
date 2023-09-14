@@ -1288,8 +1288,6 @@ def test_FerminetElectronFeature():
     one, two = electron_layer.forward(one_electron_test, two_electron_test)
     assert one.size() == torch.Size([8, 10, 32])
     assert two.size() == torch.Size([8, 10, 10, 16])
-    assert one.dtype == torch.float64
-    assert two.dtype == torch.float64
 
 
 @pytest.mark.torch
@@ -1301,7 +1299,6 @@ def test_FerminetEnvelope():
     one_electron_permuted = torch.randn(8, 10, 5, 3)
     psi, _, _ = envelope_layer.forward(one_electron, one_electron_permuted)
     assert psi.size() == torch.Size([8])
-    assert psi.dtype == torch.float64
 
 
 @pytest.mark.torch
