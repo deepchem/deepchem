@@ -18,7 +18,7 @@ except ModuleNotFoundError:
     pass
 
 
-@pytest.mark.torch
+@pytest.mark.dqc
 def test_FerminetModel():
     # Test for the init function of FerminetModel class
     FH_molecule = [['F', [0, 0, 0]], ['H', [0, 0.5, 0.5]]]
@@ -34,7 +34,7 @@ def test_FerminetModel():
     assert mol.up_spin == 2 and mol.down_spin == 1
 
 
-@pytest.mark.torch
+@pytest.mark.dqc
 def test_forward():
     FH_molecule = [['F', [0.424, 0.424, 0.23]], ['H', [0.4, 0.5, 0.5]]]
     # Testing ionic initialization

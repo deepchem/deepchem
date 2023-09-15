@@ -4879,6 +4879,135 @@ class EncoderRNN(nn.Module):
         return output, hidden
 
 
+class DecoderRNN(nn.Module):
+    """Decoder Layer for SeqToSeq Model.
+
+    The decoder transforms the embedding vector into the output sequence.
+    It is trained to predict the next token in the sequence given the previous
+    tokens in the sequence. It uses the context vector from the encoder to
+    help generate the correct token in the sequence.
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models.layers import DecoderRNN
+    >>> import torch
+    >>> embedding_dimensions = 512
+    >>> num_output_tokens = 7
+    >>> max_length = 10
+    >>> batch_size = 100
+    >>> layer = DecoderRNN(embedding_dimensions, num_output_tokens, max_length, batch_size)
+    >>> embeddings = torch.randn(batch_size, embedding_dimensions)
+    >>> output, hidden = layer([embeddings.unsqueeze(0), None])
+    >>> output.shape
+    torch.Size([100, 10, 7])
+
+    References
+    ----------
+    .. [1] Sutskever et al., "Sequence to Sequence Learning with Neural Networks"
+
+    """
+
+    def __init__(self,
+                 hidden_size: int,
+                 output_size: int,
+                 max_length: int,
+                 batch_size: int,
+                 step_activation: str = "relu",
+                 **kwargs):
+        """Initialize the DecoderRNN layer.
+        
+        Parameters
+        ----------
+        hidden_size: int
+            Number of features in the hidden state.
+        output_size: int
+            Number of expected features.
+        max_length: int
+            Maximum length of the sequence.
+        batch_size: int
+            Batch size of the input.
+        step_activation: str (default "relu")
+            Activation function to use after every step.
+
+        """
+        super(DecoderRNN, self).__init__(**kwargs)
+        self.embedding = nn.Embedding(output_size, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True)
+        self.out = nn.Linear(hidden_size, output_size)
+        self.act = get_activation("softmax")
+        self.step_act = get_activation(step_activation)
+        self.MAX_LENGTH = max_length
+        self.batch_size = batch_size
+
+    def __repr__(self) -> str:
+        """Returns a string representing the configuration of the layer.
+
+        Returns
+        -------
+        hidden_size: int
+            Number of features in the hidden state.
+        output_size: int
+            Number of expected features.
+        max_length: int
+            Maximum length of the sequence.
+        batch_size: int
+            Batch size of the input.
+        step_activation: str (default "relu")
+            Activation function to use after every step.
+
+        """
+        return f'{self.__class__.__name__}(hidden_size={self.hidden_size}, output_size={self.output_size}, max_length={self.max_length}, batch_size={self.batch_size})'
+
+    def forward(self, inputs: List[torch.Tensor]):
+        """
+        Parameters
+        ----------
+        inputs: List[torch.Tensor]
+            A list of tensor containg encoder_hidden and target_tensor.
+
+        Returns
+        -------
+        decoder_outputs: torch.Tensor
+            Predicted output sequences.
+        decoder_hidden: torch.Tensor
+            Hidden state of the decoder.
+
+        """
+        encoder_hidden, target_tensor = inputs
+        decoder_input = torch.ones(self.batch_size,
+                                   1,
+                                   dtype=torch.long,
+                                   device=encoder_hidden.device)
+        decoder_hidden = encoder_hidden
+        decoder_outputs = []
+
+        for i in range(self.MAX_LENGTH):
+            decoder_output, decoder_hidden = self.step(decoder_input,
+                                                       decoder_hidden)
+            decoder_outputs.append(decoder_output)
+
+            if target_tensor is not None:
+                # Teacher forcing: Feed the target as the next input
+                decoder_input = target_tensor[:,
+                                              i].unsqueeze(1)  # Teacher forcing
+            else:
+                # Without teacher forcing: use its own predictions as the next input
+                _, topi = decoder_output.topk(1)
+                decoder_input = topi.squeeze(
+                    -1).detach()  # detach from history as input
+
+        decoder_output = torch.cat(decoder_outputs, dim=1)
+        decoder_output = self.act(decoder_output, dim=-1)
+        return decoder_output, decoder_hidden
+
+    def step(self, input, hidden):
+        output = self.embedding(input)
+        output = self.step_act(output)
+        output, hidden = self.gru(output, hidden)
+        output = self.out(output)
+        return output, hidden
+
+
 class FerminetElectronFeature(torch.nn.Module):
     """
     A Pytorch Module implementing the ferminet's electron features interaction layer _[1]. This is a helper class for the Ferminet model.
@@ -4988,10 +5117,10 @@ class FerminetElectronFeature(torch.nn.Module):
             g_one_down: torch.Tensor = torch.mean(
                 one_electron[:, self.spin[0]:, :], dim=-2)
             one_electron_tmp: torch.Tensor = torch.zeros(
-                self.batch_size, self.total_electron, self.n_one[l]).double()
+                self.batch_size, self.total_electron, self.n_one[l])
             two_electron_tmp: torch.Tensor = torch.zeros(
                 self.batch_size, self.total_electron, self.total_electron,
-                self.n_two[l]).double()
+                self.n_two[l])
             for i in range(self.total_electron):
                 # Calculating two-electron feature's average
                 g_two_up: torch.Tensor = torch.mean(
@@ -5011,8 +5140,8 @@ class FerminetElectronFeature(torch.nn.Module):
                         self.v[l](f)) + one_electron[:, i, :]
                     two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
                         two_electron[:, i, :, :])) + two_electron[:, i, :]
-            one_electron = one_electron_tmp
-            two_electron = two_electron_tmp
+            one_electron = one_electron_tmp.to(torch.float32)
+            two_electron = two_electron_tmp.to(torch.float32)
 
         return one_electron, two_electron
 
@@ -5093,8 +5222,7 @@ class FerminetEnvelope(torch.nn.Module):
                     torch.nn.init.uniform(torch.empty(n_one[-1], 1),
                                           b=2.5e-7).squeeze(-1))
                 self.envelope_g.append(
-                    torch.nn.init.uniform(torch.empty(1),
-                                          b=2.5e-7).squeeze(0).double())
+                    torch.nn.init.uniform(torch.empty(1), b=2.5e-7).squeeze(0))
                 for k in range(self.no_of_atoms):
                     self.sigma.append(
                         torch.nn.init.uniform(torch.empty(self.no_of_atoms, 1),
@@ -5118,11 +5246,11 @@ class FerminetEnvelope(torch.nn.Module):
         psi_up: torch.Tensor
             Torch tensor with a scalar value containing the sampled wavefunction value for each batch.
         """
-        psi = torch.zeros(self.batch_size).double()
+        psi = torch.zeros(self.batch_size)
         psi_up = torch.zeros(self.batch_size, self.determinant, self.spin[0],
-                             self.spin[0]).double()
+                             self.spin[0])
         psi_down = torch.zeros(self.batch_size, self.determinant, self.spin[1],
-                               self.spin[1]).double()
+                               self.spin[1])
 
         for k in range(self.determinant):
             for i in range(self.spin[0]):

@@ -50,10 +50,6 @@ class Ferminet(torch.nn.Module):
 
         Attributes
         ----------
-        criterion: torch.nn.MSELoss()
-            MSE Loss used to calculate pretraining loss
-        running_diff: torch.Tensor
-            torch tensor containing the loss which gets updated for each random walk performed
         ferminet_layer: torch.nn.ModuleList
             Modulelist containing the ferminet electron feature layer
         ferminet_layer_envelope: torch.nn.ModuleList
@@ -79,19 +75,15 @@ class Ferminet(torch.nn.Module):
         self.ferminet_layer_envelope: torch.nn.ModuleList = torch.nn.ModuleList(
         )
 
-        self.criterion = torch.nn.MSELoss()
-        self.running_diff: torch.Tensor = torch.zeros(self.batch_size).double()
-
         self.ferminet_layer.append(
             FerminetElectronFeature(self.n_one, self.n_two,
                                     self.nucleon_pos.size()[0], self.batch_size,
                                     self.total_electron,
-                                    [self.spin[0], self.spin[1]]).double())
+                                    [self.spin[0], self.spin[1]]))
         self.ferminet_layer_envelope.append(
             FerminetEnvelope(self.n_one, self.n_two, self.total_electron,
                              self.batch_size, [self.spin[0], self.spin[1]],
-                             self.nucleon_pos.size()[0],
-                             self.determinant).double())
+                             self.nucleon_pos.size()[0], self.determinant))
 
     def forward(self, input) -> torch.Tensor:
         """
@@ -130,7 +122,7 @@ class Ferminet(torch.nn.Module):
         one_electron_vector_permuted = one_electron_vector.permute(0, 2, 1, 3)
 
         one_electron, _ = self.ferminet_layer[0].forward(
-            one_electron, two_electron)
+            one_electron.to(torch.float32), two_electron.to(torch.float32))
         psi, self.psi_up, self.psi_down = self.ferminet_layer_envelope[
             0].forward(one_electron, one_electron_vector_permuted)
         return psi
@@ -261,7 +253,7 @@ class FerminetModel(TorchModel):
         self.model = Ferminet(nucl,
                               spin=(self.up_spin, self.down_spin),
                               nuclear_charge=torch.Tensor(charge),
-                              batch_size=self.batch_no).double()
+                              batch_size=self.batch_no)
 
         self.molecule: ElectronSampler = ElectronSampler(
             batch_no=self.batch_no,
