@@ -290,6 +290,12 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dftutils.BaseGrid
   :members:
 
+.. autoclass:: deepchem.utils.dftutils.BaseQCCalc
+  :members:
+
+.. autoclass:: deepchem.utils.dftutils.SpinParam
+  :members:
+
 Pytorch Utilities
 -----------------
 
@@ -304,3 +310,22 @@ The utilites here are used for computing features on batch of data.
 Can be used inside of default_generator function.
 
 .. autofunction:: deepchem.utils.batch_utils.batch_coulomb_matrix_features
+
+Equivariance Utilities
+----------------------
+
+The utilities here refer to equivariance tools that play a vital
+role in mathematics and applied sciences. They excel in preserving
+the relationships between objects or data points when undergoing transformations
+such as rotations or scaling.
+
+You can refer to the `tutorials <https://deepchem.io/tutorials/introduction-to-equivariance/>`_
+for additional information regarding equivariance and Deepchem's support for equivariance.
+
+.. autofunction:: deepchem.utils.equivariance_utils.su2_generators
+
+.. autofunction:: deepchem.utils.equivariance_utils.so3_generators
+
+.. autofunction:: deepchem.utils.equivariance_utils.change_basis_real_to_complex
+
+.. autofunction:: deepchem.utils.equivariance_utils.wigner_D

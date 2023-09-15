@@ -1,6 +1,6 @@
 import numpy as np
 from rdkit import Chem
-from rdkit.Chem import AllChem, rdMolAlign
+from rdkit.Chem import AllChem
 
 from deepchem.feat.graph_data import GraphData
 from deepchem.feat import MolecularFeaturizer
@@ -95,30 +95,28 @@ class RDKitConformerFeaturizer(MolecularFeaturizer):
     Examples
     --------
     >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
-    >>> from deepchem.feat.graph_data import BatchGraphData
-    >>> import numpy as np
-    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    >>> featurizer = RDKitConformerFeaturizer()
     >>> molecule = "CCO"
-    >>> features_list = featurizer.featurize([molecule])
-    >>> batched_feats = BatchGraphData(np.concatenate(features_list).ravel())
-    >>> print(batched_feats.node_pos_features.shape)
-    (18, 3)
+    >>> conformer = featurizer.featurize(molecule)
+    >>> print (type(conformer[0]))
+    <class 'deepchem.feat.graph_data.GraphData'>
     """
 
-    def __init__(self, num_conformers: int = 1, rmsd_cutoff: float = 2):
-        """
-        Initialize the RDKitConformerFeaturizer with the given parameters.
+    # FIXME Add support for multiple conformers (wip)
+    # def __init__(self, num_conformers: int = 1, rmsd_cutoff: float = 2):
+    #     """
+    #     Initialize the RDKitConformerFeaturizer with the given parameters.
 
-        Parameters
-        ----------
-        num_conformers : int, optional, default=1
-            The number of conformers to generate for each molecule.
-        rmsd_cutoff : float, optional, default=2
-            The root-mean-square deviation (RMSD) cutoff value. Conformers with an RMSD
-            greater than this value will be discarded.
-        """
-        self.num_conformers = num_conformers
-        self.rmsd_cutoff = rmsd_cutoff
+    #     Parameters
+    #     ----------
+    #     num_conformers : int, optional, default=1
+    #         The number of conformers to generate for each molecule.
+    #     rmsd_cutoff : float, optional, default=2
+    #         The root-mean-square deviation (RMSD) cutoff value. Conformers with an RMSD
+    #         greater than this value will be discarded.
+    #     """
+    #     self.num_conformers = num_conformers
+    #     self.rmsd_cutoff = rmsd_cutoff
 
     def atom_to_feature_vector(self, atom):
         """
@@ -194,29 +192,35 @@ class RDKitConformerFeaturizer(MolecularFeaturizer):
         graph: List[GraphData]
             list of GraphData objects of the molecule conformers with 3D coordinates.
         """
+        # Derived from https://github.com/HannesStark/3DInfomax/blob/5cd32629c690e119bcae8726acedefdb0aa037fc/datasets/qm9_dataset_rdkit_conformers.py#L377
         # add hydrogen bonds to molecule because they are not in the smiles representation
         mol = Chem.AddHs(datapoint)
         ps = AllChem.ETKDGv2()
         ps.useRandomCoords = True
         AllChem.EmbedMolecule(mol, ps)
-        AllChem.EmbedMultipleConfs(mol, self.num_conformers)
-        AllChem.MMFFOptimizeMolecule(mol)
-        rmsd_list = []
-        rdMolAlign.AlignMolConformers(mol, RMSlist=rmsd_list)
-        # insert 0 RMSD for first conformer
-        rmsd_list.insert(0, 0)
-        conformers = [
-            mol.GetConformer(i)
-            for i in range(self.num_conformers)
-            if rmsd_list[i] < self.rmsd_cutoff
-        ]
-        # if conformer list is less than num_conformers, pad by repeating conformers
-        conf_idx = 0
-        while len(conformers) < self.num_conformers:
-            conformers.append(conformers[conf_idx])
-            conf_idx += 1
+        # FIXME Add support for multiple conformers (wip)
+        # AllChem.EmbedMultipleConfs(mol, self.num_conformers)
+        # AllChem.MMFFOptimizeMolecule(mol)
+        # rmsd_list = []
+        # rdMolAlign.AlignMolConformers(mol, RMSlist=rmsd_list)
+        # # insert 0 RMSD for first conformer
+        # rmsd_list.insert(0, 0)
+        # conformers = [
+        #     mol.GetConformer(i)
+        #     for i in range(self.num_conformers)
+        #     if rmsd_list[i] < self.rmsd_cutoff
+        # ]
+        # # if conformer list is less than num_conformers, pad by repeating conformers
+        # conf_idx = 0
+        # while len(conformers) < self.num_conformers:
+        #     conformers.append(conformers[conf_idx])
+        #     conf_idx += 1
 
-        coordinates = [conf.GetPositions() for conf in conformers]
+        # coordinates = [conf.GetPositions() for conf in conformers]
+
+        AllChem.MMFFOptimizeMolecule(mol, confId=0)
+        conf = mol.GetConformer()
+        coordinates = conf.GetPositions()
 
         atom_features_list = []
         for atom in mol.GetAtoms():
@@ -236,11 +240,17 @@ class RDKitConformerFeaturizer(MolecularFeaturizer):
             edge_features_list.append(edge_feature)
 
         # Graph connectivity in COO format with shape [2, num_edges]
-        graph_list = []
-        for i in range(self.num_conformers):
-            graph_list.append(
-                GraphData(node_pos_features=np.array(coordinates[i]),
-                          node_features=np.array(atom_features_list),
-                          edge_features=np.array(edge_features_list),
-                          edge_index=np.array(edges_list).T))
-        return graph_list
+        # FIXME Add support for multiple conformers (wip)
+        # graph_list = []
+        # for i in range(self.num_conformers):
+        #     graph_list.append(
+        #         GraphData(node_pos_features=np.array(coordinates[i]),
+        #                   node_features=np.array(atom_features_list),
+        #                   edge_features=np.array(edge_features_list),
+        #                   edge_index=np.array(edges_list).T))
+        # return graph_list
+
+        return GraphData(node_pos_features=coordinates,
+                         node_features=np.array(atom_features_list),
+                         edge_features=np.array(edge_features_list),
+                         edge_index=np.array(edges_list).T)
