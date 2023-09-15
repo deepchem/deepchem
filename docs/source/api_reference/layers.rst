@@ -249,6 +249,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.EncoderRNN
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.DecoderRNN
+  :members:
+
 .. autoclass:: deepchem.models.torch_models.layers.FerminetElectronFeature
   :members:
 
