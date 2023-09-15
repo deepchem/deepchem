@@ -5074,10 +5074,14 @@ class FerminetElectronFeature(torch.nn.Module):
         #filling the weights with 2.5e-7 for faster convergence
         self.v[0].weight.data.fill_(2.5e-7)
         self.v[0].bias.data.fill_(2.5e-7)
+        self.v[0].weight.data = self.v[0].weight.data
+        self.v[0].bias.data = self.v[0].bias.data
 
         self.w.append(nn.Linear(4, self.n_two[0], bias=True))
         self.w[0].weight.data.fill_(2.5e-7)
         self.w[0].bias.data.fill_(2.5e-7)
+        self.w[0].weight.data = self.w[0].weight.data
+        self.w[0].bias.data = self.w[0].bias.data
 
         for i in range(1, self.layer_size):
             self.v.append(
@@ -5086,11 +5090,15 @@ class FerminetElectronFeature(torch.nn.Module):
                           bias=True))
             self.v[i].weight.data.fill_(2.5e-7)
             self.v[i].bias.data.fill_(2.5e-7)
+            self.v[i].weight.data = self.v[i].weight.data
+            self.v[i].bias.data = self.v[i].bias.data
 
             self.w.append(nn.Linear(self.n_two[i - 1], self.n_two[i],
                                     bias=True))
             self.w[i].weight.data.fill_(2.5e-7)
+            self.w[i].weight.data = self.w[i].weight.data
             self.w[i].bias.data.fill_(2.5e-7)
+            self.w[i].bias.data = self.w[i].bias.data
 
     def forward(self, one_electron: torch.Tensor, two_electron: torch.Tensor):
         """
@@ -5140,8 +5148,8 @@ class FerminetElectronFeature(torch.nn.Module):
                         self.v[l](f)) + one_electron[:, i, :]
                     two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
                         two_electron[:, i, :, :])) + two_electron[:, i, :]
-            one_electron = one_electron_tmp.to(torch.float32)
-            two_electron = two_electron_tmp.to(torch.float32)
+            one_electron = one_electron_tmp
+            two_electron = two_electron_tmp
 
         return one_electron, two_electron
 
