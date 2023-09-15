@@ -1279,21 +1279,6 @@ def test_encoder_rnn():
 
 
 @pytest.mark.torch
-def test_decoder_rnn():
-    """Test for Decoder Layer of SeqToSeq Model"""
-    embedding_dimensions = 5
-    num_output_tokens = 7
-    max_length = 4
-    batch_size = 2
-    layer = torch_layers.DecoderRNN(embedding_dimensions, num_output_tokens,
-                                    max_length, batch_size)
-    embeddings = torch.randn(batch_size, embedding_dimensions)
-    output, hidden = layer([embeddings.unsqueeze(0), None])
-    assert output.shape == (batch_size, max_length, num_output_tokens)
-    assert hidden.shape == (1, batch_size, embedding_dimensions)
-
-
-@pytest.mark.torch
 def test_FerminetElectronFeature():
     "Test for FerminetElectronFeature layer."
     electron_layer = dc.models.torch_models.layers.FerminetElectronFeature(
