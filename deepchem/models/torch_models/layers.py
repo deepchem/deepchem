@@ -4810,16 +4810,17 @@ class VariationalRandomizer(nn.Module):
     --------
     >>> from deepchem.models.torch_models.layers import VariationalRandomizer
     >>> import torch
-    >>> embedding_dimension = 20
+    >>> embedding_dimension = 512
+    >>> batch_size = 100
     >>> annealing_start_step = 1000
     >>> annealing_final_step = 2000
-    >>> embedding_shape = (2, 5, embedding_dimension)
+    >>> embedding_shape = (batch_size, embedding_dimension)
     >>> embeddings = torch.rand(embedding_shape)
     >>> global_step = torch.tensor([100])
     >>> layer = VariationalRandomizer(embedding_dimension, annealing_start_step, annealing_final_step)
     >>> output = layer([embeddings, global_step])
     >>> output.shape
-    torch.Size([2, 5, 20])
+    torch.Size([100, 512])
 
     References
     ----------
