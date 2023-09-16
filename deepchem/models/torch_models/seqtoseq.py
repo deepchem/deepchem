@@ -88,7 +88,7 @@ class SeqToSeq(nn.Module):
             self._embedding = self.randomizer([self._embedding, global_step],
                                               training=False)
         output, _ = self.decoder([embedding, None])
-        return output
+        return output, self._embedding
 
 
 class SeqToSeqModel(TorchModel):
@@ -169,6 +169,7 @@ class SeqToSeqModel(TorchModel):
 
         super(SeqToSeqModel, self).__init__(self.model,
                                             self._create_loss(),
+                                            output_types=['prediction', 'embedding'],
                                             batch_size=self.batch_size,
                                             **kwargs)
 
@@ -239,8 +240,30 @@ class SeqToSeqModel(TorchModel):
             for i in range(len(batch)):
                 result.append(self._beam_search(probs[i], beam_width))
         return result
+    
+    def predict_embedding(self, sequences):
+        """Given a set of input sequences, compute the embedding vectors.
 
-    def predict_from_embeddings(self, embeddings, beam_width=5):
+        Parameters
+        ----------
+        sequences: iterable
+            Input sequences to generate embeddings for.
+
+        """
+        result = []
+        for batch in batch_elements(sequences, self.batch_size):
+            features = create_input_array(batch, self._max_output_length,
+                                          self._reverse_input, self.batch_size,
+                                          self._input_dict,
+                                          SeqToSeqModel.sequence_end)
+            probs = self.predict_on_generator([[
+                (features, np.array(self.get_global_step())), None, None
+            ]], output_types=["embedding"])
+            for i in range(len(batch)):
+                result.append(probs[0][i])
+        return result
+
+    def predict_from_embedding(self, embeddings, beam_width=5):
         """Given a set of embedding vectors, predict the output sequences.
 
         The prediction is done using a beam search with length normalization.
@@ -266,29 +289,6 @@ class SeqToSeqModel(TorchModel):
             for i in range(len(batch)):
                 result.append(self._beam_search(probs[i], beam_width))
         return result
-
-    def predict_embeddings(self, sequences):
-        """Given a set of input sequences, compute the embedding vectors.
-
-        Parameters
-        ----------
-        sequences: iterable
-            the input sequences to generate an embedding vector for
-        """
-        result = []
-        for batch in batch_elements(sequences, self.batch_size):
-            features = create_input_array(batch, self._max_output_length,
-                                          self._reverse_input, self.batch_size,
-                                          self._input_dict,
-                                          SeqToSeqModel.sequence_end)
-            _ = self.predict_on_generator([[(features,
-                                             np.array(self.get_global_step())),
-                                            None, None]])
-            embeddings = np.squeeze(
-                self.model._embedding.cpu().detach().numpy())
-            for i in range(len(batch)):
-                result.append(embeddings[i])
-        return np.array(result, dtype=np.float32)
 
     def _beam_search(self, probs, beam_width):
         """Perform a beam search for the most likely output sequence."""
