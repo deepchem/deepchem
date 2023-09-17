@@ -2719,6 +2719,10 @@ class CombineMeanStd(nn.Module):
         if len(inputs) != 2:
             raise ValueError("Must have two in_layers")
 
+        if torch.is_tensor(inputs[0]):
+            inputs[0] = inputs[0].cpu().detach().numpy()
+            inputs[1] = inputs[1].cpu().detach().numpy()
+
         mean_parent, std_parent = torch.tensor(inputs[0]), torch.tensor(
             inputs[1])
         noise_scale = torch.tensor(training or not self.training_only,
