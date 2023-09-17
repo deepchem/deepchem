@@ -2698,13 +2698,13 @@ class CombineMeanStd(nn.Module):
         )
 
     def forward(self,
-                inputs: Sequence[ArrayLike],
+                inputs: List,
                 training: bool = True) -> torch.Tensor:
         """Invoke this layer.
 
         Parameters
         ----------
-        inputs: Sequence[ArrayLike]
+        inputs: List
             First element are the means for the random generated numbers.
             Second element are the standard deviations for the random generated numbers.
         training: bool, optional (default True).
