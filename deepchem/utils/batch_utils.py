@@ -2,6 +2,7 @@
 Utility Functions for computing features on batch.
 """
 import numpy as np
+from typing import Any, Dict, Collection, List
 
 
 def batch_coulomb_matrix_features(X_b: np.ndarray,
@@ -129,3 +130,182 @@ def batch_coulomb_matrix_features(X_b: np.ndarray,
     dist_mem_j = np.concatenate(distance_membership_j).astype(np.int64)
     features = [atom_number, gaussian_dist, atom_mem, dist_mem_i, dist_mem_j]
     return features
+
+
+def batch_elements(elements: List[Any], batch_size: int):
+    """Combine elements into batches.
+
+    Parameters
+    ----------
+    elements: List[Any]
+        List of Elements to be combined into batches.
+    batch_size: int
+        Batch size in which to divide.
+
+    Returns
+    -------
+    batch: List[Any]
+        List of Lists of elements divided into batches.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> # Prepare Data
+    >>> inputs = [[i, i**2, i**3] for i in range(10)]
+    >>> # Run
+    >>> output = list(dc.utils.batch_utils.batch_elements(inputs, 3))
+    >>> len(output)
+    4
+
+    """
+    batch = []
+    for s in elements:
+        batch.append(s)
+        if len(batch) == batch_size:
+            yield batch
+            batch = []
+    if len(batch) > 0:
+        yield batch
+
+
+def create_input_array(sequences: Collection, max_input_length: int,
+                       reverse_input: bool, batch_size: int, input_dict: Dict,
+                       end_mark: Any):
+    """Create the array describing the input sequences.
+
+    It creates a 2d Matrix empty matrix according to batch size and max_length.
+    Then iteratively fills it with the key-values from the input dictionary.
+
+    Many NLP Models like SeqToSeq has sentences as there inputs. We need to
+    convert these sentences into numbers so that the model can do computation
+    on them.
+
+    This function takes in the sentence then using the `input_dict` dictionary
+    picks up the words/letters equivalent numerical represntation. Then makes
+    an numpy array of it.
+
+    If the `reverse_input` is True, then the order of the input sequences is
+    reversed before sending them into the encoder. This can improve performance
+    when working with long sequences.
+
+    These values can be used to generate embeddings for further processing.
+
+    Models used in:
+
+    * SeqToSeq
+
+    Parameters
+    ----------
+    sequences: Collection
+        List of sequences to be converted into input array.
+    reverse_input: bool
+        If True, reverse the order of input sequences before sending them into
+        the encoder. This can improve performance when working with long sequences.
+    batch_size: int
+        Batch size of the input array.
+    input_dict: dict
+        Dictionary containing the key-value pairs of input sequences.
+    end_mark: Any
+        End mark for the input sequences.
+
+    Returns
+    -------
+    features: np.Array
+        Numeric Representation of the given sequence according to input_dict.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> # Prepare Data
+    >>> inputs = [["a", "b"], ["b", "b", "b"]]
+    >>> input_dict = {"c": 0, "a": 1, "b": 2}
+    >>> # Inputs property
+    >>> max_length = max([len(x) for x in inputs])
+    >>> # Without reverse input
+    >>> output_1 = dc.utils.batch_utils.create_input_array(inputs, max_length,
+    ...                                                    False, 2, input_dict,
+    ...                                                    "c")
+    >>> output_1.shape
+    (2, 4)
+    >>> # With revercse input
+    >>> output_2 = dc.utils.batch_utils.create_input_array(inputs, max_length,
+    ...                                                    True, 2, input_dict,
+    ...                                                    "c")
+    >>> output_2.shape
+    (2, 4)
+
+    """
+    lengths = [len(x) for x in sequences]
+    if reverse_input:
+        sequences = [reversed(s) for s in sequences]
+    features = np.zeros((batch_size, max_input_length + 1), dtype=np.float32)
+    for i, sequence in enumerate(sequences):
+        for j, token in enumerate(sequence):
+            features[i, j] = input_dict[token]
+    features[np.arange(len(sequences)), lengths] = input_dict[end_mark]
+    return features
+
+
+def create_output_array(sequences: Collection, max_output_length: int,
+                        batch_size: int, output_dict: Dict, end_mark: Any):
+    """Create the array describing the target sequences.
+
+    It creates a 2d Matrix empty matrix according to batch size and max_length.
+    Then iteratively fills it with the key-values from the output dictionary.
+
+    This function is similar to `create_input_array` function. The only
+    difference is that it is used for output sequences and does not have the
+    `reverse_input` parameter as it is not required for output sequences.
+
+    It is used in NLP Models like SeqToSeq where the output is also a sentence
+    and we need to convert it into numbers so that the model can do computation
+    on them. This function takes in the sentence then using the `output_dict`
+    dictionary picks up the words/letters equivalent numerical represntation.
+    Then makes an numpy array of it.
+
+    These values can be used to generate embeddings for further processing.
+
+    Models used in:
+
+    * SeqToSeq
+
+    Parameters
+    ----------
+    sequences: Collection
+        List of sequences to be converted into output array.
+    max_output_length: bool
+        Maximum length of output sequence that may be generated
+    batch_size: int
+        Batch size of the output array.
+    output_dict: dict
+        Dictionary containing the key-value pairs of output sequences.
+    end_mark: Any
+        End mark for the output sequences.
+
+    Returns
+    -------
+    features: np.Array
+        Numeric Representation of the given sequence according to output_dict.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> # Prepare Data
+    >>> inputs = [["a", "b"], ["b", "b", "b"]]
+    >>> output_dict = {"c": 0, "a": 1, "b": 2}
+    >>> # Inputs property
+    >>> max_length = max([len(x) for x in inputs])
+    >>> output = dc.utils.batch_utils.create_output_array(inputs, max_length, 2,
+    ...                                                   output_dict, "c")
+    >>> output.shape
+    (2, 3)
+
+    """
+    lengths = [len(x) for x in sequences]
+    labels = np.zeros((batch_size, max_output_length), dtype=np.float32)
+    for i, sequence in enumerate(sequences):
+        for j, token in enumerate(sequence):
+            labels[i, j] = output_dict[token]
+        for j in range(lengths[i], max_output_length):
+            labels[i, j] = output_dict[end_mark]
+    return labels
