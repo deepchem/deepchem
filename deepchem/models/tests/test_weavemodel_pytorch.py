@@ -10,7 +10,8 @@ from deepchem.feat import WeaveFeaturizer
 
 try:
     import torch
-    from deepchem.models.torch_models import WeaveModel
+    import torch.nn as nn
+    from deepchem.models.torch_models import Weave, WeaveModel
     has_torch = True
 except:
     has_torch = False
@@ -112,6 +113,109 @@ def test_compute_features_on_distance_1():
                                             [2, 3], [3, 1], [3, 2], [3, 3]]))
 
 
+@pytest.mark.torch
+def test_weave_classification():
+    "Test involking torch equivalent of Weave Module."
+    featurizer = dc.feat.WeaveFeaturizer()
+    X = featurizer(["C", "CC"])
+    batch_size = 2
+    model = WeaveModel(n_tasks=1,
+                       n_weave=2,
+                       fully_connected_layer_sizes=[2000, 1000],
+                       mode="classification",
+                       batch_size=batch_size)
+    atom_feat, pair_feat, pair_split, atom_split, atom_to_pair = model.compute_features_on_batch(
+        X)
+    torch.set_printoptions(precision=8)
+    model = Weave(n_tasks=1,
+                  n_weave=2,
+                  fully_connected_layer_sizes=[2000, 1000],
+                  mode="classification")
+    input_data = [atom_feat, pair_feat, pair_split, atom_split, atom_to_pair]
+
+    output_values_py = model(input_data)  # noqa F841
+
+    for i in range(2):
+        model.layers[i].W_AA = torch.from_numpy(
+            np.load(f'deepchem/models/tests/assets/weavelayer_W_AA_{i}.npy'))
+        model.layers[i].W_PA = torch.from_numpy(
+            np.load(f'deepchem/models/tests/assets/weavelayer_W_PA_{i}.npy'))
+        model.layers[i].W_A = torch.from_numpy(
+            np.load(f'deepchem/models/tests/assets/weavelayer_W_A_{i}.npy'))
+        if model.layers[i].update_pair:
+            model.layers[i].W_AP = torch.from_numpy(
+                np.load(
+                    f'deepchem/models/tests/assets/weavelayer_W_AP_{i}.npy'))
+            model.layers[i].W_PP = torch.from_numpy(
+                np.load(
+                    f'deepchem/models/tests/assets/weavelayer_W_PP_{i}.npy'))
+            model.layers[i].W_P = torch.from_numpy(
+                np.load(f'deepchem/models/tests/assets/weavelayer_W_P_{i}.npy'))
+    dense1_weights = np.load(
+        'deepchem/models/tests/assets/dense1_weights.npy').astype(np.float32)
+    dense1_bias = np.load(
+        'deepchem/models/tests/assets/dense1_bias.npy').astype(np.float32)
+    model.dense1.weight.data = torch.from_numpy(np.transpose(dense1_weights))
+    model.dense1.bias.data = torch.from_numpy(dense1_bias)
+
+    nn.init.trunc_normal_(model.layers2[0].weight,
+                          0,
+                          std=model.layers2[0].weight_stddev)
+    if model.layers2[0].bias is not None:
+        model.layers2[0].bias = nn.Parameter(
+            torch.full(model.layers2[0].bias.shape,
+                       model.layers2[0].bias_const))
+
+    layers2_0_weights = np.load(
+        'deepchem/models/tests/assets/layers2_0_weights.npy').astype(np.float32)
+    layers2_0_bias = np.load(
+        'deepchem/models/tests/assets/layers2_0_bias.npy').astype(np.float32)
+
+    model.layers2[0].weight.data = torch.from_numpy(
+        np.transpose(layers2_0_weights))
+    model.layers2[0].bias.data = torch.from_numpy(layers2_0_bias)
+
+    if model.weave_gather.compress_post_gaussian_expansion:
+        model.weave_gather.W = torch.from_numpy(
+            np.load('deepchem/models/tests/assets/weavegather.npy'))
+
+    nn.init.trunc_normal_(model.layers2[1].weight,
+                          0,
+                          std=model.layers2[1].weight_stddev)
+    if model.layers2[1].bias is not None:
+        model.layers2[1].bias = nn.Parameter(
+            torch.full(model.layers2[1].bias.shape,
+                       model.layers2[1].bias_const))
+
+    layers2_1_weights = np.load(
+        'deepchem/models/tests/assets/layers2_1_weights.npy').astype(np.float32)
+    layers2_1_bias = np.load(
+        'deepchem/models/tests/assets/layers2_1_bias.npy').astype(np.float32)
+
+    model.layers2[1].weight.data = torch.from_numpy(
+        np.transpose(layers2_1_weights))
+    model.layers2[1].bias.data = torch.from_numpy(layers2_1_bias)
+
+    layer_2_weights = np.load(
+        'deepchem/models/tests/assets/layer_2_weights.npy').astype(np.float32)
+    layer_2_bias = np.load(
+        'deepchem/models/tests/assets/layer_2_bias.npy').astype(np.float32)
+
+    model.layer_2.weight.data = torch.from_numpy(np.transpose(layer_2_weights))
+    model.layer_2.bias.data = torch.from_numpy(layer_2_bias)
+
+    outputs = model(input_data)
+    assert len(outputs) == 2
+    assert np.allclose(
+        outputs[1].detach().numpy(),
+        np.load('deepchem/models/tests/assets/classification_logits.npy'),
+        atol=1e-4)
+    assert np.allclose(
+        outputs[0].detach().numpy(),
+        np.load('deepchem/models/tests/assets/classification_output.npy'),
+        atol=1e-4)
+
+
 @flaky
 @pytest.mark.slow
 @pytest.mark.torch
@@ -127,5 +231,26 @@ def test_weave_model():
                        dropouts=0,
                        learning_rate=0.0001)
     model.fit(dataset, nb_epoch=250)
+    scores = model.evaluate(dataset, [metric], transformers)
+    assert scores['mean-roc_auc_score'] >= 0.7
+
+
+@pytest.mark.torch
+def test_weave_fit_simple_distance_1():
+    featurizer = WeaveFeaturizer(max_pair_distance=1)
+    X = featurizer(["C", "CCC"])
+    y = np.array([0, 1.])
+    dataset = NumpyDataset(X, y)
+
+    batch_size = 20
+    model = WeaveModel(1,
+                       batch_size=batch_size,
+                       mode='classification',
+                       fully_connected_layer_sizes=[2000, 1000],
+                       batch_normalize=True,
+                       learning_rate=0.0005)
+    model.fit(dataset, nb_epoch=200)
+    transformers = []
+    metric = Metric(roc_auc_score, np.mean, mode="classification")
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
