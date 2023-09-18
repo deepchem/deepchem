@@ -259,7 +259,7 @@ class Weave(nn.Module):
         ]
         for ind in range(self.n_weave):
             weave_layer_ind_A, weave_layer_ind_P = self.layers[ind](input1)
-            input1: List[np.ndarray] = [
+            input1 = [
                 weave_layer_ind_A, weave_layer_ind_P,
                 np.array(inputs[2]),
                 np.array(inputs[4])
