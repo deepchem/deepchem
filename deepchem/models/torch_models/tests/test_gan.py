@@ -4,46 +4,68 @@ import pytest
 import tempfile
 from flaky import flaky
 
-try:
+# try:
+if True:
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
 
-    class ExampleGAN(dc.models.GAN):
+    class ExampleGAN(dc.models.torch_models.GAN):
+        """A simple GAN for testing."""
 
+        # print('Hello GAN')
         def get_noise_input_shape(self):
-            return (2,)
+            return (
+                1,
+                2,
+            )
 
         def get_data_input_shapes(self):
-            return [(1,)]
+            return [(
+                1,
+                1,
+            )]
 
         def get_conditional_input_shapes(self):
-            return [(1,)]
-
-        def create_generator(self):
-            noise_input = torch.randn(1, self.get_noise_input_shape())
-            conditional_input = torch.randn(
+            return [(
                 1,
+                1,
+            )]
+
+        # print('Hello GAN 2')
+        def create_generator(self):
+            noise_input = torch.randn(self.get_noise_input_shape())
+
+            conditional_input = torch.randn(
                 self.get_conditional_input_shapes()[0])
+
             inputs = [noise_input, conditional_input]
             gen_in = torch.cat(inputs, axis=1)
+
             output = nn.Linear(gen_in.shape[0], 1)
-            return nn.Sequential(*[output])
+
+            temp = nn.Sequential(output)
+            print((gen_in.shape), "\n\n\n")
+            return temp
 
         def create_discriminator(self):
+            print('Hello Discriminator')
             data_input = torch.randn(self.get_data_input_shapes()[0])
             conditional_input = torch.randn(
-                1,
                 self.get_conditional_input_shapes()[0])
             inputs = [data_input, conditional_input]
             discrim_in = torch.cat(inputs, axis=1)
-            dense = Dense(10, activation=tf.nn.relu)(discrim_in)
-            output = Dense(1, activation=tf.sigmoid)(dense)
-            return nn.Sequential(inputs=inputs, outputs=output)
+            dense = nn.linear(discrim_in, 10)
+            dense = torch.relu(dense)
+            output = nn.linear(dense, 1)
+            output = torch.sigmoid(output)
+            return nn.Sequential(inputs, output)
+
+        print('Hello GAN 4')
 
     has_torch = True
-except:
-    has_torch = False
+# except:
+#     has_torch = False
 
 
 @pytest.mark.torch
@@ -67,7 +89,8 @@ def generate_data(gan, batches, batch_size):
 def test_cgan():
     """Test fitting a conditional GAN."""
 
-    gan = ExampleGAN(learning_rate=0.01)
+    # gan = ExampleGAN(learning_rate=0.01)
+    gan = ExampleGAN()
     gan.fit_gan(generate_data(gan, 500, 100),
                 generator_steps=0.5,
                 checkpoint_interval=0)
@@ -130,3 +153,9 @@ def test_mix_gan():
         assert abs(np.mean(deltas)) < 1.0
         assert np.std(deltas) > 1.0
     assert gan.get_global_step() == 1000
+
+
+if __name__ == "__main__":
+    test_cgan()
+    # test_cgan_reload()
+    # test_mix_gan()
