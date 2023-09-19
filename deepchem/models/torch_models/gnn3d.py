@@ -625,12 +625,13 @@ class InfoMax3DModular(ModularTorchModel):
                 self.components['3d'].named_parameters()) if 'batch_norm' in k
         ]
 
-        self._pytorch_optimizer = torch.optim.Adam([{
+        params = [{
             'params': batch_norm_params,
             'weight_decay': 0
         }, {
             'params': normal_params
-        }],
+        }]
+        self._pytorch_optimizer = torch.optim.Adam(params,
                                                    lr=8e-5)  # type: ignore
         # TODO Ideally, we should use a lr schedule but we need to update lr_scheduler.step() method
         # in ModularTorchModel.fit_generator to accept a metric.
