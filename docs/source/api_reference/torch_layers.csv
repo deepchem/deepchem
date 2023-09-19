@@ -49,3 +49,4 @@ DecoderRNN, `ref <https://arxiv.org/abs/1409.3215>`_, SeqToSeqModel
 FerminetElectronFeature, `ref <https://arxiv.org/pdf/1909.02487.pdf>`_, FerminetModel
 FerminetEnvelope, `ref <https://arxiv.org/pdf/1909.02487.pdf>`_, FerminetModel
 MXMNetLocalMessagePassing, `ref <https://arxiv.org/pdf/2011.07457>`_, MXMNetModel
+MXMNetModelMXMNetSphericalBasisLayer, ref`<https://arxiv.org/pdf/2011.07457>`_, MXMNetModel

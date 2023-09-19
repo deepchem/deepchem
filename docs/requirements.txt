@@ -19,3 +19,4 @@ PyYAML
 yamlloader
 dgl
 sphinx-copybutton
+sympy
