@@ -631,7 +631,8 @@ class InfoMax3DModular(ModularTorchModel):
         # ] for row in inputs]
 
         # convert the GraphData objects to DGL graphs
-        graphs = dgl.batch([graph_data.to_dgl_graph() for graph_data in inputs]).to(self.device)
+        graphs = dgl.batch([graph_data.to_dgl_graph() for graph_data in inputs
+                           ]).to(self.device)
         return graphs, labels, weights
 
     def _ensure_built(self) -> None:
