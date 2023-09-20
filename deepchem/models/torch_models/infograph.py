@@ -329,6 +329,7 @@ class InfoGraphModel(ModularTorchModel):
     >>> from deepchem.feat import MolGraphConvFeaturizer
     >>> from deepchem.data import NumpyDataset
     >>> import torch
+    >>> import numpy as np
     >>> import tempfile
     >>> tempdir = tempfile.TemporaryDirectory()
     >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
@@ -344,6 +345,13 @@ class InfoGraphModel(ModularTorchModel):
     >>> finetune_model = InfoGraphModel(num_feat, edge_dim, num_gc_layers=1, task='regression', n_tasks=1, model_dir=tempdir.name)
     >>> finetune_model.restore(components=['encoder'])
     >>> finetuning_loss = finetune_model.fit(dataset)
+    >>>
+    >>> # classification example
+    >>> n_classes, n_tasks = 2, 1
+    >>> classification_model = InfoGraphModel(num_feat, edge_dim, num_gc_layers=1, task='classification', n_tasks=1, n_classes=2)
+    >>> y = np.random.randint(n_classes, size=(len(smiles), n_tasks)).astype(np.float64)
+    >>> dataset = NumpyDataset(X, y, w)
+    >>> loss = classification_model.fit(dataset, nb_epoch=1)
     """
 
     def __init__(self,
