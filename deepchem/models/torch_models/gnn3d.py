@@ -668,7 +668,7 @@ class InfoMax3DModular(ModularTorchModel):
         }]
         self._pytorch_optimizer = torch.optim.Adam(
             params,  # type: ignore
-            lr=self.learning_rate)
+            lr=self.learning_rate)  # type: ignore
         # TODO Ideally, we should use a lr schedule but we need to update lr_scheduler.step() method
         # in ModularTorchModel.fit_generator to accept a metric.
         self._lr_schedule = None
