@@ -586,26 +586,6 @@ class InfoMax3DModular(ModularTorchModel):
             The computed loss value.
         """
         if self.task == 'pretraining':
-            # encodings2d = []
-            # encodings3d = []
-            # for conformers in inputs:
-            #     # 2d model takes only the first conformer
-            #     encodings2d.append(self.components['2d'](conformers[0]))
-            #     # 3d model takes all conformers
-            #     encodings3d.append(
-            #         [self.components['3d'](conf) for conf in conformers])
-
-            # # concat the lists such that the 2d encodings is of shape batch_size x target_dim
-            # # and the 3d encodings is of shape batch_size*num_conformers x target_dim
-            # encodings2d = torch.cat(encodings2d, dim=0)
-            # encodings3d = torch.cat(
-            #     [torch.cat(conf, dim=0) for conf in encodings3d], dim=0)
-
-            # NOTE: The above one is logically correct but the below method is similar
-            # to original implementation here: https://github.com/HannesStark/3DInfomax/blob/5cd32629c690e119bcae8726acedefdb0aa037fc/trainer/self_supervised_trainer.py#L26
-            # The different between above and below is that the below one
-            # cannot handle multiple conformers.
-
             encodings2d = self.components['model2d'](inputs)
             encodings3d = self.components['model3d'](inputs)
             loss = self.criterion(encodings2d, encodings3d)
