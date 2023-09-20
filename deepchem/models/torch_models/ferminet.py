@@ -21,7 +21,28 @@ def test_f(x: np.ndarray) -> np.ndarray:
 
 
 class Ferminet(torch.nn.Module):
-    """Approximates the log probability of the wave function of a molecule system using DNNs.
+    """A deep-learning based Variational Monte Carlo method [1]_ for calculating the ab-initio
+    solution of a many-electron system.
+
+    This model must be pre-trained on the HF baseline and then can be used to improve on it using electronic interactions
+    via the learned electron distance features. Ferminet models the orbital values using envelope functions and the
+    calculated electron features, which can then be used to approximate the wavefunction for better sampling of electrons.
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> import deepchem as dc
+    >>> import torch
+    >>> H2_molecule =  torch.Tensor([[0, 0, 0.748], [0, 0, 0]])
+    >>> H2_charge = torch.Tensor([[1], [1]])
+    >>> model = dc.models.Ferminet(nucleon_pos=H2_molecule, nuclear_charge=H2_charge, batch_size=1)
+    >>> electron = np.random.rand(1, 2*3)
+    >>> wavefunction = model.forward(electron)
+
+    References
+    ----------
+    .. [1] Spencer, James S., et al. Better, Faster Fermionic Neural Networks. arXiv:2011.07125, arXiv, 13 Nov. 2020. arXiv.org, http://arxiv.org/abs/2011.07125.
+
     """
 
     def __init__(self,

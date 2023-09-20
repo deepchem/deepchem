@@ -6,14 +6,10 @@ import pytest
 import numpy as np
 try:
     from deepchem.models.torch_models.ferminet import FerminetModel
+    import torch
     # When pytest runs without pytorch in the environment (ex: as in tensorflow workflow),
     # the above import raises a ModuleNotFoundError. It is safe to ignore it
     # since the below tests only run in an environment with pytorch installed.
-except ModuleNotFoundError:
-    pass
-
-try:
-    import torch
 except ModuleNotFoundError:
     pass
 
