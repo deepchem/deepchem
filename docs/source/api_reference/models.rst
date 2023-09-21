@@ -490,12 +490,6 @@ DTNNModel
 .. autoclass:: deepchem.models.torch_models.DTNNModel
   :members:
 
-MXMNetModel
----------
-
-.. autoclass:: deepchem.models.torch_models.MXMNetModel
-  :members:
-
 Density Functional Theory Model - XCModel
 -----------------------------------------
 
