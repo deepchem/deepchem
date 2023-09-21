@@ -7,3 +7,4 @@ dependencies:
     - torch==1.12.0+cpu
     - torch-geometric
     - pytorch-lightning==1.6.5
+    - torch-sparse

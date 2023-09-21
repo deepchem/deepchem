@@ -18,3 +18,4 @@ dependencies:
    - PyYAML
    - yamlloader
    - pyscf[all]
+   - torch-sparse
