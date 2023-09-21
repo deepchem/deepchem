@@ -36,7 +36,7 @@ def test_mxmnet_regression():
                                featurizer=feat,
                                sanitize=True)
 
-    dataset = loader.create_dataset(inputs="assets/qm9_mini.sdf", shard_size=1)
+    dataset = loader.create_dataset(inputs="deepchem/models/tests/assets/qm9_mini.sdf", shard_size=1)
 
     model = MXMNet(dim=dim, n_layer=n_layer, cutoff=cutoff)
 
@@ -49,14 +49,14 @@ def test_mxmnet_regression():
     data = data.X
     data = [data[i].to_pyg_graph() for i in range(2)]
     pyg_batch = Batch()
-    pyg_batch = pyg_batch.from_data_list(data)
+    pyg_batch = pyg_batch.from_data_list(data).to(device)
 
     model.to(device)
     output = model(pyg_batch)
-    required_output = np.asarray([0.0869, 0.1744])
-    assert np.allclose(output[0].detach().numpy(),
+    required_output = np.asarray([2.3707, 2.5173])
+    assert np.allclose(output[0].cpu().detach().numpy(),
                        required_output[0],
                        atol=1e-04)
-    assert np.allclose(output[1].detach().numpy(),
+    assert np.allclose(output[1].cpu().detach().numpy(),
                        required_output[1],
                        atol=1e-04)

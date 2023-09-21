@@ -23,10 +23,13 @@ class MXMNet(nn.Module):
     >>> import deepchem as dc
     >>> import os
     >>> import tempfile
+    >>> import torch
     >>> from torch_geometric.data import Data, Batch
     >>> from deepchem.feat.molecule_featurizers import MXMNetFeaturizer
     >>> QM9_TASKS = ["mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv", "u0", "u298",
     ...              "h298", "g298"]
+    >>> device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    >>> torch.set_default_device(device)
     >>> dim = 10
     >>> n_layer = 6
     >>> cutoff = 5
@@ -45,7 +48,7 @@ class MXMNet(nn.Module):
     >>> data = data.X
     >>> data = [data[i].to_pyg_graph() for i in range(1)]
     >>> pyg_batch = Batch()
-    >>> pyg_batch = pyg_batch.from_data_list(data)
+    >>> pyg_batch = pyg_batch.from_data_list(data).to(device)
     >>> output = model(pyg_batch)
     >>> output[0].shape
     torch.Size([1])
