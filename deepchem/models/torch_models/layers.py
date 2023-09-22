@@ -2697,9 +2697,7 @@ class CombineMeanStd(nn.Module):
             f'{self.__class__.__name__}(training_only={self.training_only}, noise_epsilon={self.noise_epsilon})'
         )
 
-    def forward(self,
-                inputs: List,
-                training: bool = True) -> torch.Tensor:
+    def forward(self, inputs: List, training: bool = True) -> torch.Tensor:
         """Invoke this layer.
 
         Parameters
@@ -4809,6 +4807,13 @@ class VariationalRandomizer(nn.Module):
     the loss that forces the embedding vector to have a unit Gaussian distribution.
     We can then pick random vectors from a Gaussian distribution, and the output
     sequences should follow the same distribution as the training data.
+
+    We can use this layer with an AutoEncoder, which makes it a Variational
+    AutoEncoder. The constraint term in the loss is initially set to 0, so the
+    optimizer just tries to minimize the reconstruction loss. Once it has made
+    reasonable progress toward that, the constraint term can be gradually turned
+    back on. The range of steps over which this happens is configured by modifying
+    the annealing_start_step and annealing final_step parameter.
 
     Examples
     --------
