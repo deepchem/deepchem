@@ -104,11 +104,15 @@ class GAN(TorchModel):
             generator = self.create_generator()
             print(f"generator {i} is {generator}")
             self.generators.append(generator)
+            print((([self.noise_input] + self.conditional_input_layers)))
+            print("len: ",len([[self.noise_input] +
+                                    self.conditional_input_layers]))
             generator_outputs.append(
                 generator(
-                    _list_or_tensor([self.noise_input] +
-                                    self.conditional_input_layers)))
-            self.gen_variables += generator.trainable_variables
+                    _list_or_tensor([[self.noise_input] +
+                                    self.conditional_input_layers])))
+            # self.gen_variables += generator.trainable_variables
+            print(f"done with iteration {i}")
         print('inside GAN after generator')
         # Create the discriminators.
 
@@ -127,7 +131,7 @@ class GAN(TorchModel):
                     gen_output = [gen_output]
                 discrim_gen_outputs.append(
                     self._call_discriminator(discriminator, gen_output, False))
-            self.discrim_variables += discriminator.trainable_variables
+            # self.discrim_variables += discriminator.trainable_variables
         print('inside GAN after discriminator')
         # Compute the loss functions.
 
@@ -185,8 +189,9 @@ class GAN(TorchModel):
         outputs = [total_gen_loss, total_discrim_loss]
         self.gen_loss_fn = lambda outputs, labels, weights: outputs[0]
         self.discrim_loss_fn = lambda outputs, labels, weights: outputs[1]
-        print('inside GAN init')
-        model = nn.Linear(inputs, outputs)
+        print('inside GAN init end')
+        # model = nn.Linear(inputs, outputs)
+        model = nn.Linear(1,1)
         super(GAN, self).__init__(model, self.gen_loss_fn)
 
     def _call_discriminator(self, discriminator, inputs, train):
@@ -358,9 +363,9 @@ class GAN(TorchModel):
 
             inputs = [self.get_noise_batch(self.batch_size)]
             for input in self.data_input_layers:
-                inputs.append(feed_dict[input.ref()])
+                inputs.append(feed_dict[input])
             for input in self.conditional_input_layers:
-                inputs.append(feed_dict[input.ref()])
+                inputs.append(feed_dict[input])
             discrim_error += self.fit_generator(
                 [(inputs, [], [])],
                 variables=self.discrim_variables,
