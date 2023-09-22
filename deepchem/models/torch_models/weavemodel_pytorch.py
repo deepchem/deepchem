@@ -434,7 +434,7 @@ class WeaveModel(TorchModel):
             Batch size used by this model for training.
         """
         self.mode: str = mode
-        model = Weave(
+        self.model = Weave(
             n_tasks=n_tasks,
             n_atom_feat=n_atom_feat,
             n_pair_feat=n_pair_feat,
@@ -481,7 +481,7 @@ class WeaveModel(TorchModel):
             loss = L2Loss()
 
         super(WeaveModel,
-              self).__init__(model,
+              self).__init__(self.model,
                              loss=loss,
                              output_types=output_types,
                              batch_size=batch_size,

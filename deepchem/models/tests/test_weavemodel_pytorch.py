@@ -1,6 +1,7 @@
 import deepchem as dc
 import numpy as np
 import pytest
+import tempfile
 from flaky import flaky
 
 from deepchem.data import NumpyDataset
@@ -225,14 +226,29 @@ def test_weave_model():
                                                        data_points=10)
 
     batch_size = 10
-    model = WeaveModel(len(tasks),
-                       batch_size=batch_size,
-                       mode='classification',
-                       dropouts=0,
-                       learning_rate=0.0001)
-    model.fit(dataset, nb_epoch=250)
-    scores = model.evaluate(dataset, [metric], transformers)
-    assert scores['mean-roc_auc_score'] >= 0.7
+    weave_model = WeaveModel(len(tasks),
+                             batch_size=batch_size,
+                             mode='classification',
+                             dropouts=0,
+                             learning_rate=0.0001)
+    weave_model.fit(dataset, nb_epoch=1)
+    nn.init.trunc_normal_(weave_model.model.layers2[0].weight,
+                          0,
+                          std=weave_model.model.layers2[0].weight_stddev)
+    if weave_model.model.layers2[0].bias is not None:
+        weave_model.model.layers2[0].bias = nn.Parameter(
+            torch.full(weave_model.model.layers2[0].bias.shape,
+                       weave_model.model.layers2[0].bias_const))
+    nn.init.trunc_normal_(weave_model.model.layers2[1].weight,
+                          0,
+                          std=weave_model.model.layers2[1].weight_stddev)
+    if weave_model.model.layers2[1].bias is not None:
+        weave_model.model.layers2[1].bias = nn.Parameter(
+            torch.full(weave_model.model.layers2[1].bias.shape,
+                       weave_model.model.layers2[1].bias_const))
+    weave_model.fit(dataset, nb_epoch=600)
+    scores = weave_model.evaluate(dataset, [metric], transformers)
+    assert scores['mean-roc_auc_score'] >= 0.9
 
 
 @pytest.mark.torch
@@ -254,3 +270,73 @@ def test_weave_fit_simple_distance_1():
     metric = Metric(roc_auc_score, np.mean, mode="classification")
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
+
+
+@pytest.mark.slow
+@pytest.mark.torch
+def test_weave_regression_model():
+    torch.manual_seed(21)
+    np.random.seed(21)
+    tasks, dataset, transformers, metric = get_dataset('regression',
+                                                       'Weave',
+                                                       data_points=2)
+
+    batch_size = 20
+    weave_model = WeaveModel(len(tasks),
+                             batch_size=batch_size,
+                             mode='regression',
+                             dropouts=0,
+                             learning_rate=0.0005)
+
+    torch.set_printoptions(precision=8)
+    weave_model.fit(dataset, nb_epoch=1)
+    nn.init.trunc_normal_(weave_model.model.layers2[0].weight,
+                          0,
+                          std=weave_model.model.layers2[0].weight_stddev)
+    if weave_model.model.layers2[0].bias is not None:
+        weave_model.model.layers2[0].bias = nn.Parameter(
+            torch.full(weave_model.model.layers2[0].bias.shape,
+                       weave_model.model.layers2[0].bias_const))
+    nn.init.trunc_normal_(weave_model.model.layers2[1].weight,
+                          0,
+                          std=weave_model.model.layers2[1].weight_stddev)
+    if weave_model.model.layers2[1].bias is not None:
+        weave_model.model.layers2[1].bias = nn.Parameter(
+            torch.full(weave_model.model.layers2[1].bias.shape,
+                       weave_model.model.layers2[1].bias_const))
+    weave_model.fit(dataset, nb_epoch=400)
+    scores = weave_model.evaluate(dataset, [metric], transformers)
+    assert scores[metric.name] < 0.3
+
+
+@pytest.mark.torch
+def test_weave_model_reload():
+    "Test WeaveModel class for reloading the model."
+    torch.manual_seed(0)
+    featurizer = WeaveFeaturizer(max_pair_distance=1)
+    X = featurizer(["C", "CCC"])
+    y = np.array([0, 1.])
+    dataset = NumpyDataset(X, y)
+
+    batch_size = 20
+    model_dir = tempfile.mkdtemp()
+    original_model = WeaveModel(1,
+                                batch_size=batch_size,
+                                mode='classification',
+                                fully_connected_layer_sizes=[2000, 1000],
+                                batch_normalize=True,
+                                learning_rate=0.0005,
+                                model_dir=model_dir)
+    original_model.fit(dataset, nb_epoch=200)
+
+    reloaded_model = WeaveModel(1,
+                                batch_size=batch_size,
+                                mode='classification',
+                                fully_connected_layer_sizes=[2000, 1000],
+                                batch_normalize=True,
+                                learning_rate=0.0005,
+                                model_dir=model_dir)
+    reloaded_model.restore()
+    original_predict = original_model.predict(dataset)
+    reloaded_predict = reloaded_model.predict(dataset)
+    assert np.all(original_predict == reloaded_predict)
