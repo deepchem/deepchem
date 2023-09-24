@@ -18,3 +18,4 @@ dependencies:
    - PyYAML
    - yamlloader
    - pyscf[all]
+   - f torch_sparse https://data.pyg.org/whl/torch-2.0.0+cpu.html
