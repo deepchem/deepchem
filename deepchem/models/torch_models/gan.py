@@ -63,7 +63,7 @@ class GAN(TorchModel):
     predict_gan_generator() which generator to use for predicting samples.
     """
 
-    def __init__(self, n_generators=1, n_discriminators=1):
+    def __init__(self, n_generators=1, n_discriminators=1, **kwargs):
         """Construct a GAN.
 
         In addition to the parameters listed below, this class accepts all the
@@ -77,63 +77,78 @@ class GAN(TorchModel):
             the number of discriminators to include
         """
         # super(GAN, self).__init__()
-        print('inside GAN init first')
+        # print('inside GAN init begin')
         self.n_generators = n_generators
         self.n_discriminators = n_discriminators
-
+        # torch.manual_seed(1234)
         # Create the inputs.
-
-        # self.noise_input = Input(shape=self.get_noise_input_shape())
-        self.noise_input = torch.randn(self.get_noise_input_shape())
+        # Inputs
+        self.noise_input = nn.Parameter(
+            torch.empty(self.get_noise_input_shape()))
+        # self.noise_input = torch.randn(self.get_noise_input_shape()).data_ptr()
+        self.data_inputs = [
+            # nn.Parameter(torch.randn(s)) for s in self.get_data_input_shapes()
+            torch.randn(s).data_ptr() for s in self.get_data_input_shapes()
+        ]
+        print(self.get_conditional_input_shapes())
+        self.conditional_inputs = [
+            nn.Parameter(torch.empty(s))
+            for s in self.get_conditional_input_shapes()
+        ]
         self.data_input_layers = []
-        for shape in self.get_data_input_shapes():
-            self.data_input_layers.append(torch.randn(shape))
-        self.data_inputs = [i for i in self.data_input_layers]
+        self.data_input_layers_idx = []
+        for idx, shape in enumerate(self.get_data_input_shapes()):
+            self.data_input_layers.append(nn.Parameter(torch.empty(shape)))
+            self.data_input_layers_idx.append((torch.randn(shape), idx))
+            # self.data_input_layers.append(torch.empty(shape).data_ptr())
         self.conditional_input_layers = []
+        self.conditional_input_layers_idx = []
         for shape in self.get_conditional_input_shapes():
-            self.conditional_input_layers.append(torch.randn(shape))
-        self.conditional_inputs = [i for i in self.conditional_input_layers]
-        print('inside GAN create_generator')
-        # Create the generators.
+            self.conditional_input_layers.append(
+                nn.Parameter(torch.empty(shape)))
+            self.conditional_input_layers_idx.append((torch.randn(shape), idx))
+            # self.conditional_input_layers.append(torch.empty(shape).data_ptr())
+        # print('inside GAN create_generator')
 
-        self.generators = []
-        self.gen_variables = []
+        # Generators
+        self.generators = nn.ModuleList()
+        self.gen_variables = nn.ParameterList()
         generator_outputs = []
         for i in range(n_generators):
-
             generator = self.create_generator()
-            print(f"generator {i} is {generator}")
             self.generators.append(generator)
-            print((([self.noise_input] + self.conditional_input_layers)))
-            print("len: ",len([[self.noise_input] +
-                                    self.conditional_input_layers]))
-            generator_outputs.append(
-                generator(
-                    _list_or_tensor([[self.noise_input] +
-                                    self.conditional_input_layers])))
-            # self.gen_variables += generator.trainable_variables
-            print(f"done with iteration {i}")
-        print('inside GAN after generator')
-        # Create the discriminators.
+            self.gen_variables += list(generator.parameters())
+            temp_generator = generator(
+                _list_or_tensor([[self.noise_input] +
+                                 self.conditional_input_layers]))
+            generator_outputs.append(temp_generator)
+            # print('generator_op: ',generator_outputs)
+            # print("Gen Variables",self.gen_variables)
+        # print('inside GAN after generator')
 
-        self.discriminators = []
-        self.discrim_variables = []
+        # Discriminators
+        self.discriminators = nn.ModuleList()
+        self.discrim_variables = nn.ParameterList()
         discrim_train_outputs = []
         discrim_gen_outputs = []
         for i in range(n_discriminators):
             discriminator = self.create_discriminator()
             self.discriminators.append(discriminator)
-            discrim_train_outputs.append(
-                self._call_discriminator(discriminator, self.data_input_layers,
-                                         True))
+
+            self.discrim_variables += list(discriminator.parameters())
+            temp_discriminator = self._call_discriminator(
+                discriminator, self.data_input_layers, True)
+            discrim_train_outputs.append(temp_discriminator)
             for gen_output in generator_outputs:
                 if torch.is_tensor(gen_output):
                     gen_output = [gen_output]
-                discrim_gen_outputs.append(
-                    self._call_discriminator(discriminator, gen_output, False))
-            # self.discrim_variables += discriminator.trainable_variables
-        print('inside GAN after discriminator')
-        # Compute the loss functions.
+                temp_discriminator = self._call_discriminator(
+                    discriminator, gen_output, False)
+                discrim_gen_outputs.append(temp_discriminator)
+            # print('discrim_train_op: ',discrim_train_outputs)
+            # print('discrim_gen_op: ',discrim_gen_outputs)
+        #     print("Discrim Variables",self.discrim_variables)
+        # print('inside GAN after discriminator\n\n\n\n')
 
         gen_losses = [
             self.create_generator_loss(d) for d in discrim_gen_outputs
@@ -145,54 +160,76 @@ class GAN(TorchModel):
                     self.create_discriminator_loss(
                         discrim_train_outputs[i],
                         discrim_gen_outputs[i * n_generators + j]))
+        # print(gen_losses, discrim_losses)
+        # print('inside GAN after loss')
         if n_generators == 1 and n_discriminators == 1:
             total_gen_loss = gen_losses[0]
             total_discrim_loss = discrim_losses[0]
+            # print(total_gen_loss, total_discrim_loss)
+            # print('inside GAN after loss if')
         else:
             # Create learnable weights for the generators and discriminators.
 
-            gen_alpha = layers.Variable(np.ones((1, n_generators)),
-                                        dtype=torch.float32)
-            # We pass an input to the Variable layer to work around a bug in TF 1.14.
-            gen_weights = torch.softmax()(gen_alpha([self.noise_input]))
-            discrim_alpha = layers.Variable(np.ones((1, n_discriminators)),
-                                            dtype=torch.float32)
-            discrim_weights = torch.softmax()(discrim_alpha([self.noise_input]))
+            gen_alpha = nn.Parameter(torch.ones(1, n_generators))
+            # gen_alpha = nn.Parameter(torch.ones( n_generators,1))
+            gen_weights = nn.Parameter(torch.softmax(gen_alpha, dim=1))
+            # print("gen_weights", gen_weights)
+
+            discrim_alpha = nn.Parameter(torch.ones(1, n_discriminators))
+            # discrim_alpha = nn.Parameter(torch.ones( n_discriminators,1))
+            discrim_weights = nn.Parameter(torch.softmax(discrim_alpha, dim=1))
+            # print("discrim_weights", discrim_weights)
 
             # Compute the weighted errors
 
-            weight_products = torch.reshape(
-                (n_generators * n_discriminators,))(torch.mul()([
-                    torch.Reshape((n_discriminators, 1))(discrim_weights),
-                    torch.Reshape((1, n_generators))(gen_weights)
-                ]))
-            stacked_gen_loss = layers.Stack(axis=0)(gen_losses)
-            stacked_discrim_loss = layers.Stack(axis=0)(discrim_losses)
+            discrim_weights_n = discrim_weights.view(-1, self.n_discriminators,
+                                                     1)
+            gen_weights_n = gen_weights.view(-1, 1, self.n_generators)
+
+            weight_products = torch.mul(discrim_weights_n, gen_weights_n)
+            weight_products = weight_products.view(
+                -1, self.n_generators * self.n_discriminators)
+            # print(weight_products.shape)
+            stacked_gen_loss = torch.stack(gen_losses, axis=0)
+            stacked_discrim_loss = torch.stack(discrim_losses, axis=0)
+            # print("stacked_gen_loss", stacked_gen_loss.shape)
+            # print("stacked_discrim_loss", stacked_discrim_loss.shape)
             total_gen_loss = torch.sum(stacked_gen_loss * weight_products)
             total_discrim_loss = torch.sum(stacked_discrim_loss *
                                            weight_products)
-            self.gen_variables += gen_alpha.trainable_variables
-            self.discrim_variables += gen_alpha.trainable_variables
-            self.discrim_variables += discrim_alpha.trainable_variables
+            # print("total_gen_loss", total_gen_loss.shape)
+            # print("total_discrim_loss", total_discrim_loss.shape)
+            # print(gen_alpha)
+
+            self.gen_variables += [gen_alpha]
+            # print("Gen Variables:",self.gen_variables)
+            self.discrim_variables += [gen_alpha]
+            # print("Discrim Variables:",self.discrim_variables)
+            self.discrim_variables += [discrim_alpha]
 
             # Add an entropy term to the loss.
 
             entropy = -(
                 torch.sum(torch.log(gen_weights)) / n_generators +
                 torch.sum(torch.log(discrim_weights)) / n_discriminators)
+            # print("Entropy", entropy)
             total_discrim_loss = total_discrim_loss + entropy
 
-        # Create the Keras model.
+        # Create the Torch model.
 
         inputs = [self.noise_input
                  ] + self.data_input_layers + self.conditional_input_layers
         outputs = [total_gen_loss, total_discrim_loss]
-        self.gen_loss_fn = lambda outputs, labels, weights: outputs[0]
-        self.discrim_loss_fn = lambda outputs, labels, weights: outputs[1]
+        self.gen_loss_fn = outputs[0]
+        self.discrim_loss_fn = outputs[1]
         print('inside GAN init end')
         # model = nn.Linear(inputs, outputs)
-        model = nn.Linear(1,1)
-        super(GAN, self).__init__(model, self.gen_loss_fn)
+        model = nn.Linear(1, 1)
+        super(GAN, self).__init__(model, self.gen_loss_fn, **kwargs)
+
+    # def forward(self, inputs):
+
+    #     return gen_loss_fn, discrim_loss_fn
 
     def _call_discriminator(self, discriminator, inputs, train):
         """Invoke the discriminator on a set of inputs.
@@ -245,7 +282,7 @@ class GAN(TorchModel):
         distribution.
         """
         size = list(self.get_noise_input_shape())
-        size = [batch_size] + size
+        size = [batch_size] + size[1:]
         return np.random.normal(size=size)
 
     def create_generator(self):
@@ -341,16 +378,13 @@ class GAN(TorchModel):
             it.
         """
         self._ensure_built()
+
         gen_train_fraction = 0.0
         discrim_error = 0.0
         gen_error = 0.0
         discrim_average_steps = 0
         gen_average_steps = 0
         time1 = time.time()
-        # if checkpoint_interval > 0:
-        # manager = tf.train.CheckpointManager(self._checkpoint,
-        #  self.model_dir,
-        #  max_checkpoints_to_keep)
 
         for feed_dict in batches:
             # Every call to fit_generator() will increment global_step, but we only
@@ -360,9 +394,16 @@ class GAN(TorchModel):
             global_step = self.get_global_step()
 
             # Train the discriminator.
-
+            for i in feed_dict:
+                print("\n\n\n", i)
+                print(feed_dict[i].shape)
             inputs = [self.get_noise_batch(self.batch_size)]
-            for input in self.data_input_layers:
+            # print(inputs[0].shape)
+            # print(feed_dict.shape)
+            print(self.data_input_layers[0].shape)
+            for input, idx in self.data_input_layers_idx:
+                print(input in feed_dict)
+                print("Input: ", input)
                 inputs.append(feed_dict[input])
             for input in self.conditional_input_layers:
                 inputs.append(feed_dict[input])
@@ -393,7 +434,7 @@ class GAN(TorchModel):
             # Write checkpoints and report progress.
 
             if discrim_average_steps == checkpoint_interval:
-                torch.save({}, self.model_dir)
+                self.save_checkpoint(max_checkpoints_to_keep)
                 discrim_loss = discrim_error / max(1, discrim_average_steps)
                 gen_loss = gen_error / max(1, gen_average_steps)
                 print(
@@ -413,7 +454,7 @@ class GAN(TorchModel):
                 print(
                     'Ending global_step %d: generator average loss %g, discriminator average loss %g'
                     % (global_step, gen_loss, discrim_loss))
-            torch.save({}, self.model_dir)
+            self.save_checkpoint(max_checkpoints_to_keep)
             time2 = time.time()
             print("TIMING: model fitting took %0.3f s" % (time2 - time1))
 

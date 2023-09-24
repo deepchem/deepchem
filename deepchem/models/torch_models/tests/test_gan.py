@@ -4,11 +4,61 @@ import pytest
 import tempfile
 from flaky import flaky
 
-# try:
-if True:
+try:
+    # if True:
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
+
+    class Generator(nn.Module):
+        """A simple generator for testing."""
+
+        def __init__(self, noise_input_shape, conditional_input_shape):
+            super(Generator, self).__init__()
+            self.noise_input_shape = noise_input_shape
+            self.conditional_input_shape = conditional_input_shape
+
+            self.noise_dim = noise_input_shape[1:]
+            self.conditional_dim = conditional_input_shape[1:]
+
+            input_dim = sum(self.noise_dim) + sum(self.conditional_dim)
+            self.output = nn.Linear(input_dim, 1)
+
+        def forward(self, input):
+            noise_input, conditional_input = input
+            inputs = torch.cat((noise_input, conditional_input), dim=1)
+            # print("Gen_in Shape",inputs.shape)
+            output = self.output(inputs)
+            return output
+
+    class Discriminator(nn.Module):
+        """A simple discriminator for testing."""
+
+        def __init__(self, data_input_shape, conditional_input_shape):
+            super(Discriminator, self).__init__()
+            self.data_input_shape = data_input_shape
+            self.conditional_input_shape = conditional_input_shape
+
+            data_dim = data_input_shape[
+                1:]  # Extracting the actual data dimension
+            conditional_dim = conditional_input_shape[
+                1:]  # Extracting the actual conditional dimension
+            input_dim = sum(data_dim) + sum(conditional_dim)
+
+            # Define the dense layers
+            self.dense1 = nn.Linear(input_dim, 10)
+            self.dense2 = nn.Linear(10, 1)
+
+        def forward(self, input):
+            data_input, conditional_input = input
+            # Concatenate data_input and conditional_input along the second dimension
+            discrim_in = torch.cat((data_input, conditional_input), dim=1)
+            # print("discrim_in",discrim_in.shape)
+            # Pass the concatenated input through the dense layers
+            x = F.relu(self.dense1(discrim_in))
+            output = torch.sigmoid(self.dense2(x))
+
+            return output
 
     class ExampleGAN(dc.models.torch_models.GAN):
         """A simple GAN for testing."""
@@ -37,59 +87,19 @@ if True:
             noise_dim = self.get_noise_input_shape()
             conditional_dim = self.get_conditional_input_shapes()[0]
 
-            actual_noise_dim = noise_dim[1:]
-            actual_conditional_dim = conditional_dim[1:]
-
-            # Calculate the total input dimension for the dense layer
-            input_dim = sum(actual_noise_dim) + sum(actual_conditional_dim)
-
-            # Define a dense layer with input dimensions as calculated
-            dense_layer = nn.Linear(input_dim, 1)
-            print(noise_dim, conditional_dim)
-
-            def forward(input):
-                noise_input, conditional_input = input
-                # Concatenate noise_input and conditional_input along the second dimension
-                concatenated_input = torch.cat((noise_input, conditional_input),
-                                               dim=1)
-                # Pass the concatenated input through the dense layer
-                return dense_layer(concatenated_input)
-
-            return forward
+            return nn.Sequential(Generator(noise_dim, conditional_dim))
 
         def create_discriminator(self):
-            print('Hello Discriminator')
+            # print('Hello Discriminator')
             data_input_shape = self.get_data_input_shapes()[0]
             conditional_input_shape = self.get_conditional_input_shapes()[0]
-            data_dim = data_input_shape[
-                1:]  # Extracting the actual data dimension
-            conditional_dim = conditional_input_shape[
-                1:]  # Extracting the actual conditional dimension
 
-            input_dim = sum(data_dim) + sum(conditional_dim)
-
-            # Define the dense layers
-            dense1 = nn.Linear(input_dim, 10)
-            dense2 = nn.Linear(10, 1)
-
-            def forward(input):
-                data_input, conditional_input = input
-                # Concatenate data_input and conditional_input along the second dimension
-                discrim_in = torch.cat((data_input, conditional_input), dim=1)
-
-                # Pass the concatenated input through the dense layers
-                x = F.relu(dense1(discrim_in))
-                output = torch.sigmoid(dense2(x))
-
-                return output
-
-            return forward
-
-        print('Hello GAN 4')
+            return nn.Sequential(
+                Discriminator(data_input_shape, conditional_input_shape))
 
     has_torch = True
-# except:
-#     has_torch = False
+except:
+    has_torch = False
 
 
 @pytest.mark.torch
@@ -104,6 +114,7 @@ def generate_batch(batch_size):
 def generate_data(gan, batches, batch_size):
     for i in range(batches):
         means, values = generate_batch(batch_size)
+        print("Gen Data data", i, gan.data_inputs[0])
         batch = {gan.data_inputs[0]: values, gan.conditional_inputs[0]: means}
         yield batch
 
@@ -113,9 +124,7 @@ def generate_data(gan, batches, batch_size):
 def test_cgan():
     """Test fitting a conditional GAN."""
 
-    # gan = ExampleGAN(learning_rate=0.01)
-    gan = ExampleGAN()
-    print(gan)
+    gan = ExampleGAN(learning_rate=0.01)
     gan.fit_gan(generate_data(gan, 500, 100),
                 generator_steps=0.5,
                 checkpoint_interval=0)
