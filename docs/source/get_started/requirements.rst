@@ -135,10 +135,6 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `Pytorch Sparse`               | latest        | :code:`dc.models.torch_models.mxmnet`             |
-|                                |               |                                                   |
-|                                |               |                                                   |
-+----------------------------------------------------------------------------------------------------+
 
 .. _`joblib`: https://pypi.python.org/pypi/joblib
 .. _`NumPy`: https://numpy.org/
@@ -174,4 +170,3 @@ DeepChem has a number of "soft" requirements.
 .. _`Tensorflow Addons`: https://www.tensorflow.org/addons/overview
 .. _`HuggingFace Tokenizers`: https://huggingface.co/docs/tokenizers/index
 .. _`pySCF`: https://pyscf.org/install.html
-.. _`Pytorch Sparse`: https://pytorch.org/docs/stable/index.html
