@@ -27,7 +27,7 @@ train_smiles = [
 tokens = set()
 for s in train_smiles:
     tokens = tokens.union(set(c for c in s))
-tokens = sorted(list(tokens))
+token_list = sorted(list(tokens))
 
 batch_size = len(train_smiles)
 
@@ -48,13 +48,14 @@ class TestSeqToSeq(unittest.TestCase):
     @pytest.mark.torch
     def test_seqtoseq(self):
         """Test the SeqToSeq Class."""
-        global tokens
-        tokens = tokens + [" "]
-        input_dict = dict((x, i) for i, x in enumerate(tokens))
-        n_tokens = len(tokens)
+        global token_list
+        token_list = token_list + [" "]
+        input_dict = dict((x, i) for i, x in enumerate(token_list))
+        n_tokens = len(token_list)
         embedding_dimension = 16
 
-        model = SeqToSeq(n_tokens, n_tokens, max_length, batch_size, embedding_dimension)
+        model = SeqToSeq(n_tokens, n_tokens, max_length, batch_size,
+                         embedding_dimension)
         inputs = create_input_array(train_smiles, max_length, False, batch_size,
                                     input_dict, " ")
         output, embeddings = model([torch.tensor(inputs), torch.tensor([1])])
