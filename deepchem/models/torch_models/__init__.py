@@ -22,6 +22,7 @@ from deepchem.models.torch_models.attention import ScaledDotProductAttention, Se
 from deepchem.models.torch_models.grover import GroverModel, GroverPretrain, GroverFinetune
 from deepchem.models.torch_models.readout import GroverReadout
 from deepchem.models.torch_models.dtnn import DTNN, DTNNModel
+from deepchem.models.torch_models.seqtoseq import SeqToSeq
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
     from deepchem.models.torch_models.gnn import GNN, GNNHead, GNNModular
