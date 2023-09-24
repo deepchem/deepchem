@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import unittest
+from typing import Set
 
 from deepchem.utils.batch_utils import create_input_array
 
@@ -24,7 +25,7 @@ train_smiles = [
     'CCn1cnc2c1c(=O)n(CC(=O)Nc1cc(C)on1)c(=O)n2Cc1ccccc1'
 ]
 
-tokens = set()
+tokens: Set[str] = set()
 for s in train_smiles:
     tokens = tokens.union(set(c for c in s))
 token_list = sorted(list(tokens))
@@ -32,15 +33,6 @@ token_list = sorted(list(tokens))
 batch_size = len(train_smiles)
 
 max_length = max(len(s) for s in train_smiles)
-
-
-def generate_sequences(sequence_length, num_sequences):
-    for i in range(num_sequences):
-        seq = "".join([
-            str(np.random.randint(10))
-            for x in range(np.random.randint(1, sequence_length + 1))
-        ])
-        yield (seq, seq)
 
 
 class TestSeqToSeq(unittest.TestCase):

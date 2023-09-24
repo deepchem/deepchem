@@ -63,6 +63,38 @@ class SeqToSeq(nn.Module):
 
     In this class, we establish a sequential model for the Sequence to Sequence (DTNN) [1]_.
 
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.torch_models.seqtoseq import SeqToSeq
+    >>> from deepchem.utils.batch_utils import create_input_array
+    >>> # Dataset of SMILES strings for testing SeqToSeq models.
+    >>> train_smiles = [
+    ...     'Cc1cccc(N2CCN(C(=O)C34CC5CC(CC(C5)C3)C4)CC2)c1C',
+    ...     'Cn1ccnc1SCC(=O)Nc1ccc(Oc2ccccc2)cc1',
+    ...     'COc1cc2c(cc1NC(=O)CN1C(=O)NC3(CCc4ccccc43)C1=O)oc1ccccc12',
+    ...     'CCCc1cc(=O)nc(SCC(=O)N(CC(C)C)C2CCS(=O)(=O)C2)[nH]1',
+    ... ]
+    >>> tokens = set()
+    >>> for s in train_smiles:
+    ...     tokens = tokens.union(set(c for c in s))
+    >>> token_list = sorted(list(tokens))
+    >>> batch_size = len(train_smiles)
+    >>> MAX_LENGTH = max(len(s) for s in train_smiles)
+    >>> token_list = token_list + [" "]
+    >>> input_dict = dict((x, i) for i, x in enumerate(token_list))
+    >>> n_tokens = len(token_list)
+    >>> embedding_dimension = 16
+    >>> model = SeqToSeq(n_tokens, n_tokens, MAX_LENGTH, batch_size,
+    ...                  embedding_dimension)
+    >>> inputs = create_input_array(train_smiles, MAX_LENGTH, False, batch_size,
+    ...                             input_dict, " ")
+    >>> output, embeddings = model([torch.tensor(inputs), torch.tensor([1])])
+    >>> output.shape
+    torch.Size([4, 57, 19])
+    >>> embeddings.shape
+    torch.Size([1, 4, 16])
+
     References
     ----------
     .. [1] Sutskever et al., "Sequence to Sequence Learning with Neural Networks"
@@ -98,10 +130,10 @@ class SeqToSeq(nn.Module):
             If True, train the model as a variational autoencoder. This adds random
             noise to the encoder, and also constrains the embedding to follow a unit
             Gaussian distribution.
-        annealing_start_step: int
+        annealing_start_step: int (default 5000)
             the step (that is, batch) at which to begin turning on the constraint
             term for KL cost annealing.
-        annealing_final_step: int
+        annealing_final_step: int (default 10000)
             the step (that is, batch) at which to finish turning on the constraint
             term for KL cost annealing.
 
