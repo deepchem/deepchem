@@ -5,7 +5,6 @@ import tempfile
 from flaky import flaky
 
 try:
-    # if True:
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
@@ -26,9 +25,7 @@ try:
 
         def forward(self, input):
             noise_input, conditional_input = input
-            # print("Gen_in", noise_input.shape, conditional_input.shape)
             inputs = torch.cat((noise_input, conditional_input), dim=1)
-            # print("Gen_in Shape",inputs.shape)
             output = self.output(inputs)
             return output
 
@@ -52,9 +49,10 @@ try:
 
         def forward(self, input):
             data_input, conditional_input = input
+
             # Concatenate data_input and conditional_input along the second dimension
             discrim_in = torch.cat((data_input, conditional_input), dim=1)
-            # print("discrim_in",discrim_in.shape)
+
             # Pass the concatenated input through the dense layers
             x = F.relu(self.dense1(discrim_in))
             output = torch.sigmoid(self.dense2(x))
@@ -64,7 +62,6 @@ try:
     class ExampleGAN(dc.models.torch_models.GANModel):
         """A simple GAN for testing."""
 
-        # print('Hello GAN')
         def get_noise_input_shape(self):
             return (
                 1,
@@ -83,7 +80,6 @@ try:
                 1,
             )]
 
-        # print('Hello GAN 2')
         def create_generator(self):
             noise_dim = self.get_noise_input_shape()
             conditional_dim = self.get_conditional_input_shapes()[0]
@@ -91,7 +87,6 @@ try:
             return nn.Sequential(Generator(noise_dim, conditional_dim))
 
         def create_discriminator(self):
-            # print('Hello Discriminator')
             data_input_shape = self.get_data_input_shapes()[0]
             conditional_input_shape = self.get_conditional_input_shapes()[0]
 
@@ -113,9 +108,8 @@ def generate_batch(batch_size):
 
 @pytest.mark.torch
 def generate_data(gan, batches, batch_size):
-    for i in range(batches):
+    for _ in range(batches):
         means, values = generate_batch(batch_size)
-        # print("Gen Data data", i, gan.data_inputs[0])
         batch = {gan.data_inputs[0]: values, gan.conditional_inputs[0]: means}
         yield batch
 
@@ -187,9 +181,3 @@ def test_mix_gan():
         assert abs(np.mean(deltas)) < 1.0
         assert np.std(deltas) > 1.0
     assert gan.get_global_step() == 1000
-
-
-if __name__ == "__main__":
-    # test_cgan()
-    test_cgan_reload()
-    # test_mix_gan()
