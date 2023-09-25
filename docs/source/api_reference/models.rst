@@ -490,6 +490,12 @@ DTNNModel
 .. autoclass:: deepchem.models.torch_models.DTNNModel
   :members:
 
+GANModel
+--------
+
+.. autoclass:: deepchem.models.torch_models.GANModel
+  :members:
+
 Density Functional Theory Model - XCModel
 -----------------------------------------
 

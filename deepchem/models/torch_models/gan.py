@@ -62,13 +62,13 @@ class GAN(nn.Module):
     """
 
     def __init__(self,
-                 noise_input_shape,
-                 data_input_shape,
-                 conditional_input_shape,
-                 generator_fn,
-                 discriminator_fn,
-                 n_generators=1,
-                 n_discriminators=1):
+                 noise_input_shape: tuple,
+                 data_input_shape: list(tuple),
+                 conditional_input_shape: list(tuple),
+                 generator_fn: callable,
+                 discriminator_fn: callable,
+                 n_generators: int = 1,
+                 n_discriminators: int = 1):
         """Construct a GAN.
 
         In addition to the parameters listed below, this class accepts all the
@@ -156,8 +156,8 @@ class GAN(nn.Module):
         Parameters
         ----------
         inputs: list of Tensor
-            the inputs to the GAN.  The first element must be a batch of noise,
-            followed by any conditional inputs.
+            the inputs to the GAN. The first element must be a batch of noise,
+            followed by data inputs and any conditional inputs.
 
         Returns
         -------
@@ -268,6 +268,17 @@ class GAN(nn.Module):
 
         This is a separate method so WGAN can override it and also return the
         gradient penalty.
+        
+        Parameters
+        ----------
+        discriminator: nn.Module
+            the discriminator to invoke
+        inputs: list of Tensor
+            the inputs to the discriminator.  The first element must be a batch of
+            data, followed by any conditional inputs.
+        train: bool
+            if True, the discriminator should be invoked in training mode. If False,
+            it should be invoked in inference mode.
         """
         return discriminator(
             _list_or_tensor(inputs + self.conditional_input_layers))
@@ -279,6 +290,15 @@ class GAN(nn.Module):
         get_noise_input_shape().  The default implementation returns normally
         distributed values.  Subclasses can override this to implement a different
         distribution.
+        
+        Parameters
+        ----------
+        batch_size: int
+            the number of samples to generate
+        
+        Returns
+        -------
+        a batch of random noise
         """
         size = list(self.noise_input_shape)
         size = [batch_size] + size[1:]
