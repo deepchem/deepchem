@@ -26,6 +26,7 @@ try:
 
         def forward(self, input):
             noise_input, conditional_input = input
+            # print("Gen_in", noise_input.shape, conditional_input.shape)
             inputs = torch.cat((noise_input, conditional_input), dim=1)
             # print("Gen_in Shape",inputs.shape)
             output = self.output(inputs)
@@ -60,7 +61,7 @@ try:
 
             return output
 
-    class ExampleGAN(dc.models.torch_models.GAN):
+    class ExampleGAN(dc.models.torch_models.GANModel):
         """A simple GAN for testing."""
 
         # print('Hello GAN')
@@ -114,7 +115,7 @@ def generate_batch(batch_size):
 def generate_data(gan, batches, batch_size):
     for i in range(batches):
         means, values = generate_batch(batch_size)
-        print("Gen Data data", i, gan.data_inputs[0])
+        # print("Gen Data data", i, gan.data_inputs[0])
         batch = {gan.data_inputs[0]: values, gan.conditional_inputs[0]: means}
         yield batch
 
@@ -125,15 +126,15 @@ def test_cgan():
     """Test fitting a conditional GAN."""
 
     gan = ExampleGAN(learning_rate=0.01)
-    gan.fit_gan(generate_data(gan, 500, 100),
-                generator_steps=0.5,
-                checkpoint_interval=0)
+    data = generate_data(gan, 500, 100)
+    gan.fit_gan(data, generator_steps=0.5, checkpoint_interval=0)
 
     # See if it has done a plausible job of learning the distribution.
 
     means = 10 * np.random.random([1000, 1])
     values = gan.predict_gan_generator(conditional_inputs=[means])
     deltas = values - means
+    print("Deltas", abs(np.mean(deltas)))
     assert abs(np.mean(deltas)) < 1.0
     assert np.std(deltas) > 1.0
     assert gan.get_global_step() == 500
@@ -173,9 +174,8 @@ def test_mix_gan():
     """Test a GAN with multiple generators and discriminators."""
 
     gan = ExampleGAN(n_generators=2, n_discriminators=2, learning_rate=0.01)
-    gan.fit_gan(generate_data(gan, 1000, 100),
-                generator_steps=0.5,
-                checkpoint_interval=0)
+    data = generate_data(gan, 1000, 100)
+    gan.fit_gan(data, generator_steps=0.5, checkpoint_interval=0)
 
     # See if it has done a plausible job of learning the distribution.
 
