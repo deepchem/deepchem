@@ -63,8 +63,8 @@ class GAN(nn.Module):
 
     def __init__(self,
                  noise_input_shape: tuple,
-                 data_input_shape: list(tuple),
-                 conditional_input_shape: list(tuple),
+                 data_input_shape: list,
+                 conditional_input_shape: list,
                  generator_fn: callable,
                  discriminator_fn: callable,
                  n_generators: int = 1,
