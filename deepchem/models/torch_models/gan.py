@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import time
-
+from typing import Callable
 # from deepchem.models.torch_models import layers
 from deepchem.models.torch_models.torch_model import TorchModel
 
@@ -65,8 +65,8 @@ class GAN(nn.Module):
                  noise_input_shape: tuple,
                  data_input_shape: list,
                  conditional_input_shape: list,
-                 generator_fn: callable,
-                 discriminator_fn: callable,
+                 generator_fn: Callable,
+                 discriminator_fn: Callable,
                  n_generators: int = 1,
                  n_discriminators: int = 1):
         """Construct a GAN.
@@ -86,14 +86,14 @@ class GAN(nn.Module):
             the shapes of the conditional inputs to the generator and discriminator.
             The first dimension (corresponding to the batch size) should be omitted.
             If there are no conditional inputs, this should be an empty list.
-        generator_fn: callable
+        generator_fn: Callable
             a function that returns a generator.  It will be called with no arguments.
             The returned value should be a nn.Module whose input is a list
             containing a batch of noise, followed by any conditional inputs.  The
             number and shapes of its outputs must match the return value from
             get_data_input_shapes(), since generated data must have the same form as
             training data.
-        discriminator_fn: callable
+        discriminator_fn: Callable
             a function that returns a discriminator.  It will be called with no
             arguments.  The returned value should be a nn.Module whose input is a
             list containing a batch of data, followed by any conditional inputs.  Its
@@ -254,7 +254,7 @@ class GAN(nn.Module):
 
         This is a separate method so WGAN can override it and also return the
         gradient penalty.
-        
+
         Parameters
         ----------
         discriminator: nn.Module
@@ -276,12 +276,12 @@ class GAN(nn.Module):
         get_noise_input_shape().  The default implementation returns normally
         distributed values.  Subclasses can override this to implement a different
         distribution.
-        
+
         Parameters
         ----------
         batch_size: int
             the number of samples to generate
-        
+
         Returns
         -------
         a batch of random noise
