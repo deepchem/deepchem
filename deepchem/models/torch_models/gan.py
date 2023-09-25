@@ -706,7 +706,7 @@ class WGANModel(GANModel):
             the magnitude of the gradient penalty loss
         """
         self.gradient_penalty = gradient_penalty
-        super(WGAN, self).__init__(**kwargs)
+        super(WGANModel, self).__init__(**kwargs)
 
     def _call_discriminator(self, discriminator, inputs, train):
         if train:
@@ -736,11 +736,11 @@ class GradientPenaltyLayer(nn.Module):
         inputs = list(inputs) + list(conditional_inputs)
         inputs = torch.cat(inputs)
         output = self.discriminator(inputs)
-        gradients = torch.autograd.grad(outputs=output, 
+        gradients = torch.autograd.grad(outputs=output,
                                         inputs=inputs,
                                         grad_outputs=torch.ones_like(output),
-                                        create_graph=True, 
-                                        retain_graph=True, 
+                                        create_graph=True,
+                                        retain_graph=True,
                                         only_inputs=True)
         gradients = [g for g in gradients if g is not None]
         if len(gradients) > 0:
