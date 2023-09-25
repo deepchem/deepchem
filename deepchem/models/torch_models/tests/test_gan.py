@@ -169,7 +169,7 @@ def test_cgan_reload():
 
 
 @flaky
-@pytest.mark.tensorflow
+@pytest.mark.torch
 def test_mix_gan():
     """Test a GAN with multiple generators and discriminators."""
 
@@ -190,6 +190,6 @@ def test_mix_gan():
 
 
 if __name__ == "__main__":
-    test_cgan()
-    # test_cgan_reload()
+    # test_cgan()
+    test_cgan_reload()
     # test_mix_gan()
