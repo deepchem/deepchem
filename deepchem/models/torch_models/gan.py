@@ -9,56 +9,17 @@ from deepchem.models.torch_models.torch_model import TorchModel
 
 
 class GAN(nn.Module):
-    """Implements Generative Adversarial Networks.
+    """Builder class for Generative Adversarial Networks.
 
-    A Generative Adversarial Network (GAN) is a type of generative model.  It
-    consists of two parts called the "generator" and the "discriminator".  The
+    A Generative Adversarial Network (GAN) is a type of generative model. It
+    consists of two parts called the "generator" and the "discriminator". The
     generator takes random noise as input and transforms it into an output that
-    (hopefully) resembles the training data.  The discriminator takes a set of
+    (hopefully) resembles the training data. The discriminator takes a set of
     samples as input and tries to distinguish the real training samples from the
-    ones created by the generator.  Both of them are trained together.  The
+    ones created by the generator. Both of them are trained together. The
     discriminator tries to get better and better at telling real from false data,
     while the generator tries to get better and better at fooling the discriminator.
 
-    In many cases there also are additional inputs to the generator and
-    discriminator.  In that case it is known as a Conditional GAN (CGAN), since it
-    learns a distribution that is conditional on the values of those inputs.  They
-    are referred to as "conditional inputs".
-
-    Many variations on this idea have been proposed, and new varieties of GANs are
-    constantly being proposed.  This class tries to make it very easy to implement
-    straightforward GANs of the most conventional types.  At the same time, it
-    tries to be flexible enough that it can be used to implement many (but
-    certainly not all) variations on the concept.
-
-    To define a GAN, you must create a subclass that provides implementations of
-    the following methods:
-
-    get_noise_input_shape()
-    get_data_input_shapes()
-    create_generator()
-    create_discriminator()
-
-    If you want your GAN to have any conditional inputs you must also implement:
-
-    get_conditional_input_shapes()
-
-    The following methods have default implementations that are suitable for most
-    conventional GANs.  You can override them if you want to customize their
-    behavior:
-
-    create_generator_loss()
-    create_discriminator_loss()
-    get_noise_batch()
-
-    This class allows a GAN to have multiple generators and discriminators, a model
-    known as MIX+GAN.  It is described in Arora et al., "Generalization and
-    Equilibrium in Generative Adversarial Nets (GANs)" (https://arxiv.org/abs/1703.00573).
-    This can lead to better models, and is especially useful for reducing mode
-    collapse, since different generators can learn different parts of the
-    distribution.  To use this technique, simply specify the number of generators
-    and discriminators when calling the constructor.  You can then tell
-    predict_gan_generator() which generator to use for predicting samples.
     """
 
     def __init__(self,
@@ -381,9 +342,56 @@ def _list_or_tensor(inputs):
 
 
 class GANModel(TorchModel):
-    """Model for Generative Adversarial Networks.
+    """Implements Generative Adversarial Networks.
 
-    <writeup on the Model>
+    A Generative Adversarial Network (GAN) is a type of generative model.  It
+    consists of two parts called the "generator" and the "discriminator".  The
+    generator takes random noise as input and transforms it into an output that
+    (hopefully) resembles the training data.  The discriminator takes a set of
+    samples as input and tries to distinguish the real training samples from the
+    ones created by the generator.  Both of them are trained together.  The
+    discriminator tries to get better and better at telling real from false data,
+    while the generator tries to get better and better at fooling the discriminator.
+
+    In many cases there also are additional inputs to the generator and
+    discriminator.  In that case it is known as a Conditional GAN (CGAN), since it
+    learns a distribution that is conditional on the values of those inputs.  They
+    are referred to as "conditional inputs".
+
+    Many variations on this idea have been proposed, and new varieties of GANs are
+    constantly being proposed.  This class tries to make it very easy to implement
+    straightforward GANs of the most conventional types.  At the same time, it
+    tries to be flexible enough that it can be used to implement many (but
+    certainly not all) variations on the concept.
+
+    To define a GAN, you must create a subclass that provides implementations of
+    the following methods:
+
+    get_noise_input_shape()
+    get_data_input_shapes()
+    create_generator()
+    create_discriminator()
+
+    If you want your GAN to have any conditional inputs you must also implement:
+
+    get_conditional_input_shapes()
+
+    The following methods have default implementations that are suitable for most
+    conventional GANs.  You can override them if you want to customize their
+    behavior:
+
+    create_generator_loss()
+    create_discriminator_loss()
+    get_noise_batch()
+
+    This class allows a GAN to have multiple generators and discriminators, a model
+    known as MIX+GAN.  It is described in Arora et al., "Generalization and
+    Equilibrium in Generative Adversarial Nets (GANs)" (https://arxiv.org/abs/1703.00573).
+    This can lead to better models, and is especially useful for reducing mode
+    collapse, since different generators can learn different parts of the
+    distribution.  To use this technique, simply specify the number of generators
+    and discriminators when calling the constructor.  You can then tell
+    predict_gan_generator() which generator to use for predicting samples.
 
     Examples
     --------
