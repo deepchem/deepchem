@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 import time
 from typing import Callable
-# from deepchem.models.torch_models import layers
 from deepchem.models.torch_models.torch_model import TorchModel
 
 
@@ -551,9 +550,6 @@ class GANModel(TorchModel):
             for shape in self.get_conditional_input_shapes():
                 temp_cond.append(
                     torch.randn(size=[self.batch_size] + list(shape[1:])))
-            # temp_data = torch.randn(self.get_data_input_shapes()[0])
-            # inputs=(temp_noise,temp_data,temp_cond)
-            # print("\n\n\ninputs OG:", inputs)
             inputs += [*temp_data, *temp_cond]
 
             # # Torch Tensor Hashing Issue here
@@ -657,3 +653,106 @@ class GANModel(TorchModel):
         pred = self.generators[generator_index](_list_or_tensor(inputs))
         pred = pred.detach().numpy()
         return pred
+
+
+class WGANModel(GANModel):
+    """Implements Wasserstein Generative Adversarial Networks.
+
+    This class implements Wasserstein Generative Adversarial Networks (WGANs) as
+    described in Arjovsky et al., "Wasserstein GAN" (https://arxiv.org/abs/1701.07875).
+    A WGAN is conceptually rather different from a conventional GAN, but in
+    practical terms very similar.  It reinterprets the discriminator (often called
+    the "critic" in this context) as learning an approximation to the Earth Mover
+    distance between the training and generated distributions.  The generator is
+    then trained to minimize that distance.  In practice, this just means using
+    slightly different loss functions for training the generator and discriminator.
+
+    WGANs have theoretical advantages over conventional GANs, and they often work
+    better in practice.  In addition, the discriminator's loss function can be
+    directly interpreted as a measure of the quality of the model.  That is an
+    advantage over conventional GANs, where the loss does not directly convey
+    information about the quality of the model.
+
+    The theory WGANs are based on requires the discriminator's gradient to be
+    bounded.  The original paper achieved this by clipping its weights.  This
+    class instead does it by adding a penalty term to the discriminator's loss, as
+    described in https://arxiv.org/abs/1704.00028.  This is sometimes found to
+    produce better results.
+
+    There are a few other practical differences between GANs and WGANs.  In a
+    conventional GAN, the discriminator's output must be between 0 and 1 so it can
+    be interpreted as a probability.  In a WGAN, it should produce an unbounded
+    output that can be interpreted as a distance.
+
+    When training a WGAN, you also should usually use a smaller value for
+    generator_steps.  Conventional GANs rely on keeping the generator and
+    discriminator "in balance" with each other.  If the discriminator ever gets
+    too good, it becomes impossible for the generator to fool it and training
+    stalls.  WGANs do not have this problem, and in fact the better the
+    discriminator is, the easier it is for the generator to improve.  It therefore
+    usually works best to perform several training steps on the discriminator for
+    each training step on the generator.
+    """
+
+    def __init__(self, gradient_penalty=10.0, **kwargs):
+        """Construct a WGAN.
+
+        In addition to the following, this class accepts all the keyword arguments
+        from GAN and KerasModel.
+
+        Parameters
+        ----------
+        gradient_penalty: float
+            the magnitude of the gradient penalty loss
+        """
+        self.gradient_penalty = gradient_penalty
+        super(WGAN, self).__init__(**kwargs)
+
+    def _call_discriminator(self, discriminator, inputs, train):
+        if train:
+            penalty = GradientPenaltyLayer(self, discriminator)
+            return penalty(inputs, self.conditional_input_layers)
+        return discriminator(
+            _list_or_tensor(inputs + self.conditional_input_layers))
+
+    def create_generator_loss(self, discrim_output):
+        return torch.mean(discrim_output)
+
+    def create_discriminator_loss(self, discrim_output_train,
+                                  discrim_output_gen):
+        return torch.mean(discrim_output_train[0][0] -
+                          discrim_output_gen[1]) + discrim_output_train[1]
+
+
+class GradientPenaltyLayer(nn.Module):
+    """Implements the gradient penalty loss term for WGANs."""
+
+    def __init__(self, gan, discriminator, **kwargs):
+        super(GradientPenaltyLayer, self).__init__(**kwargs)
+        self.gan = gan
+        self.discriminator = discriminator
+
+    def forward(self, inputs, conditional_inputs):
+        inputs = list(inputs) + list(conditional_inputs)
+        inputs = torch.cat(inputs)
+        output = self.discriminator(inputs)
+        gradients = torch.autograd.grad(outputs=output, 
+                                        inputs=inputs,
+                                        grad_outputs=torch.ones_like(output),
+                                        create_graph=True, 
+                                        retain_graph=True, 
+                                        only_inputs=True)
+        gradients = [g for g in gradients if g is not None]
+        if len(gradients) > 0:
+            norm2 = torch.tensor([0.0])
+            for g in gradients:
+                g2 = torch.square(g)
+                dims = len(g.shape)
+                if dims > 1:
+                    g2 = torch.sum(g2, axis=list(range(1, dims)))
+                norm2 += g2
+            penalty = torch.square(torch.sqrt(norm2) - 1.0)
+            penalty = self.gan.gradient_penalty * torch.mean(penalty)
+        else:
+            penalty = 0.0
+        return [output, penalty]

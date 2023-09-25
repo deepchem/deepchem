@@ -496,6 +496,12 @@ GANModel
 .. autoclass:: deepchem.models.torch_models.GANModel
   :members:
 
+WGANModel
+---------
+
+.. autoclass:: deepchem.models.torch_models.WGANModel
+  :members:
+
 Density Functional Theory Model - XCModel
 -----------------------------------------
 

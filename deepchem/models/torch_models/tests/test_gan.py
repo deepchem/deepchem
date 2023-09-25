@@ -25,9 +25,8 @@ try:
 
         def forward(self, input):
             noise_input, conditional_input = input
-            # print("Gen_in", noise_input.shape, conditional_input.shape)
             inputs = torch.cat((noise_input, conditional_input), dim=1)
-            # print("Gen_in Shape",inputs.shape)
+
             output = self.output(inputs)
             return output
 
@@ -51,9 +50,10 @@ try:
 
         def forward(self, input):
             data_input, conditional_input = input
+
             # Concatenate data_input and conditional_input along the second dimension
             discrim_in = torch.cat((data_input, conditional_input), dim=1)
-            # print("discrim_in",discrim_in.shape)
+
             # Pass the concatenated input through the dense layers
             x = F.relu(self.dense1(discrim_in))
             output = torch.sigmoid(self.dense2(x))
@@ -185,11 +185,47 @@ def test_mix_gan():
 
 
 @flaky
+@pytest.mark.tensorflow
+def test_mix_gan_reload():
+    """Test reloading a GAN with multiple generators and discriminators."""
+
+    model_dir = tempfile.mkdtemp()
+    gan = ExampleGAN(n_generators=2,
+                     n_discriminators=2,
+                     learning_rate=0.01,
+                     model_dir=model_dir)
+    gan.fit_gan(generate_data(gan, 1000, 100), generator_steps=0.5)
+
+    reloaded_gan = ExampleGAN(n_generators=2,
+                              n_discriminators=2,
+                              learning_rate=0.01,
+                              model_dir=model_dir)
+    reloaded_gan.restore()
+    # See if it has done a plausible job of learning the distribution.
+
+    means = 10 * np.random.random([1000, 1])
+    batch_size = len(means)
+    noise_input = gan.get_noise_batch(batch_size=batch_size)
+    for i in range(2):
+        values = gan.predict_gan_generator(noise_input=noise_input,
+                                           conditional_inputs=[means],
+                                           generator_index=i)
+        reloaded_values = reloaded_gan.predict_gan_generator(
+            noise_input=noise_input,
+            conditional_inputs=[means],
+            generator_index=i)
+        assert np.all(values == reloaded_values)
+    assert gan.get_global_step() == 1000
+    # No training has been done after reload
+    assert reloaded_gan.get_global_step() == 0
+
+
+@flaky
 @pytest.mark.torch
 def test_wgan():
     """Test fitting a conditional WGAN."""
 
-    class ExampleWGAN(dc.models.torch_models.WGAN):
+    class ExampleWGAN(dc.models.torch_models.WGANModel):
 
         def get_noise_input_shape(self):
             return (
@@ -243,7 +279,7 @@ def test_wgan():
 def test_wgan_reload():
     """Test fitting a conditional WGAN."""
 
-    class ExampleWGAN(dc.models.torch_models.WGAN):
+    class ExampleWGAN(dc.models.torch_models.WGANModel):
 
         def get_noise_input_shape(self):
             return (
@@ -300,10 +336,3 @@ def test_wgan_reload():
     reloaded_values = reloaded_gan.predict_gan_generator(
         noise_input=noise_input, conditional_inputs=[means])
     assert np.all(values == reloaded_values)
-
-
-
-if __name__ == "__main__":
-    # test_cgan()
-    test_cgan_reload()
-    # test_mix_gan()
