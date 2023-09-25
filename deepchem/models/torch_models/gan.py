@@ -172,12 +172,10 @@ class GAN(nn.Module):
         noise_input, data_input_layers, conditional_input_layers = inputs[
             0], inputs[1], inputs[2]
 
-        # print("\n\n\nNoise Input", noise_input.shape)
-        # print("Data Input", data_input_layers.shape)
-        # print("Conditional Input", conditional_input_layers.shape)
         self.noise_input.data = noise_input
         self.conditional_input_layers = [conditional_input_layers]
         self.data_input_layers = [data_input_layers]
+
         # Forward pass through generators
         generator_outputs = [
             gen(_list_or_tensor([[noise_input] + self.conditional_input_layers
@@ -189,9 +187,7 @@ class GAN(nn.Module):
             self._call_discriminator(disc, self.data_input_layers, True)
             for disc in self.discriminators
         ]
-        # for gen_output in generator_outputs:
-        #     print(type(gen_output))
-        #     break
+
         discrim_gen_outputs = [
             self._call_discriminator(disc, [gen_output], False)
             for disc in self.discriminators
@@ -214,8 +210,6 @@ class GAN(nn.Module):
         if n_generators == 1 and n_discriminators == 1:
             total_gen_loss = gen_losses[0]
             total_discrim_loss = discrim_losses[0]
-            # print(total_gen_loss, total_discrim_loss)
-            # print('inside GAN after loss if')
         else:
             # Create learnable weights for the generators and discriminators.
 
@@ -224,7 +218,6 @@ class GAN(nn.Module):
 
             discrim_alpha = nn.Parameter(torch.ones(1, n_discriminators))
             discrim_weights = nn.Parameter(torch.softmax(discrim_alpha, dim=1))
-            # print("discrim_weights", discrim_weights)
 
             # Compute the weighted errors
 
@@ -235,22 +228,16 @@ class GAN(nn.Module):
             weight_products = torch.mul(discrim_weights_n, gen_weights_n)
             weight_products = weight_products.view(
                 -1, self.n_generators * self.n_discriminators)
-            # print(weight_products.shape)
+
             stacked_gen_loss = torch.stack(gen_losses, axis=0)
             stacked_discrim_loss = torch.stack(discrim_losses, axis=0)
-            # print("stacked_gen_loss", stacked_gen_loss.shape)
-            # print("stacked_discrim_loss", stacked_discrim_loss.shape)
+
             total_gen_loss = torch.sum(stacked_gen_loss * weight_products)
             total_discrim_loss = torch.sum(stacked_discrim_loss *
                                            weight_products)
-            # print("total_gen_loss", total_gen_loss.shape)
-            # print("total_discrim_loss", total_discrim_loss.shape)
-            # print(gen_alpha)
 
             self.gen_variables += [gen_alpha]
-            # print("Gen Variables:",self.gen_variables)
             self.discrim_variables += [gen_alpha]
-            # print("Discrim Variables:",self.discrim_variables)
             self.discrim_variables += [discrim_alpha]
 
             # Add an entropy term to the loss.
@@ -258,7 +245,6 @@ class GAN(nn.Module):
             entropy = -(
                 torch.sum(torch.log(gen_weights)) / n_generators +
                 torch.sum(torch.log(discrim_weights)) / n_discriminators)
-            # print("Entropy", entropy)
             total_discrim_loss = total_discrim_loss + entropy
 
         return total_gen_loss, total_discrim_loss
@@ -320,8 +306,6 @@ class GAN(nn.Module):
         -------
         A Tensor equal to the loss function to use for optimizing the generator.
         """
-        # print("Discrim Output", discrim_output.shape)
-        # print(type(discrim_output), discrim_output)
         return -torch.mean(torch.log(discrim_output + 1e-10))
 
     def create_discriminator_loss(self, discrim_output_train,
@@ -368,7 +352,6 @@ class GAN(nn.Module):
         discrim_output_train, discrim_output_gen = outputs
         return self.create_discriminator_loss(discrim_output_train,
                                               discrim_output_gen)
-        # return F.binary_cross_entropy(outputs, labels)
 
     def gen_loss_fn_wrapper(self, outputs, labels, weights):
         """Wrapper around create_generator_loss for use with fit_generator.
@@ -389,7 +372,6 @@ class GAN(nn.Module):
         """
         discrim_output_train, discrim_output_gen = outputs
         return self.create_generator_loss(discrim_output_gen)
-        # return F.binary_cross_entropy(outputs, labels)
 
 
 def _list_or_tensor(inputs):
@@ -445,7 +427,6 @@ class GANModel(TorchModel):
         self.discrim_variables = model.discrim_variables
         self.get_noise_batch = model.get_noise_batch
 
-        # print(model.data_inputs[0])
         super(GANModel, self).__init__(model,
                                        loss=self.gen_loss_fn_wrapper,
                                        **kwargs)
@@ -552,13 +533,12 @@ class GANModel(TorchModel):
             # Train the discriminator.
 
             inputs = [self.get_noise_batch(self.batch_size)]
-            # print("Noise Input", inputs[0].shape)
-            # temp_noise = torch.randn(self.get_noise_input_shape())
+
             temp_data = []
             for shape in self.get_data_input_shapes():
                 temp_data.append(
                     torch.randn(size=[self.batch_size] + list(shape[1:])))
-            # print("Data Input", temp_data[0].shape)
+
             temp_cond = []
             for shape in self.get_conditional_input_shapes():
                 temp_cond.append(
@@ -567,8 +547,8 @@ class GANModel(TorchModel):
             # inputs=(temp_noise,temp_data,temp_cond)
             # print("\n\n\ninputs OG:", inputs)
             inputs += [*temp_data, *temp_cond]
-            print([i.shape for i in inputs])
-            # print(self.data_input_layers[0].shape)
+
+            # # Torch Tensor Hashing Issue here
             # for input in self.data_input_layers:
             #     print("Input: ", input.data)
             #     inputs.append(feed_dict[input])
@@ -582,7 +562,7 @@ class GANModel(TorchModel):
                 restore=restore)
             restore = False
             discrim_average_steps += 1
-            # print("calc Discrim Error")
+
             # Train the generator.
 
             if generator_steps > 0.0:
@@ -590,7 +570,7 @@ class GANModel(TorchModel):
                 while gen_train_fraction >= 1.0:
                     inputs = [self.get_noise_batch(self.batch_size)
                              ] + inputs[1:]
-                    # print("insdie gen",[i.shape for i in inputs])
+
                     gen_error += self.fit_generator(
                         [(inputs, [], [])],
                         variables=self.gen_variables,
