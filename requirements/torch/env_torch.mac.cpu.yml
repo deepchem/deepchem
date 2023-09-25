@@ -2,8 +2,10 @@ channels:
   - pytorch
 dependencies:
   - pytorch==1.10.*
+  - pip
   - pip:
     - -f https://data.pyg.org/whl/torch-1.10.0+cpu.html
     - dgl
     - torch-geometric
     - pytorch-lightning==1.6.5
+    - torch-sparse

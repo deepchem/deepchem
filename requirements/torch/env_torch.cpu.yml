@@ -1,4 +1,5 @@
 dependencies:
+  - pip
   - pip:
     - -f https://download.pytorch.org/whl/cpu/torch_stable.html
     - -f https://data.pyg.org/whl/torch-1.12.0+cpu.html
@@ -7,3 +8,4 @@ dependencies:
     - torch==1.12.0+cpu
     - torch-geometric
     - pytorch-lightning==1.6.5
+    - torch-sparse
