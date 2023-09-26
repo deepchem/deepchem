@@ -1,6 +1,7 @@
 import math
 from math import pi as PI
 import numpy as np
+import itertools
 from typing import Any, Tuple, Optional, Sequence, List, Union, Callable, Dict, TypedDict
 from collections.abc import Sequence as SequenceCollection
 try:
@@ -2661,6 +2662,216 @@ class AtomicConvolution(nn.Module):
         return torch.mul(K, FC)
 
 
+class AtomicConvolutionModule(nn.Module):
+    """
+    Implements an Atomic Convolution Model.
+
+    Implements the atomic convolutional networks as introduced in
+
+    Gomes, Joseph, et al. "Atomic convolutional networks for predicting protein-ligand binding affinity." arXiv preprint arXiv:1703.10603 (2017).
+
+    The atomic convolutional networks function as a variant of
+    graph convolutions. The difference is that the "graph" here is
+    the nearest neighbors graph in 3D space. The AtomicConvModel
+    leverages these connections in 3D space to train models that
+    learn to predict energetic state starting from the spatial
+    geometry of the model.
+    """
+    def __init__(self,
+                 n_tasks: int,
+                 frag1_num_atoms: int = 70,
+                 frag2_num_atoms: int = 634,
+                 complex_num_atoms: int = 701,
+                 max_num_neighbors: int = 12,
+                 batch_size: int = 24,
+                 atom_types: Sequence[float] = [
+                     6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35.,
+                     53., -1.
+                 ],
+                 radial: Sequence[Sequence[float]] = [[
+                     1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0,
+                     7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0
+                 ], [0.0, 4.0, 8.0], [0.4]],
+                 layer_sizes=[100],
+                 weight_init_stddevs: OneOrMany[float] = 0.02,
+                 bias_init_consts: OneOrMany[float] = 1.0,
+                 dropouts: OneOrMany[float] = 0.5,
+                 activation_fns: OneOrMany[ActivationFn] = ['relu'],
+                 init: str = 'trunc_normal_',
+                 **kwargs) -> None:
+        """
+        Parameters
+        ----------
+        n_tasks: int
+            number of tasks
+        frag1_num_atoms: int
+            Number of atoms in first fragment
+        frag2_num_atoms: int
+            Number of atoms in sec
+        max_num_neighbors: int
+            Maximum number of neighbors possible for an atom. Recall neighbors
+            are spatial neighbors.
+        atom_types: list
+            List of atoms recognized by model. Atoms are indicated by their
+            nuclear numbers.
+        radial: list
+            Radial parameters used in the atomic convolution transformation.
+        layer_sizes: list
+            the size of each dense layer in the network.  The length of
+            this list determines the number of layers.
+        weight_init_stddevs: list or float
+            the standard deviation of the distribution to use for weight
+            initialization of each layer.  The length of this list should
+            equal len(layer_sizes).  Alternatively this may be a single
+            value instead of a list, in which case the same value is used
+            for every layer.
+        bias_init_consts: list or float
+            the value to initialize the biases in each layer to.  The
+            length of this list should equal len(layer_sizes).
+            Alternatively this may be a single value instead of a list, in
+            which case the same value is used for every layer.
+        dropouts: list or float
+            the dropout probablity to use for each layer.  The length of this list should equal len(layer_sizes).
+            Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
+        activation_fns: list or object
+            the Tensorflow activation function to apply to each layer.  The length of this list should equal
+            len(layer_sizes).  Alternatively this may be a single value instead of a list, in which case the
+            same value is used for every layer.
+        """
+        super(AtomicConvolutionModule, self).__init__()
+        self.complex_num_atoms = complex_num_atoms
+        self.frag1_num_atoms = frag1_num_atoms
+        self.frag2_num_atoms = frag2_num_atoms
+        self.max_num_neighbors = max_num_neighbors
+        self.batch_size = batch_size
+        self.atom_types = atom_types
+        self.init = init
+        self.n_tasks = n_tasks
+
+        rp = [x for x in itertools.product(*radial)]
+
+        frag1_X = np.random.rand(self.batch_size, self.frag1_num_atoms,
+                                 3).astype(np.float32)
+        frag1_nbrs = np.random.randint(frag1_num_atoms,
+                                       size=(batch_size, frag1_num_atoms,
+                                             max_num_neighbors))
+        frag1_nbrs_z = np.random.randint(1,
+                                         10,
+                                         size=(batch_size, frag1_num_atoms,
+                                               max_num_neighbors))
+        frag1_z = torch.tensor((frag1_num_atoms,))
+
+        frag2_X = np.random.rand(self.batch_size, self.frag2_num_atoms,
+                                 3).astype(np.float32)
+        frag2_nbrs = np.random.randint(frag2_num_atoms,
+                                       size=(batch_size, frag2_num_atoms,
+                                             max_num_neighbors))
+        frag2_nbrs_z = np.random.randint(1,
+                                         10,
+                                         size=(batch_size, frag2_num_atoms,
+                                               max_num_neighbors))
+        frag2_z = torch.tensor((frag2_num_atoms,))
+
+        complex_X = np.random.rand(self.batch_size, self.complex_num_atoms,
+                                   3).astype(np.float32)
+        complex_nbrs = np.random.randint(complex_num_atoms,
+                                         size=(batch_size, complex_num_atoms,
+                                               max_num_neighbors))
+        complex_nbrs_z = np.random.randint(1,
+                                           10,
+                                           size=(batch_size, complex_num_atoms,
+                                                 max_num_neighbors))
+        complex_z = torch.tensor((complex_num_atoms,))
+
+        flattener = nn.Flatten()
+        self._frag1_conv = AtomicConvolution(
+            atom_types=self.atom_types, radial_params=rp,
+            box_size=None)([frag1_X, frag1_nbrs, frag1_nbrs_z])
+        flattened1 = nn.Flatten()(self._frag1_conv)
+
+        self._frag2_conv = AtomicConvolution(
+            atom_types=self.atom_types, radial_params=rp,
+            box_size=None)([frag2_X, frag2_nbrs, frag2_nbrs_z])
+        flattened2 = flattener(self._frag2_conv)
+
+        self._complex_conv = AtomicConvolution(
+            atom_types=self.atom_types, radial_params=rp,
+            box_size=None)([complex_X, complex_nbrs, complex_nbrs_z])
+        flattened3 = flattener(self._complex_conv)
+
+        concat = torch.cat((flattened1, flattened2, flattened3), dim=1)
+
+        n_layers = len(layer_sizes)
+        if not isinstance(weight_init_stddevs, SequenceCollection):
+            weight_init_stddevs = [weight_init_stddevs] * n_layers
+        if not isinstance(bias_init_consts, SequenceCollection):
+            bias_init_consts = [bias_init_consts] * n_layers
+        if not isinstance(dropouts, SequenceCollection):
+            dropouts = [dropouts] * n_layers
+        if not isinstance(activation_fns, SequenceCollection):
+            activation_fns = [activation_fns] * n_layers
+
+        self.activation_fns = [get_activation(f) for f in activation_fns]
+        self.dropouts = dropouts
+
+        self.prev_layer = concat
+        prev_size = concat.size(1)
+        next_activation = None
+
+        # Define the layers
+        self.layers = nn.ModuleList()
+        for size, weight_stddev, bias_const, dropout, activation_fn in zip(
+                layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
+                activation_fns):
+            layer = self.prev_layer
+            if next_activation is not None:
+                layer = next_activation(layer)
+            linear = nn.Linear(prev_size, size)
+            nn.init.trunc_normal_(linear.weight, std=weight_stddev)
+            nn.init.constant_(linear.bias, bias_const)
+            self.layers.append(linear)
+
+            prev_size = size
+            next_activation = activation_fn
+
+        # Create the final layers
+        self.neural_fingerprint = self.prev_layer
+        self.output = nn.Sequential(nn.Linear(prev_size, n_tasks),
+                                    nn.Linear(n_tasks, 1))
+
+    def forward(self, inputs: OneOrMany[torch.Tensor]):
+        """
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input Tensor
+        Returns
+        -------
+        torch.Tensor
+            Output for each label.
+        """
+
+        x = self.prev_layer[0]
+        x = torch.reshape(x, (-1,))
+
+        for layer, activation_fn, dropout in zip(self.layers,
+                                                 self.activation_fns,
+                                                 self.dropouts):
+            x = layer(x)
+
+            if dropout > 0:
+                x = F.dropout(x, dropout)
+
+            if activation_fn is not None:
+                x = activation_fn(x)
+
+        outputs = []
+        output = self.output(x)
+        outputs = [output]
+
+        return outputs
+
+
 class CombineMeanStd(nn.Module):
     """Generate Gaussian noise.
 
@@ -5001,8 +5212,9 @@ class FerminetElectronFeature(torch.nn.Module):
                 f: torch.Tensor = torch.cat((one_electron[:, i, :], g_one_up,
                                              g_one_down, g_two_up, g_two_down),
                                             dim=1)
-                if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
-                        self.n_two[l] != self.n_two[l - 1]):
+                if l == 0 or (self.n_one[l]
+                              != self.n_one[l - 1]) or (self.n_two[l]
+                                                        != self.n_two[l - 1]):
                     one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f.to(
                         torch.float32)))
                     two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
