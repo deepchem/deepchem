@@ -2,6 +2,7 @@ import math
 from math import pi as PI
 import numpy as np
 import itertools
+import sympy as sym
 from typing import Any, Tuple, Optional, Sequence, List, Union, Callable, Dict, TypedDict
 from collections.abc import Sequence as SequenceCollection
 try:
@@ -22,6 +23,7 @@ from deepchem.utils.pytorch_utils import get_activation, segment_sum
 from torch.nn import init as initializers
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import add_self_loops
+from torch_geometric.nn.models.dimenet_utils import bessel_basis, real_sph_harm
 
 
 class MultilayerPerceptron(nn.Module):
@@ -2908,14 +2910,12 @@ class CombineMeanStd(nn.Module):
             f'{self.__class__.__name__}(training_only={self.training_only}, noise_epsilon={self.noise_epsilon})'
         )
 
-    def forward(self,
-                inputs: Sequence[ArrayLike],
-                training: bool = True) -> torch.Tensor:
+    def forward(self, inputs: List, training: bool = True) -> torch.Tensor:
         """Invoke this layer.
 
         Parameters
         ----------
-        inputs: Sequence[ArrayLike]
+        inputs: List
             First element are the means for the random generated numbers.
             Second element are the standard deviations for the random generated numbers.
         training: bool, optional (default True).
@@ -2930,11 +2930,19 @@ class CombineMeanStd(nn.Module):
         if len(inputs) != 2:
             raise ValueError("Must have two in_layers")
 
+        if torch.is_tensor(inputs[0]):
+            inputs[0] = inputs[0].cpu().detach().numpy()
+            inputs[1] = inputs[1].cpu().detach().numpy()
+
         mean_parent, std_parent = torch.tensor(inputs[0]), torch.tensor(
             inputs[1])
-        noise_scale = torch.tensor(training or
-                                   not self.training_only).to(torch.float)
-        sample_noise = torch.normal(0.0, self.noise_epsilon, mean_parent.shape)
+        noise_scale = torch.tensor(training or not self.training_only,
+                                   dtype=torch.float,
+                                   device=mean_parent.device)
+        sample_noise = torch.normal(0.0,
+                                    self.noise_epsilon,
+                                    mean_parent.shape,
+                                    device=mean_parent.device)
         return mean_parent + noise_scale * std_parent * sample_noise
 
 
@@ -5005,6 +5013,140 @@ class MXMNetBesselBasisLayer(torch.nn.Module):
         return output
 
 
+class VariationalRandomizer(nn.Module):
+    """Add random noise to the embedding and include a corresponding loss.
+    
+    This adds random noise to the encoder, and also adds a constraint term to
+    the loss that forces the embedding vector to have a unit Gaussian distribution.
+    We can then pick random vectors from a Gaussian distribution, and the output
+    sequences should follow the same distribution as the training data.
+
+    We can use this layer with an AutoEncoder, which makes it a Variational
+    AutoEncoder. The constraint term in the loss is initially set to 0, so the
+    optimizer just tries to minimize the reconstruction loss. Once it has made
+    reasonable progress toward that, the constraint term can be gradually turned
+    back on. The range of steps over which this happens is configured by modifying
+    the annealing_start_step and annealing final_step parameter.
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models.layers import VariationalRandomizer
+    >>> import torch
+    >>> embedding_dimension = 512
+    >>> batch_size = 100
+    >>> annealing_start_step = 1000
+    >>> annealing_final_step = 2000
+    >>> embedding_shape = (batch_size, embedding_dimension)
+    >>> embeddings = torch.rand(embedding_shape)
+    >>> global_step = torch.tensor([100])
+    >>> layer = VariationalRandomizer(embedding_dimension, annealing_start_step, annealing_final_step)
+    >>> output = layer([embeddings, global_step])
+    >>> output.shape
+    torch.Size([100, 512])
+
+    References
+    ----------
+    .. [1] Samuel R. Bowman et al., "Generating Sentences from a Continuous Space"
+
+    """
+
+    def __init__(self, embedding_dimension: int, annealing_start_step: int,
+                 annealing_final_step: int, **kwargs):
+        """Initialize the VariationalRandomizer layer.
+
+        Parameters
+        ----------
+        embedding_dimension: int
+            The dimension of the embedding.
+        annealing_start_step: int
+            the step (that is, batch) at which to begin turning on the constraint
+            term for KL cost annealing.
+        annealing_final_step: int
+            the step (that is, batch) at which to finish turning on the constraint
+            term for KL cost annealing.
+
+        """
+
+        super(VariationalRandomizer, self).__init__(**kwargs)
+        self._embedding_dimension = embedding_dimension
+        self._annealing_final_step = annealing_final_step
+        self._annealing_start_step = annealing_start_step
+        self.dense_mean = nn.Linear(embedding_dimension,
+                                    embedding_dimension,
+                                    bias=False)
+        self.dense_stddev = nn.Linear(embedding_dimension,
+                                      embedding_dimension,
+                                      bias=False)
+        self.combine = CombineMeanStd(training_only=True)
+        self.loss_list: List = list()
+
+    def __repr__(self) -> str:
+        """Returns a string representing the configuration of the layer.
+
+        Returns
+        -------
+        embedding_dimension: int
+            The dimension of the embedding.
+        annealing_start_step: int
+            The step (that is, batch) at which to begin turning on the constraint
+            term for KL cost annealing.
+        annealing_final_step: int
+            The step (that is, batch) at which to finish turning on the constraint
+            term for KL cost annealing.
+
+        """
+        return f'{self.__class__.__name__}(embedding_dimension={self.embedding_dimension}, annealing_start_step={self.annealing_start_step}, annealing_final_step={self.annealing_final_step})'
+
+    def forward(self, inputs: List[torch.Tensor], training=True):
+        """Returns the Variationally Randomized Embedding.
+
+        Parameters
+        ----------
+        inputs: List[torch.Tensor]
+            A list of two tensors, the first of which is the input to the layer
+            and the second of which is the global step.
+        training: bool, optional (default True)
+            Whether to use the layer in training mode or inference mode.
+
+        Returns
+        -------
+        embedding: torch.Tensor
+            The embedding tensor.
+
+        """
+        input, global_step = inputs
+        embedding_mean = self.dense_mean(input)
+        embedding_stddev = self.dense_stddev(input)
+        embedding = self.combine([embedding_mean, embedding_stddev],
+                                 training=training)
+        mean_sq = embedding_mean * embedding_mean
+        stddev_sq = embedding_stddev * embedding_stddev
+        kl = mean_sq + stddev_sq - torch.log(stddev_sq + 1e-20) - 1
+        anneal_steps = self._annealing_final_step - self._annealing_start_step
+        if anneal_steps > 0:
+            current_step = global_step.to(
+                torch.float32) - self._annealing_start_step
+            anneal_frac = torch.maximum(torch.tensor(0.0),
+                                        current_step) / anneal_steps
+            kl_scale = torch.minimum(torch.tensor(1.0),
+                                     anneal_frac * anneal_frac)
+        else:
+            kl_scale = torch.tensor(1.0)
+        self.add_loss(0.5 * kl_scale * torch.mean(kl))
+        return embedding
+
+    def add_loss(self, loss):
+        """Add a loss term to the layer.
+        
+        Parameters
+        ----------
+        loss: torch.Tensor
+            The loss tensor to add to the layer.
+
+        """
+        self.loss_list.append(loss)
+
+
 class EncoderRNN(nn.Module):
     """Encoder Layer for SeqToSeq Model.
 
@@ -5090,6 +5232,135 @@ class EncoderRNN(nn.Module):
         return output, hidden
 
 
+class DecoderRNN(nn.Module):
+    """Decoder Layer for SeqToSeq Model.
+
+    The decoder transforms the embedding vector into the output sequence.
+    It is trained to predict the next token in the sequence given the previous
+    tokens in the sequence. It uses the context vector from the encoder to
+    help generate the correct token in the sequence.
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models.layers import DecoderRNN
+    >>> import torch
+    >>> embedding_dimensions = 512
+    >>> num_output_tokens = 7
+    >>> max_length = 10
+    >>> batch_size = 100
+    >>> layer = DecoderRNN(embedding_dimensions, num_output_tokens, max_length, batch_size)
+    >>> embeddings = torch.randn(batch_size, embedding_dimensions)
+    >>> output, hidden = layer([embeddings.unsqueeze(0), None])
+    >>> output.shape
+    torch.Size([100, 10, 7])
+
+    References
+    ----------
+    .. [1] Sutskever et al., "Sequence to Sequence Learning with Neural Networks"
+
+    """
+
+    def __init__(self,
+                 hidden_size: int,
+                 output_size: int,
+                 max_length: int,
+                 batch_size: int,
+                 step_activation: str = "relu",
+                 **kwargs):
+        """Initialize the DecoderRNN layer.
+        
+        Parameters
+        ----------
+        hidden_size: int
+            Number of features in the hidden state.
+        output_size: int
+            Number of expected features.
+        max_length: int
+            Maximum length of the sequence.
+        batch_size: int
+            Batch size of the input.
+        step_activation: str (default "relu")
+            Activation function to use after every step.
+
+        """
+        super(DecoderRNN, self).__init__(**kwargs)
+        self.embedding = nn.Embedding(output_size, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True)
+        self.out = nn.Linear(hidden_size, output_size)
+        self.act = get_activation("softmax")
+        self.step_act = get_activation(step_activation)
+        self.MAX_LENGTH = max_length
+        self.batch_size = batch_size
+
+    def __repr__(self) -> str:
+        """Returns a string representing the configuration of the layer.
+
+        Returns
+        -------
+        hidden_size: int
+            Number of features in the hidden state.
+        output_size: int
+            Number of expected features.
+        max_length: int
+            Maximum length of the sequence.
+        batch_size: int
+            Batch size of the input.
+        step_activation: str (default "relu")
+            Activation function to use after every step.
+
+        """
+        return f'{self.__class__.__name__}(hidden_size={self.hidden_size}, output_size={self.output_size}, max_length={self.max_length}, batch_size={self.batch_size})'
+
+    def forward(self, inputs: List[torch.Tensor]):
+        """
+        Parameters
+        ----------
+        inputs: List[torch.Tensor]
+            A list of tensor containg encoder_hidden and target_tensor.
+
+        Returns
+        -------
+        decoder_outputs: torch.Tensor
+            Predicted output sequences.
+        decoder_hidden: torch.Tensor
+            Hidden state of the decoder.
+
+        """
+        encoder_hidden, target_tensor = inputs
+        decoder_input = torch.ones(self.batch_size,
+                                   1,
+                                   dtype=torch.long,
+                                   device=encoder_hidden.device)
+        decoder_hidden = encoder_hidden
+        decoder_outputs = []
+
+        for i in range(self.MAX_LENGTH):
+            decoder_output, decoder_hidden = self.step(decoder_input,
+                                                       decoder_hidden)
+            decoder_outputs.append(decoder_output)
+
+            if target_tensor is not None:
+                # Teacher forcing: Feed the target as the next input
+                decoder_input = target_tensor[:,
+                                              i].unsqueeze(1)  # Teacher forcing
+            else:
+                # Without teacher forcing: use its own predictions as the next input
+                _, topi = decoder_output.topk(1)
+                decoder_input = topi.squeeze(
+                    -1).detach()  # detach from history as input
+
+        decoder_output = torch.cat(decoder_outputs, dim=1)
+        decoder_output = self.act(decoder_output, dim=-1)
+        return decoder_output, decoder_hidden
+
+    def step(self, input, hidden):
+        output = self.embedding(input)
+        output = self.step_act(output)
+        output, hidden = self.gru(output, hidden)
+        output = self.out(output)
+        return output, hidden
+
+
 class FerminetElectronFeature(torch.nn.Module):
     """
     A Pytorch Module implementing the ferminet's electron features interaction layer _[1]. This is a helper class for the Ferminet model.
@@ -5153,26 +5424,34 @@ class FerminetElectronFeature(torch.nn.Module):
         # Initializing the first layer (first layer has different dims than others)
         self.v.append(
             nn.Linear(8 + 3 * 4 * self.no_of_atoms, self.n_one[0], bias=True))
-        #filling the weights with 1e-9 for faster convergence
-        self.v[0].weight.data.fill_(1e-9)
-        self.v[0].bias.data.fill_(1e-9)
+        #filling the weights with 2.5e-7 for faster convergence
+        self.v[0].weight.data.fill_(2.5e-7)
+        self.v[0].bias.data.fill_(2.5e-7)
+        self.v[0].weight.data = self.v[0].weight.data
+        self.v[0].bias.data = self.v[0].bias.data
 
         self.w.append(nn.Linear(4, self.n_two[0], bias=True))
-        self.w[0].weight.data.fill_(1e-9)
-        self.w[0].bias.data.fill_(1e-9)
+        self.w[0].weight.data.fill_(2.5e-7)
+        self.w[0].bias.data.fill_(2.5e-7)
+        self.w[0].weight.data = self.w[0].weight.data
+        self.w[0].bias.data = self.w[0].bias.data
 
         for i in range(1, self.layer_size):
             self.v.append(
                 nn.Linear(3 * self.n_one[i - 1] + 2 * self.n_two[i - 1],
                           n_one[i],
                           bias=True))
-            self.v[i].weight.data.fill_(1e-9)
-            self.v[i].bias.data.fill_(1e-9)
+            self.v[i].weight.data.fill_(2.5e-7)
+            self.v[i].bias.data.fill_(2.5e-7)
+            self.v[i].weight.data = self.v[i].weight.data
+            self.v[i].bias.data = self.v[i].bias.data
 
             self.w.append(nn.Linear(self.n_two[i - 1], self.n_two[i],
                                     bias=True))
-            self.w[i].weight.data.fill_(1e-9)
-            self.w[i].bias.data.fill_(1e-9)
+            self.w[i].weight.data.fill_(2.5e-7)
+            self.w[i].weight.data = self.w[i].weight.data
+            self.w[i].bias.data.fill_(2.5e-7)
+            self.w[i].bias.data = self.w[i].bias.data
 
     def forward(self, one_electron: torch.Tensor, two_electron: torch.Tensor):
         """
@@ -5217,16 +5496,16 @@ class FerminetElectronFeature(torch.nn.Module):
                                                         != self.n_two[l - 1]):
                     one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f.to(
                         torch.float32)))
+                if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
+                        self.n_two[l] != self.n_two[l - 1]):
+                    one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f))
                     two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
-                        two_electron[:, i, :, :].to(torch.float32)))
+                        two_electron[:, i, :, :]))
                 else:
-                    one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f.to(
-                        torch.float32))) + one_electron[:, i, :].to(
-                            torch.float32)
+                    one_electron_tmp[:, i, :] = torch.tanh(
+                        self.v[l](f)) + one_electron[:, i, :]
                     two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
-                        two_electron[:, i, :, :].to(
-                            torch.float32))) + two_electron[:, i, :].to(
-                                torch.float32)
+                        two_electron[:, i, :, :])) + two_electron[:, i, :]
             one_electron = one_electron_tmp
             two_electron = two_electron_tmp
 
@@ -5307,17 +5586,16 @@ class FerminetEnvelope(torch.nn.Module):
             for j in range(self.total_electron):
                 self.envelope_w.append(
                     torch.nn.init.uniform(torch.empty(n_one[-1], 1),
-                                          b=0.00001).squeeze(-1))
+                                          b=2.5e-7).squeeze(-1))
                 self.envelope_g.append(
-                    torch.nn.init.uniform(torch.empty(1),
-                                          b=0.000001).squeeze(0))
+                    torch.nn.init.uniform(torch.empty(1), b=2.5e-7).squeeze(0))
                 for k in range(self.no_of_atoms):
                     self.sigma.append(
                         torch.nn.init.uniform(torch.empty(self.no_of_atoms, 1),
-                                              b=0.000001).squeeze(0))
+                                              b=2.5e-7).squeeze(0))
                     self.pi.append(
                         torch.nn.init.uniform(torch.empty(self.no_of_atoms, 1),
-                                              b=0.00001).squeeze(0))
+                                              b=2.5e-7).squeeze(0))
 
     def forward(self, one_electron: torch.Tensor,
                 one_electron_vector_permuted: torch.Tensor):
@@ -5332,10 +5610,9 @@ class FerminetEnvelope(torch.nn.Module):
         Returns
         -------
         psi_up: torch.Tensor
-            Torch tensor with up spin electron values in a the shape of (batch_size, determinant, up_spin, up_spin)
-        psi_down: torch.Tensor
-            Torch tensor with down spin electron values in a the shape of (batch_size, determinant, down_spin, down_spin)
+            Torch tensor with a scalar value containing the sampled wavefunction value for each batch.
         """
+        psi = torch.zeros(self.batch_size)
         psi_up = torch.zeros(self.batch_size, self.determinant, self.spin[0],
                              self.spin[0])
         psi_down = torch.zeros(self.batch_size, self.determinant, self.spin[1],
@@ -5368,7 +5645,11 @@ class FerminetEnvelope(torch.nn.Module):
                                    dim=2))) * self.pi[one_d_index].T,
                                   dim=1)
 
-        return psi_up, psi_down
+            d_down = torch.det(psi_down[:, k, :, :].clone())
+            d_up = torch.det(psi_up[:, k, :, :].clone())
+            det = d_up * d_down
+            psi = psi + det
+        return psi, psi_up, psi_down
 
 
 class MXMNetLocalMessagePassing(nn.Module):
@@ -5624,3 +5905,104 @@ class MXMNetLocalMessagePassing(nn.Module):
         output: torch.Tensor = self.out_W(out)
 
         return node_features, output
+
+
+class MXMNetSphericalBasisLayer(torch.nn.Module):
+    """It takes pairwise distances and angles between atoms as input and combines radial basis functions with spherical harmonic 
+    functions to generate a fixed-size representation that captures both radial and orientation information. This type of 
+    representation is commonly used in molecular modeling and simulations to capture the behavior of atoms and molecules in 
+    chemical systems. 
+    
+    Inside the initialization, Bessel basis functions and real spherical harmonic functions are generated. 
+    The Bessel basis functions capture the radial information, and the spherical harmonic functions capture the orientation information. 
+    These functions are generated based on the provided num_spherical and num_radial parameters.
+    
+    Examples
+    --------
+    >>> dist = torch.tensor([0.5, 1.0, 2.0, 3.0])
+    >>> angle = torch.tensor([0.1, 0.2, 0.3, 0.4])
+    >>> idx_kj = torch.tensor([0, 1, 2, 3])
+    >>> spherical_layer = MXMNetSphericalBasisLayer(envelope_exponent=2, num_spherical=2, num_radial=2, cutoff=2.0)
+    >>> output = spherical_layer(dist, angle, idx_kj)
+    >>> output.shape
+    torch.Size([4, 4])
+    """
+
+    def __init__(self,
+                 num_spherical: int,
+                 num_radial: int,
+                 cutoff: float = 5.0,
+                 envelope_exponent: int = 5):
+        """Initialize the MXMNetSphericalBasisLayer.
+
+        Parameters
+        ----------
+        num_spherical: int
+            The number of spherical harmonic functions to use. These functions capture orientation information related to atom positions.
+        num_radial: int
+            The number of radial basis functions to use. These functions capture information about pairwise distances between atoms.
+        cutoff: float, optional (default 5.0)
+            The cutoff distance for the radial basis functions. It specifies the distance beyond which the interactions are ignored.
+        envelope_exponent: int, optional (default 5)
+            The exponent for the envelope function. It controls the degree of damping for the radial basis functions.
+        """
+        super(MXMNetSphericalBasisLayer, self).__init__()
+
+        assert num_radial <= 64
+        self.num_spherical: int = num_spherical
+        self.num_radial: int = num_radial
+        self.cutoff: float = cutoff
+        self.envelope: _MXMNetEnvelope = _MXMNetEnvelope(envelope_exponent)
+
+        bessel_forms: List = bessel_basis(num_spherical, num_radial)
+        sph_harm_forms: List[List[str]] = real_sph_harm(num_spherical)
+        self.sph_funcs: List = []
+        self.bessel_funcs: List = []
+        x: Any
+        theta: Any
+        x, theta = sym.symbols('x theta')
+        modules: Dict = {'sin': torch.sin, 'cos': torch.cos}
+        for i in range(num_spherical):
+            if i == 0:
+                sph1: Any = sym.lambdify([theta], sph_harm_forms[i][0],
+                                         modules)(0)
+                self.sph_funcs.append(lambda x: torch.zeros_like(x) + sph1)
+            else:
+                sph: Any = sym.lambdify([theta], sph_harm_forms[i][0], modules)
+                self.sph_funcs.append(sph)
+            for j in range(num_radial):
+                bessel: Any = sym.lambdify([x], bessel_forms[i][j], modules)
+                self.bessel_funcs.append(bessel)
+
+    def forward(self, dist: torch.Tensor, angle: torch.Tensor,
+                idx_kj: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the MXMNetSphericalBasisLayer.
+
+        Parameters
+        ----------
+        dist: torch.Tensor
+            Input tensor representing pairwise distances between atoms.
+        angle: torch.Tensor 
+            Input tensor representing pairwise angles between atoms.
+        idx_kj: torch.Tensor
+            Tensor containing indices for the k and j atoms.
+
+        Returns
+        -------
+        output: torch.Tensor
+            The output tensor containing the fixed-size representation.
+        """
+        dist = dist / self.cutoff
+        rbf: torch.Tensor = torch.stack([f(dist) for f in self.bessel_funcs],
+                                        dim=1)
+        rbf = self.envelope(dist).unsqueeze(-1) * rbf
+
+        cbf: torch.Tensor = torch.stack([f(angle) for f in self.sph_funcs],
+                                        dim=1)
+        n: int = self.num_spherical
+        k: int = self.num_radial
+
+        output: torch.Tensor = (rbf[idx_kj].view(-1, n, k) *
+                                cbf.view(-1, n, 1)).view(-1, n * k)
+        return output

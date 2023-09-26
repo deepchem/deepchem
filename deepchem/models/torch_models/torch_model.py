@@ -176,7 +176,7 @@ class TorchModel(Model):
                                          model_dir=model_dir,
                                          **kwargs)
         self.loss = loss  # not used
-        self.learning_rate = learning_rate  # not used
+        self.learning_rate = learning_rate
         self.output_types = output_types  # not used
         if isinstance(loss, Loss):
             self._loss_fn: LossFn = _StandardLoss(self, loss)

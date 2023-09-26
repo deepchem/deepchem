@@ -1,5 +1,6 @@
 import os
 import deepchem as dc
+import numpy as np
 
 
 def test_batch_coulomb_matrix_features():
@@ -27,3 +28,53 @@ def test_batch_coulomb_matrix_features():
     # Check Distance Membership shape
     assert inputs[3].shape == (1215,)
     assert inputs[4].shape == (1215,)
+
+
+def test_batch_elements():
+    # Prepare Data
+    inputs = [[i, i**2, i**3] for i in range(10)]
+    # Run
+    output = list(dc.utils.batch_utils.batch_elements(inputs, 3))
+    assert output == [[[0, 0, 0], [1, 1, 1], [2, 4, 8]],
+                      [[3, 9, 27], [4, 16, 64], [5, 25, 125]],
+                      [[6, 36, 216], [7, 49, 343], [8, 64, 512]], [[9, 81,
+                                                                    729]]]
+
+
+def test_create_input_array():
+    # Prepare Data
+    inputs = [["a", "b"], ["b", "b", "b"]]
+    input_dict = {"c": 0, "a": 1, "b": 2}
+
+    # Inputs property
+    max_length = max([len(x) for x in inputs])
+
+    # Without reverse input
+    output_1 = dc.utils.batch_utils.create_input_array(inputs, max_length,
+                                                       False, 2, input_dict,
+                                                       "c")
+
+    assert output_1.shape == (2, max_length + 1)
+    assert np.allclose(output_1, np.array([[1., 2., 0., 0.], [2., 2., 2., 0.]]))
+
+    # With revercse input
+    output_2 = dc.utils.batch_utils.create_input_array(inputs, max_length, True,
+                                                       2, input_dict, "c")
+
+    assert output_2.shape == (2, max_length + 1)
+    assert np.allclose(output_2, np.array([[2., 1., 0., 0.], [2., 2., 2., 0.]]))
+
+
+def test_create_output_array():
+    # Prepare Data
+    inputs = [["a", "b"], ["b", "b", "b"]]
+    output_dict = {"c": 0, "a": 1, "b": 2}
+
+    # Inputs property
+    max_length = max([len(x) for x in inputs])
+
+    output = dc.utils.batch_utils.create_output_array(inputs, max_length, 2,
+                                                      output_dict, "c")
+
+    assert output.shape == (2, 3)
+    assert np.allclose(output, np.array([[1., 2., 0.], [2., 2., 2.]]))
