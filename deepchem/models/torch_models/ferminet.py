@@ -166,7 +166,7 @@ class Ferminet(torch.nn.Module):
             psi_up_mo_torch = torch.from_numpy(psi_up_mo).unsqueeze(1)
             psi_down_mo_torch = torch.from_numpy(psi_down_mo).unsqueeze(1)
             self.running_diff = self.running_diff + criterion(
-                self.psi_up, psi_up_mo_torch.float()) + self.criterion(
+                self.psi_up, psi_up_mo_torch.float()) + criterion(
                     self.psi_down, psi_down_mo_torch.float())
 
 
@@ -292,7 +292,7 @@ class FerminetModel(TorchModel):
         self.model = Ferminet(nucl,
                               spin=(self.up_spin, self.down_spin),
                               nuclear_charge=torch.Tensor(charge),
-                              batch_size=self.batch_no).float()
+                              batch_size=self.batch_no)
 
         self.molecule: ElectronSampler = ElectronSampler(
             batch_no=self.batch_no,
