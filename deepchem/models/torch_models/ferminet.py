@@ -417,7 +417,7 @@ class FerminetModel(TorchModel):
             optimizer.zero_grad()
             self.molecule.move()
             self.loss_value = (torch.mean(self.model.running_diff) /
-                               self.batch_size)
+                               self.random_walk_steps)
             self.pretraining_loss_list.append(self.loss_value)
             print(self.loss_value)
             self.loss_value.backward()
