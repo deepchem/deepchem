@@ -65,8 +65,6 @@ class Ferminet(torch.nn.Module):
 
         Attributes
         ----------
-        criterion: torch.nn.MSELoss()
-            MSE Loss used to calculate pretraining loss
         running_diff: torch.Tensor
             torch tensor containing the loss which gets updated for each random walk performed
         ferminet_layer: torch.nn.ModuleList
@@ -93,7 +91,6 @@ class Ferminet(torch.nn.Module):
         self.ferminet_layer: torch.nn.ModuleList = torch.nn.ModuleList()
         self.ferminet_layer_envelope: torch.nn.ModuleList = torch.nn.ModuleList(
         )
-        self.criterion = torch.nn.MSELoss()
         self.running_diff: torch.Tensor = torch.zeros(self.batch_size)
 
         self.ferminet_layer.append(
@@ -164,10 +161,11 @@ class Ferminet(torch.nn.Module):
         pretrain: List[bool] (default [True])
             indicates whether the model is pretraining
         """
+        criterion = torch.nn.MSELoss()
         if pretrain:
             psi_up_mo_torch = torch.from_numpy(psi_up_mo).unsqueeze(1)
             psi_down_mo_torch = torch.from_numpy(psi_down_mo).unsqueeze(1)
-            self.running_diff = self.running_diff + self.criterion(
+            self.running_diff = self.running_diff + criterion(
                 self.psi_up, psi_up_mo_torch.float()) + self.criterion(
                     self.psi_down, psi_down_mo_torch.float())
 

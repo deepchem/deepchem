@@ -40,8 +40,8 @@ def test_forward():
 
 
 @pytest.mark.dqc
-def test_prepare_hf_solution():
-    # Test for the prepare_hf_solution function of FerminetModel class
+def test_evaluate_hf_solution():
+    # Test for the evaluate_hf_solution function of FerminetModel class
     H2_molecule = [['F', [0, 0, 0]], ['He', [0, 0, 0.748]]]
     mol = FerminetModel(H2_molecule, spin=1, ion_charge=0)
     electron_coordinates = np.random.rand(10, 11, 3)
