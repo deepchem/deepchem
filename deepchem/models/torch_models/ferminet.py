@@ -14,8 +14,35 @@ from deepchem.models.torch_models.layers import FerminetElectronFeature, Fermine
 from deepchem.utils.electron_sampler import ElectronSampler
 
 
+def test_f(x: np.ndarray) -> np.ndarray:
+    # dummy function which can be passed as the parameter f. f gives the log probability
+    # TODO replace this function with forward pass of the model in future
+    return 2 * np.log(np.random.uniform(low=0, high=1.0, size=np.shape(x)[0]))
+
+
 class Ferminet(torch.nn.Module):
-    """Approximates the log probability of the wave function of a molecule system using DNNs.
+    """A deep-learning based Variational Monte Carlo method [1]_ for calculating the ab-initio
+    solution of a many-electron system.
+
+    This model must be pre-trained on the HF baseline and then can be used to improve on it using electronic interactions
+    via the learned electron distance features. Ferminet models the orbital values using envelope functions and the
+    calculated electron features, which can then be used to approximate the wavefunction for better sampling of electrons.
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> import deepchem as dc
+    >>> import torch
+    >>> H2_molecule =  torch.Tensor([[0, 0, 0.748], [0, 0, 0]])
+    >>> H2_charge = torch.Tensor([[1], [1]])
+    >>> model = dc.models.Ferminet(nucleon_pos=H2_molecule, nuclear_charge=H2_charge, batch_size=1)
+    >>> electron = np.random.rand(1, 2*3)
+    >>> wavefunction = model.forward(electron)
+
+    References
+    ----------
+    .. [1] Spencer, James S., et al. Better, Faster Fermionic Neural Networks. arXiv:2011.07125, arXiv, 13 Nov. 2020. arXiv.org, http://arxiv.org/abs/2011.07125.
+
     """
 
     def __init__(self,
@@ -44,10 +71,6 @@ class Ferminet(torch.nn.Module):
 
         Attributes
         ----------
-        criterion: torch.nn.MSELoss()
-            MSE Loss used to calculate pretraining loss
-        running_diff: torch.Tensor
-            torch tensor containing the loss which gets updated for each random walk performed
         ferminet_layer: torch.nn.ModuleList
             Modulelist containing the ferminet electron feature layer
         ferminet_layer_envelope: torch.nn.ModuleList
@@ -72,20 +95,18 @@ class Ferminet(torch.nn.Module):
         self.ferminet_layer: torch.nn.ModuleList = torch.nn.ModuleList()
         self.ferminet_layer_envelope: torch.nn.ModuleList = torch.nn.ModuleList(
         )
-
-        self.criterion = torch.nn.MSELoss()
-        self.running_diff: torch.Tensor = torch.zeros(self.batch_size).double()
+        self.running_diff:torch.tensor = torch.tensor(0.0)
+        self.criterion:torch.nn.MSELoss = torch.nn.MSELoss()
 
         self.ferminet_layer.append(
             FerminetElectronFeature(self.n_one, self.n_two,
                                     self.nucleon_pos.size()[0], self.batch_size,
                                     self.total_electron,
-                                    [self.spin[0], self.spin[1]]).double())
+                                    [self.spin[0], self.spin[1]]))
         self.ferminet_layer_envelope.append(
             FerminetEnvelope(self.n_one, self.n_two, self.total_electron,
                              self.batch_size, [self.spin[0], self.spin[1]],
-                             self.nucleon_pos.size()[0],
-                             self.determinant).double())
+                             self.nucleon_pos.size()[0], self.determinant))
 
     def forward(self, input) -> torch.Tensor:
         """
@@ -124,7 +145,7 @@ class Ferminet(torch.nn.Module):
         one_electron_vector_permuted = one_electron_vector.permute(0, 2, 1, 3)
 
         one_electron, _ = self.ferminet_layer[0].forward(
-            one_electron, two_electron)
+            one_electron.to(torch.float32), two_electron.to(torch.float32))
         psi, self.psi_up, self.psi_down = self.ferminet_layer_envelope[
             0].forward(one_electron, one_electron_vector_permuted)
         return psi
@@ -278,46 +299,25 @@ class FerminetModel(TorchModel):
         self.model = Ferminet(nucl,
                               spin=(self.up_spin, self.down_spin),
                               nuclear_charge=torch.Tensor(charge),
-                              batch_size=self.batch_no).double()
+                              batch_size=self.batch_no)
 
         self.molecule: ElectronSampler = ElectronSampler(
             batch_no=self.batch_no,
             central_value=self.nucleon_pos,
             seed=self.seed,
-            f=lambda x: self.random_walk(x),
+            f=lambda x: test_f(x),  # Will be replaced in successive PR
             steps=self.random_walk_steps,
             steps_per_update=self.steps_per_update
         )  # sample the electrons using the electron sampler
-        super(FerminetModel, self).__init__(self.model, loss=self.model.loss)
         self.molecule.gauss_initialize_position(
             self.electron_no)  # initialize the position of the electrons
         self.prepare_hf_solution()
-
-    def random_walk(self, x: np.ndarray) -> np.ndarray:
-        """
-        Function to be passed on to electron sampler for random walk and gets called at each step of sampling
-
-        Parameters
-        ----------
-        x: np.ndarray
-            contains the sampled electrons coordinate in the shape (batch_size,number_of_electrons*3)
-
-        Returns:
-        --------
-        A numpy array containing the joint probability of the hartree fock and the sampled electron's position coordinates
-        """
-        output = self.model.forward(x)
-        np_output = output.detach().cpu().numpy()
-        up_spin_mo, down_spin_mo = self.evaluate_hf(x)
-        hf_product = np.prod(
-            np.diagonal(up_spin_mo, axis1=1, axis2=2)**2, axis=1) * np.prod(
-                np.diagonal(down_spin_mo, axis1=1, axis2=2)**2, axis=1)
-        self.model.loss(up_spin_mo, down_spin_mo, pretrain=True)
-        return np.log(hf_product + np_output**2) + np.log(0.5)
+        super(FerminetModel, self).__init__(
+            self.model,
+            loss=torch.nn.MSELoss())  # will update the loss in successive PR
 
     def prepare_hf_solution(self):
-        """
-        Prepares the HF solution for the molecule system which is to be used in pretraining
+        """Prepares the HF solution for the molecule system which is to be used in pretraining
         """
         try:
             import pyscf
@@ -366,6 +366,28 @@ class FerminetModel(TorchModel):
         return mo_values_list[0][
             ..., :self.up_spin, :self.up_spin], mo_values_list[1][
                 ..., self.up_spin:, :self.down_spin]
+
+    def random_walk(self, x: np.ndarray) -> np.ndarray:
+        """
+        Function to be passed on to electron sampler for random walk and gets called at each step of sampling
+
+        Parameters
+        ----------
+        x: np.ndarray
+            contains the sampled electrons coordinate in the shape (batch_size,number_of_electrons*3)
+
+        Returns:
+        --------
+        A numpy array containing the joint probability of the hartree fock and the sampled electron's position coordinates
+        """
+        output = self.model.forward(x)
+        np_output = output.detach().cpu().numpy()
+        up_spin_mo, down_spin_mo = self.evaluate_hf(x)
+        hf_product = np.prod(
+            np.diagonal(up_spin_mo, axis1=1, axis2=2)**2, axis=1) * np.prod(
+                np.diagonal(down_spin_mo, axis1=1, axis2=2)**2, axis=1)
+        self.model.loss(up_spin_mo, down_spin_mo, pretrain=True)
+        return np.log(hf_product + np_output**2) + np.log(0.5)
 
     def pretrain(self,
                  nb_epoch: int = 200,
