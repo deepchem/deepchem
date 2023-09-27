@@ -16,6 +16,14 @@ class _Config(object):
     VERBOSE: int
         Verbosity level
 
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.config import config
+    >>> Memory_usage = 1024**4 # Sample Memory usage by some Object/Matrix
+    >>> if Memory_usage > config.THRESHOLD_MEMORY :
+    ...     print("Overload")
+    Overload
+
     """
     THRESHOLD_MEMORY: int = 10 * 1024**3  # in Bytes
     CHUNK_MEMORY: int = 16 * 1024**2  # in Bytes
