@@ -9,17 +9,21 @@ except ModuleNotFoundError:
 
 import hashlib
 import xitorch as xt
+import numpy as np
 from dataclasses import dataclass
 from abc import abstractmethod, abstractproperty
-from typing import Union, List, Dict,TypeVar, Generic, Callable
+from typing import Union, List, Dict, TypeVar, Generic, Callable
+
+from dft_utils.utils.misc import gaussian_int
 
 __all__ = ["ZType"]
 
 # type of the atom Z
 ZType = Union[int, float, torch.Tensor]
 # input types
-AtomZsType  = Union[List[str], List[ZType], torch.Tensor]
+AtomZsType = Union[List[str], List[ZType], torch.Tensor]
 AtomPosType = Union[List[List[float]], np.ndarray, torch.Tensor]
+
 
 def is_z_float(a: ZType):
     # returns if the given z-type is a floating point
@@ -27,3 +31,5 @@ def is_z_float(a: ZType):
         return a.is_floating_point()
     else:
         return isinstance(a, float)
+
+
