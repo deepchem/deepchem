@@ -79,7 +79,6 @@ tutorials discuss about using DeepChem for specific applications.
 * [2 Modeling Protein Ligand Interactions with Atomic Convolutions](Modeling_Protein_Ligand_Interactions_With_Atomic_Convolutions.ipynb)
 * [3 Applications of DeepChem with Alphafold](AlphafoldXDeepChem.ipynb)
 
-
 ### Quantum Chemistry
 * [1 Exploring Quantum Chemistry with GDB1k](Exploring_Quantum_Chemistry_with_GDB1k.ipynb)
 * [2 Finding ground state energy of molecules with DeepQMC](DeepQMC_tutorial.ipynb)
