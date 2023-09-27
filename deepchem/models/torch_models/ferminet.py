@@ -14,12 +14,6 @@ from deepchem.models.torch_models.layers import FerminetElectronFeature, Fermine
 from deepchem.utils.electron_sampler import ElectronSampler
 
 
-def test_f(x: np.ndarray) -> np.ndarray:
-    # dummy function which can be passed as the parameter f. f gives the log probability
-    # TODO replace this function with forward pass of the model in future
-    return 2 * np.log(np.random.uniform(low=0, high=1.0, size=np.shape(x)[0]))
-
-
 class Ferminet(torch.nn.Module):
     """A deep-learning based Variational Monte Carlo method [1]_ for calculating the ab-initio
     solution of a many-electron system.
@@ -71,6 +65,10 @@ class Ferminet(torch.nn.Module):
 
         Attributes
         ----------
+        criterion: torch.nn.MSELoss()
+            MSE Loss used to calculate pretraining loss
+        running_diff: torch.Tensor
+            torch tensor containing the loss which gets updated for each random walk performed
         ferminet_layer: torch.nn.ModuleList
             Modulelist containing the ferminet electron feature layer
         ferminet_layer_envelope: torch.nn.ModuleList
@@ -95,8 +93,8 @@ class Ferminet(torch.nn.Module):
         self.ferminet_layer: torch.nn.ModuleList = torch.nn.ModuleList()
         self.ferminet_layer_envelope: torch.nn.ModuleList = torch.nn.ModuleList(
         )
-        self.running_diff:torch.tensor = torch.tensor(0.0)
-        self.criterion:torch.nn.MSELoss = torch.nn.MSELoss()
+        self.criterion = torch.nn.MSELoss()
+        self.running_diff: torch.Tensor = torch.zeros(self.batch_size)
 
         self.ferminet_layer.append(
             FerminetElectronFeature(self.n_one, self.n_two,
@@ -170,8 +168,8 @@ class Ferminet(torch.nn.Module):
             psi_up_mo_torch = torch.from_numpy(psi_up_mo).unsqueeze(1)
             psi_down_mo_torch = torch.from_numpy(psi_down_mo).unsqueeze(1)
             self.running_diff = self.running_diff + self.criterion(
-                self.psi_up, psi_up_mo_torch) + self.criterion(
-                    self.psi_down, psi_down_mo_torch)
+                self.psi_up, psi_up_mo_torch.float()) + self.criterion(
+                    self.psi_down, psi_down_mo_torch.float())
 
 
 class FerminetModel(TorchModel):
@@ -299,13 +297,14 @@ class FerminetModel(TorchModel):
         self.model = Ferminet(nucl,
                               spin=(self.up_spin, self.down_spin),
                               nuclear_charge=torch.Tensor(charge),
-                              batch_size=self.batch_no)
+                              batch_size=self.batch_no).float()
 
         self.molecule: ElectronSampler = ElectronSampler(
             batch_no=self.batch_no,
             central_value=self.nucleon_pos,
             seed=self.seed,
-            f=lambda x: test_f(x),  # Will be replaced in successive PR
+            f=lambda x: self.random_walk(x
+                                        ),  # Will be replaced in successive PR
             steps=self.random_walk_steps,
             steps_per_update=self.steps_per_update
         )  # sample the electrons using the electron sampler
@@ -315,29 +314,6 @@ class FerminetModel(TorchModel):
         super(FerminetModel, self).__init__(
             self.model,
             loss=torch.nn.MSELoss())  # will update the loss in successive PR
-
-    def prepare_hf_solution(self):
-        """Prepares the HF solution for the molecule system which is to be used in pretraining
-        """
-        try:
-            import pyscf
-        except ModuleNotFoundError:
-            raise ImportError("This module requires pySCF")
-
-        molecule = ""
-        for i in range(len(self.nucleon_pos)):
-            molecule = molecule + self.nucleon_coordinates[i][0] + " " + str(
-                self.nucleon_coordinates[i][1][0]) + " " + str(
-                    self.nucleon_coordinates[i][1][1]) + " " + str(
-                        self.nucleon_coordinates[i][1][2]) + ";"
-        self.mol = pyscf.gto.Mole(atom=molecule, basis='sto-3g')
-        self.mol.parse_arg = False
-        self.mol.unit = 'Bohr'
-        self.mol.spin = (self.up_spin - self.down_spin)
-        self.mol.charge = self.ion_charge
-        self.mol.build(parse_arg=False)
-        self.mf = pyscf.scf.UHF(self.mol)
-        _ = self.mf.kernel()
 
     def evaluate_hf(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -366,6 +342,29 @@ class FerminetModel(TorchModel):
         return mo_values_list[0][
             ..., :self.up_spin, :self.up_spin], mo_values_list[1][
                 ..., self.up_spin:, :self.down_spin]
+
+    def prepare_hf_solution(self):
+        """Prepares the HF solution for the molecule system which is to be used in pretraining
+        """
+        try:
+            import pyscf
+        except ModuleNotFoundError:
+            raise ImportError("This module requires pySCF")
+
+        molecule = ""
+        for i in range(len(self.nucleon_pos)):
+            molecule = molecule + self.nucleon_coordinates[i][0] + " " + str(
+                self.nucleon_coordinates[i][1][0]) + " " + str(
+                    self.nucleon_coordinates[i][1][1]) + " " + str(
+                        self.nucleon_coordinates[i][1][2]) + ";"
+        self.mol = pyscf.gto.Mole(atom=molecule, basis='sto-3g')
+        self.mol.parse_arg = False
+        self.mol.unit = 'Bohr'
+        self.mol.spin = (self.up_spin - self.down_spin)
+        self.mol.charge = self.ion_charge
+        self.mol.build(parse_arg=False)
+        self.mf = pyscf.scf.UHF(self.mol)
+        _ = self.mf.kernel()
 
     def random_walk(self, x: np.ndarray) -> np.ndarray:
         """
@@ -417,8 +416,10 @@ class FerminetModel(TorchModel):
         for _ in range(nb_epoch):
             optimizer.zero_grad()
             self.molecule.move()
-            self.loss_value = torch.mean(self.model.running_diff) / 10
+            self.loss_value = (torch.mean(self.model.running_diff) /
+                               self.random_walk_steps)
             self.pretraining_loss_list.append(self.loss_value)
+            print(self.loss_value)
             self.loss_value.backward()
             optimizer.step()
-            self.model.running_diff = torch.zeros(self.batch_no).double()
+            self.model.running_diff = torch.zeros(self.batch_no)

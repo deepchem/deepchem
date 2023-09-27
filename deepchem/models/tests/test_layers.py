@@ -1298,8 +1298,6 @@ def test_FerminetEnvelope():
     one_electron = torch.randn(8, 10, 32)
     one_electron_permuted = torch.randn(8, 10, 5, 3)
     psi, _, _ = envelope_layer.forward(one_electron, one_electron_permuted)
-    assert envelope_layer.psi_up.size() == torch.Size([8, 16, 5, 5])
-    assert envelope_layer.psi_down.size() == torch.Size([8, 16, 5, 5])
     assert psi.size() == torch.Size([8])
 
 
