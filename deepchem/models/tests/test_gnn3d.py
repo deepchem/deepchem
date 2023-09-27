@@ -1,3 +1,4 @@
+import os
 import pytest
 
 
@@ -36,11 +37,26 @@ def test_Net3DLayer():
     assert not np.allclose(output_edge_feats, g.edata['d'].detach().numpy())
 
 
-def get_regression_dataset():
-    import os
-
+def get_classification_dataset():
     import numpy as np
+    import deepchem as dc
+    from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
+    dir = os.path.dirname(os.path.abspath(__file__))
 
+    featurizer = RDKitConformerFeaturizer()
+    input_file = os.path.join(dir, 'assets/example_classification.csv')
+    loader = dc.data.CSVLoader(tasks=["outcome"],
+                               feature_field="smiles",
+                               featurizer=featurizer)
+    dataset = loader.create_dataset(input_file)
+    metric = dc.metrics.Metric(dc.metrics.roc_auc_score,
+                               np.mean,
+                               mode="classification")
+    return dataset, metric
+
+
+def get_regression_dataset():
+    import numpy as np
     import deepchem as dc
     from deepchem.feat.molecule_featurizers.conformer_featurizer import (
         RDKitConformerFeaturizer,)
@@ -95,7 +111,8 @@ def testInfoMax3DModular():
                              aggregators=['sum', 'mean', 'max'],
                              readout_aggregators=['sum', 'mean'],
                              scalers=['identity'],
-                             device=torch.device('cpu'))
+                             device=torch.device('cpu'),
+                             task='pretraining')
 
     loss1 = model.fit(data, nb_epoch=1)
     loss2 = model.fit(data, nb_epoch=9)
@@ -113,14 +130,16 @@ def testInfoMax3DModularSaveReload():
                              aggregators=['sum', 'mean', 'max'],
                              readout_aggregators=['sum', 'mean'],
                              scalers=['identity'],
-                             device=torch.device('cpu'))
+                             device=torch.device('cpu'),
+                             task='pretraining')
 
     model.fit(data, nb_epoch=1)
     model2 = InfoMax3DModular(hidden_dim=64,
                               target_dim=10,
                               aggregators=['sum', 'mean', 'max'],
                               readout_aggregators=['sum', 'mean'],
-                              scalers=['identity'])
+                              scalers=['identity'],
+                              task='pretraining')
 
     model2.load_from_pretrained(model_dir=model.model_dir)
     assert model.components.keys() == model2.components.keys()
@@ -129,3 +148,46 @@ def testInfoMax3DModularSaveReload():
         if hasattr(model.components[key], 'weight')
     ]
     assert all(compare_weights(key, model, model2) for key in keys_with_weights)
+
+
+@pytest.mark.torch
+def testInfoMax3DModularRegression():
+    import torch
+    from deepchem.models.torch_models.gnn3d import InfoMax3DModular
+
+    data, metric = get_regression_dataset()
+
+    model = InfoMax3DModular(hidden_dim=64,
+                             aggregators=['sum', 'mean', 'max'],
+                             readout_aggregators=['sum', 'mean'],
+                             scalers=['identity'],
+                             task='regression',
+                             n_tasks=1,
+                             device=torch.device('cpu'))
+
+    model.fit(data, nb_epoch=100)
+    scores = model.evaluate(data, [metric])
+    print(scores)
+    assert scores['mean_absolute_error'] < 0.5
+
+
+@pytest.mark.torch
+def testInfoMax3DModularClassification():
+    import torch
+    from deepchem.models.torch_models.gnn3d import InfoMax3DModular
+
+    data, metric = get_classification_dataset()
+
+    model = InfoMax3DModular(hidden_dim=128,
+                             aggregators=['sum', 'mean', 'max'],
+                             readout_aggregators=['sum', 'mean'],
+                             scalers=['identity'],
+                             task='classification',
+                             n_tasks=1,
+                             n_classes=1,
+                             device=torch.device('cpu'))
+
+    model.fit(data, nb_epoch=100)
+    scores = model.evaluate(data, [metric])
+    # FIXME We need to improve finetuning score
+    assert scores['mean-roc_auc_score'] > 0.7
