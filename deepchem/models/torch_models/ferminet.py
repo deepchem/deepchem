@@ -228,7 +228,7 @@ class FerminetModel(TorchModel):
         Torch tensor containing electrons for each atom in the nucleus
     molecule: ElectronSampler
         ElectronSampler object which performs MCMC and samples electrons
-    loss_value: Optional[torch.Tensor] (default None)
+    loss_value: torch.Tensor (default torch.tensor(0))
         torch tensor storing the loss value from the last iteration
     """
         self.nucleon_coordinates = nucleon_coordinates
@@ -239,7 +239,7 @@ class FerminetModel(TorchModel):
         self.batch_no = batch_no
         self.random_walk_steps = random_walk_steps
         self.steps_per_update = steps_per_update
-        self.loss_value: Optional[torch.Tensor] = None
+        self.loss_value: torch.Tensor = torch.tensor(0)
 
         no_electrons = []
         nucleons = []
