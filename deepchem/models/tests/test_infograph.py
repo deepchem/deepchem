@@ -176,6 +176,27 @@ def test_infographstar_classification_semisupervised():
 
 
 @pytest.mark.torch
+def test_infograph_finetune_classification():
+    from deepchem.models.torch_models.infograph import InfoGraphModel
+    import torch
+    torch.manual_seed(123)
+    dataset, metric = get_classification_dataset()
+    num_feat = 30
+    edge_dim = 11
+    model = InfoGraphModel(num_feat,
+                           edge_dim,
+                           num_gc_layers=3,
+                           task='classification',
+                           device=torch.device('cpu'),
+                           n_classes=2,
+                           n_tasks=1)
+
+    model.fit(dataset, nb_epoch=100)
+    scores = model.evaluate(dataset, [metric])
+    assert scores['mean-roc_auc_score'] >= 0.9
+
+
+@pytest.mark.torch
 def test_infographstar_multitask_classification_supervised():
     from deepchem.models.torch_models.infograph import InfoGraphStarModel
     import torch
