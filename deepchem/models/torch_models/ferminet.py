@@ -228,8 +228,8 @@ class FerminetModel(TorchModel):
         Torch tensor containing electrons for each atom in the nucleus
     molecule: ElectronSampler
         ElectronSampler object which performs MCMC and samples electrons
-    pretraining_loss_list: List (default [])
-        list with losses for every epoch
+    loss_value: Optional[torch.Tensor] (default None)
+        torch tensor storing the loss value from the last iteration
     """
         self.nucleon_coordinates = nucleon_coordinates
         self.seed = seed
@@ -239,7 +239,7 @@ class FerminetModel(TorchModel):
         self.batch_no = batch_no
         self.random_walk_steps = random_walk_steps
         self.steps_per_update = steps_per_update
-        self.pretraining_loss_list: List = []
+        self.loss_value: Optional[torch.Tensor] = None
 
         no_electrons = []
         nucleons = []
@@ -413,9 +413,8 @@ class FerminetModel(TorchModel):
         for _ in range(nb_epoch):
             optimizer.zero_grad()
             self.molecule.move()
-            loss_value = (torch.mean(self.model.running_diff) /
-                          self.random_walk_steps)
-            self.pretraining_loss_list.append(self.loss_value)
-            loss_value.backward()
+            self.loss_value = (torch.mean(self.model.running_diff) /
+                               self.random_walk_steps)
+            self.loss_value.backward()
             optimizer.step()
             self.model.running_diff = torch.zeros(self.batch_no)

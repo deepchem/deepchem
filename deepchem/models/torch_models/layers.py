@@ -4996,10 +4996,10 @@ class FerminetElectronFeature(torch.nn.Module):
             g_one_down: torch.Tensor = torch.mean(
                 one_electron[:, self.spin[0]:, :], dim=-2)
             one_electron_tmp: torch.Tensor = torch.zeros(
-                self.batch_size, self.total_electron, self.n_one[l]).double()
+                self.batch_size, self.total_electron, self.n_one[l])
             two_electron_tmp: torch.Tensor = torch.zeros(
                 self.batch_size, self.total_electron, self.total_electron,
-                self.n_two[l]).double()
+                self.n_two[l])
             for i in range(self.total_electron):
                 # Calculating two-electron feature's average
                 g_two_up: torch.Tensor = torch.mean(
@@ -5127,9 +5127,9 @@ class FerminetEnvelope(torch.nn.Module):
         """
         psi = torch.zeros(self.batch_size)
         psi_up = torch.zeros(self.batch_size, self.determinant, self.spin[0],
-                             self.spin[0]).double()
+                             self.spin[0])
         psi_down = torch.zeros(self.batch_size, self.determinant, self.spin[1],
-                               self.spin[1]).double()
+                               self.spin[1])
 
         for k in range(self.determinant):
             for i in range(self.spin[0]):
