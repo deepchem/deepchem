@@ -2,8 +2,7 @@
 Implementation of the Ferminet class in pytorch
 """
 import logging
-from typing import List, Optional, Tuple, Dict
-from deepchem.utils.typing import LossFn
+from typing import List, Optional, Tuple, Dict, Callable, Any
 import time
 import torch.nn as nn
 from rdkit import Chem
@@ -420,11 +419,12 @@ class FerminetModel(ModularTorchModel):
                          batch_size=self.batch_no)
         return model
 
-    def loss_func(self, inputs, labels, weights):
+    def loss_func(self, inputs, labels, weights) -> Any:
         if self.task == 'pretraining':
             self.running_diff = self.running_diff + self.pretrain_criterion(
                 inputs[0], labels[0].float()) + self.pretrain_criterion(
                     inputs[0], labels[0].float())
+        return None
 
     def train(self,
               nb_epoch=10,
@@ -432,7 +432,7 @@ class FerminetModel(ModularTorchModel):
               max_checkpoints_to_keep: int = 5,
               checkpoint_interval: int = 1000,
               variables: Optional[List[torch.nn.Parameter]] = None,
-              loss: Optional[LossFn] = None,
+              loss: Optional[Callable] = None,
               all_losses: Optional[List[torch.tensor]] = None) -> torch.tensor:
         """Function to run pretraining or training
 
