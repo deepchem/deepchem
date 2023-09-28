@@ -345,9 +345,10 @@ def get_atomz(element: Union[str, ZType]) -> ZType:
         try:
             atom_z = periodic_table_atomz[element]
         except KeyError:
-            raise KeyError("Element Does Not Exists or Not Documented: %s" % element)
+            raise KeyError("Element Does Not Exists or Not Documented: %s" %
+                           element)
         return atom_z
-    elif isinstance(element, torch.Tensor): # Just return itself.
+    elif isinstance(element, torch.Tensor):  # Just return itself.
         try:
             assert element.numel() == 1
         except:
@@ -371,7 +372,7 @@ def get_atom_mass(atom_z: int) -> float:
     ----------
     atom_z: int
         Atomic Number of the Element.
-    
+
     Returns
     -------
     atomic_mass: float
@@ -388,7 +389,7 @@ def get_atom_mass(atom_z: int) -> float:
 
 def get_period(atom_z: int) -> int:
     """get the period of the given atom z
-    
+
     Examples
     --------
     >>> from deepchem.utils.dft_utils.periodictable import get_period
