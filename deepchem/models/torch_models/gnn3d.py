@@ -567,7 +567,7 @@ class InfoMax3DModular(ModularTorchModel):
             if self.task == 'regression':
                 head = nn.Linear(self.target_dim, self.n_tasks)
             elif self.task == 'classification':
-                head = nn.Linear(self.target_dim, self.n_tasks * self.n_classes)
+                head = nn.Linear(self.target_dim, self.n_tasks)
             return nn.Sequential(self.components['model2d'], head)
 
     def loss_func(self, inputs, labels, weights):
@@ -597,14 +597,7 @@ class InfoMax3DModular(ModularTorchModel):
             loss = F.mse_loss(preds, labels)
         elif self.task == 'classification':
             preds = self.model(inputs)
-            if self.n_tasks == 1:
-                logits = preds.view(-1, self.n_classes)
-                softmax_dim = 1
-            else:
-                logits = preds.view(-1, self.n_tasks, self.n_classes)
-                softmax_dim = 2
-            proba = F.softmax(logits, dim=softmax_dim)
-            loss = F.binary_cross_entropy_with_logits(proba, labels)
+            loss = F.binary_cross_entropy_with_logits(preds, labels)
         return loss
 
     def _prepare_batch(self, batch):
