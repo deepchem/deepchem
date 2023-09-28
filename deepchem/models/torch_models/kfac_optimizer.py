@@ -16,7 +16,7 @@ class KFACOptimizer(optim.Optimizer):
     """"
     This class implement the second order optimizer - KFAC, which uses Kronecker factor products of inputs and the gradients to
     get the approximate inverse fisher matrix, which is used to update the model parameters. Presently this optimizer works only
-    on liner and 2D convolution layers. If you want to know more details about KFAC, please check the paper [1]_ and [2]_.
+    on linear and 2D convolution layers. If you want to know more details about KFAC, please check the paper [1]_ and [2]_.
 
     References:
     -----------
