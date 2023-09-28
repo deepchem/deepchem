@@ -7,6 +7,14 @@ __all__ = ["config"]
 class _Config(object):
     """Contains the configuration for the DFT module
 
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.config import config
+    >>> Memory_usage = 1024**4 # Sample Memory usage by some Object/Matrix
+    >>> if Memory_usage > config.THRESHOLD_MEMORY :
+    ...     print("Overload")
+    Overload
+
     Attributes
     ----------
     THRESHOLD_MEMORY: int
@@ -15,14 +23,6 @@ class _Config(object):
         The memory for splitting big tensors into chunks
     VERBOSE: int
         Verbosity level
-
-    Examples
-    --------
-    >>> from deepchem.utils.dft_utils.config import config
-    >>> Memory_usage = 1024**4 # Sample Memory usage by some Object/Matrix
-    >>> if Memory_usage > config.THRESHOLD_MEMORY :
-    ...     print("Overload")
-    Overload
 
     """
     THRESHOLD_MEMORY: int = 10 * 1024**3  # in Bytes

@@ -318,23 +318,72 @@ atom_expected_radii = [
 
 
 def get_atomz(element: Union[str, ZType]) -> ZType:
-    """Returns the atomic number for the given element"""
+    """Returns the atomic number for the given element
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.periodictable import get_atomz
+    >>> element_symbol = "Al" # Aluminium
+    >>> get_atomz(element_symbol)
+    13
+    >>> get_atomz(17)
+    17
+
+    Parameters
+    ----------
+    element: Union[str, ZType]
+        String symbol of Element or Atomic Number.
+        Ex: H, He, C
+
+    Returns
+    -------
+    atom_n: ZType
+        Atomic Number of the given Element.
+
+    """
     if isinstance(element, str):
         try:
-            atom_n = periodic_table_atomz[element]
+            atom_z = periodic_table_atomz[element]
         except KeyError:
-            return "Element Does Not Exists or Not Documented."
-        return atom_n
-    elif isinstance(element, torch.Tensor):
-        assert element.numel() == 1
+            raise KeyError("Element Does Not Exists or Not Documented.")
+        return atom_z
+    elif isinstance(element, torch.Tensor): # Just return itself.
+        try:
+            assert element.numel() == 1
+        except:
+            raise AssertionError("Only 1 element Tensor Allowed.")
         return element
-    else:  # float or int
+    else:  # float or int | Just return itself.
         return element
 
 
-def get_atom_mass(atomz: int) -> float:
-    # returns the atomic mass in atomic unit
-    return atom_masses[atomz] * 1822.888486209
+def get_atom_mass(atom_z: int) -> float:
+    """Returns the Atomic mass in Atomic Mass Unit.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.periodictable import get_atom_mass
+    >>> atom_number = 13
+    >>> get_atom_mass(atom_number)
+    49184.33860618758
+
+    Parameters
+    ----------
+    atom_z: int
+        Atomic Number of the Element.
+    
+    Returns
+    -------
+    atomic_mass: float
+        Atomic Mass of the Element.
+
+    """
+    try:
+        atomic_mass = atom_masses[atom_z]
+    except KeyError:
+        raise KeyError("Element Does Not Exists or Not Documented.")
+
+    return atomic_mass * 1822.888486209
 
 
 def get_period(atz: int) -> int:
