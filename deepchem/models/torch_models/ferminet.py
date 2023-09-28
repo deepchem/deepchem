@@ -1,17 +1,24 @@
 """
 Implementation of the Ferminet class in pytorch
 """
-
-from typing import List, Optional, Tuple
-# import torch.nn as nn
+import logging
+from typing import List, Optional, Tuple, Union, Callable, Dict, Any
+from deepchem.models.wandblogger import WandbLogger
+from deepchem.utils.typing import LossFn, OneOrMany
+from collections.abc import Sequence as SequenceCollection
+import time
+import torch.nn as nn
 from rdkit import Chem
 import numpy as np
 from deepchem.utils.molecule_feature_utils import ALLEN_ELECTRONEGATIVTY
-from deepchem.models.torch_models import TorchModel
+from deepchem.models.torch_models.modular import ModularTorchModel
 import torch
+from deepchem.models.optimizers import LearningRateSchedule
 from deepchem.models.torch_models.layers import FerminetElectronFeature, FerminetEnvelope
 
 from deepchem.utils.electron_sampler import ElectronSampler
+
+logger = logging.getLogger(__name__)
 
 
 class Ferminet(torch.nn.Module):
@@ -65,8 +72,6 @@ class Ferminet(torch.nn.Module):
 
         Attributes
         ----------
-        running_diff: torch.Tensor
-            torch tensor containing the loss which gets updated for each random walk performed
         ferminet_layer: torch.nn.ModuleList
             Modulelist containing the ferminet electron feature layer
         ferminet_layer_envelope: torch.nn.ModuleList
@@ -91,7 +96,6 @@ class Ferminet(torch.nn.Module):
         self.ferminet_layer: torch.nn.ModuleList = torch.nn.ModuleList()
         self.ferminet_layer_envelope: torch.nn.ModuleList = torch.nn.ModuleList(
         )
-        self.running_diff: torch.Tensor = torch.zeros(self.batch_size)
 
         self.ferminet_layer.append(
             FerminetElectronFeature(self.n_one, self.n_two,
@@ -145,32 +149,8 @@ class Ferminet(torch.nn.Module):
             0].forward(one_electron, one_electron_vector_permuted)
         return psi
 
-    def loss(self,
-             psi_up_mo: List[Optional[np.ndarray]] = [None],
-             psi_down_mo: List[Optional[np.ndarray]] = [None],
-             pretrain: List[bool] = [True]):
-        """
-        Implements the loss function for both pretraining and the actual training parts.
 
-        Parameters
-        ----------
-        psi_up_mo: List[Optional[np.ndarray]] (default [None])
-            numpy array containing the sampled hartreee fock up-spin orbitals
-        psi_down_mo: List[Optional[np.ndarray]] (default [None])
-            numpy array containing the sampled hartreee fock down-spin orbitals
-        pretrain: List[bool] (default [True])
-            indicates whether the model is pretraining
-        """
-        criterion = torch.nn.MSELoss()
-        if pretrain:
-            psi_up_mo_torch = torch.from_numpy(psi_up_mo).unsqueeze(1)
-            psi_down_mo_torch = torch.from_numpy(psi_down_mo).unsqueeze(1)
-            self.running_diff = self.running_diff + criterion(
-                self.psi_up, psi_up_mo_torch.float()) + criterion(
-                    self.psi_down, psi_down_mo_torch.float())
-
-
-class FerminetModel(TorchModel):
+class FerminetModel(ModularTorchModel):
     """A deep-learning based Variational Monte Carlo method [1]_ for calculating the ab-initio
     solution of a many-electron system.
 
@@ -190,6 +170,19 @@ class FerminetModel(TorchModel):
     Note
     ----
     This class requires pySCF to be installed.
+
+    Example
+    -------
+    >>> from deepchem.models.torch_models.ferminet import FerminetModel
+    >>> import torch
+    >>> import tempfile
+    >>> H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
+    >>> pretrain_model = FerminetModel(H2_molecule, spin=0, ion_charge=0, tasks='pretraining', model_dir=tempdir.name)
+    >>> pretraining_loss = pretrain_model.train(nb_epoch=1)
+    >>> pretrain_model.save_checkpoint()
+    >>> finetune_model = FerminetModel(H2_molecule, spin=0, ion_charge=0, tasks='pretraining', model_dir=tempdir.name)
+    >>> finetune_model.restore(components=['electron-features'])
+    >>> finetuning_loss = finetune_model.train()
     """
 
     def __init__(self,
@@ -199,7 +192,10 @@ class FerminetModel(TorchModel):
                  seed: Optional[int] = None,
                  batch_no: int = 8,
                  random_walk_steps=10,
-                 steps_per_update=10):
+                 steps_per_update=10,
+                 task='pretraining',
+                 learning_rate: float = 1e-3,
+                 **kwargs):
         """
     Parameters:
     -----------
@@ -217,6 +213,10 @@ class FerminetModel(TorchModel):
         Number of random walk steps to be performed in a single move.
     steps_per_update: int (default: 10)
         Number of steps after which the electron sampler should update the electron parameters.
+    task: str (default: 'pretraining')
+        The type of task to run - 'pretraining' or 'training'
+    learning_rate: flaot (default: 1e-3)
+        The learning rate to be used by the Adam optimizer
 
     Attributes:
     -----------
@@ -228,6 +228,10 @@ class FerminetModel(TorchModel):
         ElectronSampler object which performs MCMC and samples electrons
     loss_value: torch.Tensor (default torch.tensor(0))
         torch tensor storing the loss value from the last iteration
+    running_diff: torch.Tensor
+        torch tensor containing the loss which gets updated for each random walk performed
+    pretrain_criterion:torch.nn.MSELoss
+        torch.nn.MSELoss which serves as the criterion for pretrain tasks
     """
         self.nucleon_coordinates = nucleon_coordinates
         self.seed = seed
@@ -238,6 +242,10 @@ class FerminetModel(TorchModel):
         self.random_walk_steps = random_walk_steps
         self.steps_per_update = steps_per_update
         self.loss_value: torch.Tensor = torch.tensor(0)
+        self.running_diff: torch.Tensor = torch.tensor(self.batch_no)
+        self.task = task
+        self.pretrain_criterion: torch.nn.MSELoss = torch.nn.MSELoss()
+        self.learning_rate = learning_rate
 
         no_electrons = []
         nucleons = []
@@ -253,7 +261,7 @@ class FerminetModel(TorchModel):
             index += 1
 
         self.electron_no: np.ndarray = np.array(no_electrons)
-        charge: np.ndarray = self.electron_no.reshape(
+        self.charge: np.ndarray = self.electron_no.reshape(
             np.shape(self.electron_no)[0])
         self.nucleon_pos: np.ndarray = np.array(nucleons)
         electro_neg = np.array(electronegativity)
@@ -288,12 +296,13 @@ class FerminetModel(TorchModel):
         if self.up_spin - self.down_spin != self.spin:
             raise ValueError("Given spin is not feasible")
 
-        nucl = torch.from_numpy(self.nucleon_pos)
-        self.model = Ferminet(nucl,
-                              spin=(self.up_spin, self.down_spin),
-                              nuclear_charge=torch.Tensor(charge),
-                              batch_size=self.batch_no)
-
+        self.nucl = torch.from_numpy(self.nucleon_pos)
+        self.model = self.build_model()
+        self._pytorch_optimizer = torch.optim.Adam(
+            self.model.parameters(),  # type: ignore
+            lr=self.learning_rate)  # type: ignore
+        self._lr_schedule = None
+        self.components = self.build_components()
         self.molecule: ElectronSampler = ElectronSampler(
             batch_no=self.batch_no,
             central_value=self.nucleon_pos,
@@ -306,9 +315,8 @@ class FerminetModel(TorchModel):
         self.molecule.gauss_initialize_position(
             self.electron_no)  # initialize the position of the electrons
         self.prepare_hf_solution()
-        super(FerminetModel, self).__init__(
-            self.model,
-            loss=torch.nn.MSELoss())  # will update the loss in successive PR
+        super().__init__(self.model, self.components,
+                         **kwargs)  # will update the loss in successive PR
 
     def evaluate_hf(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -380,39 +388,175 @@ class FerminetModel(TorchModel):
         hf_product = np.prod(
             np.diagonal(up_spin_mo, axis1=1, axis2=2)**2, axis=1) * np.prod(
                 np.diagonal(down_spin_mo, axis1=1, axis2=2)**2, axis=1)
-        self.model.loss(up_spin_mo, down_spin_mo, pretrain=True)
+        self.loss_func(inputs=[self.model.psi_up, self.model.psi_down],
+                       labels=[
+                           torch.from_numpy(up_spin_mo).unsqueeze(1),
+                           torch.from_numpy(down_spin_mo).unsqueeze(1)
+                       ],
+                       weights=[None])
         return np.log(hf_product + np_output**2) + np.log(0.5)
 
-    def pretrain(self,
-                 nb_epoch: int = 200,
-                 lr: float = 0.0075,
-                 weight_decay: float = 0.0001,
-                 burn_in: int = 50):
+    def build_components(self) -> dict:
         """
-        Overriden function from torch Model.
+        Build the components of the model. Ferminet consists of 2 torch layers - electron-features and electron-envelope
+
+        Components list, type and description:
+        --------------------------------------
+        electron-features layer: Geometry independent layers, calculates one and  two electron features
+
+        electron-envelope: Geometry dependent layers, calculates the envelope function and orbital values
+        """
+        components: Dict[str, nn.Module] = {}
+        components['electron-features'] = self.model.ferminet_layer[0]
+        components['electron-envelope'] = self.model.ferminet_layer_envelope[0]
+
+        return components
+
+    def build_model(self) -> nn.Module:
+        """
+        Builds the Ferminet model
+        """
+        model = Ferminet(self.nucl,
+                         spin=(self.up_spin, self.down_spin),
+                         nuclear_charge=torch.Tensor(self.charge),
+                         batch_size=self.batch_no)
+        return model
+
+    def loss_func(self, inputs, labels, weights):
+        if self.task == 'pretraining':
+            self.running_diff = self.running_diff + self.pretrain_criterion(
+                inputs[0], labels[0].float()) + self.pretrain_criterion(
+                    inputs[0], labels[0].float())
+
+    def train(self,
+              nb_epoch=10,
+              burn_in: int = 0,
+              max_checkpoints_to_keep: int = 5,
+              checkpoint_interval: int = 1000,
+              variables: Optional[List[torch.nn.Parameter]] = None,
+              loss: Optional[LossFn] = None,
+              callbacks: Union[Callable, List[Callable]] = [],
+              all_losses: Optional[List[float]] = None) -> float:
+        """Function to run pretraining or training
 
         Parameters
         ----------
-        nb_epoch: int (default: 200)
-            contains the number of pretraining steps to be performed
-        lr : float (default: 0.0075)
-            contains the learning rate for the model fitting
-        weight_decay: float (default: 0.0001)
-            contains the weight_decay for the model fitting
-        burn_in: int (default 100)
-            contains the number of steps for to perform burn-in to get better starting point
+        nb_epoch: int
+            the number of epochs to train for
+        burn-in: int
+            the number epochs for burn-in, used at the start of pretraining and training to get the best possible starting point
+        max_checkpoints_to_keep: int
+            the maximum number of checkpoints to keep.  Older checkpoints are discarded.
+        checkpoint_interval: int
+            the frequency at which to write checkpoints, measured in training steps.
+            Set this to 0 to disable automatic checkpointing.
+        variables: list of torch.nn.Parameter
+            the variables to train.  If None (the default), all trainable variables in
+            the model are used.
+        loss: function
+            a function of the form f(outputs, labels, weights) that computes the loss
+            for each batch.  If None (the default), the model's standard loss function
+            is used.
+        callbacks: function or list of functions
+            one or more functions of the form f(model, step) that will be invoked after
+            every step.  This can be used to perform validation, logging, etc.
+        all_losses: Optional[List[float]], optional (default None)
+            If specified, all logged losses are appended into this list. Note that
+            you can call `fit()` repeatedly with the same list and losses will
+            continue to be appended.
+
+        Returns
+        -------
+        The average loss over the most recent checkpoint interval
         """
-        optimizer = torch.optim.Adam(self.model.parameters(),
-                                     lr=lr,
-                                     weight_decay=weight_decay)
+
+        if not isinstance(callbacks, SequenceCollection):
+            callbacks = [callbacks]
+        self._ensure_built()
+        self.model.train()
+
+        if variables is None:
+            optimizer = self._pytorch_optimizer
+            lr_schedule = self._lr_schedule
+        else:
+            var_key = tuple(variables)
+            if var_key in self._optimizer_for_vars:
+                optimizer, lr_schedule = self._optimizer_for_vars[var_key]
+            else:
+                optimizer = self.optimizer._create_pytorch_optimizer(variables)
+                if isinstance(self.optimizer.learning_rate,
+                              LearningRateSchedule):
+                    lr_schedule = self.optimizer.learning_rate._create_pytorch_schedule(
+                        optimizer)
+                else:
+                    lr_schedule = None
+                self._optimizer_for_vars[var_key] = (optimizer, lr_schedule)
+        time1 = time.time()
+
+        # Execute the loss function, accumulating the gradients.
         for _ in range(burn_in):
             self.molecule.gauss_initialize_position(
                 self.electron_no)  # initialize the position of the electrons
+
         for _ in range(nb_epoch):
-            optimizer.zero_grad()
-            self.molecule.move()
-            self.loss_value = (torch.mean(self.model.running_diff) /
-                               self.random_walk_steps)
-            self.loss_value.backward()
-            optimizer.step()
-            self.model.running_diff = torch.zeros(self.batch_no)
+            if self.task == 'pretraining':
+                optimizer.zero_grad()
+                self.molecule.move()
+                self.loss_value = (torch.mean(self.running_diff) /
+                                   self.random_walk_steps)
+                self.loss_value.backward()
+                optimizer.step()
+                if lr_schedule is not None:
+                    lr_schedule.step()
+                self.running_diff = torch.zeros(self.batch_no)
+
+            # TODO: self.task == 'training'
+
+            self._global_step += 1
+            current_step = self._global_step
+            should_log = (current_step % 1 == 0)
+            # Report progress and write checkpoints.
+            if should_log:
+                logger.info('Ending global_step %d: Average loss %.10f' %
+                            (current_step, self.loss_value))
+                if all_losses is not None:
+                    all_losses.append(self.loss_value)
+                # Capture the last avg_loss in case of return since we're resetting to 0 now
+            if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
+                self.save_checkpoint(max_checkpoints_to_keep)
+            for c in callbacks:
+                c(self, current_step)
+            if self.tensorboard and should_log:
+                self._log_scalar_to_tensorboard('loss', self.loss_value,
+                                                current_step)
+            if (self.wandb_logger is not None) and should_log:
+                all_data = dict({'train/loss': self.loss_value})
+                self.wandb_logger.log_data(all_data, step=current_step)
+
+            if checkpoint_interval > 0:
+                self.save_checkpoint(max_checkpoints_to_keep)
+            time2 = time.time()
+            logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
+            time1 = time2
+        return self.loss_value
+
+    def restore(  # type: ignore
+            self,
+            components: Optional[List[str]] = None,
+            checkpoint: Optional[str] = None,
+            model_dir: Optional[str] = None,
+            map_location: Optional[torch.device] = None) -> None:
+        """
+        Overriden function for restore
+        """
+        if checkpoint is None:
+            checkpoints = sorted(self.get_checkpoints(model_dir))
+            if len(checkpoints) == 0:
+                raise ValueError('No checkpoint found')
+            checkpoint = checkpoints[0]
+        data = torch.load(checkpoint, map_location=map_location)
+        for name, state_dict in data.items():
+            if name != 'model' and name in self.components.keys():
+                self.components[name].load_state_dict(state_dict)
+
+        self.build_model()

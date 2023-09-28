@@ -54,8 +54,8 @@ def test_evaluate_hf_solution():
 @pytest.mark.dqc
 def test_FerminetMode_pretrain():
     # Test for the init function of FerminetModel class
-    FH_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
+    H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
     # Testing ionic initialization
-    mol = FerminetModel(FH_molecule, spin=0, ion_charge=0)
-    mol.pretrain(nb_epoch=3)
+    mol = FerminetModel(H2_molecule, spin=0, ion_charge=0, tasks='pretraining')
+    mol.train(nb_epoch=4)
     assert mol.loss_value <= torch.tensor(1.0)
