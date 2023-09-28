@@ -2,7 +2,7 @@
 Implementation of the Ferminet class in pytorch
 """
 import logging
-from typing import List, Optional, Tuple, Dict, Callable, Any
+from typing import List, Optional, Tuple, Dict
 from deepchem.utils.typing import LossFn
 import time
 import torch.nn as nn
@@ -386,12 +386,12 @@ class FerminetModel(ModularTorchModel):
         hf_product = np.prod(
             np.diagonal(up_spin_mo, axis1=1, axis2=2)**2, axis=1) * np.prod(
                 np.diagonal(down_spin_mo, axis1=1, axis2=2)**2, axis=1)
-        self.loss_func(inputs=[self.model.psi_up, self.model.psi_down],
-                       labels=[
-                           torch.from_numpy(up_spin_mo).unsqueeze(1),
-                           torch.from_numpy(down_spin_mo).unsqueeze(1)
-                       ],
-                       weights=[None])
+        _ = self.loss_func(inputs=[self.model.psi_up, self.model.psi_down],
+                           labels=[
+                               torch.from_numpy(up_spin_mo).unsqueeze(1),
+                               torch.from_numpy(down_spin_mo).unsqueeze(1)
+                           ],
+                           weights=[None])
         return np.log(hf_product + np_output**2) + np.log(0.5)
 
     def build_components(self) -> dict:
@@ -420,11 +420,12 @@ class FerminetModel(ModularTorchModel):
                          batch_size=self.batch_no)
         return model
 
-    def loss_func(self, inputs, labels, weights) -> None:
+    def loss_func(self, inputs, labels, weights):
         if self.task == 'pretraining':
             self.running_diff = self.running_diff + self.pretrain_criterion(
                 inputs[0], labels[0].float()) + self.pretrain_criterion(
                     inputs[0], labels[0].float())
+        return self.running_diff
 
     def train(self,
               nb_epoch=10,
