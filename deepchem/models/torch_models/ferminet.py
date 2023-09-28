@@ -2,9 +2,8 @@
 Implementation of the Ferminet class in pytorch
 """
 import logging
-from typing import List, Optional, Tuple, Union, Callable, Dict, Any
-from deepchem.models.wandblogger import WandbLogger
-from deepchem.utils.typing import LossFn, OneOrMany
+from typing import List, Optional, Tuple, Union, Callable, Dict
+from deepchem.utils.typing import LossFn
 from collections.abc import Sequence as SequenceCollection
 import time
 import torch.nn as nn
@@ -436,7 +435,7 @@ class FerminetModel(ModularTorchModel):
               variables: Optional[List[torch.nn.Parameter]] = None,
               loss: Optional[LossFn] = None,
               callbacks: Union[Callable, List[Callable]] = [],
-              all_losses: Optional[List[float]] = None) -> float:
+              all_losses: Optional[List[torch.tensor]] = None) -> torch.tensor:
         """Function to run pretraining or training
 
         Parameters
@@ -467,7 +466,7 @@ class FerminetModel(ModularTorchModel):
 
         Returns
         -------
-        The average loss over the most recent checkpoint interval
+        The average loss tensor over the most recent checkpoint interval
         """
 
         if not isinstance(callbacks, SequenceCollection):
