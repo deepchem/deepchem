@@ -12,5 +12,10 @@ def test_get_atomz():
 
 def test_get_atom_mass():
     atomic_number = 41
-    atomic_mass = get_atom_mass(atomic_number) # Close to 92.9 * 1822.9
-    assert np.allclose(atomic_mass, 92.9 * 1822.9, rtol=0.001)
+    atomic_mass = get_atom_mass(atomic_number)
+    assert np.allclose(atomic_mass, 92.9064 * 1822.888486209)
+
+def test_get_period():
+    atomic_number = 13
+    period = get_period(atomic_number)
+    assert period == 3 # Aluminium Period
