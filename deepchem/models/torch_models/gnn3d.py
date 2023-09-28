@@ -201,7 +201,7 @@ class Net3D(nn.Module):
     >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
     >>> from deepchem.models.torch_models.gnn3d import Net3D
     >>> smiles = ["C[C@H](F)Cl", "C[C@@H](F)Cl"]
-    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    >>> featurizer = RDKitConformerFeaturizer()
     >>> data = featurizer.featurize(smiles)
     >>> dgldata = [[graph.to_dgl_graph() for graph in conf] for conf in data]
     >>> net3d = Net3D(hidden_dim=3, target_dim=2, readout_aggregators=['sum', 'mean'])
@@ -428,7 +428,7 @@ class InfoMax3DModular(ModularTorchModel):
     >>> import deepchem as dc
     >>> from deepchem.data.datasets import NumpyDataset
     >>> smiles = ["C[C@H](F)Cl", "C[C@@H](F)Cl"]
-    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    >>> featurizer = RDKitConformerFeaturizer()
     >>> data = featurizer.featurize(smiles)
     >>> dataset = NumpyDataset(X=data)
     >>> model = InfoMax3DModular(hidden_dim=64,
