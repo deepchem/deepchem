@@ -11,7 +11,7 @@ import tempfile
 
 @pytest.mark.dqc
 def test_dftxc_eval():
-    inputs = 'deepchem/models/tests/assets/test_dftxcdata.yaml'
+    inputs = ['deepchem/models/tests/assets/test_dftxcdata.yaml']
     data = DFTYamlLoader()
     model_dir = tempfile.mkdtemp()
     dataset = (data.create_dataset(inputs))
@@ -28,7 +28,7 @@ def test_dftxc_eval():
                            mode="classification",
                            model_dir=model_dir)
     reload_model.restore()
-    inputs1 = 'deepchem/models/tests/assets/test_ieLi.yaml'
+    inputs1 = ['deepchem/models/tests/assets/test_ieLi.yaml']
     predict_dataset = data.create_dataset(inputs1)
     predict = reload_model.predict(predict_dataset)
     assert predict < 0.199
@@ -48,7 +48,7 @@ def test_dftxc_eval():
 
 @pytest.mark.dqc
 def test_dm():
-    inputs = 'deepchem/models/tests/assets/test_dm.yaml'
+    inputs = ['deepchem/models/tests/assets/test_dm.yaml']
     data = DFTYamlLoader()
     dataset = (data.create_dataset(inputs))
     model = XCModel("lda_x", batch_size=1)

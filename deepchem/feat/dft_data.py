@@ -241,7 +241,7 @@ class _EntryDM(DFTEntry):
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         val = qcs[0].aodmtot()
-        return np.array([val.tolist()])
+        return np.array(val.tolist())
 
 
 class _EntryDens(DFTEntry):

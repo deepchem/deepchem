@@ -12,7 +12,7 @@ import numpy as np
 
 @pytest.mark.dqc
 def test_multiatom():
-    inputs = 'deepchem/models/tests/assets/test_beh2.yaml'
+    inputs = ['deepchem/models/tests/assets/test_beh2.yaml']
     k = DFTYamlLoader()
     data = k.create_dataset(inputs)
     nnmodel = (torch.nn.Sequential(torch.nn.Linear(2, 10), torch.nn.Softplus(),
