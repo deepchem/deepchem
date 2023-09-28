@@ -2,9 +2,8 @@
 Implementation of the Ferminet class in pytorch
 """
 import logging
-from typing import List, Optional, Tuple, Union, Callable, Dict
+from typing import List, Optional, Tuple, Dict
 from deepchem.utils.typing import LossFn
-from collections.abc import Sequence as SequenceCollection
 import time
 import torch.nn as nn
 from rdkit import Chem
@@ -434,7 +433,6 @@ class FerminetModel(ModularTorchModel):
               checkpoint_interval: int = 1000,
               variables: Optional[List[torch.nn.Parameter]] = None,
               loss: Optional[LossFn] = None,
-              callbacks: Union[Callable, List[Callable]] = [],
               all_losses: Optional[List[torch.tensor]] = None) -> torch.tensor:
         """Function to run pretraining or training
 
@@ -456,9 +454,6 @@ class FerminetModel(ModularTorchModel):
             a function of the form f(outputs, labels, weights) that computes the loss
             for each batch.  If None (the default), the model's standard loss function
             is used.
-        callbacks: function or list of functions
-            one or more functions of the form f(model, step) that will be invoked after
-            every step.  This can be used to perform validation, logging, etc.
         all_losses: Optional[List[float]], optional (default None)
             If specified, all logged losses are appended into this list. Note that
             you can call `fit()` repeatedly with the same list and losses will
@@ -469,8 +464,6 @@ class FerminetModel(ModularTorchModel):
         The average loss tensor over the most recent checkpoint interval
         """
 
-        if not isinstance(callbacks, SequenceCollection):
-            callbacks = [callbacks]
         self._ensure_built()
         self.model.train()
 
@@ -523,8 +516,6 @@ class FerminetModel(ModularTorchModel):
                 # Capture the last avg_loss in case of return since we're resetting to 0 now
             if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
                 self.save_checkpoint(max_checkpoints_to_keep)
-            for c in callbacks:
-                c(self, current_step)
             if self.tensorboard and should_log:
                 self._log_scalar_to_tensorboard('loss', self.loss_value,
                                                 current_step)
