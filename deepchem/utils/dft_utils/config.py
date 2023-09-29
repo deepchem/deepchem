@@ -1,3 +1,7 @@
+"""
+Density Function Theory Configuration Utilities.
+"""
+
 from dataclasses import dataclass
 
 __all__ = ["config"]

@@ -1,3 +1,6 @@
+"""
+Density Function Theory Miscellaneous Utilities.
+"""
 from typing import Callable, overload, TypeVar, Any, Mapping, Dict
 import functools
 import torch

@@ -1,3 +1,6 @@
+"""
+Density Function Theory Periodic Table Utilities.
+"""
 from typing import Union
 import torch
 import numpy as np
