@@ -241,7 +241,7 @@ class SeqToSeqModel(TorchModel):
     of steps over which this happens is configurable.
 
     In this class, we establish a sequential model for the Sequence to Sequence (DTNN) [1]_.
-    
+
     Examples
     --------
 
@@ -325,11 +325,12 @@ class SeqToSeqModel(TorchModel):
             annealing_start_step=self._annealing_start_step,
             annealing_final_step=self._annealing_final_step)
 
-        super(SeqToSeqModel, self).__init__(self.model,
-                                            self._create_loss(),
-                                            output_types=['prediction', 'embedding'],
-                                            batch_size=self.batch_size,
-                                            **kwargs)
+        super(SeqToSeqModel,
+              self).__init__(self.model,
+                             self._create_loss(),
+                             output_types=['prediction', 'embedding'],
+                             batch_size=self.batch_size,
+                             **kwargs)
 
     def _create_loss(self):
         """Create loss function for model."""
@@ -398,7 +399,7 @@ class SeqToSeqModel(TorchModel):
             for i in range(len(batch)):
                 result.append(self._beam_search(probs[i], beam_width))
         return result
-    
+
     def predict_embedding(self, sequences):
         """Given a set of input sequences, compute the embedding vectors.
 
@@ -414,9 +415,9 @@ class SeqToSeqModel(TorchModel):
                                           self._reverse_input, self.batch_size,
                                           self._input_dict,
                                           SeqToSeqModel.sequence_end)
-            probs = self.predict_on_generator([[
-                (features, np.array(self.get_global_step())), None, None
-            ]], output_types=["embedding"])
+            probs = self.predict_on_generator(
+                [[(features, np.array(self.get_global_step())), None, None]],
+                output_types=["embedding"])
             for i in range(len(batch)):
                 result.append(probs[0][i])
         return result
@@ -507,4 +508,3 @@ class SeqToSeqModel(TorchModel):
                                          self.batch_size, self._output_dict,
                                          SeqToSeqModel.sequence_end)
             yield ([features, np.array(self.get_global_step())], [labels], [])
-
