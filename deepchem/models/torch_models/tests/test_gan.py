@@ -66,19 +66,19 @@ if True:
 
         def get_noise_input_shape(self):
             return (
-                1,
+                16,
                 2,
             )
 
         def get_data_input_shapes(self):
             return [(
-                1,
+                16,
                 1,
             )]
 
         def get_conditional_input_shapes(self):
             return [(
-                1,
+                16,
                 1,
             )]
 
