@@ -26,7 +26,7 @@ def set_default_option(default_option: Dict, option: Dict) -> Dict:
         Default options
     option: Dict
         Options
-        
+
     Returns
     -------
     res: Dict
@@ -83,32 +83,105 @@ def memoize_method(fcn: Callable[[Any], T]) -> Callable[[Any], T]:
 
     return new_fcn
 
+
 def get_option(name: str, s: K, options: Mapping[K, T]) -> T:
-    # get the value from dictionary of options, if not found, then raise an error
+    """Gets the value from dictionary of options,
+    if not found, then raise an error.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.misc import get_option
+    >>> get_option("test", "a", {"a": 1, "b": 2})
+    1
+
+    Parameters
+    ----------
+    name: str
+        Name of option
+    s: K
+        Key to look up
+    options: Mapping[K, T]
+        Mapping of options
+
+    Returns
+    -------
+    value: T
+        Value of option
+
+    """
     if s in options:
         return options[s]
     else:
-        raise ValueError(f"Unknown {name}: {s}. The available options are: {str(list(options.keys()))}")
+        raise ValueError(
+            f"Unknown {name}: {s}. The available options are: {str(list(options.keys()))}"
+        )
+
 
 @overload
 def gaussian_int(n: int, alpha: float) -> float:
     ...
 
+
 @overload
 def gaussian_int(n: int, alpha: torch.Tensor) -> torch.Tensor:
     ...
 
+
 def gaussian_int(n, alpha):
-    # int_0^inf x^n exp(-alpha x^2) dx
+    """
+    Implements: int_0^inf x^n exp(-alpha x^2) dx
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.misc import gaussian_int
+    >>> gaussian_int(1, 1.0)
+    0.5
+    >>> gaussian_int(1, torch.tensor(1.0))
+    tensor(0.5000)
+
+    Parameters
+    ----------
+    n:
+        Power of x
+    alpha:
+        Parameter for gaussian
+
+    Returns
+    -------
+    value:
+        Value of integral
+
+    """
     n1 = (n + 1) * 0.5
-    return scipy.special.gamma(n1) / (2 * alpha ** n1)
+    return scipy.special.gamma(n1) / (2 * alpha**n1)
+
 
 class _Logger(object):
+    """Logger class for DFT utilities.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.misc import logger
+    >>> logger.log("test", 2)
+    >>> logger.log("test", -1)
+    test
+
+    """
+
     def log(self, s: str, vlevel: int = 0):
         """
         Print the string ``s`` if the verbosity level exceeds ``vlevel``.
+
+        Parameters
+        ----------
+        s: str
+            String to print
+        vlevel: int
+            Verbosity level
+
         """
         if config.VERBOSE > vlevel:
             print(s)
+
 
 logger = _Logger()
