@@ -353,7 +353,8 @@ class KerasModel(Model):
 
         Returns
         -------
-        The average loss over the most recent checkpoint interval
+        float
+            The average loss over the most recent checkpoint interval
         """
         return self.fit_generator(
             self.default_generator(dataset,
@@ -403,7 +404,8 @@ class KerasModel(Model):
 
         Returns
         -------
-        The average loss over the most recent checkpoint interval
+        float
+            The average loss over the most recent checkpoint interval
         """
         if not isinstance(callbacks, SequenceCollection):
             callbacks = [callbacks]
@@ -557,7 +559,8 @@ class KerasModel(Model):
 
         Returns
         -------
-        the loss on the batch
+        float
+            the loss on the batch
         """
         self._ensure_built()
         dataset = NumpyDataset(X, y, w)
@@ -738,7 +741,10 @@ class KerasModel(Model):
             If specified, all outputs of this type will be retrieved
             from the model. If output_types is specified, outputs must
             be None.
-        Returns:
+    
+        Returns
+        -------
+        OneOrMany[np.ndarray]
             a NumPy array of the model produces a single output, or a list of arrays
             if it produces multiple outputs
         """
@@ -768,8 +774,9 @@ class KerasModel(Model):
 
         Returns
         -------
-        a NumPy array of the model produces a single output, or a list of arrays
-        if it produces multiple outputs
+        OneOrMany[np.ndarray]
+            a NumPy array of the model produces a single output, or a list of arrays
+            if it produces multiple outputs
         """
         dataset = NumpyDataset(X=X, y=None)
         return self.predict(dataset, transformers, outputs)
@@ -797,9 +804,11 @@ class KerasModel(Model):
 
         Returns
         -------
-        for each output, a tuple (y_pred, y_std) where y_pred is the predicted
-        value of the output, and each element of y_std estimates the standard
-        deviation of the corresponding element of y_pred
+        OneOrMany[Tuple[y_pred, y_std]]
+        y_pred: np.ndarray
+            predicted value of the output
+        y_std: np.ndarray
+            standard deviation of the corresponding element of y_pred
         """
         dataset = NumpyDataset(X=X, y=None)
         return self.predict_uncertainty(dataset, masks)
