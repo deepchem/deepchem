@@ -2,9 +2,9 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import time
+# import time
 from typing import Callable
-from deepchem.models.torch_models.torch_model import TorchModel
+# from deepchem.models.torch_models.torch_model import TorchModel
 
 
 class GAN(nn.Module):
@@ -19,6 +19,98 @@ class GAN(nn.Module):
     discriminator tries to get better and better at telling real from false data,
     while the generator tries to get better and better at fooling the discriminator.
 
+    Examples
+    --------
+    >>>
+    >>> # Importing necessary modules
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models.gan import GAN
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+    >>> class Generator(nn.Module):
+    ...     def __init__(self, noise_input_shape, conditional_input_shape):
+    ...         super(Generator, self).__init__()
+    ...         self.noise_input_shape = noise_input_shape
+    ...         self.conditional_input_shape = conditional_input_shape
+    ...         self.noise_dim = noise_input_shape[1:]
+    ...         self.conditional_dim = conditional_input_shape[1:]
+    ...         input_dim = sum(self.noise_dim) + sum(self.conditional_dim)
+    ...         self.output = nn.Linear(input_dim, 1)
+    ...     def forward(self, input):
+    ...         noise_input, conditional_input = input
+    ...         inputs = torch.cat((noise_input, conditional_input), dim=1)
+    ...         output = self.output(inputs)
+    ...         return output
+    >>> class Discriminator(nn.Module):
+    ...     def __init__(self, data_input_shape, conditional_input_shape):
+    ...         super(Discriminator, self).__init__()
+    ...         self.data_input_shape = data_input_shape
+    ...         self.conditional_input_shape = conditional_input_shape
+    ...         # Extracting the actual data dimension
+    ...         data_dim = data_input_shape[1:]  
+    ...         # Extracting the actual conditional dimension
+    ...         conditional_dim = conditional_input_shape[1:]  
+    ...         input_dim = sum(data_dim) + sum(conditional_dim)
+    ...         # Define the dense layers
+    ...         self.dense1 = nn.Linear(input_dim, 10)
+    ...         self.dense2 = nn.Linear(10, 1)
+    ...     def forward(self, input):
+    ...         data_input, conditional_input = input
+    ...         # Concatenate data_input and conditional_input along the second dimension
+    ...         discrim_in = torch.cat((data_input, conditional_input), dim=1)
+    ...         # Pass the concatenated input through the dense layers
+    ...         x = F.relu(self.dense1(discrim_in))
+    ...         output = torch.sigmoid(self.dense2(x))
+    ...         return output
+    >>> # Defining an Example GAN class
+    >>> class ExampleGAN(dc.models.torch_models.GAN):
+    ...    def get_noise_input_shape(self):
+    ...        return (16,2,)
+    ...    def get_data_input_shapes(self):
+    ...        return [(16,1,)]
+    ...    def get_conditional_input_shapes(self):
+    ...        return [(16,1,)]
+    ...    def create_generator(self):
+    ...        noise_dim = self.get_noise_input_shape()
+    ...        conditional_dim = self.get_conditional_input_shapes()[0]
+    ...        return nn.Sequential(Generator(noise_dim, conditional_dim))
+    ...    def create_discriminator(self):
+    ...        data_input_shape = self.get_data_input_shapes()[0]
+    ...        conditional_input_shape = self.get_conditional_input_shapes()[0]
+    ...        return nn.Sequential(
+    ...            Discriminator(data_input_shape, conditional_input_shape))
+    >>> batch_size = 16
+    >>> noise_shape = (batch_size, 2,)
+    >>> data_shape = [(batch_size, 1,)]
+    >>> conditional_shape = [(batch_size, 1,)]
+    >>> def create_generator(noise_dim, conditional_dim):
+    ...     noise_dim = noise_dim
+    ...     conditional_dim = conditional_dim[0]
+    ...     return nn.Sequential(Generator(noise_dim, conditional_dim))
+    >>> def create_discriminator(data_input_shape, conditional_input_shape):
+    ...     data_input_shape = data_input_shape[0]
+    ...     conditional_input_shape = conditional_input_shape[0]
+    ...     return nn.Sequential(
+    ...         Discriminator(data_input_shape, conditional_input_shape))
+    >>> gan = ExampleGAN(noise_shape, data_shape, conditional_shape,
+    ...                  create_generator(noise_shape, conditional_shape),
+    ...                  create_discriminator(data_shape, conditional_shape))
+    >>> noise = torch.rand(*gan.noise_input_shape)
+    >>> real_data = torch.rand(*gan.data_input_shape[0])
+    >>> conditional = torch.rand(*gan.conditional_input_shape[0])
+    >>> gen_loss, disc_loss = gan([noise, real_data, conditional])
+    
+    References
+    ----------
+    .. [1] Goodfellow, Ian, et al. "Generative adversarial nets." Advances in
+         neural information processing systems. 2014.
+         
+    Notes
+    -----
+    This class is a subclass of TorchModel.  It accepts all the keyword arguments
+    from TorchModel.
+    
     """
 
     def __init__(self,
@@ -338,5 +430,3 @@ def _list_or_tensor(inputs):
     if len(inputs) == 1:
         return inputs[0]
     return inputs
-
-
