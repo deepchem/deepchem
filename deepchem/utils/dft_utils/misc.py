@@ -8,19 +8,67 @@ from deepchem.utils.dft_utils.config import config
 T = TypeVar('T')
 K = TypeVar('K')
 
-def set_default_option(defopt: Dict, opt: Dict) -> Dict:
-    # return a dictionary based on the options and if no item from option,
-    # take it from defopt
 
-    # make a shallow copy to detach the results from defopt
-    res = copy.copy(defopt)
-    res.update(opt)
-    return res
+def set_default_option(default_option: Dict, option: Dict) -> Dict:
+    """Returns a dictionary based on the options and if no item from option,
+    take it from defopt make a shallow copy to detach the results from defopt.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.misc import set_default_option
+    >>> # b gets overwritten and c is added
+    >>> set_default_option({"a": 1, "b": 2}, {"b": 3, "c": 4})
+    {'a': 1, 'b': 3, 'c': 4}
+
+    Parameters
+    ----------
+    default_option: Dict
+        Default options
+    option: Dict
+        Options
+        
+    Returns
+    -------
+    res: Dict
+        Dictionary based on the options and if no item from option,
+        take it from defopt
+    """
+    result = copy.copy(default_option)
+    result.update(option)
+    return result
+
 
 def memoize_method(fcn: Callable[[Any], T]) -> Callable[[Any], T]:
-    # alternative for lru_cache for memoizing a method without any arguments
-    # lru_cache can produce memory leak for a method
-    # this can be known by running test_ks_mem.py individually
+    """Alternative for lru_cache for memoizing a method without any arguments
+    lru_cache can produce memory leak for a method this can be known by
+    running test_ks_mem.py individually.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.misc import memoize_method
+    >>> class MyClass:
+    ...     @memoize_method
+    ...     def fcn(self):
+    ...         print("fcn called")
+    ...         return 1
+    >>> obj = MyClass()
+    >>> obj.fcn()
+    fcn called
+    1
+    >>> obj.fcn()
+    1
+
+    Parameters
+    ----------
+    fcn: Callable[[Any], T]
+        Function to memoize
+
+    Returns
+    -------
+    new_fcn: Callable[[Any], T]
+        Memoized function
+
+    """
 
     cachename = "__cch_" + fcn.__name__
 
