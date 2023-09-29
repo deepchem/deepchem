@@ -172,8 +172,3 @@ def test_get_noise_batch():
                      create_discriminator(data_shape, conditional_shape))
     noise = gan.get_noise_batch(batch_size)
     assert noise.shape == (gan.noise_input_shape)
-
-
-if __name__ == "__main__":
-    test_forward_pass()
-    test_get_noise_batch()
