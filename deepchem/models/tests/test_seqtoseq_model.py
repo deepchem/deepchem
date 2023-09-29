@@ -2,11 +2,13 @@ import pytest
 import unittest
 from typing import Set
 
+import numpy as np
+
 from deepchem.utils.batch_utils import create_input_array
 
 try:
     import torch
-    from deepchem.models.torch_models.seqtoseq import SeqToSeq
+    from deepchem.models.torch_models.seqtoseq import SeqToSeq, SeqToSeqModel
     has_torch = True
 except:
     has_torch = False
@@ -34,6 +36,15 @@ batch_size = len(train_smiles)
 max_length = max(len(s) for s in train_smiles)
 
 
+def generate_sequences(sequence_length, num_sequences):
+    for i in range(num_sequences):
+        seq = "".join([
+            str(np.random.randint(10))
+            for x in range(np.random.randint(1, sequence_length + 1))
+        ])
+        yield (seq, seq)
+
+
 class TestSeqToSeq(unittest.TestCase):
 
     @pytest.mark.torch
@@ -53,3 +64,71 @@ class TestSeqToSeq(unittest.TestCase):
 
         assert output.shape == (batch_size, max_length, n_tokens)
         assert embeddings.shape == (1, batch_size, embedding_dimension)
+
+    @pytest.mark.torch
+    def test_seqtoseq_model(self):
+        """Test learning to reproduce short sequences of integers."""
+
+        sequence_length = 8
+        tokens = list(str(x) for x in range(10))
+        model = SeqToSeqModel(tokens,
+                              tokens,
+                              sequence_length,
+                              embedding_dimension=512,
+                              learning_rate=0.01,
+                              dropout=0.1)
+
+        # Train the model on random sequences. We aren't training long enough to
+        # really make it reliable, but I want to keep this test fast, and it should
+        # still be able to reproduce a reasonable fraction of input sequences.
+
+        model.fit_sequences(generate_sequences(sequence_length, 25000))
+
+        # Test it out.
+
+        tests = [
+            seq for seq, target in generate_sequences(sequence_length, 100)
+        ]
+        pred1 = model.predict_from_sequences(tests, beam_width=1)
+        pred4 = model.predict_from_sequences(tests, beam_width=4)
+        embeddings = model.predict_embedding(tests)
+        pred1e = model.predict_from_embedding(embeddings, beam_width=1)
+        pred4e = model.predict_from_embedding(embeddings, beam_width=4)
+        count1 = 0
+        count4 = 0
+        for i in range(len(tests)):
+            if "".join(pred1[i]) == tests[i]:
+                count1 += 1
+            if "".join(pred4[i]) == tests[i]:
+                count4 += 1
+            assert pred1[i] == pred1e[i]
+            assert pred4[i] == pred4e[i]
+
+        # Check that it got at least a quarter of them correct.
+
+        assert count1 >= 25
+        assert count4 >= 25
+
+    @pytest.mark.torch
+    def test_variational(self):
+        """Test using a SeqToSeq model as a variational autoenconder."""
+
+        sequence_length = 8
+        tokens = list(str(x) for x in range(10))
+        model = SeqToSeqModel(tokens,
+                              tokens,
+                              sequence_length,
+                              embedding_dimension=128,
+                              learning_rate=0.01,
+                              variational=True)
+
+        # Actually training a VAE takes far too long for a unit test.  Just run a
+        # few steps of training to make sure nothing crashes, then check that the
+        # results are at least internally consistent.
+
+        model.fit_sequences(generate_sequences(sequence_length, 1000))
+        for sequence, target in generate_sequences(sequence_length, 10):
+            pred1 = model.predict_from_sequences([sequence], beam_width=1)
+            embedding = model.predict_embeddings([sequence])
+            assert pred1 == model.predict_from_embeddings(embedding,
+                                                          beam_width=1)
