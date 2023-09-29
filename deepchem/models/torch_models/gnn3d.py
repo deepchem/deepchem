@@ -201,7 +201,7 @@ class Net3D(nn.Module):
     >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
     >>> from deepchem.models.torch_models.gnn3d import Net3D
     >>> smiles = ["C[C@H](F)Cl", "C[C@@H](F)Cl"]
-    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    >>> featurizer = RDKitConformerFeaturizer()
     >>> data = featurizer.featurize(smiles)
     >>> dgldata = [[graph.to_dgl_graph() for graph in conf] for conf in data]
     >>> net3d = Net3D(hidden_dim=3, target_dim=2, readout_aggregators=['sum', 'mean'])
@@ -428,7 +428,7 @@ class InfoMax3DModular(ModularTorchModel):
     >>> import deepchem as dc
     >>> from deepchem.data.datasets import NumpyDataset
     >>> smiles = ["C[C@H](F)Cl", "C[C@@H](F)Cl"]
-    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    >>> featurizer = RDKitConformerFeaturizer()
     >>> data = featurizer.featurize(smiles)
     >>> dataset = NumpyDataset(X=data)
     >>> model = InfoMax3DModular(hidden_dim=64,
@@ -567,7 +567,7 @@ class InfoMax3DModular(ModularTorchModel):
             if self.task == 'regression':
                 head = nn.Linear(self.target_dim, self.n_tasks)
             elif self.task == 'classification':
-                head = nn.Linear(self.target_dim, self.n_tasks * self.n_classes)
+                head = nn.Linear(self.target_dim, self.n_tasks)
             return nn.Sequential(self.components['model2d'], head)
 
     def loss_func(self, inputs, labels, weights):
@@ -597,14 +597,7 @@ class InfoMax3DModular(ModularTorchModel):
             loss = F.mse_loss(preds, labels)
         elif self.task == 'classification':
             preds = self.model(inputs)
-            if self.n_tasks == 1:
-                logits = preds.view(-1, self.n_classes)
-                softmax_dim = 1
-            else:
-                logits = preds.view(-1, self.n_tasks, self.n_classes)
-                softmax_dim = 2
-            proba = F.softmax(logits, dim=softmax_dim)
-            loss = F.binary_cross_entropy_with_logits(proba, labels)
+            loss = F.binary_cross_entropy_with_logits(preds, labels)
         return loss
 
     def _prepare_batch(self, batch):
