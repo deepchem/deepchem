@@ -296,6 +296,29 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dftutils.SpinParam
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.config.config
+  :members:
+
+.. autofunction:: deepchem.utils.dft_utils.periodictable.get_atomz
+
+.. autofunction:: deepchem.utils.dft_utils.periodictable.get_atom_mass
+
+.. autofunction:: deepchem.utils.dft_utils.periodictable.get_period
+
+.. autofunction:: deepchem.utils.dft_utils.mem.chunkify
+
+.. autofunction:: deepchem.utils.dft_utils.mem.get_memory
+
+.. autofunction:: deepchem.utils.dft_utils.mem.get_dtype_memsize
+
+.. autofunction:: deepchem.utils.dft_utils.misc.set_default_option
+
+.. autofunction:: deepchem.utils.dft_utils.misc.memoize_method
+
+.. autofunction:: deepchem.utils.dft_utils.misc.get_option
+
+.. autofunction:: deepchem.utils.dft_utils.misc.gaussian_int
+
 Pytorch Utilities
 -----------------
 
