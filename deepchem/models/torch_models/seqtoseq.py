@@ -186,6 +186,70 @@ class SeqToSeq(nn.Module):
 
 
 class SeqToSeqModel(TorchModel):
+    """Implements sequence to sequence translation models.
+
+    The model is based on the description in Sutskever et al., "Sequence to
+    Sequence Learning with Neural Networks" (https://arxiv.org/abs/1409.3215),
+    although this implementation uses GRUs instead of LSTMs. The goal is to
+    take sequences of tokens as input, and translate each one into a different
+    output sequence. The input and output sequences can both be of variable
+    length, and an output sequence need not have the same length as the input
+    sequence it was generated from. For example, these models were originally
+    developed for use in natural language processing. In that context, the
+    input might be a sequence of English words, and the output might be a
+    sequence of French words. The goal would be to train the model to translate
+    sentences from English to French.
+
+    The model consists of two parts called the "encoder" and "decoder". Each one
+    consists of a stack of recurrent layers. The job of the encoder is to
+    transform the input sequence into a single, fixed length vector called the
+    "embedding". That vector contains all relevant information from the input
+    sequence. The decoder then transforms the embedding vector into the output
+    sequence.
+
+    These models can be used for various purposes. First and most obviously,
+    they can be used for sequence to sequence translation. In any case where you
+    have sequences of tokens, and you want to translate each one into a different
+    sequence, a SeqToSeq model can be trained to perform the translation.
+
+    Another possible use case is transforming variable length sequences into
+    fixed length vectors. Many types of models require their inputs to have a
+    fixed shape, which makes it difficult to use them with variable sized inputs
+    (for example, when the input is a molecule, and different molecules have
+    different numbers of atoms). In that case, you can train a SeqToSeq model as
+    an autoencoder, so that it tries to make the output sequence identical to the
+    input one. That forces the embedding vector to contain all information from
+    the original sequence. You can then use the encoder for transforming
+    sequences into fixed length embedding vectors, suitable to use as inputs to
+    other types of models.
+
+    Another use case is to train the decoder for use as a generative model. Here
+    again you begin by training the SeqToSeq model as an autoencoder. Once
+    training is complete, you can supply arbitrary embedding vectors, and
+    transform each one into an output sequence. When used in this way, you
+    typically train it as a variational autoencoder. This adds random noise to
+    the encoder, and also adds a constraint term to the loss that forces the
+    embedding vector to have a unit Gaussian distribution. You can then pick
+    random vectors from a Gaussian distribution, and the output sequences should
+    follow the same distribution as the training data.
+
+    When training as a variational autoencoder, it is best to use KL cost
+    annealing, as described in https://arxiv.org/abs/1511.06349. The constraint
+    term in the loss is initially set to 0, so the optimizer just tries to
+    minimize the reconstruction loss. Once it has made reasonable progress
+    toward that, the constraint term can be gradually turned back on. The range
+    of steps over which this happens is configurable.
+
+    In this class, we establish a sequential model for the Sequence to Sequence (DTNN) [1]_.
+    
+    Examples
+    --------
+
+    References
+    ----------
+    .. [1] Sutskever et al., "Sequence to Sequence Learning with Neural Networks"
+
+    """
 
     sequence_end = object()
 
