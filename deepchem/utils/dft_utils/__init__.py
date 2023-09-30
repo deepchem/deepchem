@@ -19,7 +19,7 @@ try:
 
     from deepchem.utils.dft_utils.datastruct import ZType
 except ModuleNotFoundError as e:
-    logger.warning(
+    logger_.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
 
 from deepchem.utils.dft_utils.misc import set_default_option
