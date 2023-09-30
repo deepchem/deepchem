@@ -2,6 +2,9 @@
 Density Functional Theory utilities.
 """
 # flake8: noqa
+import logging
+
+logger_ = logging.getLogger(__name__)
 
 from deepchem.utils.dft_utils.config import config
 

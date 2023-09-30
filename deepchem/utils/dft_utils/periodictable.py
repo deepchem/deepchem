@@ -2,9 +2,12 @@
 Density Function Theory Periodic Table Utilities.
 """
 from typing import Union
-import torch
 import numpy as np
-from deepchem.utils.dft_utils.datastruct import ZType
+try:
+    import torch
+    from deepchem.utils.dft_utils.datastruct import ZType
+except:
+    raise ModuleNotFoundError
 
 periodic_table_atomz = {
     "H": 1,

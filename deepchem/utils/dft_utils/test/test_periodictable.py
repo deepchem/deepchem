@@ -1,8 +1,10 @@
 """
 Tests for DFT Periodic Table Utilities.
 """
-
-from deepchem.utils.dft_utils.periodictable import get_atomz, get_atom_mass, get_period
+try:
+    from deepchem.utils.dft_utils.periodictable import get_atomz, get_atom_mass, get_period
+except:
+    raise ModuleNotFoundError
 import numpy as np
 
 
