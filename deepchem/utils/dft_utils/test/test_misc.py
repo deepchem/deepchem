@@ -6,6 +6,7 @@ try:
 except:
     raise ModuleNotFoundError
 
+
 def test_set_default_option():
     """Test set_default_option."""
     defopt = {"a": 1, "b": 2}
