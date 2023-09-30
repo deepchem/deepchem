@@ -5,8 +5,9 @@ Tests for DFT Memory Utilities
 try:
     import torch
     from deepchem.utils.dft_utils.mem import chunkify, get_memory, get_dtype_memsize
+    has_torch = True
 except:
-    raise ModuleNotFoundError
+    has_torch = False
 
 
 def test_chunkify():

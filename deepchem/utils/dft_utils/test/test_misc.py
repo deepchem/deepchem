@@ -3,8 +3,9 @@ Test DFT Miscellaneous Utilities.
 """
 try:
     from deepchem.utils.dft_utils.misc import set_default_option, memoize_method, get_option, logger
+    has_torch = True
 except:
-    raise ModuleNotFoundError
+    has_torch = False
 
 
 def test_set_default_option():

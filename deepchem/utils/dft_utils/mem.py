@@ -2,10 +2,8 @@
 Density functional theory Memory utilities.
 """
 from typing import Generator, Tuple
-try:
-    import torch
-except:
-    raise ModuleNotFoundError
+
+import torch
 
 __all__ = ["chunkify", "get_memory", "get_dtype_memsize"]
 

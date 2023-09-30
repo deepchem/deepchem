@@ -3,8 +3,9 @@ Tests for DFT Periodic Table Utilities.
 """
 try:
     from deepchem.utils.dft_utils.periodictable import get_atomz, get_atom_mass, get_period
+    has_torch = True
 except:
-    raise ModuleNotFoundError
+    has_torch = False
 import numpy as np
 
 
