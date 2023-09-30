@@ -1,9 +1,10 @@
 """
 Test DFT Miscellaneous Utilities.
 """
-
-from deepchem.utils.dft_utils.misc import set_default_option, memoize_method, get_option, logger
-
+try:
+    from deepchem.utils.dft_utils.misc import set_default_option, memoize_method, get_option, logger
+except:
+    raise ModuleNotFoundError
 
 def test_set_default_option():
     """Test set_default_option."""
