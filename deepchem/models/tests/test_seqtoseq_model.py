@@ -129,6 +129,6 @@ class TestSeqToSeq(unittest.TestCase):
         model.fit_sequences(generate_sequences(sequence_length, 1000))
         for sequence, target in generate_sequences(sequence_length, 10):
             pred1 = model.predict_from_sequences([sequence], beam_width=1)
-            embedding = model.predict_embeddings([sequence])
-            assert pred1 == model.predict_from_embeddings(embedding,
-                                                          beam_width=1)
+            embedding = model.predict_embedding([sequence])
+            assert pred1 == model.predict_from_embedding(embedding,
+                                                         beam_width=1)
