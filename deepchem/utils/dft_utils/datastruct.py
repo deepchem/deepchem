@@ -1,12 +1,9 @@
 """
 Density Functional Theory Data Structure Utilities
 """
-try:
-    import torch
-except ModuleNotFoundError:
-    pass
-
 from typing import Union, TypeVar
+
+import torch
 
 __all__ = ["ZType"]
 

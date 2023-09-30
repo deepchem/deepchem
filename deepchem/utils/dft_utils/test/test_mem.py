@@ -2,7 +2,11 @@
 Tests for DFT Memory Utilities
 """
 
-import torch
+try:
+    import torch
+except:
+    raise ModuleNotFoundError
+
 from deepchem.utils.dft_utils.mem import chunkify, get_memory, get_dtype_memsize
 
 
