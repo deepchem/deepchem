@@ -1,4 +1,4 @@
-DeepChem Docs Overview
+Documentation Tutorial
 ======================
 
 This directory contains the DeepChem docs. DeepChem's docs aim to
