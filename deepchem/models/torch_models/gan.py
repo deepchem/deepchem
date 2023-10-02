@@ -391,8 +391,8 @@ class GAN(nn.Module):
             torch.log(discrim_output_train + 1e-10) +
             torch.log(1 - discrim_output_gen + 1e-10))
 
-    def discrim_loss_fn_wrapper(self, outputs: list, labels: torch.tensor,
-                                weights: torch.tensor):
+    def discrim_loss_fn_wrapper(self, outputs: list, labels: torch.Tensor,
+                                weights: torch.Tensor):
         """Wrapper around create_discriminator_loss for use with fit_generator.
 
         Parameters
