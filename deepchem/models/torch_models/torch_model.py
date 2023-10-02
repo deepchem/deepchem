@@ -128,6 +128,7 @@ class TorchModel(Model):
                  device: Optional[torch.device] = None,
                  regularization_loss: Optional[Callable] = None,
                  wandb_logger: Optional[WandbLogger] = None,
+                 apple_silicon: Optional[bool] = False,
                  **kwargs) -> None:
         """Create a new TorchModel.
 
@@ -171,12 +172,15 @@ class TorchModel(Model):
             to the loss function
         wandb_logger: WandbLogger
             the Weights & Biases logger object used to log data and metrics
+        apple_silicon: bool, optional (default False)
+            Whether to use the Apple Silicon Hack for M1 Macs. If False, the
+            hack is used if the model is running on an M1 Mac.
         """
         super(TorchModel, self).__init__(model=model,
                                          model_dir=model_dir,
                                          **kwargs)
         self.loss = loss  # not used
-        self.learning_rate = learning_rate
+        self.learning_rate = learning_rate  # not used
         self.output_types = output_types  # not used
         if isinstance(loss, Loss):
             self._loss_fn: LossFn = _StandardLoss(self, loss)
@@ -195,8 +199,9 @@ class TorchModel(Model):
         if device is None:
             if torch.cuda.is_available():
                 device = torch.device('cuda')
-            elif torch.backends.mps.is_available():
-                device = torch.device('mps')
+            elif not apple_silicon:
+                if torch.backends.mps.is_available():
+                    device = torch.device('mps')
             else:
                 device = torch.device('cpu')
         self.device = device
@@ -1044,7 +1049,8 @@ class TorchModel(Model):
 
     def restore(self,
                 checkpoint: Optional[str] = None,
-                model_dir: Optional[str] = None) -> None:
+                model_dir: Optional[str] = None,
+                strict: Optional[bool] = True) -> None:
         """Reload the values of all variables from a checkpoint file.
 
         Parameters
@@ -1056,6 +1062,9 @@ class TorchModel(Model):
         model_dir: str, default None
             Directory to restore checkpoint from. If None, use self.model_dir.  If
             checkpoint is not None, this is ignored.
+        strict: bool, default True
+            Whether or not to strictly enforce that the keys in checkpoint match
+            the keys returned by this model's get_variable_scope() method.
         """
         logger.info('Restoring model')
         self._ensure_built()
@@ -1065,7 +1074,7 @@ class TorchModel(Model):
                 raise ValueError('No checkpoint found')
             checkpoint = checkpoints[0]
         data = torch.load(checkpoint, map_location=self.device)
-        self.model.load_state_dict(data['model_state_dict'])
+        self.model.load_state_dict(data['model_state_dict'], strict=strict)
         self._pytorch_optimizer.load_state_dict(data['optimizer_state_dict'])
         self._global_step = data['global_step']
 
