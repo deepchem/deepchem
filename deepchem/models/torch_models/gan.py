@@ -21,7 +21,6 @@ class GAN(nn.Module):
 
     Examples
     --------
-    >>>
     >>> # Importing necessary modules
     >>> import deepchem as dc
     >>> from deepchem.models.torch_models.gan import GAN
