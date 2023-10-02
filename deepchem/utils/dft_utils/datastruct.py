@@ -82,9 +82,9 @@ class CGTOBasis:
         --------
         >>> import torch
         >>> from deepchem.utils.dft_utils.datastruct import CGTOBasis
-        >>> basis = CGTOBasis(0, torch.tensor([1.0]), torch.tensor([1.0]))
+        >>> basis = CGTOBasis(1, torch.tensor([30.0]), torch.tensor([15.0]))
         >>> basis.wfnormalize_()
-        CGTOBasis(angmom=0, alphas=tensor([1.]), coeffs=tensor([1.]), normalized=True)
+        CGTOBasis(angmom=1, alphas=tensor([30.]), coeffs=tensor([204.8264]), normalized=True)
 
         Returns
         -------
@@ -112,3 +112,6 @@ class CGTOBasis:
         self.coeffs = coeffs
         self.normalized = True
         return self
+
+    def __repr__(self) -> str:
+        return f"CGTOBasis(angmom={self.angmom}, alphas={self.alphas}, coeffs={self.coeffs}, normalized={self.normalized})"
