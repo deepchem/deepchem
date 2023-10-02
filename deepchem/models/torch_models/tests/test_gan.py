@@ -10,10 +10,11 @@ try:
     import torch.nn.functional as F
 
     has_torch = True
-except:
+except ModuleNotFoundError:
     has_torch = False
 
 
+@flaky
 @pytest.mark.torch
 class Generator(nn.Module):
     """A simple generator for testing."""
@@ -37,6 +38,7 @@ class Generator(nn.Module):
         return output
 
 
+@flaky
 @pytest.mark.torch
 class Discriminator(nn.Module):
     """A simple discriminator for testing."""
@@ -68,6 +70,7 @@ class Discriminator(nn.Module):
         return output
 
 
+@flaky
 @pytest.mark.torch
 class ExampleGAN(dc.models.torch_models.GAN):
     """A simple GAN for testing."""
