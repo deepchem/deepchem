@@ -28,7 +28,7 @@ class _Config(object):
     VERBOSE: int (default=0)
         Allowed Verbosity level (Defines the level of detail)
         Used by Looger for maintaining Logs.
-    
+
     Usage
     -----
     1. HamiltonCGTO: Usage it for splitting big tensors into chunks.
