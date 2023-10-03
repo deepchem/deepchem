@@ -119,10 +119,8 @@ from deepchem.utils.sequence_utils import hhsearch
 try:
     from deepchem.utils.pytorch_utils import unsorted_segment_sum
     from deepchem.utils.pytorch_utils import segment_sum
-
-    from deepchem.utils.data_utils import chunkify
-    from deepchem.utils.data_utils import get_memory
-    from deepchem.utils.data_utils import get_dtype_memsize
+    from deepchem.utils.pytorch_utils import chunkify
+    from deepchem.utils.pytorch_utils import get_memory
 except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
