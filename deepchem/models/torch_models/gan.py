@@ -21,12 +21,16 @@ class GAN(nn.Module):
 
     Examples
     --------
-    >>> # Importing necessary modules
+    Importing necessary modules
+
     >>> import deepchem as dc
     >>> from deepchem.models.torch_models.gan import GAN
     >>> import torch
     >>> import torch.nn as nn
     >>> import torch.nn.functional as F
+
+    Creating a Generator
+
     >>> class Generator(nn.Module):
     ...     def __init__(self, noise_input_shape, conditional_input_shape):
     ...         super(Generator, self).__init__()
@@ -41,6 +45,9 @@ class GAN(nn.Module):
     ...         inputs = torch.cat((noise_input, conditional_input), dim=1)
     ...         output = self.output(inputs)
     ...         return output
+
+    Creating a Discriminator
+
     >>> class Discriminator(nn.Module):
     ...     def __init__(self, data_input_shape, conditional_input_shape):
     ...         super(Discriminator, self).__init__()
@@ -62,7 +69,9 @@ class GAN(nn.Module):
     ...         x = F.relu(self.dense1(discrim_in))
     ...         output = torch.sigmoid(self.dense2(x))
     ...         return output
-    >>> # Defining an Example GAN class
+
+    Defining an Example GAN class
+
     >>> class ExampleGAN(dc.models.torch_models.GAN):
     ...    def get_noise_input_shape(self):
     ...        return (16,2,)
@@ -79,6 +88,9 @@ class GAN(nn.Module):
     ...        conditional_input_shape = self.get_conditional_input_shapes()[0]
     ...        return nn.Sequential(
     ...            Discriminator(data_input_shape, conditional_input_shape))
+
+    Defining the GAN
+
     >>> batch_size = 16
     >>> noise_shape = (batch_size, 2,)
     >>> data_shape = [(batch_size, 1,)]
@@ -104,6 +116,9 @@ class GAN(nn.Module):
     ----------
     .. [1] Goodfellow, Ian, et al. "Generative adversarial nets." Advances in
          neural information processing systems. 2014.
+
+    .. [2] Arora et al., “Generalization and Equilibrium in Generative
+         Adversarial Nets (GANs)” (https://arxiv.org/abs/1703.00573)
 
     Notes
     -----
