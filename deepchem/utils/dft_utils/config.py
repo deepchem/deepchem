@@ -21,12 +21,17 @@ class _Config(object):
 
     Attributes
     ----------
-    THRESHOLD_MEMORY: int
+    THRESHOLD_MEMORY: int (default=10*1024**3)
         Threshold memory (matrix above this size should not be constructed)
-    CHUNK_MEMORY: int
-        The memory for splitting big tensors into chunks
-    VERBOSE: int
-        Verbosity level
+    CHUNK_MEMORY: int (default=16*1024**2)
+        The memory for splitting big tensors into chunks.
+    VERBOSE: int (default=0)
+        Allowed Verbosity level (Defines the level of detail)
+        Used by Looger for maintaining Logs.
+
+    Usage
+    -----
+    1. HamiltonCGTO: Usage it for splitting big tensors into chunks.
 
     """
     THRESHOLD_MEMORY: int = 10 * 1024**3  # in Bytes

@@ -37,3 +37,25 @@ def test_forward():
     mol = FerminetModel(FH_molecule, spin=1, ion_charge=-1)
     result = mol.model.forward(mol.molecule.x)
     assert result.size() == torch.Size([8])
+
+
+@pytest.mark.dqc
+def test_evaluate_hf_solution():
+    # Test for the evaluate_hf_solution function of FerminetModel class
+    H2_molecule = [['F', [0, 0, 0]], ['He', [0, 0, 0.748]]]
+    mol = FerminetModel(H2_molecule, spin=1, ion_charge=0)
+    electron_coordinates = np.random.rand(10, 11, 3)
+    spin_up_orbitals, spin_down_orbitals = mol.evaluate_hf(electron_coordinates)
+    # The solution should be of the shape (number of electrons, number of electrons)
+    assert np.shape(spin_up_orbitals) == (10, 6, 6)
+    assert np.shape(spin_down_orbitals) == (10, 5, 5)
+
+
+@pytest.mark.dqc
+def test_FerminetMode_pretrain():
+    # Test for the init function of FerminetModel class
+    H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
+    # Testing ionic initialization
+    mol = FerminetModel(H2_molecule, spin=0, ion_charge=0)
+    mol.train(nb_epoch=3)
+    assert mol.loss_value <= torch.tensor(1.0)
