@@ -48,6 +48,15 @@ File Handling
 
 .. autofunction:: deepchem.utils.data_utils.save_dataset_to_disk
 
+Matrix Utilities
+^^^^^^^^^^^^^^^^
+
+.. autofunction:: deepchem.utils.data_utils.chunkify
+
+.. autofunction:: deepchem.utils.data_utils.get_memory
+
+.. autofunction:: deepchem.utils.data_utils.get_dtype_memsize
+
 Molecular Utilities
 -------------------
 
