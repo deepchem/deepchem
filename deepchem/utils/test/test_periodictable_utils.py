@@ -7,8 +7,10 @@ try:
 except:
     has_torch = False
 import numpy as np
+import pytest
 
 
+@pytest.mark.torch
 def test_get_atomz():
     element_symbol = "Al"  # Aluminium
     atomic_number = get_atomz(element_symbol)
