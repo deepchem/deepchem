@@ -1,9 +1,6 @@
 Documentation Tutorial
 ======================
 
-This directory contains the DeepChem docs. DeepChem's docs aim to
-serve as another resource to complement our collection of tutorials
-and examples.
 
 Building the Documentation
 --------------------------
@@ -19,6 +16,7 @@ this directory. To generate docs in HTML, run the following commands:
    $ make clean html
    $ open build/html/index.html
 
+To check if the changes to the docs rendered properly, open build/html on a web browser
 If you want to confirm logs in more detail, use the following command:
 
 .. code-block:: shell
