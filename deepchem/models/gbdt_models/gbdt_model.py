@@ -12,6 +12,9 @@ import numpy as np
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import train_test_split
 
+import xgboost
+import lightgbm
+
 from deepchem.data import Dataset
 from deepchem.models.sklearn_models import SklearnModel
 
@@ -52,8 +55,14 @@ class GBDTModel(SklearnModel):
         self.model_dir = model_dir
         self.model = model
         self.model_class = model.__class__
-        self.early_stopping_rounds = early_stopping_rounds
+        # self.early_stopping_rounds = early_stopping_rounds
         self.model_type = self._check_model_type()
+
+        if self.model.__class__.__name__.startswith('XGB'):
+            self.callbacks = xgboost.callback.EarlyStopping(rounds=self.early_stopping_rounds)
+        elif self.model.__class__.__name__.startswith('LGBM'):
+            self.callbacks = lightgbm.early_stopping(stopping_rounds=self.early_stopping_rounds)
+
 
         if eval_metric is None:
             if self.model_type == 'classification':
@@ -109,7 +118,8 @@ class GBDTModel(SklearnModel):
                                                             stratify=stratify)
         self.model.fit(X_train,
                        y_train,
-                       early_stopping_rounds=self.early_stopping_rounds,
+                    #    early_stopping_rounds=self.early_stopping_rounds,
+                       callbacks=[self.callbacks],
                        eval_metric=self.eval_metric,
                        eval_set=[(X_test, y_test)])
 
@@ -141,7 +151,8 @@ class GBDTModel(SklearnModel):
 
         self.model.fit(X_train,
                        y_train,
-                       early_stopping_rounds=self.early_stopping_rounds,
+                    #    early_stopping_rounds=self.early_stopping_rounds,
+                       callbacks=[self.callbacks],
                        eval_metric=self.eval_metric,
                        eval_set=[(X_valid, y_valid)])
 
