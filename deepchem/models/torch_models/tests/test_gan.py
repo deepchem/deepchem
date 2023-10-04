@@ -2,13 +2,13 @@ import deepchem as dc
 # import numpy as np
 import pytest
 # import tempfile
-from flaky import flaky
 
 try:
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
 
+    # helper classes that depend on torch, they need to be in the try/catch block
     class Generator(nn.Module):
         """A simple generator for testing."""
 
@@ -116,7 +116,6 @@ def create_discriminator(data_input_shape, conditional_input_shape):
         Discriminator(data_input_shape, conditional_input_shape))
 
 
-@flaky
 @pytest.mark.torch
 def test_forward_pass():
     batch_size = 16
@@ -149,7 +148,6 @@ def test_forward_pass():
     assert disc_loss > 0
 
 
-@flaky
 @pytest.mark.torch
 def test_get_noise_batch():
     batch_size = 16
