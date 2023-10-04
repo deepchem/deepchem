@@ -307,6 +307,10 @@ Pytorch Utilities
 
 .. autofunction:: deepchem.utils.pytorch_utils.segment_sum
 
+.. autofunction:: deepchem.utils.pytorch_utils.chunkify
+
+.. autofunction:: deepchem.utils.pytorch_utils.get_memory
+
 Batch Utilities
 ---------------
 
