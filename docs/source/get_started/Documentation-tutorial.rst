@@ -1,9 +1,6 @@
 Documentation Tutorial
 ======================
 
-This directory contains the DeepChem docs. DeepChem's docs aim to
-serve as another resource to complement our collection of tutorials
-and examples.
 
 Building the Documentation
 --------------------------
@@ -30,3 +27,4 @@ If you want to confirm the example tests, run:
 .. code-block:: shell
 
    $ make doctest_examples
+To check whether the changes renedered correctly, open build/html on a web browser
