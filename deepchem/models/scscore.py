@@ -9,10 +9,13 @@ from tensorflow.keras.layers import Input, Dense, Dropout, Lambda
 
 class ScScoreModel(KerasModel):
     """
-    The SCScore model is a neural network model based on the work of Coley et al. [1]_ that predicts the synthetic complexity of molecules.
-    It is trained on a dataset of over 12 million reactions from the Reaxys database.
-    SCScore can accurately predict the synthetic complexity of a variety of molecules, including both drug-like and natural product molecules.
+    The SCScore model is a neural network model based on the work of Coley et al. [1]_ that predicts the synthetic complexity of molecules and correlates it with the expected number of reaction steps required to produce the given target molecule, with implicit knowledge about what compounds are reasonable starting materials.
+    It is trained on a dataset of over 12 million reactions from the Reaxys database to impose a pairwise inequality constraint enforcing that on average the products of published chemical reactions should be more synthetically complex than their corresponding reactants. 
+    The learned metric (SCScore) exhibits highly desirable nonlinear behavior, particularly in recognizing increases in synthetic complexity throughout a number of linear synthetic routes.
+    The SCScore model can accurately predict the synthetic complexity of a variety of molecules, including both drug-like and natural product molecules.
     SCScore has the potential to be a valuable tool for chemists who are working on drug discovery and other areas of chemistry.
+
+    The learned metric (SCScore) exhibits highly desirable nonlinear behavior, particularly in recognizing increases in synthetic complexity throughout a number of linear synthetic routes.
 
     Our model uses hingeloss instead of the shifted relu loss as in the supplementary material [2]_ provided by the author.
     This could cause differentiation issues with compounds that are "close" to each other in "complexity".
