@@ -738,7 +738,8 @@ class GroverModel(ModularTorchModel):
         >>> dataset = dc.data.NumpyDataset(X=smiles)
         >>> atom_vocab = GroverAtomVocabularyBuilder()
         >>> atom_vocab.build(dataset)
-        >>> vocab_labels = GroverModel.atom_vocab_random_mask(atom_vocab, smiles)
+        >>> vocab_labels = GroverModel.atom_vocab_random_mask(atom_vocab,
+        ...                                                   smiles.tolist())
         """
         vocab_label = []
         percent = 0.15

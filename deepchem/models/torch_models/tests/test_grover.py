@@ -18,7 +18,8 @@ def test_atom_vocab_random_mask():
     atom_vocab = GroverAtomVocabularyBuilder()
     atom_vocab.build(dataset)
 
-    vocab_labels = GroverModel.atom_vocab_random_mask(atom_vocab, smiles)
+    vocab_labels = GroverModel.atom_vocab_random_mask(atom_vocab,
+                                                      smiles.tolist())
     assert len(vocab_labels) == 5  # 5 atoms
 
 
