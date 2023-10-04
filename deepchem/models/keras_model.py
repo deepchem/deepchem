@@ -741,7 +741,7 @@ class KerasModel(Model):
             If specified, all outputs of this type will be retrieved
             from the model. If output_types is specified, outputs must
             be None.
-    
+
         Returns
         -------
         OneOrMany[np.ndarray]
