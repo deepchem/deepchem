@@ -135,7 +135,7 @@ class _ChemicalFeaturesFactory:
 
 
 def one_hot_encode(val: Union[int, str],
-                   allowable_set: Union[List[str], List[int]],
+                   allowable_set: Union[List[str], List[int], List[float]],
                    include_unknown_set: bool = False) -> List[float]:
     """One hot encoder for elements of a provided set.
 
