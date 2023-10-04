@@ -1,7 +1,7 @@
 import pytest
-import unittest
 from typing import Set
 from flaky import flaky
+import tempfile
 
 import numpy as np
 
@@ -119,3 +119,31 @@ def test_variational():
         pred1 = model.predict_from_sequences([sequence], beam_width=1)
         embedding = model.predict_embedding([sequence])
         assert pred1 == model.predict_from_embedding(embedding, beam_width=1)
+
+
+@pytest.mark.torch
+def test_seqtoseq_reload():
+    """Test DMPNNModel class for reloading the model."""
+    torch.manual_seed(0)
+    # Initialize the model
+    model_dir = tempfile.mkdtemp()
+    sequence_length = 8
+    tokens = list(str(x) for x in range(10))
+    model = SeqToSeqModel(tokens, tokens, sequence_length, model_dir=model_dir)
+
+    # Fit the Model
+    model.fit_sequences(generate_sequences(sequence_length, 100))
+
+    reloded_model = SeqToSeqModel(tokens,
+                                  tokens,
+                                  sequence_length,
+                                  model_dir=model_dir)
+
+    reloded_model.restore()
+
+    tests = [seq for seq, target in generate_sequences(sequence_length, 100)]
+
+    original_predict = model.predict_from_sequences(tests, 1)
+    reloded_predict = reloded_model.predict_from_sequences(tests, 1)
+
+    assert original_predict == reloded_predict
