@@ -71,6 +71,8 @@ class Ferminet(torch.nn.Module):
             Modulelist containing the ferminet electron feature layer
         ferminet_layer_envelope: torch.nn.ModuleList
             Modulelist containing the ferminet envelope electron feature layer
+        nuclear_nuclear_potential: torch.Tensor
+            Torch tensor containing the inter-nuclear potential in the molecular system
         """
         super(Ferminet, self).__init__()
         if len(n_one) != len(n_two):
@@ -92,6 +94,8 @@ class Ferminet(torch.nn.Module):
         self.ferminet_layer_envelope: torch.nn.ModuleList = torch.nn.ModuleList(
         )
         self.running_diff: torch.Tensor = torch.zeros(self.batch_size)
+        self.nuclear_nuclear_potential: torch.Tensor = self.calculate_nuclear_nuclear(
+        )
 
         self.ferminet_layer.append(
             FerminetElectronFeature(self.n_one, self.n_two,
@@ -118,12 +122,14 @@ class Ferminet(torch.nn.Module):
             contains the wavefunction - 'psi' value. It is in the shape (batch_size), where each row corresponds to the solution of one of the batches
         """
         # creating one and two electron features
+        # torch.autograd.set_detect_anomaly(True)
+        eps = torch.tensor(1e-36)
         self.input = torch.from_numpy(input)
         self.input.requires_grad = True
         self.input = self.input.reshape((self.batch_size, -1, 3))
         two_electron_vector = self.input.unsqueeze(1) - self.input.unsqueeze(2)
-        two_electron_distance = torch.norm(two_electron_vector,
-                                           dim=3).unsqueeze(3)
+        two_electron_distance = torch.linalg.norm(two_electron_vector + eps,
+                                                  dim=3).unsqueeze(3)
         two_electron = torch.cat((two_electron_vector, two_electron_distance),
                                  dim=3)
         two_electron = torch.reshape(
@@ -132,7 +138,7 @@ class Ferminet(torch.nn.Module):
 
         one_electron_vector = self.input.unsqueeze(
             1) - self.nucleon_pos.unsqueeze(1)
-        one_electron_distance = torch.norm(one_electron_vector, dim=3)
+        one_electron_distance = torch.linalg.norm(one_electron_vector, dim=3)
         one_electron = torch.cat(
             (one_electron_vector, one_electron_distance.unsqueeze(-1)), dim=3)
         one_electron = torch.reshape(one_electron.permute(0, 2, 1, 3),
@@ -141,9 +147,9 @@ class Ferminet(torch.nn.Module):
 
         one_electron, _ = self.ferminet_layer[0].forward(
             one_electron.to(torch.float32), two_electron.to(torch.float32))
-        psi, self.psi_up, self.psi_down = self.ferminet_layer_envelope[
+        self.psi, self.psi_up, self.psi_down = self.ferminet_layer_envelope[
             0].forward(one_electron, one_electron_vector_permuted)
-        return psi
+        return self.psi
 
     def loss(self,
              psi_up_mo: List[Optional[np.ndarray]] = [None],
@@ -168,6 +174,86 @@ class Ferminet(torch.nn.Module):
             self.running_diff = self.running_diff + criterion(
                 self.psi_up, psi_up_mo_torch.float()) + criterion(
                     self.psi_down, psi_down_mo_torch.float())
+
+    def calculate_nuclear_nuclear(self,) -> torch.Tensor:
+        """
+        Function to calculate where only the nucleus terms are involved and does not change when new electrons are sampled.
+        atom-atom potential term = Zi*Zj/|Ri-Rj|, where Zi, Zj are the nuclear charges and Ri, Rj are nuclear coordinates
+
+        Returns:
+        --------
+        A torch tensor of a scalar value containing the nuclear-nuclear potential term (does not change for the molecule system with sampling of electrons)
+        """
+
+        potential = torch.nan_to_num(
+            (self.nuclear_charge * 1 /
+             torch.cdist(self.nucleon_pos.float(), self.nucleon_pos.float()) *
+             self.nuclear_charge.unsqueeze(1)),
+            posinf=0.0,
+            neginf=0.0)
+        potential = torch.sum(potential) / 2
+        return potential
+
+    def calculate_electron_nuclear(self,) -> torch.Tensor:
+        """
+        Function to calculate the expected electron-nuclear potential term per batch
+        nuclear-electron potential term = Zi/|Ri-rj|, rj is the electron coordinates, Ri is the nuclear coordinates, Zi is the nuclear charge
+
+        Returns:
+        --------
+        A torch tensor of a scalar value containing the electron-nuclear potential term.
+        """
+
+        potential = torch.sum(
+            (1 / torch.cdist(self.input.float(), self.nucleon_pos.float())) *
+            self.nuclear_charge) / 2
+        return (potential / self.batch_size)
+
+    def calculate_electron_electron(self,):
+        """
+        Function to calculate the expected electron-nuclear potential term per batch
+        nuclear-electron potential term = 1/|ri-rj|, ri, rj is the electron coordinates
+
+        Returns:
+        --------
+        A torch tensor of a scalar value containing the electron-electron potential term.
+        """
+        potential = torch.sum(
+            torch.nan_to_num(
+                (1 / torch.cdist(self.input.float(), self.input.float())),
+                posinf=0.0,
+                neginf=0.0)) / 2
+        return (potential / self.batch_size)
+
+    def calculate_kinetic_energy(self,):
+        """
+        Function to calculate the expected kinetic energy term per batch
+        It is calculated via:
+        \sum_{ri}^{}[(\pdv[]{log|\Psi|}{(ri)})^2 + \pdv[2]{log|\Psi|}{(ri)}]
+
+        Returns:
+        --------
+        A torch tensor of a scalar value containing the electron-electron potential term.
+        """
+        log_probability = torch.log(torch.abs(self.psi))
+        jacobian = list(
+            map(
+                lambda x: torch.autograd.grad(x, self.input, create_graph=True)[
+                    0], log_probability))
+        jacobian_square = list(
+            map(lambda x: torch.sum(torch.pow(x, 2)), jacobian))
+        jacobian_square_sum = torch.tensor(0.0)
+        hessian = torch.tensor(0.0)
+        for i in range(self.batch_size):
+            jacobian_square_sum = jacobian_square_sum + jacobian_square[i]
+            for j in range(self.total_electron):
+                for k in range(3):
+                    hessian = hessian + torch.autograd.grad(
+                        jacobian[i][i][j][k], self.input,
+                        create_graph=True)[0][i][j][k]
+        kinetic_energy = -1 * 0.5 * (jacobian_square_sum +
+                                     hessian) / (self.batch_size)
+        return kinetic_energy
 
 
 class FerminetModel(TorchModel):
