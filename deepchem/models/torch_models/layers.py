@@ -4971,6 +4971,15 @@ class FerminetElectronFeature(torch.nn.Module):
             self.w[i].bias.data.fill_(1e-3)
             self.w[i].bias.data = self.w[i].bias.data
 
+            self.projection_module = nn.ModuleList()
+            self.projection_module.append(
+                nn.Linear(
+                    4 * self.no_of_atoms,
+                    n_one[0],
+                    bias=False,
+                ))
+            self.projection_module.append(nn.Linear(4, n_two[0], bias=False))
+
     def forward(self, one_electron: torch.Tensor, two_electron: torch.Tensor):
         """
         Parameters
@@ -5011,9 +5020,12 @@ class FerminetElectronFeature(torch.nn.Module):
                                             dim=1)
                 if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
                         self.n_two[l] != self.n_two[l - 1]):
-                    one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f))
+                    one_electron_tmp[:, i, :] = torch.tanh(
+                        self.v[l](f)) + self.projection_module[0](
+                            one_electron[:, i, :])
                     two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
-                        two_electron[:, i, :, :]))
+                        two_electron[:, i, :, :])) + self.projection_module[1](
+                            two_electron[:, i, :, :])
                 else:
                     one_electron_tmp[:, i, :] = torch.tanh(
                         self.v[l](f)) + one_electron[:, i, :]
