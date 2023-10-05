@@ -117,10 +117,6 @@ from deepchem.utils.sequence_utils import hhblits
 from deepchem.utils.sequence_utils import hhsearch
 
 try:
-    from deepchem.utils.periodictable_utils import get_atomz
-    from deepchem.utils.periodictable_utils import get_atom_mass
-    from deepchem.utils.periodictable_utils import get_period
-
     from deepchem.utils.pytorch_utils import unsorted_segment_sum
     from deepchem.utils.pytorch_utils import segment_sum
     from deepchem.utils.pytorch_utils import chunkify

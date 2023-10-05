@@ -325,18 +325,6 @@ Can be used inside of default_generator function.
 
 .. autofunction:: deepchem.utils.batch_utils.create_output_array
 
-Periodic Table Utilities
-------------------------
-
-The Utilities here are used to computing atomic mass and radii data.
-These can be used by DFT and many other Molecular Models.
-
-.. autofunction:: deepchem.utils.periodictable_utils.get_atomz
-
-.. autofunction:: deepchem.utils.periodictable_utils.test_get_atom_mass
-
-.. autofunction:: deepchem.utils.periodictable_utils.test_get_period
-
 Equivariance Utilities
 ----------------------
 
