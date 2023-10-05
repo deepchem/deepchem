@@ -122,7 +122,6 @@ class Ferminet(torch.nn.Module):
             contains the wavefunction - 'psi' value. It is in the shape (batch_size), where each row corresponds to the solution of one of the batches
         """
         # creating one and two electron features
-        # torch.autograd.set_detect_anomaly(True)
         eps = torch.tensor(1e-36)
         self.input = torch.from_numpy(input)
         self.input.requires_grad = True

@@ -4971,14 +4971,14 @@ class FerminetElectronFeature(torch.nn.Module):
             self.w[i].bias.data.fill_(1e-3)
             self.w[i].bias.data = self.w[i].bias.data
 
-            self.projection_module = nn.ModuleList()
-            self.projection_module.append(
-                nn.Linear(
-                    4 * self.no_of_atoms,
-                    n_one[0],
-                    bias=False,
-                ))
-            self.projection_module.append(nn.Linear(4, n_two[0], bias=False))
+        self.projection_module = nn.ModuleList()
+        self.projection_module.append(
+            nn.Linear(
+                4 * self.no_of_atoms,
+                n_one[0],
+                bias=False,
+            ))
+        self.projection_module.append(nn.Linear(4, n_two[0], bias=False))
 
     def forward(self, one_electron: torch.Tensor, two_electron: torch.Tensor):
         """
