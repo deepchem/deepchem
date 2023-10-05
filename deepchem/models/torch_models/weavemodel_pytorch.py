@@ -160,7 +160,6 @@ class Weave(nn.Module):
         self.n_graph_feat: int = n_graph_feat
         self.mode: str = mode
         self.n_classes: int = n_classes
-
         self.n_layers: int = n_layers
         self.fully_connected_layer_sizes: List[
             int] = fully_connected_layer_sizes
@@ -172,7 +171,8 @@ class Weave(nn.Module):
         ]
         self.batch_normalize: bool = batch_normalize
         self.n_weave: int = n_weave
-        torch.manual_seed(21)
+
+        # torch.manual_seed(21)
         self.layers: nn.ModuleList = nn.ModuleList()
         for ind in range(n_weave):
             n_atom: int = self.n_atom_feat[ind]
@@ -210,7 +210,7 @@ class Weave(nn.Module):
                                       std=conv_weight_init_stddevs[ind])
             self.layers.append(weave_layer)
 
-        self.dense1: nn.LazyLinear = nn.LazyLinear(self.n_graph_feat)
+        self.dense1: nn.Linear = nn.Linear(n_hidden, self.n_graph_feat)
         self.dense1_act = final_conv_activation_fn
         self.dense1_bn: nn.BatchNorm1d = nn.BatchNorm1d(
             num_features=self.n_graph_feat,
@@ -227,10 +227,15 @@ class Weave(nn.Module):
 
         if n_layers > 0:
             self.layers2: nn.ModuleList = nn.ModuleList()
+            in_size = 1408
             for ind, layer_size, weight_stddev, bias_const, dropout, activation_fn in zip(
                 [0, 1], fully_connected_layer_sizes, weight_init_stddevs,
                     bias_init_consts, dropouts, self.activation_fns):
-                self.layer: nn.LazyLinear = nn.LazyLinear(layer_size)
+                self.layer: nn.Linear = nn.Linear(in_size, layer_size)
+                nn.init.trunc_normal_(self.layer.weight, 0, std=weight_stddev)
+                if self.layer.bias is not None:
+                    self.layer.bias = nn.Parameter(
+                        torch.full(self.layer.bias.shape, bias_const))
                 self.layer.layer_bn = nn.BatchNorm1d(num_features=layer_size,
                                                      eps=1e-3,
                                                      momentum=0.99,
@@ -241,14 +246,16 @@ class Weave(nn.Module):
                 self.layer.dropout = nn.Dropout(dropout)
                 self.layer.layer_act = activation_fn
                 self.layers2.append(self.layer)
+                in_size = layer_size
 
         n_tasks = self.n_tasks
         if self.mode == 'classification':
             n_classes = self.n_classes
-            self.layer_2 = nn.LazyLinear(n_tasks * n_classes)
+            self.layer_2 = nn.Linear(fully_connected_layer_sizes[1],
+                                     n_tasks * n_classes)
 
         else:
-            self.layer_2 = nn.LazyLinear(n_tasks)
+            self.layer_2 = nn.Linear(fully_connected_layer_sizes[1], n_tasks)
 
     def forward(self, inputs: OneOrMany[torch.Tensor]) -> List[torch.Tensor]:
         input1: List[np.ndarray] = [

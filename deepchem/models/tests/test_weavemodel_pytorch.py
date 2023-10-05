@@ -1,5 +1,6 @@
 import deepchem as dc
 import numpy as np
+import os
 import pytest
 import tempfile
 from flaky import flaky
@@ -11,7 +12,6 @@ from deepchem.feat import WeaveFeaturizer
 
 try:
     import torch
-    import torch.nn as nn
     from deepchem.models.torch_models import Weave, WeaveModel
     has_torch = True
 except:
@@ -134,8 +134,6 @@ def test_weave_classification():
                   mode="classification")
     input_data = [atom_feat, pair_feat, pair_split, atom_split, atom_to_pair]
 
-    output_values_py = model(input_data)  # noqa F841
-
     for i in range(2):
         model.layers[i].W_AA = torch.from_numpy(
             np.load(f'deepchem/models/tests/assets/weavelayer_W_AA_{i}.npy'))
@@ -159,14 +157,6 @@ def test_weave_classification():
     model.dense1.weight.data = torch.from_numpy(np.transpose(dense1_weights))
     model.dense1.bias.data = torch.from_numpy(dense1_bias)
 
-    nn.init.trunc_normal_(model.layers2[0].weight,
-                          0,
-                          std=model.layers2[0].weight_stddev)
-    if model.layers2[0].bias is not None:
-        model.layers2[0].bias = nn.Parameter(
-            torch.full(model.layers2[0].bias.shape,
-                       model.layers2[0].bias_const))
-
     layers2_0_weights = np.load(
         'deepchem/models/tests/assets/layers2_0_weights.npy').astype(np.float32)
     layers2_0_bias = np.load(
@@ -179,14 +169,6 @@ def test_weave_classification():
     if model.weave_gather.compress_post_gaussian_expansion:
         model.weave_gather.W = torch.from_numpy(
             np.load('deepchem/models/tests/assets/weavegather.npy'))
-
-    nn.init.trunc_normal_(model.layers2[1].weight,
-                          0,
-                          std=model.layers2[1].weight_stddev)
-    if model.layers2[1].bias is not None:
-        model.layers2[1].bias = nn.Parameter(
-            torch.full(model.layers2[1].bias.shape,
-                       model.layers2[1].bias_const))
 
     layers2_1_weights = np.load(
         'deepchem/models/tests/assets/layers2_1_weights.npy').astype(np.float32)
@@ -231,22 +213,7 @@ def test_weave_model():
                              mode='classification',
                              dropouts=0,
                              learning_rate=0.0001)
-    weave_model.fit(dataset, nb_epoch=1)
-    nn.init.trunc_normal_(weave_model.model.layers2[0].weight,
-                          0,
-                          std=weave_model.model.layers2[0].weight_stddev)
-    if weave_model.model.layers2[0].bias is not None:
-        weave_model.model.layers2[0].bias = nn.Parameter(
-            torch.full(weave_model.model.layers2[0].bias.shape,
-                       weave_model.model.layers2[0].bias_const))
-    nn.init.trunc_normal_(weave_model.model.layers2[1].weight,
-                          0,
-                          std=weave_model.model.layers2[1].weight_stddev)
-    if weave_model.model.layers2[1].bias is not None:
-        weave_model.model.layers2[1].bias = nn.Parameter(
-            torch.full(weave_model.model.layers2[1].bias.shape,
-                       weave_model.model.layers2[1].bias_const))
-    weave_model.fit(dataset, nb_epoch=600)
+    weave_model.fit(dataset, nb_epoch=250)
     scores = weave_model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
 
@@ -275,38 +242,26 @@ def test_weave_fit_simple_distance_1():
 @pytest.mark.slow
 @pytest.mark.torch
 def test_weave_regression_model():
-    torch.manual_seed(21)
-    np.random.seed(21)
+    np.random.seed(22)
+    torch.manual_seed(22)
     tasks, dataset, transformers, metric = get_dataset('regression',
                                                        'Weave',
                                                        data_points=2)
-
+    # Note: Following are some changes
+    # compared to the TensorFlow unit test:
+    # 1. Changed nb_epoch to 400.
+    # 2. Reduced the number of data points to 2.
+    # 3. Increased batch_size to 20.
+    # 4. Increased the learning_rate to 0.0003.
     batch_size = 20
     weave_model = WeaveModel(len(tasks),
                              batch_size=batch_size,
                              mode='regression',
                              dropouts=0,
-                             learning_rate=0.0005)
-
-    torch.set_printoptions(precision=8)
-    weave_model.fit(dataset, nb_epoch=1)
-    nn.init.trunc_normal_(weave_model.model.layers2[0].weight,
-                          0,
-                          std=weave_model.model.layers2[0].weight_stddev)
-    if weave_model.model.layers2[0].bias is not None:
-        weave_model.model.layers2[0].bias = nn.Parameter(
-            torch.full(weave_model.model.layers2[0].bias.shape,
-                       weave_model.model.layers2[0].bias_const))
-    nn.init.trunc_normal_(weave_model.model.layers2[1].weight,
-                          0,
-                          std=weave_model.model.layers2[1].weight_stddev)
-    if weave_model.model.layers2[1].bias is not None:
-        weave_model.model.layers2[1].bias = nn.Parameter(
-            torch.full(weave_model.model.layers2[1].bias.shape,
-                       weave_model.model.layers2[1].bias_const))
+                             learning_rate=0.0003)
     weave_model.fit(dataset, nb_epoch=400)
     scores = weave_model.evaluate(dataset, [metric], transformers)
-    assert scores[metric.name] < 0.3
+    assert scores['mean_absolute_error'] < 0.1
 
 
 @pytest.mark.torch
@@ -340,3 +295,77 @@ def test_weave_model_reload():
     original_predict = original_model.predict(dataset)
     reloaded_predict = reloaded_model.predict(dataset)
     assert np.all(original_predict == reloaded_predict)
+
+
+@pytest.mark.torch
+def test_weave_singletask_classification_overfit():
+    """Test weave model overfits tiny data."""
+    # np.random.seed(123)
+    # torch.manual_seed(123)
+    n_tasks = 1
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Load mini log-solubility dataset.
+    featurizer = dc.feat.WeaveFeaturizer()
+    tasks = ["outcome"]
+    input_file = os.path.join(current_dir, "assets/example_classification.csv")
+    loader = dc.data.CSVLoader(tasks=tasks,
+                               feature_field="smiles",
+                               featurizer=featurizer)
+    dataset = loader.create_dataset(input_file)
+
+    classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
+
+    batch_size = 10
+    model = WeaveModel(n_tasks,
+                       batch_size=batch_size,
+                       learning_rate=0.0003,
+                       dropout=0.0,
+                       mode="classification")
+
+    # Fit trained model
+    model.fit(dataset, nb_epoch=300)
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [classification_metric])
+
+    assert scores[classification_metric.name] > .65
+
+
+@pytest.mark.slow
+@pytest.mark.torch
+def test_weave_singletask_regression_overfit():
+    """Test weave model overfits tiny data."""
+    np.random.seed(22)
+    torch.manual_seed(22)
+    n_tasks = 1
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Load mini log-solubility dataset.
+    featurizer = dc.feat.WeaveFeaturizer()
+    tasks = ["outcome"]
+    input_file = os.path.join(current_dir, "assets/example_regression.csv")
+    loader = dc.data.CSVLoader(tasks=tasks,
+                               feature_field="smiles",
+                               featurizer=featurizer)
+    dataset = loader.create_dataset(input_file)
+
+    regression_metric = dc.metrics.Metric(dc.metrics.pearson_r2_score,
+                                          task_averager=np.mean)
+
+    batch_size = 10
+
+    model = WeaveModel(n_tasks,
+                       batch_size=batch_size,
+                       learning_rate=0.0003,
+                       dropout=0.0,
+                       mode="regression")
+
+    # Fit trained model
+    # Note: Compared to the tensorflow unit test increased the nb_epoch to 600.
+    model.fit(dataset, nb_epoch=600)
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [regression_metric])
+
+    assert scores[regression_metric.name] > .7
