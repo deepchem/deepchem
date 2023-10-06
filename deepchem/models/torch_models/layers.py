@@ -2679,6 +2679,7 @@ class AtomicConvolutionModule(nn.Module):
     ----------
     .. [1] Gomes, Joseph, et al. "Atomic convolutional networks for predicting protein-ligand binding affinity." arXiv preprint arXiv:1703.10603 (2017).
     """
+
     def __init__(self,
                  n_tasks: int,
                  frag1_num_atoms: int = 70,
@@ -2739,6 +2740,33 @@ class AtomicConvolutionModule(nn.Module):
             the Tensorflow activation function to apply to each layer.  The length of this list should equal
             len(layer_sizes).  Alternatively this may be a single value instead of a list, in which case the
             same value is used for every layer.
+
+        Examples
+        --------
+        >>> n_tasks = 1
+        >>> frag1_num_atoms = 70
+        >>> frag2_num_atoms = 634
+        >>> complex_num_atoms = 701
+        >>> max_num_neighbors = 12
+        >>> batch_size = 24
+        >>> atom_types = [
+                6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35., 53.,
+                -1.
+            ]
+        >>> radial = [[
+                1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5,
+                8.0, 8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0
+            ], [0.0, 4.0, 8.0], [0.4]]
+        >>> layer_sizes = [32, 32, 16]
+        >>> acnn_model = AtomicConvolutionModule(n_tasks=n_tasks,
+            frag1_num_atoms=frag1_num_atoms,
+            frag2_num_atoms=frag2_num_atoms,
+            complex_num_atoms=complex_num_atoms,
+            max_num_neighbors=max_num_neighbors,
+            batch_size=batch_size,
+            atom_types=atom_types,
+            radial=radial,
+            layer_sizes=layer_sizes)
         """
         super(AtomicConvolutionModule, self).__init__()
         self.complex_num_atoms = complex_num_atoms
@@ -5491,8 +5519,9 @@ class FerminetElectronFeature(torch.nn.Module):
                 f: torch.Tensor = torch.cat((one_electron[:, i, :], g_one_up,
                                              g_one_down, g_two_up, g_two_down),
                                             dim=1)
-                if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
-                        self.n_two[l] != self.n_two[l - 1]):
+                if l == 0 or (self.n_one[l]
+                              != self.n_one[l - 1]) or (self.n_two[l]
+                                                        != self.n_two[l - 1]):
                     one_electron_tmp[:, i, :] = torch.tanh(self.v[l](f))
                     two_electron_tmp[:, i, :, :] = torch.tanh(self.w[l](
                         two_electron[:, i, :, :]))
