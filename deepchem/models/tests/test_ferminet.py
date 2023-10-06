@@ -59,3 +59,18 @@ def test_FerminetMode_pretrain():
     mol = FerminetModel(H2_molecule, spin=0, ion_charge=0)
     mol.train(nb_epoch=3)
     assert mol.loss_value <= torch.tensor(1.0)
+
+
+@pytest.mark.dqc
+def test_FerminetMode_energy():
+    # Test for the init function of FerminetModel class
+    H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
+    # Testing ionic initialization
+    mol = FerminetModel(H2_molecule, spin=0, ion_charge=0)
+    mol.train(nb_epoch=50)
+    mol.model.forward(mol.molecule.x)
+    energy = mol.model.calculate_electron_electron(
+    ) - mol.model.calculate_electron_nuclear(
+    ) + mol.model.nuclear_nuclear_potential + mol.model.calculate_kinetic_energy(
+    )
+    assert energy <= torch.tensor(1.0)
