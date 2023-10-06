@@ -1,0 +1,27 @@
+dependencies:
+  - pip:
+    - jax[cpu]<0.3.25
+    # 0.3.25 contains breaking change not compatible with haiku
+    # https://github.com/deepmind/dm-haiku/issues/565
+    - dm-haiku
+    - optax
+    - tensorflow
+    - tensorflow_probability
+    - tensorflow_addons
+    - -f https://download.pytorch.org/whl/cpu/torch_stable.html
+    - -f https://data.pyg.org/whl/torch-1.12.0+cpu.html
+    - -f https://data.dgl.ai/wheels/repo.html
+    - dgl
+    - torch==1.12.0+cpu
+    - torch-geometric
+    - pytorch-lightning==1.6.5
+    - numpy
+    - scipy
+    - h5py
+    - git+https://github.com/diffqc/dqc.git
+    - xitorch
+    - pylibxc2
+    - pytest
+    - PyYAML
+    - yamlloader
+    - pyscf[all]
