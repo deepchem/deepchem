@@ -178,6 +178,13 @@ def get_atomz(element: Union[str, ZType]) -> ZType:
     atom_n: ZType
         Atomic Number of the given Element.
 
+    References
+    ----------
+    Kasim, Muhammad F., and Sam M. Vinko. "Learning the exchange-correlation
+    functional from nature with fully differentiable density functional
+    theory." Physical Review Letters 127.12 (2021): 126403.
+    https://github.com/diffqc/dqc/blob/master/dqc/utils/periodictable.py
+
     """
     if isinstance(element, str):
         try:
@@ -216,6 +223,13 @@ def get_atom_mass(atom_z: int) -> float:
     atomic_mass: float
         Atomic Mass of the Element.
 
+    References
+    ----------
+    Kasim, Muhammad F., and Sam M. Vinko. "Learning the exchange-correlation
+    functional from nature with fully differentiable density functional
+    theory." Physical Review Letters 127.12 (2021): 126403.
+    https://github.com/diffqc/dqc/blob/master/dqc/utils/periodictable.py
+
     """
     try:
         atomic_mass = atom_masses[atom_z]
@@ -244,6 +258,13 @@ def get_period(atom_z: int) -> int:
     -------
     period: int
         Period of the Element.
+
+    References
+    ----------
+    Kasim, Muhammad F., and Sam M. Vinko. "Learning the exchange-correlation
+    functional from nature with fully differentiable density functional
+    theory." Physical Review Letters 127.12 (2021): 126403.
+    https://github.com/diffqc/dqc/blob/master/dqc/utils/periodictable.py
 
     """
     period: int = 0
