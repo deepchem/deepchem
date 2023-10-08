@@ -94,7 +94,7 @@ try:
 
             return nn.Sequential(
                 Discriminator(data_input_shape, conditional_input_shape))
-    
+
     class ExampleGANModel(dc.models.torch_models.GANModel):
         """A simple GAN for testing."""
 
@@ -260,7 +260,7 @@ def test_cgan_reload():
     assert gan.get_global_step() == 500
 
     reloaded_gan = ExampleGANModel(learning_rate=0.01, model_dir=model_dir)
-    reloaded_gan.restore(strict = False)
+    reloaded_gan.restore(strict=False)
     reloaded_values = reloaded_gan.predict_gan_generator(
         noise_input=noise_input, conditional_inputs=[means])
 
@@ -272,7 +272,9 @@ def test_cgan_reload():
 def test_mix_gan():
     """Test a GAN with multiple generators and discriminators."""
 
-    gan = ExampleGANModel(n_generators=2, n_discriminators=2, learning_rate=0.01)
+    gan = ExampleGANModel(n_generators=2,
+                          n_discriminators=2,
+                          learning_rate=0.01)
     data = generate_data(gan, 1000, 100)
     gan.fit_gan(data, generator_steps=0.5, checkpoint_interval=0)
 
@@ -295,16 +297,16 @@ def test_mix_gan_reload():
 
     model_dir = tempfile.mkdtemp()
     gan = ExampleGANModel(n_generators=2,
-                     n_discriminators=2,
-                     learning_rate=0.01,
-                     model_dir=model_dir)
+                          n_discriminators=2,
+                          learning_rate=0.01,
+                          model_dir=model_dir)
     gan.fit_gan(generate_data(gan, 1000, 100), generator_steps=0.5)
 
     reloaded_gan = ExampleGANModel(n_generators=2,
-                              n_discriminators=2,
-                              learning_rate=0.01,
-                              model_dir=model_dir)
-    reloaded_gan.restore(strict = False)
+                                   n_discriminators=2,
+                                   learning_rate=0.01,
+                                   model_dir=model_dir)
+    reloaded_gan.restore(strict=False)
     # See if it has done a plausible job of learning the distribution.
 
     means = 10 * np.random.random([1000, 1])
