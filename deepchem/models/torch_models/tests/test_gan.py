@@ -1,7 +1,8 @@
 import deepchem as dc
-# import numpy as np
+import numpy as np
 import pytest
-# import tempfile
+import tempfile
+from flaky import flaky
 
 try:
     import torch
@@ -93,6 +94,40 @@ try:
 
             return nn.Sequential(
                 Discriminator(data_input_shape, conditional_input_shape))
+    
+    class ExampleGANModel(dc.models.torch_models.GANModel):
+        """A simple GAN for testing."""
+
+        def get_noise_input_shape(self):
+            return (
+                100,
+                2,
+            )
+
+        def get_data_input_shapes(self):
+            return [(
+                100,
+                1,
+            )]
+
+        def get_conditional_input_shapes(self):
+            return [(
+                100,
+                1,
+            )]
+
+        def create_generator(self):
+            noise_dim = self.get_noise_input_shape()
+            conditional_dim = self.get_conditional_input_shapes()[0]
+
+            return nn.Sequential(Generator(noise_dim, conditional_dim))
+
+        def create_discriminator(self):
+            data_input_shape = self.get_data_input_shapes()[0]
+            conditional_input_shape = self.get_conditional_input_shapes()[0]
+
+            return nn.Sequential(
+                Discriminator(data_input_shape, conditional_input_shape))
 
     has_torch = True
 except ModuleNotFoundError:
@@ -169,3 +204,121 @@ def test_get_noise_batch():
                      create_discriminator(data_shape, conditional_shape))
     noise = gan.get_noise_batch(batch_size)
     assert noise.shape == (gan.noise_input_shape)
+
+
+@pytest.mark.torch
+def generate_batch(batch_size):
+    """Draw training data from a Gaussian distribution, where the mean  is a conditional input."""
+    means = 10 * np.random.random([batch_size, 1])
+    values = np.random.normal(means, scale=2.0)
+    return means, values
+
+
+@pytest.mark.torch
+def generate_data(gan, batches, batch_size):
+    for _ in range(batches):
+        means, values = generate_batch(batch_size)
+        batch = {gan.data_inputs[0]: values, gan.conditional_inputs[0]: means}
+        yield batch
+
+
+@pytest.mark.torch
+def test_cgan():
+    """Test fitting a conditional GAN."""
+
+    gan = ExampleGANModel(learning_rate=0.01)
+    data = generate_data(gan, 500, 100)
+    gan.fit_gan(data, generator_steps=0.5, checkpoint_interval=0)
+
+    # See if it has done a plausible job of learning the distribution.
+
+    means = 10 * np.random.random([1000, 1])
+    values = gan.predict_gan_generator(conditional_inputs=[means])
+    deltas = values - means
+    print("Deltas", abs(np.mean(deltas)))
+    assert abs(np.mean(deltas)) < 1.0
+    assert np.std(deltas) > 1.0
+    assert gan.get_global_step() == 500
+
+
+@pytest.mark.torch
+def test_cgan_reload():
+    """Test reloading a conditional GAN."""
+
+    model_dir = tempfile.mkdtemp()
+    gan = ExampleGANModel(learning_rate=0.01, model_dir=model_dir)
+    gan.fit_gan(generate_data(gan, 500, 100), generator_steps=0.5)
+
+    # See if it has done a plausible job of learning the distribution.
+    means = 10 * np.random.random([1000, 1])
+    batch_size = len(means)
+    noise_input = gan.get_noise_batch(batch_size=batch_size)
+    values = gan.predict_gan_generator(noise_input=noise_input,
+                                       conditional_inputs=[means])
+    deltas = values - means
+    assert np.std(deltas) > 1.0
+    assert gan.get_global_step() == 500
+
+    reloaded_gan = ExampleGANModel(learning_rate=0.01, model_dir=model_dir)
+    reloaded_gan.restore(strict = False)
+    reloaded_values = reloaded_gan.predict_gan_generator(
+        noise_input=noise_input, conditional_inputs=[means])
+
+    assert np.all(values == reloaded_values)
+
+
+@flaky
+@pytest.mark.torch
+def test_mix_gan():
+    """Test a GAN with multiple generators and discriminators."""
+
+    gan = ExampleGANModel(n_generators=2, n_discriminators=2, learning_rate=0.01)
+    data = generate_data(gan, 1000, 100)
+    gan.fit_gan(data, generator_steps=0.5, checkpoint_interval=0)
+
+    # See if it has done a plausible job of learning the distribution.
+
+    means = 10 * np.random.random([1000, 1])
+    for i in range(2):
+        values = gan.predict_gan_generator(conditional_inputs=[means],
+                                           generator_index=i)
+        deltas = values - means
+        assert abs(np.mean(deltas)) < 1.0
+        assert np.std(deltas) > 1.0
+    assert gan.get_global_step() == 1000
+
+
+@flaky
+@pytest.mark.torch
+def test_mix_gan_reload():
+    """Test reloading a GAN with multiple generators and discriminators."""
+
+    model_dir = tempfile.mkdtemp()
+    gan = ExampleGANModel(n_generators=2,
+                     n_discriminators=2,
+                     learning_rate=0.01,
+                     model_dir=model_dir)
+    gan.fit_gan(generate_data(gan, 1000, 100), generator_steps=0.5)
+
+    reloaded_gan = ExampleGANModel(n_generators=2,
+                              n_discriminators=2,
+                              learning_rate=0.01,
+                              model_dir=model_dir)
+    reloaded_gan.restore(strict = False)
+    # See if it has done a plausible job of learning the distribution.
+
+    means = 10 * np.random.random([1000, 1])
+    batch_size = len(means)
+    noise_input = gan.get_noise_batch(batch_size=batch_size)
+    for i in range(2):
+        values = gan.predict_gan_generator(noise_input=noise_input,
+                                           conditional_inputs=[means],
+                                           generator_index=i)
+        reloaded_values = reloaded_gan.predict_gan_generator(
+            noise_input=noise_input,
+            conditional_inputs=[means],
+            generator_index=i)
+        assert np.all(values == reloaded_values)
+    assert gan.get_global_step() == 1000
+    # No training has been done after reload
+    assert reloaded_gan.get_global_step() == 1000
