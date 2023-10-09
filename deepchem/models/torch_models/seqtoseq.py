@@ -61,7 +61,7 @@ class SeqToSeq(nn.Module):
     toward that, the constraint term can be gradually turned back on. The range
     of steps over which this happens is configurable.
 
-    In this class, we establish a sequential model for the Sequence to Sequence (DTNN) [1]_.
+    In this class, we establish a sequential model for the Sequence to Sequence (SeqToSeq) [1]_.
 
     Examples
     --------
@@ -85,15 +85,15 @@ class SeqToSeq(nn.Module):
     >>> input_dict = dict((x, i) for i, x in enumerate(token_list))
     >>> n_tokens = len(token_list)
     >>> embedding_dimension = 16
-    >>> model = SeqToSeq(n_tokens, n_tokens, MAX_LENGTH, batch_size,
-    ...                  embedding_dimension)
+    >>> model = SeqToSeq(n_tokens, n_tokens, MAX_LENGTH, batch_size=batch_size,
+    ...                  embedding_dimension=embedding_dimension)
     >>> inputs = create_input_array(train_smiles, MAX_LENGTH, False, batch_size,
     ...                             input_dict, " ")
     >>> output, embeddings = model([torch.tensor(inputs), torch.tensor([1])])
     >>> output.shape
     torch.Size([4, 57, 19])
     >>> embeddings.shape
-    torch.Size([1, 4, 16])
+    torch.Size([4, 16])
 
     References
     ----------
@@ -105,6 +105,8 @@ class SeqToSeq(nn.Module):
                  n_input_tokens: int,
                  n_output_tokens: int,
                  max_output_length: int,
+                 encoder_layers: int = 4,
+                 decoder_layers: int = 4,
                  batch_size: int = 100,
                  embedding_dimension: int = 512,
                  dropout: float = 0.0,
@@ -121,6 +123,10 @@ class SeqToSeq(nn.Module):
             Number of output tokens.
         max_output_length: int
             Maximum length of output sequence.
+        encoder_layers: int (default 4)
+            Number of recurrent layers in the encoder
+        decoder_layers: int (default 4)
+            Number of recurrent layers in the decoder
         embedding_dimension: int (default 512)
             Width of the embedding vector. This also is the width of all recurrent
             layers.
@@ -140,9 +146,10 @@ class SeqToSeq(nn.Module):
         """
         super(SeqToSeq, self).__init__()
         self._variational = variational
-        self.encoder = EncoderRNN(n_input_tokens, embedding_dimension, dropout)
+        self.encoder = EncoderRNN(n_input_tokens, embedding_dimension,
+                                  encoder_layers, dropout)
         self.decoder = DecoderRNN(embedding_dimension, n_output_tokens,
-                                  max_output_length, batch_size)
+                                  decoder_layers, max_output_length, batch_size)
         if variational:
             self.randomizer = VariationalRandomizer(embedding_dimension,
                                                     annealing_start_step,
