@@ -4948,8 +4948,9 @@ class EncoderRNN(nn.Module):
     >>> import torch
     >>> embedding_dimensions = 7
     >>> num_input_token = 4
+    >>> n_layers = 9
     >>> input = torch.tensor([[1, 0, 2, 3, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]])
-    >>> layer = EncoderRNN(num_input_token, embedding_dimensions)
+    >>> layer = EncoderRNN(num_input_token, embedding_dimensions, n_layers)
     >>> emb, hidden = layer(input)
     >>> emb.shape
     torch.Size([3, 5, 7])
@@ -5036,9 +5037,9 @@ class DecoderRNN(nn.Module):
     >>> max_length = 10
     >>> batch_size = 100
     >>> n_layers = 2
-    >>> layer = DecoderRNN(embedding_dimensions, num_output_tokens, max_length, batch_size)
+    >>> layer = DecoderRNN(embedding_dimensions, num_output_tokens, n_layers, max_length, batch_size)
     >>> embeddings = torch.randn(batch_size, embedding_dimensions)
-    >>> output, hidden = layer([embeddings.unsqueeze(0), None])
+    >>> output, hidden = layer([embeddings, None])
     >>> output.shape
     torch.Size([100, 10, 7])
 
