@@ -90,15 +90,15 @@ class SeqToSeq(nn.Module):
     >>> input_dict = dict((x, i) for i, x in enumerate(token_list))
     >>> n_tokens = len(token_list)
     >>> embedding_dimension = 16
-    >>> model = SeqToSeq(n_tokens, n_tokens, MAX_LENGTH, batch_size,
-    ...                  embedding_dimension)
+    >>> model = SeqToSeq(n_tokens, n_tokens, MAX_LENGTH, batch_size=batch_size,
+    ...                  embedding_dimension=embedding_dimension)
     >>> inputs = create_input_array(train_smiles, MAX_LENGTH, False, batch_size,
     ...                             input_dict, " ")
     >>> output, embeddings = model([torch.tensor(inputs), torch.tensor([1])])
     >>> output.shape
     torch.Size([4, 57, 19])
     >>> embeddings.shape
-    torch.Size([1, 4, 16])
+    torch.Size([4, 16])
 
     References
     ----------
