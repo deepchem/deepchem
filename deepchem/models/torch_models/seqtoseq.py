@@ -110,6 +110,8 @@ class SeqToSeq(nn.Module):
                  n_input_tokens: int,
                  n_output_tokens: int,
                  max_output_length: int,
+                 encoder_layers: int = 4,
+                 decoder_layers: int = 4,
                  batch_size: int = 100,
                  embedding_dimension: int = 512,
                  dropout: float = 0.0,
@@ -126,28 +128,33 @@ class SeqToSeq(nn.Module):
             Number of output tokens.
         max_output_length: int
             Maximum length of output sequence.
+        encoder_layers: int (default 4)
+            Number of recurrent layers in the encoder
+        decoder_layers: int (default 4)
+            Number of recurrent layers in the decoder
         embedding_dimension: int (default 512)
-            Width of the embedding vector. This also is the width of all recurrent
-            layers.
+            Width of the embedding vector. This also is the width of all
+            recurrent layers.
         dropout: float (default 0.0)
             Dropout probability to use during training.
         variational: bool (default False)
-            If True, train the model as a variational autoencoder. This adds random
-            noise to the encoder, and also constrains the embedding to follow a unit
-            Gaussian distribution.
+            If True, train the model as a variational autoencoder. This
+            adds random noise to the encoder, and also constrains the
+            embedding to follow a unit Gaussian distribution.
         annealing_start_step: int (default 5000)
-            the step (that is, batch) at which to begin turning on the constraint
-            term for KL cost annealing.
+            Step (that is, batch) at which to begin turning on the
+            constraint term for KL cost annealing.
         annealing_final_step: int (default 10000)
-            the step (that is, batch) at which to finish turning on the constraint
-            term for KL cost annealing.
+            Step (that is, batch) at which to finish turning on the
+            constraint term for KL cost annealing.
 
         """
         super(SeqToSeq, self).__init__()
         self._variational = variational
-        self.encoder = EncoderRNN(n_input_tokens, embedding_dimension, dropout)
+        self.encoder = EncoderRNN(n_input_tokens, embedding_dimension,
+                                  encoder_layers, dropout)
         self.decoder = DecoderRNN(embedding_dimension, n_output_tokens,
-                                  max_output_length, batch_size)
+                                  decoder_layers, max_output_length, batch_size)
         if variational:
             self.randomizer = VariationalRandomizer(embedding_dimension,
                                                     annealing_start_step,
@@ -244,6 +251,41 @@ class SeqToSeqModel(TorchModel):
 
     Examples
     --------
+    >>> import torch
+    >>> from deepchem.models.torch_models.seqtoseq import SeqToSeqModel
+    >>> data = [
+    ...     ("Cc1cccc(N2CCN(C(=O)C34CC5CC(CC(C5)C3)C4)CC2)c1C",
+    ...      "Cc1cccc(N2CCN(C(=O)C34CC5CC(CC(C5)C3)C4)CC2)c1C"),
+    ...     ("Cn1ccnc1SCC(=O)Nc1ccc(Oc2ccccc2)cc1",
+    ...      "Cn1ccnc1SCC(=O)Nc1ccc(Oc2ccccc2)cc1"),
+    ...     ("COc1cc2c(cc1NC(=O)CN1C(=O)NC3(CCc4ccccc43)C1=O)oc1ccccc12",
+    ...      "COc1cc2c(cc1NC(=O)CN1C(=O)NC3(CCc4ccccc43)C1=O)oc1ccccc12"),
+    ...     ("O=C1/C(=C/NC2CCS(=O)(=O)C2)c2ccccc2C(=O)N1c1ccccc1",
+    ...      "O=C1/C(=C/NC2CCS(=O)(=O)C2)c2ccccc2C(=O)N1c1ccccc1"),
+    ...     ("NC(=O)NC(Cc1ccccc1)C(=O)O",
+    ...     "NC(=O)NC(Cc1ccccc1)C(=O)O")]
+    >>> train_smiles = [s[0] for s in data]
+    >>> tokens = set()
+    >>> for s in train_smiles:
+    ...     tokens = tokens.union(set(c for c in s))
+    >>> tokens = sorted(list(tokens))
+    >>> from deepchem.models.optimizers import Adam, ExponentialDecay
+    >>> max_length = max(len(s) for s in train_smiles)
+    >>> batch_size = 100
+    >>> batches_per_epoch = len(train_smiles) / batch_size
+    >>> model = SeqToSeqModel(
+    ...     tokens,
+    ...     tokens,
+    ...     max_length,
+    ...     encoder_layers=2,
+    ...     decoder_layers=2,
+    ...     embedding_dimension=256,
+    ...     model_dir="fingerprint",
+    ...     batch_size=batch_size,
+    ...     learning_rate=ExponentialDecay(0.001, 0.9, batches_per_epoch))
+    >>> for i in range(20):
+    ...     loss = model.fit_sequences(data)
+    >>> prediction = model.predict_from_sequences(train_smiles, 5)
 
     References
     ----------
@@ -257,6 +299,8 @@ class SeqToSeqModel(TorchModel):
                  input_tokens,
                  output_tokens,
                  max_output_length,
+                 encoder_layers=4,
+                 decoder_layers=4,
                  batch_size=100,
                  embedding_dimension=512,
                  dropout=0.0,
@@ -275,24 +319,29 @@ class SeqToSeqModel(TorchModel):
             List of all tokens that may appear in output sequences
         max_output_length: int
             Maximum length of output sequence that may be generated
+        encoder_layers: int (default 4)
+            Number of recurrent layers in the encoder
+        decoder_layers: int (default 4)
+            Number of recurrent layers in the decoder
         embedding_dimension: int (default 512)
-            Width of the embedding vector. This also is the width of all recurrent
-            layers.
+            Width of the embedding vector. This also is the width of all
+            recurrent layers.
         dropout: float (default 0.0)
             Dropout probability to use during training.
         reverse_input: bool (default True)
-            If True, reverse the order of input sequences before sending them into
-            the encoder. This can improve performance when working with long sequences.
+            If True, reverse the order of input sequences before sending
+            them into the encoder. This can improve performance when
+            working with long sequences.
         variational: bool (default False)
-            If True, train the model as a variational autoencoder. This adds random
-            noise to the encoder, and also constrains the embedding to follow a unit
-            Gaussian distribution.
+            If True, train the model as a variational autoencoder. This
+            adds random noise to the encoder, and also constrains the
+            embedding to follow a unit Gaussian distribution.
         annealing_start_step: int (default 5000)
-            Step (that is, batch) at which to begin turning on the constraint term
-            for KL cost annealing
+            Step (that is, batch) at which to begin turning on the constraint
+            term for KL cost annealing.
         annealing_final_step: int (default 10000)
-            Step (that is, batch) at which to finish turning on the constraint term
-            for KL cost annealing
+            Step (that is, batch) at which to finish turning on the constraint
+            term for KL cost annealing.
 
         """
         if SeqToSeqModel.sequence_end not in input_tokens:
@@ -318,6 +367,8 @@ class SeqToSeqModel(TorchModel):
             n_input_tokens=self._n_input_tokens,
             n_output_tokens=self._n_output_tokens,
             max_output_length=self._max_output_length,
+            encoder_layers=encoder_layers,
+            decoder_layers=decoder_layers,
             batch_size=self.batch_size,
             embedding_dimension=self._embedding_dimension,
             dropout=self._dropout,
@@ -375,7 +426,7 @@ class SeqToSeqModel(TorchModel):
             restore=restore)
         return loss
 
-    def predict_from_sequences(self, sequences, beam_width):
+    def predict_from_sequences(self, sequences, beam_width=5):
         """Given a set of input sequences, predict the output sequences.
 
         The prediction is done using a beam search with length normalization.
@@ -419,7 +470,7 @@ class SeqToSeqModel(TorchModel):
                 [[(features, np.array(self.get_global_step())), None, None]],
                 output_types=["embedding"])
             for i in range(len(batch)):
-                result.append(probs[0][i])
+                result.append(probs[i])
         return result
 
     def predict_from_embedding(self, embeddings, beam_width=5):
@@ -440,10 +491,8 @@ class SeqToSeqModel(TorchModel):
                 (self.batch_size, self._embedding_dimension), dtype=np.float32)
             for i, e in enumerate(batch):
                 embedding_array[i] = e
-            probs, _ = self.model.decoder([
-                torch.tensor(embedding_array, device=self.device).unsqueeze(0),
-                None
-            ])
+            probs, _ = self.model.decoder(
+                [torch.tensor(embedding_array, device=self.device), None])
             probs = probs.cpu().detach().numpy()
             for i in range(len(batch)):
                 result.append(self._beam_search(probs[i], beam_width))
