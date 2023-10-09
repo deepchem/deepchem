@@ -1,5 +1,5 @@
 from heapq import heappush, heappushpop
-from typing import List
+from typing import List, Iterable
 
 import numpy as np
 
@@ -66,7 +66,7 @@ class SeqToSeq(nn.Module):
     toward that, the constraint term can be gradually turned back on. The range
     of steps over which this happens is configurable.
 
-    In this class, we establish a sequential model for the Sequence to Sequence (DTNN) [1]_.
+    This class implements the Sequence to Sequence Model (SeqToSeq) [1]_.
 
     Examples
     --------
@@ -296,18 +296,18 @@ class SeqToSeqModel(TorchModel):
     sequence_end = object()
 
     def __init__(self,
-                 input_tokens,
-                 output_tokens,
-                 max_output_length,
-                 encoder_layers=4,
-                 decoder_layers=4,
-                 batch_size=100,
-                 embedding_dimension=512,
-                 dropout=0.0,
-                 reverse_input=True,
-                 variational=False,
-                 annealing_start_step=5000,
-                 annealing_final_step=10000,
+                 input_tokens: List,
+                 output_tokens: List,
+                 max_output_length: int,
+                 encoder_layers: int = 4,
+                 decoder_layers: int = 4,
+                 batch_size: int = 100,
+                 embedding_dimension: int = 512,
+                 dropout: float = 0.0,
+                 reverse_input: bool = True,
+                 variational: bool = False,
+                 annealing_start_step: int = 5000,
+                 annealing_final_step: int = 10000,
                  **kwargs):
         """Construct a SeqToSeq model.
 
@@ -400,10 +400,10 @@ class SeqToSeqModel(TorchModel):
         return loss_fn
 
     def fit_sequences(self,
-                      sequences,
-                      max_checkpoints_to_keep=5,
-                      checkpoint_interval=1000,
-                      restore=False):
+                      sequences: Iterable,
+                      max_checkpoints_to_keep: int = 5,
+                      checkpoint_interval: int = 1000,
+                      restore: bool = False):
         """Train this model on a set of sequences
 
         Parameters
@@ -426,7 +426,7 @@ class SeqToSeqModel(TorchModel):
             restore=restore)
         return loss
 
-    def predict_from_sequences(self, sequences, beam_width=5):
+    def predict_from_sequences(self, sequences: Iterable, beam_width=5):
         """Given a set of input sequences, predict the output sequences.
 
         The prediction is done using a beam search with length normalization.
@@ -435,7 +435,7 @@ class SeqToSeqModel(TorchModel):
         ----------
         sequences: iterable
             the input sequences to generate a prediction for
-        beam_width: int
+        beam_width: int (default 5)
             the beam width to use for searching.  Set to 1 to use a simple greedy search.
         """
         result = []
@@ -451,7 +451,7 @@ class SeqToSeqModel(TorchModel):
                 result.append(self._beam_search(probs[i], beam_width))
         return result
 
-    def predict_embedding(self, sequences):
+    def predict_embedding(self, sequences: Iterable):
         """Given a set of input sequences, compute the embedding vectors.
 
         Parameters
@@ -473,7 +473,7 @@ class SeqToSeqModel(TorchModel):
                 result.append(probs[i])
         return result
 
-    def predict_from_embedding(self, embeddings, beam_width=5):
+    def predict_from_embedding(self, embeddings: Iterable, beam_width=5):
         """Given a set of embedding vectors, predict the output sequences.
 
         The prediction is done using a beam search with length normalization.
@@ -498,7 +498,7 @@ class SeqToSeqModel(TorchModel):
                 result.append(self._beam_search(probs[i], beam_width))
         return result
 
-    def _beam_search(self, probs, beam_width):
+    def _beam_search(self, probs: np.array, beam_width: int):
         """Perform a beam search for the most likely output sequence."""
         if beam_width == 1:
             # Do a simple greedy search.
