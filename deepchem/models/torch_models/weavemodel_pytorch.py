@@ -172,7 +172,7 @@ class Weave(nn.Module):
         self.batch_normalize: bool = batch_normalize
         self.n_weave: int = n_weave
 
-        # torch.manual_seed(21)
+        torch.manual_seed(22)
         self.layers: nn.ModuleList = nn.ModuleList()
         for ind in range(n_weave):
             n_atom: int = self.n_atom_feat[ind]
@@ -227,7 +227,7 @@ class Weave(nn.Module):
 
         if n_layers > 0:
             self.layers2: nn.ModuleList = nn.ModuleList()
-            in_size = 1408
+            in_size = self.n_graph_feat * 11
             for ind, layer_size, weight_stddev, bias_const, dropout, activation_fn in zip(
                 [0, 1], fully_connected_layer_sizes, weight_init_stddevs,
                     bias_init_consts, dropouts, self.activation_fns):
@@ -258,6 +258,16 @@ class Weave(nn.Module):
             self.layer_2 = nn.Linear(fully_connected_layer_sizes[1], n_tasks)
 
     def forward(self, inputs: OneOrMany[torch.Tensor]) -> List[torch.Tensor]:
+        """
+        Parameters
+        ----------
+        inputs: OneOrMany[torch.Tensor]
+        Should contain 5 tensors [atom_features, pair_features, pair_split, atom_split, atom_to_pair]
+        Returns
+        -------
+        List[torch.Tensor]
+            Output as per use case : regression/classification
+        """
         input1: List[np.ndarray] = [
             np.array(inputs[0]),
             np.array(inputs[1]),
@@ -302,7 +312,7 @@ class Weave(nn.Module):
             logits: torch.Tensor = torch.reshape(self.layer_2(output),
                                                  (-1, n_tasks, n_classes))
             output = F.softmax(logits, dim=2)
-            outputs = [output, logits]
+            outputs: List[torch.Tensor] = [output, logits]
         else:
             output = self.layer_2(output)
             outputs = [output]

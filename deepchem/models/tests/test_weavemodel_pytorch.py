@@ -300,8 +300,8 @@ def test_weave_model_reload():
 @pytest.mark.torch
 def test_weave_singletask_classification_overfit():
     """Test weave model overfits tiny data."""
-    # np.random.seed(123)
-    # torch.manual_seed(123)
+    np.random.seed(22)
+    torch.manual_seed(22)
     n_tasks = 1
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -328,7 +328,7 @@ def test_weave_singletask_classification_overfit():
 
     # Eval model on train
     scores = model.evaluate(dataset, [classification_metric])
-
+    # Note: This needs to be inspected in future to understand low score.
     assert scores[classification_metric.name] > .65
 
 
