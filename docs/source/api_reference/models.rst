@@ -495,6 +495,12 @@ SeqToSeqModel
 .. autoclass:: deepchem.models.torch_models.SeqToSeqModel
   :members:
 
+GAN
+---
+
+.. autoclass:: deepchem.models.torch_models.GAN
+  :members:
+
 Density Functional Theory Model - XCModel
 -----------------------------------------
 

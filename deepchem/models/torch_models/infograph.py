@@ -320,6 +320,8 @@ class InfoGraphModel(ModularTorchModel):
         'KL', 'RKL', 'X2', 'DV', 'H2', or 'W1'.
     average_loss: bool
         Whether to average the loss over the batch
+    n_classes: int
+        Number of classses
 
     Example
     -------
@@ -327,6 +329,7 @@ class InfoGraphModel(ModularTorchModel):
     >>> from deepchem.feat import MolGraphConvFeaturizer
     >>> from deepchem.data import NumpyDataset
     >>> import torch
+    >>> import numpy as np
     >>> import tempfile
     >>> tempdir = tempfile.TemporaryDirectory()
     >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
@@ -342,6 +345,13 @@ class InfoGraphModel(ModularTorchModel):
     >>> finetune_model = InfoGraphModel(num_feat, edge_dim, num_gc_layers=1, task='regression', n_tasks=1, model_dir=tempdir.name)
     >>> finetune_model.restore(components=['encoder'])
     >>> finetuning_loss = finetune_model.fit(dataset)
+    >>>
+    >>> # classification example
+    >>> n_classes, n_tasks = 2, 1
+    >>> classification_model = InfoGraphModel(num_feat, edge_dim, num_gc_layers=1, task='classification', n_tasks=1, n_classes=2)
+    >>> y = np.random.randint(n_classes, size=(len(smiles), n_tasks)).astype(np.float64)
+    >>> dataset = NumpyDataset(X, y, w)
+    >>> loss = classification_model.fit(dataset, nb_epoch=1)
     """
 
     def __init__(self,
@@ -354,9 +364,12 @@ class InfoGraphModel(ModularTorchModel):
                  average_loss=True,
                  task='pretraining',
                  n_tasks: Optional[int] = None,
+                 n_classes: Optional[int] = None,
                  **kwargs):
-        if task == 'regression':
+        if task in ['regression', 'classification']:
             assert n_tasks, 'Number of prediction tasks required for building regression model'
+        if task == 'classification':
+            assert n_classes, 'Specify number of target prediction classes'
         self.num_features = num_features
         self.embedding_dim = embedding_dim * num_gc_layers
         self.num_gc_layers = num_gc_layers
@@ -368,6 +381,7 @@ class InfoGraphModel(ModularTorchModel):
             measure, average_loss)
         self.task = task
         self.n_tasks = n_tasks
+        self.n_classes = n_classes
         self.components = self.build_components()
         self.model = self.build_model()
         super().__init__(self.model, self.components, **kwargs)
@@ -407,7 +421,7 @@ class InfoGraphModel(ModularTorchModel):
                 self.embedding_dim,
                 1, (self.embedding_dim,),
                 activation_fn='sigmoid')
-        elif self.task == 'regression':
+        elif self.task == 'regression' or self.task == 'classification':
             components['encoder'] = GINEncoder(self.num_features,
                                                self.embedding_dim,
                                                self.num_gc_layers)
@@ -421,7 +435,7 @@ class InfoGraphModel(ModularTorchModel):
     def build_model(self) -> nn.Module:
         if self.task == 'pretraining':
             model = InfoGraph(**self.components)
-        elif self.task == 'regression':
+        elif self.task == 'regression' or self.task == 'classification':
             model = InfoGraphFinetune(**self.components)  # type: ignore
         return model
 
@@ -441,6 +455,10 @@ class InfoGraphModel(ModularTorchModel):
             return local_global_loss + prior
         elif self.task == 'regression':
             loss_fn = nn.MSELoss()
+            y = self.model(inputs)
+            return loss_fn(y, labels)
+        elif self.task == 'classification':
+            loss_fn = nn.BCEWithLogitsLoss()
             y = self.model(inputs)
             return loss_fn(y, labels)
 
