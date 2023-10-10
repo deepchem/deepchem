@@ -449,14 +449,14 @@ class SeqToSeqModel(TorchModel):
                                           self._reverse_input, self.batch_size,
                                           self._input_dict,
                                           SeqToSeqModel.sequence_end)
-            probs = self.predict_on_generator([(
-                (features, np.array(self.get_global_step())), None, None
-            )])
+            probs = self.predict_on_generator([
+                ((features, np.array(self.get_global_step())), None, None)
+            ])
             for i in range(len(batch)):
                 result.append(self._beam_search(probs[i], beam_width))
         return result
 
-    def predict_embedding(self, sequences: List[str]): # type: ignore[override]
+    def predict_embedding(self, sequences: List[str]):  # type: ignore[override]
         """Given a set of input sequences, compute the embedding vectors.
 
         Parameters
