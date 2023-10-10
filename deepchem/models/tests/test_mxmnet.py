@@ -41,7 +41,7 @@ def test_mxmnet_regression():
                                featurizer=feat,
                                sanitize=True)
 
-    dataset = loader.create_dataset(inputs="assets/qm9_mini.sdf", shard_size=1)
+    dataset = loader.create_dataset(inputs="deepchem/models/tests/assets/qm9_mini.sdf", shard_size=1)
 
     model = MXMNet(dim=dim, n_layer=n_layer, cutoff=cutoff)
 
