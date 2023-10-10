@@ -409,15 +409,18 @@ class SeqToSeqModel(TorchModel):
         Parameters
         ----------
         sequences: iterable
-            the training samples to fit to.  Each sample should be
-            represented as a tuple of the form (input_sequence, output_sequence).
+            Training samples to fit to. Each sample should be represented
+            as a tuple of the form (input_sequence, output_sequence).
         max_checkpoints_to_keep: int
-            the maximum number of checkpoints to keep.  Older checkpoints are discarded.
+            Maximum number of checkpoints to keep. Older checkpoints are
+            discarded.
         checkpoint_interval: int
-            the frequency at which to write checkpoints, measured in training steps.
+            Frequency at which to write checkpoints, measured in training steps.
         restore: bool
-            if True, restore the model from the most recent checkpoint and continue training
-            from there.  If False, retrain the model from scratch.
+            if True, restore the model from the most recent checkpoint and
+            continue training from there. If False, retrain the model from
+            scratch.
+
         """
         loss = self.fit_generator(
             self._generate_batches(sequences),
@@ -426,17 +429,19 @@ class SeqToSeqModel(TorchModel):
             restore=restore)
         return loss
 
-    def predict_from_sequences(self, sequences: Iterable, beam_width=5):
+    def predict_from_sequences(self, sequences: List[str], beam_width=5):
         """Given a set of input sequences, predict the output sequences.
 
         The prediction is done using a beam search with length normalization.
 
         Parameters
         ----------
-        sequences: iterable
-            the input sequences to generate a prediction for
+        sequences: List[str]
+            Input sequences to generate a prediction for
         beam_width: int (default 5)
-            the beam width to use for searching.  Set to 1 to use a simple greedy search.
+            Beam width to use for searching.
+            Set to 1 to use a simple greedy search.
+
         """
         result = []
         for batch in batch_elements(sequences, self.batch_size):
@@ -444,19 +449,19 @@ class SeqToSeqModel(TorchModel):
                                           self._reverse_input, self.batch_size,
                                           self._input_dict,
                                           SeqToSeqModel.sequence_end)
-            probs = self.predict_on_generator([[
+            probs = self.predict_on_generator([(
                 (features, np.array(self.get_global_step())), None, None
-            ]])
+            )])
             for i in range(len(batch)):
                 result.append(self._beam_search(probs[i], beam_width))
         return result
 
-    def predict_embedding(self, sequences: Iterable):
+    def predict_embedding(self, sequences: List[str]): # type: ignore[override]
         """Given a set of input sequences, compute the embedding vectors.
 
         Parameters
         ----------
-        sequences: iterable
+        sequences: List[str]
             Input sequences to generate embeddings for.
 
         """
@@ -467,23 +472,24 @@ class SeqToSeqModel(TorchModel):
                                           self._input_dict,
                                           SeqToSeqModel.sequence_end)
             probs = self.predict_on_generator(
-                [[(features, np.array(self.get_global_step())), None, None]],
+                [((features, np.array(self.get_global_step())), None, None)],
                 output_types=["embedding"])
             for i in range(len(batch)):
                 result.append(probs[i])
         return result
 
-    def predict_from_embedding(self, embeddings: Iterable, beam_width=5):
+    def predict_from_embedding(self, embeddings: List[str], beam_width=5):
         """Given a set of embedding vectors, predict the output sequences.
 
         The prediction is done using a beam search with length normalization.
 
         Parameters
         ----------
-        embeddings: iterable
+        embeddings: List[str]
             the embedding vectors to generate predictions for
         beam_width: int
             the beam width to use for searching.  Set to 1 to use a simple greedy search.
+
         """
         result = []
         for batch in batch_elements(embeddings, self.batch_size):
@@ -498,7 +504,7 @@ class SeqToSeqModel(TorchModel):
                 result.append(self._beam_search(probs[i], beam_width))
         return result
 
-    def _beam_search(self, probs: np.array, beam_width: int):
+    def _beam_search(self, probs: np.ndarray, beam_width: int):
         """Perform a beam search for the most likely output sequence."""
         if beam_width == 1:
             # Do a simple greedy search.
@@ -515,9 +521,9 @@ class SeqToSeqModel(TorchModel):
 
         logprobs = np.log(probs)
         # Represent each candidate as (normalized prob, raw prob, sequence)
-        candidates = [(0.0, 0.0, [])]
+        candidates: List = [(0.0, 0.0, [])]
         for i in range(len(logprobs)):
-            new_candidates = []
+            new_candidates: List = []
             for c in candidates:
                 if len(c[2]) > 0 and c[2][-1] == SeqToSeqModel.sequence_end:
                     # This candidate sequence has already been terminated
