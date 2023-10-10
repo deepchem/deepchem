@@ -66,7 +66,7 @@ class SeqToSeq(nn.Module):
     toward that, the constraint term can be gradually turned back on. The range
     of steps over which this happens is configurable.
 
-    This class implements the Sequence to Sequence Model (SeqToSeq) [1]_.
+    In this class, we establish a sequential model for the Sequence to Sequence (SeqToSeq) [1]_.
 
     Examples
     --------
@@ -133,20 +133,20 @@ class SeqToSeq(nn.Module):
         decoder_layers: int (default 4)
             Number of recurrent layers in the decoder
         embedding_dimension: int (default 512)
-            Width of the embedding vector. This also is the width of all
-            recurrent layers.
+            Width of the embedding vector. This also is the width of all recurrent
+            layers.
         dropout: float (default 0.0)
             Dropout probability to use during training.
         variational: bool (default False)
-            If True, train the model as a variational autoencoder. This
-            adds random noise to the encoder, and also constrains the
-            embedding to follow a unit Gaussian distribution.
+            If True, train the model as a variational autoencoder. This adds random
+            noise to the encoder, and also constrains the embedding to follow a unit
+            Gaussian distribution.
         annealing_start_step: int (default 5000)
-            Step (that is, batch) at which to begin turning on the
-            constraint term for KL cost annealing.
+            the step (that is, batch) at which to begin turning on the constraint
+            term for KL cost annealing.
         annealing_final_step: int (default 10000)
-            Step (that is, batch) at which to finish turning on the
-            constraint term for KL cost annealing.
+            the tep (that is, batch) at which to finish turning on the constraint
+            term for KL cost annealing.
 
         """
         super(SeqToSeq, self).__init__()
