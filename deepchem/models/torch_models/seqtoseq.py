@@ -505,7 +505,29 @@ class SeqToSeqModel(TorchModel):
         return result
 
     def _beam_search(self, probs: np.ndarray, beam_width: int):
-        """Perform a beam search for the most likely output sequence."""
+        """Perform a beam search for the most likely output sequence.
+        
+        Beam search is a heuristic search algorithm often used in natural
+        language processing.It is primarily used for finding the most likely
+        sequence of decisions in probabilistic models. Instead of exhaustively
+        exploring all possibilities, beam search maintains a set of "beams" or
+        hypotheses at each step and narrows down the search space based on a
+        predetermined beam width.
+
+        Parameters
+        ----------
+        probs: np.ndarray
+            Probability distribution over output tokens at each step.
+        beam_width: int
+            Beam width to use for searching.
+            Set to 1 to use a simple greedy search.
+
+        Returns
+        -------
+        List
+            Most likely output sequence.
+
+        """
         if beam_width == 1:
             # Do a simple greedy search.
 
@@ -544,8 +566,21 @@ class SeqToSeqModel(TorchModel):
             candidates = new_candidates
         return sorted(candidates)[-1][2][:-1]
 
-    def _generate_batches(self, sequences):
-        """Create feed_dicts for fitting."""
+    def _generate_batches(self, sequences: List[str]):
+        """Create feed_dicts for fitting.
+
+        Parameters
+        ----------
+        sequences: List[str]
+            Training samples to fit to. Each sample should be represented
+            as a tuple of the form (input_sequence, output_sequence).
+        
+        Returns
+        -------
+        Iterable
+            Feed_dicts for fitting.
+
+        """
         for batch in batch_elements(sequences, self.batch_size):
             inputs = []
             outputs = []
