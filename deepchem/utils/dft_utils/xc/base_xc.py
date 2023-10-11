@@ -4,7 +4,7 @@ Derived from: https://github.com/diffqc/dqc/blob/master/dqc/xc/base_xc.py
 """
 
 from contextlib import contextmanager
-from abc import abstractmethod, abstractproperty
+from abc import abstractmethod
 import torch
 import xitorch as xt
 from typing import List, Union, overload, Iterator
@@ -35,7 +35,7 @@ class BaseXC(xt.EditableModule):
 
     """
 
-    @abstractproperty
+    @abstractmethod
     def family(self) -> int:
         """Returns 1 for LDA, 2 for GGA, and 4 for Meta-GGA."""
         pass
@@ -332,7 +332,7 @@ class AddBaseXC(BaseXC):
 class MulBaseXC(BaseXC):
     """MulBaseXC is the class for multiplying BaseXC with a float or tensor.
     This is useful for scaling the xc potential.
-    
+
     Examples
     --------
     >>> import torch

@@ -17,8 +17,6 @@ P = TypeVar('P')
 # type of the atom Z
 ZType = Union[int, float, torch.Tensor]
 
-T = TypeVar('T')
-
 
 @dataclass
 class SpinParam(Generic[T]):
