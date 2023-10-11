@@ -2699,7 +2699,9 @@ class CombineMeanStd(nn.Module):
             f'{self.__class__.__name__}(training_only={self.training_only}, noise_epsilon={self.noise_epsilon})'
         )
 
-    def forward(self, inputs: List, training: bool = True) -> torch.Tensor:
+    def forward(self,
+                inputs: List[torch.Tensor],
+                training: bool = True) -> torch.Tensor:
         """Invoke this layer.
 
         Parameters
@@ -2719,12 +2721,7 @@ class CombineMeanStd(nn.Module):
         if len(inputs) != 2:
             raise ValueError("Must have two in_layers")
 
-        if torch.is_tensor(inputs[0]):
-            inputs[0] = inputs[0].cpu().detach().numpy()
-            inputs[1] = inputs[1].cpu().detach().numpy()
-
-        mean_parent, std_parent = torch.tensor(inputs[0]), torch.tensor(
-            inputs[1])
+        mean_parent, std_parent = inputs[0], inputs[1]
         noise_scale = torch.tensor(training or not self.training_only,
                                    dtype=torch.float,
                                    device=mean_parent.device)
@@ -4948,11 +4945,12 @@ class EncoderRNN(nn.Module):
     Examples
     --------
     >>> from deepchem.models.torch_models.layers import EncoderRNN
-    >>> import torch 
+    >>> import torch
     >>> embedding_dimensions = 7
     >>> num_input_token = 4
+    >>> n_layers = 9
     >>> input = torch.tensor([[1, 0, 2, 3, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]])
-    >>> layer = EncoderRNN(num_input_token, embedding_dimensions)
+    >>> layer = EncoderRNN(num_input_token, embedding_dimensions, n_layers)
     >>> emb, hidden = layer(input)
     >>> emb.shape
     torch.Size([3, 5, 7])
@@ -4966,6 +4964,7 @@ class EncoderRNN(nn.Module):
     def __init__(self,
                  input_size: int,
                  hidden_size: int,
+                 n_layers: int,
                  dropout_p: float = 0.1,
                  **kwargs):
         """Initialize the EncoderRNN layer.
@@ -4982,7 +4981,7 @@ class EncoderRNN(nn.Module):
         """
         super(EncoderRNN, self).__init__(**kwargs)
         self.embedding = nn.Embedding(input_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True)
+        self.gru = nn.GRU(hidden_size, hidden_size, n_layers, batch_first=True)
         self.dropout = nn.Dropout(dropout_p)
 
     def __repr__(self) -> str:
@@ -5018,7 +5017,7 @@ class EncoderRNN(nn.Module):
         """
         embedded = self.dropout(self.embedding(input))
         output, hidden = self.gru(embedded)
-        return output, hidden
+        return output, hidden[-1]
 
 
 class DecoderRNN(nn.Module):
@@ -5037,9 +5036,10 @@ class DecoderRNN(nn.Module):
     >>> num_output_tokens = 7
     >>> max_length = 10
     >>> batch_size = 100
-    >>> layer = DecoderRNN(embedding_dimensions, num_output_tokens, max_length, batch_size)
+    >>> n_layers = 2
+    >>> layer = DecoderRNN(embedding_dimensions, num_output_tokens, n_layers, max_length, batch_size)
     >>> embeddings = torch.randn(batch_size, embedding_dimensions)
-    >>> output, hidden = layer([embeddings.unsqueeze(0), None])
+    >>> output, hidden = layer([embeddings, None])
     >>> output.shape
     torch.Size([100, 10, 7])
 
@@ -5052,6 +5052,7 @@ class DecoderRNN(nn.Module):
     def __init__(self,
                  hidden_size: int,
                  output_size: int,
+                 n_layers: int,
                  max_length: int,
                  batch_size: int,
                  step_activation: str = "relu",
@@ -5073,8 +5074,9 @@ class DecoderRNN(nn.Module):
 
         """
         super(DecoderRNN, self).__init__(**kwargs)
+        self.n_layers = n_layers
         self.embedding = nn.Embedding(output_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True)
+        self.gru = nn.GRU(hidden_size, hidden_size, n_layers, batch_first=True)
         self.out = nn.Linear(hidden_size, output_size)
         self.act = get_activation("softmax")
         self.step_act = get_activation(step_activation)
@@ -5120,7 +5122,7 @@ class DecoderRNN(nn.Module):
                                    1,
                                    dtype=torch.long,
                                    device=encoder_hidden.device)
-        decoder_hidden = encoder_hidden
+        decoder_hidden = torch.stack(self.n_layers * [encoder_hidden])
         decoder_outputs = []
 
         for i in range(self.MAX_LENGTH):

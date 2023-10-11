@@ -490,6 +490,11 @@ DTNNModel
 .. autoclass:: deepchem.models.torch_models.DTNNModel
   :members:
 
+SeqToSeqModel
+-------------
+.. autoclass:: deepchem.models.torch_models.SeqToSeqModel
+  :members:
+
 GAN
 ---
 
