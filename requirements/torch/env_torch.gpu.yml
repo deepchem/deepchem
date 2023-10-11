@@ -7,4 +7,3 @@ dependencies:
     - torch==1.11.0+cu113
     - torch-geometric
     - pytorch-lightning==1.6.5
-    - xitorch
