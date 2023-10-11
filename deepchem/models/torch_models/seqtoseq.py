@@ -478,17 +478,18 @@ class SeqToSeqModel(TorchModel):
                 result.append(probs[i])
         return result
 
-    def predict_from_embedding(self, embeddings: List[str], beam_width=5):
+    def predict_from_embedding(self, embeddings: List[np.ndarray], beam_width=5):
         """Given a set of embedding vectors, predict the output sequences.
 
         The prediction is done using a beam search with length normalization.
 
         Parameters
         ----------
-        embeddings: List[str]
-            the embedding vectors to generate predictions for
+        embeddings: List[np.ndarray]
+            Embedding vectors to generate predictions for
         beam_width: int
-            the beam width to use for searching.  Set to 1 to use a simple greedy search.
+            Beam width to use for searching.
+            Set to 1 to use a simple greedy search.
 
         """
         result = []
