@@ -496,6 +496,14 @@ GAN
 .. autoclass:: deepchem.models.torch_models.GAN
   :members:
 
+
+WeaveModel
+----------
+
+.. autoclass:: deepchem.models.torch_models.WeaveModel
+  :members:
+
+
 Density Functional Theory Model - XCModel
 -----------------------------------------
 

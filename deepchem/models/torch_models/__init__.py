@@ -19,6 +19,7 @@ from deepchem.models.torch_models.megnet import MEGNetModel
 from deepchem.models.torch_models.normalizing_flows_pytorch import NormalizingFlow
 from deepchem.models.torch_models.layers import MultilayerPerceptron, CNNModule, CombineMeanStd, WeightedLinearCombo, AtomicConvolution, NeighborList, SetGather, EdgeNetwork, WeaveLayer, WeaveGather, MolGANConvolutionLayer, MolGANAggregationLayer, MolGANMultiConvolutionLayer, MolGANEncoderLayer, VariationalRandomizer, EncoderRNN, DecoderRNN
 from deepchem.models.torch_models.cnn import CNN
+from deepchem.models.torch_models.weavemodel_pytorch import Weave, WeaveModel
 from deepchem.models.torch_models.attention import ScaledDotProductAttention, SelfAttention
 from deepchem.models.torch_models.grover import GroverModel, GroverPretrain, GroverFinetune
 from deepchem.models.torch_models.readout import GroverReadout
@@ -29,6 +30,7 @@ try:
     from deepchem.models.torch_models.gnn import GNN, GNNHead, GNNModular
     from deepchem.models.torch_models.pna_gnn import AtomEncoder, BondEncoder, PNALayer, PNAGNN, PNA
     from deepchem.models.torch_models.gnn3d import Net3D, InfoMax3DModular
+    from deepchem.models.torch_models.weavemodel_pytorch import Weave, WeaveModel
 except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'
