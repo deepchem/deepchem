@@ -32,7 +32,7 @@ def test_spin_param():
     assert sp.reduce(lambda x, y: x * y + 2) == 4
 
 
-@pytest.mark.torch
+@pytest.mark.dqc
 def test_base_xc():
     """Test BaseXC."""
     from deepchem.utils.dft_utils.datastruct import ValGrad
