@@ -1,4 +1,4 @@
-"""Test DFT utils."""
+"""Test DFT utils"""
 import pytest
 try:
     import torch
