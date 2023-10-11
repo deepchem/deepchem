@@ -9,7 +9,7 @@ except ModuleNotFoundError:
 from dataclasses import dataclass
 from typing import Union, TypeVar, Generic, Callable, Optional
 
-__all__ = ["ZType"]
+__all__ = ["ZType", "SpinParam", "ValGrad"]
 
 T = TypeVar('T')
 P = TypeVar('P')
@@ -28,6 +28,7 @@ class SpinParam(Generic[T]):
     Examples
     --------
     >>> import torch
+    >>> from deepchem.utils.dft_utils.datastruct import SpinParam
     >>> sp = SpinParam(1, 2)
     >>> sp.u
     1
@@ -79,6 +80,7 @@ class ValGrad:
     Examples
     --------
     >>> import torch
+    >>> from deepchem.utils.dft_utils.datastruct import ValGrad
     >>> vg1 = ValGrad(torch.tensor([1, 2, 3]))
     >>> vg1.value
     tensor([1, 2, 3])
