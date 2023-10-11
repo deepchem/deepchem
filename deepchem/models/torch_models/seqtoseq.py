@@ -1,5 +1,5 @@
 from heapq import heappush, heappushpop
-from typing import List, Iterable
+from typing import List
 
 import numpy as np
 
@@ -400,7 +400,7 @@ class SeqToSeqModel(TorchModel):
         return loss_fn
 
     def fit_sequences(self,
-                      sequences: Iterable,
+                      sequences: List[str],
                       max_checkpoints_to_keep: int = 5,
                       checkpoint_interval: int = 1000,
                       restore: bool = False):
@@ -408,7 +408,7 @@ class SeqToSeqModel(TorchModel):
 
         Parameters
         ----------
-        sequences: iterable
+        sequences: List[str]
             Training samples to fit to. Each sample should be represented
             as a tuple of the form (input_sequence, output_sequence).
         max_checkpoints_to_keep: int
@@ -506,7 +506,7 @@ class SeqToSeqModel(TorchModel):
 
     def _beam_search(self, probs: np.ndarray, beam_width: int):
         """Perform a beam search for the most likely output sequence.
-        
+
         Beam search is a heuristic search algorithm often used in natural
         language processing.It is primarily used for finding the most likely
         sequence of decisions in probabilistic models. Instead of exhaustively
@@ -574,7 +574,7 @@ class SeqToSeqModel(TorchModel):
         sequences: List[str]
             Training samples to fit to. Each sample should be represented
             as a tuple of the form (input_sequence, output_sequence).
-        
+
         Returns
         -------
         Iterable
