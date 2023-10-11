@@ -478,7 +478,9 @@ class SeqToSeqModel(TorchModel):
                 result.append(probs[i])
         return result
 
-    def predict_from_embedding(self, embeddings: List[np.ndarray], beam_width=5):
+    def predict_from_embedding(self,
+                               embeddings: List[np.ndarray],
+                               beam_width=5):
         """Given a set of embedding vectors, predict the output sequences.
 
         The prediction is done using a beam search with length normalization.
@@ -498,7 +500,7 @@ class SeqToSeqModel(TorchModel):
                 (self.batch_size, self._embedding_dimension), dtype=np.float32)
             for i, e in enumerate(batch):
                 embedding_array[i] = e
-            probs, _ = self.model.decoder( # type: ignore
+            probs, _ = self.model.decoder(  # type: ignore
                 [torch.tensor(embedding_array, device=self.device), None])
             probs = probs.cpu().detach().numpy()
             for i in range(len(batch)):
