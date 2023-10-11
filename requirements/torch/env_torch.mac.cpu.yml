@@ -7,3 +7,4 @@ dependencies:
     - dgl
     - torch-geometric
     - pytorch-lightning==1.6.5
+    - xitorch
