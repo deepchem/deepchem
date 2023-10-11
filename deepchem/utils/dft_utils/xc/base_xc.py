@@ -6,26 +6,48 @@ from typing import List, Union, overload, Iterator
 from deepchem.utils.dft_utils.datastruct import ValGrad, SpinParam
 
 class BaseXC(xt.EditableModule):
-    """
-    XC is class that calculates the components of xc potential and energy
+    """XC is class that calculates the components of xc potential and energy
     density given the density.
+
+    Exchange-correlation (xc) potential is a term used in density functional
+    theory to describe the relationship between the electron density and the
+    exchange and correlation energy.
+
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.utils.dft_utils.xc.base_xc import BaseXC
+    >>> from deepchem.utils.dft_utils.datastruct import ValGrad
+    >>> class MyXC(BaseXC):
+    ...     def get_edensityxc(self, densinfo: ValGrad) -> torch.Tensor:
+    ...         return densinfo.value ** 2
+    >>> xc = MyXC()
+    >>> densinfo = ValGrad(value=torch.tensor([1., 2., 3.]), grad=torch.tensor([4., 5., 6.]))
+    >>> xc.get_edensityxc(densinfo)
+    tensor([ 1.,  4.,  9.])
     """
     @abstractproperty
     def family(self) -> int:
-        """
-        Returns 1 for LDA, 2 for GGA, and 4 for Meta-GGA.
-        """
+        """Returns 1 for LDA, 2 for GGA, and 4 for Meta-GGA."""
         pass
 
     @abstractmethod
-    def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> \
-            torch.Tensor:
+    def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
+        """Returns the xc energy density (energy per unit volume).
+
+        Parameters
+        ----------
+        densinfo: Union[ValGrad, SpinParam[ValGrad]]
+            The density information. If the xc is unpolarized, then densinfo
+            is ValGrad. If the xc is polarized, then densinfo is SpinParam[ValGrad].
+        
+        Returns
+        -------
+        torch.Tensor
+            The energy density.
+
         """
-        Returns the xc energy density (energy per unit volume)
-        """
-        # densinfo.value & lapl: (*BD, nr)
-        # densinfo.grad: (*BD, ndim, nr)
-        # return: (*BD, nr)
+
         pass
 
     @overload
@@ -37,18 +59,24 @@ class BaseXC(xt.EditableModule):
         ...
 
     def get_vxc(self, densinfo):
-        """
-        Returns the ValGrad for the xc potential given the density info
+        """Returns the ValGrad for the xc potential given the density info
         for unpolarized case.
-        """
-        # This is the default implementation of vxc if there is no implementation
-        # in the specific class of XC.
 
-        # densinfo.value & lapl: (*BD, nr)
-        # densinfo.grad: (*BD, ndim, nr)
-        # return:
-        # potentialinfo.value & lapl: (*BD, nr)
-        # potentialinfo.grad: (*BD, ndim, nr)
+        This is the default implementation of vxc if there is no implementation
+        in the specific class of XC.
+
+        parameters
+        ----------
+        densinfo
+            The density information. If the xc is unpolarized, then densinfo
+            is ValGrad. If the xc is polarized, then densinfo is SpinParam[ValGrad].
+        
+        returns
+        -------
+        ValGrad or SpinParam[ValGrad]
+            The ValGrad for the xc potential.
+
+        """
 
         # mark the densinfo components as requiring grads
         with self._enable_grad_densinfo(densinfo):
@@ -195,6 +223,14 @@ class BaseXC(xt.EditableModule):
         return self.__mul__(other)
 
 class AddBaseXC(BaseXC):
+    """AddBaseXC is the class for adding two BaseXC together. This is useful
+    for combining two xc potentials together.
+    
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.utils.dft_utils.xc import BaseXC
+    >>> from deepchem.utils.dft_utils.datastruct import ValGrad"""
     def __init__(self, a: BaseXC, b: BaseXC) -> None:
         self.a = a
         self.b = b
