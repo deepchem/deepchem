@@ -1,10 +1,7 @@
 """
 Density Functional Theory Data Structure Utilities
 """
-try:
-    import torch
-except ModuleNotFoundError:
-    pass
+import torch
 
 from dataclasses import dataclass
 from typing import Union, TypeVar, Generic, Callable, Optional
