@@ -72,43 +72,100 @@ class SpinParam(Generic[T]):
 
 @dataclass
 class ValGrad:
+    """Data structure that contains local information about density profiles.
+    data structure used as a umbrella class for density profiles and the
+    derivative of the potential w.r.t. density profiles.
+
+    Examples
+    --------
+    >>> import torch
+    >>> vg1 = ValGrad(torch.tensor([1, 2, 3]))
+    >>> vg1.value
+    tensor([1, 2, 3])
+    >>> vg1.grad = torch.tensor([4, 5, 6])
+    >>> vg1.grad
+    tensor([4, 5, 6])
+    >>> vg2 = ValGrad(torch.tensor([1, 2, 3]), torch.tensor([4, 5, 6]))
+    >>> vg1 + vg2
+    ValGrad(value=tensor([2, 4, 6]), grad=tensor([ 8, 10, 12]), lapl=None, kin=None)
+
     """
-    Data structure that contains local information about density profiles.
 
-    Attributes
-    ----------
-    value: torch.Tensor
-        Tensors containing the value of the local information.
-    grad: torch.Tensor or None
-        If tensor, it represents the gradient of the local information with shape
-        ``(..., 3)`` where ``...`` should be the same shape as ``value``.
-    lapl: torch.Tensor or None
-        If tensor, represents the laplacian value of the local information.
-        It should have the same shape as ``value``.
-    kin: torch.Tensor or None
-        If tensor, represents the local kinetic energy density.
-        It should have the same shape as ``value``.
-    """
-    # data structure used as a umbrella class for density profiles and
-    # the derivative of the potential w.r.t. density profiles
+    def __init__(self,
+                 value: torch.Tensor,
+                 grad: Optional[torch.Tensor] = None,
+                 lapl: Optional[torch.Tensor] = None,
+                 kin: Optional[torch.Tensor] = None):
+        """Initialize ValGrad
 
-    value: torch.Tensor  # torch.Tensor of the value in the grid
-    grad: Optional[torch.Tensor] = None  # torch.Tensor representing (gradx, grady, gradz) with shape
-    # ``(..., 3)``
-    lapl: Optional[torch.Tensor] = None  # torch.Tensor of the laplace of the value
-    kin: Optional[torch.Tensor] = None  # torch.Tensor of the kinetic energy density
+        Parameters
+        ----------
+        value: torch.Tensor
+            Tensors containing the value of the local information.
+        grad: torch.Tensor or None
+            If tensor, it represents the gradient of the local information with shape
+            ``(_, 3)`` where `...` should be the same shape as `value`.
+            (gradx, grady, gradz)
+        lapl: torch.Tensor or None
+            If tensor, represents the laplacian value of the local information.
+            It should have the same shape as ``value``.
+        kin: torch.Tensor or None
+            If tensor, represents the local kinetic energy density.
+            It should have the same shape as ``value``.
 
-    def __add__(self, b: ValGrad) -> ValGrad:
-        return ValGrad(
+        """
+        self.value = value
+        self.grad = grad
+        self.lapl = lapl
+        self.kin = kin
+
+    def __repr__(self):
+        """Representation of ValGrad object
+
+        Returns
+        -------
+        value: torch.Tensor
+            Tensors containing the value of the local information.
+        grad: torch.Tensor or None
+            If tensor, it represents the gradient of the local information with shape
+            ``(_, 3)`` where `...` should be the same shape as `value`.
+            (gradx, grady, gradz)
+        lapl: torch.Tensor or None
+            If tensor, represents the laplacian value of the local information.
+            It should have the same shape as ``value``.
+        kin: torch.Tensor or None
+            If tensor, represents the local kinetic energy density.
+            It should have the same shape as ``value``.
+
+        """
+        return f"ValGrad(value={self.value}, grad={self.grad}, lapl={self.lapl}, kin={self.kin})"
+
+    def __add__(self, b):
+        """Add two ValGrad objects together
+
+        Parameters
+        ----------
+        b: ValGrad
+            The other ValGrad object to be added
+
+        Returns
+        -------
+        c: ValGrad
+            The sum of the two ValGrad objects
+
+        """
+        c: ValGrad = ValGrad(
             value=self.value + b.value,
             grad=self.grad + b.grad if self.grad is not None else None,
             lapl=self.lapl + b.lapl if self.lapl is not None else None,
             kin=self.kin + b.kin if self.kin is not None else None,
         )
+        return c
 
-    def __mul__(self, f: Union[float, int, torch.Tensor]) -> ValGrad:
+    def __mul__(self, f: Union[float, int, torch.Tensor]):
         if isinstance(f, torch.Tensor):
-            assert f.numel() == 1, "ValGrad multiplication with tensor can only be done with 1-element tensor"
+            assert f.numel(
+            ) == 1, "ValGrad multiplication with tensor can only be done with 1-element tensor"
 
         return ValGrad(
             value=self.value * f,
