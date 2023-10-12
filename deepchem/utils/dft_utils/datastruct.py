@@ -162,7 +162,7 @@ class ValGrad:
     def __mul__(self, f: Union[float, int, torch.Tensor]):
         if isinstance(f, torch.Tensor):
             assert f.numel(
-            ) == 1, "ValGrad multiplication with tensor can only be done with 1-element tensor"
+            ) == 1, "ValGrad multiplication with tensor can only be done with 1-element tensor."
 
         return ValGrad(
             value=self.value * f,
