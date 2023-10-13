@@ -59,7 +59,7 @@ def test_str():
     assert s == s1
 
 
-@pytest.mark.torch
+@pytest.mark.dqc
 def test_val_grad():
     """Test ValGrad data structure"""
     from deepchem.utils.dft_utils.datastruct import ValGrad
@@ -74,7 +74,7 @@ def test_val_grad():
     assert torch.allclose(vg3.grad, torch.tensor([8, 10, 12]))
 
 
-@pytest.mark.torch
+@pytest.mark.dqc
 def test_spin_param():
     """Test SpinParam data structure"""
     from deepchem.utils.dft_utils.datastruct import SpinParam
