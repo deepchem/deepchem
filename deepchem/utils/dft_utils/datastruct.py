@@ -1,11 +1,8 @@
 """
 Density Functional Theory Data Structure Utilities
 """
-from typing import Union, TypeVar
-
 import torch
 
-__all__ = ["ZType"]
 from dataclasses import dataclass
 from typing import Union, TypeVar, Generic, Callable, Optional
 
