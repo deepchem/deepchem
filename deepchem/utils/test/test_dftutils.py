@@ -57,3 +57,28 @@ def test_str():
     s = hashstr(s)
     s1 = "df4e3775493a2e784618edaf9e96b7ecb6ce2b4cd022e8619588d55009872bb2"
     assert s == s1
+
+
+@pytest.mark.torch
+def test_val_grad():
+    """Test ValGrad data structure"""
+    from deepchem.utils.dft_utils.datastruct import ValGrad
+
+    vg1 = ValGrad(torch.tensor([1, 2, 3]))
+    assert torch.allclose(vg1.value, torch.tensor([1, 2, 3]))
+    vg1.grad = torch.tensor([4, 5, 6])
+    assert torch.allclose(vg1.grad, torch.tensor([4, 5, 6]))
+    vg2 = ValGrad(torch.tensor([1, 2, 3]), torch.tensor([4, 5, 6]))
+    vg3 = vg1 + vg2
+    assert torch.allclose(vg3.value, torch.tensor([2, 4, 6]))
+    assert torch.allclose(vg3.grad, torch.tensor([8, 10, 12]))
+
+
+@pytest.mark.torch
+def test_spin_param():
+    """Test SpinParam data structure"""
+    from deepchem.utils.dft_utils.datastruct import SpinParam
+
+    sp = SpinParam(1, 2)
+    assert sp.sum() == 3
+    assert sp.reduce(lambda x, y: x * y + 2) == 4
