@@ -5,14 +5,9 @@ try:
     has_torch = True
 except:
     has_torch = False
-try:
-    import xitorch # noqa F401
-    has_xitorch = True
-except:
-    has_xitorch = False
 
 
-@pytest.mark.torch
+@pytest.mark.dqc
 def test_val_grad():
     """Test ValGrad data structure"""
     from deepchem.utils.dft_utils.datastruct import ValGrad
@@ -27,7 +22,7 @@ def test_val_grad():
     assert torch.allclose(vg3.grad, torch.tensor([8, 10, 12]))
 
 
-@pytest.mark.torch
+@pytest.mark.dqc
 def test_spin_param():
     """Test SpinParam data structure"""
     from deepchem.utils.dft_utils.datastruct import SpinParam
