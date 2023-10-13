@@ -5,6 +5,11 @@ try:
     has_torch = True
 except:
     has_torch = False
+try:
+    import xitorch # noqa F401
+    has_xitorch = True
+except:
+    has_xitorch = False
 
 
 @pytest.mark.torch

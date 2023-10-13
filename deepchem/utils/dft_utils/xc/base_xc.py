@@ -362,7 +362,7 @@ class MulBaseXC(BaseXC):
 
     @property
     def family(self):
-        return self.a.family
+        return self.a.family()
 
     @overload
     def get_vxc(self, densinfo: ValGrad) -> ValGrad:
