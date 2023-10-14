@@ -1,3 +1,7 @@
+"""
+Editable Utils
+Derived From: https://github.com/xitorch/xitorch/blob/master/xitorch/_core/editable_module.py
+"""
 import inspect
 import warnings
 from abc import abstractmethod

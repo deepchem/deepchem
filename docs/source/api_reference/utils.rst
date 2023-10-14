@@ -299,6 +299,23 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.config._Config
   :members:
 
+.. autoclass:: deepchem.utils.differentiation_utils.editable_module.EditableModule
+  :members:
+
+Attribute Utilities
+-------------------
+
+The utilities here are used to modify the attributes of the classes. Used by differentiation_utils.
+
+.. autoclass:: deepchem.utils.attribute_utils.get_attr
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.set_get_attr
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.del_attr
+  :members:
+
 
 Pytorch Utilities
 -----------------
