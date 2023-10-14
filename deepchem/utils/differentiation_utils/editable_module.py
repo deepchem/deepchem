@@ -74,10 +74,10 @@ class EditableModule(object):
         ...             raise KeyError()
         >>> a = torch.tensor(2.0).requires_grad_()
         >>> x = torch.tensor(0.4).requires_grad_()
-        >>> A = A(a)
-        >>> A.mult(x)
+        >>> alpha = A(a)
+        >>> alpha.mult(x)
         tensor(1.6000, grad_fn=<MulBackward0>)
-        >>> A.getparamnames("mult")
+        >>> alpha.getparamnames("mult")
         ['b']
 
         Parameters

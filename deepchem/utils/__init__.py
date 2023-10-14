@@ -8,6 +8,10 @@ logger = logging.getLogger(__name__)
 
 from deepchem.utils.batch_utils import batch_coulomb_matrix_features
 
+from deepchem.utils.attribute_utils import get_attr
+from deepchem.utils.attribute_utils import set_attr
+from deepchem.utils.attribute_utils import del_attr
+
 from deepchem.utils.conformers import ConformerGenerator
 from deepchem.utils.evaluate import relative_difference
 from deepchem.utils.evaluate import Evaluator
