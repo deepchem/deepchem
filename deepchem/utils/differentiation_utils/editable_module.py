@@ -6,14 +6,14 @@ import torch
 from typing import Sequence, Union, Dict, List
 from deepchem.utils.attribute_utils import get_attr, set_attr, del_attr
 
-__all__ = ["DifferentiableModule"]
+__all__ = ["EditableModule"]
 
 torch_float_type = [torch.float32, torch.float, torch.float64, torch.float16]
 
 
-class DifferentiableModule(object):
+class EditableModule(object):
     """
-    ``DifferentiableModule`` is a base class to enable classes that it inherits be
+    ``EditableModule`` is a base class to enable classes that it inherits be
     converted to pure functions for higher order derivatives purpose.
     """
 
@@ -59,8 +59,8 @@ class DifferentiableModule(object):
 
         Example
         -------
-        >>> from deepchem.utils.dft_utils.differentiation_utils.differentiable_module import DifferentiableModule
-        >>> class A(DifferentiableModule):
+        >>> from deepchem.utils.differentiation_utils import EditableModule
+        >>> class A(EditableModule):
         ...     def __init__(self, a):
         ...         self.b = a*a
         ...
@@ -194,9 +194,8 @@ class DifferentiableModule(object):
         Examples
         --------
         >>> import torch
-        >>> import xitorch
-        >>> from deepchem.utils.dft_utils.differentiation_utils.differentiable_module import DifferentiableModule
-        >>> class AClass(DifferentiableModule):
+        >>> from deepchem.utils.differentiation_utils import EditableModule
+        >>> class AClass(EditableModule):
         ...     def __init__(self, a):
         ...         self.a = a
         ...         self.b = a*a
