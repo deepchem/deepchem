@@ -1,5 +1,5 @@
 """
-Editable Utils
+EditableModule Utils
 Derived From: https://github.com/xitorch/xitorch/blob/master/xitorch/_core/editable_module.py
 """
 import inspect
@@ -16,22 +16,132 @@ torch_float_type = [torch.float32, torch.float, torch.float64, torch.float16]
 
 
 class EditableModule(object):
-    """
-    ``EditableModule`` is a base class to enable classes that it inherits be
+    """EditableModule is a base class to enable classes that it inherits be
     converted to pure functions for higher order derivatives purpose.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.differentiation_utils import EditableModule
+    >>> class A(EditableModule):
+    ...     def __init__(self, a):
+    ...         self.b = a*a
+    ...
+    ...     def mult(self, x):
+    ...         return self.b * x
+    ...
+    ...     def getparamnames(self, methodname, prefix=""):
+    ...         if methodname == "mult":
+    ...             return [prefix+"b"]
+    ...         else:
+    ...             raise KeyError()
+    >>> a = torch.tensor(2.0).requires_grad_()
+    >>> x = torch.tensor(0.4).requires_grad_()
+    >>> alpha = A(a)
+    >>> alpha.mult(x)
+    tensor(1.6000, grad_fn=<MulBackward0>)
+    >>> alpha.getparamnames("mult")
+    ['b']
+    >>> alpha.assertparams(alpha.mult, x)
+    "mult" method check done
+
     """
 
     def getparams(self, methodname: str) -> Sequence[torch.Tensor]:
-        # Returns a list of tensor parameters used in the object's operations
+        """Returns a list of tensor parameters used in the object's operations.
+        Requires the ``getparamnames`` method to be implemented.
+
+        Examples
+        --------
+        >>> import torch
+        >>> from deepchem.utils.differentiation_utils import EditableModule
+        >>> class A(EditableModule):
+        ...     def __init__(self, a):
+        ...         self.b = a*a
+        ...
+        ...     def mult(self, x):
+        ...         return self.b * x
+        ...
+        ...     def getparamnames(self, methodname, prefix=""):
+        ...         if methodname == "mult":
+        ...             return [prefix+"b"]
+        ...         else:
+        ...             raise KeyError()
+        >>> a = torch.tensor(2.0).requires_grad_()
+        >>> x = torch.tensor(0.4).requires_grad_()
+        >>> alpha = A(a)
+        >>> alpha.mult(x)
+        tensor(1.6000, grad_fn=<MulBackward0>)
+        >>> alpha.getparamnames("mult")
+        ['b']
+        >>> alpha.getparams("mult")
+        [tensor(4., grad_fn=<MulBackward0>)]
+
+        Parameters
+        ----------
+        methodname: str
+            The name of the method of the class.
+
+        Returns
+        -------
+        Sequence of tensors
+            Sequence of tensors that are involved in the specified method of the
+            object.
+
+        """
 
         paramnames = self.cached_getparamnames(methodname)
         return [get_attr(self, name) for name in paramnames]
 
     def setparams(self, methodname: str, *params) -> int:
-        # Set the input parameters to the object's parameters to make a copy of
-        # the operations.
-        # *params is an excessive list of the parameters to be set and the
-        # method will return the number of parameters it sets.
+        """Set the input parameters to the object's parameters to make a copy of
+        the operations.
+
+        Examples
+        --------
+        >>> import torch
+        >>> from deepchem.utils.differentiation_utils import EditableModule
+        >>> class A(EditableModule):
+        ...     def __init__(self, a):
+        ...         self.b = a*a
+        ...
+        ...     def mult(self, x):
+        ...         return self.b * x
+        ...
+        ...     def getparamnames(self, methodname, prefix=""):
+        ...         if methodname == "mult":
+        ...             return [prefix+"b"]
+        ...         else:
+        ...             raise KeyError()
+        >>> a = torch.tensor(2.0).requires_grad_()
+        >>> x = torch.tensor(0.4).requires_grad_()
+        >>> alpha = A(a)
+        >>> alpha.mult(x)
+        tensor(1.6000, grad_fn=<MulBackward0>)
+        >>> alpha.getparamnames("mult")
+        ['b']
+        >>> alpha.getparams("mult")
+        [tensor(4., grad_fn=<MulBackward0>)]
+        >>> alpha.setparams("mult", torch.tensor(3.0))
+        1
+        >>> alpha.mult(x)
+        tensor(1.2000, grad_fn=<MulBackward0>)
+        >>> alpha.getparams("mult")
+        [tensor(3.)]
+
+        Parameters
+        ----------
+        methodname: str
+            The name of the method of the class.
+        *params:
+            The parameters to be set to the object's parameters.
+
+        Returns
+        -------
+        int
+            The number of parameters that are set to the object's parameters.
+
+        """
         paramnames = self.cached_getparamnames(methodname)
         for name, val in zip(paramnames, params):
             try:
@@ -45,7 +155,21 @@ class EditableModule(object):
     def cached_getparamnames(self,
                              methodname: str,
                              refresh: bool = False) -> List[str]:
-        # getparamnames, but cached, so it is only called once
+        """getparamnames, but cached, so it is only called once
+
+        Parameters
+        ----------
+        methodname: str
+            The name of the method of the class.
+        refresh: bool
+            If True, the cache is refreshed.
+
+        Returns
+        -------
+        Sequence of string
+            Sequence of name of parameters affecting the output of the method.
+
+        """
         if not hasattr(self, "_paramnames_"):
             self._paramnames_: Dict[str, List[str]] = {}
 
@@ -133,6 +257,25 @@ class EditableModule(object):
             return [allparams[i] for i in idxs]
 
     def setuniqueparams(self, methodname: str, *uniqueparams) -> int:
+        """Set the input parameters to the object's parameters to make a copy of
+        the operations. The input parameters are unique parameters, i.e. they
+        are not necessarily the same tensors as the object's parameters.
+
+        Parameters
+        ----------
+        methodname: str
+            The name of the method of the class.
+        *uniqueparams:
+            The parameters to be set to the object's parameters. The number of
+            parameters must be the same as the number of unique parameters
+            returned by ``getuniqueparams``.
+
+        Returns
+        -------
+        int
+            The number of parameters that are set to the object's parameters.
+
+        """
         nparams = self._number_of_params[methodname]
         allparams = [None for _ in range(nparams)]
         maps = self._unique_params_maps[methodname]
@@ -150,6 +293,22 @@ class EditableModule(object):
             methodname: str,
             allparams: Union[Sequence[torch.Tensor],
                              None] = None) -> Sequence[int]:
+        """Returns the list of unique parameters involved in the method
+
+        Parameters
+        ----------
+        methodname: str
+            Name of the method where the returned parameters play roles.
+        allparams: list of tensors
+            List of tensors that are involved in the specified method of the
+            object.
+
+        Returns
+        -------
+        List[int]
+            List of indices of the unique parameters in the list of all parameters.
+
+        """
 
         if not hasattr(self, "_unique_params_idxs"):
             self._unique_params_idxs = {}  # type: Dict[str,Sequence[int]]
@@ -246,8 +405,20 @@ class EditableModule(object):
         print('"%s" method check done' % methodname)
 
     def __assert_method_preserve(self, method, *args, **kwargs):
-        # this method assert if method does not change the float tensor parameters
-        # of the object (i.e. it preserves the state of the object)
+        """This method assert if method does not change the float tensor
+        parameters of the object (i.e. it preserves the state of the object)
+
+        Parameters
+        ----------
+        method: callable method
+            The method of this class to be tested
+
+        Raises
+        ------
+        KeyError
+            If the method does not preserve the float tensors of the object.
+
+        """
 
         all_params0, names0 = _get_tensors(self)
         all_params0 = [p.clone() for p in all_params0]
@@ -280,8 +451,20 @@ class EditableModule(object):
                 raise KeyError(msg)
 
     def __assert_get_correct_params(self, method, *args, **kwargs):
-        # this function perform checks if the getparams on the method returns
-        # the correct tensors
+        """This function perform checks if the getparams on the method returns
+        the correct tensors
+
+        Parameters
+        ----------
+        method: Callable
+            The method of this class to be tested
+
+        Raises
+        ------
+        KeyError
+            If the method does not return the correct tensors.
+
+        """
 
         methodname = method.__name__
         clsname = method.__self__.__class__.__name__
@@ -341,8 +524,8 @@ class EditableModule(object):
             warnings.warn(msg, stacklevel=3)
 
     def __list_operating_params(self, method, *args, **kwargs):
-        # Sequence the tensors used in executing the method by calling the method
-        # and see which parameters are connected in the backward graph
+        """Sequence the tensors used in executing the method by calling the method
+        and see which parameters are connected in the backward graph"""
 
         # get all the tensors recursively
         all_tensors, all_names = _get_tensors(self)
@@ -449,9 +632,9 @@ def _get_tensors(obj, prefix="", max_depth=20):
 
     Returns
     -------
-    res: list of torch.Tensor
+    res: list[torch.Tensor]
         Sequence of tensors collected recursively in the object.
-    name: list of str
+    name: list[str]
         Sequence of names of the collected tensors.
 
     """

@@ -4,6 +4,7 @@ Derived From: https://github.com/xitorch/xitorch/blob/master/xitorch/_utils/attr
 """
 import re
 import ast
+from typing import Callable, Any
 
 __all__ = ["get_attr", "set_attr", "del_attr"]
 
@@ -74,7 +75,7 @@ def set_attr(obj: object, name: str, val: object):
     return _set_attr(obj, _preproc_name(name), val)
 
 
-def del_attr(obj: object, name: str):
+def del_attr(obj: Any, name: str):
     """Delete the attribute of an object.
 
     Examples
@@ -137,7 +138,7 @@ def _set_attr(obj, names, val):
     return _traverse_attr(obj, names, attrfcn, dictfcn, listfcn)
 
 
-def _del_attr(obj: object, names: str):
+def _del_attr(obj: Any, names: str):
     """Helper function for `del_attr`. Deletes the attribute of an object.
 
     Parameters
@@ -151,7 +152,7 @@ def _del_attr(obj: object, names: str):
     attrfcn = lambda obj, name: delattr(obj, name)  # noqa: E731
     dictfcn = lambda obj, key: obj.__delitem__(key)  # noqa: E731
 
-    def listfcn(obj: object, key):
+    def listfcn(obj: Any, key):
         obj.__delitem__(key)
         obj.insert(key, None)  # to preserve the length
 
