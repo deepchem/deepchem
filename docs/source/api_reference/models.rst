@@ -502,6 +502,12 @@ GAN
   :members:
 
 
+Weave
+----------
+
+.. autoclass:: deepchem.models.torch_models.Weave
+  :members:
+
 WeaveModel
 ----------
 

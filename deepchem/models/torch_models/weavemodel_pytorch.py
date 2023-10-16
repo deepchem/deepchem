@@ -262,7 +262,8 @@ class Weave(nn.Module):
         Parameters
         ----------
         inputs: OneOrMany[torch.Tensor]
-        Should contain 5 tensors [atom_features, pair_features, pair_split, atom_split, atom_to_pair]
+            Should contain 5 tensors [atom_features, pair_features, pair_split, atom_split, atom_to_pair]
+
         Returns
         -------
         List[torch.Tensor]
