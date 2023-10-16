@@ -55,14 +55,15 @@ class GBDTModel(SklearnModel):
         self.model_dir = model_dir
         self.model = model
         self.model_class = model.__class__
-        # self.early_stopping_rounds = early_stopping_rounds
+        self.early_stopping_rounds = early_stopping_rounds
         self.model_type = self._check_model_type()
 
         if self.model.__class__.__name__.startswith('XGB'):
-            self.callbacks = xgboost.callback.EarlyStopping(rounds=self.early_stopping_rounds)
+            self.callbacks = xgboost.callback.EarlyStopping(
+                rounds=self.early_stopping_rounds)
         elif self.model.__class__.__name__.startswith('LGBM'):
-            self.callbacks = lightgbm.early_stopping(stopping_rounds=self.early_stopping_rounds)
-
+            self.callbacks = lightgbm.early_stopping(
+                stopping_rounds=self.early_stopping_rounds)
 
         if eval_metric is None:
             if self.model_type == 'classification':
@@ -116,12 +117,12 @@ class GBDTModel(SklearnModel):
                                                             test_size=0.2,
                                                             random_state=seed,
                                                             stratify=stratify)
-        self.model.fit(X_train,
-                       y_train,
-                    #    early_stopping_rounds=self.early_stopping_rounds,
-                       callbacks=[self.callbacks],
-                       eval_metric=self.eval_metric,
-                       eval_set=[(X_test, y_test)])
+        self.model.fit(
+            X_train,
+            y_train,
+            callbacks=[self.callbacks],
+            eval_metric=self.eval_metric,
+            eval_set=[(X_test, y_test)])
 
         # retrain model to whole data using best n_estimators * 1.25
         if self.model.__class__.__name__.startswith('XGB'):
@@ -149,12 +150,12 @@ class GBDTModel(SklearnModel):
         if len(y_train.shape) != 1 or len(y_valid.shape) != 1:
             raise ValueError("GDBT model doesn't support multi-output(task)")
 
-        self.model.fit(X_train,
-                       y_train,
-                    #    early_stopping_rounds=self.early_stopping_rounds,
-                       callbacks=[self.callbacks],
-                       eval_metric=self.eval_metric,
-                       eval_set=[(X_valid, y_valid)])
+        self.model.fit(
+            X_train,
+            y_train,
+            callbacks=[self.callbacks],
+            eval_metric=self.eval_metric,
+            eval_set=[(X_valid, y_valid)])
 
 
 #########################################
