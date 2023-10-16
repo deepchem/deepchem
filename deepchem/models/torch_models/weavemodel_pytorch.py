@@ -17,13 +17,20 @@ from deepchem.utils.pytorch_utils import get_activation
 
 
 class Weave(nn.Module):
-    """A graph convolutional network(GCN) for either classification or regression.
+    """
+    A graph convolutional network(GCN) for either classification or regression.
     The network consists of the following sequence of layers:
+
     - Weave feature modules
+
     - Final convolution
+
     - Weave Gather Layer
+
     - A fully connected layer
+
     - A Softmax layer
+
     Example
     --------
     >>> import numpy as np
