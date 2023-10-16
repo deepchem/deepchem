@@ -182,21 +182,22 @@ def _preproc_name(name: str):
     return sp.findall(name)
 
 
-def _traverse_attr(obj, names, attrfcn, dictfcn, listfcn):
+def _traverse_attr(obj: object, names: str, attrfcn: Callable,
+                   dictfcn: Callable, listfcn: Callable):
     """Traverse the attribute of an object.
 
     Parameters
     ----------
     obj : object
-        The object to traverse the attribute from.
+        Object to traverse the attribute from.
     names : str
-        The name of the attribute.
-    attrfcn : function
-        The function to get the attribute.
-    dictfcn : function
-        The function to get the dictionary.
-    listfcn : function
-        The function to get the list.
+        Name of the attribute.
+    attrfcn : Callable
+        Function to get the attribute.
+    dictfcn : Callable
+        Function to get the dictionary.
+    listfcn : Callable
+        Function to get the list.
 
     Returns
     -------
@@ -211,21 +212,22 @@ def _traverse_attr(obj, names, attrfcn, dictfcn, listfcn):
                          dictfcn, listfcn)
 
 
-def _applyfcn(obj, name, attrfcn, dictfcn, listfcn):
+def _applyfcn(obj: object, name: str, attrfcn: Callable, dictfcn: Callable,
+              listfcn: Callable):
     """Apply the function to the attribute of an object.
 
     Parameters
     ----------
     obj : object
-        The object to apply the function to.
+        Object to apply the function to.
     name : str
-        The name of the attribute.
-    attrfcn : function
-        The function to get the attribute.
-    dictfcn : function
-        The function to get the dictionary.
-    listfcn : function
-        The function to get the list.
+        Name of the attribute.
+    attrfcn : Callable
+        Function to get the attribute.
+    dictfcn : Callable
+        Function to get the dictionary.
+    listfcn : Callable
+        Function to get the list.
 
     Returns
     -------

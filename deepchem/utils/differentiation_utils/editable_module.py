@@ -7,7 +7,7 @@ import warnings
 from abc import abstractmethod
 import copy
 import torch
-from typing import Sequence, Union, Dict, List
+from typing import Sequence, Union, Dict, List, Callable
 from deepchem.utils.attribute_utils import get_attr, set_attr, del_attr
 
 __all__ = ["EditableModule"]
@@ -346,7 +346,7 @@ class EditableModule(object):
         return idxs
 
     # debugging
-    def assertparams(self, method, *args, **kwargs):
+    def assertparams(self, method: Callable, *args, **kwargs):
         """
         Perform a rigorous check on the implemented ``getparamnames``
         in the class for a given method and its parameters as well as keyword
@@ -379,7 +379,7 @@ class EditableModule(object):
 
         Parameters
         ---------
-        method: callable method
+        method: Callable
             The method of this class to be tested
         *args:
             Parameters of the method
@@ -404,13 +404,13 @@ class EditableModule(object):
             **kwargs)  # check if getparams returns the correct tensors
         print('"%s" method check done' % methodname)
 
-    def __assert_method_preserve(self, method, *args, **kwargs):
+    def __assert_method_preserve(self, method: Callable, *args, **kwargs):
         """This method assert if method does not change the float tensor
         parameters of the object (i.e. it preserves the state of the object)
 
         Parameters
         ----------
-        method: callable method
+        method: Callable
             The method of this class to be tested
 
         Raises
