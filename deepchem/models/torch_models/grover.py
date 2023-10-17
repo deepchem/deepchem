@@ -5,14 +5,17 @@ import torch.nn.functional as F
 import numpy as np
 from typing import List, Sequence, Optional, Any, Tuple
 from rdkit import Chem
-from deepchem.feat.graph_data import BatchGraphData
 from deepchem.models.torch_models.modular import ModularTorchModel
 from deepchem.models.torch_models.grover_layers import (
     GroverEmbedding, GroverBondVocabPredictor, GroverAtomVocabPredictor,
     GroverFunctionalGroupPredictor)
 from deepchem.models.torch_models.readout import GroverReadout
 from deepchem.feat.vocabulary_builders import GroverAtomVocabularyBuilder, GroverBondVocabularyBuilder
-from deepchem.utils.grover import extract_grover_attributes
+from deepchem.utils.grover import BatchGroverGraph
+import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class GroverPretrain(nn.Module):
@@ -537,12 +540,11 @@ class GroverModel(ModularTorchModel):
             Weights of data point
         """
         X, y, w = batch
-        batchgraph = BatchGraphData(X[0])
-        fgroup_label = getattr(batchgraph, 'fg_labels')
+        batchgraph = BatchGroverGraph(X[0])
         smiles_batch = getattr(batchgraph, 'smiles').reshape(-1).tolist()
 
-        f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, _ = extract_grover_attributes(
-            batchgraph)
+        f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fgroup_label = batchgraph.get_components(
+        )
 
         atom_vocab_label = torch.Tensor(
             self.atom_vocab_random_mask(self.atom_vocab,
@@ -553,7 +555,7 @@ class GroverModel(ModularTorchModel):
         labels = {
             "av_task": atom_vocab_label,
             "bv_task": bond_vocab_label,
-            "fg_task": torch.Tensor(fgroup_label).to(self.device)
+            "fg_task": fgroup_label.to(self.device)
         }
         inputs = (f_atoms.to(self.device), f_bonds.to(self.device),
                   a2b.to(self.device), b2a.to(self.device),
@@ -583,13 +585,14 @@ class GroverModel(ModularTorchModel):
             Weights of data point
         """
         X, y, w = batch
-        batchgraph = BatchGraphData(X[0])
+        batchgraph = BatchGroverGraph(X[0])
         if y is not None:
             labels = torch.FloatTensor(y[0]).to(self.device)
         else:
             labels = None
-        f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, additional_features = extract_grover_attributes(
-            batchgraph)
+        f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _ = batchgraph.get_components(
+        )
+        additional_features = getattr(batchgraph, 'additional_features')
         inputs = (f_atoms.to(self.device), f_bonds.to(self.device),
                   a2b.to(self.device), b2a.to(self.device),
                   b2revb.to(self.device), a_scope.to(self.device),
