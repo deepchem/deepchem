@@ -117,11 +117,20 @@ class GroverFeaturizer(MolecularFeaturizer):
     def _make_mol_graph(self, mol: RDKitMol) -> GraphData:
         from deepchem.feat.molecule_featurizers.dmpnn_featurizer import bond_features
         smiles = Chem.MolToSmiles(mol)
-        n_atoms = mol.GetNumAtoms()  # number of atoms
         f_atoms = []  # mapping from atom index to atom features
         f_bonds = [
         ]  # mapping from bond index to concat(from_atom, bond) features
         edge_index = []
+
+        n_atoms = mol.GetNumAtoms()  # number of atoms
+        n_bonds = 0  # number of bonds
+        a2b = []  # mapping from atom index to incoming bond indices
+        b2a = [
+        ]  # mapping from bond index to the index of the atom the bond is coming from
+        b2revb = []  # mapping from bond index to the index of the reverse bond
+
+        for _ in range(n_atoms):
+            a2b.append([])
 
         for _, atom in enumerate(mol.GetAtoms()):
             f_atoms.append(self._get_atom_features(atom, mol))
@@ -143,9 +152,26 @@ class GroverFeaturizer(MolecularFeaturizer):
 
                 edge_index.extend([[a1, a2], [a2, a1]])
 
+                b1 = n_bonds
+                b2 = b1 + 1
+                a2b[a2].append(b1)  # b1 = a1 --> a2
+                b2a.append(a1)
+                a2b[a1].append(b2)  # b2 = a2 --> a1
+                b2a.append(a2)
+                b2revb.append(b2)
+                b2revb.append(b1)
+                n_bonds += 2
+
         molgraph = GraphData(node_features=np.asarray(f_atoms),
                              edge_index=np.asarray(edge_index).T,
                              edge_features=np.asarray(f_bonds),
+                             b1=b1,
+                             b2=b2,
+                             a2b=a2b,
+                             b2a=b2a,
+                             b2revb=b2revb,
+                             n_bonds=n_bonds,
+                             n_atoms=n_atoms,
                              smiles=smiles)
         return molgraph
 
