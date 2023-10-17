@@ -300,7 +300,7 @@ class EditableModule(object):
             **kwargs)  # check if getparams returns the correct tensors
         print('"%s" method check done' % methodname)
 
-    def __assert_method_preserve(self, method: Callable, *args, **kwargs):
+    def __assert_method_preserve(self, method, *args, **kwargs):
         """This method assert if method does not change the float tensor
         parameters of the object (i.e. it preserves the state of the object)
 
