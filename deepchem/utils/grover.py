@@ -1,12 +1,90 @@
 import numpy as np
 from typing import List, Any
 from numpy.typing import ArrayLike
-from deepchem.feat.graph_data import BatchGraphData
+from deepchem.feat.graph_data import BatchGraphData, GraphData
 
 try:
     import torch
 except ModuleNotFoundError:
     pass
+
+from deepchem.feat.molecule_featurizers.dmpnn_featurizer import GraphConvConstants
+
+
+class BatchGroverGraph:
+
+    def __init__(self, mol_graphs: List[GraphData]):
+        self.smiles_batch = []
+        self.features_batch = []
+        self.fg_labels = []
+        self.additional_features = []
+        self.n_mols = len(mol_graphs)
+
+        self.atom_fdim = GraphConvConstants.ATOM_FDIM + 18
+        self.bond_fdim = GraphConvConstants.BOND_FDIM + self.atom_fdim
+
+        self.n_atoms = 0
+        self.n_bonds = 0
+        self.a_scope = [
+        ]  # list of tuples indicating (start_atom_index, num_atoms) for each molecule
+        self.b_scope = [
+        ]  # list of tuples indicating (start_bond_index, num_bonds) for each molecule
+
+        f_atoms = []  # atom features
+        f_bonds = []  # combined atom/bond features
+        a2b = [[]]  # mapping from atom index to incoming bond indices
+        b2a = [
+        ]  # mapping from bond index to the index of the atom the bond is coming from
+        b2revb = []  # mapping from bond index to the index of the reverse bond
+
+        for mol_graph in mol_graphs:
+            self.smiles_batch.append(mol_graph.smiles)
+            self.features_batch.append(mol_graph.additional_features)
+            self.fg_labels.append(mol_graph.fg_labels)
+            self.additional_features.append(mol_graph.additional_features)
+            f_atoms.extend(mol_graph.node_features)
+            f_bonds.extend(mol_graph.edge_features)
+
+            for a in range(mol_graph.n_atoms):
+                a2b.append([b + self.n_bonds for b in mol_graph.a2b[a]])
+
+            for b in range(mol_graph.n_bonds):
+                b2a.append(self.n_atoms + mol_graph.b2a[b])
+                b2revb.append(self.n_bonds + mol_graph.b2revb[b])
+
+            self.a_scope.append((self.n_atoms, mol_graph.n_atoms))
+            self.b_scope.append((self.n_bonds, mol_graph.n_bonds))
+            self.n_atoms += mol_graph.n_atoms
+            self.n_bonds += mol_graph.n_bonds
+        # max with 1 to fix a crash in rare case of all single-heavy-atom mols
+        self.max_num_bonds = max(1, max(len(in_bonds) for in_bonds in a2b))
+
+        self.f_atoms = torch.FloatTensor(np.asarray(f_atoms))
+        self.f_bonds = torch.FloatTensor(np.asarray(f_bonds))
+        self.a2b = torch.LongTensor(
+            np.asarray([
+                a2b[a] + [0] * (self.max_num_bonds - len(a2b[a]))
+                for a in range(self.n_atoms)
+            ]))
+        self.b2a = torch.LongTensor(np.asarray(b2a))
+        self.b2revb = torch.LongTensor(np.asarray(b2revb))
+        self.b2b = None  # try to avoid computing b2b b/c O(n_atoms^3)
+        self.a2a = self.b2a[self.a2b]  # only needed if using atom messages
+        self.a_scope = torch.LongTensor(self.a_scope)
+        self.b_scope = torch.LongTensor(self.b_scope)
+
+        self.fg_labels = torch.Tensor(np.asarray(self.fg_labels)).float()
+        self.additional_features = torch.from_numpy(
+            np.stack(self.additional_features)).float()
+
+    def get_components(self):
+        """
+        Returns the components of the BatchMolGraph.
+
+        :return: A tuple containing PyTorch tensors with the atom features, bond features, and graph structure
+        and two lists indicating the scope of the atoms and bonds (i.e. which molecules they belong to).
+        """
+        return self.f_atoms, self.f_bonds, self.a2b, self.b2a, self.b2revb, self.a2a, self.a_scope, self.b_scope, self.fg_labels
 
 
 def _get_atom_scopes(graph_index: ArrayLike) -> List[List[int]]:
