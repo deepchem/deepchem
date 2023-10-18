@@ -12,7 +12,6 @@ from deepchem.models.torch_models.grover_layers import (
 from deepchem.models.torch_models.readout import GroverReadout
 from deepchem.feat.vocabulary_builders import GroverAtomVocabularyBuilder, GroverBondVocabularyBuilder
 from deepchem.utils.grover import BatchGroverGraph
-import time
 import logging
 
 logger = logging.getLogger(__name__)
@@ -541,7 +540,7 @@ class GroverModel(ModularTorchModel):
         """
         X, y, w = batch
         batchgraph = BatchGroverGraph(X[0])
-        smiles_batch = getattr(batchgraph, 'smiles').reshape(-1).tolist()
+        smiles_batch = getattr(batchgraph, 'smiles_batch')
 
         f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fgroup_label = batchgraph.get_components(
         )
