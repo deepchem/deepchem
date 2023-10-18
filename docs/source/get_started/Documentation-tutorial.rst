@@ -1,6 +1,7 @@
 Documentation Tutorial
 ======================
 
+This page provides instructions on how to build and test DeepChem documentation.
 
 Building the Documentation
 --------------------------
@@ -16,6 +17,11 @@ this directory. To generate docs in HTML, run the following commands:
    $ make clean html
    $ open build/html/index.html
 
+Testing
+-------
+
+To check if the changes to the docs rendered properly, open build/html on a web browser.
+
 If you want to confirm logs in more detail, use the following command:
 
 .. code-block:: shell
@@ -27,4 +33,3 @@ If you want to confirm the example tests, run:
 .. code-block:: shell
 
    $ make doctest_examples
-To check whether the changes renedered correctly, open build/html on a web browser
