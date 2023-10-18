@@ -117,8 +117,14 @@ from deepchem.utils.sequence_utils import hhblits
 from deepchem.utils.sequence_utils import hhsearch
 
 try:
+    from deepchem.utils.periodic_table_utils import get_atomz
+    from deepchem.utils.periodic_table_utils import get_atom_mass
+    from deepchem.utils.periodic_table_utils import get_period
+
     from deepchem.utils.pytorch_utils import unsorted_segment_sum
     from deepchem.utils.pytorch_utils import segment_sum
+    from deepchem.utils.pytorch_utils import chunkify
+    from deepchem.utils.pytorch_utils import get_memory
 except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
