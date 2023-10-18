@@ -296,12 +296,33 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dftutils.SpinParam
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.config._Config
+  :members:
+
+Attribute Utilities
+-------------------
+
+The utilities here are used to modify the attributes of the classes. Used by differentiation_utils.
+
+.. autoclass:: deepchem.utils.attribute_utils.get_attr
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.set_get_attr
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.del_attr
+  :members:
+
 Pytorch Utilities
 -----------------
 
 .. autofunction:: deepchem.utils.pytorch_utils.unsorted_segment_sum
 
 .. autofunction:: deepchem.utils.pytorch_utils.segment_sum
+
+.. autofunction:: deepchem.utils.pytorch_utils.chunkify
+
+.. autofunction:: deepchem.utils.pytorch_utils.get_memory
 
 Batch Utilities
 ---------------
@@ -316,6 +337,18 @@ Can be used inside of default_generator function.
 .. autofunction:: deepchem.utils.batch_utils.create_input_array
 
 .. autofunction:: deepchem.utils.batch_utils.create_output_array
+
+Periodic Table Utilities
+------------------------
+
+The Utilities here are used to computing atomic mass and radii data.
+These can be used by DFT and many other Molecular Models.
+
+.. autofunction:: deepchem.utils.periodictable_utils.get_atomz
+
+.. autofunction:: deepchem.utils.periodictable_utils.test_get_atom_mass
+
+.. autofunction:: deepchem.utils.periodictable_utils.test_get_period
 
 Equivariance Utilities
 ----------------------

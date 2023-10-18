@@ -490,6 +490,31 @@ DTNNModel
 .. autoclass:: deepchem.models.torch_models.DTNNModel
   :members:
 
+SeqToSeqModel
+-------------
+.. autoclass:: deepchem.models.torch_models.SeqToSeqModel
+  :members:
+
+GAN
+---
+
+.. autoclass:: deepchem.models.torch_models.GAN
+  :members:
+
+
+Weave
+----------
+
+.. autoclass:: deepchem.models.torch_models.Weave
+  :members:
+
+WeaveModel
+----------
+
+.. autoclass:: deepchem.models.torch_models.WeaveModel
+  :members:
+
+
 Density Functional Theory Model - XCModel
 -----------------------------------------
 

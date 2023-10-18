@@ -2,7 +2,7 @@
 Implementation of the Ferminet class in pytorch
 """
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 # import torch.nn as nn
 from rdkit import Chem
 import numpy as np
@@ -12,12 +12,6 @@ import torch
 from deepchem.models.torch_models.layers import FerminetElectronFeature, FerminetEnvelope
 
 from deepchem.utils.electron_sampler import ElectronSampler
-
-
-def test_f(x: np.ndarray) -> np.ndarray:
-    # dummy function which can be passed as the parameter f. f gives the log probability
-    # TODO replace this function with forward pass of the model in future
-    return 2 * np.log(np.random.uniform(low=0, high=1.0, size=np.shape(x)[0]))
 
 
 class Ferminet(torch.nn.Module):
@@ -71,10 +65,14 @@ class Ferminet(torch.nn.Module):
 
         Attributes
         ----------
+        running_diff: torch.Tensor
+            torch tensor containing the loss which gets updated for each random walk performed
         ferminet_layer: torch.nn.ModuleList
             Modulelist containing the ferminet electron feature layer
         ferminet_layer_envelope: torch.nn.ModuleList
             Modulelist containing the ferminet envelope electron feature layer
+        nuclear_nuclear_potential: torch.Tensor
+            Torch tensor containing the inter-nuclear potential in the molecular system
         """
         super(Ferminet, self).__init__()
         if len(n_one) != len(n_two):
@@ -95,6 +93,9 @@ class Ferminet(torch.nn.Module):
         self.ferminet_layer: torch.nn.ModuleList = torch.nn.ModuleList()
         self.ferminet_layer_envelope: torch.nn.ModuleList = torch.nn.ModuleList(
         )
+        self.running_diff: torch.Tensor = torch.zeros(self.batch_size)
+        self.nuclear_nuclear_potential: torch.Tensor = self.calculate_nuclear_nuclear(
+        )
 
         self.ferminet_layer.append(
             FerminetElectronFeature(self.n_one, self.n_two,
@@ -106,7 +107,7 @@ class Ferminet(torch.nn.Module):
                              self.batch_size, [self.spin[0], self.spin[1]],
                              self.nucleon_pos.size()[0], self.determinant))
 
-    def forward(self, input) -> torch.Tensor:
+    def forward(self, input: np.ndarray) -> torch.Tensor:
         """
         forward function
 
@@ -121,12 +122,13 @@ class Ferminet(torch.nn.Module):
             contains the wavefunction - 'psi' value. It is in the shape (batch_size), where each row corresponds to the solution of one of the batches
         """
         # creating one and two electron features
+        eps = torch.tensor(1e-36)
         self.input = torch.from_numpy(input)
         self.input.requires_grad = True
         self.input = self.input.reshape((self.batch_size, -1, 3))
         two_electron_vector = self.input.unsqueeze(1) - self.input.unsqueeze(2)
-        two_electron_distance = torch.norm(two_electron_vector,
-                                           dim=3).unsqueeze(3)
+        two_electron_distance = torch.linalg.norm(two_electron_vector + eps,
+                                                  dim=3).unsqueeze(3)
         two_electron = torch.cat((two_electron_vector, two_electron_distance),
                                  dim=3)
         two_electron = torch.reshape(
@@ -135,7 +137,7 @@ class Ferminet(torch.nn.Module):
 
         one_electron_vector = self.input.unsqueeze(
             1) - self.nucleon_pos.unsqueeze(1)
-        one_electron_distance = torch.norm(one_electron_vector, dim=3)
+        one_electron_distance = torch.linalg.norm(one_electron_vector, dim=3)
         one_electron = torch.cat(
             (one_electron_vector, one_electron_distance.unsqueeze(-1)), dim=3)
         one_electron = torch.reshape(one_electron.permute(0, 2, 1, 3),
@@ -144,9 +146,113 @@ class Ferminet(torch.nn.Module):
 
         one_electron, _ = self.ferminet_layer[0].forward(
             one_electron.to(torch.float32), two_electron.to(torch.float32))
-        psi, self.psi_up, self.psi_down = self.ferminet_layer_envelope[
+        self.psi, self.psi_up, self.psi_down = self.ferminet_layer_envelope[
             0].forward(one_electron, one_electron_vector_permuted)
-        return psi
+        return self.psi
+
+    def loss(self,
+             psi_up_mo: List[Optional[np.ndarray]] = [None],
+             psi_down_mo: List[Optional[np.ndarray]] = [None],
+             pretrain: List[bool] = [True]):
+        """
+        Implements the loss function for both pretraining and the actual training parts.
+
+        Parameters
+        ----------
+        psi_up_mo: List[Optional[np.ndarray]] (default [None])
+            numpy array containing the sampled hartreee fock up-spin orbitals
+        psi_down_mo: List[Optional[np.ndarray]] (default [None])
+            numpy array containing the sampled hartreee fock down-spin orbitals
+        pretrain: List[bool] (default [True])
+            indicates whether the model is pretraining
+        """
+        criterion = torch.nn.MSELoss()
+        if pretrain:
+            psi_up_mo_torch = torch.from_numpy(psi_up_mo).unsqueeze(1)
+            psi_down_mo_torch = torch.from_numpy(psi_down_mo).unsqueeze(1)
+            self.running_diff = self.running_diff + criterion(
+                self.psi_up, psi_up_mo_torch.float()) + criterion(
+                    self.psi_down, psi_down_mo_torch.float())
+
+    def calculate_nuclear_nuclear(self,) -> torch.Tensor:
+        """
+        Function to calculate where only the nucleus terms are involved and does not change when new electrons are sampled.
+        atom-atom potential term = Zi*Zj/|Ri-Rj|, where Zi, Zj are the nuclear charges and Ri, Rj are nuclear coordinates
+
+        Returns:
+        --------
+        A torch tensor of a scalar value containing the nuclear-nuclear potential term (does not change for the molecule system with sampling of electrons)
+        """
+
+        potential = torch.nan_to_num(
+            (self.nuclear_charge * 1 /
+             torch.cdist(self.nucleon_pos.float(), self.nucleon_pos.float()) *
+             self.nuclear_charge.unsqueeze(1)),
+            posinf=0.0,
+            neginf=0.0)
+        potential = torch.sum(potential) / 2
+        return potential
+
+    def calculate_electron_nuclear(self,) -> torch.Tensor:
+        """
+        Function to calculate the expected electron-nuclear potential term per batch
+        nuclear-electron potential term = Zi/|Ri-rj|, rj is the electron coordinates, Ri is the nuclear coordinates, Zi is the nuclear charge
+
+        Returns:
+        --------
+        A torch tensor of a scalar value containing the electron-nuclear potential term.
+        """
+
+        potential = torch.sum(
+            (1 / torch.cdist(self.input.float(), self.nucleon_pos.float())) *
+            self.nuclear_charge) / 2
+        return (potential / self.batch_size)
+
+    def calculate_electron_electron(self,):
+        """
+        Function to calculate the expected electron-nuclear potential term per batch
+        nuclear-electron potential term = 1/|ri-rj|, ri, rj is the electron coordinates
+
+        Returns:
+        --------
+        A torch tensor of a scalar value containing the electron-electron potential term.
+        """
+        potential = torch.sum(
+            torch.nan_to_num(
+                (1 / torch.cdist(self.input.float(), self.input.float())),
+                posinf=0.0,
+                neginf=0.0)) / 2
+        return (potential / self.batch_size)
+
+    def calculate_kinetic_energy(self,):
+        """
+        Function to calculate the expected kinetic energy term per batch
+        It is calculated via:
+        \sum_{ri}^{}[(\pdv[]{log|\Psi|}{(ri)})^2 + \pdv[2]{log|\Psi|}{(ri)}]
+
+        Returns:
+        --------
+        A torch tensor of a scalar value containing the electron-electron potential term.
+        """
+        log_probability = torch.log(torch.abs(self.psi))
+        jacobian = list(
+            map(
+                lambda x: torch.autograd.grad(x, self.input, create_graph=True)[
+                    0], log_probability))
+        jacobian_square = list(
+            map(lambda x: torch.sum(torch.pow(x, 2)), jacobian))
+        jacobian_square_sum = torch.tensor(0.0)
+        hessian = torch.tensor(0.0)
+        for i in range(self.batch_size):
+            jacobian_square_sum = jacobian_square_sum + jacobian_square[i]
+            for j in range(self.total_electron):
+                for k in range(3):
+                    hessian = hessian + torch.autograd.grad(
+                        jacobian[i][i][j][k], self.input,
+                        create_graph=True)[0][i][j][k]
+        kinetic_energy = -1 * 0.5 * (jacobian_square_sum +
+                                     hessian) / (self.batch_size)
+        return kinetic_energy
 
 
 class FerminetModel(TorchModel):
@@ -161,6 +267,15 @@ class FerminetModel(TorchModel):
     as input.
 
     This method is based on the following paper:
+
+    Example
+    -------
+    >>> from deepchem.models.torch_models.Ferminet import FerminetModel
+    >>> H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
+    >>> mol = FerminetModel(H2_molecule, spin=0, ion_charge=0, training='pretraining')
+    >>> mol.train(nb_epoch=3)
+    >>> print(mol.model.psi_up.size())
+    torch.Size([1, 1])
 
     References
     ----------
@@ -177,8 +292,9 @@ class FerminetModel(TorchModel):
                  ion_charge: int,
                  seed: Optional[int] = None,
                  batch_no: int = 8,
-                 random_walk_steps=10,
-                 steps_per_update=10):
+                 random_walk_steps: int = 10,
+                 steps_per_update: int = 10,
+                 tasks: str = 'pretraining'):
         """
     Parameters:
     -----------
@@ -196,6 +312,8 @@ class FerminetModel(TorchModel):
         Number of random walk steps to be performed in a single move.
     steps_per_update: int (default: 10)
         Number of steps after which the electron sampler should update the electron parameters.
+    tasks: str (default: 'pretraining')
+        The type of task to be performed - 'pretraining', 'training'
 
     Attributes:
     -----------
@@ -205,10 +323,8 @@ class FerminetModel(TorchModel):
         Torch tensor containing electrons for each atom in the nucleus
     molecule: ElectronSampler
         ElectronSampler object which performs MCMC and samples electrons
-    loss_value: Optional[torch.Tensor] (default None)
+    loss_value: torch.Tensor (default torch.tensor(0))
         torch tensor storing the loss value from the last iteration
-    pretraining_loss_list: List (default [])
-        list with losses for every epoch
     """
         self.nucleon_coordinates = nucleon_coordinates
         self.seed = seed
@@ -218,8 +334,8 @@ class FerminetModel(TorchModel):
         self.batch_no = batch_no
         self.random_walk_steps = random_walk_steps
         self.steps_per_update = steps_per_update
-        self.loss_value: Optional[torch.Tensor] = None
-        self.pretraining_loss_list: List = []
+        self.loss_value: torch.Tensor = torch.tensor(0)
+        self.tasks = tasks
 
         no_electrons = []
         nucleons = []
@@ -280,7 +396,8 @@ class FerminetModel(TorchModel):
             batch_no=self.batch_no,
             central_value=self.nucleon_pos,
             seed=self.seed,
-            f=lambda x: test_f(x),  # Will be replaced in successive PR
+            f=lambda x: self.random_walk(x
+                                        ),  # Will be replaced in successive PR
             steps=self.random_walk_steps,
             steps_per_update=self.steps_per_update
         )  # sample the electrons using the electron sampler
@@ -290,6 +407,34 @@ class FerminetModel(TorchModel):
         super(FerminetModel, self).__init__(
             self.model,
             loss=torch.nn.MSELoss())  # will update the loss in successive PR
+
+    def evaluate_hf(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Helper function to calculate orbital values at sampled electron's position.
+
+        Parameters:
+        -----------
+        x: np.ndarray
+            Contains the sampled electrons coordinates in a numpy array.
+
+        Returns:
+        --------
+        2 numpy arrays containing the up-spin and down-spin orbitals in a numpy array respectively.
+        """
+        x = np.reshape(x, [-1, 3 * (self.up_spin + self.down_spin)])
+        leading_dims = x.shape[:-1]
+        x = np.reshape(x, [-1, 3])
+        coeffs = self.mf.mo_coeff
+        gto_op = 'GTOval_sph'
+        ao_values = self.mol.eval_gto(gto_op, x)
+        mo_values = tuple(np.matmul(ao_values, coeff) for coeff in coeffs)
+        mo_values_list = [
+            np.reshape(mo, leading_dims + (self.up_spin + self.down_spin, -1))
+            for mo in mo_values
+        ]
+        return mo_values_list[0][
+            ..., :self.up_spin, :self.up_spin], mo_values_list[1][
+                ..., self.up_spin:, :self.down_spin]
 
     def prepare_hf_solution(self):
         """Prepares the HF solution for the molecule system which is to be used in pretraining
@@ -313,3 +458,54 @@ class FerminetModel(TorchModel):
         self.mol.build(parse_arg=False)
         self.mf = pyscf.scf.UHF(self.mol)
         _ = self.mf.kernel()
+
+    def random_walk(self, x: np.ndarray) -> np.ndarray:
+        """
+        Function to be passed on to electron sampler for random walk and gets called at each step of sampling
+
+        Parameters
+        ----------
+        x: np.ndarray
+            contains the sampled electrons coordinate in the shape (batch_size,number_of_electrons*3)
+
+        Returns:
+        --------
+        A numpy array containing the joint probability of the hartree fock and the sampled electron's position coordinates
+        """
+        output = self.model.forward(x)
+        np_output = output.detach().cpu().numpy()
+        up_spin_mo, down_spin_mo = self.evaluate_hf(x)
+        hf_product = np.prod(
+            np.diagonal(up_spin_mo, axis1=1, axis2=2)**2, axis=1) * np.prod(
+                np.diagonal(down_spin_mo, axis1=1, axis2=2)**2, axis=1)
+        self.model.loss(up_spin_mo, down_spin_mo, pretrain=True)
+        return np.log(hf_product + np_output**2) + np.log(0.5)
+
+    def train(self,
+              nb_epoch: int = 200,
+              lr: float = 0.0075,
+              weight_decay: float = 0.0001):
+        """
+        function to run training or pretraining.
+
+        Parameters
+        ----------
+        nb_epoch: int (default: 200)
+            contains the number of pretraining steps to be performed
+        lr : float (default: 0.0075)
+            contains the learning rate for the model fitting
+        weight_decay: float (default: 0.0001)
+            contains the weight_decay for the model fitting
+        """
+        optimizer = torch.optim.Adam(self.model.parameters(),
+                                     lr=lr,
+                                     weight_decay=weight_decay)
+        if (self.tasks == 'pretraining'):
+            for _ in range(nb_epoch):
+                optimizer.zero_grad()
+                self.molecule.move()
+                self.loss_value = (torch.mean(self.model.running_diff) /
+                                   self.random_walk_steps)
+                self.loss_value.backward()
+                optimizer.step()
+                self.model.running_diff = torch.zeros(self.batch_no)
