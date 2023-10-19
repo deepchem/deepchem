@@ -50,8 +50,7 @@ class GroverPretrain(nn.Module):
     Example
     -------
     >>> import deepchem as dc
-    >>> from deepchem.feat.graph_data import BatchGraphData
-    >>> from deepchem.utils.grover import extract_grover_attributes
+    >>> from deepchem.utils.grover import BatchGroverGraph
     >>> from deepchem.models.torch_models.grover import GroverPretrain
     >>> from deepchem.models.torch_models.grover_layers import GroverEmbedding, GroverAtomVocabPredictor, GroverBondVocabPredictor, GroverFunctionalGroupPredictor
     >>> smiles = ['CC', 'CCC', 'CC(=O)C']
@@ -60,9 +59,9 @@ class GroverPretrain(nn.Module):
     >>> featurizer = dc.feat.GroverFeaturizer(features_generator=fg)
 
     >>> graphs = featurizer.featurize(smiles)
-    >>> batched_graph = BatchGraphData(graphs)
-    >>> grover_graph_attributes = extract_grover_attributes(batched_graph)
-    >>> f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, _ = grover_graph_attributes
+    >>> batched_graph = BatchGroverGraph(graphs)
+    >>> grover_graph_attributes = batched_graph.get_components()
+    >>> f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _ = grover_graph_attributes
     >>> components = {}
     >>> components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1], edge_fdim=f_bonds.shape[1])
     >>> components['atom_vocab_task_atom'] = GroverAtomVocabPredictor(vocab_size=10, in_features=128)
@@ -152,8 +151,7 @@ class GroverFinetune(nn.Module):
     Example
     -------
     >>> import deepchem as dc
-    >>> from deepchem.feat.graph_data import BatchGraphData
-    >>> from deepchem.utils.grover import extract_grover_attributes
+    >>> from deepchem.utils.grover import BatchGroverGraph
     >>> from deepchem.models.torch_models.grover_layers import GroverEmbedding
     >>> from deepchem.models.torch_models.readout import GroverReadout
     >>> from deepchem.models.torch_models.grover import GroverFinetune
@@ -161,10 +159,11 @@ class GroverFinetune(nn.Module):
     >>> fg = dc.feat.CircularFingerprint()
     >>> featurizer = dc.feat.GroverFeaturizer(features_generator=fg)
     >>> graphs = featurizer.featurize(smiles)
-    >>> batched_graph = BatchGraphData(graphs)
-    >>> attributes = extract_grover_attributes(batched_graph)
+    >>> batched_graph = BatchGroverGraph(graphs)
+    >>> attributes = batched_graph.get_components()
     >>> components = {}
-    >>> f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels, additional_features = attributes
+    >>> additional_features = batched_graph.additional_features
+    >>> f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels = attributes
     >>> inputs = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
     >>> components = {}
     >>> components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1], edge_fdim=f_bonds.shape[1])
