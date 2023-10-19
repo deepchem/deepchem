@@ -152,12 +152,16 @@ class GroverFeaturizer(MolecularFeaturizer):
 
                 edge_index.extend([[a1, a2], [a2, a1]])
 
-                b1 = n_bonds
-                b2 = b1 + 1
+                b1 = n_bonds  # b1: bond id
+                b2 = b1 + 1  # b2: reverse bond id
+                # add mapping between bond b1 and atom a2 (destination atom)
                 a2b[a2].append(b1)  # b1 = a1 --> a2
+                # add mapping between bond id and atom id (a1)
                 b2a.append(a1)
+                # add mapping between bond id and atom a1 (source atom)
                 a2b[a1].append(b2)  # b2 = a2 --> a1
                 b2a.append(a2)
+                # update index on bond and reverse bond mappings
                 b2revb.append(b2)
                 b2revb.append(b1)
                 n_bonds += 2
