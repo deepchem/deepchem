@@ -7,7 +7,7 @@ import warnings
 from abc import abstractmethod
 import copy
 import torch
-from typing import Sequence, Union, Dict, List, Callable
+from typing import Sequence, Union, Dict, List, Callable, Any
 from deepchem.utils.attribute_utils import get_attr, set_attr, del_attr
 
 __all__ = ["EditableModule"]
@@ -18,6 +18,17 @@ torch_float_type = [torch.float32, torch.float, torch.float64, torch.float16]
 class EditableModule(object):
     """EditableModule is a base class to enable classes that it inherits be
     converted to pure functions for higher order derivatives purpose.
+
+    Usage
+    -----
+    To use this class, the user must implement the ``getparamnames`` method
+    which returns a list of tensor names that affect the output of the method
+    with name indicated in ``methodname``.
+
+    Used in:
+    1. Classes of Density Functional Theory (DFT).
+    2. It can also be used in other classes that need to be converted to pure
+    functions for higher order derivatives purpose.
 
     Examples
     --------
@@ -460,9 +471,63 @@ class EditableModule(object):
 
 
 # traversing functions
-def _traverse_obj(obj, prefix, action, crit, max_depth=20, exception_ids=None):
+def _traverse_obj(obj: Any,
+                  prefix: str,
+                  action: Callable,
+                  crit: Callable,
+                  max_depth: int = 20,
+                  exception_ids=None):
     """
     Traverse an object to get/set variables that are accessible through the object.
+    The object can be a torch.nn.Module, a class instance, or an iterable object.
+    The action is performed on the object that satisfies the criteria.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.differentiation_utils.editable_module import _traverse_obj
+    >>> class A:
+    ...     def __init__(self):
+    ...         self.a = 2
+    ...         self.b = torch.tensor(3.0)
+    ...         self.c = torch.tensor(4.0)
+    ...         self.d = torch.tensor(5.0)
+    ...
+    >>> a = A()
+    >>> def action(elmt, name, objdict, key):
+    ...     print(name, elmt)
+    ...
+    >>> def crit(elmt):
+    ...     return isinstance(elmt, torch.Tensor) and elmt.dtype in torch_float_type
+    ...
+    >>> _traverse_obj(a, "", action, crit)
+    b tensor(3.)
+    c tensor(4.)
+    d tensor(5.)
+
+    Parameters
+    ----------
+    obj: Any
+        The object user wants to traverse down
+    prefix: str
+        Prefix of the name of the collected tensors.
+    action: Callable
+        The action to be performed on the object.
+    crit: Callable
+        The criteria to be met to perform the action.
+    max_depth: int (default=20)
+        Maximum recursive depth to avoid infinitely running program.
+        If the maximum depth is reached, then raise a RecursionError.
+    exception_ids: Set[int] (default=None)
+        Set of ids of objects that are already traversed to avoid infinite loop.
+
+    Raises
+    ------
+    RecursionError
+        If the maximum depth is reached.
+    RuntimeError
+        If the object is not iterable or keyable.
+
     """
     if exception_ids is None:
         # None is set as default arg to avoid expanding list for multiple
@@ -511,14 +576,29 @@ def _traverse_obj(obj, prefix, action, crit, max_depth=20, exception_ids=None):
                     raise RecursionError("Maximum number of recursion reached")
 
 
-def _get_tensors(obj, prefix="", max_depth=20):
+def _get_tensors(obj: Any, prefix="", max_depth=20):
     """
     Collect all tensors in an object recursively and return the tensors as well
     as their "names" (names meaning the address, e.g. "self.a[0].elmt").
 
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.differentiation_utils.editable_module import _get_tensors
+    >>> class A:
+    ...     def __init__(self):
+    ...         self.a = 2
+    ...         self.b = torch.tensor(3.0)
+    ...         self.c = torch.tensor(4.0)
+    ...         self.d = torch.tensor(5.0)
+    ...
+    >>> a = A()
+    >>> _get_tensors(a)
+    ([tensor(3.), tensor(4.), tensor(5.)], ['b', 'c', 'd'])
+
     Parameters
     ----------
-    obj: an instance
+    obj: Any
         The object user wants to traverse down
     prefix: str (default="")
         Prefix of the name of the collected tensors.
@@ -555,9 +635,29 @@ def _get_tensors(obj, prefix="", max_depth=20):
     return res, names
 
 
-def _set_tensors(obj, all_params, max_depth=20):
+def _set_tensors(obj: Any, all_params: List[torch.Tensor], max_depth: int = 20):
     """
     Set the tensors in an object to new tensor object listed in `all_params`.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.differentiation_utils.editable_module import _set_tensors
+    >>> class A:
+    ...     def __init__(self):
+    ...         self.a = 2
+    ...         self.b = torch.tensor(3.0)
+    ...         self.c = torch.tensor(4.0)
+    ...         self.d = torch.tensor(5.0)
+    ...
+    >>> a = A()
+    >>> _set_tensors(a, [torch.tensor(6.0), torch.tensor(7.0), torch.tensor(8.0)])
+    >>> a.b
+    tensor(6.)
+    >>> a.c
+    tensor(7.)
+    >>> a.d
+    tensor(8.)
 
     Parameters
     ----------
