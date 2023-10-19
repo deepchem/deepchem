@@ -7,9 +7,10 @@ except ModuleNotFoundError:
 
 
 @pytest.mark.torch
-def testGroverEmbedding(grover_graph_attributes):
+def testGroverEmbedding(grover_batched_graph):
     from deepchem.models.torch_models.grover_layers import GroverEmbedding
-    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels, additional_features = grover_graph_attributes
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels = grover_batched_graph.get_components(
+    )
     hidden_size = 8
     n_atoms, n_bonds = f_atoms.shape[0], f_bonds.shape[0]
     node_fdim, edge_fdim = f_atoms.shape[1], f_bonds.shape[1]
@@ -77,9 +78,10 @@ def testGroverFunctionalGroupPredictor():
 @pytest.mark.torch
 @pytest.mark.parametrize('dynamic_depth', ['none', 'uniform'])
 @pytest.mark.parametrize('atom_messages', [False, True])
-def testGroverMPNEncoder(grover_graph_attributes, dynamic_depth, atom_messages):
+def testGroverMPNEncoder(grover_batched_graph, dynamic_depth, atom_messages):
     from deepchem.models.torch_models.grover_layers import GroverMPNEncoder
-    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, _, _, _, _ = grover_graph_attributes
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, _, _, _ = grover_batched_graph.get_components(
+    )
 
     # TODO Write tests for undirected = True case, currently fails. for this case, we have
     # to generate inputs (a2b, b2a, b2revb) for undirected graph.
@@ -127,9 +129,10 @@ def testGroverMPNEncoder(grover_graph_attributes, dynamic_depth, atom_messages):
 
 
 @pytest.mark.torch
-def testGroverAttentionHead(grover_graph_attributes):
+def testGroverAttentionHead(grover_batched_graph):
     from deepchem.models.torch_models.grover_layers import GroverAttentionHead
-    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, _, _, _, _ = grover_graph_attributes
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, _, _, _ = grover_batched_graph.get_components(
+    )
     hidden_size = 165
     atom_messages = False
     layer = GroverAttentionHead(hidden_size,
@@ -144,9 +147,10 @@ def testGroverAttentionHead(grover_graph_attributes):
 
 
 @pytest.mark.torch
-def testGroverMTBlock(grover_graph_attributes):
+def testGroverMTBlock(grover_batched_graph):
     from deepchem.models.torch_models.grover_layers import GroverMTBlock
-    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, _ = grover_graph_attributes
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _ = grover_batched_graph.get_components(
+    )
 
     hidden_size = 16
     layer = GroverMTBlock(atom_messages=True,
@@ -171,9 +175,10 @@ def testGroverMTBlock(grover_graph_attributes):
 
 
 @pytest.mark.torch
-def testGroverTransEncoder(grover_graph_attributes):
+def testGroverTransEncoder(grover_batched_graph):
     from deepchem.models.torch_models.grover_layers import GroverTransEncoder
-    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, _ = grover_graph_attributes
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _ = grover_batched_graph.get_components(
+    )
 
     hidden_size = 8
     n_atoms, n_bonds = f_atoms.shape[0], f_bonds.shape[0]
