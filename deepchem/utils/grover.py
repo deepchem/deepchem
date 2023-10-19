@@ -12,6 +12,36 @@ from deepchem.feat.molecule_featurizers.dmpnn_featurizer import GraphConvConstan
 
 
 class BatchGroverGraph:
+    """Utility to batch graphs featurized by GroverFeaturizer
+
+    GraphData created by created GroverFeaturizer has pre-computed attributes
+    which needs to be aggregated before passing to the Grover model. This
+    class batches graph by taking into account the pre-computed and additional
+    attributes and returns a batched graph which can be passed to the Grover
+    model.
+
+    The batching method takes in a dc.feat.GraphData object created by
+    GroverFeaturizer. New node indices and edge indices are
+    computed by stacking the adjacency matrices of the graphs diagonally
+    into a joint single adjacency matrix. On the new adjacency matrix,
+    the method compute additional features like atom-to-bond indexes
+    and bond-to-atom indexes. The rest of the features are computed by stacking
+    the attributes as in dc.feat.BatchGraphData.
+
+
+    Parameters
+    ----------
+    molgraph: List[GraphData]
+        A list of GraphData objects created by GroverFeaturizer
+
+    Example
+    -------
+    >>> import deepchem as dc
+    >>> smiles = ['CC', 'CCC', 'CC(=O)C']
+    >>> featurizer = dc.feat.GroverFeaturizer(features_generator=dc.feat.CircularFingerprint())
+    >>> graphs = featurizer.featurize(smiles)
+    >>> batched_graph = BatchGroverGraph(graphs)
+    """
 
     def __init__(self, mol_graphs: List[GraphData]):
         self.smiles_batch = []
@@ -56,6 +86,7 @@ class BatchGroverGraph:
             self.b_scope.append((self.n_bonds, mol_graph.n_bonds))
             self.n_atoms += mol_graph.n_atoms
             self.n_bonds += mol_graph.n_bonds
+
         # max with 1 to fix a crash in rare case of all single-heavy-atom mols
         self.max_num_bonds = max(1, max(len(in_bonds) for in_bonds in a2b))
 
@@ -68,7 +99,6 @@ class BatchGroverGraph:
             ]))
         self.b2a = torch.LongTensor(np.asarray(b2a))
         self.b2revb = torch.LongTensor(np.asarray(b2revb))
-        self.b2b = None  # try to avoid computing b2b b/c O(n_atoms^3)
         self.a2a = self.b2a[self.a2b]  # only needed if using atom messages
         self.a_scope = torch.LongTensor(self.a_scope)
         self.b_scope = torch.LongTensor(self.b_scope)
@@ -78,11 +108,23 @@ class BatchGroverGraph:
             np.stack(self.additional_features)).float()
 
     def get_components(self):
-        """
-        Returns the components of the BatchMolGraph.
+        """Returns the components of BatchGroverGraph.
 
-        :return: A tuple containing PyTorch tensors with the atom features, bond features, and graph structure
-        and two lists indicating the scope of the atoms and bonds (i.e. which molecules they belong to).
+        Example
+        -------
+        >>> import deepchem as dc
+        >>> smiles = ['CC', 'CCC', 'CC(=O)C']
+        >>> featurizer = dc.feat.GroverFeaturizer(features_generator=dc.feat.CircularFingerprint())
+        >>> graphs = featurizer.featurize(smiles)
+        >>> batched_graph = BatchGroverGraph(graphs)
+        >>> components = batched_graph.get_components()
+
+        Returns
+        -------
+        components: Tuple
+            A tuple containing PyTorch tensors with the atom features, bond features, graph structure,
+            two lists indicating the scope of the atoms and bonds (i.e. which molecules they belong to)
+            and functional group labels.
         """
         return self.f_atoms, self.f_bonds, self.a2b, self.b2a, self.b2revb, self.a2a, self.a_scope, self.b_scope, self.fg_labels
 
