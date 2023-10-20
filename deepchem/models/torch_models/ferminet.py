@@ -107,13 +107,13 @@ class Ferminet(torch.nn.Module):
                              self.batch_size, [self.spin[0], self.spin[1]],
                              self.nucleon_pos.size()[0], self.determinant))
 
-    def forward(self, input: np.ndarray) -> torch.Tensor:
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
         """
         forward function
 
         Parameters:
         -----------
-        input: np.ndarray
+        input: torch.Tensor
             contains the sampled electrons coordinate in the shape (batch_size,number_of_electrons*3)
 
         Returns:
@@ -123,9 +123,7 @@ class Ferminet(torch.nn.Module):
         """
         # creating one and two electron features
         eps = torch.tensor(1e-36)
-        self.input = torch.from_numpy(input)
-        self.input.requires_grad = True
-        self.input = self.input.reshape((self.batch_size, -1, 3))
+        self.input = input.reshape((self.batch_size, -1, 3))
         two_electron_vector = self.input.unsqueeze(1) - self.input.unsqueeze(2)
         two_electron_distance = torch.linalg.norm(two_electron_vector + eps,
                                                   dim=3).unsqueeze(3)
@@ -134,7 +132,6 @@ class Ferminet(torch.nn.Module):
         two_electron = torch.reshape(
             two_electron,
             (self.batch_size, self.total_electron, self.total_electron, -1))
-
         one_electron_vector = self.input.unsqueeze(
             1) - self.nucleon_pos.unsqueeze(1)
         one_electron_distance = torch.linalg.norm(one_electron_vector, dim=3)
@@ -190,7 +187,7 @@ class Ferminet(torch.nn.Module):
              self.nuclear_charge.unsqueeze(1)),
             posinf=0.0,
             neginf=0.0)
-        potential = torch.sum(potential) / 2
+        potential = (torch.sum(potential) / 2).unsqueeze(0)
         return potential
 
     def calculate_electron_nuclear(self,) -> torch.Tensor:
@@ -203,10 +200,12 @@ class Ferminet(torch.nn.Module):
         A torch tensor of a scalar value containing the electron-nuclear potential term.
         """
 
-        potential = torch.sum(
+        potential = torch.sum(torch.sum(
             (1 / torch.cdist(self.input.float(), self.nucleon_pos.float())) *
-            self.nuclear_charge) / 2
-        return (potential / self.batch_size)
+            self.nuclear_charge,
+            axis=-1),
+                              axis=-1)
+        return potential
 
     def calculate_electron_electron(self,):
         """
@@ -217,12 +216,13 @@ class Ferminet(torch.nn.Module):
         --------
         A torch tensor of a scalar value containing the electron-electron potential term.
         """
-        potential = torch.sum(
-            torch.nan_to_num(
-                (1 / torch.cdist(self.input.float(), self.input.float())),
-                posinf=0.0,
-                neginf=0.0)) / 2
-        return (potential / self.batch_size)
+        potential = torch.sum(torch.sum(torch.nan_to_num(
+            (1 / torch.cdist(self.input.float(), self.input.float())),
+            posinf=0.0,
+            neginf=0.0),
+                                        axis=-1),
+                              axis=-1) / 2
+        return potential
 
     def calculate_kinetic_energy(self,):
         """
@@ -234,24 +234,26 @@ class Ferminet(torch.nn.Module):
         --------
         A torch tensor of a scalar value containing the electron-electron potential term.
         """
-        log_probability = torch.log(torch.abs(self.psi))
-        jacobian = list(
-            map(
-                lambda x: torch.autograd.grad(x, self.input, create_graph=True)[
-                    0], log_probability))
-        jacobian_square = list(
-            map(lambda x: torch.sum(torch.pow(x, 2)), jacobian))
-        jacobian_square_sum = torch.tensor(0.0)
-        hessian = torch.tensor(0.0)
-        for i in range(self.batch_size):
-            jacobian_square_sum = jacobian_square_sum + jacobian_square[i]
-            for j in range(self.total_electron):
-                for k in range(3):
-                    hessian = hessian + torch.autograd.grad(
-                        jacobian[i][i][j][k], self.input,
-                        create_graph=True)[0][i][j][k]
-        kinetic_energy = -1 * 0.5 * (jacobian_square_sum +
-                                     hessian) / (self.batch_size)
+        # using functorch to calcualte hessian and jacobian in one go
+        jacobian = torch.func.jacrev(
+            lambda x: torch.log(torch.abs(self.forward(x))))(self.input)
+        hessian_full = torch.func.hessian(
+            lambda x: torch.log(torch.abs(self.forward(x))))(self.input)
+        # using index tensors to index out the hessian elemennts corresponding to the same variable (cross-variable derivatives are ignored)
+        i = torch.arange(self.batch_size).view(self.batch_size, 1, 1, 1, 1, 1,
+                                               1)
+        j = torch.arange(self.total_electron).view(1, self.total_electron, 1, 1,
+                                                   1, 1, 1)
+        k = torch.arange(3).view(1, 1, 3, 1, 1, 1, 1)
+        hessian = torch.reshape(hessian_full[i, i, j, k, i, j, k],
+                                (self.batch_size, self.total_electron, 3))
+        hessian_sum = torch.sum(torch.sum(hessian, axis=-1), axis=-1)
+        jacobian_square_sum = torch.sum(torch.sum(torch.sum(torch.pow(
+            jacobian, 2),
+                                                            axis=-1),
+                                                  axis=-1),
+                                        axis=-1)
+        kinetic_energy = -1 * 0.5 * (jacobian_square_sum + hessian_sum)
         return kinetic_energy
 
 
@@ -472,7 +474,10 @@ class FerminetModel(TorchModel):
         --------
         A numpy array containing the joint probability of the hartree fock and the sampled electron's position coordinates
         """
-        output = self.model.forward(x)
+        x_torch = torch.from_numpy(x).view(self.batch_no, -1, 3)
+        x_torch.requires_grad = True
+        output = self.model.forward(x_torch)
+
         np_output = output.detach().cpu().numpy()
         up_spin_mo, down_spin_mo = self.evaluate_hf(x)
         hf_product = np.prod(
