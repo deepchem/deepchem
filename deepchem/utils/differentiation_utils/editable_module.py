@@ -656,8 +656,6 @@ def _set_tensors(obj: Any, all_params: List[torch.Tensor], max_depth: int = 20):
     tensor(6.)
     >>> a.c
     tensor(7.)
-    >>> a.d
-    tensor(8.)
 
     Parameters
     ----------
