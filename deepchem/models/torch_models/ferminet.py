@@ -555,7 +555,6 @@ class FerminetModel(TorchModel):
                 self.model.running_diff = torch.zeros(self.batch_no)
 
         if (self.tasks == 'training'):
-            self.count = 0
             with torch.no_grad():
                 hooks = list(
                     map(
