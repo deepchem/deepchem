@@ -9,27 +9,22 @@ from tensorflow.keras.layers import Input, Dense, Dropout, Lambda
 
 class ScScoreModel(KerasModel):
     """
-    https://pubs.acs.org/doi/abs/10.1021/acs.jcim.7b00622
-    Several definitions of molecular complexity exist to facilitate prioritization
-    of lead compounds, to identify diversity-inducing and complexifying reactions,
-    and to guide retrosynthetic searches. In this work, we focus on synthetic
-    complexity and reformalize its definition to correlate with the expected number
-    of reaction steps required to produce a target molecule, with implicit knowledge
-    about what compounds are reasonable starting materials. We train a neural
-    network model on 12 million reactions from the Reaxys database to impose a
-    pairwise inequality constraint enforcing the premise of this definition: that on
-    average, the products of published chemical reactions should be more
-    synthetically complex than their corresponding reactants. The learned metric
-    (SCScore) exhibits highly desirable nonlinear behavior, particularly in
-    recognizing increases in synthetic complexity throughout a number of linear
-    synthetic routes.
+    The SCScore model is a neural network model based on the work of Coley et al. [1]_ that predicts the synthetic complexity score (SCScore) of molecules and correlates it with the expected number of reaction steps required to produce the given target molecule.
+    It is trained on a dataset of over 12 million reactions from the Reaxys database to impose a pairwise inequality constraint enforcing that on average the products of published chemical reactions should be more synthetically complex than their corresponding reactants.
+    The learned metric (SCScore) exhibits highly desirable nonlinear behavior, particularly in recognizing increases in synthetic complexity throughout a number of linear synthetic routes.
+    The SCScore model can accurately predict the synthetic complexity of a variety of molecules, including both drug-like and natural product molecules.
+    SCScore has the potential to be a valuable tool for chemists who are working on drug discovery and other areas of chemistry.
 
-    Our model here actually uses hingeloss instead of the shifted relu loss in
-    https://github.com/connorcoley/scscore.
+    The learned metric (SCScore) exhibits highly desirable nonlinear behavior, particularly in recognizing increases in synthetic complexity throughout a number of linear synthetic routes.
 
-    This could cause issues differentiation issues with compounds that are "close"
-    to each other in "complexity"
+    Our model uses hingeloss instead of the shifted relu loss as in the supplementary material [2]_ provided by the author.
+    This could cause differentiation issues with compounds that are "close" to each other in "complexity".
 
+    References
+    ----------
+    .. [1] Coley, C. W., Rogers, L., Green, W., & Jensen, K. F. (2018). "SCScore: Synthetic Complexity Learned from a Reaction Corpus". Journal of Chemical Information and Modeling, 58(2), 252-261. https://doi.org/10.1021/acs.jcim.7b00622
+
+    .. [2] Coley, C. W., Rogers, L., Green, W., & Jensen, K. F. (2018). Supplementary material to "SCScore: Synthetic Complexity Learned from a Reaction Corpus". Journal of Chemical Information and Modeling, 58(2), 252-261. https://github.com/connorcoley/scscore
     """
 
     def __init__(self,
