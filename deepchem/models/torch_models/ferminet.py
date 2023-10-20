@@ -408,17 +408,14 @@ class FerminetModel(TorchModel):
             batch_no=self.batch_no,
             central_value=self.nucleon_pos,
             seed=self.seed,
-            f=lambda x: self.random_walk(x
-                                        ),  # Will be replaced in successive PR
+            f=lambda x: self.random_walk(x),
             steps=self.random_walk_steps,
             steps_per_update=self.steps_per_update
         )  # sample the electrons using the electron sampler
         self.molecule.gauss_initialize_position(
             self.electron_no)  # initialize the position of the electrons
         self.prepare_hf_solution()
-        super(FerminetModel, self).__init__(
-            self.model,
-            loss=torch.nn.MSELoss())  # will update the loss in successive PR
+        super(FerminetModel, self).__init__(self.model, loss=torch.nn.MSELoss())
 
     def evaluate_hf(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
