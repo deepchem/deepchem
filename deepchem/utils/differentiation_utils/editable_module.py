@@ -26,9 +26,11 @@ class EditableModule(object):
     with name indicated in ``methodname``.
 
     Used in:
-    1. Classes of Density Functional Theory (DFT).
-    2. It can also be used in other classes that need to be converted to pure
-    functions for higher order derivatives purpose.
+
+    - Classes of Density Functional Theory (DFT).
+
+    - It can also be used in other classes that need to be converted to pure
+      functions for higher order derivatives purpose.
 
     Examples
     --------
