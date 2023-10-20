@@ -43,7 +43,7 @@ class GBDTModel(SklearnModel):
         early_stopping_rounds: int, optional (default 50)
             Activates early stopping. Validation metric needs to improve at least once
             in every early_stopping_rounds round(s) to continue training.
-        eval_metric: Union[str, Callbale]
+        eval_metric: Union[str, Callable]
             If string, it should be a built-in evaluation metric to use.
             If callable, it should be a custom evaluation metric, see official note for more details.
         """
@@ -57,6 +57,9 @@ class GBDTModel(SklearnModel):
         self.model_class = model.__class__
         self.early_stopping_rounds = early_stopping_rounds
         self.model_type = self._check_model_type()
+
+        if self.early_stopping_rounds<=0:
+            raise ValueError("Early Stopping Rounds cannot be less than 1.")
 
         if self.model.__class__.__name__.startswith('XGB'):
             self.callbacks = xgboost.callback.EarlyStopping(
