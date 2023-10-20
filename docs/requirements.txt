@@ -20,4 +20,3 @@ yamlloader
 dgl
 sphinx-copybutton
 sympy
-dqc

@@ -2,6 +2,8 @@
 Making it easy to import in classes.
 """
 # flake8: noqa
+import logging
+logger = logging.getLogger(__name__)
 
 # base classes for featurizers
 from deepchem.feat.base_classes import Featurizer
@@ -80,6 +82,12 @@ try:
     from deepchem.feat.reaction_featurizer import RxnFeaturizer
 except ModuleNotFoundError:
     pass
+
+try:
+    from deepchem.feat.dft_data import DFTSystem, DFTEntry
+except ModuleNotFoundError as e:
+    logger.warning(
+        f'Skipped loading some dqc models, missing a dependency. {e}')
 
 from deepchem.feat.vocabulary_builders import HuggingFaceVocabularyBuilder
 
