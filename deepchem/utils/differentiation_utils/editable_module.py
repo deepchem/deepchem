@@ -193,6 +193,8 @@ class EditableModule(object):
         the operations. The input parameters are unique parameters, i.e. they
         are not necessarily the same tensors as the object's parameters.
 
+        Note: This function can only be run after running getuniqueparams.
+
         Parameters
         ----------
         methodname: str

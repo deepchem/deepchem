@@ -1,14 +1,194 @@
 import pytest
 try:
     import torch
+    from deepchem.utils.differentiation_utils import EditableModule
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
 
 
 @pytest.mark.torch
-def test_editable_module():
-    from deepchem.utils.differentiation_utils import EditableModule
+def test_getparams():
+
+    class A(EditableModule):
+
+        def __init__(self, a):
+            self.b = a * a
+
+        def mult(self, x):
+            return self.b * x
+
+        def getparamnames(self, methodname, prefix=""):
+            if methodname == "mult":
+                return [prefix + "b"]
+            else:
+                raise KeyError()
+
+    a = torch.tensor(2.0)
+    x = torch.tensor(0.4)
+    alpha = A(a)
+    assert alpha.mult(x) == torch.tensor(1.6)
+    assert alpha.getparams("mult") == [torch.tensor(4.)]
+
+
+@pytest.mark.torch
+def test_setparams():
+
+    class A(EditableModule):
+
+        def __init__(self, a):
+            self.b = a * a
+
+        def mult(self, x):
+            return self.b * x
+
+        def getparamnames(self, methodname, prefix=""):
+            if methodname == "mult":
+                return [prefix + "b"]
+            else:
+                raise KeyError()
+
+    a = torch.tensor(2.0)
+    x = torch.tensor(4.0)
+    alpha = A(a)
+    assert alpha.mult(x) == torch.tensor(16)
+    alpha.setparams("mult", torch.tensor(5.0))
+    assert alpha.mult(x) == torch.tensor(20.0)
+
+
+@pytest.mark.torch
+def test_cached_getparamnames():
+
+    class A(EditableModule):
+
+        def __init__(self, a):
+            self.b = a * a
+
+        def mult(self, x):
+            return self.b * x
+
+        def getparamnames(self, methodname, prefix=""):
+            if methodname == "mult":
+                return [prefix + "b"]
+            else:
+                raise KeyError()
+
+    a = torch.tensor(2.0)
+    alpha = A(a)
+    assert alpha.cached_getparamnames("mult") == ["b"]
+
+
+@pytest.mark.torch
+def test_getuniqueparams():
+
+    class A(EditableModule):
+
+        def __init__(self, a):
+            self.b = a * a
+
+        def mult(self, x):
+            return self.b**2 * x
+
+        def getparamnames(self, methodname, prefix=""):
+            if methodname == "mult":
+                return [prefix + "b"]
+            else:
+                raise KeyError()
+
+    a = torch.tensor(2.0)
+    x = torch.tensor(0.4)
+    alpha = A(a)
+    assert alpha.mult(x) == torch.tensor(6.4)
+    assert alpha.getuniqueparams("mult") == [torch.tensor(4.)]  # Not 16.0
+
+
+@pytest.mark.torch
+def test_setuniqueparams():
+
+    class A(EditableModule):
+
+        def __init__(self, a):
+            self.b = a * a
+
+        def mult(self, x):
+            return self.b**2 * x
+
+        def getparamnames(self, methodname, prefix=""):
+            if methodname == "mult":
+                return [prefix + "b"]
+            else:
+                raise KeyError()
+
+    a = torch.tensor(2.0)
+    x = torch.tensor(0.4)
+    alpha = A(a)
+    assert alpha.mult(x) == torch.tensor(6.4)
+    assert alpha.getuniqueparams("mult") == [torch.tensor(4.)]
+    alpha.setuniqueparams("mult", torch.tensor(5.0))
+    assert alpha.mult(x) == torch.tensor(10.0)
+
+
+@pytest.mark.torch
+def test_get_unique_params_idxs():
+
+    class A(EditableModule):
+
+        def __init__(self, a):
+            self.b = a * a
+            self.c = a * a * a
+
+        def mult(self, x):
+            return self.b * self.c * x
+
+        def getparamnames(self, methodname, prefix=""):
+            if methodname == "mult":
+                return [prefix + "b", prefix + "c"]
+            else:
+                raise KeyError()
+
+    a = torch.tensor(2.0)
+    x = torch.tensor(4.0)
+    alpha = A(a)
+    assert alpha.mult(x) == torch.tensor(128.0)
+    assert alpha.getparams("mult") == [torch.tensor(4.), torch.tensor(8.)]
+    assert alpha._get_unique_params_idxs("mult") == [0, 1]
+
+
+@pytest.mark.torch
+def test_assertparams():
+    """Test that assertparams works correctly.
+    also checks the private methods as they are used in it.
+    - __assert_method_preserve
+    - __assert_get_correct_params
+    - __list_operating_params
+
+    """
+
+    class A(EditableModule):
+
+        def __init__(self, a):
+            self.b = a * a
+            self.c = a * a * a
+
+        def mult(self, x):
+            return self.b * self.c * x
+
+        def getparamnames(self, methodname, prefix=""):
+            if methodname == "mult":
+                return [prefix + "b", prefix + "c"]
+            else:
+                raise KeyError()
+
+    a = torch.tensor(2.0)
+    x = torch.tensor(4.0)
+    alpha = A(a)
+    assert alpha.mult(x) == torch.tensor(128.0)
+    assert alpha.getparams("mult") == [torch.tensor(4.), torch.tensor(8.)]
+    alpha.assertparams(alpha.mult, x)
+
+
+@pytest.mark.torch
+def test_getparamnames():
 
     class A(EditableModule):
 
