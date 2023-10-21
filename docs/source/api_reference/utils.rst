@@ -299,6 +299,15 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.config._Config
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.BaseOrbParams
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.QROrbParams
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.MatExpOrbParams
+  :members:
+
 Attribute Utilities
 -------------------
 
