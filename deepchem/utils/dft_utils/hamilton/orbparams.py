@@ -1,3 +1,6 @@
+"""
+Derived from: https://github.com/diffqc/dqc/blob/master/dqc/hamilton/orbparams.py
+"""
 from typing import List, Tuple
 import torch
 
