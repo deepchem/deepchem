@@ -129,8 +129,10 @@ class GBDTModel(SklearnModel):
 
         # retrain model to whole data using best n_estimators * 1.25
         if self.model.__class__.__name__.startswith('XGB'):
+            assert self.model.best_iteration<self.model.n_estimators
             estimated_best_round = np.round(self.model.best_ntree_limit * 1.25)
         else:
+            assert self.model.best_iteration_<self.model.n_estimators
             estimated_best_round = np.round(self.model.best_iteration_ * 1.25)
         self.model.n_estimators = np.int64(estimated_best_round)
         self.model.fit(X, y, eval_metric=self.eval_metric)
