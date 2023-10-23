@@ -185,10 +185,21 @@ class GAN(nn.Module):
         self.data_inputs = [
             nn.Parameter(torch.ones(s)) for s in self.data_input_shape
         ]
+        # Data Input Name
+        self.data_input_names = [
+            "data_input_%d" % i for i in range(len(self.data_inputs))
+        ]
+        # print("data_input_names: ", self.data_input_names)
         # Conditional Input
         self.conditional_inputs = [
             nn.Parameter(torch.empty(s)) for s in self.conditional_input_shape
         ]
+        # Conditional Input Name
+        self.conditional_input_names = [
+            "conditional_input_%d" % i
+            for i in range(len(self.conditional_inputs))
+        ]
+        # print("conditional_input_names: ", self.conditional_input_names)
 
         self.data_input_layers = []
         for idx, shape in enumerate(self.data_input_shape):
@@ -546,7 +557,9 @@ class GANModel(TorchModel):
         self.discrim_loss_fn_wrapper = model.discrim_loss_fn_wrapper
         self.gen_loss_fn_wrapper = model.gen_loss_fn_wrapper
         self.data_inputs = model.data_inputs
+        self.data_input_names = model.data_input_names
         self.conditional_inputs = model.conditional_inputs
+        self.conditional_input_names = model.conditional_input_names
         self.data_input_layers = model.data_input_layers
         self.conditional_input_layers = model.conditional_input_layers
         self.generators = model.generators
@@ -662,26 +675,28 @@ class GANModel(TorchModel):
 
             inputs = [self.get_noise_batch(self.batch_size)]
 
-            temp_data = []
-            for shape in self.get_data_input_shapes():
-                temp_data.append(
-                    torch.randn(size=[self.batch_size] + list(shape[1:])))
+            # temp_data = []
+            # for shape in self.get_data_input_shapes():
+            #     temp_data.append(
+            #         torch.randn(size=[self.batch_size] + list(shape[1:])))
 
-            temp_cond = []
-            for shape in self.get_conditional_input_shapes():
-                temp_cond.append(
-                    torch.randn(size=[self.batch_size] + list(shape[1:])))
+            # temp_cond = []
+            # for shape in self.get_conditional_input_shapes():
+            #     temp_cond.append(
+            #         torch.randn(size=[self.batch_size] + list(shape[1:])))
             # temp_data = torch.randn(self.get_data_input_shapes()[0])
             # inputs=(temp_noise,temp_data,temp_cond)
             # print("\n\n\ninputs OG:", inputs)
-            inputs += [*temp_data, *temp_cond]
+            # inputs += [*temp_data, *temp_cond]
 
             # # Torch Tensor Hashing Issue here
-            # for input in self.data_input_layers:
-            #     print("Input: ", input.data)
-            #     inputs.append(feed_dict[input])
-            # for input in self.conditional_input_layers:
-            #     inputs.append(feed_dict[input])
+            # print("feed_dict: ", feed_dict.keys())
+            for input in self.data_input_names:
+                # print("Input: ", input.shape)
+                inputs.append(feed_dict[input])
+            for input in self.conditional_input_names:
+                inputs.append(feed_dict[input])
+            # print([i.shape for i in inputs])
             discrim_error += self.fit_generator(
                 [(inputs, [], [])],
                 variables=self.discrim_variables,
