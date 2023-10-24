@@ -22,7 +22,7 @@ dependencies:
     - pyGPGO
     - pymatgen
     - simdna
-    - transformers==4.16.*
+    - transformers
     - tokenizers
     - xgboost
     - gensim  # used by mol2vec
