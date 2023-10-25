@@ -383,9 +383,16 @@ class GroverModel(ModularTorchModel):
         self.n_classes = n_classes
         self.components = self.build_components()
         self.model = self.build_model()
+        if self.mode == 'regression':
+            output_types = ['prediction']
+        elif self.mode == 'classification':
+            output_types = ['prediction', 'loss']
+        else:
+            output_types = None
         super().__init__(self.model,
                          self.components,
                          model_dir=self.model_dir,
+                         output_types=output_types,
                          **kwargs)
         # FIXME In the above step, we initialize modular torch model but
         # something is missing here. The attribute loss from TorchModel gets assigned `loss_func`
