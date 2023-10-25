@@ -908,7 +908,11 @@ class SDFLoader(DataLoader):
         features = [
             elt for (is_valid, elt) in zip(valid_inds, features) if is_valid
         ]
-        return np.array(features), valid_inds
+        try:
+            return np.array(features), valid_inds
+        except ValueError as e:
+            logger.warning("Exception message: {}".format(e))
+            return np.asarray(features, dtype=object), valid_inds
 
 
 class FASTALoader(DataLoader):
