@@ -174,7 +174,7 @@ class Lattice(object):
 
     def _generate_lattice_vectors(self, a: torch.Tensor, rcut: float,
                                   exclude_zeros: bool) -> torch.Tensor:
-        """generate the lattice vectors of multiply of a within the radius rcut
+        """generate the lattice vectors of multiply of a within the radius rcut.
 
         Parameters
         ----------
