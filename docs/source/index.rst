@@ -93,6 +93,7 @@ To listen in, please email X.Y@gmail.com, where X=bharath and Y=ramsundar to int
    get_started/examples
    get_started/issues
    get_started/Docker-tutorial
+   get_started/Documentation-tutorial
 
 .. toctree::
    :glob:

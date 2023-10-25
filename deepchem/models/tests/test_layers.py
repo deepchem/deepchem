@@ -947,8 +947,8 @@ def test_torch_atomic_convolution():
 @pytest.mark.torch
 def test_torch_combine_mean_std():
     """Test invoking the Torch equivalent of CombineMeanStd."""
-    mean = np.random.rand(5, 3).astype(np.float32)
-    std = np.random.rand(5, 3).astype(np.float32)
+    mean = torch.rand((5, 3), dtype=torch.float32)
+    std = torch.rand((5, 3), dtype=torch.float32)
     layer = torch_layers.CombineMeanStd(training_only=True, noise_epsilon=0.01)
     result1 = layer([mean, std], training=False)
     assert np.array_equal(result1, mean)  # No noise in test mode
@@ -1319,13 +1319,14 @@ def test_encoder_rnn():
     """Test for Encoder Layer of SeqToSeq Model"""
     hidden_size = 7
     num_input_token = 4
+    n_layers = 5
     input = torch.tensor([[1, 0, 2, 3, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]])
-    layer = torch_layers.EncoderRNN(num_input_token, hidden_size)
+    layer = torch_layers.EncoderRNN(num_input_token, hidden_size, n_layers)
     emb, hidden = layer(input)
 
     assert emb.shape == emb.shape == (input.shape[0], input.shape[1],
                                       hidden_size)
-    assert hidden.shape == (1, input.shape[0], hidden_size)
+    assert hidden.shape == (input.shape[0], hidden_size)
 
 
 @pytest.mark.torch
@@ -1335,12 +1336,13 @@ def test_decoder_rnn():
     num_output_tokens = 7
     max_length = 4
     batch_size = 2
+    n_layers = 9
     layer = torch_layers.DecoderRNN(embedding_dimensions, num_output_tokens,
-                                    max_length, batch_size)
+                                    n_layers, max_length, batch_size)
     embeddings = torch.randn(batch_size, embedding_dimensions)
-    output, hidden = layer([embeddings.unsqueeze(0), None])
+    output, hidden = layer([embeddings, None])
     assert output.shape == (batch_size, max_length, num_output_tokens)
-    assert hidden.shape == (1, batch_size, embedding_dimensions)
+    assert hidden.shape == (n_layers, batch_size, embedding_dimensions)
 
 
 @pytest.mark.torch
