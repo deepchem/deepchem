@@ -9,6 +9,8 @@ logger_ = logging.getLogger(__name__)
 from deepchem.utils.dft_utils.config import config
 
 try:
+    from deepchem.utils.dft_utils.hamilton.intor.lattice import Lattice
+
     from deepchem.utils.dft_utils.datastruct import ZType
 
     from deepchem.utils.dft_utils.hamilton.orbparams import BaseOrbParams
