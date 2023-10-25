@@ -675,28 +675,10 @@ class GANModel(TorchModel):
 
             inputs = [self.get_noise_batch(self.batch_size)]
 
-            # temp_data = []
-            # for shape in self.get_data_input_shapes():
-            #     temp_data.append(
-            #         torch.randn(size=[self.batch_size] + list(shape[1:])))
-
-            # temp_cond = []
-            # for shape in self.get_conditional_input_shapes():
-            #     temp_cond.append(
-            #         torch.randn(size=[self.batch_size] + list(shape[1:])))
-            # temp_data = torch.randn(self.get_data_input_shapes()[0])
-            # inputs=(temp_noise,temp_data,temp_cond)
-            # print("\n\n\ninputs OG:", inputs)
-            # inputs += [*temp_data, *temp_cond]
-
-            # # Torch Tensor Hashing Issue here
-            # print("feed_dict: ", feed_dict.keys())
             for input in self.data_input_names:
-                # print("Input: ", input.shape)
                 inputs.append(feed_dict[input])
             for input in self.conditional_input_names:
                 inputs.append(feed_dict[input])
-            # print([i.shape for i in inputs])
             discrim_error += self.fit_generator(
                 [(inputs, [], [])],
                 variables=self.discrim_variables,
