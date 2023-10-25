@@ -3,7 +3,7 @@ Grover Featurizer.
 The adaptation is based on https://github.com/tencent-ailab/grover/blob/0421d97a5e1bd1b59d1923e3afd556afbe4ff782/grover/data/molgraph.py
 
 """
-from typing import Optional
+from typing import Optional, List
 import numpy as np
 from deepchem.feat.graph_data import GraphData
 from deepchem.feat.molecule_featurizers import RDKitDescriptors
@@ -124,7 +124,8 @@ class GroverFeaturizer(MolecularFeaturizer):
 
         n_atoms = mol.GetNumAtoms()  # number of atoms
         n_bonds = 0  # number of bonds
-        a2b = []  # mapping from atom index to incoming bond indices
+        a2b: List[List[int]] = [
+        ]  # mapping from atom index to incoming bond indices
         b2a = [
         ]  # mapping from bond index to the index of the atom the bond is coming from
         b2revb = []  # mapping from bond index to the index of the reverse bond

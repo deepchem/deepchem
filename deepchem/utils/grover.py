@@ -45,9 +45,6 @@ class BatchGroverGraph:
 
     def __init__(self, mol_graphs: List[GraphData]):
         self.smiles_batch = []
-        self.features_batch = []
-        self.fg_labels = []
-        self.additional_features = []
         self.n_mols = len(mol_graphs)
 
         self.atom_fdim = GraphConvConstants.ATOM_FDIM + 18
@@ -55,37 +52,46 @@ class BatchGroverGraph:
 
         self.n_atoms = 0
         self.n_bonds = 0
-        self.a_scope = [
+        a_scope = [
         ]  # list of tuples indicating (start_atom_index, num_atoms) for each molecule
-        self.b_scope = [
+        b_scope = [
         ]  # list of tuples indicating (start_bond_index, num_bonds) for each molecule
 
-        f_atoms = []  # atom features
-        f_bonds = []  # combined atom/bond features
-        a2b = [[]]  # mapping from atom index to incoming bond indices
+        f_atoms: List[ArrayLike] = []  # atom features
+        f_bonds: List[ArrayLike] = []  # combined atom/bond features
+        a2b: Any = [[]]  # mapping from atom index to incoming bond indices
         b2a = [
         ]  # mapping from bond index to the index of the atom the bond is coming from
         b2revb = []  # mapping from bond index to the index of the reverse bond
 
+        fg_labels = []
+        additional_features = []
+
+        # NOTE We have lot of type ignores here since grover mol-graph which is of type
+        # GraphData have kwargs which are not attributes of GraphData. Hence, in these
+        # cases mypy raises GraphData does not have attributes `..`.
         for mol_graph in mol_graphs:
-            self.smiles_batch.append(mol_graph.smiles)
-            self.features_batch.append(mol_graph.additional_features)
-            self.fg_labels.append(mol_graph.fg_labels)
-            self.additional_features.append(mol_graph.additional_features)
+            self.smiles_batch.append(mol_graph.smiles)  # type: ignore
+            fg_labels.append(mol_graph.fg_labels)  # type: ignore
+            additional_features.append(
+                mol_graph.additional_features)  # type: ignore
             f_atoms.extend(mol_graph.node_features)
-            f_bonds.extend(mol_graph.edge_features)
+            f_bonds.extend(mol_graph.edge_features)  # type: ignore
 
-            for a in range(mol_graph.n_atoms):
-                a2b.append([b + self.n_bonds for b in mol_graph.a2b[a]])
+            for a in range(mol_graph.n_atoms):  # type: ignore
+                a2b.append([
+                    b + self.n_bonds for b in mol_graph.a2b[a]  # type: ignore
+                ])  # type: ignore
 
-            for b in range(mol_graph.n_bonds):
-                b2a.append(self.n_atoms + mol_graph.b2a[b])
-                b2revb.append(self.n_bonds + mol_graph.b2revb[b])
+            for b in range(mol_graph.n_bonds):  # type: ignore
+                b2a.append(self.n_atoms + mol_graph.b2a[b])  # type: ignore
+                b2revb.append(self.n_bonds +
+                              mol_graph.b2revb[b])  # type: ignore
 
-            self.a_scope.append((self.n_atoms, mol_graph.n_atoms))
-            self.b_scope.append((self.n_bonds, mol_graph.n_bonds))
-            self.n_atoms += mol_graph.n_atoms
-            self.n_bonds += mol_graph.n_bonds
+            a_scope.append((self.n_atoms, mol_graph.n_atoms))  # type: ignore
+            b_scope.append((self.n_bonds, mol_graph.n_bonds))  # type: ignore
+            self.n_atoms += mol_graph.n_atoms  # type: ignore
+            self.n_bonds += mol_graph.n_bonds  # type: ignore
 
         # max with 1 to fix a crash in rare case of all single-heavy-atom mols
         self.max_num_bonds = max(1, max(len(in_bonds) for in_bonds in a2b))
@@ -100,12 +106,12 @@ class BatchGroverGraph:
         self.b2a = torch.LongTensor(np.asarray(b2a))
         self.b2revb = torch.LongTensor(np.asarray(b2revb))
         self.a2a = self.b2a[self.a2b]  # only needed if using atom messages
-        self.a_scope = torch.LongTensor(self.a_scope)
-        self.b_scope = torch.LongTensor(self.b_scope)
+        self.a_scope = torch.LongTensor(a_scope)
+        self.b_scope = torch.LongTensor(b_scope)
 
-        self.fg_labels = torch.Tensor(np.asarray(self.fg_labels)).float()
+        self.fg_labels = torch.Tensor(np.asarray(fg_labels)).float()
         self.additional_features = torch.from_numpy(
-            np.stack(self.additional_features)).float()
+            np.stack(additional_features)).float()
 
     def get_components(self):
         """Returns the components of BatchGroverGraph.
