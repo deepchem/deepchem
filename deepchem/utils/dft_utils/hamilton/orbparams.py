@@ -90,7 +90,7 @@ class QROrbParams(BaseOrbParams):
 
     P = QR
 
-    where Q is the parameters defining the rotation of the orthogonal tensor,
+    Where Q is the parameters defining the rotation of the orthogonal tensor,
     and R is the coefficients tensor.
 
     Examples
