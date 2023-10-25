@@ -40,7 +40,8 @@ def test_bond_vocab_random_mask():
 def testGroverPretrain(grover_batched_graph):
     from deepchem.models.torch_models.grover import GroverPretrain
     from deepchem.models.torch_models.grover_layers import GroverEmbedding, GroverAtomVocabPredictor, GroverBondVocabPredictor, GroverFunctionalGroupPredictor
-    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _ = grover_batched_graph.get_components()
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _ = grover_batched_graph.get_components(
+    )
     components = {}
     components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1],
                                               edge_fdim=f_bonds.shape[1])
