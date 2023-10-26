@@ -44,7 +44,7 @@ def test_mat_exp_orb_params():
     from deepchem.utils.dft_utils import MatExpOrbParams
     params = torch.randn(3, 3)
     coeffs = torch.randn(4, 3)
-    orb = MatExpOrbParams.params2orb(params, coeffs)
+    orb = MatExpOrbParams.params2orb(params, coeffs)[0]
     params2, coeffs2 = MatExpOrbParams.orb2params(orb)
     assert coeffs2.shape == orb.shape
 
