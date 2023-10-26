@@ -149,12 +149,6 @@ jobs:
       run: |
         DGLBACKEND=pytorch pytest -v
         --ignore-glob='deepchem/**/test*.py'
-        --igonre-glob='deepchem/feat/dft_data.py'
-        --igonre-glob='deepchem/models/dft/dftxc.py'
-        --igonre-glob='deepchem/models/dft/nnxc.py'
-        --igonre-glob='deepchem/models/dft/scf.py'
-        --igonre-glob='deepchem/utils/dftutils.py'
-        --ignore-glob='contrib/**/test*.py'
         --doctest-modules deepchem
         --doctest-continue-on-failure
     - name: Doctest Windows

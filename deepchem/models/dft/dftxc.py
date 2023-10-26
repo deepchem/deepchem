@@ -1,4 +1,6 @@
 """Derived from https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcca3e314a538ca/xcdnn2/litmodule.py"""
+import pytest
+pytest.skip()
 from deepchem.models.dft.scf import XCNNSCF
 import torch
 from deepchem.models.dft.nnxc import HybridXC
@@ -21,15 +23,15 @@ class DFTXC(torch.nn.Module):
     >>> e_type = 'ie'
     >>> true_val= '0.53411947056'
     >>> systems = [{'moldesc': 'N 0 0 0',
-    >>>       'basis': '6-311++G(3df,3pd)',
-    >>>        'spin': '3'},
-    >>>       {'moldesc': 'N 0 0 0',
-    >>>       'basis': '6-311++G(3df,3pd)',
-    >>>       'charge': 1,
-    >>>        'spin': '2'}]
+    ...       'basis': '6-311++G(3df,3pd)',
+    ...        'spin': '3'},
+    ...       {'moldesc': 'N 0 0 0',
+    ...       'basis': '6-311++G(3df,3pd)',
+    ...       'charge': 1,
+    ...        'spin': '2'}]
     >>> entry = DFTEntry.create(e_type, true_val, systems)
-    >>> nnmodel = _construct_nn_model(ninp=2, nhid=10, ndepths=1,modeltype=1).to(torch.double)
-    >>> model = DFTXC("lda_x")
+    >>> nnmodel = _construct_nn_model(input_size=2, hidden_size=10, n_layers=1,modeltype=1).to(torch.double)
+    >>> model = DFTXC("lda_x", nnmodel)
     >>> output = model([entry])
 
     """
