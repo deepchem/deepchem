@@ -1,7 +1,7 @@
 """
 Derived from: https://github.com/diffqc/dqc/blob/master/dqc/hamilton/orbparams.py
 """
-from typing import List, Tuple
+from typing import List
 import torch
 
 __all__ = ["BaseOrbParams", "QROrbParams", "MatExpOrbParams"]
@@ -32,9 +32,10 @@ class BaseOrbParams(object):
     """
 
     @staticmethod
-    def params2orb(params: torch.Tensor,
-                   coeffs: torch.Tensor,
-                   with_penalty: float = None) -> List[torch.Tensor]:
+    def params2orb(
+            params: torch.Tensor,  # type: ignore[empty-body]
+            coeffs: torch.Tensor,
+            with_penalty: float = 0.0) -> List[torch.Tensor]:
         """
         Convert the parameters & coefficients to the orthogonal orbitals.
         ``params`` is the tensor to be optimized in variational method, while
@@ -47,22 +48,24 @@ class BaseOrbParams(object):
             The free parameters to be optimized.
         coeffs: torch.Tensor
             The coefficients to get the orthogonal orbitals.
-        with_penalty: float (default: None)
-            If not None, return the penalty term for the free parameters.
+        with_penalty: float (default 0.0)
+            If not 0.0, return the penalty term for the free parameters.
 
         Returns
         -------
         orb: torch.Tensor
             The orthogonal orbitals.
         penalty: torch.Tensor
-            The penalty term for the free parameters. If ``with_penalty`` is None,
+            The penalty term for the free parameters. If ``with_penalty`` is 0.0,
             this is not returned.
 
         """
         pass
 
     @staticmethod
-    def orb2params(orb: torch.Tensor) -> List[torch.Tensor]:
+    def orb2params(
+            orb: torch.Tensor
+    ) -> List[torch.Tensor]:  # type: ignore[empty-body]
         """
         Get the free parameters from the orthogonal orbitals. Returns ``params``
         and ``coeffs`` described in ``params2orb``.
@@ -108,7 +111,7 @@ class QROrbParams(BaseOrbParams):
     @staticmethod
     def params2orb(params: torch.Tensor,
                    coeffs: torch.Tensor,
-                   with_penalty: float = None) -> List[torch.Tensor]:
+                   with_penalty: float = 0.0) -> List[torch.Tensor]:
         """
         Convert the parameters & coefficients to the orthogonal orbitals.
         ``params`` is the tensor to be optimized in variational method, while
@@ -121,21 +124,21 @@ class QROrbParams(BaseOrbParams):
             The free parameters to be optimized.
         coeffs: torch.Tensor
             The coefficients to get the orthogonal orbitals.
-        with_penalty: float (default: None)
-            If not None, return the penalty term for the free parameters.
+        with_penalty: float (default 0.0)
+            If not 0.0, return the penalty term for the free parameters.
 
         Returns
         -------
         orb: torch.Tensor
             The orthogonal orbitals.
         penalty: torch.Tensor
-            The penalty term for the free parameters. If ``with_penalty`` is None,
+            The penalty term for the free parameters. If ``with_penalty`` is 0.0,
             this is not returned.
 
         """
         orb, _ = torch.linalg.qr(params)
-        if with_penalty is None:
-            return orb
+        if with_penalty == 0.0:
+            return [orb]
         else:
             # QR decomposition's solution is not unique in a way that every column
             # can be multiplied by -1 and it still a solution
@@ -144,7 +147,7 @@ class QROrbParams(BaseOrbParams):
             s1 = torch.sign(orb.sum(dim=-2, keepdim=True))  # (*BD, 1, norb)
             s2 = torch.sign(params.sum(dim=-2, keepdim=True))
             penalty = torch.mean((orb * s1 - params * s2)**2) * with_penalty
-            return orb, penalty
+            return [orb, penalty]
 
     @staticmethod
     def orb2params(orb: torch.Tensor) -> List[torch.Tensor]:
@@ -166,7 +169,7 @@ class QROrbParams(BaseOrbParams):
 
         """
         coeffs = torch.tensor([0], dtype=orb.dtype, device=orb.device)
-        return orb, coeffs
+        return [orb, coeffs]
 
 
 class MatExpOrbParams(BaseOrbParams):
@@ -185,7 +188,7 @@ class MatExpOrbParams(BaseOrbParams):
     >>> params = torch.randn(3, 3)
     >>> coeffs = torch.randn(4, 3)
     >>> with_penalty = 0.1
-    >>> orb = MatExpOrbParams.params2orb(params, coeffs)
+    >>> orb, penalty = MatExpOrbParams.params2orb(params, coeffs, with_penalty)
     >>> params2, coeffs2 = MatExpOrbParams.orb2params(orb)
 
     """
@@ -193,7 +196,7 @@ class MatExpOrbParams(BaseOrbParams):
     @staticmethod
     def params2orb(params: torch.Tensor,
                    coeffs: torch.Tensor,
-                   with_penalty: float = None) -> List[torch.Tensor]:
+                   with_penalty: float = 0.0) -> List[torch.Tensor]:
         """
         Convert the parameters & coefficients to the orthogonal orbitals.
         ``params`` is the tensor to be optimized in variational method, while
@@ -206,15 +209,15 @@ class MatExpOrbParams(BaseOrbParams):
             The free parameters to be optimized. (*, nparams)
         coeffs: torch.Tensor
             The coefficients to get the orthogonal orbitals. (*, nao, norb)
-        with_penalty: float (default: None)
-            If not None, return the penalty term for the free parameters.
+        with_penalty: float (default 0.0)
+            If not 0.0, return the penalty term for the free parameters.
 
         Returns
         -------
         orb: torch.Tensor
             The orthogonal orbitals.
         penalty: torch.Tensor
-            The penalty term for the free parameters. If ``with_penalty`` is None,
+            The penalty term for the free parameters. If ``with_penalty`` is 0.0,
             this is not returned.
 
         """
@@ -234,16 +237,16 @@ class MatExpOrbParams(BaseOrbParams):
         # calculate the orthogonal orbital
         ortho_orb = torch.matrix_exp(rotmat) @ coeffs
 
-        if with_penalty:
+        if with_penalty != 0.0:
             penalty = torch.zeros((1,),
                                   dtype=params.dtype,
                                   device=params.device)
-            return ortho_orb, penalty
+            return [ortho_orb, penalty]
         else:
-            return ortho_orb
+            return [ortho_orb]
 
     @staticmethod
-    def orb2params(orb: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def orb2params(orb: torch.Tensor) -> List[torch.Tensor]:
         # orb: (*, nao, norb)
         nao = orb.shape[-2]
         norb = orb.shape[-1]
@@ -254,4 +257,4 @@ class MatExpOrbParams(BaseOrbParams):
         params = torch.zeros((*orb.shape[:-2], nparams),
                              dtype=orb.dtype,
                              device=orb.device)
-        return params, coeffs
+        return [params, coeffs]
