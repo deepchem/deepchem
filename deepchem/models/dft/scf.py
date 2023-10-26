@@ -26,26 +26,25 @@ class XCNNSCF(torch.nn.Module):
 
     Examples
     --------
-    >>>
-    >> from deepchem.models.dft.scf import XCNNSCF
-    >> import torch
-    >> from deepchem.feat.dft_data import DFTEntry, DFTSystem
-    >> from deepchem.models.dft.nnxc import HybridXC
-    >> nnmodel = (torch.nn.Sequential(
-    ..         torch.nn.Linear(2, 10),
-    ..         torch.nn.Tanh(),
-    ..         torch.nn.Linear(10, 1))).to(torch.double)
-    >> e_type = 'dm'
-    >> true_val = 'deepchem/feat/tests/data/dftHF_output.npy'
-    >> systems = [{
-    >>     'moldesc': 'H 0.86625 0 0; F -0.86625 0 0',
-    >>     'basis': '6-311++G(3df,3pd)'
-    >> }]
-    >> entry = DFTEntry.create(e_type, true_val, systems)
-    >> evl = XCNNSCF(hybridxc, entry)
-    >> system = DFTSystem(systems[0])
-    >> run = evl.run(system)
-    >> output = run.energy()
+    >>> from deepchem.models.dft.scf import XCNNSCF
+    >>> import torch
+    >>> from deepchem.feat.dft_data import DFTEntry, DFTSystem
+    >>> from deepchem.models.dft.nnxc import HybridXC
+    >>> nnmodel = (torch.nn.Sequential(
+    ...         torch.nn.Linear(2, 10),
+    ...         torch.nn.Tanh(),
+    ...         torch.nn.Linear(10, 1))).to(torch.double)
+    >>> e_type = 'dm'
+    >>> true_val = 'deepchem/feat/tests/data/dftHF_output.npy'
+    >>> systems = [{
+    >>>     'moldesc': 'H 0.86625 0 0; F -0.86625 0 0',
+    >>>     'basis': '6-311++G(3df,3pd)'
+    >>> }]
+    >>> entry = DFTEntry.create(e_type, true_val, systems)
+    >>> evl = XCNNSCF(hybridxc, entry)
+    >>> system = DFTSystem(systems[0])
+    >>> run = evl.run(system)
+    >>> output = run.energy()
 
     Notes
     -----
