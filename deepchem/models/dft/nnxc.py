@@ -95,12 +95,13 @@ class NNLDA(BaseNNXC):
 
     Examples
     --------
-    >>> from deepchem.models.dft.nnxc import NNLDA
-    >>> import torch
-    >>> import torch.nn as nn
-    >>> n_input, n_hidden = 2, 1
-    >>> nnmodel = (nn.Linear(n_input, n_hidden))
-    >>> output = NNLDA(nnmodel)
+    >>>
+    >> from deepchem.models.dft.nnxc import NNLDA
+    >> import torch
+    >> import torch.nn as nn
+    >> n_input, n_hidden = 2, 1
+    >> nnmodel = (nn.Linear(n_input, n_hidden))
+    >> output = NNLDA(nnmodel)
 
     References
     ----------
@@ -174,12 +175,13 @@ class NNPBE(BaseNNXC):
 
     Examples
     --------
-    >>> from deepchem.models.dft.nnxc import NNPBE
-    >>> import torch
-    >>> import torch.nn as nn
-    >>> n_input, n_hidden = 3, 3
-    >>> nnmodel = (nn.Linear(n_input, n_hidden))
-    >>> output = NNPBE(nnmodel)
+    >>>
+    >> from deepchem.models.dft.nnxc import NNPBE
+    >> import torch
+    >> import torch.nn as nn
+    >> n_input, n_hidden = 3, 3
+    >> nnmodel = (nn.Linear(n_input, n_hidden))
+    >> output = NNPBE(nnmodel)
 
     References
     ----------
@@ -277,12 +279,13 @@ class HybridXC(BaseNNXC):
 
     Examples
     --------
-    >>> from deepchem.models.dft.nnxc import HybridXC
-    >>> import torch
-    >>> import torch.nn as nn
-    >>> n_input, n_hidden = 2, 1
-    >>> nnmodel = (nn.Linear(n_input, n_hidden))
-    >>> output = HybridXC("lda_x", nnmodel, aweight0=0.0)
+    >>>
+    >> from deepchem.models.dft.nnxc import HybridXC
+    >> import torch
+    >> import torch.nn as nn
+    >> n_input, n_hidden = 2, 1
+    >> nnmodel = (nn.Linear(n_input, n_hidden))
+    >> output = HybridXC("lda_x", nnmodel, aweight0=0.0)
     """
 
     def __init__(self,
