@@ -32,8 +32,8 @@ class BaseOrbParams(object):
     """
 
     @staticmethod
-    def params2orb(
-            params: torch.Tensor,  # type: ignore[empty-body]
+    def params2orb(  # type: ignore[empty-body]
+            params: torch.Tensor,
             coeffs: torch.Tensor,
             with_penalty: float = 0.0) -> List[torch.Tensor]:
         """
@@ -63,9 +63,8 @@ class BaseOrbParams(object):
         pass
 
     @staticmethod
-    def orb2params(
-            orb: torch.Tensor
-    ) -> List[torch.Tensor]:  # type: ignore[empty-body]
+    def orb2params(  # type: ignore[empty-body]
+            orb: torch.Tensor) -> List[torch.Tensor]:
         """
         Get the free parameters from the orthogonal orbitals. Returns ``params``
         and ``coeffs`` described in ``params2orb``.
