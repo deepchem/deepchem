@@ -489,7 +489,7 @@ def _traverse_obj(obj: Any,
     Examples
     --------
     >>> import torch
-    >>> from deepchem.utils.differentiation_utils.editable_module import _traverse_obj
+    >>> from deepchem.utils.differentiation_utils.editable_module import _traverse_obj, torch_float_type
     >>> class A:
     ...     def __init__(self):
     ...         self.a = 2
@@ -547,7 +547,7 @@ def _traverse_obj(obj: Any,
         name_format = "{prefix}{key}"
         objdicts = [obj.__dict__]
     elif hasattr(obj, "__iter__"):
-        generators = [obj.items() if isinstance(obj, dict) else enumerate(obj)]
+        generators = [obj.items()]
         name_format = "{prefix}[{key}]"
         objdicts = [obj]
     else:
