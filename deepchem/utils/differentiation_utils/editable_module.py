@@ -550,7 +550,7 @@ def _traverse_obj(obj: Any,
         if isinstance(obj, dict):
             generators = [obj.items()]
         else:
-            generators = [enumerate(obj)] # type: ignore[list-item]
+            generators = [enumerate(obj)]  # type: ignore[list-item]
         name_format = "{prefix}[{key}]"
         objdicts = [obj]
     else:
