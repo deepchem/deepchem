@@ -1,7 +1,7 @@
 """
 Density Functional Theory Data Structure Utilities
 """
-from typing import Union, TypeVar, Generic, Callable
+from typing import Union, TypeVar, Generic, Callable, Optional
 from dataclasses import dataclass
 
 import torch
@@ -84,9 +84,9 @@ class ValGrad:
 
     def __init__(self,
                  value: torch.Tensor,
-                 grad: torch.Tensor = None,
-                 lapl: torch.Tensor = None,
-                 kin: torch.Tensor = None):
+                 grad: Optional[torch.Tensor] = None,
+                 lapl: Optional[torch.Tensor] = None,
+                 kin: Optional[torch.Tensor] = None):
         """Initialize the ValGrad object.
 
         Parameters
