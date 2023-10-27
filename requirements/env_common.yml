@@ -6,7 +6,6 @@ dependencies:
   - openmm
   - mdtraj
   - pdbfixer
-  - pyscf # used by ferminet
   - pip
   - pip:
     - numpy
@@ -28,3 +27,5 @@ dependencies:
     - xgboost
     - gensim  # used by mol2vec
     - tensorboard
+  - conda-forge:
+    - pyscf # used by ferminet
