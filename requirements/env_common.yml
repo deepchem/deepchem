@@ -27,5 +27,4 @@ dependencies:
     - xgboost
     - gensim  # used by mol2vec
     - tensorboard
-  - conda-forge:
-    - pyscf # used by ferminet
+  - pyscf # used by ferminet
