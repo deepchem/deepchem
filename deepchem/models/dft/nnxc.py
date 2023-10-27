@@ -1,8 +1,8 @@
 from abc import abstractmethod
 from typing import Union, List
 import torch
-from deepchem.utils.dftutils import SpinParam
 try:
+    from deepchem.utils.dftutils import SpinParam
     from dqc.utils.datastruct import ValGrad
     from dqc.api.getxc import get_xc
     from dqc.xc.base_xc import BaseXC
