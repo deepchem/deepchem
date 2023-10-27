@@ -547,7 +547,10 @@ def _traverse_obj(obj: Any,
         name_format = "{prefix}{key}"
         objdicts = [obj.__dict__]
     elif hasattr(obj, "__iter__"):
-        generators = [obj.items()]
+        if isinstance(obj, dict):
+            generators = [obj.items()]
+        else:
+            generators = [enumerate(obj)] # type: ignore[list-item]
         name_format = "{prefix}[{key}]"
         objdicts = [obj]
     else:
