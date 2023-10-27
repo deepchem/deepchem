@@ -8,10 +8,13 @@ from typing import List, Dict, Optional
 import numpy as np
 
 # dqc dependencies
-import dqc
-from dqc.system.mol import Mol
-from dqc.system.base_system import BaseSystem
-from deepchem.utils.dftutils import KSCalc, BaseGrid
+try:
+    import dqc
+    from dqc.system.mol import Mol
+    from dqc.system.base_system import BaseSystem
+    from deepchem.utils.dftutils import KSCalc, BaseGrid
+except:
+    pass
 
 
 class DFTSystem():

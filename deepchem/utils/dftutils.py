@@ -7,10 +7,13 @@ except ModuleNotFoundError:
     pass
 
 import hashlib
-import xitorch as xt
 from dataclasses import dataclass
 from abc import abstractmethod, abstractproperty
 from typing import Union, List, TypeVar, Generic, Callable
+try:
+    import xitorch as xt
+except:
+    pass
 
 __all__ = ["SpinParam"]
 
