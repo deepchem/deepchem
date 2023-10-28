@@ -299,6 +299,9 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dftutils.SpinParam
   :members:
 
+.. autoclass:: deepchem.utils.dftutils.ValGrad
+  :members:
+
 .. autoclass:: deepchem.utils.dft_utils.config._Config
   :members:
 
