@@ -17,7 +17,6 @@ def test_get_attr():
 
 
 def test_set_attr():
-    from deepchem.utils.attribute_utils import set_attr
 
     class MyClass:
 
@@ -26,14 +25,13 @@ def test_set_attr():
             self.b = 2
 
     obj = MyClass()
-    set_attr(obj, "a", 3)
-    set_attr(obj, "c", 4)
+    utils.set_attr(obj, "a", 3)
+    utils.set_attr(obj, "c", 4)
     assert obj.a == 3
     assert obj.c == 4
 
 
 def test_del_attr():
-    from deepchem.utils.attribute_utils import del_attr
 
     class MyClass:
 
@@ -42,7 +40,7 @@ def test_del_attr():
             self.b = 2
 
     obj = MyClass()
-    del_attr(obj, "a")
+    utils.del_attr(obj, "a")
     alpha = 0
     try:
         obj.a

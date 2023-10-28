@@ -46,7 +46,7 @@ def set_attr(obj: object, name: str, val: object):
 
     Examples
     --------
-    >>> from deepchem.utils.attribute_utils import set_attr
+    >>> from deepchem.utils import set_attr
     >>> class MyClass:
     ...     def __init__(self):
     ...         self.a = 1
@@ -80,7 +80,7 @@ def del_attr(obj: Any, name: str):
 
     Examples
     --------
-    >>> from deepchem.utils.attribute_utils import del_attr
+    >>> from deepchem.utils import del_attr
     >>> class MyClass:
     ...     def __init__(self):
     ...         self.a = 1

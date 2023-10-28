@@ -10,12 +10,12 @@ except ModuleNotFoundError:
 
 @pytest.mark.torch
 def test_atomic_convolution_module():
-    from deepchem.models.torch_models.layers import AtomicConvolutionModule
+    from deepchem.models.torch_models.layers import AtomicConv
     f1_num_atoms = 100  # maximum number of atoms to consider in the ligand
     f2_num_atoms = 1000  # maximum number of atoms to consider in the protein
     max_num_neighbors = 12  # maximum number of spatial neighbors for an atom
 
-    acm = AtomicConvolutionModule(
+    acm = AtomicConv(
         n_tasks=1,
         frag1_num_atoms=f1_num_atoms,
         frag2_num_atoms=f2_num_atoms,
