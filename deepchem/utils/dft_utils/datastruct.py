@@ -1,18 +1,21 @@
 """
 Density Functional Theory Data Structure Utilities
 """
-from typing import Union, TypeVar, Generic, Callable, Optional
+from typing import Union, TypeVar, Generic, Callable, Optional, List
 from dataclasses import dataclass
-
+import numpy as np
 import torch
 
-__all__ = ["ZType"]
+__all__ = ["ZType", "AtomZsType", "AtomPosType", "SpinParam", "ValGrad"]
 
 T = TypeVar('T')
 P = TypeVar('P')
 
 # type of the atom Z
 ZType = Union[int, float, torch.Tensor]
+# input types
+AtomZsType = Union[List[str], List[ZType], torch.Tensor]
+AtomPosType = Union[List[List[float]], np.ndarray, torch.Tensor]
 
 
 @dataclass
@@ -48,7 +51,7 @@ class SpinParam(Generic[T]):
         """
         self.u = u
         self.d = d
-    
+
     def __repr__(self) -> str:
         """Return the string representation of the SpinParam object."""
         return f"SpinParam(u={self.u}, d={self.d})"
