@@ -246,6 +246,23 @@ class MatExpOrbParams(BaseOrbParams):
 
     @staticmethod
     def orb2params(orb: torch.Tensor) -> List[torch.Tensor]:
+        """
+        Get the free parameters from the orthogonal orbitals. Returns ``params``
+        and ``coeffs`` described in ``params2orb``.
+
+        Parameters
+        ----------
+        orb: torch.Tensor
+            The orthogonal orbitals.
+
+        Returns
+        -------
+        params: torch.Tensor
+            The free parameters to be optimized.
+        coeffs: torch.Tensor
+            The coefficients to get the orthogonal orbitals.
+
+        """
         # orb: (*, nao, norb)
         nao = orb.shape[-2]
         norb = orb.shape[-1]
