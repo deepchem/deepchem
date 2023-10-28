@@ -11,6 +11,8 @@ from deepchem.utils.dft_utils.config import config
 try:
     from deepchem.utils.dft_utils.hamilton.intor.lattice import Lattice
 
+    from deepchem.utils.dft_utils.xc.base_xc import BaseXC
+
     from deepchem.utils.dft_utils.datastruct import ZType
     from deepchem.utils.dft_utils.datastruct import SpinParam
     from deepchem.utils.dft_utils.datastruct import ValGrad

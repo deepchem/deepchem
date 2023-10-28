@@ -1,22 +1,25 @@
 from contextlib import contextmanager
-from abc import abstractmethod
+from abc import abstractmethod, abstractproperty
 import torch
-import xitorch as xt
+from deepchem.utils.differentiation_utils import EditableModule
 from typing import List, Union, overload, Iterator
 from dqc.utils.datastruct import ValGrad, SpinParam
 
 
-class BaseXC(xt.EditableModule):
+class BaseXC(EditableModule):
     """
     XC is class that calculates the components of xc potential and energy
     density given the density.
-    
+
     Examples
     --------
     >>> import torch
-    >>> from deepchem.utils.dft_utils.datastruct import ValGrad, SpinParam
-    >>> from deepchem.utils.dft_utils.xc.base_xc import BaseXC
+    >>> from deepchem.utils.dft_utils import ValGrad, SpinParam
+    >>> from deepchem.utils.dft_utils import BaseXC
     >>> class MyXC(BaseXC):
+    ...     @property
+    ...     def family(self) -> int:
+    ...         return 1
     ...     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
     ...         if isinstance(densinfo, ValGrad):
     ...             return densinfo.value.pow(2)
@@ -28,35 +31,25 @@ class BaseXC(xt.EditableModule):
     ...         else:
     ...             return SpinParam(u=ValGrad(value=2*densinfo.u.value),
     ...                              d=ValGrad(value=2*densinfo.d.value))
-    >>> xc = MyXC(family=1)
+    >>> xc = MyXC()
     >>> densinfo = ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True))
-    >>> edensity = xc.get_edensityxc(densinfo)
-    >>> print(edensity)
+    >>> xc.get_edensityxc(densinfo)
     tensor([1., 4., 9.], grad_fn=<PowBackward0>)
-    >>> vxc = xc.get_vxc(densinfo)
-    >>> print(vxc)
+    >>> xc.get_vxc(densinfo)
     ValGrad(value=tensor([2., 4., 6.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None)
     >>> densinfo = SpinParam(u=ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True)),
     ...                      d=ValGrad(value=torch.tensor([4., 5., 6.], requires_grad=True)))
-    >>> edensity = xc.get_edensityxc(densinfo)
-    >>> print(edensity)
+    >>> xc.get_edensityxc(densinfo)
     tensor([17., 29., 45.], grad_fn=<AddBackward0>)
-    >>> vxc = xc.get_vxc(densinfo)
-    >>> print(vxc)
+    >>> xc.get_vxc(densinfo)
     SpinParam(u=ValGrad(value=tensor([2., 4., 6.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None), d=ValGrad(value=tensor([ 8., 10., 12.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None))
-    
+
     """
 
-    def __init__(self, family) -> None:
-        """Initialize the XC object
-
-        Parameters
-        ----------
-        family : int
-            The family of the XC. 1 for LDA, 2 for GGA, and 4 for Meta-GGA.
-
-        """
-        self.family = family
+    @abstractproperty
+    def family(self) -> int:
+        """Returns 1 for LDA, 2 for GGA, and 4 for Meta-GGA."""
+        pass
 
     @abstractmethod
     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
@@ -117,7 +110,7 @@ class BaseXC(xt.EditableModule):
                                      d=ValGrad(value=dedn_d))
 
                 elif self.family == 2:  # GGA
-                    params = (densinfo.u.value, densinfo.d.value,
+                    params = (densinfo.u.value, densinfo.d.value, # type: ignore[assignment]
                               densinfo.u.grad, densinfo.d.grad)
                     dedn_u, dedn_d, dedg_u, dedg_d = torch.autograd.grad(
                         edensity,
@@ -129,7 +122,7 @@ class BaseXC(xt.EditableModule):
                                      d=ValGrad(value=dedn_d, grad=dedg_d))
 
                 elif self.family == 4:
-                    params = (densinfo.u.value, densinfo.d.value,
+                    params = (densinfo.u.value, densinfo.d.value, # type: ignore[assignment]
                               densinfo.u.grad, densinfo.d.grad, densinfo.u.lapl,
                               densinfo.d.lapl, densinfo.u.kin, densinfo.d.kin)
                     dedn_u, dedn_d, dedg_u, dedg_d, dedl_u, dedl_d, dedk_u, dedk_d = torch.autograd.grad(
@@ -200,14 +193,38 @@ class BaseXC(xt.EditableModule):
                         self.family)
 
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+        """
+        This method should list tensor names that affect the output of the
+        method with name indicated in ``methodname``.
+        If the ``methodname`` is not on the list in this function, it should
+        raise ``KeyError``.
+
+        Parameters
+        ---------
+        methodname: str
+            The name of the method of the class.
+        prefix: str
+            The prefix to be appended in front of the parameters name.
+            This usually contains the dots.
+
+        Returns
+        -------
+        List[str]
+            Sequence of name of parameters affecting the output of the method.
+
+        Raises
+        ------
+        KeyError
+            If the list in this function does not contain ``methodname``.
+
+        """
         if methodname == "get_vxc":
             return self.getparamnames("get_edensityxc", prefix=prefix)
         else:
             raise KeyError("Unknown methodname: %s" % methodname)
 
     @contextmanager
-    def _enable_grad_densinfo(
-            self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> Iterator:
+    def _enable_grad_densinfo(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> Iterator:
         # set the context where some elements (depends on xc family) in densinfo requires grad
 
         def _get_set_grad(vars: List[torch.Tensor]) -> List[bool]:
@@ -277,6 +294,60 @@ class BaseXC(xt.EditableModule):
 
 
 class AddBaseXC(BaseXC):
+    """Add two BaseXC together
+    
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.dft_utils.datastruct import ValGrad, SpinParam
+    >>> from deepchem.utils.dft_utils.xc.base_xc import BaseXC, AddBaseXC
+    >>> class MyXC(BaseXC):
+    ...     @property
+    ...     def family(self) -> int:
+    ...         return 1
+    ...     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
+    ...         if isinstance(densinfo, ValGrad):
+    ...             return densinfo.value.pow(2)
+    ...         else:
+    ...             return densinfo.u.value.pow(2) + densinfo.d.value.pow(2)
+    ...     def get_vxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> Union[ValGrad, SpinParam[ValGrad]]:
+    ...         if isinstance(densinfo, ValGrad):
+    ...             return ValGrad(value=2*densinfo.value)
+    ...         else:
+    ...             return SpinParam(u=ValGrad(value=2*densinfo.u.value),
+    ...                              d=ValGrad(value=2*densinfo.d.value))
+    >>> xc = MyXC()
+    >>> densinfo = ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True))
+    >>> edensity = xc.get_edensityxc(densinfo)
+    >>> print(edensity)
+    tensor([1., 4., 9.], grad_fn=<PowBackward0>)
+    >>> vxc = xc.get_vxc(densinfo)
+    >>> print(vxc)
+    ValGrad(value=tensor([2., 4., 6.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None)
+    >>> densinfo = SpinParam(u=ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True)),
+    ...                      d=ValGrad(value=torch.tensor([4., 5., 6.], requires_grad=True)))
+    >>> edensity = xc.get_edensityxc(densinfo)
+    >>> print(edensity)
+    tensor([17., 29., 45.], grad_fn=<AddBackward0>)
+    >>> vxc = xc.get_vxc(densinfo)
+    >>> print(vxc)
+    SpinParam(u=ValGrad(value=tensor([2., 4., 6.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None), d=ValGrad(value=tensor([ 8., 10., 12.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None))
+    >>> xc2 = AddBaseXC(xc, xc)
+    >>> edensity = xc2.get_edensityxc(densinfo)
+    >>> print(edensity)
+    tensor([34., 58., 90.], grad_fn=<AddBackward0>)
+    >>> vxc = xc2.get_vxc(densinfo)
+    >>> print(vxc)
+    SpinParam(u=ValGrad(value=tensor([ 4.,  8., 12.], grad_fn=<AddBackward0>), grad=None, lapl=None, kin=None), d=ValGrad(value=tensor([16., 20., 24.], grad_fn=<AddBackward0>), grad=None, lapl=None, kin=None))
+    >>> xc3 = xc + xc
+    >>> edensity = xc3.get_edensityxc(densinfo)
+    >>> print(edensity)
+    tensor([34., 58., 90.], grad_fn=<AddBackward0>)
+    >>> vxc = xc3.get_vxc(densinfo)
+    >>> print(vxc)
+    SpinParam(u=ValGrad(value=tensor([ 4.,  8., 12.], grad_fn=<AddBackward0>), grad=None, lapl=None, kin=None), d=ValGrad(value=tensor([16., 20., 24.], grad_fn=<AddBackward0>), grad=None, lapl=None, kin=None))
+
+    """
 
     def __init__(self, a: BaseXC, b: BaseXC) -> None:
         self.a = a
@@ -287,15 +358,7 @@ class AddBaseXC(BaseXC):
     def family(self):
         return self._family
 
-    @overload
-    def get_vxc(self, densinfo: ValGrad) -> ValGrad:
-        ...
-
-    @overload
-    def get_vxc(self, densinfo: SpinParam[ValGrad]) -> SpinParam[ValGrad]:
-        ...
-
-    def get_vxc(self, densinfo):
+    def get_vxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> Union[ValGrad, SpinParam[ValGrad]]:
         avxc = self.a.get_vxc(densinfo)
         bvxc = self.b.get_vxc(densinfo)
 
@@ -304,18 +367,97 @@ class AddBaseXC(BaseXC):
         else:
             return SpinParam(u=avxc.u + bvxc.u, d=avxc.d + bvxc.d)
 
-    def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> \
-            torch.Tensor:
+    def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
         return self.a.get_edensityxc(densinfo) + self.b.get_edensityxc(densinfo)
 
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
-        return self.a.getparamnames(methodname, prefix=prefix + "a.") + \
-            self.b.getparamnames(methodname, prefix=prefix + "b.")
+        """
+        This method should list tensor names that affect the output of the
+        method with name indicated in ``methodname``.
+        If the ``methodname`` is not on the list in this function, it should
+        raise ``KeyError``.
+
+        Parameters
+        ---------
+        methodname: str
+            The name of the method of the class.
+        prefix: str
+            The prefix to be appended in front of the parameters name.
+            This usually contains the dots.
+
+        Returns
+        -------
+        List[str]
+            Sequence of name of parameters affecting the output of the method.
+
+        Raises
+        ------
+        KeyError
+            If the list in this function does not contain ``methodname``.
+
+        """
+        return self.a.getparamnames(methodname, prefix=prefix + "a.") + self.b.getparamnames(methodname, prefix=prefix + "b.")
 
 
 class MulBaseXC(BaseXC):
+    """Multiply a BaseXC with a float or a tensor
+    
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.dft_utils.datastruct import ValGrad, SpinParam
+    >>> from deepchem.utils.dft_utils.xc.base_xc import BaseXC, MulBaseXC
+    >>> class MyXC(BaseXC):
+    ...     @property
+    ...     def family(self) -> int:
+    ...         return 1
+    ...     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
+    ...         if isinstance(densinfo, ValGrad):
+    ...             return densinfo.value.pow(2)
+    ...         else:
+    ...             return densinfo.u.value.pow(2) + densinfo.d.value.pow(2)
+    ...     def get_vxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> Union[ValGrad, SpinParam[ValGrad]]:
+    ...         if isinstance(densinfo, ValGrad):
+    ...             return ValGrad(value=2*densinfo.value)
+    ...         else:
+    ...             return SpinParam(u=ValGrad(value=2*densinfo.u.value),
+    ...                              d=ValGrad(value=2*densinfo.d.value))
+    >>> xc = MyXC()
+    >>> densinfo = ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True))
+    >>> xc.get_edensityxc(densinfo)
+    tensor([1., 4., 9.], grad_fn=<PowBackward0>)
+    >>> xc.get_vxc(densinfo)
+    ValGrad(value=tensor([2., 4., 6.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None)
+    >>> densinfo = SpinParam(u=ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True)),
+    ...                      d=ValGrad(value=torch.tensor([4., 5., 6.], requires_grad=True)))
+    >>> xc.get_edensityxc(densinfo)
+    tensor([17., 29., 45.], grad_fn=<AddBackward0>)
+    >>> xc.get_vxc(densinfo)
+    SpinParam(u=ValGrad(value=tensor([2., 4., 6.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None), d=ValGrad(value=tensor([ 8., 10., 12.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None))
+    >>> xc2 = MulBaseXC(xc, 2.)
+    >>> xc2.get_edensityxc(densinfo)
+    tensor([34., 58., 90.], grad_fn=<MulBackward0>)
+    >>> xc2.get_vxc(densinfo)
+    SpinParam(u=ValGrad(value=tensor([ 4.,  8., 12.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None), d=ValGrad(value=tensor([16., 20., 24.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None))
+    >>> xc3 = xc * 2.
+    >>> xc3.get_edensityxc(densinfo)
+    tensor([34., 58., 90.], grad_fn=<MulBackward0>)
+    >>> xc3.get_vxc(densinfo)
+    SpinParam(u=ValGrad(value=tensor([ 4.,  8., 12.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None), d=ValGrad(value=tensor([16., 20., 24.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None))
+
+    """
 
     def __init__(self, a: BaseXC, b: Union[float, torch.Tensor]) -> None:
+        """Initialize the MulBaseXC
+        
+        Parameters
+        ----------
+        a: BaseXC
+            BaseXC to be multiplied to.
+        b: Union[float, torch.Tensor]
+            float or tensor to be multiplied with.
+
+        """
         self.a = a
         self.b = b
         if isinstance(b, torch.Tensor):
@@ -326,15 +468,7 @@ class MulBaseXC(BaseXC):
     def family(self):
         return self.a.family
 
-    @overload
-    def get_vxc(self, densinfo: ValGrad) -> ValGrad:
-        ...
-
-    @overload
-    def get_vxc(self, densinfo: SpinParam[ValGrad]) -> SpinParam[ValGrad]:
-        ...
-
-    def get_vxc(self, densinfo):
+    def get_vxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> Union[ValGrad, SpinParam[ValGrad]]:
         avxc = self.a.get_vxc(densinfo)
 
         if isinstance(densinfo, ValGrad):
@@ -347,6 +481,7 @@ class MulBaseXC(BaseXC):
         return self.a.get_edensityxc(densinfo) * self.b
 
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+        
         params = self.a.getparamnames(methodname, prefix=prefix + "a.")
         if isinstance(self.b, torch.Tensor):
             params = params + [prefix + "b"]
