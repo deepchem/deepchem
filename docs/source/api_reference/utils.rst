@@ -302,6 +302,9 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.config._Config
   :members:
 
+.. autoclass:: deepchem.utils.differentiation_utils.editable_module.EditableModule
+  :members:
+
 Attribute Utilities
 -------------------
 
