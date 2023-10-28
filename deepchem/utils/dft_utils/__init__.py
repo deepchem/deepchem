@@ -15,7 +15,6 @@ try:
 
     from deepchem.utils.dft_utils.xc.base_xc import BaseXC
 
-    from deepchem.utils.dft_utils.datastruct import ZType
     from deepchem.utils.dft_utils.datastruct import SpinParam
     from deepchem.utils.dft_utils.datastruct import ValGrad
 except ModuleNotFoundError as e:
