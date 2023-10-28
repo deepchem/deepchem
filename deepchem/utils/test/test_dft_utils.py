@@ -36,6 +36,7 @@ def test_lattice():
     assert lattice.estimate_ewald_eta(1e-5) == 1.8
 
 
+@pytest.mark.torch
 def test_spin_param():
     """Test SpinParam object."""
     from deepchem.utils.dft_utils import SpinParam
@@ -49,6 +50,7 @@ def test_spin_param():
     assert torch.allclose(sp.reduce(torch.multiply), torch.tensor([0.]))
 
 
+@pytest.mark.torch
 def test_val_grad():
     """Test ValGrad object."""
     from deepchem.utils.dft_utils import ValGrad
@@ -76,6 +78,7 @@ def test_val_grad():
     assert torch.allclose(vg5.kin, torch.tensor([5.]))
 
 
+@pytest.mark.torch
 def test_parse_moldesc():
     """Tests Moldesc Parser."""
     from deepchem.utils.dft_utils import parse_moldesc
