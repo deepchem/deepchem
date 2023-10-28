@@ -48,6 +48,10 @@ class SpinParam(Generic[T]):
         """
         self.u = u
         self.d = d
+    
+    def __repr__(self) -> str:
+        """Return the string representation of the SpinParam object."""
+        return f"SpinParam(u={self.u}, d={self.d})"
 
     def sum(self):
         """Returns the sum of up and down parameters."""

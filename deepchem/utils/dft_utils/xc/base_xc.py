@@ -10,6 +10,41 @@ class BaseXC(xt.EditableModule):
     """
     XC is class that calculates the components of xc potential and energy
     density given the density.
+    
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.dft_utils.datastruct import ValGrad, SpinParam
+    >>> from deepchem.utils.dft_utils.xc.base_xc import BaseXC
+    >>> class MyXC(BaseXC):
+    ...     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
+    ...         if isinstance(densinfo, ValGrad):
+    ...             return densinfo.value.pow(2)
+    ...         else:
+    ...             return densinfo.u.value.pow(2) + densinfo.d.value.pow(2)
+    ...     def get_vxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> Union[ValGrad, SpinParam[ValGrad]]:
+    ...         if isinstance(densinfo, ValGrad):
+    ...             return ValGrad(value=2*densinfo.value)
+    ...         else:
+    ...             return SpinParam(u=ValGrad(value=2*densinfo.u.value),
+    ...                              d=ValGrad(value=2*densinfo.d.value))
+    >>> xc = MyXC(family=1)
+    >>> densinfo = ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True))
+    >>> edensity = xc.get_edensityxc(densinfo)
+    >>> print(edensity)
+    tensor([1., 4., 9.], grad_fn=<PowBackward0>)
+    >>> vxc = xc.get_vxc(densinfo)
+    >>> print(vxc)
+    ValGrad(value=tensor([2., 4., 6.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None)
+    >>> densinfo = SpinParam(u=ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True)),
+    ...                      d=ValGrad(value=torch.tensor([4., 5., 6.], requires_grad=True)))
+    >>> edensity = xc.get_edensityxc(densinfo)
+    >>> print(edensity)
+    tensor([17., 29., 45.], grad_fn=<AddBackward0>)
+    >>> vxc = xc.get_vxc(densinfo)
+    >>> print(vxc)
+    SpinParam(u=ValGrad(value=tensor([2., 4., 6.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None), d=ValGrad(value=tensor([ 8., 10., 12.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None))
+    
     """
 
     def __init__(self, family) -> None:
