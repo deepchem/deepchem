@@ -5,6 +5,7 @@ from typing import Union
 import numpy as np
 
 import torch
+from deepchem.utils.dft_utils import ZType
 
 ZType = Union[int, float, torch.Tensor]
 periodic_table_atomz = {

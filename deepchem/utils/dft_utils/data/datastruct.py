@@ -1,8 +1,9 @@
 """
 Density Functional Theory Data Structure Utilities
 """
-from typing import Union, TypeVar, Generic, Optional, Callable
+from typing import Union, TypeVar, Generic, Optional, Callable, List
 from dataclasses import dataclass
+import numpy as np
 import torch
 
 __all__ = ["ZType"]
@@ -12,6 +13,10 @@ P = TypeVar('P')
 
 # type of the atom Z
 ZType = Union[int, float, torch.Tensor]
+
+# input types
+AtomZsType = Union[List[str], List[ZType], torch.Tensor]
+AtomPosType = Union[List[List[float]], np.ndarray, torch.Tensor]
 
 
 @dataclass
