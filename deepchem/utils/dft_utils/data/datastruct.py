@@ -13,6 +13,7 @@ P = TypeVar('P')
 # type of the atom Z
 ZType = Union[int, float, torch.Tensor]
 
+
 @dataclass
 class SpinParam(Generic[T]):
     """Data structure to store different values for spin-up and spin-down electrons.
