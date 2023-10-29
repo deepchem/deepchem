@@ -5,7 +5,7 @@ from typing import Union
 import numpy as np
 
 import torch
-from deepchem.utils.dft_utils.datastruct import ZType
+from deepchem.utils.dft_utils import ZType
 
 periodic_table_atomz = {
     "H": 1,
