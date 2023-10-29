@@ -1,9 +1,9 @@
 """
 Density Functional Theory Data Structure Utilities
 """
+import numpy as np
 from typing import Union, TypeVar, Generic, Optional, Callable, List
 from dataclasses import dataclass
-import numpy as np
 import torch
 
 __all__ = ["ZType"]
