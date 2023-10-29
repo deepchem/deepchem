@@ -10,6 +10,7 @@ class BaseXC(EditableModule):
     """
     XC is class that calculates the components of xc potential and energy
     density given the density.
+
     Examples
     --------
     >>> import torch
@@ -64,6 +65,7 @@ class BaseXC(EditableModule):
             The ValGrad contains the value and gradient of the density.
             The SpinParam[ValGrad] contains the value and gradient of the density
             for each spin channel.
+
         Returns
         -------
         torch.Tensor
@@ -405,33 +407,25 @@ class AddBaseXC(BaseXC):
     ...                              d=ValGrad(value=2*densinfo.d.value))
     >>> xc = MyXC()
     >>> densinfo = ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True))
-    >>> edensity = xc.get_edensityxc(densinfo)
-    >>> print(edensity)
+    >>> xc.get_edensityxc(densinfo)
     tensor([1., 4., 9.], grad_fn=<PowBackward0>)
-    >>> vxc = xc.get_vxc(densinfo)
-    >>> print(vxc)
+    >>> xc.get_vxc(densinfo)
     ValGrad(value=tensor([2., 4., 6.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None)
     >>> densinfo = SpinParam(u=ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True)),
     ...                      d=ValGrad(value=torch.tensor([4., 5., 6.], requires_grad=True)))
-    >>> edensity = xc.get_edensityxc(densinfo)
-    >>> print(edensity)
+    >>> xc.get_edensityxc(densinfo)
     tensor([17., 29., 45.], grad_fn=<AddBackward0>)
-    >>> vxc = xc.get_vxc(densinfo)
-    >>> print(vxc)
+    >>> xc.get_vxc(densinfo)
     SpinParam(u=ValGrad(value=tensor([2., 4., 6.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None), d=ValGrad(value=tensor([ 8., 10., 12.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None))
     >>> xc2 = AddBaseXC(xc, xc)
-    >>> edensity = xc2.get_edensityxc(densinfo)
-    >>> print(edensity)
+    >>> xc2.get_edensityxc(densinfo)
     tensor([34., 58., 90.], grad_fn=<AddBackward0>)
-    >>> vxc = xc2.get_vxc(densinfo)
-    >>> print(vxc)
+    >>> xc2.get_vxc(densinfo)
     SpinParam(u=ValGrad(value=tensor([ 4.,  8., 12.], grad_fn=<AddBackward0>), grad=None, lapl=None, kin=None), d=ValGrad(value=tensor([16., 20., 24.], grad_fn=<AddBackward0>), grad=None, lapl=None, kin=None))
     >>> xc3 = xc + xc
-    >>> edensity = xc3.get_edensityxc(densinfo)
-    >>> print(edensity)
+    >>> xc3.get_edensityxc(densinfo)
     tensor([34., 58., 90.], grad_fn=<AddBackward0>)
-    >>> vxc = xc3.get_vxc(densinfo)
-    >>> print(vxc)
+    >>> xc3.get_vxc(densinfo)
     SpinParam(u=ValGrad(value=tensor([ 4.,  8., 12.], grad_fn=<AddBackward0>), grad=None, lapl=None, kin=None), d=ValGrad(value=tensor([16., 20., 24.], grad_fn=<AddBackward0>), grad=None, lapl=None, kin=None))
 
     """
@@ -505,6 +499,7 @@ class AddBaseXC(BaseXC):
             The ValGrad contains the value and gradient of the density.
             The SpinParam[ValGrad] contains the value and gradient of the density
             for each spin channel.
+
         Returns
         -------
         torch.Tensor
@@ -519,6 +514,7 @@ class AddBaseXC(BaseXC):
         method with name indicated in ``methodname``.
         If the ``methodname`` is not on the list in this function, it should
         raise ``KeyError``.
+
         Parameters
         ---------
         methodname: str
@@ -526,14 +522,17 @@ class AddBaseXC(BaseXC):
         prefix: str
             The prefix to be appended in front of the parameters name.
             This usually contains the dots.
+
         Returns
         -------
         List[str]
             Sequence of name of parameters affecting the output of the method.
+
         Raises
         ------
         KeyError
             If the list in this function does not contain ``methodname``.
+
         """
         return self.a.getparamnames(
             methodname, prefix=prefix + "a.") + self.b.getparamnames(
@@ -657,6 +656,7 @@ class MulBaseXC(BaseXC):
             The ValGrad contains the value and gradient of the density.
             The SpinParam[ValGrad] contains the value and gradient of the density
             for each spin channel.
+
         Returns
         -------
         torch.Tensor
