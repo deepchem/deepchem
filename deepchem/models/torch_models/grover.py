@@ -558,11 +558,13 @@ class GroverModel(ModularTorchModel):
         )
 
         atom_vocab_label = torch.Tensor(
-            self.atom_vocab_random_mask(self.atom_vocab,
-                                        smiles_batch)).long().to(self.device)
+            self.atom_vocab_random_mask(
+                self.atom_vocab,  # type: ignore
+                smiles_batch)).long().to(self.device)
         bond_vocab_label = torch.Tensor(
-            self.bond_vocab_random_mask(self.bond_vocab,
-                                        smiles_batch)).long().to(self.device)
+            self.bond_vocab_random_mask(
+                self.bond_vocab,  # type: ignore
+                smiles_batch)).long().to(self.device)
         labels = {
             "av_task": atom_vocab_label,
             "bv_task": bond_vocab_label,
