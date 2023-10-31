@@ -1,6 +1,7 @@
 from typing import Tuple
 import torch
 
+
 def normalize_bcast_dims(*shapes):
     """
     Normalize the lengths of the input shapes to have the same length.
@@ -26,6 +27,7 @@ def normalize_bcast_dims(*shapes):
     res = [[1] * (maxlens - len(shape)) + list(shape) for shape in shapes]
     return res
 
+
 def get_bcasted_dims(*shapes):
     """Return the broadcasted shape of the given shapes.
 
@@ -48,18 +50,20 @@ def get_bcasted_dims(*shapes):
     shapes = normalize_bcast_dims(*shapes)
     return [max(*a) for a in zip(*shapes)]
 
-def match_dim(*xs: torch.Tensor, contiguous: bool = False) -> Tuple[torch.Tensor, ...]:
+
+def match_dim(*xs: torch.Tensor,
+              contiguous: bool = False) -> Tuple[torch.Tensor, ...]:
     """match the N-1 dimensions of x and xq for searchsorted and gather with dim=-1
-    
+
     Examples
     --------
     >>> x = torch.randn(10, 5)
     >>> xq = torch.randn(10, 3)
     >>> x_new, xq_new = match_dim(x, xq)
     >>> x_new.shape
-    torch.Size([10, 3, 5])
+    torch.Size([10, 5])
     >>> xq_new.shape
-    torch.Size([10, 3, 5])
+    torch.Size([10, 3])
 
     """
     orig_shapes = tuple(x.shape[:-1] for x in xs)
