@@ -268,3 +268,25 @@ def test_set_tensor():
     _set_tensors(a, [torch.tensor(6.), torch.tensor(7.), torch.tensor(8.)])
     assert a.b == torch.tensor(6.)
     assert a.c == torch.tensor(7.)
+
+
+@pytest.mark.torch
+def test_normalize_bcast_dims():
+    from deepchem.utils.differentiation_utils import normalize_bcast_dims
+    assert normalize_bcast_dims([1, 2, 3], [2, 3]) == [[1, 2, 3], [1, 2, 3]]
+
+
+@pytest.mark.torch
+def test_get_bcasted_dims():
+    from deepchem.utils.differentiation_utils import get_bcasted_dims
+    assert get_bcasted_dims([1, 2, 5], [2, 3, 4]) == [2, 3, 5]
+
+
+@pytest.mark.torch
+def test_match_dim():
+    from deepchem.utils.differentiation_utils import match_dim
+    x = torch.randn(10, 5)
+    xq = torch.randn(10, 3)
+    x_new, xq_new = match_dim(x, xq)
+    assert x_new.shape == torch.Size([10, 5])
+    assert xq_new.shape == torch.Size([10, 3])
