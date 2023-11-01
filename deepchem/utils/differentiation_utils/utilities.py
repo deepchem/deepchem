@@ -2,6 +2,7 @@ from typing import Tuple
 import torch
 
 
+# Broadcast Utilities
 def normalize_bcast_dims(*shapes):
     """
     Normalize the lengths of the input shapes to have the same length.
