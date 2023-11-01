@@ -12,8 +12,8 @@ import numpy as np
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import train_test_split
 
-import xgboost
-import lightgbm
+from lightgbm import record_evaluation, early_stopping
+from xgboost.callback import EarlyStopping
 
 from deepchem.data import Dataset
 from deepchem.models.sklearn_models import SklearnModel
@@ -58,15 +58,16 @@ class GBDTModel(SklearnModel):
         self.early_stopping_rounds = early_stopping_rounds
         self.model_type = self._check_model_type()
 
-        if self.early_stopping_rounds<=0:
+        if self.early_stopping_rounds <= 0:
             raise ValueError("Early Stopping Rounds cannot be less than 1.")
 
         if self.model.__class__.__name__.startswith('XGB'):
-            self.callbacks = xgboost.callback.EarlyStopping(
-                rounds=self.early_stopping_rounds)
+            self.callbacks = EarlyStopping(rounds=self.early_stopping_rounds)
         elif self.model.__class__.__name__.startswith('LGBM'):
-            self.callbacks = [lightgbm.early_stopping(stopping_rounds=self.early_stopping_rounds),
-                              lightgbm.record_evaluation(self.eval_dict)]
+            self.callbacks = [
+                early_stopping(self.early_stopping_rounds),
+                record_evaluation(self.eval_dict)
+            ]
 
         if eval_metric is None:
             if self.model_type == 'classification':
@@ -120,12 +121,11 @@ class GBDTModel(SklearnModel):
                                                             test_size=0.2,
                                                             random_state=seed,
                                                             stratify=stratify)
-        self.model.fit(
-            X_train,
-            y_train,
-            callbacks=[self.callbacks],
-            eval_metric=self.eval_metric,
-            eval_set=[(X_test, y_test)])
+        self.model.fit(X_train,
+                       y_train,
+                       callbacks=[self.callbacks],
+                       eval_metric=self.eval_metric,
+                       eval_set=[(X_test, y_test)])
 
         # retrain model to whole data using best n_estimators * 1.25
         if self.model.__class__.__name__.startswith('XGB'):
@@ -143,8 +143,8 @@ class GBDTModel(SklearnModel):
                 total_rounds = len(results[i])
                 # If rounds ran are less than estimators, it means ES was triggered.
                 if total_rounds < self.model.n_estimators:
-                    assert best_val_idx+self.early_stopping_rounds == total_rounds
-        
+                    assert best_val_idx + self.early_stopping_rounds == total_rounds
+
         self.model.n_estimators = np.int64(estimated_best_round)
         self.model.fit(X, y, eval_metric=self.eval_metric)
 
@@ -166,12 +166,27 @@ class GBDTModel(SklearnModel):
         if len(y_train.shape) != 1 or len(y_valid.shape) != 1:
             raise ValueError("GDBT model doesn't support multi-output(task)")
 
-        self.model.fit(
-            X_train,
-            y_train,
-            callbacks=[self.callbacks],
-            eval_metric=self.eval_metric,
-            eval_set=[(X_valid, y_valid)])
+        self.model.fit(X_train,
+                       y_train,
+                       callbacks=[self.callbacks],
+                       eval_metric=self.eval_metric,
+                       eval_set=[(X_valid, y_valid)])
+
+        # retrain model to whole data using best n_estimators * 1.25
+        if self.model.__class__.__name__.startswith('XGB'):
+            results = list(self.model.evals_result_['validation_0'].values())
+        else:
+            results = list(self.model.eval_dict['valid_0'].values())
+
+        # If ES rounds are more than total epochs, it will never trigger.
+        if self.early_stopping_rounds < self.model.n_estimators:
+            # Loop in case we have multiple metrics
+            for i in range(len(results)):
+                best_val_idx = results[i].index(min(results[i])) + 1
+                total_rounds = len(results[i])
+                # If rounds ran are less than estimators, it means ES was triggered.
+                if total_rounds < self.model.n_estimators:
+                    assert best_val_idx + self.early_stopping_rounds == total_rounds
 
 
 #########################################
