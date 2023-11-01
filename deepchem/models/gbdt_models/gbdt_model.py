@@ -65,8 +65,8 @@ class GBDTModel(SklearnModel):
             self.callbacks = xgboost.callback.EarlyStopping(
                 rounds=self.early_stopping_rounds)
         elif self.model.__class__.__name__.startswith('LGBM'):
-            self.callbacks = lightgbm.early_stopping(
-                stopping_rounds=self.early_stopping_rounds)
+            self.callbacks = [lightgbm.early_stopping(stopping_rounds=self.early_stopping_rounds),
+                              lightgbm.record_evaluation(self.eval_dict)]
 
         if eval_metric is None:
             if self.model_type == 'classification':
@@ -129,11 +129,22 @@ class GBDTModel(SklearnModel):
 
         # retrain model to whole data using best n_estimators * 1.25
         if self.model.__class__.__name__.startswith('XGB'):
-            assert self.model.best_iteration<self.model.n_estimators
+            results = list(self.model.evals_result_['validation_0'].values())
             estimated_best_round = np.round(self.model.best_ntree_limit * 1.25)
         else:
-            assert self.model.best_iteration_<self.model.n_estimators
+            results = list(self.model.eval_dict['valid_0'].values())
             estimated_best_round = np.round(self.model.best_iteration_ * 1.25)
+
+        # If ES rounds are more than total epochs, it will never trigger.
+        if self.early_stopping_rounds < self.model.n_estimators:
+            # Loop in case we have multiple metrics
+            for i in range(len(results)):
+                best_val_idx = results[i].index(min(results[i])) + 1
+                total_rounds = len(results[i])
+                # If rounds ran are less than estimators, it means ES was triggered.
+                if total_rounds < self.model.n_estimators:
+                    assert best_val_idx+self.early_stopping_rounds == total_rounds
+        
         self.model.n_estimators = np.int64(estimated_best_round)
         self.model.fit(X, y, eval_metric=self.eval_metric)
 
