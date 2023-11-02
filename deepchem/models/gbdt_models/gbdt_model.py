@@ -54,6 +54,7 @@ class GBDTModel(SklearnModel):
         self.model_class = model.__class__
         self.early_stopping_rounds = early_stopping_rounds
         self.model_type = self._check_model_type()
+        self.eval_dict = dict()
 
         if self.early_stopping_rounds <= 0:
             raise ValueError("Early Stopping Rounds cannot be less than 1.")
@@ -61,7 +62,7 @@ class GBDTModel(SklearnModel):
         if self.model.__class__.__name__.startswith("XGB"):
             from xgboost.callback import EarlyStopping
 
-            self.callbacks = EarlyStopping(rounds=self.early_stopping_rounds)
+            self.callbacks = [EarlyStopping(rounds=self.early_stopping_rounds)]
 
         elif self.model.__class__.__name__.startswith("LGBM"):
             from lightgbm import record_evaluation, early_stopping
@@ -126,7 +127,7 @@ class GBDTModel(SklearnModel):
         self.model.fit(
             X_train,
             y_train,
-            callbacks=[self.callbacks],
+            callbacks=self.callbacks,
             eval_metric=self.eval_metric,
             eval_set=[(X_test, y_test)],
         )
