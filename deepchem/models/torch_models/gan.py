@@ -308,8 +308,8 @@ class GAN(nn.Module):
             weight_products = weight_products.view(
                 -1, self.n_generators * self.n_discriminators)
 
-            stacked_gen_loss = torch.stack(gen_losses, axis=0)
-            stacked_discrim_loss = torch.stack(discrim_losses, axis=0)
+            stacked_gen_loss = torch.stack(gen_losses, dim=0)
+            stacked_discrim_loss = torch.stack(discrim_losses, dim=0)
 
             total_gen_loss = torch.sum(stacked_gen_loss * weight_products)
             total_discrim_loss = torch.sum(stacked_discrim_loss *
