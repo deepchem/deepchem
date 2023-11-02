@@ -24,14 +24,12 @@ class GBDTModel(SklearnModel):
     This class supports LightGBM/XGBoost models.
     """
 
-    def __init__(
-        self,
-        model: BaseEstimator,
-        model_dir: Optional[str] = None,
-        early_stopping_rounds: int = 50,
-        eval_metric: Optional[Union[str, Callable]] = None,
-        **kwargs
-    ):
+    def __init__(self,
+                 model: BaseEstimator,
+                 model_dir: Optional[str] = None,
+                 early_stopping_rounds: int = 50,
+                 eval_metric: Optional[Union[str, Callable]] = None,
+                 **kwargs):
         """
         Parameters
         ----------
@@ -92,7 +90,8 @@ class GBDTModel(SklearnModel):
         elif class_name == "NoneType":
             return "none"
         else:
-            raise ValueError("{} is not a supported model instance.".format(class_name))
+            raise ValueError(
+                "{} is not a supported model instance.".format(class_name))
 
     def fit(self, dataset: Dataset):
         """Fits GDBT model with all data.
@@ -119,9 +118,11 @@ class GBDTModel(SklearnModel):
             stratify = y
 
         # Find optimal n_estimators based on original learning_rate and early_stopping_rounds
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=seed, stratify=stratify
-        )
+        X_train, X_test, y_train, y_test = train_test_split(X,
+                                                            y,
+                                                            test_size=0.2,
+                                                            random_state=seed,
+                                                            stratify=stratify)
         self.model.fit(
             X_train,
             y_train,
@@ -162,7 +163,8 @@ class GBDTModel(SklearnModel):
             The `Dataset` to validate this model on.
         """
         X_train, X_valid = train_dataset.X, valid_dataset.X
-        y_train, y_valid = np.squeeze(train_dataset.y), np.squeeze(valid_dataset.y)
+        y_train, y_valid = np.squeeze(train_dataset.y), np.squeeze(
+            valid_dataset.y)
 
         # GDBT doesn't support multi-output(task)
         if len(y_train.shape) != 1 or len(y_valid.shape) != 1:
@@ -199,6 +201,7 @@ class GBDTModel(SklearnModel):
 
 
 class XGBoostModel(GBDTModel):
+
     def __init__(self, *args, **kwargs):
         warnings.warn(
             "XGBoostModel is deprecated and has been renamed to GBDTModel.",
