@@ -12,9 +12,6 @@ import numpy as np
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import train_test_split
 
-from lightgbm import record_evaluation, early_stopping
-from xgboost.callback import EarlyStopping
-
 from deepchem.data import Dataset
 from deepchem.models.sklearn_models import SklearnModel
 
@@ -27,12 +24,14 @@ class GBDTModel(SklearnModel):
     This class supports LightGBM/XGBoost models.
     """
 
-    def __init__(self,
-                 model: BaseEstimator,
-                 model_dir: Optional[str] = None,
-                 early_stopping_rounds: int = 50,
-                 eval_metric: Optional[Union[str, Callable]] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        model: BaseEstimator,
+        model_dir: Optional[str] = None,
+        early_stopping_rounds: int = 50,
+        eval_metric: Optional[Union[str, Callable]] = None,
+        **kwargs
+    ):
         """
         Parameters
         ----------
@@ -61,19 +60,24 @@ class GBDTModel(SklearnModel):
         if self.early_stopping_rounds <= 0:
             raise ValueError("Early Stopping Rounds cannot be less than 1.")
 
-        if self.model.__class__.__name__.startswith('XGB'):
+        if self.model.__class__.__name__.startswith("XGB"):
+            from xgboost.callback import EarlyStopping
+
             self.callbacks = EarlyStopping(rounds=self.early_stopping_rounds)
-        elif self.model.__class__.__name__.startswith('LGBM'):
+
+        elif self.model.__class__.__name__.startswith("LGBM"):
+            from lightgbm import record_evaluation, early_stopping
+
             self.callbacks = [
                 early_stopping(self.early_stopping_rounds),
-                record_evaluation(self.eval_dict)
+                record_evaluation(self.eval_dict),
             ]
 
         if eval_metric is None:
-            if self.model_type == 'classification':
-                self.eval_metric: Optional[Union[str, Callable]] = 'auc'
-            elif self.model_type == 'regression':
-                self.eval_metric = 'mae'
+            if self.model_type == "classification":
+                self.eval_metric: Optional[Union[str, Callable]] = "auc"
+            elif self.model_type == "regression":
+                self.eval_metric = "mae"
             else:
                 self.eval_metric = eval_metric
         else:
@@ -81,15 +85,14 @@ class GBDTModel(SklearnModel):
 
     def _check_model_type(self) -> str:
         class_name = self.model.__class__.__name__
-        if class_name.endswith('Classifier'):
-            return 'classification'
-        elif class_name.endswith('Regressor'):
-            return 'regression'
-        elif class_name == 'NoneType':
-            return 'none'
+        if class_name.endswith("Classifier"):
+            return "classification"
+        elif class_name.endswith("Regressor"):
+            return "regression"
+        elif class_name == "NoneType":
+            return "none"
         else:
-            raise ValueError(
-                '{} is not a supported model instance.'.format(class_name))
+            raise ValueError("{} is not a supported model instance.".format(class_name))
 
     def fit(self, dataset: Dataset):
         """Fits GDBT model with all data.
@@ -112,27 +115,27 @@ class GBDTModel(SklearnModel):
 
         seed = self.model.random_state
         stratify = None
-        if self.model_type == 'classification':
+        if self.model_type == "classification":
             stratify = y
 
         # Find optimal n_estimators based on original learning_rate and early_stopping_rounds
-        X_train, X_test, y_train, y_test = train_test_split(X,
-                                                            y,
-                                                            test_size=0.2,
-                                                            random_state=seed,
-                                                            stratify=stratify)
-        self.model.fit(X_train,
-                       y_train,
-                       callbacks=[self.callbacks],
-                       eval_metric=self.eval_metric,
-                       eval_set=[(X_test, y_test)])
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=seed, stratify=stratify
+        )
+        self.model.fit(
+            X_train,
+            y_train,
+            callbacks=[self.callbacks],
+            eval_metric=self.eval_metric,
+            eval_set=[(X_test, y_test)],
+        )
 
         # retrain model to whole data using best n_estimators * 1.25
-        if self.model.__class__.__name__.startswith('XGB'):
-            results = list(self.model.evals_result_['validation_0'].values())
+        if self.model.__class__.__name__.startswith("XGB"):
+            results = list(self.model.evals_result_["validation_0"].values())
             estimated_best_round = np.round(self.model.best_ntree_limit * 1.25)
         else:
-            results = list(self.model.eval_dict['valid_0'].values())
+            results = list(self.model.eval_dict["valid_0"].values())
             estimated_best_round = np.round(self.model.best_iteration_ * 1.25)
 
         # If ES rounds are more than total epochs, it will never trigger.
@@ -159,24 +162,25 @@ class GBDTModel(SklearnModel):
             The `Dataset` to validate this model on.
         """
         X_train, X_valid = train_dataset.X, valid_dataset.X
-        y_train, y_valid = np.squeeze(train_dataset.y), np.squeeze(
-            valid_dataset.y)
+        y_train, y_valid = np.squeeze(train_dataset.y), np.squeeze(valid_dataset.y)
 
         # GDBT doesn't support multi-output(task)
         if len(y_train.shape) != 1 or len(y_valid.shape) != 1:
             raise ValueError("GDBT model doesn't support multi-output(task)")
 
-        self.model.fit(X_train,
-                       y_train,
-                       callbacks=[self.callbacks],
-                       eval_metric=self.eval_metric,
-                       eval_set=[(X_valid, y_valid)])
+        self.model.fit(
+            X_train,
+            y_train,
+            callbacks=[self.callbacks],
+            eval_metric=self.eval_metric,
+            eval_set=[(X_valid, y_valid)],
+        )
 
         # retrain model to whole data using best n_estimators * 1.25
-        if self.model.__class__.__name__.startswith('XGB'):
-            results = list(self.model.evals_result_['validation_0'].values())
+        if self.model.__class__.__name__.startswith("XGB"):
+            results = list(self.model.evals_result_["validation_0"].values())
         else:
-            results = list(self.model.eval_dict['valid_0'].values())
+            results = list(self.model.eval_dict["valid_0"].values())
 
         # If ES rounds are more than total epochs, it will never trigger.
         if self.early_stopping_rounds < self.model.n_estimators:
@@ -195,9 +199,9 @@ class GBDTModel(SklearnModel):
 
 
 class XGBoostModel(GBDTModel):
-
     def __init__(self, *args, **kwargs):
         warnings.warn(
             "XGBoostModel is deprecated and has been renamed to GBDTModel.",
-            FutureWarning)
+            FutureWarning,
+        )
         super(XGBoostModel, self).__init__(*args, **kwargs)
