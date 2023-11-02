@@ -11,7 +11,15 @@ from deepchem.utils.dft_utils.config import config
 try:
     from deepchem.utils.dft_utils.hamilton.intor.lattice import Lattice
 
-    from deepchem.utils.dft_utils.datastruct import ZType
+    from deepchem.utils.dft_utils.data.datastruct import ZType
+    from deepchem.utils.dft_utils.data.datastruct import AtomPosType
+    from deepchem.utils.dft_utils.data.datastruct import AtomZsType
+    from deepchem.utils.dft_utils.data.datastruct import SpinParam
+    from deepchem.utils.dft_utils.data.datastruct import ValGrad
+
+    from deepchem.utils.dft_utils.hamilton.orbparams import BaseOrbParams
+    from deepchem.utils.dft_utils.hamilton.orbparams import QROrbParams
+    from deepchem.utils.dft_utils.hamilton.orbparams import MatExpOrbParams
 
     from deepchem.utils.dft_utils.api.parser import parse_moldesc
 except ModuleNotFoundError as e:

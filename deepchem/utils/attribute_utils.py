@@ -17,7 +17,7 @@ def get_attr(obj: object, name: str):
 
     Examples
     --------
-    >>> from deepchem.utils import get_attr
+    >>> from deepchem.utils.attribute_utils import get_attr
     >>> class MyClass:
     ...     def __init__(self):
     ...         self.a = 1

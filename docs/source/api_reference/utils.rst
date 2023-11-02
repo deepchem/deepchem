@@ -285,6 +285,12 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.Lattice
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.SpinParam
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.ValGrad
+  :members:
+
 .. autoclass:: deepchem.utils.dftutils.KSCalc
   :members:
 
@@ -300,6 +306,15 @@ The utilites here are used to create an object that contains information about a
   :members:
 
 .. autoclass:: deepchem.utils.dft_utils.config._Config
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.BaseOrbParams
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.QROrbParams
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.MatExpOrbParams
   :members:
 
 .. autoclass:: deepchem.utils.dft_utils.api.parser.parse_moldesc

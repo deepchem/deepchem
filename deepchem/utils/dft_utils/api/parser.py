@@ -1,6 +1,6 @@
 from typing import Union, Tuple
 import torch
-from deepchem.utils.dft_utils.datastruct import AtomZsType, AtomPosType
+from deepchem.utils.dft_utils import AtomZsType, AtomPosType
 from deepchem.utils import get_atomz
 
 __all__ = ["parse_moldesc"]
