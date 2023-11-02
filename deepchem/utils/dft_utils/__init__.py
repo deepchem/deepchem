@@ -13,6 +13,10 @@ try:
 
     from deepchem.utils.dft_utils.datastruct import ZType
 
+    from deepchem.utils.dft_utils.hamilton.orbparams import BaseOrbParams
+    from deepchem.utils.dft_utils.hamilton.orbparams import QROrbParams
+    from deepchem.utils.dft_utils.hamilton.orbparams import MatExpOrbParams
+
     from deepchem.utils.dft_utils.api.parser import parse_moldesc
 except ModuleNotFoundError as e:
     logger_.warning(
