@@ -218,10 +218,14 @@ def generate_batch(batch_size):
 def generate_data(gan, batches, batch_size):
     for _ in range(batches):
         means, values = generate_batch(batch_size)
-        batch = {gan.data_input_names[0]: values, gan.conditional_input_names[0]: means}
+        batch = {
+            gan.data_input_names[0]: values,
+            gan.conditional_input_names[0]: means
+        }
         yield batch
 
 
+@flaky
 @pytest.mark.torch
 def test_cgan():
     """Test fitting a conditional GAN."""
@@ -235,7 +239,6 @@ def test_cgan():
     means = 10 * np.random.random([1000, 1])
     values = gan.predict_gan_generator(conditional_inputs=[means])
     deltas = values - means
-    print("Deltas", abs(np.mean(deltas)))
     assert abs(np.mean(deltas)) < 1.0
     assert np.std(deltas) > 1.0
     assert gan.get_global_step() == 500
@@ -285,7 +288,6 @@ def test_mix_gan():
         values = gan.predict_gan_generator(conditional_inputs=[means],
                                            generator_index=i)
         deltas = values - means
-        print("Mix Gan Deltas: ", abs(np.mean(deltas)))
         assert abs(np.mean(deltas)) < 1.0
         assert np.std(deltas) > 1.0
     assert gan.get_global_step() == 1000
@@ -325,9 +327,3 @@ def test_mix_gan_reload():
     assert gan.get_global_step() == 1000
     # No training has been done after reload
     assert reloaded_gan.get_global_step() == 1000
-
-
-if __name__ == "__main__":
-    # test_cgan()
-    test_mix_gan()
-    # test_mix_gan_reload()

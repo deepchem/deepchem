@@ -1,7 +1,10 @@
 """Generative Adversarial Networks."""
 import numpy as np
-import torch
-import torch.nn as nn
+try:
+    import torch
+    import torch.nn as nn
+except ModuleNotFoundError:
+    raise ImportError('These classes require PyTorch to be installed.')
 import time
 from typing import Callable
 from deepchem.models.torch_models.torch_model import TorchModel
@@ -419,7 +422,7 @@ class GAN(nn.Module):
 
     def discrim_loss_fn_wrapper(self, outputs: list, labels: torch.Tensor,
                                 weights: torch.Tensor):
-        """Wrapper around create_discriminator_loss for use with fit_generator.
+        """Wrapper to get the discriminator loss from the fit_generator output
 
         Parameters
         ----------
@@ -433,11 +436,10 @@ class GAN(nn.Module):
 
         Returns
         -------
-        the value of the discriminator loss function for this input.
+        the value of the discriminator loss from the fit_generator output.
         """
         discrim_output_train, discrim_output_gen = outputs
-        return self.create_discriminator_loss(discrim_output_train,
-                                              discrim_output_gen)
+        return discrim_output_gen
 
     def gen_loss_fn_wrapper(self, outputs: list, labels: torch.Tensor,
                             weights: torch.Tensor):
@@ -675,28 +677,10 @@ class GANModel(TorchModel):
 
             inputs = [self.get_noise_batch(self.batch_size)]
 
-            # temp_data = []
-            # for shape in self.get_data_input_shapes():
-            #     temp_data.append(
-            #         torch.randn(size=[self.batch_size] + list(shape[1:])))
-
-            # temp_cond = []
-            # for shape in self.get_conditional_input_shapes():
-            #     temp_cond.append(
-            #         torch.randn(size=[self.batch_size] + list(shape[1:])))
-            # temp_data = torch.randn(self.get_data_input_shapes()[0])
-            # inputs=(temp_noise,temp_data,temp_cond)
-            # print("\n\n\ninputs OG:", inputs)
-            # inputs += [*temp_data, *temp_cond]
-
-            # # Torch Tensor Hashing Issue here
-            # print("feed_dict: ", feed_dict.keys())
             for input in self.data_input_names:
-                # print("Input: ", input.shape)
                 inputs.append(feed_dict[input])
             for input in self.conditional_input_names:
                 inputs.append(feed_dict[input])
-            # print([i.shape for i in inputs])
             discrim_error += self.fit_generator(
                 [(inputs, [], [])],
                 variables=self.discrim_variables,
