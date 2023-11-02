@@ -229,7 +229,7 @@ class GAN(nn.Module):
             self.discriminators.append(discriminator)
             self.discrim_variables += list(discriminator.parameters())
 
-    def forward(self, inputs) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, inputs):
         """Compute the output of the GAN.
 
         Parameters
