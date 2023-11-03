@@ -35,7 +35,10 @@ class RxnFeaturizer(Featurizer):
         - False - Mix the reactants and reagents
     """
 
-    def __init__(self, tokenizer: RobertaTokenizerFast, sep_reagent: bool):
+    def __init__(self,
+                 tokenizer: RobertaTokenizerFast,
+                 sep_reagent: bool,
+                 max_length: int = 100):
         """Initialize a ReactionFeaturizer object.
 
         Parameters
@@ -44,6 +47,8 @@ class RxnFeaturizer(Featurizer):
             HuggingFace Tokenizer to be used for featurization.
         sep_reagent: bool
             Toggle to separate or mix the reactants and reagents.
+        max_length: int, default 100
+            Maximum length of padding
         """
         if not isinstance(tokenizer, RobertaTokenizerFast):
             raise TypeError(
@@ -52,6 +57,7 @@ class RxnFeaturizer(Featurizer):
         else:
             self.tokenizer = tokenizer
         self.sep_reagent = sep_reagent
+        self.max_length = max_length
 
     def _featurize(self, datapoint: str, **kwargs) -> List[List[List[int]]]:
         """Featurizes a datapoint.
@@ -87,15 +93,26 @@ class RxnFeaturizer(Featurizer):
             ]
         target = product
 
-        source_encoding = list(
-            self.tokenizer(source, padding=True, **kwargs).values())
-        target_encoding = list(
-            self.tokenizer(target, padding=True, **kwargs).values())
-
+        source_encoding = np.asarray(
+            list(
+                self.tokenizer(source,
+                               padding='max_length',
+                               truncation=True,
+                               max_length=self.max_length,
+                               **kwargs).values()))
+        target_encoding = np.asarray(
+            list(
+                self.tokenizer(target,
+                               padding='max_length',
+                               truncation=True,
+                               max_length=self.max_length,
+                               **kwargs).values()))
         return [source_encoding, target_encoding]
 
     def __call__(self, *args, **kwargs) -> np.ndarray:
-        return self.featurize(*args, **kwargs)
+        features = self.featurize(*args, **kwargs)
+        print(type(features), len(features))
+        return features
 
     def __str__(self) -> str:
         """Handles file name error.
