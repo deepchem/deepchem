@@ -898,6 +898,7 @@ class TorchModel(Model):
                 grad_output.zero_()
                 grad_output[i] = 1
                 output.backward(grad_output, retain_graph=True)
+                assert isinstance(X_tensor.grad, torch.Tensor)
                 result.append(X_tensor.grad.clone())
                 X_tensor.grad.zero_()
             final_result.append(
