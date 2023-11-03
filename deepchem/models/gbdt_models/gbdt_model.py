@@ -63,7 +63,6 @@ class GBDTModel(SklearnModel):
         self.model_class = model.__class__
         self.early_stopping_rounds = early_stopping_rounds
         self.model_type = self._check_model_type()
-        self.eval_dict = dict()
 
         if self.early_stopping_rounds <= 0:
             raise ValueError("Early Stopping Rounds cannot be less than 1.")
@@ -77,7 +76,6 @@ class GBDTModel(SklearnModel):
             self.callbacks = [
                 lightgbm.early_stopping(
                     stopping_rounds=self.early_stopping_rounds),
-                lightgbm.record_evaluation(self.eval_dict)
             ]
 
         if eval_metric is None:
@@ -142,23 +140,10 @@ class GBDTModel(SklearnModel):
 
         # retrain model to whole data using best n_estimators * 1.25
         if self.model.__class__.__name__.startswith('XGB'):
-            res = list(self.model.evals_result_['validation_0'].values())
             estimated_best_round = np.round(
                 (self.model.best_iteration + 1) * 1.25)
         else:
-            res = list(self.eval_dict['valid_0'].values())
             estimated_best_round = np.round(self.model.best_iteration_ * 1.25)
-
-        # If ES rounds are more than total epochs, it will never trigger.
-        if self.early_stopping_rounds < self.model.n_estimators:
-            # Check the number of boosting rounds
-            rounds_ran = len(res[0])
-            # If rounds ran are less than estimators, it means ES was triggered.
-            if rounds_ran < self.model.n_estimators:
-                if self.model.__class__.__name__.startswith('XGB'):
-                    assert self.model.best_iteration < self.model.n_estimators - 1
-                else:
-                    assert self.model.best_iteration_ < self.model.n_estimators
 
         self.model.n_estimators = np.int64(estimated_best_round)
         self.model.fit(X, y, eval_metric=self.eval_metric)
@@ -184,27 +169,10 @@ class GBDTModel(SklearnModel):
         self.model.fit(
             X_train,
             y_train,
-            callbacks=[self.callbacks],
+            callbacks=self.callbacks,
             eval_metric=self.eval_metric,
             eval_set=[(X_valid, y_valid)],
         )
-
-        if self.model.__class__.__name__.startswith('XGB'):
-            res = list(self.model.evals_result_['validation_0'].values())
-        else:
-            res = list(self.eval_dict['valid_0'].values())
-            assert self.model.best_iteration_ < self.model.n_estimators
-
-        # If ES rounds are more than total epochs, it will never trigger.
-        if self.early_stopping_rounds < self.model.n_estimators:
-            # Check the number of boosting rounds
-            rounds_ran = len(res[0])
-            # If rounds ran are less than estimators, it means ES was triggered.
-            if rounds_ran < self.model.n_estimators:
-                if self.model.__class__.__name__.startswith('XGB'):
-                    assert self.model.best_iteration < self.model.n_estimators - 1
-                else:
-                    assert self.model.best_iteration_ < self.model.n_estimators
 
 
 #########################################

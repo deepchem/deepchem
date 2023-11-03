@@ -293,3 +293,61 @@ def test_reload_with_lightgbm():
     # eval model on test
     scores = reloaded_model.evaluate(test_dataset, [regression_metric])
     assert scores[regression_metric.name] < 55
+
+
+@unittest.skipIf(not has_xgboost_and_lightgbm,
+                 'xgboost or lightgbm are not installed')
+def test_earlystopping_with_xgboost():
+    np.random.seed(123)
+
+    # prepare dataset
+    N_samples = 50000
+    n_features = 1000
+    X = np.random.rand(N_samples, n_features)
+    y = np.random.rand(N_samples)
+    dataset = dc.data.NumpyDataset(X, y)
+
+    # xgboost test
+    xgb_model = xgboost.XGBRegressor(n_estimators=20, random_state=123)
+    model = dc.models.GBDTModel(xgb_model, early_stopping_rounds=3)
+    # fit trained model
+    model.fit(dataset)
+
+    # If ES rounds are more than total epochs, it will never trigger.
+    if model.early_stopping_rounds < model.model.n_estimators:
+        # Check the number of boosting rounds
+        res = list(model.model.evals_result_['validation_0'].values())
+        rounds_boosted = len(res[0])
+        # If rounds boosted are less than total estimators, it means ES was triggered.
+        if rounds_boosted < model.model.n_estimators:
+            assert model.model.best_iteration < model.model.n_estimators - 1
+
+
+@unittest.skipIf(not has_xgboost_and_lightgbm,
+                 'xgboost or lightgbm are not installed')
+def test_earlystopping_with_lightgbm():
+    np.random.seed(123)
+
+    # prepare dataset
+    N_samples = 50000
+    n_features = 1000
+    X = np.random.rand(N_samples, n_features)
+    y = np.random.rand(N_samples)
+    dataset = dc.data.NumpyDataset(X, y)
+
+    # lightgbm test
+    lgbm_model = lightgbm.LGBMRegressor(n_estimators=20,
+                                        random_state=123,
+                                        silent=True)
+    model = dc.models.GBDTModel(lgbm_model, early_stopping_rounds=3)
+    # fit trained model
+    model.fit(dataset)
+
+    # If ES rounds are more than total epochs, it will never trigger.
+    if model.early_stopping_rounds < model.model.n_estimators:
+        # Check the number of boosting rounds
+        res = list(model.model.evals_result_['valid_0'].values())
+        rounds_ran = len(res[0])
+        # If rounds ran are less than estimators, it means ES was triggered.
+        if rounds_ran < model.model.n_estimators:
+            assert model.model.best_iteration_ < model.model.n_estimators
