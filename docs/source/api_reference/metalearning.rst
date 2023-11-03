@@ -19,3 +19,16 @@ MAML
 
 .. autoclass:: deepchem.metalearning.MAML
   :members:
+
+Torch MetaLearner
+-----------
+This is the abstract superclass for metalearning algorithms.
+
+.. autoclass:: deepchem.metalearning.TorchMetaLearner
+  :members:
+
+ Torch MAML
+----
+
+.. autoclass:: deepchem.metalearning.TorchMAML
+  :members:
