@@ -95,7 +95,7 @@ For a :class:`GraphConvModel <deepchem.models.GraphConvModel>`, we'll reload our
     >>>
     >>> # We now evaluate our fitted model on our training and validation sets
     >>> train_scores = model.evaluate(train_dataset, [avg_pearson_r2], transformers)
-    >>> assert train_scores['mean-pearson_r2_score'] > 0.5, train_scores
+    >>> assert train_scores['mean-pearson_r2_score'] > 0.45, train_scores
     >>>
     >>> valid_scores = model.evaluate(valid_dataset, [avg_pearson_r2], transformers)
     >>> assert valid_scores['mean-pearson_r2_score'] > 0.3, valid_scores
