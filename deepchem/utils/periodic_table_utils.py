@@ -5,8 +5,8 @@ from typing import Union
 import numpy as np
 
 import torch
-from deepchem.utils.dft_utils.datastruct import ZType
 
+ZType = Union[int, float, torch.Tensor]
 periodic_table_atomz = {
     "H": 1,
     "He": 2,
@@ -160,7 +160,7 @@ def get_atomz(element: Union[str, ZType]) -> ZType:
 
     Examples
     --------
-    >>> from deepchem.utils.periodictable_utils import get_atomz
+    >>> from deepchem.utils import get_atomz
     >>> element_symbol = "Al" # Aluminium
     >>> get_atomz(element_symbol)
     13
@@ -208,7 +208,7 @@ def get_atom_mass(atom_z: int) -> float:
 
     Examples
     --------
-    >>> from deepchem.utils.periodictable_utils import get_atom_mass
+    >>> from deepchem.utils import get_atom_mass
     >>> atom_number = 13
     >>> get_atom_mass(atom_number)
     49184.33860618758
@@ -244,7 +244,7 @@ def get_period(atom_z: int) -> int:
 
     Examples
     --------
-    >>> from deepchem.utils.periodictable_utils import get_period
+    >>> from deepchem.utils import get_period
     >>> atom_number = 13
     >>> get_period(atom_number)
     3
