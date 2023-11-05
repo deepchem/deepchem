@@ -1,5 +1,6 @@
 dependencies:
   - pip:
+    - -f https://storage.googleapis.com/jax-releases/jax_releases.html
     - jax[cpu]<0.3.25
     # 0.3.25 contains breaking change not compatible with haiku
     # https://github.com/deepmind/dm-haiku/issues/565
