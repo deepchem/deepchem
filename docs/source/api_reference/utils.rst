@@ -326,6 +326,12 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.differentiation_utils.editable_module.EditableModule
   :members:
 
+.. autofunction:: deepchem.utils.differentiation_utils.normalize_bcast_dims
+
+.. autofunction:: deepchem.utils.differentiation_utils.get_bcasted_dims
+
+.. autofunction:: deepchem.utils.differentiation_utils.match_dim
+
 Attribute Utilities
 -------------------
 

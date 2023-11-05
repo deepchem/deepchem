@@ -280,8 +280,10 @@ class CNNModule(nn.Module):
             PoolLayer = (F.avg_pool1d, F.avg_pool2d,
                          F.avg_pool3d)[self.dims - 1]
         elif pool_type == 'max':
-            PoolLayer = (F.max_pool1d, F.max_pool2d,
-                         F.max_pool3d)[self.dims - 1]
+            PoolLayer = (
+                F.max_pool1d,
+                F.max_pool2d,  # type: ignore
+                F.max_pool3d)[self.dims - 1]
         else:
             raise ValueError("pool_type must be either 'average' or 'max'")
 
