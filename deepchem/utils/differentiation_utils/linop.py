@@ -136,7 +136,23 @@ class LinearOperator(EditableModule):
                  dtype: Optional[torch.dtype] = None,
                  device: Optional[torch.device] = None,
                  _suppress_hermit_warning: bool = False) -> None:
-        """Initialize the ``LinearOperator``."""
+        """Initialize the ``LinearOperator``.
+
+        Parameters
+        ----------
+        shape : Sequence[int]
+            The shape of the linear operator.
+        is_hermitian : bool
+            Whether the linear operator is Hermitian.
+        dtype : torch.dtype or None
+            The dtype of the linear operator.
+        device : torch.device or None
+            The device of the linear operator.
+        _suppress_hermit_warning : bool
+            Whether to suppress the warning when the linear operator is
+            Hermitian but the ``.rmv()`` or ``.rmm()`` is implemented.
+
+        """
 
         super(LinearOperator, self).__init__()
         if len(shape) < 2:
@@ -280,15 +296,17 @@ class LinearOperator(EditableModule):
 
     # @abstractmethod
     def _fullmatrix(self) -> torch.Tensor:
+        """Return the full matrix representation of the linear operator."""
         raise NotImplementedError()
 
-    # linear operators must have a set of parameters that affects most of
-    # the methods (i.e. mm, mv, rmm, rmv)
     def getlinopparams(self) -> Sequence[torch.Tensor]:
+        """Get the parameters that affects most of the methods (i.e. mm, mv, rmm, rmv)."""
         return self.getuniqueparams("mm")
 
     @contextmanager
     def uselinopparams(self, *params):
+        """Context manager to temporarily set the parameters that affects most of
+        the methods (i.e. mm, mv, rmm, rmv)."""
         methodname = "mm"
         try:
             _orig_params_ = self.getuniqueparams(methodname)
@@ -702,4 +720,18 @@ def checklinop(linop: LinearOperator) -> None:
 
 
 def _shape2str(shape):
+    """Convert the shape to string representation.
+    It also nicely formats the shape to be readable.
+
+    Parameters
+    ----------
+    shape: Sequence[int]
+        The shape to be converted to string representation.
+
+    Returns
+    -------
+    str
+        The string representation of the shape.
+
+    """
     return "(%s)" % (", ".join([str(s) for s in shape]))
