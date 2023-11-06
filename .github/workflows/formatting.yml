@@ -52,7 +52,7 @@ jobs:
         cp requirements/env.yml env.yml
 
     - name: Install all dependencies using micromamba
-      uses: mamba-org/provision-with-micromamba@main
+      uses: mamba-org/setup-micromamba@main
       with:
         environment-file: env.yml
         environment-name: deepchem

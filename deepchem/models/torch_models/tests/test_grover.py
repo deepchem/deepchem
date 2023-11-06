@@ -37,10 +37,11 @@ def test_bond_vocab_random_mask():
 
 
 @pytest.mark.torch
-def testGroverPretrain(grover_graph_attributes):
+def testGroverPretrain(grover_batched_graph):
     from deepchem.models.torch_models.grover import GroverPretrain
     from deepchem.models.torch_models.grover_layers import GroverEmbedding, GroverAtomVocabPredictor, GroverBondVocabPredictor, GroverFunctionalGroupPredictor
-    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, _ = grover_graph_attributes
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _ = grover_batched_graph.get_components(
+    )
     components = {}
     components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1],
                                               edge_fdim=f_bonds.shape[1])
@@ -73,13 +74,15 @@ def testGroverPretrain(grover_graph_attributes):
 
 
 @pytest.mark.torch
-def test_grover_finetune_regression(grover_graph_attributes):
+def test_grover_finetune_regression(grover_batched_graph):
     import torch.nn as nn
     from deepchem.models.torch_models.grover_layers import GroverEmbedding
     from deepchem.models.torch_models.readout import GroverReadout
     from deepchem.models.torch_models.grover import GroverFinetune
 
-    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels, additional_features = grover_graph_attributes
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels = grover_batched_graph.get_components(
+    )
+    additional_features = grover_batched_graph.additional_features
     inputs = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
     components = {}
     components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1],
@@ -96,13 +99,15 @@ def test_grover_finetune_regression(grover_graph_attributes):
 
 
 @pytest.mark.torch
-def test_grover_finetune_classification(grover_graph_attributes):
+def test_grover_finetune_classification(grover_batched_graph):
     import torch.nn as nn
     from deepchem.models.torch_models.grover_layers import GroverEmbedding
     from deepchem.models.torch_models.readout import GroverReadout
     from deepchem.models.torch_models.grover import GroverFinetune
 
-    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels, additional_features = grover_graph_attributes
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels = grover_batched_graph.get_components(
+    )
+    additional_features = grover_batched_graph.additional_features
     inputs = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
     components = {}
     components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1],

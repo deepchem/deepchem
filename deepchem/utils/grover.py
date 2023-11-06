@@ -1,12 +1,138 @@
 import numpy as np
 from typing import List, Any
 from numpy.typing import ArrayLike
-from deepchem.feat.graph_data import BatchGraphData
+from deepchem.feat.graph_data import BatchGraphData, GraphData
 
 try:
     import torch
 except ModuleNotFoundError:
     pass
+
+from deepchem.feat.molecule_featurizers.dmpnn_featurizer import GraphConvConstants
+
+
+class BatchGroverGraph:
+    """Utility to batch graphs featurized by GroverFeaturizer
+
+    GraphData created by created GroverFeaturizer has pre-computed attributes
+    which needs to be aggregated before passing to the Grover model. This
+    class batches graph by taking into account the pre-computed and additional
+    attributes and returns a batched graph which can be passed to the Grover
+    model.
+
+    The batching method takes in a dc.feat.GraphData object created by
+    GroverFeaturizer. New node indices and edge indices are
+    computed by stacking the adjacency matrices of the graphs diagonally
+    into a joint single adjacency matrix. On the new adjacency matrix,
+    the method compute additional features like atom-to-bond indexes
+    and bond-to-atom indexes. The rest of the features are computed by stacking
+    the attributes as in dc.feat.BatchGraphData.
+
+
+    Parameters
+    ----------
+    molgraph: List[GraphData]
+        A list of GraphData objects created by GroverFeaturizer
+
+    Example
+    -------
+    >>> import deepchem as dc
+    >>> smiles = ['CC', 'CCC', 'CC(=O)C']
+    >>> featurizer = dc.feat.GroverFeaturizer(features_generator=dc.feat.CircularFingerprint())
+    >>> graphs = featurizer.featurize(smiles)
+    >>> batched_graph = BatchGroverGraph(graphs)
+    """
+
+    def __init__(self, mol_graphs: List[GraphData]):
+        self.smiles_batch = []
+        self.n_mols = len(mol_graphs)
+
+        self.atom_fdim = GraphConvConstants.ATOM_FDIM + 18
+        self.bond_fdim = GraphConvConstants.BOND_FDIM + self.atom_fdim
+
+        self.n_atoms = 0
+        self.n_bonds = 0
+        a_scope = [
+        ]  # list of tuples indicating (start_atom_index, num_atoms) for each molecule
+        b_scope = [
+        ]  # list of tuples indicating (start_bond_index, num_bonds) for each molecule
+
+        f_atoms: List[ArrayLike] = []  # atom features
+        f_bonds: List[ArrayLike] = []  # combined atom/bond features
+        a2b: Any = [[]]  # mapping from atom index to incoming bond indices
+        b2a = [
+        ]  # mapping from bond index to the index of the atom the bond is coming from
+        b2revb = []  # mapping from bond index to the index of the reverse bond
+
+        fg_labels = []
+        additional_features = []
+
+        # NOTE We have lot of type ignores here since grover mol-graph which is of type
+        # GraphData have kwargs which are not attributes of GraphData. Hence, in these
+        # cases mypy raises GraphData does not have attributes `..`.
+        for mol_graph in mol_graphs:
+            self.smiles_batch.append(mol_graph.smiles)  # type: ignore
+            fg_labels.append(mol_graph.fg_labels)  # type: ignore
+            additional_features.append(
+                mol_graph.additional_features)  # type: ignore
+            f_atoms.extend(mol_graph.node_features)
+            f_bonds.extend(mol_graph.edge_features)  # type: ignore
+
+            for a in range(mol_graph.n_atoms):  # type: ignore
+                a2b.append([
+                    b + self.n_bonds for b in mol_graph.a2b[a]  # type: ignore
+                ])  # type: ignore
+
+            for b in range(mol_graph.n_bonds):  # type: ignore
+                b2a.append(self.n_atoms + mol_graph.b2a[b])  # type: ignore
+                b2revb.append(self.n_bonds +
+                              mol_graph.b2revb[b])  # type: ignore
+
+            a_scope.append((self.n_atoms, mol_graph.n_atoms))  # type: ignore
+            b_scope.append((self.n_bonds, mol_graph.n_bonds))  # type: ignore
+            self.n_atoms += mol_graph.n_atoms  # type: ignore
+            self.n_bonds += mol_graph.n_bonds  # type: ignore
+
+        # max with 1 to fix a crash in rare case of all single-heavy-atom mols
+        self.max_num_bonds = max(1, max(len(in_bonds) for in_bonds in a2b))
+
+        self.f_atoms = torch.FloatTensor(np.asarray(f_atoms))
+        self.f_bonds = torch.FloatTensor(np.asarray(f_bonds))
+        self.a2b = torch.LongTensor(
+            np.asarray([
+                a2b[a] + [0] * (self.max_num_bonds - len(a2b[a]))
+                for a in range(self.n_atoms)
+            ]))
+        self.b2a = torch.LongTensor(np.asarray(b2a))
+        self.b2revb = torch.LongTensor(np.asarray(b2revb))
+        self.a2a = self.b2a[self.a2b]  # only needed if using atom messages
+        self.a_scope = torch.LongTensor(a_scope)
+        self.b_scope = torch.LongTensor(b_scope)
+
+        self.fg_labels = torch.Tensor(np.asarray(fg_labels)).float()
+        self.additional_features = torch.from_numpy(
+            np.stack(additional_features)).float()
+
+    def get_components(self):
+        """Returns the components of BatchGroverGraph.
+
+        Example
+        -------
+        >>> import deepchem as dc
+        >>> smiles = ['CC', 'CCC', 'CC(=O)C']
+        >>> featurizer = dc.feat.GroverFeaturizer(features_generator=dc.feat.CircularFingerprint())
+        >>> graphs = featurizer.featurize(smiles)
+        >>> batched_graph = BatchGroverGraph(graphs)
+        >>> components = batched_graph.get_components()
+
+        Returns
+        -------
+        components: Tuple
+            A tuple containing PyTorch tensors with the atom features, bond features, graph structure,
+            two lists indicating the scope of the atoms and bonds (i.e. which molecules they belong to)
+            and functional group labels.
+        """
+        return self.f_atoms, self.f_bonds, self.a2b, self.b2a, self.b2revb, self.a2a, self.a_scope, self.b_scope, self.fg_labels
 
 
 def _get_atom_scopes(graph_index: ArrayLike) -> List[List[int]]:
