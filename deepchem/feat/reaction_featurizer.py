@@ -1,6 +1,7 @@
 from deepchem.feat import Featurizer
 from typing import List
 import numpy as np
+from numpy.typing import ArrayLike
 
 try:
     from transformers import RobertaTokenizerFast
@@ -59,7 +60,7 @@ class RxnFeaturizer(Featurizer):
         self.sep_reagent = sep_reagent
         self.max_length = max_length
 
-    def _featurize(self, datapoint: str, **kwargs) -> List[List[List[int]]]:
+    def _featurize(self, datapoint: str, **kwargs) -> List[ArrayLike]:
         """Featurizes a datapoint.
 
         Processes each entry in the dataset by first applying the reactant-reagent
