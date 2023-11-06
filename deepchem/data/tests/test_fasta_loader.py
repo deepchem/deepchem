@@ -52,6 +52,3 @@ class TestFASTALoader(unittest.TestCase):
         assert sequences.X.shape
 
     # TODO: test with full uniprot file once sharding support is added.
-
-if __name__ == '__main__':
-    unittest.main()
