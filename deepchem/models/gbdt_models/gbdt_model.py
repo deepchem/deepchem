@@ -50,7 +50,7 @@ class GBDTModel(SklearnModel):
             import lightgbm
         except:
             raise ModuleNotFoundError(
-                "XGBoost or LightGBM modules not found. Please install them to use this class."
+                "XGBoost or LightGBM modules not found. This function requires these modules to be installed."
             )
 
         if model_dir is not None:
