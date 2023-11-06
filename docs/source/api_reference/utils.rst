@@ -291,6 +291,9 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.ValGrad
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.BaseXC
+  :members:
+
 .. autoclass:: deepchem.utils.dftutils.KSCalc
   :members:
 
