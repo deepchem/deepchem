@@ -99,8 +99,8 @@ def test_featurizer_ring(test_parameters):
     else:
         if np.array_equal(graph_feat[0].edge_index.shape,
                           edge_index_orignal_order[0]):
-            assert (graph_feat[0].edge_index
-                    != edge_index_orignal_order[0]).any()
+            assert (graph_feat[0].edge_index !=
+                    edge_index_orignal_order[0]).any()
 
 
 @pytest.mark.parametrize(
@@ -155,8 +155,8 @@ def test_featurizer_general_case(test_parameters):
     else:
         if np.array_equal(graph_feat[1].edge_index.shape,
                           edge_index_orignal_order[1]):
-            assert (graph_feat[1].edge_index
-                    != edge_index_orignal_order[1]).any()
+            assert (graph_feat[1].edge_index !=
+                    edge_index_orignal_order[1]).any()
 
 
 @pytest.mark.parametrize(
