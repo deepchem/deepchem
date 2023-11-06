@@ -97,9 +97,10 @@ def test_featurizer_ring(test_parameters):
     if use_original_atom_ranks:
         assert (graph_feat[0].edge_index == edge_index_orignal_order[0]).all()
     else:
-        if np.array_equal(graph_feat[0].edge_index.shape, edge_index_orignal_order[0]):
-            assert (graph_feat[0].edge_index !=
-                    edge_index_orignal_order[0]).any()
+        if np.array_equal(graph_feat[0].edge_index.shape,
+                          edge_index_orignal_order[0]):
+            assert (graph_feat[0].edge_index
+                    != edge_index_orignal_order[0]).any()
 
 
 @pytest.mark.parametrize(
@@ -152,9 +153,10 @@ def test_featurizer_general_case(test_parameters):
     if use_original_atom_ranks:
         assert (graph_feat[1].edge_index == edge_index_orignal_order[1]).all()
     else:
-        if np.array_equal(graph_feat[1].edge_index.shape, edge_index_orignal_order[1]):
-            assert (graph_feat[1].edge_index !=
-                    edge_index_orignal_order[1]).any()
+        if np.array_equal(graph_feat[1].edge_index.shape,
+                          edge_index_orignal_order[1]):
+            assert (graph_feat[1].edge_index
+                    != edge_index_orignal_order[1]).any()
 
 
 @pytest.mark.parametrize(
@@ -206,7 +208,8 @@ def test_featurizer_single_atom(test_parameters):
     if use_original_atom_ranks:
         assert (graph_feat[2].edge_index == edge_index_orignal_order[2]).all()
     else:
-        if np.array_equal(graph_feat[2].edge_index.shape , edge_index_orignal_order[2]):
+        if np.array_equal(graph_feat[2].edge_index.shape,
+                          edge_index_orignal_order[2]):
             # the atom order for 'C' is same in case of canonical and original ordering
             assert (
                 graph_feat[2].edge_index == edge_index_orignal_order[2]).all()
