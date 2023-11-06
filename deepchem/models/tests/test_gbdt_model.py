@@ -313,12 +313,12 @@ def test_earlystopping_with_xgboost():
     # fit trained model
     model.fit(dataset)
 
-    # If ES rounds are more than total epochs, it will never trigger.
+    # If ES rounds are more than total epochs, it will never trigger
     if model.early_stopping_rounds < model.model.n_estimators:
         # Find the number of boosting rounds in the model
         res = list(model.model.evals_result_['validation_0'].values())
         rounds_boosted = len(res[0])
-        # If rounds boosted are less than total estimators, it means ES was triggered.
+        # If rounds boosted are less than total estimators, it means ES was triggered
         if rounds_boosted < model.model.n_estimators:
             assert model.model.best_iteration < model.model.n_estimators - 1
 
@@ -343,11 +343,11 @@ def test_earlystopping_with_lightgbm():
     # fit trained model
     model.fit(dataset)
 
-    # If ES rounds are more than total epochs, it will never trigger.
+    # If ES rounds are more than total epochs, it will never trigger
     if model.early_stopping_rounds < model.model.n_estimators:
         # Find the number of boosting rounds in the model
         res = list(model.model.evals_result_['valid_0'].values())
         rounds_ran = len(res[0])
-        # If rounds ran are less than estimators, it means ES was triggered.
+        # If rounds ran are less than estimators, it means ES was triggered
         if rounds_ran < model.model.n_estimators:
             assert model.model.best_iteration_ < model.model.n_estimators
