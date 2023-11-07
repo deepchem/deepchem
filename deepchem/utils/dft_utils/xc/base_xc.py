@@ -356,8 +356,8 @@ class AddBaseXC(BaseXC):
     Examples
     --------
     >>> import torch
-    >>> from deepchem.utils.dft_utils.datastruct import ValGrad, SpinParam
-    >>> from deepchem.utils.dft_utils.xc.base_xc import BaseXC, AddBaseXC
+    >>> from deepchem.utils.dft_utils import ValGrad, SpinParam
+    >>> from deepchem.utils.dft_utils import BaseXC, AddBaseXC
     >>> class MyXC(BaseXC):
     ...     @property
     ...     def family(self) -> int:
@@ -509,8 +509,8 @@ class MulBaseXC(BaseXC):
     Examples
     --------
     >>> import torch
-    >>> from deepchem.utils.dft_utils.datastruct import ValGrad, SpinParam
-    >>> from deepchem.utils.dft_utils.xc.base_xc import BaseXC, MulBaseXC
+    >>> from deepchem.utils.dft_utils import ValGrad, SpinParam
+    >>> from deepchem.utils.dft_utils import BaseXC, MulBaseXC
     >>> class MyXC(BaseXC):
     ...     @property
     ...     def family(self) -> int:

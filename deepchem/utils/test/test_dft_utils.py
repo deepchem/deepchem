@@ -193,3 +193,125 @@ def test_base_xc():
     assert xc.get_vxc(densinfo_s) == SpinParam(
         u=ValGrad(value=torch.tensor([2., 4., 6.])),
         d=ValGrad(value=torch.tensor([8., 10., 12.])))
+
+
+@pytest.mark.torch
+def test_addbase_xc():
+    """Test AddBaseXC."""
+    from deepchem.utils.dft_utils import ValGrad, SpinParam
+    from deepchem.utils.dft_utils import BaseXC, AddBaseXC
+
+    class MyXC(BaseXC):
+
+        @property
+        def family(self) -> int:
+            return 1
+
+        def get_edensityxc(
+                self, densinfo: Union[ValGrad,
+                                      SpinParam[ValGrad]]) -> torch.Tensor:
+            if isinstance(densinfo, ValGrad):
+                return densinfo.value.pow(2)
+            else:
+                return densinfo.u.value.pow(2) + densinfo.d.value.pow(2)
+
+        def get_vxc(
+            self, densinfo: Union[ValGrad, SpinParam[ValGrad]]
+        ) -> Union[ValGrad, SpinParam[ValGrad]]:
+            if isinstance(densinfo, ValGrad):
+                return ValGrad(value=2 * densinfo.value)
+            else:
+                return SpinParam(u=ValGrad(value=2 * densinfo.u.value),
+                                 d=ValGrad(value=2 * densinfo.d.value))
+
+    xc1 = MyXC()
+    xc = xc1 + xc1
+    densinfo_v = ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True))
+    assert torch.allclose(xc.get_edensityxc(densinfo_v),
+                          torch.tensor([2., 8., 18.]))
+    assert xc.get_vxc(densinfo_v) == ValGrad(value=torch.tensor([4., 8., 12.]))
+
+    densinfo_s = SpinParam(
+        u=ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True)),
+        d=ValGrad(value=torch.tensor([4., 5., 6.], requires_grad=True)))
+    assert torch.allclose(xc.get_edensityxc(densinfo_s),
+                          torch.tensor([34., 58., 90.]))
+    assert xc.get_vxc(densinfo_s) == SpinParam(
+        u=ValGrad(value=torch.tensor([4., 8., 12.])),
+        d=ValGrad(value=torch.tensor([16., 20., 24.])))
+
+    xc2 = AddBaseXC(xc1, xc1)
+    densinfo_v = ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True))
+    assert torch.allclose(xc2.get_edensityxc(densinfo_v),
+                          torch.tensor([2., 8., 18.]))
+    assert xc2.get_vxc(densinfo_v) == ValGrad(value=torch.tensor([4., 8., 12.]))
+
+    densinfo_s = SpinParam(
+        u=ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True)),
+        d=ValGrad(value=torch.tensor([4., 5., 6.], requires_grad=True)))
+    assert torch.allclose(xc2.get_edensityxc(densinfo_s),
+                          torch.tensor([34., 58., 90.]))
+    assert xc2.get_vxc(densinfo_s) == SpinParam(
+        u=ValGrad(value=torch.tensor([4., 8., 12.])),
+        d=ValGrad(value=torch.tensor([16., 20., 24.])))
+
+
+@pytest.mark.torch
+def test_mulbase_xc():
+    """Test AddBaseXC."""
+    from deepchem.utils.dft_utils import ValGrad, SpinParam
+    from deepchem.utils.dft_utils import BaseXC, MulBaseXC
+
+    class MyXC(BaseXC):
+
+        @property
+        def family(self) -> int:
+            return 1
+
+        def get_edensityxc(
+                self, densinfo: Union[ValGrad,
+                                      SpinParam[ValGrad]]) -> torch.Tensor:
+            if isinstance(densinfo, ValGrad):
+                return densinfo.value.pow(2)
+            else:
+                return densinfo.u.value.pow(2) + densinfo.d.value.pow(2)
+
+        def get_vxc(
+            self, densinfo: Union[ValGrad, SpinParam[ValGrad]]
+        ) -> Union[ValGrad, SpinParam[ValGrad]]:
+            if isinstance(densinfo, ValGrad):
+                return ValGrad(value=2 * densinfo.value)
+            else:
+                return SpinParam(u=ValGrad(value=2 * densinfo.u.value),
+                                 d=ValGrad(value=2 * densinfo.d.value))
+
+    xc1 = MyXC()
+    xc = xc1 * 2
+    densinfo_v = ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True))
+    assert torch.allclose(xc.get_edensityxc(densinfo_v),
+                          torch.tensor([2., 8., 18.]))
+    assert xc.get_vxc(densinfo_v) == ValGrad(value=torch.tensor([4., 8., 12.]))
+
+    densinfo_s = SpinParam(
+        u=ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True)),
+        d=ValGrad(value=torch.tensor([4., 5., 6.], requires_grad=True)))
+    assert torch.allclose(xc.get_edensityxc(densinfo_s),
+                          torch.tensor([34., 58., 90.]))
+    assert xc.get_vxc(densinfo_s) == SpinParam(
+        u=ValGrad(value=torch.tensor([4., 8., 12.])),
+        d=ValGrad(value=torch.tensor([16., 20., 24.])))
+
+    xc2 = MulBaseXC(xc1, 2)
+    densinfo_v = ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True))
+    assert torch.allclose(xc2.get_edensityxc(densinfo_v),
+                          torch.tensor([2., 8., 18.]))
+    assert xc2.get_vxc(densinfo_v) == ValGrad(value=torch.tensor([4., 8., 12.]))
+
+    densinfo_s = SpinParam(
+        u=ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True)),
+        d=ValGrad(value=torch.tensor([4., 5., 6.], requires_grad=True)))
+    assert torch.allclose(xc2.get_edensityxc(densinfo_s),
+                          torch.tensor([34., 58., 90.]))
+    assert xc2.get_vxc(densinfo_s) == SpinParam(
+        u=ValGrad(value=torch.tensor([4., 8., 12.])),
+        d=ValGrad(value=torch.tensor([16., 20., 24.])))
