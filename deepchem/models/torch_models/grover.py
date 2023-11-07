@@ -289,6 +289,12 @@ class GroverModel(ModularTorchModel):
         Size of additional molecular features, like fingerprints.
     ffn_num_layers: int (default: 1)
         Number of linear layers to use for feature extraction from embeddings
+    ffn_hidden_size: int (default: 64)
+        Hidden size of feed forward network
+    attn_out_size: int (default: 16)
+        Size of attention heads
+    num_attn_heads: int (default: 4)
+        Number of attention heads
     task: str (pretraining or finetuning)
         Pretraining or finetuning tasks.
     mode: str (classification or regression)
@@ -348,6 +354,9 @@ class GroverModel(ModularTorchModel):
                  activation='relu',
                  task='pretraining',
                  ffn_num_layers=1,
+                 ffn_hidden_size=64,
+                 attn_out_size=16,
+                 num_attn_heads=4,
                  mode: Optional[str] = None,
                  model_dir=None,
                  n_tasks: int = 1,
@@ -355,6 +364,7 @@ class GroverModel(ModularTorchModel):
                  **kwargs):
         assert task in ['pretraining', 'finetuning']
         self.ffn_num_layers = ffn_num_layers
+        self.ffn_hidden_size = ffn_hidden_size
         self.activation = activation
         self.node_fdim = node_fdim
         self.edge_fdim = edge_fdim
@@ -372,7 +382,8 @@ class GroverModel(ModularTorchModel):
         self.model_dir = model_dir
         self.hidden_size = hidden_size
         self.attn_hidden_size = hidden_size
-        self.attn_out_size = hidden_size
+        self.attn_out_size = attn_out_size
+        self.num_attn_heads = num_attn_heads
         self.functional_group_size = functional_group_size
         self.self_attention = self_attention
         self.features_only = features_only
@@ -459,7 +470,7 @@ class GroverModel(ModularTorchModel):
         elif self.task == 'finetuning':
             return GroverFinetune(**self.components,
                                   mode=self.mode,
-                                  hidden_size=self.hidden_size,
+                                  hidden_size=self.ffn_hidden_size,
                                   n_tasks=self.n_tasks,
                                   n_classes=self.n_classes)
 
@@ -485,7 +496,9 @@ class GroverModel(ModularTorchModel):
         """
         components = {}
         components['embedding'] = GroverEmbedding(node_fdim=self.node_fdim,
-                                                  edge_fdim=self.edge_fdim)
+                                                  edge_fdim=self.edge_fdim,
+                                                  hidden_size=self.hidden_size,
+                                                  num_heads=self.num_attn_heads)
         components['atom_vocab_task_atom'] = GroverAtomVocabPredictor(
             self.atom_vocab_size, self.hidden_size)
         components['atom_vocab_task_bond'] = GroverAtomVocabPredictor(
@@ -506,7 +519,9 @@ class GroverModel(ModularTorchModel):
         """
         components = {}
         components['embedding'] = GroverEmbedding(node_fdim=self.node_fdim,
-                                                  edge_fdim=self.edge_fdim)
+                                                  edge_fdim=self.edge_fdim,
+                                                  hidden_size=self.hidden_size,
+                                                  num_heads=self.num_attn_heads)
         if self.self_attention:
             components['readout'] = GroverReadout(
                 rtype="self_attention",
@@ -714,12 +729,14 @@ class GroverModel(ModularTorchModel):
 
         if self.activation == 'relu':
             activation = nn.ReLU()
+        elif self.activation == 'prelu':
+            activation = nn.PReLU()
 
-        ffn = [dropout, nn.Linear(first_linear_dim, self.hidden_size)]
+        ffn = [dropout, nn.Linear(first_linear_dim, self.ffn_hidden_size)]
         for i in range(self.ffn_num_layers - 1):
             ffn.extend([
                 activation, dropout,
-                nn.Linear(self.hidden_size, self.hidden_size)
+                nn.Linear(self.ffn_hidden_size, self.ffn_hidden_size)
             ])
 
         return nn.Sequential(*ffn)
