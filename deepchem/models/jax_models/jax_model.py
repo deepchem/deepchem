@@ -105,7 +105,7 @@ class JaxModel(Model):
                  grad_fn: Callable = create_default_gradient_fn,
                  update_fn: Callable = create_default_update_fn,
                  eval_fn: Callable = create_default_eval_fn,
-                 rng: Optional[jax.random.KeyArray] = None,
+                 rng: Optional[jax.Array] = None,
                  log_frequency: int = 100,
                  **kwargs):
         """
