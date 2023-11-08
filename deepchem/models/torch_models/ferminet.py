@@ -188,7 +188,7 @@ class Ferminet(torch.nn.Module):
             posinf=0.0,
             neginf=0.0)
         potential = (torch.sum(potential) / 2).unsqueeze(0)
-        return potential
+        return potential.detach()
 
     def calculate_electron_nuclear(self,) -> torch.Tensor:
         """
@@ -205,7 +205,7 @@ class Ferminet(torch.nn.Module):
             self.nuclear_charge,
             axis=-1),
                               axis=-1)
-        return potential
+        return potential.detach()
 
     def calculate_electron_electron(self,):
         """
@@ -222,7 +222,7 @@ class Ferminet(torch.nn.Module):
             neginf=0.0),
                                         axis=-1),
                               axis=-1) / 2
-        return potential
+        return potential.detach()
 
     def calculate_kinetic_energy(self,):
         """
@@ -235,24 +235,25 @@ class Ferminet(torch.nn.Module):
         A torch tensor of a scalar value containing the electron-electron potential term.
         """
         # using functorch to calcualte hessian and jacobian in one go
-        jacobian = torch.func.jacrev(
-            lambda x: torch.log(torch.abs(self.forward(x))))(self.input)
-        hessian_full = torch.func.hessian(
-            lambda x: torch.log(torch.abs(self.forward(x))))(self.input)
         # using index tensors to index out the hessian elemennts corresponding to the same variable (cross-variable derivatives are ignored)
         i = torch.arange(self.batch_size).view(self.batch_size, 1, 1, 1, 1, 1,
                                                1)
         j = torch.arange(self.total_electron).view(1, self.total_electron, 1, 1,
                                                    1, 1, 1)
         k = torch.arange(3).view(1, 1, 3, 1, 1, 1, 1)
-        hessian = torch.reshape(hessian_full[i, i, j, k, i, j, k],
-                                (self.batch_size, self.total_electron, 3))
-        hessian_sum = torch.sum(torch.sum(hessian, axis=-1), axis=-1)
+
+        # doing all the calculation and detaching from graph to save memory, which allows larger batch size
         jacobian_square_sum = torch.sum(torch.sum(torch.sum(torch.pow(
-            jacobian, 2),
+            torch.func.jacrev(lambda x: torch.log(torch.abs(self.forward(x))))(
+                self.input), 2),
                                                             axis=-1),
                                                   axis=-1),
-                                        axis=-1)
+                                        axis=-1).detach()
+        hessian_sum = torch.sum(torch.reshape(
+            torch.func.hessian(lambda x: torch.log(torch.abs(self.forward(x))))(
+                self.input)[i, i, j, k, i, j, k],
+            (self.batch_size, self.total_electron, 3)).detach(),
+                                axis=(1, 2))
         kinetic_energy = -1 * 0.5 * (jacobian_square_sum + hessian_sum)
         return kinetic_energy
 
