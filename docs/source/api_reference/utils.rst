@@ -332,6 +332,16 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.match_dim
 
+.. autofunction:: deepchem.utils.differentiation_utils.set_default_option
+
+.. autofunction:: deepchem.utils.differentiation_utils.get_and_pop_keys
+
+.. autofunction:: deepchem.utils.differentiation_utils.get_method
+
+.. autofunction:: deepchem.utils.differentiation_utils.dummy_context_manager
+
+.. autofunction:: deepchem.utils.differentiation_utils.assert_runtime
+
 Attribute Utilities
 -------------------
 
