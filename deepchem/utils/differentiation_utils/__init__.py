@@ -9,5 +9,6 @@ try:
     from deepchem.utils.differentiation_utils.misc import get_and_pop_keys
     from deepchem.utils.differentiation_utils.misc import get_method
     from deepchem.utils.differentiation_utils.misc import dummy_context_manager
+    from deepchem.utils.differentiation_utils.misc import assert_runtime
 except:
     pass

@@ -104,3 +104,30 @@ def get_method(algname: str, methods: Mapping[str, Callable],
 def dummy_context_manager():
     """Dummy context manager"""
     yield None
+
+
+def assert_runtime(cond, msg=""):
+    """Assert at runtime
+
+    Examples
+    --------
+    >>> assert_runtime(False, "This is a test")
+    Traceback (most recent call last):
+    ...
+    RuntimeError: This is a test
+
+    Parameters
+    ----------
+    cond: bool
+        Condition to assert
+    msg: str
+        Message to raise if condition is not met
+
+    Raises
+    ------
+    RuntimeError
+        If condition is not met
+
+    """
+    if not cond:
+        raise RuntimeError(msg)

@@ -337,6 +337,8 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.dummy_context_manager
 
+.. autofunction:: deepchem.utils.differentiation_utils.assert_runtime
+
 Attribute Utilities
 -------------------
 

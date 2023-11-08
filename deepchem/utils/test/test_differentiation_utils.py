@@ -315,3 +315,11 @@ def test_dummy_context_manager():
             pass
         else:
             raise AssertionError()
+
+
+def test_assert_runtime():
+    from deepchem.utils.differentiation_utils import assert_runtime
+    try:
+        assert_runtime(False, "This should fail")
+    except RuntimeError:
+        pass
