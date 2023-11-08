@@ -327,3 +327,127 @@ def test_mix_gan_reload():
     assert gan.get_global_step() == 1000
     # No training has been done after reload
     assert reloaded_gan.get_global_step() == 1000
+
+
+@flaky
+@pytest.mark.torch
+def test_wgan():
+    """Test fitting a conditional WGAN."""
+
+    class ExampleWGAN(dc.models.torch_models.WGANModel):
+
+        def get_noise_input_shape(self):
+            return (
+                100,
+                2,
+            )
+
+        def get_data_input_shapes(self):
+            return [(
+                100,
+                1,
+            )]
+
+        def get_conditional_input_shapes(self):
+            return [(
+                100,
+                1,
+            )]
+
+        def create_generator(self):
+            noise_dim = self.get_noise_input_shape()
+            conditional_dim = self.get_conditional_input_shapes()[0]
+
+            return nn.Sequential(Generator(noise_dim, conditional_dim))
+
+        def create_discriminator(self):
+            data_input_shape = self.get_data_input_shapes()[0]
+            conditional_input_shape = self.get_conditional_input_shapes()[0]
+
+            return nn.Sequential(
+                Discriminator(data_input_shape, conditional_input_shape))
+
+    # We have to set the gradient penalty very small because the generator's
+    # output is only a single number, so the default penalty would constrain
+    # it far too much.
+
+    gan = ExampleWGAN(learning_rate=0.01,
+                      gradient_penalty=0.1,
+                      apple_silicon=True)
+    gan.fit_gan(generate_data(gan, 1000, 100), generator_steps=0.1)
+
+    # See if it has done a plausible job of learning the distribution.
+
+    means = 10 * np.random.random([1000, 1])
+    values = gan.predict_gan_generator(conditional_inputs=[means])
+    deltas = values - means
+    assert abs(np.mean(deltas)) < 1.0
+    assert np.std(deltas) > 1.0
+
+
+@flaky
+@pytest.mark.torch
+def test_wgan_reload():
+    """Test fitting a conditional WGAN."""
+
+    class ExampleWGAN(dc.models.torch_models.WGANModel):
+
+        def get_noise_input_shape(self):
+            return (
+                100,
+                2,
+            )
+
+        def get_data_input_shapes(self):
+            return [(
+                100,
+                1,
+            )]
+
+        def get_conditional_input_shapes(self):
+            return [(
+                100,
+                1,
+            )]
+
+        def create_generator(self):
+            noise_dim = self.get_noise_input_shape()
+            conditional_dim = self.get_conditional_input_shapes()[0]
+
+            return nn.Sequential(Generator(noise_dim, conditional_dim))
+
+        def create_discriminator(self):
+            data_input_shape = self.get_data_input_shapes()[0]
+            conditional_input_shape = self.get_conditional_input_shapes()[0]
+
+            return nn.Sequential(
+                Discriminator(data_input_shape, conditional_input_shape))
+
+    # We have to set the gradient penalty very small because the generator's
+    # output is only a single number, so the default penalty would constrain
+    # it far too much.
+
+    model_dir = tempfile.mkdtemp()
+    gan = ExampleWGAN(
+        learning_rate=0.01,
+        gradient_penalty=0.1,
+        model_dir=model_dir,
+    )
+    gan.fit_gan(generate_data(gan, 1000, 100), generator_steps=0.1)
+
+    reloaded_gan = ExampleWGAN(
+        learning_rate=0.01,
+        gradient_penalty=0.1,
+        model_dir=model_dir,
+    )
+    reloaded_gan.restore()
+
+    # See if it has done a plausible job of learning the distribution.
+    means = 10 * np.random.random([1000, 1])
+    batch_size = len(means)
+    noise_input = gan.get_noise_batch(batch_size=batch_size)
+    values = gan.predict_gan_generator(noise_input=noise_input,
+                                       conditional_inputs=[means])
+    reloaded_values = reloaded_gan.predict_gan_generator(
+        noise_input=noise_input, conditional_inputs=[means])
+    assert np.all(values == reloaded_values)
