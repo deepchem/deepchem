@@ -290,3 +290,28 @@ def test_match_dim():
     x_new, xq_new = match_dim(x, xq)
     assert x_new.shape == torch.Size([10, 5])
     assert xq_new.shape == torch.Size([10, 3])
+
+
+def test_set_default_options():
+    from deepchem.utils.differentiation_utils import set_default_option
+    assert set_default_option({'a': 1, 'b': 2}, {'a': 3}) == {'a': 3, 'b': 2}
+
+
+def test_get_and_pop_keys():
+    from deepchem.utils.differentiation_utils import get_and_pop_keys
+    assert get_and_pop_keys({'a': 1, 'b': 2}, ['a']) == {'a': 1}
+
+
+def test_get_method():
+    from deepchem.utils.differentiation_utils import get_method
+    assert get_method('foo', {'bar': lambda: 1}, 'bar')() == 1
+
+
+def test_dummy_context_manager():
+    """Just checks that dummy_context_manager doesn't crash"""
+    from deepchem.utils.differentiation_utils import dummy_context_manager
+    with dummy_context_manager() as x:
+        if x is None:
+            pass
+        else:
+            raise AssertionError()
