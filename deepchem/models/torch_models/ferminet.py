@@ -200,8 +200,12 @@ class Ferminet(torch.nn.Module):
         A torch tensor of a scalar value containing the electron-nuclear potential term.
         """
 
-        dist = (1 / torch.cdist(self.input.float(), self.nucleon_pos.float()))
-        potential = torch.sum(torch.sum(dist * self.nuclear_charge, axis=-1),
+        potential = torch.sum(torch.sum(torch.nan_to_num(
+            (1 / torch.cdist(self.input.float(), self.nucleon_pos.float())) *
+            self.nuclear_charge,
+            posinf=0.0,
+            neginf=0.0),
+                                        axis=-1),
                               axis=-1)
         return potential.detach()
 
