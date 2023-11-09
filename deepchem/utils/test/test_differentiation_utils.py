@@ -268,3 +268,58 @@ def test_set_tensor():
     _set_tensors(a, [torch.tensor(6.), torch.tensor(7.), torch.tensor(8.)])
     assert a.b == torch.tensor(6.)
     assert a.c == torch.tensor(7.)
+
+
+@pytest.mark.torch
+def test_normalize_bcast_dims():
+    from deepchem.utils.differentiation_utils import normalize_bcast_dims
+    assert normalize_bcast_dims([1, 2, 3], [2, 3]) == [[1, 2, 3], [1, 2, 3]]
+
+
+@pytest.mark.torch
+def test_get_bcasted_dims():
+    from deepchem.utils.differentiation_utils import get_bcasted_dims
+    assert get_bcasted_dims([1, 2, 5], [2, 3, 4]) == [2, 3, 5]
+
+
+@pytest.mark.torch
+def test_match_dim():
+    from deepchem.utils.differentiation_utils import match_dim
+    x = torch.randn(10, 5)
+    xq = torch.randn(10, 3)
+    x_new, xq_new = match_dim(x, xq)
+    assert x_new.shape == torch.Size([10, 5])
+    assert xq_new.shape == torch.Size([10, 3])
+
+
+def test_set_default_options():
+    from deepchem.utils.differentiation_utils import set_default_option
+    assert set_default_option({'a': 1, 'b': 2}, {'a': 3}) == {'a': 3, 'b': 2}
+
+
+def test_get_and_pop_keys():
+    from deepchem.utils.differentiation_utils import get_and_pop_keys
+    assert get_and_pop_keys({'a': 1, 'b': 2}, ['a']) == {'a': 1}
+
+
+def test_get_method():
+    from deepchem.utils.differentiation_utils import get_method
+    assert get_method('foo', {'bar': lambda: 1}, 'bar')() == 1
+
+
+def test_dummy_context_manager():
+    """Just checks that dummy_context_manager doesn't crash"""
+    from deepchem.utils.differentiation_utils import dummy_context_manager
+    with dummy_context_manager() as x:
+        if x is None:
+            pass
+        else:
+            raise AssertionError()
+
+
+def test_assert_runtime():
+    from deepchem.utils.differentiation_utils import assert_runtime
+    try:
+        assert_runtime(False, "This should fail")
+    except RuntimeError:
+        pass
