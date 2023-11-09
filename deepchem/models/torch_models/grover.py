@@ -337,12 +337,12 @@ class GroverModel(ModularTorchModel):
     def __init__(self,
                  node_fdim: int,
                  edge_fdim: int,
-                 atom_vocab: GroverAtomVocabularyBuilder,
-                 bond_vocab: GroverBondVocabularyBuilder,
                  hidden_size: int,
                  self_attention=False,
                  features_only=False,
-                 functional_group_size: int = 85,
+                 atom_vocab: Optional[GroverAtomVocabularyBuilder] = None,
+                 bond_vocab: Optional[GroverBondVocabularyBuilder] = None,
+                 functional_group_size: Optional[int] = 85,
                  features_dim=128,
                  dropout=0.2,
                  activation='relu',
@@ -360,8 +360,14 @@ class GroverModel(ModularTorchModel):
         self.edge_fdim = edge_fdim
         self.atom_vocab = atom_vocab
         self.bond_vocab = bond_vocab
-        self.atom_vocab_size = atom_vocab.size
-        self.bond_vocab_size = bond_vocab.size
+        if isinstance(atom_vocab, GroverAtomVocabularyBuilder):
+            self.atom_vocab_size = atom_vocab.size
+        else:
+            self.atom_vocab_size = None
+        if isinstance(bond_vocab, GroverBondVocabularyBuilder):
+            self.bond_vocab_size = bond_vocab.size
+        else:
+            self.bond_vocab_size = None
         self.task = task
         self.model_dir = model_dir
         self.hidden_size = hidden_size
@@ -377,9 +383,16 @@ class GroverModel(ModularTorchModel):
         self.n_classes = n_classes
         self.components = self.build_components()
         self.model = self.build_model()
+        if self.mode == 'regression':
+            output_types = ['prediction']
+        elif self.mode == 'classification':
+            output_types = ['prediction', 'loss']
+        else:
+            output_types = None
         super().__init__(self.model,
                          self.components,
                          model_dir=self.model_dir,
+                         output_types=output_types,
                          **kwargs)
         # FIXME In the above step, we initialize modular torch model but
         # something is missing here. The attribute loss from TorchModel gets assigned `loss_func`
@@ -545,11 +558,13 @@ class GroverModel(ModularTorchModel):
         )
 
         atom_vocab_label = torch.Tensor(
-            self.atom_vocab_random_mask(self.atom_vocab,
-                                        smiles_batch)).long().to(self.device)
+            self.atom_vocab_random_mask(
+                self.atom_vocab,  # type: ignore
+                smiles_batch)).long().to(self.device)
         bond_vocab_label = torch.Tensor(
-            self.bond_vocab_random_mask(self.bond_vocab,
-                                        smiles_batch)).long().to(self.device)
+            self.bond_vocab_random_mask(
+                self.bond_vocab,  # type: ignore
+                smiles_batch)).long().to(self.device)
         labels = {
             "av_task": atom_vocab_label,
             "bv_task": bond_vocab_label,
