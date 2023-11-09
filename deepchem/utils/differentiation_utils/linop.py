@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import Sequence, Optional, List
 import warnings
-import traceback
 import torch
 from abc import abstractmethod
 from contextlib import contextmanager
@@ -547,40 +546,6 @@ class LinearOperator(EditableModule):
         """Whether the ``._getparamnames()`` method is implemented."""
         return self._is_gpn_implemented
 
-    # debug functions
-    def check(self, warn: Optional[bool] = None) -> None:
-        """
-        Perform checks to make sure the ``LinearOperator`` behaves as a proper
-        linear operator.
-
-        Parameters
-        ----------
-        warn: bool or None
-            If ``True``, then raises a warning to the user that the check might slow
-            down the program. This is to remind the user to turn off the check
-            when not in a debugging mode.
-            If ``None``, it will raise a warning if it runs not in a debug mode, but
-            will be silent if it runs in a debug mode.
-
-        Raises
-        ------
-        RuntimeError
-            Raised if an error is raised when performing linear operations of the
-            object (e.g. calling ``.mv()``, ``.mm()``, etc)
-        AssertionError
-            Raised if the linear operations do not behave as proper linear operations.
-            (e.g. not scaling linearly)
-
-        """
-        # if warn is None:
-        #     warn = not is_debug_enabled()
-        # TODO: To verify if omiting this causes error.
-        if warn:
-            msg = "The linear operator check is performed. This might slow down your program."
-            warnings.warn(msg, stacklevel=2)
-        checklinop(self)
-        print("Check linear operator done")
-
     # private functions
     def _adjoint_rmv(self, xt: torch.Tensor) -> torch.Tensor:
         """calculate the right matvec multiplication by using the adjoint trick.
@@ -617,106 +582,9 @@ class LinearOperator(EditableModule):
             create_graph=torch.is_grad_enabled())[0]  # (*BAY, q)
         return res
 
-    # def __check_if_implemented(self, methodname: str) -> bool:
-    #     this_method = getattr(self, methodname).__func__
-    #     base_method = getattr(LinearOperator, methodname)
-    #     return this_method is not base_method
-
     def _assert_if_init_executed(self):
         if not hasattr(self, "_shape"):
             raise RuntimeError("super().__init__ must be executed first")
-
-
-def checklinop(linop: LinearOperator) -> None:
-    """
-    Check if the implemented mv and mm can receive the possible shapes and returns
-    the correct shape. If an error is found, then this function raise AssertionError.
-
-    Parameters
-    ----------
-    linop: LinearOperator
-        The instance of LinearOperator to be checked
-
-    Exception
-    ---------
-    AssertionError
-        Raised if there is a shape mismatch
-    RuntimeError
-        Raised if there is an error when evaluating the .mv, .mm, .rmv, or .rmm methods
-
-    """
-    shape = linop.shape
-    p, q = shape[-2:]
-    batchshape = shape[:-2]
-
-    def runtest(methodname, xshape, yshape):
-        x = torch.rand(xshape, dtype=linop.dtype, device=linop.device)
-        fcn = getattr(linop, methodname)
-        try:
-            y = fcn(x)
-        except Exception:
-            s = traceback.format_exc()
-            msg = "An error is raised from .%s with input shape: %s (linear operator shape: %s)\n" % \
-                (methodname, tuple(xshape), tuple(linop.shape))
-            msg += "--- full traceback ---\n%s" % s
-            raise RuntimeError(msg)
-        msg = "The output shape of .%s is not correct. Input: %s, expected output: %s, output: %s" % \
-            (methodname, tuple(x.shape), tuple(yshape), tuple(y.shape))
-        msg += "\n" + str(linop)
-        assert list(y.shape) == list(yshape), msg
-
-        # linearity test
-        x2 = 1.25 * x
-        y2 = fcn(x2)
-        msg = "Linearity check fails\n%s\n" % str(linop)
-        assert torch.allclose(y2, 1.25 * y), msg
-        y0 = fcn(0 * x)
-        assert torch.allclose(
-            y0, y * 0), "Linearity check (with 0) fails\n" + str(linop)
-
-        # batched test
-        xnew = torch.cat((x.unsqueeze(0), x2.unsqueeze(0)), dim=0)
-        ynew = fcn(xnew)  # (2, ..., q)
-        msg = "Batched test fails (expanding batches changes the results)" + str(
-            linop)
-        assert torch.allclose(ynew[0], y), msg
-        assert torch.allclose(ynew[1], y2), msg
-
-    # generate shapes
-    mv_xshapes = [
-        (q,),
-        (1, q),
-        (1, 1, q),
-        (*batchshape, q),
-        (1, *batchshape, q),
-    ]
-    mv_yshapes = [(*batchshape, p),
-                  (*batchshape, p) if len(batchshape) >= 1 else (1, p),
-                  (*batchshape, p) if len(batchshape) >= 2 else (1, 1, p),
-                  (*batchshape, p), (1, *batchshape, p)]
-    # test matvec and matmat, run input in multiple shapes to make sure no error is raised
-    r = 2
-    for (mv_xshape, mv_yshape) in zip(mv_xshapes, mv_yshapes):
-        runtest("mv", mv_xshape, mv_yshape)
-        runtest("mm", (*mv_xshape, r), (*mv_yshape, r))
-
-    if not linop.is_rmv_implemented:
-        return
-
-    rmv_xshapes = [
-        (p,),
-        (1, p),
-        (1, 1, p),
-        (*batchshape, p),
-        (1, *batchshape, p),
-    ]
-    rmv_yshapes = [(*batchshape, q),
-                   (*batchshape, q) if len(batchshape) >= 1 else (1, q),
-                   (*batchshape, q) if len(batchshape) >= 2 else (1, 1, q),
-                   (*batchshape, q), (1, *batchshape, q)]
-    for (rmv_xshape, rmv_yshape) in zip(rmv_xshapes, rmv_yshapes):
-        runtest("rmv", rmv_xshape, rmv_yshape)
-        runtest("rmm", (*rmv_xshape, r), (*rmv_yshape, r))
 
 
 def _shape2str(shape):
