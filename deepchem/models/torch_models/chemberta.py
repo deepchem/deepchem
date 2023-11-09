@@ -1,3 +1,4 @@
+from typing import Dict, Any
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
 from transformers.models.roberta.modeling_roberta import (
     RobertaConfig, RobertaForMaskedLM, RobertaForSequenceClassification)
@@ -84,11 +85,13 @@ class Chemberta(HuggingFaceModel):
                  task: str,
                  tokenizer_path: str = 'seyonec/PubChem10M_SMILES_BPE_60k',
                  n_tasks: int = 1,
+                 config: Dict[Any, Any] = {},
                  **kwargs):
         self.n_tasks = n_tasks
         tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_path)
         model: PreTrainedModel
-        chemberta_config = RobertaConfig(vocab_size=tokenizer.vocab_size)
+        chemberta_config = RobertaConfig(vocab_size=tokenizer.vocab_size,
+                                         **config)
         if task == 'mlm':
             model = RobertaForMaskedLM(chemberta_config)
         elif task == 'mtr':
