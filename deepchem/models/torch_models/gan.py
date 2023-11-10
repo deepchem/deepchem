@@ -917,8 +917,8 @@ class WGANModel(GANModel):
     >>> import torch
     >>> import torch.nn as nn
     >>> import torch.nn.functional as F
-    
-        Creating a Generator
+
+    Creating a Generator
 
     >>> class Generator(nn.Module):
     ...     def __init__(self, noise_input_shape, conditional_input_shape):
@@ -1093,7 +1093,13 @@ class WGANModel(GANModel):
 
 
 class GradientPenaltyLayer(nn.Module):
-    """Implements the gradient penalty loss term for WGANs."""
+    """Implements the gradient penalty loss term for WGANs.
+
+    Notes
+    -----
+    This class is not intended to be used directly.  It is used internally by
+    WGANModel.
+    """
 
     def __init__(self, gan: WGANModel, discriminator: nn.Module,
                  **kwargs) -> None:
