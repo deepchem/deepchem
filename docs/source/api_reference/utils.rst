@@ -348,6 +348,8 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.assert_runtime
 
+.. autoclass:: deepchem.utils.differentiation_utils.linop.LinearOperator
+
 Attribute Utilities
 -------------------
 
