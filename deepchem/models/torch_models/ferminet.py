@@ -190,7 +190,7 @@ class Ferminet(torch.nn.Module):
         potential = (torch.sum(potential) / 2).unsqueeze(0)
         return potential.detach()
 
-    def calculate_electron_nuclear(self,) -> torch.Tensor:
+    def calculate_electron_nuclear(self,):
         """
         Function to calculate the expected electron-nuclear potential term per batch
         nuclear-electron potential term = Zi/|Ri-rj|, rj is the electron coordinates, Ri is the nuclear coordinates, Zi is the nuclear charge
