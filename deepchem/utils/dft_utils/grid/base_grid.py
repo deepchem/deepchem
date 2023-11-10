@@ -50,7 +50,7 @@ class BaseGrid(EditableModule):
 
     @abstractproperty
     def dtype(self) -> torch.dtype:
-        """dtype of the grid points
+        """dtype of the grid points.
 
         Returns
         -------
