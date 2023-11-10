@@ -323,3 +323,46 @@ def test_assert_runtime():
         assert_runtime(False, "This should fail")
     except RuntimeError:
         pass
+
+
+@pytest.mark.torch
+def test_linear_operator():
+    from deepchem.utils.differentiation_utils import LinearOperator
+    torch.manual_seed(100)
+
+    class MyLinOp(LinearOperator):
+
+        def __init__(self, shape):
+            super(MyLinOp, self).__init__(shape)
+            self.param = torch.rand(shape)
+
+        def _getparamnames(self, prefix=""):
+            return [prefix + "param"]
+
+        def _mv(self, x):
+            return torch.matmul(self.param, x)
+
+        def _rmv(self, x):
+            return torch.matmul(self.param.transpose(-2, -1).conj(), x)
+
+        def _mm(self, x):
+            return torch.matmul(self.param, x)
+
+        def _rmm(self, x):
+            return torch.matmul(self.param.transpose(-2, -1).conj(), x)
+
+        def _fullmatrix(self):
+            return self.param
+
+    linop = MyLinOp((1, 3, 1, 2))
+    x = torch.rand(1, 3, 2, 2)
+    assert torch.allclose(linop.mv(x), torch.matmul(linop.param, x))
+    x = torch.rand(1, 3, 1, 1)
+    assert torch.allclose(linop.rmv(x),
+                          torch.matmul(linop.param.transpose(-2, -1).conj(), x))
+    x = torch.rand(1, 3, 2, 2)
+    assert torch.allclose(linop.mm(x), torch.matmul(linop.param, x))
+    x = torch.rand(1, 3, 1, 2)
+    assert torch.allclose(linop.rmm(x),
+                          torch.matmul(linop.param.transpose(-2, -1).conj(), x))
+    assert torch.allclose(linop.fullmatrix(), linop.param)
