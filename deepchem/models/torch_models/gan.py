@@ -6,7 +6,7 @@ try:
 except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
 import time
-from typing import Callable, Any, Union
+from typing import Callable, Any, Tuple, Union
 from deepchem.models.torch_models.torch_model import TorchModel
 
 
@@ -229,7 +229,7 @@ class GAN(nn.Module):
             self.discriminators.append(discriminator)
             self.discrim_variables += list(discriminator.parameters())
 
-    def forward(self, inputs) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, inputs) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute the output of the GAN.
 
         Parameters
