@@ -6,7 +6,7 @@ try:
 except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
 import time
-from typing import Callable, Any, Tuple, Union
+from typing import Callable, Any, List, Tuple, Union
 from deepchem.models.torch_models.torch_model import TorchModel
 
 
@@ -1029,7 +1029,7 @@ class WGANModel(GANModel):
         super(WGANModel, self).__init__(**kwargs)
 
     def _call_discriminator(self, discriminator: nn.Module,
-                            inputs: list[torch.Tensor], train: bool):
+                            inputs: List[torch.Tensor], train: bool):
         """ Invoke the discriminator on a set of inputs.
 
         Parameters
@@ -1133,11 +1133,12 @@ class GradientPenaltyLayer(nn.Module):
             the output from the discriminator, followed by the gradient penalty.
         """
         # concatenate inputs and conditional_inputs
-        inputs = list(inputs) + list(conditional_inputs)
-        inputs = torch.cat(inputs)
+        # inputs = list(inputs) + list(conditional_inputs)
+        # inputs = torch.cat(inputs)
 
         # Get Discriminator output
-        output = self.discriminator(inputs)
+        output = self.discriminator(
+            self.discriminator(_list_or_tensor(inputs + conditional_inputs)))
 
         # Calculate Gradients
         gradients = torch.autograd.grad(outputs=output,
