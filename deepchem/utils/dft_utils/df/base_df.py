@@ -9,7 +9,7 @@ class BaseDF(EditableModule):
     """
     BaseDF represents the density fitting object used in calculating the
     electron repulsion (and xc energy?) in Hamiltonian.
-    
+
     Density fitting in density functional theory (DFT) is a technique used to
     reduce the computational cost of evaluating electron repulsion integrals.
     In DFT, the key quantity is the electron density rather than the wave
@@ -39,7 +39,7 @@ class BaseDF(EditableModule):
         """
         pass
 
-    ################ properties ################
+    # properties
     @abstractproperty
     def j2c(self) -> torch.Tensor:
         """
@@ -55,6 +55,6 @@ class BaseDF(EditableModule):
         """
         pass
 
-    ################ properties ################
+    @abstractmethod
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
         pass
