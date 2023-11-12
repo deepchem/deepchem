@@ -129,6 +129,8 @@ try:
     from deepchem.utils.pytorch_utils import segment_sum
     from deepchem.utils.pytorch_utils import chunkify
     from deepchem.utils.pytorch_utils import get_memory
+
+    from deepchem.utils.misc_utils import gaussian_int
 except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')

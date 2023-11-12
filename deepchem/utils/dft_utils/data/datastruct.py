@@ -5,6 +5,7 @@ from typing import Union, TypeVar, Generic, Optional, Callable, List
 from dataclasses import dataclass
 import torch
 import numpy as np
+from deepchem.utils import gaussian_int
 
 __all__ = ["ZType"]
 
@@ -133,3 +134,88 @@ class ValGrad:
 
     def __repr__(self):
         return f"ValGrad(value={self.value}, grad={self.grad}, lapl={self.lapl}, kin={self.kin})"
+
+
+@dataclass
+class CGTOBasis:
+    """Data structure that contains information about a contracted gaussian
+    type orbital (CGTO).
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.dft_utils import CGTOBasis
+    >>> alphas = torch.ones(1)
+    >>> coeffs = torch.ones(1)
+    >>> cgto = CGTOBasis(angmom=0, alphas=alphas, coeffs=coeffs)
+    >>> cgto.wfnormalize_()
+    CGTOBasis(angmom=0, alphas=tensor([1.]), coeffs=tensor([2.5265]), normalized=True)
+
+    """
+
+    def __init__(self, angmom: int, alphas: torch.Tensor, coeffs: torch.Tensor):
+        """Initialize the CGTOBasis object.
+
+        Parameters
+        ----------
+        angmom: int
+            The angular momentum of the basis.
+        alphas: torch.Tensor
+            The gaussian exponents of the basis. Shape: (nbasis,)
+        coeffs: torch.Tensor
+            The coefficients of the basis. Shape: (nbasis,)
+
+        """
+        self.angmom = angmom
+        self.alphas = alphas
+        self.coeffs = coeffs
+        self.normalized = False
+
+    def __repr__(self):
+        """Return the string representation of the CGTOBasis object.
+
+        Returns
+        -------
+        angmom: int
+            The angular momentum of the basis.
+        alphas: torch.Tensor
+            The gaussian exponents of the basis. Shape: (nbasis,)
+        coeffs: torch.Tensor
+            The coefficients of the basis. Shape: (nbasis,)
+
+        """
+        return f"CGTOBasis(angmom={self.angmom}, alphas={self.alphas}, coeffs={self.coeffs}, normalized={self.normalized})"
+
+    def wfnormalize_(self) -> "CGTOBasis":
+        """Wavefunction normalization
+
+        The normalization is obtained from CINTgto_norm from
+        libcint/src/misc.c, or
+        https://github.com/sunqm/libcint/blob/b8594f1d27c3dad9034984a2a5befb9d607d4932/src/misc.c#L80
+
+        Please note that the square of normalized wavefunctions do not integrate
+        to 1, but e.g. for s: 4*pi, p: (4*pi/3)
+
+        """
+
+        # if the basis has been normalized before, then do nothing
+        if self.normalized:
+            return self
+
+        coeffs = self.coeffs
+
+        # normalize to have individual gaussian integral to be 1 (if coeff is 1)
+        coeffs = coeffs / torch.sqrt(
+            gaussian_int(2 * self.angmom + 2, 2 * self.alphas))
+
+        # normalize the coefficients in the basis (because some basis such as
+        # def2-svp-jkfit is not normalized to have 1 in overlap)
+        ee = self.alphas.unsqueeze(-1) + self.alphas.unsqueeze(
+            -2)  # (ngauss, ngauss)
+        ee = gaussian_int(2 * self.angmom + 2, ee)
+        s1 = 1 / torch.sqrt(torch.einsum("a,ab,b", coeffs, ee, coeffs))
+        coeffs = coeffs * s1
+
+        self.coeffs = coeffs
+        self.normalized = True
+        return self

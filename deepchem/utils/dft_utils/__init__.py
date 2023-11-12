@@ -16,6 +16,7 @@ try:
     from deepchem.utils.dft_utils.data.datastruct import AtomZsType
     from deepchem.utils.dft_utils.data.datastruct import SpinParam
     from deepchem.utils.dft_utils.data.datastruct import ValGrad
+    from deepchem.utils.dft_utils.data.datastruct import CGTOBasis
 
     from deepchem.utils.dft_utils.hamilton.orbparams import BaseOrbParams
     from deepchem.utils.dft_utils.hamilton.orbparams import QROrbParams
@@ -31,6 +32,8 @@ try:
     from deepchem.utils.dft_utils.df.base_df import BaseDF
 
     from deepchem.utils.dft_utils.hamilton.base_hamilton import BaseHamilton
+
+    from deepchem.utils.dft_utils.system.base_system import BaseSystem
 except ModuleNotFoundError as e:
     logger_.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
