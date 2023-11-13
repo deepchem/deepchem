@@ -2,7 +2,7 @@ dependencies:
   - pip:
     - flake8
     - flaky
-    - mypy
+    - mypy==1.6.1
     - pytest
     - pytest-cov
     - types-pkg_resources

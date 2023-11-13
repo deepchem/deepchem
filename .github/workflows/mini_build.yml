@@ -111,21 +111,20 @@ jobs:
         pip install conda-merge;
         cd requirements
         if [ "$(uname)" == 'Linux' ]; then
-          conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml > env.yml
+          conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml  > env.yml
         elif [  "$(uname)" == 'Darwin' ]; then
-          conda-merge env_common.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml jax/env_jax.cpu.yml > env.yml
+          conda-merge env_common.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml  > env.yml
         elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
           conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
         fi;
         cd ..
         cp requirements/env.yml env.yml
     - name: Install all dependencies using micromamba
-      uses: mamba-org/provision-with-micromamba@main
+      uses: mamba-org/setup-micromamba@main
       with:
         environment-file: env.yml
         environment-name: deepchem
-        channels: conda-forge,defaults
-        extra-specs: python=${{ matrix.python-version }}
+        create-args: python=${{ matrix.python-version }}
 
 #    - name: Install all dependencies using conda
 #      uses: conda-incubator/setup-miniconda@v2

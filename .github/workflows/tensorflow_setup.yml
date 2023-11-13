@@ -1,4 +1,4 @@
-name: Test for DeepChem Jax
+name: Test for DeepChem Tensorflow
 on:
   push: # ci work when pushing master branch
     branches:
@@ -7,19 +7,23 @@ on:
     branches:
       - master
 jobs:
-  jax-build:
-    runs-on: ubuntu-latest
+  tf-build:
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10']
+        os: [ubuntu-latest]
+        python-version: ['3.8', '3.10']
+        include:
+          - os: windows-latest
+            python-version: 3.9
     steps:
     - uses: actions/checkout@v3
     - name: Cache pip modules for Linux
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/jax/**') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/tensorflow/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Set up Python ${{ matrix.python-version }}
@@ -29,17 +33,20 @@ jobs:
     - name: Build DeepChem
       run: |
         python -m pip install --upgrade pip
-        pip install -e '.[jax]'
+        pip install -e '.[tensorflow]'
     - name: Import checking
-      run: python -c "import deepchem; import jax;"
+      run: python -c "import deepchem; import tensorflow;"
 
-  jax-test:
+  tf-test:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.9', '3.10']
+        python-version: ['3.8', '3.10']
+        include:
+          - os: windows-latest
+            python-version: '3.9'
     env:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
@@ -67,7 +74,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/jax/**') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/tensorflow/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Cache pip packages for MacOS
@@ -75,7 +82,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/Library/Caches/pip
-        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/jax/**') }}
+        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/tensorflow/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Cache pip packages for Windows
@@ -83,7 +90,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~\AppData\Local\pip\Cache
-        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/jax/**') }}
+        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/tensorflow/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Set up Python ${{ matrix.python-version }}
@@ -95,7 +102,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip;
         pip install conda-merge;
-        conda-merge requirements/env_common.yml requirements/env_test.yml requirements/jax/env_jax.cpu.yml > env.yml
+        conda-merge requirements/env_common.yml requirements/env_test.yml requirements/tensorflow/env_tensorflow.cpu.yml > env.yml
     - name: Install all dependencies
       uses: conda-incubator/setup-miniconda@v2
       with:
@@ -112,4 +119,4 @@ jobs:
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
-      run: pytest -v -m 'jax' deepchem
+      run: pytest -v -m 'tensorflow' deepchem
