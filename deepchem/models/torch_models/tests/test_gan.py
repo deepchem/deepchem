@@ -371,8 +371,7 @@ def test_wgan():
     # output is only a single number, so the default penalty would constrain
     # it far too much.
 
-    gan = ExampleWGAN(learning_rate=0.01,
-                      gradient_penalty=0.1)
+    gan = ExampleWGAN(learning_rate=0.01, gradient_penalty=0.1)
     gan.fit_gan(generate_data(gan, 1000, 100), generator_steps=0.1)
 
     # See if it has done a plausible job of learning the distribution.
