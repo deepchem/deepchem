@@ -1,7 +1,7 @@
 """
 Density Functional Theory Data Structure Utilities
 """
-from typing import Union, TypeVar, Generic, Optional, Callable, List
+from typing import Dict, Union, TypeVar, Generic, Optional, Callable, List
 from dataclasses import dataclass
 import torch
 import numpy as np
@@ -219,3 +219,8 @@ class CGTOBasis:
         self.coeffs = coeffs
         self.normalized = True
         return self
+
+
+# input basis type
+BasisInpType = Union[str, List[CGTOBasis], List[str], List[List[CGTOBasis]],
+                     Dict[Union[str, int], Union[List[CGTOBasis], str]]]

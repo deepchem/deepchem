@@ -9,9 +9,8 @@ import numpy as np
 
 # dqc dependencies
 from dqc.system.mol import Mol
-from dqc.system.base_system import BaseSystem
 from deepchem.utils.dftutils import KSCalc
-from deepchem.utils.dft_utils import parse_moldesc, BaseGrid
+from deepchem.utils.dft_utils import parse_moldesc, BaseGrid, BaseSystem
 
 
 class DFTSystem():
