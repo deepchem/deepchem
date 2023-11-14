@@ -77,7 +77,7 @@ tutorials discuss about using DeepChem for specific applications.
 ### Protein Ligand Modeling
 * [1 Modeling Protein Ligand Interactions](Modeling_Protein_Ligand_Interactions.ipynb)
 * [2 Modeling Protein Ligand Interactions with Atomic Convolutions](Modeling_Protein_Ligand_Interactions_With_Atomic_Convolutions.ipynb)
-* [3 Applications of DeepChem with Alphafold](AlphafoldXDeepChem.ipynb)
+* [3 Applications of DeepChem with Alphafold](DeepChemXAlphafold.ipynb)
 
 ### Quantum Chemistry
 * [1 Exploring Quantum Chemistry with GDB1k](Exploring_Quantum_Chemistry_with_GDB1k.ipynb)
@@ -98,7 +98,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [3 Uncertainty in Deep Learning](Uncertainty_In_Deep_Learning.ipynb)
 
 ### Deep Differential Equations
-* [1 Physics Informed Neural Networks (Burgers Equation)](Physics_Informed_Neural_Networks.ipynb) 
+* [1 Physics Informed Neural Networks (Burgers Equation)](Physics_Informed_Neural_Networks.ipynb)
 * [2 Introducing_JaxModel_and_PINNModel](Introducing_JaxModel_and_PINNModel.ipynb)
 * [3 About_nODE_Using_Torchdiffeq_in_Deepchem](About_nODE_Using_Torchdiffeq_in_Deepchem.ipynb)
 
