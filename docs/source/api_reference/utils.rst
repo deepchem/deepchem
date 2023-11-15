@@ -333,6 +333,9 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.data.safeops.safe_cdist
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.api.loadbasis.loadbasis
+  :members:
+
 .. autofunction:: deepchem.utils.dftutils.hashstr
 
 .. autoclass:: deepchem.utils.dftutils.BaseGrid
