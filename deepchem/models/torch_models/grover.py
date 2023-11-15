@@ -307,8 +307,10 @@ class GroverModel(ModularTorchModel):
         Directory to save model checkpoints
     dropout: float, optional (default: 0.2)
         dropout value
-    actionvation: str, optional (default: 'relu')
+    activation: str, optional (default: 'relu')
         supported activation function
+    depth: int (default: 1)
+        Dynamic message passing depth for use in MPNEncoder
 
     Example
     -------
@@ -349,14 +351,15 @@ class GroverModel(ModularTorchModel):
                  atom_vocab: Optional[GroverAtomVocabularyBuilder] = None,
                  bond_vocab: Optional[GroverBondVocabularyBuilder] = None,
                  functional_group_size: Optional[int] = 85,
-                 features_dim=128,
-                 dropout=0.2,
-                 activation='relu',
-                 task='pretraining',
-                 ffn_num_layers=1,
-                 ffn_hidden_size=64,
-                 attn_out_size=16,
-                 num_attn_heads=4,
+                 features_dim: int = 128,
+                 dropout: float = 0.2,
+                 activation: str = 'relu',
+                 task: str = 'pretraining',
+                 ffn_num_layers: int = 1,
+                 ffn_hidden_size: int = 64,
+                 attn_out_size: int = 16,
+                 num_attn_heads: int = 4,
+                 depth: int = 1,
                  mode: Optional[str] = None,
                  model_dir=None,
                  n_tasks: int = 1,
@@ -389,6 +392,7 @@ class GroverModel(ModularTorchModel):
         self.features_only = features_only
         self.features_dim = features_dim
         self.dropout = dropout
+        self.depth = depth
         self.mode = mode
         self.n_tasks = n_tasks
         self.n_classes = n_classes
@@ -498,7 +502,8 @@ class GroverModel(ModularTorchModel):
         components['embedding'] = GroverEmbedding(node_fdim=self.node_fdim,
                                                   edge_fdim=self.edge_fdim,
                                                   hidden_size=self.hidden_size,
-                                                  num_heads=self.num_attn_heads)
+                                                  num_heads=self.num_attn_heads,
+                                                  depth=self.depth)
         components['atom_vocab_task_atom'] = GroverAtomVocabPredictor(
             self.atom_vocab_size, self.hidden_size)
         components['atom_vocab_task_bond'] = GroverAtomVocabPredictor(
@@ -509,7 +514,7 @@ class GroverModel(ModularTorchModel):
             self.bond_vocab_size, self.hidden_size)
         components[
             'functional_group_predictor'] = GroverFunctionalGroupPredictor(
-                self.functional_group_size)
+                self.functional_group_size, self.hidden_size)
         return components
 
     def _get_finetuning_components(self):
