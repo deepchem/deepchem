@@ -279,3 +279,15 @@ def test_addbase_xc():
     assert xc2.get_vxc(densinfo_s) == SpinParam(
         u=ValGrad(value=torch.tensor([4., 8., 12.])),
         d=ValGrad(value=torch.tensor([16., 20., 24.])))
+
+
+@pytest.mark.torch
+def test_atom_cgto_basis():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, CGTOBasis
+    alphas = torch.ones(1)
+    coeffs = torch.ones(1)
+    cgto = CGTOBasis(angmom=0, alphas=alphas, coeffs=coeffs)
+    atomcgto = AtomCGTOBasis(atomz=1, bases=[cgto], pos=[[0.0, 0.0, 0.0]])
+    assert atomcgto.atomz == 1
+    assert atomcgto.bases == [cgto]
+    assert not atomcgto.bases[0].normalized

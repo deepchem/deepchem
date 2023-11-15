@@ -18,6 +18,7 @@ try:
     from deepchem.utils.dft_utils.data.datastruct import ValGrad
     from deepchem.utils.dft_utils.data.datastruct import CGTOBasis
     from deepchem.utils.dft_utils.data.datastruct import BasisInpType
+    from deepchem.utils.dft_utils.data.datastruct import AtomCGTOBasis
 
     from deepchem.utils.dft_utils.hamilton.orbparams import BaseOrbParams
     from deepchem.utils.dft_utils.hamilton.orbparams import QROrbParams
