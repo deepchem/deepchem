@@ -333,9 +333,11 @@ class KFACOptimizer(optim.Optimizer):
             a matrix form of the gradient. it should be a [output_dim, input_dim] matrix.
         """
         if isinstance(m, torch.nn.Conv2d):
+            assert isinstance(m.weight.grad, torch.Tensor)
             p_grad_mat = m.weight.grad.data.view(
                 m.weight.grad.data.size(0), -1)  # n_filters * (in_c * kw * kh)
         elif isinstance(m, torch.nn.Linear):
+            assert isinstance(m.weight.grad, torch.Tensor)
             p_grad_mat = m.weight.grad.data
         else:
             raise NotImplementedError(

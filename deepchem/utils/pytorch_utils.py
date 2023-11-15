@@ -1,7 +1,7 @@
 """Utility functions for working with PyTorch."""
 
 import torch
-from typing import Callable, Union, List
+from typing import Callable, Union, List, Generator, Tuple
 
 
 def get_activation(fn: Union[Callable, str]):
@@ -39,8 +39,8 @@ def unsorted_segment_sum(data: torch.Tensor, segment_ids: torch.Tensor,
     >>> data = torch.Tensor([[1, 2, 3, 4], [5, 6, 7, 8], [4, 3, 2, 1]])
     >>> num_segments = 2
     >>> result = unsorted_segment_sum(data=data,
-                                  segment_ids=segment_ids,
-                                  num_segments=num_segments)
+    ...                               segment_ids=segment_ids,
+    ...                               num_segments=num_segments)
     >>> data.shape[0]
     3
     >>> segment_ids.shape[0]
@@ -49,7 +49,7 @@ def unsorted_segment_sum(data: torch.Tensor, segment_ids: torch.Tensor,
     1
     >>> result
     tensor([[5., 5., 5., 5.],
-        [5., 6., 7., 8.]])
+            [5., 6., 7., 8.]])
 
     """
 
@@ -102,7 +102,7 @@ def segment_sum(data: torch.Tensor, segment_ids: torch.Tensor) -> torch.Tensor:
     1
     >>> result
     tensor([[5., 5., 5., 5.],
-        [5., 6., 7., 8.]])
+            [5., 6., 7., 8.]])
 
     """
     if not all(segment_ids[i] <= segment_ids[i + 1]
@@ -120,3 +120,84 @@ def segment_sum(data: torch.Tensor, segment_ids: torch.Tensor) -> torch.Tensor:
     out_tensor = unsorted_segment_sum(data, segment_ids, num_segments)
 
     return out_tensor
+
+
+def chunkify(a: torch.Tensor, dim: int, maxnumel: int) -> \
+        Generator[Tuple[torch.Tensor, int, int], None, None]:
+    """Splits the tensor `a` into several chunks of size `maxnumel` along the
+    dimension given by `dim`.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.pytorch_utils import chunkify
+    >>> a = torch.arange(10)
+    >>> for chunk, istart, iend in chunkify(a, 0, 3):
+    ...     print(chunk, istart, iend)
+    tensor([0, 1, 2]) 0 3
+    tensor([3, 4, 5]) 3 6
+    tensor([6, 7, 8]) 6 9
+    tensor([9]) 9 12
+
+    Parameters
+    ----------
+    a: torch.Tensor
+        The big tensor to be splitted into chunks.
+    dim: int
+        The dimension where the tensor would be splitted.
+    maxnumel: int
+        Maximum number of elements in a chunk.
+
+    Returns
+    -------
+    chunks: Generator[Tuple[torch.Tensor, int, int], None, None]
+        A generator that yields a tuple of three elements: the chunk tensor, the
+        starting index of the chunk and the ending index of the chunk.
+
+    """
+    dim = a.ndim + dim if dim < 0 else dim
+
+    numel = a.numel()
+    dimnumel = a.shape[dim]
+    nondimnumel = numel // dimnumel
+    if maxnumel < nondimnumel:
+        msg = "Cannot split the tensor of shape %s along dimension %s with maxnumel %d" % \
+              (a.shape, dim, maxnumel)
+        raise RuntimeError(msg)
+
+    csize = min(maxnumel // nondimnumel, dimnumel)
+    ioffset = 0
+    lslice = (slice(None, None, None),) * dim
+    rslice = (slice(None, None, None),) * (a.ndim - dim - 1)
+    while ioffset < dimnumel:
+        iend = ioffset + csize
+        chunks = a[(lslice + (slice(ioffset, iend, None),) +
+                    rslice)], ioffset, iend
+        yield chunks
+        ioffset = iend
+
+
+def get_memory(a: torch.Tensor) -> int:
+    """Returns the size of the tensor in bytes.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.pytorch_utils import get_memory
+    >>> a = torch.randn(100, 100, dtype=torch.float64)
+    >>> get_memory(a)
+    80000
+
+    Parameters
+    ----------
+    a: torch.Tensor
+        The tensor to be measured.
+
+    Returns
+    -------
+    size: int
+        The size of the tensor in bytes.
+
+    """
+    size = a.numel() * a.element_size()
+    return size

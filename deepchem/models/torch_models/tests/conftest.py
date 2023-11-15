@@ -5,18 +5,16 @@ import pandas as pd
 
 
 @pytest.fixture
-def grover_graph_attributes():
-    from deepchem.feat.graph_data import BatchGraphData
-    from deepchem.utils.grover import extract_grover_attributes
+def grover_batched_graph():
+    from deepchem.utils.grover import BatchGroverGraph
     smiles = ['CC', 'CCC', 'CC(=O)C']
 
     fg = dc.feat.CircularFingerprint()
     featurizer = dc.feat.GroverFeaturizer(features_generator=fg)
 
     graphs = featurizer.featurize(smiles)
-    batched_graph = BatchGraphData(graphs)
-    attributes = extract_grover_attributes(batched_graph)
-    return attributes
+    batched_graph = BatchGroverGraph(graphs)
+    return batched_graph
 
 
 @pytest.fixture

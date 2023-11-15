@@ -34,13 +34,20 @@ def test_smiles_featurize():
     ]
     featurizer = RobertaFeaturizer.from_pretrained(
         "seyonec/SMILES_tokenized_PubChem_shard00_160k")
-    feats = featurizer.featurize(smiles,
-                                 add_special_tokens=True,
-                                 truncation=True)
-    assert (len(feats) == 2)
-    assert (all([len(f) == 2 for f in feats]))
-    long_feat = featurizer.featurize(long_molecule_smiles,
-                                     add_special_tokens=True,
-                                     truncation=True)
-    assert (len(long_feat) == 1)
-    assert (len(long_feat[0] == 2))
+    max_length = 100
+    feat_kwargs = {
+        'add_special_tokens': True,
+        'truncation': True,
+        'padding': 'max_length',
+        'max_length': max_length
+    }
+    feats = featurizer.featurize(smiles, **feat_kwargs)
+    assert len(feats) == 2
+    assert all([len(f) == 2 for f in feats])
+    assert all([len(f[0]) == max_length for f in feats])
+
+    long_feat = featurizer.featurize(long_molecule_smiles, **feat_kwargs)
+    assert len(long_feat) == 1
+    assert len(long_feat[0]) == 2  # the tokens and attention mask
+    assert len(
+        long_feat[0][0]) == 100  # number of tokens for each smiles string

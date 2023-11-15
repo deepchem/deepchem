@@ -4,6 +4,6 @@ dependencies:
     - -f https://data.pyg.org/whl/torch-1.11.0+cu113.html
     - -f https://data.dgl.ai/wheels/repo.html
     - dgl-cu111
-    - torch==1.11.0+cu113
+    - torch==2.1.0+cu113
     - torch-geometric
     - pytorch-lightning==1.6.5

@@ -5,14 +5,16 @@ import torch.nn.functional as F
 import numpy as np
 from typing import List, Sequence, Optional, Any, Tuple
 from rdkit import Chem
-from deepchem.feat.graph_data import BatchGraphData
 from deepchem.models.torch_models.modular import ModularTorchModel
 from deepchem.models.torch_models.grover_layers import (
     GroverEmbedding, GroverBondVocabPredictor, GroverAtomVocabPredictor,
     GroverFunctionalGroupPredictor)
 from deepchem.models.torch_models.readout import GroverReadout
 from deepchem.feat.vocabulary_builders import GroverAtomVocabularyBuilder, GroverBondVocabularyBuilder
-from deepchem.utils.grover import extract_grover_attributes
+from deepchem.utils.grover import BatchGroverGraph
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class GroverPretrain(nn.Module):
@@ -48,8 +50,7 @@ class GroverPretrain(nn.Module):
     Example
     -------
     >>> import deepchem as dc
-    >>> from deepchem.feat.graph_data import BatchGraphData
-    >>> from deepchem.utils.grover import extract_grover_attributes
+    >>> from deepchem.utils.grover import BatchGroverGraph
     >>> from deepchem.models.torch_models.grover import GroverPretrain
     >>> from deepchem.models.torch_models.grover_layers import GroverEmbedding, GroverAtomVocabPredictor, GroverBondVocabPredictor, GroverFunctionalGroupPredictor
     >>> smiles = ['CC', 'CCC', 'CC(=O)C']
@@ -58,9 +59,9 @@ class GroverPretrain(nn.Module):
     >>> featurizer = dc.feat.GroverFeaturizer(features_generator=fg)
 
     >>> graphs = featurizer.featurize(smiles)
-    >>> batched_graph = BatchGraphData(graphs)
-    >>> grover_graph_attributes = extract_grover_attributes(batched_graph)
-    >>> f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, _ = grover_graph_attributes
+    >>> batched_graph = BatchGroverGraph(graphs)
+    >>> grover_graph_attributes = batched_graph.get_components()
+    >>> f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _ = grover_graph_attributes
     >>> components = {}
     >>> components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1], edge_fdim=f_bonds.shape[1])
     >>> components['atom_vocab_task_atom'] = GroverAtomVocabPredictor(vocab_size=10, in_features=128)
@@ -150,8 +151,7 @@ class GroverFinetune(nn.Module):
     Example
     -------
     >>> import deepchem as dc
-    >>> from deepchem.feat.graph_data import BatchGraphData
-    >>> from deepchem.utils.grover import extract_grover_attributes
+    >>> from deepchem.utils.grover import BatchGroverGraph
     >>> from deepchem.models.torch_models.grover_layers import GroverEmbedding
     >>> from deepchem.models.torch_models.readout import GroverReadout
     >>> from deepchem.models.torch_models.grover import GroverFinetune
@@ -159,10 +159,11 @@ class GroverFinetune(nn.Module):
     >>> fg = dc.feat.CircularFingerprint()
     >>> featurizer = dc.feat.GroverFeaturizer(features_generator=fg)
     >>> graphs = featurizer.featurize(smiles)
-    >>> batched_graph = BatchGraphData(graphs)
-    >>> attributes = extract_grover_attributes(batched_graph)
+    >>> batched_graph = BatchGroverGraph(graphs)
+    >>> attributes = batched_graph.get_components()
     >>> components = {}
-    >>> f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels, additional_features = attributes
+    >>> additional_features = batched_graph.additional_features
+    >>> f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels = attributes
     >>> inputs = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
     >>> components = {}
     >>> components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1], edge_fdim=f_bonds.shape[1])
@@ -336,12 +337,12 @@ class GroverModel(ModularTorchModel):
     def __init__(self,
                  node_fdim: int,
                  edge_fdim: int,
-                 atom_vocab: GroverAtomVocabularyBuilder,
-                 bond_vocab: GroverBondVocabularyBuilder,
                  hidden_size: int,
                  self_attention=False,
                  features_only=False,
-                 functional_group_size: int = 85,
+                 atom_vocab: Optional[GroverAtomVocabularyBuilder] = None,
+                 bond_vocab: Optional[GroverBondVocabularyBuilder] = None,
+                 functional_group_size: Optional[int] = 85,
                  features_dim=128,
                  dropout=0.2,
                  activation='relu',
@@ -359,8 +360,14 @@ class GroverModel(ModularTorchModel):
         self.edge_fdim = edge_fdim
         self.atom_vocab = atom_vocab
         self.bond_vocab = bond_vocab
-        self.atom_vocab_size = atom_vocab.size
-        self.bond_vocab_size = bond_vocab.size
+        if isinstance(atom_vocab, GroverAtomVocabularyBuilder):
+            self.atom_vocab_size = atom_vocab.size
+        else:
+            self.atom_vocab_size = None
+        if isinstance(bond_vocab, GroverBondVocabularyBuilder):
+            self.bond_vocab_size = bond_vocab.size
+        else:
+            self.bond_vocab_size = None
         self.task = task
         self.model_dir = model_dir
         self.hidden_size = hidden_size
@@ -376,9 +383,16 @@ class GroverModel(ModularTorchModel):
         self.n_classes = n_classes
         self.components = self.build_components()
         self.model = self.build_model()
+        if self.mode == 'regression':
+            output_types = ['prediction']
+        elif self.mode == 'classification':
+            output_types = ['prediction', 'loss']
+        else:
+            output_types = None
         super().__init__(self.model,
                          self.components,
                          model_dir=self.model_dir,
+                         output_types=output_types,
                          **kwargs)
         # FIXME In the above step, we initialize modular torch model but
         # something is missing here. The attribute loss from TorchModel gets assigned `loss_func`
@@ -537,23 +551,24 @@ class GroverModel(ModularTorchModel):
             Weights of data point
         """
         X, y, w = batch
-        batchgraph = BatchGraphData(X[0])
-        fgroup_label = getattr(batchgraph, 'fg_labels')
-        smiles_batch = getattr(batchgraph, 'smiles').reshape(-1).tolist()
+        batchgraph = BatchGroverGraph(X[0])
+        smiles_batch = getattr(batchgraph, 'smiles_batch')
 
-        f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, _ = extract_grover_attributes(
-            batchgraph)
+        f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fgroup_label = batchgraph.get_components(
+        )
 
         atom_vocab_label = torch.Tensor(
-            self.atom_vocab_random_mask(self.atom_vocab,
-                                        smiles_batch)).long().to(self.device)
+            self.atom_vocab_random_mask(
+                self.atom_vocab,  # type: ignore
+                smiles_batch)).long().to(self.device)
         bond_vocab_label = torch.Tensor(
-            self.bond_vocab_random_mask(self.bond_vocab,
-                                        smiles_batch)).long().to(self.device)
+            self.bond_vocab_random_mask(
+                self.bond_vocab,  # type: ignore
+                smiles_batch)).long().to(self.device)
         labels = {
             "av_task": atom_vocab_label,
             "bv_task": bond_vocab_label,
-            "fg_task": torch.Tensor(fgroup_label).to(self.device)
+            "fg_task": fgroup_label.to(self.device)
         }
         inputs = (f_atoms.to(self.device), f_bonds.to(self.device),
                   a2b.to(self.device), b2a.to(self.device),
@@ -583,13 +598,14 @@ class GroverModel(ModularTorchModel):
             Weights of data point
         """
         X, y, w = batch
-        batchgraph = BatchGraphData(X[0])
+        batchgraph = BatchGroverGraph(X[0])
         if y is not None:
             labels = torch.FloatTensor(y[0]).to(self.device)
         else:
             labels = None
-        f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, additional_features = extract_grover_attributes(
-            batchgraph)
+        f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _ = batchgraph.get_components(
+        )
+        additional_features = getattr(batchgraph, 'additional_features')
         inputs = (f_atoms.to(self.device), f_bonds.to(self.device),
                   a2b.to(self.device), b2a.to(self.device),
                   b2revb.to(self.device), a_scope.to(self.device),

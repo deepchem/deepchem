@@ -1,4 +1,6 @@
 import tempfile
+import os
+import pandas as pd
 from rdkit import Chem
 import deepchem as dc
 
@@ -34,6 +36,30 @@ def testGroverAtomVocabularyBuilder():
     vocab.build(dataset)
     assert vocab.size == 3
     assert vocab.size == len(vocab.itos)
+
+
+def test_grover_atom_vocabulary_build_from_csv(tmpdir):
+    # test build from csv
+    from deepchem.feat.vocabulary_builders.grover_vocab import GroverAtomVocabularyBuilder
+    atom_vocab = GroverAtomVocabularyBuilder()
+    X = ['CC(=O)C', 'CCC']
+    df = pd.DataFrame({'X': X})
+    csv_path = os.path.join(tmpdir, 'temp.csv')
+    df.to_csv(csv_path)
+
+    atom_vocab.build_from_csv(csv_path, smiles_field='X')
+    assert atom_vocab.stoi == {
+        '<pad>': 0,
+        '<other>': 1,
+        'C_C-SINGLE1': 2,
+        'C_C-SINGLE2': 3,
+        'C_C-SINGLE2_O-DOUBLE1': 4,
+        'O_C-DOUBLE1': 5
+    }
+    assert atom_vocab.itos == [
+        '<pad>', '<other>', 'C_C-SINGLE1', 'C_C-SINGLE2',
+        'C_C-SINGLE2_O-DOUBLE1', 'O_C-DOUBLE1'
+    ]
 
 
 def testGroverBondVocabularyBuilder():
@@ -75,6 +101,36 @@ def testGroverBondVocabularyBuilder():
     vocab.build(dataset)
     assert vocab.size == 3
     assert vocab.size == len(vocab.itos)
+
+
+def test_grover_bond_vocabulary_build_from_csv(tmpdir):
+    from deepchem.feat.vocabulary_builders.grover_vocab import GroverBondVocabularyBuilder
+    bond_vocab = GroverBondVocabularyBuilder()
+    X = ['CC(=O)C', 'CCC']
+    df = pd.DataFrame({'X': X})
+    csv_path = os.path.join(tmpdir, 'temp.csv')
+    df.to_csv(csv_path)
+
+    bond_vocab.build_from_csv(csv_path, smiles_field='X')
+
+    assert bond_vocab.stoi == {
+        '<pad>':
+            0,
+        '<other>':
+            1,
+        '(SINGLE-STEREONONE-NONE)_C-(DOUBLE-STEREONONE-NONE)1_C-(SINGLE-STEREONONE-NONE)1':
+            2,
+        '(SINGLE-STEREONONE-NONE)_C-(SINGLE-STEREONONE-NONE)1':
+            3,
+        '(DOUBLE-STEREONONE-NONE)_C-(SINGLE-STEREONONE-NONE)2':
+            4,
+    }
+    assert bond_vocab.itos == [
+        '<pad>', '<other>',
+        '(SINGLE-STEREONONE-NONE)_C-(DOUBLE-STEREONONE-NONE)1_C-(SINGLE-STEREONONE-NONE)1',
+        '(SINGLE-STEREONONE-NONE)_C-(SINGLE-STEREONONE-NONE)1',
+        '(DOUBLE-STEREONONE-NONE)_C-(SINGLE-STEREONONE-NONE)2'
+    ]
 
 
 def testGroverAtomVocabTokenizer():
