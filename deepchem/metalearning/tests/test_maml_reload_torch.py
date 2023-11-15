@@ -83,5 +83,8 @@ def test_reload():
     assert loss == reloaded_loss
 
     assert len(outputs) == len(reloaded_outputs)
+
+    outputs = outputs[0].detach().numpy()
+    reloaded_outputs = reloaded_outputs[0].detach().numpy()
     for output, reloaded_output in zip(outputs, reloaded_outputs):
         assert np.all(output == reloaded_output)

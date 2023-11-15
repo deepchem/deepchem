@@ -17,6 +17,53 @@ class TorchMetaLearner(object):
     To use MAML, create a subclass of this defining the learning problem to solve.
     It consists of a model that can be trained to perform many different tasks, and
     data for training it on a large (possibly infinite) set of different tasks.
+
+    Example
+    --------
+    class SineLearner(dc.metalearning.TorchMetaLearner):
+        def __init__(self):
+            self.batch_size = 10
+            self.w1 = torch.nn.Parameter(
+                torch.tensor(np.random.normal(size=[1, 40], scale=1.0),
+                            requires_grad=True))
+            self.w2 = torch.nn.Parameter(
+                torch.tensor(np.random.normal(size=[40, 40], scale=np.sqrt(1 / 40)),
+                            requires_grad=True))
+            self.w3 = torch.nn.Parameter(
+                torch.tensor(np.random.normal(size=[40, 1], scale=np.sqrt(1 / 40)),
+                            requires_grad=True))
+            self.b1 = torch.nn.Parameter(torch.tensor(np.zeros(40)),
+                                        requires_grad=True)
+            self.b2 = torch.nn.Parameter(torch.tensor(np.zeros(40)),
+                                        requires_grad=True)
+            self.b3 = torch.nn.Parameter(torch.tensor(np.zeros(1)),
+                                        requires_grad=True)
+
+        def compute_model(self, inputs, variables, training):
+            x, y = inputs
+            w1, w2, w3, b1, b2, b3 = variables
+            dense1 = F.relu(torch.matmul(x, w1) + b1)
+            dense2 = F.relu(torch.matmul(dense1, w2) + b2)
+            output = torch.matmul(dense2, w3) + b3
+            loss = torch.mean(torch.square(output - y))
+            return loss, [output]
+
+        @property
+        def variables(self):
+            return [self.w1, self.w2, self.w3, self.b1, self.b2, self.b3]
+
+        def select_task(self):
+            self.amplitude = 5.0 * np.random.random()
+            self.phase = np.pi * np.random.random()
+
+        def get_batch(self):
+            x = torch.tensor(np.random.uniform(-5.0, 5.0, (self.batch_size, 1)))
+            return [x, torch.tensor(self.amplitude * np.sin(x + self.phase))]
+
+        def parameters(self):
+            for key, value in self.__dict__.items():
+                if isinstance(value, torch.nn.Parameter):
+                    yield value
     """
 
     def compute_model(self, inputs, variables, training):
@@ -85,6 +132,16 @@ class TorchMAML(object):
     and data for your learning problem.  Pass it to a MAML object and call fit().
     You can then use train_on_current_task() to fine tune the model for a particular
     task.
+    Example
+    --------
+    import deepchem as dc
+    learner = SineLearner()
+    optimizer = dc.models.optimizers.Adam(learning_rate=5e-3)
+    maml = dc.metalearning.TorchMAML(learner, meta_batch_size=4, optimizer=optimizer)
+    maml.fit(9000)
+    batch = learner.get_batch()
+    loss, outputs = maml.predict_on_batch(batch)
+    maml.train_on_current_task()
     """
 
     def __init__(
@@ -213,15 +270,43 @@ class TorchMAML(object):
             self._pytorch_optimizer.zero_grad()
             for j in range(self.meta_batch_size):
                 learner.select_task()
-                meta_loss, meta_gradients = self._compute_meta_loss(
-                    learner.get_batch(), learner.get_batch(), variables)
+                updated_variables = variables
+                for k in range(self.optimization_steps):
+                    gradients = []
+                    loss, _ = self.learner.compute_model(
+                        learner.get_batch(), updated_variables, True)
+                    gradients = torch.autograd.grad(
+                        loss,
+                        updated_variables,
+                        grad_outputs=torch.ones_like(loss),
+                        create_graph=True,
+                        retain_graph=True)
+                    updated_variables = [
+                        v if g is None else v - self.learning_rate * g
+                        for v, g in zip(updated_variables, gradients)
+                    ]
+                meta_loss, _ = self.learner.compute_model(
+                    learner.get_batch(), updated_variables, True)
+                meta_gradients = torch.autograd.grad(
+                    meta_loss,
+                    variables,
+                    grad_outputs=torch.ones_like(meta_loss),
+                    retain_graph=True)
                 if j == 0:
                     summed_gradients = meta_gradients
                 else:
                     summed_gradients = [
                         s + g for s, g in zip(summed_gradients, meta_gradients)
                     ]
+                self.learner.w1.grad = summed_gradients[0]
+                self.learner.w2.grad = summed_gradients[1]
+                self.learner.w3.grad = summed_gradients[2]
+                self.learner.b1.grad = summed_gradients[3]
+                self.learner.b2.grad = summed_gradients[4]
+                self.learner.b3.grad = summed_gradients[5]
             self._pytorch_optimizer.step()
+            if self._lr_schedule is not None:
+                self._lr_schedule.step()
 
             # Do checkpointing.
 
@@ -229,27 +314,6 @@ class TorchMAML(object):
             ) >= checkpoint_time + checkpoint_interval:
                 self.save_checkpoint(max_checkpoints_to_keep)
                 checkpoint_time = time.time()
-
-    def _compute_meta_loss(self, inputs, inputs2, variables):
-        """This is called during fitting to compute the meta-loss (the loss after a
-        few steps of optimization), and its gradient.
-        """
-        updated_variables = variables
-        for k in range(self.optimization_steps):
-            gradients = []
-            loss, _ = self.learner.compute_model(inputs, updated_variables,
-                                                 True)
-            loss.backward()
-            gradients = [i.grad.clone() for i in updated_variables]
-            updated_variables = [
-                v if g is None else v - self.learning_rate * g
-                for v, g in zip(updated_variables, gradients)
-            ]
-        meta_loss, _ = self.learner.compute_model(inputs2, updated_variables,
-                                                  True)
-        meta_loss.backward()
-        meta_gradients = [j.grad.clone() for j in variables]
-        return meta_loss, meta_gradients
 
     def restore(self):
         """Reload the model parameters from the most recent checkpoint file."""
@@ -282,7 +346,6 @@ class TorchMAML(object):
             inputs = self.learner.get_batch()
             loss, _ = self.learner.compute_model(inputs, variables, True)
             loss.backward()
-            # gradients = [j.grad.clone() for j in variables]
             self._pytorch_task_optimizer.step()
 
     def predict_on_batch(self, inputs):
