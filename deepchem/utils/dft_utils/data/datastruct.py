@@ -304,3 +304,27 @@ class AtomCGTOBasis:
 # input basis type
 BasisInpType = Union[str, List[CGTOBasis], List[str], List[List[CGTOBasis]],
                      Dict[Union[str, int], Union[List[CGTOBasis], str]]]
+
+
+@dataclass
+class DensityFitInfo:
+    """Data structure that contains information about density fitting.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.dft_utils import DensityFitInfo, AtomCGTOBasis, CGTOBasis
+    >>> alphas = torch.ones(1)
+    >>> coeffs = torch.ones(1)
+    >>> cgto = CGTOBasis(angmom=0, alphas=alphas, coeffs=coeffs)
+    >>> atomcgto = AtomCGTOBasis(atomz=1, bases=[cgto], pos=[[0.0, 0.0, 0.0]])
+    >>> dfinfo = DensityFitInfo(method="sv", auxbases=[atomcgto])
+    >>> dfinfo
+    DensityFitInfo(method='sv', auxbases=[AtomCGTOBasis(atomz=1, bases=[CGTOBasis(angmom=0, alphas=tensor([1.]), coeffs=tensor([1.]), normalized=False)], pos=tensor([[0., 0., 0.]]))])"""
+
+    def __init__(self, method: str, auxbases: List[AtomCGTOBasis]):
+        self.method = method
+        self.auxbases = auxbases
+
+    def __repr__(self):
+        return f"DensityFitInfo(method='{self.method}', auxbases={self.auxbases})"

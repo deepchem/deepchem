@@ -300,3 +300,15 @@ def test_is_z_float():
     assert is_z_float(1.0)
     assert not is_z_float(torch.tensor(1))
     assert is_z_float(torch.tensor(1.0))
+
+
+@pytest.mark.torch
+def test_density_fit_info():
+    from deepchem.utils.dft_utils import DensityFitInfo, AtomCGTOBasis, CGTOBasis
+    alphas = torch.ones(1)
+    coeffs = torch.ones(1)
+    cgto = CGTOBasis(angmom=0, alphas=alphas, coeffs=coeffs)
+    atomcgto = AtomCGTOBasis(atomz=1, bases=[cgto], pos=[[0.0, 0.0, 0.0]])
+    dfinfo = DensityFitInfo(method="sv", auxbases=[atomcgto])
+    assert dfinfo.method == 'sv'
+    assert dfinfo.auxbases == [atomcgto]

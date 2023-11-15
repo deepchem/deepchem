@@ -321,6 +321,9 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.data.datastruct.is_z_float
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.data.datastruct.DensityFitInfo
+  :members:
+
 .. autofunction:: deepchem.utils.dftutils.hashstr
 
 .. autoclass:: deepchem.utils.dftutils.BaseGrid
