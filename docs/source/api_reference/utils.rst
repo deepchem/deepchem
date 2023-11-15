@@ -324,6 +324,15 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.data.datastruct.DensityFitInfo
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.data.safeops.occnumber
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.data.safeops.get_floor_and_ceil
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.data.safeops.safe_cdist
+  :members:
+
 .. autofunction:: deepchem.utils.dftutils.hashstr
 
 .. autoclass:: deepchem.utils.dftutils.BaseGrid

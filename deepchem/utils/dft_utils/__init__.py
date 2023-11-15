@@ -38,6 +38,10 @@ try:
     from deepchem.utils.dft_utils.hamilton.base_hamilton import BaseHamilton
 
     from deepchem.utils.dft_utils.system.base_system import BaseSystem
+
+    from deepchem.utils.dft_utils.data.safeops import occnumber
+    from deepchem.utils.dft_utils.data.safeops import get_floor_and_ceil
+    from deepchem.utils.dft_utils.data.safeops import safe_cdist
 except ModuleNotFoundError as e:
     logger_.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')

@@ -312,3 +312,25 @@ def test_density_fit_info():
     dfinfo = DensityFitInfo(method="sv", auxbases=[atomcgto])
     assert dfinfo.method == 'sv'
     assert dfinfo.auxbases == [atomcgto]
+
+
+@pytest.mark.torch
+def test_occnumber():
+    from deepchem.utils.dft_utils import occnumber
+    assert torch.allclose(
+        occnumber(torch.tensor(2.5), 3),
+        torch.tensor([1.0000, 1.0000, 0.5000], dtype=torch.float64))
+
+
+@pytest.mark.torch
+def test_get_floor_and_ceil():
+    from deepchem.utils.dft_utils import get_floor_and_ceil
+    assert get_floor_and_ceil(2.5) == (2, 3)
+
+
+@pytest.mark.torch
+def test_safe_cdist():
+    from deepchem.utils.dft_utils import safe_cdist
+    a = torch.tensor([[1., 2], [3, 4]])
+    b = torch.tensor([[1., 2], [3, 4]])
+    assert torch.allclose(safe_cdist(a, b), torch.tensor([[0.0000, 2.8284], [2.8284, 0.0000]]))
