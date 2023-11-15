@@ -291,3 +291,12 @@ def test_atom_cgto_basis():
     assert atomcgto.atomz == 1
     assert atomcgto.bases == [cgto]
     assert not atomcgto.bases[0].normalized
+
+
+@pytest.mark.torch
+def test_is_z_float():
+    from deepchem.utils.dft_utils import is_z_float
+    assert not is_z_float(1)
+    assert is_z_float(1.0)
+    assert not is_z_float(torch.tensor(1))
+    assert is_z_float(torch.tensor(1.0))

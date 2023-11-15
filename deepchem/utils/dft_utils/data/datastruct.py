@@ -20,6 +20,34 @@ AtomZsType = Union[List[str], List[ZType], torch.Tensor]
 AtomPosType = Union[List[List[float]], np.ndarray, torch.Tensor]
 
 
+def is_z_float(a: ZType) -> bool:
+    """returns if the given z-type is a floating point.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.dft_utils import is_z_float
+    >>> is_z_float(1)
+    False
+    >>> is_z_float(1.0)
+    True
+    >>> is_z_float(torch.tensor(1))
+    False
+    >>> is_z_float(torch.tensor(1.0))
+    True
+
+    Parameters
+    ----------
+    a: ZType
+        The z-type to check.
+
+    """
+    if isinstance(a, torch.Tensor):
+        return a.is_floating_point()
+    else:
+        return isinstance(a, float)
+
+
 @dataclass
 class SpinParam(Generic[T]):
     """Data structure to store different values for spin-up and spin-down electrons.
