@@ -7,7 +7,10 @@ import torch
 import numpy as np
 from deepchem.utils import gaussian_int
 
-__all__ = ["ZType"]
+__all__ = [
+    "ZType", "AtomPosType", "AtomZsType", "SpinParam", "ValGrad", "CGTOBasis",
+    "BasisInpType", "AtomCGTOBasis", "is_z_float", "DensityFitInfo"
+]
 
 T = TypeVar('T')
 P = TypeVar('P')
