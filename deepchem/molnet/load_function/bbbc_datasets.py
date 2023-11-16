@@ -93,8 +93,18 @@ class _BBBC002Loader(_MolnetLoader):
         if not os.path.exists(labels_file):
             dc.utils.data_utils.download_url(url=BBBC2_LABEL_URL,
                                              dest_dir=self.data_dir)
+
+        labels_table = pd.read_csv(labels_file, delimiter="\t")
+        labels = np.mean([
+            labels_table["human counter 1 (Robert Lindquist)"],
+            labels_table["human counter #2 (Joohan Chang)"]
+        ],
+                         axis=0,
+                         dtype=int)
+
         loader = dc.data.ImageLoader()
-        return loader.create_dataset(dataset_file, in_memory=False)
+        return loader.create_dataset(inputs=(dataset_file, labels),
+                                     in_memory=False)
 
 
 def load_bbbc002(
