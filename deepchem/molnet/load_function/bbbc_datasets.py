@@ -9,7 +9,6 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 import numpy as np
-import pandas as pd
 
 BBBC1_IMAGE_URL = 'https://data.broadinstitute.org/bbbc/BBBC001/BBBC001_v1_images_tif.zip'
 BBBC1_LABEL_URL = 'https://data.broadinstitute.org/bbbc/BBBC001/BBBC001_v1_counts.txt'
