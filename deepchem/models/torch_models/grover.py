@@ -531,8 +531,8 @@ class GroverModel(ModularTorchModel):
             components['readout'] = GroverReadout(
                 rtype="self_attention",
                 in_features=self.hidden_size,
-                attn_hidden=self.attn_hidden_size,
-                attn_out=self.attn_out_size)
+                attn_hidden_size=self.attn_hidden_size,
+                attn_out_size=self.attn_out_size)
         else:
             components['readout'] = GroverReadout(rtype="mean",
                                                   in_features=self.hidden_size)
