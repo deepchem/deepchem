@@ -335,6 +335,9 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.match_dim
 
+.. autoclass:: deepchem.utils.differentiation_utils.linop.LinearOperator
+  :members:
+
 .. autofunction:: deepchem.utils.differentiation_utils.set_default_option
 
 .. autofunction:: deepchem.utils.differentiation_utils.get_and_pop_keys
