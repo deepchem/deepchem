@@ -541,3 +541,95 @@ class AddBaseXC(BaseXC):
         return self.a.getparamnames(
             methodname, prefix=prefix + "a.") + self.b.getparamnames(
                 methodname, prefix=prefix + "b.")
+
+
+class MulBaseXC(BaseXC):
+    """Multiply a BaseXC with a float or a tensor
+    
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.dft_utils.datastruct import ValGrad, SpinParam
+    >>> from deepchem.utils.dft_utils.xc.base_xc import BaseXC, MulBaseXC
+    >>> class MyXC(BaseXC):
+    ...     @property
+    ...     def family(self) -> int:
+    ...         return 1
+    ...     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
+    ...         if isinstance(densinfo, ValGrad):
+    ...             return densinfo.value.pow(2)
+    ...         else:
+    ...             return densinfo.u.value.pow(2) + densinfo.d.value.pow(2)
+    ...     def get_vxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> Union[ValGrad, SpinParam[ValGrad]]:
+    ...         if isinstance(densinfo, ValGrad):
+    ...             return ValGrad(value=2*densinfo.value)
+    ...         else:
+    ...             return SpinParam(u=ValGrad(value=2*densinfo.u.value),
+    ...                              d=ValGrad(value=2*densinfo.d.value))
+    >>> xc = MyXC()
+    >>> densinfo = ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True))
+    >>> xc.get_edensityxc(densinfo)
+    tensor([1., 4., 9.], grad_fn=<PowBackward0>)
+    >>> xc.get_vxc(densinfo)
+    ValGrad(value=tensor([2., 4., 6.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None)
+    >>> densinfo = SpinParam(u=ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True)),
+    ...                      d=ValGrad(value=torch.tensor([4., 5., 6.], requires_grad=True)))
+    >>> xc.get_edensityxc(densinfo)
+    tensor([17., 29., 45.], grad_fn=<AddBackward0>)
+    >>> xc.get_vxc(densinfo)
+    SpinParam(u=ValGrad(value=tensor([2., 4., 6.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None), d=ValGrad(value=tensor([ 8., 10., 12.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None))
+    >>> xc2 = MulBaseXC(xc, 2.)
+    >>> xc2.get_edensityxc(densinfo)
+    tensor([34., 58., 90.], grad_fn=<MulBackward0>)
+    >>> xc2.get_vxc(densinfo)
+    SpinParam(u=ValGrad(value=tensor([ 4.,  8., 12.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None), d=ValGrad(value=tensor([16., 20., 24.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None))
+    >>> xc3 = xc * 2.
+    >>> xc3.get_edensityxc(densinfo)
+    tensor([34., 58., 90.], grad_fn=<MulBackward0>)
+    >>> xc3.get_vxc(densinfo)
+    SpinParam(u=ValGrad(value=tensor([ 4.,  8., 12.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None), d=ValGrad(value=tensor([16., 20., 24.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None))
+
+    """
+
+    def __init__(self, a: BaseXC, b: Union[float, torch.Tensor]) -> None:
+        """Initialize the MulBaseXC
+        
+        Parameters
+        ----------
+        a: BaseXC
+            BaseXC to be multiplied to.
+        b: Union[float, torch.Tensor]
+            float or tensor to be multiplied with.
+
+        """
+        self.a = a
+        self.b = b
+        if isinstance(b, torch.Tensor):
+            msg = "XC multiplication with tensor can only be done with 1-element tensor"
+            assert b.numel() == 1, msg
+
+    @property
+    def family(self):
+        return self.a.family
+
+    def get_vxc(
+        self, densinfo: Union[ValGrad, SpinParam[ValGrad]]
+    ) -> Union[ValGrad, SpinParam[ValGrad]]:
+        avxc = self.a.get_vxc(densinfo)
+
+        if isinstance(densinfo, ValGrad):
+            return avxc * self.b
+        else:
+            return SpinParam(u=avxc.u * self.b, d=avxc.d * self.b)
+
+    def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> \
+            torch.Tensor:
+        return self.a.get_edensityxc(densinfo) * self.b
+
+    def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+
+        params = self.a.getparamnames(methodname, prefix=prefix + "a.")
+        if isinstance(self.b, torch.Tensor):
+            params = params + [prefix + "b"]
+        return params
+
