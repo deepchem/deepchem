@@ -24,6 +24,7 @@ try:
     from deepchem.utils.dft_utils.api.parser import parse_moldesc
 
     from deepchem.utils.dft_utils.xc.base_xc import BaseXC
+    from deepchem.utils.dft_utils.xc.base_xc import AddBaseXC
 
     from deepchem.utils.dft_utils.grid.base_grid import BaseGrid
 except ModuleNotFoundError as e:
