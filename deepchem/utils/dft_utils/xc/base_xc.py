@@ -545,12 +545,12 @@ class AddBaseXC(BaseXC):
 
 class MulBaseXC(BaseXC):
     """Multiply a BaseXC with a float or a tensor
-    
+
     Examples
     --------
     >>> import torch
-    >>> from deepchem.utils.dft_utils.datastruct import ValGrad, SpinParam
-    >>> from deepchem.utils.dft_utils.xc.base_xc import BaseXC, MulBaseXC
+    >>> from deepchem.utils.dft_utils import ValGrad, SpinParam
+    >>> from deepchem.utils.dft_utils import BaseXC, MulBaseXC
     >>> class MyXC(BaseXC):
     ...     @property
     ...     def family(self) -> int:
@@ -588,12 +588,11 @@ class MulBaseXC(BaseXC):
     tensor([34., 58., 90.], grad_fn=<MulBackward0>)
     >>> xc3.get_vxc(densinfo)
     SpinParam(u=ValGrad(value=tensor([ 4.,  8., 12.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None), d=ValGrad(value=tensor([16., 20., 24.], grad_fn=<MulBackward0>), grad=None, lapl=None, kin=None))
-
     """
 
     def __init__(self, a: BaseXC, b: Union[float, torch.Tensor]) -> None:
         """Initialize the MulBaseXC
-        
+
         Parameters
         ----------
         a: BaseXC
@@ -610,11 +609,33 @@ class MulBaseXC(BaseXC):
 
     @property
     def family(self):
+        """Returns 1 for LDA, 2 for GGA, and 4 for Meta-GGA."""
         return self.a.family
 
     def get_vxc(
         self, densinfo: Union[ValGrad, SpinParam[ValGrad]]
     ) -> Union[ValGrad, SpinParam[ValGrad]]:
+        """Returns the ValGrad for the xc potential given the density info
+        for unpolarized case.
+
+        Parameters
+        ----------
+        densinfo : Union[ValGrad, SpinParam[ValGrad]]
+            The density information.
+            If the XC is unpolarized, then densinfo is ValGrad.
+            If the XC is polarized, then densinfo is SpinParam[ValGrad].
+            The ValGrad contains the value and gradient of the density.
+            The SpinParam[ValGrad] contains the value and gradient of the density
+            for each spin channel.
+
+        Returns
+        -------
+        Union[ValGrad, SpinParam[ValGrad]]
+            The ValGrad for the xc potential.
+            If the XC is unpolarized, then the return is ValGrad.
+            If the XC is polarized, then the return is SpinParam[ValGrad].
+
+        """
         avxc = self.a.get_vxc(densinfo)
 
         if isinstance(densinfo, ValGrad):
@@ -624,12 +645,53 @@ class MulBaseXC(BaseXC):
 
     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> \
             torch.Tensor:
+        """Returns the xc energy density (energy per unit volume)
+
+        Parameters
+        ----------
+        densinfo : Union[ValGrad, SpinParam[ValGrad]]
+            The density information.
+            If the XC is unpolarized, then densinfo is ValGrad.
+            If the XC is polarized, then densinfo is SpinParam[ValGrad].
+            The ValGrad contains the value and gradient of the density.
+            The SpinParam[ValGrad] contains the value and gradient of the density
+            for each spin channel.
+
+        Returns
+        -------
+        torch.Tensor
+            The energy density of the XC.
+
+        """
         return self.a.get_edensityxc(densinfo) * self.b
 
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+        """
+        This method should list tensor names that affect the output of the
+        method with name indicated in ``methodname``.
+        If the ``methodname`` is not on the list in this function, it should
+        raise ``KeyError``.
 
+        Parameters
+        ---------
+        methodname: str
+            The name of the method of the class.
+        prefix: str
+            The prefix to be appended in front of the parameters name.
+            This usually contains the dots.
+
+        Returns
+        -------
+        List[str]
+            Sequence of name of parameters affecting the output of the method.
+
+        Raises
+        ------
+        KeyError
+            If the list in this function does not contain ``methodname``.
+
+        """
         params = self.a.getparamnames(methodname, prefix=prefix + "a.")
         if isinstance(self.b, torch.Tensor):
             params = params + [prefix + "b"]
         return params
-
