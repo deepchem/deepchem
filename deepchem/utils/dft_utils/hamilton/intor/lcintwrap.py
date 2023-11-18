@@ -5,7 +5,7 @@ import copy
 import torch
 import numpy as np
 from deepchem.utils.dft_utils import AtomCGTOBasis, CGTOBasis, Lattice
-from dqc.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CINT
+from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CINT
 from deepchem.utils.misc_utils import memoize_method
 
 __all__ = ["LibcintWrapper", "SubsetLibcintWrapper"]
