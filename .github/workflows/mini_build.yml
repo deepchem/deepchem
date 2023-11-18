@@ -120,7 +120,7 @@ jobs:
         fi;
         cd ..
         cp requirements/env.yml env.yml
-    name: Create env.yml for python 3.8
+    - name: Create env.yml for python 3.8
       shell: bash
       # A special case of environment creation for python 3.8 which excludes jax [deprecated]
       if: ${{ matrix.python-version == '3.8' }}
