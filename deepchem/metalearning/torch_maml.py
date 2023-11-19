@@ -7,8 +7,8 @@ import time
 
 import torch
 
-from deepchem.models.optimizers import Adam, GradientDescent, LearningRateSchedule
-from typing import Optional
+from deepchem.models.optimizers import Optimizer, Adam, GradientDescent, LearningRateSchedule
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 
 class TorchMetaLearner(object):
@@ -20,53 +20,43 @@ class TorchMetaLearner(object):
 
     Example
     --------
-    class SineLearner(dc.metalearning.TorchMetaLearner):
-        def __init__(self):
-            self.batch_size = 10
-            self.w1 = torch.nn.Parameter(
-                torch.tensor(np.random.normal(size=[1, 40], scale=1.0),
-                            requires_grad=True))
-            self.w2 = torch.nn.Parameter(
-                torch.tensor(np.random.normal(size=[40, 40], scale=np.sqrt(1 / 40)),
-                            requires_grad=True))
-            self.w3 = torch.nn.Parameter(
-                torch.tensor(np.random.normal(size=[40, 1], scale=np.sqrt(1 / 40)),
-                            requires_grad=True))
-            self.b1 = torch.nn.Parameter(torch.tensor(np.zeros(40)),
-                                        requires_grad=True)
-            self.b2 = torch.nn.Parameter(torch.tensor(np.zeros(40)),
-                                        requires_grad=True)
-            self.b3 = torch.nn.Parameter(torch.tensor(np.zeros(1)),
-                                        requires_grad=True)
-
-        def compute_model(self, inputs, variables, training):
-            x, y = inputs
-            w1, w2, w3, b1, b2, b3 = variables
-            dense1 = F.relu(torch.matmul(x, w1) + b1)
-            dense2 = F.relu(torch.matmul(dense1, w2) + b2)
-            output = torch.matmul(dense2, w3) + b3
-            loss = torch.mean(torch.square(output - y))
-            return loss, [output]
-
-        @property
-        def variables(self):
-            return [self.w1, self.w2, self.w3, self.b1, self.b2, self.b3]
-
-        def select_task(self):
-            self.amplitude = 5.0 * np.random.random()
-            self.phase = np.pi * np.random.random()
-
-        def get_batch(self):
-            x = torch.tensor(np.random.uniform(-5.0, 5.0, (self.batch_size, 1)))
-            return [x, torch.tensor(self.amplitude * np.sin(x + self.phase))]
-
-        def parameters(self):
-            for key, value in self.__dict__.items():
-                if isinstance(value, torch.nn.Parameter):
-                    yield value
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> import torch
+    >>> class SineLearner(dc.metalearning.TorchMetaLearner):
+    ...     def __init__(self):
+    ...         self.batch_size = 10
+    ...         self.w1 = torch.nn.Parameter(torch.tensor(np.random.normal(size=[1, 40], scale=1.0),requires_grad=True))
+    ...         self.w2 = torch.nn.Parameter(torch.tensor(np.random.normal(size=[40, 40], scale=np.sqrt(1 / 40)),requires_grad=True))
+    ...         self.w3 = torch.nn.Parameter(torch.tensor(np.random.normal(size=[40, 1], scale=np.sqrt(1 / 40)),requires_grad=True))
+    ...         self.b1 = torch.nn.Parameter(torch.tensor(np.zeros(40)),requires_grad=True)
+    ...         self.b2 = torch.nn.Parameter(torch.tensor(np.zeros(40)),requires_grad=True)
+    ...         self.b3 = torch.nn.Parameter(torch.tensor(np.zeros(1)),requires_grad=True)
+    ...     def compute_model(self, inputs, variables, training):
+    ...         x, y = inputs
+    ...         w1, w2, w3, b1, b2, b3 = variables
+    ...         dense1 = F.relu(torch.matmul(x, w1) + b1)
+    ...         dense2 = F.relu(torch.matmul(dense1, w2) + b2)
+    ...         output = torch.matmul(dense2, w3) + b3
+    ...         loss = torch.mean(torch.square(output - y))
+    ...         return loss, [output]
+    ...     @property
+    ...     def variables(self):
+    ...         return [self.w1, self.w2, self.w3, self.b1, self.b2, self.b3]
+    ...     def select_task(self):
+    ...         self.amplitude = 5.0 * np.random.random()
+    ...         self.phase = np.pi * np.random.random()
+    ...     def get_batch(self):
+    ...         x = torch.tensor(np.random.uniform(-5.0, 5.0, (self.batch_size, 1)))
+    ...         return [x, torch.tensor(self.amplitude * np.sin(x + self.phase))]
+    ...     def parameters(self):
+    ...         for key, value in self.__dict__.items():
+    ...             if isinstance(value, torch.nn.Parameter):
+    ...                 yield value
     """
 
-    def compute_model(self, inputs, variables, training):
+    def compute_model(self, inputs: List[torch.Tensor],
+                      variables: List[torch.Tensor], training: bool):
         """Compute the model for a set of inputs and variables.
 
         Parameters
@@ -112,7 +102,7 @@ class TorchMetaLearner(object):
         raise NotImplementedError("Subclasses must implement this")
 
     def parameters(self):
-        """Get the parameters to be passed to the optimizer."""
+        """Get the parameters."""
         raise NotImplementedError("Subclasses must implement this")
 
 
@@ -134,24 +124,63 @@ class TorchMAML(object):
     task.
     Example
     --------
-    import deepchem as dc
-    learner = SineLearner()
-    optimizer = dc.models.optimizers.Adam(learning_rate=5e-3)
-    maml = dc.metalearning.TorchMAML(learner, meta_batch_size=4, optimizer=optimizer)
-    maml.fit(9000)
-    batch = learner.get_batch()
-    loss, outputs = maml.predict_on_batch(batch)
-    maml.train_on_current_task()
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> import torch
+    >>> import torch.nn.functional as F
+    >>> class SineLearner(dc.metalearning.TorchMetaLearner):
+    ...     def __init__(self):
+    ...         self.batch_size = 10
+    ...         self.w1 = torch.nn.Parameter(torch.tensor(np.random.normal(size=[1, 40], scale=1.0),requires_grad=True))
+    ...         self.w2 = torch.nn.Parameter(torch.tensor(np.random.normal(size=[40, 40], scale=np.sqrt(1 / 40)),requires_grad=True))
+    ...         self.w3 = torch.nn.Parameter(torch.tensor(np.random.normal(size=[40, 1], scale=np.sqrt(1 / 40)),requires_grad=True))
+    ...         self.b1 = torch.nn.Parameter(torch.tensor(np.zeros(40)),requires_grad=True)
+    ...         self.b2 = torch.nn.Parameter(torch.tensor(np.zeros(40)),requires_grad=True)
+    ...         self.b3 = torch.nn.Parameter(torch.tensor(np.zeros(1)),requires_grad=True)
+    ...     def compute_model(self, inputs, variables, training):
+    ...         x, y = inputs
+    ...         w1, w2, w3, b1, b2, b3 = variables
+    ...         dense1 = F.relu(torch.matmul(x, w1) + b1)
+    ...         dense2 = F.relu(torch.matmul(dense1, w2) + b2)
+    ...         output = torch.matmul(dense2, w3) + b3
+    ...         loss = torch.mean(torch.square(output - y))
+    ...         return loss, [output]
+    ...     @property
+    ...     def variables(self):
+    ...         return [self.w1, self.w2, self.w3, self.b1, self.b2, self.b3]
+    ...     def select_task(self):
+    ...         self.amplitude = 5.0 * np.random.random()
+    ...         self.phase = np.pi * np.random.random()
+    ...     def get_batch(self):
+    ...         x = torch.tensor(np.random.uniform(-5.0, 5.0, (self.batch_size, 1)))
+    ...         return [x, torch.tensor(self.amplitude * np.sin(x + self.phase))]
+    ...     def parameters(self):
+    ...         for key, value in self.__dict__.items():
+    ...             if isinstance(value, torch.nn.Parameter):
+    ...                 yield value
+    >>> learner = SineLearner()
+    >>> optimizer = dc.models.optimizers.Adam(learning_rate=5e-3)
+    >>> maml = dc.metalearning.TorchMAML(learner,meta_batch_size=4,optimizer=optimizer)
+    >>> maml.fit(9000)
+
+    # To test it out on a new task and see how it works
+
+    >>> learner.select_task()
+    >>> maml.restore()
+    >>> batch = learner.get_batch()
+    >>> loss, outputs = maml.predict_on_batch(batch)
+    >>> maml.train_on_current_task()
+    >>> loss, outputs = maml.predict_on_batch(batch)
     """
 
     def __init__(
         self,
         learner,
-        learning_rate=0.001,
-        optimization_steps=1,
-        meta_batch_size=10,
-        optimizer=Adam(),
-        model_dir=None,
+        learning_rate: Union[float, LearningRateSchedule] = 0.001,
+        optimization_steps: int = 1,
+        meta_batch_size: int = 10,
+        optimizer: Optimizer = Adam(),
+        model_dir: Optional[str] = None,
         device: Optional[torch.device] = None,
     ):
         """Create an object for performing meta-optimization.
@@ -180,10 +209,10 @@ class TorchMAML(object):
         # Record inputs.
 
         self.learner = learner
-        self.learning_rate: float = learning_rate
+        self.learning_rate: Union[float, LearningRateSchedule] = learning_rate
         self.optimization_steps: int = optimization_steps
         self.meta_batch_size: int = meta_batch_size
-        self.optimizer = optimizer
+        self.optimizer: Optimizer = optimizer
 
         # Create the output directory if necessary.
 
@@ -195,7 +224,7 @@ class TorchMAML(object):
             model_dir = tempfile.mkdtemp()
             self._model_dir_is_temp = True
         self.model_dir = model_dir
-        self.save_file = "%s/%s" % (self.model_dir, "model")
+        self.save_file: str = "%s/%s" % (self.model_dir, "model")
 
         # Select a device.
 
@@ -206,7 +235,7 @@ class TorchMAML(object):
                 device = torch.device('mps')
             else:
                 device = torch.device('cpu')
-        self.device = device
+        self.device: torch.device = device
         self.learner.w1 = self.learner.w1.to(device)
         self.learner.b1 = self.learner.b1.to(device)
         self.learner.w2 = self.learner.w2.to(device)
@@ -216,7 +245,7 @@ class TorchMAML(object):
 
         # Create the optimizers for meta-optimization and task optimization.
 
-        self._global_step = 0
+        self._global_step: int = 0
         self._pytorch_optimizer = self.optimizer._create_pytorch_optimizer(
             self.learner.parameters())
         if isinstance(self.optimizer.learning_rate, LearningRateSchedule):
@@ -225,7 +254,8 @@ class TorchMAML(object):
         else:
             self._lr_schedule = None
 
-        task_optimizer = GradientDescent(learning_rate=self.learning_rate)
+        task_optimizer: Optimizer = GradientDescent(
+            learning_rate=self.learning_rate)
         self._pytorch_task_optimizer = task_optimizer._create_pytorch_optimizer(
             self.learner.parameters())
         if isinstance(task_optimizer.learning_rate, LearningRateSchedule):
@@ -239,10 +269,10 @@ class TorchMAML(object):
             shutil.rmtree(self.model_dir)
 
     def fit(self,
-            steps,
-            max_checkpoints_to_keep=5,
-            checkpoint_interval=600,
-            restore=False):
+            steps: int,
+            max_checkpoints_to_keep: int = 5,
+            checkpoint_interval: int = 600,
+            restore: bool = False):
         """Perform meta-learning to train the model.
 
         Parameters
@@ -252,7 +282,7 @@ class TorchMAML(object):
         max_checkpoints_to_keep: int
             the maximum number of checkpoint files to keep.  When this number is reached, older
             files are deleted.
-        checkpoint_interval: float
+        checkpoint_interval: int
             the time interval at which to save checkpoints, measured in seconds
         restore: bool
             if True, restore the model from the most recent checkpoint before training
@@ -260,22 +290,21 @@ class TorchMAML(object):
         """
         if restore:
             self.restore()
-        checkpoint_time = time.time()
+        checkpoint_time: float = time.time()
 
         # Main optimization loop.
 
         learner = self.learner
-        variables = learner.variables
+        variables: List[torch.Tensor] = learner.variables
         for i in range(steps):
             self._pytorch_optimizer.zero_grad()
             for j in range(self.meta_batch_size):
                 learner.select_task()
-                updated_variables = variables
+                updated_variables: List[torch.Tensor] = variables
                 for k in range(self.optimization_steps):
-                    gradients = []
                     loss, _ = self.learner.compute_model(
                         learner.get_batch(), updated_variables, True)
-                    gradients = torch.autograd.grad(
+                    gradients: Tuple[torch.Tensor, ...] = torch.autograd.grad(
                         loss,
                         updated_variables,
                         grad_outputs=torch.ones_like(loss),
@@ -287,13 +316,14 @@ class TorchMAML(object):
                     ]
                 meta_loss, _ = self.learner.compute_model(
                     learner.get_batch(), updated_variables, True)
-                meta_gradients = torch.autograd.grad(
+                meta_gradients: Tuple[torch.Tensor, ...] = torch.autograd.grad(
                     meta_loss,
                     variables,
                     grad_outputs=torch.ones_like(meta_loss),
                     retain_graph=True)
                 if j == 0:
-                    summed_gradients = meta_gradients
+                    summed_gradients: Union[Tuple[torch.Tensor, ...],
+                                            List[torch.Tensor]] = meta_gradients
                 else:
                     summed_gradients = [
                         s + g for s, g in zip(summed_gradients, meta_gradients)
@@ -315,20 +345,24 @@ class TorchMAML(object):
                 self.save_checkpoint(max_checkpoints_to_keep)
                 checkpoint_time = time.time()
 
-    def restore(self):
+    def restore(self) -> None:
         """Reload the model parameters from the most recent checkpoint file."""
-        last_checkpoint = sorted(self.get_checkpoints(self.model_dir))
+        last_checkpoint: Union[List[str], str] = sorted(
+            self.get_checkpoints(self.model_dir))
         if len(last_checkpoint) == 0:
             raise ValueError('No checkpoint found')
         last_checkpoint = last_checkpoint[0]
-        data = torch.load(last_checkpoint, map_location=self.device)
+        data: Any = torch.load(last_checkpoint, map_location=self.device)
         self.learner.__dict__ = data['model_state_dict']
+        self.learning_rate = data['learning_rate']
         self._pytorch_optimizer.load_state_dict(data['optimizer_state_dict'])
         self._pytorch_task_optimizer.load_state_dict(
             data['task_optimizer_state_dict'])
         self._global_step = data['global_step']
 
-    def train_on_current_task(self, optimization_steps=1, restore=True):
+    def train_on_current_task(self,
+                              optimization_steps: int = 1,
+                              restore: bool = True):
         """Perform a few steps of gradient descent to fine tune the model on the current task.
 
         Parameters
@@ -340,7 +374,16 @@ class TorchMAML(object):
         """
         if restore:
             self.restore()
-        variables = self.learner.variables
+        variables: List[torch.Tensor] = self.learner.variables
+        task_optimizer: Optimizer = GradientDescent(
+            learning_rate=self.learning_rate)
+        self._pytorch_task_optimizer = task_optimizer._create_pytorch_optimizer(
+            self.learner.parameters())
+        if isinstance(task_optimizer.learning_rate, LearningRateSchedule):
+            self._lr_schedule = task_optimizer.learning_rate._create_pytorch_schedule(
+                self._pytorch_task_optimizer)
+        else:
+            self._lr_schedule = None
         for i in range(optimization_steps):
             self._pytorch_task_optimizer.zero_grad()
             inputs = self.learner.get_batch()
@@ -348,7 +391,8 @@ class TorchMAML(object):
             loss.backward()
             self._pytorch_task_optimizer.step()
 
-    def predict_on_batch(self, inputs):
+    def predict_on_batch(
+            self, inputs: List[torch.Tensor]) -> Tuple[float, torch.Tensor]:
         """Compute the model's outputs for a batch of inputs.
 
         Parameters
@@ -386,9 +430,11 @@ class TorchMAML(object):
 
         # Save the checkpoint to a file.
 
-        data = {
+        data: Dict[str, Any] = {
             'model_state_dict':
                 self.learner.__dict__,
+            'learning_rate':
+                self.learning_rate,
             'optimizer_state_dict':
                 self._pytorch_optimizer.state_dict(),
             'task_optimizer_state_dict':
@@ -396,12 +442,12 @@ class TorchMAML(object):
             'global_step':
                 self._global_step
         }
-        temp_file = os.path.join(model_dir, 'temp_checkpoint.pt')
+        temp_file: str = os.path.join(model_dir, 'temp_checkpoint.pt')
         torch.save(data, temp_file)
 
         # Rename and delete older files.
 
-        paths = [
+        paths: List[str] = [
             os.path.join(model_dir, 'checkpoint%d.pt' % (i + 1))
             for i in range(max_checkpoints_to_keep)
         ]
@@ -412,7 +458,7 @@ class TorchMAML(object):
                 os.rename(paths[i], paths[i + 1])
         os.rename(temp_file, paths[0])
 
-    def get_checkpoints(self, model_dir: Optional[str] = None):
+    def get_checkpoints(self, model_dir: Optional[str] = None) -> List[str]:
         """Get a list of all available checkpoint files.
 
         Parameters
@@ -423,7 +469,7 @@ class TorchMAML(object):
         """
         if model_dir is None:
             model_dir = self.model_dir
-        files = sorted(os.listdir(model_dir))
+        files: List[str] = sorted(os.listdir(model_dir))
         files = [
             f for f in files if f.startswith('checkpoint') and f.endswith('.pt')
         ]
