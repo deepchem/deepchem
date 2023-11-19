@@ -43,6 +43,9 @@ try:
     from deepchem.utils.dft_utils.data.safeops import occnumber
     from deepchem.utils.dft_utils.data.safeops import get_floor_and_ceil
     from deepchem.utils.dft_utils.data.safeops import safe_cdist
+
+    from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import *
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import *
 except ModuleNotFoundError as e:
     logger_.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
