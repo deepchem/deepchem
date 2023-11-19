@@ -2,8 +2,7 @@ import torch
 import xitorch as xt
 from typing import List, Optional
 import deepchem.utils.dft_utils.hamilton.intor as intor
-from deepchem.utils.dft_utils import BaseDF, DensityFitInfo
-from dqc.hamilton.orbconverter import OrbitalOrthogonalizer
+from deepchem.utils.dft_utils import BaseDF, DensityFitInfo, OrbitalOrthogonalizer
 from deepchem.utils import get_memory
 from deepchem.utils.misc_utils import config, logger
 

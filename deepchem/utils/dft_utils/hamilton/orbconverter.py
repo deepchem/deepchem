@@ -1,9 +1,10 @@
 from abc import abstractmethod
 from typing import List
 import torch
-import xitorch as xt
+from deepchem.utils.differentiation_utils import EditableModule, LinearOperator
+from deepchem.utils.differentiation_utils.symeig import symeig
 
-class BaseOrbConverter(xt.EditableModule):
+class BaseOrbConverter(EditableModule):
     """
     Converting the orbital from the original orbital which is orthogonal in
     the overlap-metric to a new basis.
@@ -68,7 +69,7 @@ class OrbitalOrthogonalizer(BaseOrbConverter):
     Convert orbital to another type of orbital by orthogonalizing the basis sets.
     """
     def __init__(self, ovlp: torch.Tensor, threshold: float = 1e-6):
-        ovlp_eival, ovlp_eivec = xt.linalg.symeig(xt.LinearOperator.m(ovlp, is_hermitian=True))
+        ovlp_eival, ovlp_eivec = symeig(LinearOperator.m(ovlp, is_hermitian=True))
         acc_idx = ovlp_eival > threshold
         orthozer = ovlp_eivec[..., acc_idx] * (ovlp_eival[acc_idx]) ** (-0.5)  # (nao, nao2)
         self._orthozer = orthozer
@@ -127,7 +128,7 @@ class IdentityOrbConverter(BaseOrbConverter):
     Not converting the orbital
     """
     def __init__(self, ovlp: torch.Tensor):
-        ovlp_eival, ovlp_eivec = xt.linalg.symeig(xt.LinearOperator.m(ovlp, is_hermitian=True))
+        ovlp_eival, ovlp_eivec = symeig(LinearOperator.m(ovlp, is_hermitian=True))
         self._inv_sqrt_ovlp = (ovlp_eivec * ovlp_eival ** (-0.5)) @ ovlp_eivec.transpose(-2, -1).conj()
         self._sqrt_ovlp = (ovlp_eivec * ovlp_eival ** (0.5)) @ ovlp_eivec.transpose(-2, -1).conj()
         ovlp2 = (ovlp_eivec * ovlp_eival) @ ovlp_eivec.transpose(-2, -1).conj()

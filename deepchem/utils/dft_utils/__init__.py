@@ -46,6 +46,14 @@ try:
 
     from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import *
     from deepchem.utils.dft_utils.hamilton.intor.molintor import *
+
+    from deepchem.utils.dft_utils.hamilton.orbconverter import BaseOrbConverter
+    from deepchem.utils.dft_utils.hamilton.orbconverter import OrbitalOrthogonalizer
+    from deepchem.utils.dft_utils.hamilton.orbconverter import IdentityOrbConverter
+
+    from deepchem.utils.dft_utils.df.dfmol import DFMol
+
+    from deepchem.utils.dft_utils.hamilton.hcgto import HamiltonCGTO
 except ModuleNotFoundError as e:
     logger_.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
