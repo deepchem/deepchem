@@ -79,7 +79,7 @@ class TorchMetaLearner(object):
         raise NotImplementedError("Subclasses must implement this")
 
     @property
-    def variables(self):
+    def variables(self) -> List[torch.Tensor]:
         """Get the list of variables to train."""
         raise NotImplementedError("Subclasses must implement this")
 
@@ -92,7 +92,7 @@ class TorchMetaLearner(object):
         """
         raise NotImplementedError("Subclasses must implement this")
 
-    def get_batch(self):
+    def get_batch(self) -> List[torch.Tensor]:
         """Get a batch of data for training.
 
         This should return the data as a list of arrays, one for each of the model's
@@ -175,7 +175,7 @@ class TorchMAML(object):
 
     def __init__(
         self,
-        learner,
+        learner: TorchMetaLearner,
         learning_rate: Union[float, LearningRateSchedule] = 0.001,
         optimization_steps: int = 1,
         meta_batch_size: int = 10,
@@ -208,7 +208,7 @@ class TorchMAML(object):
         """
         # Record inputs.
 
-        self.learner = learner
+        self.learner: TorchMetaLearner = learner
         self.learning_rate: Union[float, LearningRateSchedule] = learning_rate
         self.optimization_steps: int = optimization_steps
         self.meta_batch_size: int = meta_batch_size
@@ -236,18 +236,15 @@ class TorchMAML(object):
             else:
                 device = torch.device('cpu')
         self.device: torch.device = device
-        self.learner.w1 = self.learner.w1.to(device)
-        self.learner.b1 = self.learner.b1.to(device)
-        self.learner.w2 = self.learner.w2.to(device)
-        self.learner.b2 = self.learner.b2.to(device)
-        self.learner.w3 = self.learner.w3.to(device)
-        self.learner.b3 = self.learner.b3.to(device)
+        for param in learner.parameters():
+            param = param.to(device)
+            param.requires_grad_()
 
         # Create the optimizers for meta-optimization and task optimization.
 
         self._global_step: int = 0
         self._pytorch_optimizer = self.optimizer._create_pytorch_optimizer(
-            self.learner.parameters())
+            learner.parameters())
         if isinstance(self.optimizer.learning_rate, LearningRateSchedule):
             self._lr_schedule = self.optimizer.learning_rate._create_pytorch_schedule(
                 self._pytorch_optimizer)
@@ -257,7 +254,7 @@ class TorchMAML(object):
         task_optimizer: Optimizer = GradientDescent(
             learning_rate=self.learning_rate)
         self._pytorch_task_optimizer = task_optimizer._create_pytorch_optimizer(
-            self.learner.parameters())
+            learner.parameters())
         if isinstance(task_optimizer.learning_rate, LearningRateSchedule):
             self._lr_schedule = task_optimizer.learning_rate._create_pytorch_schedule(
                 self._pytorch_task_optimizer)
@@ -328,12 +325,11 @@ class TorchMAML(object):
                     summed_gradients = [
                         s + g for s, g in zip(summed_gradients, meta_gradients)
                     ]
-                self.learner.w1.grad = summed_gradients[0]
-                self.learner.w2.grad = summed_gradients[1]
-                self.learner.w3.grad = summed_gradients[2]
-                self.learner.b1.grad = summed_gradients[3]
-                self.learner.b2.grad = summed_gradients[4]
-                self.learner.b3.grad = summed_gradients[5]
+                ind: int = 0
+                for param in self.learner.parameters():
+                    param.grad = summed_gradients[ind]
+                    ind = ind + 1
+
             self._pytorch_optimizer.step()
             if self._lr_schedule is not None:
                 self._lr_schedule.step()
