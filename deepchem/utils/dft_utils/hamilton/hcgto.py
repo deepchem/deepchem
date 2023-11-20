@@ -4,10 +4,12 @@ import torch
 from deepchem.utils.dft_utils import BaseDF, DFMol, BaseHamilton, \
     OrbitalOrthogonalizer, IdentityOrbConverter, BaseOrbParams, \
     QROrbParams, MatExpOrbParams, AtomCGTOBasis, ValGrad, SpinParam, \
-    DensityFitInfo, BaseGrid, BaseXC, Cache, chunkify, get_dtype_memsize, \
-    LibcintWrapper, overlap
+    DensityFitInfo, BaseGrid, BaseXC, eval_gto, eval_gradgto, \
+    LibcintWrapper, overlap, kinetic, nuclattr, int1e, elrep, eval_laplgto
 from deepchem.utils.misc_utils import config, logger
 from deepchem.utils.differentiation_utils import LinearOperator
+from deepchem.utils.misc_utils import Cache
+from deepchem.utils.pytorch_utils import chunkify
 
 class HamiltonCGTO(BaseHamilton):
     """
@@ -112,14 +114,14 @@ class HamiltonCGTO(BaseHamilton):
                 fac: float = 1.0
                 for i in range(len(self._efield)):
                     fac *= i + 1
-                    intor_fcn = lambda: intor.int1e("r0" * (i + 1), self.libcint_wrapper)
+                    intor_fcn = lambda: int1e("r0" * (i + 1), self.libcint_wrapper)
                     efield_mat_f = self._cache.cache(f"efield{i}", intor_fcn)
                     efield_mat = torch.einsum("dab,d->ab", efield_mat_f, self._efield[i])
                     self.kinnucl_mat = self.kinnucl_mat + efield_mat / fac
 
             if self._df is None:
                 logger.log("Calculating the electron repulsion matrix")
-                self.el_mat = self._cache.cache("elrep", lambda: intor.elrep(self.libcint_wrapper))  # (nao^4)
+                self.el_mat = self._cache.cache("elrep", lambda: elrep(self.libcint_wrapper))  # (nao^4)
                 # TODO: decide whether to precompute the 2-eris in the new basis
                 # based on the memory
                 self.el_mat = self._orthozer.convert4(self.el_mat)
@@ -158,7 +160,7 @@ class HamiltonCGTO(BaseHamilton):
         # setup the basis as a spatial function
         logger.log("Calculating the basis values in the grid")
         self.is_ao_set = True
-        self.basis = intor.eval_gto(self.libcint_wrapper, self.rgrid, to_transpose=True)  # (ngrid, nao)
+        self.basis = eval_gto(self.libcint_wrapper, self.rgrid, to_transpose=True)  # (ngrid, nao)
         self.dvolume = self.grid.get_dvolume()
         self.basis_dvolume = self.basis * self.dvolume.unsqueeze(-1)  # (ngrid, nao)
 
@@ -169,14 +171,14 @@ class HamiltonCGTO(BaseHamilton):
         logger.log("Calculating the basis gradient values in the grid")
         self.is_grad_ao_set = True
         # (ndim, nao, ngrid)
-        self.grad_basis = intor.eval_gradgto(self.libcint_wrapper, self.rgrid, to_transpose=True)
+        self.grad_basis = eval_gradgto(self.libcint_wrapper, self.rgrid, to_transpose=True)
         if self.xcfamily == 2:  # GGA
             return
 
         # setup the laplacian of the basis
         self.is_lapl_ao_set = True
         logger.log("Calculating the basis laplacian values in the grid")
-        self.lapl_basis = intor.eval_laplgto(self.libcint_wrapper, self.rgrid, to_transpose=True)  # (nao, ngrid)
+        self.lapl_basis = eval_laplgto(self.libcint_wrapper, self.rgrid, to_transpose=True)  # (nao, ngrid)
 
     ############ fock matrix components ############
     def get_nuclattr(self) -> LinearOperator:
@@ -283,7 +285,7 @@ class HamiltonCGTO(BaseHamilton):
         nao = dm.shape[-1]
         xyzshape = xyz.shape
         # basis: (nao, *BR)
-        basis = intor.eval_gto(self.libcint_wrapper, xyz.reshape(-1, xyzshape[-1])).reshape((nao, *xyzshape[:-1]))
+        basis = eval_gto(self.libcint_wrapper, xyz.reshape(-1, xyzshape[-1])).reshape((nao, *xyzshape[:-1]))
         basis = torch.movedim(basis, 0, -1)  # (*BR, nao)
 
         # torch.einsum("...ij,...i,...j->...", dm, basis, basis)
@@ -388,7 +390,7 @@ class HamiltonCGTO(BaseHamilton):
             kindens = torch.empty((*batchshape, ngrid), dtype=self.dtype, device=self.device)
 
         # It is faster to split into chunks than evaluating a single big chunk
-        maxnumel = config.CHUNK_MEMORY // get_dtype_memsize(self.basis)
+        maxnumel = config.CHUNK_MEMORY // self.basis.element_size()
         for basis, ioff, iend in chunkify(self.basis, dim=0, maxnumel=maxnumel):
             # basis: (ngrid2, nao)
 
@@ -450,7 +452,7 @@ class HamiltonCGTO(BaseHamilton):
 
         # Split the r-dimension into several parts, it is usually faster than
         # evaluating all at once
-        maxnumel = config.CHUNK_MEMORY // get_dtype_memsize(self.basis)
+        maxnumel = config.CHUNK_MEMORY // self.basis.element_size()
         for basis, ioff, iend in chunkify(self.basis, dim=0, maxnumel=maxnumel):
             # basis: (nr, nao)
             vb = potinfo.value[..., ioff:iend].unsqueeze(-1) * basis  # (*BD, nr, nao)

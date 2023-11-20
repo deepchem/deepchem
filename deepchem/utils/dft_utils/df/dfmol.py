@@ -1,8 +1,8 @@
 import torch
 import xitorch as xt
 from typing import List, Optional
-import deepchem.utils.dft_utils.hamilton.intor as intor
-from deepchem.utils.dft_utils import BaseDF, DensityFitInfo, OrbitalOrthogonalizer
+from deepchem.utils.dft_utils import BaseDF, DensityFitInfo, OrbitalOrthogonalizer, \
+    LibcintWrapper, coul2c, coul3c, overlap
 from deepchem.utils import get_memory
 from deepchem.utils.misc_utils import config, logger
 
@@ -10,7 +10,7 @@ class DFMol(BaseDF):
     """
     DFMol represents the class of density fitting for an isolated molecule.
     """
-    def __init__(self, dfinfo: DensityFitInfo, wrapper: intor.LibcintWrapper,
+    def __init__(self, dfinfo: DensityFitInfo, wrapper: LibcintWrapper,
                  orthozer: Optional[OrbitalOrthogonalizer] = None):
         self.dfinfo = dfinfo
         self.wrapper = wrapper
@@ -24,18 +24,18 @@ class DFMol(BaseDF):
         # construct the matrix used to calculate the electron repulsion for
         # density fitting method
         method = self.dfinfo.method
-        auxbasiswrapper = intor.LibcintWrapper(self.dfinfo.auxbases,
+        auxbasiswrapper = LibcintWrapper(self.dfinfo.auxbases,
                                                spherical=self.wrapper.spherical)
-        basisw, auxbw = intor.LibcintWrapper.concatenate(self.wrapper, auxbasiswrapper)
+        basisw, auxbw = LibcintWrapper.concatenate(self.wrapper, auxbasiswrapper)
 
         if method == "coulomb":
             logger.log("Calculating the 2e2c integrals")
-            j2c = intor.coul2c(auxbw)  # (nxao, nxao)
+            j2c = coul2c(auxbw)  # (nxao, nxao)
             logger.log("Calculating the 2e3c integrals")
-            j3c = intor.coul3c(basisw, other1=basisw,
+            j3c = coul3c(basisw, other1=basisw,
                                other2=auxbw)  # (nao, nao, nxao)
         elif method == "overlap":
-            j2c = intor.overlap(auxbw)  # (nxao, nxao)
+            j2c = overlap(auxbw)  # (nxao, nxao)
             # TODO: implement overlap3c
             raise NotImplementedError(
                 "Density fitting with overlap minimization is not implemented")

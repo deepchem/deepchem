@@ -132,7 +132,7 @@ try:
 
     from deepchem.utils.misc_utils import gaussian_int
     from deepchem.utils.misc_utils import set_default_option
-    from deepchem.utils.misc_utils import memoize_method    
+    from deepchem.utils.misc_utils import memoize_method
 except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
