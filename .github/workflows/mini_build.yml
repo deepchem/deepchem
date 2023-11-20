@@ -142,8 +142,7 @@ jobs:
       with:
         environment-file: env.yml
         environment-name: deepchem
-        channels: conda-forge,defaults
-        extra-specs: python=${{ matrix.python-version }}
+        create-args: python=${{ matrix.python-version }}
 
 #    - name: Install all dependencies using conda
 #      uses: conda-incubator/setup-miniconda@v2
