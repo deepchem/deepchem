@@ -10,7 +10,7 @@ except:
     has_pytorch = False
 
 
-class SineLearner(dc.metalearning.TorchMetaLearner):
+class SineLearner(dc.metalearning.torch_maml.TorchMetaLearner):
 
     def __init__(self):
         self.batch_size = 10
@@ -62,9 +62,9 @@ def test_maml_pytorch():
     # Optimize it.
     learner = SineLearner()
     optimizer = dc.models.optimizers.Adam(learning_rate=5e-3)
-    maml = dc.metalearning.TorchMAML(learner,
-                                     meta_batch_size=4,
-                                     optimizer=optimizer)
+    maml = dc.metalearning.torch_maml.TorchMAML(learner,
+                                                meta_batch_size=4,
+                                                optimizer=optimizer)
     maml.fit(9000)
 
     # Test it out on some new tasks and see how it works.
@@ -94,8 +94,8 @@ def test_maml_pytorch():
     # Verify that we can create a new MAML object, reload the parameters from the first one, and
     # get the same result.
 
-    new_maml = dc.metalearning.TorchMAML(SineLearner(),
-                                         model_dir=maml.model_dir)
+    new_maml = dc.metalearning.torch_maml.TorchMAML(SineLearner(),
+                                                    model_dir=maml.model_dir)
     new_maml.restore()
     loss, outputs = new_maml.predict_on_batch(batch)
     loss = loss.detach().numpy()
@@ -103,8 +103,8 @@ def test_maml_pytorch():
 
     # Do the same thing, only using the "restore" argument to fit().
 
-    new_maml = dc.metalearning.TorchMAML(SineLearner(),
-                                         model_dir=maml.model_dir)
+    new_maml = dc.metalearning.torch_maml.TorchMAML(SineLearner(),
+                                                    model_dir=maml.model_dir)
     new_maml.fit(0, restore=True)
     loss, outputs = new_maml.predict_on_batch(batch)
     loss = loss.detach().numpy()

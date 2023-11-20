@@ -12,7 +12,7 @@ except:
     has_pytorch = False
 
 
-class SineLearner(dc.metalearning.TorchMetaLearner):
+class SineLearner(dc.metalearning.torch_maml.TorchMetaLearner):
 
     def __init__(self):
         self.batch_size = 10
@@ -64,9 +64,9 @@ def test_reload():
     """Test that a Metalearner can be reloaded."""
     learner = SineLearner()
     optimizer = dc.models.optimizers.Adam(learning_rate=5e-3)
-    maml = dc.metalearning.TorchMAML(learner,
-                                     meta_batch_size=4,
-                                     optimizer=optimizer)
+    maml = dc.metalearning.torch_maml.TorchMAML(learner,
+                                                meta_batch_size=4,
+                                                optimizer=optimizer)
     maml.fit(900)
 
     learner.select_task()
@@ -74,8 +74,8 @@ def test_reload():
     loss, outputs = maml.predict_on_batch(batch)
     loss = loss.detach().numpy()
 
-    reloaded = dc.metalearning.TorchMAML(SineLearner(),
-                                         model_dir=maml.model_dir)
+    reloaded = dc.metalearning.torch_maml.TorchMAML(SineLearner(),
+                                                    model_dir=maml.model_dir)
     reloaded.restore()
     reloaded_loss, reloaded_outputs = maml.predict_on_batch(batch)
     reloaded_loss = reloaded_loss.detach().numpy()
