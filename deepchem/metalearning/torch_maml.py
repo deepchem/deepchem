@@ -163,7 +163,7 @@ class TorchMAML(object):
     >>> maml = dc.metalearning.TorchMAML(learner,meta_batch_size=4,optimizer=optimizer)
     >>> maml.fit(9000)
 
-    # To test it out on a new task and see how it works
+    To test it out on a new task and see how it works
 
     >>> learner.select_task()
     >>> maml.restore()
@@ -187,7 +187,7 @@ class TorchMAML(object):
 
         Parameters
         ----------
-        learner: MetaLearner
+        learner: TorchMetaLearner
             defines the meta-learning problem
         learning_rate: float or Tensor
             the learning rate to use for optimizing each task (not to be confused with the one used
