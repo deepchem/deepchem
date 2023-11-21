@@ -64,8 +64,7 @@ def test_dmpnn_regression():
          '  (W_h): Linear(in_features=300, out_features=300, bias=False)\n  (W_o): Linear(in_features=433, out_features=300, bias=True)\n)'
     assert model.ffn.__repr__(
     ) == 'PositionwiseFeedForward(\n  (activation): ReLU()\n  (linears): ModuleList(\n    (0): Linear(in_features=2348, out_features=300, bias=True)\n    '\
-         '(1): Linear(in_features=300, out_features=300, bias=True)\n    (2): Linear(in_features=300, out_features=2, bias=True)\n  )\n  (dropout_p): ModuleList(\n    (0): Dropout(p=0.0, inplace=False)\n    '\
-         '(1): Dropout(p=0.0, inplace=False)\n    (2): Dropout(p=0.0, inplace=False)\n  )\n)'
+         '(1): Linear(in_features=300, out_features=300, bias=True)\n    (2): Linear(in_features=300, out_features=2, bias=True)\n  )\n  (dropout_p): ModuleList(\n    (0-2): 3 x Dropout(p=0.0, inplace=False)\n  )\n)'
 
     # get output
     output = model(pyg_batch)
@@ -130,7 +129,7 @@ def test_dmpnn_classification_single_task():
          '  (W_o): Linear(in_features=433, out_features=300, bias=True)\n)'
     assert model.ffn.__repr__(
     ) == 'PositionwiseFeedForward(\n  (activation): ReLU()\n  (linears): ModuleList(\n    (0): Linear(in_features=2348, out_features=300, bias=True)\n    (1): Linear(in_features=300, out_features=300, bias=True)\n    '\
-         '(2): Linear(in_features=300, out_features=2, bias=True)\n  )\n  (dropout_p): ModuleList(\n    (0): Dropout(p=0.0, inplace=False)\n    (1): Dropout(p=0.0, inplace=False)\n    (2): Dropout(p=0.0, inplace=False)\n  )\n)'
+         '(2): Linear(in_features=300, out_features=2, bias=True)\n  )\n  (dropout_p): ModuleList(\n    (0-2): 3 x Dropout(p=0.0, inplace=False)\n  )\n)'
 
     # get output
     output = model(pyg_batch)
@@ -201,7 +200,7 @@ def test_dmpnn_classification_multi_task():
     ) == 'DMPNNEncoderLayer(\n  (activation): ReLU()\n  (dropout): Dropout(p=0.0, inplace=False)\n  (W_i): Linear(in_features=147, out_features=300, bias=False)\n  (W_h): Linear(in_features=300, out_features=300, bias=False)\n  (W_o): Linear(in_features=433, out_features=300, bias=True)\n)'
     assert model.ffn.__repr__(
     ) == 'PositionwiseFeedForward(\n  (activation): ReLU()\n  (linears): ModuleList(\n    (0): Linear(in_features=2348, out_features=300, bias=True)\n    (1): Linear(in_features=300, out_features=300, bias=True)\n    '\
-         '(2): Linear(in_features=300, out_features=4, bias=True)\n  )\n  (dropout_p): ModuleList(\n    (0): Dropout(p=0.0, inplace=False)\n    (1): Dropout(p=0.0, inplace=False)\n    (2): Dropout(p=0.0, inplace=False)\n  )\n)'
+         '(2): Linear(in_features=300, out_features=4, bias=True)\n  )\n  (dropout_p): ModuleList(\n    (0-2): 3 x Dropout(p=0.0, inplace=False)\n  )\n)'
 
     # get output
     output = model(pyg_batch)

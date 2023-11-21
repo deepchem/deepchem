@@ -1,4 +1,5 @@
 dependencies:
   - pip:
     - -f https://storage.googleapis.com/jax-releases/jax_releases.html
-    - jax[cuda111]<0.3.25
+    - jax
+    - jaxlib
