@@ -254,3 +254,28 @@ def test_addbase_xc():
     assert xc2.get_vxc(densinfo_s) == SpinParam(
         u=ValGrad(value=torch.tensor([4., 8., 12.])),
         d=ValGrad(value=torch.tensor([16., 20., 24.])))
+
+
+@pytest.mark.torch
+def test_base_grid():
+    import torch
+    from deepchem.utils.dft_utils import BaseGrid
+
+    class Grid(BaseGrid):
+
+        def __init__(self):
+            super(Grid, self).__init__()
+            self.ngrid = 10
+            self.ndim = 3
+            self.dvolume = torch.ones(self.ngrid)
+            self.rgrid = torch.ones((self.ngrid, self.ndim))
+
+        def get_dvolume(self):
+            return self.dvolume
+
+        def get_rgrid(self):
+            return self.rgrid
+
+    grid = Grid()
+    assert torch.allclose(grid.get_dvolume(), torch.ones(10))
+    assert torch.allclose(grid.get_rgrid(), torch.ones((10, 3)))
