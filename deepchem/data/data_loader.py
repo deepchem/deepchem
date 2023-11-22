@@ -11,6 +11,7 @@ from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator
 
 import pandas as pd
 import numpy as np
+import pysam
 from deepchem.utils.typing import OneOrMany
 from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files, unzip_file
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
@@ -1753,3 +1754,266 @@ class DFTYamlLoader(DataLoader):
         else:
             x = DFTEntry.create(e_type, true_val, systems)
         return [x]
+
+class SAMFeaturizer:
+    def __init__(self, max_records=None):
+        self.max_records = max_records
+
+    def get_features(self, samfile):
+        """
+        Extract features from a SAM file.
+
+        Parameters:
+        - samfile: SAM file.
+
+        Returns:
+        - features: A 2D NumPy array representing the extracted features.
+        """
+
+        features = []
+        record_count = 0
+
+        for record in samfile:
+            # Extract relevant information from the SAM record
+            # Modify this section based on the features you want to extract
+            feature_vector = [
+                record.query_name,
+                record.query_sequence,
+                record.query_length,
+                record.reference_name,
+                record.reference_start,
+                record.cigar,
+                record.mapping_quality,
+            ]
+
+            features.append(feature_vector)
+            record_count += 1
+
+            # Break the loop if max_records is set
+            if self.max_records is not None and record_count >= self.max_records:
+                break
+
+        samfile.close()
+
+        return np.array(features)
+
+class SAMLoader(DataLoader):
+    """Handles loading of SAM files.
+
+    Sequence Alignment Map (SAM) is a text-based format used to store biological sequences aligned to a reference sequence. This
+    class provides convenience files to lead SAM data and
+    extract their features for use in downstream
+    learning tasks.
+    """
+
+    def __init__(self,
+                 featurizer: Optional[Featurizer] = None):
+        """Initialize SAMLoader.
+
+        Parameters
+        ----------
+        featurizer: Featurizer (default: None)
+            The Featurizer to be used for the loaded SAM data.
+
+            If featurizer is None and legacy is True, the original featurization
+            logic is used, creating a one hot encoding of all included FASTA strings
+            of shape
+            (number of FASTA sequences, number of channels + 1, sequence length, 1).
+
+            If featurizer is None and legacy is False, the featurizer is initialized
+            as a OneHotFeaturizer object with charset ("A", "C", "T", "G") and
+            max_length = None.
+
+        auto_add_annotations: bool (default False)
+            Whether create_dataset will automatically add [CLS] and [SEP] annotations
+            to the sequences it reads in order to assist tokenization.
+            Keep False if your FASTA file already includes [CLS] and [SEP] annotations.
+
+        legacy: bool (default True)
+            Whether to use legacy logic for featurization. Legacy mode will create
+            a one hot encoding of the FASTA content of shape
+            (number of FASTA sequences, number of channels + 1, max length, 1).
+
+            Legacy mode is only tested for ACTGN charsets, and will be deprecated.
+       """
+
+        # Set attributes
+        self.user_specified_features = None
+
+        # Handle special featurizer cases
+        if isinstance(featurizer,
+                      UserDefinedFeaturizer):  # User defined featurizer
+            self.user_specified_features = featurizer.feature_fields
+        elif featurizer is None:  # Default featurizer
+            featurizer = SAMFeaturizer(max_length=None)
+
+        # Set self.featurizer
+        self.featurizer = featurizer
+
+    def create_dataset(self,
+                       input_files: OneOrMany[str],
+                       data_dir: Optional[str] = None,
+                       shard_size: Optional[int] = None) -> DiskDataset:
+        """Creates a `Dataset` from input SAM files.
+
+        Parameters
+        ----------
+        input_files: List[str]
+            List of SAM files.
+        data_dir: str, optional (default None)
+            Name of directory where featurized data is stored.
+        shard_size: int, optional (default None)
+            For now, this argument is ignored and each SAM file gets its
+            own shard.
+
+        Returns
+        -------
+        DiskDataset
+            A `DiskDataset` object containing a featurized representation of data
+            from `input_files`.
+        """
+        if isinstance(input_files, str):
+            input_files = [input_files]
+
+        def shard_generator():  # TODO Enable sharding with shard size parameter
+            for input_file in input_files:
+                samfile = pysam.AlignmentFile(input_file, "r")
+                X = self.featurizer(samfile)
+                ids = np.ones(len(X))
+                # (X, y, w, ids)
+                yield X, None, None, ids
+
+        return DiskDataset.create_dataset(shard_generator(), data_dir)
+
+class BAMFeaturizer:
+    def __init__(self, max_records=None):
+        self.max_records = max_records
+
+    def get_features(self, bamfile):
+        """
+        Extract features from a BAM file.
+
+        Parameters:
+        - bamfile: BAM file.
+
+        Returns:
+        - features: A 2D NumPy array representing the extracted features.
+        """
+
+        features = []
+        record_count = 0
+
+        for record in bamfile:
+            # Extract relevant information from the SAM record
+            # Modify this section based on the features you want to extract
+            feature_vector = [
+                record.query_name,
+                record.query_sequence,
+                record.query_length,
+                record.reference_name,
+                record.reference_start,
+                record.cigar,
+                record.mapping_quality,
+            ]
+
+            features.append(feature_vector)
+            record_count += 1
+
+            # Break the loop if max_records is set
+            if self.max_records is not None and record_count >= self.max_records:
+                break
+
+        bamfile.close()
+
+        return np.array(features)
+
+class BAMLoader(DataLoader):
+    """Handles loading of BAM files.
+
+    Binary Alignment Map (BAM) is the comprehensive raw data of genome 
+    sequencing; it consists of the lossless, compressed binary 
+    representation of the Sequence Alignment Map-files. Sequence Alignment 
+    Map (SAM) is a text-based format used to store biological sequences aligned 
+    to a reference sequence. This class provides convenience files
+    to lead BAM data and extract their features for use in downstream
+    learning tasks.
+    """
+
+    def __init__(self,
+                 featurizer: Optional[Featurizer] = None):
+        """Initialize BAMLoader.
+
+        Parameters
+        ----------
+        featurizer: Featurizer (default: None)
+            The Featurizer to be used for the loaded SAM data.
+
+            If featurizer is None and legacy is True, the original featurization
+            logic is used, creating a one hot encoding of all included FASTA strings
+            of shape
+            (number of FASTA sequences, number of channels + 1, sequence length, 1).
+
+            If featurizer is None and legacy is False, the featurizer is initialized
+            as a OneHotFeaturizer object with charset ("A", "C", "T", "G") and
+            max_length = None.
+
+        auto_add_annotations: bool (default False)
+            Whether create_dataset will automatically add [CLS] and [SEP] annotations
+            to the sequences it reads in order to assist tokenization.
+            Keep False if your FASTA file already includes [CLS] and [SEP] annotations.
+
+        legacy: bool (default True)
+            Whether to use legacy logic for featurization. Legacy mode will create
+            a one hot encoding of the FASTA content of shape
+            (number of FASTA sequences, number of channels + 1, max length, 1).
+
+            Legacy mode is only tested for ACTGN charsets, and will be deprecated.
+       """
+
+        # Set attributes
+        self.user_specified_features = None
+
+        # Handle special featurizer cases
+        if isinstance(featurizer,
+                      UserDefinedFeaturizer):  # User defined featurizer
+            self.user_specified_features = featurizer.feature_fields
+        elif featurizer is None:  # Default featurizer
+            featurizer = BAMFeaturizer(max_length=None)
+
+        # Set self.featurizer
+        self.featurizer = featurizer
+
+    def create_dataset(self,
+                       input_files: OneOrMany[str],
+                       data_dir: Optional[str] = None,
+                       shard_size: Optional[int] = None) -> DiskDataset:
+        """Creates a `Dataset` from input SAM files.
+
+        Parameters
+        ----------
+        input_files: List[str]
+            List of BAM files.
+        data_dir: str, optional (default None)
+            Name of directory where featurized data is stored.
+        shard_size: int, optional (default None)
+            For now, this argument is ignored and each SAM file gets its
+            own shard.
+
+        Returns
+        -------
+        DiskDataset
+            A `DiskDataset` object containing a featurized representation of data
+            from `input_files`.
+        """
+        if isinstance(input_files, str):
+            input_files = [input_files]
+
+        def shard_generator():  # TODO Enable sharding with shard size parameter
+            for input_file in input_files:
+                bamfile = pysam.AlignmentFile(input_file, "rb")
+                X = self.featurizer(bamfile)
+                ids = np.ones(len(X))
+                # (X, y, w, ids)
+                yield X, None, None, ids
+
+        return DiskDataset.create_dataset(shard_generator(), data_dir)
