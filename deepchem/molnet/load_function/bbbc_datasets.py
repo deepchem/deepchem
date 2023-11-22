@@ -8,6 +8,8 @@ import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
+import numpy as np
+import pandas as pd
 
 BBBC1_IMAGE_URL = 'https://data.broadinstitute.org/bbbc/BBBC001/BBBC001_v1_images_tif.zip'
 BBBC1_LABEL_URL = 'https://data.broadinstitute.org/bbbc/BBBC001/BBBC001_v1_counts.txt'
@@ -29,8 +31,15 @@ class _BBBC001Loader(_MolnetLoader):
         if not os.path.exists(labels_file):
             dc.utils.data_utils.download_url(url=BBBC1_LABEL_URL,
                                              dest_dir=self.data_dir)
+        labels_table = pd.read_csv(labels_file, delimiter="\t")
+        labels = np.mean(
+            [labels_table["manual count #1"], labels_table["manual count #2"]],
+            axis=0,
+            dtype=int)
+
         loader = dc.data.ImageLoader()
-        return loader.create_dataset(dataset_file, in_memory=False)
+        return loader.create_dataset(inputs=(dataset_file, labels),
+                                     in_memory=False)
 
 
 def load_bbbc001(
@@ -84,8 +93,18 @@ class _BBBC002Loader(_MolnetLoader):
         if not os.path.exists(labels_file):
             dc.utils.data_utils.download_url(url=BBBC2_LABEL_URL,
                                              dest_dir=self.data_dir)
+
+        labels_table = pd.read_csv(labels_file, delimiter="\t")
+        labels = np.mean([
+            labels_table["human counter 1 (Robert Lindquist)"],
+            labels_table["human counter #2 (Joohan Chang)"]
+        ],
+                         axis=0,
+                         dtype=int)
+
         loader = dc.data.ImageLoader()
-        return loader.create_dataset(dataset_file, in_memory=False)
+        return loader.create_dataset(inputs=(dataset_file, labels),
+                                     in_memory=False)
 
 
 def load_bbbc002(
