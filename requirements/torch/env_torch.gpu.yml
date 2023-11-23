@@ -6,4 +6,4 @@ dependencies:
     - dgl-cu111
     - torch==2.1.0+cu113
     - torch-geometric
-    - pytorch-lightning==1.6.5
+    - pytorch-lightning==2.1.2
