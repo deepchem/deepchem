@@ -52,6 +52,7 @@ setup(name='deepchem',
           'Programming Language :: Python :: 3.8',
           'Programming Language :: Python :: 3.9',
           'Programming Language :: Python :: 3.10',
+          'Programming Language :: Python :: 3.11',
       ],
       license='MIT',
       description='Deep learning models for drug discovery, \
@@ -79,4 +80,4 @@ setup(name='deepchem',
           'rdkit',
       ],
       extras_require=extras,
-      python_requires='>=3.7,<3.11')
+      python_requires='>=3.7,<3.12')
