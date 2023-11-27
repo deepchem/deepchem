@@ -74,3 +74,17 @@ def test_FerminetMode_energy():
     )
     mean_energy = torch.mean(energy)
     assert mean_energy <= torch.tensor(1.0)
+
+
+@pytest.mark.dqc
+def test_FerminetMode_train():
+    # Test for the init function of FerminetModel class
+    H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
+    # Testing ionic initialization
+    mol = FerminetModel(H2_molecule, spin=0, ion_charge=0)
+    mol.train(nb_epoch=10)
+    mol.prepare_train()
+    mol.train(nb_epoch=10)
+    print(mol.final_energy)
+    raise IndexError
+    assert mol.final_energy <= torch.tensor(0.0)
