@@ -470,7 +470,7 @@ class FerminetModel(TorchModel):
         self.mf = pyscf.scf.UHF(self.mol)
         _ = self.mf.kernel()
 
-    def random_walk(self, x: np.ndarray) -> np.ndarray:
+    def random_walk(self, x: np.ndarray):
         """
         Function to be passed on to electron sampler for random walk and gets called at each step of sampling
 
@@ -589,7 +589,7 @@ class FerminetModel(TorchModel):
             optimizer = torch.optim.Adam(self.model.parameters(),
                                          lr=lr,
                                          weight_decay=weight_decay)
-            self.final_energy = 0.0
+            self.final_energy = torch.tensor(0.0)
             with torch.no_grad():
                 hooks = list(
                     map(
@@ -607,20 +607,18 @@ class FerminetModel(TorchModel):
                         std_init *= 1.2
                     else:
                         std_init /= 1.2
-                median, _ = torch.median(self.energy_sampled, axis=0)
+                median, _ = torch.median(self.energy_sampled, 0)
                 variance = torch.mean(torch.abs(self.energy_sampled - median))
                 # clipping local energies which are away 5 times the variance from the median
                 clamped_energy = torch.clamp(self.energy_sampled,
                                              max=median + 5 * variance,
                                              min=median - 5 * variance)
-                self.energy_sampled = None  # releasing memory
                 energy_mean = torch.mean(clamped_energy)
                 self.final_energy = self.final_energy + energy_mean
                 # using the sampled electrons from the electron sampler for bacward pass and modifying gradients
                 sample_history = torch.from_numpy(
                     self.molecule.sampled_electrons).view(
                         self.random_walk_steps, self.batch_no, -1, 3)
-                self.molecule.sampled_electrons = None
                 optimizer.zero_grad()
                 for i in range(self.random_walk_steps):
                     # going through each step of random walk and calculating the modified gradients with local energies
