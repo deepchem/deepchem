@@ -65,6 +65,7 @@ except:
 def test_reload():
     """Test that a Metalearner can be reloaded."""
     learner = SineLearner()
+    print(learner.w1)
     optimizer = dc.models.optimizers.Adam(learning_rate=5e-3)
     maml = dc.metalearning.TorchMAML(learner,
                                      meta_batch_size=4,

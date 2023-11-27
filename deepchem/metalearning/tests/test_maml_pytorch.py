@@ -19,7 +19,7 @@ class TestMAML(unittest.TestCase):
     @pytest.mark.torch
     def test_maml_pytorch(self):
 
-        class SineLearner(dc.metalearning.TorchMetaLearner):
+        class SineLearner(dc.metalearning.torch_maml.TorchMetaLearner):
 
             def __init__(self):
                 self.batch_size = 10
