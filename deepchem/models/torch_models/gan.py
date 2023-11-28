@@ -1240,7 +1240,7 @@ class GradientPenaltyLayer(nn.Module):
                     g2 = torch.sum(g2, list(range(1, dims)))
                 norm2 += g2
 
-            penalty = ((torch.sqrt(norm2) - 1.0)**2).mean()
+            penalty = ((torch.sqrt(norm2) - 1.0)**2).mean()  # type: ignore
             penalty = self.gan.gradient_penalty * penalty
         else:
             penalty = 0.0
