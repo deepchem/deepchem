@@ -22,6 +22,11 @@ try:
     from deepchem.utils.dft_utils.hamilton.orbparams import MatExpOrbParams
 
     from deepchem.utils.dft_utils.api.parser import parse_moldesc
+
+    from deepchem.utils.dft_utils.xc.base_xc import BaseXC
+    from deepchem.utils.dft_utils.xc.base_xc import AddBaseXC
+
+    from deepchem.utils.dft_utils.grid.base_grid import BaseGrid
 except ModuleNotFoundError as e:
     logger_.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')

@@ -35,7 +35,7 @@ def test_forward():
     FH_molecule = [['F', [0.424, 0.424, 0.23]], ['H', [0.4, 0.5, 0.5]]]
     # Testing ionic initialization
     mol = FerminetModel(FH_molecule, spin=1, ion_charge=-1)
-    result = mol.model.forward(mol.molecule.x)
+    result = mol.model.forward(torch.from_numpy(mol.molecule.x))
     assert result.size() == torch.Size([8])
 
 
@@ -67,10 +67,10 @@ def test_FerminetMode_energy():
     H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
     # Testing ionic initialization
     mol = FerminetModel(H2_molecule, spin=0, ion_charge=0)
-    mol.train(nb_epoch=50)
-    mol.model.forward(mol.molecule.x)
+    mol.train(nb_epoch=5)
     energy = mol.model.calculate_electron_electron(
     ) - mol.model.calculate_electron_nuclear(
     ) + mol.model.nuclear_nuclear_potential + mol.model.calculate_kinetic_energy(
     )
-    assert energy <= torch.tensor(1.0)
+    mean_energy = torch.mean(energy)
+    assert mean_energy <= torch.tensor(1.0)

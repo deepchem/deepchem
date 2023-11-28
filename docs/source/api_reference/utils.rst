@@ -291,6 +291,15 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.ValGrad
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.BaseXC
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.AddBaseXC
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.BaseGrid
+  :members:
+
 .. autoclass:: deepchem.utils.dftutils.KSCalc
   :members:
 
@@ -328,6 +337,19 @@ The utilites here are used to create an object that contains information about a
 .. autofunction:: deepchem.utils.differentiation_utils.get_bcasted_dims
 
 .. autofunction:: deepchem.utils.differentiation_utils.match_dim
+
+.. autoclass:: deepchem.utils.differentiation_utils.linop.LinearOperator
+  :members:
+
+.. autofunction:: deepchem.utils.differentiation_utils.set_default_option
+
+.. autofunction:: deepchem.utils.differentiation_utils.get_and_pop_keys
+
+.. autofunction:: deepchem.utils.differentiation_utils.get_method
+
+.. autofunction:: deepchem.utils.differentiation_utils.dummy_context_manager
+
+.. autofunction:: deepchem.utils.differentiation_utils.assert_runtime
 
 Attribute Utilities
 -------------------
