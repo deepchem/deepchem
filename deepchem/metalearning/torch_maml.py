@@ -11,7 +11,7 @@ from deepchem.models.optimizers import Optimizer, Adam, GradientDescent, Learnin
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 
-class TorchMetaLearner(object):
+class MetaLearner(object):
     """Model and data to which the MAML algorithm can be applied.
 
     To use MAML, create a subclass of this defining the learning problem to solve.
@@ -23,7 +23,7 @@ class TorchMetaLearner(object):
     >>> import deepchem as dc
     >>> import numpy as np
     >>> import torch
-    >>> class SineLearner(dc.metalearning.TorchMetaLearner):
+    >>> class SineLearner(dc.metalearning.MetaLearner):
     ...     def __init__(self):
     ...         self.batch_size = 10
     ...         self.w1 = torch.nn.Parameter(torch.tensor(np.random.normal(size=[1, 40], scale=1.0),requires_grad=True))
@@ -106,7 +106,7 @@ class TorchMetaLearner(object):
         raise NotImplementedError("Subclasses must implement this")
 
 
-class TorchMAML(object):
+class MAML(object):
     """Implements the Model-Agnostic Meta-Learning algorithm for low data learning.
 
     The algorithm is described in Finn et al., "Model-Agnostic Meta-Learning for Fast
@@ -128,7 +128,7 @@ class TorchMAML(object):
     >>> import numpy as np
     >>> import torch
     >>> import torch.nn.functional as F
-    >>> class SineLearner(dc.metalearning.TorchMetaLearner):
+    >>> class SineLearner(dc.metalearning.MetaLearner):
     ...     def __init__(self):
     ...         self.batch_size = 10
     ...         self.w1 = torch.nn.Parameter(torch.tensor(np.random.normal(size=[1, 40], scale=1.0),requires_grad=True))
@@ -160,7 +160,7 @@ class TorchMAML(object):
     ...                 yield value
     >>> learner = SineLearner()
     >>> optimizer = dc.models.optimizers.Adam(learning_rate=5e-3)
-    >>> maml = dc.metalearning.TorchMAML(learner,meta_batch_size=4,optimizer=optimizer)
+    >>> maml = dc.metalearning.MAML(learner,meta_batch_size=4,optimizer=optimizer)
     >>> maml.fit(9000)
 
     To test it out on a new task and see how it works
@@ -175,7 +175,7 @@ class TorchMAML(object):
 
     def __init__(
         self,
-        learner: TorchMetaLearner,
+        learner: MetaLearner,
         learning_rate: Union[float, LearningRateSchedule] = 0.001,
         optimization_steps: int = 1,
         meta_batch_size: int = 10,
@@ -187,7 +187,7 @@ class TorchMAML(object):
 
         Parameters
         ----------
-        learner: TorchMetaLearner
+        learner: MetaLearner
             defines the meta-learning problem
         learning_rate: float or Tensor
             the learning rate to use for optimizing each task (not to be confused with the one used
@@ -208,7 +208,7 @@ class TorchMAML(object):
         """
         # Record inputs.
 
-        self.learner: TorchMetaLearner = learner
+        self.learner: MetaLearner = learner
         self.learning_rate: Union[float, LearningRateSchedule] = learning_rate
         self.optimization_steps: int = optimization_steps
         self.meta_batch_size: int = meta_batch_size

@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 from flaky import flaky
 import unittest
+from deepchem.metalearning.torch_maml import MetaLearner, MAML
 
 try:
     import torch
@@ -19,7 +20,7 @@ class TestMAML(unittest.TestCase):
     @pytest.mark.torch
     def test_maml_pytorch(self):
 
-        class SineLearner(dc.metalearning.torch_maml.TorchMetaLearner):
+        class SineLearner(MetaLearner):
 
             def __init__(self):
                 self.batch_size = 10
@@ -73,9 +74,7 @@ class TestMAML(unittest.TestCase):
         # Optimize it.
         learner = SineLearner()
         optimizer = dc.models.optimizers.Adam(learning_rate=5e-3)
-        maml = dc.metalearning.TorchMAML(learner,
-                                         meta_batch_size=4,
-                                         optimizer=optimizer)
+        maml = MAML(learner, meta_batch_size=4, optimizer=optimizer)
         maml.fit(9000)
 
         # Test it out on some new tasks and see how it works.
@@ -105,8 +104,7 @@ class TestMAML(unittest.TestCase):
         # Verify that we can create a new MAML object, reload the parameters from the first one, and
         # get the same result.
 
-        new_maml = dc.metalearning.TorchMAML(SineLearner(),
-                                             model_dir=maml.model_dir)
+        new_maml = MAML(SineLearner(), model_dir=maml.model_dir)
         new_maml.restore()
         loss, outputs = new_maml.predict_on_batch(batch)
         loss = loss.detach().numpy()
@@ -114,8 +112,7 @@ class TestMAML(unittest.TestCase):
 
         # Do the same thing, only using the "restore" argument to fit().
 
-        new_maml = dc.metalearning.TorchMAML(SineLearner(),
-                                             model_dir=maml.model_dir)
+        new_maml = MAML(SineLearner(), model_dir=maml.model_dir)
         new_maml.fit(0, restore=True)
         loss, outputs = new_maml.predict_on_batch(batch)
         loss = loss.detach().numpy()
