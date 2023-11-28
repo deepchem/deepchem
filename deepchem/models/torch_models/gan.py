@@ -327,8 +327,8 @@ class GAN(nn.Module):
 
         return total_gen_loss, total_discrim_loss
 
-    def _call_discriminator(self, discriminator: nn.Module,
-                            inputs: List[torch.Tensor], train: bool):
+    def _call_discriminator(self, discriminator: nn.Module, inputs: List,
+                            train: bool):
         """Invoke the discriminator on a set of inputs.
 
         This is a separate method so WGAN can override it and also return the
@@ -1028,8 +1028,8 @@ class WGANModel(GANModel):
         self.gradient_penalty = gradient_penalty
         super(WGANModel, self).__init__(**kwargs)
 
-    def _call_discriminator(self, discriminator: nn.Module,
-                            inputs: List[torch.Tensor], train: bool):
+    def _call_discriminator(self, discriminator: nn.Module, inputs: List,
+                            train: bool):
         """ Invoke the discriminator on a set of inputs.
 
         Parameters
@@ -1098,7 +1098,7 @@ class GradientPenaltyLayer(nn.Module):
     This class implements the gradient penalty loss term for WGANs as described in
     Gulrajani et al., "Improved Training of Wasserstein GANs" [1]_.  It is used
     internally by WGANModel
-    
+
     Examples
     --------
     Importing necessary modules
@@ -1169,17 +1169,17 @@ class GradientPenaltyLayer(nn.Module):
     ...         conditional_input_shape = self.get_conditional_input_shapes()[0]
     ...         return nn.Sequential(
     ...             Discriminator(data_input_shape, conditional_input_shape))
-    
+
     Defining an Example GradientPenaltyLayer
-    
+
     >>> wgan = ExampleWGAN()
     >>> discriminator = wgan.discriminators[0]
     >>> gpl = GradientPenaltyLayer(wgan, discriminator)
     >>> inputs = [torch.randn(4, 1)]
     >>> conditional_inputs = [torch.randn(4, 1)]
     >>> output, penalty = gpl(inputs, conditional_inputs)
-    
-    
+
+
     References
     ----------
     .. [1]_ Gulrajani, Ishaan, et al. "Improved training of wasserstein gans."
@@ -1232,7 +1232,7 @@ class GradientPenaltyLayer(nn.Module):
 
         gradients = [g for g in gradients if g is not None]
         if len(gradients) > 0:
-            norm2 = torch.Tensor([0.0])
+            norm2 = 0.0
             for g in gradients:
                 g2 = g**2
                 dims = len(list(g.shape))
@@ -1243,5 +1243,5 @@ class GradientPenaltyLayer(nn.Module):
             penalty = ((torch.sqrt(norm2) - 1.0)**2).mean()
             penalty = self.gan.gradient_penalty * penalty
         else:
-            penalty = torch.Tensor([0.0])
+            penalty = 0.0
         return [output, penalty]
