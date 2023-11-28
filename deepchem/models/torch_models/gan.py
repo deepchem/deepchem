@@ -192,7 +192,7 @@ class GAN(nn.Module):
         self.data_input_names = [
             "data_input_%d" % i for i in range(len(self.data_inputs))
         ]
-        # print("data_input_names: ", self.data_input_names)
+
         # Conditional Input
         self.conditional_inputs = [
             nn.Parameter(torch.empty(s)) for s in self.conditional_input_shape
@@ -202,7 +202,6 @@ class GAN(nn.Module):
             "conditional_input_%d" % i
             for i in range(len(self.conditional_inputs))
         ]
-        # print("conditional_input_names: ", self.conditional_input_names)
 
         self.data_input_layers = []
         for idx, shape in enumerate(self.data_input_shape):
@@ -328,7 +327,8 @@ class GAN(nn.Module):
 
         return total_gen_loss, total_discrim_loss
 
-    def _call_discriminator(self, discriminator, inputs, train):
+    def _call_discriminator(self, discriminator: nn.Module,
+                            inputs: List[torch.Tensor], train: bool):
         """Invoke the discriminator on a set of inputs.
 
         This is a separate method so WGAN can override it and also return the
@@ -1095,10 +1095,96 @@ class WGANModel(GANModel):
 class GradientPenaltyLayer(nn.Module):
     """Implements the gradient penalty loss term for WGANs.
 
-    Notes
-    -----
-    This class is not intended to be used directly.  It is used internally by
-    WGANModel.
+    This class implements the gradient penalty loss term for WGANs as described in
+    Gulrajani et al., "Improved Training of Wasserstein GANs" [1]_.  It is used
+    internally by WGANModel
+    
+    Examples
+    --------
+    Importing necessary modules
+
+    >>> import deepchem
+    >>> from deepchem.models.torch_models.gan import WGANModel
+    >>> from deepchem.models.torch_models import GradientPenaltyLayer
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+
+    Creating a Generator
+
+    >>> class Generator(nn.Module):
+    ...     def __init__(self, noise_input_shape, conditional_input_shape):
+    ...         super(Generator, self).__init__()
+    ...         self.noise_input_shape = noise_input_shape
+    ...         self.conditional_input_shape = conditional_input_shape
+    ...         self.noise_dim = noise_input_shape[1:]
+    ...         self.conditional_dim = conditional_input_shape[1:]
+    ...         input_dim = sum(self.noise_dim) + sum(self.conditional_dim)
+    ...         self.output = nn.Linear(input_dim, 1)
+    ...     def forward(self, input):
+    ...         noise_input, conditional_input = input
+    ...         inputs = torch.cat((noise_input, conditional_input), dim=1)
+    ...         output = self.output(inputs)
+    ...         return output
+
+    Creating a Discriminator
+
+    >>> class Discriminator(nn.Module):
+    ...     def __init__(self, data_input_shape, conditional_input_shape):
+    ...         super(Discriminator, self).__init__()
+    ...         self.data_input_shape = data_input_shape
+    ...         self.conditional_input_shape = conditional_input_shape
+    ...         # Extracting the actual data dimension
+    ...         data_dim = data_input_shape[1:]
+    ...         # Extracting the actual conditional dimension
+    ...         conditional_dim = conditional_input_shape[1:]
+    ...         input_dim = sum(data_dim) + sum(conditional_dim)
+    ...         # Define the dense layers
+    ...         self.dense1 = nn.Linear(input_dim, 10)
+    ...         self.dense2 = nn.Linear(10, 1)
+    ...     def forward(self, input):
+    ...         data_input, conditional_input = input
+    ...         # Concatenate data_input and conditional_input along the second dimension
+    ...         discrim_in = torch.cat((data_input, conditional_input), dim=1)
+    ...         # Pass the concatenated input through the dense layers
+    ...         x = F.relu(self.dense1(discrim_in))
+    ...         output = torch.sigmoid(self.dense2(x))
+    ...         return output
+
+    Creating an Example WGANModel class
+
+    >>> class ExampleWGAN(WGANModel):
+    ...     def get_noise_input_shape(self):
+    ...         return (100,2,)
+    ...     def get_data_input_shapes(self):
+    ...         return [(100,1,)]
+    ...     def get_conditional_input_shapes(self):
+    ...         return [(100,1,)]
+    ...     def create_generator(self):
+    ...         noise_dim = self.get_noise_input_shape()
+    ...         conditional_dim = self.get_conditional_input_shapes()[0]
+    ...         return nn.Sequential(Generator(noise_dim, conditional_dim))
+    ...     def create_discriminator(self):
+    ...         data_input_shape = self.get_data_input_shapes()[0]
+    ...         conditional_input_shape = self.get_conditional_input_shapes()[0]
+    ...         return nn.Sequential(
+    ...             Discriminator(data_input_shape, conditional_input_shape))
+    
+    Defining an Example GradientPenaltyLayer
+    
+    >>> wgan = ExampleWGAN()
+    >>> discriminator = wgan.discriminators[0]
+    >>> gpl = GradientPenaltyLayer(wgan, discriminator)
+    >>> inputs = [torch.randn(4, 1)]
+    >>> conditional_inputs = [torch.randn(4, 1)]
+    >>> output, penalty = gpl(inputs, conditional_inputs)
+    
+    
+    References
+    ----------
+    .. [1]_ Gulrajani, Ishaan, et al. "Improved training of wasserstein gans."
+        Advances in neural information processing systems 30 (2017).
+        (https://arxiv.org/abs/1704.00028)
     """
 
     def __init__(self, gan: WGANModel, discriminator: nn.Module,
@@ -1132,34 +1218,30 @@ class GradientPenaltyLayer(nn.Module):
         output: list [Tensor, Tensor]
             the output from the discriminator, followed by the gradient penalty.
         """
-        # concatenate inputs and conditional_inputs
-        # inputs = list(inputs) + list(conditional_inputs)
-        # inputs = torch.cat(inputs)
 
-        # Get Discriminator output
-        output = self.discriminator(
-            self.discriminator(_list_or_tensor(inputs + conditional_inputs)))
+        gradients = []
+        for x in inputs:
+            x.requires_grad_(True)
+            output = self.discriminator(
+                _list_or_tensor(inputs + conditional_inputs))
+            grad = torch.autograd.grad(outputs=output,
+                                       inputs=x,
+                                       grad_outputs=torch.ones_like(output),
+                                       create_graph=True)[0]
+            gradients.append(grad)
 
-        # Calculate Gradients
-        gradients = torch.autograd.grad(outputs=output,
-                                        inputs=inputs,
-                                        grad_outputs=torch.ones_like(output),
-                                        create_graph=True,
-                                        retain_graph=True,
-                                        only_inputs=True)
-
-        # Remove NULL gradients
-        gradients = tuple([g for g in gradients if g is not None])
+        gradients = [g for g in gradients if g is not None]
         if len(gradients) > 0:
-            norm2 = torch.tensor([0.0])
+            norm2 = torch.Tensor([0.0])
             for g in gradients:
-                g2 = torch.square(g)
-                dims = len(g.shape)
+                g2 = g**2
+                dims = len(list(g.shape))
                 if dims > 1:
-                    g2 = torch.sum(g2, dim=tuple(range(1, dims)))
+                    g2 = torch.sum(g2, list(range(1, dims)))
                 norm2 += g2
-            penalty = torch.square(torch.sqrt(norm2) - 1.0)
-            penalty = self.gan.gradient_penalty * torch.mean(penalty)
+
+            penalty = ((torch.sqrt(norm2) - 1.0)**2).mean()
+            penalty = self.gan.gradient_penalty * penalty
         else:
-            penalty = torch.Tensor(0.0)
+            penalty = torch.Tensor([0.0])
         return [output, penalty]

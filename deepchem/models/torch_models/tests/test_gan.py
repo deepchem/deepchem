@@ -449,3 +449,80 @@ def test_wgan_reload():
     reloaded_values = reloaded_gan.predict_gan_generator(
         noise_input=noise_input, conditional_inputs=[means])
     assert np.all(values == reloaded_values)
+
+
+@pytest.mark.torch
+def gradient_penalty_layer():
+    """A gradient penalty layer for testing."""
+    from deepchem.models.torch_models import GradientPenaltyLayer
+
+    class ExampleWGAN(dc.models.torch_models.WGANModel):
+
+        def get_noise_input_shape(self):
+            return (
+                100,
+                2,
+            )
+
+        def get_data_input_shapes(self):
+            return [(
+                100,
+                1,
+            )]
+
+        def get_conditional_input_shapes(self):
+            return [(
+                100,
+                1,
+            )]
+
+        def create_generator(self):
+            noise_dim = self.get_noise_input_shape()
+            conditional_dim = self.get_conditional_input_shapes()[0]
+
+            return nn.Sequential(Generator(noise_dim, conditional_dim))
+
+        def create_discriminator(self):
+            data_input_shape = self.get_data_input_shapes()[0]
+            conditional_input_shape = self.get_conditional_input_shapes()[0]
+
+            return nn.Sequential(
+                Discriminator(data_input_shape, conditional_input_shape))
+
+    gan = ExampleWGAN()
+    discriminator = gan.discriminators[0]
+    return GradientPenaltyLayer(gan, discriminator)
+
+
+@pytest.mark.torch
+def test_gpl_forward():
+    # Create dummy data
+    gpl = gradient_penalty_layer()
+    inputs = [torch.randn(4, 1)]
+    conditional_inputs = [torch.randn(4, 1)]
+
+    # Call forward
+    output, penalty = gpl(inputs, conditional_inputs)
+
+    # Asserts
+    assert isinstance(output, torch.Tensor), "Output must be a torch.Tensor"
+    assert isinstance(penalty, torch.Tensor), "Penalty must be a torch.Tensor"
+    assert output.shape[
+        0] == 4, "Output tensor must have the same batch size as inputs"
+    assert penalty.ndim == 0 or penalty.shape == (
+        4,), "Penalty should be a scalar or the same size as the batch"
+
+
+@pytest.mark.torch
+def test_gpl_penalty_calculation():
+    gpl = gradient_penalty_layer()
+    # Create dummy data
+    inputs = [torch.randn(4, 1)]
+    conditional_inputs = [torch.randn(4, 1)]
+
+    # Call forward
+    _, penalty = gpl(inputs, conditional_inputs)
+
+    # Since the penalty is a squared norm of the gradients minus 1, multiplied by a constant,
+    # it should be non-negative
+    assert penalty.item() >= 0, "Penalty should be non-negative"
