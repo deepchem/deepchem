@@ -99,12 +99,12 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `PyTorch`_                     | 1.6.0         | :code:`dc.data.datasets`                          |
+| `PyTorch`_                     | 2.1.0         | :code:`dc.data.datasets`                          |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `PyTorch Geometric`_           | 1.6.x (with   | :code:`dc.feat.graph_data`                        |
-|                                | PyTorch 1.6.0)| :code:`dc.models.torch_models`                    |
+| `PyTorch Geometric`_           | 2.1.x (with   | :code:`dc.feat.graph_data`                        |
+|                                | PyTorch 2.1.0)| :code:`dc.models.torch_models`                    |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `RDKit`_                       | latest        | Many modules                                      |
