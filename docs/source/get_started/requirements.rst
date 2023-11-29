@@ -4,7 +4,7 @@ Requirements
 Hard requirements
 ^^^^^^^^^^^^^^^^^
 
-DeepChem officially supports Python 3.6 through 3.7 and requires these packages on any condition.
+DeepChem officially supports Python 3.8 through 3.10 and requires these packages on any condition.
 
 - `joblib`_
 - `NumPy`_
