@@ -5,10 +5,14 @@ import shutil
 import tempfile
 import time
 
-import torch
-
 from deepchem.models.optimizers import Optimizer, Adam, GradientDescent, LearningRateSchedule
 from typing import Any, Dict, List, Optional, Tuple, Union
+
+try:
+    import torch
+    has_pytorch = True
+except:
+    has_pytorch = False
 
 
 class MetaLearner(object):
@@ -128,7 +132,8 @@ class MAML(object):
     >>> import numpy as np
     >>> import torch
     >>> import torch.nn.functional as F
-    >>> class SineLearner(dc.metalearning.MetaLearner):
+    >>> from deepchem.metalearning.torch_maml import MetaLearner, MAML
+    >>> class SineLearner(MetaLearner):
     ...     def __init__(self):
     ...         self.batch_size = 10
     ...         self.w1 = torch.nn.Parameter(torch.tensor(np.random.normal(size=[1, 40], scale=1.0),requires_grad=True))
@@ -160,7 +165,7 @@ class MAML(object):
     ...                 yield value
     >>> learner = SineLearner()
     >>> optimizer = dc.models.optimizers.Adam(learning_rate=5e-3)
-    >>> maml = dc.metalearning.MAML(learner,meta_batch_size=4,optimizer=optimizer)
+    >>> maml = MAML(learner,meta_batch_size=4,optimizer=optimizer)
     >>> maml.fit(9000)
 
     To test it out on a new task and see how it works
