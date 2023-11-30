@@ -35,6 +35,10 @@ try:
     from deepchem.utils.dft_utils.grid.base_grid import BaseGrid
     from deepchem.utils.dft_utils.grid.radial_grid import RadialGrid
     from deepchem.utils.dft_utils.grid.radial_grid import SlicedRadialGrid
+    from deepchem.utils.dft_utils.grid.lebedev_grid import LebedevGrid
+    from deepchem.utils.dft_utils.grid.lebedev_grid import TruncatedLebedevGrid
+    from deepchem.utils.dft_utils.grid.multiatoms_grid import BeckeGrid
+    from deepchem.utils.dft_utils.grid.multiatoms_grid import PBCBeckeGrid
 
     from deepchem.utils.dft_utils.df.base_df import BaseDF
 
