@@ -6,6 +6,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from deepchem.utils.misc_utils import indent
+from deepchem.utils.misc_utils import shape2str
+
 from deepchem.utils.batch_utils import batch_coulomb_matrix_features
 
 from deepchem.utils.attribute_utils import set_attr

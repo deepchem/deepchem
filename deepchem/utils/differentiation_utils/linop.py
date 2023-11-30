@@ -5,10 +5,8 @@ import torch
 from abc import abstractmethod
 from contextlib import contextmanager
 from scipy.sparse.linalg import LinearOperator as spLinearOperator
-from deepchem.utils.differentiation_utils import EditableModule
-from deepchem.utils.differentiation_utils import get_bcasted_dims
-from deepchem.utils.differentiation_utils import shape2str
-from deepchem.utils.differentiation_utils import indent
+from deepchem.utils.differentiation_utils import EditableModule, get_bcasted_dims
+from deepchem.utils import shape2str, indent
 
 __all__ = ["LinearOperator"]
 
