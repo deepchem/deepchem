@@ -1,15 +1,14 @@
 from collections import defaultdict
 from typing import Union, List, Optional, Mapping, Callable, Dict
 import torch
-from dqc.grid.radial_grid import RadialGrid, LogM3Transformation, \
-                                 TreutlerM4Transformation, DE2Transformation
 from dqc.grid.lebedev_grid import LebedevGrid, TruncatedLebedevGrid
 from dqc.grid.multiatoms_grid import BeckeGrid, PBCBeckeGrid
 from dqc.grid.truncation_rules import DasguptaTrunc, NWChemTrunc, NoTrunc
-from dqc.hamilton.intor.lattice import Lattice
-from dqc.utils.periodictable import atom_bragg_radii, atom_expected_radii, get_period
 from dqc.utils.misc import get_option
-from deepchem.utils.dft_utils import BaseGrid
+from deepchem.utils.dft_utils import BaseGrid, Lattice
+from deepchem.utils.dft_utils.grid.radial_grid import RadialGrid, \
+    LogM3Transformation, TreutlerM4Transformation, DE2Transformation
+from deepchem.utils.periodic_table_utils import atom_bragg_radii, atom_expected_radii, get_period
 
 __all__ = ["get_grid", "get_predefined_grid"]
 
