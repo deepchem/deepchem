@@ -3,16 +3,12 @@ from typing import List, Union, Optional, Tuple, Dict
 import warnings
 import torch
 from dqc.grid.factory import get_predefined_grid
-from dqc.utils.datastruct import CGTOBasis, AtomCGTOBasis, SpinParam, ZType, \
-                                 is_z_float, BasisInpType, DensityFitInfo, \
-                                 AtomZsType, AtomPosType
-from dqc.utils.periodictable import get_atomz, get_atom_mass
-from dqc.utils.safeops import occnumber, safe_cdist
-from dqc.api.loadbasis import loadbasis
-from dqc.api.parser import parse_moldesc
-from dqc.utils.cache import Cache
-from dqc.utils.misc import logger
-from deepchem.utils.dft_utils import BaseHamilton, HamiltonCGTO, BaseSystem, BaseGrid
+from deepchem.utils.dft_utils import BaseHamilton, HamiltonCGTO, BaseSystem, \
+    BaseGrid, CGTOBasis, AtomCGTOBasis, SpinParam, ZType, is_z_float, \
+    BasisInpType, DensityFitInfo, AtomZsType, AtomPosType, occnumber, \
+    safe_cdist, loadbasis, parse_moldesc
+from deepchem.utils.periodic_table_utils import get_atomz, get_atom_mass
+from deepchem.utils.misc_utils import Cache
 
 
 __all__ = ["Mol"]
@@ -259,10 +255,10 @@ class Mol(BaseSystem):
 
     def setup_grid(self) -> None:
         grid_inp = self._grid_inp
-        logger.log("Constructing the integration grid")
+        print("Constructing the integration grid")
         self._grid = get_predefined_grid(self._grid_inp, self._atomzs_int, self._atompos,
                                          dtype=self._dtype, device=self._device)
-        logger.log("Constructing the integration grid: done")
+        print("Constructing the integration grid: done")
 
         # #        0,  1,  2,  3,  4,  5
         # nr   = [20, 40, 60, 75, 100, 125][grid_inp]

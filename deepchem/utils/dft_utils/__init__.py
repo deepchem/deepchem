@@ -33,6 +33,8 @@ try:
     from deepchem.utils.dft_utils.xc.base_xc import AddBaseXC
 
     from deepchem.utils.dft_utils.grid.base_grid import BaseGrid
+    from deepchem.utils.dft_utils.grid.radial_grid import RadialGrid
+    from deepchem.utils.dft_utils.grid.radial_grid import SlicedRadialGrid
 
     from deepchem.utils.dft_utils.df.base_df import BaseDF
 
