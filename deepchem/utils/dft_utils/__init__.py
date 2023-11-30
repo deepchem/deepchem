@@ -46,7 +46,6 @@ try:
 
     from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import *
     from deepchem.utils.dft_utils.hamilton.intor.molintor import *
-    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import *
 
     from deepchem.utils.dft_utils.hamilton.orbconverter import BaseOrbConverter
     from deepchem.utils.dft_utils.hamilton.orbconverter import OrbitalOrthogonalizer
@@ -56,6 +55,9 @@ try:
 
     from deepchem.utils.dft_utils.data.pbc import unweighted_coul_ft
     from deepchem.utils.dft_utils.data.pbc import estimate_ovlp_rcut
+
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import *
+
     from deepchem.utils.dft_utils.data.pbc import estimate_g_cutoff
     from deepchem.utils.dft_utils.data.pbc import get_gcut
 

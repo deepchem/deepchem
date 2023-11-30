@@ -12,7 +12,7 @@ from dqc.api.loadbasis import loadbasis
 from dqc.api.parser import parse_moldesc
 from dqc.utils.cache import Cache
 from dqc.utils.misc import logger
-from deepchem.utils.dft_utils import BaseHamilton, HamiltonCGTO, BaseSystem, BaseGrid, \
+from deepchem.utils.dft_utils import BaseHamilton, HamiltonCGTO, BaseSystem, BaseGrid
 
 
 __all__ = ["Mol"]
