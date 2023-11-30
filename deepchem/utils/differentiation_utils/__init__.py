@@ -10,8 +10,6 @@ try:
     from deepchem.utils.differentiation_utils.misc import get_method
     from deepchem.utils.differentiation_utils.misc import dummy_context_manager
     from deepchem.utils.differentiation_utils.misc import assert_runtime
-    from deepchem.utils.differentiation_utils.misc import indent
-    from deepchem.utils.differentiation_utils.misc import shape2str
 
     from deepchem.utils.differentiation_utils.linop import LinearOperator
     from deepchem.utils.differentiation_utils.linop import AddLinearOperator
