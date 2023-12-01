@@ -1308,7 +1308,7 @@ class DiskDataset(Dataset):
             del metadata_df['basename']
             DiskDataset._save_metadata(metadata_df, self.data_dir, tasks)
             return tasks, metadata_df
-        raise ValueError("No Metadata Found On Disk")
+        raise ValueError(f"No Metadata found in the path {self.data_dir}")
 
     @staticmethod
     def _save_metadata(metadata_df: pd.DataFrame, data_dir: str,

@@ -297,6 +297,9 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.AddBaseXC
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.xc.base_xc.MulBaseXC
+  :members:
+
 .. autoclass:: deepchem.utils.dft_utils.BaseGrid
   :members:
 
@@ -420,3 +423,13 @@ for additional information regarding equivariance and Deepchem's support for equ
 .. autofunction:: deepchem.utils.equivariance_utils.change_basis_real_to_complex
 
 .. autofunction:: deepchem.utils.equivariance_utils.wigner_D
+
+Miscellaneous Utilities
+-----------------------
+
+The utilities here are used for miscellaneous purposes.
+Initial usecases are for improving the printing format of __repr__.
+
+.. autofunction:: deepchem.utils.misc_utils.indent
+
+.. autofunction:: deepchem.utils.equivariance_utils.shape2str

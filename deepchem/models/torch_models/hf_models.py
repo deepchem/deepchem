@@ -225,7 +225,8 @@ class HuggingFaceModel(TorchModel):
                 tokens['input_ids'])
             inputs = {
                 'input_ids': inputs.to(self.device),
-                'labels': labels.to(self.device)
+                'labels': labels.to(self.device),
+                'attention_mask': tokens['attention_mask'].to(self.device),
             }
             return inputs, None, w
         elif self.task in ['regression', 'classification', 'mtr']:

@@ -4,7 +4,7 @@ Requirements
 Hard requirements
 ^^^^^^^^^^^^^^^^^
 
-DeepChem officially supports Python 3.6 through 3.7 and requires these packages on any condition.
+DeepChem officially supports Python 3.8 through 3.10 and requires these packages on any condition.
 
 - `joblib`_
 - `NumPy`_
@@ -99,12 +99,12 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `PyTorch`_                     | 1.6.0         | :code:`dc.data.datasets`                          |
+| `PyTorch`_                     | 2.1.0         | :code:`dc.data.datasets`                          |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `PyTorch Geometric`_           | 1.6.x (with   | :code:`dc.feat.graph_data`                        |
-|                                | PyTorch 1.6.0)| :code:`dc.models.torch_models`                    |
+| `PyTorch Geometric`_           | 2.1.x (with   | :code:`dc.feat.graph_data`                        |
+|                                | PyTorch 2.1.0)| :code:`dc.models.torch_models`                    |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `RDKit`_                       | latest        | Many modules                                      |
