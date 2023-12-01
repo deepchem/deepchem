@@ -2,7 +2,7 @@ import warnings
 import numpy as np
 import torch
 import scipy.special
-from typing import List, Optional, Tuple, Union, TypeVar, Callable, Any, Dict
+from typing import List, Optional, Tuple, Union, TypeVar, Callable, Any, Dict, Mapping
 import copy
 import functools
 from dataclasses import dataclass

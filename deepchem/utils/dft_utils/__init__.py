@@ -43,6 +43,8 @@ try:
     from deepchem.utils.dft_utils.grid.truncation_rules import NoTrunc
     from deepchem.utils.dft_utils.grid.truncation_rules import DasguptaTrunc
     from deepchem.utils.dft_utils.grid.truncation_rules import NWChemTrunc
+    from deepchem.utils.dft_utils.grid.factory import get_grid
+    from deepchem.utils.dft_utils.grid.factory import get_predefined_grid
 
     from deepchem.utils.dft_utils.df.base_df import BaseDF
 
@@ -72,6 +74,8 @@ try:
     from deepchem.utils.dft_utils.data.pbc import get_gcut
 
     from deepchem.utils.dft_utils.hamilton.hcgto import HamiltonCGTO
+
+    from deepchem.utils.dft_utils.system.mol import Mol
 except ModuleNotFoundError as e:
     logger_.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')

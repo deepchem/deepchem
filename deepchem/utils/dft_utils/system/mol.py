@@ -2,11 +2,10 @@ from __future__ import annotations
 from typing import List, Union, Optional, Tuple, Dict
 import warnings
 import torch
-from dqc.grid.factory import get_predefined_grid
 from deepchem.utils.dft_utils import BaseHamilton, HamiltonCGTO, BaseSystem, \
     BaseGrid, CGTOBasis, AtomCGTOBasis, SpinParam, ZType, is_z_float, \
     BasisInpType, DensityFitInfo, AtomZsType, AtomPosType, occnumber, \
-    safe_cdist, loadbasis, parse_moldesc
+    safe_cdist, loadbasis, parse_moldesc, get_predefined_grid
 from deepchem.utils.periodic_table_utils import get_atomz, get_atom_mass
 from deepchem.utils.misc_utils import Cache
 
