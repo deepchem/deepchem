@@ -39,6 +39,10 @@ try:
     from deepchem.utils.dft_utils.grid.lebedev_grid import TruncatedLebedevGrid
     from deepchem.utils.dft_utils.grid.multiatoms_grid import BeckeGrid
     from deepchem.utils.dft_utils.grid.multiatoms_grid import PBCBeckeGrid
+    from deepchem.utils.dft_utils.grid.truncation_rules import BaseTruncationRules
+    from deepchem.utils.dft_utils.grid.truncation_rules import NoTrunc
+    from deepchem.utils.dft_utils.grid.truncation_rules import DasguptaTrunc
+    from deepchem.utils.dft_utils.grid.truncation_rules import NWChemTrunc
 
     from deepchem.utils.dft_utils.df.base_df import BaseDF
 

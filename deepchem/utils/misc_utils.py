@@ -446,3 +446,10 @@ def _normalize_prefix(prefix: str) -> str:
     if not prefix.endswith("."):
         prefix = prefix + "."
     return prefix
+
+def get_option(name: str, s: K, options: Mapping[K, T]) -> T:
+    # get the value from dictionary of options, if not found, then raise an error
+    if s in options:
+        return options[s]
+    else:
+        raise ValueError(f"Unknown {name}: {s}. The available options are: {str(list(options.keys()))}")
