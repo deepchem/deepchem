@@ -86,7 +86,7 @@ class _BBBC002Loader(_MolnetLoader):
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "BBBC002_v1_images.zip")
-        labels_file = os.path.join(self.data_dir, "BBBC002_v1_counts.txt.txt")
+        labels_file = os.path.join(self.data_dir, "BBBC002_v1_counts.txt")
         if not os.path.exists(dataset_file):
             dc.utils.data_utils.download_url(url=BBBC2_IMAGE_URL,
                                              dest_dir=self.data_dir)
