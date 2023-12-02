@@ -6,7 +6,7 @@ import tempfile
 import time
 
 from deepchem.models.optimizers import Optimizer, Adam, GradientDescent, LearningRateSchedule
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Sequence, Union
 
 try:
     import torch
@@ -59,8 +59,10 @@ class MetaLearner(object):
     ...                 yield value
     """
 
-    def compute_model(self, inputs: List[torch.Tensor],
-                      variables: List[torch.Tensor], training: bool):
+    def compute_model(
+            self, inputs: List[Union[torch.Tensor, torch.Tensor]],
+            variables: List[Union[torch.Tensor, torch.Tensor]],
+            training: bool) -> Tuple[torch.Tensor, Sequence[torch.Tensor]]:
         """Compute the model for a set of inputs and variables.
 
         Parameters
@@ -83,7 +85,7 @@ class MetaLearner(object):
         raise NotImplementedError("Subclasses must implement this")
 
     @property
-    def variables(self) -> List[torch.Tensor]:
+    def variables(self) -> List[Union[torch.Tensor, torch.Tensor]]:
         """Get the list of variables to train."""
         raise NotImplementedError("Subclasses must implement this")
 
@@ -96,7 +98,7 @@ class MetaLearner(object):
         """
         raise NotImplementedError("Subclasses must implement this")
 
-    def get_batch(self) -> List[torch.Tensor]:
+    def get_batch(self) -> List[Union[torch.Tensor, torch.Tensor]]:
         """Get a batch of data for training.
 
         This should return the data as a list of arrays, one for each of the model's
@@ -297,12 +299,13 @@ class MAML(object):
         # Main optimization loop.
 
         learner = self.learner
-        variables: List[torch.Tensor] = learner.variables
+        variables: List[Union[torch.Tensor, torch.Tensor]] = learner.variables
         for i in range(steps):
             self._pytorch_optimizer.zero_grad()
             for j in range(self.meta_batch_size):
                 learner.select_task()
-                updated_variables: List[torch.Tensor] = variables
+                updated_variables: List[Union[torch.Tensor,
+                                              torch.Tensor]] = variables
                 for k in range(self.optimization_steps):
                     loss, _ = self.learner.compute_model(
                         learner.get_batch(), updated_variables, True)
@@ -375,7 +378,8 @@ class MAML(object):
         """
         if restore:
             self.restore()
-        variables: List[torch.Tensor] = self.learner.variables
+        variables: List[Union[torch.Tensor,
+                              torch.Tensor]] = self.learner.variables
         task_optimizer: Optimizer = GradientDescent(
             learning_rate=self.learning_rate)
         self._pytorch_task_optimizer = task_optimizer._create_pytorch_optimizer(
@@ -393,7 +397,8 @@ class MAML(object):
             self._pytorch_task_optimizer.step()
 
     def predict_on_batch(
-            self, inputs: List[torch.Tensor]) -> Tuple[float, torch.Tensor]:
+        self, inputs: List[Union[torch.Tensor, torch.Tensor]]
+    ) -> Tuple[torch.Tensor, Sequence[torch.Tensor]]:
         """Compute the model's outputs for a batch of inputs.
 
         Parameters
