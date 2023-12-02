@@ -1414,6 +1414,8 @@ class ImageLoader(DataLoader):
 
         if isinstance(labels, str):
             label_files = [labels]
+        else:
+            label_files = []
         
         label_image_files = []
         # Sometimes zip files contain directories within. Traverse directories
@@ -1450,8 +1452,6 @@ class ImageLoader(DataLoader):
         
         # Sort label image files
         label_image_files = sorted(label_image_files)
-        print(image_files)
-        print(label_image_files)
 
         if in_memory:
             if data_dir is None:
