@@ -1342,6 +1342,9 @@ class ImageLoader(DataLoader):
             image files (only .zip for now). If `labels` or `weights` are provided,
             they must correspond to the sorted order of all filenames provided, with
             one label/weight per file.
+
+            Labels can be filenames too, in which case the label is loaded as an image.
+
         data_dir: str, optional (default None)
             Directory to store featurized dataset.
         shard_size: int, optional (default 8192)
@@ -1380,7 +1383,6 @@ class ImageLoader(DataLoader):
             for input_file in input_files:
                 filename, extension = os.path.splitext(input_file)
                 extension = extension.lower()
-                # TODO(rbharath): Add support for more extensions
                 if os.path.isdir(input_file):
                     dirfiles = [
                         os.path.join(input_file, subfile)
@@ -1410,27 +1412,88 @@ class ImageLoader(DataLoader):
         # Sort image files
         image_files = sorted(image_files)
 
+        if isinstance(labels, str):
+            label_files = [labels]
+        
+        label_image_files = []
+        # Sometimes zip files contain directories within. Traverse directories
+        while len(label_files) > 0:
+            remainder = []
+            for label_file in label_files:
+                filename, extension = os.path.splitext(label_file)
+                extension = extension.lower()
+                if os.path.isdir(label_file):
+                    dirfiles = [
+                        os.path.join(label_file, subfile)
+                        for subfile in os.listdir(label_file)
+                    ]
+                    remainder += dirfiles
+                elif extension == ".zip":
+                    zip_dir = tempfile.mkdtemp()
+                    zip_ref = zipfile.ZipFile(label_file, 'r')
+                    zip_ref.extractall(path=zip_dir)
+                    zip_ref.close()
+                    zip_files = [
+                        os.path.join(zip_dir, name)
+                        for name in zip_ref.namelist()
+                    ]
+                    for zip_file in zip_files:
+                        _, extension = os.path.splitext(zip_file)
+                        extension = extension.lower()
+                        if extension in [".png", ".tif"]:
+                            label_image_files.append(zip_file)
+                elif extension in [".png", ".tif"]:
+                    label_image_files.append(label_file)
+                else:
+                    raise ValueError("Unsupported file format")
+            label_files = remainder
+        
+        # Sort label image files
+        label_image_files = sorted(label_image_files)
+        print(image_files)
+        print(label_image_files)
+
         if in_memory:
             if data_dir is None:
-                return NumpyDataset(load_image_files(image_files),
-                                    y=labels,
-                                    w=weights,
-                                    ids=image_files)
+                if isinstance(labels, str):
+                    return NumpyDataset(load_image_files(image_files),
+                                        y=load_image_files(label_image_files),
+                                        w=weights,
+                                        ids=image_files)
+                else:
+                    return NumpyDataset(load_image_files(image_files),
+                                        y=labels,
+                                        w=weights,
+                                        ids=image_files)
             else:
-                dataset = DiskDataset.from_numpy(load_image_files(image_files),
-                                                 y=labels,
-                                                 w=weights,
-                                                 ids=image_files,
-                                                 tasks=self.tasks,
-                                                 data_dir=data_dir)
+                if isinstance(labels, str):
+                    dataset = DiskDataset.from_numpy(load_image_files(image_files),
+                                                     y=load_image_files(label_image_files),
+                                                     w=weights,
+                                                     ids=image_files,
+                                                     tasks=self.tasks,
+                                                     data_dir=data_dir)
+                else:
+                    dataset = DiskDataset.from_numpy(load_image_files(image_files),
+                                                    y=labels,
+                                                    w=weights,
+                                                    ids=image_files,
+                                                    tasks=self.tasks,
+                                                    data_dir=data_dir)
                 if shard_size is not None:
                     dataset.reshard(shard_size)
                 return dataset
         else:
-            return ImageDataset(image_files,
-                                y=labels,
-                                w=weights,
-                                ids=image_files)
+            if isinstance(labels, str):
+                return ImageDataset(image_files,
+                                    y=label_image_files,
+                                    w=weights,
+                                    ids=image_files)
+            else:
+                return ImageDataset(image_files,
+                                    y=labels,
+                                    w=weights,
+                                    ids=image_files)
 
 
 class InMemoryLoader(DataLoader):
