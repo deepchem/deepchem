@@ -71,6 +71,13 @@ class TestImageLoader(unittest.TestCase):
         assert dataset.X.shape == (1, 768, 1024, 3)
         assert (dataset.y == np.ones((1,))).all()
 
+    def test_png_simple_load_with_label_as_image(self):
+        loader = dc.data.ImageLoader()
+        dataset = loader.create_dataset((self.face_path, self.face_path))
+        # These are the known dimensions of face.png
+        assert dataset.X.shape == (1, 768, 1024, 3)
+        assert dataset.y.shape == (1, 768, 1024, 3)
+
     def test_tif_simple_load(self):
         loader = dc.data.ImageLoader()
         dataset = loader.create_dataset(self.tif_image_path)
