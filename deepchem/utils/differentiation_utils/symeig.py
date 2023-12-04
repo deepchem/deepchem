@@ -8,6 +8,19 @@ from deepchem.utils.misc_utils import set_default_option
 from deepchem.utils.differentiation_utils.solve import solve
 import warnings
 
+def lsymeig(A: LinearOperator, neig: Optional[int] = None,
+            M: Optional[LinearOperator] = None,
+            bck_options: Mapping[str, Any] = {},
+            method: Union[str, Callable, None] = None,
+            **fwd_options) -> Tuple[torch.Tensor, torch.Tensor]:
+    return symeig(A, neig, "lowest", M, method=method, bck_options=bck_options, **fwd_options)
+
+def usymeig(A: LinearOperator, neig: Optional[int] = None,
+            M: Optional[LinearOperator] = None,
+            bck_options: Mapping[str, Any] = {},
+            method: Union[str, Callable, None] = None,
+            **fwd_options) -> Tuple[torch.Tensor, torch.Tensor]:
+    return symeig(A, neig, "uppest", M, method=method, bck_options=bck_options, **fwd_options)
 
 def symeig(A: LinearOperator, neig: Optional[int] = None,
            mode: str = "lowest", M: Optional[LinearOperator] = None,

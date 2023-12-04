@@ -7,7 +7,7 @@ from deepchem.utils.differentiation_utils import LinearOperator, MatrixLinearOpe
     set_default_option, dummy_context_manager, get_method, normalize_bcast_dims, get_bcasted_dims, \
     ConvergenceWarning, get_np_dtype
 from scipy.sparse.linalg import gmres as scipy_gmres
-from deepchem.utils.differentiation_utils.optimize.root.rootsolver import broyden1
+from deepchem.utils.differentiation_utils.optimize.rootsolver import broyden1
 
 
 def solve(A: LinearOperator, B: torch.Tensor, E: Union[torch.Tensor, None] = None,
