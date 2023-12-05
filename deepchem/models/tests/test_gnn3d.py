@@ -112,7 +112,8 @@ def testInfoMax3DModular():
                              readout_aggregators=['sum', 'mean'],
                              scalers=['identity'],
                              device=torch.device('cpu'),
-                             task='pretraining')
+                             task='pretraining',
+                             learning_rate=0.00001)
 
     loss1 = model.fit(data, nb_epoch=1)
     loss2 = model.fit(data, nb_epoch=9)
@@ -184,10 +185,9 @@ def testInfoMax3DModularClassification():
                              scalers=['identity'],
                              task='classification',
                              n_tasks=1,
-                             n_classes=1,
+                             n_classes=2,
                              device=torch.device('cpu'))
 
-    model.fit(data, nb_epoch=100)
+    model.fit(data, nb_epoch=10)
     scores = model.evaluate(data, [metric])
-    # FIXME We need to improve finetuning score
     assert scores['mean-roc_auc_score'] > 0.7
