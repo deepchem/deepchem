@@ -191,3 +191,34 @@ def testInfoMax3DModularClassification():
     model.fit(data, nb_epoch=10)
     scores = model.evaluate(data, [metric])
     assert scores['mean-roc_auc_score'] > 0.7
+
+
+@pytest.mark.torch
+def test_infomax3d_load_from_pretrained(tmpdir):
+    import torch
+    from deepchem.models.torch_models.gnn3d import InfoMax3DModular
+    pretrain_model = InfoMax3DModular(hidden_dim=64,
+                                      target_dim=10,
+                                      device=torch.device('cpu'),
+                                      task='pretraining',
+                                      model_dir=tmpdir)
+    pretrain_model._ensure_built()
+    pretrain_model.save_checkpoint()
+    pretrain_model_state_dict = pretrain_model.model.state_dict()
+
+    finetune_model = InfoMax3DModular(hidden_dim=64,
+                                      target_dim=10,
+                                      device=torch.device('cpu'),
+                                      task='classification',
+                                      n_classes=2,
+                                      n_tasks=1)
+    finetune_model_old_state_dict = finetune_model.model.state_dict()
+    # Finetune model weights should not match before loading from pretrained model
+    for key, value in pretrain_model_state_dict.items():
+        assert not torch.allclose(value, finetune_model_old_state_dict[key])
+    finetune_model.load_from_pretrained(pretrain_model, components=['model2d'])
+    finetune_model_new_state_dict = finetune_model.model.state_dict()
+
+    # Finetune model weights should match after loading from pretrained model
+    for key, value in pretrain_model_state_dict.items():
+        assert torch.allclose(value, finetune_model_new_state_dict[key])
