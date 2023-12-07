@@ -3,9 +3,9 @@
 import deepchem as dc
 import numpy as np
 import pytest
-from deepchem.metalearning.torch_maml import MetaLearner, MAML
 
 try:
+    from deepchem.metalearning.torch_maml import MetaLearner, MAML
     import torch
     import torch.nn.functional as F
 

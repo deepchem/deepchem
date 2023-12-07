@@ -3,12 +3,10 @@ import numpy as np
 import pytest
 from flaky import flaky
 import unittest
-from deepchem.metalearning.torch_maml import MetaLearner, MAML
-
 try:
+    from deepchem.metalearning.torch_maml import MetaLearner, MAML
     import torch
     import torch.nn.functional as F
-
     has_pytorch = True
 except:
     has_pytorch = False
