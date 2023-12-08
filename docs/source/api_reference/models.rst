@@ -414,6 +414,12 @@ PagtnModel
 .. autoclass:: deepchem.models.PagtnModel
   :members:
 
+AtomConvModel
+----------
+
+.. autoclass:: deepchem.models.torch_models.AtomConvModel
+  :members:
+
 MPNNModel
 ---------
 
