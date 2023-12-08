@@ -21,6 +21,23 @@ class BaseDF(EditableModule):
     functions. By approximating these auxiliary basis functions, often referred
     to as fitting functions, the computational cost can be significantly reduced.
 
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils import BaseDF
+    >>> import torch
+    >>> class MyDF(BaseDF):
+    ...     def __init__(self):
+    ...         super(MyDF, self).__init__()
+    ...     def get_j2c(self):
+    ...         return torch.ones((3, 3))
+    ...     def get_j3c(self):
+    ...         return torch.ones((3, 3, 3))
+    >>> df = MyDF()
+    >>> df.get_j2c()
+    tensor([[1., 1., 1.],
+            [1., 1., 1.],
+            [1., 1., 1.]])
+
     """
 
     @abstractmethod
