@@ -78,8 +78,9 @@ try:
     from deepchem.utils.dft_utils.system.mol import Mol
     
     from deepchem.utils.dft_utils.qccalc.base_qccalc import BaseQCCalc
-
     from deepchem.utils.dft_utils.qccalc.scf_qccalc import SCF_QCCalc, BaseSCFEngine
+    from deepchem.utils.dft_utils.qccalc.ks import KS
+    
 except ModuleNotFoundError as e:
     logger_.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')

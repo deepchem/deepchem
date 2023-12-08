@@ -1,7 +1,7 @@
 import ctypes
 import ctypes.util
-from deepchem.utils.dft_utils.hamilton.intor import dftlib
 import numpy as np
+import dqclibs
 
 # contains functions and constants that are used specifically for
 # dqc.hamilton.intor files (no dependance on other files in dqc.hamilton.intor
@@ -12,11 +12,11 @@ __all__ = ["NDIM", "CINT", "CGTO", "CPBC", "CSYMM", "c_null_ptr", "np2ctypes", "
 # CONSTANTS
 NDIM = 3
 
-CINT = dftlib.CINT
-CGTO = dftlib.CGTO
-CPBC = dftlib.CPBC
+CINT = dqclibs.CINT
+CGTO = dqclibs.CGTO
+CPBC = dqclibs.CPBC
 # CVHF = dftlib.CVHF
-CSYMM = dftlib.CSYMM
+CSYMM = dqclibs.CSYMM
 
 c_null_ptr = ctypes.POINTER(ctypes.c_void_p)
 

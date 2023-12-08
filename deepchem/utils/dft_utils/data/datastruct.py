@@ -52,48 +52,56 @@ def is_z_float(a: ZType) -> bool:
 
 
 @dataclass
+@dataclass
 class SpinParam(Generic[T]):
-    """Data structure to store different values for spin-up and spin-down electrons.
-    Examples
-    --------
-    >>> import torch
-    >>> from deepchem.utils.dft_utils import SpinParam
-    >>> dens_u = torch.ones(1)
-    >>> dens_d = torch.zeros(1)
-    >>> sp = SpinParam(u=dens_u, d=dens_d)
-    >>> sp.u
-    tensor([1.])
-    >>> sp.sum()
-    tensor([1.])
-    >>> sp.reduce(torch.multiply)
-    tensor([0.])
     """
+    Data structure to store different values for spin-up and spin-down electrons.
 
-    def __init__(self, u: T, d: T):
-        """Initialize the SpinParam object.
-        Parameters
-        ----------
-        u: any type
-            The parameters that corresponds to the spin-up electrons.
-        d: any type
-            The parameters that corresponds to the spin-down electrons.
-        """
-        self.u = u
-        self.d = d
+    Attributes
+    ----------
+    u: any type
+        The parameters that corresponds to the spin-up electrons.
+    d: any type
+        The parameters that corresponds to the spin-down electrons.
 
-    def __repr__(self) -> str:
-        """Return the string representation of the SpinParam object."""
-        return f"SpinParam(u={self.u}, d={self.d})"
+    Example
+    -------
+    .. jupyter-execute::
 
-    def sum(self):
-        """Returns the sum of up and down parameters."""
+        import torch
+        import dqc.utils
+        dens_u = torch.ones(1)
+        dens_d = torch.zeros(1)
+        sp = dqc.utils.SpinParam(u=dens_u, d=dens_d)
+        print(sp.u)
+    """
+    u: T
+    d: T
 
-        return self.u + self.d
+    def sum(a) -> T:
+        # get the sum of up and down parameters
+        if isinstance(a, SpinParam):
+            return a.u + a.d  # type: ignore
+        else:
+            return a
 
-    def reduce(self, fcn: Callable) -> T:
-        """Reduce up and down parameters with the given function."""
+    def reduce(a, fcn: Callable[[T, T], T]) -> T:
+        # reduce up and down parameters with the given function
+        if isinstance(a, SpinParam):
+            return fcn(a.u, a.d)
+        else:
+            return a
 
-        return fcn(self.u, self.d)
+    @staticmethod
+    def apply_fcn(fcn, *a):
+        # apply the function for each up and down elements of a
+        assert len(a) > 0
+        if isinstance(a[0], SpinParam):
+            u_vals = [aa.u for aa in a]
+            d_vals = [aa.d for aa in a]
+            return SpinParam(u=fcn(*u_vals), d=fcn(*d_vals))
+        else:
+            return fcn(*a)
 
 
 @dataclass
