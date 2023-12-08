@@ -109,8 +109,8 @@ def test_atomic_convolution_model():
 def test_atomic_convolution_model_variable():
     """A simple test that initializes and fits an AtomConvModel on variable input size."""
     from deepchem.models.torch_models import AtomConvModel
-    frag1_num_atoms = 100 # atoms for ligand
-    frag2_num_atoms = 1200 # atoms for protein
+    frag1_num_atoms = 100  # atoms for ligand
+    frag2_num_atoms = 1200  # atoms for protein
     complex_num_atoms = frag1_num_atoms + frag2_num_atoms
     batch_size = 1
     atomic_convnet = AtomConvModel(n_tasks=1,
