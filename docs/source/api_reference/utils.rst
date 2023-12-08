@@ -303,6 +303,9 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.BaseGrid
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.df.base_df.BaseDF
+  :members:
+
 .. autoclass:: deepchem.utils.dftutils.KSCalc
   :members:
 
