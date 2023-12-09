@@ -36,7 +36,6 @@ class BaseHamilton(EditableModule):
 
     Examples
     --------
-    >>> from deepchem.utils.dft_utils import BaseGrid, BaseXC, BaseDF
     >>> from deepchem.utils.dft_utils import BaseHamilton
     >>> class MyHamilton(BaseHamilton):
     ...    def __init__(self):
@@ -181,7 +180,9 @@ class BaseHamilton(EditableModule):
         Returns
         -------
         LinearOperator
-            LinearOperator representing the overlap of the basis. Shape: (*BH, nao, nao)
+            LinearOperator representing the overlap of the basis.
+            Shape: (*BH, nao, nao)
+
         """
         pass
 
@@ -466,8 +467,8 @@ class BaseHamilton(EditableModule):
         For restricted systems, only one of the ``dm`` (``dm.u`` or ``dm.d``) is
         sufficient.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         dm: torch.Tensor
             The density matrix.
         norb: int
@@ -478,6 +479,7 @@ class BaseHamilton(EditableModule):
         tuple of 2 torch.Tensor
             The atomic orbital parameters for the first returned value and the
             atomic orbital coefficients for the second value.
+
         """
         pass
 
