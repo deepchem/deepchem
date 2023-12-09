@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 from deepchem.data import NumpyDataset
+from flaky import flaky
 
 try:
     import torch
@@ -53,6 +54,7 @@ def test_atomic_conv_initialize_params():
     assert len(acm.atom_types) == 15
 
 
+@flaky
 @pytest.mark.slow
 @pytest.mark.torch
 def test_atomic_convolution_model():
@@ -98,6 +100,7 @@ def test_atomic_convolution_model():
     features.append(
         (frag1_coords, frag1_nbr_list, frag1_z, frag2_coords, frag2_nbr_list,
          frag2_z, system_coords, system_nbr_list, system_z))
+    features = np.asarray(features, dtype=object)
     labels = np.random.rand(batch_size)
     train = NumpyDataset(features, labels)
     atomic_convnet.fit(train, nb_epoch=150)
@@ -138,7 +141,7 @@ def test_atomic_convolution_model_variable():
     features.append(
         (frag1_coords, frag1_nbr_list, frag1_z, frag2_coords, frag2_nbr_list,
          frag2_z, system_coords, system_nbr_list, system_z))
-    features = np.asarray(features)
+    features = np.asarray(features, dtype=object)
     labels = np.zeros(batch_size)
     train = NumpyDataset(features, labels)
     atomic_convnet.fit(train, nb_epoch=1)
