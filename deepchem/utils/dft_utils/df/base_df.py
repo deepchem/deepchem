@@ -8,7 +8,7 @@ from deepchem.utils.differentiation_utils import EditableModule, LinearOperator
 class BaseDF(EditableModule):
     """
     BaseDF represents the density fitting object used in calculating the
-    electron repulsion (and xc energy?) in Hamiltonian.
+    electron repulsion (and xc energy) in Hamiltonian.
 
     Density fitting in density functional theory (DFT) is a technique used to
     reduce the computational cost of evaluating electron repulsion integrals.
