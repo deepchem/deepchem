@@ -7,6 +7,10 @@ learning. "Metalearning" traditionally refers to techniques for
 "learning to learn" but here we take it to mean any technique which
 proves effective for learning with low amounts of data.
 
+
+Tensorflow implementation
+=========================
+
 MetaLearner
 -----------
 This is the abstract superclass for metalearning algorithms.
@@ -19,6 +23,10 @@ MAML
 
 .. autoclass:: deepchem.metalearning.MAML
   :members:
+
+
+Torch implementation
+====================
 
 MetaLearner
 ----------------
