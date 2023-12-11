@@ -101,10 +101,9 @@ def test_atomic_convolution_model():
     features = np.asarray(features, dtype=object)
     labels = np.random.rand(batch_size)
     train = NumpyDataset(features, labels)
-    atomic_convnet.fit(train, nb_epoch=150)
+    atomic_convnet.fit(train, nb_epoch=200)
     preds = atomic_convnet.predict(train)
-    assert preds.shape == (1, 1)
-    assert np.count_nonzero(preds) > 0
+    assert np.allclose(labels, preds, atol=0.01)
 
 
 @pytest.mark.slow
