@@ -28,13 +28,6 @@ MAML
 Torch implementation
 ====================
 
-MetaLearner
-----------------
-This is the abstract superclass for metalearning algorithms.
-
-.. autoclass:: deepchem.metalearning.torch_maml.MetaLearner
-  :members:
-
 MAML
 ---------
 

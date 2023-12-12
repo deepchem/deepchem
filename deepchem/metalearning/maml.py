@@ -63,6 +63,11 @@ class MetaLearner(object):
         """
         raise NotImplementedError("Subclasses must implement this")
 
+    def parameters(self):
+        """This method is specific to PyTorch implementation.
+        Returns an iterator over the MetaLearner parameters."""
+        print("Subclasses must implement this for PyTorch implementation.")
+
 
 class MAML(object):
     """Implements the Model-Agnostic Meta-Learning algorithm for low data learning.

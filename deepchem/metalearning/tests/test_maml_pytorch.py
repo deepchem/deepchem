@@ -4,7 +4,8 @@ import pytest
 from flaky import flaky
 import unittest
 try:
-    from deepchem.metalearning.torch_maml import MetaLearner, MAML
+    from deepchem.metalearning import MetaLearner
+    from deepchem.metalearning.torch_maml import MAML
     import torch
     import torch.nn.functional as F
     has_pytorch = True

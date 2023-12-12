@@ -10,107 +10,11 @@ from typing import Any, Dict, List, Optional, Tuple, Sequence, Union
 from deepchem.utils.typing import OneOrMany
 
 try:
+    from deepchem.metalearning import MetaLearner
     import torch
     has_pytorch = True
 except:
     has_pytorch = False
-
-
-class MetaLearner(object):
-    """Model and data to which the MAML algorithm can be applied.
-
-    To use MAML, create a subclass of this defining the learning problem to solve.
-    It consists of a model that can be trained to perform many different tasks, and
-    data for training it on a large (possibly infinite) set of different tasks.
-
-    Example
-    --------
-    >>> import deepchem as dc
-    >>> import numpy as np
-    >>> import torch
-    >>> class SineLearner(dc.metalearning.MetaLearner):
-    ...     def __init__(self):
-    ...         self.batch_size = 10
-    ...         self.w1 = torch.nn.Parameter(torch.tensor(np.random.normal(size=[1, 40], scale=1.0),requires_grad=True))
-    ...         self.w2 = torch.nn.Parameter(torch.tensor(np.random.normal(size=[40, 40], scale=np.sqrt(1 / 40)),requires_grad=True))
-    ...         self.w3 = torch.nn.Parameter(torch.tensor(np.random.normal(size=[40, 1], scale=np.sqrt(1 / 40)),requires_grad=True))
-    ...         self.b1 = torch.nn.Parameter(torch.tensor(np.zeros(40)),requires_grad=True)
-    ...         self.b2 = torch.nn.Parameter(torch.tensor(np.zeros(40)),requires_grad=True)
-    ...         self.b3 = torch.nn.Parameter(torch.tensor(np.zeros(1)),requires_grad=True)
-    ...     def compute_model(self, inputs, variables, training):
-    ...         x, y = inputs
-    ...         w1, w2, w3, b1, b2, b3 = variables
-    ...         dense1 = F.relu(torch.matmul(x, w1) + b1)
-    ...         dense2 = F.relu(torch.matmul(dense1, w2) + b2)
-    ...         output = torch.matmul(dense2, w3) + b3
-    ...         loss = torch.mean(torch.square(output - y))
-    ...         return loss, [output]
-    ...     @property
-    ...     def variables(self):
-    ...         return [self.w1, self.w2, self.w3, self.b1, self.b2, self.b3]
-    ...     def select_task(self):
-    ...         self.amplitude = 5.0 * np.random.random()
-    ...         self.phase = np.pi * np.random.random()
-    ...     def get_batch(self):
-    ...         x = torch.tensor(np.random.uniform(-5.0, 5.0, (self.batch_size, 1)))
-    ...         return [x, torch.tensor(self.amplitude * np.sin(x + self.phase))]
-    ...     def parameters(self):
-    ...         for key, value in self.__dict__.items():
-    ...             if isinstance(value, torch.nn.Parameter):
-    ...                 yield value
-    """
-
-    def compute_model(
-            self, inputs: OneOrMany[torch.Tensor],
-            variables: OneOrMany[torch.Tensor],
-            training: bool) -> Tuple[torch.Tensor, Sequence[torch.Tensor]]:
-        """Compute the model for a set of inputs and variables.
-
-        Parameters
-        ----------
-        inputs: list of tensors
-            the inputs to the model
-        variables: list of tensors
-            the values to use for the model's variables.  This might be the actual
-            variables (as returned by the MetaLearner's variables property), or
-            alternatively it might be the values of those variables after one or more
-            steps of gradient descent for the current task.
-        training: bool
-            indicates whether the model is being invoked for training or prediction
-
-        Returns
-        -------
-        (loss, outputs) where loss is the value of the model's loss function, and
-        outputs is a list of the model's outputs
-        """
-        raise NotImplementedError("Subclasses must implement this")
-
-    @property
-    def variables(self) -> OneOrMany[torch.Tensor]:
-        """Get the list of variables to train."""
-        raise NotImplementedError("Subclasses must implement this")
-
-    def select_task(self):
-        """Select a new task to train on.
-
-        If there is a fixed set of training tasks, this will typically cycle through them.
-        If there are infinitely many training tasks, this can simply select a new one each
-        time it is called.
-        """
-        raise NotImplementedError("Subclasses must implement this")
-
-    def get_batch(self) -> OneOrMany[torch.Tensor]:
-        """Get a batch of data for training.
-
-        This should return the data as a list of arrays, one for each of the model's
-        inputs.  This will usually be called twice for each task, and should
-        return a different batch on each call.
-        """
-        raise NotImplementedError("Subclasses must implement this")
-
-    def parameters(self):
-        """Get the parameters."""
-        raise NotImplementedError("Subclasses must implement this")
 
 
 class MAML(object):
