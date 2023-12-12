@@ -1101,8 +1101,8 @@ def _fastq_load_files(input_files: List[str],
             # iterate through each line in the input file
             for num, line in enumerate(f):
                 # If the number of lines iterated through is equal or less than the shard size:
-                if (shard_size is not None) and ((num + 1) - line_number <=
-                                                 (shard_size * 4)):
+                if (shard_size is not None) and ((num + 1) - line_number
+                                                 <= (shard_size * 4)):
                     # append to list
                     df.append(line)
                 else:
@@ -1420,7 +1420,7 @@ class ImageLoader(DataLoader):
             label_files = [labels]
         else:
             label_files = []
-        
+
         label_image_files = []
         # Sometimes zip files contain directories within. Traverse directories
         while len(label_files) > 0:
@@ -1453,7 +1453,7 @@ class ImageLoader(DataLoader):
                 else:
                     raise ValueError("Unsupported file format")
             label_files = remainder
-        
+
         # Sort label image files
         if self.sorting:
             label_image_files = sorted(label_image_files)
@@ -1472,19 +1472,21 @@ class ImageLoader(DataLoader):
                                         ids=image_files)
             else:
                 if isinstance(labels, str):
-                    dataset = DiskDataset.from_numpy(load_image_files(image_files),
-                                                     y=load_image_files(label_image_files),
-                                                     w=weights,
-                                                     ids=image_files,
-                                                     tasks=self.tasks,
-                                                     data_dir=data_dir)
+                    dataset = DiskDataset.from_numpy(
+                        load_image_files(image_files),
+                        y=load_image_files(label_image_files),
+                        w=weights,
+                        ids=image_files,
+                        tasks=self.tasks,
+                        data_dir=data_dir)
                 else:
-                    dataset = DiskDataset.from_numpy(load_image_files(image_files),
-                                                    y=labels,
-                                                    w=weights,
-                                                    ids=image_files,
-                                                    tasks=self.tasks,
-                                                    data_dir=data_dir)
+                    dataset = DiskDataset.from_numpy(
+                        load_image_files(image_files),
+                        y=labels,
+                        w=weights,
+                        ids=image_files,
+                        tasks=self.tasks,
+                        data_dir=data_dir)
                 if shard_size is not None:
                     dataset.reshard(shard_size)
                 return dataset
