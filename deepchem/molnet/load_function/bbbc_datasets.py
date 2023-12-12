@@ -151,32 +151,34 @@ def load_bbbc002(
                             data_dir, save_dir, **kwargs)
     return loader.load_dataset('bbbc002', reload)
 
+
 class _BBBC004_Segmentation_Loader(_MolnetLoader):
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "BBBC004_v1_000_images.zip")
-        foreground_file = os.path.join(self.data_dir, "BBBC004_v1_000_foreground.zip")
+        foreground_file = os.path.join(self.data_dir,
+                                       "BBBC004_v1_000_foreground.zip")
         if not os.path.exists(dataset_file):
             dc.utils.data_utils.download_url(url=BBBC4_IMAGE_URL,
                                              dest_dir=self.data_dir)
-        if not os.path.exists(foreground_file):     
+        if not os.path.exists(foreground_file):
             dc.utils.data_utils.download_url(url=BBBC4_FOREGROUND_URL,
                                              dest_dir=self.data_dir)
-        labels = np.full(len(dataset_file), 300, dtype=int)
 
         loader = dc.data.ImageLoader(sorting=False)
         return loader.create_dataset(inputs=(dataset_file, foreground_file),
                                      in_memory=False)
 
+
 class _BBBC004_Loader(_MolnetLoader):
-    
+
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "BBBC004_v1_000_images.zip")
         if not os.path.exists(dataset_file):
             dc.utils.data_utils.download_url(url=BBBC4_IMAGE_URL,
                                              dest_dir=self.data_dir)
         labels = np.full(20, 300, dtype=int)
-        
+
         loader = dc.data.ImageLoader(sorting=False)
         return loader.create_dataset(inputs=(dataset_file, labels),
                                      in_memory=False)
@@ -193,9 +195,9 @@ def load_bbbc004(
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
     """Load BBBC004 dataset
 
-    This dataset contains data corresponding to 20 samples of synthetically generated 
-    fluorescent cell population images. There are 300 cells in each sample, each an image 
-    of size 950x950. Ground truth labels contain cell counts and segmentation masks for 
+    This dataset contains data corresponding to 20 samples of synthetically generated
+    fluorescent cell population images. There are 300 cells in each sample, each an image
+    of size 950x950. Ground truth labels contain cell counts and segmentation masks for
     this dataset. Full details about this dataset are present at
     https://data.broadinstitute.org/bbbc/BBBC004/.
 
@@ -222,11 +224,12 @@ def load_bbbc004(
         a directory to save the dataset in
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
-    if load_segmentation_mask==True:
-        loader = _BBBC004_Segmentation_Loader(featurizer, splitter, transformers, BBBC4_TASKS,
+    if load_segmentation_mask:
+        loader = _BBBC004_Segmentation_Loader(featurizer, splitter,
+                                              transformers, BBBC4_TASKS,
                                               data_dir, save_dir, **kwargs)
     else:
-        loader = _BBBC004_Loader(featurizer, splitter, transformers, BBBC4_TASKS,
-                                 data_dir, save_dir, **kwargs)
-        
+        loader = _BBBC004_Loader(featurizer, splitter, transformers,
+                                 BBBC4_TASKS, data_dir, save_dir, **kwargs)
+
     return loader.load_dataset('bbbc004', reload)
