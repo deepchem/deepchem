@@ -1305,7 +1305,7 @@ class ImageLoader(DataLoader):
     traverse subdirectories which contain images.
     """
 
-    def __init__(self, tasks: Optional[List[str]] = None):
+    def __init__(self, tasks: Optional[List[str]] = None, sorting: bool = True):
         """Initialize image loader.
 
         At present, custom image featurizers aren't supported by this
@@ -1315,10 +1315,13 @@ class ImageLoader(DataLoader):
         ----------
         tasks: List[str], optional (default None)
             List of task names for image labels.
+        sorting: bool, optional (default True)
+            Whether to sort image files by filename.
         """
         if tasks is None:
             tasks = []
         self.tasks = tasks
+        self.sorting = sorting
 
     def create_dataset(self,
                        inputs: Union[OneOrMany[str], Tuple[Any]],
@@ -1410,7 +1413,8 @@ class ImageLoader(DataLoader):
             input_files = remainder
 
         # Sort image files
-        image_files = sorted(image_files)
+        if self.sorting:
+            image_files = sorted(image_files)
 
         if isinstance(labels, str):
             label_files = [labels]
@@ -1451,7 +1455,8 @@ class ImageLoader(DataLoader):
             label_files = remainder
         
         # Sort label image files
-        label_image_files = sorted(label_image_files)
+        if self.sorting:
+            label_image_files = sorted(label_image_files)
 
         if in_memory:
             if data_dir is None:
