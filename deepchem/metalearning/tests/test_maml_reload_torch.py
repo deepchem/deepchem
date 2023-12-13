@@ -5,12 +5,11 @@ import numpy as np
 import pytest
 
 try:
-    from deepchem.metalearning.maml import MetaLearner
     from deepchem.metalearning.torch_maml import MAML
     import torch
     import torch.nn.functional as F
 
-    class SineLearner(MetaLearner):
+    class SineLearner(dc.metalearning.MetaLearner):
 
         def __init__(self):
             self.batch_size = 10

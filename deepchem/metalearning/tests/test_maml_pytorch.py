@@ -4,7 +4,6 @@ import pytest
 from flaky import flaky
 import unittest
 try:
-    from deepchem.metalearning.maml import MetaLearner
     from deepchem.metalearning.torch_maml import MAML
     import torch
     import torch.nn.functional as F
@@ -19,7 +18,7 @@ class TestMAML(unittest.TestCase):
     @pytest.mark.torch
     def test_maml_pytorch(self):
 
-        class SineLearner(MetaLearner):
+        class SineLearner(dc.metalearning.MetaLearner):
 
             def __init__(self):
                 self.batch_size = 10
