@@ -15,15 +15,15 @@ except ModuleNotFoundError:
 
 try:
     from torch_geometric.utils import scatter
+    from torch_geometric.nn import MessagePassing
+    from torch_geometric.utils import add_self_loops
+    from torch_geometric.nn.models.dimenet_utils import bessel_basis, real_sph_harm
 except ModuleNotFoundError:
     pass
 
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
 from deepchem.utils.pytorch_utils import get_activation, segment_sum
 from torch.nn import init as initializers
-from torch_geometric.nn import MessagePassing
-from torch_geometric.utils import add_self_loops
-from torch_geometric.nn.models.dimenet_utils import bessel_basis, real_sph_harm
 
 
 class MultilayerPerceptron(nn.Module):
