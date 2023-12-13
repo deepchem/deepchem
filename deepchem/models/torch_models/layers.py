@@ -2779,7 +2779,7 @@ class AtomicConv(nn.Module):
         self.init = init
         self.n_tasks = n_tasks
 
-        rp = [x for x in itertools.product(*radial)]
+        self.rp = [x for x in itertools.product(*radial)]
 
         frag1_X = np.random.rand(self.batch_size, self.frag1_num_atoms,
                                  3).astype(np.float32)
@@ -2816,17 +2816,17 @@ class AtomicConv(nn.Module):
 
         flattener = nn.Flatten()
         self._frag1_conv = AtomicConvolution(
-            atom_types=self.atom_types, radial_params=rp,
+            atom_types=self.atom_types, radial_params=self.rp,
             box_size=None)([frag1_X, frag1_nbrs, frag1_nbrs_z])
         flattened1 = nn.Flatten()(self._frag1_conv)
 
         self._frag2_conv = AtomicConvolution(
-            atom_types=self.atom_types, radial_params=rp,
+            atom_types=self.atom_types, radial_params=self.rp,
             box_size=None)([frag2_X, frag2_nbrs, frag2_nbrs_z])
         flattened2 = flattener(self._frag2_conv)
 
         self._complex_conv = AtomicConvolution(
-            atom_types=self.atom_types, radial_params=rp,
+            atom_types=self.atom_types, radial_params=self.rp,
             box_size=None)([complex_X, complex_nbrs, complex_nbrs_z])
         flattened3 = flattener(self._complex_conv)
 
@@ -2874,7 +2874,7 @@ class AtomicConv(nn.Module):
         """
         Parameters
         ----------
-        x: torch.Tensor
+        inputs: torch.Tensor
             Input Tensor
         Returns
         -------
@@ -2882,13 +2882,31 @@ class AtomicConv(nn.Module):
             Output for each label.
         """
 
-        x = self.prev_layer[0]
-        x = torch.reshape(x, (-1,))
+        flattener = nn.Flatten()
+        frag1_conv = AtomicConvolution(atom_types=self.atom_types,
+                                       radial_params=self.rp,
+                                       box_size=None)(
+                                           [inputs[0], inputs[1], inputs[2]])
+        flattened1 = nn.Flatten()(frag1_conv)
+
+        frag2_conv = AtomicConvolution(atom_types=self.atom_types,
+                                       radial_params=self.rp,
+                                       box_size=None)(
+                                           [inputs[4], inputs[5], inputs[6]])
+        flattened2 = flattener(frag2_conv)
+
+        complex_conv = AtomicConvolution(atom_types=self.atom_types,
+                                         radial_params=self.rp,
+                                         box_size=None)(
+                                             [inputs[8], inputs[9], inputs[10]])
+        flattened3 = flattener(complex_conv)
+
+        inputs_x = torch.cat((flattened1, flattened2, flattened3), dim=1)
 
         for layer, activation_fn, dropout in zip(self.layers,
                                                  self.activation_fns,
                                                  self.dropouts):
-            x = layer(x)
+            x = layer(inputs_x)
 
             if dropout > 0:
                 x = F.dropout(x, dropout)

@@ -303,6 +303,12 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.BaseGrid
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.df.base_df.BaseDF
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.base_hamilton.BaseHamilton
+  :members:
+
 .. autoclass:: deepchem.utils.dftutils.KSCalc
   :members:
 
@@ -342,6 +348,12 @@ The utilites here are used to create an object that contains information about a
 .. autofunction:: deepchem.utils.differentiation_utils.match_dim
 
 .. autoclass:: deepchem.utils.differentiation_utils.linop.LinearOperator
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.linop.AddLinearOperator
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.linop.MulLinearOperator
   :members:
 
 .. autofunction:: deepchem.utils.differentiation_utils.set_default_option

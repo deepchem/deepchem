@@ -376,6 +376,28 @@ def test_add_linear_operator():
     assert torch.allclose(op2.mm(x), 2 * op.mm(x))
 
 
+@pytest.mark.torch
+def test_mul_linear_operator():
+    from deepchem.utils.differentiation_utils import LinearOperator
+
+    class MyLinOp(LinearOperator):
+
+        def __init__(self, shape):
+            super(MyLinOp, self).__init__(shape)
+            self.param = torch.rand(shape)
+
+        def _getparamnames(self, prefix=""):
+            return [prefix + "param"]
+
+        def _mv(self, x):
+            return torch.matmul(self.param, x)
+
+    linop = MyLinOp((1, 3, 1, 2))
+    linop2 = linop * 2
+    x = torch.rand(1, 3, 2, 2)
+    torch.allclose(linop.mv(x) * 2, linop2.mv(x))
+
+
 def test_set_default_options():
     from deepchem.utils.differentiation_utils import set_default_option
     assert set_default_option({'a': 1, 'b': 2}, {'a': 3}) == {'a': 3, 'b': 2}
