@@ -1427,10 +1427,11 @@ class ImageLoader(DataLoader):
                     dataset.reshard(shard_size)
                 return dataset
         else:
-            return ImageDataset(image_files,
-                                y=labels,
-                                w=weights,
-                                ids=image_files)
+            return ImageDataset(
+                image_files,
+                y=labels,  # type: ignore
+                w=weights,
+                ids=image_files)
 
 
 class InMemoryLoader(DataLoader):
