@@ -11,6 +11,7 @@ from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator
 
 import pandas as pd
 import numpy as np
+import pysam
 from deepchem.utils.typing import OneOrMany
 from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files, unzip_file
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
@@ -1101,8 +1102,8 @@ def _fastq_load_files(input_files: List[str],
             # iterate through each line in the input file
             for num, line in enumerate(f):
                 # If the number of lines iterated through is equal or less than the shard size:
-                if (shard_size is not None) and ((num + 1) - line_number <=
-                                                 (shard_size * 4)):
+                if (shard_size is not None) and ((num + 1) - line_number
+                                                 <= (shard_size * 4)):
                     # append to list
                     df.append(line)
                 else:
@@ -1753,3 +1754,67 @@ class DFTYamlLoader(DataLoader):
         else:
             x = DFTEntry.create(e_type, true_val, systems)
         return [x]
+
+
+class SAMLoader(DataLoader):
+    """Handles loading of SAM files.
+    Sequence Alignment Map (SAM) is a text-based format used to store 
+    biological sequences aligned to a reference sequence. This
+    class provides convenience files to lead SAM data and
+    extract their features for use in downstream
+    learning tasks.
+    """
+
+    def __init__(self, featurizer: Optional[Featurizer] = None):
+        """Initialize SAMLoader.
+        Parameters
+        ----------
+        featurizer: Featurizer (default: None)
+            The Featurizer to be used for the loaded SAM data.
+       """
+
+        # Set attributes
+        self.user_specified_features = None
+
+        # Handle special featurizer cases
+        if isinstance(featurizer,
+                      UserDefinedFeaturizer):  # User defined featurizer
+            self.user_specified_features = featurizer.feature_fields
+        elif featurizer is None:  # Default featurizer
+            featurizer = SAMFeaturizer(max_length=None)
+
+        # Set self.featurizer
+        self.featurizer = featurizer
+
+    def create_dataset(self,
+                       input_files: OneOrMany[str],
+                       data_dir: Optional[str] = None,
+                       shard_size: Optional[int] = None) -> DiskDataset:
+        """Creates a `Dataset` from input SAM files.
+        Parameters
+        ----------
+        input_files: List[str]
+            List of SAM files.
+        data_dir: str, optional (default None)
+            Name of directory where featurized data is stored.
+        shard_size: int, optional (default None)
+            For now, this argument is ignored and each SAM file gets its
+            own shard.
+        Returns
+        -------
+        DiskDataset
+            A `DiskDataset` object containing a featurized representation of data
+            from `input_files`.
+        """
+        if isinstance(input_files, str):
+            input_files = [input_files]
+
+        def shard_generator():  # TODO Enable sharding with shard size parameter
+            for input_file in input_files:
+                samfile = pysam.AlignmentFile(input_file, "r")
+                X = self.featurizer().get_features(samfile)
+                ids = np.ones(len(X))
+                # (X, y, w, ids)
+                yield X, None, None, ids
+
+        return DiskDataset.create_dataset(shard_generator(), data_dir)
