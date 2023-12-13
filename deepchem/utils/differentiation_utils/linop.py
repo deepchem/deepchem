@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Sequence, Optional, List
+from typing import Sequence, Optional, List, Union
 import warnings
 import torch
 from abc import abstractmethod
@@ -862,3 +862,34 @@ class AddLinearOperator(LinearOperator):
         """
         return self.a._getparamnames(prefix=prefix + "a.") + \
             self.b._getparamnames(prefix=prefix + "b.")
+
+
+class MulLinearOperator(LinearOperator):
+    def __init__(self, a: LinearOperator, f: Union[int, float]):
+        shape = a.shape
+        is_hermitian = a.is_hermitian
+        super(MulLinearOperator, self).__init__(
+            shape=shape,
+            is_hermitian=is_hermitian,
+            dtype=a.dtype,
+            device=a.device,
+            _suppress_hermit_warning=True,
+        )
+        self.a = a
+        self.f = f
+
+    def __repr__(self):
+        return "MulLinearOperator with shape %s of: \n * %s\n * %s" % \
+            (shape2str(self.shape),
+             indent(self.a.__repr__(), 3),
+             indent(self.f.__repr__(), 3))
+
+    def _mv(self, x: torch.Tensor) -> torch.Tensor:
+        return self.a._mv(x) * self.f
+
+    def _rmv(self, x: torch.Tensor) -> torch.Tensor:
+        return self.a._rmv(x) * self.f
+
+    def _getparamnames(self, prefix: str = "") -> List[str]:
+        pnames = self.a._getparamnames(prefix=prefix + "a.")
+        return pnames
