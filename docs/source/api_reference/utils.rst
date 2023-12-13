@@ -350,6 +350,12 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.differentiation_utils.linop.LinearOperator
   :members:
 
+.. autoclass:: deepchem.utils.differentiation_utils.linop.AddLinearOperator
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.linop.MulLinearOperator
+  :members:
+
 .. autofunction:: deepchem.utils.differentiation_utils.set_default_option
 
 .. autofunction:: deepchem.utils.differentiation_utils.get_and_pop_keys
