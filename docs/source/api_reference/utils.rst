@@ -444,4 +444,16 @@ Initial usecases are for improving the printing format of __repr__.
 
 .. autofunction:: deepchem.utils.misc_utils.indent
 
-.. autofunction:: deepchem.utils.equivariance_utils.shape2str
+.. autofunction:: deepchem.utils.misc_utils.shape2str
+
+SafeOperations Utilities
+------------------------
+
+The utilities here are used for safe operations on tensors.
+These are used to avoid NaNs and Infs in the output.
+
+.. autofunction:: deepchem.utils.safe_ops.safepow
+.. autofunction:: deepchem.utils.safe_ops.safenorm
+.. autofunction:: deepchem.utils.safe_ops.occnumber
+.. autofunction:: deepchem.utils.safe_ops.get_floor_and_ceil
+.. autofunction:: deepchem.utils.safe_ops.safe_cdist
