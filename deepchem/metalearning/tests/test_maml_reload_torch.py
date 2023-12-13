@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 try:
-    from deepchem.metalearning import MetaLearner
+    from deepchem.metalearning.maml import MetaLearner
     from deepchem.metalearning.torch_maml import MAML
     import torch
     import torch.nn.functional as F
