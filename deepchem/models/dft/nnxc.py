@@ -1,11 +1,9 @@
 from abc import abstractmethod
 from typing import Union, List
 import torch
-from dqc.utils.datastruct import ValGrad
-from deepchem.utils.dftutils import SpinParam
-from dqc.api.getxc import get_xc
-from dqc.xc.base_xc import BaseXC
 from dqc.utils.safeops import safenorm, safepow
+from deepchem.utils.dft_utils import SpinParam, ValGrad, BaseXC
+from deepchem.utils.dft_utils.api.get_xc import get_xc
 
 
 class BaseNNXC(BaseXC, torch.nn.Module):

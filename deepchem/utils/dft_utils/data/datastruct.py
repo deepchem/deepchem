@@ -52,7 +52,6 @@ def is_z_float(a: ZType) -> bool:
 
 
 @dataclass
-@dataclass
 class SpinParam(Generic[T]):
     """
     Data structure to store different values for spin-up and spin-down electrons.
