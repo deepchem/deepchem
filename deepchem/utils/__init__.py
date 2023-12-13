@@ -123,12 +123,6 @@ from deepchem.utils.voxel_utils import voxelize
 from deepchem.utils.sequence_utils import hhblits
 from deepchem.utils.sequence_utils import hhsearch
 
-from deepchem.utils.safeops_utils import safepow
-from deepchem.utils.safeops_utils import safenorm
-from deepchem.utils.safeops_utils import occnumber
-from deepchem.utils.safeops_utils import get_floor_and_ceil
-from deepchem.utils.safeops_utils import safe_cdist
-
 try:
     from deepchem.utils.periodic_table_utils import get_atomz
     from deepchem.utils.periodic_table_utils import get_atom_mass
@@ -138,6 +132,12 @@ try:
     from deepchem.utils.pytorch_utils import segment_sum
     from deepchem.utils.pytorch_utils import chunkify
     from deepchem.utils.pytorch_utils import get_memory
+
+    from deepchem.utils.safeops_utils import safepow
+    from deepchem.utils.safeops_utils import safenorm
+    from deepchem.utils.safeops_utils import occnumber
+    from deepchem.utils.safeops_utils import get_floor_and_ceil
+    from deepchem.utils.safeops_utils import safe_cdist
 except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
