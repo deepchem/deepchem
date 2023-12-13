@@ -613,6 +613,16 @@ class LinearOperator(EditableModule):
     def __rsub__(self, b: LinearOperator):
         return b.__sub__(self)
 
+    def __mul__(self, f: Union[int, float]):
+        if not (isinstance(f, int) or isinstance(f, float)):
+            raise TypeError(
+                "LinearOperator multiplication only supports integer or floating point"
+            )
+        return MulLinearOperator(self, f)
+
+    def __rmul__(self, f: Union[int, float]):
+        return self.__mul__(f)
+
     # properties
     @property
     def dtype(self) -> torch.dtype:
@@ -865,7 +875,51 @@ class AddLinearOperator(LinearOperator):
 
 
 class MulLinearOperator(LinearOperator):
+    """Multiply a linear operator with a scalar.
+
+    Examples
+    --------
+    >>> import torch
+    >>> seed = torch.manual_seed(100)
+    >>> class MyLinOp(LinearOperator):
+    ...     def __init__(self, shape):
+    ...         super(MyLinOp, self).__init__(shape)
+    ...         self.param = torch.rand(shape)
+    ...     def _getparamnames(self, prefix=""):
+    ...         return [prefix + "param"]
+    ...     def _mv(self, x):
+    ...         return torch.matmul(self.param, x)
+    >>> linop = MyLinOp((1,3,1,2))
+    >>> print(linop)
+    LinearOperator (MyLinOp) with shape (1, 3, 1, 2), dtype = torch.float32, device = cpu
+    >>> x = torch.rand(1,3,2,2)
+    >>> linop.mv(x)
+    tensor([[[[0.1991, 0.1011]],
+    <BLANKLINE>
+             [[0.3764, 0.5742]],
+    <BLANKLINE>
+             [[1.0345, 1.1802]]]])
+    >>> linop2 = linop * 2
+    >>> linop2.mv(x)
+    tensor([[[[0.3981, 0.2022]],
+    <BLANKLINE>
+             [[0.7527, 1.1485]],
+    <BLANKLINE>
+             [[2.0691, 2.3603]]]])
+
+    """
+
     def __init__(self, a: LinearOperator, f: Union[int, float]):
+        """Initialize the MulLinearOperator.
+
+        Parameters
+        ----------
+        a: LinearOperator
+            Linear operator to be multiplied.
+        f: Union[int, float]
+            Integer or floating point number to be multiplied.
+
+        """
         shape = a.shape
         is_hermitian = a.is_hermitian
         super(MulLinearOperator, self).__init__(
@@ -879,17 +933,69 @@ class MulLinearOperator(LinearOperator):
         self.f = f
 
     def __repr__(self):
+        """Representation of the ``MulLinearOperator``.
+
+        Returns
+        -------
+        str
+            The representation of the ``MulLinearOperator``.
+
+        """
         return "MulLinearOperator with shape %s of: \n * %s\n * %s" % \
             (shape2str(self.shape),
              indent(self.a.__repr__(), 3),
              indent(self.f.__repr__(), 3))
 
     def _mv(self, x: torch.Tensor) -> torch.Tensor:
+        """Matrix-vector multiplication.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The vector with shape ``(...,q)`` where the linear operation is
+            operated on.
+
+        Returns
+        -------
+        torch.Tensor
+            The result of the linear operation with shape ``(...,p)``
+
+        """
         return self.a._mv(x) * self.f
 
     def _rmv(self, x: torch.Tensor) -> torch.Tensor:
+        """Transposed matrix-vector multiplication.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The vector of shape ``(...,p)`` where the adjoint linear operation
+            is operated at.
+
+        Returns
+        -------
+        torch.Tensor
+            The result of the adjoint linear operation with shape ``(...,q)``
+
+        """
         return self.a._rmv(x) * self.f
 
     def _getparamnames(self, prefix: str = "") -> List[str]:
+        """Get the parameter names that affects most of the methods.
+        (i.e. mm, mv, rmm, rmv).
+
+        Parameters
+        ----------
+        prefix: str
+            The prefix to be appended in front of the parameters name.
+            This usually contains the dots.
+
+        Returns
+        -------
+        List[str]
+            List of parameter names (including the prefix) that affecting
+            the ``LinearOperator``.
+
+        """
         pnames = self.a._getparamnames(prefix=prefix + "a.")
         return pnames
