@@ -14,7 +14,7 @@ class BaseHamilton(EditableModule):
     Hamilton is a class that provides the LinearOperator of the Hamiltonian
     components.
 
-    Hamiltonian represents the total energy operator for a system of
+    The Hamiltonian represents the total energy operator for a system of
     interacting electrons. The Kohn-Sham DFT approach introduces a set of
     fictitious non-interacting electrons that move in an effective potential.
     The total energy functional, which includes the kinetic energy of these
@@ -28,7 +28,7 @@ class BaseHamilton(EditableModule):
     (usually from nuclei), and the exchange-correlation potential that accounts
     for the electron-electron interactions.
 
-    Fock matrix represents the one-electron part of the Hamiltonian matrix. Its
+    The Fock matrix represents the one-electron part of the Hamiltonian matrix. Its
     components include kinetic energy, nuclear attraction, and electron-electron
     repulsion integrals. The Fock matrix is pivotal in solving the electronic
     Schrödinger equation and determining the electronic structure of molecular
@@ -60,8 +60,6 @@ class BaseHamilton(EditableModule):
     >>> hamilton.get_nuclattr()
     tensor([[[[1., 1.],
               [1., 1.]]]])
-
-    TODO: Need better example. With realistic functions.
 
     """
 
