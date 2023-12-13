@@ -18,6 +18,7 @@ from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 from deepchem.utils.genomics_utils import encode_bio_sequence
+from deepchem.feat import SAMFeaturizer
 
 try:
     from deepchem.feat.dft_data import DFTEntry
