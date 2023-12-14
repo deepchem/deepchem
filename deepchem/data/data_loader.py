@@ -1381,7 +1381,7 @@ class ImageLoader(DataLoader):
             image files (only .zip for now). If `labels` or `weights` are provided,
             they must correspond to the sorted order of all filenames provided, with
             one label/weight per file. Labels can be filenames too, in which case the
-            label is loaded as an image.
+            labels are loaded as images.
 
         data_dir: str, optional (default None)
             Directory to store featurized dataset.
