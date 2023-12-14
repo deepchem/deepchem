@@ -1101,8 +1101,8 @@ def _fastq_load_files(input_files: List[str],
             # iterate through each line in the input file
             for num, line in enumerate(f):
                 # If the number of lines iterated through is equal or less than the shard size:
-                if (shard_size is not None) and ((num + 1) - line_number
-                                                 <= (shard_size * 4)):
+                if (shard_size is not None) and ((num + 1) - line_number <=
+                                                 (shard_size * 4)):
                     # append to list
                     df.append(line)
                 else:
@@ -1297,12 +1297,46 @@ class FASTQLoader(DataLoader):
 
 
 class ImageLoader(DataLoader):
-    """Handles loading of image files.
+    """Creates `Dataset` objects from input image files.
 
     This class allows for loading of images in various formats.
     For user convenience, also accepts zip-files and directories
     of images and uses some limited intelligence to attempt to
     traverse subdirectories which contain images.
+
+    Currently, only .png and .tif files are supported. If the
+    inputs or labels are given as a list of files, the list must contain
+    only image files.
+
+    Examples
+    --------
+    Let's suppose we have some input image files in a zip folder.
+
+    >>> import os
+    >>> import deepchem as dc
+    >>> data_dir = dc.utils.get_data_dir()
+    >>> dataset_files = os.path.join(data_dir, "images.zip")
+    >>> labels = [1,2,3,4,5,6,7,8,9,10]
+
+    The label files can also be images similar to the inputs, in which case we
+    can provide a list of label files instead of a list of labels.
+
+    >>> label_files = os.path.join(data_dir, "labels.zip")
+
+    Continuing with the label files example, let's now write this to disk somewhere.
+    We can now use `ImageLoader` to process this Image dataset. We do not use a
+    featurizer here, hence the `UserDefinedFeaturizer` with an empty list.
+
+    >>> featurizer = dc.feat.UserDefinedFeaturizer([])
+    >>> loader = dc.data.ImageLoader(tasks=['demo-task'], sorting=False)
+    >>> dataset = loader.create_dataset(inputs=(dataset_files, label_files),
+    ...                                 in_memory=False)
+    >>> len(dataset)
+    10
+    >>> dataset.X.shape
+    (10, 256, 256)
+    >>> dataset.y.shape
+    (10, 256, 256)
     """
 
     def __init__(self, tasks: Optional[List[str]] = None, sorting: bool = True):
@@ -1338,15 +1372,15 @@ class ImageLoader(DataLoader):
               - filename
               - list of filenames
               - Tuple (list of filenames, labels)
+              - Tuple (list of filenames, list of label filenames)
               - Tuple (list of filenames, labels, weights)
 
             Each file in a given list of filenames should either be of a supported
             image format (.png, .tif only for now) or of a compressed folder of
             image files (only .zip for now). If `labels` or `weights` are provided,
             they must correspond to the sorted order of all filenames provided, with
-            one label/weight per file.
-
-            Labels can be filenames too, in which case the label is loaded as an image.
+            one label/weight per file. Labels can be filenames too, in which case the 
+            label is loaded as an image.
 
         data_dir: str, optional (default None)
             Directory to store featurized dataset.
