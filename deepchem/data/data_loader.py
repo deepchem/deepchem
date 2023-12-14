@@ -1388,14 +1388,14 @@ class ImageLoader(DataLoader):
         shard_size: int, optional (default 8192)
             Shard size when loading data.
         in_memory: bool, optioanl (default False)
-            If true, return in-memory NumpyDataset. Else return ImageDataset.
+            If true, return in-memory `NumpyDataset`. Else return `ImageDataset`.
 
         Returns
         -------
-        ImageDataset or NumpyDataset or DiskDataset
-            - if `in_memory == False`, the return value is ImageDataset.
-            - if `in_memory == True` and `data_dir is None`, the return value is NumpyDataset.
-            - if `in_memory == True` and `data_dir is not None`, the return value is DiskDataset.
+        `ImageDataset` or `NumpyDataset` or `DiskDataset`
+            - if `in_memory == False`, the return value is `ImageDataset`.
+            - if `in_memory == True` and `data_dir is None`, the return value is `NumpyDataset`.
+            - if `in_memory == True` and `data_dir is not None`, the return value is `DiskDataset`.
         """
         labels, weights = None, None
         if isinstance(inputs, tuple):
