@@ -224,7 +224,7 @@ class GridHyperparamOpt(HyperparamOpt):
                 with open(log_file, 'w+') as f:
                     f.write(
                         "No model trained correctly. Arbitary models returned")
-            best_model, best_hyperparams = model, hyperparameter_tuple
+            best_model, best_hyperparams = model, hyperparameter_tuple  # type: ignore
             return best_model, best_hyperparams, all_scores
         multitask_scores = best_model.evaluate(train_dataset, [metric],
                                                output_transformers)

@@ -297,7 +297,16 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.AddBaseXC
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.xc.base_xc.MulBaseXC
+  :members:
+
 .. autoclass:: deepchem.utils.dft_utils.BaseGrid
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.df.base_df.BaseDF
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.base_hamilton.BaseHamilton
   :members:
 
 .. autoclass:: deepchem.utils.dftutils.KSCalc
@@ -339,6 +348,12 @@ The utilites here are used to create an object that contains information about a
 .. autofunction:: deepchem.utils.differentiation_utils.match_dim
 
 .. autoclass:: deepchem.utils.differentiation_utils.linop.LinearOperator
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.linop.AddLinearOperator
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.linop.MulLinearOperator
   :members:
 
 .. autofunction:: deepchem.utils.differentiation_utils.set_default_option
@@ -420,3 +435,25 @@ for additional information regarding equivariance and Deepchem's support for equ
 .. autofunction:: deepchem.utils.equivariance_utils.change_basis_real_to_complex
 
 .. autofunction:: deepchem.utils.equivariance_utils.wigner_D
+
+Miscellaneous Utilities
+-----------------------
+
+The utilities here are used for miscellaneous purposes.
+Initial usecases are for improving the printing format of __repr__.
+
+.. autofunction:: deepchem.utils.misc_utils.indent
+
+.. autofunction:: deepchem.utils.misc_utils.shape2str
+
+SafeOperations Utilities
+------------------------
+
+The utilities here are used for safe operations on tensors.
+These are used to avoid NaNs and Infs in the output.
+
+.. autofunction:: deepchem.utils.safe_ops.safepow
+.. autofunction:: deepchem.utils.safe_ops.safenorm
+.. autofunction:: deepchem.utils.safe_ops.occnumber
+.. autofunction:: deepchem.utils.safe_ops.get_floor_and_ceil
+.. autofunction:: deepchem.utils.safe_ops.safe_cdist

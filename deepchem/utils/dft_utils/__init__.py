@@ -23,10 +23,15 @@ try:
 
     from deepchem.utils.dft_utils.api.parser import parse_moldesc
 
+    from deepchem.utils.dft_utils.grid.base_grid import BaseGrid
+
     from deepchem.utils.dft_utils.xc.base_xc import BaseXC
     from deepchem.utils.dft_utils.xc.base_xc import AddBaseXC
+    from deepchem.utils.dft_utils.xc.base_xc import MulBaseXC
 
-    from deepchem.utils.dft_utils.grid.base_grid import BaseGrid
+    from deepchem.utils.dft_utils.df.base_df import BaseDF
+
+    from deepchem.utils.dft_utils.hamilton.base_hamilton import BaseHamilton
 except ModuleNotFoundError as e:
     logger_.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
