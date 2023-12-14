@@ -1374,12 +1374,13 @@ class ImageLoader(DataLoader):
               - Tuple (list of filenames, labels)
               - Tuple (list of filenames, list of label filenames)
               - Tuple (list of filenames, labels, weights)
+              - Tuple (list of filenames, list of label filenames, weights)
 
             Each file in a given list of filenames should either be of a supported
             image format (.png, .tif only for now) or of a compressed folder of
             image files (only .zip for now). If `labels` or `weights` are provided,
             they must correspond to the sorted order of all filenames provided, with
-            one label/weight per file. Labels can be filenames too, in which case the 
+            one label/weight per file. Labels can be filenames too, in which case the
             label is loaded as an image.
 
         data_dir: str, optional (default None)
