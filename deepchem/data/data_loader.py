@@ -1324,7 +1324,8 @@ class ImageLoader(DataLoader):
                        inputs: Union[OneOrMany[str], Tuple[Any]],
                        data_dir: Optional[str] = None,
                        shard_size: Optional[int] = 8192,
-                       in_memory: bool = False) -> Dataset:
+                       in_memory: bool = False,
+                       overwrite: bool = True) -> Dataset:
         """Creates and returns a `Dataset` object by featurizing provided image files and labels/weights.
 
         Parameters
@@ -1348,6 +1349,8 @@ class ImageLoader(DataLoader):
             Shard size when loading data.
         in_memory: bool, optioanl (default False)
             If true, return in-memory NumpyDataset. Else return ImageDataset.
+        overwrite: bool, optional (default True)
+            If false, return OSError, if directory is not empty.
 
         Returns
         -------
@@ -1424,7 +1427,7 @@ class ImageLoader(DataLoader):
                                                  tasks=self.tasks,
                                                  data_dir=data_dir)
                 if shard_size is not None:
-                    dataset.reshard(shard_size)
+                    dataset.reshard(shard_size, overwrite)
                 return dataset
         else:
             return ImageDataset(

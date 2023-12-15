@@ -1244,7 +1244,8 @@ class DiskDataset(Dataset):
     @staticmethod
     def create_dataset(shard_generator: Iterable[Batch],
                        data_dir: Optional[str] = None,
-                       tasks: Optional[ArrayLike] = None) -> "DiskDataset":
+                       tasks: Optional[ArrayLike] = None,
+                       overwrite: bool = True) -> "DiskDataset":
         """Creates a new DiskDataset
 
         Parameters
@@ -1256,6 +1257,8 @@ class DiskDataset(Dataset):
             Filename for data directory. Creates a temp directory if none specified.
         tasks: Sequence, optional (default [])
             List of tasks for this dataset.
+        overwrite: bool, default True
+            When save_to_disk, If data_dir is not empty, then raise an exception if argument=false
 
         Returns
         -------
@@ -1280,7 +1283,7 @@ class DiskDataset(Dataset):
                 DiskDataset.write_data_to_disk(data_dir, basename, X, y, w,
                                                ids))
         metadata_df = DiskDataset._construct_metadata(metadata_rows)
-        DiskDataset._save_metadata(metadata_df, data_dir, tasks)
+        DiskDataset._save_metadata(metadata_df, data_dir, tasks, overwrite)
         time2 = time.time()
         logger.info("TIMING: dataset construction took %0.3f s" %
                     (time2 - time1))
@@ -1311,8 +1314,10 @@ class DiskDataset(Dataset):
         raise ValueError(f"No Metadata found in the path {self.data_dir}")
 
     @staticmethod
-    def _save_metadata(metadata_df: pd.DataFrame, data_dir: str,
-                       tasks: Optional[ArrayLike]) -> None:
+    def _save_metadata(metadata_df: pd.DataFrame,
+                       data_dir: str,
+                       tasks: Optional[ArrayLike],
+                       overwrite: bool = True) -> None:
         """Saves the metadata for a DiskDataset
 
         Parameters
@@ -1324,7 +1329,14 @@ class DiskDataset(Dataset):
         tasks: Sequence, optional
             Tasks of DiskDataset. If `None`, an empty list of tasks is written to
             disk.
+        overwrite: bool, default True
+            If data_dir is not empty, then raise an exception if argument=false
         """
+
+        # Check directory is empty or not
+        if any(os.scandir(data_dir)) and not overwrite:
+            raise OSError(66, "Directory not empty", data_dir)
+
         if tasks is None:
             tasks = []
         elif isinstance(tasks, np.ndarray):
@@ -1426,9 +1438,16 @@ class DiskDataset(Dataset):
             out_y_shape, out_w_shape
         ]
 
-    def save_to_disk(self) -> None:
-        """Save dataset to disk."""
-        DiskDataset._save_metadata(self.metadata_df, self.data_dir, self.tasks)
+    def save_to_disk(self, overwrite: bool = True) -> None:
+        """Save dataset to disk.
+        Parameters
+        ----------
+        overwrite: bool, default True
+            If data_dir is not empty, then raise an exception if argument=false
+
+        """
+        DiskDataset._save_metadata(self.metadata_df, self.data_dir, self.tasks,
+                                   overwrite)
         self._cached_shards = None
 
     def move(self,
@@ -1488,13 +1507,15 @@ class DiskDataset(Dataset):
         """Gets learning tasks associated with this dataset."""
         return self.tasks
 
-    def reshard(self, shard_size: int) -> None:
+    def reshard(self, shard_size: int, overwrite: bool = True) -> None:
         """Reshards data to have specified shard size.
 
         Parameters
         ----------
         shard_size: int
             The size of shard.
+        overwrite: bool, default True
+            While saving to disk, if data_dir is not empty, then raise an exception if argument=false
 
         Examples
         --------
@@ -1558,14 +1579,15 @@ class DiskDataset(Dataset):
 
         resharded_dataset = DiskDataset.create_dataset(generator(),
                                                        data_dir=reshard_dir,
-                                                       tasks=self.tasks)
+                                                       tasks=self.tasks,
+                                                       overwrite=overwrite)
         shutil.rmtree(self.data_dir)
         shutil.move(reshard_dir, self.data_dir)
         # Should have updated to non-legacy metadata
         self.legacy_metadata = False
         self.metadata_df = resharded_dataset.metadata_df
         # Note that this resets the cache internally
-        self.save_to_disk()
+        self.save_to_disk(overwrite)
 
     def get_data_shape(self) -> Shape:
         """Gets array shape of datapoints in this dataset."""
@@ -2194,12 +2216,18 @@ class DiskDataset(Dataset):
         # Reset cache
         self._cached_shards = None
 
-    def shuffle_shards(self) -> None:
-        """Shuffles the order of the shards for this dataset."""
+    def shuffle_shards(self, overwrite: bool = True) -> None:
+        """Shuffles the order of the shards for this dataset.
+        Parameters
+        ----------
+
+        overwrite: bool, default True
+            While saving to disk, if data_dir is not empty, then raise an exception if argument=false
+        """
         metadata_rows = self.metadata_df.values.tolist()
         random.shuffle(metadata_rows)
         self.metadata_df = DiskDataset._construct_metadata(metadata_rows)
-        self.save_to_disk()
+        self.save_to_disk(overwrite)
 
     def get_shard(self, i: int) -> Batch:
         """Retrieves data for the i-th shard from disk.
@@ -2334,7 +2362,8 @@ class DiskDataset(Dataset):
                   X: np.ndarray,
                   y: Optional[np.ndarray] = None,
                   w: Optional[np.ndarray] = None,
-                  ids: Optional[np.ndarray] = None) -> None:
+                  ids: Optional[np.ndarray] = None,
+                  overwrite: bool = True) -> None:
         """Adds a data shard.
 
         Parameters
@@ -2347,6 +2376,9 @@ class DiskDataset(Dataset):
             Weights array.
         ids: np.ndarray, optioanl (default None)
             Identifiers array.
+        overwrite: bool, optional (default True)
+            While saving to disk, if data_dir is not empty, then raise an exception if argument=false
+
         """
         metadata_rows = self.metadata_df.values.tolist()
         shard_num = len(metadata_rows)
@@ -2355,7 +2387,7 @@ class DiskDataset(Dataset):
             DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w,
                                            ids))
         self.metadata_df = DiskDataset._construct_metadata(metadata_rows)
-        self.save_to_disk()
+        self.save_to_disk(overwrite)
 
     def set_shard(self,
                   shard_num: int,
