@@ -1774,6 +1774,7 @@ class SAMLoader(DataLoader):
 
     def __init__(self, featurizer: Optional[Featurizer] = None):
         """Initialize SAMLoader.
+        
         Parameters
         ----------
         featurizer: Featurizer (default: None)

@@ -11,10 +11,16 @@ class SAMFeaturizer:
     def get_features(self, samfile):
         """
         Extract features from a SAM file.
-        Parameters:
-        - samfile: SAM file.
-        Returns:
-        - features: A 2D NumPy array representing the extracted features.
+
+        Parameters
+        ----------
+        samfile : str
+            SAM file.
+
+        Returns
+        -------
+        features : numpy.ndarray
+        A 2D NumPy array representing the extracted features.
         """
 
         features = []
