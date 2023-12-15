@@ -257,6 +257,67 @@ def test_addbase_xc():
 
 
 @pytest.mark.torch
+def test_mulbase_xc():
+    """Test AddBaseXC."""
+    from deepchem.utils.dft_utils import ValGrad, SpinParam
+    from deepchem.utils.dft_utils import BaseXC, MulBaseXC
+
+    class MyXC(BaseXC):
+
+        @property
+        def family(self) -> int:
+            return 1
+
+        def get_edensityxc(
+                self, densinfo: Union[ValGrad,
+                                      SpinParam[ValGrad]]) -> torch.Tensor:
+            if isinstance(densinfo, ValGrad):
+                return densinfo.value.pow(2)
+            else:
+                return densinfo.u.value.pow(2) + densinfo.d.value.pow(2)
+
+        def get_vxc(
+            self, densinfo: Union[ValGrad, SpinParam[ValGrad]]
+        ) -> Union[ValGrad, SpinParam[ValGrad]]:
+            if isinstance(densinfo, ValGrad):
+                return ValGrad(value=2 * densinfo.value)
+            else:
+                return SpinParam(u=ValGrad(value=2 * densinfo.u.value),
+                                 d=ValGrad(value=2 * densinfo.d.value))
+
+    xc1 = MyXC()
+    xc = xc1 * 2
+    densinfo_v = ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True))
+    assert torch.allclose(xc.get_edensityxc(densinfo_v),
+                          torch.tensor([2., 8., 18.]))
+    assert xc.get_vxc(densinfo_v) == ValGrad(value=torch.tensor([4., 8., 12.]))
+
+    densinfo_s = SpinParam(
+        u=ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True)),
+        d=ValGrad(value=torch.tensor([4., 5., 6.], requires_grad=True)))
+    assert torch.allclose(xc.get_edensityxc(densinfo_s),
+                          torch.tensor([34., 58., 90.]))
+    assert xc.get_vxc(densinfo_s) == SpinParam(
+        u=ValGrad(value=torch.tensor([4., 8., 12.])),
+        d=ValGrad(value=torch.tensor([16., 20., 24.])))
+
+    xc2 = MulBaseXC(xc1, 2)
+    densinfo_v = ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True))
+    assert torch.allclose(xc2.get_edensityxc(densinfo_v),
+                          torch.tensor([2., 8., 18.]))
+    assert xc2.get_vxc(densinfo_v) == ValGrad(value=torch.tensor([4., 8., 12.]))
+
+    densinfo_s = SpinParam(
+        u=ValGrad(value=torch.tensor([1., 2., 3.], requires_grad=True)),
+        d=ValGrad(value=torch.tensor([4., 5., 6.], requires_grad=True)))
+    assert torch.allclose(xc2.get_edensityxc(densinfo_s),
+                          torch.tensor([34., 58., 90.]))
+    assert xc2.get_vxc(densinfo_s) == SpinParam(
+        u=ValGrad(value=torch.tensor([4., 8., 12.])),
+        d=ValGrad(value=torch.tensor([16., 20., 24.])))
+
+
+@pytest.mark.torch
 def test_base_grid():
     import torch
     from deepchem.utils.dft_utils import BaseGrid
@@ -279,3 +340,60 @@ def test_base_grid():
     grid = Grid()
     assert torch.allclose(grid.get_dvolume(), torch.ones(10))
     assert torch.allclose(grid.get_rgrid(), torch.ones((10, 3)))
+
+
+@pytest.mark.torch
+def test_base_df():
+    """Test BaseDF. Checks that it doesn't raise errors."""
+    from deepchem.utils.dft_utils import BaseDF
+
+    class MyDF(BaseDF):
+
+        def __init__(self):
+            super(MyDF, self).__init__()
+
+        def get_j2c(self):
+            return torch.ones((3, 3))
+
+        def get_j3c(self):
+            return torch.ones((3, 3, 3))
+
+    df = MyDF()
+    assert torch.allclose(df.get_j2c(), torch.ones((3, 3)))
+    assert torch.allclose(df.get_j3c(), torch.ones((3, 3, 3)))
+
+
+@pytest.mark.torch
+def test_base_hamilton():
+    """Test BaseHamilton. Checks that it doesn't raise errors."""
+    from deepchem.utils.dft_utils import BaseHamilton
+
+    class MyHamilton(BaseHamilton):
+
+        def __init__(self):
+            self._nao = 2
+            self._kpts = torch.tensor([[0.0, 0.0, 0.0]])
+            self._df = None
+
+        @property
+        def nao(self):
+            return self._nao
+
+        @property
+        def kpts(self):
+            return self._kpts
+
+        @property
+        def df(self):
+            return self._df
+
+        def build(self):
+            return self
+
+        def get_nuclattr(self):
+            return torch.ones((1, 1, self.nao, self.nao))
+
+    ham = MyHamilton()
+    hamilton = ham.build()
+    assert torch.allclose(hamilton.get_nuclattr(),
+                          torch.tensor([[[[1., 1.], [1., 1.]]]]))

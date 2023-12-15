@@ -445,7 +445,7 @@ class GroverMPNEncoder(nn.Module):
                 X = stats.truncnorm((lower - mu) / sigma, (upper - mu) / sigma,
                                     loc=mu,
                                     scale=sigma)
-                ndepth = int(X.rvs(1))
+                ndepth = int(X.rvs(1)[0])
         else:
             ndepth = self.depth
 

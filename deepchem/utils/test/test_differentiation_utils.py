@@ -335,6 +335,69 @@ def test_linear_operator():
     assert torch.allclose(linop.fullmatrix(), linop.param)
 
 
+@pytest.mark.torch
+def test_add_linear_operator():
+    from deepchem.utils.differentiation_utils import LinearOperator
+
+    class Operator(LinearOperator):
+
+        def __init__(self, mat: torch.Tensor, is_hermitian: bool) -> None:
+            super(Operator, self).__init__(
+                shape=mat.shape,
+                is_hermitian=is_hermitian,
+                dtype=mat.dtype,
+                device=mat.device,
+                _suppress_hermit_warning=True,
+            )
+            self.mat = mat
+
+        def _mv(self, x: torch.Tensor) -> torch.Tensor:
+            return torch.matmul(self.mat, x.unsqueeze(-1)).squeeze(-1)
+
+        def _mm(self, x: torch.Tensor) -> torch.Tensor:
+            return torch.matmul(self.mat, x)
+
+        def _rmv(self, x: torch.Tensor) -> torch.Tensor:
+            return torch.matmul(
+                self.mat.transpose(-3, -1).conj(), x.unsqueeze(-1)).squeeze(-1)
+
+        def _rmm(self, x: torch.Tensor) -> torch.Tensor:
+            return torch.matmul(self.mat.transpose(-2, -1).conj(), x)
+
+        def _fullmatrix(self) -> torch.Tensor:
+            return self.mat
+
+        def _getparamnames(self, prefix: str = ""):
+            return [prefix + "mat"]
+
+    op = Operator(torch.tensor([[1, 2.], [3, 4]]), is_hermitian=False)
+    x = torch.tensor([[2, 2], [1, 2.]])
+    op2 = op + op
+    assert torch.allclose(op2.mm(x), 2 * op.mm(x))
+
+
+@pytest.mark.torch
+def test_mul_linear_operator():
+    from deepchem.utils.differentiation_utils import LinearOperator
+
+    class MyLinOp(LinearOperator):
+
+        def __init__(self, shape):
+            super(MyLinOp, self).__init__(shape)
+            self.param = torch.rand(shape)
+
+        def _getparamnames(self, prefix=""):
+            return [prefix + "param"]
+
+        def _mv(self, x):
+            return torch.matmul(self.param, x)
+
+    linop = MyLinOp((1, 3, 1, 2))
+    linop2 = linop * 2
+    x = torch.rand(1, 3, 2, 2)
+    torch.allclose(linop.mv(x) * 2, linop2.mv(x))
+
+
 def test_set_default_options():
     from deepchem.utils.differentiation_utils import set_default_option
     assert set_default_option({'a': 1, 'b': 2}, {'a': 3}) == {'a': 3, 'b': 2}
