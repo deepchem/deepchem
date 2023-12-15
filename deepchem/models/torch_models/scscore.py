@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from deepchem.data import Dataset, NumpyDataset
 from deepchem.feat import CircularFingerprint
-from deepchem.models import TorchModel
+from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.losses import HingeLoss, Loss
 import torch.nn as nn
 import torch.nn.functional as F
@@ -67,7 +67,7 @@ class ScScore(nn.Module):
         
         self.output_layer = nn.Linear(self.layer_sizes[-1], 1)
 
-    def forward(self, input):
+    def forward(self, inputs):
         """
         Parameters
         ----------
@@ -81,7 +81,7 @@ class ScScore(nn.Module):
 
         """
 
-        x = F.relu(self.input_layer(x))
+        x = F.relu(self.input_layer(inputs))
         if self.dropout > 0.0:
             x = F.dropout(x, p=self.dropout)
         
@@ -153,13 +153,4 @@ class ScScoreModel(TorchModel):
         super(ScScoreModel, self).__init__(model, 
                                            loss=loss, 
                                            **kwargs)
-    
-    def default_generator(self, 
-                          dataset: Dataset, 
-                          epochs: int = 1, 
-                          mode: str = 'fit', 
-                          deterministic: bool = True, 
-                          pad_batches: bool = True):
-        
-        # Idk what to do here, I wanna use the def_gen function from TorchModel
-        pass
+
