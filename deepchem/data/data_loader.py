@@ -11,7 +11,12 @@ from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator
 
 import pandas as pd
 import numpy as np
-import pysam
+
+try:
+    import pysam
+except ImportError:
+    print("Error: Unable to import pysam. Please make sure it is installed.")
+
 from deepchem.utils.typing import OneOrMany
 from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files, unzip_file
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
@@ -1759,6 +1764,7 @@ class DFTYamlLoader(DataLoader):
 
 class SAMLoader(DataLoader):
     """Handles loading of SAM files.
+    
     Sequence Alignment Map (SAM) is a text-based format used to store 
     biological sequences aligned to a reference sequence. This
     class provides convenience files to lead SAM data and
@@ -1792,6 +1798,7 @@ class SAMLoader(DataLoader):
                        data_dir: Optional[str] = None,
                        shard_size: Optional[int] = None) -> DiskDataset:
         """Creates a `Dataset` from input SAM files.
+
         Parameters
         ----------
         input_files: List[str]
