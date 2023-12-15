@@ -103,8 +103,8 @@ class TestImageLoader(unittest.TestCase):
         loader = dc.data.ImageLoader()
         dataset = loader.create_dataset(self.multitype_zip_path)
         # Since the different files have different shapes, makes an object array
-        # assert dataset.X.shape == (2,)
-        assert dataset.X.shape == (2, 768, 1024, 3)
+        assert dataset.X.shape == (2,)
+        # assert dataset.X.shape == (2, 768, 1024, 3)
 
     def test_directory_load(self):
         loader = dc.data.ImageLoader()
