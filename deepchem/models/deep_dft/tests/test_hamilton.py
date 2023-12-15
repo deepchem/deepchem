@@ -7,7 +7,7 @@ except:
 
 @pytest.mark.torch
 def test_base_orb_params():
-    from deepchem.deep_dft.hamilton.orbparams import BaseOrbParams
+    from deepchem.models.deep_dft.hamilton.orbparams import BaseOrbParams
 
     class MyOrbParams(BaseOrbParams):
 
@@ -29,7 +29,7 @@ def test_base_orb_params():
 
 @pytest.mark.torch
 def test_qr_orb_params():
-    from deepchem.deep_dft.hamilton.orbparams import QROrbParams
+    from deepchem.models.deep_dft.hamilton.orbparams import QROrbParams
     params = torch.randn(3, 3)
     coeffs = torch.randn(4, 3)
     with_penalty = 0.1
@@ -40,7 +40,7 @@ def test_qr_orb_params():
 
 @pytest.mark.torch
 def test_mat_exp_orb_params():
-    from deepchem.deep_dft.hamilton.orbparams import MatExpOrbParams
+    from deepchem.models.deep_dft.hamilton.orbparams import MatExpOrbParams
     params = torch.randn(3, 3)
     coeffs = torch.randn(4, 3)
     orb = MatExpOrbParams.params2orb(params, coeffs)[0]

@@ -11,7 +11,7 @@ class BaseOrbParams(object):
     Examples
     --------
     >>> import torch
-    >>> from deepchem.deep_dft import BaseOrbParams
+    >>> from deepchem.models.deep_dft import BaseOrbParams
     >>> class MyOrbParams(BaseOrbParams):
     ...     @staticmethod
     ...     def params2orb(params, coeffs, with_penalty):
@@ -96,7 +96,7 @@ class QROrbParams(BaseOrbParams):
     Examples
     --------
     >>> import torch
-    >>> from deepchem.deep_dft import QROrbParams
+    >>> from deepchem.models.deep_dft import QROrbParams
     >>> params = torch.randn(3, 3)
     >>> coeffs = torch.randn(4, 3)
     >>> with_penalty = 0.1
@@ -181,7 +181,7 @@ class MatExpOrbParams(BaseOrbParams):
 
     Examples
     --------
-    >>> from deepchem.deep_dft import MatExpOrbParams
+    >>> from deepchem.models.deep_dft import MatExpOrbParams
     >>> params = torch.randn(3, 3)
     >>> coeffs = torch.randn(4, 3)
     >>> with_penalty = 0.1
