@@ -42,7 +42,7 @@ class MetaLearner(object):
 
     @property
     def variables(self):
-        """Get the list of Tensorflow variables to train."""
+        """Get the list of variables to train."""
         raise NotImplementedError("Subclasses must implement this")
 
     def select_task(self):
@@ -64,6 +64,5 @@ class MetaLearner(object):
         raise NotImplementedError("Subclasses must implement this")
 
     def parameters(self):
-        """This method is specific to PyTorch implementation.
-        Returns an iterator over the MetaLearner parameters."""
-        print("Subclasses must implement this for PyTorch implementation.")
+        """Returns an iterator over the MetaLearner parameters."""
+        raise NotImplementedError("Subclasses must implement this")
