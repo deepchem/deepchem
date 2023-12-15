@@ -211,7 +211,7 @@ def load_image_files(input_files: List[str]) -> np.ndarray:
             images.append(imarray)
         else:
             raise ValueError("Unsupported image filetype for %s" % input_file)
-    # return np.array(images)
+    # dtype=object allows for arrays(images here) of arbitrary size
     try:
         return np.array(images)
     except:
