@@ -84,6 +84,21 @@ class TestImageLoader(unittest.TestCase):
         # TODO(rbharath): Where are the color channels?
         assert dataset.X.shape == (1, 44, 330)
 
+    def test_tif_simple_load_with_labels(self):
+        loader = dc.data.ImageLoader()
+        dataset = loader.create_dataset((self.tif_image_path, np.array(1)))
+        # These are the known dimensions of a_image.tif
+        assert dataset.X.shape == (1, 44, 330)
+        assert (dataset.y == np.ones((1,))).all()
+
+    def test_tif_simple_load_with_label_as_image(self):
+        loader = dc.data.ImageLoader()
+        dataset = loader.create_dataset(
+            (self.tif_image_path, self.tif_image_path))
+        # These are the known dimensions of a_image.tif
+        assert dataset.X.shape == (1, 44, 330)
+        assert dataset.y.shape == (1, 44, 330)
+
     def test_png_multi_load(self):
         loader = dc.data.ImageLoader()
         dataset = loader.create_dataset([self.face_path, self.face_copy_path])
@@ -104,7 +119,6 @@ class TestImageLoader(unittest.TestCase):
         dataset = loader.create_dataset(self.multitype_zip_path)
         # Since the different files have different shapes, makes an object array
         assert dataset.X.shape == (2,)
-
 
     def test_directory_load(self):
         loader = dc.data.ImageLoader()
