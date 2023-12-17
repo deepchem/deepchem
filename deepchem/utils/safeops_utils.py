@@ -1,9 +1,9 @@
 import math
 import torch
 from typing import Union, Optional, Tuple
+from deepchem.utils.dft_utils import ZType
 
 eps = 1e-12
-ZType = Union[int, float, torch.Tensor]
 
 # safe operations
 
