@@ -303,10 +303,10 @@ class BasicMolGANGenerator(nn.Module):
         self.nodes_dense = nn.Linear(512, self.vertices * self.nodes)
         self.nodes_dropout = nn.Dropout(self.dropout_rate)
 
-    def call(self,
-             inputs: Any,
-             training: bool = False,
-             sample_generation: bool = False) -> List[Any]:
+    def forward(self,
+                inputs: Any,
+                training: bool = False,
+                sample_generation: bool = False) -> List[Any]:
         """
         Call generator model
 

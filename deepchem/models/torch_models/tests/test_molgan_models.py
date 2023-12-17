@@ -85,9 +85,8 @@ class test_molgan_model(unittest.TestCase):
     Typically it fails between 1-3 times of 10.
     This is something that needs to be addressed in future releases.
     """
-
-        input_file = os.path.join(self.current_dir,
-                                  "../../assets/molgan_example.csv")
+        input_file = os.path.join("deepchem/models/tests/assets/",
+                                  "molgan_example.csv")
         data = pd.read_csv(input_file)
         molecules = list(data['Molecule'])
         feat = MolGanFeaturizer()
@@ -110,8 +109,10 @@ class test_molgan_model(unittest.TestCase):
                 for __ in range(epochs):
                     for batch in dataset.iterbatches(batch_size=s,
                                                      pad_batches=True):
-                        adjacency_tensor = F.one_hot(batch[0], gan.edges)
-                        node_tesor = F.one_hot(batch[1], gan.nodes)
+                        adjacency_tensor = F.one_hot(torch.Tensor(batch[0]),
+                                                     gan.edges)
+                        node_tesor = F.one_hot(torch.Tensor(batch[1]),
+                                               gan.nodes)
 
                         yield {
                             gan.data_inputs[0]: adjacency_tensor,
