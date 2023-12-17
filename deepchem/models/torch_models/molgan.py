@@ -1,5 +1,5 @@
 from platform import node
-from typing import Optional, List, Tuple, Any
+from typing import Optional, List, Tuple, Any, Union
 
 import torch
 import torch.nn as nn
@@ -139,8 +139,8 @@ class BasicMolGANModel(WGANModel):
                                     embedding_dim=self.embedding_dim)
 
     def create_discriminator(self,
-                             units: List[Tuple[int, int] | int] = [(128, 64),
-                                                                   64]):
+                             units: List[Union[Tuple[int, int],
+                                               int]] = [(128, 64), 64]):
         """
         Create discriminator model based on MolGAN layers.
         Takes two inputs:
