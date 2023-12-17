@@ -295,8 +295,8 @@ class BasicMolGANGenerator(nn.Module):
         self.dropout3 = nn.Dropout(dropout_rate)
 
         # edges logits used during training
-        self.edges_dense = nn.Linear(
-            512, self.edges * self.vertices * self.vertices)
+        self.edges_dense = nn.Linear(512,
+                                     self.edges * self.vertices * self.vertices)
         self.edges_dropout = nn.Dropout(dropout_rate)
 
         # nodes logits used during training
