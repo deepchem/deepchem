@@ -7,7 +7,6 @@ from deepchem.feat.molecule_featurizers import MolGanFeaturizer
 from deepchem.models.optimizers import ExponentialDecay
 try:
     import torch
-    import torch.nn as nn
     import torch.nn.functional as F
     from deepchem.models.torch_models import BasicMolGANModel as MolGAN
     has_torch = True
