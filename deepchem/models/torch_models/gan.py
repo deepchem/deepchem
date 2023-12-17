@@ -136,7 +136,8 @@ class GAN(nn.Module):
                  generator_fn: Callable,
                  discriminator_fn: Callable,
                  n_generators: int = 1,
-                 n_discriminators: int = 1):
+                 n_discriminators: int = 1,
+                 **kwargs):
         """Construct a GAN.
 
         In addition to the parameters listed below, this class accepts all the
@@ -172,7 +173,7 @@ class GAN(nn.Module):
         n_discriminators: int
             the number of discriminators to include
         """
-        super(GAN, self).__init__()
+        super(GAN, self).__init__(**kwargs)
         self.n_generators = n_generators
         self.n_discriminators = n_discriminators
         self.noise_input_shape = noise_input_shape
