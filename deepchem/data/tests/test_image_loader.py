@@ -124,3 +124,36 @@ class TestImageLoader(unittest.TestCase):
         loader = dc.data.ImageLoader()
         dataset = loader.create_dataset(self.image_dir)
         assert dataset.X.shape == (2, 768, 1024, 3)
+
+    def test_zip_order(self):
+        # Test that the order of the contents of an unzipped file is preserved.
+        with tempfile.TemporaryDirectory() as sample_temp_dir:
+            file_contents = ['file1.txt', 'file2.txt', 'file3.txt']
+            for file_name in file_contents:
+                with open(os.path.join(sample_temp_dir, file_name),
+                          'w') as file:
+                    file.write(f"This is {file_name}.")
+
+            # Zip the sample directory
+            zip_file_path = 'sample_directory.zip'
+            with zipfile.ZipFile(zip_file_path, 'w') as zip_file:
+                for foldername, subfolders, filenames in os.walk(
+                        sample_temp_dir):
+                    for filename in filenames:
+                        file_path = os.path.join(foldername, filename)
+                        arcname = os.path.relpath(file_path, sample_temp_dir)
+                        zip_file.write(file_path, arcname=arcname)
+
+            # Unzip the contents to a temporary directory
+            with tempfile.TemporaryDirectory() as temp_dir:
+                with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+                    zip_ref.extractall(temp_dir)
+
+                # Check if the contents' order is the same
+                original_contents = os.listdir(sample_temp_dir)
+                unzipped_contents = os.listdir(temp_dir)
+
+                assert original_contents == unzipped_contents
+
+            # No need to manually remove temporary files; they will be cleaned up automatically
+            os.remove(zip_file_path)
