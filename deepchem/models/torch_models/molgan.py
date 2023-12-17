@@ -87,9 +87,9 @@ class BasicMolGANModel(WGANModel):
         self.embedding_dim = embedding_dim
         self.dropout_rate = dropout_rate
 
-        super(BasicMolGANModel, self).__init__()
+        super(BasicMolGANModel, self).__init__(**kwargs)
 
-    def get_noise_input_shape(self) -> Tuple[int]:
+    def get_noise_input_shape(self) -> Tuple[int, int]:
         """
         Return shape of the noise input used in generator
 
@@ -99,7 +99,10 @@ class BasicMolGANModel(WGANModel):
             Shape of the noise input
         """
 
-        return (self.embedding_dim, )
+        return (
+            1,
+            self.embedding_dim,
+        )
 
     def get_data_input_shapes(self) -> List:
         """
@@ -111,8 +114,8 @@ class BasicMolGANModel(WGANModel):
             List of shapes used as an input for distriminator.
         """
         return [
-            (self.vertices, self.vertices, self.edges),
-            (self.vertices, self.nodes),
+            (1, self.vertices, self.vertices, self.edges),
+            (1, self.vertices, self.nodes),
         ]
 
     def create_generator(self):
@@ -155,38 +158,40 @@ class BasicMolGANModel(WGANModel):
                                    dropout_rate=self.dropout_rate,
                                    edges=self.edges)(
                                        [adjacency_tensor, node_tensor])
+
         # graph_output = ([adjacency_tensor, node_tensor])
 
-        # class Discriminator(nn.Module):
-        #     """A discriminator for the MolGAN model."""
+        class Discriminator(nn.Module):
+            """A discriminator for the MolGAN model."""
 
-        #     def __init__(self, graph_shape):
-        #         super(Discriminator, self).__init__()
+            def __init__(self, graph_shape, dropout_rate):
+                super(Discriminator, self).__init__()
 
-        #         # Define the dense layers
-        #         self.dense1 = nn.Linear(graph_shape[1], 128)
-        #         self.dropout1 = nn.Dropout(self.dropout_rate)
-        #         self.dense2 = nn.Linear(128, 64)
-        #         self.dropout2 = nn.Dropout(self.dropout_rate)
-        #         self.dense3 = nn.Linear(64, 1)
+                # Define the dense layers
+                self.dense1 = nn.Linear(graph_shape[1], 128)
+                self.dropout1 = nn.Dropout(dropout_rate)
+                self.dense2 = nn.Linear(128, 64)
+                self.dropout2 = nn.Dropout(dropout_rate)
+                self.dense3 = nn.Linear(64, 1)
 
-        #     def forward(self, graph):
-        #         output = self.dense1(graph)
-        #         output = F.tanh(output)
-        #         output = self.dropout1(output)
-        #         output = self.dense2(output)
-        #         output = F.tanh(output)
-        #         output = self.dropout2(output)
-        #         output = self.dense3(output)
+            def forward(self, graph):
+                output = self.dense1(graph)
+                output = F.tanh(output)
+                output = self.dropout1(output)
+                output = self.dense2(output)
+                output = F.tanh(output)
+                output = self.dropout2(output)
+                output = self.dense3(output)
 
-        #         return output
+                return output
 
-        dense = nn.Linear(graph.shape[1], 128)(graph)
-        dense = nn.Dropout(self.dropout_rate)(dense)
-        dense = nn.Linear(128, 64)(dense)
-        dense = nn.Dropout(self.dropout_rate)(dense)
-        output = nn.Linear(64, 1)(dense)
-
+        # dense = nn.Linear(graph.shape[1], 128)(graph)
+        # dense = nn.Dropout(self.dropout_rate)(dense)
+        # dense = nn.Linear(128, 64)(dense)
+        # dense = nn.Dropout(self.dropout_rate)(dense)
+        # output = nn.Linear(64, 1)(dense)
+        return Discriminator(graph_shape=graph.shape,
+                             dropout_rate=self.dropout_rate)
         return output
 
     def predict_gan_generator(self,
@@ -253,7 +258,7 @@ class BasicMolGANGenerator(nn.Module):
                  vertices: int = 9,
                  edges: int = 5,
                  nodes: int = 5,
-                 dropout_rate: float = 0.,
+                 dropout_rate: float = 0.0,
                  embedding_dim: int = 10,
                  name: str = "SimpleMolGANGenerator",
                  **kwargs):
@@ -275,7 +280,7 @@ class BasicMolGANGenerator(nn.Module):
         name : str, optional
             name of the model, by default "SimpleMolGANGenerator"
         """
-        super(BasicMolGANGenerator, self).__init__(name=name, **kwargs)
+        super(BasicMolGANGenerator, self).__init__(**kwargs)
         self.vertices = vertices
         self.edges = edges
         self.nodes = nodes

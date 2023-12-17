@@ -519,6 +519,12 @@ WGANModel
 .. autoclass:: deepchem.models.torch_models.WGANModel
   :members:
 
+BasicMolGANModel
+----------------
+
+.. autoclass:: deepchem.models.torch_models.BasicMolGANModel
+  :members:
+
 Weave
 ----------
 
