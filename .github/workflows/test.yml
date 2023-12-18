@@ -122,7 +122,7 @@ jobs:
         pip install conda-merge;
         cd requirements
         if [ "$(uname)" == 'Linux' ]; then
-          conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml >  env.yml
+          conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml env_dqc.yml >  env.yml
         elif [  "$(uname)" == 'Darwin' ]; then
           conda-merge env_common.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml > env.yml
         elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
@@ -163,7 +163,7 @@ jobs:
     - name: Doctest Linux
       if: ${{ (runner.os == 'Linux') && always() }}
       shell: bash -l {0}
-      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --doctest-modules deepchem --doctest-continue-on-failure
+      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --ignore-glob='deepchem/models/jax_models/*' --doctest-modules deepchem --doctest-continue-on-failure
     - name: Doctest Windows
       if: ${{ (runner.os == 'Windows') && always() }}
       # Seperate test avoiding Jax in windows since Jax is not supported in Windows
