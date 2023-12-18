@@ -19,6 +19,10 @@ AtomZsType = Union[List[str], List[ZType], torch.Tensor]
 AtomPosType = Union[List[List[float]], np.ndarray, torch.Tensor]
 
 
+# input basis type
+BasisInpType = Union[str, List[CGTOBasis], List[str], List[List[CGTOBasis]],
+                     Dict[Union[str, int], Union[List[CGTOBasis], str]]]
+
 @dataclass
 class SpinParam(Generic[T]):
     """Data structure to store different values for spin-up and spin-down electrons.
