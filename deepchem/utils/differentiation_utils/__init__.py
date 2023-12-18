@@ -15,6 +15,7 @@ try:
     from deepchem.utils.differentiation_utils.linop import LinearOperator
     from deepchem.utils.differentiation_utils.linop import AddLinearOperator
     from deepchem.utils.differentiation_utils.linop import MulLinearOperator
+    from deepchem.utils.differentiation_utils.linop import AdjointLinearOperator
     from deepchem.utils.differentiation_utils.linop import MatmulLinearOperator
     from deepchem.utils.differentiation_utils.linop import MatrixLinearOperator
 except:
