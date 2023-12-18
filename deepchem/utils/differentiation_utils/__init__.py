@@ -1,3 +1,4 @@
+# flake8: noqa
 try:
     from deepchem.utils.differentiation_utils.editable_module import EditableModule
 
