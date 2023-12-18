@@ -144,7 +144,8 @@ class Ferminet(torch.nn.Module):
         one_electron, _ = self.ferminet_layer[0].forward(
             one_electron.to(torch.float32), two_electron.to(torch.float32))
         self.psi, self.psi_up, self.psi_down = self.ferminet_layer_envelope[
-            0].forward(one_electron, one_electron_vector_permuted)
+            0].forward(one_electron.float(),
+                       one_electron_vector_permuted.float())
         return self.psi
 
     def loss(self,
