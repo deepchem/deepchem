@@ -356,7 +356,13 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.differentiation_utils.linop.MulLinearOperator
   :members:
 
+.. autoclass:: deepchem.utils.differentiation_utils.linop.AdjointLinearOperator
+  :members:
+
 .. autoclass:: deepchem.utils.differentiation_utils.linop.MatmulLinearOperator
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.linop.MatrixLinearOperator
   :members:
 
 .. autofunction:: deepchem.utils.differentiation_utils.set_default_option
