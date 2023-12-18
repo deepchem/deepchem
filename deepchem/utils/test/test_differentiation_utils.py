@@ -422,6 +422,24 @@ def test_matmul_linear_operator():
     assert result.shape == torch.Size([1, 3, 1, 1])
 
 
+@pytest.mark.torch
+def test_matrix_linear_operator():
+    from deepchem.utils.differentiation_utils import LinearOperator
+
+    mat = torch.rand(2, 2)
+    linop = LinearOperator.m(mat)
+    x = torch.randn(2, 2)
+
+    result_mm = linop.mm(x)
+    expected_mm = torch.matmul(mat, x)
+
+    result_mv = linop.mv(x)
+    expected_mv = torch.matmul(mat, x.unsqueeze(-1)).squeeze(-1)
+
+    assert torch.allclose(result_mm, expected_mm)
+    assert torch.allclose(result_mv, expected_mv)
+
+
 def test_set_default_options():
     from deepchem.utils.differentiation_utils import set_default_option
     assert set_default_option({'a': 1, 'b': 2}, {'a': 3}) == {'a': 3, 'b': 2}
