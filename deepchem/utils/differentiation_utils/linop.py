@@ -587,6 +587,10 @@ class LinearOperator(EditableModule):
         if self.shape[-1] != b.shape[-2]:
             raise RuntimeError("Mismatch shape of matmul operation: %s and %s" %
                                (self.shape, b.shape))
+        if isinstance(self, MatrixLinearOperator) and isinstance(
+                b, MatrixLinearOperator):
+            return LinearOperator.m(self.fullmatrix() @ b.fullmatrix(),
+                                    is_hermitian=is_hermitian)
         return MatmulLinearOperator(self, b, is_hermitian=is_hermitian)
 
     def __add__(self, b: LinearOperator):
@@ -645,6 +649,9 @@ class LinearOperator(EditableModule):
         if self.shape[-2:] != b.shape[-2:]:
             raise RuntimeError("Mismatch shape of add operation: %s and %s" %
                                (self.shape, b.shape))
+        if isinstance(self, MatrixLinearOperator) and isinstance(
+                b, MatrixLinearOperator):
+            return LinearOperator.m(self.fullmatrix() + b.fullmatrix())
         return AddLinearOperator(self, b)
 
     def __sub__(self, b: LinearOperator):
@@ -706,6 +713,9 @@ class LinearOperator(EditableModule):
         if self.shape[-2:] != b.shape[-2:]:
             raise RuntimeError("Mismatch shape of add operation: %s and %s" %
                                (self.shape, b.shape))
+        if isinstance(self, MatrixLinearOperator) and isinstance(
+                b, MatrixLinearOperator):
+            return LinearOperator.m(self.fullmatrix() - b.fullmatrix())
         return AddLinearOperator(self, b, -1)
 
     def __rsub__(self, b: LinearOperator):
@@ -716,6 +726,8 @@ class LinearOperator(EditableModule):
             raise TypeError(
                 "LinearOperator multiplication only supports integer or floating point"
             )
+        if isinstance(self, MatrixLinearOperator):
+            return LinearOperator.m(self.fullmatrix() * f)
         return MulLinearOperator(self, f)
 
     def __rmul__(self, f: Union[int, float]):
