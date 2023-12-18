@@ -399,6 +399,35 @@ def test_mul_linear_operator():
 
 
 @pytest.mark.torch
+def test_adjoint_linear_operator():
+    from deepchem.utils.differentiation_utils import LinearOperator
+
+    class MyLinOp(LinearOperator):
+
+        def __init__(self, shape):
+            super(MyLinOp, self).__init__(shape)
+            self.param = torch.rand(shape)
+
+        def _getparamnames(self, prefix=""):
+            return [prefix + "param"]
+
+        def _mv(self, x):
+            return torch.matmul(self.param, x)
+
+        def _rmv(self, x):
+            return torch.matmul(self.param.transpose(-2, -1).conj(), x)
+
+    linop = MyLinOp((1, 3, 1, 2))
+    x = torch.rand(1, 3, 1, 1)
+    result_rmv = linop.rmv(x)
+
+    adjoint_linop = linop.H
+    result_mv = adjoint_linop.mv(x)
+
+    assert torch.allclose(result_rmv, result_mv)
+
+
+@pytest.mark.torch
 def test_matmul_linear_operator():
     from deepchem.utils.differentiation_utils import LinearOperator
 
