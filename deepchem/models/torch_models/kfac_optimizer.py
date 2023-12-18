@@ -336,7 +336,6 @@ class KFACOptimizer(optim.Optimizer):
             assert isinstance(m.weight.grad, torch.Tensor)
             p_grad_mat = m.weight.grad.detach().view(
                 m.weight.grad.detach().size(0),-1)  # n_filters * (in_c * kw * kh)
-                
         elif isinstance(m, torch.nn.Linear):
             assert isinstance(m.weight.grad, torch.Tensor)
             p_grad_mat = m.weight.grad.detach()
@@ -389,7 +388,6 @@ class KFACOptimizer(optim.Optimizer):
             else:
                 raise TypeError(
                     "weight.grad.detach() and bias.grad.detach() should be a Tensor")
-                
         else:
             v = [a.view(m.weight.grad.detach().size())]
 
