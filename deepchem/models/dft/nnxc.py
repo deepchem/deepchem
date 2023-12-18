@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Union, List
 import torch
-from dqc.utils.safeops import safenorm, safepow
+from deepchem.utils.safeops_utils import safenorm, safepow
 from deepchem.utils.dft_utils import SpinParam, ValGrad, BaseXC
 from deepchem.utils.dft_utils.api.get_xc import get_xc
 
