@@ -191,7 +191,6 @@ class BasicMolGANModel(WGANModel):
         # output = nn.Linear(64, 1)(dense)
         return Discriminator(graph_shape=graph.shape,
                              dropout_rate=self.dropout_rate)
-        return output
 
     def predict_gan_generator(self,
                               batch_size: int = 1,
