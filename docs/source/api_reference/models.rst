@@ -414,6 +414,12 @@ PagtnModel
 .. autoclass:: deepchem.models.PagtnModel
   :members:
 
+AtomConvModel
+----------
+
+.. autoclass:: deepchem.models.torch_models.AtomConvModel
+  :members:
+
 MPNNModel
 ---------
 
@@ -501,6 +507,17 @@ GAN
 .. autoclass:: deepchem.models.torch_models.GAN
   :members:
 
+GANModel
+--------
+
+.. autoclass:: deepchem.models.torch_models.GANModel
+  :members:
+
+WGANModel
+---------
+
+.. autoclass:: deepchem.models.torch_models.WGANModel
+  :members:
 
 Weave
 ----------
