@@ -335,7 +335,7 @@ class KFACOptimizer(optim.Optimizer):
         if isinstance(m, torch.nn.Conv2d):
             assert isinstance(m.weight.grad, torch.Tensor)
             p_grad_mat = m.weight.grad.detach().view(
-                m.weight.grad.detach().size(0),-1)  # n_filters * (in_c * kw * kh)
+                m.weight.grad.detach().size(0), -1)  # n_filters * (in_c * kw * kh)
         elif isinstance(m, torch.nn.Linear):
             assert isinstance(m.weight.grad, torch.Tensor)
             p_grad_mat = m.weight.grad.detach()
