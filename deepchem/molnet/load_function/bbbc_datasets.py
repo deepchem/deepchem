@@ -154,10 +154,23 @@ def load_bbbc002(
 
 class _BBBC004_Segmentation_Loader(_MolnetLoader):
 
+    def __init__(self, overlap_probability: float = 0.0, **kwargs):
+        overlap_dict = {0.0: "00", 0.15: "15", 0.3: "30", 0.45: "45", 0.6: "60"}
+        if overlap_probability not in overlap_dict.keys():
+            raise ValueError(
+                f"Overlap_probability must be one of {overlap_dict.keys()}, got {overlap_probability}"
+            )
+        else:
+            self.overlap_probability = overlap_dict[overlap_probability]
+
+        super(_BBBC004_Segmentation_Loader, self).__init__()
+
     def create_dataset(self) -> Dataset:
-        dataset_file = os.path.join(self.data_dir, "BBBC004_v1_000_images.zip")
-        foreground_file = os.path.join(self.data_dir,
-                                       "BBBC004_v1_000_foreground.zip")
+        dataset_file = os.path.join(
+            self.data_dir, f"BBBC004_v1_0{self.overlap_probability}_images.zip")
+        foreground_file = os.path.join(
+            self.data_dir,
+            f"BBBC004_v1_0{self.overlap_probability}_foreground.zip")
         if not os.path.exists(dataset_file):
             dc.utils.data_utils.download_url(url=BBBC4_IMAGE_URL,
                                              dest_dir=self.data_dir)
@@ -172,8 +185,20 @@ class _BBBC004_Segmentation_Loader(_MolnetLoader):
 
 class _BBBC004_Loader(_MolnetLoader):
 
+    def __init__(self, overlap_probability: float = 0.0, **kwargs):
+        overlap_dict = {0.0: "00", 0.15: "15", 0.3: "30", 0.45: "45", 0.6: "60"}
+        if overlap_probability not in overlap_dict.keys():
+            raise ValueError(
+                f"Overlap_probability must be one of {overlap_dict.keys()}, got {overlap_probability}"
+            )
+        else:
+            self.overlap_probability = overlap_dict[overlap_probability]
+
+        super(_BBBC004_Loader, self).__init__()
+
     def create_dataset(self) -> Dataset:
-        dataset_file = os.path.join(self.data_dir, "BBBC004_v1_000_images.zip")
+        dataset_file = os.path.join(
+            self.data_dir, f"BBBC004_v1_0{self.overlap_probability}_images.zip")
         if not os.path.exists(dataset_file):
             dc.utils.data_utils.download_url(url=BBBC4_IMAGE_URL,
                                              dest_dir=self.data_dir)
@@ -185,6 +210,7 @@ class _BBBC004_Loader(_MolnetLoader):
 
 
 def load_bbbc004(
+    overlap_probability: float = 0.0,
     load_segmentation_mask: bool = False,
     splitter: Union[dc.splits.Splitter, str, None] = 'index',
     transformers: List[Union[TransformerGenerator, str]] = [],
@@ -203,6 +229,7 @@ def load_bbbc004(
 
     Parameters
     ----------
+    overlap_probability: float from list {0.0, 0.15, 0.3, 0.45, 0.6}
     load_segmentation_mask: bool
         if True, the dataset will contain segmentation masks as labels. Otherwise,
         the dataset will contain cell counts as labels.
