@@ -397,3 +397,27 @@ def test_base_hamilton():
     hamilton = ham.build()
     assert torch.allclose(hamilton.get_nuclattr(),
                           torch.tensor([[[[1., 1.], [1., 1.]]]]))
+
+
+@pytest.mark.torch
+def test_cgto_basis():
+    from deepchem.utils.dft_utils import CGTOBasis
+    alphas = torch.ones(1)
+    coeffs = torch.ones(1)
+    cgto = CGTOBasis(angmom=0, alphas=alphas, coeffs=coeffs)
+    cgto.wfnormalize_()
+
+    if cgto.normalized is True:
+        assert True
+    else:
+        assert False
+
+
+@pytest.mark.torch
+def test_atom_cgto_basis():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, CGTOBasis
+    alphas = torch.ones(1)
+    coeffs = torch.ones(1)
+    cgto = CGTOBasis(angmom=0, alphas=alphas, coeffs=coeffs)
+    atomcgto = AtomCGTOBasis(atomz=1, bases=[cgto], pos=[0.0, 0.0, 0.0])
+    assert atomcgto.bases[0] == cgto
