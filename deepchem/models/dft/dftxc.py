@@ -28,8 +28,8 @@ class DFTXC(torch.nn.Module):
     ...       'charge': 1,
     ...        'spin': '2'}]
     >>> entry = DFTEntry.create(e_type, true_val, systems)
-    >>> nnmodel = _construct_nn_model(ninp=2, nhid=10, ndepths=1,modeltype=1).to(torch.double)
-    >>> model = DFTXC("lda_x")
+    >>> nnmodel = _construct_nn_model(input_size=2, hidden_size=10, n_layers=1,modeltype=1).to(torch.double)
+    >>> model = DFTXC("lda_x", nnmodel)
     >>> output = model([entry])
 
     """
