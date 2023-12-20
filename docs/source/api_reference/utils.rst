@@ -291,6 +291,12 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.ValGrad
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.data.datastruct.CGTOBasis
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.data.datastruct.AtomCGTOBasis
+  :members:
+
 .. autoclass:: deepchem.utils.dft_utils.BaseXC
   :members:
 
@@ -399,6 +405,8 @@ Pytorch Utilities
 .. autofunction:: deepchem.utils.pytorch_utils.chunkify
 
 .. autofunction:: deepchem.utils.pytorch_utils.get_memory
+
+.. autofunction:: deepchem.utils.pytorch_utils.gaussian_integral
 
 Batch Utilities
 ---------------
