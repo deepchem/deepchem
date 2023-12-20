@@ -3,7 +3,10 @@ Utilities for miscellaneous tasks.
 """
 from typing import Union
 import scipy
-import torch
+try:
+    import torch
+except:
+    pass
 
 
 def gaussian_integration(
