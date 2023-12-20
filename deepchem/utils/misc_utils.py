@@ -1,39 +1,6 @@
 """
 Utilities for miscellaneous tasks.
 """
-from typing import Union
-import scipy
-try:
-    import torch
-except:
-    pass
-
-
-def gaussian_integration(
-        n: int, alpha: Union[float,
-                             torch.Tensor]) -> Union[float, torch.Tensor]:
-    """Performs the gaussian integration.
-
-    Examples
-    --------
-    >>> gaussian_int(5, 1.0)
-    1.0
-
-    Parameters
-    ----------
-    n: int
-        The order of the integral
-    alpha: Union[float, torch.Tensor]
-        The parameter of the gaussian
-
-    Returns
-    -------
-    Union[float, torch.Tensor]
-        The value of the integral
-
-    """
-    n1 = (n + 1) * 0.5
-    return scipy.special.gamma(n1) / (2 * alpha**n1)
 
 
 def indent(s, nspace):

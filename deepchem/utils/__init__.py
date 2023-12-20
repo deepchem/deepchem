@@ -132,14 +132,13 @@ try:
     from deepchem.utils.pytorch_utils import segment_sum
     from deepchem.utils.pytorch_utils import chunkify
     from deepchem.utils.pytorch_utils import get_memory
+    from deepchem.utils.pytorch_utils import gaussian_integration
 
     from deepchem.utils.safeops_utils import safepow
     from deepchem.utils.safeops_utils import safenorm
     from deepchem.utils.safeops_utils import occnumber
     from deepchem.utils.safeops_utils import get_floor_and_ceil
     from deepchem.utils.safeops_utils import safe_cdist
-
-    from deepchem.utils.misc_utils import gaussian_integration
 except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')

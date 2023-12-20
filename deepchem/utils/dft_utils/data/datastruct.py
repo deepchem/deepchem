@@ -5,7 +5,7 @@ from typing import Union, TypeVar, Generic, Optional, Callable, List, Dict
 from dataclasses import dataclass
 import torch
 import numpy as np
-from deepchem.utils.misc_utils import gaussian_integration
+from deepchem.utils import gaussian_integration
 
 __all__ = ["ZType"]
 

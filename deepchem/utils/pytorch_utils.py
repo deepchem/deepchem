@@ -1,5 +1,6 @@
 """Utility functions for working with PyTorch."""
 
+import scipy
 import torch
 from typing import Callable, Union, List, Generator, Tuple
 
@@ -201,3 +202,30 @@ def get_memory(a: torch.Tensor) -> int:
     """
     size = a.numel() * a.element_size()
     return size
+
+
+def gaussian_integration(
+        n: int, alpha: Union[float,
+                             torch.Tensor]) -> Union[float, torch.Tensor]:
+    """Performs the gaussian integration.
+
+    Examples
+    --------
+    >>> gaussian_int(5, 1.0)
+    1.0
+
+    Parameters
+    ----------
+    n: int
+        The order of the integral
+    alpha: Union[float, torch.Tensor]
+        The parameter of the gaussian
+
+    Returns
+    -------
+    Union[float, torch.Tensor]
+        The value of the integral
+
+    """
+    n1 = (n + 1) * 0.5
+    return scipy.special.gamma(n1) / (2 * alpha**n1)
