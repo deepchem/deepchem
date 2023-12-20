@@ -204,7 +204,7 @@ def get_memory(a: torch.Tensor) -> int:
     return size
 
 
-def gaussian_integration(
+def gaussian_integral(
         n: int, alpha: Union[float,
                              torch.Tensor]) -> Union[float, torch.Tensor]:
     """Performs the gaussian integration.

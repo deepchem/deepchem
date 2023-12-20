@@ -5,7 +5,7 @@ from typing import Union, TypeVar, Generic, Optional, Callable, List, Dict
 from dataclasses import dataclass
 import torch
 import numpy as np
-from deepchem.utils import gaussian_integration
+from deepchem.utils import gaussian_integral
 
 __all__ = ["ZType"]
 
@@ -213,7 +213,7 @@ class CGTOBasis:
         coeffs = self.coeffs
 
         # normalize to have individual gaussian integral to be 1 (if coeff is 1)
-        value = gaussian_integration(2 * self.angmom + 2, 2 * self.alphas)
+        value = gaussian_integral(2 * self.angmom + 2, 2 * self.alphas)
         assert isinstance(value, torch.Tensor)
         coeffs = coeffs / torch.sqrt(value)
 
@@ -221,7 +221,7 @@ class CGTOBasis:
         # def2-svp-jkfit is not normalized to have 1 in overlap)
         ee = self.alphas.unsqueeze(-1) + self.alphas.unsqueeze(
             -2)  # (ngauss, ngauss)
-        ee = gaussian_integration(2 * self.angmom + 2, ee)  # type: ignore
+        ee = gaussian_integral(2 * self.angmom + 2, ee)  # type: ignore
         s1 = 1 / torch.sqrt(torch.einsum("a,ab,b", coeffs, ee, coeffs))
         coeffs = coeffs * s1
 
