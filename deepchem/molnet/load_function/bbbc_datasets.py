@@ -154,23 +154,26 @@ def load_bbbc002(
 
 class _BBBC004_Segmentation_Loader(_MolnetLoader):
 
-    def __init__(self, overlap_probability: float = 0.0, **kwargs):
-        overlap_dict = {0.0: "00", 0.15: "15", 0.3: "30", 0.45: "45", 0.6: "60"}
+    def __init__(self, featurizer, splitter, transformers, BBBC4_TASKS, data_dir, save_dir,overlap_probability: float = 0.0,  **kwargs):
+        overlap_dict = {0.0: "000", 0.15: "015", 0.3: "030", 0.45: "045", 0.6: "060"}
         if overlap_probability not in overlap_dict.keys():
             raise ValueError(
                 f"Overlap_probability must be one of {overlap_dict.keys()}, got {overlap_probability}"
             )
         else:
             self.overlap_probability = overlap_dict[overlap_probability]
+            self.BBBC4_IMAGE_URL = f"https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_{self.overlap_probability}_images.zip"
+            self.BBBC4_FOREGROUND_URL = f"https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_{self.overlap_probability}_foreground.zip"
 
-        super(_BBBC004_Segmentation_Loader, self).__init__()
+        super(_BBBC004_Segmentation_Loader, self).__init__(featurizer, splitter, transformers,
+                                                        BBBC4_TASKS, data_dir, save_dir, **kwargs)
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(
             self.data_dir, f"BBBC004_v1_0{self.overlap_probability}_images.zip")
         foreground_file = os.path.join(
             self.data_dir,
-            f"BBBC004_v1_0{self.overlap_probability}_foreground.zip")
+            f"BBBC004_v1_{self.overlap_probability}_foreground.zip")
         if not os.path.exists(dataset_file):
             dc.utils.data_utils.download_url(url=BBBC4_IMAGE_URL,
                                              dest_dir=self.data_dir)
@@ -184,21 +187,24 @@ class _BBBC004_Segmentation_Loader(_MolnetLoader):
 
 
 class _BBBC004_Loader(_MolnetLoader):
-
-    def __init__(self, overlap_probability: float = 0.0, **kwargs):
-        overlap_dict = {0.0: "00", 0.15: "15", 0.3: "30", 0.45: "45", 0.6: "60"}
+# FIX INIT, OVERLAP PROBS ERROR
+    def __init__(self, featurizer, splitter, transformers, BBBC4_TASKS, data_dir, save_dir,overlap_probability: float = 0.0,  **kwargs):
+        overlap_dict = {0.0: "000", 0.15: "015", 0.3: "030", 0.45: "045", 0.6: "060"}
         if overlap_probability not in overlap_dict.keys():
             raise ValueError(
                 f"Overlap_probability must be one of {overlap_dict.keys()}, got {overlap_probability}"
             )
         else:
             self.overlap_probability = overlap_dict[overlap_probability]
+            self.BBBC4_IMAGE_URL = f"https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_{self.overlap_probability}_images.zip"
+            self.BBBC4_FOREGROUND_URL = f"https://data.broadinstitute.org/bbbc/BBBC004/BBBC004_v1_{self.overlap_probability}_foreground.zip"
 
-        super(_BBBC004_Loader, self).__init__()
+        super(_BBBC004_Loader, self).__init__(featurizer, splitter, transformers,
+                                            BBBC4_TASKS, data_dir, save_dir, **kwargs)
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(
-            self.data_dir, f"BBBC004_v1_0{self.overlap_probability}_images.zip")
+            self.data_dir, f"BBBC004_v1_{self.overlap_probability}_images.zip")
         if not os.path.exists(dataset_file):
             dc.utils.data_utils.download_url(url=BBBC4_IMAGE_URL,
                                              dest_dir=self.data_dir)
@@ -252,11 +258,11 @@ def load_bbbc004(
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
     if load_segmentation_mask:
-        loader = _BBBC004_Segmentation_Loader(featurizer, splitter,
+        loader = _BBBC004_Segmentation_Loader(overlap_probability, featurizer, splitter,
                                               transformers, BBBC4_TASKS,
                                               data_dir, save_dir, **kwargs)
     else:
-        loader = _BBBC004_Loader(featurizer, splitter, transformers,
+        loader = _BBBC004_Loader(overlap_probability, featurizer, splitter, transformers,
                                  BBBC4_TASKS, data_dir, save_dir, **kwargs)
 
     return loader.load_dataset('bbbc004', reload)
