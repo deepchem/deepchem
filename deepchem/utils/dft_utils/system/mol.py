@@ -16,55 +16,7 @@ class Mol(BaseSystem):
     """
     Describe the system of an isolated molecule.
 
-    Arguments
-    ---------
-    * moldesc: str or 2-elements tuple
-        Description of the molecule system.
-        If string, it can be described like ``"H 1 0 0; H -1 0 0"``.
-        If tuple, the first element of the tuple is the Z number of the atoms while
-        the second element is the position of the atoms: ``(atomzs, atomposs)``.
-    * basis: str, CGTOBasis, list of str, or CGTOBasis
-        The string describing the gto basis. If it is a list, then it must have
-        the same length as the number of atoms.
-    * grid: int
-        Describe the grid.
-        If it is an integer, then it uses the default grid with specified level
-        of accuracy.
-    * spin: int, float, torch.Tensor, or None
-        The difference between spin-up and spin-down electrons.
-        It must be an integer or ``None``.
-        If ``None``, then it is ``num_electrons % 2``.
-        For floating point atomzs and/or charge, the ``spin`` must be specified.
-    * charge: int, float, or torch.Tensor
-        The charge of the molecule.
-    * orb_weights: SpinParam[torch.Tensor] or None
-        Specifiying the orbital occupancy (or weights) directly. If specified,
-        ``spin`` and ``charge`` arguments are ignored.
-    * vext: tensor or None
-        The tensor describing the external potential given in the grid.
-        The grid position can be obtained by ``Mol().get_grid().get_rgrid()``.
-    * efield: tensor, tuple of tensor, or None
-        Uniform electric field of the system. If a tensor, then it is assumed
-        to be a constant electric field with the energy is
-        calculated based on potential at ``(0, 0, 0)`` is ``0``.
-        If a tuple of tensor, then the first element will have a shape of ``(ndim,)``
-        representing the constant electric field, second element is the gradient
-        of electric field with the last dimension is the direction of the electric
-        field, third element is the gradgrad of electric field, etc.
-        If ``None``, then the electric field is assumed to be ``0``.
-    * dtype: torch.dtype
-        The data type of tensors in this class.
-    * device: torch.device
-        The device on which the tensors in this class are stored.
 
-    * orthogonalize_basis: bool
-        (computational option)
-        If True, orthogonalize the basis in the hamiltonian calculation.
-        If False, then use the raw basis, this might not work with over-complete
-        basis.
-    * ao_parameterizer: str
-        (computational option)
-        Specifying the atomic orbital parameterizer.
     """
 
     def __init__(self,
@@ -73,7 +25,6 @@ class Mol(BaseSystem):
                  *,
                  orthogonalize_basis: bool = True,
                  ao_parameterizer: str = "qr",
-
                  grid: Union[int, str] = "sg3",
                  spin: Optional[ZType] = None,
                  charge: ZType = 0,
@@ -83,6 +34,56 @@ class Mol(BaseSystem):
                  dtype: torch.dtype = torch.float64,
                  device: torch.device = torch.device('cpu'),
                  ):
+        """
+            Arguments
+        ---------
+        moldesc: str or 2-elements tuple
+            Description of the molecule system.
+            If string, it can be described like ``"H 1 0 0; H -1 0 0"``.
+            If tuple, the first element of the tuple is the Z number of the atoms while
+            the second element is the position of the atoms: ``(atomzs, atomposs)``.
+        basis: str, CGTOBasis, list of str, or CGTOBasis
+            The string describing the gto basis. If it is a list, then it must have
+            the same length as the number of atoms.
+        grid: int
+            Describe the grid.
+            If it is an integer, then it uses the default grid with specified level
+            of accuracy.
+        spin: int, float, torch.Tensor, or None
+            The difference between spin-up and spin-down electrons.
+            It must be an integer or ``None``.
+            If ``None``, then it is ``num_electrons % 2``.
+            For floating point atomzs and/or charge, the ``spin`` must be specified.
+        charge: int, float, or torch.Tensor
+            The charge of the molecule.
+        orb_weights: SpinParam[torch.Tensor] or None
+            Specifiying the orbital occupancy (or weights) directly. If specified,
+            ``spin`` and ``charge`` arguments are ignored.
+        vext: tensor or None
+            The tensor describing the external potential given in the grid.
+            The grid position can be obtained by ``Mol().get_grid().get_rgrid()``.
+        efield: tensor, tuple of tensor, or None
+            Uniform electric field of the system. If a tensor, then it is assumed
+            to be a constant electric field with the energy is
+            calculated based on potential at ``(0, 0, 0)`` is ``0``.
+            If a tuple of tensor, then the first element will have a shape of ``(ndim,)``
+            representing the constant electric field, second element is the gradient
+            of electric field with the last dimension is the direction of the electric
+            field, third element is the gradgrad of electric field, etc.
+            If ``None``, then the electric field is assumed to be ``0``.
+        dtype: torch.dtype
+            The data type of tensors in this class.
+        device: torch.device
+            The device on which the tensors in this class are stored.
+        orthogonalize_basis: bool
+            (computational option)
+            If True, orthogonalize the basis in the hamiltonian calculation.
+            If False, then use the raw basis, this might not work with over-complete
+            basis.
+        ao_parameterizer: str
+            (computational option)
+            Specifying the atomic orbital parameterizer.
+        """
         self._dtype = dtype
         self._device = device
         self._grid_inp = grid
