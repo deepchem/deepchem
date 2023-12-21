@@ -344,6 +344,9 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.api.parser.parse_moldesc
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.system.base_system.BaseSystem
+  :members:
+
 .. autoclass:: deepchem.utils.differentiation_utils.editable_module.EditableModule
   :members:
 

@@ -35,6 +35,8 @@ try:
     from deepchem.utils.dft_utils.df.base_df import BaseDF
 
     from deepchem.utils.dft_utils.hamilton.base_hamilton import BaseHamilton
+
+    from deepchem.utils.dft_utils.system.base_system import BaseSystem
 except ModuleNotFoundError as e:
     logger_.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
