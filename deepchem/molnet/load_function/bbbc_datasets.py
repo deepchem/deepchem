@@ -151,6 +151,7 @@ def load_bbbc002(
 
 
 class _BBBC004_Segmentation_Loader(_MolnetLoader):
+    """BBBC004 segmentation mask dataset loader"""
 
     def __init__(self, overlap_probability, featurizer, splitter, transformers,
                  BBBC4_TASKS, data_dir, save_dir, **kwargs):
@@ -193,6 +194,7 @@ class _BBBC004_Segmentation_Loader(_MolnetLoader):
 
 
 class _BBBC004_Loader(_MolnetLoader):
+    """BBBC004 cell count dataset loader"""
 
     def __init__(self, overlap_probability, featurizer, splitter, transformers,
                  BBBC4_TASKS, data_dir, save_dir, **kwargs):
@@ -250,6 +252,7 @@ def load_bbbc004(
     Parameters
     ----------
     overlap_probability: float from list {0.0, 0.15, 0.3, 0.45, 0.6}
+        the overlap probability of the synthetic cells in the images
     load_segmentation_mask: bool
         if True, the dataset will contain segmentation masks as labels. Otherwise,
         the dataset will contain cell counts as labels.
@@ -269,6 +272,42 @@ def load_bbbc004(
         a directory to save the raw data in
     save_dir: str
         a directory to save the dataset in
+
+    Examples
+    --------
+    Importing necessary modules
+
+    >>> import deepchem as dc
+    >>> import numpy as np
+
+    We can load the BBBC004 dataset with 2 types of labels: segmentation masks and
+    cell counts. We will first load the dataset with cell counts as labels.
+
+    >>> loader = dc.molnet.load_bbbc004(overlap_probability=0.0, load_segmentation_mask=False)
+    >>> tasks, dataset, transformers = loader
+    >>> train, val, test = dataset
+
+    We now have a dataset with 20 samples, each with 300 cells. The images are of
+    size 950x950. The labels are cell counts. We can verify this as follows:
+
+    >>> train.X.shape
+    (16, 950, 950)
+    >>> train.y.shape
+    (16,)
+
+    We will now load the dataset with segmentation masks as labels.
+
+    >>> loader = dc.molnet.load_bbbc004(overlap_probability=0.0, load_segmentation_mask=True)
+    >>> tasks, dataset, transformers = loader
+    >>> train, val, test = dataset
+
+    We now have a dataset with 20 samples, each with 300 cells. The images are of
+    size 950x950. The labels are segmentation masks. We can verify this as follows:
+
+    >>> train.X.shape
+    (16, 950, 950)
+    >>> train.y.shape
+    (16, 950, 950, 3)
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
     if load_segmentation_mask:
