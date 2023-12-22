@@ -5,6 +5,13 @@ try:
     from deepchem.utils.differentiation_utils.bcast import get_bcasted_dims
     from deepchem.utils.differentiation_utils.bcast import match_dim
 
+    from deepchem.utils.differentiation_utils.linop import LinearOperator
+    from deepchem.utils.differentiation_utils.linop import AddLinearOperator
+    from deepchem.utils.differentiation_utils.linop import MulLinearOperator
+    from deepchem.utils.differentiation_utils.linop import AdjointLinearOperato
+    from deepchem.utils.differentiation_utils.linop import MatmulLinearOperator
+    from deepchem.utils.differentiation_utils.linop import MatrixLinearOperator
+
     from deepchem.utils.differentiation_utils.misc import set_default_option
     from deepchem.utils.differentiation_utils.misc import get_and_pop_keys
     from deepchem.utils.differentiation_utils.misc import get_method
@@ -24,8 +31,5 @@ try:
     from deepchem.utils.differentiation_utils.pure_function import get_pure_function
     from deepchem.utils.differentiation_utils.pure_function import make_sibling
     from deepchem.utils.differentiation_utils.pure_function import PureFunction
-
-    from deepchem.utils.differentiation_utils.linop import LinearOperator
-    from deepchem.utils.differentiation_utils.linop import MatrixLinearOperator
 except:
     pass
