@@ -2,7 +2,6 @@
 Utilities for miscellaneous tasks.
 """
 from typing import Dict, List, Optional
-from deepchem.utils.differentiation_utils import assert_runtime
 
 
 def indent(s, nspace):
@@ -114,13 +113,13 @@ class Uniquifier(object):
     def get_unique_objs(self, allobjs: Optional[List] = None) -> List:
         if allobjs is None:
             return self.unique_objs
-        assert_runtime(len(allobjs) == self.nobjs, "The allobjs must have %d elements" % self.nobjs)
+        assert len(allobjs) == self.nobjs, "The allobjs must have %d elements" % self.nobjs
         if self.all_unique:
             return allobjs
         return [allobjs[i] for i in self.unique_idxs]
 
     def map_unique_objs(self, uniqueobjs: List) -> List:
-        assert_runtime(len(uniqueobjs) == self.num_unique, "The uniqueobjs must have %d elements" % self.num_unique)
+        assert len(uniqueobjs) == self.num_unique, "The uniqueobjs must have %d elements" % self.num_unique
         if self.all_unique:
             return uniqueobjs
         return [uniqueobjs[idx] for idx in self.nonunique_map_idxs]
