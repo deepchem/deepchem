@@ -26,7 +26,7 @@ class DCLightningDatasetModule(pl.LightningDataModule):
     This class requires PyTorch to be installed.
     """
 
-    def __init__(self, dataset, batch_size, collate_fn):
+    def __init__(self, dataset, batch_size, collate_fn, num_workers: int):
         """Create a new DCLightningDatasetModule.
 
         Parameters
@@ -40,6 +40,7 @@ class DCLightningDatasetModule(pl.LightningDataModule):
         self._dataset = dataset.make_pytorch_dataset(
             batch_size=self._batch_size)
         self.collate_fn = collate_fn
+        self.num_workers = num_workers
 
     def setup(self, stage):
         self.train_dataset = self._dataset
@@ -56,5 +57,6 @@ class DCLightningDatasetModule(pl.LightningDataModule):
             batch_size=None,
             collate_fn=self.collate_fn,
             shuffle=False,
+            num_workers=self.num_workers,
         )
         return dataloader
