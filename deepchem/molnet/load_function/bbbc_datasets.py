@@ -19,10 +19,15 @@ BBBC2_IMAGE_URL = 'https://data.broadinstitute.org/bbbc/BBBC002/BBBC002_v1_image
 BBBC2_LABEL_URL = 'https://data.broadinstitute.org/bbbc/BBBC002/BBBC002_v1_counts.txt'
 BBBC2_TASKS = ["cell-count"]
 
+BBBC3_IMAGE_URL = 'https://data.broadinstitute.org/bbbc/BBBC003/BBBC003_v1_images.zip'
+BBBC3_LABEL_URL = 'https://data.broadinstitute.org/bbbc/BBBC003/BBBC003_v1_counts.txt'
+BBBC3_FOREGROUND_URL = 'https://data.broadinstitute.org/bbbc/BBBC003/BBBC003_v1_foreground.zip'
+BBBC3_TASKS = ["cell-count"]
+
 BBBC4_TASKS = ["cell-count"]
 
 
-class _BBBC001Loader(_MolnetLoader):
+class _BBBC001_Loader(_MolnetLoader):
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "BBBC001_v1_images_tif.zip")
@@ -79,12 +84,12 @@ def load_bbbc001(
         a directory to save the dataset in
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
-    loader = _BBBC001Loader(featurizer, splitter, transformers, BBBC1_TASKS,
+    loader = _BBBC001_Loader(featurizer, splitter, transformers, BBBC1_TASKS,
                             data_dir, save_dir, **kwargs)
     return loader.load_dataset('bbbc001', reload)
 
 
-class _BBBC002Loader(_MolnetLoader):
+class _BBBC002_Loader(_MolnetLoader):
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "BBBC002_v1_images.zip")
@@ -145,9 +150,137 @@ def load_bbbc002(
         a directory to save the dataset in
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
-    loader = _BBBC002Loader(featurizer, splitter, transformers, BBBC2_TASKS,
+    loader = _BBBC002_Loader(featurizer, splitter, transformers, BBBC2_TASKS,
                             data_dir, save_dir, **kwargs)
     return loader.load_dataset('bbbc002', reload)
+
+class _BBBC003_Segmentation_Loader(_MolnetLoader):
+    """BBBC003 segmentation mask dataset loader"""
+
+    def create_dataset(self) -> Dataset:
+        dataset_file = os.path.join(
+            self.data_dir, "BBBC003_v1_images.zip")
+        foreground_file = os.path.join(
+            self.data_dir, "BBBC003_v1_foreground.zip")
+        if not os.path.exists(dataset_file):
+            dc.utils.data_utils.download_url(url=self.BBBC3_IMAGE_URL,
+                                             dest_dir=self.data_dir)
+        if not os.path.exists(foreground_file):
+            dc.utils.data_utils.download_url(url=self.BBBC3_FOREGROUND_URL,
+                                             dest_dir=self.data_dir)
+
+        loader = dc.data.ImageLoader(sorting=True)
+        return loader.create_dataset(inputs=(dataset_file, foreground_file),
+                                     in_memory=False)
+
+
+class _BBBC003_Loader(_MolnetLoader):
+    """BBBC003 cell count dataset loader"""
+
+    def create_dataset(self):
+        dataset_file = os.path.join(self.data_dir, "BBBC003_v1_images.zip")
+        labels_file = os.path.join(self.data_dir, "BBBC003_v1_counts.txt")
+        if not os.path.exists(dataset_file):
+            dc.utils.data_utils.download_url(url=BBBC3_IMAGE_URL,
+                                             dest_dir=self.data_dir)
+        if not os.path.exists(labels_file):
+            dc.utils.data_utils.download_url(url=BBBC3_LABEL_URL,
+                                             dest_dir=self.data_dir)
+
+        labels = pd.read_csv(labels_file, delimiter="\t")
+        lbx = labels.sort_values("Image")["manual count #1"].values
+
+        loader = dc.data.ImageLoader(sorting=True)
+        return loader.create_dataset(inputs=(dataset_file, lbx), in_memory=False)
+
+
+def load_bbbc003(
+    load_segmentation_mask: bool = False,
+    splitter: Union[dc.splits.Splitter, str, None] = 'index',
+    transformers: List[Union[TransformerGenerator, str]] = [],
+    reload: bool = True,
+    data_dir: Optional[str] = None,
+    save_dir: Optional[str] = None,
+    **kwargs
+) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+    """Load BBBC003 dataset
+
+# Fill information
+
+    Parameters
+    ----------
+    load_segmentation_mask: bool
+        if True, the dataset will contain segmentation masks as labels. Otherwise,
+        the dataset will contain cell counts as labels.
+    splitter: Splitter or str
+        the splitter to use for splitting the data into training, validation, and
+        test sets.  Alternatively you can pass one of the names from
+        dc.molnet.splitters as a shortcut.  If this is None, all the data
+        will be included in a single dataset.
+    transformers: list of TransformerGenerators or strings
+        the Transformers to apply to the data.  Each one is specified by a
+        TransformerGenerator or, as a shortcut, one of the names from
+        dc.molnet.transformers.
+    reload: bool
+        if True, the first call for a particular featurizer and splitter will cache
+        the datasets to disk, and subsequent calls will reload the cached datasets.
+    data_dir: str
+        a directory to save the raw data in
+    save_dir: str
+        a directory to save the dataset in
+
+    Examples
+    --------
+    Importing necessary modules
+
+    >>> import deepchem as dc
+    >>> import numpy as np
+
+    We can load the BBBC003 dataset with 2 types of labels: segmentation masks and
+    cell counts. We will first load the dataset with cell counts as labels.
+
+    >>> loader = dc.molnet.load_bbbc003(load_segmentation_mask=False)
+    >>> tasks, dataset, transformers = loader
+    >>> train, val, test = dataset
+
+    We now have a dataset with 15 samples, each with 300 cells. The images are of
+    size 950x950. The labels are cell counts. We can verify this as follows:
+
+    >>> train.X.shape
+    # (12, 950, 950)
+    >>> train.y.shape
+    # (12,)
+
+    We will now load the dataset with segmentation masks as labels.
+
+    >>> loader = dc.molnet.load_bbbc003(load_segmentation_mask=True)
+    >>> tasks, dataset, transformers = loader
+    >>> train, val, test = dataset
+
+    We now have a dataset with 15 samples, each with 300 cells. The images are of
+    size 950x950. The labels are segmentation masks. We can verify this as follows:
+
+    >>> train.X.shape
+    # (16, 950, 950)
+    >>> train.y.shape
+    # (16, 950, 950, 3)
+    """
+    featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
+    if load_segmentation_mask:
+        loader = _BBBC003_Segmentation_Loader(featurizer,
+                                              splitter, transformers,
+                                              BBBC3_TASKS, data_dir, save_dir,
+                                              **kwargs)
+    else:
+        loader = _BBBC003_Loader(featurizer, splitter,
+                                 transformers, BBBC3_TASKS, data_dir, save_dir,
+                                 **kwargs)
+
+    return loader.load_dataset('bbbc004', reload)
+
+    loader = _BBBC003Loader(featurizer, splitter, transformers, BBBC3_TASKS,
+                            data_dir, save_dir, **kwargs)
+    return loader.load_dataset('bbbc003', reload)
 
 
 class _BBBC004_Segmentation_Loader(_MolnetLoader):
