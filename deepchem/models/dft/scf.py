@@ -37,9 +37,9 @@ class XCNNSCF(torch.nn.Module):
     >>> e_type = 'dm'
     >>> true_val = 'deepchem/feat/tests/data/dftHF_output.npy'
     >>> systems = [{
-    >>>     'moldesc': 'H 0.86625 0 0; F -0.86625 0 0',
-    >>>     'basis': '6-311++G(3df,3pd)'
-    >>> }]
+    ...     'moldesc': 'H 0.86625 0 0; F -0.86625 0 0',
+    ...     'basis': '6-311++G(3df,3pd)'
+    ... }]
     >>> entry = DFTEntry.create(e_type, true_val, systems)
     >>> evl = XCNNSCF(hybridxc, entry)
     >>> system = DFTSystem(systems[0])

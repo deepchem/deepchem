@@ -70,3 +70,9 @@ def test_get_memory():
     """Test get_memory utility."""
     data = torch.rand(100, 100, dtype=torch.float64)
     assert dc.utils.pytorch_utils.get_memory(data) == 100 * 100 * 8
+
+
+@pytest.mark.torch
+def test_gaussian_integral():
+    """Test the gaussian integral utility."""
+    assert dc.utils.pytorch_utils.gaussian_integral(5, 1.0) == 1.0
