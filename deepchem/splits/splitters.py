@@ -660,55 +660,6 @@ class SingletaskStratifiedSplitter(Splitter):
         """
         self.task_number = task_number
 
-    # FIXME: Signature of "k_fold_split" incompatible with supertype "Splitter"
-    def k_fold_split(  # type: ignore [override]
-            self,
-            dataset: Dataset,
-            k: int,
-            directories: Optional[List[str]] = None,
-            seed: Optional[int] = None,
-            log_every_n: Optional[int] = None,
-            **kwargs) -> List[Dataset]:
-        """
-        Splits compounds into k-folds using stratified sampling.
-        Overriding base class k_fold_split.
-
-        Parameters
-        ----------
-        dataset: Dataset
-            Dataset to be split.
-        k: int
-            Number of folds to split `dataset` into.
-        directories: List[str], optional (default None)
-            List of length k filepaths to save the result disk-datasets.
-        seed: int, optional (default None)
-            Random seed to use.
-        log_every_n: int, optional (default None)
-            Log every n examples (not currently used).
-
-        Returns
-        -------
-        fold_datasets: List[Dataset]
-            List of dc.data.Dataset objects
-        """
-        logger.info("Computing K-fold split")
-        if directories is None:
-            directories = [tempfile.mkdtemp() for _ in range(k)]
-        else:
-            assert len(directories) == k
-
-        y_s = dataset.y[:, self.task_number]
-        sortidx = np.argsort(y_s)
-        sortidx_list = np.array_split(sortidx, k)
-
-        fold_datasets = []
-        for fold in range(k):
-            fold_dir = directories[fold]
-            fold_ind = sortidx_list[fold]
-            fold_dataset = dataset.select(fold_ind, fold_dir)
-            fold_datasets.append(fold_dataset)
-        return fold_datasets
-
     def split(
         self,
         dataset: Dataset,
