@@ -245,10 +245,11 @@ class TensorNonTensorSeparator(object):
         self.tensor_idxs = []
         self.tensor_params = []
         self.nontensor_idxs = []
-        self.nontensor_params = []                        
+        self.nontensor_params = []
         self.nparams = len(params)
         for (i, p) in enumerate(params):
-            if isinstance(p, torch.Tensor) and ((varonly and p.requires_grad) or (not varonly)):
+            if isinstance(p, torch.Tensor) and ((varonly and p.requires_grad) or
+                                                (not varonly)):
                 self.tensor_idxs.append(i)
                 self.tensor_params.append(p)
             else:
