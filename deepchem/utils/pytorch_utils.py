@@ -211,7 +211,7 @@ def gaussian_integral(
 
     Examples
     --------
-    >>> gaussian_int(5, 1.0)
+    >>> gaussian_integral(5, 1.0)
     1.0
 
     Parameters
@@ -235,12 +235,33 @@ class TensorNonTensorSeparator(object):
     """
     Class that provides function to separate/combine tensors and nontensors
     parameters.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.pytorch_utils import TensorNonTensorSeparator
+    >>> a = torch.tensor([1.,2,3])
+    >>> b = 4.
+    >>> c = torch.tensor([5.,6,7], requires_grad=True)
+    >>> params = [a, b, c]
+    >>> separator = TensorNonTensorSeparator(params)
+    >>> tensor_params = separator.get_tensor_params()
+    >>> tensor_params
+    [tensor([5., 6., 7.], requires_grad=True)]
+
     """
 
-    def __init__(self, params, varonly=True):
-        """
-        Params is a list of tensor or non-tensor to be splitted into
-        tensor/non-tensor
+    def __init__(self, params: List[torch.Tensor], varonly: bool = True):
+        """Initialize the TensorNonTensorSeparator.
+
+        Parameters
+        ----------
+        params: List[torch.Tensor]
+            A list of tensor or non-tensor parameters.
+        varonly: bool
+            If True, only tensor parameters with requires_grad=True will be
+            returned. Otherwise, all tensor parameters will be returned.
+
         """
         self.tensor_idxs = []
         self.tensor_params = []
@@ -258,15 +279,55 @@ class TensorNonTensorSeparator(object):
         self.alltensors = len(self.tensor_idxs) == self.nparams
 
     def get_tensor_params(self):
+        """Returns a list of tensor parameters.
+
+        Returns
+        -------
+        List[torch.Tensor]
+            A list of tensor parameters.
+
+        """
         return self.tensor_params
 
     def ntensors(self):
+        """Returns the number of tensor parameters.
+
+        Returns
+        -------
+        int
+            The number of tensor parameters.
+
+        """
         return len(self.tensor_idxs)
 
     def nnontensors(self):
+        """Returns the number of nontensor parameters.
+
+        Returns
+        -------
+        int
+            The number of nontensor parameters.
+
+        """
         return len(self.nontensor_idxs)
 
     def reconstruct_params(self, tensor_params, nontensor_params=None):
+        """Reconstruct the parameters from tensor and nontensor parameters.
+
+        Parameters
+        ----------
+        tensor_params: List[torch.Tensor]
+            A list of tensor parameters.
+        nontensor_params: Optional[List]
+            A list of nontensor parameters. If None, the original nontensor
+            parameters will be used.
+
+        Returns
+        -------
+        List
+            A list of parameters.
+
+        """
         if nontensor_params is None:
             nontensor_params = self.nontensor_params
         if len(tensor_params) + len(nontensor_params) != self.nparams:
