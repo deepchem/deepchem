@@ -847,7 +847,8 @@ def _rootfinder_solve(alg, A, B, E=None, M=None, **options):
     x = x.reshape(*x.shape[:-1], nr, ncols)
     return x
 
-def _get_largest_eival(Afcn, x):
+def _get_largest_eival(Afcn: LinearOperator, x: torch.Tensor):
+    """Get the largest eigenvalue of the linear operator Afcn"""
     niter = 10
     rtol = 1e-3
     atol = 1e-6
