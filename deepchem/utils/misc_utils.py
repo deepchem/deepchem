@@ -50,14 +50,17 @@ def shape2str(shape):
 class UnimplementedError(Exception):
     pass
 
+
 class GetSetParamsError(Exception):
     pass
+
 
 class ConvergenceWarning(Warning):
     """
     Warning to be raised if the convergence of an algorithm is not achieved
     """
     pass
+
 
 class MathWarning(Warning):
     """
@@ -85,7 +88,16 @@ class Uniquifier(object):
     [1, 2, 3]
 
     """
+
     def __init__(self, allobjs: List):
+        """Initialize the uniquifier.
+
+        Parameters
+        ----------
+        allobjs: List
+            The list of objects to be uniquified.
+
+        """
         self.nobjs = len(allobjs)
 
         id2idx: Dict[int, int] = {}
@@ -111,15 +123,40 @@ class Uniquifier(object):
         self.all_unique = self.nobjs == self.num_unique
 
     def get_unique_objs(self, allobjs: Optional[List] = None) -> List:
+        """Get the unique objects.
+
+        Parameters
+        ----------
+        allobjs: Optional[List]
+            The list of objects to be uniquified.
+
+        Returns
+        -------
+        List
+            The list of unique objects.
+
+        """
         if allobjs is None:
             return self.unique_objs
-        assert len(allobjs) == self.nobjs, "The allobjs must have %d elements" % self.nobjs
+        assert len(
+            allobjs
+        ) == self.nobjs, "The allobjs must have %d elements" % self.nobjs
         if self.all_unique:
             return allobjs
         return [allobjs[i] for i in self.unique_idxs]
 
     def map_unique_objs(self, uniqueobjs: List) -> List:
-        assert len(uniqueobjs) == self.num_unique, "The uniqueobjs must have %d elements" % self.num_unique
+        """Map the unique objects to the original objects.
+
+        Parameters
+        ----------
+        uniqueobjs: List
+            The list of unique objects.
+
+        """
+        assert len(
+            uniqueobjs
+        ) == self.num_unique, "The uniqueobjs must have %d elements" % self.num_unique
         if self.all_unique:
             return uniqueobjs
         return [uniqueobjs[idx] for idx in self.nonunique_map_idxs]

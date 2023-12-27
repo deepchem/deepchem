@@ -138,6 +138,7 @@ try:
     from deepchem.utils.pytorch_utils import chunkify
     from deepchem.utils.pytorch_utils import get_memory
     from deepchem.utils.pytorch_utils import gaussian_integral
+    from deepchem.utils.pytorch_utils import TensorNonTensorSeparator
 
     from deepchem.utils.safeops_utils import safepow
     from deepchem.utils.safeops_utils import safenorm
