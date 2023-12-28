@@ -20,6 +20,9 @@ class PureFunction(object):
     Restore stack stores list of (objparams, identical) everytime the objparams
     are set, it will store the old objparams and indication if the old and new
     objparams are identical.
+
+    For Using this Class we first need to implement `_get_all_obj_params_init`
+    and `_set_all_obj_params`.
     """
 
     def __init__(self, fcntocall: Callable):
