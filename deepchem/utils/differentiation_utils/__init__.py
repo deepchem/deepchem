@@ -18,5 +18,7 @@ try:
     from deepchem.utils.differentiation_utils.linop import AdjointLinearOperator
     from deepchem.utils.differentiation_utils.linop import MatmulLinearOperator
     from deepchem.utils.differentiation_utils.linop import MatrixLinearOperator
+
+    from deepchem.utils.differentiation_utils.pure_function import PureFunction
 except:
     pass
