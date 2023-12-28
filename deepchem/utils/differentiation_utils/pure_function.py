@@ -16,36 +16,91 @@ class PureFunction(object):
     function to take inputs of the original inputs (`params`) and the object's
     states (`objparams`).
     For functions, this class only acts as a thin wrapper.
+    
+    Restore stack stores list of (objparams, identical) everytime the objparams
+    are set, it will store the old objparams and indication if the old and new
+    objparams are identical.
     """
 
     def __init__(self, fcntocall: Callable):
+        """Initialize the PureFunction.
+
+        Parameters
+        ----------
+        fcntocall: Callable
+            The function to be wrapped
+
+        """
         self._state_change_allowed = True
         self._allobjparams = self._get_all_obj_params_init()
         self._uniq = Uniquifier(self._allobjparams)
         self._cur_objparams = self._uniq.get_unique_objs()
         self._fcntocall = fcntocall
-
-        # restore stack stores list of (objparams, identical)
-        # everytime the objparams are set, it will store the old objparams
-        # and indication if the old and new objparams are identical
         self._restore_stack: List[Tuple[List, bool]] = []
 
     def __call__(self, *params):
+        """Call the wrapped function with the current object parameters and
+        the input parameters.
+
+        Parameters
+        ----------
+        params: tuple
+            The input parameters of the wrapped function
+
+        Returns
+        -------
+        Any
+            The output of the wrapped function
+
+        """
         return self._fcntocall(*params)
 
     @abstractmethod
-    def _get_all_obj_params_init(self):
+    def _get_all_obj_params_init(self) -> List:
+        """Get the initial object parameters.
+
+        Returns
+        -------
+        List
+            The initial object parameters
+
+        """
         pass
 
     @abstractmethod
-    def _set_all_obj_params(self, allobjparams):
+    def _set_all_obj_params(self, allobjparams: List):
+        """Set the object parameters.
+
+        Parameters
+        ----------
+        allobjparams: List
+            The object parameters to be set
+
+        """
         pass
 
     def objparams(self) -> List:
+        """Get the current object parameters.
+
+        Returns
+        -------
+        List
+            The current object parameters
+
+        """
         return self._cur_objparams
 
     def set_objparams(self, objparams: List):
-        # TODO: check if identical with current object parameters
+        """Set the object parameters.
+
+        Parameters
+        ----------
+        objparams: List
+            The object parameters to be set
+
+        TODO: check if identical with current object parameters
+
+        """
         identical = _check_identical_objs(objparams, self._cur_objparams)
         self._restore_stack.append((self._cur_objparams, identical))
         if not identical:
@@ -54,6 +109,7 @@ class PureFunction(object):
             self._cur_objparams = list(objparams)
 
     def restore_objparams(self):
+        """Restore the object parameters to the previous state."""
         old_objparams, identical = self._restore_stack.pop(-1)
         if not identical:
             allobjparams = self._uniq.map_unique_objs(old_objparams)
@@ -62,6 +118,14 @@ class PureFunction(object):
 
     @contextmanager
     def useobjparams(self, objparams: List):
+        """Context manager to temporarily set the object parameters.
+
+        Parameters
+        ----------
+        objparams: List
+            The object parameters to be set temporarily
+
+        """
         if not self._state_change_allowed:
             raise RuntimeError("The state change is disabled")
         try:
@@ -72,6 +136,7 @@ class PureFunction(object):
 
     @contextmanager
     def disable_state_change(self):
+        """Context manager to temporarily disable the state change."""
         try:
             prev_status = self._state_change_allowed
             self._state_change_allowed = False
@@ -80,10 +145,10 @@ class PureFunction(object):
             self._state_change_allowed = prev_status
 
 class FunctionPureFunction(PureFunction):
-    def _get_all_obj_params_init(self):
+    def _get_all_obj_params_init(self) -> List:
         return []
 
-    def _set_all_obj_params(self, objparams):
+    def _set_all_obj_params(self, objparams: List):
         pass
 
 class EditableModulePureFunction(PureFunction):
