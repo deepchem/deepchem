@@ -48,23 +48,29 @@ def shape2str(shape):
 
 # Warnings
 class UnimplementedError(Exception):
+    """
+    Raised if a method is not implemented.
+    """
     pass
 
 
 class GetSetParamsError(Exception):
+    """
+    Raised if there is an error in getting or setting parameters.
+    """
     pass
 
 
 class ConvergenceWarning(Warning):
     """
-    Warning to be raised if the convergence of an algorithm is not achieved
+    Warning to be raised if the convergence of an algorithm is not achieved.
     """
     pass
 
 
 class MathWarning(Warning):
     """
-    Raised if there are mathematical conditions that are not satisfied
+    Raised if there are mathematical conditions that are not satisfied.
     """
     pass
 
