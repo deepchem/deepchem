@@ -1,7 +1,7 @@
 import torch
 import inspect
 from typing import Callable, List, Tuple, Union, Sequence
-from deepchem.utils import set_attr, del_attr
+from deepchem.utils.attribute_utils import set_attr, del_attr
 from deepchem.utils.differentiation_utils import EditableModule
 from deepchem.utils.misc_utils import Uniquifier
 from contextlib import contextmanager
