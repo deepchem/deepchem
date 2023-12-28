@@ -411,6 +411,8 @@ Pytorch Utilities
 
 .. autofunction:: deepchem.utils.pytorch_utils.gaussian_integral
 
+.. autofunction:: deepchem.utils.pytorch_utils.TensorNonTensorSeparator
+
 Batch Utilities
 ---------------
 
@@ -465,6 +467,21 @@ Initial usecases are for improving the printing format of __repr__.
 .. autofunction:: deepchem.utils.misc_utils.indent
 
 .. autofunction:: deepchem.utils.misc_utils.shape2str
+
+.. autoclass:: deepchem.utils.attribute_utils.UnimplementedError
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.GetSetParamsError
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.ConvergenceWarning
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.MathWarning
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.Uniquifier
+  :members:
 
 SafeOperations Utilities
 ------------------------
