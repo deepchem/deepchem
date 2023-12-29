@@ -47,14 +47,14 @@ class TestSAMLoader(unittest.TestCase):
         """
         Tests SAMFeaturizer.
         """
-        sam_featurizer = dc.data.SAMFeaturizer(max_records=5)
+        sam_featurizer = dc.feat.SAMFeaturizer(max_records=5)
         sam_file_path = os.path.join(self.current_dir, "example.sam")
         samfile = pysam.AlignmentFile(sam_file_path, "r")
-        features = sam_featurizer.get_features(samfile)
+        dataset = sam_featurizer.get_features(samfile)
 
         # Perform assertions based on the expected structure of your features
         # For example, check the shape of the features array
-        assert dataset.X.shape == (5, 7)
+        assert dataset.shape == (5, 7)
         # Add more assertions based on your specific use case
 
 

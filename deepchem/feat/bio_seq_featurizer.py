@@ -45,5 +45,6 @@ class SAMFeaturizer:
                 break
 
         samfile.close()
+        print(features)
 
-        return np.array(features)
+        return np.array(features, dtype="object")

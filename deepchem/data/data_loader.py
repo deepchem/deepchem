@@ -1789,7 +1789,7 @@ class SAMLoader(DataLoader):
                       UserDefinedFeaturizer):  # User defined featurizer
             self.user_specified_features = featurizer.feature_fields
         elif featurizer is None:  # Default featurizer
-            featurizer = SAMFeaturizer(max_length=None)
+            featurizer = SAMFeaturizer(max_records=None)
 
         # Set self.featurizer
         self.featurizer = featurizer
@@ -1821,7 +1821,7 @@ class SAMLoader(DataLoader):
         def shard_generator():  # TODO Enable sharding with shard size parameter
             for input_file in input_files:
                 samfile = pysam.AlignmentFile(input_file, "r")
-                X = self.featurizer().get_features(samfile)
+                X = self.featurizer.get_features(samfile)
                 ids = np.ones(len(X))
                 # (X, y, w, ids)
                 yield X, None, None, ids

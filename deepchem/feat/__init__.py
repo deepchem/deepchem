@@ -86,4 +86,4 @@ from deepchem.feat.vocabulary_builders import HuggingFaceVocabularyBuilder
 # support classes
 from deepchem.feat.molecule_featurizers import GraphMatrix
 
-from deepchem.feat.bio_seq_featurizers import SAMFeaturizer
+from deepchem.feat.bio_seq_featurizer import SAMFeaturizer
