@@ -1,6 +1,6 @@
 import functools
-from deepchem.utils.differentiation_utils import LinearOperator, get_bcasted_dims, \
-    tallqr, to_fortran_order
+from deepchem.utils.differentiation_utils import LinearOperator, get_bcasted_dims
+from deepchem.utils.pytorch_utils import tallqr, to_fortran_order
 from typing import Optional, Sequence, Tuple, Union
 import torch
 
