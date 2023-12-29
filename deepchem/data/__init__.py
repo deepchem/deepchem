@@ -22,3 +22,4 @@ from deepchem.data.data_loader import FASTALoader
 from deepchem.data.data_loader import ImageLoader
 from deepchem.data.data_loader import InMemoryLoader
 from deepchem.data.data_loader import SAMLoader
+from deepchem.data.data_loader import BAMLoader
