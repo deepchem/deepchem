@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.distributed as dist
 
 from deepchem.data.datasets import NumpyDataset, DiskDataset, ImageDataset
 from typing import Optional
@@ -87,16 +88,25 @@ class _TorchDiskDataset(torch.utils.data.IterableDataset):  # type: ignore
         self.deterministic = deterministic
         self.batch_size = batch_size
 
+    def __len__(self):
+        return len(self.disk_dataset)
+
     def __iter__(self):
         worker_info = torch.utils.data.get_worker_info()
         n_shards = self.disk_dataset.get_number_shards()
         if worker_info is None:
-            first_shard = 0
-            last_shard = n_shards
+            process_id = 0
+            num_processes = 1
         else:
-            first_shard = worker_info.id * n_shards // worker_info.num_workers
-            last_shard = (worker_info.id +
-                          1) * n_shards // worker_info.num_workers
+            process_id = worker_info.id
+            num_processes = worker_info.num_workers
+
+        if dist.is_initialized():
+            process_id += dist.get_rank() * num_processes
+            num_processes *= dist.get_world_size()
+
+        first_shard = (process_id * n_shards) // num_processes
+        last_shard = ((process_id + 1) * n_shards) // num_processes
         if first_shard == last_shard:
             return
 

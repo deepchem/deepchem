@@ -70,3 +70,22 @@ def test_get_memory():
     """Test get_memory utility."""
     data = torch.rand(100, 100, dtype=torch.float64)
     assert dc.utils.pytorch_utils.get_memory(data) == 100 * 100 * 8
+
+
+@pytest.mark.torch
+def test_gaussian_integral():
+    """Test the gaussian integral utility."""
+    assert dc.utils.pytorch_utils.gaussian_integral(5, 1.0) == 1.0
+
+
+@pytest.mark.torch
+def test_TensorNonTensorSeparator():
+    """Test the TensorNonTensorSeparator utility."""
+    a = torch.tensor([1., 2, 3])
+    b = 4.
+    c = torch.tensor([5., 6, 7], requires_grad=True)
+    params = [a, b, c]
+    separator = dc.utils.pytorch_utils.TensorNonTensorSeparator(params)
+    tensor_params = separator.get_tensor_params()
+    torch.allclose(tensor_params[0],
+                   torch.tensor([5., 6., 7.], requires_grad=True))

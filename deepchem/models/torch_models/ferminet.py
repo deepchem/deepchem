@@ -139,7 +139,8 @@ class Ferminet(torch.nn.Module):
             (one_electron_vector, one_electron_distance.unsqueeze(-1)), dim=3)
         one_electron = torch.reshape(one_electron.permute(0, 2, 1, 3),
                                      (self.batch_size, self.total_electron, -1))
-        one_electron_vector_permuted = one_electron_vector.permute(0, 2, 1, 3)
+        one_electron_vector_permuted = one_electron_vector.permute(0, 2, 1,
+                                                                   3).float()
 
         one_electron, _ = self.ferminet_layer[0].forward(
             one_electron.to(torch.float32), two_electron.to(torch.float32))

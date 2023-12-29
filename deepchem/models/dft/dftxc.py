@@ -21,15 +21,15 @@ class DFTXC(torch.nn.Module):
     >>> e_type = 'ie'
     >>> true_val= '0.53411947056'
     >>> systems = [{'moldesc': 'N 0 0 0',
-    >>>       'basis': '6-311++G(3df,3pd)',
-    >>>        'spin': '3'},
-    >>>       {'moldesc': 'N 0 0 0',
-    >>>       'basis': '6-311++G(3df,3pd)',
-    >>>       'charge': 1,
-    >>>        'spin': '2'}]
+    ...       'basis': '6-311++G(3df,3pd)',
+    ...        'spin': '3'},
+    ...       {'moldesc': 'N 0 0 0',
+    ...       'basis': '6-311++G(3df,3pd)',
+    ...       'charge': 1,
+    ...        'spin': '2'}]
     >>> entry = DFTEntry.create(e_type, true_val, systems)
-    >>> nnmodel = _construct_nn_model(ninp=2, nhid=10, ndepths=1,modeltype=1).to(torch.double)
-    >>> model = DFTXC("lda_x")
+    >>> nnmodel = _construct_nn_model(input_size=2, hidden_size=10, n_layers=1,modeltype=1).to(torch.double)
+    >>> model = DFTXC("lda_x", nnmodel)
     >>> output = model([entry])
 
     """
@@ -99,6 +99,7 @@ class XCModel(TorchModel):
     >>> data = DFTYamlLoader()
     >>> dataset = data.create_dataset(inputs)
     >>> dataset.get_shape()
+    ((2,), (2,), (2,), (2,))
     >>> model = XCModel("lda_x", batch_size=1)
     >>> loss = model.fit(dataset, nb_epoch=1, checkpoint_interval=1)
 
