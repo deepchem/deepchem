@@ -1,41 +1,98 @@
 import functools
-from deepchem.utils.differentiation_utils import LinearOperator, MatrixLinearOperator, \
-    get_and_pop_keys, dummy_context_manager, get_method, get_bcasted_dims, tallqr, \
-    to_fortran_order, assert_runtime
-from typing import Optional, Sequence, Tuple, Union, Callable, Any, Mapping
+from deepchem.utils.differentiation_utils import LinearOperator, get_bcasted_dims, \
+    tallqr, to_fortran_order
+from typing import Optional, Sequence, Tuple, Union
 import torch
-from deepchem.utils.misc_utils import set_default_option
-import warnings
 
 
-def custom_exacteig(A, neig, mode, M=None, **options):
+def custom_exacteig(A: LinearOperator,
+                    neig: int,
+                    mode: str,
+                    M: Optional[LinearOperator] = None,
+                    **options):
+    """Customized exact eigendecomposition method.
+
+    Parameters
+    ----------
+    A: LinearOperator
+        The linear operator to be diagonalized. It should be Hermitian.
+    neig: int
+        Number of eigenvalues and eigenvectors to be calculated.
+    mode: str
+        Mode of the eigenvalues to be calculated (``"lowest"``, ``"uppest"``)
+    M: Optional[LinearOperator]
+        The overlap matrix. If None, identity matrix is used.
+    **options: dict
+        Additional options for the eigendecomposition method.
+
+    Returns
+    -------
+    evals: torch.Tensor
+        Eigenvalues of the linear operator.
+    evecs: torch.Tensor
+        Eigenvectors of the linear operator.
+
+    """
     return _exacteig(A, neig, mode, M)
 
 
 def _check_degen(evals: torch.Tensor, degen_atol: float, degen_rtol: float) -> \
         Tuple[torch.Tensor, bool]:
-    # evals: (*BAM, neig)
+    """Check whether there are degeneracies in the eigenvalues.
 
-    # get the index of degeneracies
+    Parameters
+    ----------
+    evals: torch.Tensor 
+        Eigenvalues of the linear operator.
+    degen_atol: float
+        Absolute tolerance for degeneracy.
+    degen_rtol: float
+        Relative tolerance for degeneracy.
+
+    Returns
+    -------
+    idx_degen: torch.Tensor
+        Index of degeneracies.
+    isdegenerate: bool
+        Whether there are degeneracies.
+
+    """
     neig = evals.shape[-1]
-    evals_diff = torch.abs(evals.unsqueeze(-2) - evals.unsqueeze(-1))  # (*BAM, neig, neig)
+    evals_diff = torch.abs(evals.unsqueeze(-2) -
+                           evals.unsqueeze(-1))  # (*BAM, neig, neig)
     degen_thrsh = degen_atol + degen_rtol * torch.abs(evals).unsqueeze(-1)
     idx_degen = (evals_diff < degen_thrsh).to(evals.dtype)
     isdegenerate = bool(torch.sum(idx_degen) > torch.numel(evals))
     return idx_degen, isdegenerate
 
-def _ortho(A: torch.Tensor, B: torch.Tensor, *,
+
+def _ortho(A: torch.Tensor,
+           B: torch.Tensor,
+           *,
            D: Optional[torch.Tensor] = None,
            M: Optional[LinearOperator] = None,
            mright: bool = False) -> torch.Tensor:
-    # orthogonalize every column in A w.r.t. columns in B
-    # D is the degeneracy map, if None, it is identity matrix
-    # M is the overlap matrix (in LinearOperator)
-    # mright indicates whether to operate M at the right or at the left
+    """Orthogonalize A w.r.t. B.
 
-    # shapes:
-    # A: (*BAM, na, neig)
-    # B: (*BAM, na, neig)
+    Parameters
+    ----------
+    A: torch.Tensor
+        First tensor. Shape: (*BAM, na, neig)
+    B: torch.Tensor
+        Second tensor. Shape: (*BAM, na, neig)
+    D: Optional[torch.Tensor]
+        Degeneracy map. If None, it is identity matrix.
+    M: Optional[LinearOperator]
+        The overlap matrix. If None, identity matrix is used.
+    mright: bool
+        Whether to operate M at the right or at the left.
+
+    Returns
+    -------
+    torch.Tensor
+        The Orthogonalized A.
+
+    """
     if D is None:
         # contracted using opt_einsum
         str1 = "...rc,...rc->...c"
@@ -59,16 +116,35 @@ def _ortho(A: torch.Tensor, B: torch.Tensor, *,
             return A - M.mm(torch.matmul(B, DBHA))
 
 
-def _exacteig(A: LinearOperator, neig: int,
-             mode: str, M: Optional[LinearOperator]) -> Tuple[torch.Tensor, torch.Tensor]:
+def _exacteig(A: LinearOperator, neig: int, mode: str,
+              M: Optional[LinearOperator]) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Eigendecomposition using explicit matrix construction.
     No additional option for this method.
+
+    Parameters
+    ----------
+    A: LinearOperator
+        The linear operator to be diagonalized. It should be Hermitian.
+    neig: int
+        Number of eigenvalues and eigenvectors to be calculated.
+    mode: str
+        Mode of the eigenvalues to be calculated (``"lowest"``, ``"uppest"``)
+    M: Optional[LinearOperator]
+        The overlap matrix. If None, identity matrix is used.
+
+    Returns
+    -------
+    evals: torch.Tensor
+        Eigenvalues of the linear operator.
+    evecs: torch.Tensor
+        Eigenvectors of the linear operator.
 
     Warnings
     --------
     * As this method construct the linear operators explicitly, it might requires
       a large memory.
+
     """
     Amatrix = A.fullmatrix()  # (*BA, q, q)
     if M is None:
@@ -90,22 +166,56 @@ def _exacteig(A: LinearOperator, neig: int,
         # (the eigvecs are normalized in M-space)
         # evals, evecs = torch.linalg.eigh(A2, eigenvectors=True)  # (*BAM, q, q)
         evals, evecs = _degen_symeig.apply(A2)  # (*BAM, q, q)
-        evals, evecs = _take_eigpairs(evals, evecs, neig, mode)  # (*BAM, neig) and (*BAM, q, neig)
+        evals, evecs = _take_eigpairs(evals, evecs, neig,
+                                      mode)  # (*BAM, neig) and (*BAM, q, neig)
         evecs = torch.matmul(LinvT, evecs)
         return evals, evecs
 
-# temporary solution to https://github.com/pytorch/pytorch/issues/47599
+
 class _degen_symeig(torch.autograd.Function):
+    """temporary solution to 1. https://github.com/pytorch/pytorch/issues/47599
+    2. https://github.com/pytorch/pytorch/issues/57272
+
+    Grad on torch.symeig gives the wrong value if there are repeated eigenvalues
+    (degeneracy exists), even though the grad should be finite.
+
+    """
+
     @staticmethod
     def forward(ctx, A):
+        """Calculate the eigenvalues and eigenvectors of a Hermitian matrix.
+
+        Parameters
+        ----------
+        A: torch.Tensor
+            The matrix to be diagonalized. It should be Hermitian.
+
+        Returns
+        -------
+        eival: torch.Tensor
+            Eigenvalues of the matrix.
+        eivec: torch.Tensor
+            Eigenvectors of the matrix.
+
+        """
         eival, eivec = torch.linalg.eigh(A)
         ctx.save_for_backward(eival, eivec)
         return eival, eivec
 
     @staticmethod
     def backward(ctx, grad_eival, grad_eivec):
+        """Calculate the gradient of the eigenvalues and eigenvectors of a Hermitian matrix.
+
+        Parameters
+        ----------
+        grad_eival: torch.Tensor
+            Gradient of the eigenvalues.
+        grad_eivec: torch.Tensor
+            Gradient of the eigenvectors.
+
+        """
         eival, eivec = ctx.saved_tensors
-        min_threshold = torch.finfo(eival.dtype).eps ** 0.6
+        min_threshold = torch.finfo(eival.dtype).eps**0.6
         eivect = eivec.transpose(-2, -1).conj()
 
         # remove the degenerate part
@@ -130,21 +240,31 @@ class _degen_symeig(torch.autograd.Function):
         result = (result + result.transpose(-2, -1).conj()) * 0.5
         return result
 
-def _davidson(A: LinearOperator, neig: int,
-             mode: str,
-             M: Optional[LinearOperator] = None,
-             max_niter: int = 1000,
-             nguess: Optional[int] = None,
-             v_init: str = "randn",
-             max_addition: Optional[int] = None,
-             min_eps: float = 1e-6,
-             verbose: bool = False,
-             **unused) -> Tuple[torch.Tensor, torch.Tensor]:
+
+def _davidson(A: LinearOperator,
+              neig: int,
+              mode: str,
+              M: Optional[LinearOperator] = None,
+              max_niter: int = 1000,
+              nguess: Optional[int] = None,
+              v_init: str = "randn",
+              max_addition: Optional[int] = None,
+              min_eps: float = 1e-6,
+              verbose: bool = False,
+              **unused) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Using Davidson method for large sparse matrix eigendecomposition [2]_.
 
     Arguments
     ---------
+    A: LinearOperator
+        The linear operator to be diagonalized. It should be Hermitian.
+    neig: int
+        Number of eigenvalues and eigenvectors to be calculated.
+    mode: str
+        Mode of the eigenvalues to be calculated (``"lowest"``, ``"uppest"``)
+    M: Optional[LinearOperator]
+        The overlap matrix. If None, identity matrix is used.
     max_niter: int
         Maximum number of iterations
     v_init: str
@@ -161,6 +281,7 @@ def _davidson(A: LinearOperator, neig: int,
     ----------
     .. [2] P. Arbenz, "Lecture Notes on Solving Large Scale Eigenvalue Problems"
            http://people.inf.ethz.ch/arbenz/ewp/Lnotes/chapter12.pdf
+
     """
     # TODO: optimize for large linear operator and strict min_eps
     # Ideas:
@@ -188,8 +309,12 @@ def _davidson(A: LinearOperator, neig: int,
     idx = torch.arange(neig).unsqueeze(-1)  # (neig, 1)
 
     # set up the initial guess
-    V = _set_initial_v(v_init.lower(), dtype, device,
-                       bcast_dims, na, nguess,
+    V = _set_initial_v(v_init.lower(),
+                       dtype,
+                       device,
+                       bcast_dims,
+                       na,
+                       nguess,
                        M=M)  # (*BAM, na, nguess)
 
     best_resid: Union[float, torch.Tensor] = float("inf")
@@ -205,7 +330,9 @@ def _davidson(A: LinearOperator, neig: int,
         # eigvals are sorted from the lowest
         # eval: (*BAM, nguess), evec: (*BAM, nguess, nguess)
         eigvalT, eigvecT = torch.linalg.eigh(T)
-        eigvalT, eigvecT = _take_eigpairs(eigvalT, eigvecT, neig, mode)  # (*BAM, neig) and (*BAM, nguess, neig)
+        eigvalT, eigvecT = _take_eigpairs(
+            eigvalT, eigvecT, neig,
+            mode)  # (*BAM, neig) and (*BAM, nguess, neig)
 
         # calculate the eigenvectors of A
         eigvecA = torch.matmul(V, eigvecT)  # (*BAM, na, neig)
@@ -259,18 +386,46 @@ def _davidson(A: LinearOperator, neig: int,
     eigvecs = best_eigvecs  # (*BAM, na, neig)
     return eigvals, eigvecs
 
+
 def _set_initial_v(vinit_type: str,
-                   dtype: torch.dtype, device: torch.device,
+                   dtype: torch.dtype,
+                   device: torch.device,
                    batch_dims: Sequence,
                    na: int,
                    nguess: int,
                    M: Optional[LinearOperator] = None) -> torch.Tensor:
+    """Set the initial guess for the eigenvectors.
+
+    Parameters
+    ----------
+    vinit_type: str
+        Mode of the initial guess (``"randn"``, ``"rand"``, ``"eye"``)
+    dtype: torch.dtype
+        Data type of the initial guess.
+    device: torch.device
+        Device of the initial guess.
+    batch_dims: Sequence
+        Batch dimensions of the initial guess.
+    na: int
+        Number of basis functions.
+    nguess: int
+        Number of initial guesses.
+    M: Optional[LinearOperator]
+        The overlap matrix. If None, identity matrix is used.
+
+    Returns
+    -------
+    V: torch.Tensor
+        Initial guess for the eigenvectors.
+
+    """
 
     torch.manual_seed(12421)
     if vinit_type == "eye":
         nbatch = functools.reduce(lambda x, y: x * y, batch_dims, 1)
-        V = torch.eye(na, nguess, dtype=dtype, device=device).unsqueeze(
-            0).repeat(nbatch, 1, 1).reshape(*batch_dims, na, nguess)
+        V = torch.eye(na, nguess, dtype=dtype,
+                      device=device).unsqueeze(0).repeat(nbatch, 1, 1).reshape(
+                          *batch_dims, na, nguess)
     elif vinit_type == "randn":
         V = torch.randn((*batch_dims, na, nguess), dtype=dtype, device=device)
     elif vinit_type == "random" or vinit_type == "rand":
@@ -285,13 +440,36 @@ def _set_initial_v(vinit_type: str,
         V, R = tallqr(V)
     return V
 
-def _take_eigpairs(eival, eivec, neig, mode):
+
+def _take_eigpairs(eival: torch.Tensor, eivec: torch.Tensor, neig: int,
+                   mode: str):
+    """Take the eigenpairs from the eigendecomposition.
+
+    Parameters
+    ----------
+    eival: torch.Tensor
+        Eigenvalues of the linear operator.
+    eivec: torch.Tensor
+        Eigenvectors of the linear operator.
+    neig: int
+        Number of eigenvalues and eigenvectors to be calculated.
+    mode: str
+        Mode of the eigenvalues to be calculated (``"lowest"``, ``"uppest"``)
+
+    Returns
+    -------
+    eival: torch.Tensor
+        Eigenvalues of the linear operator.
+    eivec: torch.Tensor
+        Eigenvectors of the linear operator.
+
+    """
     # eival: (*BV, na)
     # eivec: (*BV, na, na)
     if mode == "lowest":
         eival = eival[..., :neig]
         eivec = eivec[..., :neig]
-    else:  # uppest
+    else:
         eival = eival[..., -neig:]
         eivec = eivec[..., -neig:]
     return eival, eivec
