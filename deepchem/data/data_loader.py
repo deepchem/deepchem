@@ -25,6 +25,7 @@ from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 from deepchem.utils.genomics_utils import encode_bio_sequence
 from deepchem.feat import SAMFeaturizer
 from deepchem.feat import BAMFeaturizer
+from deepchem.feat import CRAMFeaturizer
 
 try:
     from deepchem.feat.dft_data import DFTEntry
@@ -1994,6 +1995,72 @@ class BAMLoader(DataLoader):
             for input_file in input_files:
                 bamfile = pysam.AlignmentFile(input_file, "rb")
                 X = self.featurizer.get_features(bamfile)
+                ids = np.ones(len(X))
+                # (X, y, w, ids)
+                yield X, None, None, ids
+
+        return DiskDataset.create_dataset(shard_generator(), data_dir)
+
+class CRAMLoader(DataLoader):
+    """Handles loading of BAM files.
+    
+    Sequence Alignment Map (SAM) is a text-based format used to store 
+    biological sequences aligned to a reference sequence. This
+    class provides convenience files to lead SAM data and
+    extract their features for use in downstream
+    learning tasks.
+    """
+
+    def __init__(self, featurizer: Optional[Featurizer] = None):
+        """Initialize BAMLoader.
+        
+        Parameters
+        ----------
+        featurizer: Featurizer (default: None)
+            The Featurizer to be used for the loaded BAM data.
+       """
+
+        # Set attributes
+        self.user_specified_features = None
+
+        # Handle special featurizer cases
+        if isinstance(featurizer,
+                      UserDefinedFeaturizer):  # User defined featurizer
+            self.user_specified_features = featurizer.feature_fields
+        elif featurizer is None:  # Default featurizer
+            featurizer = CRAMFeaturizer(max_records=None)
+
+        # Set self.featurizer
+        self.featurizer = featurizer
+
+    def create_dataset(self,
+                       input_files: OneOrMany[str],
+                       data_dir: Optional[str] = None,
+                       shard_size: Optional[int] = None) -> DiskDataset:
+        """Creates a `Dataset` from input BAM files.
+
+        Parameters
+        ----------
+        input_files: List[str]
+            List of SAM files.
+        data_dir: str, optional (default None)
+            Name of directory where featurized data is stored.
+        shard_size: int, optional (default None)
+            For now, this argument is ignored and each SAM file gets its
+            own shard.
+        Returns
+        -------
+        DiskDataset
+            A `DiskDataset` object containing a featurized representation of data
+            from `input_files`.
+        """
+        if isinstance(input_files, str):
+            input_files = [input_files]
+
+        def shard_generator():  # TODO Enable sharding with shard size parameter
+            for input_file in input_files:
+                cramfile = pysam.AlignmentFile(input_file, "rc")
+                X = self.featurizer.get_features(cramfile)
                 ids = np.ones(len(X))
                 # (X, y, w, ids)
                 yield X, None, None, ids
