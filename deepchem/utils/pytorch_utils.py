@@ -349,6 +349,19 @@ class TensorNonTensorSeparator(object):
 def tallqr(V, MV=None):
     """QR decomposition for tall and skinny matrix.
 
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.pytorch_utils import tallqr
+    >>> V = torch.randn(3, 2)
+    >>> Q, R = tallqr(V)
+    >>> Q.shape
+    torch.Size([3, 2])
+    >>> R.shape
+    torch.Size([2, 2])
+    >>> torch.allclose(Q @ R, V)
+    True
+
     Parameters
     ----------
     V: torch.Tensor
@@ -377,6 +390,27 @@ def tallqr(V, MV=None):
 def to_fortran_order(V):
     """Convert a tensor to Fortran order. (The last two dimensions are made Fortran order.)
     And return a contiguous tensor.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.pytorch_utils import to_fortran_order
+    >>> V = torch.randn(3, 2)
+    >>> V.is_contiguous()
+    True
+    >>> V = to_fortran_order(V)
+    >>> V.is_contiguous()
+    False
+    >>> V.shape
+    torch.Size([3, 2])
+    >>> V = torch.randn(3, 2).transpose(-2, -1)
+    >>> V.is_contiguous()
+    False
+    >>> V = to_fortran_order(V)
+    >>> V.is_contiguous()
+    False
+    >>> V.shape
+    torch.Size([2, 3])
 
     Parameters
     ----------
