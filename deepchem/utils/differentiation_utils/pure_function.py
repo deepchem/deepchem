@@ -23,6 +23,7 @@ class PureFunction(object):
 
     For Using this Class we first need to implement `_get_all_obj_params_init`
     and `_set_all_obj_params`.
+
     """
 
     def __init__(self, fcntocall: Callable):
@@ -148,32 +149,97 @@ class PureFunction(object):
             self._state_change_allowed = prev_status
 
 class FunctionPureFunction(PureFunction):
+    """Implementation of PureFunction for functions.
+    It just acts as a thin wrapper for the function.
+
+    """
     def _get_all_obj_params_init(self) -> List:
+        """Get the initial object parameters.
+
+        Returns
+        -------
+        List
+            The initial object parameters
+
+        """
         return []
 
     def _set_all_obj_params(self, objparams: List):
+        """Set the object parameters.
+
+        Parameters
+        ----------
+        objparams: List
+            The object parameters to be set
+
+        """
         pass
 
 class EditableModulePureFunction(PureFunction):
+    """Implementation of PureFunction for EditableModule."""
     def __init__(self, obj: EditableModule, method: Callable):
+        """Initialize the EditableModulePureFunction.
+
+        Parameters
+        ----------
+        obj: EditableModule
+            The object to be wrapped
+        method: Callable
+            The method to be wrapped
+
+        """
         self.obj = obj
         self.method = method
         super().__init__(method)
 
     def _get_all_obj_params_init(self) -> List:
+        """Get the initial object parameters.
+
+        Returns
+        -------
+        List
+            The initial object parameters
+
+        """
         return list(self.obj.getparams(self.method.__name__))
 
     def _set_all_obj_params(self, allobjparams: List):
+        """Set the object parameters.
+
+        Parameters
+        ----------
+        allobjparams: List
+            The object parameters to be set
+
+        """
         self.obj.setparams(self.method.__name__, *allobjparams)
 
 class TorchNNPureFunction(PureFunction):
+    """Implementation of PureFunction for torch.nn.Module."""
     def __init__(self, obj: torch.nn.Module, method: Callable):
+        """Initialize the TorchNNPureFunction.
+
+        Parameters
+        ----------
+        obj: torch.nn.Module
+            Object to be wrapped
+        method: Callable
+            Method to be wrapped
+
+        """
         self.obj = obj
         self.method = method
         super().__init__(method)
 
     def _get_all_obj_params_init(self) -> List:
-        # get the tensors in the torch.nn.Module to be used as params
+        """get the tensors in the torch.nn.Module to be used as params
+
+        Returns
+        -------
+        List
+            The initial object parameters
+
+        """
         named_params = list(self.obj.named_parameters())
         if len(named_params) == 0:
             paramnames: List[str] = []
@@ -186,28 +252,98 @@ class TorchNNPureFunction(PureFunction):
         return obj_params
 
     def _set_all_obj_params(self, objparams: List):
+        """Set the object parameters.
+
+        Parameters
+        ----------
+        objparams: List
+            The object parameters to be set
+
+        """
         for (name, param) in zip(self.names, objparams):
             del_attr(self.obj, name)  # delete required in case the param is not a torch.nn.Parameter
             set_attr(self.obj, name, param)
 
 class SingleSiblingPureFunction(PureFunction):
+    """Implementation of PureFunction for a sibling method
+
+    A sibling method is a method that is virtually belong to the same object,
+    but behaves differently.
+
+    Changing the state of the decorated function will also change the state of
+    ``pfunc`` and its other siblings.
+
+    """
     def __init__(self, fcn: Callable, fcntocall: Callable):
+        """Initialize the SingleSiblingPureFunction.
+
+        Parameters
+        ----------
+        fcn: Callable
+            The sibling method to be wrapped
+        fcntocall: Callable
+            The method to be wrapped
+
+        """
         self.pfunc = get_pure_function(fcn)
         super().__init__(fcntocall)
 
     def _get_all_obj_params_init(self) -> List:
+        """Get the initial object parameters.
+
+        Returns
+        -------
+        List
+            The initial object parameters
+
+        """
         return self.pfunc._get_all_obj_params_init()
 
     def _set_all_obj_params(self, allobjparams: List):
+        """Set the object parameters.
+
+        Parameters
+        ----------
+        allobjparams: List
+            The object parameters to be set
+
+        """
         self.pfunc._set_all_obj_params(allobjparams)
 
 class MultiSiblingPureFunction(PureFunction):
+    """Implementation of PureFunction for multiple sibling methods
+
+    A sibling method is a method that is virtually belong to the same object,
+    but behaves differently.
+
+    Changing the state of the decorated function will also change the state of
+    ``pfunc`` and its other siblings.
+
+    """
     def __init__(self, fcns: Sequence[Callable], fcntocall: Callable):
+        """Initialize the MultiSiblingPureFunction.
+
+        Parameters
+        ----------
+        fcns: Sequence[Callable]
+            The sibling methods to be wrapped
+        fcntocall: Callable
+            The method to be wrapped
+
+        """
         self.pfuncs = [get_pure_function(fcn) for fcn in fcns]
         self.npfuncs = len(self.pfuncs)
         super().__init__(fcntocall)
 
     def _get_all_obj_params_init(self) -> List:
+        """Get the initial object parameters.
+
+        Returns
+        -------
+        List
+            The initial object parameters
+
+        """
         res: List[Union[torch.Tensor, torch.nn.Parameter]] = []
         self.cumsum_idx = [0] * (self.npfuncs + 1)
         for i, pfunc in enumerate(self.pfuncs):
@@ -217,21 +353,43 @@ class MultiSiblingPureFunction(PureFunction):
         return res
 
     def _set_all_obj_params(self, allobjparams: List):
+        """Set the object parameters.
+
+        Parameters
+        ----------
+        allobjparams: List
+            The object parameters to be set
+
+        """
         for i, pfunc in enumerate(self.pfuncs):
             pfunc._set_all_obj_params(allobjparams[self.cumsum_idx[i]:self.cumsum_idx[i + 1]])
 
 def _check_identical_objs(objs1: List, objs2: List) -> bool:
+    """Check if the two lists of objects are identical.
+
+    Parameters
+    ----------
+    objs1: List
+        The first list of objects
+    objs2: List
+        The second list of objects
+
+    Returns
+    -------
+    bool
+        True if the two lists of objects are identical, False otherwise
+
+    """
     for obj1, obj2 in zip(objs1, objs2):
         if id(obj1) != id(obj2):
             return False
     return True
 
 def get_pure_function(fcn) -> PureFunction:
-    """
-    Get the pure function form of the function or method ``fcn``.
+    """Get the pure function form of the function or method ``fcn``.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     fcn: function or method
         Function or method to be converted into a ``PureFunction`` by exposing
         the hidden parameters affecting its outputs.
@@ -240,6 +398,7 @@ def get_pure_function(fcn) -> PureFunction:
     -------
     PureFunction
         The pure function wrapper
+
     """
 
     errmsg = "The input function must be a function, a method of " \
@@ -278,6 +437,17 @@ def make_sibling(*pfuncs) -> Callable[[Callable], PureFunction]:
     behaves differently.
     Changing the state of the decorated function will also change the state of
     ``pfunc`` and its other siblings.
+
+    Parameters
+    ----------
+    pfuncs: List[Callable]
+        The sibling methods to be wrapped
+
+    Returns
+    -------
+    Callable[[Callable], PureFunction]
+        The decorator function
+
     """
     if len(pfuncs) == 0:
         raise TypeError("At least 1 function is required as the argument")
