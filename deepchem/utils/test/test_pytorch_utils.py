@@ -87,5 +87,25 @@ def test_TensorNonTensorSeparator():
     params = [a, b, c]
     separator = dc.utils.pytorch_utils.TensorNonTensorSeparator(params)
     tensor_params = separator.get_tensor_params()
-    torch.allclose(tensor_params[0],
-                   torch.tensor([5., 6., 7.], requires_grad=True))
+    assert torch.allclose(tensor_params[0],
+                          torch.tensor([5., 6., 7.], requires_grad=True))
+
+
+@pytest.mark.torch
+def test_tallqr():
+    V = torch.randn(3, 2)
+    Q, R = dc.utils.pytorch_utils.tallqr(V)
+    assert Q.shape == torch.Size([3, 2])
+    assert R.shape == torch.Size([2, 2])
+    assert torch.allclose(Q @ R, V)
+
+
+@pytest.mark.torch
+def test_to_fortran_order():
+    V = torch.randn(3, 2)
+    if V.is_contiguous() is False:
+        assert False
+    V = dc.utils.pytorch_utils.to_fortran_order(V)
+    if V.is_contiguous() is True:
+        assert False
+    assert V.shape == torch.Size([3, 2])

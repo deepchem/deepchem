@@ -390,7 +390,8 @@ def tallqr(V, MV=None):
 
 def to_fortran_order(V):
     """Convert a tensor to Fortran order. (The last two dimensions are made Fortran order.)
-    And return a contiguous tensor.
+    Fortran order/ array is a special case in which all elements of an array are stored in
+    column-major order.
 
     Examples
     --------
