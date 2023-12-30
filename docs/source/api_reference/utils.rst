@@ -413,6 +413,10 @@ Pytorch Utilities
 
 .. autofunction:: deepchem.utils.pytorch_utils.TensorNonTensorSeparator
 
+.. autofunction:: deepchem.utils.pytorch_utils.tallqr
+
+.. autofunction:: deepchem.utils.pytorch_utils.to_fortran_order
+
 Batch Utilities
 ---------------
 
