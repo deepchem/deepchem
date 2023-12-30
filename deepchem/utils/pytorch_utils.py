@@ -381,7 +381,8 @@ def tallqr(V, MV=None):
     if MV is None:
         MV = V
     VTV = torch.matmul(V.transpose(-2, -1), MV)  # (*BMV, nguess, nguess)
-    R = torch.linalg.cholesky(VTV.transpose(-2, -1).conj()).transpose(-2, -1).conj()  # (*BMV, nguess, nguess)
+    R = torch.linalg.cholesky(VTV.transpose(-2, -1).conj()).transpose(
+        -2, -1).conj()  # (*BMV, nguess, nguess)
     Rinv = torch.inverse(R)  # (*BMV, nguess, nguess)
     Q = torch.matmul(V, Rinv)
     return Q, R
@@ -429,4 +430,5 @@ def to_fortran_order(V):
     elif V.transpose(-2, -1).is_contiguous():
         return V
     else:
-        raise RuntimeError("Only the last two dimensions can be made Fortran order.")
+        raise RuntimeError(
+            "Only the last two dimensions can be made Fortran order.")
