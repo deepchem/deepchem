@@ -344,3 +344,55 @@ class TensorNonTensorSeparator(object):
         for idx, p in zip(self.tensor_idxs, tensor_params):
             params[idx] = p
         return params
+
+
+def tallqr(V, MV=None):
+    """QR decomposition for tall and skinny matrix.
+
+    Parameters
+    ----------
+    V: torch.Tensor
+        V is a matrix to be decomposed. (*BV, na, nguess)
+    MV: torch.Tensor
+        (*BM, na, nguess) where M is the basis to make Q M-orthogonal
+        if MV is None, then MV=V (default=None)
+
+    Returns
+    -------
+    Q: torch.Tensor
+        The Orthogonal Part. Shape: (*BV, na, nguess)
+    R: torch.Tensor
+        The (*BM, nguess, nguess) where M is the basis to make Q M-orthogonal
+
+    """
+    if MV is None:
+        MV = V
+    VTV = torch.matmul(V.transpose(-2, -1), MV)  # (*BMV, nguess, nguess)
+    R = torch.linalg.cholesky(VTV.transpose(-2, -1).conj()).transpose(-2, -1).conj()  # (*BMV, nguess, nguess)
+    Rinv = torch.inverse(R)  # (*BMV, nguess, nguess)
+    Q = torch.matmul(V, Rinv)
+    return Q, R
+
+
+def to_fortran_order(V):
+    """Convert a tensor to Fortran order. (The last two dimensions are made Fortran order.)
+    And return a contiguous tensor.
+
+    Parameters
+    ----------
+    V: torch.Tensor
+        V is a matrix to be converted. (*BV, na, nguess)
+
+    Returns
+    -------
+    outV: torch.Tensor
+        (*BV, nguess, na)
+
+    """
+    if V.is_contiguous():
+        # return V.set_(V.storage(), V.storage_offset(), V.size(), tuple(reversed(V.stride())))
+        return V.transpose(-2, -1).contiguous().transpose(-2, -1)
+    elif V.transpose(-2, -1).is_contiguous():
+        return V
+    else:
+        raise RuntimeError("Only the last two dimensions can be made Fortran order.")
