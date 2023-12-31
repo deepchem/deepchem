@@ -12,18 +12,38 @@ def _wrap_gmres(A, B, E=None, M=None, min_eps=1e-9, max_niter=None, **unused):
     """
     Using SciPy's gmres method to solve the linear equation.
 
-    Keyword arguments
-    -----------------
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.differentiation_utils import LinearOperator
+    >>> A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
+    >>> B = torch.tensor([[[5., 6], [7, 8]]])
+    >>> _wrap_gmres(A, B, None, None)
+    tensor([[[-3.0000, -4.0000],
+             [ 4.0000,  5.0000]]])
+
+    Parameters
+    ----------
+    A: LinearOperator
+        The linear operator A to be solved. Shape: (*BA, na, na)
+    B: torch.Tensor
+        Batched matrix B. Shape: (*BB, na, ncols)
+    E: torch.Tensor or None
+        Batched vector E. Shape: (*BE, ncols)
+    M: LinearOperator or None
+        The linear operator M. Shape: (*BM, na, na)
     min_eps: float
         Relative tolerance for stopping conditions
     max_niter: int or None
         Maximum number of iterations. If ``None``, default to twice of the
         number of columns of ``A``.
+
+    Returns
+    -------
+    torch.Tensor
+        The Solution matrix X. Shape: (*BBE, na, ncols)
+
     """
-    # A: (*BA, nr, nr)
-    # B: (*BB, nr, ncols)
-    # E: (*BE, ncols) or None
-    # M: (*BM, nr, nr) or None
 
     # NOTE: currently only works for batched B (1 batch dim), but unbatched A
     assert len(A.shape) == 2 and len(
@@ -72,36 +92,69 @@ def _exactsolve(A: LinearOperator, B: torch.Tensor,
     """
     Solve the linear equation by contructing the full matrix of LinearOperators.
 
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.differentiation_utils import LinearOperator
+    >>> A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
+    >>> B = torch.tensor([[5., 6], [7, 8]])
+    >>> _exactsolve(A, B, None, None)
+    tensor([[-3., -4.],
+            [ 4.,  5.]])
+
+    Parameters
+    ----------
+    A: LinearOperator
+        The linear operator A to be solved. Shape: (*BA, na, na)
+    B: torch.Tensor
+        Batched matrix B. Shape: (*BB, na, ncols)
+    E: torch.Tensor or None
+        Batched vector E. Shape: (*BE, ncols)
+    M: LinearOperator or None
+        The linear operator M. Shape: (*BM, na, na)
+
+    Returns
+    -------
+    torch.Tensor
+        The Solution matrix X. Shape: (*BBE, na, ncols)
+
     Warnings
     --------
     * As this method construct the linear operators explicitly, it might requires
       a large memory.
+
     """
-    # A: (*BA, na, na)
-    # B: (*BB, na, ncols)
-    # E: (*BE, ncols)
-    # M: (*BM, na, na)
     if E is None:
-        Amatrix = A.fullmatrix()  # (*BA, na, na)
-        x = torch.linalg.solve(Amatrix, B)  # (*BAB, na, ncols)
+        Amatrix = A.fullmatrix()
+        x = torch.linalg.solve(Amatrix, B)
     elif M is None:
         Amatrix = A.fullmatrix()
         x = _solve_ABE(Amatrix, B, E)
     else:
-        Mmatrix = M.fullmatrix()  # (*BM, na, na)
-        L = torch.linalg.cholesky(Mmatrix)  # (*BM, na, na)
-        Linv = torch.inverse(L)  # (*BM, na, na)
-        LinvT = Linv.transpose(-2, -1).conj()  # (*BM, na, na)
-        A2 = torch.matmul(Linv, A.mm(LinvT))  # (*BAM, na, na)
-        B2 = torch.matmul(Linv, B)  # (*BBM, na, ncols)
+        Mmatrix = M.fullmatrix()
+        L = torch.linalg.cholesky(Mmatrix)
+        Linv = torch.inverse(L)
+        LinvT = Linv.transpose(-2, -1).conj()
+        A2 = torch.matmul(Linv, A.mm(LinvT))
+        B2 = torch.matmul(Linv, B)
 
-        X2 = _solve_ABE(A2, B2, E)  # (*BABEM, na, ncols)
-        x = torch.matmul(LinvT, X2)  # (*BABEM, na, ncols)
+        X2 = _solve_ABE(A2, B2, E)
+        x = torch.matmul(LinvT, X2)
     return x
 
 
 def _solve_ABE(A: torch.Tensor, B: torch.Tensor, E: torch.Tensor):
-    """
+    """ Solve the linear equation AX = B - diag(E)X.
+
+    Examples
+    --------
+    >>> import torch
+    >>> A = torch.tensor([[1., 2], [3, 4]])
+    >>> B = torch.tensor([[5., 6], [7, 8]])
+    >>> E = torch.tensor([1., 2])
+    >>> _solve_ABE(A, B, E)
+    tensor([[-0.1667,  0.5000],
+            [ 2.5000,  3.2500]])
 
     Parameters
     ----------
@@ -132,7 +185,7 @@ def _solve_ABE(A: torch.Tensor, B: torch.Tensor, E: torch.Tensor):
     return r
 
 
-def dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
+def _dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
     """Dot product of two vectors. r and z must have the same shape.
     Then sums it up across the last dimension.
 
