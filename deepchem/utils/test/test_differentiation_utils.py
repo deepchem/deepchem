@@ -537,7 +537,7 @@ def test_get_batch_dims():
     A = MatrixLinearOperator(torch.randn(4, 3, 3), True)
     B = torch.randn(3, 3, 2)
     assert get_batchdims(A, B, None,
-                          None) == [max(A.shape[:-2], B.shape[:-2])[0]]
+                         None) == [max(A.shape[:-2], B.shape[:-2])[0]]
 
 
 @pytest.mark.torch
