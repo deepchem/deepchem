@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import warnings
-from typing import Sequence, Tuple, Union, Optional, Callable
+from typing import Union, Optional, Callable
 from deepchem.utils.differentiation_utils import LinearOperator, normalize_bcast_dims, get_bcasted_dims
 from deepchem.utils import ConvergenceWarning, get_np_dtype
 from scipy.sparse.linalg import gmres as scipy_gmres
@@ -185,7 +185,6 @@ def _solve_ABE(A: torch.Tensor, B: torch.Tensor, E: torch.Tensor):
     return r
 
 
-
 # general helpers
 def _get_batchdims(A: LinearOperator, B: torch.Tensor,
                    E: Union[torch.Tensor, None], M: Union[LinearOperator,
@@ -228,7 +227,7 @@ def _get_batchdims(A: LinearOperator, B: torch.Tensor,
 
 
 def _setup_precond(
-    precond: Optional[LinearOperator] == None
+    precond: Optional[LinearOperator] = None
 ) -> Callable[[torch.Tensor], torch.Tensor]:
     """Setup the preconditioning function
 
@@ -255,9 +254,13 @@ def _setup_precond(
 
     """
     if isinstance(precond, LinearOperator):
-        precond_fcn = lambda x: precond.mm(x)
+
+        def precond_fcn(x):
+            return precond.mm(x)
     elif precond is None:
-        precond_fcn = lambda x: x
+
+        def precond_fcn(x):
+            return x
     else:
         raise TypeError("precond can only be LinearOperator or None")
     return precond_fcn
