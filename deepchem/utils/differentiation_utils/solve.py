@@ -185,6 +185,48 @@ def _solve_ABE(A: torch.Tensor, B: torch.Tensor, E: torch.Tensor):
     return r
 
 
+
+# general helpers
+def _get_batchdims(A: LinearOperator, B: torch.Tensor,
+                   E: Union[torch.Tensor, None], M: Union[LinearOperator,
+                                                          None]):
+    """Get the batch dimensions of the linear operator and the matrix B
+
+    Examples
+    --------
+    >>> from deepchem.utils.differentiation_utils import MatrixLinearOperator
+    >>> import torch
+    >>> A = MatrixLinearOperator(torch.randn(4, 3, 3), True)
+    >>> B = torch.randn(3, 3, 2)
+    >>> _get_batchdims(A, B, None, None)
+    [4]
+
+    Parameters
+    ----------
+    A: LinearOperator
+        The linear operator. It can be a batched linear operator.
+    B: torch.Tensor
+        The matrix B. It can be a batched matrix.
+    E: Union[torch.Tensor, None]
+        The matrix E. It can be a batched matrix.
+    M: Union[LinearOperator, None]
+        The linear operator M. It can be a batched linear operator.
+
+    Returns
+    -------
+    List[int]
+        The batch dimensions of the linear operator and the matrix B
+
+    """
+
+    batchdims = [A.shape[:-2], B.shape[:-2]]
+    if E is not None:
+        batchdims.append(E.shape[:-1])
+        if M is not None:
+            batchdims.append(M.shape[:-2])
+    return get_bcasted_dims(*batchdims)
+
+
 def _setup_precond(
     precond: Optional[LinearOperator] == None
 ) -> Callable[[torch.Tensor], torch.Tensor]:
