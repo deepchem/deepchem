@@ -19,6 +19,11 @@ try:
     from deepchem.utils.differentiation_utils.linop import MatmulLinearOperator
     from deepchem.utils.differentiation_utils.linop import MatrixLinearOperator
 
-    from deepchem.utils.differentiation_utils.solve import 
+    from deepchem.utils.differentiation_utils.solve import wrap_gmres
+    from deepchem.utils.differentiation_utils.solve import exactsolve
+    from deepchem.utils.differentiation_utils.solve import solve_ABE
+    from deepchem.utils.differentiation_utils.solve import get_batchdims
+    from deepchem.utils.differentiation_utils.solve import setup_precond
+    from deepchem.utils.differentiation_utils.solve import dot
 except:
     pass
