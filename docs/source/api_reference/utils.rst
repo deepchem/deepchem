@@ -382,7 +382,17 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.dummy_context_manager
 
-.. autofunction:: deepchem.utils.differentiation_utils.assert_runtime
+.. autofunction:: deepchem.utils.differentiation_utils.solve.wrap_gmres
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.exactsolve
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.solve_ABE
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.get_batchdims
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.setup_precond
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.dot
 
 Attribute Utilities
 -------------------

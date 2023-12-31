@@ -8,7 +8,7 @@ from scipy.sparse.linalg import gmres as scipy_gmres
 
 
 # Hidden
-def _wrap_gmres(A, B, E=None, M=None, min_eps=1e-9, max_niter=None, **unused):
+def wrap_gmres(A, B, E=None, M=None, min_eps=1e-9, max_niter=None, **unused):
     """
     Using SciPy's gmres method to solve the linear equation.
 
@@ -18,7 +18,7 @@ def _wrap_gmres(A, B, E=None, M=None, min_eps=1e-9, max_niter=None, **unused):
     >>> from deepchem.utils.differentiation_utils import LinearOperator
     >>> A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
     >>> B = torch.tensor([[[5., 6], [7, 8]]])
-    >>> _wrap_gmres(A, B, None, None)
+    >>> wrap_gmres(A, B, None, None)
     tensor([[[-3.0000, -4.0000],
              [ 4.0000,  5.0000]]])
 
@@ -87,7 +87,7 @@ def _wrap_gmres(A, B, E=None, M=None, min_eps=1e-9, max_niter=None, **unused):
     return res
 
 
-def _exactsolve(A: LinearOperator, B: torch.Tensor,
+def exactsolve(A: LinearOperator, B: torch.Tensor,
                 E: Union[torch.Tensor, None], M: Union[LinearOperator, None]):
     """
     Solve the linear equation by contructing the full matrix of LinearOperators.
@@ -98,7 +98,7 @@ def _exactsolve(A: LinearOperator, B: torch.Tensor,
     >>> from deepchem.utils.differentiation_utils import LinearOperator
     >>> A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
     >>> B = torch.tensor([[5., 6], [7, 8]])
-    >>> _exactsolve(A, B, None, None)
+    >>> exactsolve(A, B, None, None)
     tensor([[-3., -4.],
             [ 4.,  5.]])
 
@@ -129,7 +129,7 @@ def _exactsolve(A: LinearOperator, B: torch.Tensor,
         x = torch.linalg.solve(Amatrix, B)
     elif M is None:
         Amatrix = A.fullmatrix()
-        x = _solve_ABE(Amatrix, B, E)
+        x = solve_ABE(Amatrix, B, E)
     else:
         Mmatrix = M.fullmatrix()
         L = torch.linalg.cholesky(Mmatrix)
@@ -138,12 +138,12 @@ def _exactsolve(A: LinearOperator, B: torch.Tensor,
         A2 = torch.matmul(Linv, A.mm(LinvT))
         B2 = torch.matmul(Linv, B)
 
-        X2 = _solve_ABE(A2, B2, E)
+        X2 = solve_ABE(A2, B2, E)
         x = torch.matmul(LinvT, X2)
     return x
 
 
-def _solve_ABE(A: torch.Tensor, B: torch.Tensor, E: torch.Tensor):
+def solve_ABE(A: torch.Tensor, B: torch.Tensor, E: torch.Tensor):
     """ Solve the linear equation AX = B - diag(E)X.
 
     Examples
@@ -152,7 +152,7 @@ def _solve_ABE(A: torch.Tensor, B: torch.Tensor, E: torch.Tensor):
     >>> A = torch.tensor([[1., 2], [3, 4]])
     >>> B = torch.tensor([[5., 6], [7, 8]])
     >>> E = torch.tensor([1., 2])
-    >>> _solve_ABE(A, B, E)
+    >>> solve_ABE(A, B, E)
     tensor([[-0.1667,  0.5000],
             [ 2.5000,  3.2500]])
 
@@ -186,7 +186,7 @@ def _solve_ABE(A: torch.Tensor, B: torch.Tensor, E: torch.Tensor):
 
 
 # general helpers
-def _get_batchdims(A: LinearOperator, B: torch.Tensor,
+def get_batchdims(A: LinearOperator, B: torch.Tensor,
                    E: Union[torch.Tensor, None], M: Union[LinearOperator,
                                                           None]):
     """Get the batch dimensions of the linear operator and the matrix B
@@ -197,7 +197,7 @@ def _get_batchdims(A: LinearOperator, B: torch.Tensor,
     >>> import torch
     >>> A = MatrixLinearOperator(torch.randn(4, 3, 3), True)
     >>> B = torch.randn(3, 3, 2)
-    >>> _get_batchdims(A, B, None, None)
+    >>> get_batchdims(A, B, None, None)
     [4]
 
     Parameters
@@ -226,7 +226,7 @@ def _get_batchdims(A: LinearOperator, B: torch.Tensor,
     return get_bcasted_dims(*batchdims)
 
 
-def _setup_precond(
+def setup_precond(
     precond: Optional[LinearOperator] = None
 ) -> Callable[[torch.Tensor], torch.Tensor]:
     """Setup the preconditioning function
@@ -237,7 +237,7 @@ def _setup_precond(
     >>> import torch
     >>> A = MatrixLinearOperator(torch.randn(4, 3, 3), True)
     >>> B = torch.randn(4, 3, 2)
-    >>> cond = _setup_precond(A)
+    >>> cond = setup_precond(A)
     >>> cond(B).shape
     torch.Size([4, 3, 2])
 
@@ -266,7 +266,7 @@ def _setup_precond(
     return precond_fcn
 
 
-def _dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
+def dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
     """Dot product of two vectors. r and z must have the same shape.
     Then sums it up across the last dimension.
 
@@ -275,7 +275,7 @@ def _dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
     >>> import torch
     >>> r = torch.tensor([[1, 2], [3, 4]])
     >>> z = torch.tensor([[5, 6], [7, 8]])
-    >>> _dot(r, z)
+    >>> dot(r, z)
     tensor([[26, 44]])
 
     Parameters
