@@ -20,5 +20,7 @@ try:
     from deepchem.utils.differentiation_utils.linop import MatrixLinearOperator
 
     from deepchem.utils.differentiation_utils.pure_function import PureFunction
+    from deepchem.utils.differentiation_utils.pure_function import get_pure_function
+    from deepchem.utils.differentiation_utils.pure_function import make_sibling
 except:
     pass

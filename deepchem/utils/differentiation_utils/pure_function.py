@@ -16,7 +16,7 @@ class PureFunction(object):
     function to take inputs of the original inputs (`params`) and the object's
     states (`objparams`).
     For functions, this class only acts as a thin wrapper.
-    
+
     Restore stack stores list of (objparams, identical) everytime the objparams
     are set, it will store the old objparams and indication if the old and new
     objparams are identical.
@@ -148,11 +148,13 @@ class PureFunction(object):
         finally:
             self._state_change_allowed = prev_status
 
+
 class FunctionPureFunction(PureFunction):
     """Implementation of PureFunction for functions.
     It just acts as a thin wrapper for the function.
 
     """
+
     def _get_all_obj_params_init(self) -> List:
         """Get the initial object parameters.
 
@@ -175,8 +177,10 @@ class FunctionPureFunction(PureFunction):
         """
         pass
 
+
 class EditableModulePureFunction(PureFunction):
     """Implementation of PureFunction for EditableModule."""
+
     def __init__(self, obj: EditableModule, method: Callable):
         """Initialize the EditableModulePureFunction.
 
@@ -214,8 +218,10 @@ class EditableModulePureFunction(PureFunction):
         """
         self.obj.setparams(self.method.__name__, *allobjparams)
 
+
 class TorchNNPureFunction(PureFunction):
     """Implementation of PureFunction for torch.nn.Module."""
+
     def __init__(self, obj: torch.nn.Module, method: Callable):
         """Initialize the TorchNNPureFunction.
 
@@ -261,8 +267,11 @@ class TorchNNPureFunction(PureFunction):
 
         """
         for (name, param) in zip(self.names, objparams):
-            del_attr(self.obj, name)  # delete required in case the param is not a torch.nn.Parameter
+            del_attr(
+                self.obj, name
+            )  # delete required in case the param is not a torch.nn.Parameter
             set_attr(self.obj, name, param)
+
 
 class SingleSiblingPureFunction(PureFunction):
     """Implementation of PureFunction for a sibling method
@@ -274,6 +283,7 @@ class SingleSiblingPureFunction(PureFunction):
     ``pfunc`` and its other siblings.
 
     """
+
     def __init__(self, fcn: Callable, fcntocall: Callable):
         """Initialize the SingleSiblingPureFunction.
 
@@ -310,6 +320,7 @@ class SingleSiblingPureFunction(PureFunction):
         """
         self.pfunc._set_all_obj_params(allobjparams)
 
+
 class MultiSiblingPureFunction(PureFunction):
     """Implementation of PureFunction for multiple sibling methods
 
@@ -320,6 +331,7 @@ class MultiSiblingPureFunction(PureFunction):
     ``pfunc`` and its other siblings.
 
     """
+
     def __init__(self, fcns: Sequence[Callable], fcntocall: Callable):
         """Initialize the MultiSiblingPureFunction.
 
@@ -362,7 +374,9 @@ class MultiSiblingPureFunction(PureFunction):
 
         """
         for i, pfunc in enumerate(self.pfuncs):
-            pfunc._set_all_obj_params(allobjparams[self.cumsum_idx[i]:self.cumsum_idx[i + 1]])
+            pfunc._set_all_obj_params(
+                allobjparams[self.cumsum_idx[i]:self.cumsum_idx[i + 1]])
+
 
 def _check_identical_objs(objs1: List, objs2: List) -> bool:
     """Check if the two lists of objects are identical.
@@ -384,6 +398,7 @@ def _check_identical_objs(objs1: List, objs2: List) -> bool:
         if id(obj1) != id(obj2):
             return False
     return True
+
 
 def get_pure_function(fcn) -> PureFunction:
     """Get the pure function form of the function or method ``fcn``.
@@ -428,6 +443,7 @@ def get_pure_function(fcn) -> PureFunction:
 
     else:
         raise RuntimeError(errmsg)
+
 
 def make_sibling(*pfuncs) -> Callable[[Callable], PureFunction]:
     """
