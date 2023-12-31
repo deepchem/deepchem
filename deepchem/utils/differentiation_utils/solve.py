@@ -87,8 +87,8 @@ def wrap_gmres(A, B, E=None, M=None, min_eps=1e-9, max_niter=None, **unused):
     return res
 
 
-def exactsolve(A: LinearOperator, B: torch.Tensor,
-                E: Union[torch.Tensor, None], M: Union[LinearOperator, None]):
+def exactsolve(A: LinearOperator, B: torch.Tensor, E: Union[torch.Tensor, None],
+               M: Union[LinearOperator, None]):
     """
     Solve the linear equation by contructing the full matrix of LinearOperators.
 
@@ -187,8 +187,7 @@ def solve_ABE(A: torch.Tensor, B: torch.Tensor, E: torch.Tensor):
 
 # general helpers
 def get_batchdims(A: LinearOperator, B: torch.Tensor,
-                   E: Union[torch.Tensor, None], M: Union[LinearOperator,
-                                                          None]):
+                  E: Union[torch.Tensor, None], M: Union[LinearOperator, None]):
     """Get the batch dimensions of the linear operator and the matrix B
 
     Examples
