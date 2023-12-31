@@ -185,6 +185,42 @@ def _solve_ABE(A: torch.Tensor, B: torch.Tensor, E: torch.Tensor):
     return r
 
 
+def _setup_precond(
+    precond: Optional[LinearOperator] == None
+) -> Callable[[torch.Tensor], torch.Tensor]:
+    """Setup the preconditioning function
+
+    Examples
+    --------
+    >>> from deepchem.utils.differentiation_utils import MatrixLinearOperator
+    >>> import torch
+    >>> A = MatrixLinearOperator(torch.randn(4, 3, 3), True)
+    >>> B = torch.randn(4, 3, 2)
+    >>> cond = _setup_precond(A)
+    >>> cond(B).shape
+    torch.Size([4, 3, 2])
+
+    Parameters
+    ----------
+    precond: Optional[LinearOperator]
+        The preconditioning linear operator. If None, no preconditioning is
+        applied.
+
+    Returns
+    -------
+    Callable[[torch.Tensor], torch.Tensor]
+        The preconditioning function. It takes a tensor and returns a tensor.
+
+    """
+    if isinstance(precond, LinearOperator):
+        precond_fcn = lambda x: precond.mm(x)
+    elif precond is None:
+        precond_fcn = lambda x: x
+    else:
+        raise TypeError("precond can only be LinearOperator or None")
+    return precond_fcn
+
+
 def _dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
     """Dot product of two vectors. r and z must have the same shape.
     Then sums it up across the last dimension.
