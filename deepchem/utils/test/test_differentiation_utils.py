@@ -399,6 +399,35 @@ def test_mul_linear_operator():
 
 
 @pytest.mark.torch
+def test_adjoint_linear_operator():
+    from deepchem.utils.differentiation_utils import LinearOperator
+
+    class MyLinOp(LinearOperator):
+
+        def __init__(self, shape):
+            super(MyLinOp, self).__init__(shape)
+            self.param = torch.rand(shape)
+
+        def _getparamnames(self, prefix=""):
+            return [prefix + "param"]
+
+        def _mv(self, x):
+            return torch.matmul(self.param, x)
+
+        def _rmv(self, x):
+            return torch.matmul(self.param.transpose(-2, -1).conj(), x)
+
+    linop = MyLinOp((1, 3, 1, 2))
+    x = torch.rand(1, 3, 1, 1)
+    result_rmv = linop.rmv(x)
+
+    adjoint_linop = linop.H
+    result_mv = adjoint_linop.mv(x)
+
+    assert torch.allclose(result_rmv, result_mv)
+
+
+@pytest.mark.torch
 def test_matmul_linear_operator():
     from deepchem.utils.differentiation_utils import LinearOperator
 
@@ -420,6 +449,24 @@ def test_matmul_linear_operator():
     x = torch.rand(1, 3, 1, 1)
     result = linop_result.mv(x)
     assert result.shape == torch.Size([1, 3, 1, 1])
+
+
+@pytest.mark.torch
+def test_matrix_linear_operator():
+    from deepchem.utils.differentiation_utils import LinearOperator
+
+    mat = torch.rand(2, 2)
+    linop = LinearOperator.m(mat)
+    x = torch.randn(2, 2)
+
+    result_mm = linop.mm(x)
+    expected_mm = torch.matmul(mat, x)
+
+    result_mv = linop.mv(x)
+    expected_mv = torch.matmul(mat, x.unsqueeze(-1)).squeeze(-1)
+
+    assert torch.allclose(result_mm, expected_mm)
+    assert torch.allclose(result_mv, expected_mv)
 
 
 def test_set_default_options():

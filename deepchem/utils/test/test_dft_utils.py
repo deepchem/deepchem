@@ -397,3 +397,51 @@ def test_base_hamilton():
     hamilton = ham.build()
     assert torch.allclose(hamilton.get_nuclattr(),
                           torch.tensor([[[[1., 1.], [1., 1.]]]]))
+
+
+@pytest.mark.torch
+def test_cgto_basis():
+    from deepchem.utils.dft_utils import CGTOBasis
+    alphas = torch.ones(1)
+    coeffs = torch.ones(1)
+    cgto = CGTOBasis(angmom=0, alphas=alphas, coeffs=coeffs)
+    cgto.wfnormalize_()
+
+    if cgto.normalized is True:
+        assert True
+    else:
+        assert False
+
+
+@pytest.mark.torch
+def test_atom_cgto_basis():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, CGTOBasis
+    alphas = torch.ones(1)
+    coeffs = torch.ones(1)
+    cgto = CGTOBasis(angmom=0, alphas=alphas, coeffs=coeffs)
+    atomcgto = AtomCGTOBasis(atomz=1, bases=[cgto], pos=[0.0, 0.0, 0.0])
+    assert atomcgto.bases[0] == cgto
+
+
+@pytest.mark.torch
+def test_base_system():
+    """Test BaseSystem. Checks that it doesn't raise errors."""
+    from deepchem.utils.dft_utils import BaseSystem, BaseHamilton, BaseGrid
+
+    class MySystem(BaseSystem):
+
+        def __init__(self):
+            self.hamiltonian = BaseHamilton()
+            self.grid = BaseGrid()
+
+        def get_hamiltonian(self):
+            return self.hamiltonian
+
+        def get_grid(self):
+            return self.grid
+
+        def requires_grid(self):
+            return True
+
+    system = MySystem()
+    assert system.requires_grid()

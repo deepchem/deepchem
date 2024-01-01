@@ -291,6 +291,12 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.ValGrad
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.data.datastruct.CGTOBasis
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.data.datastruct.AtomCGTOBasis
+  :members:
+
 .. autoclass:: deepchem.utils.dft_utils.BaseXC
   :members:
 
@@ -338,6 +344,9 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.api.parser.parse_moldesc
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.system.base_system.BaseSystem
+  :members:
+
 .. autoclass:: deepchem.utils.differentiation_utils.editable_module.EditableModule
   :members:
 
@@ -356,7 +365,13 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.differentiation_utils.linop.MulLinearOperator
   :members:
 
+.. autoclass:: deepchem.utils.differentiation_utils.linop.AdjointLinearOperator
+  :members:
+
 .. autoclass:: deepchem.utils.differentiation_utils.linop.MatmulLinearOperator
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.linop.MatrixLinearOperator
   :members:
 
 .. autofunction:: deepchem.utils.differentiation_utils.set_default_option
@@ -393,6 +408,10 @@ Pytorch Utilities
 .. autofunction:: deepchem.utils.pytorch_utils.chunkify
 
 .. autofunction:: deepchem.utils.pytorch_utils.get_memory
+
+.. autofunction:: deepchem.utils.pytorch_utils.gaussian_integral
+
+.. autofunction:: deepchem.utils.pytorch_utils.TensorNonTensorSeparator
 
 Batch Utilities
 ---------------
@@ -448,6 +467,21 @@ Initial usecases are for improving the printing format of __repr__.
 .. autofunction:: deepchem.utils.misc_utils.indent
 
 .. autofunction:: deepchem.utils.misc_utils.shape2str
+
+.. autoclass:: deepchem.utils.attribute_utils.UnimplementedError
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.GetSetParamsError
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.ConvergenceWarning
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.MathWarning
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.Uniquifier
+  :members:
 
 SafeOperations Utilities
 ------------------------
