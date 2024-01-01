@@ -5428,6 +5428,7 @@ class FerminetElectronFeature(torch.nn.Module):
 
     Examples
     --------
+    >>> import deepchem as dc
     >>> electron_layer = dc.models.torch_models.layers.FerminetElectronFeature([32,32,32],[16,16,16], 4, 8, 10, [5,5])
     >>> one_electron_test = torch.randn(8, 10, 4*4)
     >>> two_electron_test = torch.randn(8, 10, 10, 4)
@@ -5581,6 +5582,7 @@ class FerminetEnvelope(torch.nn.Module):
 
     Examples
     --------
+    >>> import deepchem as dc
     >>> envelope_layer = dc.models.torch_models.layers.FerminetEnvelope([32, 32, 32], [16, 16, 16], 10, 8, [5, 5], 5, 16)
     >>> one_electron = torch.randn(8, 10, 32)
     >>> one_electron_permuted = torch.randn(8, 10, 5, 3)
