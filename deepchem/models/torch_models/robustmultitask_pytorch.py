@@ -11,7 +11,7 @@ from deepchem.utils.pytorch_utils import get_activation
 logger = logging.getLogger(__name__)
 
 
-class RobustMultitaskClassifier(nn.Module):
+class RobustMultitask(nn.Module):
     """Implements a neural network for robust multitasking.
 
     The key idea of this model is to have bypass layers that feed
@@ -41,6 +41,7 @@ class RobustMultitaskClassifier(nn.Module):
                  bypass_weight_init_stddevs=[.02],
                  bypass_bias_init_consts=[1.],
                  bypass_dropouts=[.5],
+                 mode = "classification"
                  ):
         """  Create a RobustMultitaskClassifier.
 
@@ -85,23 +86,25 @@ class RobustMultitaskClassifier(nn.Module):
             same requirements as dropouts
         """
         super(self).__init__()
+        if mode not in ['classification', 'regression']:
+            raise ValueError("mode must be either 'classification' or 'regression'")
         n_layers = len(layer_sizes)
         n_bypass_layers = len(bypass_layer_sizes)
         self.n_bypass_layers = n_bypass_layers
         self.n_layers = n_layers
         self.n_tasks = n_tasks
         self.n_features = n_features
+        self.n_classes = n_classes
+        self.mode = mode
         if not isinstance(weight_init_stddevs, SequenceCollection):
             weight_init_stddevs = [weight_init_stddevs] * n_layers
         if not isinstance(bias_init_consts, SequenceCollection):
             bias_init_consts = [bias_init_consts] * n_layers
         if not isinstance(dropouts, SequenceCollection):
             dropouts = [dropouts] * n_layers
-        if isinstance(
-                activation_fns,
-                str) or not isinstance(activation_fns, SequenceCollection):
+        if isinstance(activation_fns, str) or not isinstance(activation_fns, SequenceCollection):
             activation_fns = [activation_fns] * n_layers
-
+        
         if not isinstance(bypass_weight_init_stddevs, SequenceCollection):
             bypass_weight_init_stddevs = [bypass_weight_init_stddevs
                                          ] * n_bypass_layers
@@ -110,46 +113,81 @@ class RobustMultitaskClassifier(nn.Module):
                                       ] * n_bypass_layers
         if not isinstance(bypass_dropouts, SequenceCollection):
             bypass_dropouts = [bypass_dropouts] * n_bypass_layers
-        if isinstance(
-                activation_fns,
-                str) or not isinstance(activation_fns, SequenceCollection):
-            bypass_activation_fns = [activation_fns] * n_bypass_layers   
-        self.n_tasks = n_tasks
-        self.n_features = n_features
-        self.n_classes = n_classes
+        if isinstance(activation_fns, str) or not isinstance(activation_fns, SequenceCollection):
+            bypass_activation_fns = [activation_fns] * n_bypass_layers
         self.activation_fns = [get_activation(i) for i in activation_fns]
-        torch.manual_seed(42)
+        self.bypass_activation_fns = [get_activation(i) for i in bypass_activation_fns]
         self.shared_layers = nn.ModuleList()
         in_size = n_features
         # Adding the shared represenation.
-        for size, weight_stddev, bias_const, dropout, activation_fn in zip(layer_sizes, weight_init_stddevs, bias_init_consts, dropouts, activation_fns):
-            self.layer = nn.Linear(in_size, size)
+        for size, weight_stddev, bias_const, dropout, activation_fn in zip(layer_sizes, weight_init_stddevs, bias_init_consts, dropouts, self.activation_fns):
+            layer = nn.Linear(in_size, size)
             nn.init.trunc_normal_(self.layer.weight, 0, weight_stddev)
-            if self.layer.bias is not None:
-                self.layer.bias = nn.Parameter(torch.full(self.layer.bias.shape, bias_const))
-            self.layer.weight_stddev = weight_stddev
-            self.layer.bias_const = bias_const
-            self.layer.dropout = nn.Dropout(dropout)
-            self.layer.layer_act = activation_fn
-            self.shared_layers.append(self.layer)
+            if layer.bias is not None:
+                layer.bias = nn.Parameter(torch.full(layer.bias.shape, bias_const))
+            layer.weight_stddev = weight_stddev
+            layer.bias_const = bias_const
+            dropout_layer = nn.Dropout(dropout)
+            layer_act = activation_fn
+            self.shared_layers.append(layer)
+            self.shared_layers.append(dropout_layer)
+            self.shared_layers.append(layer_act)
             in_size = size
         # Adding Task specific layers.
         self.bypass_layers = nn.ModuleList()
         for task in range(self.n_tasks):
-            self.task_layers = nn.ModuleList()
+            task_layers = nn.ModuleList()
             in_size = n_features
-            for bypass_size, bypass_weight_stddev, bypass_bias_const, bypass_dropout, bypass_activation_fn in zip(bypass_layer_sizes, bypass_weight_init_stddevs, bypass_bias_init_consts, bypass_dropouts, bypass_activation_fns):
-                self.layer_task = nn.Linear(in_size, size)
-                nn.init.trunc_normal_(self.layer_task.weight, 0, bypass_weight_stddev)
+            for bypass_size, bypass_weight_stddev, bypass_bias_const, bypass_dropout, bypass_activation_fn in zip(bypass_layer_sizes, bypass_weight_init_stddevs, bypass_bias_init_consts, bypass_dropouts, self.bypass_activation_fns):
+                layer_task = nn.Linear(in_size, bypass_size)
+                nn.init.trunc_normal_(layer_task.weight, 0, bypass_weight_stddev)
                 if self.layer_task.bias is not None:
-                    self.layer_task.bias = nn.Parameter(torch.full(self.layer_task.bias.shape, bypass_bias_const))
-                self.layer_task.weight_stddev = bypass_weight_stddev
-                self.layer_task.bias_const = bypass_bias_const
-                self.layer_task.dropout = nn.Dropout(bypass_dropout)
-                self.layer_task.layer_act = bypass_activation_fn
-                self.task_layers.append(self.layer_task)
+                    layer_task.bias = nn.Parameter(torch.full(self.layer_task.bias.shape, bypass_bias_const))
+                layer_task.weight_stddev = bypass_weight_stddev
+                layer_task.bias_const = bypass_bias_const
+                dropout_layer_bypass = nn.Dropout(bypass_dropout)
+                layer_act_bypass = bypass_activation_fn
+                task_layers.append(layer_task)
+                task_layers.append(dropout_layer_bypass)
+                task_layers.append(layer_act_bypass)
                 in_size = size
-            self.bypass_layers.append(self.task_layers)
+            self.bypass_layers.append(task_layers)
+
+    def forward(self, X):
+        X_bypass = torch.Tensor.new_tensor(X, requires_grad=True)
+        for module in self.shared_layers:
+            X = module(X)
+        shared_weights = X
+        outputs_bypass = []
+        for modules in self.bypass_layers:
+            X_1 = torch.Tensor.new_tensor(X_bypass, requires_grad=True)
+            for module in modules:
+                X_1 = module(X_1)
+            outputs_bypass.append(X_1)
+
+        out = []
+        for i in outputs_bypass:
+            output = torch.cat((shared_weights, i), dim=1)
+            out.append(output)
+
+        task_outputs = []
+        logits = []
+        if self.mode == "classification":
+            for j in out:
+               dense = nn.Linear(j.shape[1], self.n_classes)
+               y = dense(j)
+               task_outputs.append(y)
+            for output in task_outputs:
+                softmax = nn.Softmax()
+                logit = softmax(output)
+                logits.append(logit)
+            
+
+
+
+               
+               
 
         
-            
+
+
