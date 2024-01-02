@@ -28,6 +28,6 @@ try:
     from deepchem.utils.differentiation_utils.solve import get_largest_eival
     from deepchem.utils.differentiation_utils.solve import safedenom
     from deepchem.utils.differentiation_utils.solve import setup_linear_problem
-    from deepchem.utils.differentiation_utils.solve import gmres    
+    from deepchem.utils.differentiation_utils.solve import gmres
 except:
     pass
