@@ -1,0 +1,19 @@
+name: xitorch
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+ - pip
+ - pip:
+   - numpy
+   - scipy
+   - h5py
+   - -f https://download.pytorch.org/whl/cpu/torch_stable.html
+   - torch==2.1.0+cpu
+   - torch-geometric
+   - xitorch
+   - pylibxc2
+   - pytest
+   - PyYAML
+   - yamlloader
+   - pyscf[all]
