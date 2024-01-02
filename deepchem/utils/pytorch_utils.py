@@ -3,6 +3,7 @@
 import scipy
 import torch
 from typing import Callable, Union, List, Generator, Tuple
+import numpy as np
 
 
 def get_activation(fn: Union[Callable, str]):
@@ -344,3 +345,38 @@ class TensorNonTensorSeparator(object):
         for idx, p in zip(self.tensor_idxs, tensor_params):
             params[idx] = p
         return params
+
+
+def get_np_dtype(dtype: torch.dtype) -> np.dtype:
+    """corresponding numpy dtype from the input pytorch's tensor dtype
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.pytorch_utils import get_np_dtype
+    >>> get_np_dtype(torch.float32)
+    <class 'numpy.float32'>
+    >>> get_np_dtype(torch.float64)
+    <class 'numpy.float64'>
+
+    Parameters
+    ----------
+    dtype: torch.dtype
+        pytorch's tensor dtype
+
+    Returns
+    -------
+    np.dtype
+        corresponding numpy dtype
+
+    """
+    if dtype == torch.float32:
+        return np.float32
+    elif dtype == torch.float64:
+        return np.float64
+    elif dtype == torch.complex64:
+        return np.complex64
+    elif dtype == torch.complex128:
+        return np.complex128
+    else:
+        raise TypeError("Unknown type: %s" % dtype)

@@ -500,3 +500,60 @@ def test_assert_runtime():
         assert_runtime(False, "This should fail")
     except RuntimeError:
         pass
+
+
+@pytest.mark.torch
+def test_wrap_gmres():
+    from deepchem.utils.differentiation_utils.solve import wrap_gmres
+    from deepchem.utils.differentiation_utils import LinearOperator
+    A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
+    B = torch.tensor([[[5., 6], [7, 8]]])
+    assert torch.allclose(A.fullmatrix() @ wrap_gmres(A, B, None, None), B)
+
+
+@pytest.mark.torch
+def test_exact_solve():
+    from deepchem.utils.differentiation_utils.solve import exactsolve
+    from deepchem.utils.differentiation_utils import LinearOperator
+    A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
+    B = torch.tensor([[5., 6], [7, 8]])
+    assert torch.allclose(A.fullmatrix() @ exactsolve(A, B, None, None), B)
+
+
+@pytest.mark.torch
+def test_solve_ABE():
+    from deepchem.utils.differentiation_utils.solve import solve_ABE
+    A = torch.tensor([[1., 2], [3, 4]])
+    B = torch.tensor([[5., 6], [7, 8]])
+    E = torch.tensor([1., 2])
+    expected_result = torch.tensor([[-0.1667, 0.5000], [2.5000, 3.2500]])
+    assert torch.allclose(solve_ABE(A, B, E), expected_result, 0.001)
+
+
+@pytest.mark.torch
+def test_get_batch_dims():
+    from deepchem.utils.differentiation_utils.solve import get_batchdims
+    from deepchem.utils.differentiation_utils import MatrixLinearOperator
+    A = MatrixLinearOperator(torch.randn(4, 3, 3), True)
+    B = torch.randn(3, 3, 2)
+    assert get_batchdims(A, B, None,
+                         None) == [max(A.shape[:-2], B.shape[:-2])[0]]
+
+
+@pytest.mark.torch
+def test_setup_precond():
+    from deepchem.utils.differentiation_utils.solve import setup_precond
+    from deepchem.utils.differentiation_utils import MatrixLinearOperator
+    A = MatrixLinearOperator(torch.randn(4, 3, 3), True)
+    B = torch.randn(4, 3, 2)
+    cond = setup_precond(A)
+    assert cond(B).shape == torch.Size([4, 3, 2])
+
+
+@pytest.mark.torch
+def test_dot():
+    from deepchem.utils.differentiation_utils.solve import dot
+    r = torch.tensor([[1, 2], [3, 4]])
+    z = torch.tensor([[5, 6], [7, 8]])
+    assert torch.allclose(dot(r, z), torch.tensor([[26, 44]]))
+    assert torch.allclose(dot(r, z), sum(r * z))
