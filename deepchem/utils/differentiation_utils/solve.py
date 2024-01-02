@@ -291,3 +291,48 @@ def dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
 
     """
     return torch.einsum("...rc,...rc->...c", r.conj(), z).unsqueeze(-2)
+
+
+def _get_largest_eival(Afcn: Callable, x: torch.Tensor) -> torch.Tensor:
+    """Get the largest eigenvalue of the linear operator Afcn
+    
+    Examples
+    --------
+    >>> import torch
+    >>> def Afcn(x):
+    ...     return 10 * x
+    >>> x = torch.tensor([[1., 2], [3, 4]])
+    >>> _get_largest_eival(Afcn, x)
+    tensor([[10., 10.]])
+
+    Parameters
+    ----------
+    Afcn: Callable
+        The linear operator A. It takes a tensor and returns a tensor.
+    x: torch.Tensor
+        The input tensor. Shape: (*, nr, nc)
+
+    Returns
+    -------
+    torch.Tensor
+        The largest eigenvalue. Shape: (*, 1, nc)
+
+    """
+    niter = 10
+    rtol = 1e-3
+    atol = 1e-6
+    xnorm_prev = None
+    for i in range(niter):
+        x = Afcn(x)  # (*, nr, nc)
+        xnorm = x.norm(dim=-2, keepdim=True)  # (*, 1, nc)
+
+        # check if xnorm is converging
+        if i > 0:
+            dnorm = torch.abs(xnorm_prev - xnorm)
+            if torch.all(dnorm <= rtol * xnorm + atol):
+                break
+
+        xnorm_prev = xnorm
+        if i < niter - 1:
+            x = x / xnorm
+    return xnorm
