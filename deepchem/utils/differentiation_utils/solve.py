@@ -185,16 +185,16 @@ def solve_ABE(A: torch.Tensor, B: torch.Tensor, E: torch.Tensor):
     return r
 
 
-def _gmres(A: LinearOperator,
-           B: torch.Tensor,
-           E: Optional[torch.Tensor] = None,
-           M: Optional[LinearOperator] = None,
-           posdef: Optional[bool] = None,
-           max_niter: Optional[int] = None,
-           rtol: float = 1e-6,
-           atol: float = 1e-8,
-           eps: float = 1e-12,
-           **unused) -> torch.Tensor:
+def gmres(A: LinearOperator,
+          B: torch.Tensor,
+          E: Optional[torch.Tensor] = None,
+          M: Optional[LinearOperator] = None,
+          posdef: Optional[bool] = None,
+          max_niter: Optional[int] = None,
+          rtol: float = 1e-6,
+          atol: float = 1e-8,
+          eps: float = 1e-12,
+          **unused) -> torch.Tensor:
     r"""
     Solve the linear equations using Generalised minial residual method.
 
@@ -204,7 +204,7 @@ def _gmres(A: LinearOperator,
     >>> from deepchem.utils.differentiation_utils import LinearOperator
     >>> A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
     >>> B = torch.tensor([[5., 6], [7, 8]])
-    >>> _gmres(A, B)
+    >>> gmres(A, B)
     tensor([[0.8959, 1.0697],
             [1.2543, 1.4263]])
 
@@ -254,7 +254,7 @@ def _gmres(A: LinearOperator,
 
     # setup the preconditioning and the matrix problem
     need_hermit = False
-    A_fcn, AT_fcn, B2, col_swapped = _setup_linear_problem(
+    A_fcn, AT_fcn, B2, col_swapped = setup_linear_problem(
         A, B, E, M, batchdims, posdef, need_hermit)
 
     # get the stopping matrix
@@ -273,8 +273,8 @@ def _gmres(A: LinearOperator,
     best_resid = best_resid.max().item()
     best_res = x0
     q = torch.empty([max_niter] + list(r.shape), dtype=A.dtype, device=A.device)
-    q[0] = r / _safedenom(r.norm(dim=-2, keepdim=True),
-                          eps)  # torch.Size([*batch_dims, nr, ncols])
+    q[0] = r / safedenom(r.norm(dim=-2, keepdim=True),
+                         eps)  # torch.Size([*batch_dims, nr, ncols])
     h = torch.zeros((*batchdims, ncols, max_niter + 1, max_niter),
                     dtype=A.dtype,
                     device=A.device)
@@ -408,7 +408,7 @@ def setup_precond(
     return precond_fcn
 
 
-def _setup_linear_problem(A: LinearOperator, B: torch.Tensor,
+def setup_linear_problem(A: LinearOperator, B: torch.Tensor,
                           E: Optional[torch.Tensor], M: Optional[LinearOperator],
                           batchdims: Sequence[int],
                           posdef: Optional[bool],
@@ -424,7 +424,7 @@ def _setup_linear_problem(A: LinearOperator, B: torch.Tensor,
     >>> import torch
     >>> A = MatrixLinearOperator(torch.randn(4, 3, 3), True)
     >>> B = torch.randn(4, 3, 2)
-    >>> A_fcn, AT_fcn, B_new, col_swapped = _setup_linear_problem(A, B, None, None, [4], None, False)
+    >>> A_fcn, AT_fcn, B_new, col_swapped = setup_linear_problem(A, B, None, None, [4], None, False)
     >>> A_fcn(B).shape
     torch.Size([4, 3, 2])
 
@@ -519,7 +519,7 @@ def _setup_linear_problem(A: LinearOperator, B: torch.Tensor,
                                                                   nr, ncols)
         x0 = torch.randn(x0shape, dtype=A.dtype, device=A.device)
         x0 = x0 / x0.norm(dim=-2, keepdim=True)
-        largest_eival = _get_largest_eival(A_fcn, x0)  # (*, 1, nc)
+        largest_eival = get_largest_eival(A_fcn, x0)  # (*, 1, nc)
         negeival = largest_eival <= 0
 
         # if the largest eigenvalue is negative, then it's not posdef
@@ -533,7 +533,7 @@ def _setup_linear_problem(A: LinearOperator, B: torch.Tensor,
             def A_fcn2(x):
                 return A_fcn(x) - offset * x
 
-            mostneg_eival = _get_largest_eival(A_fcn2, x0)  # (*, 1, nc)
+            mostneg_eival = get_largest_eival(A_fcn2, x0)  # (*, 1, nc)
             posdef = bool(
                 torch.all(torch.logical_or(-mostneg_eival <= offset,
                                            negeival)).item())
@@ -551,14 +551,14 @@ def _setup_linear_problem(A: LinearOperator, B: torch.Tensor,
 
 
 # cg and bicgstab helpers
-def _safedenom(r: torch.Tensor, eps: float) -> torch.Tensor:
+def safedenom(r: torch.Tensor, eps: float) -> torch.Tensor:
     """Make sure the denominator is not zero
 
     Examples
     --------
     >>> import torch
     >>> r = torch.tensor([[0., 2], [3, 4]])
-    >>> _safedenom(r, 1e-9)
+    >>> safedenom(r, 1e-9)
     tensor([[1.0000e-09, 2.0000e+00],
             [3.0000e+00, 4.0000e+00]])
 
@@ -607,7 +607,7 @@ def dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
     return torch.einsum("...rc,...rc->...c", r.conj(), z).unsqueeze(-2)
 
 
-def _get_largest_eival(Afcn: Callable, x: torch.Tensor) -> torch.Tensor:
+def get_largest_eival(Afcn: Callable, x: torch.Tensor) -> torch.Tensor:
     """Get the largest eigenvalue of the linear operator Afcn
 
     Examples
@@ -616,7 +616,7 @@ def _get_largest_eival(Afcn: Callable, x: torch.Tensor) -> torch.Tensor:
     >>> def Afcn(x):
     ...     return 10 * x
     >>> x = torch.tensor([[1., 2], [3, 4]])
-    >>> _get_largest_eival(Afcn, x)
+    >>> get_largest_eival(Afcn, x)
     tensor([[10., 10.]])
 
     Parameters
