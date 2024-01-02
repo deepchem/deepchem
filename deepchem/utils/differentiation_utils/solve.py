@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import warnings
-from typing import Union, Optional, Callable
+from typing import Sequence, Tuple, Union, Optional, Callable
 from deepchem.utils.differentiation_utils import LinearOperator, normalize_bcast_dims, get_bcasted_dims
 from deepchem.utils import ConvergenceWarning, get_np_dtype
 from scipy.sparse.linalg import gmres as scipy_gmres
@@ -265,6 +265,177 @@ def setup_precond(
     return precond_fcn
 
 
+def _setup_linear_problem(A: LinearOperator, B: torch.Tensor,
+                          E: Optional[torch.Tensor], M: Optional[LinearOperator],
+                          batchdims: Sequence[int],
+                          posdef: Optional[bool],
+                          need_hermit: bool) -> \
+        Tuple[Callable[[torch.Tensor], torch.Tensor],
+              Callable[[torch.Tensor], torch.Tensor],
+              torch.Tensor, bool]:
+    """Setup the linear problem for solving AX = B
+
+    Examples
+    --------
+    >>> from deepchem.utils.differentiation_utils import MatrixLinearOperator
+    >>> import torch
+    >>> A = MatrixLinearOperator(torch.randn(4, 3, 3), True)
+    >>> B = torch.randn(4, 3, 2)
+    >>> A_fcn, AT_fcn, B_new, col_swapped = _setup_linear_problem(A, B, None, None, [4], None, False)
+    >>> A_fcn(B).shape
+    torch.Size([4, 3, 2])
+
+    Parameters
+    ----------
+    A: LinearOperator
+        The linear operator A. It can be a batched linear operator.
+    B: torch.Tensor
+        The matrix B. It can be a batched matrix.
+    E: Optional[torch.Tensor]
+        The matrix E. It can be a batched matrix.
+    M: Optional[LinearOperator]
+        The linear operator M. It can be a batched linear operator.
+    batchdims: Sequence[int]
+        The batch dimensions of the linear operator and the matrix B
+    posdef: Optional[bool]
+        Whether the linear operator is positive definite. If None, it will be
+        estimated.
+    need_hermit: bool
+        Whether the linear operator is Hermitian. If True, it will be estimated.
+
+    Returns
+    -------
+    Tuple[Callable[[torch.Tensor], torch.Tensor],
+          Callable[[torch.Tensor], torch.Tensor],
+          torch.Tensor, bool]
+        The function A, its transposed function, the matrix B, and whether the
+        columns of B are swapped.
+
+    """
+
+    # get the linear operator (including the MXE part)
+    if E is None:
+
+        def A_fcn(x):
+            return A.mm(x)
+
+        def AT_fcn(x):
+            return A.rmm(x)
+
+        B_new = B
+        col_swapped = False
+    else:
+        # A: (*BA, nr, nr) linop
+        # B: (*BB, nr, ncols)
+        # E: (*BE, ncols)
+        # M: (*BM, nr, nr) linop
+        if M is None:
+            BAs, BBs, BEs = normalize_bcast_dims(A.shape[:-2], B.shape[:-2],
+                                                 E.shape[:-1])
+        else:
+            BAs, BBs, BEs, BMs = normalize_bcast_dims(A.shape[:-2],
+                                                      B.shape[:-2],
+                                                      E.shape[:-1],
+                                                      M.shape[:-2])
+        E = E.reshape(*BEs, *E.shape[-1:])
+        E_new = E.unsqueeze(0).transpose(-1,
+                                         0).unsqueeze(-1)  # (ncols, *BEs, 1, 1)
+        B = B.reshape(*BBs, *B.shape[-2:])  # (*BBs, nr, ncols)
+        B_new = B.unsqueeze(0).transpose(-1, 0)  # (ncols, *BBs, nr, 1)
+
+        def A_fcn(x):
+            # x: (ncols, *BX, nr, 1)
+            Ax = A.mm(x)  # (ncols, *BAX, nr, 1)
+            Mx = M.mm(x) if M is not None else x  # (ncols, *BMX, nr, 1)
+            MxE = Mx * E_new  # (ncols, *BMXE, nr, 1)
+            return Ax - MxE
+
+        def AT_fcn(x):
+            # x: (ncols, *BX, nr, 1)
+            ATx = A.rmm(x)
+            MTx = M.rmm(x) if M is not None else x
+            MTxE = MTx * E_new
+            return ATx - MTxE
+
+        col_swapped = True
+
+    # estimate if it's posdef with power iteration
+    if need_hermit:
+        is_hermit = A.is_hermitian and (M is None or M.is_hermitian)
+        if not is_hermit:
+            # set posdef to False to make the operator becomes AT * A so it is
+            # hermitian
+            posdef = False
+
+    # TODO: the posdef check by largest eival only works for Hermitian/symmetric
+    # matrix, but it doesn't always work for non-symmetric matrix.
+    # In non-symmetric case, one need to do Cholesky LDL decomposition
+    if posdef is None:
+        nr, ncols = B.shape[-2:]
+        x0shape = (ncols, *batchdims, nr, 1) if col_swapped else (*batchdims,
+                                                                  nr, ncols)
+        x0 = torch.randn(x0shape, dtype=A.dtype, device=A.device)
+        x0 = x0 / x0.norm(dim=-2, keepdim=True)
+        largest_eival = _get_largest_eival(A_fcn, x0)  # (*, 1, nc)
+        negeival = largest_eival <= 0
+
+        # if the largest eigenvalue is negative, then it's not posdef
+        if torch.all(negeival):
+            posdef = False
+
+        # otherwise, calculate the lowest eigenvalue to check if it's positive
+        else:
+            offset = torch.clamp(largest_eival, min=0.0)
+
+            def A_fcn2(x):
+                return A_fcn(x) - offset * x
+
+            mostneg_eival = _get_largest_eival(A_fcn2, x0)  # (*, 1, nc)
+            posdef = bool(
+                torch.all(torch.logical_or(-mostneg_eival <= offset,
+                                           negeival)).item())
+
+    # get the linear operation if it is not a posdef (A -> AT.A)
+    if posdef:
+        return A_fcn, AT_fcn, B_new, col_swapped
+    else:
+
+        def A_new_fcn(x):
+            return AT_fcn(A_fcn(x))
+
+        B2 = AT_fcn(B_new)
+        return A_new_fcn, A_new_fcn, B2, col_swapped
+
+
+# cg and bicgstab helpers
+def _safedenom(r: torch.Tensor, eps: float) -> torch.Tensor:
+    """Make sure the denominator is not zero
+
+    Examples
+    --------
+    >>> import torch
+    >>> r = torch.tensor([[0., 2], [3, 4]])
+    >>> _safedenom(r, 1e-9)
+    tensor([[1.0000e-09, 2.0000e+00],
+            [3.0000e+00, 4.0000e+00]])
+
+    Parameters
+    ----------
+    r: torch.Tensor
+        The input tensor. Shape: (*BR, nr, nc)
+    eps: float
+        The small number to replace the zero denominator
+
+    Returns
+    -------
+    torch.Tensor
+        The tensor with non-zero denominator. Shape: (*BR, nr, nc)
+
+    """
+    r[r == 0] = eps
+    return r
+
+
 def dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
     """Dot product of two vectors. r and z must have the same shape.
     Then sums it up across the last dimension.
@@ -295,7 +466,7 @@ def dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
 
 def _get_largest_eival(Afcn: Callable, x: torch.Tensor) -> torch.Tensor:
     """Get the largest eigenvalue of the linear operator Afcn
-    
+
     Examples
     --------
     >>> import torch

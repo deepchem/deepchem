@@ -2,7 +2,7 @@
 
 import scipy
 import torch
-from typing import Callable, Union, List, Generator, Tuple
+from typing import Any, Callable, Union, List, Generator, Tuple
 import numpy as np
 
 
@@ -347,7 +347,7 @@ class TensorNonTensorSeparator(object):
         return params
 
 
-def get_np_dtype(dtype: torch.dtype) -> np.dtype:
+def get_np_dtype(dtype: torch.dtype) -> Any:
     """corresponding numpy dtype from the input pytorch's tensor dtype
 
     Examples
