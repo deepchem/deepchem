@@ -89,3 +89,10 @@ def test_TensorNonTensorSeparator():
     tensor_params = separator.get_tensor_params()
     torch.allclose(tensor_params[0],
                    torch.tensor([5., 6., 7.], requires_grad=True))
+
+
+@pytest.mark.torch
+def test_get_np_dtype():
+    """Test the get_np_dtype utility."""
+    assert dc.utils.pytorch_utils.get_np_dtype(torch.float32) == np.float32
+    assert dc.utils.pytorch_utils.get_np_dtype(torch.float64) == np.float64

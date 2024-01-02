@@ -347,8 +347,29 @@ class TensorNonTensorSeparator(object):
         return params
 
 
-def get_np_dtype(dtype: torch.dtype):
-    # return the corresponding numpy dtype from the input pytorch's tensor dtype
+def get_np_dtype(dtype: torch.dtype) -> np.dtype:
+    """corresponding numpy dtype from the input pytorch's tensor dtype
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.pytorch_utils import get_np_dtype
+    >>> get_np_dtype(torch.float32)
+    <class 'numpy.float32'>
+    >>> get_np_dtype(torch.float64)
+    <class 'numpy.float64'>
+
+    Parameters
+    ----------
+    dtype: torch.dtype
+        pytorch's tensor dtype
+
+    Returns
+    -------
+    np.dtype
+        corresponding numpy dtype
+
+    """
     if dtype == torch.float32:
         return np.float32
     elif dtype == torch.float64:
