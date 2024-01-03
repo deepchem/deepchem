@@ -26,10 +26,13 @@ class RobustMultitask(nn.Module):
     .. [1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
 
     """
+
     def __init__(self,
                  n_tasks,
                  n_features,
-                 layer_sizes=[1000,],
+                 layer_sizes=[
+                     1000,
+                 ],
                  weight_init_stddevs=0.02,
                  bias_init_consts=1.0,
                  weight_decay_penalty=0.0,
@@ -37,12 +40,13 @@ class RobustMultitask(nn.Module):
                  dropouts=0.5,
                  activation_fns="relu",
                  n_classes=2,
-                 bypass_layer_sizes=[100,],
+                 bypass_layer_sizes=[
+                     100,
+                 ],
                  bypass_weight_init_stddevs=[.02],
                  bypass_bias_init_consts=[1.],
                  bypass_dropouts=[.5],
-                 mode = "classification"
-                 ):
+                 mode="classification"):
         """  Create a RobustMultitaskClassifier.
 
         Parameters
@@ -87,7 +91,8 @@ class RobustMultitask(nn.Module):
         """
         super(self).__init__()
         if mode not in ['classification', 'regression']:
-            raise ValueError("mode must be either 'classification' or 'regression'")
+            raise ValueError(
+                "mode must be either 'classification' or 'regression'")
         n_layers = len(layer_sizes)
         n_bypass_layers = len(bypass_layer_sizes)
         self.n_bypass_layers = n_bypass_layers
@@ -102,9 +107,11 @@ class RobustMultitask(nn.Module):
             bias_init_consts = [bias_init_consts] * n_layers
         if not isinstance(dropouts, SequenceCollection):
             dropouts = [dropouts] * n_layers
-        if isinstance(activation_fns, str) or not isinstance(activation_fns, SequenceCollection):
+        if isinstance(
+                activation_fns,
+                str) or not isinstance(activation_fns, SequenceCollection):
             activation_fns = [activation_fns] * n_layers
-        
+
         if not isinstance(bypass_weight_init_stddevs, SequenceCollection):
             bypass_weight_init_stddevs = [bypass_weight_init_stddevs
                                          ] * n_bypass_layers
@@ -113,18 +120,25 @@ class RobustMultitask(nn.Module):
                                       ] * n_bypass_layers
         if not isinstance(bypass_dropouts, SequenceCollection):
             bypass_dropouts = [bypass_dropouts] * n_bypass_layers
-        if isinstance(activation_fns, str) or not isinstance(activation_fns, SequenceCollection):
+        if isinstance(
+                activation_fns,
+                str) or not isinstance(activation_fns, SequenceCollection):
             bypass_activation_fns = [activation_fns] * n_bypass_layers
         self.activation_fns = [get_activation(i) for i in activation_fns]
-        self.bypass_activation_fns = [get_activation(i) for i in bypass_activation_fns]
+        self.bypass_activation_fns = [
+            get_activation(i) for i in bypass_activation_fns
+        ]
         self.shared_layers = nn.ModuleList()
         in_size = n_features
         # Adding the shared represenation.
-        for size, weight_stddev, bias_const, dropout, activation_fn in zip(layer_sizes, weight_init_stddevs, bias_init_consts, dropouts, self.activation_fns):
+        for size, weight_stddev, bias_const, dropout, activation_fn in zip(
+                layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
+                self.activation_fns):
             layer = nn.Linear(in_size, size)
             nn.init.trunc_normal_(self.layer.weight, 0, weight_stddev)
             if layer.bias is not None:
-                layer.bias = nn.Parameter(torch.full(layer.bias.shape, bias_const))
+                layer.bias = nn.Parameter(
+                    torch.full(layer.bias.shape, bias_const))
             layer.weight_stddev = weight_stddev
             layer.bias_const = bias_const
             dropout_layer = nn.Dropout(dropout)
@@ -138,11 +152,17 @@ class RobustMultitask(nn.Module):
         for task in range(self.n_tasks):
             task_layers = nn.ModuleList()
             in_size = n_features
-            for bypass_size, bypass_weight_stddev, bypass_bias_const, bypass_dropout, bypass_activation_fn in zip(bypass_layer_sizes, bypass_weight_init_stddevs, bypass_bias_init_consts, bypass_dropouts, self.bypass_activation_fns):
+            for bypass_size, bypass_weight_stddev, bypass_bias_const, bypass_dropout, bypass_activation_fn in zip(
+                    bypass_layer_sizes, bypass_weight_init_stddevs,
+                    bypass_bias_init_consts, bypass_dropouts,
+                    self.bypass_activation_fns):
                 layer_task = nn.Linear(in_size, bypass_size)
-                nn.init.trunc_normal_(layer_task.weight, 0, bypass_weight_stddev)
+                nn.init.trunc_normal_(layer_task.weight, 0,
+                                      bypass_weight_stddev)
                 if self.layer_task.bias is not None:
-                    layer_task.bias = nn.Parameter(torch.full(self.layer_task.bias.shape, bypass_bias_const))
+                    layer_task.bias = nn.Parameter(
+                        torch.full(self.layer_task.bias.shape,
+                                   bypass_bias_const))
                 layer_task.weight_stddev = bypass_weight_stddev
                 layer_task.bias_const = bypass_bias_const
                 dropout_layer_bypass = nn.Dropout(bypass_dropout)
@@ -164,30 +184,23 @@ class RobustMultitask(nn.Module):
             for module in modules:
                 X_1 = module(X_1)
             outputs_bypass.append(X_1)
-
         out = []
         for i in outputs_bypass:
             output = torch.cat((shared_weights, i), dim=1)
             out.append(output)
-
         task_outputs = []
         logits = []
         if self.mode == "classification":
             for j in out:
-               dense = nn.Linear(j.shape[1], self.n_classes)
-               y = dense(j)
-               task_outputs.append(y)
+                dense = nn.Linear(j.shape[1], self.n_classes)
+                y = dense(j)
+                task_outputs.append(y)
             for output in task_outputs:
                 softmax = nn.Softmax()
                 logit = softmax(output)
                 logits.append(logit)
-            
-
-
-
-               
-               
-
-        
-
-
+        if self.mode == "regression":
+            for j in out:
+                dense = nn.Linear(j.shape[1], 1)
+                y = dense(j)
+                task_outputs.append(y)
