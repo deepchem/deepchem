@@ -500,3 +500,19 @@ def test_assert_runtime():
         assert_runtime(False, "This should fail")
     except RuntimeError:
         pass
+
+
+@pytest.mark.torch
+def test_take_eigpairs():
+    from deepchem.utils.differentiation_utils.symeig import _take_eigpairs
+    eival = torch.tensor([[1., 2., 3.], [4., 5., 6.]])
+    eivec = torch.tensor([[[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]],
+                          [[1., 2., 3.], [4., 5., 6.], [7., 8., 9.]]])
+    neig = 2
+    mode = "lowest"
+    eival, eivec = _take_eigpairs(eival, eivec, neig, mode)
+    assert torch.allclose(eival, torch.tensor([[1., 2.], [4., 5.]]))
+    assert torch.allclose(
+        eivec,
+        torch.tensor([[[1., 2.], [4., 5.], [7., 8.]],
+                      [[1., 2.], [4., 5.], [7., 8.]]]))
