@@ -3,19 +3,53 @@ from typing import Optional, Sequence, Tuple, Union
 from deepchem.utils.differentiation_utils import LinearOperator
 import functools
 from deepchem.utils.pytorch_utils import tallqr, to_fortran_order
+from deepchem.utils.differentiation_utils import get_bcasted_dims
 
 
-
-def _exacteig(A: LinearOperator, neig: int,
-             mode: str, M: Optional[LinearOperator]) -> Tuple[torch.Tensor, torch.Tensor]:
+def _exacteig(A: LinearOperator, neig: int, mode: str,
+              M: Optional[LinearOperator]) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Eigendecomposition using explicit matrix construction.
     No additional option for this method.
+
+    Examples
+    --------
+    >>> import torch
+    >>> import numpy as np
+    >>> from deepchem.utils.differentiation_utils import LinearOperator
+    >>> A = LinearOperator.m(torch.rand(2, 2))
+    >>> neig = 2
+    >>> mode = "lowest"
+    >>> M = None
+    >>> evals, evecs = _exacteig(A, neig, mode, M)
+    >>> evals.shape
+    torch.Size([2])
+    >>> evecs.shape
+    torch.Size([2, 2])
+
+    Parameters
+    ----------
+    A: LinearOperator
+        Linear operator to be diagonalized. Shape: ``(*BA, q, q)``.
+    neig: int
+        Number of eigenvalues and eigenvectors to be calculated.
+    mode: str
+        Mode of the eigenvalues to be calculated (``"lowest"``, ``"uppest"``)
+    M: Optional[LinearOperator] (default None)
+        The overlap matrix. If None, identity matrix is used. Shape: ``(*BM, q, q)``.
+
+    Returns
+    -------
+    evals: torch.Tensor
+        Eigenvalues of the linear operator.
+    evecs: torch.Tensor
+        Eigenvectors of the linear operator.
 
     Warnings
     --------
     * As this method construct the linear operators explicitly, it might requires
       a large memory.
+
     """
     Amatrix = A.fullmatrix()  # (*BA, q, q)
     if M is None:
@@ -37,22 +71,70 @@ def _exacteig(A: LinearOperator, neig: int,
         # (the eigvecs are normalized in M-space)
         # evals, evecs = torch.linalg.eigh(A2, eigenvectors=True)  # (*BAM, q, q)
         evals, evecs = _degen_symeig.apply(A2)  # (*BAM, q, q)
-        evals, evecs = _take_eigpairs(evals, evecs, neig, mode)  # (*BAM, neig) and (*BAM, q, neig)
+        evals, evecs = _take_eigpairs(evals, evecs, neig,
+                                      mode)  # (*BAM, neig) and (*BAM, q, neig)
         evecs = torch.matmul(LinvT, evecs)
         return evals, evecs
 
+
 # temporary solution to https://github.com/pytorch/pytorch/issues/47599
 class _degen_symeig(torch.autograd.Function):
+    """A wrapper for torch.linalg.eigh to avoid complex eigenvalues for degenerate case.
+
+    Examples
+    --------
+    >>> import torch
+    >>> import numpy as np
+    >>> from deepchem.utils.differentiation_utils import LinearOperator
+    >>> A = LinearOperator.m(torch.rand(2, 2))
+    >>> evals, evecs = _degen_symeig.apply(A.fullmatrix())
+    >>> evals.shape
+    torch.Size([2])
+    >>> evecs.shape
+    torch.Size([2, 2])
+
+    """
+
     @staticmethod
     def forward(ctx, A):
+        """Calculate the eigenvalues and eigenvectors of a symmetric matrix.
+
+        Parameters
+        ----------
+        A: torch.Tensor
+            The symmetric matrix to be diagonalized. Shape: ``(*BA, q, q)``.
+
+        Returns
+        -------
+        eival: torch.Tensor
+            Eigenvalues of the linear operator.
+        eivec: torch.Tensor
+            Eigenvectors of the linear operator.
+
+        """
         eival, eivec = torch.linalg.eigh(A)
         ctx.save_for_backward(eival, eivec)
         return eival, eivec
 
     @staticmethod
     def backward(ctx, grad_eival, grad_eivec):
+        """Calculate the gradient of the eigenvalues and eigenvectors of a symmetric matrix.
+
+        Parameters
+        ----------
+        grad_eival: torch.Tensor
+            The gradient of the eigenvalues. Shape: ``(*BA, q)``.
+        grad_eivec: torch.Tensor
+            The gradient of the eigenvectors. Shape: ``(*BA, q, q)``.
+
+        Returns
+        -------
+        result: torch.Tensor
+            The gradient of the symmetric matrix. Shape: ``(*BA, q, q)``.
+
+        """
         eival, eivec = ctx.saved_tensors
-        min_threshold = torch.finfo(eival.dtype).eps ** 0.6
+        min_threshold = torch.finfo(eival.dtype).eps**0.6
         eivect = eivec.transpose(-2, -1).conj()
 
         # remove the degenerate part
@@ -77,21 +159,41 @@ class _degen_symeig(torch.autograd.Function):
         result = (result + result.transpose(-2, -1).conj()) * 0.5
         return result
 
-def _davidson(A: LinearOperator, neig: int,
-             mode: str,
-             M: Optional[LinearOperator] = None,
-             max_niter: int = 1000,
-             nguess: Optional[int] = None,
-             v_init: str = "randn",
-             max_addition: Optional[int] = None,
-             min_eps: float = 1e-6,
-             verbose: bool = False,
-             **unused) -> Tuple[torch.Tensor, torch.Tensor]:
+
+def _davidson(A: LinearOperator,
+              neig: int,
+              mode: str,
+              M: Optional[LinearOperator] = None,
+              max_niter: int = 1000,
+              nguess: Optional[int] = None,
+              v_init: str = "randn",
+              max_addition: Optional[int] = None,
+              min_eps: float = 1e-6,
+              verbose: bool = False,
+              **unused) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Using Davidson method for large sparse matrix eigendecomposition [2]_.
 
-    Arguments
-    ---------
+    Examples
+    --------
+    >>> import torch
+    >>> import numpy as np
+    >>> from deepchem.utils.differentiation_utils import LinearOperator
+    >>> A = LinearOperator.m(torch.rand(2, 2))
+    >>> neig = 2
+    >>> mode = "lowest"
+    >>> eigen_val, eigen_vec = _davidson(A, neig, mode)
+
+    Parameters
+    ----------
+    A: LinearOperator
+        Linear operator to be diagonalized. Shape: ``(*BA, q, q)``.
+    neig: int
+        Number of eigenvalues and eigenvectors to be calculated.
+    mode: str
+        Mode of the eigenvalues to be calculated (``"lowest"``, ``"uppest"``)
+    M: Optional[LinearOperator] (default None)
+        The overlap matrix. If None, identity matrix is used. Shape: ``(*BM, q, q)``.
     max_niter: int
         Maximum number of iterations
     v_init: str
@@ -104,10 +206,18 @@ def _davidson(A: LinearOperator, neig: int,
     verbose: bool
         Option to be verbose
 
+    Returns
+    -------
+    evals: torch.Tensor
+        Eigenvalues of the linear operator.
+    evecs: torch.Tensor
+        Eigenvectors of the linear operator.
+
     References
     ----------
     .. [2] P. Arbenz, "Lecture Notes on Solving Large Scale Eigenvalue Problems"
            http://people.inf.ethz.ch/arbenz/ewp/Lnotes/chapter12.pdf
+
     """
     # TODO: optimize for large linear operator and strict min_eps
     # Ideas:
@@ -128,15 +238,15 @@ def _davidson(A: LinearOperator, neig: int,
     dtype = A.dtype
     device = A.device
 
-    prev_eigvals = None
     prev_eigvalT = None
-    stop_reason = "max_niter"
-    shift_is_eigvalT = False
-    idx = torch.arange(neig).unsqueeze(-1)  # (neig, 1)
 
     # set up the initial guess
-    V = _set_initial_v(v_init.lower(), dtype, device,
-                       bcast_dims, na, nguess,
+    V = _set_initial_v(v_init.lower(),
+                       dtype,
+                       device,
+                       bcast_dims,
+                       na,
+                       nguess,
                        M=M)  # (*BAM, na, nguess)
 
     best_resid: Union[float, torch.Tensor] = float("inf")
@@ -152,7 +262,9 @@ def _davidson(A: LinearOperator, neig: int,
         # eigvals are sorted from the lowest
         # eval: (*BAM, nguess), evec: (*BAM, nguess, nguess)
         eigvalT, eigvecT = torch.linalg.eigh(T)
-        eigvalT, eigvecT = _take_eigpairs(eigvalT, eigvecT, neig, mode)  # (*BAM, neig) and (*BAM, nguess, neig)
+        eigvalT, eigvecT = _take_eigpairs(
+            eigvalT, eigvecT, neig,
+            mode)  # (*BAM, neig) and (*BAM, nguess, neig)
 
         # calculate the eigenvectors of A
         eigvecA = torch.matmul(V, eigvecT)  # (*BAM, na, neig)
@@ -205,7 +317,6 @@ def _davidson(A: LinearOperator, neig: int,
     eigvals = best_eigvals  # (*BAM, neig)
     eigvecs = best_eigvecs  # (*BAM, na, neig)
     return eigvals, eigvecs
-
 
 
 def _set_initial_v(vinit_type: str,
