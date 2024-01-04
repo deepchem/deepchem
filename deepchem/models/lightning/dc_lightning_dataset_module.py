@@ -1,4 +1,4 @@
-import pytorch_lightning as pl
+import lightning as L
 import torch
 
 
@@ -15,7 +15,7 @@ def collate_dataset_wrapper(batch):
     return DCLightningDatasetBatch(batch)
 
 
-class DCLightningDatasetModule(pl.LightningDataModule):
+class DCLightningDatasetModule(L.LightningDataModule):
     """DeepChem Lightning Dataset Module to be used with the DCLightningModule and a Lightning trainer.
 
     This module wraps over the the deepchem pytorch dataset and dataloader providing a generic interface to run training.
@@ -26,7 +26,7 @@ class DCLightningDatasetModule(pl.LightningDataModule):
     This class requires PyTorch to be installed.
     """
 
-    def __init__(self, dataset, batch_size, collate_fn, num_workers: int):
+    def __init__(self, dataset, batch_size, collate_fn=collate_dataset_wrapper, num_workers: int=0):
         """Create a new DCLightningDatasetModule.
 
         Parameters
