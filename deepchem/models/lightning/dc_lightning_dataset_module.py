@@ -1,3 +1,5 @@
+from typing import Callable
+import deepchem as dc
 import lightning as L
 import torch
 
@@ -26,14 +28,23 @@ class DCLightningDatasetModule(L.LightningDataModule):
     This class requires PyTorch to be installed.
     """
 
-    def __init__(self, dataset, batch_size, collate_fn=collate_dataset_wrapper, num_workers: int=0):
+    def __init__(self,
+                 dataset: dc.data.Dataset,
+                 batch_size: int,
+                 collate_fn: Callable = collate_dataset_wrapper,
+                 num_workers: int = 0):
         """Create a new DCLightningDatasetModule.
 
         Parameters
         ----------
-        dataset: A deepchem dataset.
-        batch_size: Batch size for the dataloader.
-        collate_fn: Method to collate instances across batch.
+        dataset: dc.data.Dataset
+            A deepchem dataset.
+        batch_size: int
+            Batch size for the dataloader.
+        collate_fn: Callable
+            Method to collate instances across batch.
+        num_workers: int
+            Number of workers to load data
         """
         super().__init__()
         self._batch_size = batch_size
