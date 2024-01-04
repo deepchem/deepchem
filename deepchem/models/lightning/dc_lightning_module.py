@@ -1,6 +1,6 @@
 import torch
 import lightning as L  # noqa
-from deepchem.models.torch_models import ModularTorchModel
+from deepchem.models.torch_models import ModularTorchModel, TorchModel
 
 
 class DCLightningModule(L.LightningModule):
@@ -31,6 +31,7 @@ class DCLightningModule(L.LightningModule):
         self.dc_model = dc_model
 
         self.pt_model = self.dc_model.model
+        # This will not work for ModularTorchModel as it is directly uses `loss_func` to compute loss.
         self.loss = self.dc_model._loss_fn
 
     def configure_optimizers(self):
@@ -56,19 +57,20 @@ class DCLightningModule(L.LightningModule):
             assert len(inputs) == 1
             inputs = inputs[0]
 
-        outputs = self.pt_model(inputs)
+        if isinstance(self.dc_model, ModularTorchModel):
+            loss = self.dc_model.loss_func(inputs, labels, weights)
+        elif isinstance(self.dc_model, TorchModel):
+            outputs = self.pt_model(inputs)
+            if isinstance(outputs, torch.Tensor):
+                outputs = [outputs]
 
-        if isinstance(outputs, torch.Tensor):
-            outputs = [outputs]
-
-        if self.dc_model._loss_outputs is not None:
-            outputs = [outputs[i] for i in self.dc_model._loss_outputs]
-
-        loss_outputs = self.loss(outputs, labels, weights)
+            if self.dc_model._loss_outputs is not None:
+                outputs = [outputs[i] for i in self.dc_model._loss_outputs]
+            loss = self.loss(outputs, labels, weights)
 
         self.log(
             "train_loss",
-            loss_outputs,
+            loss,
             on_epoch=True,
             sync_dist=True,
             reduce_fx="mean",
@@ -76,4 +78,4 @@ class DCLightningModule(L.LightningModule):
             batch_size=self.dc_model.batch_size,
         )
 
-        return loss_outputs
+        return loss
