@@ -585,3 +585,14 @@ Chemberta
 
 .. autoclass:: deepchem.models.torch_models.chemberta.Chemberta
   :members:
+
+Trainer
+=======
+
+A `Trainer` object automates the scaling of DeepChem model's training into multi-gpu and multi-node infrastructures.
+
+DistributedTrainer
+------------------
+
+.. autoclass:: deepchem.trainer.DistributedTrainer
+  :members:
