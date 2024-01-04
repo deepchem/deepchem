@@ -72,6 +72,7 @@ except ImportError as e:
 # Pytorch-lightning modules import
 try:
     from deepchem.models.lightning import DCLightningModule, DCLightningDatasetModule
+    from deepchem.models.trainer import DistributedTrainer
 except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading modules with pytorch-lightning dependency, missing a dependency. {e}'
