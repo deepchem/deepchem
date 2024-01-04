@@ -1,8 +1,9 @@
 import torch
-import pytorch_lightning as pl  # noqa
+import lightning as L  # noqa
+from deepchem.models.torch_models import ModularTorchModel
 
 
-class DCLightningModule(pl.LightningModule):
+class DCLightningModule(L.LightningModule):
     """DeepChem Lightning Module to be used with Lightning trainer.
 
     TODO: Add dataloader, example code and fit, once datasetmodule
