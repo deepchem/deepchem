@@ -2690,23 +2690,23 @@ class AtomicConv(nn.Module):
     >>> max_num_neighbors = 12
     >>> batch_size = 24
     >>> atom_types = [
-            6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35., 53.,
-            -1.
-        ]
+    ...     6, 7., 8., 9., 11., 12., 15., 16., 17., 20., 25., 30., 35., 53.,
+    ...     -1.
+    ... ]
     >>> radial = [[
-            1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5,
-            8.0, 8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0
-        ], [0.0, 4.0, 8.0], [0.4]]
+    ...     1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5,
+    ...     8.0, 8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0
+    ... ], [0.0, 4.0, 8.0], [0.4]]
     >>> layer_sizes = [32, 32, 16]
     >>> acnn_model = AtomicConv(n_tasks=n_tasks,
-        frag1_num_atoms=frag1_num_atoms,
-        frag2_num_atoms=frag2_num_atoms,
-        complex_num_atoms=complex_num_atoms,
-        max_num_neighbors=max_num_neighbors,
-        batch_size=batch_size,
-        atom_types=atom_types,
-        radial=radial,
-        layer_sizes=layer_sizes)
+    ... frag1_num_atoms=frag1_num_atoms,
+    ... frag2_num_atoms=frag2_num_atoms,
+    ... complex_num_atoms=complex_num_atoms,
+    ... max_num_neighbors=max_num_neighbors,
+    ... batch_size=batch_size,
+    ... atom_types=atom_types,
+    ... radial=radial,
+    ... layer_sizes=layer_sizes)
     """
 
     def __init__(self,
@@ -3556,7 +3556,7 @@ class MolGANAggregationLayer(nn.Module):
         string
             String representation of the layer
         """
-        return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate})"
+        return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate}, Name={self.name})"
 
     def forward(self, inputs: List) -> torch.Tensor:
         """
@@ -3676,7 +3676,7 @@ class MolGANMultiConvolutionLayer(nn.Module):
         string
             String representation of the layer
         """
-        return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate}), edges={self.edges})"
+        return f"{self.__class__.__name__}(units={self.units}, nodes={self.nodes}, activation={self.activation}, dropout_rate={self.dropout_rate}), edges={self.edges}, Name={self.name})"
 
     def forward(self, inputs: List) -> torch.Tensor:
         """
@@ -3801,7 +3801,7 @@ class MolGANEncoderLayer(nn.Module):
         string
             String representation of the layer
         """
-        return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate}), edges={self.edges})"
+        return f"{self.__class__.__name__}(graph_convolution_units={self.graph_convolution_units}, auxiliary_units={self.auxiliary_units}, activation={self.activation}, dropout_rate={self.dropout_rate}), edges={self.edges})"
 
     def forward(self, inputs: List) -> torch.Tensor:
         """
@@ -5435,6 +5435,7 @@ class FerminetElectronFeature(torch.nn.Module):
 
     Examples
     --------
+    >>> import deepchem as dc
     >>> electron_layer = dc.models.torch_models.layers.FerminetElectronFeature([32,32,32],[16,16,16], 4, 8, 10, [5,5])
     >>> one_electron_test = torch.randn(8, 10, 4*4)
     >>> two_electron_test = torch.randn(8, 10, 10, 4)
@@ -5588,6 +5589,7 @@ class FerminetEnvelope(torch.nn.Module):
 
     Examples
     --------
+    >>> import deepchem as dc
     >>> envelope_layer = dc.models.torch_models.layers.FerminetEnvelope([32, 32, 32], [16, 16, 16], 10, 8, [5, 5], 5, 16)
     >>> one_electron = torch.randn(8, 10, 32)
     >>> one_electron_permuted = torch.randn(8, 10, 5, 3)
