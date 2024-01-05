@@ -1870,11 +1870,7 @@ class DFTYamlLoader(DataLoader):
 class SAMLoader(DataLoader):
     """Handles loading of SAM files.
     
-    Sequence Alignment Map (SAM) is a text-based format used to store 
-    biological sequences aligned to a reference sequence. This
-    class provides convenience files to lead SAM data and
-    extract their features for use in downstream
-    learning tasks.
+    This class provides methods to load and featurize data from a SAM file.
     """
 
     def __init__(self, featurizer: Optional[Featurizer] = None):
