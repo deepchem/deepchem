@@ -6,12 +6,13 @@ try:
 except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
 
-
+from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.utils.pytorch_utils import get_activation
+from deepchem.models.losses import L2Loss
 logger = logging.getLogger(__name__)
 
 
-class RobustMultitask(nn.Module):
+class RobustMultitaskModel(nn.Module):
     """Implements a neural network for robust multitasking.
 
     The key idea of this model is to have bypass layers that feed
@@ -30,19 +31,13 @@ class RobustMultitask(nn.Module):
     def __init__(self,
                  n_tasks,
                  n_features,
-                 layer_sizes=[
-                     1000,
-                 ],
+                 layer_sizes=[1000,],
                  weight_init_stddevs=0.02,
                  bias_init_consts=1.0,
-                 weight_decay_penalty=0.0,
-                 weight_decay_penalty_type="l2",
                  dropouts=0.5,
                  activation_fns="relu",
                  n_classes=2,
-                 bypass_layer_sizes=[
-                     100,
-                 ],
+                 bypass_layer_sizes=[100,],
                  bypass_weight_init_stddevs=[.02],
                  bypass_bias_init_consts=[1.],
                  bypass_dropouts=[.5],
@@ -91,6 +86,7 @@ class RobustMultitask(nn.Module):
         mode: str
             Whether the model should perform classification or regression on the dataset
         """
+        super(RobustMultitaskModel, self).__init__()
         if mode not in ['classification', 'regression']:
             raise ValueError(
                 "mode must be either 'classification' or 'regression'")
@@ -129,7 +125,7 @@ class RobustMultitask(nn.Module):
         self.bypass_activation_fns = [get_activation(i) for i in bypass_activation_fns]
 
         # Adding the shared represenation.
-        self.shared_layers = nn.ModuleList()
+        list_layers = []
         in_size = n_features
 
         for size, weight_stddev, bias_const, dropout, activation_fn in zip(
@@ -144,15 +140,17 @@ class RobustMultitask(nn.Module):
             layer.bias_const = bias_const
             dropout_layer = nn.Dropout(dropout)
             layer_act = activation_fn
-            self.shared_layers.append(layer)
-            self.shared_layers.append(dropout_layer)
-            self.shared_layers.append(layer_act)
+            list_layers.append(layer)
+            list_layers.append(dropout_layer)
+            list_layers.append(layer_act)
             in_size = size
+
+        self.shared = nn.Sequential(*list_layers)
 
         # Adding Task specific layers.
         self.bypass_layers = nn.ModuleList()
         for task in range(self.n_tasks):
-            task_layers = nn.ModuleList()
+            task_layers = []
             in_size = n_features
             for bypass_size, bypass_weight_stddev, bypass_bias_const, bypass_dropout, bypass_activation_fn in zip(
                     bypass_layer_sizes, bypass_weight_init_stddevs,
@@ -173,26 +171,25 @@ class RobustMultitask(nn.Module):
                 task_layers.append(dropout_layer_bypass)
                 task_layers.append(layer_act_bypass)
                 in_size = size
-            self.bypass_layers.append(task_layers)
+            task_layer = nn.Sequential(*task_layers)
+        self.bypass_layers.append(task_layer)
 
         self.classifier = nn.LazyLinear(self.n_classes)
         self.regressor = nn.LazyLinear(1)
 
     def forward(self, X):
         X_bypass = torch.Tensor.new_tensor(X, requires_grad=True)
-        for module in self.shared_layers:
-            X = module(X)
-        shared_weights = X
+        shared_weights = self.shared(X)
+
         outputs_bypass = []
         for modules in self.bypass_layers:
-            X_1 = torch.Tensor.new_tensor(X_bypass, requires_grad=True)
-            for module in modules:
-                X_1 = module(X_1)
-            outputs_bypass.append(X_1)
+            X_bypass = modules(X_bypass)
+            outputs_bypass.append(X_bypass)
         out = []
         for i in outputs_bypass:
             output = torch.cat((shared_weights, i), dim=1)
             out.append(output)
+
         task_outputs = []
         logits = []
         if self.mode == "classification":
@@ -210,3 +207,65 @@ class RobustMultitask(nn.Module):
                 task_outputs.append(y)
             outs = task_outputs
         return outs
+
+
+class RobustMultitask(TorchModel):
+    def __init__(self,
+                 n_tasks,
+                 n_features,
+                 layer_sizes=[1000,],
+                 weight_init_stddevs=0.02,
+                 bias_init_consts=1.0,
+                 dropouts=0.5,
+                 activation_fns="relu",
+                 n_classes=2,
+                 bypass_layer_sizes=[100,],
+                 weight_decay_penalty="l1",
+                 weight_decay_penalty_type=0.0,
+                 bypass_weight_init_stddevs=[.02],
+                 bypass_bias_init_consts=[1.],
+                 bypass_dropouts=[.5],
+                 mode="classification",
+                 **kwargs):
+        self.mode = mode
+        self.n_classes = n_classes
+        self.n_tasks = n_tasks
+
+        self.model = RobustMultitaskModel(self,
+                                          n_tasks=n_tasks,
+                                          n_features=n_features,
+                                          layer_sizes=layer_sizes,
+                                          weight_init_stddevs=weight_init_stddevs,
+                                          bias_init_consts=bias_init_consts,
+                                          dropouts=dropouts,
+                                          activation_fns=activation_fns,
+                                          n_classes=n_classes,
+                                          bypass_layer_sizes=bypass_layer_sizes,
+                                          bypass_weight_init_stddevs=bypass_weight_init_stddevs,
+                                          bypass_bias_init_consts=bypass_bias_init_consts,
+                                          bypass_dropouts=bypass_dropouts,
+                                          mode=mode)
+
+        if weight_decay_penalty != 0:
+            weights_shared = [layer.weight for layer in self.model.shared_layers]
+            if weight_decay_penalty_type == 'l1':
+                regularization_loss = lambda: weight_decay_penalty * torch.sum(  # noqa: E731
+                    torch.stack([torch.abs(w).sum() for w in weights_shared]))
+            else:
+                regularization_loss = lambda: weight_decay_penalty * torch.sum(  # noqa: E731
+                    torch.stack([torch.square(w).sum() for w in weights_shared]))
+        else:
+            regularization_loss = None
+
+        loss = L2Loss()
+
+        if self.mode == 'classification':
+            output_types = ['prediction', 'loss']
+        else:
+            output_types = ["prediction"]
+
+        super(RobustMultitask, self).__init__(self.model,
+                                              loss=loss,
+                                              output_types=output_types,
+                                              regularization_loss=regularization_loss,
+                                              **kwargs)
