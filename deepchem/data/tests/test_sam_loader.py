@@ -1,7 +1,10 @@
 import os
 import unittest
 import deepchem as dc
-import pysam
+try:
+    import pysam
+except ImportError:
+    print("Error: Unable to import pysam. Please make sure it is installed.")
 import numpy as np
 
 
