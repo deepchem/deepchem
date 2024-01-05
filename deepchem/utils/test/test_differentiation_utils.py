@@ -500,3 +500,12 @@ def test_assert_runtime():
         assert_runtime(False, "This should fail")
     except RuntimeError:
         pass
+
+
+def test_pure_function():
+    from deepchem.utils.differentiation_utils import PureFunction
+    def foo(x):
+        return x * x * 3
+    new_foo = PureFunction(foo)
+    assert new_foo(2) == 3
+    assert new_foo.getparams(foo) == [3]
