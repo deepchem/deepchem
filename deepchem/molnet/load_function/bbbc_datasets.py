@@ -310,6 +310,7 @@ def load_bbbc004(
     (16, 950, 950, 3)
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
+    loader : _MolnetLoader
     if load_segmentation_mask:
         loader = _BBBC004_Segmentation_Loader(overlap_probability, featurizer,
                                               splitter, transformers,
