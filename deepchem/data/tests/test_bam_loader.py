@@ -1,7 +1,10 @@
 import os
 import unittest
 import deepchem as dc
-import pysam
+try:
+    import pysam
+except ImportError:
+    print("Error: Unable to import pysam. Please make sure it is installed.")
 import numpy as np
 
 
@@ -22,10 +25,7 @@ class TestBAMLoader(unittest.TestCase):
         loader = dc.data.BAMLoader()
         dataset = loader.create_dataset(bam_file_path)
 
-        # Perform assertions based on the expected structure of your dataset
-        # For example, check the shape of X, y, and other attributes
         assert dataset.X.shape == (396, 7)
-        # Add more assertions based on your specific use case
 
     def test_bam_loader_with_multiple_files(self):
         """
@@ -38,10 +38,7 @@ class TestBAMLoader(unittest.TestCase):
         loader = dc.data.BAMLoader()
         dataset = loader.create_dataset(bam_files)
 
-        # Perform assertions based on the expected structure of your dataset
-        # For example, check the shape of X, y, and other attributes
         assert dataset.X.shape == (792, 7)
-        # Add more assertions based on your specific use case
 
     def test_bam_featurizer(self):
         """
@@ -52,10 +49,7 @@ class TestBAMLoader(unittest.TestCase):
         bamfile = pysam.AlignmentFile(bam_file_path, "rb")
         dataset = bam_featurizer.get_features(bamfile)
 
-        # Perform assertions based on the expected structure of your features
-        # For example, check the shape of the features array
         assert dataset.shape == (5, 7)
-        # Add more assertions based on your specific use case
 
 
 if __name__ == "__main__":

@@ -1871,11 +1871,7 @@ class DFTYamlLoader(DataLoader):
 class SAMLoader(DataLoader):
     """Handles loading of SAM files.
     
-    Sequence Alignment Map (SAM) is a text-based format used to store 
-    biological sequences aligned to a reference sequence. This
-    class provides convenience files to lead SAM data and
-    extract their features for use in downstream
-    learning tasks.
+    This class provides methods to load and featurize data from a SAM file.
     """
 
     def __init__(self, featurizer: Optional[Featurizer] = None):
@@ -1934,14 +1930,11 @@ class SAMLoader(DataLoader):
 
         return DiskDataset.create_dataset(shard_generator(), data_dir)
 
+
 class BAMLoader(DataLoader):
     """Handles loading of BAM files.
     
-    Sequence Alignment Map (SAM) is a text-based format used to store 
-    biological sequences aligned to a reference sequence. This
-    class provides convenience files to lead SAM data and
-    extract their features for use in downstream
-    learning tasks.
+    This class provides methods to load and featurize data from a BAM file.
     """
 
     def __init__(self, featurizer: Optional[Featurizer] = None):
@@ -1975,11 +1968,11 @@ class BAMLoader(DataLoader):
         Parameters
         ----------
         input_files: List[str]
-            List of SAM files.
+            List of BAM files.
         data_dir: str, optional (default None)
             Name of directory where featurized data is stored.
         shard_size: int, optional (default None)
-            For now, this argument is ignored and each SAM file gets its
+            For now, this argument is ignored and each BAM file gets its
             own shard.
         Returns
         -------
