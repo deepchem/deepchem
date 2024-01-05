@@ -347,3 +347,32 @@ def safe_cdist(a: torch.Tensor,
         ab = ab + infdiag
 
     return ab
+
+
+def safedenom(r: torch.Tensor, eps: float) -> torch.Tensor:
+    """Avoid division by zero by replacing zero elements with eps.
+
+    Used in CG and BiCGStab.
+
+    Examples
+    --------
+    >>> import torch
+    >>> r = torch.tensor([1e-11, 0])
+    >>> safedenom(r, 1e-12)
+    tensor([1.0000e-11, 1.0000e-12])
+
+    Parameters
+    ----------
+    r: torch.Tensor
+        The residual vector
+    eps: float
+        The minimum value to avoid division by zero
+
+    Returns
+    -------
+    r: torch.Tensor
+        The residual vector with zero elements replaced by eps
+
+    """
+    r[r == 0] = eps
+    return r
