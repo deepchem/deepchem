@@ -88,8 +88,9 @@ class RobustMultitask(nn.Module):
         bypass_dropouts: list or float
             the dropout probablity to use for bypass layers.
             same requirements as dropouts
+        mode: str
+            Whether the model should perform classification or regression on the dataset
         """
-        super(self).__init__()
         if mode not in ['classification', 'regression']:
             raise ValueError(
                 "mode must be either 'classification' or 'regression'")
@@ -125,12 +126,12 @@ class RobustMultitask(nn.Module):
                 str) or not isinstance(activation_fns, SequenceCollection):
             bypass_activation_fns = [activation_fns] * n_bypass_layers
         self.activation_fns = [get_activation(i) for i in activation_fns]
-        self.bypass_activation_fns = [
-            get_activation(i) for i in bypass_activation_fns
-        ]
+        self.bypass_activation_fns = [get_activation(i) for i in bypass_activation_fns]
+
+        # Adding the shared represenation.
         self.shared_layers = nn.ModuleList()
         in_size = n_features
-        # Adding the shared represenation.
+
         for size, weight_stddev, bias_const, dropout, activation_fn in zip(
                 layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
                 self.activation_fns):
@@ -147,6 +148,7 @@ class RobustMultitask(nn.Module):
             self.shared_layers.append(dropout_layer)
             self.shared_layers.append(layer_act)
             in_size = size
+
         # Adding Task specific layers.
         self.bypass_layers = nn.ModuleList()
         for task in range(self.n_tasks):
@@ -173,6 +175,9 @@ class RobustMultitask(nn.Module):
                 in_size = size
             self.bypass_layers.append(task_layers)
 
+        self.classifier = nn.LazyLinear(self.n_classes)
+        self.regressor = nn.LazyLinear(1)
+
     def forward(self, X):
         X_bypass = torch.Tensor.new_tensor(X, requires_grad=True)
         for module in self.shared_layers:
@@ -192,15 +197,16 @@ class RobustMultitask(nn.Module):
         logits = []
         if self.mode == "classification":
             for j in out:
-                dense = nn.Linear(j.shape[1], self.n_classes)
-                y = dense(j)
+                y = self.classifier(j)
                 task_outputs.append(y)
             for output in task_outputs:
                 softmax = nn.Softmax()
                 logit = softmax(output)
                 logits.append(logit)
+            outs = [task_outputs, logits]
         if self.mode == "regression":
             for j in out:
-                dense = nn.Linear(j.shape[1], 1)
-                y = dense(j)
+                y = self.regressor(j)
                 task_outputs.append(y)
+            outs = task_outputs
+        return outs
