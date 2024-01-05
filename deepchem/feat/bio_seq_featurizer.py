@@ -7,8 +7,52 @@ except ImportError:
 
 
 class SAMFeaturizer:
+    """
+    A class for extracting features from a SAM file.
+
+    Parameters
+    ----------
+    max_records : int or None, optional
+        The maximum number of records to extract from the SAM file. If None, all records will be extracted.
+
+    Attributes
+    ----------
+    max_records : int or None
+        The maximum number of records to extract.
+
+    Methods
+    -------
+    get_features(samfile)
+        Extract features from a SAM file.
+
+        Parameters
+        ----------
+        samfile : str
+            SAM file.
+
+        Returns
+        -------
+        features : numpy.ndarray
+            A 2D NumPy array representing the extracted features.
+            Each row corresponds to a SAM record, and columns represent different features.
+            - Column 0: Query Name
+            - Column 1: Query Sequence
+            - Column 2: Query Length
+            - Column 3: Reference Name
+            - Column 4: Reference Start
+            - Column 5: CIGAR
+            - Column 6: Mapping Quality
+    """
 
     def __init__(self, max_records=None):
+        """
+        Initialize SAMFeaturizer.
+
+        Parameters
+        ----------
+        max_records : int or None, optional
+            The maximum number of records to extract from the SAM file. If None, all records will be extracted.
+        """
         self.max_records = max_records
 
     def get_features(self, samfile):
