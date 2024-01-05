@@ -163,10 +163,10 @@ class _BBBC003_Segmentation_Loader(_MolnetLoader):
         foreground_file = os.path.join(self.data_dir,
                                        "BBBC003_v1_foreground.zip")
         if not os.path.exists(dataset_file):
-            dc.utils.data_utils.download_url(url=self.BBBC3_IMAGE_URL,
+            dc.utils.data_utils.download_url(url=BBBC3_IMAGE_URL,
                                              dest_dir=self.data_dir)
         if not os.path.exists(foreground_file):
-            dc.utils.data_utils.download_url(url=self.BBBC3_FOREGROUND_URL,
+            dc.utils.data_utils.download_url(url=BBBC3_FOREGROUND_URL,
                                              dest_dir=self.data_dir)
 
         loader = dc.data.ImageLoader(sorting=True)
