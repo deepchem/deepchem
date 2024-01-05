@@ -205,7 +205,10 @@ def load_bbbc003(
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
     """Load BBBC003 dataset
 
-# Fill information
+    This dataset contains data corresponding to 15 samples of Mouse embryos with DIC.
+    Each image is of size 640x480. Ground truth labels contain cell counts and
+    segmentation masks for this dataset. Full details about this dataset are present at
+    https://data.broadinstitute.org/bbbc/BBBC003/.
 
     Parameters
     ----------
