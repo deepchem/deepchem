@@ -26,6 +26,10 @@ BBBC3_TASKS = ["cell-count"]
 
 BBBC4_TASKS = ["cell-count"]
 
+BBBC5_IMAGE_URL = 'https://data.broadinstitute.org/bbbc/BBBC005/BBBC005_v1_images.zip'
+BBBC5_FOREGROUND_URL = 'https://data.broadinstitute.org/bbbc/BBBC005/BBBC005_v1_ground_truth.zip'
+BBBC5_TASKS = ["cell-count"]
+
 
 class _BBBC001_Loader(_MolnetLoader):
 
@@ -416,3 +420,19 @@ def load_bbbc004(
                                  **kwargs)
 
     return loader.load_dataset('bbbc004', reload)
+
+class _BBBC005_Loader(_MolnetLoader):
+    """BBBC005 cell count dataset loader"""
+
+    def create_dataset(self):
+        dataset_file = os.path.join(self.data_dir, "BBBC005_v1_images.zip")
+        
+        if not os.path.exists(dataset_file):
+            dc.utils.data_utils.download_url(url=BBBC5_IMAGE_URL,
+                                             dest_dir=self.data_dir)
+        
+        
+
+        loader = dc.data.ImageLoader(sorting=True)
+        return loader.create_dataset(inputs=(dataset_file, lbx),
+                                     in_memory=False)
