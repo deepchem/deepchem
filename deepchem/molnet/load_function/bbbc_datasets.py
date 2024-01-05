@@ -85,7 +85,7 @@ def load_bbbc001(
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
     loader = _BBBC001_Loader(featurizer, splitter, transformers, BBBC1_TASKS,
-                            data_dir, save_dir, **kwargs)
+                             data_dir, save_dir, **kwargs)
     return loader.load_dataset('bbbc001', reload)
 
 
@@ -151,17 +151,17 @@ def load_bbbc002(
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
     loader = _BBBC002_Loader(featurizer, splitter, transformers, BBBC2_TASKS,
-                            data_dir, save_dir, **kwargs)
+                             data_dir, save_dir, **kwargs)
     return loader.load_dataset('bbbc002', reload)
+
 
 class _BBBC003_Segmentation_Loader(_MolnetLoader):
     """BBBC003 segmentation mask dataset loader"""
 
     def create_dataset(self) -> Dataset:
-        dataset_file = os.path.join(
-            self.data_dir, "BBBC003_v1_images.zip")
-        foreground_file = os.path.join(
-            self.data_dir, "BBBC003_v1_foreground.zip")
+        dataset_file = os.path.join(self.data_dir, "BBBC003_v1_images.zip")
+        foreground_file = os.path.join(self.data_dir,
+                                       "BBBC003_v1_foreground.zip")
         if not os.path.exists(dataset_file):
             dc.utils.data_utils.download_url(url=self.BBBC3_IMAGE_URL,
                                              dest_dir=self.data_dir)
@@ -191,7 +191,8 @@ class _BBBC003_Loader(_MolnetLoader):
         lbx = labels.sort_values("Image")["manual count #1"].values
 
         loader = dc.data.ImageLoader(sorting=True)
-        return loader.create_dataset(inputs=(dataset_file, lbx), in_memory=False)
+        return loader.create_dataset(inputs=(dataset_file, lbx),
+                                     in_memory=False)
 
 
 def load_bbbc003(
@@ -231,58 +232,16 @@ def load_bbbc003(
         a directory to save the raw data in
     save_dir: str
         a directory to save the dataset in
-
-    Examples
-    --------
-    Importing necessary modules
-
-    >>> import deepchem as dc
-    >>> import numpy as np
-
-    We can load the BBBC003 dataset with 2 types of labels: segmentation masks and
-    cell counts. We will first load the dataset with cell counts as labels.
-
-    >>> loader = dc.molnet.load_bbbc003(load_segmentation_mask=False)
-    >>> tasks, dataset, transformers = loader
-    >>> train, val, test = dataset
-
-    We now have a dataset with 15 samples, each with 300 cells. The images are of
-    size 950x950. The labels are cell counts. We can verify this as follows:
-
-    >>> train.X.shape
-    # (12, 950, 950)
-    >>> train.y.shape
-    # (12,)
-
-    We will now load the dataset with segmentation masks as labels.
-
-    >>> loader = dc.molnet.load_bbbc003(load_segmentation_mask=True)
-    >>> tasks, dataset, transformers = loader
-    >>> train, val, test = dataset
-
-    We now have a dataset with 15 samples, each with 300 cells. The images are of
-    size 950x950. The labels are segmentation masks. We can verify this as follows:
-
-    >>> train.X.shape
-    # (16, 950, 950)
-    >>> train.y.shape
-    # (16, 950, 950, 3)
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
     if load_segmentation_mask:
-        loader = _BBBC003_Segmentation_Loader(featurizer,
-                                              splitter, transformers,
-                                              BBBC3_TASKS, data_dir, save_dir,
-                                              **kwargs)
+        loader = _BBBC003_Segmentation_Loader(featurizer, splitter,
+                                              transformers, BBBC3_TASKS,
+                                              data_dir, save_dir, **kwargs)
     else:
-        loader = _BBBC003_Loader(featurizer, splitter,
-                                 transformers, BBBC3_TASKS, data_dir, save_dir,
-                                 **kwargs)
+        loader = _BBBC003_Loader(featurizer, splitter, transformers,
+                                 BBBC3_TASKS, data_dir, save_dir, **kwargs)
 
-    return loader.load_dataset('bbbc004', reload)
-
-    loader = _BBBC003Loader(featurizer, splitter, transformers, BBBC3_TASKS,
-                            data_dir, save_dir, **kwargs)
     return loader.load_dataset('bbbc003', reload)
 
 
