@@ -384,6 +384,18 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.assert_runtime
 
+.. autofunction:: deepchem.utils.differentiation_utils.solve.wrap_gmres
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.exactsolve
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.solve_ABE
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.get_batchdims
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.setup_precond
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.dot
+
 Attribute Utilities
 -------------------
 
@@ -412,6 +424,8 @@ Pytorch Utilities
 .. autofunction:: deepchem.utils.pytorch_utils.gaussian_integral
 
 .. autofunction:: deepchem.utils.pytorch_utils.TensorNonTensorSeparator
+
+.. autofunction:: deepchem.utils.pytorch_utils.get_np_dtype
 
 Batch Utilities
 ---------------
