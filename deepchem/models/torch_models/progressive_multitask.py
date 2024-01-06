@@ -2,11 +2,12 @@ import torch
 import torch.nn as nn
 
 import logging
-from deepchem.models.torch_models import TorchModel
+from deepchem.models import TorchModel, losses
 
 logger = logging.getLogger(__name__)
 
 from collections.abc import Sequence as SequenceCollection
+
 
 class ProgressiveMultitask(nn.Module):
 
@@ -19,11 +20,11 @@ class ProgressiveMultitask(nn.Module):
                  bias_init_consts=1.0,
                  weight_decay_penalty=0.0,
                  weight_decay_penalty_type="l2",
-                 activation_fns = nn.ReLU,
+                 activation_fns=nn.ReLU,
                  dropouts=0.5,
                  n_outputs=1,
-                **kwargs):
-        
+                 **kwargs):
+
         if weight_decay_penalty != 0.0:
             raise ValueError('Weight decay is not currently supported')
         self.n_tasks = n_tasks
@@ -59,7 +60,8 @@ class ProgressiveMultitask(nn.Module):
             adapter_list = []
             alpha_list = []
             prev_size = n_features
-            for i, (size, dropout, activation_fn) in enumerate(zip(self.layer_sizes, self.dropouts, self.activation_fns)):
+            for i, (size, dropout, activation_fn) in enumerate(
+                    zip(self.layer_sizes, self.dropouts, self.activation_fns)):
                 layer = []
                 layer.append(self._init_linear(prev_size, size, i))
                 layer.append(activation_fn())
@@ -70,16 +72,21 @@ class ProgressiveMultitask(nn.Module):
 
                 if task > 0:
                     if i > 0:
-                        adapter, alpha = self._get_adapter(task, prev_size, size, i)
+                        adapter, alpha = self._get_adapter(
+                            task, prev_size, size, i)
                         adapter_list.append(adapter)
                         alpha_list.append(alpha)
-                    
+
                 prev_size = size
-            
-            layer_list.append(nn.Sequential(self._init_linear(prev_size, n_outputs, len(self.layer_sizes))))
+
+            layer_list.append(
+                nn.Sequential(
+                    self._init_linear(prev_size, n_outputs,
+                                      len(self.layer_sizes))))
             self.layers.append(nn.ModuleList(layer_list))
             if task > 0:
-                adapter, alpha = self._get_adapter(task, prev_size, n_outputs, len(self.layer_sizes))
+                adapter, alpha = self._get_adapter(task, prev_size, n_outputs,
+                                                   len(self.layer_sizes))
                 adapter_list.append(adapter)
                 alpha_list.append(alpha)
                 self.adapters.append(nn.ModuleList(adapter_list))
@@ -87,11 +94,12 @@ class ProgressiveMultitask(nn.Module):
 
     def _get_adapter(self, task, prev_size, size, layer_num):
         adapter = nn.Sequential(
-                            self._init_linear(prev_size * task, prev_size, layer_num),
-                            # activation_fn(), # add it? not present in tf implementation
-                            self._init_linear(prev_size, size, layer_num)
-                        ) 
-        alpha_init_stddev = self.alpha_init_stddevs[layer_num] if layer_num < len(self.layer_sizes) else self.alpha_init_stddevs[-1]
+            self._init_linear(prev_size * task, prev_size, layer_num),
+            # activation_fn(), # add it? not present in tf implementation
+            self._init_linear(prev_size, size, layer_num))
+        alpha_init_stddev = self.alpha_init_stddevs[
+            layer_num] if layer_num < len(
+                self.layer_sizes) else self.alpha_init_stddevs[-1]
         alpha = torch.empty(1, requires_grad=True)
         nn.init.trunc_normal_(alpha, std=alpha_init_stddev)
         return adapter, alpha
@@ -119,8 +127,8 @@ class ProgressiveMultitask(nn.Module):
             for i, layer in enumerate(self.layers[task]):
                 x_ = layer(x_)
                 if task > 0 and i > 0:
-                    adapter = self.adapters[task-1][i-1]
-                    alpha = self.alphas[task-1][i-1]
+                    adapter = self.adapters[task - 1][i - 1]
+                    alpha = self.alphas[task - 1][i - 1]
                     prev_logits = [logits[t][i - 1] for t in range(task)]
                     adapter_input = torch.cat(prev_logits, dim=-1)
                     adapter_input = alpha * adapter_input
@@ -130,12 +138,116 @@ class ProgressiveMultitask(nn.Module):
 
             logits.append(layer_outputs)
             outputs.append(x_)
-        
+
         return torch.stack(outputs, dim=1)
-    
-# sample = torch.randn(64, 10)
 
-# model = ProgressiveMultitask(12, 10, 0.02, [1000, 450])
-# output = model(sample)
 
-# print(output.shape)
+class ProgressiveMultitaskRegressorModel(TorchModel):
+
+    def __init__(self,
+                 n_tasks,
+                 n_features,
+                 alpha_init_stddevs=0.02,
+                 layer_sizes=[1000],
+                 weight_init_stddevs=0.02,
+                 bias_init_consts=1.0,
+                 weight_decay_penalty=0.0,
+                 weight_decay_penalty_type="l2",
+                 activation_fns=nn.ReLU,
+                 dropouts=0.5,
+                 n_outputs=1,
+                 **kwargs):
+        model = ProgressiveMultitask(n_tasks, n_features, alpha_init_stddevs,
+                                     layer_sizes, weight_init_stddevs,
+                                     bias_init_consts, weight_decay_penalty,
+                                     weight_decay_penalty_type, activation_fns,
+                                     dropouts, n_outputs, **kwargs)
+
+        self.model = model
+        self.loss = losses.L2Loss()
+        super(ProgressiveMultitaskRegressorModel,
+              self).__init__(self.model, self.loss)
+
+    def fit(self,
+            dataset,
+            nb_epoch=10,
+            max_checkpoints_to_keep=5,
+            checkpoint_interval=1000,
+            deterministic=False,
+            restore=False,
+            **kwargs):
+        for task in range(self.model.n_tasks):
+            self.fit_task(dataset,
+                          task,
+                          nb_epoch=nb_epoch,
+                          max_checkpoints_to_keep=max_checkpoints_to_keep,
+                          checkpoint_interval=checkpoint_interval,
+                          deterministic=deterministic,
+                          restore=restore,
+                          **kwargs)
+
+    def fit_task(self,
+                 dataset,
+                 task,
+                 nb_epoch=10,
+                 max_checkpoints_to_keep=5,
+                 checkpoint_interval=1000,
+                 deterministic=False,
+                 restore=False,
+                 **kwargs):
+        """Fit one task."""
+        generator = self.default_generator(dataset,
+                                           epochs=nb_epoch,
+                                           deterministic=deterministic)
+
+        variables = list(self.model.layers[task].parameters())
+
+        if task > 0:
+            variables += [
+                adapter_layer.parameters()
+                for adapter_layer in self.model.adapters[task - 1]
+            ]
+            variables += [
+                alphas.parameters() for alphas in self.model.alphas[task - 1]
+            ]
+
+        self.fit_generator(generator,
+                           max_checkpoints_to_keep,
+                           checkpoint_interval,
+                           restore,
+                           variables=variables,
+                           **kwargs)
+
+
+class ProgressiveMultitaskClassifierModel(ProgressiveMultitaskRegressorModel):
+
+    def __init__(self,
+                 n_tasks,
+                 n_features,
+                 alpha_init_stddevs=0.02,
+                 layer_sizes=[1000],
+                 weight_init_stddevs=0.02,
+                 bias_init_consts=1.0,
+                 weight_decay_penalty=0.0,
+                 weight_decay_penalty_type="l2",
+                 activation_fns=nn.ReLU,
+                 dropouts=0.5,
+                 n_outputs=1,
+                 **kwargs):
+
+        super(ProgressiveMultitaskClassifierModel,
+              self).__init__(n_tasks,
+                             n_features,
+                             alpha_init_stddevs= alpha_init_stddevs,
+                             layer_sizes= layer_sizes,
+                             weight_init_stddevs= weight_init_stddevs,
+                             bias_init_consts= bias_init_consts,
+                             weight_decay_penalty= weight_decay_penalty,
+                             weight_decay_penalty_type= weight_decay_penalty_type,
+                             activation_fns= activation_fns,
+                             dropouts= dropouts,
+                             n_outputs= n_outputs,
+                             **kwargs)
+
+    def _get_loss_fn(self):
+        return losses.SparseSoftmaxCrossEntropy()
