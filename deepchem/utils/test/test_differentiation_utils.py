@@ -520,32 +520,32 @@ def test_take_eigpairs():
 
 @pytest.mark.torch
 def test_exacteig():
-    from deepchem.utils.differentiation_utils.symeig import _exacteig
+    from deepchem.utils.differentiation_utils.symeig import exacteig
     from deepchem.utils.differentiation_utils import LinearOperator
     torch.manual_seed(100)
     mat = LinearOperator.m(torch.randn(2, 2))
-    eival, eivec = _exacteig(mat, 2, "lowest", None)
+    eival, eivec = exacteig(mat, 2, "lowest", None)
     assert eival.shape == torch.Size([2])
     assert eivec.shape == torch.Size([2, 2])
 
 
 @pytest.mark.torch
 def test_degen_symeig():
-    from deepchem.utils.differentiation_utils.symeig import _degen_symeig
+    from deepchem.utils.differentiation_utils.symeig import degen_symeig
     from deepchem.utils.differentiation_utils import LinearOperator
     A = LinearOperator.m(torch.rand(2, 2))
-    evals, evecs = _degen_symeig.apply(A.fullmatrix())
+    evals, evecs = degen_symeig.apply(A.fullmatrix())
     assert evals.shape == torch.Size([2])
     assert evecs.shape == torch.Size([2, 2])
 
 
 @pytest.mark.torch
 def test_davidson():
-    from deepchem.utils.differentiation_utils.symeig import _davidson
+    from deepchem.utils.differentiation_utils.symeig import davidson
     from deepchem.utils.differentiation_utils import LinearOperator
     A = LinearOperator.m(torch.rand(2, 2))
     neig = 2
     mode = "lowest"
-    eigen_val, eigen_vec = _davidson(A, neig, mode)
+    eigen_val, eigen_vec = davidson(A, neig, mode)
     assert eigen_val.shape == torch.Size([2])
     assert eigen_vec.shape == torch.Size([2, 2])
