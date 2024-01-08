@@ -414,27 +414,6 @@ def to_fortran_order(V):
     >>> V.shape
     torch.Size([2, 3])
 
-    Examples
-    --------
-    >>> import torch
-    >>> from deepchem.utils.pytorch_utils import to_fortran_order
-    >>> V = torch.randn(3, 2)
-    >>> V.is_contiguous()
-    True
-    >>> V = to_fortran_order(V)
-    >>> V.is_contiguous()
-    False
-    >>> V.shape
-    torch.Size([3, 2])
-    >>> V = torch.randn(3, 2).transpose(-2, -1)
-    >>> V.is_contiguous()
-    False
-    >>> V = to_fortran_order(V)
-    >>> V.is_contiguous()
-    False
-    >>> V.shape
-    torch.Size([2, 3])
-
     Parameters
     ----------
     V: torch.Tensor

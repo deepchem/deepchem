@@ -8,7 +8,7 @@ sphinx_rtd_theme>=1.0
 tensorflow
 transformers>=4.34.1
 torch==2.1.0 --extra-index-url https://download.pytorch.org/whl/cpu
-lightning
+pytorch-lightning>=2.1.2
 jax
 dm-haiku
 optax
