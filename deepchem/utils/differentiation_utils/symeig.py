@@ -6,8 +6,8 @@ from deepchem.utils.pytorch_utils import tallqr, to_fortran_order
 from deepchem.utils.differentiation_utils import get_bcasted_dims
 
 
-def _exacteig(A: LinearOperator, neig: int, mode: str,
-              M: Optional[LinearOperator]) -> Tuple[torch.Tensor, torch.Tensor]:
+def exacteig(A: LinearOperator, neig: int, mode: str,
+             M: Optional[LinearOperator]) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Eigendecomposition using explicit matrix construction.
     No additional option for this method.
@@ -21,7 +21,7 @@ def _exacteig(A: LinearOperator, neig: int, mode: str,
     >>> neig = 2
     >>> mode = "lowest"
     >>> M = None
-    >>> evals, evecs = _exacteig(A, neig, mode, M)
+    >>> evals, evecs = exacteig(A, neig, mode, M)
     >>> evals.shape
     torch.Size([2])
     >>> evecs.shape
@@ -54,7 +54,7 @@ def _exacteig(A: LinearOperator, neig: int, mode: str,
     Amatrix = A.fullmatrix()  # (*BA, q, q)
     if M is None:
         # evals, evecs = torch.linalg.eigh(Amatrix, eigenvectors=True)  # (*BA, q), (*BA, q, q)
-        evals, evecs = _degen_symeig.apply(Amatrix)  # (*BA, q, q)
+        evals, evecs = degen_symeig.apply(Amatrix)  # (*BA, q, q)
         return _take_eigpairs(evals, evecs, neig, mode)
     else:
         Mmatrix = M.fullmatrix()  # (*BM, q, q)
@@ -70,7 +70,7 @@ def _exacteig(A: LinearOperator, neig: int, mode: str,
         # calculate the eigenvalues and eigenvectors
         # (the eigvecs are normalized in M-space)
         # evals, evecs = torch.linalg.eigh(A2, eigenvectors=True)  # (*BAM, q, q)
-        evals, evecs = _degen_symeig.apply(A2)  # (*BAM, q, q)
+        evals, evecs = degen_symeig.apply(A2)  # (*BAM, q, q)
         evals, evecs = _take_eigpairs(evals, evecs, neig,
                                       mode)  # (*BAM, neig) and (*BAM, q, neig)
         evecs = torch.matmul(LinvT, evecs)
@@ -78,7 +78,7 @@ def _exacteig(A: LinearOperator, neig: int, mode: str,
 
 
 # temporary solution to https://github.com/pytorch/pytorch/issues/47599
-class _degen_symeig(torch.autograd.Function):
+class degen_symeig(torch.autograd.Function):
     """A wrapper for torch.linalg.eigh to avoid complex eigenvalues for degenerate case.
 
     Examples
@@ -87,7 +87,7 @@ class _degen_symeig(torch.autograd.Function):
     >>> import numpy as np
     >>> from deepchem.utils.differentiation_utils import LinearOperator
     >>> A = LinearOperator.m(torch.rand(2, 2))
-    >>> evals, evecs = _degen_symeig.apply(A.fullmatrix())
+    >>> evals, evecs = degen_symeig.apply(A.fullmatrix())
     >>> evals.shape
     torch.Size([2])
     >>> evecs.shape
@@ -160,17 +160,17 @@ class _degen_symeig(torch.autograd.Function):
         return result
 
 
-def _davidson(A: LinearOperator,
-              neig: int,
-              mode: str,
-              M: Optional[LinearOperator] = None,
-              max_niter: int = 1000,
-              nguess: Optional[int] = None,
-              v_init: str = "randn",
-              max_addition: Optional[int] = None,
-              min_eps: float = 1e-6,
-              verbose: bool = False,
-              **unused) -> Tuple[torch.Tensor, torch.Tensor]:
+def davidson(A: LinearOperator,
+             neig: int,
+             mode: str,
+             M: Optional[LinearOperator] = None,
+             max_niter: int = 1000,
+             nguess: Optional[int] = None,
+             v_init: str = "randn",
+             max_addition: Optional[int] = None,
+             min_eps: float = 1e-6,
+             verbose: bool = False,
+             **unused) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Using Davidson method for large sparse matrix eigendecomposition [2]_.
 
@@ -182,7 +182,7 @@ def _davidson(A: LinearOperator,
     >>> A = LinearOperator.m(torch.rand(2, 2))
     >>> neig = 2
     >>> mode = "lowest"
-    >>> eigen_val, eigen_vec = _davidson(A, neig, mode)
+    >>> eigen_val, eigen_vec = davidson(A, neig, mode)
 
     Parameters
     ----------
