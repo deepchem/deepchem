@@ -270,6 +270,7 @@ def load_bbbc003(
     (12,)
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
+    loader: _MolnetLoader
     if load_segmentation_mask:
         loader = _BBBC003_Segmentation_Loader(featurizer, splitter,
                                               transformers, BBBC3_TASKS,
