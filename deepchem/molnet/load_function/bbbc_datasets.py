@@ -232,6 +232,42 @@ def load_bbbc003(
         a directory to save the raw data in
     save_dir: str
         a directory to save the dataset in
+
+    Examples
+    --------
+    Importing necessary modules
+
+    >>> import deepchem as dc
+    >>> import numpy as np
+
+    We can load the BBBC003 dataset with 2 types of labels: segmentation masks and
+    cell counts. We will first load the dataset with cell counts as labels.
+
+    >>> loader = dc.molnet.load_bbbc003(load_segmentation_mask=False)
+    >>> tasks, dataset, transformers = loader
+    >>> train, val, test = dataset
+
+    We now have a dataset with 15 samples, each with 300 cells. The images are of
+    size 640x480. The labels are cell counts. We can verify this as follows:
+
+    >>> train.X.shape
+    (12,)
+    >>> train.y.shape
+    (12,)
+
+    We will now load the dataset with segmentation masks as labels.
+
+    >>> loader = dc.molnet.load_bbbc003(load_segmentation_mask=True)
+    >>> tasks, dataset, transformers = loader
+    >>> train, val, test = dataset
+
+    We now have a dataset with 15 samples, each with 300 cells. The images are of
+    size 640x480. The labels are segmentation masks. We can verify this as follows:
+
+    >>> train.X.shape
+    (12,)
+    >>> train.y.shape
+    (12,)
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
     if load_segmentation_mask:
@@ -405,6 +441,7 @@ def load_bbbc004(
     (16, 950, 950, 3)
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
+    loader: _MolnetLoader
     if load_segmentation_mask:
         loader = _BBBC004_Segmentation_Loader(overlap_probability, featurizer,
                                               splitter, transformers,
