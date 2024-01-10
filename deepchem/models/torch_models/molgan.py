@@ -149,31 +149,48 @@ class BasicMolGANModel(WGANModel):
         Use MolGAN featurizer for that purpose. It will be simplified
         in the future release.
         """
-        adjacency_tensor = torch.randn(
-            (1, self.vertices, self.vertices, self.edges))
-        node_tensor = torch.randn((1, self.vertices, self.nodes))
-
-        graph = MolGANEncoderLayer(units=units,
-                                   dropout_rate=self.dropout_rate,
-                                   edges=self.edges)(
-                                       [adjacency_tensor, node_tensor])
-
-        # graph_output = ([adjacency_tensor, node_tensor])
 
         class Discriminator(nn.Module):
             """A discriminator for the MolGAN model."""
 
-            def __init__(self, graph_shape, dropout_rate):
+            def __init__(self,
+                         dropout_rate: float,
+                         units: List = [(128, 64), 64],
+                         edges=5):
                 super(Discriminator, self).__init__()
-
+                self.dropout_rate = dropout_rate
+                self.edges = edges
+                self.units = units
                 # Define the dense layers
-                self.dense1 = nn.Linear(graph_shape[1], 128)
+                self.dense1 = nn.LazyLinear(128)
                 self.dropout1 = nn.Dropout(dropout_rate)
                 self.dense2 = nn.Linear(128, 64)
                 self.dropout2 = nn.Dropout(dropout_rate)
                 self.dense3 = nn.Linear(64, 1)
 
-            def forward(self, graph):
+            def forward(
+                self,
+                inputs,
+            ):
+
+                adjacency_tensor, node_tensor = inputs
+
+                if isinstance(adjacency_tensor, list):
+
+                    adjacency_tensor = [
+                        input for input in adjacency_tensor
+                        if isinstance(input, torch.Tensor)
+                    ]
+
+                    adjacency_tensor = adjacency_tensor[0]
+                adjacency_tensor = adjacency_tensor.to(torch.float32)
+                node_tensor = node_tensor.to(torch.float32)
+
+                graph = MolGANEncoderLayer(
+                    units=self.units,
+                    dropout_rate=self.dropout_rate,
+                    edges=self.edges)([adjacency_tensor, node_tensor])
+
                 output = self.dense1(graph)
                 output = F.tanh(output)
                 output = self.dropout1(output)
@@ -181,16 +198,11 @@ class BasicMolGANModel(WGANModel):
                 output = F.tanh(output)
                 output = self.dropout2(output)
                 output = self.dense3(output)
-
                 return output
 
-        # dense = nn.Linear(graph.shape[1], 128)(graph)
-        # dense = nn.Dropout(self.dropout_rate)(dense)
-        # dense = nn.Linear(128, 64)(dense)
-        # dense = nn.Dropout(self.dropout_rate)(dense)
-        # output = nn.Linear(64, 1)(dense)
-        return Discriminator(graph_shape=graph.shape,
-                             dropout_rate=self.dropout_rate)
+        return Discriminator(dropout_rate=self.dropout_rate,
+                             units=units,
+                             edges=self.edges)
 
     def predict_gan_generator(self,
                               batch_size: int = 1,
@@ -285,7 +297,7 @@ class BasicMolGANGenerator(nn.Module):
         self.dropout_rate = dropout_rate
         self.embedding_dim = embedding_dim
 
-        self.dense1 = nn.Linear(embedding_dim, 128)
+        self.dense1 = nn.Linear(self.embedding_dim, 128)
         self.dropout1 = nn.Dropout(dropout_rate)
         self.dense2 = nn.Linear(128, 256)
         self.dropout2 = nn.Dropout(dropout_rate)
@@ -323,25 +335,48 @@ class BasicMolGANGenerator(nn.Module):
             Tensors containing either softmax values for training
             or argmax for sample generation (used for creation of rdkit molecules).
         """
-
-        x = F.tanh(self.dense1(inputs))
-        x = self.dropout1(x, training=training)
-        x = F.tanh(self.dense2(x))
-        x = self.dropout2(x, training=training)
-        x = F.tanh(self.dense3(x))
-        x = self.dropout3(x, training=training)
+        edge_logits_list = []
+        nodes_logits_list = []
+        if isinstance(inputs, list):
+            for input in inputs[:1]:
+                input = input.to(torch.float32)
+                x = F.tanh(self.dense1(input))
+                x = self.dropout1(x)
+                x = F.tanh(self.dense2(x))
+                x = self.dropout2(x)
+                x = F.tanh(self.dense3(x))
+                x = self.dropout3(x)
+                edges_logits = self.edges_dense(x)
+                nodes_logits = self.nodes_dense(x)
+                edge_logits_list.append(edges_logits)
+                nodes_logits_list.append(nodes_logits)
+        else:
+            inputs = torch.tensor(inputs)
+            inputs = inputs.to(torch.float32)
+            x = F.tanh(self.dense1(inputs))
+            x = self.dropout1(x)
+            x = F.tanh(self.dense2(x))
+            x = self.dropout2(x)
+            x = F.tanh(self.dense3(x))
+            x = self.dropout3(x)
+            edges_logits = self.edges_dense(x)
+            nodes_logits = self.nodes_dense(x)
+            edge_logits_list.append(edges_logits)
+            nodes_logits_list.append(nodes_logits)
 
         # edges logits
-        edges_logits = self.edges_dense(x)
+        edges_logits = torch.stack(edge_logits_list)
         edges_logits = edges_logits.view(-1, self.edges, self.vertices,
                                          self.vertices)
-        edges_logits = (edges_logits + edges_logits.transpose(2, 3)) / 2
-        edges_logits = self.edges_dropout(edges_logits, training=training)
+        matrix_transpose = edges_logits.permute(0, 1, 3, 2)
+        edges_logits = (edges_logits + matrix_transpose) / 2
+        edges_logits = edges_logits.permute(0, 2, 3, 1)
+        edges_logits = self.edges_dropout(edges_logits)
 
         # nodes logits
-        nodes_logits = self.nodes_dense(x)
+        nodes_logits = torch.stack(nodes_logits_list)
         nodes_logits = nodes_logits.view(-1, self.vertices, self.nodes)
-        nodes_logits = self.nodes_dropout(nodes_logits, training=training)
+        nodes_logits = self.nodes_dropout(nodes_logits)
 
         if sample_generation is False:
             # For training
@@ -360,5 +395,4 @@ class BasicMolGANGenerator(nn.Module):
             n_gumbel_argmax = F.one_hot(torch.argmax(n_gumbel_logits, dim=-1),
                                         num_classes=n_gumbel_logits.shape[-1])
             nodes = torch.argmax(n_gumbel_argmax, dim=-1)
-
         return [edges, nodes]
