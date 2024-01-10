@@ -93,9 +93,10 @@ class DistributedTrainer():
         import lightning as L
         from deepchem.models.lightning import DCLightningModule, DCLightningDatasetModule
         lit_model = DCLightningModule(model)
-        dataset = DCLightningDatasetModule(dataset, batch_size=self.batch_size)
+        lit_dataset = DCLightningDatasetModule(dataset,
+                                               batch_size=self.batch_size)
         trainer = L.Trainer(max_epochs=self.max_epochs,
                             devices=self.devices,
                             accelerator=self.accelerator)
-        trainer.fit(lit_model, dataset)
+        trainer.fit(lit_model, lit_dataset)
         return
