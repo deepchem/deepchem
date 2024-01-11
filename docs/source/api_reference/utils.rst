@@ -388,6 +388,12 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils._take_eigpairs
 
+.. autofunction:: deepchem.utils.differentiation_utils.exacteig
+
+.. autofunction:: deepchem.utils.differentiation_utils.degen_symeig
+
+.. autofunction:: deepchem.utils.differentiation_utils.davidson
+
 Attribute Utilities
 -------------------
 
