@@ -14,7 +14,6 @@ from functools import partial
 
 ray.init(num_cpus=4)
 
-# TODO Implement reading and writing data from disk
 class RayDataset(Dataset):
 
     def __init__(
@@ -41,16 +40,16 @@ class RayDataset(Dataset):
 def featurize(row: Dict[str, Any],
               featurizer,
               x='smiles',
-              y='logp') -> Dict[str, Any]:
-    row['features'] = featurizer(row['smiles'])
-    row['y'] = row['logp']
+              y='measured log solubility in mols per litre') -> Dict[str, Any]:
+    row['features'] = featurizer(row[x])
+    row['y'] = row[y]
     return row
 
 
-featurize_batches = partial(featurize, featurizer=dc.feat.CircularFingerprint())
+featurize_batches = partial(featurize, featurizer=dc.feat.DummyFeaturizer())
 
-ds = ray.data.read_csv('zinc1k.csv').map_batches(featurize_batches, num_cpus=4)
+ds = ray.data.read_csv('delaney-processed.csv').map_batches(featurize_batches)
 rds = RayDataset(ds)
 
 for i, batch in enumerate(rds.iterbatches()):
-    pass
+    print (i)
