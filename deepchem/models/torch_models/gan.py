@@ -6,7 +6,7 @@ try:
 except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
 import time
-from typing import Callable, Any, List, Tuple, Union
+from typing import Callable, Any, List, Optional, Tuple, Union
 from deepchem.models.torch_models.torch_model import TorchModel
 
 
@@ -136,7 +136,11 @@ class GAN(nn.Module):
                  generator_fn: Callable,
                  discriminator_fn: Callable,
                  n_generators: int = 1,
-                 n_discriminators: int = 1):
+                 n_discriminators: int = 1,
+                 create_discriminator_loss: Optional[Callable] = None,
+                 create_generator_loss: Optional[Callable] = None,
+                 _call_discriminator: Optional[Callable] = None,
+                 **kwargs):
         """Construct a GAN.
 
         In addition to the parameters listed below, this class accepts all the
@@ -171,8 +175,25 @@ class GAN(nn.Module):
             the number of generators to include
         n_discriminators: int
             the number of discriminators to include
+        create_discriminator_loss: Callable
+            a function that returns the loss function for the discriminator.  It will
+            be called with two arguments: the output from the discriminator on a
+            batch of training data, and the output from the discriminator on a batch
+            of generated data.  The default implementation is appropriate for most
+            cases.  Subclasses can override this if the need to customize it.
+        create_generator_loss: Callable
+            a function that returns the loss function for the generator.  It will be
+            called with one argument: the output from the discriminator on a batch of
+            generated data.  The default implementation is appropriate for most
+            cases.  Subclasses can override this if the need to customize it.
+        _call_discriminator: Callable
+            a function that invokes the discriminator on a set of inputs.  It will be
+            called with three arguments: the discriminator to invoke, the list of
+            data inputs, and the list of conditional inputs.  The default
+            implementation is appropriate for most cases.  Subclasses can override
+            this if the need to customize it.
         """
-        super(GAN, self).__init__()
+        super(GAN, self).__init__(**kwargs)
         self.n_generators = n_generators
         self.n_discriminators = n_discriminators
         self.noise_input_shape = noise_input_shape
@@ -180,6 +201,18 @@ class GAN(nn.Module):
         self.conditional_input_shape = conditional_input_shape
         self.create_generator = generator_fn
         self.create_discriminator = discriminator_fn
+        if create_discriminator_loss is None:
+            self.create_discriminator_loss = self.create_discriminator_loss
+        else:
+            self.create_discriminator_loss = create_discriminator_loss
+        if create_generator_loss is None:
+            self.create_generator_loss = self.create_generator_loss
+        else:
+            self.create_generator_loss = create_generator_loss
+        if _call_discriminator is None:
+            self._call_discriminator = self._call_discriminator
+        else:
+            self._call_discriminator = _call_discriminator
 
         # Inputs
         # Noise Input
