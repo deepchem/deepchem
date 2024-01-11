@@ -350,13 +350,11 @@ class FerminetModel(TorchModel):
 
         no_electrons = []
         nucleons = []
-        electronegativity = []
 
         table = Chem.GetPeriodicTable()
         index = 0
         for i in self.nucleon_coordinates:
             atomic_num = table.GetAtomicNumber(i[0])
-            electronegativity.append([index, ALLEN_ELECTRONEGATIVTY[i[0]]])
             no_electrons.append([atomic_num])
             nucleons.append(i[1])
             index += 1
@@ -365,7 +363,6 @@ class FerminetModel(TorchModel):
         charge: np.ndarray = self.electron_no.reshape(
             np.shape(self.electron_no)[0])
         self.nucleon_pos: np.ndarray = np.array(nucleons)
-        electro_neg = np.array(electronegativity)
 
         # Initialization for ionic molecules
         if np.sum(self.electron_no) < self.ion_charge:
