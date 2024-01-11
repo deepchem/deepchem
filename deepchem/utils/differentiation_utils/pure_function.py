@@ -22,6 +22,19 @@ class PureFunction(object):
     For Using this Class we first need to implement `_get_all_obj_params_init`
     and `_set_all_obj_params`.
 
+    Examples
+    --------
+    >>> class WrapperFunction(PureFunction):
+    ...     def _get_all_obj_params_init(self):
+    ...         return []
+    ...     def _set_all_obj_params(self, objparams):
+    ...         pass
+    >>> def fcn(x, y):
+    ...    return x + y
+    >>> pfunc = WrapperFunction(fcn)
+    >>> pfunc(1, 2)
+    3
+
     """
 
     def __init__(self, fcntocall: Callable):
