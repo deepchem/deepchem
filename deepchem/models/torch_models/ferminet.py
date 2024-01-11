@@ -1,7 +1,7 @@
 """
 Implementation of the Ferminet class in pytorch
 """
-
+import logging
 from typing import List, Optional, Tuple
 # import torch.nn as nn
 from rdkit import Chem
@@ -371,21 +371,7 @@ class FerminetModel(TorchModel):
         if np.sum(self.electron_no) < self.ion_charge:
             raise ValueError("Given charge is not initializable")
 
-        # Initialization for ionic molecules
-        if self.ion_charge != 0:
-            if len(nucleons
-                  ) == 1:  # for an atom, directly the charge is applied
-                self.electron_no[0][0] -= self.ion_charge
-            else:  # for a multiatomic molecule, the most electronegative atom gets a charge of -1 and vice versa. The remaining charges are assigned in terms of decreasing(for anionic charge) and increasing(for cationic charge) electronegativity.
-                electro_neg = electro_neg[electro_neg[:, 1].argsort()]
-                if self.ion_charge > 0:
-                    for iter in range(self.ion_charge):
-                        self.electron_no[int(electro_neg[iter][0])][0] -= 1
-                else:
-                    for iter in range(-self.ion_charge):
-                        self.electron_no[int(electro_neg[-1 - iter][0])][0] += 1
-
-        total_electrons = np.sum(self.electron_no)
+        total_electrons = np.sum(self.electron_no) - self.ion_charge
 
         if self.spin >= 0:
             self.up_spin = (total_electrons + 2 * self.spin) // 2
@@ -469,6 +455,26 @@ class FerminetModel(TorchModel):
         self.mol.charge = self.ion_charge
         self.mol.build(parse_arg=False)
         self.mf = pyscf.scf.UHF(self.mol)
+        self.mf.run()
+        dm = self.mf.make_rdm1()
+        _, chg = pyscf.scf.uhf.mulliken_meta(self.mol, dm)
+        excess_charge = np.array(chg)
+        tmp_charge = self.ion_charge
+        while tmp_charge != 0:
+            if (tmp_charge < 0):
+                charge_index = np.argmin(excess_charge)
+                tmp_charge += 1
+                self.electron_no[charge_index] += 1
+                excess_charge[charge_index] += 1
+            elif (tmp_charge > 0):
+                charge_index = np.argmax(excess_charge)
+                tmp_charge -= 1
+                self.electron_no[charge_index] -= 1
+                excess_charge[charge_index] -= 1
+
+        self.molecule.gauss_initialize_position(
+            self.electron_no,
+            stddev=2.0)  # initialize the position of the electrons
         _ = self.mf.kernel()
 
     def random_walk(self, x: np.ndarray):
@@ -581,6 +587,9 @@ class FerminetModel(TorchModel):
                         std_init /= 1.1
                 self.loss_value = (torch.mean(self.model.running_diff) /
                                    self.random_walk_steps)
+                logging.info("The loss for the pretraining iteration " +
+                             str(iteration) + " is " +
+                             str(self.loss_value.item()))
                 self.loss_value.backward()
                 optimizer.step()
                 self.model.running_diff = torch.zeros(self.batch_no)
@@ -615,6 +624,8 @@ class FerminetModel(TorchModel):
                                              max=median + 5 * variance,
                                              min=median - 5 * variance)
                 energy_mean = torch.mean(clamped_energy)
+                logging.info("The mean energy for the training iteration " +
+                             str(iteration) + " is " + str(energy_mean.item()))
                 self.final_energy = self.final_energy + energy_mean
                 # using the sampled electrons from the electron sampler for bacward pass and modifying gradients
                 sample_history = torch.from_numpy(
