@@ -52,30 +52,6 @@ class test_molgan_model(unittest.TestCase):
         assert len(model.generators) == 1
         assert len(model.discriminators) == 1
 
-    # @pytest.mark.torch
-    # def test_shapes(self):
-    #     """
-    # Check if input and output shapes are correct
-    # """
-    #     model = self.model
-    #     print("Discrim\n", model.discriminators)
-    #     # test if adjacency matrix input is correctly set
-    #     assert model.discriminators[0].input_shape[0] == (1, self.vertices,
-    #                                                       self.vertices,
-    #                                                       self.edges)
-    #     # test if nodes features matrix input is correctly set
-    #     assert model.discriminators[0].input_shape[1] == (1, self.vertices,
-    #                                                       self.edges)
-    #     # check discriminator shape
-    #     assert model.discriminators[0].output_shape == (1, 1)
-    #     # check training edges logits shape
-    #     assert model.generators[0].output_shape[0] == (1, self.vertices,
-    #                                                    self.vertices,
-    #                                                    self.edges)
-    #     # check training nodes logits shapes
-    #     assert model.generators[0].output_shape[1] == (1, self.vertices,
-    #                                                    self.nodes)
-
     @pytest.mark.torch
     def test_training(self):
         """
