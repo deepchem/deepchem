@@ -4,8 +4,9 @@ try:
     import pysam
 except ImportError:
     print("Error: Unable to import pysam. Please make sure it is installed.")
+from deepchem.feat.base_classes import Featurizer
 
-class BAMFeaturizer:
+class BAMFeaturizer(Featurizer):
     """
     This class extracts Query Name, Query Sequence, Query Length, Reference Name, 
     Reference Start, CIGAR and Mapping Quality of the alignment in the BAM file.
