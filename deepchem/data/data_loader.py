@@ -23,7 +23,6 @@ from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 from deepchem.utils.genomics_utils import encode_bio_sequence
-from deepchem.feat import SAMFeaturizer
 from deepchem.feat import BAMFeaturizer
 
 try:
@@ -1109,8 +1108,8 @@ def _fastq_load_files(input_files: List[str],
             # iterate through each line in the input file
             for num, line in enumerate(f):
                 # If the number of lines iterated through is equal or less than the shard size:
-                if (shard_size is not None) and ((num + 1) - line_number
-                                                 <= (shard_size * 4)):
+                if (shard_size is not None) and ((num + 1) - line_number <=
+                                                 (shard_size * 4)):
                     # append to list
                     df.append(line)
                 else:
@@ -1867,74 +1866,28 @@ class DFTYamlLoader(DataLoader):
             x = DFTEntry.create(e_type, true_val, systems)
         return [x]
 
-
-class SAMLoader(DataLoader):
-    """Handles loading of SAM files.
-    
-    This class provides methods to load and featurize data from a SAM file.
-    """
-
-    def __init__(self, featurizer: Optional[Featurizer] = None):
-        """Initialize SAMLoader.
-        
-        Parameters
-        ----------
-        featurizer: Featurizer (default: None)
-            The Featurizer to be used for the loaded SAM data.
-       """
-
-        # Set attributes
-        self.user_specified_features = None
-
-        # Handle special featurizer cases
-        if isinstance(featurizer,
-                      UserDefinedFeaturizer):  # User defined featurizer
-            self.user_specified_features = featurizer.feature_fields
-        elif featurizer is None:  # Default featurizer
-            featurizer = SAMFeaturizer(max_records=None)
-
-        # Set self.featurizer
-        self.featurizer = featurizer
-
-    def create_dataset(self,
-                       input_files: OneOrMany[str],
-                       data_dir: Optional[str] = None,
-                       shard_size: Optional[int] = None) -> DiskDataset:
-        """Creates a `Dataset` from input SAM files.
-
-        Parameters
-        ----------
-        input_files: List[str]
-            List of SAM files.
-        data_dir: str, optional (default None)
-            Name of directory where featurized data is stored.
-        shard_size: int, optional (default None)
-            For now, this argument is ignored and each SAM file gets its
-            own shard.
-        Returns
-        -------
-        DiskDataset
-            A `DiskDataset` object containing a featurized representation of data
-            from `input_files`.
-        """
-        if isinstance(input_files, str):
-            input_files = [input_files]
-
-        def shard_generator():  # TODO Enable sharding with shard size parameter
-            for input_file in input_files:
-                samfile = pysam.AlignmentFile(input_file, "r")
-                X = self.featurizer.get_features(samfile)
-                ids = np.ones(len(X))
-                # (X, y, w, ids)
-                yield X, None, None, ids
-
-        return DiskDataset.create_dataset(shard_generator(), data_dir)
-
-
 class BAMLoader(DataLoader):
     """Handles loading of BAM files.
-    
-    This class provides methods to load and featurize data from a BAM file.
+
+    Binary Alignment Map (BAM) is the comprehensive raw data of genome sequencing.
+    It consists of the lossless, compressed binary representation of the Sequence Alignment Map files.
+    BAM files are smaller and more efficient to work with than SAM files, saving time and reducing costs of computation and storage. 
+    BAM files store alignment date and often have corresponding BAM index files.
+
+    This class provides methods to load and featurize data from BAM files.
+
+    Examples
+    --------
+    >>> from deepchem.data.data_loader import BAMLoader
+    >>> import deepchem as dc
+    >>> import pytest
+    >>> inputs = 'deepchem/data/tests/example.bam'
+    >>> data = BAMLoader()
+    >>> output = data.create_dataset(inputs)
+
+    Note
+    ----
+    This class requires pysam to be installed.
     """
 
     def __init__(self, featurizer: Optional[Featurizer] = None):
@@ -1986,7 +1939,7 @@ class BAMLoader(DataLoader):
         def shard_generator():  # TODO Enable sharding with shard size parameter
             for input_file in input_files:
                 bamfile = pysam.AlignmentFile(input_file, "rb")
-                X = self.featurizer.get_features(bamfile)
+                X = self.featurizer._featurize(bamfile)
                 ids = np.ones(len(X))
                 # (X, y, w, ids)
                 yield X, None, None, ids

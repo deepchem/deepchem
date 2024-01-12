@@ -21,5 +21,7 @@ from deepchem.data.data_loader import SDFLoader
 from deepchem.data.data_loader import FASTALoader
 from deepchem.data.data_loader import ImageLoader
 from deepchem.data.data_loader import InMemoryLoader
-from deepchem.data.data_loader import SAMLoader
-from deepchem.data.data_loader import BAMLoader
+try:
+    from deepchem.data.data_loader import BAMLoader
+except ImportError:
+    print("Error: Unable to import pysam. Please make sure it is installed.")
