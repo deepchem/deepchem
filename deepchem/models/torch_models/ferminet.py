@@ -1,7 +1,7 @@
 """
 Implementation of the Ferminet class in pytorch
 """
-
+import logging
 from typing import List, Optional, Tuple
 # import torch.nn as nn
 from rdkit import Chem
@@ -583,6 +583,9 @@ class FerminetModel(TorchModel):
                                    self.random_walk_steps)
                 self.loss_value.backward()
                 optimizer.step()
+                logging.info("The loss for the pretraining iteration " +
+                             str(iteration) + " is " +
+                             str(self.loss_value.item()))
                 self.model.running_diff = torch.zeros(self.batch_no)
 
         if (self.tasks == 'training'):
@@ -615,6 +618,8 @@ class FerminetModel(TorchModel):
                                              max=median + 5 * variance,
                                              min=median - 5 * variance)
                 energy_mean = torch.mean(clamped_energy)
+                logging.info("The mean energy for the training iteration " +
+                             str(iteration) + " is " + str(energy_mean.item()))
                 self.final_energy = self.final_energy + energy_mean
                 # using the sampled electrons from the electron sampler for bacward pass and modifying gradients
                 sample_history = torch.from_numpy(
