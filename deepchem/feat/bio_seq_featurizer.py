@@ -4,7 +4,7 @@ try:
     import pysam
 except ImportError:
     print("Error: Unable to import pysam. Please make sure it is installed.")
-from deepchem.feat.base_classes import Featurizer
+from deepchem.feat import Featurizer
 
 class SAMFeaturizer(Featurizer):
     """
