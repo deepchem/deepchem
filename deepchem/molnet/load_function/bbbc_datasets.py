@@ -25,6 +25,7 @@ BBBC4_TASKS = ["cell-count"]
 class _BBBC001Loader(_MolnetLoader):
 
     def create_dataset(self) -> Dataset:
+        """Creates a dataset from BBBC001 images and cell counts as labels"""
         dataset_file = os.path.join(self.data_dir, "BBBC001_v1_images_tif.zip")
         labels_file = os.path.join(self.data_dir, "BBBC001_v1_counts.txt")
         if not os.path.exists(dataset_file):
@@ -87,6 +88,7 @@ def load_bbbc001(
 class _BBBC002Loader(_MolnetLoader):
 
     def create_dataset(self) -> Dataset:
+        """Creates a dataset from BBBC002 images and cell counts as labels"""
         dataset_file = os.path.join(self.data_dir, "BBBC002_v1_images.zip")
         labels_file = os.path.join(self.data_dir, "BBBC002_v1_counts.txt")
         if not os.path.exists(dataset_file):
@@ -176,6 +178,7 @@ class _BBBC004_Segmentation_Loader(_MolnetLoader):
                              data_dir, save_dir, **kwargs)
 
     def create_dataset(self) -> Dataset:
+        """Creates a dataset from BBBC004 images and segmentation masks as labels"""
         dataset_file = os.path.join(
             self.data_dir, f"BBBC004_v1_{self.overlap_probability}_images.zip")
         foreground_file = os.path.join(
@@ -219,6 +222,7 @@ class _BBBC004_Loader(_MolnetLoader):
                              data_dir, save_dir, **kwargs)
 
     def create_dataset(self) -> Dataset:
+        """Creates a dataset from BBBC004 images and cell counts as labels"""
         dataset_file = os.path.join(
             self.data_dir, f"BBBC004_v1_{self.overlap_probability}_images.zip")
         if not os.path.exists(dataset_file):
@@ -310,7 +314,7 @@ def load_bbbc004(
     (16, 950, 950, 3)
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
-    loader : _MolnetLoader
+    loader: _MolnetLoader
     if load_segmentation_mask:
         loader = _BBBC004_Segmentation_Loader(overlap_probability, featurizer,
                                               splitter, transformers,
