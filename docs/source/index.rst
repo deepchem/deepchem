@@ -21,7 +21,7 @@ focused on applications of deep learning to chemistry, but the project
 has slowly evolved past its roots to broader applications of deep
 learning to the sciences.
 
-The core `DeepChem Repo`_ serves as a monorepo that organizes the DeepChem suite of scientific tools. 
+The core `DeepChem Repo`_ serves as a monorepo that organizes the DeepChem suite of scientific tools.
 As the project matures, smaller more focused tool will be surfaced in more targeted repos.
 DeepChem is primarily developed in Python, but we are experimenting with adding support for other languages.
 
@@ -68,14 +68,14 @@ Then open your IDE or text editor of choice and try running the following code w
 
 About Us
 --------
-DeepChem is managed by a team of open source contributors. Anyone is free to join and contribute! 
+DeepChem is managed by a team of open source contributors. Anyone is free to join and contribute!
 DeepChem has weekly developer calls. You can find `meeting minutes`_ on our `forums`_.
 
 DeepChem developer calls are open to the public!
 To listen in, please email X.Y@gmail.com, where X=bharath and Y=ramsundar to introduce yourself and ask for an invite.
 
 .. important::
-   
+
     | Join our `community gitter <https://gitter.im/deepchem/Lobby>`_ to discuss DeepChem.
     | Sign up for our `forums <https://forum.deepchem.io/>`_ to talk about research, development, and general questions.
 

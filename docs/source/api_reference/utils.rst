@@ -291,6 +291,12 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.ValGrad
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.data.datastruct.CGTOBasis
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.data.datastruct.AtomCGTOBasis
+  :members:
+
 .. autoclass:: deepchem.utils.dft_utils.BaseXC
   :members:
 
@@ -338,6 +344,9 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.api.parser.parse_moldesc
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.system.base_system.BaseSystem
+  :members:
+
 .. autoclass:: deepchem.utils.differentiation_utils.editable_module.EditableModule
   :members:
 
@@ -375,6 +384,16 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.assert_runtime
 
+.. autofunction:: deepchem.utils.differentiation_utils._set_initial_v
+
+.. autofunction:: deepchem.utils.differentiation_utils._take_eigpairs
+
+.. autofunction:: deepchem.utils.differentiation_utils.exacteig
+
+.. autofunction:: deepchem.utils.differentiation_utils.degen_symeig
+
+.. autofunction:: deepchem.utils.differentiation_utils.davidson
+
 Attribute Utilities
 -------------------
 
@@ -399,6 +418,14 @@ Pytorch Utilities
 .. autofunction:: deepchem.utils.pytorch_utils.chunkify
 
 .. autofunction:: deepchem.utils.pytorch_utils.get_memory
+
+.. autofunction:: deepchem.utils.pytorch_utils.gaussian_integral
+
+.. autofunction:: deepchem.utils.pytorch_utils.TensorNonTensorSeparator
+
+.. autofunction:: deepchem.utils.pytorch_utils.tallqr
+
+.. autofunction:: deepchem.utils.pytorch_utils.to_fortran_order
 
 Batch Utilities
 ---------------
@@ -454,6 +481,21 @@ Initial usecases are for improving the printing format of __repr__.
 .. autofunction:: deepchem.utils.misc_utils.indent
 
 .. autofunction:: deepchem.utils.misc_utils.shape2str
+
+.. autoclass:: deepchem.utils.attribute_utils.UnimplementedError
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.GetSetParamsError
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.ConvergenceWarning
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.MathWarning
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.Uniquifier
+  :members:
 
 SafeOperations Utilities
 ------------------------
