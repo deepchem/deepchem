@@ -62,7 +62,7 @@ class RDKitDescriptors(MolecularFeaturizer):
 
         Parameters
         ----------
-        descriptors_list: List[str] (default None)
+        descriptors: List[str] (default None)
             List of RDKit descriptors to compute properties. When None, computes values
         for descriptors which are chosen based on options set in other arguments.
         use_fragment: bool, optional (default True)
