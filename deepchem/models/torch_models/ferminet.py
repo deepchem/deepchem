@@ -6,7 +6,6 @@ from typing import List, Optional, Tuple
 # import torch.nn as nn
 from rdkit import Chem
 import numpy as np
-from deepchem.utils.molecule_feature_utils import ALLEN_ELECTRONEGATIVTY
 from deepchem.models.torch_models import TorchModel
 import torch
 from deepchem.models.torch_models.layers import FerminetElectronFeature, FerminetEnvelope
