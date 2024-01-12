@@ -1108,8 +1108,8 @@ def _fastq_load_files(input_files: List[str],
             # iterate through each line in the input file
             for num, line in enumerate(f):
                 # If the number of lines iterated through is equal or less than the shard size:
-                if (shard_size is not None) and ((num + 1) - line_number
-                                                 <= (shard_size * 4)):
+                if (shard_size is not None) and ((num + 1) - line_number <=
+                                                 (shard_size * 4)):
                     # append to list
                     df.append(line)
                 else:
@@ -1907,7 +1907,7 @@ class SAMLoader(DataLoader):
                       UserDefinedFeaturizer):  # User defined featurizer
             self.user_specified_features = featurizer.feature_fields
         elif featurizer is None:  # Default featurizer
-            featurizer = SAMFeaturizer(max_records=None)
+            featurizer = SAMFeaturizer()
 
         # Set self.featurizer
         self.featurizer = featurizer
