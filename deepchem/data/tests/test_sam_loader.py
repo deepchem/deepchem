@@ -47,7 +47,7 @@ class TestSAMLoader(unittest.TestCase):
         sam_featurizer = dc.feat.SAMFeaturizer(max_records=5)
         sam_file_path = os.path.join(self.current_dir, "example.sam")
         samfile = pysam.AlignmentFile(sam_file_path, "r")
-        dataset = sam_featurizer.get_features(samfile)
+        dataset = sam_featurizer._featurize(samfile)
 
         assert dataset.shape == (5, 7)
 
