@@ -47,7 +47,7 @@ class RDKitDescriptors(MolecularFeaturizer):
     >>> type(features[0])
     <class 'numpy.ndarray'>
     >>> features[0].shape
-    (209,)
+    (210,)
 
     """
 
