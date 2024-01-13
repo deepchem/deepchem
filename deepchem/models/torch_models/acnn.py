@@ -29,16 +29,15 @@ class AtomConvModel(TorchModel):
     >>> batch_size = 1
     >>> # Initialize the model
     >>> atomic_convnet = AtomConvModel(n_tasks=1,
-                                   batch_size=batch_size,
-                                   layer_sizes=[
-                                       10,
-                                   ],
-                                   frag1_num_atoms=frag1_num_atoms,
-                                   frag2_num_atoms=frag2_num_atoms,
-                                   complex_num_atoms=complex_num_atoms)
-
-    # Creates a set of dummy features that contain the coordinate and
-    # neighbor-list features required by the AtomicConvModel.
+    ...                                batch_size=batch_size,
+    ...                                layer_sizes=[
+    ...                                    10,
+    ...                                ],
+    ...                                frag1_num_atoms=frag1_num_atoms,
+    ...                                frag2_num_atoms=frag2_num_atoms,
+    ...                                complex_num_atoms=complex_num_atoms)
+    >>> # Creates a set of dummy features that contain the coordinate and
+    >>> # neighbor-list features required by the AtomicConvModel.
     >>> # Preparing the dataset
     >>> features = []
     >>> frag1_coords = np.random.rand(frag1_num_atoms, 3)
