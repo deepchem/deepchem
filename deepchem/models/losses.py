@@ -1283,7 +1283,7 @@ class DensityProfileLoss(Loss):
     >>> true_val = 0
     >>> systems =[{'moldesc': 'H 0.86625 0 0; F -0.86625 0 0','basis' : '6-311++G(3df,3pd)'}]
     >>> dens_entry_for_HF = DFTEntry.create(e_type, true_val, systems)
-    >>> grid = (dens_entry_for_HF).get_integration_grid()
+    >>> grid = (dens_entry_for_HF).get_integration_grid() # doctest: +ELLIPSIS
     >>> volume = grid.get_dvolume()
 
     References
