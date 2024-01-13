@@ -30,7 +30,7 @@ class DFTXC(torch.nn.Module):
     >>> entry = DFTEntry.create(e_type, true_val, systems)
     >>> nnmodel = _construct_nn_model(input_size=2, hidden_size=10, n_layers=1,modeltype=1).to(torch.double)
     >>> model = DFTXC("lda_x", nnmodel)
-    >>> output = model([entry])
+    >>> output = model([entry]) # doctest: +ELLIPSIS
 
     """
 
@@ -101,7 +101,7 @@ class XCModel(TorchModel):
     >>> dataset.get_shape()
     ((2,), (2,), (2,), (2,))
     >>> model = XCModel("lda_x", batch_size=1)
-    >>> loss = model.fit(dataset, nb_epoch=1, checkpoint_interval=1)
+    >>> loss = model.fit(dataset, nb_epoch=1, checkpoint_interval=1) # doctest: +ELLIPSIS
 
     Notes
     -----
