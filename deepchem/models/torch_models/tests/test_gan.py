@@ -51,14 +51,35 @@ try:
 
         def forward(self, input):
             data_input, conditional_input = input
-
-            # Concatenate data_input and conditional_input along the second dimension
             discrim_in = torch.cat((data_input, conditional_input), dim=1)
-
-            # Pass the concatenated input through the dense layers
             x = F.relu(self.dense1(discrim_in))
-            output = torch.sigmoid(self.dense2(x))
+            a = self.dense2(x)
+            output = torch.sigmoid(a)
+            return output
 
+    class Discriminator_WGAN(nn.Module):
+        """A simple discriminator for testing."""
+
+        def __init__(self, data_input_shape, conditional_input_shape):
+            super(Discriminator_WGAN, self).__init__()
+            self.data_input_shape = data_input_shape
+            self.conditional_input_shape = conditional_input_shape
+
+            data_dim = data_input_shape[
+                1:]  # Extracting the actual data dimension
+            conditional_dim = conditional_input_shape[
+                1:]  # Extracting the actual conditional dimension
+            input_dim = sum(data_dim) + sum(conditional_dim)
+
+            # Define the dense layers
+            self.dense1 = nn.Linear(input_dim, 10)
+            self.dense2 = nn.Linear(10, 1)
+
+        def forward(self, input):
+            data_input, conditional_input = input
+            discrim_in = torch.cat((data_input, conditional_input), dim=1)
+            output = F.relu(self.dense1(discrim_in))
+            output = self.dense2(output)
             return output
 
     class ExampleGAN(dc.models.torch_models.GAN):
@@ -218,10 +239,7 @@ def generate_batch(batch_size):
 def generate_data(gan, batches, batch_size):
     for _ in range(batches):
         means, values = generate_batch(batch_size)
-        batch = {
-            gan.data_input_names[0]: values,
-            gan.conditional_input_names[0]: means
-        }
+        batch = {gan.data_inputs[0]: values, gan.conditional_inputs[0]: means}
         yield batch
 
 
@@ -365,7 +383,7 @@ def test_wgan():
             conditional_input_shape = self.get_conditional_input_shapes()[0]
 
             return nn.Sequential(
-                Discriminator(data_input_shape, conditional_input_shape))
+                Discriminator_WGAN(data_input_shape, conditional_input_shape))
 
     # We have to set the gradient penalty very small because the generator's
     # output is only a single number, so the default penalty would constrain
@@ -379,6 +397,7 @@ def test_wgan():
     means = 10 * np.random.random([1000, 1])
     values = gan.predict_gan_generator(conditional_inputs=[means])
     deltas = values - means
+    print("Deltas: ", (np.mean(deltas)))
     assert abs(np.mean(deltas)) < 1.0
     assert np.std(deltas) > 1.0
 
@@ -510,7 +529,7 @@ def test_gpl_forward():
     assert output.shape[
         0] == 4, "Output tensor must have the same batch size as inputs"
     assert penalty.ndim == 0 or penalty.shape == (
-        4,), "Penalty should be a scalar or the same size as the batch"
+        4, ), "Penalty should be a scalar or the same size as the batch"
 
 
 @pytest.mark.torch
@@ -526,3 +545,10 @@ def test_gpl_penalty_calculation():
     # Since the penalty is a squared norm of the gradients minus 1, multiplied by a constant,
     # it should be non-negative
     assert penalty.item() >= 0, "Penalty should be non-negative"
+
+
+if __name__ == "__main__":
+    # test_cgan()
+    # test_mix_gan()
+    test_wgan()
+    # test_wgan_reload()
