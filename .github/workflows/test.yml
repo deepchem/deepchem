@@ -168,7 +168,7 @@ jobs:
       if: ${{ (runner.os == 'Windows') && always() }}
       # Seperate test avoiding Jax in windows since Jax is not supported in Windows
       shell: bash -l {0}
-      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --ignore-glob='deepchem/models/jax_models/*' --doctest-modules deepchem --doctest-continue-on-failure
+      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --ignore-glob='deepchem/models/jax_models/*' --ignore-glob='deepchem/models/dft*' --doctest-modules deepchem --doctest-continue-on-failure
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success')}}
       shell: bash -l {0}
