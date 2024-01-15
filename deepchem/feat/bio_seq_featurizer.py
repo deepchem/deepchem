@@ -6,6 +6,7 @@ except ImportError:
     print("Error: Unable to import pysam. Please make sure it is installed.")
 from deepchem.feat import Featurizer
 
+
 class SAMFeaturizer(Featurizer):
     """
     This class extracts Query Name, Query Sequence, Query Length, Reference Name, 
