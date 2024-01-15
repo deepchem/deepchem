@@ -34,6 +34,7 @@ class XCNNSCF(torch.nn.Module):
     ...         torch.nn.Linear(2, 10),
     ...         torch.nn.Tanh(),
     ...         torch.nn.Linear(10, 1))).to(torch.double)
+    >>> hybridxc = HybridXC("lda_x", nnmodel, aweight0=0.0)
     >>> e_type = 'dm'
     >>> true_val = 'deepchem/feat/tests/data/dftHF_output.npy'
     >>> systems = [{

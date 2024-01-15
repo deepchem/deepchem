@@ -431,7 +431,8 @@ class InfoMax3DModular(ModularTorchModel):
     >>> featurizer = RDKitConformerFeaturizer()
     >>> data = featurizer.featurize(smiles)
     >>> dataset = NumpyDataset(X=data)
-    >>> model = InfoMax3DModular(hidden_dim=64,
+    >>> model = InfoMax3DModular(task='pretraining',
+    ...                          hidden_dim=64,
     ...                          target_dim=10,
     ...                          aggregators=['max'],
     ...                          readout_aggregators=['mean'],
