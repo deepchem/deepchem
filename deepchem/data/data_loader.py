@@ -1927,6 +1927,7 @@ class SAMLoader(DataLoader):
         shard_size: int, optional (default None)
             For now, this argument is ignored and each SAM file gets its
             own shard.
+        
         Returns
         -------
         DiskDataset
