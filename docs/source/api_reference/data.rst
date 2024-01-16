@@ -124,6 +124,10 @@ Density Functional Theory YAML Loader
 .. autoclass:: deepchem.data.data_loader.DFTYamlLoader
   :members: __init__, create_dataset
 
+SAM Loader
+^^^^^^^^^^
+.. autoclass:: deepchem.data.data_loader.SAMLoader
+  :members: __init__, create_dataset
 
 Data Classes
 ------------
