@@ -135,6 +135,10 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
+| `pysam`_                       | latest        | :code:`dc.feat.bio_seq_featurizer`                |
+|                                |               | :code:`dc.models.data_loader`                     |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
 
 .. _`joblib`: https://pypi.python.org/pypi/joblib
 .. _`NumPy`: https://numpy.org/
@@ -170,3 +174,4 @@ DeepChem has a number of "soft" requirements.
 .. _`Tensorflow Addons`: https://www.tensorflow.org/addons/overview
 .. _`HuggingFace Tokenizers`: https://huggingface.co/docs/tokenizers/index
 .. _`pySCF`: https://pyscf.org/install.html
+.. _`pysam`: https://pysam.readthedocs.io/en/latest/api.html
