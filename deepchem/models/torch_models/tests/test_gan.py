@@ -545,10 +545,3 @@ def test_gpl_penalty_calculation():
     # Since the penalty is a squared norm of the gradients minus 1, multiplied by a constant,
     # it should be non-negative
     assert penalty.item() >= 0, "Penalty should be non-negative"
-
-
-if __name__ == "__main__":
-    # test_cgan()
-    # test_mix_gan()
-    test_wgan()
-    # test_wgan_reload()
