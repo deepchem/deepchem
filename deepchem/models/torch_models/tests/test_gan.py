@@ -438,7 +438,7 @@ def test_wgan_reload():
             conditional_input_shape = self.get_conditional_input_shapes()[0]
 
             return nn.Sequential(
-                Discriminator(data_input_shape, conditional_input_shape))
+                Discriminator_WGAN(data_input_shape, conditional_input_shape))
 
     # We have to set the gradient penalty very small because the generator's
     # output is only a single number, so the default penalty would constrain
@@ -506,7 +506,7 @@ def gradient_penalty_layer():
             conditional_input_shape = self.get_conditional_input_shapes()[0]
 
             return nn.Sequential(
-                Discriminator(data_input_shape, conditional_input_shape))
+                Discriminator_WGAN(data_input_shape, conditional_input_shape))
 
     gan = ExampleWGAN()
     discriminator = gan.discriminators[0]
@@ -529,7 +529,7 @@ def test_gpl_forward():
     assert output.shape[
         0] == 4, "Output tensor must have the same batch size as inputs"
     assert penalty.ndim == 0 or penalty.shape == (
-        4, ), "Penalty should be a scalar or the same size as the batch"
+        4,), "Penalty should be a scalar or the same size as the batch"
 
 
 @pytest.mark.torch
