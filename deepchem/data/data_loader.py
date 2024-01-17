@@ -1899,6 +1899,7 @@ class DFTYamlLoader(DataLoader):
             x = DFTEntry.create(e_type, true_val, systems)
         return [x]
 
+
 class SAMLoader(DataLoader):
     """Handles loading of SAM files.
     Sequence Alignment Map (SAM) is a text-based format used for storing biological sequences
