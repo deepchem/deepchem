@@ -264,10 +264,37 @@ def load_bbbc003(
     We now have a dataset with 15 samples, each with 300 cells. The images are of
     size 640x480. The labels are segmentation masks. We can verify this as follows:
 
-    >>> train.X.shape
+    >>> print(train.X.shape)
     (12,)
-    >>> train.y.shape
+    >>> print(train.y.shape)
     (12,)
+
+    Note: The image labelled '7_19_M2E15.tif' is transposed to 480x640 in the source file along with it's
+    segementation mask. To match it with the other images, we need to transpose it back to 640x480.
+
+    This image is found at index 6 in the train dataset (Assuming no shuffling has taken place).
+
+    First, we load the dataset as usual and split it into X, y, w and ids. Here, X is the list
+    of input images, y is the list of labels, w is the list of weights and ids is the list of
+    IDs for each sample.
+
+    >>> train_x, train_y, train_w, train_ids = train.X, train.y, train.w, train.ids
+
+    We can now transpose the image at index 6 in the input data (train_x):
+    >>> train_x[6] = train_x[6].T
+
+    We can now verify that the image is of size 640x480:
+    >>> print(train_x[6].shape)
+    (640, 480)
+
+    This is also seen in the segmentation mask with the same filename and index, in which
+    case, we transpose the label (train_y) instead of the input data:
+
+    >>> train_y[6] = train_y[6].T
+
+    We can now verify that the image is of size 640x480:
+    >>> train_y[6].shape
+    (640, 480)
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
     loader: _MolnetLoader
