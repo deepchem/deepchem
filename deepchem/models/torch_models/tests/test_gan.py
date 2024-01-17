@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 import tempfile
 from flaky import flaky
+from zmq import device
 
 try:
     import torch
@@ -188,9 +189,12 @@ def test_forward_pass():
         1,
     )]
 
-    gan = ExampleGAN(noise_shape, data_shape, conditional_shape,
+    gan = ExampleGAN(noise_shape,
+                     data_shape,
+                     conditional_shape,
                      create_generator(noise_shape, conditional_shape),
-                     create_discriminator(data_shape, conditional_shape))
+                     create_discriminator(data_shape, conditional_shape),
+                     device='cpu')
 
     noise = torch.rand(*gan.noise_input_shape)
     real_data = torch.rand(*gan.data_input_shape[0])
@@ -220,9 +224,12 @@ def test_get_noise_batch():
         1,
     )]
 
-    gan = ExampleGAN(noise_shape, data_shape, conditional_shape,
+    gan = ExampleGAN(noise_shape,
+                     data_shape,
+                     conditional_shape,
                      create_generator(noise_shape, conditional_shape),
-                     create_discriminator(data_shape, conditional_shape))
+                     create_discriminator(data_shape, conditional_shape),
+                     device='cpu')
     noise = gan.get_noise_batch(batch_size)
     assert noise.shape == (gan.noise_input_shape)
 
@@ -545,3 +552,16 @@ def test_gpl_penalty_calculation():
     # Since the penalty is a squared norm of the gradients minus 1, multiplied by a constant,
     # it should be non-negative
     assert penalty.item() >= 0, "Penalty should be non-negative"
+
+
+if __name__ == "__main__":
+    test_forward_pass()
+    test_get_noise_batch()
+    test_cgan()
+    test_cgan_reload()
+    test_mix_gan()
+    test_mix_gan_reload()
+    test_wgan()
+    test_wgan_reload()
+    test_gpl_forward()
+    test_gpl_penalty_calculation()

@@ -107,9 +107,12 @@ class GAN(nn.Module):
     ...     conditional_input_shape = conditional_input_shape[0]
     ...     return nn.Sequential(
     ...         Discriminator(data_input_shape, conditional_input_shape))
-    >>> gan = ExampleGAN(noise_shape, data_shape, conditional_shape,
-    ...                  create_generator(noise_shape, conditional_shape),
-    ...                  create_discriminator(data_shape, conditional_shape))
+    >>> gan = ExampleGAN(noise_shape,
+    ...              data_shape,
+    ...              conditional_shape,
+    ...              create_generator(noise_shape, conditional_shape),
+    ...              create_discriminator(data_shape, conditional_shape),
+    ...              device='cpu')
     >>> noise = torch.rand(*gan.noise_input_shape)
     >>> real_data = torch.rand(*gan.data_input_shape[0])
     >>> conditional = torch.rand(*gan.conditional_input_shape[0])
@@ -130,6 +133,7 @@ class GAN(nn.Module):
                  conditional_input_shape: list,
                  generator_fn: Callable,
                  discriminator_fn: Callable,
+                 device: torch.device,
                  n_generators: int = 1,
                  n_discriminators: int = 1,
                  create_discriminator_loss: Optional[Callable] = None,
@@ -166,6 +170,8 @@ class GAN(nn.Module):
             list containing a batch of data, followed by any conditional inputs.  Its
             output should be a one dimensional tensor containing the probability of
             each sample being a training sample.
+        device: torch.device
+            the device to use for training
         n_generators: int
             the number of generators to include
         n_discriminators: int
@@ -196,6 +202,7 @@ class GAN(nn.Module):
         self.conditional_input_shape = conditional_input_shape
         self.create_generator = generator_fn
         self.create_discriminator = discriminator_fn
+        self.device = device
         if create_discriminator_loss is not None:
             self.create_discriminator_loss = create_discriminator_loss  # type: ignore
         if create_generator_loss is not None:
@@ -330,9 +337,11 @@ class GAN(nn.Module):
             weight_products = torch.mul(discrim_weights_n, gen_weights_n)
             weight_products = weight_products.view(
                 -1, self.n_generators * self.n_discriminators)
+            weight_products = weight_products.to(self.device)
 
-            stacked_gen_loss = torch.stack(gen_losses, dim=0)
-            stacked_discrim_loss = torch.stack(discrim_losses, dim=0)
+            stacked_gen_loss = torch.stack(gen_losses, dim=0).to(self.device)
+            stacked_discrim_loss = torch.stack(discrim_losses,
+                                               dim=0).to(self.device)
 
             total_gen_loss = torch.sum(stacked_gen_loss * weight_products)
             total_discrim_loss = torch.sum(stacked_discrim_loss *
@@ -678,6 +687,7 @@ class GANModel(TorchModel):
                  create_discriminator_loss: Optional[Callable] = None,
                  create_generator_loss: Optional[Callable] = None,
                  _call_discriminator: Optional[Callable] = None,
+                 device: Optional[torch.device] = None,
                  **kwargs):
         """
         Parameters
@@ -707,11 +717,19 @@ class GANModel(TorchModel):
         self.n_generators = n_generators
         self.n_discriminators = n_discriminators
 
+        if device is None:
+            if torch.cuda.is_available():
+                self.device = torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                self.device = torch.device('mps')
+            else:
+                self.device = torch.device('cpu')
         model = GAN(noise_input_shape=self.get_noise_input_shape(),
                     data_input_shape=self.get_data_input_shapes(),
                     conditional_input_shape=self.get_conditional_input_shapes(),
                     generator_fn=self.create_generator,
                     discriminator_fn=self.create_discriminator,
+                    device=self.device,
                     n_generators=n_generators,
                     n_discriminators=n_discriminators,
                     create_discriminator_loss=create_discriminator_loss,
@@ -927,9 +945,9 @@ class GANModel(TorchModel):
         inputs = [noise_input]
         inputs += conditional_inputs
         inputs = [i.astype(np.float32) for i in inputs]
-        inputs = [torch.from_numpy(i) for i in inputs]
+        inputs = [torch.from_numpy(i).to(self.device) for i in inputs]
         pred = self.generators[generator_index](_list_or_tensor(inputs))
-        pred = pred.detach().numpy()
+        pred = pred.cpu().detach().numpy()
         return pred
 
 
@@ -1287,16 +1305,21 @@ class GradientPenaltyLayer(nn.Module):
         output: list [Tensor, Tensor]
             the output from the discriminator, followed by the gradient penalty.
         """
-        input_new = []
+        input_on_device = []
         for tensor in inputs:
-            tensor = tensor.to(torch.float32)
-            input_new.append(tensor.requires_grad_(True))
-
-        output = self.discriminator(_list_or_tensor(inputs +
-                                                    conditional_inputs))
+            tensor = tensor.to(torch.float32).to(self.gan.device)
+            input_on_device.append(
+                tensor.requires_grad_(True).to(self.gan.device))
+        conditional_inputs_on_device = []
+        for tensor in conditional_inputs:
+            tensor = tensor.to(torch.float32).to(self.gan.device)
+            conditional_inputs_on_device.append(tensor.to(self.gan.device))
+        output = self.discriminator(
+            _list_or_tensor(input_on_device + conditional_inputs_on_device)).to(
+                self.gan.device)
         gradients_raw = torch.autograd.grad(
             outputs=output,
-            inputs=input_new,
+            inputs=input_on_device,
             grad_outputs=torch.ones_like(output),
             create_graph=True,
             allow_unused=True)
