@@ -1910,6 +1910,7 @@ class SAMLoader(DataLoader):
     extract Query Name, Query Sequence, Query Length, Reference Name, 
     Reference Start, CIGAR and Mapping Quality of each read in the SAM file.
     This class provides methods to load and featurize data from SAM files.
+
     Examples
     --------
     >>> from deepchem.data.data_loader import SAMLoader
@@ -1918,6 +1919,7 @@ class SAMLoader(DataLoader):
     >>> inputs = 'deepchem/data/tests/example.sam'
     >>> data = SAMLoader()
     >>> output = data.create_dataset(inputs)
+
     Note
     ----
     This class requires pysam to be installed. Pysam can be used with Linux or MacOS X.
@@ -1926,6 +1928,7 @@ class SAMLoader(DataLoader):
 
     def __init__(self, featurizer: Optional[Featurizer] = None):
         """Initialize SAMLoader.
+
         Parameters
         ----------
         featurizer: Featurizer (default: None)
@@ -1950,6 +1953,7 @@ class SAMLoader(DataLoader):
                        data_dir: Optional[str] = None,
                        shard_size: Optional[int] = None) -> DiskDataset:
         """Creates a `Dataset` from input SAM files.
+
         Parameters
         ----------
         input_files: List[str]
@@ -1959,6 +1963,7 @@ class SAMLoader(DataLoader):
         shard_size: int, optional (default None)
             For now, this argument is ignored and each SAM file gets its
             own shard.
+
         Returns
         -------
         DiskDataset

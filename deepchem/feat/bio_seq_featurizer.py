@@ -13,6 +13,7 @@ class SAMFeaturizer(Featurizer):
     sequence. This class extracts Query Name, Query Sequence, Query Length,
     Reference Name,Reference Start, CIGAR and Mapping Quality of each read in
     a SAM file.
+
     Examples
     --------
     >>> from deepchem.data.data_loader import SAMLoader
@@ -56,6 +57,7 @@ class SAMFeaturizer(Featurizer):
     def __init__(self, max_records=None):
         """
         Initialize SAMFeaturizer.
+
         Parameters
         ----------
         max_records : int or None, optional
@@ -66,10 +68,12 @@ class SAMFeaturizer(Featurizer):
     def _featurize(self, datapoint):
         """
         Extract features from a SAM file.
+
         Parameters
         ----------
         datapoint : str
             Name of SAM file.
+
         Returns
         -------
         features : numpy.ndarray
