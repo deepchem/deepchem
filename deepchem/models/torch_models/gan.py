@@ -197,11 +197,11 @@ class GAN(nn.Module):
         self.create_generator = generator_fn
         self.create_discriminator = discriminator_fn
         if create_discriminator_loss is not None:
-            self.create_discriminator_loss = create_discriminator_loss
+            self.create_discriminator_loss = create_discriminator_loss  # type: ignore
         if create_generator_loss is not None:
-            self.create_generator_loss = create_generator_loss
+            self.create_generator_loss = create_generator_loss  # type: ignore
         if _call_discriminator is not None:
-            self._call_discriminator = _call_discriminator
+            self._call_discriminator = _call_discriminator  # type: ignore
 
         # Inputs
         # Noise Input
@@ -445,8 +445,8 @@ class GAN(nn.Module):
             torch.log(discrim_output_train + 1e-10) +
             torch.log(1 - discrim_output_gen + 1e-10))
 
-    def discrim_loss_fn(self, outputs: list, labels: torch.Tensor,
-                        weights: torch.Tensor) -> Any:
+    def discrim_loss_fn(self, outputs: List, labels: List[torch.Tensor],
+                        weights: List[torch.Tensor]) -> Any:
         """Function to get the discriminator loss from the fit_generator output
 
         Parameters
@@ -466,8 +466,8 @@ class GAN(nn.Module):
         discrim_output_train, discrim_output_gen = outputs
         return discrim_output_gen
 
-    def gen_loss_fn(self, outputs: list, labels: torch.Tensor,
-                    weights: torch.Tensor) -> torch.Tensor:
+    def gen_loss_fn(self, outputs: List, labels: List[torch.Tensor],
+                    weights: List[torch.Tensor]) -> torch.Tensor:
         """Function to get the Generator loss from the fit_generator output
 
         Parameters
@@ -1293,12 +1293,15 @@ class GradientPenaltyLayer(nn.Module):
 
         output = self.discriminator(_list_or_tensor(inputs +
                                                     conditional_inputs))
-        gradients = torch.autograd.grad(outputs=output,
-                                        inputs=input_new,
-                                        grad_outputs=torch.ones_like(output),
-                                        create_graph=True,
-                                        allow_unused=True)
-        gradients = [g for g in gradients if g is not None]
+        gradients_raw = torch.autograd.grad(
+            outputs=output,
+            inputs=input_new,
+            grad_outputs=torch.ones_like(output),
+            create_graph=True,
+            allow_unused=True)
+        gradients = [g for g in gradients_raw if g is not None]
+        penalty: Union[torch.Tensor, float]
+        norm2: Union[float, torch.Tensor]
         if gradients:
             norm2 = 0.0
             for g in gradients:
@@ -1306,8 +1309,8 @@ class GradientPenaltyLayer(nn.Module):
                 dims = len(list(g.shape))
                 if dims > 1:
                     g2 = torch.sum(g2, dim=list(range(1, dims)))
-                norm2 += g2
-            penalty = torch.square(torch.sqrt(norm2) - 1.0)
+                norm2 += g2  # type: ignore
+            penalty = torch.square(torch.sqrt(norm2) - 1.0)  # type: ignore
             penalty = self.gan.gradient_penalty * torch.mean(penalty)
         else:
             penalty = 0.0
