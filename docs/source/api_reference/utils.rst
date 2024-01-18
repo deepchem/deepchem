@@ -449,6 +449,14 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.solve.dot
 
+.. autofunction:: deepchem.utils.differentiation_utils.solve.gmres
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.setup_linear_problem
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.safedenom
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.get_largest_eival
+
 Attribute Utilities
 -------------------
 

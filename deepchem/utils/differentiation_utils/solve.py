@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import warnings
-from typing import Union, Optional, Callable
+from typing import Sequence, Tuple, Union, Optional, Callable
 from deepchem.utils.differentiation_utils import LinearOperator, normalize_bcast_dims, get_bcasted_dims
 from deepchem.utils import ConvergenceWarning, get_np_dtype
 from scipy.sparse.linalg import gmres as scipy_gmres
@@ -185,6 +185,149 @@ def solve_ABE(A: torch.Tensor, B: torch.Tensor, E: torch.Tensor):
     return r
 
 
+def gmres(A: LinearOperator,
+          B: torch.Tensor,
+          E: Optional[torch.Tensor] = None,
+          M: Optional[LinearOperator] = None,
+          posdef: Optional[bool] = None,
+          max_niter: Optional[int] = None,
+          rtol: float = 1e-6,
+          atol: float = 1e-8,
+          eps: float = 1e-12,
+          **unused) -> torch.Tensor:
+    r"""
+    Solve the linear equations using Generalised minial residual method.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.differentiation_utils import LinearOperator
+    >>> A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
+    >>> B = torch.tensor([[5., 6], [7, 8]])
+    >>> gmres(A, B)
+    tensor([[0.8959, 1.0697],
+            [1.2543, 1.4263]])
+
+    Parameters
+    ----------
+    A: LinearOperator
+        The linear operator A to be solved. Shape: (*BA, na, na)
+    B: torch.Tensor
+        Batched matrix B. Shape: (*BB, na, ncols)
+    E: torch.Tensor or None
+        Batched vector E. Shape: (*BE, ncols)
+    M: LinearOperator or None
+        The linear operator M. Shape: (*BM, na, na)
+    posdef: bool or None
+        Indicating if the operation :math:`\mathbf{AX-MXE}` a positive
+        definite for all columns and batches.
+        If None, it will be determined by power iterations.
+    max_niter: int or None
+        Maximum number of iteration. If None, it is set to ``int(1.5 * A.shape[-1])``
+    rtol: float
+        Relative tolerance for stopping condition w.r.t. norm of B
+    atol: float
+        Absolute tolerance for stopping condition w.r.t. norm of B
+    eps: float
+        Substitute the absolute zero in the algorithm's denominator with this
+        value to avoid nan.
+
+    Returns
+    -------
+    torch.Tensor
+        The solution matrix X. Shape: (*BBE, na, ncols)
+
+    """
+    converge = False
+
+    nr, ncols = A.shape[-1], B.shape[-1]
+    if max_niter is None:
+        max_niter = int(nr)
+
+    # if B is all zeros, then return zeros
+    batchdims = get_batchdims(A, B, E, M)
+    if torch.allclose(B, B * 0, rtol=rtol, atol=atol):
+        x0 = torch.zeros((*batchdims, nr, ncols),
+                         dtype=A.dtype,
+                         device=A.device)
+        return x0
+
+    # setup the preconditioning and the matrix problem
+    need_hermit = False
+    A_fcn, AT_fcn, B2, col_swapped = setup_linear_problem(
+        A, B, E, M, batchdims, posdef, need_hermit)
+
+    # get the stopping matrix
+    B_norm = B2.norm(dim=-2, keepdim=True)  # (*BB, 1, nc)
+    stop_matrix = torch.max(rtol * B_norm,
+                            atol * torch.ones_like(B_norm))  # (*BB, 1, nc)
+
+    # prepare the initial guess (it's just all zeros)
+    x0shape = (ncols, *batchdims, nr, 1) if col_swapped else (*batchdims, nr,
+                                                              ncols)
+    x0 = torch.zeros(x0shape, dtype=A.dtype, device=A.device)
+
+    r = B2 - A_fcn(x0)  # torch.Size([*batch_dims, nr, ncols])
+    best_resid = r.norm(dim=-2, keepdim=True)  # / B_norm
+
+    best_resid = best_resid.max().item()
+    best_res = x0
+    q = torch.empty([max_niter] + list(r.shape), dtype=A.dtype, device=A.device)
+    q[0] = r / safedenom(r.norm(dim=-2, keepdim=True),
+                         eps)  # torch.Size([*batch_dims, nr, ncols])
+    h = torch.zeros((*batchdims, ncols, max_niter + 1, max_niter),
+                    dtype=A.dtype,
+                    device=A.device)
+    h = h.reshape((-1, ncols, max_niter + 1, max_niter))
+
+    for k in range(min(nr, max_niter)):
+        y = A_fcn(q[k])  # torch.Size([*batch_dims, nr, ncols])
+        for j in range(k + 1):
+            h[..., j, k] = dot(q[j], y).reshape(-1, ncols)
+            y = y - h[..., j, k].reshape(*batchdims, 1, ncols) * q[j]
+
+        h[..., k + 1, k] = torch.linalg.norm(y, dim=-2)
+        if torch.any(h[..., k + 1, k]) != 0 and k != max_niter - 1:
+            q[k + 1] = y.reshape(-1, nr, ncols) / h[..., k + 1, k].reshape(
+                -1, 1, ncols)
+            q[k + 1] = q[k + 1].reshape(*batchdims, nr, ncols)
+
+        b = torch.zeros((*batchdims, ncols, k + 1),
+                        dtype=A.dtype,
+                        device=A.device)
+        b = b.reshape(-1, ncols, k + 1)
+        b[..., 0] = torch.linalg.norm(r, dim=-2)
+        rk = torch.linalg.lstsq(h[..., :k + 1, :k], b)[0]
+
+        res = torch.empty([])
+        for i in range(k):
+            res = res + q[i] * rk[..., i].reshape(*batchdims, 1, ncols) + x0 if res.size() \
+                else q[i] * rk[..., i].reshape(*batchdims, 1, ncols) + x0
+            # res = res * B_norm
+
+        if res.size():
+            resid = B2 - A_fcn(res)
+            resid_norm = resid.norm(dim=-2, keepdim=True)
+
+            # save the best results
+            max_resid_norm = resid_norm.max().item()
+            if max_resid_norm < best_resid:
+                best_resid = max_resid_norm
+                best_res = res
+
+            if torch.all(resid_norm < stop_matrix):
+                converge = True
+                break
+
+    if not converge:
+        msg = ("Convergence is not achieved after %d iterations. "
+               "Max norm of resid: %.3e") % (max_niter, best_resid)
+        warnings.warn(ConvergenceWarning(msg))
+
+    res = best_res
+    return res
+
+
 # general helpers
 def get_batchdims(A: LinearOperator, B: torch.Tensor,
                   E: Union[torch.Tensor, None], M: Union[LinearOperator, None]):
@@ -265,6 +408,177 @@ def setup_precond(
     return precond_fcn
 
 
+def setup_linear_problem(A: LinearOperator, B: torch.Tensor,
+                          E: Optional[torch.Tensor], M: Optional[LinearOperator],
+                          batchdims: Sequence[int],
+                          posdef: Optional[bool],
+                          need_hermit: bool) -> \
+        Tuple[Callable[[torch.Tensor], torch.Tensor],
+              Callable[[torch.Tensor], torch.Tensor],
+              torch.Tensor, bool]:
+    """Setup the linear problem for solving AX = B
+
+    Examples
+    --------
+    >>> from deepchem.utils.differentiation_utils import MatrixLinearOperator
+    >>> import torch
+    >>> A = MatrixLinearOperator(torch.randn(4, 3, 3), True)
+    >>> B = torch.randn(4, 3, 2)
+    >>> A_fcn, AT_fcn, B_new, col_swapped = setup_linear_problem(A, B, None, None, [4], None, False)
+    >>> A_fcn(B).shape
+    torch.Size([4, 3, 2])
+
+    Parameters
+    ----------
+    A: LinearOperator
+        The linear operator A. It can be a batched linear operator.
+    B: torch.Tensor
+        The matrix B. It can be a batched matrix.
+    E: Optional[torch.Tensor]
+        The matrix E. It can be a batched matrix.
+    M: Optional[LinearOperator]
+        The linear operator M. It can be a batched linear operator.
+    batchdims: Sequence[int]
+        The batch dimensions of the linear operator and the matrix B
+    posdef: Optional[bool]
+        Whether the linear operator is positive definite. If None, it will be
+        estimated.
+    need_hermit: bool
+        Whether the linear operator is Hermitian. If True, it will be estimated.
+
+    Returns
+    -------
+    Tuple[Callable[[torch.Tensor], torch.Tensor],
+          Callable[[torch.Tensor], torch.Tensor],
+          torch.Tensor, bool]
+        The function A, its transposed function, the matrix B, and whether the
+        columns of B are swapped.
+
+    """
+
+    # get the linear operator (including the MXE part)
+    if E is None:
+
+        def A_fcn(x):
+            return A.mm(x)
+
+        def AT_fcn(x):
+            return A.rmm(x)
+
+        B_new = B
+        col_swapped = False
+    else:
+        # A: (*BA, nr, nr) linop
+        # B: (*BB, nr, ncols)
+        # E: (*BE, ncols)
+        # M: (*BM, nr, nr) linop
+        if M is None:
+            BAs, BBs, BEs = normalize_bcast_dims(A.shape[:-2], B.shape[:-2],
+                                                 E.shape[:-1])
+        else:
+            BAs, BBs, BEs, BMs = normalize_bcast_dims(A.shape[:-2],
+                                                      B.shape[:-2],
+                                                      E.shape[:-1],
+                                                      M.shape[:-2])
+        E = E.reshape(*BEs, *E.shape[-1:])
+        E_new = E.unsqueeze(0).transpose(-1,
+                                         0).unsqueeze(-1)  # (ncols, *BEs, 1, 1)
+        B = B.reshape(*BBs, *B.shape[-2:])  # (*BBs, nr, ncols)
+        B_new = B.unsqueeze(0).transpose(-1, 0)  # (ncols, *BBs, nr, 1)
+
+        def A_fcn(x):
+            # x: (ncols, *BX, nr, 1)
+            Ax = A.mm(x)  # (ncols, *BAX, nr, 1)
+            Mx = M.mm(x) if M is not None else x  # (ncols, *BMX, nr, 1)
+            MxE = Mx * E_new  # (ncols, *BMXE, nr, 1)
+            return Ax - MxE
+
+        def AT_fcn(x):
+            # x: (ncols, *BX, nr, 1)
+            ATx = A.rmm(x)
+            MTx = M.rmm(x) if M is not None else x
+            MTxE = MTx * E_new
+            return ATx - MTxE
+
+        col_swapped = True
+
+    # estimate if it's posdef with power iteration
+    if need_hermit:
+        is_hermit = A.is_hermitian and (M is None or M.is_hermitian)
+        if not is_hermit:
+            # set posdef to False to make the operator becomes AT * A so it is
+            # hermitian
+            posdef = False
+
+    # TODO: the posdef check by largest eival only works for Hermitian/symmetric
+    # matrix, but it doesn't always work for non-symmetric matrix.
+    # In non-symmetric case, one need to do Cholesky LDL decomposition
+    if posdef is None:
+        nr, ncols = B.shape[-2:]
+        x0shape = (ncols, *batchdims, nr, 1) if col_swapped else (*batchdims,
+                                                                  nr, ncols)
+        x0 = torch.randn(x0shape, dtype=A.dtype, device=A.device)
+        x0 = x0 / x0.norm(dim=-2, keepdim=True)
+        largest_eival = get_largest_eival(A_fcn, x0)  # (*, 1, nc)
+        negeival = largest_eival <= 0
+
+        # if the largest eigenvalue is negative, then it's not posdef
+        if torch.all(negeival):
+            posdef = False
+
+        # otherwise, calculate the lowest eigenvalue to check if it's positive
+        else:
+            offset = torch.clamp(largest_eival, min=0.0)
+
+            def A_fcn2(x):
+                return A_fcn(x) - offset * x
+
+            mostneg_eival = get_largest_eival(A_fcn2, x0)  # (*, 1, nc)
+            posdef = bool(
+                torch.all(torch.logical_or(-mostneg_eival <= offset,
+                                           negeival)).item())
+
+    # get the linear operation if it is not a posdef (A -> AT.A)
+    if posdef:
+        return A_fcn, AT_fcn, B_new, col_swapped
+    else:
+
+        def A_new_fcn(x):
+            return AT_fcn(A_fcn(x))
+
+        B2 = AT_fcn(B_new)
+        return A_new_fcn, A_new_fcn, B2, col_swapped
+
+
+# cg and bicgstab helpers
+def safedenom(r: torch.Tensor, eps: float) -> torch.Tensor:
+    """Make sure the denominator is not zero
+
+    Examples
+    --------
+    >>> import torch
+    >>> r = torch.tensor([[0., 2], [3, 4]])
+    >>> safedenom(r, 1e-9)
+    tensor([[1.0000e-09, 2.0000e+00],
+            [3.0000e+00, 4.0000e+00]])
+
+    Parameters
+    ----------
+    r: torch.Tensor
+        The input tensor. Shape: (*BR, nr, nc)
+    eps: float
+        The small number to replace the zero denominator
+
+    Returns
+    -------
+    torch.Tensor
+        The tensor with non-zero denominator. Shape: (*BR, nr, nc)
+
+    """
+    r[r == 0] = eps
+    return r
+
+
 def dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
     """Dot product of two vectors. r and z must have the same shape.
     Then sums it up across the last dimension.
@@ -291,3 +605,48 @@ def dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
 
     """
     return torch.einsum("...rc,...rc->...c", r.conj(), z).unsqueeze(-2)
+
+
+def get_largest_eival(Afcn: Callable, x: torch.Tensor) -> torch.Tensor:
+    """Get the largest eigenvalue of the linear operator Afcn
+
+    Examples
+    --------
+    >>> import torch
+    >>> def Afcn(x):
+    ...     return 10 * x
+    >>> x = torch.tensor([[1., 2], [3, 4]])
+    >>> get_largest_eival(Afcn, x)
+    tensor([[10., 10.]])
+
+    Parameters
+    ----------
+    Afcn: Callable
+        The linear operator A. It takes a tensor and returns a tensor.
+    x: torch.Tensor
+        The input tensor. Shape: (*, nr, nc)
+
+    Returns
+    -------
+    torch.Tensor
+        The largest eigenvalue. Shape: (*, 1, nc)
+
+    """
+    niter = 10
+    rtol = 1e-3
+    atol = 1e-6
+    xnorm_prev = None
+    for i in range(niter):
+        x = Afcn(x)  # (*, nr, nc)
+        xnorm = x.norm(dim=-2, keepdim=True)  # (*, 1, nc)
+
+        # check if xnorm is converging
+        if i > 0:
+            dnorm = torch.abs(xnorm_prev - xnorm)
+            if torch.all(dnorm <= rtol * xnorm + atol):
+                break
+
+        xnorm_prev = xnorm
+        if i < niter - 1:
+            x = x / xnorm
+    return xnorm

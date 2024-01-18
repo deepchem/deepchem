@@ -2,7 +2,7 @@
 
 import scipy
 import torch
-from typing import Callable, Union, List, Generator, Tuple
+from typing import Any, Callable, Union, List, Generator, Tuple
 import numpy as np
 
 
@@ -435,9 +435,13 @@ def to_fortran_order(V):
         raise RuntimeError(
             "Only the last two dimensions can be made Fortran order.")
 
+
 def get_np_dtype(dtype: torch.dtype) -> np.dtype:
     """corresponding numpy dtype from the input pytorch's tensor dtype
 
+    Examples
+    --------
+    >>> import torch
     >>> from deepchem.utils.pytorch_utils import get_np_dtype
     >>> get_np_dtype(torch.float32)
     <class 'numpy.float32'>
