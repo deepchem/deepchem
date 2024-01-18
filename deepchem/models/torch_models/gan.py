@@ -499,7 +499,7 @@ class GAN(nn.Module):
 
 def _list_or_tensor(
     inputs: Union[list,
-                  torch.Tensor]) -> Union[torch.Tensor, list[torch.Tensor]]:
+                  torch.Tensor]) -> Union[torch.Tensor, List[torch.Tensor]]:
     """Function to convert a list of tensors to a single tensor if possible.
 
     Parameters
