@@ -195,8 +195,8 @@ class TorchModel(Model):
         if device is None:
             if torch.cuda.is_available():
                 device = torch.device('cuda')
-            # elif torch.backends.mps.is_available():
-            #     device = torch.device('mps')
+            elif torch.backends.mps.is_available():
+                device = torch.device('mps')
             else:
                 device = torch.device('cpu')
         self.device = device
@@ -640,10 +640,10 @@ class TorchModel(Model):
             return final_results
 
     def predict_on_generator(
-        self,
-        generator: Iterable[Tuple[Any, Any, Any]],
-        transformers: List[Transformer] = [],
-        output_types: Optional[OneOrMany[str]] = None
+            self,
+            generator: Iterable[Tuple[Any, Any, Any]],
+            transformers: List[Transformer] = [],
+            output_types: Optional[OneOrMany[str]] = None
     ) -> OneOrMany[np.ndarray]:
         """
         Parameters
@@ -913,12 +913,9 @@ class TorchModel(Model):
     ) -> Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]:
         inputs, labels, weights = batch
         inputs = [
-            x.astype(np.float32) if x.dtype == np.float64 else x
-            for x in inputs
+            x.astype(np.float32) if x.dtype == np.float64 else x for x in inputs
         ]
-        input_tensors = [
-            torch.as_tensor(x, device=self.device) for x in inputs
-        ]
+        input_tensors = [torch.as_tensor(x, device=self.device) for x in inputs]
         if labels is not None:
             labels = [
                 x.astype(np.float32) if x.dtype == np.float64 else x
@@ -1042,8 +1039,7 @@ class TorchModel(Model):
             model_dir = self.model_dir
         files = sorted(os.listdir(model_dir))
         files = [
-            f for f in files
-            if f.startswith('checkpoint') and f.endswith('.pt')
+            f for f in files if f.startswith('checkpoint') and f.endswith('.pt')
         ]
         return [os.path.join(model_dir, f) for f in files]
 
@@ -1230,7 +1226,7 @@ class _StandardLoss(object):
             else:
                 shape = w.shape
             shape = tuple(-1 if x is None else x for x in shape)
-            w = w.reshape(shape + (1, ) * (len(losses.shape) - len(w.shape)))
+            w = w.reshape(shape + (1,) * (len(losses.shape) - len(w.shape)))
 
         loss = losses * w
         loss = loss.mean()
