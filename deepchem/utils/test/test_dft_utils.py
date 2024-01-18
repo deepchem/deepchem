@@ -445,3 +445,33 @@ def test_base_system():
 
     system = MySystem()
     assert system.requires_grid()
+
+
+@pytest.mark.torch
+def test_radial_grid():
+    from deepchem.utils.dft_utils import RadialGrid
+    grid = RadialGrid(4, grid_integrator="chebyshev", grid_transform="logm3")
+    assert grid.get_rgrid().shape == torch.Size([4, 1])
+    assert grid.get_dvolume().shape == torch.Size([4])
+
+
+@pytest.mark.torch
+def test_get_xw_integration():
+    from deepchem.utils.dft_utils import get_xw_integration
+    x, w = get_xw_integration(4, "chebyshev")
+    assert x.shape == (4, )
+    assert w.shape == torch.Size([4])
+
+
+@pytest.mark.torch
+def test_sliced_radial_grid():
+    from deepchem.utils.dft_utils import RadialGrid, SlicedRadialGrid
+    grid = RadialGrid(4)
+    sliced_grid = SlicedRadialGrid(grid, 2)
+    assert sliced_grid.get_rgrid().shape == torch.Size([1])
+
+
+@pytest.mark.torch
+def test_base_grid_transform():
+    from deepchem.utils.dft_utils import BaseGridTransform
+    
