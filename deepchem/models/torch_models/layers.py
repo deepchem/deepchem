@@ -5590,13 +5590,16 @@ class FerminetEnvelope(torch.nn.Module):
     Examples
     --------
     >>> import deepchem as dc
+    >>> import torch
     >>> envelope_layer = dc.models.torch_models.layers.FerminetEnvelope([32, 32, 32], [16, 16, 16], 10, 8, [5, 5], 5, 16)
     >>> one_electron = torch.randn(8, 10, 32)
     >>> one_electron_permuted = torch.randn(8, 10, 5, 3)
     >>> psi, psi_up, psi_down = envelope_layer.forward(one_electron, one_electron_permuted)
+    >>> psi.size()
+    torch.Size([8])
     >>> psi_up.size()
     torch.Size([8, 16, 5, 5])
-    >>> two.size()
+    >>> psi_down.size()
     torch.Size([8, 16, 5, 5])
     """
 
