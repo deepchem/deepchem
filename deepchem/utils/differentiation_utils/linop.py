@@ -116,6 +116,54 @@ class LinearOperator(EditableModule):
         return super(LinearOperator, self).__new__(self)
 
     @classmethod
+    def m(cls, mat: torch.Tensor, is_hermitian: Optional[bool] = None):
+        """
+        Class method to wrap a matrix into ``LinearOperator``.
+
+        Parameters
+        ----------
+        mat: torch.Tensor
+            Matrix to be wrapped in the ``LinearOperator``.
+        is_hermitian: bool or None
+            Indicating if the matrix is Hermitian. If ``None``, the symmetry
+            will be checked. If supplied as a bool, there is no check performed.
+
+        Returns
+        -------
+        LinearOperator
+            Linear operator object that represents the matrix.
+
+        Example
+        -------
+        >>> import torch
+        >>> from deepchem.utils.differentiation_utils import LinearOperator
+        >>> seed = torch.manual_seed(100)
+        >>> mat = torch.rand(1,3,1,2)  # 1x2 matrix with (1,3) batch dimensions
+        >>> linop = LinearOperator.m(mat)
+        >>> print(linop)
+        MatrixLinearOperator with shape (1, 3, 1, 2):
+           tensor([[[[0.1117, 0.8158]],
+        <BLANKLINE>
+                    [[0.2626, 0.4839]],
+        <BLANKLINE>
+                    [[0.6765, 0.7539]]]])
+
+        """
+        if is_hermitian is None:
+            if mat.shape[-2] != mat.shape[-1]:
+                is_hermitian = False
+            else:
+                is_hermitian = torch.allclose(mat, mat.transpose(-2, -1).conj())
+        elif is_hermitian:
+            # check the hermitian
+            if not torch.allclose(mat, mat.transpose(-2, -1).conj()):
+                raise RuntimeError(
+                    "The linear operator is indicated to be hermitian, but the matrix is not"
+                )
+
+        return MatrixLinearOperator(mat, is_hermitian)
+
+    @classmethod
     def _check_if_implemented(self, methodname: str) -> bool:
         """Check if the method is implemented in the class.
 
@@ -491,6 +539,76 @@ class LinearOperator(EditableModule):
             raise KeyError("getparamnames for method %s is not implemented" %
                            methodname)
 
+    @property
+    def H(self):
+        """
+        Returns a LinearOperator representing the Hermite / transposed of the
+        self LinearOperator.
+
+        Returns
+        -------
+        LinearOperator
+            The Hermite / transposed LinearOperator
+
+        """
+        if self._is_hermitian:
+            return self
+        return AdjointLinearOperator(self)
+
+    # special functions
+    def matmul(self, b: LinearOperator, is_hermitian: bool = False):
+        """
+        Returns a LinearOperator representing `self @ b`.
+
+        Examples
+        --------
+        >>> import torch
+        >>> seed = torch.manual_seed(100)
+        >>> class MyLinOp(LinearOperator):
+        ...     def __init__(self, shape):
+        ...         super(MyLinOp, self).__init__(shape)
+        ...         self.param = torch.rand(shape)
+        ...     def _getparamnames(self, prefix=""):
+        ...         return [prefix + "param"]
+        ...     def _mv(self, x):
+        ...         return torch.matmul(self.param, x)
+        >>> linop1 = MyLinOp((1,3,1,2))
+        >>> linop2 = MyLinOp((1,3,2,1))
+        >>> linop = linop1.matmul(linop2)
+        >>> print(linop)
+        MatmulLinearOperator with shape (1, 3, 1, 1) of:
+         * LinearOperator (MyLinOp) with shape (1, 3, 1, 2), dtype = torch.float32, device = cpu
+         * LinearOperator (MyLinOp) with shape (1, 3, 2, 1), dtype = torch.float32, device = cpu
+        >>> x = torch.rand(1,3,1,1)
+        >>> linop.mv(x)
+        tensor([[[[0.0458]],
+        <BLANKLINE>
+                 [[0.0880]],
+        <BLANKLINE>
+                 [[0.2664]]]])
+
+        Parameters
+        ----------
+        b: LinearOperator
+            Other linear operator
+        is_hermitian: bool
+            Flag to indicate if the resulting LinearOperator is Hermitian.
+
+        Returns
+        -------
+        LinearOperator
+            LinearOperator representing `self @ b`
+
+        """
+        if self.shape[-1] != b.shape[-2]:
+            raise RuntimeError("Mismatch shape of matmul operation: %s and %s" %
+                               (self.shape, b.shape))
+        if isinstance(self, MatrixLinearOperator) and isinstance(
+                b, MatrixLinearOperator):
+            return LinearOperator.m(self.fullmatrix() @ b.fullmatrix(),
+                                    is_hermitian=is_hermitian)
+        return MatmulLinearOperator(self, b, is_hermitian=is_hermitian)
+
     def __add__(self, b: LinearOperator):
         """Addition with another linear operator.
 
@@ -547,6 +665,9 @@ class LinearOperator(EditableModule):
         if self.shape[-2:] != b.shape[-2:]:
             raise RuntimeError("Mismatch shape of add operation: %s and %s" %
                                (self.shape, b.shape))
+        if isinstance(self, MatrixLinearOperator) and isinstance(
+                b, MatrixLinearOperator):
+            return LinearOperator.m(self.fullmatrix() + b.fullmatrix())
         return AddLinearOperator(self, b)
 
     def __sub__(self, b: LinearOperator):
@@ -608,6 +729,9 @@ class LinearOperator(EditableModule):
         if self.shape[-2:] != b.shape[-2:]:
             raise RuntimeError("Mismatch shape of add operation: %s and %s" %
                                (self.shape, b.shape))
+        if isinstance(self, MatrixLinearOperator) and isinstance(
+                b, MatrixLinearOperator):
+            return LinearOperator.m(self.fullmatrix() - b.fullmatrix())
         return AddLinearOperator(self, b, -1)
 
     def __rsub__(self, b: LinearOperator):
@@ -618,6 +742,8 @@ class LinearOperator(EditableModule):
             raise TypeError(
                 "LinearOperator multiplication only supports integer or floating point"
             )
+        if isinstance(self, MatrixLinearOperator):
+            return LinearOperator.m(self.fullmatrix() * f)
         return MulLinearOperator(self, f)
 
     def __rmul__(self, f: Union[int, float]):
@@ -717,6 +843,167 @@ class LinearOperator(EditableModule):
 
 
 # Helper Classes
+class MatrixLinearOperator(LinearOperator):
+    """Class method to wrap a matrix into ``LinearOperator``.
+    It is a standard linear operator, used in many operations.
+
+    Examples
+    --------
+    >>> import torch
+    >>> seed = torch.manual_seed(100)
+    >>> mat = torch.rand(3, 2)
+    >>> linop = MatrixLinearOperator(mat, is_hermitian=False)
+    >>> print(linop)
+    MatrixLinearOperator with shape (3, 2):
+       tensor([[0.1117, 0.8158],
+               [0.2626, 0.4839],
+               [0.6765, 0.7539]])
+    >>> x = torch.rand(2, 2)
+    >>> linop.mm(x)
+    tensor([[0.1991, 0.1011],
+            [0.1696, 0.0684],
+            [0.3345, 0.1180]])
+    >>> x = torch.rand(3, 2)
+    >>> linop.mv(x)
+    tensor([[0.6137, 0.3879, 0.6369],
+            [0.7220, 0.5680, 1.0753],
+            [0.7821, 0.5460, 0.9626]])
+
+    """
+
+    def __init__(self, mat: torch.Tensor, is_hermitian: bool) -> None:
+        """Initialize the ``MatrixLinearOperator``.
+
+        Parameters
+        ----------
+        mat : torch.Tensor
+            The matrix to be wrapped.
+        is_hermitian : bool
+            Indicating if the matrix is Hermitian. If ``None``, the symmetry
+            will be checked. If supplied as a bool, there is no check performed.
+
+        """
+
+        super(MatrixLinearOperator, self).__init__(
+            shape=mat.shape,
+            is_hermitian=is_hermitian,
+            dtype=mat.dtype,
+            device=mat.device,
+            _suppress_hermit_warning=True,
+        )
+        self.mat = mat
+
+    def __repr__(self):
+        """Representation of the ``MatrixLinearOperator``.
+
+        Returns
+        -------
+        str
+            The representation of the ``MatrixLinearOperator``.
+
+        """
+        return "MatrixLinearOperator with shape %s:\n   %s" % \
+            (shape2str(self.shape), indent(self.mat.__repr__(), 3))
+
+    def _mv(self, x: torch.Tensor) -> torch.Tensor:
+        """Matrix-vector multiplication.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The vector with shape ``(...,q)`` where the linear operation is
+            operated on.
+
+        Returns
+        -------
+        torch.Tensor
+            The result of the linear operation with shape ``(...,p)``
+
+        """
+        return torch.matmul(self.mat, x.unsqueeze(-1)).squeeze(-1)
+
+    def _mm(self, x: torch.Tensor) -> torch.Tensor:
+        """Matrix-matrix multiplication.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The matrix with shape ``(...,q,r)`` where the linear operation is
+            operated on.
+
+        Returns
+        -------
+        torch.Tensor
+            The result of the linear operation with shape ``(...,p,r)``
+
+        """
+        return torch.matmul(self.mat, x)
+
+    def _rmv(self, x: torch.Tensor) -> torch.Tensor:
+        """Matrix-vector adjoint multiplication.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The vector with shape ``(...,p)`` where the adjoint linear operation is
+            operated on.
+
+        Returns
+        -------
+        torch.Tensor
+            The result of the adjoint linear operation with shape ``(...,q)``
+
+        """
+        return torch.matmul(self.mat.transpose(-2, -1).conj(),
+                            x.unsqueeze(-1)).squeeze(-1)
+
+    def _rmm(self, x: torch.Tensor) -> torch.Tensor:
+        """Matrix-matrix adjoint multiplication.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The matrix with shape ``(...,p,r)`` where the adjoint linear operation is
+            operated on.
+
+        Returns
+        -------
+        torch.Tensor
+            The result of the adjoint linear operation with shape ``(...,q,r)``
+
+        """
+        return torch.matmul(self.mat.transpose(-2, -1).conj(), x)
+
+    def _fullmatrix(self) -> torch.Tensor:
+        """Full matrix representation of the linear operator.
+
+        Returns
+        -------
+        torch.Tensor
+            The full matrix representation of the linear operator.
+
+        """
+        return self.mat
+
+    def _getparamnames(self, prefix: str = "") -> List[str]:
+        """Get the parameter names that affects the method.
+
+        Parameters
+        ----------
+        prefix: str
+            The prefix to be appended in front of the parameters name.
+            This usually contains the dots.
+
+        Returns
+        -------
+        List[str]
+            List of parameter names (including the prefix) that affecting
+            the ``LinearOperator``.
+
+        """
+        return [prefix + "mat"]
+
+
 class AddLinearOperator(LinearOperator):
     """Adds two linear operators.
 
@@ -999,3 +1286,269 @@ class MulLinearOperator(LinearOperator):
         """
         pnames = self.a._getparamnames(prefix=prefix + "a.")
         return pnames
+
+
+class MatmulLinearOperator(LinearOperator):
+    """
+    Matrix-matrix multiplication of two linear operators.
+
+    Examples
+    --------
+    >>> import torch
+    >>> seed = torch.manual_seed(100)
+    >>> class MyLinOp(LinearOperator):
+    ...     def __init__(self, shape):
+    ...         super(MyLinOp, self).__init__(shape)
+    ...         self.param = torch.rand(shape)
+    ...     def _getparamnames(self, prefix=""):
+    ...         return [prefix + "param"]
+    ...     def _mv(self, x):
+    ...         return torch.matmul(self.param, x)
+    >>> linop1 = MyLinOp((1,3,2,2))
+    >>> linop2 = MyLinOp((1,3,2,2))
+    >>> linop = MatmulLinearOperator(linop1, linop2)
+    >>> print(linop)
+    MatmulLinearOperator with shape (1, 3, 2, 2) of:
+     * LinearOperator (MyLinOp) with shape (1, 3, 2, 2), dtype = torch.float32, device = cpu
+     * LinearOperator (MyLinOp) with shape (1, 3, 2, 2), dtype = torch.float32, device = cpu
+    >>> x = torch.rand(1,2,2,1)
+    >>> linop.mm(x)
+    tensor([[[[0.7998],
+              [0.8016]],
+    <BLANKLINE>
+             [[0.6515],
+              [0.6835]]],
+    <BLANKLINE>
+    <BLANKLINE>
+            [[[0.9251],
+              [1.1611]],
+    <BLANKLINE>
+             [[0.2781],
+              [0.3609]]],
+    <BLANKLINE>
+    <BLANKLINE>
+            [[[0.2591],
+              [0.2376]],
+    <BLANKLINE>
+             [[0.8009],
+              [0.8087]]]])
+
+    """
+
+    def __init__(self,
+                 a: LinearOperator,
+                 b: LinearOperator,
+                 is_hermitian: bool = False):
+        """Initialize the ``MatmulLinearOperator``.
+
+        Parameters
+        ----------
+        a: LinearOperator
+            The first linear operator to be multiplied.
+        b: LinearOperator
+            The second linear operator to be multiplied.
+        is_hermitian: bool
+            Whether the result is Hermitian. Default to False.
+
+        """
+        shape = (*get_bcasted_dims(a.shape[:-2], b.shape[:-2]), a.shape[-2],
+                 b.shape[-1])
+        super(MatmulLinearOperator, self).__init__(
+            shape=shape,
+            is_hermitian=is_hermitian,
+            dtype=a.dtype,
+            device=a.device,
+            _suppress_hermit_warning=True,
+        )
+        self.a = a
+        self.b = b
+
+    def __repr__(self):
+        """Representation of the ``MatmulLinearOperator``.
+
+        Returns
+        -------
+        str
+            The representation of the ``MatmulLinearOperator``.
+
+        """
+        return "MatmulLinearOperator with shape %s of:\n * %s\n * %s" % \
+            (shape2str(self.shape),
+             indent(self.a.__repr__(), 3),
+             indent(self.b.__repr__(), 3))
+
+    def _mv(self, x: torch.Tensor) -> torch.Tensor:
+        """Matrix-vector multiplication.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The vector with shape ``(...,q)`` where the linear operation is
+            operated on.
+
+        Returns
+        -------
+        torch.Tensor
+            The result of the linear operation with shape ``(...,p)``
+
+        """
+        return self.a._mv(self.b._mv(x))
+
+    def _rmv(self, x: torch.Tensor) -> torch.Tensor:
+        """Transposed matrix-vector multiplication.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The vector of shape ``(...,p)`` where the adjoint linear operation
+            is operated at.
+
+        Returns
+        -------
+        torch.Tensor
+            The result of the adjoint linear operation with shape ``(...,q)``
+
+        """
+        return self.b.rmv(self.a.rmv(x))
+
+    def _getparamnames(self, prefix: str = "") -> List[str]:
+        return self.a._getparamnames(prefix=prefix + "a.") + \
+            self.b._getparamnames(prefix=prefix + "b.")
+
+
+class AdjointLinearOperator(LinearOperator):
+    """Adjoint of a LinearOperator.
+
+    This is used to calculate the adjoint of a LinearOperator without
+    explicitly constructing the adjoint matrix. This is useful when the
+    adjoint matrix is not explicitly constructed, e.g. when the LinearOperator
+    is a function of other parameters.
+
+    Examples
+    --------
+    >>> import torch
+    >>> seed = torch.manual_seed(100)
+    >>> class MyLinOp(LinearOperator):
+    ...     def __init__(self, shape):
+    ...         super(MyLinOp, self).__init__(shape)
+    ...         self.param = torch.rand(shape)
+    ...     def _getparamnames(self, prefix=""):
+    ...         return [prefix + "param"]
+    ...     def _mv(self, x):
+    ...         return torch.matmul(self.param, x)
+    ...     def _rmv(self, x):
+    ...         return torch.matmul(self.param.transpose(-2,-1).conj(), x)
+    >>> linop = MyLinOp((1,3,1,2))
+    >>> print(linop)
+    LinearOperator (MyLinOp) with shape (1, 3, 1, 2), dtype = torch.float32, device = cpu
+    >>> x = torch.rand(1,3,1,1)
+    >>> linop.rmv(x)
+    tensor([[[[0.0293],
+              [0.2143]],
+    <BLANKLINE>
+             [[0.0112],
+              [0.0207]],
+    <BLANKLINE>
+             [[0.1407],
+              [0.1568]]]])
+    >>> linop2 = linop.H
+    >>> linop2.mv(x)
+    tensor([[[[0.0293],
+              [0.2143]],
+    <BLANKLINE>
+             [[0.0112],
+              [0.0207]],
+    <BLANKLINE>
+             [[0.1407],
+              [0.1568]]]])
+
+    """
+
+    def __init__(self, obj: LinearOperator):
+        """Initialize the ``AdjointLinearOperator``.
+
+        Parameters
+        ----------
+        obj: LinearOperator
+            The linear operator to be adjointed.
+
+        """
+        super(AdjointLinearOperator, self).__init__(
+            shape=(*obj.shape[:-2], obj.shape[-1], obj.shape[-2]),
+            is_hermitian=obj.is_hermitian,
+            dtype=obj.dtype,
+            device=obj.device,
+            _suppress_hermit_warning=True,
+        )
+        self.obj = obj
+
+    def __repr__(self):
+        return "AdjointLinearOperator with shape %s of:\n - %s" % \
+            (shape2str(self.shape), indent(self.obj.__repr__(), 3))
+
+    def _mv(self, x: torch.Tensor) -> torch.Tensor:
+        """Matrix-vector multiplication.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The vector with shape ``(...,q)`` where the linear operation is
+            operated on.
+
+        Returns
+        -------
+        torch.Tensor
+            The result of the linear operation with shape ``(...,p)``
+
+        """
+        if not self.obj.is_rmv_implemented:
+            raise RuntimeError(
+                "The ._rmv of must be implemented to call .H.mv()")
+        return self.obj._rmv(x)
+
+    def _rmv(self, x: torch.Tensor) -> torch.Tensor:
+        """Matrix-vector adjoint multiplication.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The vector with shape ``(...,p)`` where the adjoint linear operation is
+            operated on.
+
+        Returns
+        -------
+        torch.Tensor
+            The result of the adjoint linear operation with shape ``(...,q)``
+
+        """
+        return self.obj._mv(x)
+
+    def _getparamnames(self, prefix: str = "") -> List[str]:
+        """Get the parameter names that affects the method.
+
+        Parameters
+        ----------
+        prefix: str
+            The prefix to be appended in front of the parameters name.
+            This usually contains the dots.
+
+        Returns
+        -------
+        List[str]
+            List of parameter names (including the prefix) that affecting
+            the ``LinearOperator``.
+
+        """
+        return self.obj._getparamnames(prefix=prefix + "obj.")
+
+    @property
+    def H(self):
+        """Adjoint of the linear operator.
+
+        Returns
+        -------
+        LinearOperator
+            Adjoint of the linear operator.
+
+        """
+        return self.obj

@@ -452,9 +452,9 @@ class PNAGNN(nn.Module):
     >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
     >>> from deepchem.feat.graph_data import BatchGraphData
     >>> from deepchem.models.torch_models.pna_gnn import PNAGNN
-    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    >>> featurizer = RDKitConformerFeaturizer()
     >>> smiles = ['C1=CC=NC=C1', 'CC(=O)C', 'C']
-    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2, rmsd_cutoff=1)
+    >>> featurizer = RDKitConformerFeaturizer()
     >>> data = featurizer.featurize(smiles)
     >>> features = BatchGraphData(np.concatenate(data))
     >>> features = features.to_dgl_graph()
@@ -575,12 +575,12 @@ class PNA(nn.Module):
     >>> from deepchem.models.torch_models.pna_gnn import PNA
     >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
     >>> smiles = ["C1=CC=CN=C1", "C1CCC1"]
-    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    >>> featurizer = RDKitConformerFeaturizer()
     >>> data = featurizer.featurize(smiles)
     >>> features = BatchGraphData(np.concatenate(data))
     >>> features = features.to_dgl_graph()
     >>> target_dim = 1
-    >>> model = PNA(hidden_dim=16, target_dim=target_dim)
+    >>> model = PNA(hidden_dim=16, target_dim=target_dim, task='regression')
     >>> output = model(features)
     >>> print(output.shape)
     torch.Size([1, 1])

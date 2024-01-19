@@ -482,7 +482,7 @@ class RandomGroupSplitter(Splitter):
                 group_dict[g] = []
             group_dict[g].append(idx)
 
-        group_idxs = np.array([g for g in group_dict.values()])
+        group_idxs = np.array([g for g in group_dict.values()], dtype=object)
 
         num_groups = len(group_idxs)
         train_cutoff = int(frac_train * num_groups)

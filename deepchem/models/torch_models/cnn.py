@@ -27,6 +27,7 @@ class CNN(TorchModel):
 
     Examples
     --------
+    >>> import deepchem as dc
     >>> n_samples = 10
     >>> n_features = 3
     >>> n_tasks = 1

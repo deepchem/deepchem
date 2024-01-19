@@ -30,7 +30,7 @@ class CGCNNLayer(nn.Module):
     41
     >>> cgcnn_dgl_graph = cgcnn_graph.to_dgl_graph()
     >>> print(type(cgcnn_dgl_graph))
-    <class 'dgl.heterograph.DGLHeteroGraph'>
+    <class 'dgl.heterograph.DGLGraph'>
     >>> layer = CGCNNLayer(hidden_node_dim=92, edge_dim=41)
     >>> node_feats = cgcnn_dgl_graph.ndata.pop('x')
     >>> edge_feats = cgcnn_dgl_graph.edata.pop('edge_attr')
@@ -127,7 +127,7 @@ class CGCNN(nn.Module):
     <class 'deepchem.feat.graph_data.GraphData'>
     >>> cgcnn_dgl_feat = cgcnn_feat.to_dgl_graph()
     >>> print(type(cgcnn_dgl_feat))
-    <class 'dgl.heterograph.DGLHeteroGraph'>
+    <class 'dgl.heterograph.DGLGraph'>
     >>> model = dc.models.CGCNN(mode='regression', n_tasks=2)
     >>> out = model(cgcnn_dgl_feat)
     >>> print(type(out))
