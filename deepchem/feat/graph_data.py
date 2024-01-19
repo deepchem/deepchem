@@ -408,7 +408,7 @@ class BatchGraphData(GraphData):
             graph_list[0])
         for name in user_defined_attribute_names:
             kwargs[name] = np.vstack(
-                [getattr(graph, name) for graph in graph_list])
+                [getattr(graph, name) for graph in graph_list], dtype=object)
 
         super().__init__(node_features=batch_node_features,
                          edge_index=batch_edge_index,
