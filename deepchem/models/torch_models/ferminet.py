@@ -285,7 +285,7 @@ class FerminetModel(TorchModel):
     >>> from deepchem.models.torch_models.ferminet import FerminetModel
     >>> H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
     >>> mol = FerminetModel(H2_molecule, spin=0, ion_charge=0, tasks='pretraining')
-    converged SCF energy = -0.895803169899509  <S^2> = 0  2S+1 = 1
+    converged SCF energy = -0.895803169899508  <S^2> = 0  2S+1 = 1
     >>> mol.train(nb_epoch=3)
     >>> print(mol.model.psi_up.size())
     torch.Size([8, 16, 1, 1])
