@@ -459,7 +459,7 @@ def test_radial_grid():
 def test_get_xw_integration():
     from deepchem.utils.dft_utils import get_xw_integration
     x, w = get_xw_integration(4, "chebyshev")
-    assert x.shape == (4, )
+    assert x.shape == (4,)
     assert w.shape == torch.Size([4])
 
 
@@ -472,6 +472,37 @@ def test_sliced_radial_grid():
 
 
 @pytest.mark.torch
-def test_base_grid_transform():
-    from deepchem.utils.dft_utils import BaseGridTransform
-    
+def test_de2_transform():
+    from deepchem.utils.dft_utils import DE2Transformation
+    x = torch.linspace(-1, 1, 100)
+    r = DE2Transformation().x2r(x)
+    assert r.shape == torch.Size([100])
+    drdx = DE2Transformation().get_drdx(x)
+    assert drdx.shape == torch.Size([100])
+
+
+@pytest.mark.torch
+def test_logm3_transform():
+    from deepchem.utils.dft_utils import LogM3Transformation
+    x = torch.linspace(-1, 1, 100)
+    r = LogM3Transformation().x2r(x)
+    assert r.shape == torch.Size([100])
+    drdx = LogM3Transformation().get_drdx(x)
+    assert drdx.shape == torch.Size([100])
+
+
+@pytest.mark.torch
+def test_treutlerm4_transform():
+    from deepchem.utils.dft_utils import TreutlerM4Transformation
+    x = torch.linspace(-1, 1, 100)
+    r = TreutlerM4Transformation().x2r(x)
+    assert r.shape == torch.Size([100])
+    drdx = TreutlerM4Transformation().get_drdx(x)
+    assert drdx.shape == torch.Size([100])
+
+
+@pytest.mark.torch
+def test_get_grid_transform():
+    from deepchem.utils.dft_utils import get_grid_transform
+    transform = get_grid_transform("logm3")
+    transform.x2r(torch.tensor([0.5])) == torch.tensor([2.])

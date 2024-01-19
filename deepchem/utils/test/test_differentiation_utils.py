@@ -644,6 +644,20 @@ def test_get_pure_function():
 
 
 @pytest.mark.torch
+def test_make_siblings():
+    from deepchem.utils.differentiation_utils import make_sibling
+
+    def fcn1(x, y):
+        return x + y
+
+    @make_sibling(fcn1)
+    def fcn3(x, y):
+        return x * y
+
+    assert fcn3(1, 2) == 2
+
+
+@pytest.mark.torch
 def test_wrap_gmres():
     from deepchem.utils.differentiation_utils.solve import wrap_gmres
     from deepchem.utils.differentiation_utils import LinearOperator

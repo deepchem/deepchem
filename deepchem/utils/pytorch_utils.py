@@ -436,7 +436,7 @@ def to_fortran_order(V):
             "Only the last two dimensions can be made Fortran order.")
 
 
-def get_np_dtype(dtype: torch.dtype) -> np.dtype:
+def get_np_dtype(dtype: torch.dtype) -> Any:
     """corresponding numpy dtype from the input pytorch's tensor dtype
 
     Examples

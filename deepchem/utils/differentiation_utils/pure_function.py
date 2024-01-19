@@ -360,6 +360,7 @@ def _check_identical_objs(objs1: List, objs2: List) -> bool:
             return False
     return True
 
+
 class SingleSiblingPureFunction(PureFunction):
     """Implementation of PureFunction for a sibling method
 
@@ -465,7 +466,6 @@ class MultiSiblingPureFunction(PureFunction):
                 allobjparams[self.cumsum_idx[i]:self.cumsum_idx[i + 1]])
 
 
-
 def get_pure_function(fcn) -> PureFunction:
     """Get the pure function form of the function or method ``fcn``.
 
@@ -529,6 +529,22 @@ def make_sibling(*pfuncs) -> Callable[[Callable], PureFunction]:
     behaves differently.
     Changing the state of the decorated function will also change the state of
     ``pfunc`` and its other siblings.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.differentiation_utils import make_sibling
+    >>> def fcn1(x, y):
+    ...     return x + y
+    >>> def fcn2(x, y):
+    ...     return x - y
+    >>> pfunc1 = get_pure_function(fcn1)
+    >>> pfunc2 = get_pure_function(fcn2)
+    >>> @make_sibling(pfunc1)
+    ... def fcn3(x, y):
+    ...     return x * y
+    >>> pfunc3(1, 2)
+    2
 
     Parameters
     ----------
