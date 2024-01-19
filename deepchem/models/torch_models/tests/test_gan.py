@@ -3,7 +3,6 @@ import numpy as np
 import pytest
 import tempfile
 from flaky import flaky
-from zmq import device
 
 try:
     import torch
