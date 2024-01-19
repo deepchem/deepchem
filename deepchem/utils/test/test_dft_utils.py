@@ -340,3 +340,108 @@ def test_base_grid():
     grid = Grid()
     assert torch.allclose(grid.get_dvolume(), torch.ones(10))
     assert torch.allclose(grid.get_rgrid(), torch.ones((10, 3)))
+
+
+@pytest.mark.torch
+def test_base_df():
+    """Test BaseDF. Checks that it doesn't raise errors."""
+    from deepchem.utils.dft_utils import BaseDF
+
+    class MyDF(BaseDF):
+
+        def __init__(self):
+            super(MyDF, self).__init__()
+
+        def get_j2c(self):
+            return torch.ones((3, 3))
+
+        def get_j3c(self):
+            return torch.ones((3, 3, 3))
+
+    df = MyDF()
+    assert torch.allclose(df.get_j2c(), torch.ones((3, 3)))
+    assert torch.allclose(df.get_j3c(), torch.ones((3, 3, 3)))
+
+
+@pytest.mark.torch
+def test_base_hamilton():
+    """Test BaseHamilton. Checks that it doesn't raise errors."""
+    from deepchem.utils.dft_utils import BaseHamilton
+
+    class MyHamilton(BaseHamilton):
+
+        def __init__(self):
+            self._nao = 2
+            self._kpts = torch.tensor([[0.0, 0.0, 0.0]])
+            self._df = None
+
+        @property
+        def nao(self):
+            return self._nao
+
+        @property
+        def kpts(self):
+            return self._kpts
+
+        @property
+        def df(self):
+            return self._df
+
+        def build(self):
+            return self
+
+        def get_nuclattr(self):
+            return torch.ones((1, 1, self.nao, self.nao))
+
+    ham = MyHamilton()
+    hamilton = ham.build()
+    assert torch.allclose(hamilton.get_nuclattr(),
+                          torch.tensor([[[[1., 1.], [1., 1.]]]]))
+
+
+@pytest.mark.torch
+def test_cgto_basis():
+    from deepchem.utils.dft_utils import CGTOBasis
+    alphas = torch.ones(1)
+    coeffs = torch.ones(1)
+    cgto = CGTOBasis(angmom=0, alphas=alphas, coeffs=coeffs)
+    cgto.wfnormalize_()
+
+    if cgto.normalized is True:
+        assert True
+    else:
+        assert False
+
+
+@pytest.mark.torch
+def test_atom_cgto_basis():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, CGTOBasis
+    alphas = torch.ones(1)
+    coeffs = torch.ones(1)
+    cgto = CGTOBasis(angmom=0, alphas=alphas, coeffs=coeffs)
+    atomcgto = AtomCGTOBasis(atomz=1, bases=[cgto], pos=[0.0, 0.0, 0.0])
+    assert atomcgto.bases[0] == cgto
+
+
+@pytest.mark.torch
+def test_base_system():
+    """Test BaseSystem. Checks that it doesn't raise errors."""
+    from deepchem.utils.dft_utils import BaseSystem, BaseHamilton, BaseGrid
+
+    class MySystem(BaseSystem):
+
+        def __init__(self):
+            self.hamiltonian = BaseHamilton()
+            self.grid = BaseGrid()
+
+        def get_hamiltonian(self):
+            return self.hamiltonian
+
+        def get_grid(self):
+            return self.grid
+
+        def requires_grid(self):
+            return True
+
+    system = MySystem()
+    assert system.requires_grid()

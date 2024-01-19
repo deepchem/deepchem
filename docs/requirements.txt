@@ -3,12 +3,12 @@ scikit-learn
 # Make sure that sphinx, sphinx_rtd_theme versions are pinned, otherwise
 # readthedocs uses its default version of sphinx (1.8.5) which may lead to
 # build fails.
-sphinx>=4.0,<5.0
+sphinx==7.2.6
 sphinx_rtd_theme>=1.0
 tensorflow
-transformers==4.34.1
+transformers>=4.34.1
 torch==2.1.0 --extra-index-url https://download.pytorch.org/whl/cpu
-pytorch-lightning>=2.1.2
+lightning
 jax
 dm-haiku
 optax

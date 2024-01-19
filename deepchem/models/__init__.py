@@ -46,7 +46,6 @@ try:
     from deepchem.models.torch_models import LCNN, LCNNModel
     from deepchem.models.torch_models import Pagtn, PagtnModel
     from deepchem.models.fcnet import MultitaskRegressor, MultitaskClassifier, MultitaskFitTransformRegressor
-    from deepchem.models.torch_models import MEGNetModel
     from deepchem.models.torch_models import CNN
     from deepchem.models.torch_models import ScaledDotProductAttention, SelfAttention
     from deepchem.models.torch_models import GroverReadout
@@ -63,6 +62,7 @@ except ImportError as e:
 # Pytorch models with torch-geometric dependency
 try:
     # TODO We should clean up DMPNN and remove torch_geometric dependency during import
+    from deepchem.models.torch_models import MEGNetModel
     from deepchem.models.torch_models import DMPNN, DMPNNModel, GNNModular
 except ImportError as e:
     logger.warning(
@@ -72,6 +72,7 @@ except ImportError as e:
 # Pytorch-lightning modules import
 try:
     from deepchem.models.lightning import DCLightningModule, DCLightningDatasetModule
+    from deepchem.models.trainer import DistributedTrainer
 except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading modules with pytorch-lightning dependency, missing a dependency. {e}'

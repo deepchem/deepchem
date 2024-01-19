@@ -3,5 +3,7 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  # - hhsuite
+  - hhsuite
   - vina
+  - pip:
+    - vina

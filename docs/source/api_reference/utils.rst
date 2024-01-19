@@ -291,6 +291,12 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.ValGrad
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.data.datastruct.CGTOBasis
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.data.datastruct.AtomCGTOBasis
+  :members:
+
 .. autoclass:: deepchem.utils.dft_utils.BaseXC
   :members:
 
@@ -301,6 +307,12 @@ The utilites here are used to create an object that contains information about a
   :members:
 
 .. autoclass:: deepchem.utils.dft_utils.BaseGrid
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.df.base_df.BaseDF
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.base_hamilton.BaseHamilton
   :members:
 
 .. autoclass:: deepchem.utils.dftutils.KSCalc
@@ -332,6 +344,9 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.api.parser.parse_moldesc
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.system.base_system.BaseSystem
+  :members:
+
 .. autoclass:: deepchem.utils.differentiation_utils.editable_module.EditableModule
   :members:
 
@@ -344,6 +359,40 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.differentiation_utils.linop.LinearOperator
   :members:
 
+.. autoclass:: deepchem.utils.differentiation_utils.linop.AddLinearOperator
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.linop.MulLinearOperator
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.linop.AdjointLinearOperator
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.linop.MatmulLinearOperator
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.linop.MatrixLinearOperator
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.pure_function.PureFunction
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.pure_function.FunctionPureFunction
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.pure_function.EditableModulePureFunction
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.pure_function.TorchNNPureFunction
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.pure_function.PureFunction
+  :members:
+
+.. autofunction:: deepchem.utils.differentiation_utils.pure_function._check_identical_objs
+
+.. autofunction:: deepchem.utils.differentiation_utils.pure_function.get_pure_function
+
 .. autofunction:: deepchem.utils.differentiation_utils.set_default_option
 
 .. autofunction:: deepchem.utils.differentiation_utils.get_and_pop_keys
@@ -353,6 +402,16 @@ The utilites here are used to create an object that contains information about a
 .. autofunction:: deepchem.utils.differentiation_utils.dummy_context_manager
 
 .. autofunction:: deepchem.utils.differentiation_utils.assert_runtime
+
+.. autofunction:: deepchem.utils.differentiation_utils._set_initial_v
+
+.. autofunction:: deepchem.utils.differentiation_utils._take_eigpairs
+
+.. autofunction:: deepchem.utils.differentiation_utils.exacteig
+
+.. autofunction:: deepchem.utils.differentiation_utils.degen_symeig
+
+.. autofunction:: deepchem.utils.differentiation_utils.davidson
 
 Attribute Utilities
 -------------------
@@ -378,6 +437,14 @@ Pytorch Utilities
 .. autofunction:: deepchem.utils.pytorch_utils.chunkify
 
 .. autofunction:: deepchem.utils.pytorch_utils.get_memory
+
+.. autofunction:: deepchem.utils.pytorch_utils.gaussian_integral
+
+.. autofunction:: deepchem.utils.pytorch_utils.TensorNonTensorSeparator
+
+.. autofunction:: deepchem.utils.pytorch_utils.tallqr
+
+.. autofunction:: deepchem.utils.pytorch_utils.to_fortran_order
 
 Batch Utilities
 ---------------
@@ -432,4 +499,35 @@ Initial usecases are for improving the printing format of __repr__.
 
 .. autofunction:: deepchem.utils.misc_utils.indent
 
-.. autofunction:: deepchem.utils.equivariance_utils.shape2str
+.. autofunction:: deepchem.utils.misc_utils.shape2str
+
+.. autoclass:: deepchem.utils.attribute_utils.UnimplementedError
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.GetSetParamsError
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.ConvergenceWarning
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.MathWarning
+  :members:
+
+.. autoclass:: deepchem.utils.attribute_utils.Uniquifier
+  :members:
+
+SafeOperations Utilities
+------------------------
+
+The utilities here are used for safe operations on tensors.
+These are used to avoid NaNs and Infs in the output.
+
+.. autofunction:: deepchem.utils.safe_ops.safepow
+
+.. autofunction:: deepchem.utils.safe_ops.safenorm
+
+.. autofunction:: deepchem.utils.safe_ops.occnumber
+
+.. autofunction:: deepchem.utils.safe_ops.get_floor_and_ceil
+
+.. autofunction:: deepchem.utils.safe_ops.safe_cdist

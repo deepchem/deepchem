@@ -12,10 +12,6 @@ DeepChem officially supports Python 3.8 through 3.10 and requires these packages
 - `scikit-learn`_
 - `SymPy`_
 - `SciPy`_
-- `TensorFlow`_
-
-  - `deepchem>=2.4.0` depends on TensorFlow v2 (2.3.x)
-  - `deepchem<2.4.0` depends on  TensorFlow v1 (>=1.14)
 
 
 Soft requirements
@@ -99,7 +95,7 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `PyTorch`_                     | 2.1.0         | :code:`dc.data.datasets`                          |
+| `PyTorch`_                     | 2.1.0         | :code:`dc.models.torch_models`                    |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
@@ -135,6 +131,11 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
+| `TensorFlow`_                  | latest        | :code:`dc.models`                                 |
+|                                |               | `deepchem>=2.4.0` depends on TensorFlow v2(2.3.x) |
+|                                |               | `deepchem<2.4.0` depends on TensorFlow v1(>=1.14) |
++--------------------------------+---------------+---------------------------------------------------+
+
 
 .. _`joblib`: https://pypi.python.org/pypi/joblib
 .. _`NumPy`: https://numpy.org/

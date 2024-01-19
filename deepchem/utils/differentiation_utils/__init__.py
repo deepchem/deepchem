@@ -1,3 +1,4 @@
+# flake8: noqa
 try:
     from deepchem.utils.differentiation_utils.editable_module import EditableModule
 
@@ -13,5 +14,12 @@ try:
 
     from deepchem.utils.differentiation_utils.linop import LinearOperator
     from deepchem.utils.differentiation_utils.linop import AddLinearOperator
+    from deepchem.utils.differentiation_utils.linop import MulLinearOperator
+    from deepchem.utils.differentiation_utils.linop import AdjointLinearOperator
+    from deepchem.utils.differentiation_utils.linop import MatmulLinearOperator
+    from deepchem.utils.differentiation_utils.linop import MatrixLinearOperator
+
+    from deepchem.utils.differentiation_utils.pure_function import PureFunction
+    from deepchem.utils.differentiation_utils.pure_function import get_pure_function
 except:
     pass

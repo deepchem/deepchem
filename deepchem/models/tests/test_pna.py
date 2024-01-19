@@ -124,6 +124,6 @@ def testPNA():
     data, _ = get_regression_dataset()
     features = dgl.batch([conformer.to_dgl_graph() for conformer in data.X])
     target_dim = 1
-    model = PNA(hidden_dim=16, target_dim=target_dim)
+    model = PNA(hidden_dim=16, target_dim=target_dim, task='regression')
     output = model(features)
     assert output.shape[1] == target_dim

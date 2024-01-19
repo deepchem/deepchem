@@ -5,6 +5,7 @@ from typing import Callable, Dict, List, Union
 import dgl
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 from deepchem.feat.molecule_featurizers.conformer_featurizer import (
     full_atom_feature_dims,
@@ -451,9 +452,9 @@ class PNAGNN(nn.Module):
     >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
     >>> from deepchem.feat.graph_data import BatchGraphData
     >>> from deepchem.models.torch_models.pna_gnn import PNAGNN
-    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    >>> featurizer = RDKitConformerFeaturizer()
     >>> smiles = ['C1=CC=NC=C1', 'CC(=O)C', 'C']
-    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2, rmsd_cutoff=1)
+    >>> featurizer = RDKitConformerFeaturizer()
     >>> data = featurizer.featurize(smiles)
     >>> features = BatchGraphData(np.concatenate(data))
     >>> features = features.to_dgl_graph()
@@ -574,12 +575,12 @@ class PNA(nn.Module):
     >>> from deepchem.models.torch_models.pna_gnn import PNA
     >>> from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
     >>> smiles = ["C1=CC=CN=C1", "C1CCC1"]
-    >>> featurizer = RDKitConformerFeaturizer(num_conformers=2)
+    >>> featurizer = RDKitConformerFeaturizer()
     >>> data = featurizer.featurize(smiles)
     >>> features = BatchGraphData(np.concatenate(data))
     >>> features = features.to_dgl_graph()
     >>> target_dim = 1
-    >>> model = PNA(hidden_dim=16, target_dim=target_dim)
+    >>> model = PNA(hidden_dim=16, target_dim=target_dim, task='regression')
     >>> output = model(features)
     >>> print(output.shape)
     torch.Size([1, 1])
@@ -588,6 +589,7 @@ class PNA(nn.Module):
     def __init__(self,
                  hidden_dim: int,
                  target_dim: int,
+                 task: str,
                  aggregators: List[str] = ['mean'],
                  scalers: List[str] = ['identity'],
                  readout_aggregators: List[str] = ['mean'],
@@ -602,6 +604,8 @@ class PNA(nn.Module):
                  dropout: float = 0.0,
                  posttrans_layers: int = 1,
                  pretrans_layers: int = 1,
+                 n_tasks: int = 1,
+                 n_classes: int = 2,
                  **kwargs):
         super(PNA, self).__init__()
         self.node_gnn = PNAGNN(hidden_dim=hidden_dim,
@@ -619,11 +623,23 @@ class PNA(nn.Module):
         if readout_hidden_dim == 1:
             readout_hidden_dim = hidden_dim
         self.readout_aggregators = readout_aggregators
-        self.output = MultilayerPerceptron(
+        output = MultilayerPerceptron(
             d_input=hidden_dim * len(self.readout_aggregators),
             d_hidden=(readout_hidden_dim,) * readout_layers,
             batch_norm=False,
             d_output=target_dim)
+
+        self.n_classes = n_classes
+        self.task, self.n_tasks = task, n_tasks
+        if self.task == 'regression':
+            head = nn.Linear(target_dim, n_tasks)
+            self.output = nn.Sequential(output, head)
+        elif self.task == 'classification':
+            # The model predicts unnormalized probabilities for each class and task
+            head = nn.Linear(target_dim, n_tasks * n_classes)
+            self.output = nn.Sequential(output, head)
+        else:
+            self.output = nn.Sequential(output)
 
     def forward(self, graph: dgl.DGLGraph):
         graph = self.node_gnn(graph)
@@ -632,4 +648,16 @@ class PNA(nn.Module):
             for aggr in self.readout_aggregators
         ]
         readout = torch.cat(readouts_to_cat, dim=-1)
-        return self.output(readout)
+        outputs = self.output(readout)
+        if self.task == 'classification':
+            if self.n_tasks == 1:
+                softmax_dim = 1
+                logits = outputs.view(-1, self.n_classes)
+            else:
+                softmax_dim = 2
+                logits = outputs.view(-1, self.n_tasks, self.n_classes)
+            proba = F.softmax(logits, dim=softmax_dim)
+            # print (logits, proba)
+            return proba, logits
+        else:
+            return outputs

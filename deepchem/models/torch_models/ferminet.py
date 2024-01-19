@@ -1,7 +1,7 @@
 """
 Implementation of the Ferminet class in pytorch
 """
-
+import logging
 from typing import List, Optional, Tuple
 # import torch.nn as nn
 from rdkit import Chem
@@ -26,10 +26,11 @@ class Ferminet(torch.nn.Module):
     -------
     >>> import numpy as np
     >>> import deepchem as dc
+    >>> from deepchem.models.torch_models.ferminet import Ferminet
     >>> import torch
     >>> H2_molecule =  torch.Tensor([[0, 0, 0.748], [0, 0, 0]])
     >>> H2_charge = torch.Tensor([[1], [1]])
-    >>> model = dc.models.Ferminet(nucleon_pos=H2_molecule, nuclear_charge=H2_charge, batch_size=1)
+    >>> model = Ferminet(nucleon_pos=H2_molecule, nuclear_charge=H2_charge, spin=0, batch_size=1)
     >>> electron = np.random.rand(1, 2*3)
     >>> wavefunction = model.forward(electron)
 
@@ -139,7 +140,8 @@ class Ferminet(torch.nn.Module):
             (one_electron_vector, one_electron_distance.unsqueeze(-1)), dim=3)
         one_electron = torch.reshape(one_electron.permute(0, 2, 1, 3),
                                      (self.batch_size, self.total_electron, -1))
-        one_electron_vector_permuted = one_electron_vector.permute(0, 2, 1, 3)
+        one_electron_vector_permuted = one_electron_vector.permute(0, 2, 1,
+                                                                   3).float()
 
         one_electron, _ = self.ferminet_layer[0].forward(
             one_electron.to(torch.float32), two_electron.to(torch.float32))
@@ -280,9 +282,9 @@ class FerminetModel(TorchModel):
 
     Example
     -------
-    >>> from deepchem.models.torch_models.Ferminet import FerminetModel
+    >>> from deepchem.models.torch_models.ferminet import FerminetModel
     >>> H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
-    >>> mol = FerminetModel(H2_molecule, spin=0, ion_charge=0, training='pretraining')
+    >>> mol = FerminetModel(H2_molecule, spin=0, ion_charge=0, tasks='pretraining')
     >>> mol.train(nb_epoch=3)
     >>> print(mol.model.psi_up.size())
     torch.Size([1, 1])
@@ -582,6 +584,9 @@ class FerminetModel(TorchModel):
                                    self.random_walk_steps)
                 self.loss_value.backward()
                 optimizer.step()
+                logging.info("The loss for the pretraining iteration " +
+                             str(iteration) + " is " +
+                             str(self.loss_value.item()))
                 self.model.running_diff = torch.zeros(self.batch_no)
 
         if (self.tasks == 'training'):
@@ -614,6 +619,8 @@ class FerminetModel(TorchModel):
                                              max=median + 5 * variance,
                                              min=median - 5 * variance)
                 energy_mean = torch.mean(clamped_energy)
+                logging.info("The mean energy for the training iteration " +
+                             str(iteration) + " is " + str(energy_mean.item()))
                 self.final_energy = self.final_energy + energy_mean
                 # using the sampled electrons from the electron sampler for bacward pass and modifying gradients
                 sample_history = torch.from_numpy(

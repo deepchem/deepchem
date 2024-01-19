@@ -29,6 +29,23 @@ class TestImageLoader(unittest.TestCase):
         self.face_copy_path = os.path.join(self.data_dir, "face_copy.png")
         Image.fromarray(self.face).save(self.face_copy_path)
 
+        # Create directory of multiple image files
+        self.order_path = os.path.join(self.data_dir, "order_check")
+        os.mkdir(self.order_path)
+        self.face_path = os.path.join(self.order_path, "face.png")
+        Image.fromarray(self.face).save(self.face_path)
+        self.face_copy_path = os.path.join(self.order_path, "face_copy.png")
+        Image.fromarray(self.face).save(self.face_copy_path)
+
+        # Zip directory of multiple image files
+        self.order_zip_path = os.path.join(self.data_dir, "order_check.zip")
+        with zipfile.ZipFile(self.order_zip_path, 'w') as zip_file:
+            for foldername, subfolders, filenames in os.walk(self.order_path):
+                for filename in filenames:
+                    file_path = os.path.join(foldername, filename)
+                    arcname = os.path.relpath(file_path, self.order_path)
+                    zip_file.write(file_path, arcname=arcname)
+
         # Create zip of image file
         self.zip_path = os.path.join(self.data_dir, "face.zip")
         zipf = zipfile.ZipFile(self.zip_path, "w", zipfile.ZIP_DEFLATED)
@@ -71,11 +88,33 @@ class TestImageLoader(unittest.TestCase):
         assert dataset.X.shape == (1, 768, 1024, 3)
         assert (dataset.y == np.ones((1,))).all()
 
+    def test_png_simple_load_with_label_as_image(self):
+        loader = dc.data.ImageLoader()
+        dataset = loader.create_dataset((self.face_path, self.face_path))
+        # These are the known dimensions of face.png
+        assert dataset.X.shape == (1, 768, 1024, 3)
+        assert dataset.y.shape == (1, 768, 1024, 3)
+
     def test_tif_simple_load(self):
         loader = dc.data.ImageLoader()
         dataset = loader.create_dataset(self.tif_image_path)
         # TODO(rbharath): Where are the color channels?
         assert dataset.X.shape == (1, 44, 330)
+
+    def test_tif_simple_load_with_labels(self):
+        loader = dc.data.ImageLoader()
+        dataset = loader.create_dataset((self.tif_image_path, np.array(1)))
+        # These are the known dimensions of a_image.tif
+        assert dataset.X.shape == (1, 44, 330)
+        assert (dataset.y == np.ones((1,))).all()
+
+    def test_tif_simple_load_with_label_as_image(self):
+        loader = dc.data.ImageLoader()
+        dataset = loader.create_dataset(
+            (self.tif_image_path, self.tif_image_path))
+        # These are the known dimensions of a_image.tif
+        assert dataset.X.shape == (1, 44, 330)
+        assert dataset.y.shape == (1, 44, 330)
 
     def test_png_multi_load(self):
         loader = dc.data.ImageLoader()
@@ -102,3 +141,14 @@ class TestImageLoader(unittest.TestCase):
         loader = dc.data.ImageLoader()
         dataset = loader.create_dataset(self.image_dir)
         assert dataset.X.shape == (2, 768, 1024, 3)
+
+    def test_zip_order(self):
+        # Test that the order of the contents of an unzipped file is preserved.
+        # Load the zip file
+        loader = dc.data.ImageLoader()
+        dataset_dir = loader.create_dataset(self.order_path)
+        # Load multi_path directly
+        loader = dc.data.ImageLoader()
+        dataset_zipped = loader.create_dataset(self.order_zip_path)
+        # Check that the order of the files is the same
+        assert np.all(dataset_dir.X == dataset_zipped.X)
