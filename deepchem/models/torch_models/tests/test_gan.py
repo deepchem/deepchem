@@ -403,7 +403,7 @@ def test_wgan():
     means = 10 * np.random.random([1000, 1])
     values = gan.predict_gan_generator(conditional_inputs=[means])
     deltas = values - means
-    print("Deltas: ", (np.mean(deltas)))
+
     assert abs(np.mean(deltas)) < 1.0
     assert np.std(deltas) > 1.0
 
@@ -551,16 +551,3 @@ def test_gpl_penalty_calculation():
     # Since the penalty is a squared norm of the gradients minus 1, multiplied by a constant,
     # it should be non-negative
     assert penalty.item() >= 0, "Penalty should be non-negative"
-
-
-if __name__ == "__main__":
-    test_forward_pass()
-    test_get_noise_batch()
-    test_cgan()
-    test_cgan_reload()
-    test_mix_gan()
-    test_mix_gan_reload()
-    test_wgan()
-    test_wgan_reload()
-    test_gpl_forward()
-    test_gpl_penalty_calculation()
