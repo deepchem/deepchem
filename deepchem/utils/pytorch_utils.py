@@ -2,7 +2,7 @@
 
 import scipy
 import torch
-from typing import Any, Callable, Union, List, Generator, Tuple
+from typing import Any, Callable, Sequence, Union, List, Generator, Tuple
 import numpy as np
 
 
@@ -252,12 +252,12 @@ class TensorNonTensorSeparator(object):
 
     """
 
-    def __init__(self, params: List[torch.Tensor], varonly: bool = True):
+    def __init__(self, params: Sequence, varonly: bool = True):
         """Initialize the TensorNonTensorSeparator.
 
         Parameters
         ----------
-        params: List[torch.Tensor]
+        params: Sequence
             A list of tensor or non-tensor parameters.
         varonly: bool
             If True, only tensor parameters with requires_grad=True will be

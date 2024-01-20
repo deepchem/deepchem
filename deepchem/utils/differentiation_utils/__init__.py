@@ -23,6 +23,9 @@ try:
     from deepchem.utils.differentiation_utils.pure_function import get_pure_function
     from deepchem.utils.differentiation_utils.pure_function import make_sibling
 
+    from deepchem.utils.differentiation_utils.grad import jac
+    from deepchem.utils.differentiation_utils.grad import hess
+
     from deepchem.utils.differentiation_utils.solve import wrap_gmres
     from deepchem.utils.differentiation_utils.solve import exactsolve
     from deepchem.utils.differentiation_utils.solve import solve_ABE
