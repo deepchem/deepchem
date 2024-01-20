@@ -413,7 +413,7 @@ class A2C(object):
                 self._create_model_inputs(self._env.state, rnn_states))
             final_value = self.discount_factor * results[
                 self._value_index].numpy()[0]
-            final_value = final_value.tolist()[0]
+            final_value = final_value.tolist()
         else:
             final_value = 0.0
         values.append(final_value)
