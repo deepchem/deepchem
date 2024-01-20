@@ -6077,3 +6077,8 @@ class MXMNetSphericalBasisLayer(torch.nn.Module):
         output: torch.Tensor = (rbf[idx_kj].view(-1, n, k) *
                                 cbf.view(-1, n, 1)).view(-1, n * k)
         return output
+
+
+class Highway(torch.nn.Module):
+    pass
+
