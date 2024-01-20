@@ -170,7 +170,8 @@ class A2C(object):
         self.value_weight = value_weight
         self.entropy_weight = entropy_weight
         self.use_hindsight = use_hindsight
-        self._state_is_list = isinstance(env.state_shape[0], SequenceCollection)
+        self._state_is_list = isinstance(env.state_shape[0],
+                                         SequenceCollection)
         if optimizer is None:
             self._optimizer = Adam(learning_rate=0.001, beta1=0.9, beta2=0.999)
         else:
@@ -296,7 +297,8 @@ class A2C(object):
             ]
         else:
             return [
-                results[i] for i in (self._action_prob_index, self._value_index)
+                results[i]
+                for i in (self._action_prob_index, self._value_index)
             ]
 
     def select_action(self,
@@ -354,7 +356,8 @@ class A2C(object):
         results = [r.numpy() for r in results]
         if save_states:
             self._rnn_states = [
-                np.squeeze(results[i], 0) for i in self._rnn_final_state_indices
+                np.squeeze(results[i], 0)
+                for i in self._rnn_final_state_indices
             ]
         return results
 
@@ -399,7 +402,8 @@ class A2C(object):
             results = [r.numpy() for r in results]
             value = results[self._value_index]
             rnn_states = [
-                np.squeeze(results[i], 0) for i in self._rnn_final_state_indices
+                np.squeeze(results[i], 0)
+                for i in self._rnn_final_state_indices
             ]
             action = self._select_action_from_outputs(results, False)
             actions.append(action)
@@ -414,7 +418,7 @@ class A2C(object):
             final_value = self.discount_factor * results[
                 self._value_index].numpy()[0]
             try:
-                final_value = final_value.tolist()
+                final_value = final_value.tolist()[0]
             except:
                 pass
         else:
