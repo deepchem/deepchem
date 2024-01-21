@@ -374,6 +374,25 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.differentiation_utils.linop.MatrixLinearOperator
   :members:
 
+.. autoclass:: deepchem.utils.differentiation_utils.pure_function.PureFunction
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.pure_function.FunctionPureFunction
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.pure_function.EditableModulePureFunction
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.pure_function.TorchNNPureFunction
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.pure_function.PureFunction
+  :members:
+
+.. autofunction:: deepchem.utils.differentiation_utils.pure_function._check_identical_objs
+
+.. autofunction:: deepchem.utils.differentiation_utils.pure_function.get_pure_function
+
 .. autofunction:: deepchem.utils.differentiation_utils.set_default_option
 
 .. autofunction:: deepchem.utils.differentiation_utils.get_and_pop_keys
