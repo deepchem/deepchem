@@ -4,7 +4,7 @@ import torch.nn as nn
 from deepchem.utils.typing import OneOrMany
 
 from collections.abc import Sequence as SequenceCollection
-from typing import List
+from typing import List, Tuple
 
 
 class ProgressiveMultitask(nn.Module):
@@ -13,6 +13,21 @@ class ProgressiveMultitask(nn.Module):
     Progressive networks allow for multitask learning where each task
     gets a new column of weights. As a result, there is no exponential
     forgetting where previous tasks are ignored.
+
+    Examples
+    --------
+    >>> import torch
+    >>> import deepchem as dc
+    >>> n_tasks = 4
+    >>> n_features = 1024
+    >>> n_outputs = 2
+    >>> sample = torch.randn(16, n_features)
+    >>> model = dc.models.torch_models.ProgressiveMultitask(n_tasks=n_tasks, n_features=n_features, layer_sizes=[1024, 1024], n_outputs=n_outputs)
+    >>> output = model(sample)
+    >>> print(output.type())
+    torch.FloatTensor
+    >>> print(output.shape)
+    torch.Size([16, 4, 2])
 
     References
     ----------
@@ -131,7 +146,7 @@ class ProgressiveMultitask(nn.Module):
                 self.alphas.append(nn.ParameterList(alpha_list))
 
     def _get_adapter(self, task: int, prev_size: int, size: int,
-                     layer_num: int):
+                     layer_num: int) -> Tuple[nn.Sequential, torch.Tensor]:
         """Creates the adapter layer between previous tasks and the current layer.
 
         Parameters
@@ -149,7 +164,7 @@ class ProgressiveMultitask(nn.Module):
         -------
         adapter: nn.Sequential
             Adapter layer.
-        alpha: nn.Parameter
+        alpha: torch.Tensor
             Alpha parameter.
         """
         adapter = nn.Sequential(
@@ -164,7 +179,11 @@ class ProgressiveMultitask(nn.Module):
         nn.init.trunc_normal_(alpha, std=alpha_init_stddev)
         return adapter, alpha
 
-    def _init_linear(self, in_features, out_features, layer_num, use_bias=True):
+    def _init_linear(self,
+                     in_features: int,
+                     out_features: int,
+                     layer_num: int,
+                     use_bias: bool = True) -> nn.Linear:
         """Initialises nn.Linear layer weight and bias parameters.
 
         Parameters
@@ -175,6 +194,8 @@ class ProgressiveMultitask(nn.Module):
             Size of output feature vector.
         layer_num: int
             Layer number.
+        use_bias: bool
+            Whether to use bias for Linear layer. Default to True.
 
         Returns
         -------
@@ -196,7 +217,7 @@ class ProgressiveMultitask(nn.Module):
 
         return layer
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass through the network.
 
         Parameters
