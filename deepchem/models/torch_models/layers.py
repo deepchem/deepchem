@@ -6097,6 +6097,15 @@ class HighwayLayer(torch.nn.Module):
     ----------
     .. [1] Srivastava et al., "Training Very Deep Networks"
 
+    Examples
+    --------
+    >>> x = torch.randn(16, 20)
+    >>> highway_layer = torch_layers.HighwayLayer(d_input=x.shape[1])
+    >>> y = highway_layer(x)
+    >>> x.shape
+    torch.Size([16, 20])
+    >>> y.shape
+    torch.Size([16, 20])
     """
 
     def __init__(self,
