@@ -21,5 +21,17 @@ try:
 
     from deepchem.utils.differentiation_utils.pure_function import PureFunction
     from deepchem.utils.differentiation_utils.pure_function import get_pure_function
+    from deepchem.utils.differentiation_utils.pure_function import make_sibling
+
+    from deepchem.utils.differentiation_utils.solve import wrap_gmres
+    from deepchem.utils.differentiation_utils.solve import exactsolve
+    from deepchem.utils.differentiation_utils.solve import solve_ABE
+    from deepchem.utils.differentiation_utils.solve import get_batchdims
+    from deepchem.utils.differentiation_utils.solve import setup_precond
+    from deepchem.utils.differentiation_utils.solve import dot
+    from deepchem.utils.differentiation_utils.solve import get_largest_eival
+    from deepchem.utils.differentiation_utils.solve import safedenom
+    from deepchem.utils.differentiation_utils.solve import setup_linear_problem
+    from deepchem.utils.differentiation_utils.solve import gmres
 except:
     pass
