@@ -549,3 +549,95 @@ def test_davidson():
     eigen_val, eigen_vec = davidson(A, neig, mode)
     assert eigen_val.shape == torch.Size([2])
     assert eigen_vec.shape == torch.Size([2, 2])
+
+
+@pytest.mark.torch
+def test_pure_function():
+    from deepchem.utils.differentiation_utils import PureFunction
+
+    class WrapperFunction(PureFunction):
+
+        def _get_all_obj_params_init(self):
+            return []
+
+        def _set_all_obj_params(self, objparams):
+            pass
+
+    def fcn(x, y):
+        return x + y
+
+    pfunc = WrapperFunction(fcn)
+    assert pfunc(1, 2) == 3
+
+
+@pytest.mark.torch
+def test_function_pure_function():
+    from deepchem.utils.differentiation_utils.pure_function import FunctionPureFunction
+
+    def fcn(x, y):
+        return x + y
+
+    pfunc = FunctionPureFunction(fcn)
+    assert pfunc(1, 2) == 3
+
+
+@pytest.mark.torch
+def test_editable_module_pure_function():
+    from deepchem.utils.differentiation_utils import EditableModule
+    from deepchem.utils.differentiation_utils.pure_function import EditableModulePureFunction
+
+    class A(EditableModule):
+
+        def __init__(self, a):
+            self.b = a * a
+
+        def mult(self, x):
+            return self.b * x
+
+        def getparamnames(self, methodname, prefix=""):
+            if methodname == "mult":
+                return [prefix + "b"]
+            else:
+                raise KeyError()
+
+    B = A(4)
+    m = EditableModulePureFunction(B, B.mult)
+    m.set_objparams([3])
+    assert m(2) == 6
+
+
+@pytest.mark.torch
+def test_torch_nn_pure_function():
+    from deepchem.utils.differentiation_utils import get_pure_function
+
+    class A(torch.nn.Module):
+
+        def __init__(self, a):
+            super().__init__()
+            self.b = torch.nn.Parameter(torch.tensor(a * a))
+
+        def forward(self, x):
+            return self.b * x
+
+    B = A(4.)
+    m = get_pure_function(B.forward)
+    m.set_objparams([3.])
+    assert m(2) == 6.0
+
+
+@pytest.mark.torch
+def test_check_identical_objs():
+    from deepchem.utils.differentiation_utils.pure_function import _check_identical_objs
+    a = [1, 2, 3]
+    assert _check_identical_objs([a], [a])
+
+
+@pytest.mark.torch
+def test_get_pure_function():
+    from deepchem.utils.differentiation_utils import get_pure_function
+
+    def fcn(x, y):
+        return x + y
+
+    pfunc = get_pure_function(fcn)
+    assert pfunc(1, 2) == 3
