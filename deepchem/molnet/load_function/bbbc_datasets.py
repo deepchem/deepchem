@@ -239,6 +239,7 @@ def load_bbbc003(
         a directory to save the dataset in
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
+    loader: _MolnetLoader
     if load_segmentation_mask:
         loader = _BBBC003_Segmentation_Loader(featurizer, splitter,
                                               transformers, BBBC3_TASKS,
@@ -410,6 +411,7 @@ def load_bbbc004(
     (16, 950, 950, 3)
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
+    loader: _MolnetLoader
     if load_segmentation_mask:
         loader = _BBBC004_Segmentation_Loader(overlap_probability, featurizer,
                                               splitter, transformers,
@@ -421,6 +423,7 @@ def load_bbbc004(
                                  **kwargs)
 
     return loader.load_dataset('bbbc004', reload)
+
 
 class _BBBC005_Loader(_MolnetLoader):
     """BBBC005 cell count dataset loader"""
@@ -449,6 +452,7 @@ class _BBBC005_Loader(_MolnetLoader):
         loader = dc.data.ImageLoader(sorting=False)
         return loader.create_dataset(inputs=(dataset_file, lbx),
                                      in_memory=False)
+
 
 def load_bbbc005(
     splitter: Union[dc.splits.Splitter, str, None] = 'index',
@@ -508,8 +512,8 @@ def load_bbbc005(
     (15360,)
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
-    loader = _BBBC005_Loader(featurizer, splitter,
-                             transformers, BBBC5_TASKS, data_dir, save_dir,
-                             **kwargs)
+    loader: _MolnetLoader
+    loader = _BBBC005_Loader(featurizer, splitter, transformers, BBBC5_TASKS,
+                             data_dir, save_dir, **kwargs)
 
     return loader.load_dataset('bbbc005', reload)
