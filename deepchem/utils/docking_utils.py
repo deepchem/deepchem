@@ -264,7 +264,7 @@ def prepare_inputs(protein: str,
         from rdkit import Chem
         from rdkit.Chem import AllChem
         from pdbfixer import PDBFixer
-        from simtk.openmm.app import PDBFile
+        from openmm.app import PDBFile
     except ModuleNotFoundError:
         raise ImportError(
             "This function requires RDKit and OpenMM to be installed.")
