@@ -6079,26 +6079,67 @@ class MXMNetSphericalBasisLayer(torch.nn.Module):
         return output
 
 
-class Highway(torch.nn.Module):
+class HighwayLayer(torch.nn.Module):
+    """
+    Highway layer from "Training Very Deep Networks"
+    https://arxiv.org/abs/1507.06228
+
+
+    y = H(x)*T(x) + x*C(x), where
+
+    H(x): 1-layer neural network with non-linear activation
+    T(x): 1-layer neural network with sigmoid activation
+    C(X): 1 - T(X); As per the original paper
+
+    The output will be of the same dimension as the input
+
+     References
+    ----------
+    .. [1] Srivastava et al., "Training Very Deep Networks"
+
+    """
 
     def __init__(self,
                  d_input: int,
-                 d_output: int,
                  activation_fn: Union[Callable, str] = 'relu'):
+        """
+        Initializes the HighwayLayer.
 
+        Parameters
+            ----------
+            d_input: int
+                the dimension of the input layer
+            activation_fn: str
+            the activation function to use in the H branch
+                
+        """
 
-        super(Highway, self).__init__()
+        super(HighwayLayer, self).__init__()
         self.d_input = d_input
-        self.d_output = d_output
         self.activation_fn = get_activation(activation_fn)
         self.sigmoid_fn = get_activation('sigmoid')
 
-        self.H = nn.Linear(d_input,d_output)
-        self.T = nn.Linear(d_input,d_output)
+        self.H = nn.Linear(d_input, d_input)
+        self.T = nn.Linear(d_input, d_input)
 
-    def forward(self,x:torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the HighwayLayer.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input tensor of dimension (,input_dim).
+
+        Returns
+        -------
+        output: torch.Tensor
+            The output tensor of dimension (,input_dim)
         
+        """
+
         H_out = self.activation_fn(self.H(x))
         T_out = self.sigmoid_fn(self.T(x))
+        output = H_out * T_out + x * (1 - T_out)
 
-        return H_out*T_out + x*(1-T_out)
+        return output
