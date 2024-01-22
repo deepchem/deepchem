@@ -6,4 +6,4 @@ dependencies:
     - -f https://data.pyg.org/whl/torch-1.12.0+cpu.html
     - dgl
     - torch-geometric
-    - pytorch-lightning>=2.1.2
+    - lightning

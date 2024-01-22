@@ -203,9 +203,9 @@ class Net3D(nn.Module):
     >>> smiles = ["C[C@H](F)Cl", "C[C@@H](F)Cl"]
     >>> featurizer = RDKitConformerFeaturizer()
     >>> data = featurizer.featurize(smiles)
-    >>> dgldata = [[graph.to_dgl_graph() for graph in conf] for conf in data]
+    >>> dgldata = [graph.to_dgl_graph() for graph in data]
     >>> net3d = Net3D(hidden_dim=3, target_dim=2, readout_aggregators=['sum', 'mean'])
-    >>> output = [[net3d(graph) for graph in conf] for conf in dgldata]
+    >>> output = [net3d(graph) for graph in dgldata]
 
     References
     ----------
@@ -431,7 +431,8 @@ class InfoMax3DModular(ModularTorchModel):
     >>> featurizer = RDKitConformerFeaturizer()
     >>> data = featurizer.featurize(smiles)
     >>> dataset = NumpyDataset(X=data)
-    >>> model = InfoMax3DModular(hidden_dim=64,
+    >>> model = InfoMax3DModular(task='pretraining',
+    ...                          hidden_dim=64,
     ...                          target_dim=10,
     ...                          aggregators=['max'],
     ...                          readout_aggregators=['mean'],
