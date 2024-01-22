@@ -8,6 +8,7 @@ import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
+import zipfile
 import numpy as np
 import pandas as pd
 
@@ -376,36 +377,36 @@ def load_bbbc004(
     --------
     Importing necessary modules
 
-    >>> import deepchem as dc
-    >>> import numpy as np
+    >> import deepchem as dc
+    >> import numpy as np
 
     We can load the BBBC004 dataset with 2 types of labels: segmentation masks and
     cell counts. We will first load the dataset with cell counts as labels.
 
-    >>> loader = dc.molnet.load_bbbc004(overlap_probability=0.0, load_segmentation_mask=False)
-    >>> tasks, dataset, transformers = loader
-    >>> train, val, test = dataset
+    >> loader = dc.molnet.load_bbbc004(overlap_probability=0.0, load_segmentation_mask=False)
+    >> tasks, dataset, transformers = loader
+    >> train, val, test = dataset
 
     We now have a dataset with 20 samples, each with 300 cells. The images are of
     size 950x950. The labels are cell counts. We can verify this as follows:
 
-    >>> train.X.shape
+    >> train.X.shape
     (16, 950, 950)
-    >>> train.y.shape
+    >> train.y.shape
     (16,)
 
     We will now load the dataset with segmentation masks as labels.
 
-    >>> loader = dc.molnet.load_bbbc004(overlap_probability=0.0, load_segmentation_mask=True)
-    >>> tasks, dataset, transformers = loader
-    >>> train, val, test = dataset
+    >> loader = dc.molnet.load_bbbc004(overlap_probability=0.0, load_segmentation_mask=True)
+    >> tasks, dataset, transformers = loader
+    >> train, val, test = dataset
 
     We now have a dataset with 20 samples, each with 300 cells. The images are of
     size 950x950. The labels are segmentation masks. We can verify this as follows:
 
-    >>> train.X.shape
+    >> train.X.shape
     (16, 950, 950)
-    >>> train.y.shape
+    >> train.y.shape
     (16, 950, 950, 3)
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
@@ -426,13 +427,89 @@ class _BBBC005_Loader(_MolnetLoader):
 
     def create_dataset(self):
         dataset_file = os.path.join(self.data_dir, "BBBC005_v1_images.zip")
-        
         if not os.path.exists(dataset_file):
             dc.utils.data_utils.download_url(url=BBBC5_IMAGE_URL,
                                              dest_dir=self.data_dir)
-        
-        
 
-        loader = dc.data.ImageLoader(sorting=True)
+        labels = []
+
+        # Read the zip file
+        with zipfile.ZipFile(dataset_file, 'r') as zip_ref:
+            file_list = zip_ref.namelist()
+
+        file_list = file_list[1:]
+
+        # Get the labels from filenames
+        for filename in file_list:
+            if filename.split('/')[-1].split('.')[-1] == 'TIF':
+                labels.append(int(filename.split('/')[-1].split('_')[2][1:]))
+
+        lbx = np.array(labels, dtype=np.int32)
+
+        loader = dc.data.ImageLoader(sorting=False)
         return loader.create_dataset(inputs=(dataset_file, lbx),
                                      in_memory=False)
+
+def load_bbbc005(
+    splitter: Union[dc.splits.Splitter, str, None] = 'index',
+    transformers: List[Union[TransformerGenerator, str]] = [],
+    reload: bool = True,
+    data_dir: Optional[str] = None,
+    save_dir: Optional[str] = None,
+    **kwargs
+) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+    """Load BBBC004 dataset
+
+    This dataset contains data corresponding to 20 samples of synthetically generated
+    fluorescent cell population images. There are 300 cells in each sample, each an image
+    of size 950x950. Ground truth labels contain cell counts and segmentation masks for
+    this dataset. Full details about this dataset are present at
+    https://data.broadinstitute.org/bbbc/BBBC004/.
+
+    Parameters
+    ----------
+    splitter: Splitter or str
+        the splitter to use for splitting the data into training, validation, and
+        test sets.  Alternatively you can pass one of the names from
+        dc.molnet.splitters as a shortcut.  If this is None, all the data
+        will be included in a single dataset.
+    transformers: list of TransformerGenerators or strings
+        the Transformers to apply to the data.  Each one is specified by a
+        TransformerGenerator or, as a shortcut, one of the names from
+        dc.molnet.transformers.
+    reload: bool
+        if True, the first call for a particular featurizer and splitter will cache
+        the datasets to disk, and subsequent calls will reload the cached datasets.
+    data_dir: str
+        a directory to save the raw data in
+    save_dir: str
+        a directory to save the dataset in
+
+    Examples
+    --------
+    Importing necessary modules
+
+    >> import deepchem as dc
+    >> import numpy as np
+
+    We will now load the BBBC005 dataset with cell counts as labels.
+
+    >> loader = dc.molnet.load_bbbc005()
+    >> tasks, dataset, transformers = loader
+    >> train, val, test = dataset
+
+    We now have a dataset with a total of 19,200 samples with cell counts in
+    the range of 1-100. The images are of size 520x696. The labels are cell
+    counts. We have a train-val-test split of 80:10:10. We can verify this as follows:
+
+    >> train.X.shape
+    (15360, 520, 696)
+    >> train.y.shape
+    (15360,)
+    """
+    featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
+    loader = _BBBC005_Loader(featurizer, splitter,
+                             transformers, BBBC5_TASKS, data_dir, save_dir,
+                             **kwargs)
+
+    return loader.load_dataset('bbbc005', reload)
