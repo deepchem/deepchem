@@ -5579,7 +5579,7 @@ class FerminetElectronFeature(torch.nn.Module):
 
 class FerminetEnvelope(torch.nn.Module):
     """
-    A Pytorch Module implementing the ferminet's envlope layer [1]_, which is used to calculate the spin up and spin down orbital values.
+    A Pytorch Module implementing the ferminet's envlope layer _[1], which is used to calculate the spin up and spin down orbital values.
     This is a helper class for the Ferminet model.
     The layer consists of 4 types of parameter lists - envelope_w, envelope_g, sigma and pi, which helps to calculate the orbital vlaues.
 
