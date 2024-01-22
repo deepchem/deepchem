@@ -295,7 +295,7 @@ class LCNN(nn.Module):
     >>> featuriser = dc.feat.LCNNFeaturizer(**PRIMITIVE_CELL_INF0)
     >>> lcnn_feat = featuriser._featurize(Structure(**DATA_POINT)).to_dgl_graph()
     >>> print(type(lcnn_feat))
-    <class 'dgl.heterograph.DGLHeteroGraph'>
+    <class 'dgl.heterograph.DGLGraph'>
     >>> model = LCNN()
     >>> out = model(lcnn_feat)
     >>> print(type(out))
