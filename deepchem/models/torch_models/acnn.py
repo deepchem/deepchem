@@ -23,6 +23,7 @@ class AtomConvModel(TorchModel):
     Examples
     --------
     >>> from deepchem.models.torch_models import AtomConvModel
+    >>> from deepchem.data import NumpyDataset
     >>> frag1_num_atoms = 100 # atoms for ligand
     >>> frag2_num_atoms = 1200 # atoms for protein
     >>> complex_num_atoms = frag1_num_atoms + frag2_num_atoms
@@ -50,10 +51,10 @@ class AtomConvModel(TorchModel):
     >>> system_nbr_list = {i: [] for i in range(complex_num_atoms)}
     >>> system_z = np.random.randint(10, size=(complex_num_atoms))
     >>> features.append((frag1_coords, frag1_nbr_list, frag1_z, frag2_coords, frag2_nbr_list, frag2_z, system_coords, system_nbr_list, system_z))
-    >>> features = np.asarray(features)
+    >>> features = np.asarray(features, dtype=object)
     >>> labels = np.zeros(batch_size)
     >>> train = NumpyDataset(features, labels)
-    >>> atomic_convnet.fit(train, nb_epoch=1)
+    >>> _ = atomic_convnet.fit(train, nb_epoch=1)
     >>> preds = atomic_convnet.predict(train)
     """
 
