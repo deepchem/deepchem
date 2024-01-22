@@ -6080,5 +6080,25 @@ class MXMNetSphericalBasisLayer(torch.nn.Module):
 
 
 class Highway(torch.nn.Module):
-    pass
 
+    def __init__(self,
+                 d_input: int,
+                 d_output: int,
+                 activation_fn: Union[Callable, str] = 'relu'):
+
+
+        super(Highway, self).__init__()
+        self.d_input = d_input
+        self.d_output = d_output
+        self.activation_fn = get_activation(activation_fn)
+        self.sigmoid_fn = get_activation('sigmoid')
+
+        self.H = nn.Linear(d_input,d_output)
+        self.T = nn.Linear(d_input,d_output)
+
+    def forward(self,x:torch.Tensor) -> torch.Tensor:
+        
+        H_out = self.activation_fn(self.H(x))
+        T_out = self.sigmoid_fn(self.T(x))
+
+        return H_out*T_out + x*(1-T_out)
