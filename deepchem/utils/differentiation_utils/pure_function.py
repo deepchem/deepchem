@@ -1,6 +1,6 @@
 import torch
 import inspect
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Tuple, Union, Sequence
 from deepchem.utils.attribute_utils import set_attr, del_attr
 from deepchem.utils.differentiation_utils import EditableModule
 from deepchem.utils.misc_utils import Uniquifier
@@ -361,6 +361,111 @@ def _check_identical_objs(objs1: List, objs2: List) -> bool:
     return True
 
 
+class SingleSiblingPureFunction(PureFunction):
+    """Implementation of PureFunction for a sibling method
+
+    A sibling method is a method that is virtually belong to the same object,
+    but behaves differently.
+
+    Changing the state of the decorated function will also change the state of
+    ``pfunc`` and its other siblings.
+
+    """
+
+    def __init__(self, fcn: Callable, fcntocall: Callable):
+        """Initialize the SingleSiblingPureFunction.
+
+        Parameters
+        ----------
+        fcn: Callable
+            The sibling method to be wrapped
+        fcntocall: Callable
+            The method to be wrapped
+
+        """
+        self.pfunc = get_pure_function(fcn)
+        super().__init__(fcntocall)
+
+    def _get_all_obj_params_init(self) -> List:
+        """Get the initial object parameters.
+
+        Returns
+        -------
+        List
+            The initial object parameters
+
+        """
+        return self.pfunc._get_all_obj_params_init()
+
+    def _set_all_obj_params(self, allobjparams: List):
+        """Set the object parameters.
+
+        Parameters
+        ----------
+        allobjparams: List
+            The object parameters to be set
+
+        """
+        self.pfunc._set_all_obj_params(allobjparams)
+
+
+class MultiSiblingPureFunction(PureFunction):
+    """Implementation of PureFunction for multiple sibling methods
+
+    A sibling method is a method that is virtually belong to the same object,
+    but behaves differently.
+
+    Changing the state of the decorated function will also change the state of
+    ``pfunc`` and its other siblings.
+
+    """
+
+    def __init__(self, fcns: Sequence[Callable], fcntocall: Callable):
+        """Initialize the MultiSiblingPureFunction.
+
+        Parameters
+        ----------
+        fcns: Sequence[Callable]
+            The sibling methods to be wrapped
+        fcntocall: Callable
+            The method to be wrapped
+
+        """
+        self.pfuncs = [get_pure_function(fcn) for fcn in fcns]
+        self.npfuncs = len(self.pfuncs)
+        super().__init__(fcntocall)
+
+    def _get_all_obj_params_init(self) -> List:
+        """Get the initial object parameters.
+
+        Returns
+        -------
+        List
+            The initial object parameters
+
+        """
+        res: List[Union[torch.Tensor, torch.nn.Parameter]] = []
+        self.cumsum_idx = [0] * (self.npfuncs + 1)
+        for i, pfunc in enumerate(self.pfuncs):
+            objparams = pfunc._get_all_obj_params_init()
+            res = res + objparams
+            self.cumsum_idx[i + 1] = self.cumsum_idx[i] + len(objparams)
+        return res
+
+    def _set_all_obj_params(self, allobjparams: List):
+        """Set the object parameters.
+
+        Parameters
+        ----------
+        allobjparams: List
+            The object parameters to be set
+
+        """
+        for i, pfunc in enumerate(self.pfuncs):
+            pfunc._set_all_obj_params(
+                allobjparams[self.cumsum_idx[i]:self.cumsum_idx[i + 1]])
+
+
 def get_pure_function(fcn) -> PureFunction:
     """Get the pure function form of the function or method ``fcn``.
 
@@ -414,3 +519,47 @@ def get_pure_function(fcn) -> PureFunction:
 
     else:
         raise RuntimeError(errmsg)
+
+
+def make_sibling(*pfuncs) -> Callable[[Callable], PureFunction]:
+    """
+    Used as a decor to mark the decorated function as a sibling method of the
+    input ``pfunc``.
+    Sibling method is a method that is virtually belong to the same object, but
+    behaves differently.
+    Changing the state of the decorated function will also change the state of
+    ``pfunc`` and its other siblings.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.differentiation_utils import make_sibling
+    >>> def fcn1(x, y):
+    ...     return x + y
+    >>> def fcn2(x, y):
+    ...     return x - y
+    >>> pfunc1 = get_pure_function(fcn1)
+    >>> pfunc2 = get_pure_function(fcn2)
+    >>> @make_sibling(pfunc1)
+    ... def fcn3(x, y):
+    ...     return x * y
+    >>> pfunc3(1, 2)
+    2
+
+    Parameters
+    ----------
+    pfuncs: List[Callable]
+        The sibling methods to be wrapped
+
+    Returns
+    -------
+    Callable[[Callable], PureFunction]
+        The decorator function
+
+    """
+    if len(pfuncs) == 0:
+        raise TypeError("At least 1 function is required as the argument")
+    elif len(pfuncs) == 1:
+        return lambda fcn: SingleSiblingPureFunction(pfuncs[0], fcntocall=fcn)
+    else:
+        return lambda fcn: MultiSiblingPureFunction(pfuncs, fcntocall=fcn)
