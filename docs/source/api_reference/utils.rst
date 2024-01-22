@@ -347,6 +347,30 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.system.base_system.BaseSystem
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.RadialGrid
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.get_xw_integration
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.SlicedRadialGrid
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.BaseGridTransform
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.DE2Transformation
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.LogM3Transformation
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.TreutlerM4Transformation
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.get_grid_transform
+  :members:
+
 .. autoclass:: deepchem.utils.differentiation_utils.editable_module.EditableModule
   :members:
 
@@ -413,6 +437,26 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.davidson
 
+.. autofunction:: deepchem.utils.differentiation_utils.solve.wrap_gmres
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.exactsolve
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.solve_ABE
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.get_batchdims
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.setup_precond
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.dot
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.gmres
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.setup_linear_problem
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.safedenom
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.get_largest_eival
+
 Attribute Utilities
 -------------------
 
@@ -445,6 +489,8 @@ Pytorch Utilities
 .. autofunction:: deepchem.utils.pytorch_utils.tallqr
 
 .. autofunction:: deepchem.utils.pytorch_utils.to_fortran_order
+
+.. autofunction:: deepchem.utils.pytorch_utils.get_np_dtype
 
 Batch Utilities
 ---------------

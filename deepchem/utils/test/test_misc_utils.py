@@ -5,4 +5,4 @@ def test_uniquifier():
     c = 3
     d = 1
     u = Uniquifier([a, b, c, a, d])
-    u.get_unique_objs() == [1, 2, 3]
+    assert u.get_unique_objs() == [1, 2, 3]
