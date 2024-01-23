@@ -24,6 +24,7 @@ class SAMFeaturizer(Featurizer):
     Information for each read is stored in a 'numpy.ndarray'.
     >>> type(features[0])
     <class 'numpy.ndarray'>
+
     This is the default featurizer used by SAMLoader, and it extracts the following
     fields from each read in each SAM file in the given order:-
     - Column 0: Query Name
@@ -48,6 +49,7 @@ class SAMFeaturizer(Featurizer):
     [(0, 8), (1, 4), (0, 4), (2, 1), (0, 3)]
     >>> features[0][6]     # Mapping Quality
     30
+
     Note
     ----
     This class requires pysam to be installed. Pysam can be used with Linux or MacOS X.
