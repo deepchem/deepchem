@@ -6087,8 +6087,7 @@ class HighwayLayer(torch.nn.Module):
     Highway layer from "Training Very Deep Networks"
     https://arxiv.org/abs/1507.06228
 
-
-    y = H(x)*T(x) + x*C(x), where
+    y = H(x) * T(x) + x * C(x), where
 
     H(x): 1-layer neural network with non-linear activation
     T(x): 1-layer neural network with sigmoid activation
@@ -6103,7 +6102,7 @@ class HighwayLayer(torch.nn.Module):
     Examples
     --------
     >>> x = torch.randn(16, 20)
-    >>> highway_layer = torch_layers.HighwayLayer(d_input=x.shape[1])
+    >>> highway_layer = HighwayLayer(d_input=x.shape[1])
     >>> y = highway_layer(x)
     >>> x.shape
     torch.Size([16, 20])
@@ -6123,7 +6122,6 @@ class HighwayLayer(torch.nn.Module):
                 the dimension of the input layer
             activation_fn: str
             the activation function to use in the H branch
-                
         """
 
         super(HighwayLayer, self).__init__()
@@ -6147,7 +6145,6 @@ class HighwayLayer(torch.nn.Module):
         -------
         output: torch.Tensor
             The output tensor of dimension (,input_dim)
-        
         """
 
         H_out = self.activation_fn(self.H(x))
