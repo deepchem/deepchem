@@ -81,7 +81,6 @@ class Splitter(object):
             # Note starts as 1/k since fold starts at 0. Ends at 1 since fold goes up
             # to k-1.
             frac_fold = 1. / (k - fold)
-            print(frac_fold)
             train_dir, cv_dir = directories[2 * fold], directories[2 * fold + 1]
             fold_inds, rem_inds, _ = self.split(rem_dataset,
                                                 frac_train=frac_fold,
@@ -383,7 +382,6 @@ class RandomSplitter(Splitter):
             np.random.seed(seed)
         num_datapoints = len(dataset)
         train_cutoff = int(frac_train * num_datapoints)
-        print(num_datapoints, train_cutoff)
         valid_cutoff = int((frac_train + frac_valid) * num_datapoints)
         shuffled = np.random.permutation(range(num_datapoints))
         return (shuffled[:train_cutoff], shuffled[train_cutoff:valid_cutoff],
