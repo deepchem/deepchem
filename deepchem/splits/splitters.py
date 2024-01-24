@@ -669,7 +669,7 @@ class SingletaskStratifiedSplitter(Splitter):
             directories: Optional[List[str]] = None,
             seed: Optional[int] = None,
             log_every_n: Optional[int] = None,
-            **kwargs) -> List[Tuple[Dataset, Dataset]]:
+            **kwargs) -> Sequence[Tuple[Dataset, Dataset]]:
         """
         Sort molecules based on their label values for a task and then split them for k-fold cross validation by taking consecutive chunks.
         Overriding base class k_fold_split.
