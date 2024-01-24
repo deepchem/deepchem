@@ -426,7 +426,7 @@ class symeig_torchfcn(torch.autograd.Function):
 
 
 def custom_exacteig(A, neig, mode, M=None, **options):
-    return _exacteig(A, neig, mode, M)
+    return exacteig(A, neig, mode, M)
 
 def _check_degen(evals: torch.Tensor, degen_atol: float, degen_rtol: float) -> \
         Tuple[torch.Tensor, bool]:
@@ -479,7 +479,7 @@ def _ortho(A: torch.Tensor,
             return A - M.mm(torch.matmul(B, DBHA))
 
 
-def _exacteig(A: LinearOperator, neig: int, mode: str,
+def exacteig(A: LinearOperator, neig: int, mode: str,
               M: Optional[LinearOperator]) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Eigendecomposition using explicit matrix construction.
