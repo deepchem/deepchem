@@ -1310,33 +1310,66 @@ class ImageLoader(DataLoader):
 
     Examples
     --------
-    Let's suppose we have some input image files in a zip folder.
+    For this example, we will be using the BBBC001 Dataset. This dataset contains 6 images
+    of human HT29 colon cancer cells. We will use the images as inputs and we will assign
+    the labels as integers ranging from 1 to 6 for the sake of simplicity.
 
+    To learn more about this dataset, please visit: https://data.broadinstitute.org/bbbc/BBBC001/
+    and also see our loader for this dataset: `deepchem.molnet.loadbbbc001`.
+
+    Let's begin by importing the necessary modules and downloading the dataset.
     >>> import os
     >>> import deepchem as dc
-    >>> data_dir = dc.utils.get_data_dir()
-    >>> dataset_files = os.path.join(data_dir, "images.zip")
-    >>> labels = [1,2,3,4,5,6,7,8,9,10]
+    >>> data_dir = dc.utils.data_utils.get_data_dir()
+    >>> dataset_file = os.path.join(data_dir, "BBBC001_v1_images_tif.zip")
+    >>> BBBC1_IMAGE_URL = 'https://data.broadinstitute.org/bbbc/BBBC001/BBBC001_v1_images_tif.zip'
+    >>> if not os.path.exists(dataset_file):
+    ...    dc.utils.data_utils.download_url(url=BBBC1_IMAGE_URL, dest_dir=data_dir)
+
+    Now that we have the dataset, let's create a list of labels for each image.
+
+    >>> labels = np.array([1,2,3,4,5,6])
+
+    Let's now write this to disk somewhere. We can now use `ImageLoader` to process
+    this Image dataset. We do not use a featurizer here, hence the `UserDefinedFeaturizer`
+    with an empty list.
+
+    >>> featurizer = dc.feat.UserDefinedFeaturizer([])
+    >>> loader = dc.data.ImageLoader(tasks=['demo-task'], sorting=False)
+    >>> dataset = loader.create_dataset(inputs=(dataset_file, labels),
+    ...                                 in_memory=False)
+
+    We can confirm that we have 6 images in our dataset and 6 labels. The images are
+    of size 512x512 while the labels are just integers.
+
+    >>> len(dataset)
+    6
+    >>> dataset.X.shape
+    (6, 512, 512)
+    >>> dataset.y.shape
+    (6,)
 
     The label files can also be images similar to the inputs, in which case we
     can provide a list of label files instead of a list of labels.
 
-    >>> label_files = os.path.join(data_dir, "labels.zip")
-
-    Continuing with the label files example, let's now write this to disk somewhere.
-    We can now use `ImageLoader` to process this Image dataset. We do not use a
-    featurizer here, hence the `UserDefinedFeaturizer` with an empty list.
+    To show this, we will use the input data as the ground truths, this is often
+    seen when making autoencoders. Similar to the above example, let's use `ImageLoader`
+    to process this Image dataset.
 
     >>> featurizer = dc.feat.UserDefinedFeaturizer([])
     >>> loader = dc.data.ImageLoader(tasks=['demo-task'], sorting=False)
-    >>> dataset = loader.create_dataset(inputs=(dataset_files, label_files),
+    >>> dataset = loader.create_dataset(inputs=(dataset_file, dataset_file),
     ...                                 in_memory=False)
+
+    We can confirm that we have 6 images in our dataset and 6 labels. The images are
+    of size 512x512 while the labels are also images of size 512x512.
+
     >>> len(dataset)
-    10
+    6
     >>> dataset.X.shape
-    (10, 256, 256)
+    (6, 512, 512)
     >>> dataset.y.shape
-    (10, 256, 256)
+    (6, 512, 512)
     """
 
     def __init__(self, tasks: Optional[List[str]] = None, sorting: bool = True):
@@ -1358,7 +1391,8 @@ class ImageLoader(DataLoader):
         self.sorting = sorting
 
     def create_dataset(self,
-                       inputs: Union[OneOrMany[str], Tuple[Any]],
+                       inputs: Union[OneOrMany[str], Tuple[Any], Tuple[str,
+                                                                       Any]],
                        data_dir: Optional[str] = None,
                        shard_size: Optional[int] = 8192,
                        in_memory: bool = False) -> Dataset:

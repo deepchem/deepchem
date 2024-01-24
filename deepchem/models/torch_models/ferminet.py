@@ -25,11 +25,12 @@ class Ferminet(torch.nn.Module):
     -------
     >>> import numpy as np
     >>> import deepchem as dc
+    >>> from deepchem.models.torch_models.ferminet import Ferminet
     >>> import torch
     >>> H2_molecule =  torch.Tensor([[0, 0, 0.748], [0, 0, 0]])
     >>> H2_charge = torch.Tensor([[1], [1]])
-    >>> model = dc.models.Ferminet(nucleon_pos=H2_molecule, nuclear_charge=H2_charge, batch_size=1)
-    >>> electron = np.random.rand(1, 2*3)
+    >>> model = Ferminet(nucleon_pos=H2_molecule, nuclear_charge=H2_charge, spin=(1,1), batch_size=1)
+    >>> electron = torch.rand(1, 2*3)
     >>> wavefunction = model.forward(electron)
 
     References
@@ -280,12 +281,13 @@ class FerminetModel(TorchModel):
 
     Example
     -------
-    >>> from deepchem.models.torch_models.Ferminet import FerminetModel
+    >>> from deepchem.models.torch_models.ferminet import FerminetModel
     >>> H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
-    >>> mol = FerminetModel(H2_molecule, spin=0, ion_charge=0, training='pretraining')
+    >>> mol = FerminetModel(H2_molecule, spin=0, ion_charge=0, tasks='pretraining')
+    converged SCF energy = -0.895803169899508  <S^2> = 0  2S+1 = 1
     >>> mol.train(nb_epoch=3)
     >>> print(mol.model.psi_up.size())
-    torch.Size([1, 1])
+    torch.Size([8, 16, 1, 1])
 
     References
     ----------
@@ -588,6 +590,9 @@ class FerminetModel(TorchModel):
                              str(self.loss_value.item()))
                 self.loss_value.backward()
                 optimizer.step()
+                logging.info("The loss for the pretraining iteration " +
+                             str(iteration) + " is " +
+                             str(self.loss_value.item()))
                 self.model.running_diff = torch.zeros(self.batch_no)
 
         if (self.tasks == 'training'):

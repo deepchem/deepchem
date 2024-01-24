@@ -516,3 +516,241 @@ def test_take_eigpairs():
         eivec,
         torch.tensor([[[1., 2.], [4., 5.], [7., 8.]],
                       [[1., 2.], [4., 5.], [7., 8.]]]))
+
+
+@pytest.mark.torch
+def test_exacteig():
+    from deepchem.utils.differentiation_utils.symeig import exacteig
+    from deepchem.utils.differentiation_utils import LinearOperator
+    torch.manual_seed(100)
+    mat = LinearOperator.m(torch.randn(2, 2))
+    eival, eivec = exacteig(mat, 2, "lowest", None)
+    assert eival.shape == torch.Size([2])
+    assert eivec.shape == torch.Size([2, 2])
+
+
+@pytest.mark.torch
+def test_degen_symeig():
+    from deepchem.utils.differentiation_utils.symeig import degen_symeig
+    from deepchem.utils.differentiation_utils import LinearOperator
+    A = LinearOperator.m(torch.rand(2, 2))
+    evals, evecs = degen_symeig.apply(A.fullmatrix())
+    assert evals.shape == torch.Size([2])
+    assert evecs.shape == torch.Size([2, 2])
+
+
+@pytest.mark.torch
+def test_davidson():
+    from deepchem.utils.differentiation_utils.symeig import davidson
+    from deepchem.utils.differentiation_utils import LinearOperator
+    A = LinearOperator.m(torch.rand(2, 2))
+    neig = 2
+    mode = "lowest"
+    eigen_val, eigen_vec = davidson(A, neig, mode)
+    assert eigen_val.shape == torch.Size([2])
+    assert eigen_vec.shape == torch.Size([2, 2])
+
+
+@pytest.mark.torch
+def test_pure_function():
+    from deepchem.utils.differentiation_utils import PureFunction
+
+    class WrapperFunction(PureFunction):
+
+        def _get_all_obj_params_init(self):
+            return []
+
+        def _set_all_obj_params(self, objparams):
+            pass
+
+    def fcn(x, y):
+        return x + y
+
+    pfunc = WrapperFunction(fcn)
+    assert pfunc(1, 2) == 3
+
+
+@pytest.mark.torch
+def test_function_pure_function():
+    from deepchem.utils.differentiation_utils.pure_function import FunctionPureFunction
+
+    def fcn(x, y):
+        return x + y
+
+    pfunc = FunctionPureFunction(fcn)
+    assert pfunc(1, 2) == 3
+
+
+@pytest.mark.torch
+def test_editable_module_pure_function():
+    from deepchem.utils.differentiation_utils import EditableModule
+    from deepchem.utils.differentiation_utils.pure_function import EditableModulePureFunction
+
+    class A(EditableModule):
+
+        def __init__(self, a):
+            self.b = a * a
+
+        def mult(self, x):
+            return self.b * x
+
+        def getparamnames(self, methodname, prefix=""):
+            if methodname == "mult":
+                return [prefix + "b"]
+            else:
+                raise KeyError()
+
+    B = A(4)
+    m = EditableModulePureFunction(B, B.mult)
+    m.set_objparams([3])
+    assert m(2) == 6
+
+
+@pytest.mark.torch
+def test_torch_nn_pure_function():
+    from deepchem.utils.differentiation_utils import get_pure_function
+
+    class A(torch.nn.Module):
+
+        def __init__(self, a):
+            super().__init__()
+            self.b = torch.nn.Parameter(torch.tensor(a * a))
+
+        def forward(self, x):
+            return self.b * x
+
+    B = A(4.)
+    m = get_pure_function(B.forward)
+    m.set_objparams([3.])
+    assert m(2) == 6.0
+
+
+@pytest.mark.torch
+def test_check_identical_objs():
+    from deepchem.utils.differentiation_utils.pure_function import _check_identical_objs
+    a = [1, 2, 3]
+    assert _check_identical_objs([a], [a])
+
+
+@pytest.mark.torch
+def test_get_pure_function():
+    from deepchem.utils.differentiation_utils import get_pure_function
+
+    def fcn(x, y):
+        return x + y
+
+    pfunc = get_pure_function(fcn)
+    assert pfunc(1, 2) == 3
+
+
+@pytest.mark.torch
+def test_make_siblings():
+    from deepchem.utils.differentiation_utils import make_sibling
+
+    def fcn1(x, y):
+        return x + y
+
+    @make_sibling(fcn1)
+    def fcn3(x, y):
+        return x * y
+
+    assert fcn3(1, 2) == 2
+
+
+@pytest.mark.torch
+def test_wrap_gmres():
+    from deepchem.utils.differentiation_utils.solve import wrap_gmres
+    from deepchem.utils.differentiation_utils import LinearOperator
+    A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
+    B = torch.tensor([[[5., 6], [7, 8]]])
+    assert torch.allclose(A.fullmatrix() @ wrap_gmres(A, B, None, None), B)
+
+
+@pytest.mark.torch
+def test_exact_solve():
+    from deepchem.utils.differentiation_utils.solve import exactsolve
+    from deepchem.utils.differentiation_utils import LinearOperator
+    A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
+    B = torch.tensor([[5., 6], [7, 8]])
+    assert torch.allclose(A.fullmatrix() @ exactsolve(A, B, None, None), B)
+
+
+@pytest.mark.torch
+def test_solve_ABE():
+    from deepchem.utils.differentiation_utils.solve import solve_ABE
+    A = torch.tensor([[1., 2], [3, 4]])
+    B = torch.tensor([[5., 6], [7, 8]])
+    E = torch.tensor([1., 2])
+    expected_result = torch.tensor([[-0.1667, 0.5000], [2.5000, 3.2500]])
+    assert torch.allclose(solve_ABE(A, B, E), expected_result, 0.001)
+
+
+@pytest.mark.torch
+def test_get_batch_dims():
+    from deepchem.utils.differentiation_utils.solve import get_batchdims
+    from deepchem.utils.differentiation_utils import MatrixLinearOperator
+    A = MatrixLinearOperator(torch.randn(4, 3, 3), True)
+    B = torch.randn(3, 3, 2)
+    assert get_batchdims(A, B, None,
+                         None) == [max(A.shape[:-2], B.shape[:-2])[0]]
+
+
+@pytest.mark.torch
+def test_setup_precond():
+    from deepchem.utils.differentiation_utils.solve import setup_precond
+    from deepchem.utils.differentiation_utils import MatrixLinearOperator
+    A = MatrixLinearOperator(torch.randn(4, 3, 3), True)
+    B = torch.randn(4, 3, 2)
+    cond = setup_precond(A)
+    assert cond(B).shape == torch.Size([4, 3, 2])
+
+
+@pytest.mark.torch
+def test_dot():
+    from deepchem.utils.differentiation_utils.solve import dot
+    r = torch.tensor([[1, 2], [3, 4]])
+    z = torch.tensor([[5, 6], [7, 8]])
+    assert torch.allclose(dot(r, z), torch.tensor([[26, 44]]))
+    assert torch.allclose(dot(r, z), sum(r * z))
+
+
+@pytest.mark.torch
+def test_gmres():
+    from deepchem.utils.differentiation_utils.solve import gmres
+    from deepchem.utils.differentiation_utils import MatrixLinearOperator
+    A = MatrixLinearOperator(torch.tensor([[1., 2], [3, 4]]), True)
+    B = torch.tensor([[5., 6], [7, 8]])
+    expected_result = torch.tensor([[0.8959, 1.0697], [1.2543, 1.4263]])
+    assert torch.allclose(gmres(A, B), expected_result, 0.001)
+
+
+@pytest.mark.torch
+def test_setup_linear_problem():
+    from deepchem.utils.differentiation_utils import MatrixLinearOperator
+    from deepchem.utils.differentiation_utils.solve import setup_linear_problem
+    A = MatrixLinearOperator(torch.randn(4, 3, 3), True)
+    B = torch.randn(4, 3, 2)
+    A_fcn, AT_fcn, B_new, col_swapped = setup_linear_problem(
+        A, B, None, None, [4], None, False)
+    assert A_fcn(B).shape == torch.Size([4, 3, 2])
+
+
+@pytest.mark.torch
+def test_safe_denom():
+    from deepchem.utils.differentiation_utils.solve import safedenom
+    r = torch.tensor([[0., 2], [3, 4]])
+    assert torch.allclose(
+        safedenom(r, 1e-9),
+        torch.tensor([[1.0000e-09, 2.0000e+00], [3.0000e+00, 4.0000e+00]]))
+
+
+@pytest.mark.torch
+def test_get_largest_eival():
+    from deepchem.utils.differentiation_utils.solve import get_largest_eival
+
+    def Afcn(x):
+        return 10 * x
+
+    x = torch.tensor([[1., 2], [3, 4]])
+    assert torch.allclose(get_largest_eival(Afcn, x), torch.tensor([[10.,
+                                                                     10.]]))
