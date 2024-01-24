@@ -6084,8 +6084,7 @@ class MXMNetSphericalBasisLayer(torch.nn.Module):
 
 class HighwayLayer(torch.nn.Module):
     """
-    Highway layer from "Training Very Deep Networks"
-    https://arxiv.org/abs/1507.06228
+    Highway layer from "Training Very Deep Networks" [1]
 
     y = H(x) * T(x) + x * C(x), where
 
@@ -6095,9 +6094,9 @@ class HighwayLayer(torch.nn.Module):
 
     The output will be of the same dimension as the input
 
-     References
+    References
     ----------
-    .. [1] Srivastava et al., "Training Very Deep Networks"
+    .. [1] Srivastava et al., "Training Very Deep Networks".https://arxiv.org/abs/1507.06228
 
     Examples
     --------
@@ -6121,7 +6120,7 @@ class HighwayLayer(torch.nn.Module):
             d_input: int
                 the dimension of the input layer
             activation_fn: str
-            the activation function to use in the H branch
+                the activation function to use for H(x)
         """
 
         super(HighwayLayer, self).__init__()
@@ -6144,7 +6143,7 @@ class HighwayLayer(torch.nn.Module):
         Returns
         -------
         output: torch.Tensor
-            The output tensor of dimension (,input_dim)
+            Output tensor of dimension (,input_dim)
         """
 
         H_out = self.activation_fn(self.H(x))
