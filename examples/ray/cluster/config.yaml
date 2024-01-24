@@ -1,0 +1,20 @@
+cluster_name: dc-ray-aws
+
+provider:
+    type: aws
+    region: us-east-2
+
+max_workers: 2
+
+available_node_types:
+    ray.head.default:
+        node_config:
+            InstanceType: t3.small
+    ray.worker.default:
+        min_workers: 1
+        max_workers: 2
+        node_config:
+            InstanceType: t3.medium
+
+setup_commands:
+    - pip install "ray[default]" deepchem
