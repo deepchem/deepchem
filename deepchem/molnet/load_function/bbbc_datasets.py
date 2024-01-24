@@ -179,6 +179,7 @@ class _BBBC004_Segmentation_Loader(_MolnetLoader):
 
     def create_dataset(self) -> Dataset:
         """Creates a dataset from BBBC004 images and segmentation masks as labels"""
+
         dataset_file = os.path.join(
             self.data_dir, f"BBBC004_v1_{self.overlap_probability}_images.zip")
         foreground_file = os.path.join(
@@ -223,6 +224,7 @@ class _BBBC004_Loader(_MolnetLoader):
 
     def create_dataset(self) -> Dataset:
         """Creates a dataset from BBBC004 images and cell counts as labels"""
+
         dataset_file = os.path.join(
             self.data_dir, f"BBBC004_v1_{self.overlap_probability}_images.zip")
         if not os.path.exists(dataset_file):
