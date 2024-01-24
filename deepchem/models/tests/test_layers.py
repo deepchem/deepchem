@@ -1443,7 +1443,6 @@ def test_mxmnet_sphericalbasis():
 @pytest.mark.torch
 def test_torch_highway_layer():
     """Test invoking HighwayLayer."""
-    torch.manual_seed(0)
     batch_size = 10
     feat_dim = 5
     input_tensor = torch.randn(batch_size, feat_dim)

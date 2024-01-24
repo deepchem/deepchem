@@ -6117,7 +6117,7 @@ class HighwayLayer(torch.nn.Module):
         Initializes the HighwayLayer.
 
         Parameters
-            ----------
+        ----------
             d_input: int
                 the dimension of the input layer
             activation_fn: str
