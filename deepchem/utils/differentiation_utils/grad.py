@@ -283,7 +283,8 @@ def connect_graph(out: torch.Tensor, params: Sequence[Any]):
     return out + sum([p.reshape(-1)[0] * 0 for p in params])
 
 
-def _setup_idxs(idxs: int, params: Sequence[Any]) -> List[int]:
+def _setup_idxs(idxs: Union[None, int, Sequence[int]],
+                params: Sequence[Any]) -> Sequence[int]:
     """Check the idxs and return the list of indices.
 
     Examples

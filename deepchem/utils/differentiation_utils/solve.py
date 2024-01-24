@@ -1,10 +1,237 @@
 import numpy as np
 import torch
 import warnings
-from typing import Sequence, Tuple, Union, Optional, Callable
-from deepchem.utils.differentiation_utils import LinearOperator, normalize_bcast_dims, get_bcasted_dims
+from typing import Sequence, Tuple, Union, Optional, Callable, Mapping, Any
+from deepchem.utils.differentiation_utils import LinearOperator, MatrixLinearOperator, normalize_bcast_dims, get_bcasted_dims, set_default_option, dummy_context_manager, get_method
 from deepchem.utils import ConvergenceWarning, get_np_dtype
 from scipy.sparse.linalg import gmres as scipy_gmres
+import functools
+
+
+def solve(A: LinearOperator,
+          B: torch.Tensor,
+          E: Union[torch.Tensor, None] = None,
+          M: Optional[LinearOperator] = None,
+          bck_options: Mapping[str, Any] = {},
+          method: Union[str, Callable, None] = None,
+          **fwd_options) -> torch.Tensor:
+    r"""
+    Performing iterative method to solve the equation
+
+    .. math::
+
+        \mathbf{AX=B}
+
+    or
+
+    .. math::
+
+        \mathbf{AX-MXE=B}
+
+    where :math:`\mathbf{E}` is a diagonal matrix.
+    This function can also solve batched multiple inverse equation at the
+    same time by applying :math:`\mathbf{A}` to a tensor :math:`\mathbf{X}`
+    with shape ``(...,na,ncols)``.
+    The applied :math:`\mathbf{E}` are not necessarily identical for each column.
+
+    Arguments
+    ---------
+    A: xitorch.LinearOperator
+        A linear operator that takes an input ``X`` and produce the vectors in the same
+        space as ``B``.
+        It should have the shape of ``(*BA, na, na)``
+    B: torch.Tensor
+        The tensor on the right hand side with shape ``(*BB, na, ncols)``
+    E: torch.Tensor or None
+        If a tensor, it will solve :math:`\mathbf{AX-MXE = B}`.
+        It will be regarded as the diagonal of the matrix.
+        Otherwise, it just solves :math:`\mathbf{AX = B}` and ``M`` is ignored.
+        If it is a tensor, it should have shape of ``(*BE, ncols)``.
+    M: xitorch.LinearOperator or None
+        The transformation on the ``E`` side. If ``E`` is ``None``,
+        then this argument is ignored.
+        If E is not ``None`` and ``M`` is ``None``, then ``M=I``.
+        If LinearOperator, it must be Hermitian with shape ``(*BM, na, na)``.
+    bck_options: dict
+        Options of the iterative solver in the backward calculation.
+    method: str or callable or None
+        The method of linear equation solver. If ``None``, it will choose
+        ``"cg"`` or ``"bicgstab"`` based on the matrices symmetry.
+        `Note`: default method will be changed quite frequently, so if you want
+        future compatibility, please specify a method.
+    **fwd_options
+        Method-specific options (see method below)
+
+    Returns
+    -------
+    torch.Tensor
+        The tensor :math:`\mathbf{X}` that satisfies :math:`\mathbf{AX-MXE=B}`.
+    """
+    assert A.shape[-1] == A.shape[
+        -2], "The linear operator A must have a square shape"
+    assert A.shape[-1] == B.shape[
+        -2], "Mismatch shape of A & B (A: %s, B: %s)" % (A.shape, B.shape)
+    assert not torch.is_grad_enabled() or A.is_getparamnames_implemented,\
+        "The _getparamnames(self, prefix) of linear operator A must be "\
+        "implemented if using solve with grad enabled"
+    if M is not None:
+        assert M.shape[-1] == M.shape[
+            -2], "The linear operator M must have a square shape"
+        assert M.shape[-1] == A.shape[
+            -1], "The shape of A & M must match (A: %s, M: %s)" % (A.shape,
+                                                                   M.shape)
+        assert M.is_hermitian, "The linear operator M must be a Hermitian matrix"
+        assert not torch.is_grad_enabled() or M.is_getparamnames_implemented,\
+            "The _getparamnames(self, prefix) of linear operator M must be "\
+            "implemented if using solve with grad enabled"
+    if E is not None:
+        assert E.shape[-1] == B.shape[-1],\
+                        "The last dimension of E & B must match (E: %s, B: %s)" % (E.shape, B.shape)
+    if E is None and M is not None:
+        warnings.warn(
+            "M is supplied but will be ignored because E is not supplied")
+
+    if method is None:
+        if isinstance(A, MatrixLinearOperator) and \
+           (M is None or isinstance(M, MatrixLinearOperator)):
+            method = "exactsolve"
+        elif A.shape[-1] <= 5:  # for small matrix
+            method = "exactsolve"
+        else:
+            is_hermit = A.is_hermitian and (M is None or M.is_hermitian)
+            method = "cg" if is_hermit else "bicgstab"
+
+    if method == "exactsolve":
+        return exactsolve(A, B, E, M)
+    else:
+        # get the unique parameters of A
+        params = A.getlinopparams()
+        mparams = M.getlinopparams() if M is not None else []
+        na = len(params)
+        return solve_torchfcn.apply(A, B, E, M, method, fwd_options,
+                                    bck_options, na, *params, *mparams)
+
+
+class solve_torchfcn(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, A, B, E, M, method, fwd_options, bck_options, na,
+                *all_params):
+        # A: (*BA, nr, nr)
+        # B: (*BB, nr, ncols)
+        # E: (*BE, ncols) or None
+        # M: (*BM, nr, nr) or None
+        # all_params: list of tensor of any shape
+        # returns: (*BABEM, nr, ncols)
+
+        # separate the parameters for A and for M
+        params = all_params[:na]
+        mparams = all_params[na:]
+
+        config = set_default_option({}, fwd_options)
+        ctx.bck_config = set_default_option({}, bck_options)
+
+        if torch.all(B == 0):  # special case
+            dims = (*get_batchdims(A, B, E, M), *B.shape[-2:])
+            x = torch.zeros(dims, dtype=B.dtype, device=B.device)
+        else:
+            with A.uselinopparams(*params), M.uselinopparams(
+                    *mparams) if M is not None else dummy_context_manager():
+                methods = {
+                    "custom_exactsolve": custom_exactsolve,
+                    "scipy_gmres": wrap_gmres,
+                    "cg": cg,
+                    "bicgstab": bicgstab,
+                    "gmres": gmres,
+                }
+                method_fcn = get_method("solve", methods, method)
+                x = method_fcn(A, B, E, M, **config)
+
+        ctx.e_is_none = E is None
+        ctx.A = A
+        ctx.M = M
+        if ctx.e_is_none:
+            ctx.save_for_backward(x, *all_params)
+        else:
+            ctx.save_for_backward(x, E, *all_params)
+        ctx.na = na
+        return x
+
+    @staticmethod
+    def backward(ctx, grad_x):
+        # grad_x: (*BABEM, nr, ncols)
+        # x: (*BABEM, nr, ncols)
+        x = ctx.saved_tensors[0]
+        idx_all_params = 1 if ctx.e_is_none else 2
+        all_params = ctx.saved_tensors[idx_all_params:]
+        params = all_params[:ctx.na]
+        mparams = all_params[ctx.na:]
+        E = None if ctx.e_is_none else ctx.saved_tensors[1]
+
+        # solve (A-biases*M)^T v = grad_x
+        # this is the grad of B
+        with ctx.A.uselinopparams(*params), \
+             ctx.M.uselinopparams(*mparams) if ctx.M is not None else dummy_context_manager():
+            AT = ctx.A.H  # (*BA, nr, nr)
+            MT = ctx.M.H if ctx.M is not None else None  # (*BM, nr, nr)
+            Econj = E.conj() if E is not None else None
+            v = solve(AT,
+                      grad_x,
+                      Econj,
+                      MT,
+                      bck_options=ctx.bck_config,
+                      **ctx.bck_config)  # (*BABEM, nr, ncols)
+        grad_B = v
+
+        # calculate the grad of matrices parameters
+        with torch.enable_grad():
+            params = [p.clone().requires_grad_() for p in params]
+            with ctx.A.uselinopparams(*params):
+                loss = -ctx.A.mm(x)  # (*BABEM, nr, ncols)
+
+        grad_params = torch.autograd.grad((loss,),
+                                          params,
+                                          grad_outputs=(v,),
+                                          create_graph=torch.is_grad_enabled(),
+                                          allow_unused=True)
+
+        # calculate the biases gradient
+        grad_E = None
+        if E is not None:
+            if ctx.M is None:
+                Mx = x
+            else:
+                with ctx.M.uselinopparams(*mparams):
+                    Mx = ctx.M.mm(x)  # (*BABEM, nr, ncols)
+            grad_E = torch.einsum('...rc,...rc->...c', v,
+                                  Mx.conj())  # (*BABEM, ncols)
+
+        # calculate the gradient to the biases matrices
+        grad_mparams = []
+        if ctx.M is not None and E is not None:
+            with torch.enable_grad():
+                mparams = [p.clone().requires_grad_() for p in mparams]
+                lmbdax = x * E.unsqueeze(-2)
+                with ctx.M.uselinopparams(*mparams):
+                    mloss = ctx.M.mm(lmbdax)
+
+            grad_mparams = torch.autograd.grad(
+                (mloss,),
+                mparams,
+                grad_outputs=(v,),
+                create_graph=torch.is_grad_enabled(),
+                allow_unused=True)
+
+        return (None, grad_B, grad_E, None, None, None, None, None,
+                *grad_params, *grad_mparams)
+
+
+def custom_exactsolve(A, B, E=None, M=None, **options):
+    # A: (*BA, na, na)
+    # B: (*BB, na, ncols)
+    # E: (*BE, ncols)
+    # M: (*BM, na, na)
+    return exactsolve(A, B, E, M)
 
 
 # Hidden
@@ -183,6 +410,275 @@ def solve_ABE(A: torch.Tensor, B: torch.Tensor, E: torch.Tensor):
     r = torch.linalg.solve(AE, B)  # (ncols, *BAEM, na, 1)
     r = r.transpose(0, -1).squeeze(0)  # (*BAEM, na, ncols)
     return r
+
+
+def cg(A: LinearOperator,
+       B: torch.Tensor,
+       E: Optional[torch.Tensor] = None,
+       M: Optional[LinearOperator] = None,
+       posdef: Optional[bool] = None,
+       precond: Optional[LinearOperator] = None,
+       max_niter: Optional[int] = None,
+       rtol: float = 1e-6,
+       atol: float = 1e-8,
+       eps: float = 1e-12,
+       resid_calc_every: int = 10,
+       verbose: bool = False,
+       **unused) -> torch.Tensor:
+    r"""
+    Solve the linear equations using Conjugate-Gradient (CG) method.
+
+    Keyword arguments
+    -----------------
+    posdef: bool or None
+        Indicating if the operation :math:`\mathbf{AX-MXE}` a positive
+        definite for all columns and batches.
+        If None, it will be determined by power iterations.
+    precond: LinearOperator or None
+        LinearOperator for the preconditioning. If None, no preconditioner is
+        applied.
+    max_niter: int or None
+        Maximum number of iteration. If None, it is set to ``int(1.5 * A.shape[-1])``
+    rtol: float
+        Relative tolerance for stopping condition w.r.t. norm of B
+    atol: float
+        Absolute tolerance for stopping condition w.r.t. norm of B
+    eps: float
+        Substitute the absolute zero in the algorithm's denominator with this
+        value to avoid nan.
+    resid_calc_every: int
+        Calculate the residual in its actual form instead of substitution form
+        with this frequency, to avoid rounding error accummulation.
+        If your linear operator has bad numerical precision, set this to be low.
+        If 0, then never calculate the residual in its actual form.
+    verbose: bool
+        Verbosity of the algorithm.
+    """
+    nr = A.shape[-1]
+    ncols = B.shape[-1]
+    if max_niter is None:
+        max_niter = int(1.5 * nr)
+
+    # if B is all zeros, then return zeros
+    batchdims = get_batchdims(A, B, E, M)
+    if torch.allclose(B, B * 0, rtol=rtol, atol=atol):
+        x0 = torch.zeros((*batchdims, nr, ncols),
+                         dtype=A.dtype,
+                         device=A.device)
+        return x0
+
+    # setup the preconditioning and the matrix problem
+    precond_fcn = setup_precond(precond)
+    need_hermit = True
+    A_fcn, _, B2, col_swapped = setup_linear_problem(A, B, E, M, batchdims,
+                                                     posdef, need_hermit)
+
+    # get the stopping matrix
+    B_norm = B2.norm(dim=-2, keepdim=True)  # (*BB, 1, nc)
+    stop_matrix = torch.max(rtol * B_norm,
+                            atol * torch.ones_like(B_norm))  # (*BB, 1, nc)
+
+    # prepare the initial guess (it's just all zeros)
+    x0shape = (ncols, *batchdims, nr, 1) if col_swapped else (*batchdims, nr,
+                                                              ncols)
+    xk = torch.zeros(x0shape, dtype=A.dtype, device=A.device)
+
+    rk = B2 - A_fcn(xk)  # (*, nr, nc)
+    zk = precond_fcn(rk)  # (*, nr, nc)
+    pk = zk  # (*, nr, nc)
+    rkzk = dot(rk, zk)
+    converge = False
+    best_resid = rk.norm(dim=-2).max().item()
+    best_xk = xk
+    for k in range(1, max_niter + 1):
+        Apk = A_fcn(pk)
+        alphak = rkzk / safedenom(dot(pk, Apk), eps)
+        xk_1 = xk + alphak * pk
+
+        # correct the residual calculation
+        if resid_calc_every != 0 and k % resid_calc_every == 0:
+            rk_1 = B2 - A_fcn(xk_1)
+        else:
+            rk_1 = rk - alphak * Apk  # (*, nr, nc)
+
+        # check for the stopping condition
+        resid = rk_1  # B2 - A_fcn(xk_1)
+        resid_norm = resid.norm(dim=-2, keepdim=True)
+
+        max_resid_norm = resid_norm.max().item()
+        if max_resid_norm < best_resid:
+            best_resid = max_resid_norm
+            best_xk = xk_1
+
+        if verbose:
+            if k < 10 or k % 10 == 0:
+                print("%4d: |dy|=%.3e" % (k, resid_norm))
+
+        if torch.all(resid_norm < stop_matrix):
+            converge = True
+            break
+
+        zk_1 = precond_fcn(rk_1)
+        rkzk_1 = dot(rk_1, zk_1)
+        betak = rkzk_1 / safedenom(rkzk, eps)
+        pk_1 = zk_1 + betak * pk
+
+        # move to the next index
+        pk = pk_1
+        zk = zk_1
+        xk = xk_1
+        rk = rk_1
+        rkzk = rkzk_1
+
+    xk_1 = best_xk
+    if not converge:
+        msg = ("Convergence is not achieved after %d iterations. "
+               "Max norm of best resid: %.3e") % (max_niter, best_resid)
+        warnings.warn(ConvergenceWarning(msg))
+    if col_swapped:
+        # x: (ncols, *, nr, 1)
+        xk_1 = xk_1.transpose(0, -1).squeeze(0)  # (*, nr, ncols)
+    return xk_1
+
+
+def bicgstab(A: LinearOperator,
+             B: torch.Tensor,
+             E: Optional[torch.Tensor] = None,
+             M: Optional[LinearOperator] = None,
+             posdef: Optional[bool] = None,
+             precond_l: Optional[LinearOperator] = None,
+             precond_r: Optional[LinearOperator] = None,
+             max_niter: Optional[int] = None,
+             rtol: float = 1e-6,
+             atol: float = 1e-8,
+             eps: float = 1e-12,
+             verbose: bool = False,
+             resid_calc_every: int = 10,
+             **unused) -> torch.Tensor:
+    r"""
+    Solve the linear equations using stabilized Biconjugate-Gradient method.
+
+    Keyword arguments
+    -----------------
+    posdef: bool or None
+        Indicating if the operation :math:`\mathbf{AX-MXE}` a positive
+        definite for all columns and batches.
+        If None, it will be determined by power iterations.
+    precond_l: LinearOperator or None
+        LinearOperator for the left preconditioning. If None, no
+        preconditioner is applied.
+    precond_r: LinearOperator or None
+        LinearOperator for the right preconditioning. If None, no
+        preconditioner is applied.
+    max_niter: int or None
+        Maximum number of iteration. If None, it is set to ``int(1.5 * A.shape[-1])``
+    rtol: float
+        Relative tolerance for stopping condition w.r.t. norm of B
+    atol: float
+        Absolute tolerance for stopping condition w.r.t. norm of B
+    eps: float
+        Substitute the absolute zero in the algorithm's denominator with this
+        value to avoid nan.
+    resid_calc_every: int
+        Calculate the residual in its actual form instead of substitution form
+        with this frequency, to avoid rounding error accummulation.
+        If your linear operator has bad numerical precision, set this to be low.
+        If 0, then never calculate the residual in its actual form.
+    verbose: bool
+        Verbosity of the algorithm.
+    """
+    nr, ncols = B.shape[-2:]
+    if max_niter is None:
+        max_niter = int(1.5 * nr)
+
+    # if B is all zeros, then return zeros
+    batchdims = get_batchdims(A, B, E, M)
+    if torch.allclose(B, B * 0, rtol=rtol, atol=atol):
+        x0 = torch.zeros((*batchdims, nr, ncols),
+                         dtype=A.dtype,
+                         device=A.device)
+        return x0
+
+    # setup the preconditioning and the matrix problem
+    precond_fcn_l = setup_precond(precond_l)
+    precond_fcn_r = setup_precond(precond_r)
+    need_hermit = False
+    A_fcn, AT_fcn, B2, col_swapped = setup_linear_problem(
+        A, B, E, M, batchdims, posdef, need_hermit)
+
+    # get the stopping matrix
+    B_norm = B2.norm(dim=-2, keepdim=True)  # (*BB, 1, nc)
+    stop_matrix = torch.max(rtol * B_norm,
+                            atol * torch.ones_like(B_norm))  # (*BB, 1, nc)
+
+    # prepare the initial guess (it's just all zeros)
+    x0shape = (ncols, *batchdims, nr, 1) if col_swapped else (*batchdims, nr,
+                                                              ncols)
+    xk = torch.zeros(x0shape, dtype=A.dtype, device=A.device)
+
+    rk = B2 - A_fcn(xk)
+    r0hat = rk
+    rho_k = dot(r0hat, rk)
+    omega_k = torch.tensor(1.0, dtype=A.dtype, device=A.device)
+    alpha: Union[float, torch.Tensor] = 1.0
+    vk: Union[float, torch.Tensor] = 0.0
+    pk: Union[float, torch.Tensor] = 0.0
+    converge = False
+    best_resid = rk.norm(dim=-2).max()
+    best_xk = xk
+    for k in range(1, max_niter + 1):
+        rho_knew = dot(r0hat, rk)
+        omega_denom = safedenom(omega_k, eps)
+        beta = rho_knew / safedenom(rho_k, eps) * (alpha / omega_denom)
+        pk = rk + beta * (pk - omega_k * vk)
+        y = precond_fcn_r(pk)
+        vk = A_fcn(y)
+        alpha = rho_knew / safedenom(dot(r0hat, vk), eps)
+        h = xk + alpha * y
+
+        s = rk - alpha * vk
+        z = precond_fcn_r(s)
+        t = A_fcn(z)
+        Kt = precond_fcn_l(t)
+        omega_k = dot(Kt, precond_fcn_l(s)) / safedenom(dot(Kt, Kt), eps)
+        xk = h + omega_k * z
+
+        # correct the residual calculation regularly
+        if resid_calc_every != 0 and k % resid_calc_every == 0:
+            rk = B2 - A_fcn(xk)
+        else:
+            rk = s - omega_k * t
+
+        # calculate the residual
+        resid = rk
+        resid_norm = resid.norm(dim=-2, keepdim=True)
+
+        # save the best results
+        max_resid_norm = resid_norm.max().item()
+        if max_resid_norm < best_resid:
+            best_resid = max_resid_norm
+            best_xk = xk
+
+        if verbose:
+            if k < 10 or k % 10 == 0:
+                print("%4d: |dy|=%.3e" % (k, resid_norm))
+
+        # check for the stopping conditions
+        if torch.all(resid_norm < stop_matrix):
+            converge = True
+            break
+
+        rho_k = rho_knew
+
+    xk = best_xk
+    if not converge:
+        msg = ("Convergence is not achieved after %d iterations. "
+               "Max norm of resid: %.3e") % (max_niter, best_resid)
+        warnings.warn(ConvergenceWarning(msg))
+    if col_swapped:
+        # x: (ncols, *, nr, 1)
+        xk = xk.transpose(0, -1).squeeze(0)  # (*, nr, ncols)
+    return xk
 
 
 def gmres(A: LinearOperator,
