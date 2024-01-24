@@ -287,9 +287,9 @@ class FerminetModel(TorchModel):
     converged SCF energy = -0.895803169899508  <S^2> = 0  2S+1 = 1
      ** Mulliken pop alpha/beta on meta-lowdin orthogonal AOs **
      ** Mulliken pop       alpha | beta **
-    pop of  0 H 1s        0.50000 | 0.50000   
-    pop of  1 H 1s        0.50000 | 0.50000   
-    In total             1.00000 | 1.00000   
+    pop of  0 H 1s        0.50000 | 0.50000
+    pop of  1 H 1s        0.50000 | 0.50000
+    In total             1.00000 | 1.00000
      ** Mulliken atomic charges   ( Nelec_alpha | Nelec_beta ) **
     charge of  0H =      0.00000  (     0.50000      0.50000 )
     charge of  1H =      0.00000  (     0.50000      0.50000 )
