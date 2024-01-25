@@ -5,7 +5,6 @@ from typing import Sequence, Tuple, Union, Optional, Callable, Mapping, Any
 from deepchem.utils.differentiation_utils import LinearOperator, MatrixLinearOperator, normalize_bcast_dims, get_bcasted_dims, set_default_option, dummy_context_manager, get_method
 from deepchem.utils import ConvergenceWarning, get_np_dtype
 from scipy.sparse.linalg import gmres as scipy_gmres
-import functools
 
 
 def solve(A: LinearOperator,
@@ -16,7 +15,17 @@ def solve(A: LinearOperator,
           method: Union[str, Callable, None] = None,
           **fwd_options) -> torch.Tensor:
     r"""
-    Performing iterative method to solve the equation
+    Performing iterative method to solve the equation.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.differentiation_utils import LinearOperator
+    >>> A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
+    >>> B = torch.tensor([[5., 6], [7, 8]])
+    >>> solve(A, B)
+    tensor([[-3., -4.],
+            [ 4.,  5.]])
 
     .. math::
 
@@ -34,44 +43,45 @@ def solve(A: LinearOperator,
     with shape ``(...,na,ncols)``.
     The applied :math:`\mathbf{E}` are not necessarily identical for each column.
 
-    Arguments
-    ---------
-    A: xitorch.LinearOperator
+    Parameters
+    ----------
+    A: LinearOperator
         A linear operator that takes an input ``X`` and produce the vectors in the same
         space as ``B``.
         It should have the shape of ``(*BA, na, na)``
     B: torch.Tensor
         The tensor on the right hand side with shape ``(*BB, na, ncols)``
-    E: torch.Tensor or None
+    E: Union[torch.Tensor, None]
         If a tensor, it will solve :math:`\mathbf{AX-MXE = B}`.
         It will be regarded as the diagonal of the matrix.
         Otherwise, it just solves :math:`\mathbf{AX = B}` and ``M`` is ignored.
         If it is a tensor, it should have shape of ``(*BE, ncols)``.
-    M: xitorch.LinearOperator or None
+    M: Optional[LinearOperator]
         The transformation on the ``E`` side. If ``E`` is ``None``,
         then this argument is ignored.
         If E is not ``None`` and ``M`` is ``None``, then ``M=I``.
         If LinearOperator, it must be Hermitian with shape ``(*BM, na, na)``.
     bck_options: dict
         Options of the iterative solver in the backward calculation.
-    method: str or callable or None
+    method: Union[str, Callable, None]
         The method of linear equation solver. If ``None``, it will choose
         ``"cg"`` or ``"bicgstab"`` based on the matrices symmetry.
         `Note`: default method will be changed quite frequently, so if you want
         future compatibility, please specify a method.
     **fwd_options
-        Method-specific options (see method below)
+        Method-specific options
 
     Returns
     -------
     torch.Tensor
         The tensor :math:`\mathbf{X}` that satisfies :math:`\mathbf{AX-MXE=B}`.
+
     """
     assert A.shape[-1] == A.shape[
         -2], "The linear operator A must have a square shape"
     assert A.shape[-1] == B.shape[
         -2], "Mismatch shape of A & B (A: %s, B: %s)" % (A.shape, B.shape)
-    assert not torch.is_grad_enabled() or A.is_getparamnames_implemented,\
+    assert not torch.is_grad_enabled() or A.is_getparamnames_implemented, \
         "The _getparamnames(self, prefix) of linear operator A must be "\
         "implemented if using solve with grad enabled"
     if M is not None:
@@ -81,11 +91,11 @@ def solve(A: LinearOperator,
             -1], "The shape of A & M must match (A: %s, M: %s)" % (A.shape,
                                                                    M.shape)
         assert M.is_hermitian, "The linear operator M must be a Hermitian matrix"
-        assert not torch.is_grad_enabled() or M.is_getparamnames_implemented,\
+        assert not torch.is_grad_enabled() or M.is_getparamnames_implemented, \
             "The _getparamnames(self, prefix) of linear operator M must be "\
             "implemented if using solve with grad enabled"
     if E is not None:
-        assert E.shape[-1] == B.shape[-1],\
+        assert E.shape[-1] == B.shape[-1], \
                         "The last dimension of E & B must match (E: %s, B: %s)" % (E.shape, B.shape)
     if E is None and M is not None:
         warnings.warn(
@@ -117,12 +127,40 @@ class solve_torchfcn(torch.autograd.Function):
     @staticmethod
     def forward(ctx, A, B, E, M, method, fwd_options, bck_options, na,
                 *all_params):
-        # A: (*BA, nr, nr)
-        # B: (*BB, nr, ncols)
-        # E: (*BE, ncols) or None
-        # M: (*BM, nr, nr) or None
-        # all_params: list of tensor of any shape
-        # returns: (*BABEM, nr, ncols)
+        """Forward calculation of the solve function.
+
+        Parameters
+        ----------
+        A: LinearOperator
+            A linear operator that takes an input ``X`` and produce the vectors in the same
+            space as ``B``.
+            It should have the shape of ``(*BA, na, na)``
+        B: torch.Tensor
+            The tensor on the right hand side with shape ``(*BB, na, ncols)``
+        E: Union[torch.Tensor, None]
+            If a tensor, it will solve :math:`\mathbf{AX-MXE = B}`.
+            It will be regarded as the diagonal of the matrix.
+            Otherwise, it just solves :math:`\mathbf{AX = B}` and ``M`` is ignored.
+            If it is a tensor, it should have shape of ``(*BE, ncols)``.
+        M: Optional[LinearOperator]
+            The transformation on the ``E`` side. If ``E`` is ``None``,
+            then this argument is ignored.
+            If E is not ``None`` and ``M`` is ``None``, then ``M=I``.
+        method: Union[str, Callable, None]
+            The method of linear equation solver. If ``None``, it will choose
+            ``"cg"`` or ``"bicgstab"`` based on the matrices symmetry.
+            `Note`: default method will be changed quite frequently, so if you want
+            future compatibility, please specify a method.
+        fwd_options
+            Method-specific options
+        bck_options: dict
+            Options of the iterative solver in the backward calculation.
+        na: int
+            Number of parameters of A
+        all_params: Sequence[torch.Tensor]
+            All the parameters of M and A
+
+        """
 
         # separate the parameters for A and for M
         params = all_params[:na]
@@ -138,7 +176,7 @@ class solve_torchfcn(torch.autograd.Function):
             with A.uselinopparams(*params), M.uselinopparams(
                     *mparams) if M is not None else dummy_context_manager():
                 methods = {
-                    "custom_exactsolve": custom_exactsolve,
+                    "exactsolve": exactsolve,
                     "scipy_gmres": wrap_gmres,
                     "cg": cg,
                     "bicgstab": bicgstab,
@@ -224,14 +262,6 @@ class solve_torchfcn(torch.autograd.Function):
 
         return (None, grad_B, grad_E, None, None, None, None, None,
                 *grad_params, *grad_mparams)
-
-
-def custom_exactsolve(A, B, E=None, M=None, **options):
-    # A: (*BA, na, na)
-    # B: (*BB, na, ncols)
-    # E: (*BE, ncols)
-    # M: (*BM, na, na)
-    return exactsolve(A, B, E, M)
 
 
 # Hidden
@@ -428,8 +458,23 @@ def cg(A: LinearOperator,
     r"""
     Solve the linear equations using Conjugate-Gradient (CG) method.
 
-    Keyword arguments
-    -----------------
+    Parameters
+    ----------
+    A: LinearOperator
+        A linear operator that takes an input ``X`` and produce the vectors in the same
+        space as ``B``.
+        It should have the shape of ``(*BA, na, na)``
+    B: torch.Tensor
+        The tensor on the right hand side with shape ``(*BB, na, ncols)``
+    E: Union[torch.Tensor, None]
+        If a tensor, it will solve :math:`\mathbf{AX-MXE = B}`.
+        It will be regarded as the diagonal of the matrix.
+        Otherwise, it just solves :math:`\mathbf{AX = B}` and ``M`` is ignored.
+        If it is a tensor, it should have shape of ``(*BE, ncols)``.
+    M: Optional[LinearOperator]
+        The transformation on the ``E`` side. If ``E`` is ``None``,
+        then this argument is ignored.
+        If E is not ``None`` and ``M`` is ``None``, then ``M=I``.
     posdef: bool or None
         Indicating if the operation :math:`\mathbf{AX-MXE}` a positive
         definite for all columns and batches.
@@ -558,8 +603,8 @@ def bicgstab(A: LinearOperator,
     r"""
     Solve the linear equations using stabilized Biconjugate-Gradient method.
 
-    Keyword arguments
-    -----------------
+    Parameters
+    ----------
     posdef: bool or None
         Indicating if the operation :math:`\mathbf{AX-MXE}` a positive
         definite for all columns and batches.
@@ -586,6 +631,7 @@ def bicgstab(A: LinearOperator,
         If 0, then never calculate the residual in its actual form.
     verbose: bool
         Verbosity of the algorithm.
+
     """
     nr, ncols = B.shape[-2:]
     if max_niter is None:

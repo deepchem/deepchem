@@ -13,6 +13,71 @@ def lsymeig(A: LinearOperator,
             bck_options: Mapping[str, Any] = {},
             method: Union[str, Callable, None] = None,
             **fwd_options) -> Tuple[torch.Tensor, torch.Tensor]:
+    r"""
+    Obtain ``neig`` lowest eigenvalues and eigenvectors of a linear operator,
+
+    .. math::
+
+        \mathbf{AX = MXE}
+
+    where :math:`\mathbf{A}, \mathbf{M}` are linear operators,
+    :math:`\mathbf{E}` is a diagonal matrix containing the eigenvalues, and
+    :math:`\mathbf{X}` is a matrix containing the eigenvectors.
+    This function can handle derivatives for degenerate cases by setting non-zero
+    ``degen_atol`` and ``degen_rtol`` in the backward option using the expressions
+    in [1]_.
+
+    Parameters
+    ----------
+    A: LinearOperator
+        The linear operator object on which the eigenpairs are constructed.
+        It must be a Hermitian linear operator with shape ``(*BA, q, q)``
+    neig: int or None
+        The number of eigenpairs to be retrieved. If ``None``, all eigenpairs are
+        retrieved
+    mode: str
+        ``"lowest"`` or ``"uppermost"``/``"uppest"``. If ``"lowest"``,
+        it will take the lowest ``neig`` eigenpairs.
+        If ``"uppest"``, it will take the uppermost ``neig``.
+    M: LinearOperator
+        The transformation on the right hand side. If ``None``, then ``M=I``.
+        If specified, it must be a Hermitian with shape ``(*BM, q, q)``.
+    bck_options: dict
+        Method-specific options for :func:`solve` which used in backpropagation
+        calculation with some additional arguments for computing the backward
+        derivatives:
+
+        * ``degen_atol`` (``float`` or None): Minimum absolute difference between
+          two eigenvalues to be treated as degenerate. If None, it is
+          ``torch.finfo(dtype).eps**0.6``. If 0.0, no special treatment on
+          degeneracy is applied. (default: None)
+        * ``degen_rtol`` (``float`` or None): Minimum relative difference between
+          two eigenvalues to be treated as degenerate. If None, it is
+          ``torch.finfo(dtype).eps**0.4``. If 0.0, no special treatment on
+          degeneracy is applied. (default: None)
+
+    method: str or callable or None
+        Method for the eigendecomposition. If ``None``, it will choose
+        ``"exacteig"``.
+    **fwd_options
+        Method-specific options (see method section below).
+
+    Returns
+    -------
+    tuple of tensors (eigenvalues, eigenvectors)
+        It will return eigenvalues and eigenvectors with shapes respectively
+        ``(*BAM, neig)`` and ``(*BAM, na, neig)``, where ``*BAM`` is the
+        broadcasted shape of ``*BA`` and ``*BM``.
+
+    References
+    ----------
+    .. [1] Muhammad F. Kasim,
+           "Derivatives of partial eigendecomposition of a real symmetric matrix for degenerate cases".
+           arXiv:2011.04366 (2020)
+           `https://arxiv.org/abs/2011.04366 <https://arxiv.org/abs/2011.04366>`_
+
+    """
+
     return symeig(A,
                   neig,
                   "lowest",
@@ -28,6 +93,75 @@ def usymeig(A: LinearOperator,
             bck_options: Mapping[str, Any] = {},
             method: Union[str, Callable, None] = None,
             **fwd_options) -> Tuple[torch.Tensor, torch.Tensor]:
+    r"""
+    Obtain ``neig`` uppest eigenvalues and eigenvectors of a linear operator,
+
+    .. math::
+
+        \mathbf{AX = MXE}
+
+    where :math:`\mathbf{A}, \mathbf{M}` are linear operators,
+    :math:`\mathbf{E}` is a diagonal matrix containing the eigenvalues, and
+    :math:`\mathbf{X}` is a matrix containing the eigenvectors.
+    This function can handle derivatives for degenerate cases by setting non-zero
+    ``degen_atol`` and ``degen_rtol`` in the backward option using the expressions
+    in [1]_.
+
+    Arguments
+    ---------
+    A: LinearOperator
+        The linear operator object on which the eigenpairs are constructed.
+        It must be a Hermitian linear operator with shape ``(*BA, q, q)``
+    neig: int or None
+        The number of eigenpairs to be retrieved. If ``None``, all eigenpairs are
+        retrieved
+    mode: str
+        ``"lowest"`` or ``"uppermost"``/``"uppest"``. If ``"lowest"``,
+        it will take the lowest ``neig`` eigenpairs.
+        If ``"uppest"``, it will take the uppermost ``neig``.
+    M: LinearOperator
+        The transformation on the right hand side. If ``None``, then ``M=I``.
+        If specified, it must be a Hermitian with shape ``(*BM, q, q)``.
+    bck_options: dict
+        Method-specific options for :func:`solve` which used in backpropagation
+        calculation with some additional arguments for computing the backward
+        derivatives:
+
+        * ``degen_atol`` (``float`` or None): Minimum absolute difference between
+          two eigenvalues to be treated as degenerate. If None, it is
+          ``torch.finfo(dtype).eps**0.6``. If 0.0, no special treatment on
+          degeneracy is applied. (default: None)
+        * ``degen_rtol`` (``float`` or None): Minimum relative difference between
+          two eigenvalues to be treated as degenerate. If None, it is
+          ``torch.finfo(dtype).eps**0.4``. If 0.0, no special treatment on
+          degeneracy is applied. (default: None)
+
+        Note: the default values of ``degen_atol`` and ``degen_rtol`` are going
+        to change in the future. So, for future compatibility, please specify
+        the specific values.
+
+    method: str or callable or None
+        Method for the eigendecomposition. If ``None``, it will choose
+        ``"exacteig"``.
+    **fwd_options
+        Method-specific options (see method section below).
+
+    Returns
+    -------
+    tuple of tensors (eigenvalues, eigenvectors)
+        It will return eigenvalues and eigenvectors with shapes respectively
+        ``(*BAM, neig)`` and ``(*BAM, na, neig)``, where ``*BAM`` is the
+        broadcasted shape of ``*BA`` and ``*BM``.
+
+    References
+    ----------
+    .. [1] Muhammad F. Kasim,
+           "Derivatives of partial eigendecomposition of a real symmetric matrix for degenerate cases".
+           arXiv:2011.04366 (2020)
+           `https://arxiv.org/abs/2011.04366 <https://arxiv.org/abs/2011.04366>`_
+
+    """
+
     return symeig(A,
                   neig,
                   "uppest",
@@ -112,7 +246,7 @@ def symeig(A: LinearOperator,
            `https://arxiv.org/abs/2011.04366 <https://arxiv.org/abs/2011.04366>`_
     """
     assert A.is_hermitian, "The linear operator A must be Hermitian"
-    assert not torch.is_grad_enabled() or A.is_getparamnames_implemented,\
+    assert not torch.is_grad_enabled() or A.is_getparamnames_implemented, \
         "The _getparamnames(self, prefix) of linear operator A must be "\
         "implemented if using symeig with grad enabled"
     if M is not None:
@@ -120,7 +254,7 @@ def symeig(A: LinearOperator,
         assert M.shape[-1] == A.shape[
             -1], "The shape of A & M must match (A: %s, M: %s)" % (A.shape,
                                                                    M.shape)
-        assert not torch.is_grad_enabled() or M.is_getparamnames_implemented,\
+        assert not torch.is_grad_enabled() or M.is_getparamnames_implemented, \
             "The _getparamnames(self, prefix) of linear operator M must be "\
             "implemented if using symeig with grad enabled"
     mode = mode.lower()
@@ -137,7 +271,7 @@ def symeig(A: LinearOperator,
         neig = A.shape[-1]
 
     if method == "exacteig":
-        return _exacteig(A, neig, mode, M)
+        return exacteig(A, neig, mode, M)
     else:
         fwd_options["method"] = method
         # get the unique parameters of A & M
@@ -168,9 +302,9 @@ def svd(A: LinearOperator,
     ``degen_atol`` and ``degen_rtol`` in the backward option using the expressions
     in [1]_.
 
-    Arguments
-    ---------
-    A: xitorch.LinearOperator
+    Parameters
+    ----------
+    A: LinearOperator
         The linear operator to be decomposed. It has a shape of ``(*BA, m, n)``
         where ``(*BA)`` is the batched dimension of ``A``.
     k: int or None
@@ -193,10 +327,6 @@ def svd(A: LinearOperator,
           two singular values to be treated as degenerate. If None, it is
           ``torch.finfo(dtype).eps**0.4``. If 0.0, no special treatment on
           degeneracy is applied. (default: None)
-
-        Note: the default values of ``degen_atol`` and ``degen_rtol`` are going
-        to change in the future. So, for future compatibility, please specify
-        the specific values.
 
     method: str or callable or None
         Method for the svd (same options for :func:`symeig`). If ``None``,
@@ -224,16 +354,12 @@ def svd(A: LinearOperator,
     """
     # A: (*BA, m, n)
     # adapted from scipy.sparse.linalg.svds
-    BA = A.shape[:-2]
-
     m = A.shape[-2]
     n = A.shape[-1]
     if m < n:
         AAsym = A.matmul(A.H, is_hermitian=True)
-        min_nm = m
     else:
         AAsym = A.H.matmul(A, is_hermitian=True)
-        min_nm = n
 
     eivals, eivecs = symeig(AAsym,
                             k,
@@ -284,7 +410,7 @@ class symeig_torchfcn(torch.autograd.Function):
                 *mparams) if M is not None else dummy_context_manager():
             methods = {
                 "davidson": davidson,
-                "custom_exacteig": custom_exacteig,
+                "exacteig": exacteig,
             }
             method_fcn = get_method("symeig", methods, method)
             evals, evecs = method_fcn(A, neig, mode, M, **config)
@@ -425,15 +551,11 @@ class symeig_torchfcn(torch.autograd.Function):
                 *grad_mparams)
 
 
-def custom_exacteig(A, neig, mode, M=None, **options):
-    return exacteig(A, neig, mode, M)
-
 def _check_degen(evals: torch.Tensor, degen_atol: float, degen_rtol: float) -> \
         Tuple[torch.Tensor, bool]:
     # evals: (*BAM, neig)
 
     # get the index of degeneracies
-    neig = evals.shape[-1]
     evals_diff = torch.abs(evals.unsqueeze(-2) -
                            evals.unsqueeze(-1))  # (*BAM, neig, neig)
     degen_thrsh = degen_atol + degen_rtol * torch.abs(evals).unsqueeze(-1)
@@ -480,7 +602,7 @@ def _ortho(A: torch.Tensor,
 
 
 def exacteig(A: LinearOperator, neig: int, mode: str,
-              M: Optional[LinearOperator]) -> Tuple[torch.Tensor, torch.Tensor]:
+             M: Optional[LinearOperator]) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Eigendecomposition using explicit matrix construction.
     No additional option for this method.
