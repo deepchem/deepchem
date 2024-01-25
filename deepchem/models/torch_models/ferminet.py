@@ -293,7 +293,6 @@ class FerminetModel(TorchModel):
      ** Mulliken atomic charges   ( Nelec_alpha | Nelec_beta ) **
     charge of  0H =      0.00000  (     0.50000      0.50000 )
     charge of  1H =      0.00000  (     0.50000      0.50000 )
-    converged SCF energy = -0.895803169899508  <S^2> = 0  2S+1 = 1
     >>> mol.train(nb_epoch=3)
     >>> print(mol.model.psi_up.size())
     torch.Size([8, 16, 1, 1])
