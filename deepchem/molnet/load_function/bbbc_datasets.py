@@ -30,6 +30,7 @@ BBBC4_TASKS = ["cell-count"]
 class _BBBC001_Loader(_MolnetLoader):
 
     def create_dataset(self) -> Dataset:
+        """Creates a dataset from BBBC001 images and cell counts as labels"""
         dataset_file = os.path.join(self.data_dir, "BBBC001_v1_images_tif.zip")
         labels_file = os.path.join(self.data_dir, "BBBC001_v1_counts.txt")
         if not os.path.exists(dataset_file):
@@ -92,6 +93,7 @@ def load_bbbc001(
 class _BBBC002_Loader(_MolnetLoader):
 
     def create_dataset(self) -> Dataset:
+        """Creates a dataset from BBBC002 images and cell counts as labels"""
         dataset_file = os.path.join(self.data_dir, "BBBC002_v1_images.zip")
         labels_file = os.path.join(self.data_dir, "BBBC002_v1_counts.txt")
         if not os.path.exists(dataset_file):
@@ -335,6 +337,8 @@ class _BBBC004_Segmentation_Loader(_MolnetLoader):
                              data_dir, save_dir, **kwargs)
 
     def create_dataset(self) -> Dataset:
+        """Creates a dataset from BBBC004 images and segmentation masks as labels"""
+
         dataset_file = os.path.join(
             self.data_dir, f"BBBC004_v1_{self.overlap_probability}_images.zip")
         foreground_file = os.path.join(
@@ -378,6 +382,8 @@ class _BBBC004_Loader(_MolnetLoader):
                              data_dir, save_dir, **kwargs)
 
     def create_dataset(self) -> Dataset:
+        """Creates a dataset from BBBC004 images and cell counts as labels"""
+
         dataset_file = os.path.join(
             self.data_dir, f"BBBC004_v1_{self.overlap_probability}_images.zip")
         if not os.path.exists(dataset_file):
@@ -436,36 +442,36 @@ def load_bbbc004(
     --------
     Importing necessary modules
 
-    >>> import deepchem as dc
-    >>> import numpy as np
+    >> import deepchem as dc
+    >> import numpy as np
 
     We can load the BBBC004 dataset with 2 types of labels: segmentation masks and
     cell counts. We will first load the dataset with cell counts as labels.
 
-    >>> loader = dc.molnet.load_bbbc004(overlap_probability=0.0, load_segmentation_mask=False)
-    >>> tasks, dataset, transformers = loader
-    >>> train, val, test = dataset
+    >> loader = dc.molnet.load_bbbc004(overlap_probability=0.0, load_segmentation_mask=False)
+    >> tasks, dataset, transformers = loader
+    >> train, val, test = dataset
 
     We now have a dataset with 20 samples, each with 300 cells. The images are of
     size 950x950. The labels are cell counts. We can verify this as follows:
 
-    >>> train.X.shape
+    >> train.X.shape
     (16, 950, 950)
-    >>> train.y.shape
+    >> train.y.shape
     (16,)
 
     We will now load the dataset with segmentation masks as labels.
 
-    >>> loader = dc.molnet.load_bbbc004(overlap_probability=0.0, load_segmentation_mask=True)
-    >>> tasks, dataset, transformers = loader
-    >>> train, val, test = dataset
+    >> loader = dc.molnet.load_bbbc004(overlap_probability=0.0, load_segmentation_mask=True)
+    >> tasks, dataset, transformers = loader
+    >> train, val, test = dataset
 
     We now have a dataset with 20 samples, each with 300 cells. The images are of
     size 950x950. The labels are segmentation masks. We can verify this as follows:
 
-    >>> train.X.shape
+    >> train.X.shape
     (16, 950, 950)
-    >>> train.y.shape
+    >> train.y.shape
     (16, 950, 950, 3)
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
