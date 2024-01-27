@@ -81,39 +81,39 @@ def test_compare():
 
     # Porting the weights from TF to PyTorch
     # task 0 layer 0
-    torch_model.layers[0][0][0].weight = move_param(
+    torch_model.layers[0][0].weight = move_param(
         tf_model._task_layers[0][0].weights[0], transpose=True)
-    torch_model.layers[0][0][0].bias = move_param(
+    torch_model.layers[0][0].bias = move_param(
         tf_model._task_layers[0][0].weights[1])
 
     # task 0 layer 1
-    torch_model.layers[0][1][0].weight = move_param(
+    torch_model.layers[0][1].weight = move_param(
         tf_model._task_layers[0][1].weights[0], transpose=True)
-    torch_model.layers[0][1][0].bias = move_param(
+    torch_model.layers[0][1].bias = move_param(
         tf_model._task_layers[0][1].weights[1])
 
     # task 0 output layer
-    torch_model.layers[0][2][0].weight = move_param(
+    torch_model.layers[0][2].weight = move_param(
         tf_model._task_layers[0][2].weights[0], transpose=True)
-    torch_model.layers[0][2][0].bias = move_param(
+    torch_model.layers[0][2].bias = move_param(
         tf_model._task_layers[0][2].weights[1])
 
     # task 1 layer 0
-    torch_model.layers[1][0][0].weight = move_param(
+    torch_model.layers[1][0].weight = move_param(
         tf_model._task_layers[1][0].weights[0], transpose=True)
-    torch_model.layers[1][0][0].bias = move_param(
+    torch_model.layers[1][0].bias = move_param(
         tf_model._task_layers[1][0].weights[1])
 
     # task 1 layer 1
-    torch_model.layers[1][1][0].weight = move_param(
+    torch_model.layers[1][1].weight = move_param(
         tf_model._task_layers[1][4].weights[0], transpose=True)
-    torch_model.layers[1][1][0].bias = move_param(
+    torch_model.layers[1][1].bias = move_param(
         tf_model._task_layers[1][4].weights[1])
 
     # task 1 output layer
-    torch_model.layers[1][2][0].weight = move_param(
+    torch_model.layers[1][2].weight = move_param(
         tf_model._task_layers[1][5].weights[0], transpose=True)
-    torch_model.layers[1][2][0].bias = move_param(
+    torch_model.layers[1][2].bias = move_param(
         tf_model._task_layers[1][5].weights[1])
 
     # task 1 adapter 0
@@ -123,7 +123,7 @@ def test_compare():
         tf_model._task_layers[1][2].weights[0], transpose=True)
     torch_model.adapters[0][0][0].bias = move_param(
         tf_model._task_layers[1][2].weights[1])
-    torch_model.adapters[0][0][2].weight = move_param(
+    torch_model.adapters[0][0][1].weight = move_param(
         tf_model._task_layers[1][3].weights[0], transpose=True)
 
     # task 1 adapter 1
@@ -133,10 +133,11 @@ def test_compare():
         tf_model._task_layers[1][7].weights[0], transpose=True)
     torch_model.adapters[0][1][0].bias = move_param(
         tf_model._task_layers[1][7].weights[1])
-    torch_model.adapters[0][1][2].weight = move_param(
+    torch_model.adapters[0][1][1].weight = move_param(
         tf_model._task_layers[1][8].weights[0], transpose=True)
 
     tf_out = tf_model.predict(dataset)
-    torch_out = torch_model(torch.from_numpy(X).float())
+    torch_out = torch_model(torch.from_numpy(X).float()).cpu().detach().numpy()
 
-    assert np.allclose(tf_out, torch_out.cpu().detach().numpy(), atol=1e-4)
+    assert np.allclose(tf_out, torch_out,
+                       atol=1e-4), "Predictions are not close"

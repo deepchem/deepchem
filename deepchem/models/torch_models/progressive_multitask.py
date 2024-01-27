@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
-from deepchem.utils.typing import OneOrMany
+from deepchem.utils.typing import OneOrMany, ActivationFn
+from deepchem.utils.pytorch_utils import get_activation
 
 from collections.abc import Sequence as SequenceCollection
 from typing import List, Tuple
@@ -46,7 +48,7 @@ class ProgressiveMultitask(nn.Module):
                  bias_init_consts: OneOrMany[float] = 1.0,
                  weight_decay_penalty: float = 0.0,
                  weight_decay_penalty_type: str = "l2",
-                 activation_fns: OneOrMany[nn.Module] = nn.ReLU,
+                 activation_fns: OneOrMany[ActivationFn] = 'relu',
                  dropouts: OneOrMany[float] = 0.5,
                  n_outputs: int = 1,
                  **kwargs):
@@ -80,27 +82,30 @@ class ProgressiveMultitask(nn.Module):
         """
         if weight_decay_penalty != 0.0:
             raise ValueError("Weight decay is not currently supported")
-        self.n_tasks = n_tasks
-        self.n_features = n_features
-        self.layer_sizes = layer_sizes
-        self.alpha_init_stddevs = alpha_init_stddevs
-        self.weight_init_stddevs = weight_init_stddevs
-        self.bias_init_consts = bias_init_consts
-        self.dropouts = dropouts
-        self.activation_fns = activation_fns
-        self.n_outputs = n_outputs
 
         n_layers = len(layer_sizes)
         if not isinstance(weight_init_stddevs, SequenceCollection):
-            self.weight_init_stddevs = [weight_init_stddevs] * n_layers
+            weight_init_stddevs = [weight_init_stddevs] * n_layers
         if not isinstance(alpha_init_stddevs, SequenceCollection):
-            self.alpha_init_stddevs = [alpha_init_stddevs] * n_layers
+            alpha_init_stddevs = [alpha_init_stddevs] * n_layers
         if not isinstance(bias_init_consts, SequenceCollection):
-            self.bias_init_consts = [bias_init_consts] * n_layers
+            bias_init_consts = [bias_init_consts] * n_layers
         if not isinstance(dropouts, SequenceCollection):
-            self.dropouts = [dropouts] * n_layers
-        if not isinstance(activation_fns, SequenceCollection):
-            self.activation_fns = [activation_fns] * n_layers
+            dropouts = [dropouts] * n_layers
+        if isinstance(
+                activation_fns,
+                str) or not isinstance(activation_fns, SequenceCollection):
+            activation_fns = [activation_fns] * n_layers
+
+        self.n_tasks = n_tasks
+        self.n_features = n_features
+        self.layer_sizes = layer_sizes
+        self.n_outputs = n_outputs
+        self.weight_init_stddevs = weight_init_stddevs
+        self.alpha_init_stddevs = alpha_init_stddevs
+        self.bias_init_consts = bias_init_consts
+        self.dropouts = dropouts
+        self.activation_fns = [get_activation(f) for f in activation_fns]
 
         super(ProgressiveMultitask, self).__init__()
 
@@ -113,15 +118,8 @@ class ProgressiveMultitask(nn.Module):
             adapter_list = []
             alpha_list = []
             prev_size = n_features
-            for i, (size, dropout, activation_fn) in enumerate(
-                    zip(self.layer_sizes, self.dropouts, self.activation_fns)):
-                layer = []
-                layer.append(self._init_linear(prev_size, size, i))
-                layer.append(activation_fn())
-                if dropout > 0:
-                    layer.append(nn.Dropout(dropout))
-
-                layer_list.append(nn.Sequential(*layer))
+            for i, size in enumerate(self.layer_sizes):
+                layer_list.append(self._init_linear(prev_size, size, i))
 
                 if task > 0:
                     if i > 0:
@@ -133,20 +131,19 @@ class ProgressiveMultitask(nn.Module):
                 prev_size = size
 
             layer_list.append(
-                nn.Sequential(
-                    self._init_linear(prev_size, n_outputs,
-                                      len(self.layer_sizes))))
+                self._init_linear(prev_size, n_outputs, len(self.layer_sizes)))
             self.layers.append(nn.ModuleList(layer_list))
             if task > 0:
                 adapter, alpha = self._get_adapter(task, prev_size, n_outputs,
                                                    len(self.layer_sizes))
                 adapter_list.append(adapter)
                 alpha_list.append(alpha)
+
                 self.adapters.append(nn.ModuleList(adapter_list))
                 self.alphas.append(nn.ParameterList(alpha_list))
 
     def _get_adapter(self, task: int, prev_size: int, size: int,
-                     layer_num: int) -> Tuple[nn.Sequential, torch.Tensor]:
+                     layer_num: int) -> Tuple[nn.ModuleList, torch.Tensor]:
         """Creates the adapter layer between previous tasks and the current layer.
 
         Parameters
@@ -167,11 +164,10 @@ class ProgressiveMultitask(nn.Module):
         alpha: torch.Tensor
             Alpha parameter.
         """
-        adapter = nn.Sequential(
+        adapter = nn.ModuleList([
             self._init_linear(prev_size * task, prev_size, layer_num),
-            nn.ReLU(),
             self._init_linear(prev_size, size, layer_num, use_bias=False),
-        )
+        ])
         alpha_init_stddev = (self.alpha_init_stddevs[layer_num]
                              if layer_num < len(self.layer_sizes) else
                              self.alpha_init_stddevs[-1])
@@ -231,23 +227,45 @@ class ProgressiveMultitask(nn.Module):
             Output tensor of shape (batch_size, n_tasks, n_outputs).
         """
         outputs = []
-        logits = []
+        logits: List[List[torch.Tensor]] = []
         for task in range(self.n_tasks):
             x_ = x
             layer_outputs = []
-            for i, layer in enumerate(self.layers[task]):
+            for i, (layer, activation_fn, dropout) in enumerate(
+                    zip(self.layers[task], self.activation_fns, self.dropouts)):
                 x_ = layer(x_)
+
                 if task > 0 and i > 0:
-                    adapter = self.adapters[task - 1][i - 1]
-                    alpha = self.alphas[task - 1][i - 1]
-                    prev_logits = [logits[t][i - 1] for t in range(task)]
-                    adapter_input = torch.cat(prev_logits, dim=-1)
-                    adapter_input = alpha * adapter_input
-                    x_ = x_ + adapter(adapter_input)
+                    adapter_out = self._get_lateral_contrib(logits, task, i)
+                    x_ = x_ + adapter_out
+
+                if i < len(self.layer_sizes):
+                    x_ = activation_fn(x_)
+                    if dropout > 0.0:
+                        x_ = F.dropout(x_, p=dropout, training=self.training)
 
                 layer_outputs.append(x_)
+
+            out_layer_idx = len(self.layer_sizes)
+            x_ = self.layers[task][out_layer_idx](x_)
+            if task > 0:
+                adapter_out = self._get_lateral_contrib(logits, task,
+                                                        out_layer_idx)
+                x_ = x_ + adapter_out
 
             logits.append(layer_outputs)
             outputs.append(x_)
 
         return torch.stack(outputs, dim=1)
+
+    def _get_lateral_contrib(self, logits, task, layer):
+        adapter = self.adapters[task - 1][layer - 1]
+        alpha = self.alphas[task - 1][layer - 1]
+        prev_logits = [logits[t][layer - 1] for t in range(task)]
+        adapter_input = torch.cat(prev_logits, dim=-1)
+        adapter_input = alpha * adapter_input
+
+        adapter_out = adapter[0](adapter_input)
+        adapter_out = self.activation_fns[layer - 1](adapter_out)
+        adapter_out = adapter[1](adapter_out)
+        return adapter_out
