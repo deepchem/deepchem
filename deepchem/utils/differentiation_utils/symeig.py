@@ -150,111 +150,16 @@ def symeig(A: LinearOperator,
                                      na, *params, *mparams)
 
 
-def svd(A: LinearOperator,
-        k: Optional[int] = None,
-        mode: str = "uppest",
-        bck_options: Mapping[str, Any] = {},
-        method: Union[str, Callable, None] = None,
-        **fwd_options) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    r"""
-    Perform the singular value decomposition (SVD):
-
-    .. math::
-
-        \mathbf{A} = \mathbf{U\Sigma V}^H
-
-    where :math:`\mathbf{U}` and :math:`\mathbf{V}` are semi-unitary matrix and
-    :math:`\mathbf{\Sigma}` is a diagonal matrix containing real non-negative
-    numbers.
-    This function can handle derivatives for degenerate singular values by setting non-zero
-    ``degen_atol`` and ``degen_rtol`` in the backward option using the expressions
-    in [1]_.
-
-    Parameters
-    ----------
-    A: LinearOperator
-        The linear operator to be decomposed. It has a shape of ``(*BA, m, n)``
-        where ``(*BA)`` is the batched dimension of ``A``.
-    k: int or None
-        The number of decomposition obtained. If ``None``, it will be
-        ``min(*A.shape[-2:])``
-    mode: str
-        ``"lowest"`` or ``"uppermost"``/``"uppest"``. If ``"lowest"``,
-        it will take the lowest ``k`` decomposition.
-        If ``"uppest"``, it will take the uppermost ``k``.
-    bck_options: dict
-        Method-specific options for :func:`solve` which used in backpropagation
-        calculation with some additional arguments for computing the backward
-        derivatives:
-
-        * ``degen_atol`` (``float`` or None): Minimum absolute difference between
-          two singular values to be treated as degenerate. If None, it is
-          ``torch.finfo(dtype).eps**0.6``. If 0.0, no special treatment on
-          degeneracy is applied. (default: None)
-        * ``degen_rtol`` (``float`` or None): Minimum relative difference between
-          two singular values to be treated as degenerate. If None, it is
-          ``torch.finfo(dtype).eps**0.4``. If 0.0, no special treatment on
-          degeneracy is applied. (default: None)
-
-    method: str or callable or None
-        Method for the svd (same options for :func:`symeig`). If ``None``,
-        it will choose ``"exacteig"``.
-    **fwd_options
-        Method-specific options (see method section below).
-
-    Returns
-    -------
-    tuple of tensors (u, s, vh)
-        It will return ``u, s, vh`` with shapes respectively
-        ``(*BA, m, k)``, ``(*BA, k)``, and ``(*BA, k, n)``.
-
-    Note
-    ----
-    It is a naive implementation of symmetric eigendecomposition of ``A.H @ A``
-    or ``A @ A.H`` (depending which one is cheaper)
-
-    References
-    ----------
-    .. [1] Muhammad F. Kasim,
-           "Derivatives of partial eigendecomposition of a real symmetric matrix for degenerate cases".
-           arXiv:2011.04366 (2020)
-           `https://arxiv.org/abs/2011.04366 <https://arxiv.org/abs/2011.04366>`_
-    """
-    # A: (*BA, m, n)
-    # adapted from scipy.sparse.linalg.svds
-    m = A.shape[-2]
-    n = A.shape[-1]
-    if m < n:
-        AAsym = A.matmul(A.H, is_hermitian=True)
-    else:
-        AAsym = A.H.matmul(A, is_hermitian=True)
-
-    eivals, eivecs = symeig(AAsym,
-                            k,
-                            mode,
-                            bck_options=bck_options,
-                            method=method,
-                            **fwd_options)  # (*BA, k) and (*BA, min(mn), k)
-
-    # clamp the eigenvalues to a small positive values to avoid numerical
-    # instability
-    eivals = torch.clamp(eivals, min=0.0)
-    s = torch.sqrt(eivals)  # (*BA, k)
-    sdiv = torch.clamp(s, min=1e-12).unsqueeze(-2)  # (*BA, 1, k)
-    if m < n:
-        u = eivecs  # (*BA, m, k)
-        v = A.rmm(u) / sdiv  # (*BA, n, k)
-    else:
-        v = eivecs  # (*BA, n, k)
-        u = A.mm(v) / sdiv  # (*BA, m, k)
-    vh = v.transpose(-2, -1).conj()
-    return u, s, vh
-
-
 class symeig_torchfcn(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, A, neig, mode, M, fwd_options, bck_options, na, *amparams):
+        """Forward calculation of symeig
+        
+        Parameters
+        ----------
+        A: LinearOperator (*BA, q, q)
+            """
         # A: LinearOperator (*BA, q, q)
         # M: LinearOperator (*BM, q, q) or None
 
@@ -421,6 +326,25 @@ class symeig_torchfcn(torch.autograd.Function):
 
 def _check_degen(evals: torch.Tensor, degen_atol: float, degen_rtol: float) -> \
         Tuple[torch.Tensor, bool]:
+    """Check the degeneracy of the eigenvalues
+
+    Parameters
+    ----------
+    evals: torch.Tensor
+        Eigenvalues of the linear operator. Shape: ``(*BAM, neig)``
+    degen_atol: float
+        Minimum absolute difference between two eigenvalues to be treated as degenerate.
+    degen_rtol: float
+        Minimum relative difference between two eigenvalues to be treated as degenerate.
+    
+    Returns
+    -------
+    idx_degen: torch.Tensor
+        The degeneracy map. Shape: ``(*BAM, neig, neig)``
+    isdegenerate: bool
+        Whether the eigenvalues are degenerate
+
+    """
     # evals: (*BAM, neig)
 
     # get the index of degeneracies
@@ -438,14 +362,27 @@ def _ortho(A: torch.Tensor,
            D: Optional[torch.Tensor] = None,
            M: Optional[LinearOperator] = None,
            mright: bool = False) -> torch.Tensor:
-    # orthogonalize every column in A w.r.t. columns in B
-    # D is the degeneracy map, if None, it is identity matrix
-    # M is the overlap matrix (in LinearOperator)
-    # mright indicates whether to operate M at the right or at the left
+    """Orthogonalize A w.r.t. B
 
-    # shapes:
-    # A: (*BAM, na, neig)
-    # B: (*BAM, na, neig)
+    Parameters
+    ----------
+    A: torch.Tensor
+        The tensor to be orthogonalized. Shape: ``(*BAM, na, neig)``
+    B: torch.Tensor
+        The tensor to be orthogonalized against. Shape: ``(*BAM, na, neig)``
+    D: torch.Tensor or None
+        The degeneracy map. If None, it is identity matrix. Shape: ``(*BAM, neig, neig)``
+    M: xitorch.LinearOperator or None
+        The overlap matrix. If None, identity matrix is used. Shape: ``(*BM, q, q)``
+    mright: bool
+        Whether to operate M at the right or at the left
+
+    Returns
+    -------
+    torch.Tensor
+        The orthogonalized tensor. Shape: ``(*BAM, na, neig)``
+
+    """
     if D is None:
         # contracted using opt_einsum
         str1 = "...rc,...rc->...c"

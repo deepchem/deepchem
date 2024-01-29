@@ -803,6 +803,17 @@ def test_setup_idxs():
 
 
 @pytest.mark.torch
-def test_solve_exact():
-    from deepchem.utils.differentiation_utils.solve import solve
-    solve(A, B)
+def test_solve():
+    from deepchem.utils.differentiation_utils import LinearOperator, solve
+    A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
+    B = torch.tensor([[5., 6], [7, 8]])
+    assert torch.allclose(solve(A, B), torch.tensor([[-3.0000, -4.0000], [ 4.0000,  5.0000]]))
+
+
+@pytest.mark.torch
+def test_cg():
+    from deepchem.utils.differentiation_utils import LinearOperator, cg
+    A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
+    B = torch.tensor([[5., 6], [7, 8]])
+    assert torch.allclose(cg(A, B), torch.tensor([[-3.0000, -4.0000], [ 4.0000,  5.0000]]))
+
