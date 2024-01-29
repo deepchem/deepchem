@@ -13,71 +13,7 @@ def lsymeig(A: LinearOperator,
             bck_options: Mapping[str, Any] = {},
             method: Union[str, Callable, None] = None,
             **fwd_options) -> Tuple[torch.Tensor, torch.Tensor]:
-    r"""
-    Obtain ``neig`` lowest eigenvalues and eigenvectors of a linear operator,
-
-    .. math::
-
-        \mathbf{AX = MXE}
-
-    where :math:`\mathbf{A}, \mathbf{M}` are linear operators,
-    :math:`\mathbf{E}` is a diagonal matrix containing the eigenvalues, and
-    :math:`\mathbf{X}` is a matrix containing the eigenvectors.
-    This function can handle derivatives for degenerate cases by setting non-zero
-    ``degen_atol`` and ``degen_rtol`` in the backward option using the expressions
-    in [1]_.
-
-    Parameters
-    ----------
-    A: LinearOperator
-        The linear operator object on which the eigenpairs are constructed.
-        It must be a Hermitian linear operator with shape ``(*BA, q, q)``
-    neig: int or None
-        The number of eigenpairs to be retrieved. If ``None``, all eigenpairs are
-        retrieved
-    mode: str
-        ``"lowest"`` or ``"uppermost"``/``"uppest"``. If ``"lowest"``,
-        it will take the lowest ``neig`` eigenpairs.
-        If ``"uppest"``, it will take the uppermost ``neig``.
-    M: LinearOperator
-        The transformation on the right hand side. If ``None``, then ``M=I``.
-        If specified, it must be a Hermitian with shape ``(*BM, q, q)``.
-    bck_options: dict
-        Method-specific options for :func:`solve` which used in backpropagation
-        calculation with some additional arguments for computing the backward
-        derivatives:
-
-        * ``degen_atol`` (``float`` or None): Minimum absolute difference between
-          two eigenvalues to be treated as degenerate. If None, it is
-          ``torch.finfo(dtype).eps**0.6``. If 0.0, no special treatment on
-          degeneracy is applied. (default: None)
-        * ``degen_rtol`` (``float`` or None): Minimum relative difference between
-          two eigenvalues to be treated as degenerate. If None, it is
-          ``torch.finfo(dtype).eps**0.4``. If 0.0, no special treatment on
-          degeneracy is applied. (default: None)
-
-    method: str or callable or None
-        Method for the eigendecomposition. If ``None``, it will choose
-        ``"exacteig"``.
-    **fwd_options
-        Method-specific options (see method section below).
-
-    Returns
-    -------
-    tuple of tensors (eigenvalues, eigenvectors)
-        It will return eigenvalues and eigenvectors with shapes respectively
-        ``(*BAM, neig)`` and ``(*BAM, na, neig)``, where ``*BAM`` is the
-        broadcasted shape of ``*BA`` and ``*BM``.
-
-    References
-    ----------
-    .. [1] Muhammad F. Kasim,
-           "Derivatives of partial eigendecomposition of a real symmetric matrix for degenerate cases".
-           arXiv:2011.04366 (2020)
-           `https://arxiv.org/abs/2011.04366 <https://arxiv.org/abs/2011.04366>`_
-
-    """
-
+    """Obtain ``neig`` lowest eigenvalues and eigenvectors of a linear operator"""
     return symeig(A,
                   neig,
                   "lowest",
@@ -93,75 +29,7 @@ def usymeig(A: LinearOperator,
             bck_options: Mapping[str, Any] = {},
             method: Union[str, Callable, None] = None,
             **fwd_options) -> Tuple[torch.Tensor, torch.Tensor]:
-    r"""
-    Obtain ``neig`` uppest eigenvalues and eigenvectors of a linear operator,
-
-    .. math::
-
-        \mathbf{AX = MXE}
-
-    where :math:`\mathbf{A}, \mathbf{M}` are linear operators,
-    :math:`\mathbf{E}` is a diagonal matrix containing the eigenvalues, and
-    :math:`\mathbf{X}` is a matrix containing the eigenvectors.
-    This function can handle derivatives for degenerate cases by setting non-zero
-    ``degen_atol`` and ``degen_rtol`` in the backward option using the expressions
-    in [1]_.
-
-    Arguments
-    ---------
-    A: LinearOperator
-        The linear operator object on which the eigenpairs are constructed.
-        It must be a Hermitian linear operator with shape ``(*BA, q, q)``
-    neig: int or None
-        The number of eigenpairs to be retrieved. If ``None``, all eigenpairs are
-        retrieved
-    mode: str
-        ``"lowest"`` or ``"uppermost"``/``"uppest"``. If ``"lowest"``,
-        it will take the lowest ``neig`` eigenpairs.
-        If ``"uppest"``, it will take the uppermost ``neig``.
-    M: LinearOperator
-        The transformation on the right hand side. If ``None``, then ``M=I``.
-        If specified, it must be a Hermitian with shape ``(*BM, q, q)``.
-    bck_options: dict
-        Method-specific options for :func:`solve` which used in backpropagation
-        calculation with some additional arguments for computing the backward
-        derivatives:
-
-        * ``degen_atol`` (``float`` or None): Minimum absolute difference between
-          two eigenvalues to be treated as degenerate. If None, it is
-          ``torch.finfo(dtype).eps**0.6``. If 0.0, no special treatment on
-          degeneracy is applied. (default: None)
-        * ``degen_rtol`` (``float`` or None): Minimum relative difference between
-          two eigenvalues to be treated as degenerate. If None, it is
-          ``torch.finfo(dtype).eps**0.4``. If 0.0, no special treatment on
-          degeneracy is applied. (default: None)
-
-        Note: the default values of ``degen_atol`` and ``degen_rtol`` are going
-        to change in the future. So, for future compatibility, please specify
-        the specific values.
-
-    method: str or callable or None
-        Method for the eigendecomposition. If ``None``, it will choose
-        ``"exacteig"``.
-    **fwd_options
-        Method-specific options (see method section below).
-
-    Returns
-    -------
-    tuple of tensors (eigenvalues, eigenvectors)
-        It will return eigenvalues and eigenvectors with shapes respectively
-        ``(*BAM, neig)`` and ``(*BAM, na, neig)``, where ``*BAM`` is the
-        broadcasted shape of ``*BA`` and ``*BM``.
-
-    References
-    ----------
-    .. [1] Muhammad F. Kasim,
-           "Derivatives of partial eigendecomposition of a real symmetric matrix for degenerate cases".
-           arXiv:2011.04366 (2020)
-           `https://arxiv.org/abs/2011.04366 <https://arxiv.org/abs/2011.04366>`_
-
-    """
-
+    """Obtain ``neig`` uppest eigenvalues and eigenvectors of a linear operator"""
     return symeig(A,
                   neig,
                   "uppest",

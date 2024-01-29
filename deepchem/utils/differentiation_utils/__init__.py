@@ -35,5 +35,9 @@ try:
     from deepchem.utils.differentiation_utils.solve import safedenom
     from deepchem.utils.differentiation_utils.solve import setup_linear_problem
     from deepchem.utils.differentiation_utils.solve import gmres
+    from deepchem.utils.differentiation_utils.solve import solve
+    from deepchem.utils.differentiation_utils.solve import cg
+    from deepchem.utils.differentiation_utils.solve import bicgstab
+
 except:
     pass

@@ -800,3 +800,9 @@ def test_setup_idxs():
     x = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
     y = torch.tensor([4.0, 5.0, 6.0], requires_grad=True)
     assert _setup_idxs(None, [x, y]) == [0, 1]
+
+
+@pytest.mark.torch
+def test_solve_exact():
+    from deepchem.utils.differentiation_utils.solve import solve
+    solve(A, B)
