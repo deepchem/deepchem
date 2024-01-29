@@ -39,5 +39,10 @@ try:
     from deepchem.utils.differentiation_utils.solve import cg
     from deepchem.utils.differentiation_utils.solve import bicgstab
 
+    from deepchem.utils.differentiation_utils.symeig import lsymeig
+    from deepchem.utils.differentiation_utils.symeig import usymeig
+    from deepchem.utils.differentiation_utils.symeig import symeig
+    from deepchem.utils.differentiation_utils.symeig import ortho
+    from deepchem.utils.differentiation_utils.symeig import exacteig
 except:
     pass

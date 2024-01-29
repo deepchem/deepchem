@@ -1,7 +1,6 @@
 import torch
 from typing import Optional, Sequence, Tuple, Union, Mapping, Any, Callable
-from deepchem.utils.differentiation_utils import LinearOperator, get_bcasted_dims, MatrixLinearOperator, set_default_option, get_and_pop_keys, dummy_context_manager, get_method
-from deepchem.utils.differentiation_utils.solve import solve
+from deepchem.utils.differentiation_utils import LinearOperator, get_bcasted_dims, MatrixLinearOperator, set_default_option, get_and_pop_keys, dummy_context_manager, get_method, solve
 import functools
 from deepchem.utils.pytorch_utils import tallqr, to_fortran_order
 import warnings
@@ -49,6 +48,17 @@ def symeig(A: LinearOperator,
     r"""
     Obtain ``neig`` lowest eigenvalues and eigenvectors of a linear operator,
 
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.differentiation_utils import LinearOperator
+    >>> A = LinearOperator.m(torch.tensor([[3, -1j], [1j, 4]]))
+    >>> evals, evecs = symeig(A)
+    >>> evals.shape
+    torch.Size([2])
+    >>> evecs.shape
+    torch.Size([2, 2])
+
     .. math::
 
         \mathbf{AX = MXE}
@@ -60,8 +70,8 @@ def symeig(A: LinearOperator,
     ``degen_atol`` and ``degen_rtol`` in the backward option using the expressions
     in [1]_.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     A: xitorch.LinearOperator
         The linear operator object on which the eigenpairs are constructed.
         It must be a Hermitian linear operator with shape ``(*BA, q, q)``
@@ -112,6 +122,7 @@ def symeig(A: LinearOperator,
            "Derivatives of partial eigendecomposition of a real symmetric matrix for degenerate cases".
            arXiv:2011.04366 (2020)
            `https://arxiv.org/abs/2011.04366 <https://arxiv.org/abs/2011.04366>`_
+
     """
     assert A.is_hermitian, "The linear operator A must be Hermitian"
     assert not torch.is_grad_enabled() or A.is_getparamnames_implemented, \
@@ -151,17 +162,39 @@ def symeig(A: LinearOperator,
 
 
 class symeig_torchfcn(torch.autograd.Function):
+    """A wrapper for symeig to be used in torch.autograd.Function"""
 
     @staticmethod
     def forward(ctx, A, neig, mode, M, fwd_options, bck_options, na, *amparams):
-        """Forward calculation of symeig
-        
+        """Calculate the eigenvalues and eigenvectors of a linear operator
+
         Parameters
         ----------
-        A: LinearOperator (*BA, q, q)
-            """
-        # A: LinearOperator (*BA, q, q)
-        # M: LinearOperator (*BM, q, q) or None
+        A: LinearOperator
+            The linear operator object on which the eigenpairs are constructed.
+            It must be a Hermitian linear operator with shape ``(*BA, q, q)``
+        neig: int
+            The number of eigenpairs to be retrieved. If ``None``, all eigenpairs are
+            retrieved
+        mode: str
+            ``"lowest"`` or ``"uppermost"``/``"uppest"``. If ``"lowest"``,
+            it will take the lowest ``neig`` eigenpairs.
+            If ``"uppest"``, it will take the uppermost ``neig``.
+        M: xitorch.LinearOperator
+            The transformation on the right hand side. If ``None``, then ``M=I``.
+            If specified, it must be a Hermitian with shape ``(*BM, q, q)``.
+        fwd_options: dict
+            Method-specific options (see method section below).
+        bck_options: dict
+            Method-specific options for :func:`solve` which used in backpropagation
+            calculation with some additional arguments for computing the backward
+            derivatives: ``degen_atol`` and ``degen_rtol``.
+        na: int
+            Number of parameters of A (and M if M is not None)
+        *amparams: torch.Tensor
+            Parameters of A (and M if M is not None)
+
+        """
 
         # separate the sets of parameters
         params = amparams[:na]
@@ -199,8 +232,16 @@ class symeig_torchfcn(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_evals, grad_evecs):
-        # grad_evals: (*BAM, neig)
-        # grad_evecs: (*BAM, na, neig)
+        """Calculate the gradient of the eigenvalues and eigenvectors of a linear operator
+
+        Parameters
+        ----------
+        grad_evals: torch.Tensor
+            The gradient of the eigenvalues. Shape: ``(*BAM, neig)``
+        grad_evecs: torch.Tensor
+            The gradient of the eigenvectors. Shape: ``(*BAM, na, neig)``
+
+        """
 
         # get the variables from ctx
         evals, evecs = ctx.saved_tensors[:2]
@@ -268,7 +309,7 @@ class symeig_torchfcn(torch.autograd.Function):
         with M.uselinopparams(
                 *mparams) if M is not None else dummy_context_manager():
             # orthogonalize the grad_evecs with evecs
-            B = _ortho(grad_evecs, evecs, D=idx_degen, M=M, mright=False)
+            B = ortho(grad_evecs, evecs, D=idx_degen, M=M, mright=False)
 
             # Based on test cases, complex datatype is more likely to suffer from
             # singularity error when doing the inverse. Therefore, I add a small
@@ -287,7 +328,7 @@ class symeig_torchfcn(torch.autograd.Function):
                                **ctx.bck_config)  # (*BAM, na, neig)
 
             # orthogonalize gevecs w.r.t. evecs
-            gevecsA = _ortho(gevecs, evecs, D=None, M=M, mright=True)
+            gevecsA = ortho(gevecs, evecs, D=None, M=M, mright=True)
 
         # accummulate the gradient contributions
         gaccumA = gevalsA + gevecsA
@@ -328,6 +369,18 @@ def _check_degen(evals: torch.Tensor, degen_atol: float, degen_rtol: float) -> \
         Tuple[torch.Tensor, bool]:
     """Check the degeneracy of the eigenvalues
 
+    Examples
+    --------
+    >>> import torch
+    >>> evals = torch.tensor([1, 1, 2, 3, 3, 3, 4, 5, 5])
+    >>> degen_atol = 0.1
+    >>> degen_rtol = 0.1
+    >>> idx_degen, isdegenerate = _check_degen(evals, degen_atol, degen_rtol)
+    >>> idx_degen.shape
+    torch.Size([9, 9])
+    >>> isdegenerate
+    True
+
     Parameters
     ----------
     evals: torch.Tensor
@@ -336,7 +389,7 @@ def _check_degen(evals: torch.Tensor, degen_atol: float, degen_rtol: float) -> \
         Minimum absolute difference between two eigenvalues to be treated as degenerate.
     degen_rtol: float
         Minimum relative difference between two eigenvalues to be treated as degenerate.
-    
+
     Returns
     -------
     idx_degen: torch.Tensor
@@ -356,13 +409,22 @@ def _check_degen(evals: torch.Tensor, degen_atol: float, degen_rtol: float) -> \
     return idx_degen, isdegenerate
 
 
-def _ortho(A: torch.Tensor,
-           B: torch.Tensor,
-           *,
-           D: Optional[torch.Tensor] = None,
-           M: Optional[LinearOperator] = None,
-           mright: bool = False) -> torch.Tensor:
+def ortho(A: torch.Tensor,
+          B: torch.Tensor,
+          *,
+          D: Optional[torch.Tensor] = None,
+          M: Optional[LinearOperator] = None,
+          mright: bool = False) -> torch.Tensor:
     """Orthogonalize A w.r.t. B
+
+    Examples
+    --------
+    >>> import torch
+    >>> A = torch.tensor([[1, 2], [3, 4]])
+    >>> B = torch.tensor([[1, 0], [0, 1]])
+    >>> ortho(A, B)
+    tensor([[0, 2],
+            [3, 0]])
 
     Parameters
     ----------

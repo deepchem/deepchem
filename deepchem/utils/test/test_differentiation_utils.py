@@ -757,6 +757,33 @@ def test_get_largest_eival():
 
 
 @pytest.mark.torch
+def test_symeig():
+    from deepchem.utils.differentiation_utils import LinearOperator, symeig
+    A = LinearOperator.m(torch.tensor([[3, -1j], [1j, 4]]))
+    evals, evecs = symeig(A)
+    assert evecs.shape == torch.Size([2, 2])
+    assert evals.shape == torch.Size([2])
+
+
+@pytest.mark.torch
+def test_check_degen():
+    from deepchem.utils.differentiation_utils.symeig import _check_degen
+    evals = torch.tensor([1, 1, 2, 3, 3, 3, 4, 5, 5])
+    degen_atol = 0.1
+    degen_rtol = 0.1
+    idx_degen, isdegenerate = _check_degen(evals, degen_atol, degen_rtol)
+    assert idx_degen.shape == torch.Size([9, 9])
+
+
+@pytest.mark.torch
+def test_ortho():
+    from deepchem.utils.differentiation_utils import ortho
+    A = torch.tensor([[1, 2], [3, 4]])
+    B = torch.tensor([[1, 0], [0, 1]])
+    assert torch.allclose(ortho(A, B), torch.tensor([[0, 2], [3, 0]]))
+
+
+@pytest.mark.torch
 def test_jac():
     from deepchem.utils.differentiation_utils import jac
 
@@ -807,7 +834,8 @@ def test_solve():
     from deepchem.utils.differentiation_utils import LinearOperator, solve
     A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
     B = torch.tensor([[5., 6], [7, 8]])
-    assert torch.allclose(solve(A, B), torch.tensor([[-3.0000, -4.0000], [ 4.0000,  5.0000]]))
+    assert torch.allclose(solve(A, B),
+                          torch.tensor([[-3.0000, -4.0000], [4.0000, 5.0000]]))
 
 
 @pytest.mark.torch
@@ -815,5 +843,5 @@ def test_cg():
     from deepchem.utils.differentiation_utils import LinearOperator, cg
     A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
     B = torch.tensor([[5., 6], [7, 8]])
-    assert torch.allclose(cg(A, B), torch.tensor([[-3.0000, -4.0000], [ 4.0000,  5.0000]]))
-
+    assert torch.allclose(cg(A, B),
+                          torch.tensor([[-3.0000, -4.0000], [4.0000, 5.0000]]))
