@@ -1,6 +1,6 @@
 import torch
 from typing import Optional, Sequence, Tuple, Union, Mapping, Any, Callable
-from deepchem.utils.differentiation_utils import LinearOperator, get_bcasted_dims, MatrixLinearOperator, set_default_option, get_and_pop_keys, dummy_context_manager, get_method, solve
+from deepchem.utils.differentiation_utils import LinearOperator, get_bcasted_dims, MatrixLinearOperator, set_default_option, get_and_pop_keys, dummy_context_manager, get_method, solve  # type: ignore
 import functools
 from deepchem.utils.pytorch_utils import tallqr, to_fortran_order
 import warnings
