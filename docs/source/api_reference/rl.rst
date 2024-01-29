@@ -24,7 +24,7 @@ Policies
   :members:
 
 Tensorflow implementation
-=========================
+-------------------------
 
 A2C
 ---
@@ -32,7 +32,7 @@ A2C
 .. autoclass:: deepchem.rl.a2c.A2C
   :members:
 
-.. autoclass:: deepchem.rl.a2c.A2CLossDiscrete
+.. autoclass:: deepchem.rl.A2CLossDiscrete
   :members:
 
 PPO
@@ -45,10 +45,16 @@ PPO
   :members:
 
 Torch implementation
-====================
+--------------------
 
 A2C
 ---
 
 .. autoclass:: deepchem.rl.torch_a2c.A2C
+  :members:
+
+.. autoclass:: deepchem.rl.torch_a2c.A2CLossDiscrete
+  :members:
+
+.. autoclass:: deepchem.rl.torch_a2c.A2CLossContinuous
   :members:

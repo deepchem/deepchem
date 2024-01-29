@@ -17,6 +17,7 @@ except:
 
 class A2CLossDiscrete(object):
     """This class computes the loss function for A2C with discrete action spaces.
+
     The A2C algorithm optimizes all outputs at once using a loss that is the sum of three terms:
     1. The policy loss, which seeks to maximize the discounted reward for each action.
     2. The value loss, which tries to make the value estimate match the actual discounted reward
@@ -41,6 +42,7 @@ class A2CLossDiscrete(object):
     def __init__(self, value_weight: float, entropy_weight: float,
                  action_prob_index: int, value_index: int):
         """Computes the loss function for the A2C algorithm with discrete action spaces.
+
         Parameters
         ----------
         value_weight: float
@@ -76,14 +78,9 @@ class A2CLossDiscrete(object):
 
 
 class A2CLossContinuous(object):
-    """This class computes the loss function for A2C with discrete action spaces.
-    The A2C algorithm optimizes all outputs at once using a loss that is the sum of three terms:
-    1. The policy loss, which seeks to maximize the discounted reward for each action.
-    2. The value loss, which tries to make the value estimate match the actual discounted reward
-        that was attained at each step.
-    3. An entropy term to encourage exploration.
+    """This class computes the loss function for A2C with continuous action spaces.
     Example
-    --------
+    -------
     >>> import deepchem as dc
     >>> import numpy as np
     >>> import torch
@@ -101,6 +98,7 @@ class A2CLossContinuous(object):
     def __init__(self, value_weight: float, entropy_weight: float,
                  mean_index: int, std_index: int, value_index: int):
         """Computes the loss function for the A2C algorithm with continuous action spaces.
+
         Parameters
         ----------
         value_weight: float
