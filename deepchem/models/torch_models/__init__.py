@@ -10,6 +10,7 @@ from deepchem.models.torch_models.cgcnn import CGCNN, CGCNNModel
 from deepchem.models.torch_models.gat import GAT, GATModel
 from deepchem.models.torch_models.gcn import GCN, GCNModel
 from deepchem.models.torch_models.gan import GAN, GANModel, WGANModel, GradientPenaltyLayer
+from deepchem.models.torch_models.molgan import BasicMolGANModel
 from deepchem.models.torch_models.infograph import InfoGraphStar, InfoGraphStarModel, InfoGraphEncoder, GINEncoder, InfoGraph, InfoGraphModel, InfoGraphEncoder
 from deepchem.models.torch_models.mpnn import MPNN, MPNNModel
 from deepchem.models.torch_models.lcnn import LCNN, LCNNModel
@@ -40,4 +41,5 @@ try:
     from deepchem.models.torch_models.hf_models import HuggingFaceModel
     from deepchem.models.torch_models.chemberta import Chemberta
 except ModuleNotFoundError as e:
-    logger.warning(f'Skipped loading modules with transformers dependency. {e}')
+    logger.warning(
+        f'Skipped loading modules with transformers dependency. {e}')
