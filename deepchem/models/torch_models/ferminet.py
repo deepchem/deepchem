@@ -283,20 +283,6 @@ class FerminetModel(TorchModel):
     -------
     >>> from deepchem.models.torch_models.ferminet import FerminetModel
     >>> H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
-    >>> mol = FerminetModel(H2_molecule, spin=0, ion_charge=0, tasks='pretraining')
-    converged SCF energy = -0.895803169899509  <S^2> = 0  2S+1 = 1
-     ** Mulliken pop alpha/beta on meta-lowdin orthogonal AOs **
-     ** Mulliken pop       alpha | beta **
-    pop of  0 H 1s        0.50000 | 0.50000
-    pop of  1 H 1s        0.50000 | 0.50000
-    In total             1.00000 | 1.00000
-     ** Mulliken atomic charges   ( Nelec_alpha | Nelec_beta ) **
-    charge of  0H =      0.00000  (     0.50000      0.50000 )
-    charge of  1H =      0.00000  (     0.50000      0.50000 )
-    converged SCF energy = -0.895803169899509  <S^2> = 0  2S+1 = 1
-    >>> mol.train(nb_epoch=3)
-    >>> print(mol.model.psi_up.size())
-    torch.Size([8, 16, 1, 1])
 
     References
     ----------
