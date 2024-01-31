@@ -468,7 +468,7 @@ def load_bbbc005(
     fluorescent cell population images. These images were simulated for a given cell count
     with a clustering probablity of 25% and a CCD noise variance of 0.0001. Focus blur
     was simulated by applying varying Guassian filters to the images. Each image is of
-    size 696x520. Ground truth labels contain cell counts for this dataset. Full details
+    size 520x696. Ground truth labels contain cell counts for this dataset. Full details
     about this dataset are present at
     https://data.broadinstitute.org/bbbc/BBBC005/.
 
