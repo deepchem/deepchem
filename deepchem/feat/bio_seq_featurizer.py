@@ -34,6 +34,7 @@ class SAMFeaturizer(Featurizer):
     - Column 4: Reference Start
     - Column 5: CIGAR
     - Column 6: Mapping Quality
+
     For the given example, to extract specific features, we do the following.
     >>> features[0][0]     # Query Name
     r001
@@ -54,6 +55,7 @@ class SAMFeaturizer(Featurizer):
     ----
     This class requires pysam to be installed. Pysam can be used with Linux or MacOS X.
     To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
+
     """
 
     def __init__(self, max_records=None):
@@ -144,6 +146,7 @@ class BAMFeaturizer(Featurizer):
     - Column 4: Reference Start
     - Column 5: CIGAR
     - Column 6: Mapping Quality
+
     For the given example, to extract specific features, we do the following.
     >>> features[0][0]     # Query Name
     EASX:X:X:X:X:33:33_1:Y:0:NNNNNN
@@ -159,7 +162,7 @@ class BAMFeaturizer(Featurizer):
     [(0, 75)]
     >>> features[0][6]     # Mapping Quality
     42
-    
+
     Note
     ----
     This class requires pysam to be installed. Pysam can be used with Linux or MacOS X.
