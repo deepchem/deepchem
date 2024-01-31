@@ -462,13 +462,15 @@ def load_bbbc005(
     save_dir: Optional[str] = None,
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
-    """Load BBBC004 dataset
+    """Load BBBC005 dataset
 
-    This dataset contains data corresponding to 20 samples of synthetically generated
-    fluorescent cell population images. There are 300 cells in each sample, each an image
-    of size 950x950. Ground truth labels contain cell counts and segmentation masks for
-    this dataset. Full details about this dataset are present at
-    https://data.broadinstitute.org/bbbc/BBBC004/.
+    This dataset contains data corresponding to 19,200 samples of synthetically generated
+    fluorescent cell population images. These images were simulated for a given cell count
+    with a clustering probablity of 25% and a CCD noise variance of 0.0001. Focus blur
+    was simulated by applying varying Guassian filters to the images. Each image is of
+    size 696x520. Ground truth labels contain cell counts for this dataset. Full details
+    about this dataset are present at
+    https://data.broadinstitute.org/bbbc/BBBC005/.
 
     Parameters
     ----------

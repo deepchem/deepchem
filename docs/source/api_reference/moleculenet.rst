@@ -70,6 +70,8 @@ BBBC Datasets
 
 .. autofunction:: deepchem.molnet.load_bbbc004
 
+.. autofunction:: deepchem.molnet.load_bbbc005
+
 BBBP Datasets
 -------------
 BBBP stands for Blood-Brain-Barrier Penetration
