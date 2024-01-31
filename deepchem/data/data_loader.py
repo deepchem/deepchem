@@ -1975,6 +1975,7 @@ class SAMLoader(DataLoader):
         DiskDataset
             A `DiskDataset` object containing a featurized representation of
             data from `input_files`.
+
         """
         if isinstance(input_files, str):
             input_files = [input_files]
@@ -1992,6 +1993,7 @@ class SAMLoader(DataLoader):
 
 class BAMLoader(DataLoader):
     """Handles loading of BAM files.
+
     Binary Alignment Map (BAM) is the comprehensive raw data of genome
     sequencing. It consists of the lossless, compressed binary representation
     of the Sequence Alignment Map files. BAM files are smaller and more
@@ -2002,6 +2004,7 @@ class BAMLoader(DataLoader):
     Here, we extract Query Name, Query Sequence, Query Length, Reference Name,
     Reference Start, CIGAR and Mapping Quality of each read in the BAM file.
     This class provides methods to load and featurize data from BAM files.
+
     Examples
     --------
     >>> from deepchem.data.data_loader import BAMLoader
@@ -2010,14 +2013,17 @@ class BAMLoader(DataLoader):
     >>> inputs = 'deepchem/data/tests/example.bam'
     >>> data = BAMLoader()
     >>> output = data.create_dataset(inputs)
+
     Note
     ----
     This class requires pysam to be installed. Pysam can be used with Linux
     or MacOS X. To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
+
     """
 
     def __init__(self, featurizer: Optional[Featurizer] = None):
         """Initialize BAMLoader.
+
         Parameters
         ----------
         featurizer: Featurizer (default: None)
@@ -2042,6 +2048,7 @@ class BAMLoader(DataLoader):
                        data_dir: Optional[str] = None,
                        shard_size: Optional[int] = None) -> DiskDataset:
         """Creates a `Dataset` from input BAM files.
+
         Parameters
         ----------
         input_files: List[str]
@@ -2051,11 +2058,13 @@ class BAMLoader(DataLoader):
         shard_size: int, optional (default None)
             For now, this argument is ignored and each BAM file gets its
             own shard.
+
         Returns
         -------
         DiskDataset
             A `DiskDataset` object containing a featurized representation of
             data from `input_files`.
+
         """
         if isinstance(input_files, str):
             input_files = [input_files]
