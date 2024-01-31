@@ -109,3 +109,10 @@ def test_to_fortran_order():
     if V.is_contiguous() is True:
         assert False
     assert V.shape == torch.Size([3, 2])
+
+
+@pytest.mark.torch
+def test_get_np_dtype():
+    """Test the get_np_dtype utility."""
+    assert dc.utils.pytorch_utils.get_np_dtype(torch.float32) == np.float32
+    assert dc.utils.pytorch_utils.get_np_dtype(torch.float64) == np.float64

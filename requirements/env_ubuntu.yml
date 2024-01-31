@@ -5,3 +5,5 @@ channels:
 dependencies:
   - hhsuite
   - vina
+  - pip:
+    - pysam

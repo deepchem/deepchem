@@ -51,14 +51,35 @@ try:
 
         def forward(self, input):
             data_input, conditional_input = input
-
-            # Concatenate data_input and conditional_input along the second dimension
             discrim_in = torch.cat((data_input, conditional_input), dim=1)
-
-            # Pass the concatenated input through the dense layers
             x = F.relu(self.dense1(discrim_in))
-            output = torch.sigmoid(self.dense2(x))
+            a = self.dense2(x)
+            output = torch.sigmoid(a)
+            return output
 
+    class Discriminator_WGAN(nn.Module):
+        """A simple discriminator for testing."""
+
+        def __init__(self, data_input_shape, conditional_input_shape):
+            super(Discriminator_WGAN, self).__init__()
+            self.data_input_shape = data_input_shape
+            self.conditional_input_shape = conditional_input_shape
+
+            data_dim = data_input_shape[
+                1:]  # Extracting the actual data dimension
+            conditional_dim = conditional_input_shape[
+                1:]  # Extracting the actual conditional dimension
+            input_dim = sum(data_dim) + sum(conditional_dim)
+
+            # Define the dense layers
+            self.dense1 = nn.Linear(input_dim, 10)
+            self.dense2 = nn.Linear(10, 1)
+
+        def forward(self, input):
+            data_input, conditional_input = input
+            discrim_in = torch.cat((data_input, conditional_input), dim=1)
+            output = F.relu(self.dense1(discrim_in))
+            output = self.dense2(output)
             return output
 
     class ExampleGAN(dc.models.torch_models.GAN):
@@ -167,9 +188,12 @@ def test_forward_pass():
         1,
     )]
 
-    gan = ExampleGAN(noise_shape, data_shape, conditional_shape,
+    gan = ExampleGAN(noise_shape,
+                     data_shape,
+                     conditional_shape,
                      create_generator(noise_shape, conditional_shape),
-                     create_discriminator(data_shape, conditional_shape))
+                     create_discriminator(data_shape, conditional_shape),
+                     device='cpu')
 
     noise = torch.rand(*gan.noise_input_shape)
     real_data = torch.rand(*gan.data_input_shape[0])
@@ -199,9 +223,12 @@ def test_get_noise_batch():
         1,
     )]
 
-    gan = ExampleGAN(noise_shape, data_shape, conditional_shape,
+    gan = ExampleGAN(noise_shape,
+                     data_shape,
+                     conditional_shape,
                      create_generator(noise_shape, conditional_shape),
-                     create_discriminator(data_shape, conditional_shape))
+                     create_discriminator(data_shape, conditional_shape),
+                     device='cpu')
     noise = gan.get_noise_batch(batch_size)
     assert noise.shape == (gan.noise_input_shape)
 
@@ -218,10 +245,7 @@ def generate_batch(batch_size):
 def generate_data(gan, batches, batch_size):
     for _ in range(batches):
         means, values = generate_batch(batch_size)
-        batch = {
-            gan.data_input_names[0]: values,
-            gan.conditional_input_names[0]: means
-        }
+        batch = {gan.data_inputs[0]: values, gan.conditional_inputs[0]: means}
         yield batch
 
 
@@ -365,7 +389,7 @@ def test_wgan():
             conditional_input_shape = self.get_conditional_input_shapes()[0]
 
             return nn.Sequential(
-                Discriminator(data_input_shape, conditional_input_shape))
+                Discriminator_WGAN(data_input_shape, conditional_input_shape))
 
     # We have to set the gradient penalty very small because the generator's
     # output is only a single number, so the default penalty would constrain
@@ -379,6 +403,7 @@ def test_wgan():
     means = 10 * np.random.random([1000, 1])
     values = gan.predict_gan_generator(conditional_inputs=[means])
     deltas = values - means
+
     assert abs(np.mean(deltas)) < 1.0
     assert np.std(deltas) > 1.0
 
@@ -419,7 +444,7 @@ def test_wgan_reload():
             conditional_input_shape = self.get_conditional_input_shapes()[0]
 
             return nn.Sequential(
-                Discriminator(data_input_shape, conditional_input_shape))
+                Discriminator_WGAN(data_input_shape, conditional_input_shape))
 
     # We have to set the gradient penalty very small because the generator's
     # output is only a single number, so the default penalty would constrain
@@ -487,7 +512,7 @@ def gradient_penalty_layer():
             conditional_input_shape = self.get_conditional_input_shapes()[0]
 
             return nn.Sequential(
-                Discriminator(data_input_shape, conditional_input_shape))
+                Discriminator_WGAN(data_input_shape, conditional_input_shape))
 
     gan = ExampleWGAN()
     discriminator = gan.discriminators[0]
