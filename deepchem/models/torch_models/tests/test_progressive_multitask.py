@@ -35,10 +35,10 @@ def test_construction():
 
 
 @pytest.mark.torch
-def test_compare():
+def test_forward():
     """
-    Test that the PyTorch and TensorFlow versions of ProgressiveMultiTask
-    give the same results.
+    Test that the forward pass of ProgressiveMultiTask Model can be executed without crash
+    and that the output has the correct value.
     """
 
     n_tasks = 2
@@ -46,23 +46,7 @@ def test_compare():
     n_features = 12
     np.random.seed(123)
 
-    ids = np.arange(n_samples)
     X = np.random.rand(n_samples, n_features)
-    y = np.zeros((n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
-    dataset = dc.data.NumpyDataset(X, y, w, ids)
-
-    # torch_out = torch_model
-    tf_model = dc.models.ProgressiveMultitaskRegressor(
-        n_tasks=n_tasks,
-        n_features=n_features,
-        layer_sizes=[128, 256],
-        alpha_init_stddevs=0.02,
-        weight_init_stddevs=0.02,
-        dropouts=0,
-    )
-
-    tf_model.fit(dataset, nb_epoch=5)
 
     torch_model = dc.models.torch_models.ProgressiveMultitask(
         n_tasks=n_tasks,
@@ -73,70 +57,55 @@ def test_compare():
         dropouts=0,
     )
 
-    def move_param(tf_param, transpose=False):
-        if transpose:
-            return nn.Parameter(torch.from_numpy(tf_param.numpy()).T)
-        else:
-            return nn.Parameter(torch.from_numpy(tf_param.numpy()))
+    def to_torch_param(weights):
+        return nn.Parameter(torch.from_numpy(weights))
+
+    weights = np.load(
+        "deepchem/models/torch_models/tests/assets/progressive-multitask-sample-weights.npz"
+    )
+    torch_weights = {
+        k: to_torch_param(v) for k, v in weights.items() if k != "output"
+    }
+    torch_weights["output"] = weights["output"]
 
     # Porting the weights from TF to PyTorch
     # task 0 layer 0
-    torch_model.layers[0][0].weight = move_param(
-        tf_model._task_layers[0][0].weights[0], transpose=True)
-    torch_model.layers[0][0].bias = move_param(
-        tf_model._task_layers[0][0].weights[1])
+    torch_model.layers[0][0].weight = torch_weights["layer-0-0-w"]
+    torch_model.layers[0][0].bias = torch_weights["layer-0-0-b"]
 
     # task 0 layer 1
-    torch_model.layers[0][1].weight = move_param(
-        tf_model._task_layers[0][1].weights[0], transpose=True)
-    torch_model.layers[0][1].bias = move_param(
-        tf_model._task_layers[0][1].weights[1])
+    torch_model.layers[0][1].weight = torch_weights["layer-0-1-w"]
+    torch_model.layers[0][1].bias = torch_weights["layer-0-1-b"]
 
     # task 0 output layer
-    torch_model.layers[0][2].weight = move_param(
-        tf_model._task_layers[0][2].weights[0], transpose=True)
-    torch_model.layers[0][2].bias = move_param(
-        tf_model._task_layers[0][2].weights[1])
+    torch_model.layers[0][2].weight = torch_weights["layer-0-2-w"]
+    torch_model.layers[0][2].bias = torch_weights["layer-0-2-b"]
 
     # task 1 layer 0
-    torch_model.layers[1][0].weight = move_param(
-        tf_model._task_layers[1][0].weights[0], transpose=True)
-    torch_model.layers[1][0].bias = move_param(
-        tf_model._task_layers[1][0].weights[1])
+    torch_model.layers[1][0].weight = torch_weights["layer-1-0-w"]
+    torch_model.layers[1][0].bias = torch_weights["layer-1-0-b"]
 
     # task 1 layer 1
-    torch_model.layers[1][1].weight = move_param(
-        tf_model._task_layers[1][4].weights[0], transpose=True)
-    torch_model.layers[1][1].bias = move_param(
-        tf_model._task_layers[1][4].weights[1])
+    torch_model.layers[1][1].weight = torch_weights["layer-1-1-w"]
+    torch_model.layers[1][1].bias = torch_weights["layer-1-1-b"]
 
     # task 1 output layer
-    torch_model.layers[1][2].weight = move_param(
-        tf_model._task_layers[1][5].weights[0], transpose=True)
-    torch_model.layers[1][2].bias = move_param(
-        tf_model._task_layers[1][5].weights[1])
+    torch_model.layers[1][2].weight = torch_weights["layer-1-2-w"]
+    torch_model.layers[1][2].bias = torch_weights["layer-1-2-b"]
 
     # task 1 adapter 0
-    torch_model.alphas[0][0] = move_param(
-        tf_model._task_layers[1][1].weights[0])
-    torch_model.adapters[0][0][0].weight = move_param(
-        tf_model._task_layers[1][2].weights[0], transpose=True)
-    torch_model.adapters[0][0][0].bias = move_param(
-        tf_model._task_layers[1][2].weights[1])
-    torch_model.adapters[0][0][1].weight = move_param(
-        tf_model._task_layers[1][3].weights[0], transpose=True)
+    torch_model.alphas[0][0] = torch_weights["alpha-0-0"]
+    torch_model.adapters[0][0][0].weight = torch_weights["adapter-0-0-0-w"]
+    torch_model.adapters[0][0][0].bias = torch_weights["adapter-0-0-0-b"]
+    torch_model.adapters[0][0][1].weight = torch_weights["adapter-0-0-1-w"]
 
     # task 1 adapter 1
-    torch_model.alphas[0][1] = move_param(
-        tf_model._task_layers[1][6].weights[0])
-    torch_model.adapters[0][1][0].weight = move_param(
-        tf_model._task_layers[1][7].weights[0], transpose=True)
-    torch_model.adapters[0][1][0].bias = move_param(
-        tf_model._task_layers[1][7].weights[1])
-    torch_model.adapters[0][1][1].weight = move_param(
-        tf_model._task_layers[1][8].weights[0], transpose=True)
+    torch_model.alphas[0][1] = torch_weights["alpha-0-1"]
+    torch_model.adapters[0][1][0].weight = torch_weights["adapter-0-1-0-w"]
+    torch_model.adapters[0][1][0].bias = torch_weights["adapter-0-1-0-b"]
+    torch_model.adapters[0][1][1].weight = torch_weights["adapter-0-1-1-w"]
 
-    tf_out = tf_model.predict(dataset)
+    tf_out = torch_weights["output"]
     torch_out = torch_model(torch.from_numpy(X).float()).cpu().detach().numpy()
 
     assert np.allclose(tf_out, torch_out,
