@@ -21,6 +21,7 @@ class SAMFeaturizer(Featurizer):
     >>> inputs = 'deepchem/data/tests/example.sam'
     >>> featurizer = dc.feat.SAMFeaturizer()
     >>> features = featurizer.featurize(inputs)
+
     Information for each read is stored in a 'numpy.ndarray'.
     >>> type(features[0])
     <class 'numpy.ndarray'>
@@ -124,6 +125,7 @@ class BAMFeaturizer(Featurizer):
     (Sequence Alignment Map) files. This class extracts Query Name, Query
     Sequence, Query Length, Reference Name, Reference Start, CIGAR and Mapping
     Quality of the alignment in the BAM file.
+
     Examples
     --------
     >>> from deepchem.data.data_loader import BAMLoader
@@ -132,8 +134,10 @@ class BAMFeaturizer(Featurizer):
     >>> featurizer = dc.feat.BAMFeaturizer()
     >>> features = featurizer.featurize(inputs)
     >>> type(features[0])
+
     Information for each read is stored in a 'numpy.ndarray'.
     <class 'numpy.ndarray'>
+
     This is the default featurizer used by BAMLoader, and it extracts the following
     fields from each read in each BAM file in the given order:-
     - Column 0: Query Name
@@ -143,6 +147,7 @@ class BAMFeaturizer(Featurizer):
     - Column 4: Reference Start
     - Column 5: CIGAR
     - Column 6: Mapping Quality
+
     For the given example, to extract specific features, we do the following.
     >>> features[0][0]     # Query Name
     EASX:X:X:X:X:33:33_1:Y:0:NNNNNN
@@ -158,6 +163,7 @@ class BAMFeaturizer(Featurizer):
     [(0, 75)]
     >>> features[0][6]     # Mapping Quality
     42
+
     Note
     ----
     This class requires pysam to be installed. Pysam can be used with Linux or MacOS X.
@@ -168,26 +174,31 @@ class BAMFeaturizer(Featurizer):
     def __init__(self, max_records=None):
         """
         Initialize BAMFeaturizer.
+
         Parameters
         ----------
         max_records : int or None, optional
             The maximum number of records to extract from the BAM file. If None, all
             records will be extracted.
+
         """
         self.max_records = max_records
 
     def _featurize(self, datapoint):
         """
         Extract features from a BAM file.
+
         Parameters
         ----------
         bamfile : str
             BAM file.
             The corresponding index file must be in the same directory.
+
         Returns
         -------
         features : numpy.ndarray
         A 2D NumPy array representing the extracted features.
+
         """
 
         features = []
