@@ -33,6 +33,7 @@ BBBC5_TASKS = ["cell-count"]
 
 
 class _BBBC001_Loader(_MolnetLoader):
+    """BBBC001 cell count dataset loader"""
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "BBBC001_v1_images_tif.zip")
@@ -95,6 +96,7 @@ def load_bbbc001(
 
 
 class _BBBC002_Loader(_MolnetLoader):
+    """BBBC002 cell count dataset loader"""
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "BBBC002_v1_images.zip")
