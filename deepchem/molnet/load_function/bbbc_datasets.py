@@ -31,6 +31,7 @@ BBBC5_IMAGE_URL = 'https://data.broadinstitute.org/bbbc/BBBC005/BBBC005_v1_image
 BBBC5_FOREGROUND_URL = 'https://data.broadinstitute.org/bbbc/BBBC005/BBBC005_v1_ground_truth.zip'
 BBBC5_TASKS = ["cell-count"]
 
+
 class _BBBC001_Loader(_MolnetLoader):
     """BBBC001 cell count dataset loader"""
 
