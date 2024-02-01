@@ -347,6 +347,30 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.system.base_system.BaseSystem
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.RadialGrid
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.get_xw_integration
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.SlicedRadialGrid
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.BaseGridTransform
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.DE2Transformation
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.LogM3Transformation
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.TreutlerM4Transformation
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.get_grid_transform
+  :members:
+
 .. autoclass:: deepchem.utils.differentiation_utils.editable_module.EditableModule
   :members:
 
@@ -413,6 +437,57 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.davidson
 
+.. autofunction:: deepchem.utils.differentiation_utils.symeig.lsymeig
+
+.. autofunction:: deepchem.utils.differentiation_utils.symeig.usymeig
+
+.. autofunction:: deepchem.utils.differentiation_utils.symeig.symeig
+
+.. autoclass:: deepchem.utils.differentiation_utils.symeig.symeig_torchfcn
+  :members:
+
+.. autofunction:: deepchem.utils.differentiation_utils.symeig._check_degen
+
+.. autofunction:: deepchem.utils.differentiation_utils.symeig.ortho
+
+.. autofunction:: deepchem.utils.differentiation_utils.grad.jac
+
+.. autoclass:: deepchem.utils.differentiation_utils.grad._Jac
+  :members:
+
+.. autofunction:: deepchem.utils.differentiation_utils.grad._setup_idxs
+
+.. autofunction:: deepchem.utils.differentiation_utils.grad.connect_graph
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.wrap_gmres
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.exactsolve
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.solve_ABE
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.get_batchdims
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.setup_precond
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.dot
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.gmres
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.setup_linear_problem
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.safedenom
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.get_largest_eival
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.solve
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.cg
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve.bicgstab
+
+.. autoclass:: deepchem.utils.differentiation_utils.solve.solve_torchfcn
+  :members:
+
 Attribute Utilities
 -------------------
 
@@ -445,6 +520,8 @@ Pytorch Utilities
 .. autofunction:: deepchem.utils.pytorch_utils.tallqr
 
 .. autofunction:: deepchem.utils.pytorch_utils.to_fortran_order
+
+.. autofunction:: deepchem.utils.pytorch_utils.get_np_dtype
 
 Batch Utilities
 ---------------

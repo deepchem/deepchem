@@ -273,6 +273,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.MXMNetSphericalBasisLayer
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.HighwayLayer
+  :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 

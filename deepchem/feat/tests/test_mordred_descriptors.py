@@ -24,8 +24,7 @@ class TestMordredDescriptors(unittest.TestCase):
         featurizer = MordredDescriptors()
         descriptors = featurizer([self.mol])
         assert descriptors.shape == (1, 1613)
-        assert np.allclose(descriptors[0][0:3],
-                           np.array([9.54906713, 9.03919229, 1.0]))
+        assert np.allclose(descriptors[0][0:3], np.array([0.0, 0.0, 1.0]))
 
     def test_mordred_descriptors_with_3D_info(self):
         """

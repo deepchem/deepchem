@@ -2,7 +2,8 @@
 
 import scipy
 import torch
-from typing import Callable, Union, List, Generator, Tuple
+from typing import Any, Callable, Sequence, Union, List, Generator, Tuple
+import numpy as np
 
 
 def get_activation(fn: Union[Callable, str]):
@@ -251,12 +252,12 @@ class TensorNonTensorSeparator(object):
 
     """
 
-    def __init__(self, params: List[torch.Tensor], varonly: bool = True):
+    def __init__(self, params: Sequence, varonly: bool = True):
         """Initialize the TensorNonTensorSeparator.
 
         Parameters
         ----------
-        params: List[torch.Tensor]
+        params: Sequence
             A list of tensor or non-tensor parameters.
         varonly: bool
             If True, only tensor parameters with requires_grad=True will be
@@ -433,3 +434,38 @@ def to_fortran_order(V):
     else:
         raise RuntimeError(
             "Only the last two dimensions can be made Fortran order.")
+
+
+def get_np_dtype(dtype: torch.dtype) -> Any:
+    """corresponding numpy dtype from the input pytorch's tensor dtype
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.pytorch_utils import get_np_dtype
+    >>> get_np_dtype(torch.float32)
+    <class 'numpy.float32'>
+    >>> get_np_dtype(torch.float64)
+    <class 'numpy.float64'>
+
+    Parameters
+    ----------
+    dtype: torch.dtype
+        pytorch's tensor dtype
+
+    Returns
+    -------
+    np.dtype
+        corresponding numpy dtype
+
+    """
+    if dtype == torch.float32:
+        return np.float32
+    elif dtype == torch.float64:
+        return np.float64
+    elif dtype == torch.complex64:
+        return np.complex64
+    elif dtype == torch.complex128:
+        return np.complex128
+    else:
+        raise TypeError("Unknown type: %s" % dtype)
