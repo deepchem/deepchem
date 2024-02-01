@@ -113,7 +113,7 @@ def apply_pdbfixer(mol,
         raise ImportError("This function requires pdbfixer")
 
     try:
-        import simtk
+        import openmm
     except ModuleNotFoundError:
         raise ImportError("This function requires openmm")
 
@@ -136,8 +136,8 @@ def apply_pdbfixer(mol,
             fixer.removeHeterogens(False)
 
         hydrogenated_io = StringIO()
-        simtk.openmm.app.PDBFile.writeFile(fixer.topology, fixer.positions,
-                                           hydrogenated_io)
+        openmm.app.PDBFile.writeFile(fixer.topology, fixer.positions,
+                                     hydrogenated_io)
         hydrogenated_io.seek(0)
         return Chem.MolFromPDBBlock(hydrogenated_io.read(),
                                     sanitize=False,

@@ -31,11 +31,11 @@ BBBC5_IMAGE_URL = 'https://data.broadinstitute.org/bbbc/BBBC005/BBBC005_v1_image
 BBBC5_FOREGROUND_URL = 'https://data.broadinstitute.org/bbbc/BBBC005/BBBC005_v1_ground_truth.zip'
 BBBC5_TASKS = ["cell-count"]
 
-
 class _BBBC001_Loader(_MolnetLoader):
     """BBBC001 cell count dataset loader"""
 
     def create_dataset(self) -> Dataset:
+        """Creates a dataset from BBBC001 images and cell counts as labels"""
         dataset_file = os.path.join(self.data_dir, "BBBC001_v1_images_tif.zip")
         labels_file = os.path.join(self.data_dir, "BBBC001_v1_counts.txt")
         if not os.path.exists(dataset_file):
@@ -99,6 +99,7 @@ class _BBBC002_Loader(_MolnetLoader):
     """BBBC002 cell count dataset loader"""
 
     def create_dataset(self) -> Dataset:
+        """Creates a dataset from BBBC002 images and cell counts as labels"""
         dataset_file = os.path.join(self.data_dir, "BBBC002_v1_images.zip")
         labels_file = os.path.join(self.data_dir, "BBBC002_v1_counts.txt")
         if not os.path.exists(dataset_file):
@@ -239,6 +240,69 @@ def load_bbbc003(
         a directory to save the raw data in
     save_dir: str
         a directory to save the dataset in
+
+    Examples
+    --------
+    Importing necessary modules
+
+    >>> import deepchem as dc
+    >>> import numpy as np
+
+    We can load the BBBC003 dataset with 2 types of labels: segmentation masks and
+    cell counts. We will first load the dataset with cell counts as labels.
+
+    >>> loader = dc.molnet.load_bbbc003(load_segmentation_mask=False)
+    >>> tasks, dataset, transformers = loader
+    >>> train, val, test = dataset
+
+    We now have a dataset with 15 samples, each with 300 cells. The images are of
+    size 640x480. The labels are cell counts. We can verify this as follows:
+
+    >>> train.X.shape
+    (12,)
+    >>> train.y.shape
+    (12,)
+
+    We will now load the dataset with segmentation masks as labels.
+
+    >>> loader = dc.molnet.load_bbbc003(load_segmentation_mask=True)
+    >>> tasks, dataset, transformers = loader
+    >>> train, val, test = dataset
+
+    We now have a dataset with 15 samples, each with 300 cells. The images are of
+    size 640x480. The labels are segmentation masks. We can verify this as follows:
+
+    >>> print(train.X.shape)
+    (12,)
+    >>> print(train.y.shape)
+    (12,)
+
+    Note: The image labelled '7_19_M2E15.tif' is transposed to 480x640 in the source file along with it's
+    segementation mask. To match it with the other images, we need to transpose it back to 640x480.
+
+    This image is found at index 6 in the train dataset (Assuming no shuffling has taken place).
+
+    First, we load the dataset as usual and split it into X, y, w and ids. Here, X is the list
+    of input images, y is the list of labels, w is the list of weights and ids is the list of
+    IDs for each sample.
+
+    >>> train_x, train_y, train_w, train_ids = train.X, train.y, train.w, train.ids
+
+    We can now transpose the image at index 6 in the input data (train_x):
+    >>> train_x[6] = train_x[6].T
+
+    We can now verify that the image is of size 640x480:
+    >>> print(train_x[6].shape)
+    (640, 480)
+
+    This is also seen in the segmentation mask with the same filename and index, in which
+    case, we transpose the label (train_y) instead of the input data:
+
+    >>> train_y[6] = train_y[6].T
+
+    We can now verify that the image is of size 640x480:
+    >>> train_y[6].shape
+    (640, 480)
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used
     loader: _MolnetLoader
@@ -279,6 +343,8 @@ class _BBBC004_Segmentation_Loader(_MolnetLoader):
                              data_dir, save_dir, **kwargs)
 
     def create_dataset(self) -> Dataset:
+        """Creates a dataset from BBBC004 images and segmentation masks as labels"""
+
         dataset_file = os.path.join(
             self.data_dir, f"BBBC004_v1_{self.overlap_probability}_images.zip")
         foreground_file = os.path.join(
@@ -322,6 +388,8 @@ class _BBBC004_Loader(_MolnetLoader):
                              data_dir, save_dir, **kwargs)
 
     def create_dataset(self) -> Dataset:
+        """Creates a dataset from BBBC004 images and cell counts as labels"""
+
         dataset_file = os.path.join(
             self.data_dir, f"BBBC004_v1_{self.overlap_probability}_images.zip")
         if not os.path.exists(dataset_file):
@@ -380,36 +448,36 @@ def load_bbbc004(
     --------
     Importing necessary modules
 
-    >> import deepchem as dc
-    >> import numpy as np
+    >>> import deepchem as dc
+    >>> import numpy as np
 
     We can load the BBBC004 dataset with 2 types of labels: segmentation masks and
     cell counts. We will first load the dataset with cell counts as labels.
 
-    >> loader = dc.molnet.load_bbbc004(overlap_probability=0.0, load_segmentation_mask=False)
-    >> tasks, dataset, transformers = loader
-    >> train, val, test = dataset
+    >>> loader = dc.molnet.load_bbbc004(overlap_probability=0.0, load_segmentation_mask=False)
+    >>> tasks, dataset, transformers = loader
+    >>> train, val, test = dataset
 
     We now have a dataset with 20 samples, each with 300 cells. The images are of
     size 950x950. The labels are cell counts. We can verify this as follows:
 
-    >> train.X.shape
+    >>> train.X.shape
     (16, 950, 950)
-    >> train.y.shape
+    >>> train.y.shape
     (16,)
 
     We will now load the dataset with segmentation masks as labels.
 
-    >> loader = dc.molnet.load_bbbc004(overlap_probability=0.0, load_segmentation_mask=True)
-    >> tasks, dataset, transformers = loader
-    >> train, val, test = dataset
+    >>> loader = dc.molnet.load_bbbc004(overlap_probability=0.0, load_segmentation_mask=True)
+    >>> tasks, dataset, transformers = loader
+    >>> train, val, test = dataset
 
     We now have a dataset with 20 samples, each with 300 cells. The images are of
     size 950x950. The labels are segmentation masks. We can verify this as follows:
 
-    >> train.X.shape
+    >>> train.X.shape
     (16, 950, 950)
-    >> train.y.shape
+    >>> train.y.shape
     (16, 950, 950, 3)
     """
     featurizer = dc.feat.UserDefinedFeaturizer([])  # Not actually used

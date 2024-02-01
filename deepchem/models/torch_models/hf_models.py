@@ -248,7 +248,8 @@ class HuggingFaceModel(TorchModel):
                       max_checkpoints_to_keep: int = 5,
                       checkpoint_interval: int = 1000,
                       restore: bool = False,
-                      variables: Optional[List[torch.nn.Parameter]] = None,
+                      variables: Optional[Union[List[torch.nn.Parameter],
+                                                torch.nn.ParameterList]] = None,
                       loss: Optional[LossFn] = None,
                       callbacks: Union[Callable, List[Callable]] = [],
                       all_losses: Optional[List[float]] = None) -> float:
