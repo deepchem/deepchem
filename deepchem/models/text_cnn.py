@@ -56,7 +56,7 @@ class TextCNNModel(KerasModel):
 
     Reimplementation of the discriminator module in ORGAN [1]_ .
     Originated from [2]_.
-
+    
     This model applies multiple 1D convolutional filters to
     the padded strings, then max-over-time pooling is applied on
     all filters, extracting one feature per filter.  All
