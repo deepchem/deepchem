@@ -8,55 +8,6 @@ from deepchem.models.torch_models import WGANModel
 from deepchem.models.torch_models.layers import MolGANEncoderLayer
 
 
-class Discriminator(nn.Module):
-    """A discriminator for the MolGAN model."""
-
-    def __init__(self,
-                 dropout_rate: float,
-                 units: List = [(128, 64), 64],
-                 edges: int = 5,
-                 device: Optional[torch.device] = torch.device('cpu')):
-        super(Discriminator, self).__init__()
-        self.dropout_rate = dropout_rate
-        self.edges = edges
-        self.units = units
-        self.device = device
-        self.graph = MolGANEncoderLayer(units=self.units,
-                                        dropout_rate=self.dropout_rate,
-                                        edges=self.edges)
-
-        # Define the dense layers
-        self.dense1 = nn.Linear(units[1], 128)
-        self.dropout1 = nn.Dropout(dropout_rate)
-        self.dense2 = nn.Linear(128, 64)
-        self.dropout2 = nn.Dropout(dropout_rate)
-        self.dense3 = nn.Linear(64, 1)
-
-    def forward(
-        self,
-        inputs: List[torch.Tensor],
-    ) -> torch.Tensor:
-        adjacency_tensor, node_tensor = inputs
-
-        if isinstance(adjacency_tensor, list):
-            adjacency_tensor = adjacency_tensor[0]
-        adjacency_tensor = adjacency_tensor.to(device=self.device,
-                                               dtype=torch.float32)
-        node_tensor = node_tensor.to(device=self.device, dtype=torch.float32)
-
-        graph = self.graph([adjacency_tensor, node_tensor])
-
-        graph = graph.to(device=self.device, dtype=torch.float32)
-        output = self.dense1(graph)
-        output = F.tanh(output)
-        output = self.dropout1(output)
-        output = self.dense2(output)
-        output = F.tanh(output)
-        output = self.dropout2(output)
-        output = self.dense3(output)
-        return output
-
-
 class BasicMolGANModel(WGANModel):
     """
     Model for de-novo generation of small molecules based on work of Nicola De Cao et al. [1]_.
@@ -414,3 +365,79 @@ class BasicMolGANGenerator(nn.Module):
                                         num_classes=n_gumbel_logits.shape[-1])
             nodes = torch.argmax(n_gumbel_argmax, dim=-1)
         return [edges, nodes]
+
+
+class Discriminator(nn.Module):
+    """A discriminator for the MolGAN model."""
+
+    def __init__(
+        self,
+        dropout_rate: float,
+        units: List = [(128, 64), 64],
+        edges: int = 5,
+        device: Optional[torch.device] = torch.device('cpu')
+    ) -> None:
+        """Initialize the discriminator.
+
+        Parameters
+        ----------
+        dropout_rate : float
+            Rate of dropout used across whole model
+        units : List, optional
+            Units for MolGAN encoder layer, by default [(128, 64), 64]
+        edges : int, optional
+            Edge types, by default 5
+        device : Optional[torch.device], optional
+            Device to use, by default torch.device('cpu')
+        """
+        super(Discriminator, self).__init__()
+        self.dropout_rate = dropout_rate
+        self.edges = edges
+        self.units = units
+        self.device = device
+        self.graph = MolGANEncoderLayer(units=self.units,
+                                        dropout_rate=self.dropout_rate,
+                                        edges=self.edges)
+
+        # Define the dense layers
+        self.dense1 = nn.Linear(units[1], 128)
+        self.dropout1 = nn.Dropout(dropout_rate)
+        self.dense2 = nn.Linear(128, 64)
+        self.dropout2 = nn.Dropout(dropout_rate)
+        self.dense3 = nn.Linear(64, 1)
+
+    def forward(
+        self,
+        inputs: List[torch.Tensor],
+    ) -> torch.Tensor:
+        """Forward pass for the discriminator.
+
+        Parameters
+        ----------
+        inputs : List[torch.Tensor]
+            List of inputs, typically adjacency_tensor and node_tensor
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of the discriminator
+        """
+        adjacency_tensor, node_tensor = inputs
+
+        if isinstance(adjacency_tensor, list):
+            adjacency_tensor = adjacency_tensor[0]
+        adjacency_tensor = adjacency_tensor.to(device=self.device,
+                                               dtype=torch.float32)
+        node_tensor = node_tensor.to(device=self.device, dtype=torch.float32)
+
+        graph = self.graph([adjacency_tensor, node_tensor])
+
+        graph = graph.to(device=self.device, dtype=torch.float32)
+        output = self.dense1(graph)
+        output = F.tanh(output)
+        output = self.dropout1(output)
+        output = self.dense2(output)
+        output = F.tanh(output)
+        output = self.dropout2(output)
+        output = self.dense3(output)
+        return output
