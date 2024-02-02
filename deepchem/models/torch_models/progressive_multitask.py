@@ -6,7 +6,7 @@ from deepchem.utils.typing import OneOrMany, ActivationFn
 from deepchem.utils.pytorch_utils import get_activation
 
 from collections.abc import Sequence as SequenceCollection
-from typing import List, Tuple
+from typing import List, Tuple, Callable
 
 
 class ProgressiveMultitask(nn.Module):
@@ -97,21 +97,24 @@ class ProgressiveMultitask(nn.Module):
                 str) or not isinstance(activation_fns, SequenceCollection):
             activation_fns = [activation_fns] * n_layers
 
-        self.n_tasks = n_tasks
-        self.n_features = n_features
-        self.layer_sizes = layer_sizes
-        self.n_outputs = n_outputs
-        self.weight_init_stddevs = weight_init_stddevs
-        self.alpha_init_stddevs = alpha_init_stddevs
-        self.bias_init_consts = bias_init_consts
-        self.dropouts = dropouts
-        self.activation_fns = [get_activation(f) for f in activation_fns]
+        self.n_tasks: int = n_tasks
+        self.n_features: int = n_features
+        self.layer_sizes: List[int] = layer_sizes
+        self.n_outputs: int = n_outputs
+        self.weight_init_stddevs: SequenceCollection[
+            float] = weight_init_stddevs
+        self.alpha_init_stddevs: SequenceCollection[float] = alpha_init_stddevs
+        self.bias_init_consts: SequenceCollection[float] = bias_init_consts
+        self.dropouts: SequenceCollection[float] = dropouts
+        self.activation_fns: SequenceCollection[Callable] = [
+            get_activation(f) for f in activation_fns
+        ]
 
         super(ProgressiveMultitask, self).__init__()
 
-        self.layers = nn.ModuleList()
-        self.adapters = nn.ModuleList()
-        self.alphas = nn.ModuleList()
+        self.layers: nn.ModuleList = nn.ModuleList()
+        self.adapters: nn.ModuleList = nn.ModuleList()
+        self.alphas: nn.ModuleList = nn.ModuleList()
 
         for task in range(n_tasks):
             layer_list = []
@@ -226,7 +229,7 @@ class ProgressiveMultitask(nn.Module):
         outputs: torch.Tensor
             Output tensor of shape (batch_size, n_tasks, n_outputs).
         """
-        outputs = []
+        outputs: List[torch.Tensor] = []
         logits: List[List[torch.Tensor]] = []
         for task in range(self.n_tasks):
             x_ = x
