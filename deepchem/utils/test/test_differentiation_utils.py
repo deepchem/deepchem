@@ -754,3 +754,94 @@ def test_get_largest_eival():
     x = torch.tensor([[1., 2], [3, 4]])
     assert torch.allclose(get_largest_eival(Afcn, x), torch.tensor([[10.,
                                                                      10.]]))
+
+
+@pytest.mark.torch
+def test_symeig():
+    from deepchem.utils.differentiation_utils import LinearOperator, symeig
+    A = LinearOperator.m(torch.tensor([[3, -1j], [1j, 4]]))
+    evals, evecs = symeig(A)
+    assert evecs.shape == torch.Size([2, 2])
+    assert evals.shape == torch.Size([2])
+
+
+@pytest.mark.torch
+def test_check_degen():
+    from deepchem.utils.differentiation_utils.symeig import _check_degen
+    evals = torch.tensor([1, 1, 2, 3, 3, 3, 4, 5, 5])
+    degen_atol = 0.1
+    degen_rtol = 0.1
+    idx_degen, isdegenerate = _check_degen(evals, degen_atol, degen_rtol)
+    assert idx_degen.shape == torch.Size([9, 9])
+
+
+@pytest.mark.torch
+def test_ortho():
+    from deepchem.utils.differentiation_utils import ortho
+    A = torch.tensor([[1, 2], [3, 4]])
+    B = torch.tensor([[1, 0], [0, 1]])
+    assert torch.allclose(ortho(A, B), torch.tensor([[0, 2], [3, 0]]))
+
+
+@pytest.mark.torch
+def test_jac():
+    from deepchem.utils.differentiation_utils import jac
+
+    def fcn(x, y):
+        return x * y
+
+    x = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+    y = torch.tensor([4.0, 5.0, 6.0], requires_grad=True)
+    n_lin = jac(fcn, [x, y])
+    input = torch.tensor([[1, 3, 3], [4, 5, 6]])
+    assert torch.allclose(n_lin[1].mv(input), x * input)
+
+
+@pytest.mark.torch
+def test_jac_class():
+    from deepchem.utils.differentiation_utils.grad import get_pure_function, _Jac
+
+    def fcn(x, y):
+        return x * y
+
+    x = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+    y = torch.tensor([4.0, 5.0, 6.0], requires_grad=True)
+    pfcn = get_pure_function(fcn)
+    assert torch.allclose(
+        _Jac(pfcn, [x, y], 0).mv(torch.tensor([1.0, 1.0, 1.0])), y)
+
+
+@pytest.mark.torch
+def test_connect_graph():
+    from deepchem.utils.differentiation_utils.grad import connect_graph
+    x = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+    y = torch.tensor([4.0, 5.0, 6.0], requires_grad=True)
+    out = x * y
+    assert torch.allclose(connect_graph(out, [x, y]),
+                          torch.tensor([4., 10., 18.]))
+
+
+@pytest.mark.torch
+def test_setup_idxs():
+    from deepchem.utils.differentiation_utils.grad import _setup_idxs
+    x = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+    y = torch.tensor([4.0, 5.0, 6.0], requires_grad=True)
+    assert _setup_idxs(None, [x, y]) == [0, 1]
+
+
+@pytest.mark.torch
+def test_solve():
+    from deepchem.utils.differentiation_utils import LinearOperator, solve
+    A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
+    B = torch.tensor([[5., 6], [7, 8]])
+    assert torch.allclose(solve(A, B),
+                          torch.tensor([[-3.0000, -4.0000], [4.0000, 5.0000]]))
+
+
+@pytest.mark.torch
+def test_cg():
+    from deepchem.utils.differentiation_utils import LinearOperator, cg
+    A = LinearOperator.m(torch.tensor([[1., 2], [3, 4]]))
+    B = torch.tensor([[5., 6], [7, 8]])
+    assert torch.allclose(cg(A, B),
+                          torch.tensor([[-3.0000, -4.0000], [4.0000, 5.0000]]))

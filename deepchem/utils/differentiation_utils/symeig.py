@@ -1,9 +1,471 @@
 import torch
-from typing import Optional, Sequence, Tuple, Union
-from deepchem.utils.differentiation_utils import LinearOperator
+from typing import Optional, Sequence, Tuple, Union, Mapping, Any, Callable
+from deepchem.utils.differentiation_utils import LinearOperator, get_bcasted_dims, MatrixLinearOperator, set_default_option, get_and_pop_keys, dummy_context_manager, get_method, solve  # type: ignore
 import functools
 from deepchem.utils.pytorch_utils import tallqr, to_fortran_order
-from deepchem.utils.differentiation_utils import get_bcasted_dims
+import warnings
+
+
+def lsymeig(A: LinearOperator,
+            neig: Optional[int] = None,
+            M: Optional[LinearOperator] = None,
+            bck_options: Mapping[str, Any] = {},
+            method: Union[str, Callable, None] = None,
+            **fwd_options) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Obtain ``neig`` lowest eigenvalues and eigenvectors of a linear operator"""
+    return symeig(A,
+                  neig,
+                  "lowest",
+                  M,
+                  method=method,
+                  bck_options=bck_options,
+                  **fwd_options)
+
+
+def usymeig(A: LinearOperator,
+            neig: Optional[int] = None,
+            M: Optional[LinearOperator] = None,
+            bck_options: Mapping[str, Any] = {},
+            method: Union[str, Callable, None] = None,
+            **fwd_options) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Obtain ``neig`` uppest eigenvalues and eigenvectors of a linear operator"""
+    return symeig(A,
+                  neig,
+                  "uppest",
+                  M,
+                  method=method,
+                  bck_options=bck_options,
+                  **fwd_options)
+
+
+def symeig(A: LinearOperator,
+           neig: Optional[int] = None,
+           mode: str = "lowest",
+           M: Optional[LinearOperator] = None,
+           bck_options: Mapping[str, Any] = {},
+           method: Union[str, Callable, None] = None,
+           **fwd_options) -> Tuple[torch.Tensor, torch.Tensor]:
+    r"""
+    Obtain ``neig`` lowest eigenvalues and eigenvectors of a linear operator,
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.differentiation_utils import LinearOperator
+    >>> A = LinearOperator.m(torch.tensor([[3, -1j], [1j, 4]]))
+    >>> evals, evecs = symeig(A)
+    >>> evals.shape
+    torch.Size([2])
+    >>> evecs.shape
+    torch.Size([2, 2])
+
+    .. math::
+
+        \mathbf{AX = MXE}
+
+    where :math:`\mathbf{A}, \mathbf{M}` are linear operators,
+    :math:`\mathbf{E}` is a diagonal matrix containing the eigenvalues, and
+    :math:`\mathbf{X}` is a matrix containing the eigenvectors.
+    This function can handle derivatives for degenerate cases by setting non-zero
+    ``degen_atol`` and ``degen_rtol`` in the backward option using the expressions
+    in [1]_.
+
+    Parameters
+    ----------
+    A: xitorch.LinearOperator
+        The linear operator object on which the eigenpairs are constructed.
+        It must be a Hermitian linear operator with shape ``(*BA, q, q)``
+    neig: int or None
+        The number of eigenpairs to be retrieved. If ``None``, all eigenpairs are
+        retrieved
+    mode: str
+        ``"lowest"`` or ``"uppermost"``/``"uppest"``. If ``"lowest"``,
+        it will take the lowest ``neig`` eigenpairs.
+        If ``"uppest"``, it will take the uppermost ``neig``.
+    M: xitorch.LinearOperator
+        The transformation on the right hand side. If ``None``, then ``M=I``.
+        If specified, it must be a Hermitian with shape ``(*BM, q, q)``.
+    bck_options: dict
+        Method-specific options for :func:`solve` which used in backpropagation
+        calculation with some additional arguments for computing the backward
+        derivatives:
+
+        * ``degen_atol`` (``float`` or None): Minimum absolute difference between
+          two eigenvalues to be treated as degenerate. If None, it is
+          ``torch.finfo(dtype).eps**0.6``. If 0.0, no special treatment on
+          degeneracy is applied. (default: None)
+        * ``degen_rtol`` (``float`` or None): Minimum relative difference between
+          two eigenvalues to be treated as degenerate. If None, it is
+          ``torch.finfo(dtype).eps**0.4``. If 0.0, no special treatment on
+          degeneracy is applied. (default: None)
+
+        Note: the default values of ``degen_atol`` and ``degen_rtol`` are going
+        to change in the future. So, for future compatibility, please specify
+        the specific values.
+
+    method: str or callable or None
+        Method for the eigendecomposition. If ``None``, it will choose
+        ``"exacteig"``.
+    **fwd_options
+        Method-specific options (see method section below).
+
+    Returns
+    -------
+    tuple of tensors (eigenvalues, eigenvectors)
+        It will return eigenvalues and eigenvectors with shapes respectively
+        ``(*BAM, neig)`` and ``(*BAM, na, neig)``, where ``*BAM`` is the
+        broadcasted shape of ``*BA`` and ``*BM``.
+
+    References
+    ----------
+    .. [1] Muhammad F. Kasim,
+           "Derivatives of partial eigendecomposition of a real symmetric matrix for degenerate cases".
+           arXiv:2011.04366 (2020)
+           `https://arxiv.org/abs/2011.04366 <https://arxiv.org/abs/2011.04366>`_
+
+    """
+    assert A.is_hermitian, "The linear operator A must be Hermitian"
+    assert not torch.is_grad_enabled() or A.is_getparamnames_implemented, \
+        "The _getparamnames(self, prefix) of linear operator A must be "\
+        "implemented if using symeig with grad enabled"
+    if M is not None:
+        assert M.is_hermitian, "The linear operator M must be Hermitian"
+        assert M.shape[-1] == A.shape[
+            -1], "The shape of A & M must match (A: %s, M: %s)" % (A.shape,
+                                                                   M.shape)
+        assert not torch.is_grad_enabled() or M.is_getparamnames_implemented, \
+            "The _getparamnames(self, prefix) of linear operator M must be "\
+            "implemented if using symeig with grad enabled"
+    mode = mode.lower()
+    if mode == "uppermost":
+        mode = "uppest"
+    if method is None:
+        if isinstance(A, MatrixLinearOperator) and \
+           (M is None or isinstance(M, MatrixLinearOperator)):
+            method = "exacteig"
+        else:
+            # TODO: implement robust LOBPCG and put it here
+            method = "exacteig"
+    if neig is None:
+        neig = A.shape[-1]
+
+    if method == "exacteig":
+        return exacteig(A, neig, mode, M)
+    else:
+        fwd_options["method"] = method
+        # get the unique parameters of A & M
+        params = A.getlinopparams()
+        mparams = M.getlinopparams() if M is not None else []
+        na = len(params)
+        return symeig_torchfcn.apply(A, neig, mode, M, fwd_options, bck_options,
+                                     na, *params, *mparams)
+
+
+class symeig_torchfcn(torch.autograd.Function):
+    """A wrapper for symeig to be used in torch.autograd.Function"""
+
+    @staticmethod
+    def forward(ctx, A, neig, mode, M, fwd_options, bck_options, na, *amparams):
+        """Calculate the eigenvalues and eigenvectors of a linear operator
+
+        Parameters
+        ----------
+        A: LinearOperator
+            The linear operator object on which the eigenpairs are constructed.
+            It must be a Hermitian linear operator with shape ``(*BA, q, q)``
+        neig: int
+            The number of eigenpairs to be retrieved. If ``None``, all eigenpairs are
+            retrieved
+        mode: str
+            ``"lowest"`` or ``"uppermost"``/``"uppest"``. If ``"lowest"``,
+            it will take the lowest ``neig`` eigenpairs.
+            If ``"uppest"``, it will take the uppermost ``neig``.
+        M: xitorch.LinearOperator
+            The transformation on the right hand side. If ``None``, then ``M=I``.
+            If specified, it must be a Hermitian with shape ``(*BM, q, q)``.
+        fwd_options: dict
+            Method-specific options (see method section below).
+        bck_options: dict
+            Method-specific options for :func:`solve` which used in backpropagation
+            calculation with some additional arguments for computing the backward
+            derivatives: ``degen_atol`` and ``degen_rtol``.
+        na: int
+            Number of parameters of A (and M if M is not None)
+        *amparams: torch.Tensor
+            Parameters of A (and M if M is not None)
+
+        """
+
+        # separate the sets of parameters
+        params = amparams[:na]
+        mparams = amparams[na:]
+
+        config = set_default_option({}, fwd_options)
+        ctx.bck_config = set_default_option(
+            {
+                "degen_atol": None,
+                "degen_rtol": None,
+            }, bck_options)
+
+        # options for calculating the backward (not for `solve`)
+        alg_keys = ["degen_atol", "degen_rtol"]
+        ctx.bck_alg_config = get_and_pop_keys(ctx.bck_config, alg_keys)
+
+        method = config.pop("method")
+        with A.uselinopparams(*params), M.uselinopparams(
+                *mparams) if M is not None else dummy_context_manager():
+            methods = {
+                "davidson": davidson,
+                "exacteig": exacteig,
+            }
+            method_fcn = get_method("symeig", methods, method)
+            evals, evecs = method_fcn(A, neig, mode, M, **config)
+
+        # save for the backward
+        # evals: (*BAM, neig)
+        # evecs: (*BAM, na, neig)
+        ctx.save_for_backward(evals, evecs, *amparams)
+        ctx.na = na
+        ctx.A = A
+        ctx.M = M
+        return evals, evecs
+
+    @staticmethod
+    def backward(ctx, grad_evals, grad_evecs):
+        """Calculate the gradient of the eigenvalues and eigenvectors of a linear operator
+
+        Parameters
+        ----------
+        grad_evals: torch.Tensor
+            The gradient of the eigenvalues. Shape: ``(*BAM, neig)``
+        grad_evecs: torch.Tensor
+            The gradient of the eigenvectors. Shape: ``(*BAM, na, neig)``
+
+        """
+
+        # get the variables from ctx
+        evals, evecs = ctx.saved_tensors[:2]
+        na = ctx.na
+        amparams = ctx.saved_tensors[2:]
+        params = amparams[:na]
+        mparams = amparams[na:]
+
+        M = ctx.M
+        A = ctx.A
+        degen_atol: Optional[float] = ctx.bck_alg_config[
+            "degen_atol"]  # type: ignore
+        degen_rtol: Optional[float] = ctx.bck_alg_config[
+            "degen_rtol"]  # type: ignore
+
+        # set the default values of degen_*tol
+        dtype = evals.dtype
+        if degen_atol is None:
+            degen_atol = torch.finfo(dtype).eps**0.6
+        if degen_rtol is None:
+            degen_rtol = torch.finfo(dtype).eps**0.4
+
+        # check the degeneracy
+        if degen_atol > 0 or degen_rtol > 0:
+            # idx_degen: (*BAM, neig, neig)
+            idx_degen, isdegenerate = _check_degen(evals, degen_atol,
+                                                   degen_rtol)
+        else:
+            isdegenerate = False
+        if not isdegenerate:
+            idx_degen = None
+
+        # the loss function where the gradient will be retrieved
+        # warnings: if not all params have the connection to the output of A,
+        # it could cause an infinite loop because pytorch will keep looking
+        # for the *params node and propagate further backward via the `evecs`
+        # path. So make sure all the *params are all connected in the graph.
+        with torch.enable_grad():
+            params = [p.clone().requires_grad_() for p in params]
+            with A.uselinopparams(*params):
+                loss = A.mm(evecs)  # (*BAM, na, neig)
+
+        # if degenerate, check the conditions for finite derivative
+        if isdegenerate:
+            xtg = torch.matmul(evecs.transpose(-2, -1).conj(), grad_evecs)
+            req1 = idx_degen * (xtg - xtg.transpose(-2, -1).conj())
+            reqtol = xtg.abs().max() * grad_evecs.shape[-2] * torch.finfo(
+                grad_evecs.dtype).eps
+
+            if not torch.all(torch.abs(req1) <= reqtol):
+                # if the requirements are not satisfied, raises a warning
+                msg = (
+                    "Degeneracy appears but the loss function seem to depend "
+                    "strongly on the eigenvector. The gradient might be incorrect.\n"
+                )
+                msg += "Eigenvalues:\n%s\n" % str(evals)
+                msg += "Degenerate map:\n%s\n" % str(idx_degen)
+                msg += "Requirements (should be all 0s):\n%s" % str(req1)
+                warnings.warn(Warning(msg))
+
+        # calculate the contributions from the eigenvalues
+        gevalsA = grad_evals.unsqueeze(-2) * evecs  # (*BAM, na, neig)
+
+        # calculate the contributions from the eigenvectors
+        with M.uselinopparams(
+                *mparams) if M is not None else dummy_context_manager():
+            # orthogonalize the grad_evecs with evecs
+            B = ortho(grad_evecs, evecs, D=idx_degen, M=M, mright=False)
+
+            # Based on test cases, complex datatype is more likely to suffer from
+            # singularity error when doing the inverse. Therefore, I add a small
+            # offset here to prevent that from happening
+            if torch.is_complex(B):
+                evals_offset = evals + 1e-14
+            else:
+                evals_offset = evals
+
+            with A.uselinopparams(*params):
+                gevecs = solve(A,
+                               -B,
+                               evals_offset,
+                               M,
+                               bck_options=ctx.bck_config,
+                               **ctx.bck_config)  # (*BAM, na, neig)
+
+            # orthogonalize gevecs w.r.t. evecs
+            gevecsA = ortho(gevecs, evecs, D=None, M=M, mright=True)
+
+        # accummulate the gradient contributions
+        gaccumA = gevalsA + gevecsA
+        grad_params = torch.autograd.grad(
+            outputs=(loss,),
+            inputs=params,
+            grad_outputs=(gaccumA,),
+            create_graph=torch.is_grad_enabled(),
+        )
+
+        grad_mparams = []
+        if ctx.M is not None:
+            with torch.enable_grad():
+                mparams = [p.clone().requires_grad_() for p in mparams]
+                with M.uselinopparams(*mparams):
+                    mloss = M.mm(evecs)  # (*BAM, na, neig)
+            gevalsM = -gevalsA * evals.unsqueeze(-2)
+            gevecsM = -gevecsA * evals.unsqueeze(-2)
+
+            # the contribution from the parallel elements
+            gevecsM_par = (-0.5 * torch.einsum(
+                "...ae,...ae->...e", grad_evecs,
+                evecs.conj())).unsqueeze(-2) * evecs  # (*BAM, na, neig)
+
+            gaccumM = gevalsM + gevecsM + gevecsM_par
+            grad_mparams = torch.autograd.grad(
+                outputs=(mloss,),
+                inputs=mparams,
+                grad_outputs=(gaccumM,),
+                create_graph=torch.is_grad_enabled(),
+            )
+
+        return (None, None, None, None, None, None, None, *grad_params,
+                *grad_mparams)
+
+
+def _check_degen(evals: torch.Tensor, degen_atol: float, degen_rtol: float) -> \
+        Tuple[torch.Tensor, bool]:
+    """Check the degeneracy of the eigenvalues
+
+    Examples
+    --------
+    >>> import torch
+    >>> evals = torch.tensor([1, 1, 2, 3, 3, 3, 4, 5, 5])
+    >>> degen_atol = 0.1
+    >>> degen_rtol = 0.1
+    >>> idx_degen, isdegenerate = _check_degen(evals, degen_atol, degen_rtol)
+    >>> idx_degen.shape
+    torch.Size([9, 9])
+    >>> isdegenerate
+    True
+
+    Parameters
+    ----------
+    evals: torch.Tensor
+        Eigenvalues of the linear operator. Shape: ``(*BAM, neig)``
+    degen_atol: float
+        Minimum absolute difference between two eigenvalues to be treated as degenerate.
+    degen_rtol: float
+        Minimum relative difference between two eigenvalues to be treated as degenerate.
+
+    Returns
+    -------
+    idx_degen: torch.Tensor
+        The degeneracy map. Shape: ``(*BAM, neig, neig)``
+    isdegenerate: bool
+        Whether the eigenvalues are degenerate
+
+    """
+    # evals: (*BAM, neig)
+
+    # get the index of degeneracies
+    evals_diff = torch.abs(evals.unsqueeze(-2) -
+                           evals.unsqueeze(-1))  # (*BAM, neig, neig)
+    degen_thrsh = degen_atol + degen_rtol * torch.abs(evals).unsqueeze(-1)
+    idx_degen = (evals_diff < degen_thrsh).to(evals.dtype)
+    isdegenerate = bool(torch.sum(idx_degen) > torch.numel(evals))
+    return idx_degen, isdegenerate
+
+
+def ortho(A: torch.Tensor,
+          B: torch.Tensor,
+          *,
+          D: Optional[torch.Tensor] = None,
+          M: Optional[LinearOperator] = None,
+          mright: bool = False) -> torch.Tensor:
+    """Orthogonalize A w.r.t. B
+
+    Examples
+    --------
+    >>> import torch
+    >>> A = torch.tensor([[1, 2], [3, 4]])
+    >>> B = torch.tensor([[1, 0], [0, 1]])
+    >>> ortho(A, B)
+    tensor([[0, 2],
+            [3, 0]])
+
+    Parameters
+    ----------
+    A: torch.Tensor
+        The tensor to be orthogonalized. Shape: ``(*BAM, na, neig)``
+    B: torch.Tensor
+        The tensor to be orthogonalized against. Shape: ``(*BAM, na, neig)``
+    D: torch.Tensor or None
+        The degeneracy map. If None, it is identity matrix. Shape: ``(*BAM, neig, neig)``
+    M: xitorch.LinearOperator or None
+        The overlap matrix. If None, identity matrix is used. Shape: ``(*BM, q, q)``
+    mright: bool
+        Whether to operate M at the right or at the left
+
+    Returns
+    -------
+    torch.Tensor
+        The orthogonalized tensor. Shape: ``(*BAM, na, neig)``
+
+    """
+    if D is None:
+        # contracted using opt_einsum
+        str1 = "...rc,...rc->...c"
+        Bconj = B.conj()
+        if M is None:
+            return A - torch.einsum(str1, A, Bconj).unsqueeze(-2) * B
+        elif mright:
+            return A - torch.einsum(str1, M.mm(A), Bconj).unsqueeze(-2) * B
+        else:
+            return A - M.mm(torch.einsum(str1, A, Bconj).unsqueeze(-2) * B)
+    else:
+        BH = B.transpose(-2, -1).conj()
+        if M is None:
+            DBHA = D * torch.matmul(BH, A)
+            return A - torch.matmul(B, DBHA)
+        elif mright:
+            DBHA = D * torch.matmul(BH, M.mm(A))
+            return A - torch.matmul(B, DBHA)
+        else:
+            DBHA = D * torch.matmul(BH, A)
+            return A - M.mm(torch.matmul(B, DBHA))
 
 
 def exacteig(A: LinearOperator, neig: int, mode: str,
