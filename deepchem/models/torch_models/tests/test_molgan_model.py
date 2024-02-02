@@ -91,8 +91,6 @@ class test_molgan_model(unittest.TestCase):
                         node_tesor = F.one_hot(
                             torch.Tensor(batch[1]).to(torch.int64),
                             gan.nodes).to(torch.float32)
-                        # print(adjacency_tensor[:2])
-                        # print(node_tesor[:2])
                         yield {
                             gan.data_inputs[0]: adjacency_tensor,
                             gan.data_inputs[1]: node_tesor
