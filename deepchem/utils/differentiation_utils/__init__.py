@@ -23,6 +23,8 @@ try:
     from deepchem.utils.differentiation_utils.pure_function import get_pure_function
     from deepchem.utils.differentiation_utils.pure_function import make_sibling
 
+    from deepchem.utils.differentiation_utils.grad import jac
+
     from deepchem.utils.differentiation_utils.solve import wrap_gmres
     from deepchem.utils.differentiation_utils.solve import exactsolve
     from deepchem.utils.differentiation_utils.solve import solve_ABE
@@ -33,5 +35,14 @@ try:
     from deepchem.utils.differentiation_utils.solve import safedenom
     from deepchem.utils.differentiation_utils.solve import setup_linear_problem
     from deepchem.utils.differentiation_utils.solve import gmres
+    from deepchem.utils.differentiation_utils.solve import solve
+    from deepchem.utils.differentiation_utils.solve import cg
+    from deepchem.utils.differentiation_utils.solve import bicgstab
+
+    from deepchem.utils.differentiation_utils.symeig import lsymeig
+    from deepchem.utils.differentiation_utils.symeig import usymeig
+    from deepchem.utils.differentiation_utils.symeig import symeig
+    from deepchem.utils.differentiation_utils.symeig import ortho
+    from deepchem.utils.differentiation_utils.symeig import exacteig
 except:
     pass

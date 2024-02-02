@@ -347,7 +347,8 @@ class TorchModel(Model):
                       max_checkpoints_to_keep: int = 5,
                       checkpoint_interval: int = 1000,
                       restore: bool = False,
-                      variables: Optional[List[torch.nn.Parameter]] = None,
+                      variables: Optional[Union[List[torch.nn.Parameter],
+                                                torch.nn.ParameterList]] = None,
                       loss: Optional[LossFn] = None,
                       callbacks: Union[Callable, List[Callable]] = [],
                       all_losses: Optional[List[float]] = None) -> float:
@@ -366,9 +367,11 @@ class TorchModel(Model):
         restore: bool
             if True, restore the model from the most recent checkpoint and continue training
             from there.  If False, retrain the model from scratch.
-        variables: list of torch.nn.Parameter
+        variables: list of torch.nn.Parameter or torch.nn.ParameterList
             the variables to train.  If None (the default), all trainable variables in
             the model are used.
+            ParameterList can be used like a regular Python list, but Tensors that are
+            `Parameter` are properly registered, and will be visible by all `Module` methods.
         loss: function
             a function of the form f(outputs, labels, weights) that computes the loss
             for each batch.  If None (the default), the model's standard loss function
