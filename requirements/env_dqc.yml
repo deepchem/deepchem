@@ -13,7 +13,7 @@ dependencies:
    - torch-geometric
    - git+https://github.com/diffqc/dqc.git
    - xitorch
-   - pylibxc2
+   - git+https://gitlab.com/libxc/libxc.git
    - pytest
    - PyYAML
    - yamlloader
