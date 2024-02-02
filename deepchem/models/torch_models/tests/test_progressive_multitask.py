@@ -42,11 +42,7 @@ def test_forward():
     """
 
     n_tasks = 2
-    n_samples = 20
     n_features = 12
-    np.random.seed(123)
-
-    X = np.random.rand(n_samples, n_features)
 
     torch_model = dc.models.torch_models.ProgressiveMultitask(
         n_tasks=n_tasks,
@@ -58,6 +54,7 @@ def test_forward():
     )
 
     def to_torch_param(weights):
+        """Convert numpy weights to torch parameters to be used as model weights"""
         return nn.Parameter(torch.from_numpy(weights))
 
     weights = np.load(
@@ -105,8 +102,10 @@ def test_forward():
     torch_model.adapters[0][1][0].bias = torch_weights["adapter-0-1-0-b"]
     torch_model.adapters[0][1][1].weight = torch_weights["adapter-0-1-1-w"]
 
-    tf_out = torch_weights["output"]
-    torch_out = torch_model(torch.from_numpy(X).float()).cpu().detach().numpy()
+    input_x = weights["input"]
+    output = torch_weights["output"]
+    torch_out = torch_model(
+        torch.from_numpy(input_x).float()).cpu().detach().numpy()
 
-    assert np.allclose(tf_out, torch_out,
+    assert np.allclose(output, torch_out,
                        atol=1e-4), "Predictions are not close"
