@@ -1939,6 +1939,7 @@ class SAMLoader(DataLoader):
         ----------
         featurizer: Featurizer (default: None)
             The Featurizer to be used for the loaded SAM data.
+
        """
 
         # Set attributes
@@ -2028,6 +2029,7 @@ class BAMLoader(DataLoader):
         ----------
         featurizer: Featurizer (default: None)
             The Featurizer to be used for the loaded BAM data.
+
        """
 
         # Set attributes

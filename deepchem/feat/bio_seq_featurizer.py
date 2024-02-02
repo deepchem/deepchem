@@ -13,19 +13,7 @@ class SAMFeaturizer(Featurizer):
     sequence. This class extracts Query Name, Query Sequence, Query Length,
     Reference Name,Reference Start, CIGAR and Mapping Quality of each read in
     a SAM file.
-
-    Examples
-    --------
-    >>> from deepchem.data.data_loader import SAMLoader
-    >>> import deepchem as dc
-    >>> inputs = 'deepchem/data/tests/example.sam'
-    >>> featurizer = dc.feat.SAMFeaturizer()
-    >>> features = featurizer.featurize(inputs)
-
-    Information for each read is stored in a 'numpy.ndarray'.
-    >>> type(features[0])
-    <class 'numpy.ndarray'>
-
+    
     This is the default featurizer used by SAMLoader, and it extracts the following
     fields from each read in each SAM file in the given order:-
     - Column 0: Query Name
@@ -36,7 +24,15 @@ class SAMFeaturizer(Featurizer):
     - Column 5: CIGAR
     - Column 6: Mapping Quality
 
-    For the given example, to extract specific features, we do the following.
+    Examples
+    --------
+    >>> from deepchem.data.data_loader import SAMLoader
+    >>> import deepchem as dc
+    >>> inputs = 'deepchem/data/tests/example.sam'
+    >>> featurizer = dc.feat.SAMFeaturizer()
+    >>> features = featurizer.featurize(inputs)
+    >>> type(features[0])
+    <class 'numpy.ndarray'>
     >>> features[0][0]     # Query Name
     r001
     >>> features[0][1]     # Query Sequence
@@ -125,19 +121,7 @@ class BAMFeaturizer(Featurizer):
     (Sequence Alignment Map) files. This class extracts Query Name, Query
     Sequence, Query Length, Reference Name, Reference Start, CIGAR and Mapping
     Quality of the alignment in the BAM file.
-
-    Examples
-    --------
-    >>> from deepchem.data.data_loader import BAMLoader
-    >>> import deepchem as dc
-    >>> inputs = 'deepchem/data/tests/example.bam'
-    >>> featurizer = dc.feat.BAMFeaturizer()
-    >>> features = featurizer.featurize(inputs)
-    >>> type(features[0])
-
-    Information for each read is stored in a 'numpy.ndarray'.
-    <class 'numpy.ndarray'>
-
+    
     This is the default featurizer used by BAMLoader, and it extracts the following
     fields from each read in each BAM file in the given order:-
     - Column 0: Query Name
@@ -148,7 +132,15 @@ class BAMFeaturizer(Featurizer):
     - Column 5: CIGAR
     - Column 6: Mapping Quality
 
-    For the given example, to extract specific features, we do the following.
+    Examples
+    --------
+    >>> from deepchem.data.data_loader import BAMLoader
+    >>> import deepchem as dc
+    >>> inputs = 'deepchem/data/tests/example.bam'
+    >>> featurizer = dc.feat.BAMFeaturizer()
+    >>> features = featurizer.featurize(inputs)
+    >>> type(features[0])
+    <class 'numpy.ndarray'>
     >>> features[0][0]     # Query Name
     EASX:X:X:X:X:33:33_1:Y:0:NNNNNN
     >>> features[0][1]     # Query Sequence
