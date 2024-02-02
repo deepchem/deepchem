@@ -21,6 +21,9 @@ class Discriminator(nn.Module):
         self.edges = edges
         self.units = units
         self.device = device
+        self.graph = MolGANEncoderLayer(units=self.units,
+                                        dropout_rate=self.dropout_rate,
+                                        edges=self.edges)
 
         # Define the dense layers
         self.dense1 = nn.Linear(units[1], 128)
@@ -41,10 +44,7 @@ class Discriminator(nn.Module):
                                                dtype=torch.float32)
         node_tensor = node_tensor.to(device=self.device, dtype=torch.float32)
 
-        graph = MolGANEncoderLayer(units=self.units,
-                                   dropout_rate=self.dropout_rate,
-                                   edges=self.edges)(
-                                       [adjacency_tensor, node_tensor])
+        graph = self.graph([adjacency_tensor, node_tensor])
 
         graph = graph.to(device=self.device, dtype=torch.float32)
         output = self.dense1(graph)
@@ -54,7 +54,6 @@ class Discriminator(nn.Module):
         output = F.tanh(output)
         output = self.dropout2(output)
         output = self.dense3(output)
-        print(output)
         return output
 
 
@@ -67,10 +66,18 @@ class BasicMolGANModel(WGANModel):
 
     Examples
     --------
+
+    Import necessary libraries and modules
+
     >>> import deepchem as dc
-    >>> from deepchem.models import BasicMolGANModel as MolGAN
+    >>> from deepchem.models.torch_models import BasicMolGANModel as MolGAN
     >>> from deepchem.models.optimizers import ExponentialDecay
-    >>> from tensorflow import one_hot
+    >>> import torch
+    >>> import torch.nn.functional as F
+
+    Load dataset and featurize molecules
+    We will use a small dataset for this example.
+
     >>> smiles = ['CCC', 'C1=CC=CC=C1', 'CNC' ]
     >>> # create featurizer
     >>> feat = dc.feat.MolGanFeaturizer()
@@ -78,24 +85,49 @@ class BasicMolGANModel(WGANModel):
     >>> features = feat.featurize(smiles)
     >>> # Remove empty objects
     >>> features = list(filter(lambda x: x is not None, features))
+
+    Create and train the model
+
     >>> # create model
     >>> gan = MolGAN(learning_rate=ExponentialDecay(0.001, 0.9, 5000))
     >>> dataset = dc.data.NumpyDataset([x.adjacency_matrix for x in features],[x.node_features for x in features])
     >>> def iterbatches(epochs):
-    >>>     for i in range(epochs):
-    >>>         for batch in dataset.iterbatches(batch_size=gan.batch_size, pad_batches=True):
-    >>>             adjacency_tensor = one_hot(batch[0], gan.edges)
-    >>>             node_tensor = one_hot(batch[1], gan.nodes)
-    >>>             yield {gan.data_inputs[0]: adjacency_tensor, gan.data_inputs[1]:node_tensor}
-    >>> gan.fit_gan(iterbatches(8), generator_steps=0.2, checkpoint_interval=5000)
-    >>> generated_data = gan.predict_gan_generator(1000)
+    ...     for i in range(epochs):
+    ...         for batch in dataset.iterbatches(batch_size=gan.batch_size, pad_batches=True):
+    ...             adjacency_tensor = F.one_hot(
+    ...                     torch.Tensor(batch[0]).to(torch.int64),
+    ...                     gan.edges).to(torch.float32)
+    ...             node_tensor = F.one_hot(
+    ...                     torch.Tensor(batch[1]).to(torch.int64),
+    ...                     gan.nodes).to(torch.float32)
+    ...             yield {gan.data_inputs[0]: adjacency_tensor, gan.data_inputs[1]:node_tensor}
+    >>> # train model
+    >>> gan.fit_gan(iterbatches(8), generator_steps=0.2, checkpoint_interval=0)
+
+    You can change the above parameters to get better results. The above example is just a simple example to show how to use the model.
+    You can try `iterbatches(1000)` for better results.
+
+    Now, let's generate some molecules using the trained model
+    We will generate 10 molecules and then convert them to RDKit molecules.
+
+    >>> generated_data = gan.predict_gan_generator(10)
+    Generating 10 samples
     >>> # convert graphs to RDKitmolecules
     >>> nmols = feat.defeaturize(generated_data)
     >>> print("{} molecules generated".format(len(nmols)))
+    10 molecules generated
+
+    You can increase the number of generated molecules by changing the parameter in `predict_gan_generator` function.
+    Generated molecules are in the form of GraphMatrix. You can convert them to RDKit molecules using `defeaturize` function of MolGanFeaturizer.
+
+    Now, let's remove invalid molecules from the generated molecules.
+
     >>> # remove invalid moles
     >>> nmols = list(filter(lambda x: x is not None, nmols))
-    >>> # currently training is unstable so 0 is a common outcome
     >>> print ("{} valid molecules".format(len(nmols)))
+    0 valid molecules
+
+    We can see that currently training is unstable and 0 is a common outcome. You can try training the model with different parameters to get better results.
 
     References
     ----------
@@ -135,7 +167,7 @@ class BasicMolGANModel(WGANModel):
         self.nodes = nodes
         self.embedding_dim = embedding_dim
         self.dropout_rate = dropout_rate
-        self.device = device
+        self.device = device  # type: ignore
 
         super(BasicMolGANModel, self).__init__(device=device, **kwargs)
 
@@ -201,15 +233,15 @@ class BasicMolGANModel(WGANModel):
         in the future release.
         """
 
-        return nn.Sequential(
-            Discriminator(dropout_rate=self.dropout_rate,
-                          units=units,
-                          edges=self.edges,
-                          device=self.device))
+        return Discriminator(dropout_rate=self.dropout_rate,
+                             units=units,
+                             edges=self.edges,
+                             device=self.device)
 
     def predict_gan_generator(self,
                               batch_size: int = 1,
-                              noise_input: Optional[List] = None,
+                              noise_input: Optional[Union[List,
+                                                          torch.Tensor]] = None,
                               conditional_inputs: List = [],
                               generator_index: int = 0) -> List[GraphMatrix]:
         """
@@ -240,11 +272,10 @@ class BasicMolGANModel(WGANModel):
             Returns a list of GraphMatrix object that can be converted into
             RDKit molecules using MolGANFeaturizer defeaturize function.
         """
-        print("predict_gan_generator")
         if noise_input is not None:
             batch_size = len(noise_input)
         if noise_input is None:
-            noise_input = self.get_noise_batch(batch_size)
+            noise_input = self.get_noise_batch(batch_size)  # type: ignore
         noise_input = torch.tensor(noise_input,
                                    dtype=torch.float32,
                                    device=self.device)
@@ -252,9 +283,8 @@ class BasicMolGANModel(WGANModel):
         adjacency_matrix, nodes_features = self.generators[0](
             noise_input, training=False, sample_generation=True)
         graphs = [
-            GraphMatrix(i, j)
-            for i, j in zip(adjacency_matrix.detach().numpy(),
-                            nodes_features.detach().numpy())
+            GraphMatrix(i, j) for i, j in zip(adjacency_matrix.detach().numpy(),
+                                              nodes_features.detach().numpy())
         ]
         return graphs
 
@@ -312,8 +342,8 @@ class BasicMolGANGenerator(nn.Module):
         self.dropout3 = nn.Dropout(dropout_rate)
 
         # edges logits used during training
-        self.edges_dense = nn.Linear(
-            512, self.edges * self.vertices * self.vertices)
+        self.edges_dense = nn.Linear(512,
+                                     self.edges * self.vertices * self.vertices)
         self.edges_dropout = nn.Dropout(dropout_rate)
 
         # nodes logits used during training
@@ -345,8 +375,6 @@ class BasicMolGANGenerator(nn.Module):
 
         if isinstance(inputs, list):
             inputs = inputs[0]
-        # inputs = torch.tensor(inputs)
-        # inputs = inputs.to(torch.float32)
         x = F.tanh(self.dense1(inputs))
         x = self.dropout1(x)
         x = F.tanh(self.dense2(x))
