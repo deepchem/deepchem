@@ -305,7 +305,7 @@ class FerminetModel(TorchModel):
     Note
     ----
     This class requires pySCF to be installed.
-    """
+    """.replace('+IGNORE_RESULT', '+ELLIPSIS\n<...>')
 
     def __init__(self,
                  nucleon_coordinates: List[List],
