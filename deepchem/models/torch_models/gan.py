@@ -716,7 +716,7 @@ class GANModel(TorchModel):
         """
         self.n_generators = n_generators
         self.n_discriminators = n_discriminators
-        self.device = device # type: ignore
+        self.device = device  # type: ignore
 
         model = GAN(noise_input_shape=self.get_noise_input_shape(),
                     data_input_shape=self.get_data_input_shapes(),
