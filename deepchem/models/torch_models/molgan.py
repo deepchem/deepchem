@@ -187,6 +187,7 @@ class BasicMolGANModel(WGANModel):
         return Discriminator(dropout_rate=self.dropout_rate,
                              units=units,
                              edges=self.edges,
+                             nodes=self.nodes,
                              device=self.device)
 
     def predict_gan_generator(self,
@@ -376,6 +377,7 @@ class Discriminator(nn.Module):
         dropout_rate: float,
         units: List = [(128, 64), 64],
         edges: int = 5,
+        nodes: int = 5,
         device: Optional[torch.device] = torch.device('cpu')
     ) -> None:
         """Initialize the discriminator.
@@ -395,10 +397,12 @@ class Discriminator(nn.Module):
         self.dropout_rate = dropout_rate
         self.edges = edges
         self.units = units
+        self.nodes = nodes
         self.device: torch.device = device  # type: ignore
         self.graph = MolGANEncoderLayer(units=self.units,
                                         dropout_rate=self.dropout_rate,
                                         edges=self.edges,
+                                        nodes=self.nodes,
                                         device=self.device)
 
         # Define the dense layers
