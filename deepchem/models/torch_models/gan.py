@@ -687,7 +687,7 @@ class GANModel(TorchModel):
                  create_discriminator_loss: Optional[Callable] = None,
                  create_generator_loss: Optional[Callable] = None,
                  _call_discriminator: Optional[Callable] = None,
-                 device: Optional[torch.device] = None,
+                 device: Optional[torch.device] = torch.device('cpu'),
                  **kwargs):
         """
         Parameters
@@ -716,14 +716,8 @@ class GANModel(TorchModel):
         """
         self.n_generators = n_generators
         self.n_discriminators = n_discriminators
+        self.device = device # type: ignore
 
-        if device is None:
-            if torch.cuda.is_available():
-                self.device = torch.device('cuda')
-            elif torch.backends.mps.is_available():
-                self.device = torch.device('mps')
-            else:
-                self.device = torch.device('cpu')
         model = GAN(noise_input_shape=self.get_noise_input_shape(),
                     data_input_shape=self.get_data_input_shapes(),
                     conditional_input_shape=self.get_conditional_input_shapes(),
@@ -745,7 +739,10 @@ class GANModel(TorchModel):
         self.discrim_variables = model.discrim_variables
         self.get_noise_batch = model.get_noise_batch
 
-        super(GANModel, self).__init__(model, loss=self.gen_loss_fn, **kwargs)
+        super(GANModel, self).__init__(model,
+                                       loss=self.gen_loss_fn,
+                                       device=self.device,
+                                       **kwargs)
 
     def get_noise_input_shape(self):
         """Get the shape of the generator's noise input layer.

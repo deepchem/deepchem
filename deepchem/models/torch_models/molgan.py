@@ -234,8 +234,9 @@ class BasicMolGANModel(WGANModel):
         adjacency_matrix, nodes_features = self.generators[0](
             noise_input, training=False, sample_generation=True)
         graphs = [
-            GraphMatrix(i, j) for i, j in zip(adjacency_matrix.detach().numpy(),
-                                              nodes_features.detach().numpy())
+            GraphMatrix(i, j)
+            for i, j in zip(adjacency_matrix.cpu().detach().numpy(),
+                            nodes_features.cpu().detach().numpy())
         ]
         return graphs
 
@@ -394,10 +395,11 @@ class Discriminator(nn.Module):
         self.dropout_rate = dropout_rate
         self.edges = edges
         self.units = units
-        self.device = device
+        self.device: torch.device = device  # type: ignore
         self.graph = MolGANEncoderLayer(units=self.units,
                                         dropout_rate=self.dropout_rate,
-                                        edges=self.edges)
+                                        edges=self.edges,
+                                        device=self.device)
 
         # Define the dense layers
         self.dense1 = nn.Linear(units[1], 128)
