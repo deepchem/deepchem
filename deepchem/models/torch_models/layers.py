@@ -3788,11 +3788,12 @@ class MolGANEncoderLayer(nn.Module):
         self.activation = activation
         self.dropout_rate = dropout_rate
         self.edges = edges
+        self.nodes = nodes
         self.device = device
 
         self.multi_graph_convolution_layer = MolGANMultiConvolutionLayer(
             units=self.graph_convolution_units,
-            nodes=nodes,
+            nodes=self.nodes,
             activation=self.activation,
             dropout_rate=self.dropout_rate,
             edges=self.edges,
