@@ -5591,7 +5591,7 @@ class FerminetElectronFeature(torch.nn.Module):
 
 class FerminetEnvelope(torch.nn.Module):
     """
-    A Pytorch Module implementing the ferminet's envlope layer [1]_, which is used to calculate the spin up and spin down orbital values.
+    A Pytorch Module implementing the ferminet's envlope layer _[1], which is used to calculate the spin up and spin down orbital values.
     This is a helper class for the Ferminet model.
     The layer consists of 4 types of parameter lists - envelope_w, envelope_g, sigma and pi, which helps to calculate the orbital vlaues.
 
@@ -5602,13 +5602,16 @@ class FerminetEnvelope(torch.nn.Module):
     Examples
     --------
     >>> import deepchem as dc
+    >>> import torch
     >>> envelope_layer = dc.models.torch_models.layers.FerminetEnvelope([32, 32, 32], [16, 16, 16], 10, 8, [5, 5], 5, 16)
     >>> one_electron = torch.randn(8, 10, 32)
     >>> one_electron_permuted = torch.randn(8, 10, 5, 3)
     >>> psi, psi_up, psi_down = envelope_layer.forward(one_electron, one_electron_permuted)
+    >>> psi.size()
+    torch.Size([8])
     >>> psi_up.size()
     torch.Size([8, 16, 5, 5])
-    >>> two.size()
+    >>> psi_down.size()
     torch.Size([8, 16, 5, 5])
     """
 
@@ -6088,4 +6091,75 @@ class MXMNetSphericalBasisLayer(torch.nn.Module):
 
         output: torch.Tensor = (rbf[idx_kj].view(-1, n, k) *
                                 cbf.view(-1, n, 1)).view(-1, n * k)
+        return output
+
+
+class HighwayLayer(torch.nn.Module):
+    """
+    Highway layer from "Training Very Deep Networks" [1]
+
+    y = H(x) * T(x) + x * C(x), where
+
+    H(x): 1-layer neural network with non-linear activation
+    T(x): 1-layer neural network with sigmoid activation
+    C(X): 1 - T(X); As per the original paper
+
+    The output will be of the same dimension as the input
+
+    References
+    ----------
+    .. [1] Srivastava et al., "Training Very Deep Networks".https://arxiv.org/abs/1507.06228
+
+    Examples
+    --------
+    >>> x = torch.randn(16, 20)
+    >>> highway_layer = HighwayLayer(d_input=x.shape[1])
+    >>> y = highway_layer(x)
+    >>> x.shape
+    torch.Size([16, 20])
+    >>> y.shape
+    torch.Size([16, 20])
+    """
+
+    def __init__(self,
+                 d_input: int,
+                 activation_fn: Union[Callable, str] = 'relu'):
+        """
+        Initializes the HighwayLayer.
+
+        Parameters
+        ----------
+            d_input: int
+                the dimension of the input layer
+            activation_fn: str
+                the activation function to use for H(x)
+        """
+
+        super(HighwayLayer, self).__init__()
+        self.d_input = d_input
+        self.activation_fn = get_activation(activation_fn)
+        self.sigmoid_fn = get_activation('sigmoid')
+
+        self.H = nn.Linear(d_input, d_input)
+        self.T = nn.Linear(d_input, d_input)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the HighwayLayer.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input tensor of dimension (,input_dim).
+
+        Returns
+        -------
+        output: torch.Tensor
+            Output tensor of dimension (,input_dim)
+        """
+
+        H_out = self.activation_fn(self.H(x))
+        T_out = self.sigmoid_fn(self.T(x))
+        output = H_out * T_out + x * (1 - T_out)
+
         return output

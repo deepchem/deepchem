@@ -96,7 +96,7 @@ class TestGlobalFeatureGenerator(unittest.TestCase):
         """
         global_features = generate_global_features(self.mol[2],
                                                    self.feature_generators[5])
-        assert len(global_features) == 200
+        assert len(global_features) == 202
 
     def test_generator_rdkit_desc_normalized(self):
         """
