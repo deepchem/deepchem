@@ -2,11 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from deepchem.utils.typing import OneOrMany, ActivationFn
+from deepchem.data import Dataset
+from deepchem.models import TorchModel, losses
 from deepchem.utils.pytorch_utils import get_activation
+from deepchem.utils.typing import OneOrMany, ActivationFn, LossFn
 
 from collections.abc import Sequence as SequenceCollection
-from typing import List, Tuple, Callable, Literal, Union
+from typing import List, Tuple, Callable, Literal, Optional, Union
 
 
 class ProgressiveMultitask(nn.Module):
@@ -302,3 +304,115 @@ class ProgressiveMultitask(nn.Module):
         adapter_out = self.activation_fns[layer - 1](adapter_out)
         adapter_out = adapter[1](adapter_out)
         return adapter_out
+
+
+class ProgressiveMultitaskModel(TorchModel):
+    def __init__(
+        self,
+        n_tasks: int,
+        n_features: int,
+        layer_sizes: List[int] = [1000],
+        alpha_init_stddevs: OneOrMany[float] = 0.02,
+        weight_init_stddevs: OneOrMany[float] = 0.02,
+        bias_init_consts: OneOrMany[float] = 1.0,
+        weight_decay_penalty: float = 0.0,
+        weight_decay_penalty_type: str = "l2",
+        activation_fns: OneOrMany[ActivationFn] = 'relu',
+        dropouts: OneOrMany[float] = 0.5,
+        n_outputs: int = 1,
+        mode: Literal['regression', 'classification'] = 'regression',
+        **kwargs
+    ):
+
+        model = ProgressiveMultitask(
+            n_tasks=n_tasks,
+            n_features=n_features,
+            layer_sizes=layer_sizes,
+            alpha_init_stddevs=alpha_init_stddevs,
+            weight_init_stddevs=weight_init_stddevs,
+            bias_init_consts=bias_init_consts,
+            weight_decay_penalty=weight_decay_penalty,
+            weight_decay_penalty_type=weight_decay_penalty_type,
+            activation_fns=activation_fns,
+            dropouts=dropouts,
+            n_outputs=n_outputs,
+            **kwargs
+        )
+
+        loss: losses.Loss
+        if mode == 'regression':
+            loss = losses.L2Loss()
+        elif mode == 'classification':
+            loss = losses.SparseSoftmaxCrossEntropy()
+        else:
+            raise ValueError(f'Invalid mode: {mode}')
+
+        super(ProgressiveMultitaskModel, self).__init__(model, loss)
+
+    def fit(self,
+            dataset: Dataset,
+            nb_epoch: int = 10,
+            max_checkpoints_to_keep: int = 5,
+            checkpoint_interval: int = 1000,
+            deterministic: bool = False,
+            restore: bool = False,
+            variables: Optional[List[torch.nn.Parameter]] = None,
+            loss: Optional[LossFn] = None,
+            callbacks: Union[Callable, List[Callable]] = [],
+            all_losses: Optional[List[float]] = None) -> float:
+
+        losses = []
+        for task in range(self.model.n_tasks):
+            task_loss = self.fit_task(
+                        dataset=dataset,
+                        task=task,
+                        nb_epoch=nb_epoch,
+                        max_checkpoints_to_keep=max_checkpoints_to_keep,
+                        checkpoint_interval=checkpoint_interval,
+                        deterministic=deterministic,
+                        restore=restore,
+                        variables=variables,
+                        loss=loss,
+                        callbacks=callbacks,
+                        all_losses=all_losses
+                                    )
+            losses.append(task_loss)
+
+        return sum(losses) / len(losses)
+
+    def fit_task(self,
+                 dataset: Dataset,
+                 task: int,
+                 nb_epoch: int = 10,
+                 max_checkpoints_to_keep: int = 5,
+                 checkpoint_interval: int = 1000,
+                 deterministic: bool = False,
+                 restore: bool = False,
+                 variables: Optional[List[torch.nn.Parameter]] = None,
+                 loss: Optional[LossFn] = None,
+                 callbacks: Union[Callable, List[Callable]] = [],
+                 all_losses: Optional[List[float]] = None) -> float:
+        """Fit one task."""
+        generator = self.default_generator(dataset,
+                                           epochs=nb_epoch,
+                                           deterministic=deterministic)
+
+        variables = list(self.model.layers[task].parameters())
+
+        if task > 0:
+            variables += list(self.model.adapters[task - 1].parameters())
+            variables += list(self.model.alphas[task - 1].parameters())
+
+        # return self.fit_generator(generator, max_checkpoints_to_keep, checkpoint_interval, restore, variables=variables, **kwargs)
+        task_loss = self.fit_generator(
+            generator=generator,
+            max_checkpoints_to_keep=max_checkpoints_to_keep,
+            checkpoint_interval=checkpoint_interval,
+            restore=restore,
+            variables=variables,
+            loss=loss,
+            callbacks=callbacks,
+            all_losses=all_losses
+        )
+
+        return task_loss
