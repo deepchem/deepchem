@@ -1,13 +1,16 @@
 import logging
+import numpy as np
 from collections.abc import Sequence as SequenceCollection
 try:
     import torch
     import torch.nn as nn
 except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
-
+from deepchem.metrics import to_one_hot
 from deepchem.models.torch_models.torch_model import TorchModel
+from deepchem.utils.typing import OneOrMany, ActivationFn
 from deepchem.utils.pytorch_utils import get_activation
+from typing import List, Tuple
 from deepchem.models.losses import L2Loss
 logger = logging.getLogger(__name__)
 
@@ -29,19 +32,23 @@ class RobustMultitaskModel(nn.Module):
     """
 
     def __init__(self,
-                 n_tasks,
-                 n_features,
-                 layer_sizes=[1000,],
-                 weight_init_stddevs=0.02,
-                 bias_init_consts=1.0,
-                 dropouts=0.5,
-                 activation_fns="relu",
-                 n_classes=2,
-                 bypass_layer_sizes=[100,],
-                 bypass_weight_init_stddevs=[.02],
-                 bypass_bias_init_consts=[1.],
-                 bypass_dropouts=[.5],
-                 mode="classification"):
+                 n_tasks: int,
+                 n_features: int,
+                 layer_sizes: List[int] = [
+                     1000,
+                 ],
+                 weight_init_stddevs: OneOrMany[float] = 0.02,
+                 bias_init_consts: OneOrMany[float] = 1.0,
+                 dropouts: float = 0.5,
+                 activation_fns: str = "relu",
+                 n_classes: int = 2,
+                 bypass_layer_sizes: List[int] = [
+                     100,
+                 ],
+                 bypass_weight_init_stddevs: List[float] = [.02],
+                 bypass_bias_init_consts: List[float] = [1.],
+                 bypass_dropouts: List[float] = [.5],
+                 mode: str = "classification"):
         """  Create a RobustMultitaskClassifier.
 
         Parameters
@@ -117,22 +124,19 @@ class RobustMultitaskModel(nn.Module):
                                       ] * n_bypass_layers
         if not isinstance(bypass_dropouts, SequenceCollection):
             bypass_dropouts = [bypass_dropouts] * n_bypass_layers
-        if isinstance(
-                activation_fns,
-                str) or not isinstance(activation_fns, SequenceCollection):
-            bypass_activation_fns = [activation_fns] * n_bypass_layers
+        
         self.activation_fns = [get_activation(i) for i in activation_fns]
-        self.bypass_activation_fns = [get_activation(i) for i in bypass_activation_fns]
+        
 
         # Adding the shared represenation.
-        list_layers = []
-        in_size = n_features
+        list_layers: List[nn.Module] = []
+        in_size: int = n_features
 
         for size, weight_stddev, bias_const, dropout, activation_fn in zip(
                 layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
                 self.activation_fns):
             layer = nn.Linear(in_size, size)
-            nn.init.trunc_normal_(self.layer.weight, 0, weight_stddev)
+            nn.init.trunc_normal_(layer.weight, 0, weight_stddev)
             if layer.bias is not None:
                 layer.bias = nn.Parameter(
                     torch.full(layer.bias.shape, bias_const))
@@ -142,7 +146,7 @@ class RobustMultitaskModel(nn.Module):
             layer_act = activation_fn
             list_layers.append(layer)
             list_layers.append(dropout_layer)
-            list_layers.append(layer_act)
+            
             in_size = size
 
         self.shared = nn.Sequential(*list_layers)
@@ -155,13 +159,13 @@ class RobustMultitaskModel(nn.Module):
             for bypass_size, bypass_weight_stddev, bypass_bias_const, bypass_dropout, bypass_activation_fn in zip(
                     bypass_layer_sizes, bypass_weight_init_stddevs,
                     bypass_bias_init_consts, bypass_dropouts,
-                    self.bypass_activation_fns):
+                    self.activation_fns):
                 layer_task = nn.Linear(in_size, bypass_size)
                 nn.init.trunc_normal_(layer_task.weight, 0,
                                       bypass_weight_stddev)
-                if self.layer_task.bias is not None:
+                if layer_task.bias is not None:
                     layer_task.bias = nn.Parameter(
-                        torch.full(self.layer_task.bias.shape,
+                        torch.full(layer_task.bias.shape,
                                    bypass_bias_const))
                 layer_task.weight_stddev = bypass_weight_stddev
                 layer_task.bias_const = bypass_bias_const
@@ -169,7 +173,6 @@ class RobustMultitaskModel(nn.Module):
                 layer_act_bypass = bypass_activation_fn
                 task_layers.append(layer_task)
                 task_layers.append(dropout_layer_bypass)
-                task_layers.append(layer_act_bypass)
                 in_size = size
             task_layer = nn.Sequential(*task_layers)
         self.bypass_layers.append(task_layer)
@@ -269,3 +272,26 @@ class RobustMultitask(TorchModel):
                                               output_types=output_types,
                                               regularization_loss=regularization_loss,
                                               **kwargs)
+
+    def default_generator(self,
+                            dataset,
+                            epochs=1,
+                            mode='fit',
+                            deterministic=True,
+                            pad_batches=True):
+
+        for epoch in range(epochs):
+
+            for (X_b, y_b, w_b,
+                ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                            deterministic=deterministic,
+                                            pad_batches=pad_batches):
+
+                if self.mode == 'classification':
+                    if y_b is not None:
+                        y_b = to_one_hot(y_b.flatten(), self.n_classes)\
+                            .reshape(-1, self.n_tasks, self.n_classes)
+
+                dropout = np.array(0.) if mode == 'predict' else np.array(1.)
+
+                yield ([X_b, dropout], [y_b], [w_b])
