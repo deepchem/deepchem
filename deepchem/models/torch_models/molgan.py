@@ -28,6 +28,7 @@ class BasicMolGANModel(WGANModel):
 
     Load dataset and featurize molecules
     We will use a small dataset for this example.
+    We will be using `MolGanFeaturizer` to featurize the molecules.
 
     >>> smiles = ['CCC', 'C1=CC=CC=C1', 'CNC' ]
     >>> # create featurizer
