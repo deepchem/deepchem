@@ -9,6 +9,8 @@ from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy
 import torch.nn as nn
 from deepchem.metrics import to_one_hot
 import copy
+from rdkit import Chem
+import sys
 
 default_dict = {
     '#': 1,
@@ -77,38 +79,47 @@ class TextCNN(nn.Module):
             n_embedding=self.n_embedding,
             periodic_table_length=len(self.char_dict.keys()) + 1)
         self.dropout_layer = nn.Dropout1d(p=self.dropout)
-
         for filter_size, num_filter in zip(self.kernel_sizes, self.num_filters):
             self.conv_layers.append(
                 nn.Conv1d(in_channels=self.n_embedding,
                           out_channels=num_filter,
                           kernel_size=filter_size))
         concat_emb_dim = sum(num_filters)
-        self.linear = nn.Linear(in_features=concat_emb_dim, out_features=200)
+        self.linear1 = nn.Linear(in_features=concat_emb_dim, out_features=200)
+        if (self.mode == "classification"):
+            self.linear2 = nn.Linear(in_features=200,
+                                     out_features=self.n_tasks * 2)
+        else:
+            self.linear2 = nn.Linear(in_features=200,
+                                     out_features=self.n_tasks * 1)
         self.relu = nn.ReLU()
-        self.softmax = nn.Softmax(dim=1)
+        self.softmax = nn.Softmax(dim=2)
         self.highway = layers.HighwayLayer(200)
 
     def forward(self, input):
-
         input_emb = self.embedding_layer(input)
 
-        for conv_layer in self.conv_layers:
+        input_emb = input_emb.permute(0, 2, 1)
+
+        for i, conv_layer in enumerate(self.conv_layers):
             x = conv_layer(input_emb)
             x, _ = torch.max(x, dim=2)
-            concat_output = torch.cat(x, dim=1)
+            if (i == 0):
+                concat_output = x
+            else:
+                concat_output = torch.cat((concat_output, x), dim=1)
 
-        x = self.relu(self.linear(concat_output))
+        x = self.relu(self.linear1(self.dropout_layer(concat_output)))
         x = self.highway(x)
 
         if self.mode == "classification":
-            logits = nn.Linear(in_features=200, out_features=self.n_tasks * 2)
-            logits = logits.view(self.n_tasks, 2)
+            logits = self.linear2(x)
+            logits = logits.view(-1, self.n_tasks, 2)
             output = self.softmax(logits)
             outputs = [output, logits]
         else:
-            output = nn.Linear(in_features=200, out_features=self.n_tasks * 1)
-            output = output.view(self.n_tasks, 1)
+            output = self.linear2(x)
+            output = output.view(-1, self.n_tasks, 1)
             outputs = [output]
         return outputs
 
@@ -161,25 +172,57 @@ class TextCNNModel(TorchModel):
                                            output_types=output_types,
                                            **kwargs)
 
-    def default_generator(self,
-                          dataset,
-                          epochs=1,
-                          mode='fit',
-                          deterministic=True,
-                          pad_batches=True):
-        """Transfer smiles strings to fixed length integer vectors"""
-        for epoch in range(epochs):
-            for (X_b, y_b, w_b,
-                 ids_b) in dataset.iterbatches(batch_size=self.batch_size,
-                                               deterministic=deterministic,
-                                               pad_batches=pad_batches):
-                if y_b is not None:
-                    if self.mode == 'classification':
-                        y_b = to_one_hot(y_b.flatten(),
-                                         2).reshape(-1, self.n_tasks, 2)
-                # Transform SMILES sequence to integers
-                X_b = self.smiles_to_seq_batch(ids_b)
-                yield ([X_b], [y_b], [w_b])
+    def _prepare_batch(self, batch):
+        inputs, labels, weights = batch
+
+
+        X_b = self.smiles_to_seq_batch(inputs[0])
+        input_tensor = torch.from_numpy(X_b).to(self.device)
+        if (labels != None):
+            if (self.mode == "classification"):
+                labels = [
+                    to_one_hot(labels[0].flatten(),
+                               2).reshape(-1, self.n_tasks, 2)
+                ]
+
+        # print(labels[0])
+
+        _, labels, weights = super(TextCNNModel, self)._prepare_batch(
+            ([], labels, weights))
+        # print(self.n_tasks)
+        # print(labels[0].shape)
+        # return
+
+        return input_tensor, labels, weights
+
+        # inputs, labels, weights = batch
+        # dgl_graphs = [
+        #     graph.to_dgl_graph(self_loop=self._self_loop) for graph in inputs[0]
+        # ]
+        # inputs = dgl.batch(dgl_graphs).to(self.device)
+        # _, labels, weights = super(GCNModel, self)._prepare_batch(
+        #     ([], labels, weights))
+        # return inputs, labels, weights
+
+    # def default_generator(self,
+    #                       dataset,
+    #                       epochs=1,
+    #                       mode='fit',
+    #                       deterministic=True,
+    #                       pad_batches=True):
+    #     """Transfer smiles strings to fixed length integer vectors"""
+    #     for epoch in range(epochs):
+    #         for (X_b, y_b, w_b,
+    #              ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+    #                                            deterministic=deterministic,
+    #                                            pad_batches=pad_batches):
+    #             if y_b is not None:
+    #                 if self.mode == 'classification':
+    #                     y_b = to_one_hot(y_b.flatten(),
+    #                                      2).reshape(-1, self.n_tasks, 2)
+    #             # Transform SMILES sequence to integers
+    #             X_b = self.smiles_to_seq_batch(ids_b)
+    #             yield ([X_b], [y_b], [w_b])
 
     @staticmethod
     def build_char_dict(dataset, default_dict=default_dict):
@@ -187,7 +230,12 @@ class TextCNNModel(TorchModel):
         This method should be called before defining the model to build appropriate char_dict
         """
         # SMILES strings
+        # print("DATASET")
+        # print(dataset)
+
+        # print("X")
         X = dataset.ids
+        # print(X)
         # Maximum length is expanded to allow length variation during train and inference
         seq_length = int(max([len(smile) for smile in X]) * 1.2)
         # '_' served as delimiter and padding
@@ -218,45 +266,7 @@ class TextCNNModel(TorchModel):
             current_key_val += 1
         return out_dict, seq_length
 
-    @staticmethod
-    def convert_bytes_to_char(s):
-        s = ''.join(chr(b) for b in s)
-        return s
-
-    def smiles_to_seq_batch(self, ids_b):
-        """Converts SMILES strings to np.array sequence.
-
-        A tf.py_func wrapper is written around this when creating the input_fn for make_estimator
-        """
-        if isinstance(ids_b[0], bytes) and sys.version_info[
-                0] != 2:  # Python 2.7 bytes and string are analogous
-            ids_b = [
-                TextCNNModel.convert_bytes_to_char(smiles) for smiles in ids_b
-            ]
-        smiles_seqs = [self.smiles_to_seq(smiles) for smiles in ids_b]
-        smiles_seqs = np.vstack(smiles_seqs)
-        return smiles_seqs
-
-    def default_generator(self,
-                          dataset,
-                          epochs=1,
-                          mode='fit',
-                          deterministic=True,
-                          pad_batches=True):
-        """Transfer smiles strings to fixed length integer vectors"""
-        for epoch in range(epochs):
-            for (X_b, y_b, w_b,
-                 ids_b) in dataset.iterbatches(batch_size=self.batch_size,
-                                               deterministic=deterministic,
-                                               pad_batches=pad_batches):
-                if y_b is not None:
-                    if self.mode == 'classification':
-                        y_b = to_one_hot(y_b.flatten(),
-                                         2).reshape(-1, self.n_tasks, 2)
-                # Transform SMILES sequence to integers
-                X_b = self.smiles_to_seq_batch(ids_b)
-                yield ([X_b], [y_b], [w_b])
-
+    #############################################################
     def smiles_to_seq(self, smiles):
         """ Tokenize characters in smiles to integers
         """
@@ -281,3 +291,24 @@ class TextCNNModel(TorchModel):
             # Padding with '_'
             seq.append(self.char_dict['_'])
         return np.array(seq, dtype=np.int32)
+
+    @staticmethod
+    def convert_bytes_to_char(s):
+        s = ''.join(chr(b) for b in s)
+        return s
+
+    def smiles_to_seq_batch(self, ids_b):
+        """Converts SMILES strings to np.array sequence.
+
+        A tf.py_func wrapper is written around this when creating the input_fn for make_estimator
+        """
+        if isinstance(ids_b[0], bytes) and sys.version_info[
+                0] != 2:  # Python 2.7 bytes and string are analogous
+            ids_b = [
+                TextCNNModel.convert_bytes_to_char(smiles) for smiles in ids_b
+            ]
+        smiles_seqs = [
+            self.smiles_to_seq(Chem.MolToSmiles(smiles)) for smiles in ids_b
+        ]
+        smiles_seqs = np.vstack(smiles_seqs)
+        return smiles_seqs
