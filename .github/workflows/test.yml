@@ -18,6 +18,13 @@ jobs:
           - os: windows-latest
             python-version: '3.9'
     steps:
+    - name: Maximize build space
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
     - uses: actions/checkout@v4
     - name: Cache pip modules for Linux
       uses: actions/cache@v4
@@ -105,7 +112,7 @@ jobs:
         pip install conda-merge;
         cd requirements
         if [ "$(uname)" == 'Linux' ]; then
-          conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml >  env.yml
+          conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml > env.yml
         elif [  "$(uname)" == 'Darwin' ]; then
           conda-merge env_common.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml jax/env_jax.cpu.yml > env.yml
         elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
