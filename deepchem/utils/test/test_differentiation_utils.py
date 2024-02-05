@@ -857,4 +857,52 @@ def test_svd():
     assert torch.allclose(torch.tensor([2.3820, 4.6180]), S, 0.001)
 
 
+@pytest.mark.torch
+def test_BroydenFirst():
+    from deepchem.utils.differentiation_utils.optimize._jacobian import BroydenFirst
+    jacobian = BroydenFirst()
+    x0 = torch.tensor([1.0, 1.0], requires_grad=True)
+    def func(x):
+        return torch.tensor([x[0]**2 + x[1]**2 - 1.0, x[0] - x[1]])
+    y0 = func(x0)
+    v = torch.tensor([1.0, 1.0])
+    jacobian.setup(x0, y0, func)
+    torch.allclose(jacobian.solve(v), torch.tensor([-0.7071, -0.7071]))
 
+
+@pytest.mark.torch
+def test_BroydenSecond():
+    from deepchem.utils.differentiation_utils.optimize._jacobian import BroydenSecond
+    jacobian = BroydenSecond()
+    x0 = torch.tensor([1.0, 1.0], requires_grad=True)
+    def func(x):
+        return torch.tensor([x[0]**2 + x[1]**2 - 1.0, x[0] - x[1]])
+    y0 = func(x0)
+    v = torch.tensor([1.0, 1.0])
+    jacobian.setup(x0, y0, func)
+    torch.allclose(jacobian.solve(v), torch.tensor([-0.7071, -0.7071]))
+
+
+@pytest.mark.torch
+def test_LinearMixing():
+    from deepchem.utils.differentiation_utils.optimize._jacobian import LinearMixing
+    jacobian = LinearMixing()
+    x0 = torch.tensor([1.0, 1.0], requires_grad=True)
+    def func(x):
+        return torch.tensor([x[0]**2 + x[1]**2 - 1.0, x[0] - x[1]])
+    y0 = func(x0)
+    v = torch.tensor([1.0, 1.0])
+    jacobian.setup(x0, y0, func)
+    torch.allclose(jacobian.solve(v), torch.tensor([1., 1.]))
+
+
+@pytest.mark.torch
+def test_low_rank_matrix():
+    from deepchem.utils.differentiation_utils.optimize._jacobian import LowRankMatrix
+    import torch
+    alpha = 1.0
+    uv0 = (torch.tensor([1.0, 1.0]), torch.tensor([1.0, 1.0]))
+    reduce_method = "restart"
+    matrix = LowRankMatrix(alpha, uv0, reduce_method)
+    v = torch.tensor([1.0, 1.0])
+    torch.allclose(matrix.mv(v), torch.tensor([3., 3.]))

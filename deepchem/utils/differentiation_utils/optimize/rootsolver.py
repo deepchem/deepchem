@@ -9,7 +9,6 @@ from deepchem.utils.differentiation_utils.optimize._jacobian import BroydenFirst
     BroydenSecond, LinearMixing
 from deepchem.utils import ConvergenceWarning
 
-__all__ = ["broyden1", "broyden2", "linearmixing"]
 
 def _nonlin_solver(fcn, x0, params, method,
                    # jacobian parameters

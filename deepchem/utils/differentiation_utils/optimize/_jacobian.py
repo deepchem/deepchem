@@ -4,43 +4,83 @@ from deepchem.utils.differentiation_utils.grad import jac
 
 # taking most of the part from SciPy
 
-__all__ = ["BroydenFirst", "BroydenSecond", "LinearMixing"]
 
 class Jacobian(object):
-    """
-    Base class for the Jacobians used in rootfinder algorithms.
-    """
+    """Base class for the Jacobians used in rootfinder algorithms."""
     @abstractmethod
     def setup(self, x0, y0, func):
+        """Setup the Jacobian for the rootfinder."""
         pass
 
     @abstractmethod
     def solve(self, v, tol=0):
+        """Solve the linear system `J dx = v`."""
         pass
 
     @abstractmethod
     def update(self, x, y):
+        """Update the Jacobian approximation."""
         pass
 
 class BroydenFirst(Jacobian):
     """
     Approximating the Jacobian based on Broyden's first approximation.
 
-    [1] B.A. van der Rotten, PhD thesis,
+    Examples
+    --------
+    >>> from deepchem.utils.differentiation_utils.optimize._jacobian import BroydenFirst
+    >>> jacobian = BroydenFirst()
+    >>> x0 = torch.tensor([1.0, 1.0], requires_grad=True)
+    >>> def func(x):
+    ...     return torch.tensor([x[0]**2 + x[1]**2 - 1.0, x[0] - x[1]])
+    >>> y0 = func(x0)
+    >>> v = torch.tensor([1.0, 1.0])
+    >>> jacobian.setup(x0, y0, func)
+    >>> jacobian.solve(v)
+    tensor([-0.7071, -0.7071], grad_fn=<MulBackward0>)
+
+    [1].. B.A. van der Rotten, PhD thesis,
         "A limited memory Broyden method to solve high-dimensional
         systems of nonlinear equations". Mathematisch Instituut,
         Universiteit Leiden, The Netherlands (2003).
+
     """
 
     def __init__(self, alpha=None, uv0=None, max_rank=None):
-        # The initial guess of inverse Jacobian is `-alpha * I + u v^T`.
-        # `max_rank` indicates the maximum rank of the Jacoabian before
-        # reducing it
+        """The initial guess of inverse Jacobian is `-alpha * I + u v^T`.
+        `max_rank` indicates the maximum rank of the Jacoabian before
+        reducing it
+
+        Parameters
+        ----------
+        alpha : float, optional
+            The initial guess of inverse Jacobian is `-alpha * I`.
+            If None, it is set to `-1.0`.
+        uv0 : tuple, optional
+            The initial guess of inverse Jacobian is `-alpha * I + u v^T`.
+            If None, it is calculated from the first Jacobian.
+        max_rank : int, optional
+            The maximum rank of the Jacobian before reducing it.
+            If None, it is set to `inf`.
+
+        """
         self.alpha = alpha
         self.uv0 = uv0
         self.max_rank = max_rank
 
     def setup(self, x0, y0, func):
+        """Setup the Jacobian for the rootfinder.
+
+        Parameters
+        ----------
+        x0
+            The initial guess of the root.
+        y0
+            The function value at the initial guess.
+        func
+            The function to find the root.
+
+        """
         self.x_prev = x0
         self.y_prev = y0
 
@@ -60,21 +100,45 @@ class BroydenFirst(Jacobian):
 
         # setup the approximate inverse Jacobian
         self.Gm = LowRankMatrix(-self.alpha, self.uv0, "restart")
-        # do not uncomment the line below! it causes memory leak
-        # I left it here as a lesson for me and us to never repeat this mistake
-        # self._reduce = lambda: self.Gm.reduce(self.max_rank)
 
     def _reduce(self):
-        # reduce the size of Gm
-        # initially it was a lambda function, but it causes a leak, so
-        # I arranged into a method to remove the leak
+        """
+        reduce the size of Gm
+        initially it was a lambda function, but it causes a leak, so
+        I arranged into a method to remove the leak
+        """
         self.Gm.reduce(self.max_rank)
 
     def solve(self, v, tol=0):
+        """Solve the linear system `J dx = v`.
+
+        Parameters
+        ----------
+        v
+            The right-hand side of the linear system.
+        tol
+            The tolerance for the linear system.
+
+        Returns
+        -------
+        res
+            The solution of the linear system.
+
+        """
         res = self.Gm.mv(v)
         return res
 
     def update(self, x, y):
+        """Update the Jacobian approximation.
+
+        Parameters
+        ----------
+        x
+            The current point.
+        y
+            The function value at the current point.
+
+        """
         dy = y - self.y_prev
         dx = x - self.x_prev
         # update Gm
@@ -84,6 +148,25 @@ class BroydenFirst(Jacobian):
         self.x_prev = x
 
     def _update(self, x, y, dx, dy, dxnorm, dynorm):
+        """Update the Jacobian approximation.
+
+        Parameters
+        ----------
+        x
+            The current point.
+        y
+            The function value at the current point.
+        dx
+            The difference between the current point and the previous point.
+        dy
+            The difference between the function value at the current point
+            and the previous point.
+        dxnorm
+            The norm of `dx`.
+        dynorm
+            The norm of `dy`.
+
+        """
         # keep the rank small
         self._reduce()
 
@@ -96,6 +179,19 @@ class BroydenSecond(BroydenFirst):
     """
     Inverse Jacobian approximation based on Broyden's second method.
 
+    Examples
+    --------
+    >>> from deepchem.utils.differentiation_utils.optimize._jacobian import BroydenSecond
+    >>> jacobian = BroydenSecond()
+    >>> x0 = torch.tensor([1.0, 1.0], requires_grad=True)
+    >>> def func(x):
+    ...     return torch.tensor([x[0]**2 + x[1]**2 - 1.0, x[0] - x[1]])
+    >>> y0 = func(x0)
+    >>> v = torch.tensor([1.0, 1.0])
+    >>> jacobian.setup(x0, y0, func)
+    >>> jacobian.solve(v)
+    tensor([-0.7071, -0.7071], grad_fn=<MulBackward0>)
+
     [1] B.A. van der Rotten, PhD thesis,
         "A limited memory Broyden method to solve high-dimensional
         systems of nonlinear equations". Mathematisch Instituut,
@@ -103,6 +199,25 @@ class BroydenSecond(BroydenFirst):
     """
 
     def _update(self, x, y, dx, dy, dxnorm, dynorm):
+        """Update the Jacobian approximation.
+
+        Parameters
+        ----------
+        x
+            The current point.
+        y
+            The function value at the current point.
+        dx
+            The difference between the current point and the previous point.
+        dy
+            The difference between the function value at the current point
+            and the previous point.
+        dxnorm
+            The norm of `dx`.
+        dynorm
+            The norm of `dy`.
+
+        """
         # keep the rank small
         self._reduce()
 
@@ -112,24 +227,108 @@ class BroydenSecond(BroydenFirst):
         self.Gm = self.Gm.append(c, d)
 
 class LinearMixing(Jacobian):
+    """ Approximating the Jacobian based on linear mixing.
+
+    Examples
+    --------
+    >>> from deepchem.utils.differentiation_utils.optimize._jacobian import LinearMixing
+    >>> jacobian = LinearMixing()
+    >>> x0 = torch.tensor([1.0, 1.0], requires_grad=True)
+    >>> def func(x):
+    ...     return torch.tensor([x[0]**2 + x[1]**2 - 1.0, x[0] - x[1]])
+    >>> y0 = func(x0)
+    >>> v = torch.tensor([1.0, 1.0])
+    >>> jacobian.setup(x0, y0, func)
+    >>> jacobian.solve(v)
+    tensor([1., 1.])
+
+    """
     def __init__(self, alpha=None):
-        # The initial guess of inverse Jacobian is ``-alpha * I``
+        """The initial guess of inverse Jacobian is ``-alpha * I``
+
+        Parameters
+        ----------
+        alpha : float, optional
+            The initial guess of inverse Jacobian is ``-alpha * I``.
+            If None, it is set to ``-1.0``.
+
+        """
         if alpha is None:
             alpha = -1.0
         self.alpha = alpha
 
     def setup(self, x0, y0, func):
+        """Setup the Jacobian for the rootfinder.
+
+        Parameters
+        ----------
+        x0
+            The initial guess of the root.
+        y0
+            The function value at the initial guess.
+        func
+            The function to find the root.
+
+        """
         pass
 
     def solve(self, v, tol=0):
+        """Solve the linear system `J dx = v`.
+
+        Parameters
+        ----------
+        v
+            The right-hand side of the linear system.
+        tol
+            The tolerance for the linear system.
+
+        """
         return -v * self.alpha
 
     def update(self, x, y):
+        """Update the Jacobian approximation.
+
+        Parameters
+        ----------
+        x
+            The current point.
+        y
+            The function value at the current point.
+
+        """
         pass
 
 class LowRankMatrix(object):
-    # represents a matrix of `\alpha * I + \sum_n c_n d_n^T`
+    """represents a matrix of `\alpha * I + \sum_n c_n d_n^T`
+    
+    Examples
+    --------
+    >>> from deepchem.utils.differentiation_utils.optimize._jacobian import LowRankMatrix
+    >>> import torch
+    >>> alpha = 1.0
+    >>> uv0 = (torch.tensor([1.0, 1.0]), torch.tensor([1.0, 1.0]))
+    >>> reduce_method = "restart"
+    >>> matrix = LowRankMatrix(alpha, uv0, reduce_method)
+    >>> v = torch.tensor([1.0, 1.0])
+    >>> matrix.mv(v)
+    tensor([3., 3.])
+    >>> matrix.rmv(v)
+    tensor([3., 3.])
+
+    """
     def __init__(self, alpha, uv0, reduce_method):
+        """initialize the matrix
+
+        Parameters
+        ----------
+        alpha : float
+            The coefficient of the identity matrix
+        uv0 : tuple
+            The initial guess of the inverse Jacobian
+        reduce_method : str
+            The method to reduce the rank of the matrix
+
+        """
         self.alpha = alpha
         if uv0 is None:
             self.cns = []
@@ -144,18 +343,59 @@ class LowRankMatrix(object):
         }[reduce_method]
 
     def mv(self, v):
+        """multiply the matrix with a vector
+
+        Parameters
+        ----------
+        v
+            The vector to multiply
+
+        Returns
+        -------
+        res
+            The result of the multiplication
+
+        """
         res = self.alpha * v
         for i in range(len(self.dns)):
             res += self.cns[i] * torch.dot(self.dns[i], v)
         return res
 
     def rmv(self, v):
+        """multiply the transpose of the matrix with a vector
+
+        Parameters
+        ----------
+        v
+            The vector to multiply
+
+        Returns
+        -------
+        res
+            The result of the multiplication
+
+        """
         res = self.alpha * v
         for i in range(len(self.dns)):
             res += self.dns[i] * torch.dot(self.cns[i], v)
         return res
 
     def append(self, c, d):
+        """append a rank-1 matrix to the matrix
+
+        Parameters
+        ----------
+        c
+            The first vector
+        d
+            The second vector
+
+        Returns
+        -------
+        res
+            The matrix after appending the rank-1 matrix
+
+        """
         self.cns.append(c)
         self.dns.append(d)
         if len(self.cns) >= torch.numel(c):
@@ -163,6 +403,16 @@ class LowRankMatrix(object):
         return self
 
     def reduce(self, max_rank, **otherparams):
+        """reduce the rank of the matrix
+
+        Parameters
+        ----------
+        max_rank : int
+            The maximum rank of the matrix
+        otherparams
+            Other parameters
+
+        """
         if len(self.cns) > max_rank:
             if self.reduce_method == 0:  # restart
                 del self.cns[:]
@@ -173,7 +423,20 @@ class LowRankMatrix(object):
                 del self.dns[:n - max_rank]
 
 class FullRankMatrix(object):
+    """represents a full rank matrix of `\alpha * I + \sum_n c_n d_n^T`"""
     def __init__(self, alpha, cns, dns):
+        """initialize the matrix
+
+        Parameters
+        ----------
+        alpha : float
+            The coefficient of the identity matrix
+        cns : list
+            The list of the first vectors
+        dns : list
+            The list of the second vectors
+
+        """
         size = torch.numel(cns[0])
         dtype, device = cns[0].dtype, cns[0].device
         self.mat = torch.eye(size, dtype=dtype, device=device)
@@ -182,21 +445,87 @@ class FullRankMatrix(object):
             self.mat += torch.ger(cns[i], dns[i])
 
     def mv(self, v):
+        """multiply the matrix with a vector
+
+        Parameters
+        ----------
+        v
+            The vector to multiply
+
+        Returns
+        -------
+        res
+            The result of the multiplication
+
+        """
         res = torch.matmul(self.mat, v)
         return res
 
     def rmv(self, v):
+        """multiply the transpose of the matrix with a vector
+
+        Parameters
+        ----------
+        v
+            The vector to multiply
+
+        Returns
+        -------
+        res
+            The result of the multiplication
+
+        """
         return torch.matmul(self.mat.T, v)
 
     def append(self, c, d):
+        """append a rank-1 matrix to the matrix
+
+        Parameters
+        ----------
+        c
+            The first vector
+        d
+            The second vector
+
+        Returns
+        -------
+        res
+            The matrix after appending the rank-1 matrix
+
+        """
         self.mat += torch.ger(c, d)
         return self
 
     def reduce(self, max_rank, **kwargs):
-        pass  # ???
+        """reduce the rank of the matrix
+
+        Parameters
+        ----------
+        max_rank : int
+            The maximum rank of the matrix
+        otherparams
+            Other parameters
+
+        """
+        pass
 
 def _get_svd_uv0(func, x0):
-    from xitorch.linalg import svd
+    """get the initial guess of the inverse Jacobian from the first Jacobian
+
+    Parameters
+    ----------
+    func
+        The function to find the root
+    x0
+        The initial guess of the root
+
+    Returns
+    -------
+    uv0
+        The initial guess of the inverse Jacobian
+
+    """
+    from deepchem.utils.differentiation_utils import svd
     # raise RuntimeError
     fjac = jac(func, (x0.clone().requires_grad_(),), idxs=[0])[0]
     # u: (n, 1), s: (1,), vh: (1, n)
