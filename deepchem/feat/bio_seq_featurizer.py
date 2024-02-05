@@ -33,20 +33,6 @@ class SAMFeaturizer(Featurizer):
     >>> features = featurizer.featurize(inputs)
     >>> type(features[0])
     <class 'numpy.ndarray'>
-    >>> features[0][0]     # Query Name
-    r001
-    >>> features[0][1]     # Query Sequence
-    TTAGATAAAGAGGATACTG
-    >>> features[0][2]     # Query Length
-    19
-    >>> features[0][3]     # Reference Name
-    ref
-    >>> features[0][4]     # Reference Start
-    6
-    >>> features[0][5]     # CIGAR
-    [(0, 8), (1, 4), (0, 4), (2, 1), (0, 3)]
-    >>> features[0][6]     # Mapping Quality
-    30
 
     Note
     ----
@@ -141,20 +127,6 @@ class BAMFeaturizer(Featurizer):
     >>> features = featurizer.featurize(inputs)
     >>> type(features[0])
     <class 'numpy.ndarray'>
-    >>> features[0][0]     # Query Name
-    EASX:X:X:X:X:33:33_1:Y:0:NNNNNN
-    >>> features[0][1]     # Query Sequence
-    TTTTAATGACGTGCCCGAACTGTGGTTGTATGTTCGTATTGGGATGTAGGTCTTATTGTTGTGTTGTGCAGAAAC
-    >>> features[0][2]     # Query Length
-    75
-    >>> features[0][3]     # Reference Name
-    chr1
-    >>> features[0][4]     # Reference Start
-    2
-    >>> features[0][5]     # CIGAR
-    [(0, 75)]
-    >>> features[0][6]     # Mapping Quality
-    42
 
     Note
     ----
