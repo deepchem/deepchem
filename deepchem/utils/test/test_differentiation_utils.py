@@ -845,3 +845,16 @@ def test_cg():
     B = torch.tensor([[5., 6], [7, 8]])
     assert torch.allclose(cg(A, B),
                           torch.tensor([[-3.0000, -4.0000], [4.0000, 5.0000]]))
+
+
+@pytest.mark.torch
+def test_svd():
+    from deepchem.utils.differentiation_utils import LinearOperator, svd
+    A = LinearOperator.m(torch.tensor([[3, 1], [1, 4.]]))
+    U, S, _ = svd(A)
+    assert torch.allclose(torch.tensor([[-0.8507,  0.5257],
+                                        [ 0.5257,  0.8507]]), U, 0.001)
+    assert torch.allclose(torch.tensor([2.3820, 4.6180]), S, 0.001)
+
+
+

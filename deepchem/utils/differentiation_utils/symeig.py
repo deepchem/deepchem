@@ -169,6 +169,17 @@ def svd(A: LinearOperator, k: Optional[int] = None,
     r"""
     Perform the singular value decomposition (SVD):
 
+    Examples
+    --------
+    >>> from deepchem.utils.differentiation_utils import svd
+    >>> import torch
+    >>> from deepchem.utils.differentiation_utils import LinearOperator
+    >>> A = LinearOperator.m(torch.tensor([[3, 1], [1, 4.]]))
+    >>> svd(A, mode="lowest")
+    (tensor([[-0.8507,  0.5257],
+            [ 0.5257,  0.8507]]), tensor([2.3820, 4.6180]), tensor([[-0.8507,  0.5257],
+            [ 0.5257,  0.8507]]))
+
     .. math::
 
         \mathbf{A} = \mathbf{U\Sigma V}^H
@@ -233,6 +244,7 @@ def svd(A: LinearOperator, k: Optional[int] = None,
            "Derivatives of partial eigendecomposition of a real symmetric matrix for degenerate cases".
            arXiv:2011.04366 (2020)
            `https://arxiv.org/abs/2011.04366 <https://arxiv.org/abs/2011.04366>`_
+
     """
     # adapted from scipy.sparse.linalg.svds
 

@@ -44,5 +44,6 @@ try:
     from deepchem.utils.differentiation_utils.symeig import symeig
     from deepchem.utils.differentiation_utils.symeig import ortho
     from deepchem.utils.differentiation_utils.symeig import exacteig
+    from deepchem.utils.differentiation_utils.symeig import svd
 except:
     pass
