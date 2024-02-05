@@ -6,7 +6,6 @@ from typing import List, Optional, Tuple
 # import torch.nn as nn
 from rdkit import Chem
 import numpy as np
-from deepchem.utils.molecule_feature_utils import ALLEN_ELECTRONEGATIVTY
 from deepchem.models.torch_models import TorchModel
 import torch
 from deepchem.models.torch_models.layers import FerminetElectronFeature, FerminetEnvelope
@@ -284,8 +283,17 @@ class FerminetModel(TorchModel):
     -------
     >>> from deepchem.models.torch_models.ferminet import FerminetModel
     >>> H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
-    >>> mol = FerminetModel(H2_molecule, spin=0, ion_charge=0, tasks='pretraining')
-    converged SCF energy = -0.895803169899508  <S^2> = 0  2S+1 = 1
+    >>> mol = FerminetModel(H2_molecule, spin=0, ion_charge=0, tasks='pretraining') # doctest: +IGNORE_RESULT
+    converged SCF energy = -0.895803169899509  <S^2> = 0  2S+1 = 1
+     ** Mulliken pop alpha/beta on meta-lowdin orthogonal AOs **
+     ** Mulliken pop       alpha | beta **
+    pop of  0 H 1s        0.50000 | 0.50000
+    pop of  1 H 1s        0.50000 | 0.50000
+    In total             1.00000 | 1.00000
+     ** Mulliken atomic charges   ( Nelec_alpha | Nelec_beta ) **
+    charge of  0H =      0.00000  (     0.50000      0.50000 )
+    charge of  1H =      0.00000  (     0.50000      0.50000 )
+    converged SCF energy = -0.895803169899509  <S^2> = 0  2S+1 = 1
     >>> mol.train(nb_epoch=3)
     >>> print(mol.model.psi_up.size())
     torch.Size([8, 16, 1, 1])
@@ -297,7 +305,7 @@ class FerminetModel(TorchModel):
     Note
     ----
     This class requires pySCF to be installed.
-    """
+    """.replace('+IGNORE_RESULT', '+ELLIPSIS\n<...>')
 
     def __init__(self,
                  nucleon_coordinates: List[List],
@@ -352,13 +360,11 @@ class FerminetModel(TorchModel):
 
         no_electrons = []
         nucleons = []
-        electronegativity = []
 
         table = Chem.GetPeriodicTable()
         index = 0
         for i in self.nucleon_coordinates:
             atomic_num = table.GetAtomicNumber(i[0])
-            electronegativity.append([index, ALLEN_ELECTRONEGATIVTY[i[0]]])
             no_electrons.append([atomic_num])
             nucleons.append(i[1])
             index += 1
@@ -367,27 +373,12 @@ class FerminetModel(TorchModel):
         charge: np.ndarray = self.electron_no.reshape(
             np.shape(self.electron_no)[0])
         self.nucleon_pos: np.ndarray = np.array(nucleons)
-        electro_neg = np.array(electronegativity)
 
         # Initialization for ionic molecules
         if np.sum(self.electron_no) < self.ion_charge:
             raise ValueError("Given charge is not initializable")
 
-        # Initialization for ionic molecules
-        if self.ion_charge != 0:
-            if len(nucleons
-                  ) == 1:  # for an atom, directly the charge is applied
-                self.electron_no[0][0] -= self.ion_charge
-            else:  # for a multiatomic molecule, the most electronegative atom gets a charge of -1 and vice versa. The remaining charges are assigned in terms of decreasing(for anionic charge) and increasing(for cationic charge) electronegativity.
-                electro_neg = electro_neg[electro_neg[:, 1].argsort()]
-                if self.ion_charge > 0:
-                    for iter in range(self.ion_charge):
-                        self.electron_no[int(electro_neg[iter][0])][0] -= 1
-                else:
-                    for iter in range(-self.ion_charge):
-                        self.electron_no[int(electro_neg[-1 - iter][0])][0] += 1
-
-        total_electrons = np.sum(self.electron_no)
+        total_electrons = np.sum(self.electron_no) - self.ion_charge
 
         if self.spin >= 0:
             self.up_spin = (total_electrons + 2 * self.spin) // 2
@@ -471,6 +462,26 @@ class FerminetModel(TorchModel):
         self.mol.charge = self.ion_charge
         self.mol.build(parse_arg=False)
         self.mf = pyscf.scf.UHF(self.mol)
+        self.mf.run()
+        dm = self.mf.make_rdm1()
+        _, chg = pyscf.scf.uhf.mulliken_meta(self.mol, dm)
+        excess_charge = np.array(chg)
+        tmp_charge = self.ion_charge
+        while tmp_charge != 0:
+            if (tmp_charge < 0):
+                charge_index = np.argmin(excess_charge)
+                tmp_charge += 1
+                self.electron_no[charge_index] += 1
+                excess_charge[charge_index] += 1
+            elif (tmp_charge > 0):
+                charge_index = np.argmax(excess_charge)
+                tmp_charge -= 1
+                self.electron_no[charge_index] -= 1
+                excess_charge[charge_index] -= 1
+
+        self.molecule.gauss_initialize_position(
+            self.electron_no,
+            stddev=2.0)  # initialize the position of the electrons
         _ = self.mf.kernel()
 
     def random_walk(self, x: np.ndarray):
