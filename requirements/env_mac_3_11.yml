@@ -4,3 +4,5 @@ channels:
   - bioconda
 dependencies:
   - vina
+  - pip:
+    - pysam
