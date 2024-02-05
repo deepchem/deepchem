@@ -10,7 +10,7 @@ try:
 except ModuleNotFoundError:
     has_torch = False
     pass
-
+import shutil
 
 @pytest.mark.torch
 def test_textcnn_module():
@@ -22,7 +22,7 @@ def test_textcnn_module():
 
 
 @pytest.mark.torch
-def test_overfit_classification():
+def test_textcnn_overfit_classification():
     np.random.seed(123)
     n_tasks = 1
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -60,7 +60,7 @@ def test_overfit_classification():
 
 
 @pytest.mark.torch
-def test_overfit_regression():
+def test_textcnn_overfit_regression():
     """Test textCNN model overfits tiny data."""
     np.random.seed(123)
     n_tasks = 1
@@ -98,39 +98,62 @@ def test_overfit_regression():
 
     assert scores[regression_metric.name] > .9
 
+@pytest.mark.torch
+def test_textcnn_reload():
 
-# @pytest.mark.torch
-# def test_overfit():
-#     delaney_tasks, delaney_datasets, transformers = dc.molnet.load_delaney(
-#         featurizer='Raw', split='index')
-#     train_dataset, valid_dataset, test_dataset = delaney_datasets
-#     # print("TEST DATASET")
-#     # print(test_dataset)
-#     # print(test_dataset.X)
-#     # smiles = np.array(['CC', 'CCC'])
-#     # dataset = dc.data.NumpyDataset(X=smiles,y=np.array([1.0,0.0]),ids=smiles)
-#     char_dict, length = TextCNNModel.build_char_dict(test_dataset)
+    np.random.seed(123)
+    n_tasks = 1
+    current_dir = os.path.dirname(os.path.abspath(__file__))
 
-#     model = TextCNNModel(n_tasks=len(delaney_tasks),
-#                          char_dict=char_dict,
-#                          seq_length=length,
-#                          mode='regression',
-#                          learning_rate=1e-3,
-#                          batch_size=10,
-#                          use_queue=False)
-#     # print(model.summary())
-#     model.fit(test_dataset, nb_epoch=100)
+    featurizer = dc.feat.RawFeaturizer()
+    tasks = ["outcome"]
+    input_file = os.path.join(current_dir,
+                              "../../tests/assets/example_classification.csv")
+    loader = dc.data.CSVLoader(tasks=tasks,
+                               feature_field="smiles",
+                               featurizer=featurizer)
+    dataset = loader.create_dataset(input_file)
 
-# embedding shape  (None, 73, 75)
-# conv output shape:  (None, 73, 100)
-# conv output shape:  (None, 72, 200)
-# conv output shape:  (None, 71, 200)
-# conv output shape:  (None, 70, 200)
-# conv output shape:  (None, 69, 200)
-# conv output shape:  (None, 68, 100)
-# conv output shape:  (None, 67, 100)
-# conv output shape:  (None, 66, 100)
-# conv output shape:  (None, 65, 100)
-# conv output shape:  (None, 64, 100)
-# conv output shape:  (None, 59, 160)
-# conv output shape:  (None, 54, 160)
+    classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
+
+    char_dict, length = TextCNNModel.build_char_dict(dataset)
+    batch_size = 10
+    model_dir = os.path.join(current_dir,"textcnn_tmp") 
+    os.mkdir(model_dir)
+
+    model = TextCNNModel(n_tasks,
+                         char_dict=char_dict,
+                         seq_length=length,
+                         batch_size=batch_size,
+                         learning_rate=0.001,
+                         use_queue=False,
+                         mode="classification",
+                         model_dir = model_dir)
+
+
+    print("Model dir: ",model.model_dir)
+    # Fit trained model
+    model.fit(dataset, nb_epoch=200)
+
+    # Eval model on train
+    scores = model.evaluate(dataset, [classification_metric])
+   
+
+    reloaded_model = TextCNNModel(n_tasks,
+                         char_dict=char_dict,
+                         seq_length=length,
+                         batch_size=batch_size,
+                         learning_rate=0.001,
+                         use_queue=False,
+                         mode="classification",
+                         model_dir = model_dir)
+    print("checkpoints: ",reloaded_model.get_checkpoints())
+    reloaded_model.restore()
+
+    reloaded_model.fit(dataset, nb_epoch=200)
+    reloaded_scores = reloaded_model.evaluate(dataset, [classification_metric])
+    shutil.rmtree(model_dir)
+
+    assert scores == reloaded_scores
+    
+

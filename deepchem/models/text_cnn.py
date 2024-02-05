@@ -152,7 +152,6 @@ class TextCNNModel(KerasModel):
         dense = Dense(200, activation=tf.nn.relu)(dropout)
         # Highway layer from https://arxiv.org/pdf/1505.00387.pdf
         gather = layers.Highway()(dense)
-
         if self.mode == "classification":
             logits = Dense(self.n_tasks * 2)(gather)
             logits = Reshape((self.n_tasks, 2))(logits)
