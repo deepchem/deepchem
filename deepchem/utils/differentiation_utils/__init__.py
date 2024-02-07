@@ -45,5 +45,14 @@ try:
     from deepchem.utils.differentiation_utils.symeig import ortho
     from deepchem.utils.differentiation_utils.symeig import exacteig
     from deepchem.utils.differentiation_utils.symeig import svd
+
+    from deepchem.utils.differentiation_utils.optimize.rootsolver import broyden1
+    from deepchem.utils.differentiation_utils.optimize.rootsolver import broyden2
+    from deepchem.utils.differentiation_utils.optimize.rootsolver import linearmixing
+
+    from deepchem.utils.differentiation_utils.optimize.equilibrium import anderson_acc
+
+    from deepchem.utils.differentiation_utils.optimize.minimizer import gd
+    from deepchem.utils.differentiation_utils.optimize.minimizer import adam
 except:
     pass
