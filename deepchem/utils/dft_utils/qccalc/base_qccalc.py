@@ -3,6 +3,7 @@ from typing import List, Union
 import torch
 from deepchem.utils.dft_utils import SpinParam, BaseSystem
 
+
 class BaseQCCalc(object):
     """
     Quantum Chemistry calculation. This class is the interface to the users
@@ -34,6 +35,7 @@ class BaseQCCalc(object):
     tensor(0.)
 
     """
+
     @abstractmethod
     def get_system(self) -> BaseSystem:
         """Returns the system in the QC calculation
@@ -86,7 +88,9 @@ class BaseQCCalc(object):
     # all-time calculations
     # (i.e. meaning it does not have to be executed to run the functions below)
     @abstractmethod
-    def dm2energy(self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> torch.Tensor:
+    def dm2energy(
+            self, dm: Union[torch.Tensor,
+                            SpinParam[torch.Tensor]]) -> torch.Tensor:
         """Calculate the energy from the given density matrix.
 
         Parameters

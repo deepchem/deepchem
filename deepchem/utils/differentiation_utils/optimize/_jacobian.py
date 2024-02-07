@@ -7,6 +7,7 @@ from deepchem.utils.differentiation_utils.grad import jac
 
 class Jacobian(object):
     """Base class for the Jacobians used in rootfinder algorithms."""
+
     @abstractmethod
     def setup(self, x0, y0, func):
         """Setup the Jacobian for the rootfinder."""
@@ -21,6 +22,7 @@ class Jacobian(object):
     def update(self, x, y):
         """Update the Jacobian approximation."""
         pass
+
 
 class BroydenFirst(Jacobian):
     """
@@ -175,6 +177,7 @@ class BroydenFirst(Jacobian):
         d = v / torch.dot(dy, v)
         self.Gm = self.Gm.append(c, d)
 
+
 class BroydenSecond(BroydenFirst):
     """
     Inverse Jacobian approximation based on Broyden's second method.
@@ -226,6 +229,7 @@ class BroydenSecond(BroydenFirst):
         d = v / (dynorm * dynorm)
         self.Gm = self.Gm.append(c, d)
 
+
 class LinearMixing(Jacobian):
     """ Approximating the Jacobian based on linear mixing.
 
@@ -243,6 +247,7 @@ class LinearMixing(Jacobian):
     tensor([1., 1.])
 
     """
+
     def __init__(self, alpha=None):
         """The initial guess of inverse Jacobian is ``-alpha * I``
 
@@ -298,6 +303,7 @@ class LinearMixing(Jacobian):
         """
         pass
 
+
 class LowRankMatrix(object):
     """represents a matrix of `\alpha * I + \sum_n c_n d_n^T`
     
@@ -316,6 +322,7 @@ class LowRankMatrix(object):
     tensor([3., 3.])
 
     """
+
     def __init__(self, alpha, uv0, reduce_method):
         """initialize the matrix
 
@@ -337,10 +344,7 @@ class LowRankMatrix(object):
             cn0, dn0 = uv0
             self.cns = [cn0]
             self.dns = [dn0]
-        self.reduce_method = {
-            "restart": 0,
-            "simple": 1
-        }[reduce_method]
+        self.reduce_method = {"restart": 0, "simple": 1}[reduce_method]
 
     def mv(self, v):
         """multiply the matrix with a vector
@@ -422,8 +426,10 @@ class LowRankMatrix(object):
                 del self.cns[:n - max_rank]
                 del self.dns[:n - max_rank]
 
+
 class FullRankMatrix(object):
     """represents a full rank matrix of `\alpha * I + \sum_n c_n d_n^T`"""
+
     def __init__(self, alpha, cns, dns):
         """initialize the matrix
 
@@ -508,6 +514,7 @@ class FullRankMatrix(object):
 
         """
         pass
+
 
 def _get_svd_uv0(func, x0):
     """get the initial guess of the inverse Jacobian from the first Jacobian
