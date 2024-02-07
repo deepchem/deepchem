@@ -512,17 +512,23 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver.TerminationCondition
 
-.. autofunction:: deepchem.utils.differentiation_utils.optimize._jacobian.Jacobian
+.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.Jacobian
+  :members:
 
-.. autofunction:: deepchem.utils.differentiation_utils.optimize._jacobian.BroydenFirst
+.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.BroydenFirst
+  :members:
 
-.. autofunction:: deepchem.utils.differentiation_utils.optimize._jacobian.BroydenSecond
+.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.BroydenSecond
+  :members:
 
-.. autofunction:: deepchem.utils.differentiation_utils.optimize._jacobian.LinearMixing
+.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.LinearMixing
+  :members:
 
-.. autofunction:: deepchem.utils.differentiation_utils.optimize._jacobian.LowRankMatrix
+.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.LowRankMatrix
+  :members:
 
-.. autofunction:: deepchem.utils.differentiation_utils.optimize._jacobian.FullRankMatrix
+.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.FullRankMatrix
+  :members:
 
 Attribute Utilities
 -------------------
