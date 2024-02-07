@@ -192,7 +192,7 @@ class TestA2C(unittest.TestCase):
 
     @flaky
     @pytest.mark.slow
-    @pytest.mark.tensorflow
+    @pytest.mark.torch
     def test_hindsight(self):
         """Test Hindsight Experience Replay."""
 
