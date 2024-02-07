@@ -134,9 +134,6 @@ class A2CLossContinuous(object):
             torch.from_numpy(advantage) * log_prob)
         value_loss: torch.Tensor = torch.mean(
             torch.square(torch.from_numpy(reward) - value))
-        dummy_loss: torch.Tensor = torch.mean(
-            mean)  # Dummy loss involving the mean output
-        dummy_loss.backward(retain_graph=True)
         entropy: torch.Tensor = torch.mean(distrib.entropy())
         return policy_loss + self.value_weight * value_loss - self.entropy_weight * entropy
 
@@ -642,7 +639,7 @@ class A2C(object):
             np.expand_dims(s, axis=0) for s in initial_rnn_states
         ]
         outputs = self._model.model(inputs)
-        values = outputs[self._value_index].numpy()
+        values = outputs[self._value_index].detach().numpy()
         values = np.append(values.flatten(), 0.0)
         self._process_rollout(hindsight_states, actions[:len(rewards)],
                               np.array(rewards, dtype=np.float32),
