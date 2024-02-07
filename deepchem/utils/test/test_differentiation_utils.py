@@ -944,3 +944,15 @@ def test_termination_condition():
     stop_cond = TerminationCondition(1e-8, 1e-8, 1e-8, 1e-8, True)
     assert not stop_cond.to_stop(0, torch.tensor(0.0), torch.tensor(0.0),
                                  torch.tensor(0.0), torch.tensor(0.0))
+
+
+@pytest.mark.torch
+def test_anderson_acc():
+    from deepchem.utils.differentiation_utils.optimize.equilibrium import anderson_acc
+
+    def fcn(x):
+        return x
+
+    x0 = torch.tensor([0.0], requires_grad=True)
+    x = anderson_acc(fcn, x0, [])
+    assert torch.allclose(x, torch.tensor([0.]))

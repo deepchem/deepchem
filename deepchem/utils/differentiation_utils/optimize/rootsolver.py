@@ -10,17 +10,27 @@ from deepchem.utils.differentiation_utils.optimize._jacobian import BroydenFirst
 from deepchem.utils import ConvergenceWarning
 
 
-def _nonlin_solver(fcn, x0, params, method,
-                   # jacobian parameters
-                   alpha=None, uv0=None, max_rank=None,
-                   # stopping criteria
-                   maxiter=None, f_tol=None, f_rtol=None, x_tol=None, x_rtol=None,
-                   # algorithm parameters
-                   line_search=True,
-                   # misc parameters
-                   verbose=False,
-                   custom_terminator=None,
-                   **unused):
+def _nonlin_solver(
+        fcn,
+        x0,
+        params,
+        method,
+        # jacobian parameters
+        alpha=None,
+        uv0=None,
+        max_rank=None,
+        # stopping criteria
+        maxiter=None,
+        f_tol=None,
+        f_rtol=None,
+        x_tol=None,
+        x_rtol=None,
+        # algorithm parameters
+        line_search=True,
+        # misc parameters
+        verbose=False,
+        custom_terminator=None,
+        **unused):
     """
     Keyword arguments
     -----------------
@@ -121,8 +131,8 @@ def _nonlin_solver(fcn, x0, params, method,
                              "approximation.")
 
         if line_search:
-            s, xnew, ynew, y_norm_new = _nonline_line_search(func, x, y, dx,
-                                                             search_type=line_search)
+            s, xnew, ynew, y_norm_new = _nonline_line_search(
+                func, x, y, dx, search_type=line_search)
         else:
             s = 1.0
             xnew = x + dx
@@ -160,12 +170,15 @@ def _nonlin_solver(fcn, x0, params, method,
         y = ynew
     if not converge:
         msg = ("The rootfinder does not converge after %d iterations. "
-               "Best |dx|=%.3e, |f|=%.3e at iter %d") % (maxiter, best_dxnorm, best_ynorm, best_iter)
+               "Best |dx|=%.3e, |f|=%.3e at iter %d") % (maxiter, best_dxnorm,
+                                                         best_ynorm, best_iter)
         warnings.warn(ConvergenceWarning(msg))
         x = best_x
     return _pack(x)
 
-@functools.wraps(_nonlin_solver, assigned=('__annotations__',))  # takes only the signature
+
+@functools.wraps(_nonlin_solver,
+                 assigned=('__annotations__',))  # takes only the signature
 def broyden1(fcn, x0, params=(), **kwargs):
     """
     Solve the root finder or linear equation using the first Broyden method [1]_.
@@ -181,7 +194,9 @@ def broyden1(fcn, x0, params=(), **kwargs):
     """
     return _nonlin_solver(fcn, x0, params, "broyden1", **kwargs)
 
-@functools.wraps(_nonlin_solver, assigned=('__annotations__',))  # takes only the signature
+
+@functools.wraps(_nonlin_solver,
+                 assigned=('__annotations__',))  # takes only the signature
 def broyden2(fcn, x0, params=(), **kwargs):
     """
     Solve the root finder or linear equation using the second Broyden method [2]_.
@@ -197,16 +212,24 @@ def broyden2(fcn, x0, params=(), **kwargs):
     """
     return _nonlin_solver(fcn, x0, params, "broyden2", **kwargs)
 
-def linearmixing(fcn, x0, params=(),
-                 # jacobian parameters
-                 alpha=None,
-                 # stopping criteria
-                 maxiter=None, f_tol=None, f_rtol=None, x_tol=None, x_rtol=None,
-                 # algorithm parameters
-                 line_search=True,
-                 # misc parameters
-                 verbose=False,
-                 **unused):
+
+def linearmixing(
+        fcn,
+        x0,
+        params=(),
+        # jacobian parameters
+        alpha=None,
+        # stopping criteria
+        maxiter=None,
+        f_tol=None,
+        f_rtol=None,
+        x_tol=None,
+        x_rtol=None,
+        # algorithm parameters
+        line_search=True,
+        # misc parameters
+        verbose=False,
+        **unused):
     """
     Solve the root finding problem by approximating the inverse of Jacobian
     to be a constant scalar.
@@ -243,16 +266,19 @@ def linearmixing(fcn, x0, params=(),
     return _nonlin_solver(fcn, x0, params, "linearmixing", **kwargs)
 
 
-# set the docstring of the functions
-broyden1.__doc__ += _nonlin_solver.__doc__  # type: ignore
-broyden2.__doc__ += _nonlin_solver.__doc__  # type: ignore
-
 def _safe_norm(v):
     if not torch.isfinite(v).all():
         return torch.tensor(float("inf"), dtype=v.dtype, device=v.device)
     return torch.norm(v)
 
-def _nonline_line_search(func, x, y, dx, search_type="armijo", rdiff=1e-8, smin=1e-2):
+
+def _nonline_line_search(func,
+                         x,
+                         y,
+                         dx,
+                         search_type="armijo",
+                         rdiff=1e-8,
+                         smin=1e-2):
     tmp_s = [0]
     tmp_y = [y]
     tmp_phi = [y.norm()**2]
@@ -275,8 +301,7 @@ def _nonline_line_search(func, x, y, dx, search_type="armijo", rdiff=1e-8, smin=
         return (phi(s + ds, store=False) - phi(s)) / ds
 
     if search_type == 'armijo':
-        s, phi1 = _scalar_search_armijo(phi, tmp_phi[0], -tmp_phi[0],
-                                        amin=smin)
+        s, phi1 = _scalar_search_armijo(phi, tmp_phi[0], -tmp_phi[0], amin=smin)
 
     if s is None:
         # No suitable step length found. Take the full Newton step,
@@ -292,7 +317,14 @@ def _nonline_line_search(func, x, y, dx, search_type="armijo", rdiff=1e-8, smin=
 
     return s, x, y, y_norm
 
-def _scalar_search_armijo(phi, phi0, derphi0, c1=1e-4, alpha0=1, amin=0, max_niter=20):
+
+def _scalar_search_armijo(phi,
+                          phi0,
+                          derphi0,
+                          c1=1e-4,
+                          alpha0=1,
+                          amin=0,
+                          max_niter=20):
     phi_a0 = phi(alpha0)
     if phi_a0 <= phi0 + c1 * alpha0 * derphi0:
         return alpha0, phi_a0
@@ -310,7 +342,7 @@ def _scalar_search_armijo(phi, phi0, derphi0, c1=1e-4, alpha0=1, amin=0, max_nit
     # assume that the value of alpha is not too small and satisfies the second
     # condition.
     niter = 0
-    while alpha1 > amin and niter < max_niter:       # we are assuming alpha>0 is a descent direction
+    while alpha1 > amin and niter < max_niter:  # we are assuming alpha>0 is a descent direction
         factor = alpha0**2 * alpha1**2 * (alpha1 - alpha0)
         a = alpha0**2 * (phi_a1 - phi0 - derphi0 * alpha1) - \
             alpha1**2 * (phi_a0 - phi0 - derphi0 * alpha0)
@@ -319,7 +351,8 @@ def _scalar_search_armijo(phi, phi0, derphi0, c1=1e-4, alpha0=1, amin=0, max_nit
             alpha1**3 * (phi_a0 - phi0 - derphi0 * alpha0)
         b = b / factor
 
-        alpha2 = (-b + torch.sqrt(torch.abs(b**2 - 3 * a * derphi0))) / (3.0 * a)
+        alpha2 = (-b + torch.sqrt(torch.abs(b**2 - 3 * a * derphi0))) / (3.0 *
+                                                                         a)
         phi_a2 = phi(alpha2)
 
         if (phi_a2 <= phi0 + c1 * alpha2 * derphi0):
@@ -339,7 +372,9 @@ def _scalar_search_armijo(phi, phi0, derphi0, c1=1e-4, alpha0=1, amin=0, max_nit
         return alpha2, phi_a2
     return None, phi_a1
 
+
 class TerminationCondition(object):
+
     def __init__(self, f_tol, f_rtol, f0_norm, x_tol, x_rtol):
         if f_tol is None:
             f_tol = 1e-6
