@@ -956,3 +956,39 @@ def test_anderson_acc():
     x0 = torch.tensor([0.0], requires_grad=True)
     x = anderson_acc(fcn, x0, [])
     assert torch.allclose(x, torch.tensor([0.]))
+
+
+@pytest.mark.torch
+def test_broyden1():
+    from deepchem.utils.differentiation_utils.optimize.rootsolver import broyden1
+
+    def fcn(x):
+        return x**2 - 5
+
+    x0 = torch.tensor(0.0, requires_grad=True)
+    x = broyden1(fcn, x0)
+    torch.allclose(x, torch.tensor(2.0000))
+
+
+@pytest.mark.torch
+def test_broyden2():
+    from deepchem.utils.differentiation_utils.optimize.rootsolver import broyden2
+
+    def fcn(x):
+        return x**2 - 5
+
+    x0 = torch.tensor(0.0, requires_grad=True)
+    x = broyden2(fcn, x0)
+    torch.allclose(x, torch.tensor(2.0000))
+
+
+@pytest.mark.torch
+def test_linear_mixing():
+    from deepchem.utils.differentiation_utils.optimize.rootsolver import linearmixing
+
+    def fcn(x):
+        return x**2 - 5
+
+    x0 = torch.tensor(0.0, requires_grad=True)
+    x = linearmixing(fcn, x0)
+    torch.allclose(x, torch.tensor(2.0000))

@@ -32,8 +32,8 @@ def _nonlin_solver(
         custom_terminator=None,
         **unused):
     """
-    Keyword arguments
-    -----------------
+    Parameters
+    ----------
     alpha: float or None
         The initial guess of inverse Jacobian is ``- alpha * I + u v^T``.
     uv0: tuple of tensors or str or None
@@ -185,6 +185,24 @@ def broyden1(fcn, x0, params=(), **kwargs):
     It can be used to solve minimization by finding the root of the
     function's gradient.
 
+    Examples
+    --------
+    >>> def fcn(x):
+    ...    return x**2 - 4
+    >>> x0 = torch.tensor(0.0, requires_grad=True)
+    >>> x = broyden1(fcn, x0)
+    >>> x
+    tensor(-2.0000, grad_fn=<ViewBackward0>)
+
+    Parameters
+    ----------
+    fcn: callable
+        The function to solve. It should take a tensor and return a tensor.
+    x0: torch.Tensor
+        The initial guess of the solution.
+    params: tuple
+        The parameters to pass to the function.
+
     References
     ----------
     .. [1] B.A. van der Rotten, PhD thesis,
@@ -202,6 +220,24 @@ def broyden2(fcn, x0, params=(), **kwargs):
     Solve the root finder or linear equation using the second Broyden method [2]_.
     It can be used to solve minimization by finding the root of the
     function's gradient.
+
+    Examples
+    --------
+    >>> def fcn(x):
+    ...    return x**2 - 4
+    >>> x0 = torch.tensor(0.0, requires_grad=True)
+    >>> x = broyden1(fcn, x0)
+    >>> x
+    tensor(-2.0000, grad_fn=<ViewBackward0>)
+
+    Parameters
+    ----------
+    fcn: callable
+        The function to solve. It should take a tensor and return a tensor.
+    x0: torch.Tensor
+        The initial guess of the solution.
+    params: tuple
+        The parameters to pass to the function.
 
     References
     ----------
@@ -234,8 +270,23 @@ def linearmixing(
     Solve the root finding problem by approximating the inverse of Jacobian
     to be a constant scalar.
 
-    Keyword arguments
-    -----------------
+    Examples
+    --------
+    >>> def fcn(x):
+    ...    return x**2 - 4
+    >>> x0 = torch.tensor(0.0, requires_grad=True)
+    >>> x = broyden1(fcn, x0)
+    >>> x
+    tensor(-2.0000, grad_fn=<ViewBackward0>)
+
+    Parameters
+    ----------
+    fcn: callable
+        The function to solve. It should take a tensor and return a tensor.
+    x0: torch.Tensor
+        The initial guess of the solution.
+    params: tuple
+        The parameters to pass to the function.
     alpha: float or None
         The initial guess of inverse Jacobian is ``-alpha * I``.
     maxiter: int or None
@@ -267,6 +318,7 @@ def linearmixing(
 
 
 def _safe_norm(v):
+    """Compute the norm of a vector, checking for finite values."""
     if not torch.isfinite(v).all():
         return torch.tensor(float("inf"), dtype=v.dtype, device=v.device)
     return torch.norm(v)
@@ -279,6 +331,37 @@ def _nonline_line_search(func,
                          search_type="armijo",
                          rdiff=1e-8,
                          smin=1e-2):
+    """Find a suitable step length for a line search.
+    
+    Parameters
+    ----------
+    func: callable
+        The function to minimize.
+    x: torch.Tensor
+        The current point.
+    y: torch.Tensor
+        The function value at the current point.
+    dx: torch.Tensor
+        The search direction.
+    search_type: str
+        The type of line search to perform. Currently, only "armijo" is supported.
+    rdiff: float
+        The relative difference to compute the derivative.
+    smin: float
+        The minimum step length to take.
+
+    Returns
+    -------
+    s: float
+        The step length.
+    x: torch.Tensor
+        The new point.
+    y: torch.Tensor
+        The function value at the new point.
+    y_norm: float
+        The norm of the function value at the new point.
+
+    """
     tmp_s = [0]
     tmp_y = [y]
     tmp_phi = [y.norm()**2]
@@ -325,6 +408,34 @@ def _scalar_search_armijo(phi,
                           alpha0=1,
                           amin=0,
                           max_niter=20):
+    """Minimize over alpha, the function phi(s) at the current point and
+    the derivative derphi(s) at the current point.
+    
+    Parameters
+    ----------
+    phi: callable
+        The function to minimize.
+    phi0: float
+        The value of phi at 0.
+    derphi0: float
+        The value of the derivative of phi at 0.
+    c1: float
+        The Armijo condition parameter.
+    alpha0: float
+        The initial guess of the step length.
+    amin: float
+        The minimum step length to take.
+    max_niter: int
+        The maximum number of iterations to take.
+    
+    Returns
+    -------
+    alpha: float
+        The step length.
+    phi: float
+        The value of the function at the step length.
+
+    """
     phi_a0 = phi(alpha0)
     if phi_a0 <= phi0 + c1 * alpha0 * derphi0:
         return alpha0, phi_a0
@@ -374,8 +485,25 @@ def _scalar_search_armijo(phi,
 
 
 class TerminationCondition(object):
+    """Class to check the termination condition of the root finder."""
 
     def __init__(self, f_tol, f_rtol, f0_norm, x_tol, x_rtol):
+        """Initialize the termination condition.
+
+        Parameters
+        ----------
+        f_tol: float or None
+            The absolute tolerance of the norm of the output ``f``.
+        f_rtol: float or None
+            The relative tolerance of the norm of the output ``f``.
+        f0_norm: float
+            The norm of the initial function value.
+        x_tol: float or None
+            The absolute tolerance of the norm of the input ``x``.
+        x_rtol: float or None
+            The relative tolerance of the norm of the input ``x``.
+
+        """
         if f_tol is None:
             f_tol = 1e-6
         if f_rtol is None:
@@ -391,6 +519,23 @@ class TerminationCondition(object):
         self.f0_norm = f0_norm
 
     def check(self, x: torch.Tensor, y: torch.Tensor, dx: torch.Tensor) -> bool:
+        """Check the termination condition.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The current point.
+        y: torch.Tensor
+            The function value at the current point.
+        dx: torch.Tensor
+            The search direction.
+
+        Returns
+        -------
+        bool
+            Whether the termination condition is met.
+
+        """
         xnorm = x.norm()
         ynorm = y.norm()
         dxnorm = dx.norm()
