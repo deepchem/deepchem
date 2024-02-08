@@ -161,9 +161,10 @@ def symeig(A: LinearOperator,
                                      na, *params, *mparams)
 
 
-
-def svd(A: LinearOperator, k: Optional[int] = None,
-        mode: str = "uppest", bck_options: Mapping[str, Any] = {},
+def svd(A: LinearOperator,
+        k: Optional[int] = None,
+        mode: str = "uppest",
+        bck_options: Mapping[str, Any] = {},
         method: Union[str, Callable, None] = None,
         **fwd_options) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     r"""
@@ -259,8 +260,11 @@ def svd(A: LinearOperator, k: Optional[int] = None,
         AAsym = A.H.matmul(A, is_hermitian=True)
         min_nm = n
 
-    eivals, eivecs = symeig(AAsym, k, mode,
-                            bck_options=bck_options, method=method,
+    eivals, eivecs = symeig(AAsym,
+                            k,
+                            mode,
+                            bck_options=bck_options,
+                            method=method,
                             **fwd_options)  # (*BA, k) and (*BA, min(mn), k)
 
     # clamp the eigenvalues to a small positive values to avoid numerical
@@ -276,7 +280,6 @@ def svd(A: LinearOperator, k: Optional[int] = None,
         u = A.mm(v) / sdiv  # (*BA, m, k)
     vh = v.transpose(-2, -1).conj()
     return u, s, vh
-
 
 
 class symeig_torchfcn(torch.autograd.Function):
