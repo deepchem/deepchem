@@ -119,6 +119,7 @@ class BAMFeaturizer(Featurizer):
     - Column 4: Reference Start
     - Column 5: CIGAR
     - Column 6: Mapping Quality
+
     Examples
     --------
     >>> from deepchem.data.data_loader import BAMLoader
@@ -128,6 +129,7 @@ class BAMFeaturizer(Featurizer):
     >>> features = featurizer.featurize(inputs)
     >>> type(features[0])
     <class 'numpy.ndarray'>
+
     Note
     ----
     This class requires pysam to be installed. Pysam can be used with Linux or MacOS X.
@@ -138,6 +140,7 @@ class BAMFeaturizer(Featurizer):
     def __init__(self, max_records=None):
         """
         Initialize BAMFeaturizer.
+
         Parameters
         ----------
         max_records : int or None, optional
@@ -150,15 +153,18 @@ class BAMFeaturizer(Featurizer):
     def _featurize(self, datapoint):
         """
         Extract features from a BAM file.
+
         Parameters
         ----------
         bamfile : str
             BAM file.
             The corresponding index file must be in the same directory.
+
         Returns
         -------
         features : numpy.ndarray
         A 2D NumPy array representing the extracted features.
+
         """
 
         features = []
