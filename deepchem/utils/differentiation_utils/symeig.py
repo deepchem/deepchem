@@ -72,7 +72,7 @@ def symeig(A: LinearOperator,
 
     Parameters
     ----------
-    A: xitorch.LinearOperator
+    A: LinearOperator
         The linear operator object on which the eigenpairs are constructed.
         It must be a Hermitian linear operator with shape ``(*BA, q, q)``
     neig: int or None
@@ -82,7 +82,7 @@ def symeig(A: LinearOperator,
         ``"lowest"`` or ``"uppermost"``/``"uppest"``. If ``"lowest"``,
         it will take the lowest ``neig`` eigenpairs.
         If ``"uppest"``, it will take the uppermost ``neig``.
-    M: xitorch.LinearOperator
+    M: LinearOperator
         The transformation on the right hand side. If ``None``, then ``M=I``.
         If specified, it must be a Hermitian with shape ``(*BM, q, q)``.
     bck_options: dict
@@ -192,9 +192,9 @@ def svd(A: LinearOperator,
     ``degen_atol`` and ``degen_rtol`` in the backward option using the expressions
     in [1]_.
 
-    Arguments
-    ---------
-    A: xitorch.LinearOperator
+    Parameters
+    ----------
+    A: LinearOperator
         The linear operator to be decomposed. It has a shape of ``(*BA, m, n)``
         where ``(*BA)`` is the batched dimension of ``A``.
     k: int or None
@@ -555,7 +555,7 @@ def ortho(A: torch.Tensor,
         The tensor to be orthogonalized against. Shape: ``(*BAM, na, neig)``
     D: torch.Tensor or None
         The degeneracy map. If None, it is identity matrix. Shape: ``(*BAM, neig, neig)``
-    M: xitorch.LinearOperator or None
+    M: LinearOperator or None
         The overlap matrix. If None, identity matrix is used. Shape: ``(*BM, q, q)``
     mright: bool
         Whether to operate M at the right or at the left

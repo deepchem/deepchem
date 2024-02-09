@@ -869,7 +869,7 @@ def test_BroydenFirst():
     y0 = func(x0)
     v = torch.tensor([1.0, 1.0])
     jacobian.setup(x0, y0, func)
-    torch.allclose(jacobian.solve(v), torch.tensor([-0.7071, -0.7071]))
+    assert torch.allclose(jacobian.solve(v), torch.tensor([-0.7071, -0.7071]))
 
 
 @pytest.mark.torch
@@ -884,7 +884,7 @@ def test_BroydenSecond():
     y0 = func(x0)
     v = torch.tensor([1.0, 1.0])
     jacobian.setup(x0, y0, func)
-    torch.allclose(jacobian.solve(v), torch.tensor([-0.7071, -0.7071]))
+    assert torch.allclose(jacobian.solve(v), torch.tensor([-0.7071, -0.7071]))
 
 
 @pytest.mark.torch
@@ -899,7 +899,7 @@ def test_LinearMixing():
     y0 = func(x0)
     v = torch.tensor([1.0, 1.0])
     jacobian.setup(x0, y0, func)
-    torch.allclose(jacobian.solve(v), torch.tensor([1., 1.]))
+    assert torch.allclose(jacobian.solve(v), torch.tensor([1., 1.]))
 
 
 @pytest.mark.torch
@@ -911,7 +911,7 @@ def test_low_rank_matrix():
     reduce_method = "restart"
     matrix = LowRankMatrix(alpha, uv0, reduce_method)
     v = torch.tensor([1.0, 1.0])
-    torch.allclose(matrix.mv(v), torch.tensor([3., 3.]))
+    assert torch.allclose(matrix.mv(v), torch.tensor([3., 3.]))
 
 
 @pytest.mark.torch
@@ -963,11 +963,11 @@ def test_broyden1():
     from deepchem.utils.differentiation_utils.optimize.rootsolver import broyden1
 
     def fcn(x):
-        return x**2 - 5
+        return x**2 - 4
 
     x0 = torch.tensor(0.0, requires_grad=True)
     x = broyden1(fcn, x0)
-    torch.allclose(x, torch.tensor(2.0000))
+    assert torch.allclose(x, torch.tensor(-2.0000))
 
 
 @pytest.mark.torch
@@ -975,11 +975,11 @@ def test_broyden2():
     from deepchem.utils.differentiation_utils.optimize.rootsolver import broyden2
 
     def fcn(x):
-        return x**2 - 5
+        return x**2 - 4
 
     x0 = torch.tensor(0.0, requires_grad=True)
     x = broyden2(fcn, x0)
-    torch.allclose(x, torch.tensor(2.0000))
+    assert torch.allclose(x, torch.tensor(-2.0000))
 
 
 @pytest.mark.torch
@@ -987,8 +987,8 @@ def test_linear_mixing():
     from deepchem.utils.differentiation_utils.optimize.rootsolver import linearmixing
 
     def fcn(x):
-        return x**2 - 5
+        return x**2 - 4
 
     x0 = torch.tensor(0.0, requires_grad=True)
     x = linearmixing(fcn, x0)
-    torch.allclose(x, torch.tensor(2.0000))
+    assert torch.allclose(x, torch.tensor(2.0000))
