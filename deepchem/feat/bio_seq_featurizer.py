@@ -102,6 +102,7 @@ class SAMFeaturizer(Featurizer):
 
         return np.array(features, dtype="object")
 
+
 class BAMFeaturizer(Featurizer):
     """
     Featurizes BAM files, that are compressed binary representations of SAM
@@ -133,6 +134,7 @@ class BAMFeaturizer(Featurizer):
     To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
     
     """
+
     def __init__(self, max_records=None):
         """
         Initialize BAMFeaturizer.
@@ -144,7 +146,7 @@ class BAMFeaturizer(Featurizer):
 
         """
         self.max_records = max_records
-    
+
     def _featurize(self, datapoint):
         """
         Extract features from a BAM file.

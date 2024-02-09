@@ -1990,6 +1990,7 @@ class SAMLoader(DataLoader):
 
         return DiskDataset.create_dataset(shard_generator(), data_dir)
 
+
 class BAMLoader(DataLoader):
     """Handles loading of BAM files.
     Binary Alignment Map (BAM) is the comprehensive raw data of genome
