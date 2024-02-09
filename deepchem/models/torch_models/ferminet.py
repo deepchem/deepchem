@@ -257,13 +257,10 @@ class Ferminet(torch.nn.Module):
                                                             axis=-1),
                                                   axis=-1),
                                         axis=-1).detach()
-        hessian_sum = torch.sum(torch.reshape(
-            torch.func.hessian(lambda x: torch.log(torch.abs(self.forward(x))))(
-                self.input)[i, i, j, k, i, j, k],
-            (self.batch_size, self.total_electron, 3)).detach(),
-                                axis=(1, 2))
-        kinetic_energy = -1 * 0.5 * (jacobian_square_sum + hessian_sum)
-        return kinetic_energy
+        hessian_sum = torch.func.hessian(lambda x: torch.log(torch.abs(self.forward(x))))(self.input).detach()
+        print(hessian_sum)
+        # kinetic_energy = -1 * 0.5 * (jacobian_square_sum + hessian_sum)
+        return hessian_sum
 
 
 class FerminetModel(TorchModel):
