@@ -997,9 +997,12 @@ class TorchModel(Model):
         ----------
         max_checkpoints_to_keep: int
             the maximum number of checkpoints to keep.  Older checkpoints are discarded.
+            If set to zero, the function will simply return as no checkpoint is saved.
         model_dir: str, default None
             Model directory to save checkpoint to. If None, revert to self.model_dir
         """
+        if max_checkpoints_to_keep == 0:
+            return
         self._ensure_built()
         if model_dir is None:
             model_dir = self.model_dir
