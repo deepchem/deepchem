@@ -51,6 +51,13 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
     steps:
+    - name: Maximize build space
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0

@@ -13,6 +13,13 @@ jobs:
   linting:
     runs-on: ubuntu-latest
     steps:
+    - name: Maximize build space
+      if: runner.os == 'ubuntu-latest'
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
