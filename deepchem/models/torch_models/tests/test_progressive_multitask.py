@@ -224,6 +224,7 @@ def test_progressivemultitask_classification_overfit():
     assert scores[classification_metric.name] > 0.9, "Failed to overfit"
 
 
+@pytest.mark.torch
 def test_progressivemultitask_reload():
     """Test that the model can be reloaded from disk."""
 
