@@ -142,6 +142,8 @@ class Ferminet(torch.nn.Module):
         one_electron_vector_permuted = one_electron_vector.permute(0, 2, 1,
                                                                    3).float()
 
+        self.ferminet_layer[0].batch_size = self.batch_size
+        self.ferminet_layer_envelope[0].batch_size = self.batch_size
         one_electron, _ = self.ferminet_layer[0].forward(
             one_electron.to(torch.float32), two_electron.to(torch.float32))
         self.psi, self.psi_up, self.psi_down = self.ferminet_layer_envelope[
@@ -244,12 +246,6 @@ class Ferminet(torch.nn.Module):
         """
         # using functorch to calcualte hessian and jacobian in one go
         # using index tensors to index out the hessian elemennts corresponding to the same variable (cross-variable derivatives are ignored)
-        i = torch.arange(self.batch_size).view(self.batch_size, 1, 1, 1, 1, 1,
-                                               1)
-        j = torch.arange(self.total_electron).view(1, self.total_electron, 1, 1,
-                                                   1, 1, 1)
-        k = torch.arange(3).view(1, 1, 3, 1, 1, 1, 1)
-
         # doing all the calculation and detaching from graph to save memory, which allows larger batch size
         jacobian_square_sum = torch.sum(torch.sum(torch.sum(torch.pow(
             torch.func.jacrev(lambda x: torch.log(torch.abs(self.forward(x))))(
@@ -257,10 +253,30 @@ class Ferminet(torch.nn.Module):
                                                             axis=-1),
                                                   axis=-1),
                                         axis=-1).detach()
-        hessian_sum = torch.func.hessian(lambda x: torch.log(torch.abs(self.forward(x))))(self.input).detach()
+        tmp_batch_size = self.batch_size
+        self.batch_size = 1
+        # v=torch.eye(self.total_electron, 3)
+        #v1=torch.tensor([1.0,0,0]).repeat(self.total_electron,1)
+        #v2=torch.tensor([0.0,1.0,0]).repeat(self.total_electron,1)
+        #3=torch.tensor([0.0,0,1.0]).repeat(self.total_electron,1)
+        i=torch.arange(tmp_batch_size).view(tmp_batch_size,1,1,1,1)
+        j=torch.arange(self.total_electron).view(1,self.total_electron,1,1,1)
+        k=torch.arange(3).view(1,1,3,1,1)
+        fn = lambda x: torch.log(torch.abs(self.forward(x).squeeze(0))).squeeze(0)
+        #v=torch.stack((v1,v2,v3))
+        hvp = lambda x: torch.func.hessian(fn)(x)
+        vm=torch.func.vmap(hvp)
+        hessian_sum=torch.sum(vm(self.input).detach()[i,j,k,j,k], axis=(1,2)).squeeze(1).squeeze(1)
+        #for v, num in [(v1, -3), (v2, -2), (v3, -3)]:
+        #hvp = lambda x: torch.sum(torch.func.hessian(fn)(x))
+        #vm=torch.func.vmap(hvp)
+        #stacked = torch.stack((self.input,self.input,self.input),dim=1)
+        #hessian_sum=vm(stacked)
+        self.batch_size = tmp_batch_size
+        print(jacobian_square_sum)
         print(hessian_sum)
-        # kinetic_energy = -1 * 0.5 * (jacobian_square_sum + hessian_sum)
-        return hessian_sum
+        kinetic_energy = -1 * 0.5 * (jacobian_square_sum + hessian_sum)
+        return kinetic_energy
 
 
 class FerminetModel(TorchModel):

@@ -66,13 +66,14 @@ def test_FerminetModel_energy():
     # Test for the init function of FerminetModel class
     H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
     # Testing ionic initialization
-    mol = FerminetModel(H2_molecule, spin=0, ion_charge=0, batch_no=1)
+    mol = FerminetModel(H2_molecule, spin=0, ion_charge=0, batch_no=8)
     mol.train(nb_epoch=5)
     energy = mol.model.calculate_electron_electron(
     ) - mol.model.calculate_electron_nuclear(
     ) + mol.model.nuclear_nuclear_potential + mol.model.calculate_kinetic_energy(
     )
     mean_energy = torch.mean(energy)
+    print(mean_energy)
     assert False
     assert mean_energy <= torch.tensor(1.0)
 
@@ -86,6 +87,8 @@ def test_FerminetModel_train():
     mol.train(nb_epoch=10)
     mol.prepare_train()
     mol.train(nb_epoch=10)
+    print(mol.final_energy)
+    assert False
     assert mol.final_energy <= torch.tensor(0.0)
 
 
@@ -98,5 +101,7 @@ def test_FerminetModel_ion_train():
     mol.train(nb_epoch=10)
     mol.prepare_train()
     mol.train(nb_epoch=10)
+    print(mol.final_energy)
+    assert False
     assert (mol.final_energy >= torch.tensor(0.0)) and (mol.final_energy <=
                                                         torch.tensor(1.0))
