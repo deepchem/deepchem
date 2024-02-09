@@ -311,13 +311,13 @@ def wigner_D(k: int, alpha: torch.Tensor, beta: torch.Tensor,
     >>> gamma = torch.tensor([0.5, 0.6])
     >>> wigner_D_matrix = wigner_D(k, alpha, beta, gamma)
     >>> wigner_D_matrix
-    tensor([[[ 0.8275,  0.0295,  0.5607],
-             [ 0.1417,  0.9553, -0.2593],
-             [-0.5433,  0.2940,  0.7863]],
+    tensor([[[ 0.8275,  0.1417,  0.5433],
+             [ 0.0295,  0.9553, -0.2940],
+             [-0.5607,  0.2593,  0.7863]],
     <BLANKLINE>
-            [[ 0.7056,  0.0774,  0.7044],
-             [ 0.2199,  0.9211, -0.3214],
-             [-0.6737,  0.3816,  0.6329]]])
+            [[ 0.7056,  0.2199,  0.6737],
+             [ 0.0774,  0.9211, -0.3816],
+             [-0.7044,  0.3214,  0.6329]]])
     """
     # Ensure that alpha, beta, and gamma have the same shape for broadcasting.
     alpha, beta, gamma = torch.broadcast_tensors(alpha, beta, gamma)
