@@ -104,7 +104,7 @@ jobs:
         pip install conda-merge;
         conda-merge requirements/env_common.yml requirements/torch/env_torch.cpu.yml requirements/env_test.yml > env.yml
     - name: Install all dependencies
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v3
       with:
         miniconda-version: "latest"
         auto-update-conda: true
