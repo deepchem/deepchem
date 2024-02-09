@@ -93,7 +93,7 @@ class BasicMolGANModel(WGANModel):
                  nodes: int = 5,
                  embedding_dim: int = 10,
                  dropout_rate: float = 0.0,
-                 device: Optional[torch.device] = torch.device('cpu'),
+                 device: Optional[torch.device] = None,
                  **kwargs):
         """
         Initialize the model
@@ -119,7 +119,13 @@ class BasicMolGANModel(WGANModel):
         self.nodes = nodes
         self.embedding_dim = embedding_dim
         self.dropout_rate = dropout_rate
-        self.device = device  # type: ignore
+        if device is None:
+            if torch.cuda.is_available():
+                self.device = torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                self.device = torch.device('mps')
+            else:
+                self.device = torch.device('cpu')
 
         super(BasicMolGANModel, self).__init__(device=device, **kwargs)
 
