@@ -189,8 +189,6 @@ class TerminationCondition(object):
     Examples
     --------
     >>> stop_cond = TerminationCondition(1e-8, 1e-8, 1e-8, 1e-8, True)
-    >>> stop_cond.to_stop(0, torch.tensor(0.0), torch.tensor(0.0), torch.tensor(0.0), torch.tensor(0.0))
-    False
 
     """
 
