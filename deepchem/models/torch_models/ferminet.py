@@ -179,6 +179,7 @@ class Ferminet(torch.nn.Module):
             ) - self.calculate_electron_nuclear(
             ) + self.nuclear_nuclear_potential + self.calculate_kinetic_energy(
             )
+            print(torch.mean(energy))
             return energy.detach()
 
     def calculate_nuclear_nuclear(self,) -> torch.Tensor:
@@ -261,20 +262,23 @@ class Ferminet(torch.nn.Module):
         #3=torch.tensor([0.0,0,1.0]).repeat(self.total_electron,1)
         i=torch.arange(tmp_batch_size).view(tmp_batch_size,1,1,1,1)
         j=torch.arange(self.total_electron).view(1,self.total_electron,1,1,1)
+        print(self.total_electron)
         k=torch.arange(3).view(1,1,3,1,1)
-        fn = lambda x: torch.log(torch.abs(self.forward(x).squeeze(0))).squeeze(0)
         #v=torch.stack((v1,v2,v3))
-        hvp = lambda x: torch.func.hessian(fn)(x)
+        hvp = lambda x: torch.func.hessian(lambda y: torch.log(torch.abs(self.forward(y).squeeze(0))).squeeze(0))(x)
         vm=torch.func.vmap(hvp)
-        hessian_sum=torch.sum(vm(self.input).detach()[i,j,k,j,k], axis=(1,2)).squeeze(1).squeeze(1)
         #for v, num in [(v1, -3), (v2, -2), (v3, -3)]:
         #hvp = lambda x: torch.sum(torch.func.hessian(fn)(x))
         #vm=torch.func.vmap(hvp)
         #stacked = torch.stack((self.input,self.input,self.input),dim=1)
         #hessian_sum=vm(stacked)
+        hessian = vm(self.input)
+        hessian_sum=torch.sum(hessian[i,j,k,j,k], axis=(1,2)).squeeze(1).squeeze(1)
+        # print(hessian_sum.size())
+        # print(hessian_sum.size())
         self.batch_size = tmp_batch_size
-        print(jacobian_square_sum)
-        print(hessian_sum)
+        #print(jacobian_square_sum)
+        #print(hessian_sum)
         kinetic_energy = -1 * 0.5 * (jacobian_square_sum + hessian_sum)
         return kinetic_energy
 
