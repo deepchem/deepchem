@@ -1,15 +1,11 @@
-from typing import Iterable, List, Tuple
-from deepchem.data import Dataset
 import torch
 import numpy as np
 from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.torch_models import layers
 import torch.nn as nn
 from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy
-import torch.nn as nn
 from deepchem.metrics import to_one_hot
 import copy
-from rdkit import Chem
 import sys
 
 default_dict = {
@@ -50,7 +46,6 @@ default_dict = {
 
 
 class TextCNN(nn.Module):
-
     """
     Torch implementation of a simple 1D CNN network
     """
@@ -152,7 +147,6 @@ class TextCNN(nn.Module):
 
 
 class TextCNNModel(TorchModel):
-
     """
     A 1D convolutional neural network to work on smiles strings for both
     classification and regression tasks.
@@ -170,7 +164,7 @@ class TextCNNModel(TorchModel):
     .. [1]  Guimaraes, Gabriel Lima, et al. "Objective-reinforced generative adversarial networks (ORGAN) for sequence generation models." arXiv preprint arXiv:1705.10843 (2017).
     .. [2] Kim, Yoon. "Convolutional neural networks for sentence classification." arXiv preprint arXiv:1408.5882 (2014).
     .. [3] Srivastava et al., "Training Very Deep Networks".https://arxiv.org/abs/1507.06228
-    
+
     Examples
     --------
     >>> import os
@@ -246,7 +240,7 @@ class TextCNNModel(TorchModel):
                                            loss=loss,
                                            output_types=output_types,
                                            **kwargs)
-    
+
     # Below functions were taken from DeepChem TextCNN tensorflow implementation
 
     def default_generator(self,
@@ -261,7 +255,6 @@ class TextCNNModel(TorchModel):
                  ids_b) in dataset.iterbatches(batch_size=self.batch_size,
                                                deterministic=deterministic,
                                                pad_batches=pad_batches):
-                from rdkit import Chem
                 if y_b is not None:
                     if self.mode == 'classification':
                         y_b = to_one_hot(y_b.flatten(),

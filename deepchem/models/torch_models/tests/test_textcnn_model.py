@@ -14,6 +14,7 @@ except ModuleNotFoundError:
 import shutil
 import torch.nn as nn
 
+
 @pytest.mark.torch
 def test_textcnn_module():
     model = TextCNNModel(1, default_dict, 1)
@@ -158,7 +159,7 @@ def test_textcnn_reload():
 
 @pytest.mark.torch
 def test_textcnn_compare_with_tf_impl():
-    ## Load dataset
+    # Load dataset
     tasks = ["outcome"]
     n_tasks = 1
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -172,7 +173,7 @@ def test_textcnn_compare_with_tf_impl():
     dataset = loader.create_dataset(input_file)
     batch_size = 1
 
-    ## Load tensorflow TextCNN checkpoint
+    # Load tensorflow TextCNN checkpoint
     char_dict, length = dc.models.TextCNNModel.build_char_dict(dataset)
     TF_MODEL_CKPT_PATH = os.path.join(current_dir,
                                       "../../tests/assets/TF_text_CNN_reg")
@@ -185,7 +186,7 @@ def test_textcnn_compare_with_tf_impl():
                                       mode="regression")
     tf_model.restore(TF_MODEL_CKPT_PATH)
 
-    ## Intiliaze torch TextCNN
+    # Intiliaze torch TextCNN
     char_dict, length = TextCNNModel.build_char_dict(dataset)
     torch_model = TextCNNModel(n_tasks,
                                char_dict=char_dict,
@@ -196,7 +197,7 @@ def test_textcnn_compare_with_tf_impl():
                                mode="regression")
 
     with torch.no_grad():
-        ## Copy conv layer weights
+        # Copy conv layer weights
         tf_conv_layers = []
         for layer in tf_model.model.layers:
             if ("conv" in layer.name):
@@ -210,7 +211,7 @@ def test_textcnn_compare_with_tf_impl():
             torch_layer.weight.copy_(torch.from_numpy(weights_1))
             torch_layer.bias.copy_(torch.from_numpy(weights_2))
 
-        ## Copy other layer weights
+        # Copy other layer weights
         non_conv_layers_tf_torch_name_map = {
             "dtnn_embedding": "embedding_layer",
             "dense": "linear1",
@@ -248,7 +249,7 @@ def test_textcnn_compare_with_tf_impl():
                     torch.from_numpy(weights_3).float().T)
                 torch_layer.T.bias.copy_(torch.from_numpy(weights_4).float())
 
-        ## Run prediction
+        # Run prediction
         torch_outputs = torch_model.predict(dataset)
         tf_outputs = tf_model.predict(dataset)
 
