@@ -11,7 +11,6 @@ from deepchem.metrics import to_one_hot
 import copy
 from rdkit import Chem
 import sys
-torch.set_default_dtype(torch.float32)
 default_dict = {
     '#': 1,
     '(': 2,
@@ -99,17 +98,7 @@ class TextCNN(nn.Module):
         self.highway = layers.HighwayLayer(200)
 
     def forward(self, input):
-        import pickle
-        with open(
-                "/home/shiva/projects/deepchem/deepchem/models/torch_models/tests/tf_output/input_torch.pickle",
-                "wb") as fp:
-            pickle.dump(input, fp)
         input_emb = self.embedding_layer(input)
-        import pickle
-        with open(
-                "/home/shiva/projects/deepchem/deepchem/models/torch_models/tests/tf_output/input_emb_torch.pickle",
-                "wb") as fp:
-            pickle.dump(input_emb, fp)
         input_emb = input_emb.permute(0, 2, 1)
 
         conv_outputs = []
@@ -121,25 +110,10 @@ class TextCNN(nn.Module):
                 concat_output = x
             else:
                 concat_output = torch.cat((concat_output, x), dim=1)
-        import pickle
-        with open(
-                "/home/shiva/projects/deepchem/deepchem/models/torch_models/tests/tf_output/pooled_outputs_torch.pickle",
-                "wb") as fp:
-            pickle.dump(conv_outputs, fp)
-        with open(
-                "/home/shiva/projects/deepchem/deepchem/models/torch_models/tests/tf_output/concat_output_torch.pickle",
-                "wb") as fp:
-            pickle.dump(concat_output, fp)
+
         x = self.relu(self.linear1(self.dropout_layer(concat_output)))
-        with open(
-                "/home/shiva/projects/deepchem/deepchem/models/torch_models/tests/tf_output/highway_input_torch.pickle",
-                "wb") as fp:
-            pickle.dump(x, fp)
         x = self.highway(x)
-        with open(
-                "/home/shiva/projects/deepchem/deepchem/models/torch_models/tests/tf_output/highway_output_torch.pickle",
-                "wb") as fp:
-            pickle.dump(x, fp)
+
         if self.mode == "classification":
             logits = self.linear2(x)
             logits = logits.view(-1, self.n_tasks, 2)
@@ -199,27 +173,10 @@ class TextCNNModel(TorchModel):
                                            loss=loss,
                                            output_types=output_types,
                                            **kwargs)
-
-    # def _prepare_batch(self, batch):
-    #     inputs, labels, weights = batch
-    #     print("TORCH PEREPARE")
-    #     print(weights)
-    #     for i in inputs[0]:
-    #         print(Chem.MolToSmiles(i))
-    #     print(labels)
-    #     X_b = self.smiles_to_seq_batch(inputs[0])
-    #     input_tensor = torch.from_numpy(X_b).to(self.device)
-    #     if (labels != None):
-    #         if (self.mode == "classification"):
-    #             labels = [
-    #                 to_one_hot(labels[0].flatten(),
-    #                            2).reshape(-1, self.n_tasks, 2)
-    #             ]
-
-    #     _, labels, weights = super(TextCNNModel, self)._prepare_batch(
-    #         ([], labels, weights))
-    #     print("LABELS:",labels)
-    #     return input_tensor, labels, weights
+    
+    """
+    Below code was taken from TextCNN tensorflow implementation
+    """
 
     def default_generator(self,
                           dataset,
@@ -248,13 +205,7 @@ class TextCNNModel(TorchModel):
         """ Collect all unique characters(in smiles) from the dataset.
         This method should be called before defining the model to build appropriate char_dict
         """
-        # SMILES strings
-        # print("DATASET")
-        # print(dataset)
-
-        # print("X")
         X = dataset.ids
-        # print(X)
         # Maximum length is expanded to allow length variation during train and inference
         seq_length = int(max([len(smile) for smile in X]) * 1.2)
         # '_' served as delimiter and padding
@@ -327,8 +278,5 @@ class TextCNNModel(TorchModel):
                 TextCNNModel.convert_bytes_to_char(smiles) for smiles in ids_b
             ]
         smiles_seqs = [self.smiles_to_seq(smiles) for smiles in ids_b]
-        # smiles_seqs = [
-        #     self.smiles_to_seq(Chem.MolToSmiles(smiles)) for smiles in ids_b
-        # ]
         smiles_seqs = np.vstack(smiles_seqs)
         return smiles_seqs
