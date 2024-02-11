@@ -14,13 +14,13 @@ except ModuleNotFoundError:
 
 
 @pytest.mark.torch
-def test_construction():
-    """
-    Test that PrgressiveMultiTask Model can be constructed without crash.
+def test_progressivemultitask_construction():
+    """Test that PrgressiveMultiTask Model can be constructed without crash.
     """
 
     model = dc.models.torch_models.ProgressiveMultitask(
         n_tasks=1,
+        mode="classification",
         n_features=100,
         layer_sizes=[128, 256],
         alpha_init_stddevs=[0.08],
@@ -28,16 +28,15 @@ def test_construction():
         bias_init_consts=1.0,
         activation_fns=nn.ReLU,
         dropouts=[0.2],
-        n_outputs=2,
+        n_classes=2,
     )
 
     assert model is not None
 
 
 @pytest.mark.torch
-def test_forward():
-    """
-    Test that the forward pass of ProgressiveMultiTask Model can be executed without crash
+def test_progressivemultitask_forward():
+    """Test that the forward pass of ProgressiveMultiTask Model can be executed without crash
     and that the output has the correct value.
     """
 
@@ -46,6 +45,7 @@ def test_forward():
 
     torch_model = dc.models.torch_models.ProgressiveMultitask(
         n_tasks=n_tasks,
+        mode='regression',
         n_features=n_features,
         layer_sizes=[128, 256],
         alpha_init_stddevs=0.02,
