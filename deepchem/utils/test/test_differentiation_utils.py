@@ -859,7 +859,7 @@ def test_svd():
 
 @pytest.mark.torch
 def test_BroydenFirst():
-    from deepchem.utils.differentiation_utils.optimize._jacobian import BroydenFirst
+    from deepchem.utils.differentiation_utils.optimize.jacobian import BroydenFirst
     jacobian = BroydenFirst()
     x0 = torch.tensor([1.0, 1.0], requires_grad=True)
 
@@ -874,7 +874,7 @@ def test_BroydenFirst():
 
 @pytest.mark.torch
 def test_BroydenSecond():
-    from deepchem.utils.differentiation_utils.optimize._jacobian import BroydenSecond
+    from deepchem.utils.differentiation_utils.optimize.jacobian import BroydenSecond
     jacobian = BroydenSecond()
     x0 = torch.tensor([1.0, 1.0], requires_grad=True)
 
@@ -889,7 +889,7 @@ def test_BroydenSecond():
 
 @pytest.mark.torch
 def test_LinearMixing():
-    from deepchem.utils.differentiation_utils.optimize._jacobian import LinearMixing
+    from deepchem.utils.differentiation_utils.optimize.jacobian import LinearMixing
     jacobian = LinearMixing()
     x0 = torch.tensor([1.0, 1.0], requires_grad=True)
 
@@ -904,7 +904,7 @@ def test_LinearMixing():
 
 @pytest.mark.torch
 def test_low_rank_matrix():
-    from deepchem.utils.differentiation_utils.optimize._jacobian import LowRankMatrix
+    from deepchem.utils.differentiation_utils.optimize.jacobian import LowRankMatrix
     import torch
     alpha = 1.0
     uv0 = (torch.tensor([1.0, 1.0]), torch.tensor([1.0, 1.0]))

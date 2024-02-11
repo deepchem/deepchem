@@ -27,7 +27,7 @@ class Jacobian(object):
         pass
 
     @abstractmethod
-    def solve(self, v: torch.Tensor, tol: Any=0):
+    def solve(self, v: torch.Tensor, tol: Any = 0):
         """Solve the linear system `J dx = v`."""
         pass
 
@@ -43,7 +43,7 @@ class BroydenFirst(Jacobian):
 
     Examples
     --------
-    >>> from deepchem.utils.differentiation_utils.optimize._jacobian import BroydenFirst
+    >>> from deepchem.utils.differentiation_utils.optimize.jacobian import BroydenFirst
     >>> jacobian = BroydenFirst()
     >>> x0 = torch.tensor([1.0, 1.0], requires_grad=True)
     >>> def func(x):
@@ -63,7 +63,10 @@ class BroydenFirst(Jacobian):
 
     """
 
-    def __init__(self, alpha: Union[torch.Tensor, None]=None, uv0: Any=None, max_rank: Union[float, None]=None):
+    def __init__(self,
+                 alpha: Union[torch.Tensor, None] = None,
+                 uv0: Any = None,
+                 max_rank: Union[float, None] = None):
         """The initial guess of inverse Jacobian is `-alpha * I + u v^T`.
         `max_rank` indicates the maximum rank of the Jacoabian before
         reducing it
@@ -163,7 +166,8 @@ class BroydenFirst(Jacobian):
         self.y_prev = y
         self.x_prev = x
 
-    def _update(self, x: torch.Tensor, y: torch.Tensor, dx: torch.Tensor, dy: torch.Tensor, dxnorm: torch.Tensor, dynorm: torch.Tensor):
+    def _update(self, x: torch.Tensor, y: torch.Tensor, dx: torch.Tensor,
+                dy: torch.Tensor, dxnorm: torch.Tensor, dynorm: torch.Tensor):
         """Update the Jacobian approximation.
 
         Parameters
@@ -198,7 +202,7 @@ class BroydenSecond(BroydenFirst):
 
     Examples
     --------
-    >>> from deepchem.utils.differentiation_utils.optimize._jacobian import BroydenSecond
+    >>> from deepchem.utils.differentiation_utils.optimize.jacobian import BroydenSecond
     >>> jacobian = BroydenSecond()
     >>> x0 = torch.tensor([1.0, 1.0], requires_grad=True)
     >>> def func(x):
@@ -209,29 +213,33 @@ class BroydenSecond(BroydenFirst):
     >>> jacobian.solve(v)
     tensor([-0.7071, -0.7071], grad_fn=<MulBackward0>)
 
+    References
+    ----------
     [1] B.A. van der Rotten, PhD thesis,
         "A limited memory Broyden method to solve high-dimensional
         systems of nonlinear equations". Mathematisch Instituut,
         Universiteit Leiden, The Netherlands (2003).
+
     """
 
-    def _update(self, x, y, dx, dy, dxnorm, dynorm):
+    def _update(self, x: torch.Tensor, y: torch.Tensor, dx: torch.Tensor,
+                dy: torch.Tensor, dxnorm: torch.Tensor, dynorm: torch.Tensor):
         """Update the Jacobian approximation.
 
         Parameters
         ----------
-        x
+        x: torch.Tensor
             The current point.
-        y
+        y: torch.Tensor
             The function value at the current point.
-        dx
+        dx: torch.Tensor
             The difference between the current point and the previous point.
-        dy
+        dy: torch.Tensor
             The difference between the function value at the current point
             and the previous point.
-        dxnorm
+        dxnorm: torch.Tensor
             The norm of `dx`.
-        dynorm
+        dynorm: torch.Tensor
             The norm of `dy`.
 
         """
@@ -246,10 +254,11 @@ class BroydenSecond(BroydenFirst):
 
 class LinearMixing(Jacobian):
     """ Approximating the Jacobian based on linear mixing.
+    It acts as a simple check for the functionality of the rootfinder.
 
     Examples
     --------
-    >>> from deepchem.utils.differentiation_utils.optimize._jacobian import LinearMixing
+    >>> from deepchem.utils.differentiation_utils.optimize.jacobian import LinearMixing
     >>> jacobian = LinearMixing()
     >>> x0 = torch.tensor([1.0, 1.0], requires_grad=True)
     >>> def func(x):
@@ -262,7 +271,7 @@ class LinearMixing(Jacobian):
 
     """
 
-    def __init__(self, alpha=None):
+    def __init__(self, alpha: Union[float, None] = None):
         """The initial guess of inverse Jacobian is ``-alpha * I``
 
         Parameters
@@ -276,27 +285,27 @@ class LinearMixing(Jacobian):
             alpha = -1.0
         self.alpha = alpha
 
-    def setup(self, x0, y0, func):
+    def setup(self, x0: torch.Tensor, y0: torch.Tensor, func: Callable):
         """Setup the Jacobian for the rootfinder.
 
         Parameters
         ----------
-        x0
+        x0: torch.Tensor
             The initial guess of the root.
-        y0
+        y0: torch.Tensor
             The function value at the initial guess.
-        func
+        func: Callable
             The function to find the root.
 
         """
         pass
 
-    def solve(self, v, tol=0):
+    def solve(self, v: torch.Tensor, tol=0) -> torch.Tensor:
         """Solve the linear system `J dx = v`.
 
         Parameters
         ----------
-        v
+        v: torch.Tensor
             The right-hand side of the linear system.
         tol
             The tolerance for the linear system.
@@ -304,14 +313,14 @@ class LinearMixing(Jacobian):
         """
         return -v * self.alpha
 
-    def update(self, x, y):
+    def update(self, x: torch.Tensor, y: torch.Tensor):
         """Update the Jacobian approximation.
 
         Parameters
         ----------
-        x
+        x: torch.Tensor
             The current point.
-        y
+        y: torch.Tensor
             The function value at the current point.
 
         """
@@ -320,10 +329,10 @@ class LinearMixing(Jacobian):
 
 class LowRankMatrix(object):
     """represents a matrix of `\alpha * I + \sum_n c_n d_n^T`
-    
+
     Examples
     --------
-    >>> from deepchem.utils.differentiation_utils.optimize._jacobian import LowRankMatrix
+    >>> from deepchem.utils.differentiation_utils.optimize.jacobian import LowRankMatrix
     >>> import torch
     >>> alpha = 1.0
     >>> uv0 = (torch.tensor([1.0, 1.0]), torch.tensor([1.0, 1.0]))
@@ -337,12 +346,12 @@ class LowRankMatrix(object):
 
     """
 
-    def __init__(self, alpha, uv0, reduce_method):
+    def __init__(self, alpha: torch.Tensor, uv0, reduce_method: str):
         """initialize the matrix
 
         Parameters
         ----------
-        alpha : float
+        alpha : torch.Tensor
             The coefficient of the identity matrix
         uv0 : tuple
             The initial guess of the inverse Jacobian
@@ -360,18 +369,18 @@ class LowRankMatrix(object):
             self.dns = [dn0]
         self.reduce_method = {"restart": 0, "simple": 1}[reduce_method]
 
-    def mv(self, v):
+    def mv(self, v: torch.Tensor) -> torch.Tensor:
         """multiply the matrix with a vector
 
         Parameters
         ----------
-        v
-            The vector to multiply
+        v: torch.Tensor
+            Vector to multiply
 
         Returns
         -------
-        res
-            The result of the multiplication
+        res: torch.Tensor
+            Result of the multiplication
 
         """
         res = self.alpha * v
@@ -379,18 +388,18 @@ class LowRankMatrix(object):
             res += self.cns[i] * torch.dot(self.dns[i], v)
         return res
 
-    def rmv(self, v):
+    def rmv(self, v: torch.Tensor) -> torch.Tensor:
         """multiply the transpose of the matrix with a vector
 
         Parameters
         ----------
-        v
-            The vector to multiply
+        v: torch.Tensor
+            Vector to multiply
 
         Returns
         -------
-        res
-            The result of the multiplication
+        res: torch.Tensor
+            Result of the multiplication
 
         """
         res = self.alpha * v
@@ -398,19 +407,19 @@ class LowRankMatrix(object):
             res += self.dns[i] * torch.dot(self.cns[i], v)
         return res
 
-    def append(self, c, d):
+    def append(self, c: torch.Tensor, d: torch.Tensor):
         """append a rank-1 matrix to the matrix
 
         Parameters
         ----------
-        c
+        c: torch.Tensor
             The first vector
-        d
+        d: torch.Tensor
             The second vector
 
         Returns
         -------
-        res
+        res: Union['LowRankMatrix', 'FullRankMatrix']
             The matrix after appending the rank-1 matrix
 
         """
@@ -420,7 +429,7 @@ class LowRankMatrix(object):
             return FullRankMatrix(self.alpha, self.cns, self.dns)
         return self
 
-    def reduce(self, max_rank, **otherparams):
+    def reduce(self, max_rank: int, **otherparams):
         """reduce the rank of the matrix
 
         Parameters
@@ -444,17 +453,17 @@ class LowRankMatrix(object):
 class FullRankMatrix(object):
     """represents a full rank matrix of `\alpha * I + \sum_n c_n d_n^T`"""
 
-    def __init__(self, alpha, cns, dns):
+    def __init__(self, alpha: torch.Tensor, cns: Any, dns: Any):
         """initialize the matrix
 
         Parameters
         ----------
-        alpha : float
-            The coefficient of the identity matrix
-        cns : list
-            The list of the first vectors
-        dns : list
-            The list of the second vectors
+        alpha : torch.Tensor
+            Coefficient of the identity matrix
+        cns : List
+            List of the first vectors
+        dns : List
+            List of the second vectors
 
         """
         size = torch.numel(cns[0])
@@ -464,59 +473,59 @@ class FullRankMatrix(object):
         for i in range(len(cns)):
             self.mat += torch.ger(cns[i], dns[i])
 
-    def mv(self, v):
+    def mv(self, v: torch.Tensor) -> torch.Tensor:
         """multiply the matrix with a vector
 
         Parameters
         ----------
-        v
+        v: torch.Tensor
             The vector to multiply
 
         Returns
         -------
-        res
+        res: torch.Tensor
             The result of the multiplication
 
         """
         res = torch.matmul(self.mat, v)
         return res
 
-    def rmv(self, v):
+    def rmv(self, v: torch.Tensor) -> torch.Tensor:
         """multiply the transpose of the matrix with a vector
 
         Parameters
         ----------
-        v
+        v: torch.Tensor
             The vector to multiply
 
         Returns
         -------
-        res
+        torch.Tensor
             The result of the multiplication
 
         """
         return torch.matmul(self.mat.T, v)
 
-    def append(self, c, d):
+    def append(self, c: torch.Tensor, d: torch.Tensor):
         """append a rank-1 matrix to the matrix
 
         Parameters
         ----------
-        c
+        c: torch.Tensor
             The first vector
-        d
+        d: torch.Tensor
             The second vector
 
         Returns
         -------
-        res
+        FullRankMatrix
             The matrix after appending the rank-1 matrix
 
         """
         self.mat += torch.ger(c, d)
         return self
 
-    def reduce(self, max_rank, **kwargs):
+    def reduce(self, max_rank: int, **kwargs):
         """reduce the rank of the matrix
 
         Parameters
@@ -530,19 +539,19 @@ class FullRankMatrix(object):
         pass
 
 
-def _get_svd_uv0(func, x0):
+def _get_svd_uv0(func: Callable, x0: torch.Tensor) -> tuple:
     """get the initial guess of the inverse Jacobian from the first Jacobian
 
     Parameters
     ----------
-    func
+    func: Callable
         The function to find the root
-    x0
+    x0: torch.Tensor
         The initial guess of the root
 
     Returns
     -------
-    uv0
+    uv0: tuple
         The initial guess of the inverse Jacobian
 
     """

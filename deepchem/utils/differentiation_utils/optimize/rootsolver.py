@@ -5,7 +5,7 @@
 import warnings
 import torch
 import functools
-from deepchem.utils.differentiation_utils.optimize._jacobian import BroydenFirst, \
+from deepchem.utils.differentiation_utils.optimize.jacobian import BroydenFirst, \
     BroydenSecond, LinearMixing
 from deepchem.utils import ConvergenceWarning
 

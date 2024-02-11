@@ -9,7 +9,7 @@ def jac(
     fcn: Callable[..., torch.Tensor],
     params: Sequence[Any],
     idxs: Union[None, int,
-                Sequence[int]] = None) -> Union[LinearOperator, List]:
+                Sequence[int]] = None):
     """
     Returns the LinearOperator that acts as the jacobian of the params.
     The shape of LinearOperator is (nout, nin) where `nout` and `nin` are the
