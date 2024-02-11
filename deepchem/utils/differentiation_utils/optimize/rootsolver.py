@@ -2,6 +2,7 @@
 # https://github.com/scipy/scipy/blob/914523af3bc03fe7bf61f621363fca27e97ca1d6/scipy/optimize/nonlin.py#L221
 # and converted to PyTorch for GPU efficiency
 
+from typing import Callable
 import warnings
 import torch
 import functools
@@ -11,10 +12,10 @@ from deepchem.utils import ConvergenceWarning
 
 
 def _nonlin_solver(
-        fcn,
-        x0,
+        fcn: Callable,
+        x0: torch.Tensor,
         params,
-        method,
+        method: str,
         # jacobian parameters
         alpha=None,
         uv0=None,
@@ -179,7 +180,7 @@ def _nonlin_solver(
 
 @functools.wraps(_nonlin_solver,
                  assigned=('__annotations__',))  # takes only the signature
-def broyden1(fcn, x0, params=(), **kwargs):
+def broyden1(fcn: Callable, x0: torch.Tensor, params=(), **kwargs):
     """
     Solve the root finder or linear equation using the first Broyden method [1]_.
     It can be used to solve minimization by finding the root of the
@@ -215,7 +216,7 @@ def broyden1(fcn, x0, params=(), **kwargs):
 
 @functools.wraps(_nonlin_solver,
                  assigned=('__annotations__',))  # takes only the signature
-def broyden2(fcn, x0, params=(), **kwargs):
+def broyden2(fcn: Callable, x0: torch.Tensor, params=(), **kwargs):
     """
     Solve the root finder or linear equation using the second Broyden method [2]_.
     It can be used to solve minimization by finding the root of the
@@ -250,8 +251,8 @@ def broyden2(fcn, x0, params=(), **kwargs):
 
 
 def linearmixing(
-        fcn,
-        x0,
+        fcn: Callable,
+        x0: torch.Tensor,
         params=(),
         # jacobian parameters
         alpha=None,
@@ -281,7 +282,7 @@ def linearmixing(
 
     Parameters
     ----------
-    fcn: callable
+    fcn: Callable
         The function to solve. It should take a tensor and return a tensor.
     x0: torch.Tensor
         The initial guess of the solution.
@@ -324,10 +325,10 @@ def _safe_norm(v):
     return torch.norm(v)
 
 
-def _nonline_line_search(func,
-                         x,
-                         y,
-                         dx,
+def _nonline_line_search(func: Callable,
+                         x: torch.Tensor,
+                         y: torch.Tensor,
+                         dx: torch.Tensor,
                          search_type="armijo",
                          rdiff=1e-8,
                          smin=1e-2):
@@ -335,7 +336,7 @@ def _nonline_line_search(func,
     
     Parameters
     ----------
-    func: callable
+    func: Callable
         The function to minimize.
     x: torch.Tensor
         The current point.
@@ -401,10 +402,10 @@ def _nonline_line_search(func,
     return s, x, y, y_norm
 
 
-def _scalar_search_armijo(phi,
-                          phi0,
-                          derphi0,
-                          c1=1e-4,
+def _scalar_search_armijo(phi: Callable,
+                          phi0: float,
+                          derphi0: float,
+                          c1: float=1e-4,
                           alpha0=1,
                           amin=0,
                           max_niter=20):
@@ -487,20 +488,20 @@ def _scalar_search_armijo(phi,
 class TerminationCondition(object):
     """Class to check the termination condition of the root finder."""
 
-    def __init__(self, f_tol, f_rtol, f0_norm, x_tol, x_rtol):
+    def __init__(self, f_tol: float, f_rtol: float, f0_norm: float, x_tol: float, x_rtol: float):
         """Initialize the termination condition.
 
         Parameters
         ----------
-        f_tol: float or None
+        f_tol: float
             The absolute tolerance of the norm of the output ``f``.
-        f_rtol: float or None
+        f_rtol: float
             The relative tolerance of the norm of the output ``f``.
         f0_norm: float
             The norm of the initial function value.
-        x_tol: float or None
+        x_tol: float
             The absolute tolerance of the norm of the input ``x``.
-        x_rtol: float or None
+        x_rtol: float
             The relative tolerance of the norm of the input ``x``.
 
         """
