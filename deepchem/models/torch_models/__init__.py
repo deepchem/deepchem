@@ -10,6 +10,7 @@ from deepchem.models.torch_models.cgcnn import CGCNN, CGCNNModel
 from deepchem.models.torch_models.gat import GAT, GATModel
 from deepchem.models.torch_models.gcn import GCN, GCNModel
 from deepchem.models.torch_models.gan import GAN, GANModel, WGANModel, GradientPenaltyLayer
+from deepchem.models.torch_models.molgan import BasicMolGANModel
 from deepchem.models.torch_models.infograph import InfoGraphStar, InfoGraphStarModel, InfoGraphEncoder, GINEncoder, InfoGraph, InfoGraphModel, InfoGraphEncoder
 from deepchem.models.torch_models.mpnn import MPNN, MPNNModel
 from deepchem.models.torch_models.lcnn import LCNN, LCNNModel
@@ -27,6 +28,7 @@ from deepchem.models.torch_models.dtnn import DTNN, DTNNModel
 from deepchem.models.torch_models.seqtoseq import SeqToSeq, SeqToSeqModel
 from deepchem.models.torch_models.acnn import AtomConvModel
 from deepchem.models.torch_models.text_cnn import TextCNNModel
+from deepchem.models.torch_models.progressive_multitask import ProgressiveMultitask
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
     from deepchem.models.torch_models.gnn import GNN, GNNHead, GNNModular
