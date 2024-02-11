@@ -11,6 +11,7 @@ from deepchem.metrics import to_one_hot
 import copy
 from rdkit import Chem
 import sys
+
 default_dict = {
     '#': 1,
     '(': 2,
@@ -50,6 +51,10 @@ default_dict = {
 
 class TextCNN(nn.Module):
 
+    """
+    Torch implementation of a simple 1D CNN network
+    """
+
     def __init__(self,
                  n_tasks,
                  char_dict,
@@ -61,6 +66,26 @@ class TextCNN(nn.Module):
                  ],
                  dropout=0.25,
                  mode="classification"):
+        """
+        Parameters
+        ----------
+        n_tasks: int
+            Number of tasks
+        char_dict: dict
+            Mapping from characters in smiles to integers
+        seq_length: int
+            Length of sequences(after padding)
+        n_embedding: int, optional
+            Length of embedding vector
+        kernel_sizes: list of int, optional
+            Properties of filters used in the conv net
+        num_filters: list of int, optional
+            Properties of filters used in the conv net
+        dropout: float, optional
+            Dropout rate
+        mode: str
+            Either "classification" or "regression" for type of model.
+        """
 
         super(TextCNN, self).__init__()
 
@@ -128,6 +153,34 @@ class TextCNN(nn.Module):
 
 class TextCNNModel(TorchModel):
 
+    """
+    A 1D convolutional neural network to work on smiles strings for both
+    classification and regression tasks.
+
+    Reimplementation of the discriminator module in ORGAN [1] .
+    Originated from [2].
+
+    The model converts the input smile strings to an embedding vector, the vector
+    is convolved and pooled through a series of convolutional filters which are concatnated
+    and later passed through a simple dense layer. The resulting vector goes through a Highway
+    layer [3] which finally as per the nature of the task is passed through a dense layer.
+
+    References
+    ----------
+    .. [1]  Guimaraes, Gabriel Lima, et al. "Objective-reinforced generative adversarial networks (ORGAN) for sequence generation models." arXiv preprint arXiv:1705.10843 (2017).
+    .. [2] Kim, Yoon. "Convolutional neural networks for sentence classification." arXiv preprint arXiv:1408.5882 (2014).
+    .. [3] Srivastava et al., "Training Very Deep Networks".https://arxiv.org/abs/1507.06228
+    
+    Examples
+    --------
+    >>> import os
+    >>> from deepchem.models.torch_models import TextCNNModel
+    >>> from deepchem.models.torch_models.text_cnn import default_dict
+    >>> n_tasks = 1
+    >>> seq_len = 250
+    >>> model = TextCNNModel(n_tasks, default_dict, seq_len)
+    """
+
     def __init__(self,
                  n_tasks,
                  char_dict,
@@ -140,6 +193,26 @@ class TextCNNModel(TorchModel):
                  dropout=0.25,
                  mode="classification",
                  **kwargs):
+        """
+        Parameters
+        ----------
+        n_tasks: int
+            Number of tasks
+        char_dict: dict
+            Mapping from characters in smiles to integers
+        seq_length: int
+            Length of sequences(after padding)
+        n_embedding: int, optional
+            Length of embedding vector
+        filter_sizes: list of int, optional
+            Properties of filters used in the conv net
+        num_filters: list of int, optional
+            Properties of filters used in the conv net
+        dropout: float, optional
+            Dropout rate
+        mode: str
+            Either "classification" or "regression" for type of model.
+        """
 
         self.n_tasks = n_tasks
         self.char_dict = char_dict
@@ -174,9 +247,7 @@ class TextCNNModel(TorchModel):
                                            output_types=output_types,
                                            **kwargs)
     
-    """
-    Below code was taken from TextCNN tensorflow implementation
-    """
+    # Below functions were taken from DeepChem TextCNN tensorflow implementation
 
     def default_generator(self,
                           dataset,

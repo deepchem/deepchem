@@ -6,15 +6,13 @@ import os
 try:
     import torch
     from deepchem.models.torch_models import TextCNNModel
-    from deepchem.models.text_cnn import default_dict
+    from deepchem.models.torch_models.text_cnn import default_dict
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
     pass
 import shutil
 import torch.nn as nn
-import tensorflow as tf
-
 
 @pytest.mark.torch
 def test_textcnn_module():
