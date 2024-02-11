@@ -56,7 +56,7 @@ class TextCNNModel(KerasModel):
 
     Reimplementation of the discriminator module in ORGAN [1]_ .
     Originated from [2]_.
-    
+
     This model applies multiple 1D convolutional filters to
     the padded strings, then max-over-time pooling is applied on
     all filters, extracting one feature per filter.  All
@@ -152,6 +152,7 @@ class TextCNNModel(KerasModel):
         dense = Dense(200, activation=tf.nn.relu)(dropout)
         # Highway layer from https://arxiv.org/pdf/1505.00387.pdf
         gather = layers.Highway()(dense)
+
         if self.mode == "classification":
             logits = Dense(self.n_tasks * 2)(gather)
             logits = Reshape((self.n_tasks, 2))(logits)
