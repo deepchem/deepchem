@@ -1,3 +1,4 @@
+from typing import Any, Callable, Union
 import torch
 from abc import abstractmethod
 from deepchem.utils.differentiation_utils.grad import jac
@@ -6,20 +7,32 @@ from deepchem.utils.differentiation_utils.grad import jac
 
 
 class Jacobian(object):
-    """Base class for the Jacobians used in rootfinder algorithms."""
+    """Base class for the Jacobians used in rootfinder algorithms.
+
+    A Jacobian can best be defined as a determinant which is defined
+    for a finite number of functions of the same number of variables
+    in which each row consists of the first partial derivatives of
+    the same function with respect to each of the variables.
+
+    References
+    ----------
+    [1].. https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant
+    [2].. Kasim, Muhammad & Vinko, Sam. (2020). xi$-torch: differentiable scientific computing library.
+
+    """
 
     @abstractmethod
-    def setup(self, x0, y0, func):
+    def setup(self, x0: torch.Tensor, y0: torch.Tensor, func: Callable):
         """Setup the Jacobian for the rootfinder."""
         pass
 
     @abstractmethod
-    def solve(self, v, tol=0):
+    def solve(self, v: torch.Tensor, tol: Any=0):
         """Solve the linear system `J dx = v`."""
         pass
 
     @abstractmethod
-    def update(self, x, y):
+    def update(self, x: torch.Tensor, y: torch.Tensor):
         """Update the Jacobian approximation."""
         pass
 
@@ -41,6 +54,8 @@ class BroydenFirst(Jacobian):
     >>> jacobian.solve(v)
     tensor([-0.7071, -0.7071], grad_fn=<MulBackward0>)
 
+    References
+    ----------
     [1].. B.A. van der Rotten, PhD thesis,
         "A limited memory Broyden method to solve high-dimensional
         systems of nonlinear equations". Mathematisch Instituut,
@@ -48,20 +63,19 @@ class BroydenFirst(Jacobian):
 
     """
 
-    def __init__(self, alpha=None, uv0=None, max_rank=None):
+    def __init__(self, alpha: Union[torch.Tensor, None]=None, uv0: Any=None, max_rank: Union[float, None]=None):
         """The initial guess of inverse Jacobian is `-alpha * I + u v^T`.
         `max_rank` indicates the maximum rank of the Jacoabian before
         reducing it
 
         Parameters
         ----------
-        alpha : float, optional
+        alpha : Union[torch.Tensor, None]
             The initial guess of inverse Jacobian is `-alpha * I`.
             If None, it is set to `-1.0`.
         uv0 : tuple, optional
-            The initial guess of inverse Jacobian is `-alpha * I + u v^T`.
-            If None, it is calculated from the first Jacobian.
-        max_rank : int, optional
+            The initial guess of the inverse Jacobian.
+        max_rank : Union[float, None]
             The maximum rank of the Jacobian before reducing it.
             If None, it is set to `inf`.
 
@@ -70,7 +84,7 @@ class BroydenFirst(Jacobian):
         self.uv0 = uv0
         self.max_rank = max_rank
 
-    def setup(self, x0, y0, func):
+    def setup(self, x0: torch.Tensor, y0: torch.Tensor, func: Callable):
         """Setup the Jacobian for the rootfinder.
 
         Parameters
@@ -111,33 +125,33 @@ class BroydenFirst(Jacobian):
         """
         self.Gm.reduce(self.max_rank)
 
-    def solve(self, v, tol=0):
+    def solve(self, v: torch.Tensor, tol=0) -> torch.Tensor:
         """Solve the linear system `J dx = v`.
 
         Parameters
         ----------
-        v
+        v: torch.Tensor
             The right-hand side of the linear system.
-        tol
+        tol: torch.Tensor
             The tolerance for the linear system.
 
         Returns
         -------
-        res
+        res: torch.Tensor
             The solution of the linear system.
 
         """
         res = self.Gm.mv(v)
         return res
 
-    def update(self, x, y):
+    def update(self, x: torch.Tensor, y: torch.Tensor):
         """Update the Jacobian approximation.
 
         Parameters
         ----------
-        x
+        x: torch.Tensor
             The current point.
-        y
+        y: torch.Tensor
             The function value at the current point.
 
         """
@@ -149,23 +163,23 @@ class BroydenFirst(Jacobian):
         self.y_prev = y
         self.x_prev = x
 
-    def _update(self, x, y, dx, dy, dxnorm, dynorm):
+    def _update(self, x: torch.Tensor, y: torch.Tensor, dx: torch.Tensor, dy: torch.Tensor, dxnorm: torch.Tensor, dynorm: torch.Tensor):
         """Update the Jacobian approximation.
 
         Parameters
         ----------
-        x
+        x: torch.Tensor
             The current point.
-        y
+        y: torch.Tensor
             The function value at the current point.
-        dx
+        dx: torch.Tensor
             The difference between the current point and the previous point.
-        dy
+        dy: torch.Tensor
             The difference between the function value at the current point
             and the previous point.
-        dxnorm
+        dxnorm: torch.Tensor
             The norm of `dx`.
-        dynorm
+        dynorm: torch.Tensor
             The norm of `dy`.
 
         """
