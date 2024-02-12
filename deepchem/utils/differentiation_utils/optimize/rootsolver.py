@@ -65,7 +65,7 @@ def _nonlin_solver(
     elif method == "broyden2":
         jacobian = BroydenSecond(alpha=alpha, uv0=uv0, max_rank=max_rank)
     elif method == "linearmixing":
-        jacobian = LinearMixing(alpha=alpha)
+        jacobian = LinearMixing(alpha=alpha)  # type: ignore
     else:
         raise RuntimeError("Unknown method: %s" % method)
 
@@ -97,7 +97,10 @@ def _nonlin_solver(
 
     # shorthand for the function
     xshape = x0.shape
-    func = lambda x: _ravel(fcn(_pack(x), *params))
+
+    def func(x):
+        return _ravel(fcn(_pack(x), *params))
+
     x = _ravel(x0)
 
     y = func(x)
@@ -135,7 +138,6 @@ def _nonlin_solver(
             s, xnew, ynew, y_norm_new = _nonline_line_search(
                 func, x, y, dx, search_type=line_search)
         else:
-            s = 1.0
             xnew = x + dx
             ynew = func(xnew)
             y_norm_new = ynew.norm()
@@ -210,6 +212,8 @@ def broyden1(fcn: Callable, x0: torch.Tensor, params=(), **kwargs):
            "A limited memory Broyden method to solve high-dimensional systems of nonlinear equations".
            Mathematisch Instituut, Universiteit Leiden, The Netherlands (2003).
            https://web.archive.org/web/20161022015821/http://www.math.leidenuniv.nl/scripties/Rotten.pdf
+    .. [2] https://github.com/xitorch/xitorch
+
     """
     return _nonlin_solver(fcn, x0, params, "broyden1", **kwargs)
 
@@ -242,10 +246,11 @@ def broyden2(fcn: Callable, x0: torch.Tensor, params=(), **kwargs):
 
     References
     ----------
-    .. [2] B.A. van der Rotten, PhD thesis,
+    .. [1] B.A. van der Rotten, PhD thesis,
            "A limited memory Broyden method to solve high-dimensional systems of nonlinear equations".
            Mathematisch Instituut, Universiteit Leiden, The Netherlands (2003).
            https://web.archive.org/web/20161022015821/http://www.math.leidenuniv.nl/scripties/Rotten.pdf
+    .. [2] https://github.com/xitorch/xitorch
     """
     return _nonlin_solver(fcn, x0, params, "broyden2", **kwargs)
 
@@ -304,6 +309,11 @@ def linearmixing(
         Options to perform line search. If ``True``, it is set to ``"armijo"``.
     verbose: bool
         Options for verbosity
+
+    References
+    ----------
+    .. [1] https://github.com/xitorch/xitorch
+
     """
     kwargs = {
         "alpha": alpha,
@@ -333,7 +343,7 @@ def _nonline_line_search(func: Callable,
                          rdiff=1e-8,
                          smin=1e-2):
     """Find a suitable step length for a line search.
-    
+
     Parameters
     ----------
     func: Callable
@@ -411,7 +421,7 @@ def _scalar_search_armijo(phi: Callable,
                           max_niter=20):
     """Minimize over alpha, the function phi(s) at the current point and
     the derivative derphi(s) at the current point.
-    
+
     Parameters
     ----------
     phi: callable
@@ -428,7 +438,7 @@ def _scalar_search_armijo(phi: Callable,
         The minimum step length to take.
     max_niter: int
         The maximum number of iterations to take.
-    
+
     Returns
     -------
     alpha: float
