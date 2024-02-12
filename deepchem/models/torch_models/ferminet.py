@@ -462,7 +462,7 @@ class FerminetModel(TorchModel):
                 self.nucleon_coordinates[i][1][0]) + " " + str(
                     self.nucleon_coordinates[i][1][1]) + " " + str(
                         self.nucleon_coordinates[i][1][2]) + ";"
-        self.mol = pyscf.gto.Mole(atom=molecule, basis='sto-6g')
+        self.mol = pyscf.gto.Mole(atom=molecule, basis='sto-3g')
         self.mol.parse_arg = False
         self.mol.unit = 'Bohr'
         self.mol.spin = (self.up_spin - self.down_spin)
