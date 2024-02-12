@@ -1,3 +1,4 @@
+import functools
 import numpy as np
 import torch
 import warnings
@@ -5,6 +6,7 @@ from typing import Sequence, Tuple, Union, Optional, Callable, Mapping, Any
 from deepchem.utils.differentiation_utils import LinearOperator, MatrixLinearOperator, normalize_bcast_dims, get_bcasted_dims, set_default_option, dummy_context_manager, get_method
 from deepchem.utils import ConvergenceWarning, get_np_dtype
 from scipy.sparse.linalg import gmres as scipy_gmres
+from deepchem.utils.differentiation_utils.optimize.rootsolver import broyden1
 
 
 def solve(A: LinearOperator,
@@ -178,6 +180,7 @@ class solve_torchfcn(torch.autograd.Function):
                 methods = {
                     "exactsolve": exactsolve,
                     "scipy_gmres": wrap_gmres,
+                    "broyden1": broyden1_solve,
                     "cg": cg,
                     "bicgstab": bicgstab,
                     "gmres": gmres,
@@ -1148,6 +1151,38 @@ def dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
     """
     return torch.einsum("...rc,...rc->...c", r.conj(), z).unsqueeze(-2)
 
+# rootfinder-based
+@functools.wraps(broyden1)
+def broyden1_solve(A, B, E=None, M=None, **options):
+    return _rootfinder_solve("broyden1", A, B, E, M, **options)
+
+def _rootfinder_solve(alg, A, B, E=None, M=None, **options):
+    # using rootfinder algorithm
+    nr = A.shape[-1]
+    ncols = B.shape[-1]
+
+    # set up the function for the rootfinding
+    def fcn_rootfinder(xi):
+        # xi: (*BX, nr*ncols)
+        x = xi.reshape(*xi.shape[:-1], nr, ncols)  # (*BX, nr, ncols)
+        y = A.mm(x) - B  # (*BX, nr, ncols)
+        if E is not None:
+            MX = M.mm(x) if M is not None else x
+            MXE = MX * E.unsqueeze(-2)
+            y = y - MXE  # (*BX, nr, ncols)
+        y = y.reshape(*xi.shape[:-1], -1)  # (*BX, nr*ncols)
+        return y
+
+    # setup the initial guess (the batch dimension must be the largest)
+    batchdims = get_batchdims(A, B, E, M)
+    x0 = torch.zeros((*batchdims, nr * ncols), dtype=A.dtype, device=A.device)
+
+    if alg == "broyden1":
+        x = broyden1(fcn_rootfinder, x0, **options)
+    else:
+        raise RuntimeError("Unknown method %s" % alg)
+    x = x.reshape(*x.shape[:-1], nr, ncols)
+    return x
 
 def get_largest_eival(Afcn: Callable, x: torch.Tensor) -> torch.Tensor:
     """Get the largest eigenvalue of the linear operator Afcn
