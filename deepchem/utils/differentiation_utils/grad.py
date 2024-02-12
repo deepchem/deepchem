@@ -5,11 +5,9 @@ from deepchem.utils.differentiation_utils import LinearOperator, \
 from deepchem.utils.pytorch_utils import TensorNonTensorSeparator
 
 
-def jac(
-    fcn: Callable[..., torch.Tensor],
-    params: Sequence[Any],
-    idxs: Union[None, int,
-                Sequence[int]] = None):
+def jac(fcn: Callable[..., torch.Tensor],
+        params: Sequence[Any],
+        idxs: Union[None, int, Sequence[int]] = None):
     """
     Returns the LinearOperator that acts as the jacobian of the params.
     The shape of LinearOperator is (nout, nin) where `nout` and `nin` are the

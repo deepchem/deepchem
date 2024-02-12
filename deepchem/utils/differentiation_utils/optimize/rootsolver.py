@@ -405,7 +405,7 @@ def _nonline_line_search(func: Callable,
 def _scalar_search_armijo(phi: Callable,
                           phi0: float,
                           derphi0: float,
-                          c1: float=1e-4,
+                          c1: float = 1e-4,
                           alpha0=1,
                           amin=0,
                           max_niter=20):
@@ -488,7 +488,8 @@ def _scalar_search_armijo(phi: Callable,
 class TerminationCondition(object):
     """Class to check the termination condition of the root finder."""
 
-    def __init__(self, f_tol: float, f_rtol: float, f0_norm: float, x_tol: float, x_rtol: float):
+    def __init__(self, f_tol: float, f_rtol: float, f0_norm: float,
+                 x_tol: float, x_rtol: float):
         """Initialize the termination condition.
 
         Parameters
