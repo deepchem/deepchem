@@ -362,6 +362,13 @@ SAMFeaturizer
   :members:
   :inherited-members: 
 
+BAMFeaturizer
+^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.BAMFeaturizer
+  :members:
+  :inherited-members:
+
 
 Molecule Tokenizers
 -------------------
