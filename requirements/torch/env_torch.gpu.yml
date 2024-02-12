@@ -8,4 +8,5 @@ dependencies:
     - torch-geometric
     - lightning
     - pydantic
-    - torch-cluster
+    - torch-cluster 
+    - -f https://data.pyg.org/whl/torch-1.11.0+cu113.html
