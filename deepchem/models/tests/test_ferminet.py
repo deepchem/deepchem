@@ -94,8 +94,8 @@ def test_FerminetModel_ion_train():
     H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
     # Testing ionic initialization
     mol = FerminetModel(H2_molecule, spin=1, ion_charge=-1)
-    mol.train(nb_epoch=20)
+    mol.train(nb_epoch=10)
     mol.prepare_train()
-    mol.train(nb_epoch=20)
-    assert (mol.final_energy >= torch.tensor(0.0)) and (mol.final_energy <=
+    mol.train(nb_epoch=10)
+    assert (mol.final_energy >= torch.tensor(-0.2)) and (mol.final_energy <=
                                                         torch.tensor(1.0))

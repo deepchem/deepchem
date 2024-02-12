@@ -269,7 +269,7 @@ class Ferminet(torch.nn.Module):
             axis=(1, 2)).squeeze(1).squeeze(1)
         self.batch_size = tmp_batch_size
         kinetic_energy = -1 * 0.5 * (jacobian_square_sum + hessian_sum)
-        return kinetic_energy
+        return kinetic_energy.detach()
 
 
 class FerminetModel(TorchModel):
