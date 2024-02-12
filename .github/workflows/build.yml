@@ -41,7 +41,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Install miniconda
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v3
       with:
         miniconda-version: "latest"
         auto-update-conda: true
@@ -80,7 +80,7 @@ jobs:
         path: ~\AppData\Local\pip\Cache
         key: ${{ matrix.os }}-pip-${{ hashFiles('env.*.yml') }}
     - name: Install miniconda
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v3
       with:
         miniconda-version: "latest"
         auto-update-conda: true
