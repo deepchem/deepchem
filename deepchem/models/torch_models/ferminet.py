@@ -254,9 +254,8 @@ class Ferminet(torch.nn.Module):
         # cloning self.input which will serve as the new input for the vectorized functions.
         input = torch.clone(self.input).detach()
         # lambda function for calculating the log of absolute value of the wave function.
-        fn = lambda x: torch.log(torch.abs(self.forward(x)))
         # using jacrev for the jacobian and jacrev twice for to calculate the hessian. The functorch's hessian function if directly used does not give stable results.
-        jac = torch.func.jacrev(fn)
+        jac = torch.func.jacrev(lambda x: torch.log(torch.abs(self.forward(x))))
         hess = torch.func.jacrev(jac)
         # making the batch size temporarily as 1 for the vectorization of hessian and jacobian.
         tmp_batch_size = self.batch_size
