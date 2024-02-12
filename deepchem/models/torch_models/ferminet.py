@@ -248,38 +248,39 @@ class Ferminet(torch.nn.Module):
         # using functorch to calcualte hessian and jacobian in one go
         # using index tensors to index out the hessian elemennts corresponding to the same variable (cross-variable derivatives are ignored)
         # doing all the calculation and detaching from graph to save memory, which allows larger batch size
-        jacobian_square_sum = torch.sum(torch.sum(torch.sum(torch.pow(
-            torch.func.jacrev(lambda x: torch.log(torch.abs(self.forward(x))))(
-                self.input), 2),
-                                                            axis=-1),
-                                                  axis=-1),
-                                        axis=-1).detach()
+        input = torch.clone(self.input).detach()
+        fn = lambda x: torch.log(torch.abs(self.forward(x)))
+        jac = torch.func.jacrev(fn)
+        hess = torch.func.jacrev(jac)
         tmp_batch_size = self.batch_size
         self.batch_size = 1
+        jacobian_square_sum = torch.sum(torch.pow(torch.func.vmap(jac)(input).detach().squeeze(1), 2),axis=(1,2))
         # v=torch.eye(self.total_electron, 3)
         #v1=torch.tensor([1.0,0,0]).repeat(self.total_electron,1)
         #v2=torch.tensor([0.0,1.0,0]).repeat(self.total_electron,1)
         #3=torch.tensor([0.0,0,1.0]).repeat(self.total_electron,1)
         i=torch.arange(tmp_batch_size).view(tmp_batch_size,1,1,1,1)
         j=torch.arange(self.total_electron).view(1,self.total_electron,1,1,1)
-        print(self.total_electron)
         k=torch.arange(3).view(1,1,3,1,1)
         #v=torch.stack((v1,v2,v3))
-        hvp = lambda x: torch.func.hessian(lambda y: torch.log(torch.abs(self.forward(y).squeeze(0))).squeeze(0))(x)
-        vm=torch.func.vmap(hvp)
+        # vmap(torch.func.hessian(predict, argnums=2), in_dims=(None, None, 0))
+        vm=torch.func.vmap(hess)
         #for v, num in [(v1, -3), (v2, -2), (v3, -3)]:
         #hvp = lambda x: torch.sum(torch.func.hessian(fn)(x))
         #vm=torch.func.vmap(hvp)
         #stacked = torch.stack((self.input,self.input,self.input),dim=1)
         #hessian_sum=vm(stacked)
-        hessian = vm(self.input)
-        hessian_sum=torch.sum(hessian[i,j,k,j,k], axis=(1,2)).squeeze(1).squeeze(1)
+        #print(hessian.size())
+        hessian_sum=torch.sum(vm(input).detach().squeeze(1)[i,j,k,j,k], axis=(1,2)).squeeze(1).squeeze(1)
         # print(hessian_sum.size())
         # print(hessian_sum.size())
         self.batch_size = tmp_batch_size
+        # print(hessian_sum)
         #print(jacobian_square_sum)
         #print(hessian_sum)
-        kinetic_energy = -1 * 0.5 * (jacobian_square_sum + hessian_sum)
+        #print(jacobian_square_sum.size())
+        #print(hessian_sum.size())
+        kinetic_energy = -1 * 0.5 * (jacobian_square_sum+hessian_sum)
         return kinetic_energy
 
 
@@ -472,7 +473,7 @@ class FerminetModel(TorchModel):
                 self.nucleon_coordinates[i][1][0]) + " " + str(
                     self.nucleon_coordinates[i][1][1]) + " " + str(
                         self.nucleon_coordinates[i][1][2]) + ";"
-        self.mol = pyscf.gto.Mole(atom=molecule, basis='sto-3g')
+        self.mol = pyscf.gto.Mole(atom=molecule, basis='sto-6g')
         self.mol.parse_arg = False
         self.mol.unit = 'Bohr'
         self.mol.spin = (self.up_spin - self.down_spin)
