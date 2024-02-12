@@ -7,12 +7,12 @@ try:
     import torch
     from deepchem.models.torch_models import TextCNNModel
     from deepchem.models.torch_models.text_cnn import default_dict
+    import torch.nn as nn
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
     pass
 import shutil
-import torch.nn as nn
 
 
 @pytest.mark.torch
