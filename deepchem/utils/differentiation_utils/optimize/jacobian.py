@@ -452,7 +452,7 @@ class LowRankMatrix(object):
 
 class FullRankMatrix(object):
     """represents a full rank matrix of `\alpha * I + \sum_n c_n d_n^T`
-    
+
     Examples
     --------
     >>> from deepchem.utils.differentiation_utils.optimize.jacobian import FullRankMatrix
