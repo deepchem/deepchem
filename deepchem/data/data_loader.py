@@ -2091,7 +2091,7 @@ class CRAMLoader(DataLoader):
     columnar file format for storing biological sequences aligned to a
     reference sequence. CRAM is an efficient reference-based alternative to
     the Sequence Alignment Map (SAM) and Binary Alignment Map (BAM) file formats.
-    The basic structure of a CRAM file is a series of containers, the first of
+    The basic structure of a CRAM file has a series of containers, the first of
     which holds a compressed copy of the SAM header. Subsequent containers consist
     of a container Compression Header followed by a series of slices which hold the
     alignment records, formatted as a series of blocks.
