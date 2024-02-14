@@ -451,7 +451,23 @@ class LowRankMatrix(object):
 
 
 class FullRankMatrix(object):
-    """represents a full rank matrix of `\alpha * I + \sum_n c_n d_n^T`"""
+    """represents a full rank matrix of `\alpha * I + \sum_n c_n d_n^T`
+    
+    Examples
+    --------
+    >>> from deepchem.utils.differentiation_utils.optimize.jacobian import FullRankMatrix
+    >>> import torch
+    >>> alpha = 1.0
+    >>> cns = [torch.tensor([1.0, 1.0]), torch.tensor([1.0, 1.0])]
+    >>> dns = [torch.tensor([1.0, 1.0]), torch.tensor([1.0, 1.0])]
+    >>> matrix = FullRankMatrix(alpha, cns, dns)
+    >>> v = torch.tensor([1.0, 1.0])
+    >>> matrix.mv(v)
+    tensor([5., 5.])
+    >>> matrix.rmv(v)
+    tensor([5., 5.])
+
+    """
 
     def __init__(self, alpha: torch.Tensor, cns: Any, dns: Any):
         """initialize the matrix

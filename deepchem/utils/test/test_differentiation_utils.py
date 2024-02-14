@@ -915,6 +915,18 @@ def test_low_rank_matrix():
 
 
 @pytest.mark.torch
+def test_full_rank_matrix():
+    from deepchem.utils.differentiation_utils.optimize.jacobian import FullRankMatrix
+    alpha = 1.0
+    cns = [torch.tensor([1.0, 1.0]), torch.tensor([1.0, 1.0])]
+    dns = [torch.tensor([1.0, 1.0]), torch.tensor([1.0, 1.0])]
+    matrix = FullRankMatrix(alpha, cns, dns)
+    v = torch.tensor([1.0, 1.0])
+    assert torch.allclose(matrix.mv(v), torch.tensor([5., 5.]))
+    assert torch.allclose(matrix.rmv(v), torch.tensor([5., 5.]))
+
+
+@pytest.mark.torch
 def test_gd():
     from deepchem.utils.differentiation_utils.optimize.minimizer import gd
 
