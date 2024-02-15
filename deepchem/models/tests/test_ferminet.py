@@ -98,4 +98,4 @@ def test_FerminetModel_ion_train():
     mol.prepare_train()
     mol.train(nb_epoch=10)
     assert (mol.final_energy >= torch.tensor(-0.2)) and (mol.final_energy <=
-                                                        torch.tensor(1.0))
+                                                         torch.tensor(1.0))
