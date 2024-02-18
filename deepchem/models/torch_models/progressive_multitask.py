@@ -81,7 +81,7 @@ class ProgressiveMultitask(nn.Module):
         dropouts: float or list of floats
             Dropout probability.
         n_classes: int
-            The number of classes to predict per task. Default to 2 (only used in classification mode)
+            The number of classes to predict per task.
         """
         if weight_decay_penalty != 0.0:
             raise ValueError("Weight decay is not currently supported")
@@ -104,7 +104,7 @@ class ProgressiveMultitask(nn.Module):
         self.n_tasks: int = n_tasks
         self.n_features: int = n_features
         self.layer_sizes: List[int] = layer_sizes
-        self.n_classes: int = n_classes if mode == 'classification' else 1
+        self.n_classes: int = n_classes
         self.weight_init_stddevs: SequenceCollection[
             float] = weight_init_stddevs
         self.alpha_init_stddevs: SequenceCollection[float] = alpha_init_stddevs
