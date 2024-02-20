@@ -14,6 +14,13 @@ jobs:
       matrix:
         python-version: ['3.9', '3.11']
     steps:
+    - name: Maximize build space
+      if: runner.os == 'ubuntu-latest'
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
     - uses: actions/checkout@v4
     - name: Cache pip packages for Linux
       uses: actions/cache@v4
