@@ -145,7 +145,7 @@ jobs:
         create-args: python=${{ matrix.python-version }}
 
 #    - name: Install all dependencies using conda
-#      uses: conda-incubator/setup-miniconda@v2
+#      uses: conda-incubator/setup-miniconda@v3
 #      with:
 #        miniconda-version: "latest"
 #        auto-update-conda: true
