@@ -162,7 +162,7 @@ jobs:
         cd ..
         cp requirements/env.yml env.yml
     - name: Install all dependencies
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v3
       with:
         miniconda-version: "latest"
         auto-update-conda: true
