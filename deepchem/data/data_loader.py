@@ -31,6 +31,18 @@ try:
 except ImportError:
     print("Error: Unable to import pysam. Please make sure it is installed.")
 
+try:
+    import pysam
+    from deepchem.feat import BAMFeaturizer
+except ImportError:
+    print("Error: Unable to import pysam. Please make sure it is installed.")
+
+try:
+    import pysam
+    from deepchem.feat import CRAMFeaturizer
+except ImportError:
+    print("Error: Unable to import pysam. Please make sure it is installed.")
+
 logger = logging.getLogger(__name__)
 
 
@@ -1933,6 +1945,7 @@ class SAMLoader(DataLoader):
         ----------
         featurizer: Featurizer (default: None)
             The Featurizer to be used for the loaded SAM data.
+    
        """
 
         # Set attributes
@@ -1969,6 +1982,7 @@ class SAMLoader(DataLoader):
         DiskDataset
             A `DiskDataset` object containing a featurized representation of
             data from `input_files`.
+
         """
         if isinstance(input_files, str):
             input_files = [input_files]
@@ -1977,6 +1991,181 @@ class SAMLoader(DataLoader):
             for input_file in input_files:
                 samfile = pysam.AlignmentFile(input_file, "r")
                 X = self.featurizer._featurize(samfile)
+                ids = np.ones(len(X))
+                # (X, y, w, ids)
+                yield X, None, None, ids
+
+        return DiskDataset.create_dataset(shard_generator(), data_dir)
+
+
+class BAMLoader(DataLoader):
+    """Handles loading of BAM files.
+    Binary Alignment Map (BAM) is the comprehensive raw data of genome
+    sequencing. It consists of the lossless, compressed binary representation
+    of the Sequence Alignment Map files. BAM files are smaller and more
+    efficient to work with than SAM files, saving time and reducing costs of
+    computation and storage. BAM files store alignment data and often have
+    corresponding BAM index files.The structure of BAM files include a header
+    section and an alignment section.
+    Here, we extract Query Name, Query Sequence, Query Length, Reference Name,
+    Reference Start, CIGAR and Mapping Quality of each read in the BAM file.
+    This class provides methods to load and featurize data from BAM files.
+
+    Examples
+    --------
+    >>> from deepchem.data.data_loader import BAMLoader
+    >>> import deepchem as dc
+    >>> import pytest
+    >>> inputs = 'deepchem/data/tests/example.bam'
+    >>> data = BAMLoader()
+    >>> output = data.create_dataset(inputs)
+
+    Note
+    ----
+    This class requires pysam to be installed. Pysam can be used with Linux
+    or MacOS X. To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
+    """
+
+    def __init__(self, featurizer: Optional[Featurizer] = None):
+        """Initialize BAMLoader.
+
+        Parameters
+        ----------
+        featurizer: Featurizer (default: None)
+            The Featurizer to be used for the loaded BAM data.
+       """
+
+        # Set attributes
+        self.user_specified_features = None
+
+        # Handle special featurizer cases
+        if isinstance(featurizer,
+                      UserDefinedFeaturizer):  # User defined featurizer
+            self.user_specified_features = featurizer.feature_fields
+        elif featurizer is None:  # Default featurizer
+            featurizer = BAMFeaturizer(max_records=None)
+
+        # Set self.featurizer
+        self.featurizer = featurizer
+
+    def create_dataset(self,
+                       input_files: OneOrMany[str],
+                       data_dir: Optional[str] = None,
+                       shard_size: Optional[int] = None) -> DiskDataset:
+        """Creates a `Dataset` from input BAM files.
+
+        Parameters
+        ----------
+        input_files: List[str]
+            List of BAM files, with their corresponding index files.
+        data_dir: str, optional (default None)
+            Name of directory where featurized data is stored.
+        shard_size: int, optional (default None)
+            For now, this argument is ignored and each BAM file gets its
+            own shard.
+
+        Returns
+        -------
+        DiskDataset
+            A `DiskDataset` object containing a featurized representation of
+            data from `input_files`.
+
+        """
+        if isinstance(input_files, str):
+            input_files = [input_files]
+
+        def shard_generator():  # TODO Enable sharding with shard size parameter
+            for input_file in input_files:
+                bamfile = pysam.AlignmentFile(input_file, "rb")
+                X = self.featurizer._featurize(bamfile)
+                ids = np.ones(len(X))
+                # (X, y, w, ids)
+                yield X, None, None, ids
+
+        return DiskDataset.create_dataset(shard_generator(), data_dir)
+
+
+class CRAMLoader(DataLoader):
+    """Handles loading of CRAM files.
+    Compressed Reference-oriented Alignment Map (CRAM) is a compressed
+    columnar file format for storing biological sequences aligned to a
+    reference sequence. CRAM is an efficient reference-based alternative to
+    the Sequence Alignment Map (SAM) and Binary Alignment Map (BAM) file formats.
+    The basic structure of a CRAM file has a series of containers, the first of
+    which holds a compressed copy of the SAM header. Subsequent containers consist
+    of a container Compression Header followed by a series of slices which hold the
+    alignment records, formatted as a series of blocks.
+    Here, we extract Query Name, Query Sequence, Query Length, Reference Name,
+    Reference Start, CIGAR and Mapping Quality of each read in the CRAM file.
+    This class provides methods to load and featurize data from CRAM files.
+
+    Examples
+    --------
+    >>> from deepchem.data.data_loader import CRAMLoader
+    >>> import deepchem as dc
+    >>> import pytest
+    >>> inputs = 'deepchem/data/tests/example.cram'
+    >>> data = CRAMLoader()
+    >>> output = data.create_dataset(inputs)
+
+    Note
+    ----
+    This class requires pysam to be installed. Pysam can be used with Linux
+    or MacOS X. To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
+    """
+
+    def __init__(self, featurizer: Optional[Featurizer] = None):
+        """Initialize CRAMLoader.
+
+        Parameters
+        ----------
+        featurizer: Featurizer (default: None)
+            The Featurizer to be used for the loaded CRAM data.
+       """
+
+        # Set attributes
+        self.user_specified_features = None
+
+        # Handle special featurizer cases
+        if isinstance(featurizer,
+                      UserDefinedFeaturizer):  # User defined featurizer
+            self.user_specified_features = featurizer.feature_fields
+        elif featurizer is None:  # Default featurizer
+            featurizer = CRAMFeaturizer(max_records=None)
+
+        # Set self.featurizer
+        self.featurizer = featurizer
+
+    def create_dataset(self,
+                       input_files: OneOrMany[str],
+                       data_dir: Optional[str] = None,
+                       shard_size: Optional[int] = None) -> DiskDataset:
+        """Creates a `Dataset` from input CRAM files.
+
+        Parameters
+        ----------
+        input_files: List[str]
+            List of CRAM files.
+        data_dir: str, optional (default None)
+            Name of directory where featurized data is stored.
+        shard_size: int, optional (default None)
+            For now, this argument is ignored and each CRAM file gets its
+            own shard.
+
+        Returns
+        -------
+        DiskDataset
+            A `DiskDataset` object containing a featurized representation of
+            data from `input_files`.
+
+        """
+        if isinstance(input_files, str):
+            input_files = [input_files]
+
+        def shard_generator():  # TODO Enable sharding with shard size parameter
+            for input_file in input_files:
+                cramfile = pysam.AlignmentFile(input_file, "rc")
+                X = self.featurizer._featurize(cramfile)
                 ids = np.ones(len(X))
                 # (X, y, w, ids)
                 yield X, None, None, ids
