@@ -120,7 +120,7 @@ class TextCNNModel(TorchModel):
         self.dropout = dropout
         self.mode = mode
 
-        self.model = TextCNN(
+        self.model = layers.TextCNN(
             n_tasks=n_tasks,
             char_dict=char_dict,
             seq_length=seq_length,

@@ -6210,11 +6210,16 @@ class TextCNN(nn.Module):
 
     Examples
     --------
-    >>> from deepchem.models.torch_models import TextCNNModel
-    >>> from deepchem.models.torch_models.text_cnn import default_dict
-    >>> n_tasks = 1
-    >>> seq_len = 250
-    >>> model = TextCNNModel(n_tasks, default_dict, seq_len)
+    >>> from deepchem.models.torch_models.layers import default_dict, TextCNN
+    >>> import torch
+    >>> batch_size = 1
+    >>> input_tensor = torch.randint(34, (batch_size, 64))
+    >>> cls_model = TextCNN(1, default_dict, 1, mode="classification")
+    >>> reg_model = TextCNN(1, default_dict, 1, mode="regression")
+    >>> cls_output = cls_model.forward(input_tensor)
+    >>> reg_output = reg_model.forward(input_tensor)
+    >>> assert len(cls_output) == 2
+    >>> assert len(reg_output) == 1
     """
 
     def __init__(self,
