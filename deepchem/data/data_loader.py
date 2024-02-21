@@ -2098,6 +2098,7 @@ class CRAMLoader(DataLoader):
     Here, we extract Query Name, Query Sequence, Query Length, Reference Name,
     Reference Start, CIGAR and Mapping Quality of each read in the CRAM file.
     This class provides methods to load and featurize data from CRAM files.
+
     Examples
     --------
     >>> from deepchem.data.data_loader import CRAMLoader
@@ -2106,6 +2107,7 @@ class CRAMLoader(DataLoader):
     >>> inputs = 'deepchem/data/tests/example.cram'
     >>> data = CRAMLoader()
     >>> output = data.create_dataset(inputs)
+
     Note
     ----
     This class requires pysam to be installed. Pysam can be used with Linux
@@ -2114,6 +2116,7 @@ class CRAMLoader(DataLoader):
 
     def __init__(self, featurizer: Optional[Featurizer] = None):
         """Initialize CRAMLoader.
+
         Parameters
         ----------
         featurizer: Featurizer (default: None)
@@ -2138,6 +2141,7 @@ class CRAMLoader(DataLoader):
                        data_dir: Optional[str] = None,
                        shard_size: Optional[int] = None) -> DiskDataset:
         """Creates a `Dataset` from input CRAM files.
+
         Parameters
         ----------
         input_files: List[str]
@@ -2147,6 +2151,7 @@ class CRAMLoader(DataLoader):
         shard_size: int, optional (default None)
             For now, this argument is ignored and each CRAM file gets its
             own shard.
+
         Returns
         -------
         DiskDataset

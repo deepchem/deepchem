@@ -209,6 +209,7 @@ class CRAMFeaturizer(Featurizer):
     - Column 4: Reference Start
     - Column 5: CIGAR
     - Column 6: Mapping Quality
+
     Examples
     --------
     >>> from deepchem.data.data_loader import CRAMLoader
@@ -218,6 +219,7 @@ class CRAMFeaturizer(Featurizer):
     >>> features = featurizer.featurize(inputs)
     >>> type(features[0])
     <class 'numpy.ndarray'>
+
     Note
     ----
     This class requires pysam to be installed. Pysam can be used with Linux or MacOS X.
@@ -228,6 +230,7 @@ class CRAMFeaturizer(Featurizer):
     def __init__(self, max_records=None):
         """
         Initialize CRAMFeaturizer.
+
         Parameters
         ----------
         max_records : int or None, optional
@@ -239,10 +242,12 @@ class CRAMFeaturizer(Featurizer):
     def _featurize(self, datapoint):
         """
         Extract features from a CRAM file.
+
         Parameters
         ----------
         datapoint : str
             Name of the CRAM file.
+
         Returns
         -------
         features : numpy.ndarray
