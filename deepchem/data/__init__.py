@@ -29,3 +29,7 @@ try:
     from deepchem.data.data_loader import BAMLoader
 except ImportError:
     print("Error: Unable to import pysam. Please make sure it is installed.")
+try:
+    from deepchem.data.data_loader import CRAMLoader
+except ImportError:
+    print("Error: Unable to import pysam. Please make sure it is installed.")
