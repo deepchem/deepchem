@@ -7,6 +7,9 @@ from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy
 from deepchem.metrics import to_one_hot
 import copy
 import sys
+from typing import List, Any, Iterable, Tuple, Dict, Union
+from deepchem.utils.typing import OneOrMany
+from deepchem.data import Dataset
 
 default_dict = {
     '#': 1,
@@ -45,107 +48,6 @@ default_dict = {
 }
 
 
-class TextCNN(nn.Module):
-    """
-    Torch implementation of a simple 1D CNN network
-    """
-
-    def __init__(self,
-                 n_tasks,
-                 char_dict,
-                 seq_length,
-                 n_embedding=75,
-                 kernel_sizes=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20],
-                 num_filters=[
-                     100, 200, 200, 200, 200, 100, 100, 100, 100, 100, 160, 160
-                 ],
-                 dropout=0.25,
-                 mode="classification"):
-        """
-        Parameters
-        ----------
-        n_tasks: int
-            Number of tasks
-        char_dict: dict
-            Mapping from characters in smiles to integers
-        seq_length: int
-            Length of sequences(after padding)
-        n_embedding: int, optional
-            Length of embedding vector
-        kernel_sizes: list of int, optional
-            Properties of filters used in the conv net
-        num_filters: list of int, optional
-            Properties of filters used in the conv net
-        dropout: float, optional
-            Dropout rate
-        mode: str
-            Either "classification" or "regression" for type of model.
-        """
-
-        super(TextCNN, self).__init__()
-
-        self.n_tasks = n_tasks
-        self.char_dict = char_dict
-        self.seq_length = max(seq_length, max(kernel_sizes))
-        self.n_embedding = n_embedding
-        self.kernel_sizes = kernel_sizes
-        self.num_filters = num_filters
-        self.dropout = dropout
-        self.mode = mode
-
-        self.conv_layers = nn.ModuleList()
-        self.embedding_layer = layers.DTNNEmbedding(
-            n_embedding=self.n_embedding,
-            periodic_table_length=len(self.char_dict.keys()) + 1)
-        self.dropout_layer = nn.Dropout1d(p=self.dropout)
-        for filter_size, num_filter in zip(self.kernel_sizes, self.num_filters):
-            self.conv_layers.append(
-                nn.Conv1d(in_channels=self.n_embedding,
-                          out_channels=num_filter,
-                          kernel_size=filter_size,
-                          padding=0,
-                          dtype=torch.float32))
-        concat_emb_dim = sum(num_filters)
-        self.linear1 = nn.Linear(in_features=concat_emb_dim, out_features=200)
-        if (self.mode == "classification"):
-            self.linear2 = nn.Linear(in_features=200,
-                                     out_features=self.n_tasks * 2)
-        else:
-            self.linear2 = nn.Linear(in_features=200,
-                                     out_features=self.n_tasks * 1)
-        self.relu = nn.ReLU()
-        self.softmax = nn.Softmax(dim=2)
-        self.highway = layers.HighwayLayer(200)
-
-    def forward(self, input):
-        input_emb = self.embedding_layer(input)
-        input_emb = input_emb.permute(0, 2, 1)
-
-        conv_outputs = []
-        for i, conv_layer in enumerate(self.conv_layers):
-            x = conv_layer(input_emb)
-            x, _ = torch.max(x, dim=2)
-            conv_outputs.append(x)
-            if (i == 0):
-                concat_output = x
-            else:
-                concat_output = torch.cat((concat_output, x), dim=1)
-
-        x = self.relu(self.linear1(self.dropout_layer(concat_output)))
-        x = self.highway(x)
-
-        if self.mode == "classification":
-            logits = self.linear2(x)
-            logits = logits.view(-1, self.n_tasks, 2)
-            output = self.softmax(logits)
-            outputs = [output, logits]
-        else:
-            output = self.linear2(x)
-            output = output.view(-1, self.n_tasks, 1)
-            outputs = [output]
-        return outputs
-
-
 class TextCNNModel(TorchModel):
     """
     A 1D convolutional neural network to work on smiles strings for both
@@ -167,7 +69,6 @@ class TextCNNModel(TorchModel):
 
     Examples
     --------
-    >>> import os
     >>> from deepchem.models.torch_models import TextCNNModel
     >>> from deepchem.models.torch_models.text_cnn import default_dict
     >>> n_tasks = 1
@@ -176,17 +77,19 @@ class TextCNNModel(TorchModel):
     """
 
     def __init__(self,
-                 n_tasks,
-                 char_dict,
-                 seq_length,
-                 n_embedding=75,
-                 kernel_sizes=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20],
-                 num_filters=[
+                 n_tasks: int,
+                 char_dict: Dict[str, int],
+                 seq_length: int,
+                 n_embedding: int = 75,
+                 kernel_sizes: List[int] = [
+                     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20
+                 ],
+                 num_filters: List[int] = [
                      100, 200, 200, 200, 200, 100, 100, 100, 100, 100, 160, 160
                  ],
-                 dropout=0.25,
-                 mode="classification",
-                 **kwargs):
+                 dropout: float = 0.25,
+                 mode: str = "classification",
+                 **kwargs) -> None:
         """
         Parameters
         ----------
@@ -227,9 +130,9 @@ class TextCNNModel(TorchModel):
             dropout=dropout,
             mode=mode,
         )
-
+        LossType = Union[SoftmaxCrossEntropy, L2Loss]
+        loss: LossType
         if self.mode == "classification":
-
             loss = SoftmaxCrossEntropy()
             output_types = ['prediction', 'loss']
         else:
@@ -241,15 +144,64 @@ class TextCNNModel(TorchModel):
                                            output_types=output_types,
                                            **kwargs)
 
-    # Below functions were taken from DeepChem TextCNN tensorflow implementation
+    # Below functions were adapted from DeepChem TextCNN tensorflow implementation
 
-    def default_generator(self,
-                          dataset,
-                          epochs=1,
-                          mode='fit',
-                          deterministic=True,
-                          pad_batches=True):
-        """Transfer smiles strings to fixed length integer vectors"""
+    def default_generator(
+            self,
+            dataset: Dataset,
+            epochs: int = 1,
+            mode: str = 'fit',
+            deterministic: bool = True,
+            pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
+        """
+        Create a generator that iterates batches for a dataset.
+
+        Overrides the existing ``default_generator`` method to customize how model inputs are
+        generated from the data.
+
+        Here, the ``smiles_to_seq_batch`` helper function is used, to convert smile strings into fixed length integer vectors.
+        If TextCNNModel's mode is classification then the labels are one hot encoded, not this mode is different from the mode defined in this functions arguments.
+
+        Parameters
+        ----------
+        dataset: Dataset
+            the data to iterate
+        epochs: int
+            the number of times to iterate over the full dataset
+        mode: str
+            allowed values are 'fit' (called during training), 'predict' (called
+            during prediction), and 'uncertainty' (called during uncertainty
+            prediction)
+        deterministic: bool
+            whether to iterate over the dataset in order, or randomly shuffle the
+            data for each epoch
+        pad_batches: bool
+            whether to pad each batch up to this model's preferred batch size
+
+        Examples
+        --------
+        >>> from deepchem.models.torch_models import TextCNNModel
+        >>> import deepchem as dc
+        >>> featurizer = dc.feat.RawFeaturizer()
+        >>> tasks = ["outcome"]
+        >>> n_tasks = 1
+        >>> batch_size = 1
+        >>> input_file = "deepchem/models/tests/assets/example_classification.csv"
+        >>> loader = dc.data.CSVLoader(tasks=tasks,feature_field="smiles",featurizer=featurizer)
+        >>> dataset = loader.create_dataset(input_file)
+        >>> char_dict, length = TextCNNModel.build_char_dict(dataset)
+        >>> torch_model = TextCNNModel(n_tasks,char_dict=char_dict,seq_length=length,batch_size=batch_size,learning_rate=0.001,use_queue=False,mode="classification")
+        >>> generator = torch_model.default_generator(dataset = dataset)
+        >>> first_batch = next(generator)
+        >>> first_batch[0][0].shape
+        (1, 64)
+
+        Returns
+        -------
+        a generator that iterates batches, each represented as a tuple of lists:
+        ([inputs], [outputs], [weights])
+        Here, [inputs] is fixed length integer vectors representing input smile strings.
+        """
         for epoch in range(epochs):
             for (X_b, y_b, w_b,
                  ids_b) in dataset.iterbatches(batch_size=self.batch_size,
@@ -266,8 +218,22 @@ class TextCNNModel(TorchModel):
 
     @staticmethod
     def build_char_dict(dataset, default_dict=default_dict):
-        """ Collect all unique characters(in smiles) from the dataset.
+        """
+        Collect all unique characters(in smiles) from the dataset.
         This method should be called before defining the model to build appropriate char_dict
+
+        Examples
+        --------
+        >>> from deepchem.models.torch_models import TextCNNModel
+        >>> import deepchem as dc
+        >>> featurizer = dc.feat.RawFeaturizer()
+        >>> tasks = ["outcome"]
+        >>> input_file = "deepchem/models/tests/assets/example_classification.csv"
+        >>> loader = dc.data.CSVLoader(tasks=tasks,feature_field="smiles",featurizer=featurizer)
+        >>> dataset = loader.create_dataset(input_file)
+        >>> char_dict, length = TextCNNModel.build_char_dict(dataset)
+        >>> length
+        64
         """
         X = dataset.ids
         # Maximum length is expanded to allow length variation during train and inference
@@ -300,9 +266,9 @@ class TextCNNModel(TorchModel):
             current_key_val += 1
         return out_dict, seq_length
 
-    #############################################################
     def smiles_to_seq(self, smiles):
-        """ Tokenize characters in smiles to integers
+        """
+        Tokenize characters in smiles to integers
         """
         smiles_len = len(smiles)
         seq = [0]
@@ -332,9 +298,8 @@ class TextCNNModel(TorchModel):
         return s
 
     def smiles_to_seq_batch(self, ids_b):
-        """Converts SMILES strings to np.array sequence.
-
-        A tf.py_func wrapper is written around this when creating the input_fn for make_estimator
+        """
+        Converts SMILES strings to np.array sequence.
         """
         if isinstance(ids_b[0], bytes) and sys.version_info[
                 0] != 2:  # Python 2.7 bytes and string are analogous
