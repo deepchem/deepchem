@@ -369,6 +369,13 @@ BAMFeaturizer
   :members:
   :inherited-members:
 
+CRAMFeaturizer
+^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.CRAMFeaturizer
+  :members:
+  :inherited-members:
+
 
 Molecule Tokenizers
 -------------------
