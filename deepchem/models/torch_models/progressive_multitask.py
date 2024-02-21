@@ -23,14 +23,14 @@ class ProgressiveMultitask(nn.Module):
     >>> import deepchem as dc
     >>> n_tasks = 4
     >>> n_features = 1024
-    >>> n_outputs = 2
+    >>> n_classes = 2
     >>> sample = torch.randn(16, n_features)
-    >>> model = dc.models.torch_models.ProgressiveMultitask(n_tasks=n_tasks, n_features=n_features, layer_sizes=[1024, 1024], n_outputs=n_outputs)
+    >>> model = dc.models.torch_models.ProgressiveMultitask(n_tasks=n_tasks, n_features=n_features, layer_sizes=[1024, 1024], mode="classification", n_classes=n_classes)
     >>> output = model(sample)
-    >>> print(output.type())
-    torch.FloatTensor
-    >>> print(output.shape)
-    torch.Size([16, 4, 2])
+    >>> print(output[0].type(), output[1].type())
+    torch.FloatTensor torch.FloatTensor
+    >>> print(output[0].shape, output[1].shape)
+    torch.Size([16, 4, 2]) torch.Size([16, 4, 2])
 
     References
     ----------
@@ -52,7 +52,7 @@ class ProgressiveMultitask(nn.Module):
                  weight_decay_penalty_type: str = "l2",
                  activation_fns: OneOrMany[ActivationFn] = 'relu',
                  dropouts: OneOrMany[float] = 0.5,
-                 n_classes: int = 2):
+                 n_classes: int = 1):
         """
         Parameters
         ----------
@@ -234,8 +234,17 @@ class ProgressiveMultitask(nn.Module):
 
         Returns
         -------
-        outputs: torch.Tensor
-            Output tensor of shape (batch_size, n_tasks, n_outputs).
+        torch.Tensor
+            The Model output tensor of shape (batch_size, n_tasks, n_outputs).
+
+        * When self.mode = `regression`,
+            It consists of the output of each task.
+        * When self.mode = `classification`,
+            It consists of the probability of each class for each task.
+
+        torch.Tensor, optional
+            This is only returned when self.mode = `classification`, the output consists of the
+            logits for classes before softmax.
         """
         task_outputs: List[torch.Tensor] = []
         layer_logits: List[List[torch.Tensor]] = []
