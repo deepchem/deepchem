@@ -19,6 +19,15 @@ from deepchem.utils.typing import LossFn, OneOrMany
 from deepchem.models.wandblogger import WandbLogger
 
 try:
+    from deepchem.data import Dataset, NumpyDataset
+    from deepchem.metrics import Metric
+    from deepchem.models.losses import Loss
+    from deepchem.models.models import Model
+    from deepchem.models.optimizers import Adam, Optimizer, LearningRateSchedule
+    from deepchem.trans import Transformer, undo_transforms
+    from deepchem.utils.evaluate import GeneratorEvaluator
+    from deepchem.utils.typing import LossFn, OneOrMany
+    from deepchem.models.wandblogger import WandbLogger
     import wandb
     wandb.ensure_configured()
     if wandb.api.api_key is None:
