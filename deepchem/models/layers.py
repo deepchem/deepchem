@@ -2101,7 +2101,6 @@ class AlphaShareLayer(tf.keras.layers.Layer):
         for row in range(0, len(subspaces), 2):
             out_tensors.append(tf.concat([subspaces[row], subspaces[row + 1]], axis=1))
         return out_tensors
-        return out_tensors
 
 
 class SluiceLoss(tf.keras.layers.Layer):
