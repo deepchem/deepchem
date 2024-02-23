@@ -126,6 +126,8 @@ class BasicMolGANModel(WGANModel):
                 self.device = torch.device('mps')
             else:
                 self.device = torch.device('cpu')
+        else:
+            self.device = device
 
         super(BasicMolGANModel, self).__init__(device=device, **kwargs)
 
