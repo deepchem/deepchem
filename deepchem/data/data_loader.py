@@ -1938,7 +1938,8 @@ class SAMLoader(DataLoader):
                       UserDefinedFeaturizer):  # User defined featurizer
             self.user_specified_features = featurizer.feature_fields
         elif featurizer is None:  # Default featurizer
-            featurizer = dc.feat.SAMFeaturizer()
+            from deepchem.feat import SAMFeaturizer
+            featurizer = SAMFeaturizer()
 
         # Set self.featurizer
         self.featurizer = featurizer
@@ -2025,7 +2026,8 @@ class BAMLoader(DataLoader):
                       UserDefinedFeaturizer):  # User defined featurizer
             self.user_specified_features = featurizer.feature_fields
         elif featurizer is None:  # Default featurizer
-            featurizer = dc.feat.BAMFeaturizer(max_records=None)
+            from deepchem.feat import BAMFeaturizer
+            featurizer = BAMFeaturizer(max_records=None)
 
         # Set self.featurizer
         self.featurizer = featurizer
@@ -2113,7 +2115,8 @@ class CRAMLoader(DataLoader):
                       UserDefinedFeaturizer):  # User defined featurizer
             self.user_specified_features = featurizer.feature_fields
         elif featurizer is None:  # Default featurizer
-            featurizer = dc.feat.CRAMFeaturizer(max_records=None)
+            from deepchem.feat import CRAMFeaturizer
+            featurizer = CRAMFeaturizer(max_records=None)
 
         # Set self.featurizer
         self.featurizer = featurizer
