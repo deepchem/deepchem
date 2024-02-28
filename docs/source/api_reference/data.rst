@@ -134,6 +134,11 @@ BAM Loader
 .. autoclass:: deepchem.data.data_loader.BAMLoader
   :members: __init__, create_dataset
 
+CRAM Loader
+^^^^^^^^^^^
+.. autoclass:: deepchem.data.data_loader.CRAMLoader
+  :members: __init__, create_dataset
+
 
 Data Classes
 ------------
