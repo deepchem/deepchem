@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 try:
     import torch
-    from deepchem.models.torch_models.layers import default_dict, TextCNN
+    from deepchem.models.torch_models.text_cnn import default_dict, TextCNN
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
