@@ -21,9 +21,9 @@ Before jumping in to examples, we'll import our libraries and ensure our doctest
     >>>
     >>> # Run before every test for reproducibility
     >>> def seed_all():
-    ...     np.random.seed(123)
-    ...     tf.random.set_seed(123)
-    ...     random.seed(123)
+    ...     np.random.seed(456)
+    ...     tf.random.set_seed(456)
+    ...     random.seed(456)
 
 .. testsetup:: *
 
