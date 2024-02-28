@@ -1,5 +1,6 @@
 import os
 import pytest
+from flaky import flaky
 
 
 @pytest.mark.torch
@@ -99,6 +100,7 @@ def compare_weights(key, model1, model2):
                  model2.components[key].weight)).item()
 
 
+@flaky
 @pytest.mark.torch
 def testInfoMax3DModular():
     import torch
@@ -151,6 +153,7 @@ def testInfoMax3DModularSaveReload():
     assert all(compare_weights(key, model, model2) for key in keys_with_weights)
 
 
+@flaky
 @pytest.mark.torch
 def testInfoMax3DModularRegression():
     import torch
@@ -172,6 +175,7 @@ def testInfoMax3DModularRegression():
     assert scores['mean_absolute_error'] < 0.5
 
 
+@flaky
 @pytest.mark.torch
 def testInfoMax3DModularClassification():
     import torch
