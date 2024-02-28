@@ -8,8 +8,11 @@ from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.utils.pytorch_utils import get_activation
 from deepchem.utils.typing import OneOrMany, ActivationFn, LossFn
 
+import logging
 from collections.abc import Sequence as SequenceCollection
 from typing import List, Tuple, Callable, Literal, Optional, Union
+
+logger = logging.getLogger(__name__)
 
 
 class ProgressiveMultitask(nn.Module):
@@ -317,7 +320,6 @@ class ProgressiveMultitaskModel(TorchModel):
 
     Examples
     --------
-    >>> import torch
     >>> import deepchem as dc
     >>> from deepchem.models.torch_models import ProgressiveMultitaskModel
     >>> featurizer = dc.feat.CircularFingerprint(size=1024, radius=4)
@@ -347,7 +349,8 @@ class ProgressiveMultitaskModel(TorchModel):
                  weight_decay_penalty_type: str = "l2",
                  activation_fns: OneOrMany[ActivationFn] = 'relu',
                  dropouts: OneOrMany[float] = 0.5,
-                 n_classes: int = 2,
+                 n_classes: Optional[int] = None,
+                 n_outputs: Optional[int] = None,
                  **kwargs):
         """
         Parameters
@@ -377,8 +380,34 @@ class ProgressiveMultitaskModel(TorchModel):
         dropouts: float or list of floats
             Dropout probability.
         n_classes: int
-            The number of classes to predict per task. Default to 2 (only used in classification mode)
+            The number of classes to predict per task. Default to 2 for classification and 1 for regression.
+        n_outputs: int
+            The number of outputs to predict per task. Deprecated, use n_classes instead.
         """
+
+        if n_outputs is not None:
+            logger.warning(
+                "n_outputs is deprecated and will be removed in future versions. Use n_classes instead."
+            )
+            if n_classes is not None and n_classes != n_outputs:
+                raise ValueError(
+                    "n_classes and n_outputs should have the same value if both are specified."
+                )
+            n_classes = n_outputs
+
+        loss: losses.Loss
+        if mode == 'regression':
+            loss = losses.L2Loss()
+            output_types = ['prediction']
+            if n_classes is None:
+                n_classes = 1
+        elif mode == 'classification':
+            loss = losses.SparseSoftmaxCrossEntropy()
+            output_types = ['prediction', 'loss']
+            if n_classes is None:
+                n_classes = 2
+        else:
+            raise ValueError(f'Invalid mode: {mode}')
 
         model = ProgressiveMultitask(
             n_tasks=n_tasks,
@@ -394,16 +423,6 @@ class ProgressiveMultitaskModel(TorchModel):
             dropouts=dropouts,
             n_classes=n_classes)
 
-        loss: losses.Loss
-        if mode == 'regression':
-            loss = losses.L2Loss()
-            output_types = ['prediction']
-        elif mode == 'classification':
-            loss = losses.SparseSoftmaxCrossEntropy()
-            output_types = ['prediction', 'loss']
-        else:
-            raise ValueError(f'Invalid mode: {mode}')
-
         super(ProgressiveMultitaskModel,
               self).__init__(model, loss, output_types=output_types, **kwargs)
 
@@ -417,25 +436,20 @@ class ProgressiveMultitaskModel(TorchModel):
             variables: Optional[List[torch.nn.Parameter]] = None,
             loss: Optional[LossFn] = None,
             callbacks: Union[Callable, List[Callable]] = [],
-            all_losses: Optional[List[float]] = None) -> float:
+            all_losses: Optional[List[float]] = None):
 
-        losses = []
         for task in range(self.model.n_tasks):
-            task_loss = self.fit_task(
-                dataset=dataset,
-                task=task,
-                nb_epoch=nb_epoch,
-                max_checkpoints_to_keep=max_checkpoints_to_keep,
-                checkpoint_interval=checkpoint_interval,
-                deterministic=deterministic,
-                restore=restore,
-                variables=variables,
-                loss=loss,
-                callbacks=callbacks,
-                all_losses=all_losses)
-            losses.append(task_loss)
-
-        return sum(losses) / len(losses)
+            self.fit_task(dataset=dataset,
+                          task=task,
+                          nb_epoch=nb_epoch,
+                          max_checkpoints_to_keep=max_checkpoints_to_keep,
+                          checkpoint_interval=checkpoint_interval,
+                          deterministic=deterministic,
+                          restore=restore,
+                          variables=variables,
+                          loss=loss,
+                          callbacks=callbacks,
+                          all_losses=all_losses)
 
     def fit_task(self,
                  dataset: Dataset,
@@ -448,7 +462,7 @@ class ProgressiveMultitaskModel(TorchModel):
                  variables: Optional[List[torch.nn.Parameter]] = None,
                  loss: Optional[LossFn] = None,
                  callbacks: Union[Callable, List[Callable]] = [],
-                 all_losses: Optional[List[float]] = None) -> float:
+                 all_losses: Optional[List[float]] = None):
         """Train this model on one task. Called by fit() to train each task sequentially.
         Calls fit_generator() internally.
 
@@ -501,14 +515,11 @@ class ProgressiveMultitaskModel(TorchModel):
             variables += list(self.model.adapters[task - 1].parameters())
             variables += list(self.model.alphas[task - 1].parameters())
 
-        task_loss = self.fit_generator(
-            generator=generator,
-            max_checkpoints_to_keep=max_checkpoints_to_keep,
-            checkpoint_interval=checkpoint_interval,
-            restore=restore,
-            variables=variables,
-            loss=loss,
-            callbacks=callbacks,
-            all_losses=all_losses)
-
-        return task_loss
+        self.fit_generator(generator=generator,
+                           max_checkpoints_to_keep=max_checkpoints_to_keep,
+                           checkpoint_interval=checkpoint_interval,
+                           restore=restore,
+                           variables=variables,
+                           loss=loss,
+                           callbacks=callbacks,
+                           all_losses=all_losses)
