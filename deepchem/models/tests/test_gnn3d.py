@@ -105,7 +105,7 @@ def compare_weights(key, model1, model2):
 def testInfoMax3DModular():
     import torch
     from deepchem.models.torch_models.gnn3d import InfoMax3DModular
-
+    torch.manual_seed(456)
     data, _ = get_regression_dataset()
 
     model = InfoMax3DModular(hidden_dim=64,
@@ -180,7 +180,7 @@ def testInfoMax3DModularRegression():
 def testInfoMax3DModularClassification():
     import torch
     from deepchem.models.torch_models.gnn3d import InfoMax3DModular
-
+    torch.manual_seed(1)
     data, metric = get_classification_dataset()
 
     model = InfoMax3DModular(hidden_dim=128,
