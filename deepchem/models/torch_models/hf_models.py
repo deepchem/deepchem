@@ -225,7 +225,8 @@ class HuggingFaceModel(TorchModel):
                 tokens['input_ids'])
             inputs = {
                 'input_ids': inputs.to(self.device),
-                'labels': labels.to(self.device)
+                'labels': labels.to(self.device),
+                'attention_mask': tokens['attention_mask'].to(self.device),
             }
             return inputs, None, w
         elif self.task in ['regression', 'classification', 'mtr']:
@@ -247,7 +248,8 @@ class HuggingFaceModel(TorchModel):
                       max_checkpoints_to_keep: int = 5,
                       checkpoint_interval: int = 1000,
                       restore: bool = False,
-                      variables: Optional[List[torch.nn.Parameter]] = None,
+                      variables: Optional[Union[List[torch.nn.Parameter],
+                                                torch.nn.ParameterList]] = None,
                       loss: Optional[LossFn] = None,
                       callbacks: Union[Callable, List[Callable]] = [],
                       all_losses: Optional[List[float]] = None) -> float:

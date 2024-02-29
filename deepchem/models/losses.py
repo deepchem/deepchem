@@ -1284,6 +1284,12 @@ class DensityProfileLoss(Loss):
     >>> systems =[{'moldesc': 'H 0.86625 0 0; F -0.86625 0 0','basis' : '6-311++G(3df,3pd)'}]
     >>> dens_entry_for_HF = DFTEntry.create(e_type, true_val, systems)
     >>> grid = (dens_entry_for_HF).get_integration_grid()
+
+    The 6-311++G(3df,3pd) basis for atomz 1 does not exist, but we will download it
+    Downloaded to /usr/share/miniconda3/envs/deepchem/lib/python3.8/site-packages/dqc/api/.database/6-311ppg_3df_3pd_/01.gaussian94
+    The 6-311++G(3df,3pd) basis for atomz 9 does not exist, but we will download it
+    Downloaded to /usr/share/miniconda3/envs/deepchem/lib/python3.8/site-packages/dqc/api/.database/6-311ppg_3df_3pd_/09.gaussian94
+
     >>> volume = grid.get_dvolume()
 
     References

@@ -350,6 +350,33 @@ LCNNFeaturizer
   :inherited-members:
 
 
+Biological Sequence Featurizers
+-------------------------------
+
+These featurizers work with biological sequences.
+
+SAMFeaturizer
+^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.SAMFeaturizer
+  :members:
+  :inherited-members: 
+
+BAMFeaturizer
+^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.BAMFeaturizer
+  :members:
+  :inherited-members:
+
+CRAMFeaturizer
+^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.CRAMFeaturizer
+  :members:
+  :inherited-members:
+
+
 Molecule Tokenizers
 -------------------
 

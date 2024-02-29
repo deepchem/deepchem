@@ -216,6 +216,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.DTNNGather
   :members:
 
+.. autoclass:: deepchem.models.torch_models.gan.GradientPenaltyLayer
+  :members:
+
 .. autoclass:: deepchem.models.torch_models.layers.MolGANConvolutionLayer
   :members:
 
@@ -268,6 +271,9 @@ Torch Layers
   :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.MXMNetSphericalBasisLayer
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.HighwayLayer
   :members:
 
 Grover Layers

@@ -334,22 +334,23 @@ class KFACOptimizer(optim.Optimizer):
         """
         if isinstance(m, torch.nn.Conv2d):
             assert isinstance(m.weight.grad, torch.Tensor)
-            p_grad_mat = m.weight.grad.data.view(
-                m.weight.grad.data.size(0), -1)  # n_filters * (in_c * kw * kh)
+            p_grad_mat = m.weight.grad.detach().view(
+                m.weight.grad.detach().size(0),
+                -1)  # n_filters * (in_c * kw * kh)
         elif isinstance(m, torch.nn.Linear):
             assert isinstance(m.weight.grad, torch.Tensor)
-            p_grad_mat = m.weight.grad.data
+            p_grad_mat = m.weight.grad.detach()
         else:
             raise NotImplementedError(
                 "KFAC optimizer currently support only Linear and Conv2d layers"
             )
 
         if m.bias is not None:
-            if isinstance(m.bias.grad.data, torch.Tensor):
+            if isinstance(m.bias.grad.detach(), torch.Tensor):
                 p_grad_mat = torch.cat(
-                    [p_grad_mat, m.bias.grad.data.view(-1, 1)], 1)
+                    [p_grad_mat, m.bias.grad.detach().view(-1, 1)], 1)
             else:
-                raise TypeError("bias.grad.data should be a Tensor")
+                raise TypeError("bias.grad.detach() should be a Tensor")
         return p_grad_mat
 
     def _get_natural_grad(self, m: torch.nn.Module, p_grad_mat: torch.Tensor,
@@ -362,7 +363,7 @@ class KFACOptimizer(optim.Optimizer):
         m: torch.nn.Module
             Specifies the layer for which the calculation must be done on.
         p_grad_mat: torch.Tensor
-            the gradients in matrix form isinstance(m.weight.grad.data, torch.Tensor) and i
+            the gradients in matrix form isinstance(m.weight.grad.detach(), torch.Tensor) and i
         damping: float
             the damping factor for the calculation
 
@@ -380,16 +381,17 @@ class KFACOptimizer(optim.Optimizer):
         if m.bias is not None:
             # we always put gradient w.r.t weight in [0]
             # and w.r.t bias in [1]
-            if isinstance(m.weight.grad.data, torch.Tensor) and isinstance(
-                    m.bias.grad.data, torch.Tensor):
+            if isinstance(m.weight.grad.detach(), torch.Tensor) and isinstance(
+                    m.bias.grad.detach(), torch.Tensor):
                 v = [a[:, :-1], a[:, -1:]]
-                v[0] = v[0].view(m.weight.grad.data.size())
-                v[1] = v[1].view(m.bias.grad.data.size())
+                v[0] = v[0].view(m.weight.grad.detach().size())
+                v[1] = v[1].view(m.bias.grad.detach().size())
             else:
                 raise TypeError(
-                    "weight.grad.data and bias.grad.data should be a Tensor")
+                    "weight.grad.detach() and bias.grad.detach() should be a Tensor"
+                )
         else:
-            v = [a.view(m.weight.grad.data.size())]
+            v = [a.view(m.weight.grad.detach().size())]
 
         return v
 
@@ -410,24 +412,24 @@ class KFACOptimizer(optim.Optimizer):
         vg_sum = 0.0
         for m in self.modules:
             v = updates[m]
-            vg_sum += (v[0] * m.weight.grad.data * lr**2).sum().item()
+            vg_sum += (v[0] * m.weight.grad.detach() * lr**2).sum().item()
             if m.bias is not None:
-                vg_sum += (v[1] * m.bias.grad.data * lr**2).sum().item()
+                vg_sum += (v[1] * m.bias.grad.detach() * lr**2).sum().item()
         nu = min(1.0, math.sqrt(self.kl_clip / vg_sum))
 
         for m in self.modules:
             v = updates[m]
-            if isinstance(m.weight.grad.data, torch.Tensor):
-                m.weight.grad.data.copy_(v[0])
-                m.weight.grad.data.mul_(nu)
+            if isinstance(m.weight.grad.detach(), torch.Tensor):
+                m.weight.grad.detach().copy_(v[0])
+                m.weight.grad.detach().mul_(nu)
             else:
-                raise TypeError("weight.grad.data should be a Tensor")
+                raise TypeError("weight.grad.detach() should be a Tensor")
             if m.bias is not None:
-                if isinstance(m.bias.grad.data, torch.Tensor):
-                    m.bias.grad.data.copy_(v[1])
-                    m.bias.grad.data.mul_(nu)
+                if isinstance(m.bias.grad.detach(), torch.Tensor):
+                    m.bias.grad.detach().copy_(v[1])
+                    m.bias.grad.detach().mul_(nu)
                 else:
-                    raise TypeError("bias.grad.data should be a Tensor")
+                    raise TypeError("bias.grad.detach() should be a Tensor")
 
     def _step(self, closure: Optional[Callable] = None):
         """
@@ -447,7 +449,7 @@ class KFACOptimizer(optim.Optimizer):
             for p in group['params']:
                 if p.grad is None:
                     continue
-                d_p = p.grad.data
+                d_p = p.grad.detach()
                 if weight_decay != 0 and self.steps >= 20 * self.TCov:
                     d_p.add_(weight_decay, p.data)
                 if momentum != 0:

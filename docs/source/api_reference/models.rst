@@ -414,6 +414,12 @@ PagtnModel
 .. autoclass:: deepchem.models.PagtnModel
   :members:
 
+AtomConvModel
+----------
+
+.. autoclass:: deepchem.models.torch_models.AtomConvModel
+  :members:
+
 MPNNModel
 ---------
 
@@ -501,6 +507,23 @@ GAN
 .. autoclass:: deepchem.models.torch_models.GAN
   :members:
 
+GANModel
+--------
+
+.. autoclass:: deepchem.models.torch_models.GANModel
+  :members:
+
+WGANModel
+---------
+
+.. autoclass:: deepchem.models.torch_models.WGANModel
+  :members:
+
+BasicMolGANModel
+----------------
+
+.. autoclass:: deepchem.models.torch_models.BasicMolGANModel
+  :members:
 
 Weave
 ----------
@@ -567,4 +590,15 @@ Chemberta
 ---------
 
 .. autoclass:: deepchem.models.torch_models.chemberta.Chemberta
+  :members:
+
+Trainer
+=======
+
+A `Trainer` object automates the scaling of DeepChem model's training into multi-gpu and multi-node infrastructures.
+
+DistributedTrainer
+------------------
+
+.. autoclass:: deepchem.trainer.DistributedTrainer
   :members:

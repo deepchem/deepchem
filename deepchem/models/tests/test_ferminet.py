@@ -52,7 +52,7 @@ def test_evaluate_hf_solution():
 
 
 @pytest.mark.dqc
-def test_FerminetMode_pretrain():
+def test_FerminetModel_pretrain():
     # Test for the init function of FerminetModel class
     H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
     # Testing ionic initialization
@@ -62,7 +62,7 @@ def test_FerminetMode_pretrain():
 
 
 @pytest.mark.dqc
-def test_FerminetMode_energy():
+def test_FerminetModel_energy():
     # Test for the init function of FerminetModel class
     H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
     # Testing ionic initialization
@@ -74,3 +74,28 @@ def test_FerminetMode_energy():
     )
     mean_energy = torch.mean(energy)
     assert mean_energy <= torch.tensor(1.0)
+
+
+@pytest.mark.dqc
+def test_FerminetModel_train():
+    # Test for the init function of FerminetModel class
+    H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
+    # Testing ionic initialization
+    mol = FerminetModel(H2_molecule, spin=0, ion_charge=0)
+    mol.train(nb_epoch=10)
+    mol.prepare_train()
+    mol.train(nb_epoch=10)
+    assert mol.final_energy <= torch.tensor(0.0)
+
+
+@pytest.mark.dqc
+def test_FerminetModel_ion_train():
+    # Test for the init function of FerminetModel class
+    H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
+    # Testing ionic initialization
+    mol = FerminetModel(H2_molecule, spin=1, ion_charge=-1)
+    mol.train(nb_epoch=10)
+    mol.prepare_train()
+    mol.train(nb_epoch=10)
+    assert (mol.final_energy >= torch.tensor(-0.2)) and (mol.final_energy <=
+                                                         torch.tensor(1.0))

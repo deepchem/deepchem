@@ -6,4 +6,4 @@ dependencies:
     - dgl
     - torch==2.1.0+cpu
     - torch-geometric
-    - pytorch-lightning==1.6.5
+    - lightning
