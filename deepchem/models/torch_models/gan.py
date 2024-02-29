@@ -6,7 +6,7 @@ try:
 except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
 import time
-from typing import Callable, Any
+from typing import Callable, Any, List, Optional, Tuple, Union
 from deepchem.models.torch_models.torch_model import TorchModel
 
 
@@ -107,9 +107,12 @@ class GAN(nn.Module):
     ...     conditional_input_shape = conditional_input_shape[0]
     ...     return nn.Sequential(
     ...         Discriminator(data_input_shape, conditional_input_shape))
-    >>> gan = ExampleGAN(noise_shape, data_shape, conditional_shape,
-    ...                  create_generator(noise_shape, conditional_shape),
-    ...                  create_discriminator(data_shape, conditional_shape))
+    >>> gan = ExampleGAN(noise_shape,
+    ...              data_shape,
+    ...              conditional_shape,
+    ...              create_generator(noise_shape, conditional_shape),
+    ...              create_discriminator(data_shape, conditional_shape),
+    ...              device='cpu')
     >>> noise = torch.rand(*gan.noise_input_shape)
     >>> real_data = torch.rand(*gan.data_input_shape[0])
     >>> conditional = torch.rand(*gan.conditional_input_shape[0])
@@ -122,11 +125,6 @@ class GAN(nn.Module):
 
     .. [2] Arora et al., “Generalization and Equilibrium in Generative
          Adversarial Nets (GANs)” (https://arxiv.org/abs/1703.00573)
-
-    Notes
-    -----
-    This class is a subclass of TorchModel.  It accepts all the keyword arguments
-    from TorchModel.
     """
 
     def __init__(self,
@@ -135,8 +133,13 @@ class GAN(nn.Module):
                  conditional_input_shape: list,
                  generator_fn: Callable,
                  discriminator_fn: Callable,
+                 device: torch.device,
                  n_generators: int = 1,
-                 n_discriminators: int = 1):
+                 n_discriminators: int = 1,
+                 create_discriminator_loss: Optional[Callable] = None,
+                 create_generator_loss: Optional[Callable] = None,
+                 _call_discriminator: Optional[Callable] = None,
+                 **kwargs):
         """Construct a GAN.
 
         In addition to the parameters listed below, this class accepts all the
@@ -167,12 +170,31 @@ class GAN(nn.Module):
             list containing a batch of data, followed by any conditional inputs.  Its
             output should be a one dimensional tensor containing the probability of
             each sample being a training sample.
+        device: torch.device
+            the device to use for training
         n_generators: int
             the number of generators to include
         n_discriminators: int
             the number of discriminators to include
+        create_discriminator_loss: Callable
+            a function that returns the loss function for the discriminator.  It will
+            be called with two arguments: the output from the discriminator on a
+            batch of training data, and the output from the discriminator on a batch
+            of generated data.  The default implementation is appropriate for most
+            cases.  Subclasses can override this if the need to customize it.
+        create_generator_loss: Callable
+            a function that returns the loss function for the generator.  It will be
+            called with one argument: the output from the discriminator on a batch of
+            generated data.  The default implementation is appropriate for most
+            cases.  Subclasses can override this if the need to customize it.
+        _call_discriminator: Callable
+            a function that invokes the discriminator on a set of inputs.  It will be
+            called with three arguments: the discriminator to invoke, the list of
+            data inputs, and the list of conditional inputs.  The default
+            implementation is appropriate for most cases.  Subclasses can override
+            this if the need to customize it.
         """
-        super(GAN, self).__init__()
+        super(GAN, self).__init__(**kwargs)
         self.n_generators = n_generators
         self.n_discriminators = n_discriminators
         self.noise_input_shape = noise_input_shape
@@ -180,29 +202,35 @@ class GAN(nn.Module):
         self.conditional_input_shape = conditional_input_shape
         self.create_generator = generator_fn
         self.create_discriminator = discriminator_fn
+        self.device = device
+        if create_discriminator_loss is not None:
+            self.create_discriminator_loss = create_discriminator_loss  # type: ignore
+        if create_generator_loss is not None:
+            self.create_generator_loss = create_generator_loss  # type: ignore
+        if _call_discriminator is not None:
+            self._call_discriminator = _call_discriminator  # type: ignore
 
         # Inputs
         # Noise Input
         self.noise_input = nn.Parameter(torch.empty(self.noise_input_shape))
         # Data Input
+        self.data_input_list = [
+            nn.Parameter(torch.empty(s)) for s in self.data_input_shape
+        ]
+        # Data Inputs
         self.data_inputs = [
-            nn.Parameter(torch.ones(s)) for s in self.data_input_shape
+            "data_input_%d" % i for i in range(len(self.data_input_list))
         ]
-        # Data Input Name
-        self.data_input_names = [
-            "data_input_%d" % i for i in range(len(self.data_inputs))
-        ]
-        # print("data_input_names: ", self.data_input_names)
+
         # Conditional Input
-        self.conditional_inputs = [
+        self.conditional_input_list = [
             nn.Parameter(torch.empty(s)) for s in self.conditional_input_shape
         ]
-        # Conditional Input Name
-        self.conditional_input_names = [
+        # Conditional Inputs
+        self.conditional_inputs = [
             "conditional_input_%d" % i
-            for i in range(len(self.conditional_inputs))
+            for i in range(len(self.conditional_input_list))
         ]
-        # print("conditional_input_names: ", self.conditional_input_names)
 
         self.data_input_layers = []
         for idx, shape in enumerate(self.data_input_shape):
@@ -229,7 +257,7 @@ class GAN(nn.Module):
             self.discriminators.append(discriminator)
             self.discrim_variables += list(discriminator.parameters())
 
-    def forward(self, inputs):
+    def forward(self, inputs) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute the output of the GAN.
 
         Parameters
@@ -263,12 +291,14 @@ class GAN(nn.Module):
 
         # Forward pass through discriminators
         discrim_train_outputs = [
-            self._call_discriminator(disc, self.data_input_layers, True)
+            self._call_discriminator(disc, self.data_input_layers,
+                                     self.conditional_input_layers, True)
             for disc in self.discriminators
         ]
 
         discrim_gen_outputs = [
-            self._call_discriminator(disc, [gen_output], False)
+            self._call_discriminator(disc, [gen_output],
+                                     self.conditional_input_layers, False)
             for disc in self.discriminators
             for gen_output in generator_outputs
         ]
@@ -307,9 +337,11 @@ class GAN(nn.Module):
             weight_products = torch.mul(discrim_weights_n, gen_weights_n)
             weight_products = weight_products.view(
                 -1, self.n_generators * self.n_discriminators)
+            weight_products = weight_products.to(self.device)
 
-            stacked_gen_loss = torch.stack(gen_losses, dim=0)
-            stacked_discrim_loss = torch.stack(discrim_losses, dim=0)
+            stacked_gen_loss = torch.stack(gen_losses, dim=0).to(self.device)
+            stacked_discrim_loss = torch.stack(discrim_losses,
+                                               dim=0).to(self.device)
 
             total_gen_loss = torch.sum(stacked_gen_loss * weight_products)
             total_discrim_loss = torch.sum(stacked_discrim_loss *
@@ -328,7 +360,8 @@ class GAN(nn.Module):
 
         return total_gen_loss, total_discrim_loss
 
-    def _call_discriminator(self, discriminator, inputs, train):
+    def _call_discriminator(self, discriminator: nn.Module, inputs: List,
+                            conditional_input_layers: List, train: bool):
         """Invoke the discriminator on a set of inputs.
 
         This is a separate method so WGAN can override it and also return the
@@ -341,6 +374,8 @@ class GAN(nn.Module):
         inputs: list of Tensor
             the inputs to the discriminator.  The first element must be a batch of
             data, followed by any conditional inputs.
+        conditional_input_layers: list of Tensor
+            the conditional inputs to the discriminator
         train: bool
             if True, the discriminator should be invoked in training mode. If False,
             it should be invoked in inference mode.
@@ -349,8 +384,7 @@ class GAN(nn.Module):
         -------
         the output from the discriminator
         """
-        return discriminator(
-            _list_or_tensor(inputs + self.conditional_input_layers))
+        return discriminator(_list_or_tensor(inputs + conditional_input_layers))
 
     def get_noise_batch(self, batch_size: int) -> np.ndarray:
         """Get a batch of random noise to pass to the generator.
@@ -420,9 +454,9 @@ class GAN(nn.Module):
             torch.log(discrim_output_train + 1e-10) +
             torch.log(1 - discrim_output_gen + 1e-10))
 
-    def discrim_loss_fn_wrapper(self, outputs: list, labels: torch.Tensor,
-                                weights: torch.Tensor) -> Any:
-        """Wrapper to get the discriminator loss from the fit_generator output
+    def discrim_loss_fn(self, outputs: List, labels: List[torch.Tensor],
+                        weights: List[torch.Tensor]) -> Any:
+        """Function to get the discriminator loss from the fit_generator output
 
         Parameters
         ----------
@@ -441,9 +475,9 @@ class GAN(nn.Module):
         discrim_output_train, discrim_output_gen = outputs
         return discrim_output_gen
 
-    def gen_loss_fn_wrapper(self, outputs: list, labels: torch.Tensor,
-                            weights: torch.Tensor) -> torch.Tensor:
-        """Wrapper around create_generator_loss for use with fit_generator.
+    def gen_loss_fn(self, outputs: List, labels: List[torch.Tensor],
+                    weights: List[torch.Tensor]) -> torch.Tensor:
+        """Function to get the Generator loss from the fit_generator output
 
         Parameters
         ----------
@@ -460,10 +494,25 @@ class GAN(nn.Module):
         the value of the generator loss function for this input.
         """
         discrim_output_train, discrim_output_gen = outputs
-        return self.create_generator_loss(discrim_output_gen)
+        return discrim_output_train
 
 
-def _list_or_tensor(inputs):
+def _list_or_tensor(
+    inputs: Union[list,
+                  torch.Tensor]) -> Union[torch.Tensor, List[torch.Tensor]]:
+    """Function to convert a list of tensors to a single tensor if possible.
+
+    Parameters
+    ----------
+    inputs : Union[list, torch.Tensor]
+        A list of tensors or a single tensor.
+
+    Returns
+    -------
+    Union[torch.Tensor, list[torch.Tensor]]
+        A single tensor if the input is a list of length 1, otherwise the
+        original list.
+    """
     if len(inputs) == 1:
         return inputs[0]
     return inputs
@@ -601,8 +650,8 @@ class GANModel(TorchModel):
     ...     for _ in range(batches):
     ...         means, values = generate_batch(batch_size)
     ...         batch = {
-    ...             gan.data_input_names[0]: values,
-    ...             gan.conditional_input_names[0]: means
+    ...             gan.data_inputs[0]: values,
+    ...             gan.conditional_inputs[0]: means
     ...         }
     ...         yield batch
 
@@ -626,9 +675,20 @@ class GANModel(TorchModel):
     .. [2] Arora et al., “Generalization and Equilibrium in Generative
          Adversarial Nets (GANs)” (https://arxiv.org/abs/1703.00573)
 
+    Notes
+    -----
+    This class is a subclass of TorchModel.  It accepts all the keyword arguments
+    from TorchModel.
     """
 
-    def __init__(self, n_generators=1, n_discriminators=1, **kwargs):
+    def __init__(self,
+                 n_generators: int = 1,
+                 n_discriminators: int = 1,
+                 create_discriminator_loss: Optional[Callable] = None,
+                 create_generator_loss: Optional[Callable] = None,
+                 _call_discriminator: Optional[Callable] = None,
+                 device: Optional[torch.device] = None,
+                 **kwargs):
         """
         Parameters
         ----------
@@ -636,36 +696,56 @@ class GANModel(TorchModel):
             the number of generators to include
         n_discriminators: int
             the number of discriminators to include
+        create_discriminator_loss: Callable
+            a function that returns the loss function for the discriminator.  It will
+            be called with two arguments: the output from the discriminator on a
+            batch of training data, and the output from the discriminator on a batch
+            of generated data.  The default implementation is appropriate for most
+            cases.  Subclasses can override this if the need to customize it.
+        create_generator_loss: Callable
+            a function that returns the loss function for the generator.  It will be
+            called with one argument: the output from the discriminator on a batch of
+            generated data.  The default implementation is appropriate for most
+            cases.  Subclasses can override this if the need to customize it.
+        _call_discriminator: Callable
+            a function that invokes the discriminator on a set of inputs.  It will be
+            called with three arguments: the discriminator to invoke, the list of
+            data inputs, and the list of conditional inputs.  The default
+            implementation is appropriate for most cases.  Subclasses can override
+            this if the need to customize it.
         """
         self.n_generators = n_generators
         self.n_discriminators = n_discriminators
 
+        if device is None:
+            if torch.cuda.is_available():
+                self.device = torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                self.device = torch.device('mps')
+            else:
+                self.device = torch.device('cpu')
         model = GAN(noise_input_shape=self.get_noise_input_shape(),
                     data_input_shape=self.get_data_input_shapes(),
                     conditional_input_shape=self.get_conditional_input_shapes(),
                     generator_fn=self.create_generator,
                     discriminator_fn=self.create_discriminator,
+                    device=self.device,
                     n_generators=n_generators,
-                    n_discriminators=n_discriminators)
-        self.gen_loss_fn = model.create_generator_loss
-        self.discrim_loss_fn = model.create_discriminator_loss
-        self.discrim_loss_fn_wrapper = model.discrim_loss_fn_wrapper
-        self.gen_loss_fn_wrapper = model.gen_loss_fn_wrapper
+                    n_discriminators=n_discriminators,
+                    create_discriminator_loss=create_discriminator_loss,
+                    create_generator_loss=create_generator_loss,
+                    _call_discriminator=_call_discriminator)
+        self.discrim_loss_fn = model.discrim_loss_fn
+        self.gen_loss_fn = model.gen_loss_fn
         self.data_inputs = model.data_inputs
-        self.data_input_names = model.data_input_names
         self.conditional_inputs = model.conditional_inputs
-        self.conditional_input_names = model.conditional_input_names
-        self.data_input_layers = model.data_input_layers
-        self.conditional_input_layers = model.conditional_input_layers
         self.generators = model.generators
         self.discriminators = model.discriminators
         self.gen_variables = model.gen_variables
         self.discrim_variables = model.discrim_variables
         self.get_noise_batch = model.get_noise_batch
 
-        super(GANModel, self).__init__(model,
-                                       loss=self.gen_loss_fn_wrapper,
-                                       **kwargs)
+        super(GANModel, self).__init__(model, loss=self.gen_loss_fn, **kwargs)
 
     def get_noise_input_shape(self):
         """Get the shape of the generator's noise input layer.
@@ -770,14 +850,14 @@ class GANModel(TorchModel):
 
             inputs = [self.get_noise_batch(self.batch_size)]
 
-            for input in self.data_input_names:
+            for input in self.data_inputs:
                 inputs.append(feed_dict[input])
-            for input in self.conditional_input_names:
+            for input in self.conditional_inputs:
                 inputs.append(feed_dict[input])
             discrim_error += self.fit_generator(
                 [(inputs, [], [])],
                 variables=self.discrim_variables,
-                loss=self.discrim_loss_fn_wrapper,
+                loss=self.discrim_loss_fn,
                 checkpoint_interval=0,
                 restore=restore)
             restore = False
@@ -794,7 +874,7 @@ class GANModel(TorchModel):
                     gen_error += self.fit_generator(
                         [(inputs, [], [])],
                         variables=self.gen_variables,
-                        loss=self.gen_loss_fn_wrapper,
+                        loss=self.gen_loss_fn,
                         checkpoint_interval=0)
                     gen_average_steps += 1
                     gen_train_fraction -= 1.0
@@ -865,7 +945,397 @@ class GANModel(TorchModel):
         inputs = [noise_input]
         inputs += conditional_inputs
         inputs = [i.astype(np.float32) for i in inputs]
-        inputs = [torch.from_numpy(i) for i in inputs]
+        inputs = [torch.from_numpy(i).to(self.device) for i in inputs]
         pred = self.generators[generator_index](_list_or_tensor(inputs))
-        pred = pred.detach().numpy()
+        pred = pred.cpu().detach().numpy()
         return pred
+
+
+class WGANModel(GANModel):
+    """Implements Wasserstein Generative Adversarial Networks.
+
+    This class implements Wasserstein Generative Adversarial Networks (WGANs) as
+    described in Arjovsky et al., "Wasserstein GAN" [1]_.
+    A WGAN is conceptually rather different from a conventional GAN, but in
+    practical terms very similar.  It reinterprets the discriminator (often called
+    the "critic" in this context) as learning an approximation to the Earth Mover
+    distance between the training and generated distributions.  The generator is
+    then trained to minimize that distance.  In practice, this just means using
+    slightly different loss functions for training the generator and discriminator.
+
+    WGANs have theoretical advantages over conventional GANs, and they often work
+    better in practice.  In addition, the discriminator's loss function can be
+    directly interpreted as a measure of the quality of the model.  That is an
+    advantage over conventional GANs, where the loss does not directly convey
+    information about the quality of the model.
+
+    The theory WGANs are based on requires the discriminator's gradient to be
+    bounded.  The original paper achieved this by clipping its weights.  This
+    class instead does it by adding a penalty term to the discriminator's loss, as
+    described in [2]_.  This is sometimes found to produce better results.
+
+    There are a few other practical differences between GANs and WGANs.  In a
+    conventional GAN, the discriminator's output must be between 0 and 1 so it can
+    be interpreted as a probability.  In a WGAN, it should produce an unbounded
+    output that can be interpreted as a distance.
+
+    When training a WGAN, you also should usually use a smaller value for
+    generator_steps.  Conventional GANs rely on keeping the generator and
+    discriminator "in balance" with each other.  If the discriminator ever gets
+    too good, it becomes impossible for the generator to fool it and training
+    stalls.  WGANs do not have this problem, and in fact the better the
+    discriminator is, the easier it is for the generator to improve.  It therefore
+    usually works best to perform several training steps on the discriminator for
+    each training step on the generator.
+
+    Examples
+    --------
+    Importing necessary modules
+
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models.gan import WGANModel
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+
+    Creating a Generator
+
+    >>> class Generator(nn.Module):
+    ...     def __init__(self, noise_input_shape, conditional_input_shape):
+    ...         super(Generator, self).__init__()
+    ...         self.noise_input_shape = noise_input_shape
+    ...         self.conditional_input_shape = conditional_input_shape
+    ...         self.noise_dim = noise_input_shape[1:]
+    ...         self.conditional_dim = conditional_input_shape[1:]
+    ...         input_dim = sum(self.noise_dim) + sum(self.conditional_dim)
+    ...         self.output = nn.Linear(input_dim, 1)
+    ...     def forward(self, input):
+    ...         noise_input, conditional_input = input
+    ...         inputs = torch.cat((noise_input, conditional_input), dim=1)
+    ...         output = self.output(inputs)
+    ...         return output
+
+    Creating a Discriminator
+
+    >>> class Discriminator(nn.Module):
+    ...     def __init__(self, data_input_shape, conditional_input_shape):
+    ...         super(Discriminator, self).__init__()
+    ...         self.data_input_shape = data_input_shape
+    ...         self.conditional_input_shape = conditional_input_shape
+    ...         # Extracting the actual data dimension
+    ...         data_dim = data_input_shape[1:]
+    ...         # Extracting the actual conditional dimension
+    ...         conditional_dim = conditional_input_shape[1:]
+    ...         input_dim = sum(data_dim) + sum(conditional_dim)
+    ...         # Define the dense layers
+    ...         self.dense1 = nn.Linear(input_dim, 10)
+    ...         self.dense2 = nn.Linear(10, 1)
+    ...     def forward(self, input):
+    ...         data_input, conditional_input = input
+    ...         # Concatenate data_input and conditional_input along the second dimension
+    ...         discrim_in = torch.cat((data_input, conditional_input), dim=1)
+    ...         # Pass the concatenated input through the dense layers
+    ...         x = F.relu(self.dense1(discrim_in))
+    ...         output = self.dense2(x)
+    ...         return output
+
+    Creating an Example WGANModel class
+
+    >>> class ExampleWGAN(WGANModel):
+    ...     def get_noise_input_shape(self):
+    ...         return (100,2,)
+    ...     def get_data_input_shapes(self):
+    ...         return [(100,1,)]
+    ...     def get_conditional_input_shapes(self):
+    ...         return [(100,1,)]
+    ...     def create_generator(self):
+    ...         noise_dim = self.get_noise_input_shape()
+    ...         conditional_dim = self.get_conditional_input_shapes()[0]
+    ...         return nn.Sequential(Generator(noise_dim, conditional_dim))
+    ...     def create_discriminator(self):
+    ...         data_input_shape = self.get_data_input_shapes()[0]
+    ...         conditional_input_shape = self.get_conditional_input_shapes()[0]
+    ...         return nn.Sequential(
+    ...             Discriminator(data_input_shape, conditional_input_shape))
+
+    Defining a function to generate data
+
+    >>> def generate_batch(batch_size):
+    ...     means = 10 * np.random.random([batch_size, 1])
+    ...     values = np.random.normal(means, scale=2.0)
+    ...     return means, values
+    >>> def generate_data(gan, batches, batch_size):
+    ...     for _ in range(batches):
+    ...         means, values = generate_batch(batch_size)
+    ...         batch = {
+    ...             gan.data_inputs[0]: values,
+    ...             gan.conditional_inputs[0]: means
+    ...         }
+    ...         yield batch
+
+    Defining the WGANModel
+
+    >>> wgan = ExampleWGAN(learning_rate=0.01,
+    ...               gradient_penalty=0.1)
+    >>> data = generate_data(wgan, 500, 100)
+    >>> wgan.fit_gan(data, generator_steps=0.1, checkpoint_interval=0)
+    >>> means = 10 * np.random.random([1000, 1])
+    >>> values = wgan.predict_gan_generator(conditional_inputs=[means])
+
+    References
+    ----------
+    .. [1] Arjovsky, Martin, Soumith Chintala, and Léon Bottou.
+        "Wasserstein generative adversarial networks."
+        International conference on machine learning. PMLR, 2017.
+        (https://arxiv.org/abs/1701.07875)
+
+    .. [2] Gulrajani, Ishaan, et al. "Improved training of wasserstein gans."
+        Advances in neural information processing systems 30 (2017).
+        (https://arxiv.org/abs/1704.00028)
+    """
+
+    def __init__(self, gradient_penalty: float = 10.0, **kwargs):
+        """Construct a WGAN.
+
+        In addition to the following, this class accepts all the keyword arguments
+        from GAN and TorchModel.
+
+        Parameters
+        ----------
+        gradient_penalty: float default 10.0
+            the magnitude of the gradient penalty loss
+        """
+        self.gradient_penalty = gradient_penalty
+        super(WGANModel, self).__init__(
+            create_discriminator_loss=self.create_discriminator_loss,
+            create_generator_loss=self.create_generator_loss,
+            _call_discriminator=self._call_discriminator,
+            **kwargs)
+
+    def _call_discriminator(self, discriminator: nn.Module, inputs: List,
+                            conditional_input_layers: List, train: bool):
+        """ Invoke the discriminator on a set of inputs.
+
+        Parameters
+        ----------
+        discriminator: nn.Module
+            the discriminator to invoke
+        inputs: list of Tensor
+            the inputs to the discriminator.  The first element must be a batch of
+            data, followed by any conditional inputs.
+        conditional_input_layers: list of Tensor
+            the conditional inputs to the discriminator.  These are needed
+            because the discriminator may have multiple outputs, and the conditional
+            inputs must be passed to all of them.
+        train: bool
+            if True, the discriminator should be invoked in training mode. If False,
+            it should be invoked in inference mode.
+
+        Returns
+        -------
+        the output from the discriminator
+        """
+        if train:
+            penalty = GradientPenaltyLayer(self, discriminator)
+            return penalty(inputs, conditional_input_layers)
+        return discriminator(_list_or_tensor(inputs + conditional_input_layers))
+
+    def create_generator_loss(self,
+                              discrim_output: torch.Tensor) -> torch.Tensor:
+        """Create the loss function for the generator.
+
+        Parameters
+        ----------
+        discrim_output : torch.Tensor
+            the output from the discriminator on a batch of generated data.  This is
+            its estimate of the probability that each sample is training data.
+
+        Returns
+        -------
+        torch.Tensor
+            A Tensor equal to the mean of the inputs
+        """
+        return torch.mean(discrim_output)
+
+    def create_discriminator_loss(
+            self, discrim_output_train: List[torch.Tensor],
+            discrim_output_gen: torch.Tensor) -> torch.Tensor:
+        """Create the loss function for the discriminator.
+
+        Parameters
+        ----------
+        discrim_output_train : List[Tensor]
+            the output from the discriminator on a batch of training data.  This is
+            its estimate of the probability that each sample is training data.
+        discrim_output_gen : Tensor
+            the output from the discriminator on a batch of generated data.
+
+        Returns
+        -------
+        torch.Tensor
+            A Tensor equal to the loss function to use for optimizing the discriminator.
+        """
+        return torch.mean(discrim_output_train[0][0] -
+                          discrim_output_gen[1]) + discrim_output_train[1]
+
+
+class GradientPenaltyLayer(nn.Module):
+    """Implements the gradient penalty loss term for WGANs.
+
+    This class implements the gradient penalty loss term for WGANs as described in
+    Gulrajani et al., "Improved Training of Wasserstein GANs" [1]_.  It is used
+    internally by WGANModel
+
+    Examples
+    --------
+    Importing necessary modules
+
+    >>> import deepchem
+    >>> from deepchem.models.torch_models.gan import WGANModel
+    >>> from deepchem.models.torch_models import GradientPenaltyLayer
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+
+    Creating a Generator
+
+    >>> class Generator(nn.Module):
+    ...     def __init__(self, noise_input_shape, conditional_input_shape):
+    ...         super(Generator, self).__init__()
+    ...         self.noise_input_shape = noise_input_shape
+    ...         self.conditional_input_shape = conditional_input_shape
+    ...         self.noise_dim = noise_input_shape[1:]
+    ...         self.conditional_dim = conditional_input_shape[1:]
+    ...         input_dim = sum(self.noise_dim) + sum(self.conditional_dim)
+    ...         self.output = nn.Linear(input_dim, 1)
+    ...     def forward(self, input):
+    ...         noise_input, conditional_input = input
+    ...         inputs = torch.cat((noise_input, conditional_input), dim=1)
+    ...         output = self.output(inputs)
+    ...         return output
+
+    Creating a Discriminator
+
+    >>> class Discriminator(nn.Module):
+    ...     def __init__(self, data_input_shape, conditional_input_shape):
+    ...         super(Discriminator, self).__init__()
+    ...         self.data_input_shape = data_input_shape
+    ...         self.conditional_input_shape = conditional_input_shape
+    ...         # Extracting the actual data dimension
+    ...         data_dim = data_input_shape[1:]
+    ...         # Extracting the actual conditional dimension
+    ...         conditional_dim = conditional_input_shape[1:]
+    ...         input_dim = sum(data_dim) + sum(conditional_dim)
+    ...         # Define the dense layers
+    ...         self.dense1 = nn.Linear(input_dim, 10)
+    ...         self.dense2 = nn.Linear(10, 1)
+    ...     def forward(self, input):
+    ...         data_input, conditional_input = input
+    ...         # Concatenate data_input and conditional_input along the second dimension
+    ...         discrim_in = torch.cat((data_input, conditional_input), dim=1)
+    ...         # Pass the concatenated input through the dense layers
+    ...         x = F.relu(self.dense1(discrim_in))
+    ...         output = self.dense2(x)
+    ...         return output
+
+    Creating an Example WGANModel class
+
+    >>> class ExampleWGAN(WGANModel):
+    ...     def get_noise_input_shape(self):
+    ...         return (100,2,)
+    ...     def get_data_input_shapes(self):
+    ...         return [(100,1,)]
+    ...     def get_conditional_input_shapes(self):
+    ...         return [(100,1,)]
+    ...     def create_generator(self):
+    ...         noise_dim = self.get_noise_input_shape()
+    ...         conditional_dim = self.get_conditional_input_shapes()[0]
+    ...         return nn.Sequential(Generator(noise_dim, conditional_dim))
+    ...     def create_discriminator(self):
+    ...         data_input_shape = self.get_data_input_shapes()[0]
+    ...         conditional_input_shape = self.get_conditional_input_shapes()[0]
+    ...         return nn.Sequential(
+    ...             Discriminator(data_input_shape, conditional_input_shape))
+
+    Defining an Example GradientPenaltyLayer
+
+    >>> wgan = ExampleWGAN()
+    >>> discriminator = wgan.discriminators[0]
+    >>> gpl = GradientPenaltyLayer(wgan, discriminator)
+    >>> inputs = [torch.randn(4, 1)]
+    >>> conditional_inputs = [torch.randn(4, 1)]
+    >>> output, penalty = gpl(inputs, conditional_inputs)
+
+
+    References
+    ----------
+    .. [1]_ Gulrajani, Ishaan, et al. "Improved training of wasserstein gans."
+        Advances in neural information processing systems 30 (2017).
+        (https://arxiv.org/abs/1704.00028)
+    """
+
+    def __init__(self, gan: WGANModel, discriminator: nn.Module,
+                 **kwargs) -> None:
+        """Construct a GradientPenaltyLayer.
+
+        Parameters
+        ----------
+        gan : WGANModel
+            the WGANModel that this layer is part of
+        discriminator : nn.Module
+            the discriminator to compute the gradient penalty for
+        """
+        super(GradientPenaltyLayer, self).__init__(**kwargs)
+        self.gan = gan
+        self.discriminator = discriminator
+
+    def forward(self, inputs: Union[list, torch.Tensor],
+                conditional_inputs: torch.Tensor) -> list:
+        """ Compute the output of the gradient penalty layer.
+
+        Parameters
+        ----------
+        inputs: list of Tensor
+            the inputs to the discriminator.
+        conditional_inputs: Tensor
+            the conditional inputs to the discriminator.
+
+        Returns
+        -------
+        output: list [Tensor, Tensor]
+            the output from the discriminator, followed by the gradient penalty.
+        """
+        input_on_device = []
+        for tensor in inputs:
+            tensor = tensor.to(torch.float32).to(self.gan.device)
+            input_on_device.append(
+                tensor.requires_grad_(True).to(self.gan.device))
+        conditional_inputs_on_device = []
+        for tensor in conditional_inputs:
+            tensor = tensor.to(torch.float32).to(self.gan.device)
+            conditional_inputs_on_device.append(tensor.to(self.gan.device))
+        output = self.discriminator(
+            _list_or_tensor(input_on_device + conditional_inputs_on_device)).to(
+                self.gan.device)
+        gradients_raw = torch.autograd.grad(
+            outputs=output,
+            inputs=input_on_device,
+            grad_outputs=torch.ones_like(output),
+            create_graph=True,
+            allow_unused=True)
+        gradients = [g for g in gradients_raw if g is not None]
+        penalty: Union[torch.Tensor, float]
+        norm2: Union[float, torch.Tensor]
+        if gradients:
+            norm2 = 0.0
+            for g in gradients:
+                g2 = torch.square(g)
+                dims = len(list(g.shape))
+                if dims > 1:
+                    g2 = torch.sum(g2, dim=list(range(1, dims)))
+                norm2 += g2  # type: ignore
+            penalty = torch.square(torch.sqrt(norm2) - 1.0)  # type: ignore
+            penalty = self.gan.gradient_penalty * torch.mean(penalty)
+        else:
+            penalty = 0.0
+        return [output, penalty]

@@ -522,7 +522,7 @@ class GroverAtomVocabTokenizer(Featurizer):
     >>> import deepchem as dc
     >>> from deepchem.feat.vocabulary_builders.grover_vocab import GroverAtomVocabularyBuilder
     >>> file = tempfile.NamedTemporaryFile()
-    >>> dataset = dc.data.NumpyDataset(X=[['CC(=O)C', 'CCC']])
+    >>> dataset = dc.data.NumpyDataset(X=[['CC(=O)C'], ['CCC']])
     >>> vocab = GroverAtomVocabularyBuilder()
     >>> vocab.build(dataset)
     >>> vocab.save(file.name)  # build and save the vocabulary
@@ -556,7 +556,7 @@ class GroverBondVocabTokenizer(Featurizer):
     >>> import deepchem as dc
     >>> from deepchem.feat.vocabulary_builders.grover_vocab import GroverBondVocabularyBuilder
     >>> file = tempfile.NamedTemporaryFile()
-    >>> dataset = dc.data.NumpyDataset(X=[['CC(=O)C', 'CCC']])
+    >>> dataset = dc.data.NumpyDataset(X=[['CC(=O)C'], ['CCC']])
     >>> vocab = GroverBondVocabularyBuilder()
     >>> vocab.build(dataset)
     >>> vocab.save(file.name)  # build and save the vocabulary

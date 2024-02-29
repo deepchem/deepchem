@@ -71,6 +71,23 @@ from deepchem.feat.atomic_conformation import AtomicConformation
 from deepchem.feat.atomic_conformation import AtomicConformationFeaturizer
 
 from deepchem.feat.huggingface_featurizer import HuggingFaceFeaturizer
+
+# biological sequence featurizers
+try:
+    from deepchem.feat.bio_seq_featurizer import SAMFeaturizer
+except ImportError:
+    print("Error: Unable to import pysam. Please make sure it is installed.")
+
+try:
+    from deepchem.feat.bio_seq_featurizer import BAMFeaturizer
+except ImportError:
+    print("Error: Unable to import pysam. Please make sure it is installed.")
+
+try:
+    from deepchem.feat.bio_seq_featurizer import CRAMFeaturizer
+except ImportError:
+    print("Error: Unable to import pysam. Please make sure it is installed.")
+
 # tokenizers
 try:
     from deepchem.feat.smiles_tokenizer import SmilesTokenizer

@@ -25,6 +25,24 @@ try:
 except ModuleNotFoundError:
     pass
 
+try:
+    import pysam
+    from deepchem.feat import SAMFeaturizer
+except ImportError:
+    print("Error: Unable to import pysam. Please make sure it is installed.")
+
+try:
+    import pysam
+    from deepchem.feat import BAMFeaturizer
+except ImportError:
+    print("Error: Unable to import pysam. Please make sure it is installed.")
+
+try:
+    import pysam
+    from deepchem.feat import CRAMFeaturizer
+except ImportError:
+    print("Error: Unable to import pysam. Please make sure it is installed.")
+
 logger = logging.getLogger(__name__)
 
 
@@ -1297,15 +1315,82 @@ class FASTQLoader(DataLoader):
 
 
 class ImageLoader(DataLoader):
-    """Handles loading of image files.
+    """Creates `Dataset` objects from input image files.
 
     This class allows for loading of images in various formats.
     For user convenience, also accepts zip-files and directories
     of images and uses some limited intelligence to attempt to
     traverse subdirectories which contain images.
+
+    Currently, only .png and .tif files are supported. If the
+    inputs or labels are given as a list of files, the list must contain
+    only image files.
+
+    Examples
+    --------
+    For this example, we will be using the BBBC001 Dataset. This dataset contains 6 images
+    of human HT29 colon cancer cells. We will use the images as inputs and we will assign
+    the labels as integers ranging from 1 to 6 for the sake of simplicity.
+
+    To learn more about this dataset, please visit: https://data.broadinstitute.org/bbbc/BBBC001/
+    and also see our loader for this dataset: `deepchem.molnet.loadbbbc001`.
+
+    Let's begin by importing the necessary modules and downloading the dataset.
+    >>> import os
+    >>> import deepchem as dc
+    >>> data_dir = dc.utils.data_utils.get_data_dir()
+    >>> dataset_file = os.path.join(data_dir, "BBBC001_v1_images_tif.zip")
+    >>> BBBC1_IMAGE_URL = 'https://data.broadinstitute.org/bbbc/BBBC001/BBBC001_v1_images_tif.zip'
+    >>> if not os.path.exists(dataset_file):
+    ...    dc.utils.data_utils.download_url(url=BBBC1_IMAGE_URL, dest_dir=data_dir)
+
+    Now that we have the dataset, let's create a list of labels for each image.
+
+    >>> labels = np.array([1,2,3,4,5,6])
+
+    Let's now write this to disk somewhere. We can now use `ImageLoader` to process
+    this Image dataset. We do not use a featurizer here, hence the `UserDefinedFeaturizer`
+    with an empty list.
+
+    >>> featurizer = dc.feat.UserDefinedFeaturizer([])
+    >>> loader = dc.data.ImageLoader(tasks=['demo-task'], sorting=False)
+    >>> dataset = loader.create_dataset(inputs=(dataset_file, labels),
+    ...                                 in_memory=False)
+
+    We can confirm that we have 6 images in our dataset and 6 labels. The images are
+    of size 512x512 while the labels are just integers.
+
+    >>> len(dataset)
+    6
+    >>> dataset.X.shape
+    (6, 512, 512)
+    >>> dataset.y.shape
+    (6,)
+
+    The label files can also be images similar to the inputs, in which case we
+    can provide a list of label files instead of a list of labels.
+
+    To show this, we will use the input data as the ground truths, this is often
+    seen when making autoencoders. Similar to the above example, let's use `ImageLoader`
+    to process this Image dataset.
+
+    >>> featurizer = dc.feat.UserDefinedFeaturizer([])
+    >>> loader = dc.data.ImageLoader(tasks=['demo-task'], sorting=False)
+    >>> dataset = loader.create_dataset(inputs=(dataset_file, dataset_file),
+    ...                                 in_memory=False)
+
+    We can confirm that we have 6 images in our dataset and 6 labels. The images are
+    of size 512x512 while the labels are also images of size 512x512.
+
+    >>> len(dataset)
+    6
+    >>> dataset.X.shape
+    (6, 512, 512)
+    >>> dataset.y.shape
+    (6, 512, 512)
     """
 
-    def __init__(self, tasks: Optional[List[str]] = None):
+    def __init__(self, tasks: Optional[List[str]] = None, sorting: bool = True):
         """Initialize image loader.
 
         At present, custom image featurizers aren't supported by this
@@ -1315,13 +1400,17 @@ class ImageLoader(DataLoader):
         ----------
         tasks: List[str], optional (default None)
             List of task names for image labels.
+        sorting: bool, optional (default True)
+            Whether to sort image files by filename.
         """
         if tasks is None:
             tasks = []
         self.tasks = tasks
+        self.sorting = sorting
 
     def create_dataset(self,
-                       inputs: Union[OneOrMany[str], Tuple[Any]],
+                       inputs: Union[OneOrMany[str], Tuple[Any], Tuple[str,
+                                                                       Any]],
                        data_dir: Optional[str] = None,
                        shard_size: Optional[int] = 8192,
                        in_memory: bool = False) -> Dataset:
@@ -1335,26 +1424,30 @@ class ImageLoader(DataLoader):
               - filename
               - list of filenames
               - Tuple (list of filenames, labels)
+              - Tuple (list of filenames, list of label filenames)
               - Tuple (list of filenames, labels, weights)
+              - Tuple (list of filenames, list of label filenames, weights)
 
             Each file in a given list of filenames should either be of a supported
             image format (.png, .tif only for now) or of a compressed folder of
             image files (only .zip for now). If `labels` or `weights` are provided,
             they must correspond to the sorted order of all filenames provided, with
-            one label/weight per file.
+            one label/weight per file. Labels can be filenames too, in which case the
+            labels are loaded as images.
+
         data_dir: str, optional (default None)
             Directory to store featurized dataset.
         shard_size: int, optional (default 8192)
             Shard size when loading data.
         in_memory: bool, optioanl (default False)
-            If true, return in-memory NumpyDataset. Else return ImageDataset.
+            If true, return in-memory `NumpyDataset`. Else return `ImageDataset`.
 
         Returns
         -------
-        ImageDataset or NumpyDataset or DiskDataset
-            - if `in_memory == False`, the return value is ImageDataset.
-            - if `in_memory == True` and `data_dir is None`, the return value is NumpyDataset.
-            - if `in_memory == True` and `data_dir is not None`, the return value is DiskDataset.
+        `ImageDataset` or `NumpyDataset` or `DiskDataset`
+            - if `in_memory == False`, the return value is `ImageDataset`.
+            - if `in_memory == True` and `data_dir is None`, the return value is `NumpyDataset`.
+            - if `in_memory == True` and `data_dir is not None`, the return value is `DiskDataset`.
         """
         labels, weights = None, None
         if isinstance(inputs, tuple):
@@ -1380,7 +1473,6 @@ class ImageLoader(DataLoader):
             for input_file in input_files:
                 filename, extension = os.path.splitext(input_file)
                 extension = extension.lower()
-                # TODO(rbharath): Add support for more extensions
                 if os.path.isdir(input_file):
                     dirfiles = [
                         os.path.join(input_file, subfile)
@@ -1408,29 +1500,94 @@ class ImageLoader(DataLoader):
             input_files = remainder
 
         # Sort image files
-        image_files = sorted(image_files)
+        if self.sorting:
+            image_files = sorted(image_files)
+
+        if isinstance(labels, str):
+            label_files = [labels]
+        else:
+            label_files = []
+
+        label_image_files = []
+        # Sometimes zip files contain directories within. Traverse directories
+        while len(label_files) > 0:
+            remainder = []
+            for label_file in label_files:
+                filename, extension = os.path.splitext(label_file)
+                extension = extension.lower()
+                if os.path.isdir(label_file):
+                    dirfiles = [
+                        os.path.join(label_file, subfile)
+                        for subfile in os.listdir(label_file)
+                    ]
+                    remainder += dirfiles
+                elif extension == ".zip":
+                    zip_dir = tempfile.mkdtemp()
+                    zip_ref = zipfile.ZipFile(label_file, 'r')
+                    zip_ref.extractall(path=zip_dir)
+                    zip_ref.close()
+                    zip_files = [
+                        os.path.join(zip_dir, name)
+                        for name in zip_ref.namelist()
+                    ]
+                    for zip_file in zip_files:
+                        _, extension = os.path.splitext(zip_file)
+                        extension = extension.lower()
+                        if extension in [".png", ".tif"]:
+                            label_image_files.append(zip_file)
+                elif extension in [".png", ".tif"]:
+                    label_image_files.append(label_file)
+                else:
+                    raise ValueError("Unsupported file format")
+            label_files = remainder
+
+        # Sort label image files
+        if self.sorting:
+            label_image_files = sorted(label_image_files)
 
         if in_memory:
             if data_dir is None:
-                return NumpyDataset(load_image_files(image_files),
-                                    y=labels,
-                                    w=weights,
-                                    ids=image_files)
+                if isinstance(labels, str):
+                    return NumpyDataset(load_image_files(image_files),
+                                        y=load_image_files(label_image_files),
+                                        w=weights,
+                                        ids=image_files)
+                else:
+                    return NumpyDataset(load_image_files(image_files),
+                                        y=labels,
+                                        w=weights,
+                                        ids=image_files)
             else:
-                dataset = DiskDataset.from_numpy(load_image_files(image_files),
-                                                 y=labels,
-                                                 w=weights,
-                                                 ids=image_files,
-                                                 tasks=self.tasks,
-                                                 data_dir=data_dir)
+                if isinstance(labels, str):
+                    dataset = DiskDataset.from_numpy(
+                        load_image_files(image_files),
+                        y=load_image_files(label_image_files),
+                        w=weights,
+                        ids=image_files,
+                        tasks=self.tasks,
+                        data_dir=data_dir)
+                else:
+                    dataset = DiskDataset.from_numpy(
+                        load_image_files(image_files),
+                        y=labels,
+                        w=weights,
+                        ids=image_files,
+                        tasks=self.tasks,
+                        data_dir=data_dir)
                 if shard_size is not None:
                     dataset.reshard(shard_size)
                 return dataset
         else:
-            return ImageDataset(image_files,
-                                y=labels,
-                                w=weights,
-                                ids=image_files)
+            if isinstance(labels, str):
+                return ImageDataset(image_files,
+                                    y=label_image_files,
+                                    w=weights,
+                                    ids=image_files)
+            else:
+                return ImageDataset(image_files,
+                                    y=labels,
+                                    w=weights,
+                                    ids=image_files)
 
 
 class InMemoryLoader(DataLoader):
@@ -1753,3 +1910,264 @@ class DFTYamlLoader(DataLoader):
         else:
             x = DFTEntry.create(e_type, true_val, systems)
         return [x]
+
+
+class SAMLoader(DataLoader):
+    """Handles loading of SAM files.
+    Sequence Alignment Map (SAM) is a text-based format used for storing biological sequences
+    aligned to a reference sequence.It is generally used for storing nucleotide sequences,
+    generated by next generation sequencing technologies, and unmapped sequences. 
+    SAM files have a header section and an alignment section.Alignment sections have
+    11 mandatory fields, as well as a variable number of optional fields. Here, we
+    extract Query Name, Query Sequence, Query Length, Reference Name, 
+    Reference Start, CIGAR and Mapping Quality of each read in the SAM file.
+    This class provides methods to load and featurize data from SAM files.
+
+    Examples
+    --------
+    >>> from deepchem.data.data_loader import SAMLoader
+    >>> import deepchem as dc
+    >>> import pytest
+    >>> inputs = 'deepchem/data/tests/example.sam'
+    >>> data = SAMLoader()
+    >>> output = data.create_dataset(inputs)
+
+    Note
+    ----
+    This class requires pysam to be installed. Pysam can be used with Linux or MacOS X.
+    To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
+    """
+
+    def __init__(self, featurizer: Optional[Featurizer] = None):
+        """Initialize SAMLoader.
+
+        Parameters
+        ----------
+        featurizer: Featurizer (default: None)
+            The Featurizer to be used for the loaded SAM data.
+    
+       """
+
+        # Set attributes
+        self.user_specified_features = None
+
+        # Handle special featurizer cases
+        if isinstance(featurizer,
+                      UserDefinedFeaturizer):  # User defined featurizer
+            self.user_specified_features = featurizer.feature_fields
+        elif featurizer is None:  # Default featurizer
+            featurizer = SAMFeaturizer()
+
+        # Set self.featurizer
+        self.featurizer = featurizer
+
+    def create_dataset(self,
+                       input_files: OneOrMany[str],
+                       data_dir: Optional[str] = None,
+                       shard_size: Optional[int] = None) -> DiskDataset:
+        """Creates a `Dataset` from input SAM files.
+
+        Parameters
+        ----------
+        input_files: List[str]
+            List of SAM files.
+        data_dir: str, optional (default None)
+            Name of directory where featurized data is stored.
+        shard_size: int, optional (default None)
+            For now, this argument is ignored and each SAM file gets its
+            own shard.
+
+        Returns
+        -------
+        DiskDataset
+            A `DiskDataset` object containing a featurized representation of
+            data from `input_files`.
+
+        """
+        if isinstance(input_files, str):
+            input_files = [input_files]
+
+        def shard_generator():  # TODO Enable sharding with shard size parameter
+            for input_file in input_files:
+                samfile = pysam.AlignmentFile(input_file, "r")
+                X = self.featurizer._featurize(samfile)
+                ids = np.ones(len(X))
+                # (X, y, w, ids)
+                yield X, None, None, ids
+
+        return DiskDataset.create_dataset(shard_generator(), data_dir)
+
+
+class BAMLoader(DataLoader):
+    """Handles loading of BAM files.
+    Binary Alignment Map (BAM) is the comprehensive raw data of genome
+    sequencing. It consists of the lossless, compressed binary representation
+    of the Sequence Alignment Map files. BAM files are smaller and more
+    efficient to work with than SAM files, saving time and reducing costs of
+    computation and storage. BAM files store alignment data and often have
+    corresponding BAM index files.The structure of BAM files include a header
+    section and an alignment section.
+    Here, we extract Query Name, Query Sequence, Query Length, Reference Name,
+    Reference Start, CIGAR and Mapping Quality of each read in the BAM file.
+    This class provides methods to load and featurize data from BAM files.
+
+    Examples
+    --------
+    >>> from deepchem.data.data_loader import BAMLoader
+    >>> import deepchem as dc
+    >>> import pytest
+    >>> inputs = 'deepchem/data/tests/example.bam'
+    >>> data = BAMLoader()
+    >>> output = data.create_dataset(inputs)
+
+    Note
+    ----
+    This class requires pysam to be installed. Pysam can be used with Linux
+    or MacOS X. To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
+    """
+
+    def __init__(self, featurizer: Optional[Featurizer] = None):
+        """Initialize BAMLoader.
+
+        Parameters
+        ----------
+        featurizer: Featurizer (default: None)
+            The Featurizer to be used for the loaded BAM data.
+       """
+
+        # Set attributes
+        self.user_specified_features = None
+
+        # Handle special featurizer cases
+        if isinstance(featurizer,
+                      UserDefinedFeaturizer):  # User defined featurizer
+            self.user_specified_features = featurizer.feature_fields
+        elif featurizer is None:  # Default featurizer
+            featurizer = BAMFeaturizer(max_records=None)
+
+        # Set self.featurizer
+        self.featurizer = featurizer
+
+    def create_dataset(self,
+                       input_files: OneOrMany[str],
+                       data_dir: Optional[str] = None,
+                       shard_size: Optional[int] = None) -> DiskDataset:
+        """Creates a `Dataset` from input BAM files.
+
+        Parameters
+        ----------
+        input_files: List[str]
+            List of BAM files, with their corresponding index files.
+        data_dir: str, optional (default None)
+            Name of directory where featurized data is stored.
+        shard_size: int, optional (default None)
+            For now, this argument is ignored and each BAM file gets its
+            own shard.
+
+        Returns
+        -------
+        DiskDataset
+            A `DiskDataset` object containing a featurized representation of
+            data from `input_files`.
+
+        """
+        if isinstance(input_files, str):
+            input_files = [input_files]
+
+        def shard_generator():  # TODO Enable sharding with shard size parameter
+            for input_file in input_files:
+                bamfile = pysam.AlignmentFile(input_file, "rb")
+                X = self.featurizer._featurize(bamfile)
+                ids = np.ones(len(X))
+                # (X, y, w, ids)
+                yield X, None, None, ids
+
+        return DiskDataset.create_dataset(shard_generator(), data_dir)
+
+
+class CRAMLoader(DataLoader):
+    """Handles loading of CRAM files.
+    Compressed Reference-oriented Alignment Map (CRAM) is a compressed
+    columnar file format for storing biological sequences aligned to a
+    reference sequence. CRAM is an efficient reference-based alternative to
+    the Sequence Alignment Map (SAM) and Binary Alignment Map (BAM) file formats.
+    The basic structure of a CRAM file has a series of containers, the first of
+    which holds a compressed copy of the SAM header. Subsequent containers consist
+    of a container Compression Header followed by a series of slices which hold the
+    alignment records, formatted as a series of blocks.
+    Here, we extract Query Name, Query Sequence, Query Length, Reference Name,
+    Reference Start, CIGAR and Mapping Quality of each read in the CRAM file.
+    This class provides methods to load and featurize data from CRAM files.
+
+    Examples
+    --------
+    >>> from deepchem.data.data_loader import CRAMLoader
+    >>> import deepchem as dc
+    >>> import pytest
+    >>> inputs = 'deepchem/data/tests/example.cram'
+    >>> data = CRAMLoader()
+    >>> output = data.create_dataset(inputs)
+
+    Note
+    ----
+    This class requires pysam to be installed. Pysam can be used with Linux
+    or MacOS X. To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
+    """
+
+    def __init__(self, featurizer: Optional[Featurizer] = None):
+        """Initialize CRAMLoader.
+
+        Parameters
+        ----------
+        featurizer: Featurizer (default: None)
+            The Featurizer to be used for the loaded CRAM data.
+       """
+
+        # Set attributes
+        self.user_specified_features = None
+
+        # Handle special featurizer cases
+        if isinstance(featurizer,
+                      UserDefinedFeaturizer):  # User defined featurizer
+            self.user_specified_features = featurizer.feature_fields
+        elif featurizer is None:  # Default featurizer
+            featurizer = CRAMFeaturizer(max_records=None)
+
+        # Set self.featurizer
+        self.featurizer = featurizer
+
+    def create_dataset(self,
+                       input_files: OneOrMany[str],
+                       data_dir: Optional[str] = None,
+                       shard_size: Optional[int] = None) -> DiskDataset:
+        """Creates a `Dataset` from input CRAM files.
+
+        Parameters
+        ----------
+        input_files: List[str]
+            List of CRAM files.
+        data_dir: str, optional (default None)
+            Name of directory where featurized data is stored.
+        shard_size: int, optional (default None)
+            For now, this argument is ignored and each CRAM file gets its
+            own shard.
+
+        Returns
+        -------
+        DiskDataset
+            A `DiskDataset` object containing a featurized representation of
+            data from `input_files`.
+
+        """
+        if isinstance(input_files, str):
+            input_files = [input_files]
+
+        def shard_generator():  # TODO Enable sharding with shard size parameter
+            for input_file in input_files:
+                cramfile = pysam.AlignmentFile(input_file, "rc")
+                X = self.featurizer._featurize(cramfile)
+                ids = np.ones(len(X))
+                # (X, y, w, ids)
+                yield X, None, None, ids
+
+        return DiskDataset.create_dataset(shard_generator(), data_dir)

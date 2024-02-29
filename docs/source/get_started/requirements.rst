@@ -4,7 +4,7 @@ Requirements
 Hard requirements
 ^^^^^^^^^^^^^^^^^
 
-DeepChem officially supports Python 3.6 through 3.7 and requires these packages on any condition.
+DeepChem officially supports Python 3.8 through 3.10 and requires these packages on any condition.
 
 - `joblib`_
 - `NumPy`_
@@ -12,10 +12,6 @@ DeepChem officially supports Python 3.6 through 3.7 and requires these packages 
 - `scikit-learn`_
 - `SymPy`_
 - `SciPy`_
-- `TensorFlow`_
-
-  - `deepchem>=2.4.0` depends on TensorFlow v2 (2.3.x)
-  - `deepchem<2.4.0` depends on  TensorFlow v1 (>=1.14)
 
 
 Soft requirements
@@ -99,12 +95,12 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `PyTorch`_                     | 1.6.0         | :code:`dc.data.datasets`                          |
+| `PyTorch`_                     | 2.1.0         | :code:`dc.models.torch_models`                    |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `PyTorch Geometric`_           | 1.6.x (with   | :code:`dc.feat.graph_data`                        |
-|                                | PyTorch 1.6.0)| :code:`dc.models.torch_models`                    |
+| `PyTorch Geometric`_           | 2.1.x (with   | :code:`dc.feat.graph_data`                        |
+|                                | PyTorch 2.1.0)| :code:`dc.models.torch_models`                    |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `RDKit`_                       | latest        | Many modules                                      |
@@ -135,6 +131,15 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
+| `TensorFlow`_                  | latest        | :code:`dc.models`                                 |
+|                                |               | `deepchem>=2.4.0` depends on TensorFlow v2(2.3.x) |
+|                                |               | `deepchem<2.4.0` depends on TensorFlow v1(>=1.14) |
++--------------------------------+---------------+---------------------------------------------------+
+| `pysam`_                       | latest        | :code:`dc.feat.bio_seq_featurizer`                |
+|                                |               | :code:`dc.models.data_loader`                     |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
+
 
 .. _`joblib`: https://pypi.python.org/pypi/joblib
 .. _`NumPy`: https://numpy.org/
@@ -170,3 +175,4 @@ DeepChem has a number of "soft" requirements.
 .. _`Tensorflow Addons`: https://www.tensorflow.org/addons/overview
 .. _`HuggingFace Tokenizers`: https://huggingface.co/docs/tokenizers/index
 .. _`pySCF`: https://pyscf.org/install.html
+.. _`pysam`: https://pysam.readthedocs.io/en/latest/api.html

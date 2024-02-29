@@ -1,7 +1,9 @@
 """Utility functions for working with PyTorch."""
 
+import scipy
 import torch
-from typing import Callable, Union, List, Generator, Tuple
+from typing import Any, Callable, Sequence, Union, List, Generator, Tuple
+import numpy as np
 
 
 def get_activation(fn: Union[Callable, str]):
@@ -201,3 +203,269 @@ def get_memory(a: torch.Tensor) -> int:
     """
     size = a.numel() * a.element_size()
     return size
+
+
+def gaussian_integral(
+        n: int, alpha: Union[float,
+                             torch.Tensor]) -> Union[float, torch.Tensor]:
+    """Performs the gaussian integration.
+
+    Examples
+    --------
+    >>> gaussian_integral(5, 1.0)
+    1.0
+
+    Parameters
+    ----------
+    n: int
+        The order of the integral
+    alpha: Union[float, torch.Tensor]
+        The parameter of the gaussian
+
+    Returns
+    -------
+    Union[float, torch.Tensor]
+        The value of the integral
+
+    """
+    n1 = (n + 1) * 0.5
+    return scipy.special.gamma(n1) / (2 * alpha**n1)
+
+
+class TensorNonTensorSeparator(object):
+    """
+    Class that provides function to separate/combine tensors and nontensors
+    parameters.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.pytorch_utils import TensorNonTensorSeparator
+    >>> a = torch.tensor([1.,2,3])
+    >>> b = 4.
+    >>> c = torch.tensor([5.,6,7], requires_grad=True)
+    >>> params = [a, b, c]
+    >>> separator = TensorNonTensorSeparator(params)
+    >>> tensor_params = separator.get_tensor_params()
+    >>> tensor_params
+    [tensor([5., 6., 7.], requires_grad=True)]
+
+    """
+
+    def __init__(self, params: Sequence, varonly: bool = True):
+        """Initialize the TensorNonTensorSeparator.
+
+        Parameters
+        ----------
+        params: Sequence
+            A list of tensor or non-tensor parameters.
+        varonly: bool
+            If True, only tensor parameters with requires_grad=True will be
+            returned. Otherwise, all tensor parameters will be returned.
+
+        """
+        self.tensor_idxs = []
+        self.tensor_params = []
+        self.nontensor_idxs = []
+        self.nontensor_params = []
+        self.nparams = len(params)
+        for (i, p) in enumerate(params):
+            if isinstance(p, torch.Tensor) and ((varonly and p.requires_grad) or
+                                                (not varonly)):
+                self.tensor_idxs.append(i)
+                self.tensor_params.append(p)
+            else:
+                self.nontensor_idxs.append(i)
+                self.nontensor_params.append(p)
+        self.alltensors = len(self.tensor_idxs) == self.nparams
+
+    def get_tensor_params(self):
+        """Returns a list of tensor parameters.
+
+        Returns
+        -------
+        List[torch.Tensor]
+            A list of tensor parameters.
+
+        """
+        return self.tensor_params
+
+    def ntensors(self):
+        """Returns the number of tensor parameters.
+
+        Returns
+        -------
+        int
+            The number of tensor parameters.
+
+        """
+        return len(self.tensor_idxs)
+
+    def nnontensors(self):
+        """Returns the number of nontensor parameters.
+
+        Returns
+        -------
+        int
+            The number of nontensor parameters.
+
+        """
+        return len(self.nontensor_idxs)
+
+    def reconstruct_params(self, tensor_params, nontensor_params=None):
+        """Reconstruct the parameters from tensor and nontensor parameters.
+
+        Parameters
+        ----------
+        tensor_params: List[torch.Tensor]
+            A list of tensor parameters.
+        nontensor_params: Optional[List]
+            A list of nontensor parameters. If None, the original nontensor
+            parameters will be used.
+
+        Returns
+        -------
+        List
+            A list of parameters.
+
+        """
+        if nontensor_params is None:
+            nontensor_params = self.nontensor_params
+        if len(tensor_params) + len(nontensor_params) != self.nparams:
+            raise ValueError(
+                "The total length of tensor and nontensor params "
+                "do not match with the expected length: %d instead of %d" %
+                (len(tensor_params) + len(nontensor_params), self.nparams))
+        if self.alltensors:
+            return tensor_params
+
+        params = [None for _ in range(self.nparams)]
+        for nidx, p in zip(self.nontensor_idxs, nontensor_params):
+            params[nidx] = p
+        for idx, p in zip(self.tensor_idxs, tensor_params):
+            params[idx] = p
+        return params
+
+
+def tallqr(V, MV=None):
+    """QR decomposition for tall and skinny matrix.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.pytorch_utils import tallqr
+    >>> V = torch.randn(3, 2)
+    >>> Q, R = tallqr(V)
+    >>> Q.shape
+    torch.Size([3, 2])
+    >>> R.shape
+    torch.Size([2, 2])
+    >>> torch.allclose(Q @ R, V)
+    True
+
+    Parameters
+    ----------
+    V: torch.Tensor
+        V is a matrix to be decomposed. (*BV, na, nguess)
+    MV: torch.Tensor
+        (*BM, na, nguess) where M is the basis to make Q M-orthogonal
+        if MV is None, then MV=V (default=None)
+
+    Returns
+    -------
+    Q: torch.Tensor
+        The Orthogonal Part. Shape: (*BV, na, nguess)
+    R: torch.Tensor
+        The (*BM, nguess, nguess) where M is the basis to make Q M-orthogonal
+
+    """
+    if MV is None:
+        MV = V
+    VTV = torch.matmul(V.transpose(-2, -1), MV)  # (*BMV, nguess, nguess)
+    R = torch.linalg.cholesky(VTV.transpose(-2, -1).conj()).transpose(
+        -2, -1).conj()  # (*BMV, nguess, nguess)
+    Rinv = torch.inverse(R)  # (*BMV, nguess, nguess)
+    Q = torch.matmul(V, Rinv)
+    return Q, R
+
+
+def to_fortran_order(V):
+    """Convert a tensor to Fortran order. (The last two dimensions are made Fortran order.)
+    Fortran order/ array is a special case in which all elements of an array are stored in
+    column-major order.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.pytorch_utils import to_fortran_order
+    >>> V = torch.randn(3, 2)
+    >>> V.is_contiguous()
+    True
+    >>> V = to_fortran_order(V)
+    >>> V.is_contiguous()
+    False
+    >>> V.shape
+    torch.Size([3, 2])
+    >>> V = torch.randn(3, 2).transpose(-2, -1)
+    >>> V.is_contiguous()
+    False
+    >>> V = to_fortran_order(V)
+    >>> V.is_contiguous()
+    False
+    >>> V.shape
+    torch.Size([2, 3])
+
+    Parameters
+    ----------
+    V: torch.Tensor
+        V is a matrix to be converted. (*BV, na, nguess)
+
+    Returns
+    -------
+    outV: torch.Tensor
+        (*BV, nguess, na)
+
+    """
+    if V.is_contiguous():
+        # return V.set_(V.storage(), V.storage_offset(), V.size(), tuple(reversed(V.stride())))
+        return V.transpose(-2, -1).contiguous().transpose(-2, -1)
+    elif V.transpose(-2, -1).is_contiguous():
+        return V
+    else:
+        raise RuntimeError(
+            "Only the last two dimensions can be made Fortran order.")
+
+
+def get_np_dtype(dtype: torch.dtype) -> Any:
+    """corresponding numpy dtype from the input pytorch's tensor dtype
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.pytorch_utils import get_np_dtype
+    >>> get_np_dtype(torch.float32)
+    <class 'numpy.float32'>
+    >>> get_np_dtype(torch.float64)
+    <class 'numpy.float64'>
+
+    Parameters
+    ----------
+    dtype: torch.dtype
+        pytorch's tensor dtype
+
+    Returns
+    -------
+    np.dtype
+        corresponding numpy dtype
+
+    """
+    if dtype == torch.float32:
+        return np.float32
+    elif dtype == torch.float64:
+        return np.float64
+    elif dtype == torch.complex64:
+        return np.complex64
+    elif dtype == torch.complex128:
+        return np.complex128
+    else:
+        raise TypeError("Unknown type: %s" % dtype)

@@ -203,9 +203,9 @@ class Net3D(nn.Module):
     >>> smiles = ["C[C@H](F)Cl", "C[C@@H](F)Cl"]
     >>> featurizer = RDKitConformerFeaturizer()
     >>> data = featurizer.featurize(smiles)
-    >>> dgldata = [[graph.to_dgl_graph() for graph in conf] for conf in data]
+    >>> dgldata = [graph.to_dgl_graph() for graph in data]
     >>> net3d = Net3D(hidden_dim=3, target_dim=2, readout_aggregators=['sum', 'mean'])
-    >>> output = [[net3d(graph) for graph in conf] for conf in dgldata]
+    >>> output = [net3d(graph) for graph in dgldata]
 
     References
     ----------
@@ -431,7 +431,8 @@ class InfoMax3DModular(ModularTorchModel):
     >>> featurizer = RDKitConformerFeaturizer()
     >>> data = featurizer.featurize(smiles)
     >>> dataset = NumpyDataset(X=data)
-    >>> model = InfoMax3DModular(hidden_dim=64,
+    >>> model = InfoMax3DModular(task='pretraining',
+    ...                          hidden_dim=64,
     ...                          target_dim=10,
     ...                          aggregators=['max'],
     ...                          readout_aggregators=['mean'],
@@ -495,7 +496,16 @@ class InfoMax3DModular(ModularTorchModel):
         self.criterion = NTXentMultiplePositives()._create_pytorch_loss()
         self.components = self.build_components()
         self.model = self.build_model()
-        super().__init__(self.model, self.components, **kwargs)
+        if self.task == 'regression':
+            output_types = ['prediction']
+        elif self.task == 'classification':
+            output_types = ['prediction', 'logits']
+        else:
+            output_types = None
+        super().__init__(self.model,
+                         self.components,
+                         output_types=output_types,
+                         **kwargs)
         for module_name, module in self.components.items():
             self.components[module_name] = module.to(self.device)
         self.model = self.model.to(self.device)
@@ -525,6 +535,9 @@ class InfoMax3DModular(ModularTorchModel):
                       dropout=self.dropout,
                       posttrans_layers=self.posttrans_layers,
                       pretrans_layers=self.pretrans_layers,
+                      task=self.task,
+                      n_tasks=self.n_tasks,
+                      n_classes=self.n_classes,
                       **self.kwargs)
         if self.task == 'pretraining':
             return {
@@ -559,16 +572,9 @@ class InfoMax3DModular(ModularTorchModel):
         PNA
             The 2D PNA model component.
         """
-        if self.task == 'pretraining':
-            # FIXME Pretrain uses both model2d and model3d but the super class
-            # can't handle two models for contrastive learning, hence we pass only model2d
-            return self.components['model2d']
-        elif self.task in ['regression', 'classification']:
-            if self.task == 'regression':
-                head = nn.Linear(self.target_dim, self.n_tasks)
-            elif self.task == 'classification':
-                head = nn.Linear(self.target_dim, self.n_tasks)
-            return nn.Sequential(self.components['model2d'], head)
+        # FIXME For pretraining task, both model2d and model3d but the super class
+        # can't handle two models for contrastive learning, hence we pass only model2d
+        return self.components['model2d']
 
     def loss_func(self, inputs, labels, weights):
         """
@@ -596,8 +602,13 @@ class InfoMax3DModular(ModularTorchModel):
             preds = self.model(inputs)
             loss = F.mse_loss(preds, labels)
         elif self.task == 'classification':
-            preds = self.model(inputs)
-            loss = F.binary_cross_entropy_with_logits(preds, labels)
+            proba, logits = self.model(inputs)
+            # torch's one-hot encoding works with integer data types.
+            # We convert labels to integer, one-hot encode and convert it back to float
+            # for making it suitable to loss function
+            labels = F.one_hot(labels.squeeze().type(torch.int64)).type(
+                torch.float32)
+            loss = F.binary_cross_entropy_with_logits(logits, labels)
         return loss
 
     def _prepare_batch(self, batch):

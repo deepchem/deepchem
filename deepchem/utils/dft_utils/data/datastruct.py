@@ -1,10 +1,11 @@
 """
 Density Functional Theory Data Structure Utilities
 """
-from typing import Union, TypeVar, Generic, Optional, Callable, List
+from typing import Union, TypeVar, Generic, Optional, Callable, List, Dict
 from dataclasses import dataclass
 import torch
 import numpy as np
+from deepchem.utils import gaussian_integral
 
 __all__ = ["ZType"]
 
@@ -22,6 +23,7 @@ AtomPosType = Union[List[List[float]], np.ndarray, torch.Tensor]
 @dataclass
 class SpinParam(Generic[T]):
     """Data structure to store different values for spin-up and spin-down electrons.
+
     Examples
     --------
     >>> import torch
@@ -35,16 +37,19 @@ class SpinParam(Generic[T]):
     tensor([1.])
     >>> sp.reduce(torch.multiply)
     tensor([0.])
+
     """
 
     def __init__(self, u: T, d: T):
         """Initialize the SpinParam object.
+
         Parameters
         ----------
         u: any type
             The parameters that corresponds to the spin-up electrons.
         d: any type
             The parameters that corresponds to the spin-down electrons.
+
         """
         self.u = u
         self.d = d
@@ -69,6 +74,7 @@ class ValGrad:
     """Data structure that contains local information about density profiles.
     Data structure used as a umbrella class for density profiles and the
     derivative of the potential w.r.t. density profiles.
+
     Examples
     --------
     >>> import torch
@@ -82,6 +88,7 @@ class ValGrad:
     ValGrad(value=tensor([2.]), grad=tensor([0.]), lapl=tensor([2.]), kin=tensor([2.]))
     >>> vg * 5
     ValGrad(value=tensor([5.]), grad=tensor([0.]), lapl=tensor([5.]), kin=tensor([5.]))
+
     """
 
     def __init__(self,
@@ -90,6 +97,7 @@ class ValGrad:
                  lapl: Optional[torch.Tensor] = None,
                  kin: Optional[torch.Tensor] = None):
         """Initialize the ValGrad object.
+
         Parameters
         ----------
         value: torch.Tensor
@@ -103,6 +111,7 @@ class ValGrad:
         kin: torch.Tensor or None
             If tensor, represents the local kinetic energy density.
             It should have the same shape as ``value``.
+
         """
         self.value = value
         self.grad = grad
@@ -133,3 +142,145 @@ class ValGrad:
 
     def __repr__(self):
         return f"ValGrad(value={self.value}, grad={self.grad}, lapl={self.lapl}, kin={self.kin})"
+
+
+@dataclass
+class CGTOBasis:
+    """Data structure that contains information about a contracted gaussian
+    type orbital (CGTO).
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.dft_utils import CGTOBasis
+    >>> alphas = torch.ones(1)
+    >>> coeffs = torch.ones(1)
+    >>> cgto = CGTOBasis(angmom=0, alphas=alphas, coeffs=coeffs)
+    >>> cgto.wfnormalize_()
+    CGTOBasis(angmom=0, alphas=tensor([1.]), coeffs=tensor([2.5265]), normalized=True)
+
+    """
+
+    def __init__(self, angmom: int, alphas: torch.Tensor, coeffs: torch.Tensor):
+        """Initialize the CGTOBasis object.
+
+        Parameters
+        ----------
+        angmom: int
+            The angular momentum of the basis.
+        alphas: torch.Tensor
+            The gaussian exponents of the basis. Shape: (nbasis,)
+        coeffs: torch.Tensor
+            The coefficients of the basis. Shape: (nbasis,)
+
+        """
+        self.angmom = angmom
+        self.alphas = alphas
+        self.coeffs = coeffs
+        self.normalized = False
+
+    def __repr__(self):
+        """Return the string representation of the CGTOBasis object.
+
+        Returns
+        -------
+        angmom: int
+            The angular momentum of the basis.
+        alphas: torch.Tensor
+            The gaussian exponents of the basis. Shape: (nbasis,)
+        coeffs: torch.Tensor
+            The coefficients of the basis. Shape: (nbasis,)
+
+        """
+        return f"CGTOBasis(angmom={self.angmom}, alphas={self.alphas}, coeffs={self.coeffs}, normalized={self.normalized})"
+
+    def wfnormalize_(self) -> "CGTOBasis":
+        """Wavefunction normalization
+
+        The normalization is obtained from CINTgto_norm from
+        libcint/src/misc.c, or
+        https://github.com/sunqm/libcint/blob/b8594f1d27c3dad9034984a2a5befb9d607d4932/src/misc.c#L80
+
+        Please note that the square of normalized wavefunctions do not integrate
+        to 1, but e.g. for s: 4*pi, p: (4*pi/3)
+
+        """
+
+        # if the basis has been normalized before, then do nothing
+        if self.normalized:
+            return self
+
+        coeffs = self.coeffs
+
+        # normalize to have individual gaussian integral to be 1 (if coeff is 1)
+        value = gaussian_integral(2 * self.angmom + 2, 2 * self.alphas)
+        assert isinstance(value, torch.Tensor)
+        coeffs = coeffs / torch.sqrt(value)
+
+        # normalize the coefficients in the basis (because some basis such as
+        # def2-svp-jkfit is not normalized to have 1 in overlap)
+        ee = self.alphas.unsqueeze(-1) + self.alphas.unsqueeze(
+            -2)  # (ngauss, ngauss)
+        ee = gaussian_integral(2 * self.angmom + 2, ee)  # type: ignore
+        s1 = 1 / torch.sqrt(torch.einsum("a,ab,b", coeffs, ee, coeffs))
+        coeffs = coeffs * s1
+
+        self.coeffs = coeffs
+        self.normalized = True
+        return self
+
+
+@dataclass
+class AtomCGTOBasis:
+    """Data structure that contains information about a atom and its contracted
+    gaussian type orbital (CGTO).
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.dft_utils import AtomCGTOBasis, CGTOBasis
+    >>> alphas = torch.ones(1)
+    >>> coeffs = torch.ones(1)
+    >>> cgto = CGTOBasis(angmom=0, alphas=alphas, coeffs=coeffs)
+    >>> atomcgto = AtomCGTOBasis(atomz=1, bases=[cgto], pos=[[0.0, 0.0, 0.0]])
+    >>> atomcgto
+    AtomCGTOBasis(atomz=1, bases=[CGTOBasis(angmom=0, alphas=tensor([1.]), coeffs=tensor([1.]), normalized=False)], pos=tensor([[0., 0., 0.]]))
+
+    """
+
+    def __init__(self, atomz: ZType, bases: List[CGTOBasis], pos: AtomPosType):
+        """Initialize the AtomCGTOBasis object.
+
+        Parameters
+        ----------
+        atomz: ZType
+            Atomic number of the atom.
+        bases: List[CGTOBasis]
+            List of CGTOBasis objects.
+        pos: AtomPosType
+            Position of the atom. Shape: (ndim,)
+
+        """
+        self.atomz = atomz
+        self.bases = bases
+        self.pos = torch.tensor(pos)
+
+    def __repr__(self):
+        """Return the string representation of the AtomCGTOBasis object.
+
+        Returns
+        -------
+        atomz: ZType
+            Atomic number of the atom.
+        bases: List[CGTOBasis]
+            List of CGTOBasis objects.
+        pos: AtomPosType
+            Position of the atom.
+
+        """
+        return f"AtomCGTOBasis(atomz={self.atomz}, bases={self.bases}, pos={self.pos})"
+
+
+# input basis type
+BasisInpType = Union[str, List[CGTOBasis], List[str], List[List[CGTOBasis]],
+                     Dict[Union[str, int], Union[List[CGTOBasis], str]]]
