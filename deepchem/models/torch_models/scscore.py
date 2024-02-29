@@ -1,10 +1,5 @@
-from typing import Callable, Iterable, List, Optional, Tuple, Union
-import numpy as np
-import torch
-from deepchem.data import Dataset, NumpyDataset
-from deepchem.feat import CircularFingerprint
 from deepchem.models.torch_models.torch_model import TorchModel
-from deepchem.models.losses import HingeLoss, Loss
+from deepchem.models.losses import HingeLoss
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -33,11 +28,11 @@ class ScScore(nn.Module):
     .. [2] Coley, C. W., Rogers, L., Green, W., & Jensen, K. F. (2018). Supplementary material to "SCScore: Synthetic Complexity Learned from a Reaction Corpus". Journal of Chemical Information and Modeling, 58(2), 252-261. https://github.com/connorcoley/scscore
     """
 
-    def __init__(self, 
-                 n_features: int=1024, 
-                 layer_sizes: list=[300, 300, 300, 300, 300], 
-                 dropout: float=0.0, 
-                 score_scale: int=5):
+    def __init__(self,
+                 n_features: int = 1024,
+                 layer_sizes: list = [300, 300, 300, 300, 300],
+                 dropout: float = 0.0,
+                 score_scale: int = 5):
         """
         Parameters
         ----------
@@ -49,7 +44,6 @@ class ScScore(nn.Module):
             Droupout to apply to each hidden layer.
         score_scale: int (default 5)
             Scale of the output score.
-        
         """
         super(ScScore, self).__init__()
         self.n_features = n_features
@@ -64,7 +58,7 @@ class ScScore(nn.Module):
         for layer_size in self.layer_sizes[1:]:
             self.hidden_layers.append(nn.Linear(input_size, layer_size))
             input_size = layer_size
-        
+
         self.output_layer = nn.Linear(self.layer_sizes[-1], 1)
 
     def forward(self, inputs):
@@ -78,23 +72,23 @@ class ScScore(nn.Module):
         -------
         output: Tensor
             Synthetic complexity score of the input molecule.
-
         """
 
         x = F.relu(self.input_layer(inputs))
         if self.dropout > 0.0:
             x = F.dropout(x, p=self.dropout)
-        
+
         for hidden_layer in self.hidden_layers:
             x = F.relu(hidden_layer(x))
 
             if self.dropout > 0.0:
                 x = F.dropout(x, p=self.dropout)
-        
+
         output = F.sigmoid(self.output_layer(x))
-        
+
         output = 1 + (self.score_scale - 1) * output
         return output
+
 
 class ScScoreModel(TorchModel):
     """
@@ -111,6 +105,22 @@ class ScScoreModel(TorchModel):
 
     The default values for the model are the same as the ones used in the original paper [1]_.
 
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> from deepchem.models import ScScoreModel
+    >>> # preparing dataset
+    >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
+    >>> labels = [0., 1.]
+    >>> featurizer = dc.feat.CircularFingerprint(size=1024, radius=2, chiral=True)
+    >>> X = featurizer.featurize(smiles)
+    >>> dataset = dc.data.NumpyDataset(X=X, y=labels)
+    >>> # training model
+    >>> model = ScScoreModel(n_features=1024, layer_sizes=[300, 300, 300, 300, 300],
+    ...                      dropout=0.2, score_scale=5), batch_size=16, learning_rate=0.001)
+    >>> loss = model.fit(dataset, nb_epoch=5)
+
+
     References
     ----------
     .. [1] Coley, C. W., Rogers, L., Green, W., & Jensen, K. F. (2018). "SCScore: Synthetic Complexity Learned from a Reaction Corpus". Journal of Chemical Information and Modeling, 58(2), 252-261. https://doi.org/10.1021/acs.jcim.7b00622
@@ -118,11 +128,11 @@ class ScScoreModel(TorchModel):
     .. [2] Coley, C. W., Rogers, L., Green, W., & Jensen, K. F. (2018). Supplementary material to "SCScore: Synthetic Complexity Learned from a Reaction Corpus". Journal of Chemical Information and Modeling, 58(2), 252-261. https://github.com/connorcoley/scscore
     """
 
-    def __init__(self, 
-                 n_features: int=1024, 
-                 layer_sizes: list=[300,300,300,300], 
-                 dropout: float=0.0, 
-                 score_scale: int=5, 
+    def __init__(self,
+                 n_features: int = 1024,
+                 layer_sizes: list = [300, 300, 300, 300, 300],
+                 dropout: float = 0.0,
+                 score_scale: int = 5,
                  **kwargs):
         """
         Parameters
@@ -135,22 +145,21 @@ class ScScoreModel(TorchModel):
             Droupout to apply to each hidden layer.
         score_scale: int (default 5)
             Max output score, range of output = (1, score_scale).
-        
         """
-        if dropout < 0.0 or dropout > 1.0:
-            raise ValueError(f"Dropout must be between 0.0 and 1.0, but got {dropout}")
-        
-        if score_scale < 1:
-            raise ValueError(f"Score scale must be greater than 1, but got {score_scale}")
-        
-        model = ScScore(n_features=n_features, 
-                        layer_sizes=layer_sizes, 
-                        dropout=dropout, 
-                        score_scale=score_scale)
-        
-        loss = HingeLoss()
-        
-        super(ScScoreModel, self).__init__(model, 
-                                           loss=loss, 
-                                           **kwargs)
 
+        if dropout < 0.0 or dropout > 1.0:
+            raise ValueError(
+                f"Dropout must be between 0.0 and 1.0, but got {dropout}")
+
+        if score_scale < 1:
+            raise ValueError(
+                f"Score scale must be greater than 1, but got {score_scale}")
+
+        model = ScScore(n_features=n_features,
+                        layer_sizes=layer_sizes,
+                        dropout=dropout,
+                        score_scale=score_scale)
+
+        loss = HingeLoss()
+
+        super(ScScoreModel, self).__init__(model, loss=loss, **kwargs)
