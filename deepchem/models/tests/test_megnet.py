@@ -35,7 +35,8 @@ def test_megnet_overfit():
                         residual_connection=True,
                         mode='classification',
                         n_classes=5,
-                        batch_size=16)
+                        batch_size=16,
+                        device='cpu')
     metric = dc.metrics.Metric(dc.metrics.accuracy_score, mode="classification")
 
     model.fit(graphs, nb_epoch=100)
@@ -61,7 +62,8 @@ def test_megnet_classification():
                         residual_connection=True,
                         mode='classification',
                         n_classes=10,
-                        batch_size=16)
+                        batch_size=16,
+                        device='cpu')
     metric = dc.metrics.Metric(dc.metrics.accuracy_score, mode="classification")
 
     model.fit(graphs, nb_epoch=50)
@@ -97,6 +99,7 @@ def test_megnet_reload():
                         mode='classification',
                         n_classes=3,
                         batch_size=16,
+                        device='cpu',
                         model_dir=model_dir)
 
     model.fit(graphs, nb_epoch=10)
@@ -110,6 +113,7 @@ def test_megnet_reload():
                                  mode='classification',
                                  n_classes=3,
                                  batch_size=16,
+                                 device='cpu',
                                  model_dir=model_dir)
     reloaded_model.restore()
     orig_predict = model.predict(test_graphs)
