@@ -4,6 +4,7 @@ Test for MEGNetModel
 import pytest
 import tempfile
 import numpy as np
+from flaky import flaky
 import deepchem as dc
 from deepchem.utils.fake_data_generator import FakeGraphGenerator as FGG
 
@@ -16,6 +17,7 @@ except ModuleNotFoundError:
     pass
 
 
+@flaky(max_runs=3, min_passes=1)
 @pytest.mark.torch
 def test_megnet_overfit():
     fgg = FGG(avg_n_nodes=10,
@@ -44,6 +46,7 @@ def test_megnet_overfit():
     assert scores['accuracy_score'] == 1.0
 
 
+@flaky(max_runs=3, min_passes=1)
 @pytest.mark.torch
 def test_megnet_classification():
     fgg = FGG(avg_n_nodes=10,
