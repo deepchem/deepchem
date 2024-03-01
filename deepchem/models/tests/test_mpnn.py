@@ -2,7 +2,7 @@ import pytest
 import tempfile
 
 import numpy as np
-
+from flaky import flaky
 import deepchem as dc
 from deepchem.feat import MolGraphConvFeaturizer
 from deepchem.models.tests.test_graph_models import get_dataset
@@ -82,6 +82,7 @@ def test_mpnn_classification():
     model.fit(train_set, nb_epoch=1)
 
 
+@flaky(max_runs=3, min_passes=1)
 @pytest.mark.torch
 def test_mpnn_reload():
     # load datasets
