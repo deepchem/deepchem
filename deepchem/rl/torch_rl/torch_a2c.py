@@ -77,6 +77,9 @@ class A2CLossDiscrete(object):
         return policy_loss + self.value_weight * value_loss - self.entropy_weight * entropy
 
 
+# Note: For continuous case, when an additional loss term correspoding to mean is calculated only then the gradients get calculated for the layers of the model.
+
+
 class A2CLossContinuous(object):
     """This class computes the loss function for A2C with continuous action spaces.
     Example
@@ -191,7 +194,7 @@ class A2C(object):
     >>> import numpy as np
     >>> import torch
     >>> import torch.nn.functional as F
-    >>> from deepchem.rl.torch_a2c import A2C
+    >>> from deepchem.rl.torch_rl import A2C
     >>> class RouletteEnvironment(dc.rl.Environment):
     ...     def __init__(self):
     ...         super(RouletteEnvironment, self).__init__([(1,)], 38)
@@ -544,8 +547,9 @@ class A2C(object):
         if not self._env.terminated:
             results = self._model.model(
                 self._create_model_inputs(self._env.state, rnn_states))
-            final_value: float = self.discount_factor * results[
+            final_value = self.discount_factor * results[
                 self._value_index].detach().numpy()[0]
+            final_value = final_value.item()
         else:
             final_value = 0.0
         values.append(final_value)

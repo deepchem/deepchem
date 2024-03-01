@@ -7,7 +7,7 @@ try:
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
-    from deepchem.rl.torch_a2c import A2C
+    from deepchem.rl.torch_rl import A2C
     from deepchem.models.optimizers import Adam
     has_pytorch = True
 except:

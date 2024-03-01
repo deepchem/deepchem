@@ -44,17 +44,18 @@ PPO
 .. autoclass:: deepchem.rl.ppo.PPOLoss
   :members:
 
+
 Torch implementation
 --------------------
 
 A2C
 ---
 
-.. autoclass:: deepchem.rl.torch_a2c.A2C
+.. autoclass:: deepchem.rl.torch_rl.A2C
   :members:
 
-.. autoclass:: deepchem.rl.torch_a2c.A2CLossDiscrete
+.. autoclass:: deepchem.rl.torch_rl.A2CLossDiscrete
   :members:
 
-.. autoclass:: deepchem.rl.torch_a2c.A2CLossContinuous
+.. autoclass:: deepchem.rl.torch_rl.A2CLossContinuous
   :members:

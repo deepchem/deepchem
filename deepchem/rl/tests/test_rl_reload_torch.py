@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 from deepchem.models.optimizers import Adam
 try:
-    from deepchem.rl.torch_a2c import A2C
+    from deepchem.rl.torch_rl import A2C
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
