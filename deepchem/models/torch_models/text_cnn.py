@@ -298,26 +298,7 @@ class TextCNNModel(TorchModel):
             mode: str = 'fit',
             deterministic: bool = True,
             pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
-        """
-        Transfer smiles strings to fixed length integer vectors
-
-        Parameters
-        ----------
-        dataset: `dc.data.Dataset`
-            Dataset to convert
-        epochs: int, optional (Default 1)
-            Number of times to walk over `dataset`
-        mode: str, optional (Default 'fit')
-            Ignored in this implementation.
-        deterministic: bool, optional (Default True)
-            Whether the dataset should be walked in a deterministic fashion
-        pad_batches: bool, optional (Default True)
-            If true, each returned batch will have size `self.batch_size`.
-
-        Returns
-        -------
-        Iterator which walks over the batches
-        """
+        """Transfer smiles strings to fixed length integer vectors"""
         for epoch in range(epochs):
             for (X_b, y_b, w_b,
                  ids_b) in dataset.iterbatches(batch_size=self.batch_size,
@@ -335,24 +316,9 @@ class TextCNNModel(TorchModel):
     @staticmethod
     def build_char_dict(dataset: Dataset,
                         default_dict: Dict[str, int] = default_dict):
-        """
-        Collect all unique characters(in smiles) from the dataset.
-        This method should be called before defining the model to build appropriate char_dict
-
-        Parameters
-        ----------
-        dataset: Dataset
-           Dataset for which char_dict is built for
-        default_dict: dict, optional
-           Mapping from characters in smiles to integers, optional
-
-        Returns
-        -------
-        out_dict: dict
-            A dictionary containing mapping between unique characters in the dataset to integers
-        seq_length: int
-            The maximum sequence length of smile strings found in the dataset multiplied by 1.2
-        """
+        """ Collect all unique characters(in smiles) from the dataset.
+       This method should be called before defining the model to build appropriate char_dict
+       """
         X = dataset.ids
         # Maximum length is expanded to allow length variation during train and inference
         seq_length = int(max([len(smile) for smile in X]) * 1.2)
@@ -385,18 +351,8 @@ class TextCNNModel(TorchModel):
         return out_dict, seq_length
 
     def smiles_to_seq(self, smiles: str):
-        """
+        """ 
         Tokenize characters in smiles to integers
-
-        Parameters
-        ----------
-        smiles: str
-           A smile string
-
-        Returns
-        -------
-        array: np.ndarray
-            An array of integers representing the tokenized sequence of characters.
         """
         smiles_len = len(smiles)
         seq = [0]
@@ -421,50 +377,19 @@ class TextCNNModel(TorchModel):
         return np.array(seq, dtype=np.int32)
 
     @staticmethod
-    def convert_bytes_to_char(s: bytes) -> str:
-        """
-        Convert bytes to string.
+    def convert_bytes_to_char(s):
+        s = ''.join(chr(b) for b in s)
+        return s
 
-        Parameters
-        ----------
-        s: bytes
-            Bytes to be converted to string.
-
-        Returns
-        -------
-        str
-            String representation of the bytes.
-        """
-        out_str = ''.join(chr(b) for b in s)
-        return out_str
-
-    def smiles_to_seq_batch(
-            self, ids_b: Union[List[Union[bytes, str]],
-                               np.ndarray]) -> np.ndarray:
+    def smiles_to_seq_batch(self, ids_b):
         """
         Converts SMILES strings to np.array sequence.
-
-        Parameters
-        ----------
-        ids_b: Union[List[Union[bytes, str]], np.ndarray]
-            A list of SMILES strings, either as bytes or strings.
-
-        Returns
-        -------
-        np.ndarray
-            A numpy array containing the tokenized sequences of SMILES strings.
         """
-        if isinstance(ids_b, np.ndarray):
-            ids_b = ids_b.tolist()  # Convert ndarray to list
-        converted_ids_b = []
-        for smiles in ids_b:
-            if isinstance(smiles, bytes) and sys.version_info[0] != 2:
-                converted_ids_b.append(
-                    TextCNNModel.convert_bytes_to_char(smiles))
-            elif isinstance(smiles, str):
-                converted_ids_b.append(smiles)
-            else:
-                raise TypeError("Expected bytes or str, received: {}".format(
-                    type(smiles)))
-        smiles_seqs = [self.smiles_to_seq(smiles) for smiles in converted_ids_b]
-        return np.vstack(smiles_seqs)
+        if isinstance(ids_b[0], bytes) and sys.version_info[
+                0] != 2:  # Python 2.7 bytes and string are analogous
+            ids_b = [
+                TextCNNModel.convert_bytes_to_char(smiles) for smiles in ids_b
+            ]
+        smiles_seqs = [self.smiles_to_seq(smiles) for smiles in ids_b]
+        smiles_seqs = np.vstack(smiles_seqs)
+        return smiles_seqs
