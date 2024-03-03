@@ -6159,7 +6159,9 @@ class PaulinetElectronFeature(nn.Module):
     The layer consists of 2 types of linear layers - v for the one electron features and w for the two electron features. The number and dimensions
     of each layer depends on the number of atoms and electrons in the molecule system.
 
-    Reference: https://arxiv.org/abs/1909.08423.
+    References
+    ----------
+    .. [1] Jan Hermann et al. Deep neural network solution of the electronic Schrödinger equation. 2019. https://arxiv.org/abs/1909.08423
 
     Examples
     --------
