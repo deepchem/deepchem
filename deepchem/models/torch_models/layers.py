@@ -6151,3 +6151,105 @@ class HighwayLayer(torch.nn.Module):
         output = H_out * T_out + x * (1 - T_out)
 
         return output
+
+class PaulinetElectronFeature(nn.Module):
+    """
+    A Pytorch Module implementing the Paulinet's electron features interaction layer. This is a helper class for the Paulinet model.
+
+    The layer consists of 2 types of linear layers - v for the one electron features and w for the two electron features. The number and dimensions
+    of each layer depends on the number of atoms and electrons in the molecule system.
+
+    Reference: https://arxiv.org/abs/1909.08423.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> electron_layer = dc.models.torch_models.layers.PaulinetElectronFeature([32,32,32],[16,16,16], 4, 8, 10)
+    >>> one_electron_test = torch.randn(8, 10, 4*4)
+    >>> two_electron_test = torch.randn(8, 10, 10, 4)
+    >>> one, two = electron_layer.forward(one_electron_test, two_electron_test)
+    >>> one.size()
+    torch.Size([8, 10, 32])
+    >>> two.size()
+    torch.Size([8, 10, 10, 16])
+    """
+
+    def __init__(self, n_one: List[int], n_two: List[int], no_of_atoms: int,
+                 batch_size: int, total_electron: int):
+        """
+        Parameters
+        ----------
+        n_one: List[int]
+            List of integer values containing the dimensions of each n_one layer's output
+        n_two: List[int]
+            List of integer values containing the dimensions of each n_one layer's output
+        no_of_atoms: int:
+            Value containing the number of atoms in the molecule system
+        batch_size: int
+            Value containing the number of batches for the input provided
+        total_electron: int
+            Value containing the total number of electrons in the molecule system
+        v: torch.nn.ModuleList
+            torch ModuleList containing the linear layer with the n_one layer's dimension size.
+        w: torch.nn.ModuleList
+            torch ModuleList containing the linear layer with the n_two layer's dimension size.
+        layer_size: int
+            Value containing the number of n_one and n_two layers
+
+        Initialize the electron feature interaction layer for the Paulinet model.
+        """
+        super(PaulinetElectronFeature, self).__init__()
+        self.n_one = n_one
+        self.n_two = n_two
+        self.no_of_atoms = no_of_atoms
+        self.batch_size = batch_size
+        self.total_electron = total_electron
+
+        self.v = torch.nn.ModuleList()
+        self.w = torch.nn.ModuleList()
+        self.layer_size = len(self.n_one)
+
+        # Initialize the first linear layer for one-electron features with input size of 4 * no_of_atoms and output size of n_one[0]
+        self.v.append(nn.Linear(4 * self.no_of_atoms, self.n_one[0], bias=True))
+        # Initialize the first linear layer for two-electron features with input size of 4 and output size of n_two[0]
+        self.w.append(nn.Linear(4, self.n_two[0], bias=True))
+
+        # Initialize the remaining linear layers for one-electron and two-electron features
+        for i in range(1, self.layer_size):
+            self.v.append(nn.Linear(self.n_one[i - 1] + self.n_two[i - 1],
+                                  n_one[i],
+                                  bias=True))
+            self.w.append(nn.Linear(self.n_two[i - 1], self.n_two[i],
+                                    bias=True))
+
+    def forward(self, one_electron: torch.Tensor, two_electron: torch.Tensor):
+        """
+        Perform forward pass of Parameters
+        ----------
+        one_electron: torch.Tensor
+            Tensor of shape (batch_size, total_electron, no_of_atoms, 4) containing the one-electron features for each electron in the system.
+        two_electron: torch.Tensor
+            Tensor of shape (batch_size, total_electron, total_electron, 4) containing the two-electron features for each pair of electrons in the system.
+
+        Returns
+        -------
+        one_electron_out: torch.Tensor
+            Tensor of shape (batch_size, total_electron, n_one[-1]) containing the output of the one-electron features after passing through the interaction layer.
+        two_electron_out: torch.Tensor
+            Tensor of shape (batch_size, total_electron, total_electron, n_two[-1]) containing the output of the two-electron features after passing through the interaction layer.
+        """
+        # Initialize the output tensors for one-electron and two-electron features
+        one_electron_out = one_electron
+        two_electron_out = two_electron
+
+        # Pass the one-electron features through each linear layer in v
+        for i in range(self.layer_size):
+            one_electron_out = torch.tanh(self.v[i](one_electron_out))
+
+        # Pass the two-electron features through each linear layer in w
+        for i in range(self.layer_size):
+            two_electron_out = torch.tanh(self.w[i](two_electron_out))
+
+        # Return the output tensors for one-electron and two-electron features
+        return one_electron_out, two_electron_out
+
