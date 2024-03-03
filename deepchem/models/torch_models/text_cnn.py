@@ -351,7 +351,7 @@ class TextCNNModel(TorchModel):
         return out_dict, seq_length
 
     def smiles_to_seq(self, smiles: str):
-        """ 
+        """
         Tokenize characters in smiles to integers
         """
         smiles_len = len(smiles)
