@@ -3,7 +3,7 @@ dependencies:
     - flake8
     - flaky
     - mypy
-    - pytest
+    - pytest<8.1
     - pytest-cov
     - types-pkg_resources
     - types-setuptools
