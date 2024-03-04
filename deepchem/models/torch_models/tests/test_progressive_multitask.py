@@ -14,13 +14,13 @@ except ModuleNotFoundError:
 
 
 @pytest.mark.torch
-def test_construction():
-    """
-    Test that PrgressiveMultiTask Model can be constructed without crash.
+def test_progressivemultitask_construction():
+    """Test that PrgressiveMultiTask Model can be constructed without crash.
     """
 
     model = dc.models.torch_models.ProgressiveMultitask(
         n_tasks=1,
+        mode="classification",
         n_features=100,
         layer_sizes=[128, 256],
         alpha_init_stddevs=[0.08],
@@ -28,16 +28,15 @@ def test_construction():
         bias_init_consts=1.0,
         activation_fns=nn.ReLU,
         dropouts=[0.2],
-        n_outputs=2,
+        n_classes=2,
     )
 
     assert model is not None
 
 
 @pytest.mark.torch
-def test_forward():
-    """
-    Test that the forward pass of ProgressiveMultiTask Model can be executed without crash
+def test_progressivemultitask_regression_forward():
+    """Test that the forward pass of ProgressiveMultiTask Model can be executed without crash
     and that the output has the correct value.
     """
 
@@ -46,6 +45,7 @@ def test_forward():
 
     torch_model = dc.models.torch_models.ProgressiveMultitask(
         n_tasks=n_tasks,
+        mode='regression',
         n_features=n_features,
         layer_sizes=[128, 256],
         alpha_init_stddevs=0.02,
@@ -53,17 +53,67 @@ def test_forward():
         dropouts=0,
     )
 
+    weights = np.load(
+        "deepchem/models/torch_models/tests/assets/progressive-multitask-regressor-sample-weights.npz"
+    )
+
+    move_weights(torch_model, weights)
+
+    input_x = weights["input"]
+    output = weights["output"]
+    torch_out = torch_model(
+        torch.from_numpy(input_x).float()).cpu().detach().numpy()
+
+    assert np.allclose(output, torch_out,
+                       atol=1e-4), "Predictions are not close"
+
+
+@pytest.mark.torch
+def test_progressivemultitask_classification_forward():
+    """Test that the forward pass of ProgressiveMultiTask Model can be executed without crash
+    and that the output has the correct value.
+    """
+
+    n_tasks = 2
+    n_features = 12
+
+    torch_model = dc.models.torch_models.ProgressiveMultitask(
+        n_tasks=n_tasks,
+        mode='classification',
+        n_features=n_features,
+        layer_sizes=[128, 256],
+        alpha_init_stddevs=0.02,
+        weight_init_stddevs=0.02,
+        dropouts=0,
+        n_classes=2)
+
+    weights = np.load(
+        "deepchem/models/torch_models/tests/assets/progressive-multitask-classifier-sample-weights.npz"
+    )
+
+    move_weights(torch_model, weights)
+
+    input_x = weights["input"]
+    output = weights["output"]
+
+    torch_out = torch_model(
+        torch.from_numpy(input_x).float())[0]  # We need output probabilities
+
+    torch_out = torch_out.cpu().detach().numpy()
+
+    assert np.allclose(output, torch_out,
+                       atol=1e-4), "Predictions are not close"
+
+
+def move_weights(torch_model, weights):
+
     def to_torch_param(weights):
         """Convert numpy weights to torch parameters to be used as model weights"""
         return nn.Parameter(torch.from_numpy(weights))
 
-    weights = np.load(
-        "deepchem/models/torch_models/tests/assets/progressive-multitask-sample-weights.npz"
-    )
     torch_weights = {
         k: to_torch_param(v) for k, v in weights.items() if k != "output"
     }
-    torch_weights["output"] = weights["output"]
 
     # Porting the weights from TF to PyTorch
     # task 0 layer 0
@@ -101,11 +151,3 @@ def test_forward():
     torch_model.adapters[0][1][0].weight = torch_weights["adapter-0-1-0-w"]
     torch_model.adapters[0][1][0].bias = torch_weights["adapter-0-1-0-b"]
     torch_model.adapters[0][1][1].weight = torch_weights["adapter-0-1-1-w"]
-
-    input_x = weights["input"]
-    output = torch_weights["output"]
-    torch_out = torch_model(
-        torch.from_numpy(input_x).float()).cpu().detach().numpy()
-
-    assert np.allclose(output, torch_out,
-                       atol=1e-4), "Predictions are not close"
