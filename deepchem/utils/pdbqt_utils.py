@@ -350,3 +350,41 @@ def _valid_bond(used_partitions: Set[int], bond: Tuple[int, int],
     else:
         next_partition = part1
     return next_partition not in used_partitions, next_partition
+
+
+def prepare_ligand(ligand_filename: str = None) -> str:
+    """Helper method to prepare a ligand SDF file.
+
+    Transforms a SDF file to PDQBT type, which is the file type used for
+    molecular docking with vina. This method used RDKit and Meeko.
+
+    Parameters
+    ----------
+    ligand_filename: str, optional  (default None)
+        SDF file to be converted into PDBQT string.
+
+    Returns
+    -------
+    pdbqt_string: str
+        String with ligand PDBQT content
+    """
+    try:
+        from rdkit import Chem
+    except ModuleNotFoundError:
+        raise ImportError("This function requires RDKit to be installed.")
+    try:
+        from meeko import MoleculePreparation, PDBQTWriterLegacy
+    except ModuleNotFoundError:
+        raise ImportError("This function requires meeko to be installed")
+
+    if ligand_filename is None:
+        raise ValueError("Ligand filename must be provided")
+    else:
+        # Iterates over SDF file, which shouls contain just one molecule
+        for mol in Chem.SDMolSupplier(ligand_filename, removeHs=False):
+            mol = Chem.AddHs(mol)
+            preparator = MoleculePreparation()
+            mol_setups = preparator.prepare(mol)
+            for setup in mol_setups:
+                pdbqt_string = PDBQTWriterLegacy.write_string(setup)[0]
+                return pdbqt_string
