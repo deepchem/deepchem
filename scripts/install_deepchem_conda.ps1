@@ -20,22 +20,22 @@ conda install -c conda-forge conda-merge
 
 $common = Join-Path (pwd).PATH "requirements/env_common.yml"
 $test = Join-Path (pwd).PATH "requirements/env_test.yml"
-$tensorflow = Join-Path (pwd).PATH "requirements/tensorflow/env_tensorflow.cpu.yml"
 $out = Join-Path (pwd).PATH "env.yml"
-# Tensorflow has same installation commands for CPU and GPU
 # Torch has different installation commands for CPU and GPU
 # Jax is not supported in windows. Hence, excluded.
+# Tensorflow is not supported in windows. Hence, excluded, install 
+# linux version using Windows Subsystem for Linux.
 if($args[1] -eq "gpu")
 {
     # We expect the CUDA vesion is 10.1.
     $torch_gpu = Join-Path (pwd).PATH "requirements/torch/env_torch.gpu.yml"
-    conda-merge $common $tensorflow $torch_gpu $test > $out
+    conda-merge $common $torch_gpu $test > $out
     echo "Installing DeepChem in the GPU environment"
 }
 else
 {
     $torch_cpu = Join-Path (pwd).PATH "requirements/torch/env_torch.cpu.yml"
-    conda-merge $common $tensorflow $torch_cpu $test > $out
+    conda-merge $common $torch_cpu $test > $out
     echo "Installing DeepChem in the CPU environment"
 }
 
