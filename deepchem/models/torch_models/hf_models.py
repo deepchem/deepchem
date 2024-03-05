@@ -191,9 +191,16 @@ class HuggingFaceModel(TorchModel):
 
         Note
         ----
-        Use `load_from_pretrained` method only to load a pretrained model - a
-        model trained on a different task like Masked Language Modeling or
-        Multitask Regression. To `restore` a model, use the `restore` method.
+        1. Use `load_from_pretrained` method only to load a pretrained model - a
+            model trained on a different task like Masked Language Modeling or
+            Multitask Regression. To `restore` a model, use the `restore` method.
+
+        2. A pretrain model has different number of target tasks for pretraining and a finetune
+            model has different number of target tasks for finetuning. Thus, they both have different
+            number of projection outputs in the last layer. To avoid a mismatch
+            in the weights of the output projection layer (last layer) between
+            the pretrain model and current model, we delete the projection
+            layers weights.
         """
         if model_dir is None:
             model_dir = self.model_dir
