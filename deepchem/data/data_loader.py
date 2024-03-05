@@ -25,24 +25,6 @@ try:
 except ModuleNotFoundError:
     pass
 
-try:
-    import pysam
-    from deepchem.feat import SAMFeaturizer
-except ImportError:
-    print("Error: Unable to import pysam. Please make sure it is installed.")
-
-try:
-    import pysam
-    from deepchem.feat import BAMFeaturizer
-except ImportError:
-    print("Error: Unable to import pysam. Please make sure it is installed.")
-
-try:
-    import pysam
-    from deepchem.feat import CRAMFeaturizer
-except ImportError:
-    print("Error: Unable to import pysam. Please make sure it is installed.")
-
 logger = logging.getLogger(__name__)
 
 
@@ -1956,6 +1938,7 @@ class SAMLoader(DataLoader):
                       UserDefinedFeaturizer):  # User defined featurizer
             self.user_specified_features = featurizer.feature_fields
         elif featurizer is None:  # Default featurizer
+            from deepchem.feat import SAMFeaturizer
             featurizer = SAMFeaturizer()
 
         # Set self.featurizer
@@ -2043,6 +2026,7 @@ class BAMLoader(DataLoader):
                       UserDefinedFeaturizer):  # User defined featurizer
             self.user_specified_features = featurizer.feature_fields
         elif featurizer is None:  # Default featurizer
+            from deepchem.feat import BAMFeaturizer
             featurizer = BAMFeaturizer(max_records=None)
 
         # Set self.featurizer
@@ -2131,6 +2115,7 @@ class CRAMLoader(DataLoader):
                       UserDefinedFeaturizer):  # User defined featurizer
             self.user_specified_features = featurizer.feature_fields
         elif featurizer is None:  # Default featurizer
+            from deepchem.feat import CRAMFeaturizer
             featurizer = CRAMFeaturizer(max_records=None)
 
         # Set self.featurizer
