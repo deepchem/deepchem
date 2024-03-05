@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9']
+        python-version: ['3.9', '3.11']
     steps:
     - name: Maximize build space
       if: runner.os == 'ubuntu-latest'
