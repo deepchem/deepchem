@@ -845,3 +845,162 @@ def test_cg():
     B = torch.tensor([[5., 6], [7, 8]])
     assert torch.allclose(cg(A, B),
                           torch.tensor([[-3.0000, -4.0000], [4.0000, 5.0000]]))
+
+
+@pytest.mark.torch
+def test_svd():
+    from deepchem.utils.differentiation_utils import LinearOperator, svd
+    A = LinearOperator.m(torch.tensor([[3, 1], [1, 4.]]))
+    U, S, _ = svd(A)
+    assert torch.allclose(torch.tensor([[-0.8507, 0.5257], [0.5257, 0.8507]]),
+                          U, 0.001)
+    assert torch.allclose(torch.tensor([2.3820, 4.6180]), S, 0.001)
+
+
+@pytest.mark.torch
+def test_BroydenFirst():
+    from deepchem.utils.differentiation_utils.optimize.jacobian import BroydenFirst
+    jacobian = BroydenFirst()
+    x0 = torch.tensor([1.0, 1.0], requires_grad=True)
+
+    def func(x):
+        return torch.tensor([x[0]**2 + x[1]**2 - 1.0, x[0] - x[1]])
+
+    y0 = func(x0)
+    v = torch.tensor([1.0, 1.0])
+    jacobian.setup(x0, y0, func)
+    assert torch.allclose(jacobian.solve(v), torch.tensor([-0.7071, -0.7071]))
+
+
+@pytest.mark.torch
+def test_BroydenSecond():
+    from deepchem.utils.differentiation_utils.optimize.jacobian import BroydenSecond
+    jacobian = BroydenSecond()
+    x0 = torch.tensor([1.0, 1.0], requires_grad=True)
+
+    def func(x):
+        return torch.tensor([x[0]**2 + x[1]**2 - 1.0, x[0] - x[1]])
+
+    y0 = func(x0)
+    v = torch.tensor([1.0, 1.0])
+    jacobian.setup(x0, y0, func)
+    assert torch.allclose(jacobian.solve(v), torch.tensor([-0.7071, -0.7071]))
+
+
+@pytest.mark.torch
+def test_LinearMixing():
+    from deepchem.utils.differentiation_utils.optimize.jacobian import LinearMixing
+    jacobian = LinearMixing()
+    x0 = torch.tensor([1.0, 1.0], requires_grad=True)
+
+    def func(x):
+        return torch.tensor([x[0]**2 + x[1]**2 - 1.0, x[0] - x[1]])
+
+    y0 = func(x0)
+    v = torch.tensor([1.0, 1.0])
+    jacobian.setup(x0, y0, func)
+    assert torch.allclose(jacobian.solve(v), torch.tensor([1., 1.]))
+
+
+@pytest.mark.torch
+def test_low_rank_matrix():
+    from deepchem.utils.differentiation_utils.optimize.jacobian import LowRankMatrix
+    import torch
+    alpha = 1.0
+    uv0 = (torch.tensor([1.0, 1.0]), torch.tensor([1.0, 1.0]))
+    reduce_method = "restart"
+    matrix = LowRankMatrix(alpha, uv0, reduce_method)
+    v = torch.tensor([1.0, 1.0])
+    assert torch.allclose(matrix.mv(v), torch.tensor([3., 3.]))
+
+
+@pytest.mark.torch
+def test_full_rank_matrix():
+    from deepchem.utils.differentiation_utils.optimize.jacobian import FullRankMatrix
+    alpha = 1.0
+    cns = [torch.tensor([1.0, 1.0]), torch.tensor([1.0, 1.0])]
+    dns = [torch.tensor([1.0, 1.0]), torch.tensor([1.0, 1.0])]
+    matrix = FullRankMatrix(alpha, cns, dns)
+    v = torch.tensor([1.0, 1.0])
+    assert torch.allclose(matrix.mv(v), torch.tensor([5., 5.]))
+    assert torch.allclose(matrix.rmv(v), torch.tensor([5., 5.]))
+
+
+@pytest.mark.torch
+def test_gd():
+    from deepchem.utils.differentiation_utils.optimize.minimizer import gd
+
+    def fcn(x):
+        return (x - 2)**2, 2 * (x - 2)
+
+    x0 = torch.tensor(0.0, requires_grad=True)
+    x = gd(fcn, x0, [])
+    assert torch.allclose(x, torch.tensor(2.0000))
+
+
+@pytest.mark.torch
+def test_adam():
+    from deepchem.utils.differentiation_utils.optimize.minimizer import adam
+
+    def fcn(x):
+        return (x - 2)**2, 2 * (x - 2)
+
+    x0 = torch.tensor(0.0, requires_grad=True)
+    x = adam(fcn, x0, [], maxiter=10000)
+    assert torch.allclose(x, torch.tensor(2.0000))
+
+
+@pytest.mark.torch
+def test_termination_condition():
+    from deepchem.utils.differentiation_utils.optimize.minimizer import TerminationCondition
+    stop_cond = TerminationCondition(1e-8, 1e-8, 1e-8, 1e-8, True)
+    assert not stop_cond.to_stop(0, torch.tensor(0.0), torch.tensor(0.0),
+                                 torch.tensor(0.0), torch.tensor(0.0))
+
+
+@pytest.mark.torch
+def test_anderson_acc():
+    from deepchem.utils.differentiation_utils.optimize.equilibrium import anderson_acc
+
+    def fcn(x):
+        return x
+
+    x0 = torch.tensor([0.0], requires_grad=True)
+    x = anderson_acc(fcn, x0, [])
+    assert torch.allclose(x, torch.tensor([0.]))
+
+
+@pytest.mark.torch
+def test_broyden1():
+    from deepchem.utils.differentiation_utils.optimize.rootsolver import broyden1
+
+    def fcn(x):
+        return x**2 - 4
+
+    x0 = torch.tensor(0.0, requires_grad=True)
+    x = broyden1(fcn, x0)
+    assert torch.allclose(x, torch.tensor(-2.0000))
+
+
+@pytest.mark.torch
+def test_broyden2():
+    from deepchem.utils.differentiation_utils.optimize.rootsolver import broyden2
+
+    def fcn(x):
+        return x**2 - 4
+
+    x0 = torch.tensor(0.0, requires_grad=True)
+    x = broyden2(fcn, x0)
+    assert torch.allclose(x, torch.tensor(-2.0000))
+
+
+@pytest.mark.torch
+def test_linear_mixing():
+    from deepchem.utils.differentiation_utils.optimize.rootsolver import linearmixing
+
+    def fcn(x):
+        return x**2 - 4
+
+    x0 = torch.tensor(0.0, requires_grad=True)
+    x = linearmixing(fcn, x0)
+    assert torch.allclose(x, torch.tensor(2.0000))
