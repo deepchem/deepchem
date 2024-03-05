@@ -46,6 +46,8 @@ try:
     from deepchem.utils.dft_utils.hamilton.base_hamilton import BaseHamilton
 
     from deepchem.utils.dft_utils.system.base_system import BaseSystem
+
+    from deepchem.utils.dft_utils.qccalc.base_qccalc import BaseQCCalc
 except ModuleNotFoundError as e:
     logger_.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
