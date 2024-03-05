@@ -488,6 +488,48 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.differentiation_utils.solve.solve_torchfcn
   :members:
 
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.equilibrium.anderson_acc
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.minimizer.gd
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.minimizer.adam
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.minimizer.TerminationCondition
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver._nonlin_solver
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver.broyden1
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver.broyden2
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver.linearmixing
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver._safe_norm
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver._nonline_line_search
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver._scalar_search_armijo
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver.TerminationCondition
+
+.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.Jacobian
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.BroydenFirst
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.BroydenSecond
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.LinearMixing
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.LowRankMatrix
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.FullRankMatrix
+  :members:
+
 Attribute Utilities
 -------------------
 

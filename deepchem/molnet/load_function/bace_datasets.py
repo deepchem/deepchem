@@ -41,7 +41,8 @@ def load_bace_regression(
 
     All data are experimental values reported in scientific literature over the
     past decade, some with detailed crystal structures available. A collection
-    of 1522 compounds is provided, along with the regression labels of IC50.
+    of 1522 compounds is provided, along with the regression labels of IC50. The
+    number of tasks in the dataset is one.
 
     Scaffold splitting is recommended for this dataset.
 
@@ -93,9 +94,11 @@ def load_bace_classification(
     save_dir: Optional[str] = None,
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
-    """ Load BACE dataset, classification labels
+    """Load BACE dataset with classification labels.
 
-    BACE dataset with classification labels ("class").
+    BACE dataset with classification labels ("class"). The BACE dataset
+    contains 1513 compounds and the dataset is a binary classification
+    dataset with labels 0 or 1.
 
     Parameters
     ----------
