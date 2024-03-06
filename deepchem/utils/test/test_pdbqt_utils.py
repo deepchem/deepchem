@@ -1,7 +1,7 @@
 import unittest
 import os
 import tempfile
-from deepchem.utils import rdkit_utils 
+from deepchem.utils import rdkit_utils
 from deepchem.utils import pdbqt_utils
 
 
