@@ -6,14 +6,15 @@ from deepchem.utils.typing import OneOrMany, ActivationFn
 from deepchem.utils.pytorch_utils import get_activation
 
 from collections.abc import Sequence as SequenceCollection
-from typing import List, Tuple, Callable
+from typing import List, Tuple, Callable, Literal, Union
 
 
 class ProgressiveMultitask(nn.Module):
     """Implements a progressive multitask neural network in PyTorch.
 
     Progressive networks allow for multitask learning where each task
-    gets a new column of weights. As a result, there is no exponential
+    gets a new column of weights and lateral connections to previous tasks
+    are added to the network. As a result, there is no exponential
     forgetting where previous tasks are ignored.
 
     Examples
@@ -22,14 +23,14 @@ class ProgressiveMultitask(nn.Module):
     >>> import deepchem as dc
     >>> n_tasks = 4
     >>> n_features = 1024
-    >>> n_outputs = 2
+    >>> n_classes = 2
     >>> sample = torch.randn(16, n_features)
-    >>> model = dc.models.torch_models.ProgressiveMultitask(n_tasks=n_tasks, n_features=n_features, layer_sizes=[1024, 1024], n_outputs=n_outputs)
+    >>> model = dc.models.torch_models.ProgressiveMultitask(n_tasks=n_tasks, n_features=n_features, layer_sizes=[1024, 1024], mode="classification", n_classes=n_classes)
     >>> output = model(sample)
-    >>> print(output.type())
-    torch.FloatTensor
-    >>> print(output.shape)
-    torch.Size([16, 4, 2])
+    >>> print(output[0].type(), output[1].type())
+    torch.FloatTensor torch.FloatTensor
+    >>> print(output[0].shape, output[1].shape)
+    torch.Size([16, 4, 2]) torch.Size([16, 4, 2])
 
     References
     ----------
@@ -43,6 +44,7 @@ class ProgressiveMultitask(nn.Module):
                  n_tasks: int,
                  n_features: int,
                  layer_sizes: List[int] = [1000],
+                 mode: Literal['regression', 'classification'] = 'regression',
                  alpha_init_stddevs: OneOrMany[float] = 0.02,
                  weight_init_stddevs: OneOrMany[float] = 0.02,
                  bias_init_consts: OneOrMany[float] = 1.0,
@@ -50,8 +52,7 @@ class ProgressiveMultitask(nn.Module):
                  weight_decay_penalty_type: str = "l2",
                  activation_fns: OneOrMany[ActivationFn] = 'relu',
                  dropouts: OneOrMany[float] = 0.5,
-                 n_outputs: int = 1,
-                 **kwargs):
+                 n_classes: int = 1):
         """
         Parameters
         ----------
@@ -61,6 +62,8 @@ class ProgressiveMultitask(nn.Module):
             Size of input feature vector.
         layer_sizes: list of ints
             List of layer sizes.
+        mode: str
+            Type of model.  Must be 'regression' or 'classification'.
         alpha_init_stddevs: float or list of floats
             Standard deviation for truncated normal distribution to initialize
             alpha parameters.
@@ -77,8 +80,8 @@ class ProgressiveMultitask(nn.Module):
             Name of activation function(s) to use.
         dropouts: float or list of floats
             Dropout probability.
-        n_outputs: int
-            Number of outputs.
+        n_classes: int
+            The number of classes to predict per task.
         """
         if weight_decay_penalty != 0.0:
             raise ValueError("Weight decay is not currently supported")
@@ -97,10 +100,11 @@ class ProgressiveMultitask(nn.Module):
                 str) or not isinstance(activation_fns, SequenceCollection):
             activation_fns = [activation_fns] * n_layers
 
+        self.mode = mode
         self.n_tasks: int = n_tasks
         self.n_features: int = n_features
         self.layer_sizes: List[int] = layer_sizes
-        self.n_outputs: int = n_outputs
+        self.n_classes: int = n_classes
         self.weight_init_stddevs: SequenceCollection[
             float] = weight_init_stddevs
         self.alpha_init_stddevs: SequenceCollection[float] = alpha_init_stddevs
@@ -134,10 +138,12 @@ class ProgressiveMultitask(nn.Module):
                 prev_size = size
 
             layer_list.append(
-                self._init_linear(prev_size, n_outputs, len(self.layer_sizes)))
+                self._init_linear(prev_size, self.n_classes,
+                                  len(self.layer_sizes)))
             self.layers.append(nn.ModuleList(layer_list))
             if task > 0:
-                adapter, alpha = self._get_adapter(task, prev_size, n_outputs,
+                adapter, alpha = self._get_adapter(task, prev_size,
+                                                   self.n_classes,
                                                    len(self.layer_sizes))
                 adapter_list.append(adapter)
                 alpha_list.append(alpha)
@@ -216,7 +222,9 @@ class ProgressiveMultitask(nn.Module):
 
         return layer
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """Forward pass through the network.
 
         Parameters
@@ -226,11 +234,20 @@ class ProgressiveMultitask(nn.Module):
 
         Returns
         -------
-        outputs: torch.Tensor
-            Output tensor of shape (batch_size, n_tasks, n_outputs).
+        torch.Tensor
+            The Model output tensor of shape (batch_size, n_tasks, n_outputs).
+
+        * When self.mode = `regression`,
+            It consists of the output of each task.
+        * When self.mode = `classification`,
+            It consists of the probability of each class for each task.
+
+        torch.Tensor, optional
+            This is only returned when self.mode = `classification`, the output consists of the
+            logits for classes before softmax.
         """
-        outputs: List[torch.Tensor] = []
-        logits: List[List[torch.Tensor]] = []
+        task_outputs: List[torch.Tensor] = []
+        layer_logits: List[List[torch.Tensor]] = []
         for task in range(self.n_tasks):
             x_ = x
             layer_outputs = []
@@ -239,7 +256,8 @@ class ProgressiveMultitask(nn.Module):
                 x_ = layer(x_)
 
                 if task > 0 and i > 0:
-                    adapter_out = self._get_lateral_contrib(logits, task, i)
+                    adapter_out = self._get_lateral_contrib(
+                        layer_logits, task, i)
                     x_ = x_ + adapter_out
 
                 if i < len(self.layer_sizes):
@@ -252,14 +270,26 @@ class ProgressiveMultitask(nn.Module):
             out_layer_idx = len(self.layer_sizes)
             x_ = self.layers[task][out_layer_idx](x_)
             if task > 0:
-                adapter_out = self._get_lateral_contrib(logits, task,
+                adapter_out = self._get_lateral_contrib(layer_logits, task,
                                                         out_layer_idx)
                 x_ = x_ + adapter_out
 
-            logits.append(layer_outputs)
-            outputs.append(x_)
+            layer_logits.append(layer_outputs)
+            task_outputs.append(x_)
 
-        return torch.stack(outputs, dim=1)
+        output = torch.stack(task_outputs, dim=1)
+
+        if self.mode == 'classification':
+            if self.n_tasks == 1:
+                logits = output.view(-1, self.n_classes)
+                softmax_dim = 1
+            else:
+                logits = output.view(-1, self.n_tasks, self.n_classes)
+                softmax_dim = 2
+            proba = F.softmax(logits, dim=softmax_dim)
+            return proba, logits
+        else:
+            return output
 
     def _get_lateral_contrib(self, logits, task, layer):
         adapter = self.adapters[task - 1][layer - 1]

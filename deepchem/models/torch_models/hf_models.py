@@ -330,8 +330,6 @@ class HuggingFaceModel(TorchModel):
             optimizer.zero_grad()
             outputs = self.model(**inputs)
 
-            if self._loss_outputs is not None:
-                outputs = [outputs[i] for i in self._loss_outputs]
             batch_loss = outputs.get("loss")
             batch_loss.backward()
             optimizer.step()

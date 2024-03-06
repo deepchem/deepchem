@@ -3,7 +3,7 @@ import deepchem as dc
 try:
     import pysam
 except ImportError:
-    print("Error: Unable to import pysam. Please make sure it is installed.")
+    pass
 from deepchem.feat import Featurizer
 
 
