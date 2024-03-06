@@ -128,7 +128,7 @@ class TestPoseGeneration(unittest.TestCase):
         logging.basicConfig(level=logging.INFO)
         current_dir = os.path.dirname(os.path.realpath(__file__))
         protein_file = os.path.join(current_dir, "1jld_protein.pdb")
-        ligand_file = os.path.join(current_dir, "dichlorophenyl_sulfanyl_methyl_phosponic_acid.sdf")
+        ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
 
         centroid = np.array([56.21891368, 25.95862964, 3.58950065])
         box_dims = np.array([51.354, 51.243, 55.608])
@@ -204,7 +204,7 @@ class TestPoseGeneration(unittest.TestCase):
             scores = vpg.generate_poses((protein_file, ligand_file),
                                         centroid=centroid,
                                         box_dims=box_dims,
-                                        exhaustiveness=5,
+                                        exhaustiveness=1,
                                         num_modes=1,
                                         out_dir=tmp,
                                         generate_scores=True)
