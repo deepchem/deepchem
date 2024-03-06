@@ -1,7 +1,7 @@
 import unittest
 import os
 import tempfile
-from deepchem.utils import rdkit_utils
+from deepchem.utils import rdkit_utils 
 from deepchem.utils import pdbqt_utils
 
 
@@ -12,7 +12,7 @@ class TestPDBQTUtils(unittest.TestCase):
         self.protein_file = os.path.join(current_dir,
                                          "../../dock/tests/1jld_protein.pdb")
         self.ligand_file = os.path.join(current_dir,
-                                        "../../dock/tests/1jld_ligand.sdf")
+                                        "../../dock/tests/Ochratoxin A.sdf")
 
     def test_pdbqt_to_pdb(self):
         """Test that a PDBQT molecule can be converted back in to PDB."""
@@ -27,7 +27,7 @@ class TestPDBQTUtils(unittest.TestCase):
             rdkit_utils.write_molecule(mol, out_pdbqt, is_protein=True)
 
             pdb_block = pdbqt_utils.pdbqt_to_pdb(out_pdbqt)
-            from rdkit import Chem
+            from rdkit import Chem  # type: ignore
             pdb_mol = Chem.MolFromPDBBlock(pdb_block,
                                            sanitize=False,
                                            removeHs=False)

@@ -15,7 +15,6 @@ from deepchem.utils.typing import RDKitMol
 from deepchem.utils.geometry_utils import compute_centroid, compute_protein_range
 from deepchem.utils.rdkit_utils import load_molecule, write_molecule
 from deepchem.utils.docking_utils import load_docked_ligands, write_vina_conf, write_gnina_conf, read_gnina_log
-from deepchem.utils.pdbqt_utils import prepare_ligand
 
 logger = logging.getLogger(__name__)
 DOCKED_POSES = List[Tuple[RDKitMol, RDKitMol]]
@@ -41,8 +40,7 @@ class PoseGenerator(object):
                        num_modes: int = 9,
                        num_pockets: Optional[int] = None,
                        out_dir: Optional[str] = None,
-                       generate_scores: bool = False,
-                       ligand_preparation: bool = True):
+                       generate_scores: bool = False):
         """Generates a list of low energy poses for molecular complex
 
         Parameters
@@ -287,7 +285,6 @@ class VinaPoseGenerator(PoseGenerator):
             num_pockets: Optional[int] = None,
             out_dir: Optional[str] = None,
             generate_scores: Optional[bool] = False,
-            ligand_preparation: Optional[bool] = True,
             **kwargs) -> Union[Tuple[DOCKED_POSES, List[float]], DOCKED_POSES]:
         """Generates the docked complex and outputs files for docked complex.
 
@@ -319,10 +316,6 @@ class VinaPoseGenerator(PoseGenerator):
             If `True`, the pose generator will return scores for complexes.
             This is used typically when invoking external docking programs
             that compute scores.
-        ligand_preparation: bool, optional (default True)
-            If True, pdqbt util helper mehod prepare_ligand will be called. Also,
-            missing hydrogens wil be added to pH 7 and SDF ligand will be transformed into
-            a PDBQT string.
         kwargs:
             The kwargs - cpu, min_rmsd, max_evals, energy_range supported by VINA
             are as documented in https://autodock-vina.readthedocs.io/en/latest/vina.html
@@ -427,15 +420,12 @@ class VinaPoseGenerator(PoseGenerator):
         # Prepare ligand
         ligand_name = os.path.basename(ligand_file).split(".")[0]
         if ".pdbqt" not in ligand_file:
-            if ligand_preparation:
-                ligand_pdbqt = prepare_ligand(ligand_file)
-            else:
-                ligand_pdbqt = os.path.join(out_dir, "%s.pdbqt" % ligand_name)
+            ligand_pdbqt = os.path.join(out_dir, "%s.pdbqt" % ligand_name)
 
-                ligand_mol = load_molecule(ligand_file,
-                                           calc_charges=True,
-                                           add_hydrogens=True)
-                write_molecule(ligand_mol[1], ligand_pdbqt)
+            ligand_mol = load_molecule(ligand_file,
+                                       calc_charges=True,
+                                       add_hydrogens=True)
+            write_molecule(ligand_mol[1], ligand_pdbqt)
         else:
             ligand_pdbqt = ligand_file
 
@@ -466,11 +456,7 @@ class VinaPoseGenerator(PoseGenerator):
             logger.info("About to call Vina")
 
             vpg.set_receptor(protein_pdbqt)
-            if ligand_preparation:
-                vpg.set_ligand_from_string(ligand_pdbqt)
-            else:
-                vpg.set_ligand_from_file(ligand_pdbqt)
-
+            vpg.set_ligand_from_file(ligand_pdbqt)
             vpg.compute_vina_maps(center=protein_centroid, box_size=box_dims)
             vpg.dock(exhaustiveness=exhaustiveness,
                      n_poses=num_modes,

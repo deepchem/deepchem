@@ -15,7 +15,6 @@ dependencies:
     - dgllife
     - lightgbm==3.*
     - matminer
-    - meeko
     - mordred
     - networkx
     - pillow

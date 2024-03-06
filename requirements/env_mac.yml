@@ -7,5 +7,4 @@ dependencies:
   - vina
   - pip:
     - vina
-    - meeko
     - pysam

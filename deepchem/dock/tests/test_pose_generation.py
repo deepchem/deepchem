@@ -51,8 +51,7 @@ class TestPoseGeneration(unittest.TestCase):
                                                exhaustiveness=1,
                                                num_modes=1,
                                                out_dir=tmp,
-                                               generate_scores=True,
-                                               ligand_preparation=False)
+                                               generate_scores=True)
 
         assert len(poses) == 1
         assert len(scores) == 1
@@ -109,8 +108,7 @@ class TestPoseGeneration(unittest.TestCase):
                                        exhaustiveness=1,
                                        num_modes=1,
                                        out_dir=tmp,
-                                       generate_scores=False,
-                                       ligand_preparation=False)
+                                       generate_scores=False)
 
         assert len(poses) == 1
         protein, ligand = poses[0]
@@ -130,7 +128,7 @@ class TestPoseGeneration(unittest.TestCase):
         logging.basicConfig(level=logging.INFO)
         current_dir = os.path.dirname(os.path.realpath(__file__))
         protein_file = os.path.join(current_dir, "1jld_protein.pdb")
-        ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
+        ligand_file = os.path.join(current_dir, "Ochratoxin A.sdf")
 
         centroid = np.array([56.21891368, 25.95862964, 3.58950065])
         box_dims = np.array([51.354, 51.243, 55.608])
@@ -142,8 +140,7 @@ class TestPoseGeneration(unittest.TestCase):
                                                exhaustiveness=1,
                                                num_modes=1,
                                                out_dir=tmp,
-                                               generate_scores=True,
-                                               ligand_preparation=False)
+                                               generate_scores=True)
 
         assert len(poses) == 1
         assert len(scores) == 1
@@ -175,43 +172,10 @@ class TestPoseGeneration(unittest.TestCase):
                                                num_modes=1,
                                                num_pockets=2,
                                                out_dir=tmp,
-                                               generate_scores=True,
-                                               ligand_preparation=False)
+                                               generate_scores=True)
 
         assert len(poses) == 2
         assert len(scores) == 2
-        from rdkit import Chem  # type: ignore
-        for pose in poses:
-            protein, ligand = pose
-            assert isinstance(protein, Chem.Mol)
-            assert isinstance(ligand, Chem.Mol)
-
-    @unittest.skipIf(IS_WINDOWS, "vina is not supported in windows")
-    @pytest.mark.slow
-    def test_ligand_preparation(self):
-        """Test that VinaPoseGenerator creates poses using prepare_ligand pdbqt util.
-
-        This test is quite slow and takes about 5 minutes to run on a
-        development laptop.
-        """
-        # Let's turn on logging since this test will run for a while
-        logging.basicConfig(level=logging.INFO)
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        protein_file = os.path.join(current_dir, "1jld_protein.pdb")
-        ligand_file = os.path.join(current_dir, "1jld_ligand.sdf")
-
-        # Note this may download autodock Vina...
-        vpg = dc.dock.VinaPoseGenerator(pocket_finder=None)
-        with tempfile.TemporaryDirectory() as tmp:
-            poses, scores = vpg.generate_poses((protein_file, ligand_file),
-                                               exhaustiveness=1,
-                                               num_modes=1,
-                                               out_dir=tmp,
-                                               generate_scores=True,
-                                               ligand_preparation=True)
-
-        assert len(poses) == 1
-        assert len(scores) == 1
         from rdkit import Chem  # type: ignore
         for pose in poses:
             protein, ligand = pose
@@ -243,8 +207,7 @@ class TestPoseGeneration(unittest.TestCase):
                                         exhaustiveness=5,
                                         num_modes=1,
                                         out_dir=tmp,
-                                        generate_scores=True,
-                                        ligand_preparation=False)
+                                        generate_scores=True)
 
         assert len(scores) == 1
         assert scores[0] <= -10.0

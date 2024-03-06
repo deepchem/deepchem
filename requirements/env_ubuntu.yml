@@ -6,5 +6,4 @@ dependencies:
   - hhsuite
   - vina
   - pip:
-    - meeko
     - pysam
