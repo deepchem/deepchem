@@ -11,8 +11,10 @@ class TestPDBQTUtils(unittest.TestCase):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         self.protein_file = os.path.join(current_dir,
                                          "../../dock/tests/1jld_protein.pdb")
-        self.ligand_file = os.path.join(current_dir,
-                                        "../../dock/tests/dichlorophenyl_sulfanyl_methyl_phosponic_acid.sdf")
+        self.ligand_file = os.path.join(
+            current_dir,
+            "../../dock/tests/dichlorophenyl_sulfanyl_methyl_phosponic_acid.sdf"
+        )
 
     def test_pdbqt_to_pdb(self):
         """Test that a PDBQT molecule can be converted back in to PDB."""
