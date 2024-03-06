@@ -7,3 +7,4 @@ dependencies:
     - dgl
     - torch-geometric
     - lightning
+    - pydantic
