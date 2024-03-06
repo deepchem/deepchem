@@ -49,8 +49,8 @@ def rootfinder(
     The output of this block is :math:`\mathbf{y}`
     that produces the :math:`\mathbf{0}` as the output.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     fcn : callable
         The function :math:`\mathbf{f}` with output tensor ``(*ny)``
     y0 : torch.tensor
@@ -73,21 +73,16 @@ def rootfinder(
 
     Example
     -------
-    .. testsetup:: root1
+    >>> import torch
+    >>> def func1(y, A):  # example function
+    ...     return torch.tanh(A @ y + 0.1) + y / 2.0
+    >>> A = torch.tensor([[1.1, 0.4], [0.3, 0.8]]).requires_grad_()
+    >>> y0 = torch.zeros((2,1))  # zeros as the initial guess
+    >>> yroot = rootfinder(func1, y0, params=(A,))
+    >>> print(yroot)
+    tensor([[-0.0459],
+            [-0.0663]], grad_fn=<_RootFinderBackward>)
 
-        import torch
-        from xitorch.optimize import rootfinder
-
-    .. doctest:: root1
-
-        >>> def func1(y, A):  # example function
-        ...     return torch.tanh(A @ y + 0.1) + y / 2.0
-        >>> A = torch.tensor([[1.1, 0.4], [0.3, 0.8]]).requires_grad_()
-        >>> y0 = torch.zeros((2,1))  # zeros as the initial guess
-        >>> yroot = rootfinder(func1, y0, params=(A,))
-        >>> print(yroot)
-        tensor([[-0.0459],
-                [-0.0663]], grad_fn=<_RootFinderBackward>)
     """
 
     pfunc = get_pure_function(fcn)
@@ -115,8 +110,8 @@ def equilibrium(
     The output of this block is :math:`\mathbf{y}`
     that produces the same :math:`\mathbf{y}` as the output.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     fcn : callable
         The function :math:`\mathbf{f}` with output tensor ``(*ny)``
     y0 : torch.tensor
@@ -139,26 +134,21 @@ def equilibrium(
 
     Example
     -------
-    .. testsetup:: equil1
-
-        import torch
-        from xitorch.optimize import equilibrium
-
-    .. doctest:: equil1
-
-        >>> def func1(y, A):  # example function
-        ...     return torch.tanh(A @ y + 0.1) + y / 2.0
-        >>> A = torch.tensor([[1.1, 0.4], [0.3, 0.8]]).requires_grad_()
-        >>> y0 = torch.zeros((2,1))  # zeros as the initial guess
-        >>> yequil = equilibrium(func1, y0, params=(A,))
-        >>> print(yequil)
-        tensor([[ 0.2313],
-                [-0.5957]], grad_fn=<_RootFinderBackward>)
+    >>> import torch
+    >>> def func1(y, A):  # example function
+    ...     return torch.tanh(A @ y + 0.1) + y / 2.0
+    >>> A = torch.tensor([[1.1, 0.4], [0.3, 0.8]]).requires_grad_()
+    >>> y0 = torch.zeros((2,1))  # zeros as the initial guess
+    >>> yequil = equilibrium(func1, y0, params=(A,))
+    >>> print(yequil)
+    tensor([[ 0.2313],
+            [-0.5957]], grad_fn=<_RootFinderBackward>)
 
     Note
     ----
     * This is a direct implementation of finding the root of
       :math:`\mathbf{g}(\mathbf{y}, \theta) = \mathbf{y} - \mathbf{f}(\mathbf{y}, \theta)`
+
     """
     pfunc = get_pure_function(fcn)
 
@@ -190,8 +180,8 @@ def minimize(
     to find the best :math:`\mathbf{y}` that minimizes the output of the
     function :math:`f`.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     fcn: callable
         The function to be optimized with output tensor with 1 element.
     y0: torch.tensor
@@ -212,21 +202,16 @@ def minimize(
 
     Example
     -------
-    .. testsetup:: root1
+    >>> import torch
+    >>> def func1(y, A):  # example function
+    ...     return torch.sum((A @ y)**2 + y / 2.0)
+    >>> A = torch.tensor([[1.1, 0.4], [0.3, 0.8]]).requires_grad_()
+    >>> y0 = torch.zeros((2,1))  # zeros as the initial guess
+    >>> ymin = minimize(func1, y0, params=(A,))
+    >>> print(ymin)
+    tensor([[-0.0519],
+            [-0.2684]], grad_fn=<_RootFinderBackward>)
 
-        import torch
-        from xitorch.optimize import minimize
-
-    .. doctest:: root1
-
-        >>> def func1(y, A):  # example function
-        ...     return torch.sum((A @ y)**2 + y / 2.0)
-        >>> A = torch.tensor([[1.1, 0.4], [0.3, 0.8]]).requires_grad_()
-        >>> y0 = torch.zeros((2,1))  # zeros as the initial guess
-        >>> ymin = minimize(func1, y0, params=(A,))
-        >>> print(ymin)
-        tensor([[-0.0519],
-                [-0.2684]], grad_fn=<_RootFinderBackward>)
     """
 
     assert not torch.is_complex(y0), \
@@ -276,13 +261,39 @@ def minimize(
 class _RootFinder(torch.autograd.Function):
     @staticmethod
     def forward(ctx, fcn, y0, fwd_fcn, alg_type, options, bck_options, nparams, *allparams):
-        # fcn: a function that returns what has to be 0 (will be used in the
-        #      backward, not used in the forward). For minimization, it is
-        #      the gradient
-        # fwd_fcn: a function that will be executed in the forward method
-        #          (unused in the backward)
-        # This class is also used for minimization, where fcn and fwd_fcn might
-        # be slightly different
+        """Forward method for the rootfinder, minimizer, and equilibrium
+
+        Parameters
+        ----------
+        fcn:
+            a function that returns what has to be 0 (will be used in the
+            backward, not used in the forward). For minimization, it is
+            the gradient
+        y0:
+            initial guess
+        fwd_fcn:
+            a function that will be executed in the forward method
+            (unused in the backward)
+        alg_type:
+            the type of algorithm: "rootfinder", "minimizer", or "equilibrium"
+        options:
+            options for the forward method
+        bck_options:
+            options for the backward method
+        nparams:
+            number of parameters
+        allparams:
+            all parameters (including the non-tensor parameters)
+
+        This class is also used for minimization, where fcn and fwd_fcn might
+        be slightly different
+
+        Returns
+        -------
+        torch.tensor
+            The solution of the rootfinder, minimizer, or equilibrium
+
+        """
 
         # set default options
         config = options
@@ -314,7 +325,21 @@ class _RootFinder(torch.autograd.Function):
         return y
 
     @staticmethod
-    def backward(ctx, grad_yout):
+    def backward(ctx, grad_yout: torch.Tensor):
+        """Backward method for the rootfinder, minimizer, and equilibrium
+
+        Parameters
+        ----------
+        grad_yout: torch.tensor
+            the gradient of the output of the rootfinder, minimizer, or equilibrium
+
+        Returns
+        -------
+        tuple
+            The gradients of the parameters
+
+        """
+
         param_sep = ctx.param_sep
         yout = ctx.saved_tensors[0]
         nparams = ctx.nparams
@@ -351,19 +376,58 @@ class _RootFinder(torch.autograd.Function):
 
         return (None, None, None, None, None, None, None, *grad_params)
 
-def _get_rootfinder_default_method(method):
+def _get_rootfinder_default_method(method: Union[str, None] = None) -> str:
+    """Get the default method for the rootfinder, minimizer, and equilibrium
+
+    Parameters
+    ----------
+    method: str or None
+        The method name
+
+    Returns
+    -------
+    str
+        The method name
+
+    """
     if method is None:
         return "broyden1"
     else:
         return method
 
-def _get_equilibrium_default_method(method):
+def _get_equilibrium_default_method(method: Union[str, None] = None) -> str:
+    """Get the default method for the equilibrium
+
+    Parameters
+    ----------
+    method: str or None
+        The method name
+
+    Returns
+    -------
+    str
+        The method name
+
+    """
     if method is None:
         return _get_rootfinder_default_method(method)
     else:
         return method
 
-def _get_minimizer_default_method(method):
+def _get_minimizer_default_method(method: Union[str, None] = None) -> str:
+    """Get the default method for the minimizer
+
+    Parameters
+    ----------
+    method: str or None
+        The method name
+
+    Returns
+    -------
+    str
+        The method name
+
+    """
     if method is None:
         return "broyden1"
     else:
