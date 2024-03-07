@@ -131,7 +131,7 @@ class GninaPoseGenerator(PoseGenerator):
             os.chmod(downloaded_file, 755)
             logger.info("Downloaded GNINA.")
 
-    def generate_poses(
+    def generate_poses(  # type: ignore
             self,
             molecular_complex: Tuple[str, str],
             centroid: Optional[np.ndarray] = None,
@@ -322,8 +322,8 @@ class VinaPoseGenerator(PoseGenerator):
 
         Returns
         -------
-        Tuple[`docked_poses`, `scores`] or `docked_poses`
-            Tuple of `(docked_poses, scores)` or `docked_poses`. `docked_poses`
+        Tuple[`docked_poses`, `scores`] or `docked_poses` or `scores`
+            Tuple of `(docked_poses, scores)`, `docked_poses`, or `scores`. `docked_poses`
             is a list of docked molecular complexes. Each entry in this list
             contains a `(protein_mol, ligand_mol)` pair of RDKit molecules.
             `scores` is a list of binding free energies predicted by Vina.
@@ -350,7 +350,7 @@ class VinaPoseGenerator(PoseGenerator):
             energy_range = 3.0
 
         try:
-            from vina import Vina
+            from vina import Vina  # type: ignore
         except ModuleNotFoundError:
             raise ImportError("This function requires vina to be installed")
 
@@ -373,12 +373,15 @@ class VinaPoseGenerator(PoseGenerator):
         # Prepare protein
         protein_name = os.path.basename(protein_file).split(".")[0]
         protein_hyd = os.path.join(out_dir, "%s_hyd.pdb" % protein_name)
-        protein_pdbqt = os.path.join(out_dir, "%s.pdbqt" % protein_name)
-        protein_mol = load_molecule(protein_file,
-                                    calc_charges=True,
-                                    add_hydrogens=True)
-        write_molecule(protein_mol[1], protein_hyd, is_protein=True)
-        write_molecule(protein_mol[1], protein_pdbqt, is_protein=True)
+        if ".pdbqt" not in protein_file:
+            protein_pdbqt = os.path.join(out_dir, "%s.pdbqt" % protein_name)
+            protein_mol = load_molecule(protein_file,
+                                        calc_charges=True,
+                                        add_hydrogens=True)
+            write_molecule(protein_mol[1], protein_hyd, is_protein=True)
+            write_molecule(protein_mol[1], protein_pdbqt, is_protein=True)
+        else:
+            protein_pdbqt = protein_file
 
         # Get protein centroid and range
         if centroid is not None and box_dims is not None:
@@ -416,12 +419,15 @@ class VinaPoseGenerator(PoseGenerator):
 
         # Prepare ligand
         ligand_name = os.path.basename(ligand_file).split(".")[0]
-        ligand_pdbqt = os.path.join(out_dir, "%s.pdbqt" % ligand_name)
+        if ".pdbqt" not in ligand_file:
+            ligand_pdbqt = os.path.join(out_dir, "%s.pdbqt" % ligand_name)
 
-        ligand_mol = load_molecule(ligand_file,
-                                   calc_charges=True,
-                                   add_hydrogens=True)
-        write_molecule(ligand_mol[1], ligand_pdbqt)
+            ligand_mol = load_molecule(ligand_file,
+                                       calc_charges=True,
+                                       add_hydrogens=True)
+            write_molecule(ligand_mol[1], ligand_pdbqt)
+        else:
+            ligand_pdbqt = ligand_file
 
         docked_complexes = []
         all_scores = []
@@ -451,7 +457,6 @@ class VinaPoseGenerator(PoseGenerator):
 
             vpg.set_receptor(protein_pdbqt)
             vpg.set_ligand_from_file(ligand_pdbqt)
-
             vpg.compute_vina_maps(center=protein_centroid, box_size=box_dims)
             vpg.dock(exhaustiveness=exhaustiveness,
                      n_poses=num_modes,
@@ -463,10 +468,21 @@ class VinaPoseGenerator(PoseGenerator):
                             overwrite=True)
 
             ligands, scores = load_docked_ligands(out_pdbqt)
-            docked_complexes += [(protein_mol[1], ligand) for ligand in ligands]
-            all_scores += scores
+            if '.pdbqt' not in protein_file:
+                docked_complexes += [
+                    (protein_mol[1], ligand) for ligand in ligands
+                ]
+                all_scores += scores
+            else:
+                all_scores += scores
 
-        if generate_scores:
-            return docked_complexes, all_scores
+        if '.pdbqt' not in ligand_file and '.pdbqt' not in protein_file:
+            if generate_scores:
+                return docked_complexes, all_scores
+            else:
+                return docked_complexes
         else:
-            return docked_complexes
+            if generate_scores:
+                return all_scores  # type: ignore
+            else:
+                raise 'PDBQT files failed to be properly converted into RDKit Mol objects'  # type: ignore
