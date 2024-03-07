@@ -1151,12 +1151,32 @@ def dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
     """
     return torch.einsum("...rc,...rc->...c", r.conj(), z).unsqueeze(-2)
 
+
 # rootfinder-based
-@functools.wraps(broyden1)
+@functools.wraps(broyden1)  # type: ignore
 def broyden1_solve(A, B, E=None, M=None, **options):
     return _rootfinder_solve("broyden1", A, B, E, M, **options)
 
+
 def _rootfinder_solve(alg, A, B, E=None, M=None, **options):
+    """Solve the linear equations using rootfinder algorithm
+
+    Parameters
+    ----------
+    alg: str
+        The algorithm to use. Currently, only "broyden1" is supported.
+    A: torch.Tensor
+        The matrix A. Shape: (*BA, nr, nr)
+    B: torch.Tensor
+        The matrix B. Shape: (*BB, nr, ncols)
+    E: torch.Tensor or None
+        The matrix E. Shape: (*BE, ncols)
+    M: torch.Tensor or None
+        The matrix M. Shape: (*BM, nr, nr)
+    options: dict
+        The options for the rootfinder algorithm
+
+    """
     # using rootfinder algorithm
     nr = A.shape[-1]
     ncols = B.shape[-1]
@@ -1183,6 +1203,7 @@ def _rootfinder_solve(alg, A, B, E=None, M=None, **options):
         raise RuntimeError("Unknown method %s" % alg)
     x = x.reshape(*x.shape[:-1], nr, ncols)
     return x
+
 
 def get_largest_eival(Afcn: Callable, x: torch.Tensor) -> torch.Tensor:
     """Get the largest eigenvalue of the linear operator Afcn

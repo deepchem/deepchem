@@ -481,6 +481,10 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.solve.solve
 
+.. autofunction:: deepchem.utils.differentiation_utils.solve.broyden1_solve
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve._rootfinder_solve
+
 .. autofunction:: deepchem.utils.differentiation_utils.solve.cg
 
 .. autofunction:: deepchem.utils.differentiation_utils.solve.bicgstab
@@ -512,23 +516,38 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver.TerminationCondition
 
-.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.Jacobian
+.. autoclass:: deepchem.utils.differentiation_utils.optimize.jacobian.Jacobian
   :members:
 
-.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.BroydenFirst
+.. autoclass:: deepchem.utils.differentiation_utils.optimize.jacobian.BroydenFirst
   :members:
 
-.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.BroydenSecond
+.. autoclass:: deepchem.utils.differentiation_utils.optimize.jacobian.BroydenSecond
   :members:
 
-.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.LinearMixing
+.. autoclass:: deepchem.utils.differentiation_utils.optimize.jacobian.LinearMixing
   :members:
 
-.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.LowRankMatrix
+.. autoclass:: deepchem.utils.differentiation_utils.optimize.jacobian.LowRankMatrix
   :members:
 
-.. autoclass:: deepchem.utils.differentiation_utils.optimize._jacobian.FullRankMatrix
+.. autoclass:: deepchem.utils.differentiation_utils.optimize.jacobian.FullRankMatrix
   :members:
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootfinder.rootfinder
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootfinder.equilibrium
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootfinder.minimize
+
+.. autoclass:: deepchem.utils.differentiation_utils.optimize.rootfinder._RootFinder
+  :members:
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootfinder._get_rootfinder_default_method
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootfinder._get_equilibrium_default_method
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootfinder._get_minimizer_default_method
 
 Attribute Utilities
 -------------------
