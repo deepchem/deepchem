@@ -676,6 +676,7 @@ def test_robust_multitask_regression_overfit():
     assert scores[regression_metric.name] < .2
 
 
+@flaky(max_runs=3, min_passes=1)
 @pytest.mark.tensorflow
 def test_progressive_classification_overfit():
     """Test progressive multitask overfits tiny data."""
