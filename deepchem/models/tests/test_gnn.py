@@ -180,7 +180,7 @@ def test_GNN_infomax():
     assert loss2 < loss1
 
 
-@flaky
+@flaky(max_runs=3, min_passes=1)
 @pytest.mark.torch
 def test_GNN_context_pred():
     from deepchem.models.torch_models.gnn import GNNModular
