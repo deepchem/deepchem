@@ -1,4 +1,4 @@
-from typing import Callable, Mapping, Any, Sequence, Union, List
+from typing import Callable, Mapping, Any, Sequence, Union
 import torch
 from deepchem.utils.differentiation_utils.optimize.rootsolver import broyden1, broyden2, \
     linearmixing
@@ -29,13 +29,13 @@ _OPT_METHODS = {
     "adam": adam,
 }
 
-def rootfinder(
-        fcn: Callable[..., torch.Tensor],
-        y0: torch.Tensor,
-        params: Sequence[Any] = [],
-        bck_options: Mapping[str, Any] = {},
-        method: Union[str, Callable, None] = None,
-        **fwd_options) -> torch.Tensor:
+
+def rootfinder(fcn: Callable[..., torch.Tensor],
+               y0: torch.Tensor,
+               params: Sequence[Any] = [],
+               bck_options: Mapping[str, Any] = {},
+               method: Union[str, Callable, None] = None,
+               **fwd_options) -> torch.Tensor:
     r"""
     Solving the rootfinder equation of a given function,
 
@@ -87,16 +87,17 @@ def rootfinder(
 
     pfunc = get_pure_function(fcn)
     fwd_options["method"] = _get_rootfinder_default_method(method)
-    return _RootFinder.apply(pfunc, y0, pfunc, "rootfinder", fwd_options, bck_options,
-                             len(params), *params, *pfunc.objparams())
+    return _RootFinder.apply(pfunc, y0, pfunc, "rootfinder", fwd_options,
+                             bck_options, len(params), *params,
+                             *pfunc.objparams())
 
-def equilibrium(
-        fcn: Callable[..., torch.Tensor],
-        y0: torch.Tensor,
-        params: Sequence[Any] = [],
-        bck_options: Mapping[str, Any] = {},
-        method: Union[str, Callable, None] = None,
-        **fwd_options) -> torch.Tensor:
+
+def equilibrium(fcn: Callable[..., torch.Tensor],
+                y0: torch.Tensor,
+                params: Sequence[Any] = [],
+                bck_options: Mapping[str, Any] = {},
+                method: Union[str, Callable, None] = None,
+                **fwd_options) -> torch.Tensor:
     r"""
     Solving the equilibrium equation of a given function,
 
@@ -160,16 +161,17 @@ def equilibrium(
     fwd_options["method"] = method
     fwd_fcn = pfunc if method in _EQUIL_METHODS else new_fcn
     alg_type = "equilibrium" if method in _EQUIL_METHODS else "rootfinder"
-    return _RootFinder.apply(new_fcn, y0, fwd_fcn, alg_type, fwd_options, bck_options,
-                             len(params), *params, *pfunc.objparams())
+    return _RootFinder.apply(new_fcn, y0, fwd_fcn, alg_type, fwd_options,
+                             bck_options, len(params), *params,
+                             *pfunc.objparams())
 
-def minimize(
-        fcn: Callable[..., torch.Tensor],
-        y0: torch.Tensor,
-        params: Sequence[Any] = [],
-        bck_options: Mapping[str, Any] = {},
-        method: Union[None, str, Callable] = None,
-        **fwd_options) -> torch.Tensor:
+
+def minimize(fcn: Callable[..., torch.Tensor],
+             y0: torch.Tensor,
+             params: Sequence[Any] = [],
+             bck_options: Mapping[str, Any] = {},
+             method: Union[None, str, Callable] = None,
+             **fwd_options) -> torch.Tensor:
     r"""
     Solve the unbounded minimization problem:
 
@@ -236,7 +238,8 @@ def minimize(
         with torch.enable_grad():
             y1 = y.clone().requires_grad_()
             z = pfunc(y1, *params)
-        grady, = torch.autograd.grad(z, (y1,), retain_graph=True,
+        grady, = torch.autograd.grad(z, (y1,),
+                                     retain_graph=True,
                                      create_graph=torch.is_grad_enabled())
         return z, grady
 
@@ -255,12 +258,16 @@ def minimize(
         _fwd_fcn = _rf_fcn
 
     alg_type = "minimizer" if opt_method else "rootfinder"
-    return _RootFinder.apply(_rf_fcn, y0, _fwd_fcn, alg_type, fwd_options, bck_options,
-                             len(params), *params, *pfunc.objparams())
+    return _RootFinder.apply(_rf_fcn, y0, _fwd_fcn, alg_type, fwd_options,
+                             bck_options, len(params), *params,
+                             *pfunc.objparams())
+
 
 class _RootFinder(torch.autograd.Function):
+
     @staticmethod
-    def forward(ctx, fcn, y0, fwd_fcn, alg_type, options, bck_options, nparams, *allparams):
+    def forward(ctx, fcn, y0, fwd_fcn, alg_type, options, bck_options, nparams,
+                *allparams):
         """Forward method for the rootfinder, minimizer, and equilibrium
 
         Parameters
@@ -325,7 +332,7 @@ class _RootFinder(torch.autograd.Function):
         return y
 
     @staticmethod
-    def backward(ctx, grad_yout: torch.Tensor):
+    def backward(ctx, grad_yout):
         """Backward method for the rootfinder, minimizer, and equilibrium
 
         Parameters
@@ -355,28 +362,42 @@ class _RootFinder(torch.autograd.Function):
         with ctx.fcn.useobjparams(objparams):
 
             jac_dfdy = jac(fcn, params=(yout, *params), idxs=[0])[0]
-            gyfcn = solve(A=jac_dfdy.H, B=-grad_yout.reshape(-1, 1),
-                          bck_options=ctx.bck_options, **ctx.bck_options)
+            gyfcn = solve(A=jac_dfdy.H,
+                          B=-grad_yout.reshape(-1, 1),
+                          bck_options=ctx.bck_options,
+                          **ctx.bck_options)
             gyfcn = gyfcn.reshape(grad_yout.shape)
 
             # get the grad for the params
             with torch.enable_grad():
-                tensor_params_copy = [p.clone().requires_grad_() for p in tensor_params]
-                allparams_copy = param_sep.reconstruct_params(tensor_params_copy)
+                tensor_params_copy = [
+                    p.clone().requires_grad_() for p in tensor_params
+                ]
+                allparams_copy = param_sep.reconstruct_params(
+                    tensor_params_copy)
                 params_copy = allparams_copy[:nparams]
                 objparams_copy = allparams_copy[nparams:]
                 with ctx.fcn.useobjparams(objparams_copy):
                     yfcn = fcn(yout, *params_copy)
 
-            grad_tensor_params = torch.autograd.grad(yfcn, tensor_params_copy, grad_outputs=gyfcn,
-                                                     create_graph=torch.is_grad_enabled(),
-                                                     allow_unused=True)
-            grad_nontensor_params = [None for _ in range(param_sep.nnontensors())]
-            grad_params = param_sep.reconstruct_params(grad_tensor_params, grad_nontensor_params)
+            grad_tensor_params = torch.autograd.grad(
+                yfcn,
+                tensor_params_copy,
+                grad_outputs=gyfcn,
+                create_graph=torch.is_grad_enabled(),
+                allow_unused=True)
+            grad_nontensor_params = [
+                None for _ in range(param_sep.nnontensors())
+            ]
+            grad_params = param_sep.reconstruct_params(grad_tensor_params,
+                                                       grad_nontensor_params)
 
         return (None, None, None, None, None, None, None, *grad_params)
 
-def _get_rootfinder_default_method(method: Union[str, None] = None) -> str:
+
+def _get_rootfinder_default_method(
+        method: Union[str, Callable,
+                      None] = None) -> Union[str, Callable, None]:
     """Get the default method for the rootfinder, minimizer, and equilibrium
 
     Parameters
@@ -395,7 +416,10 @@ def _get_rootfinder_default_method(method: Union[str, None] = None) -> str:
     else:
         return method
 
-def _get_equilibrium_default_method(method: Union[str, None] = None) -> str:
+
+def _get_equilibrium_default_method(
+        method: Union[str, Callable,
+                      None] = None) -> Union[str, Callable, None]:
     """Get the default method for the equilibrium
 
     Parameters
@@ -414,7 +438,10 @@ def _get_equilibrium_default_method(method: Union[str, None] = None) -> str:
     else:
         return method
 
-def _get_minimizer_default_method(method: Union[str, None] = None) -> str:
+
+def _get_minimizer_default_method(
+        method: Union[str, Callable,
+                      None] = None) -> Union[str, Callable, None]:
     """Get the default method for the minimizer
 
     Parameters
