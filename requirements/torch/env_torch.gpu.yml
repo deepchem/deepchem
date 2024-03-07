@@ -6,3 +6,4 @@ dependencies:
     - torch==2.1.0+cu113
     - torch-geometric
     - lightning
+    - pydantic
