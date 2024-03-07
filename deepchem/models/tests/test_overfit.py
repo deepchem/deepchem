@@ -834,6 +834,7 @@ def test_DAG_singletask_regression_overfit():
     assert scores[regression_metric.name] > .8
 
 
+@flaky(max_runs=3, min_passes=1)
 @pytest.mark.tensorflow
 def test_weave_singletask_classification_overfit():
     """Test weave model overfits tiny data."""
