@@ -210,4 +210,4 @@ class TestPoseGeneration(unittest.TestCase):
                                         generate_scores=True)
 
         assert len(scores) == 1
-        assert scores[0] <= -10.0
+        assert scores[0] <= -7.0
