@@ -19,6 +19,7 @@ def test_load_singleton_csv():
 
 
 def test_empty_task_dataset_y():
+    """Test that dataset.y doesn't throw an error when there are no tasks specified in CSVLoader"""
     fin = tempfile.NamedTemporaryFile(mode='w', delete=False)
     fin.write("smiles\nC\nCCCC")
     fin.close()
