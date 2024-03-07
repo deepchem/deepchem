@@ -14,7 +14,7 @@ dependencies:
     - biopython
     - dgllife
     - lightgbm==3.*
-    - git+https://github.com/hackingmaterials/matminer.git
+    - matminer
     - mordred
     - networkx
     - pillow
