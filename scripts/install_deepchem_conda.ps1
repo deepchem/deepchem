@@ -1,9 +1,5 @@
 # This script creates the new deepchem enviroment
 
-param (
-    [double]$Python_version,
-    [string]$Type
-)
 
 $CMDNAME = $myInvocation.MyCommand.name
 if ($args.Count -ne 2)
@@ -17,10 +13,12 @@ if ($args.Count -ne 2)
 # This command is nearly equal to `conda init` command
 # Need to use `conda activate` command
 (& "conda" "shell.powershell" "hook") | Out-String | Invoke-Expression
-
+$Python_version = $args[0]
+$Type = $args[1]
 # create deepchem environment
 conda config --set always_yes yes
 conda create --name deepchem python=$Python_version
+conda activate deepchem
 conda install -c conda-forge conda-merge
 
 $common = Join-Path (pwd).PATH "requirements/env_common.yml"
