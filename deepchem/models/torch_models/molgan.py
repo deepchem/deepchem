@@ -28,6 +28,7 @@ class BasicMolGANModel(WGANModel):
 
     Load dataset and featurize molecules
     We will use a small dataset for this example.
+    We will be using `MolGanFeaturizer` to featurize the molecules.
 
     >>> smiles = ['CCC', 'C1=CC=CC=C1', 'CNC' ]
     >>> # create featurizer
@@ -92,7 +93,7 @@ class BasicMolGANModel(WGANModel):
                  nodes: int = 5,
                  embedding_dim: int = 10,
                  dropout_rate: float = 0.0,
-                 device: Optional[torch.device] = torch.device('cpu'),
+                 device: Optional[torch.device] = None,
                  **kwargs):
         """
         Initialize the model
@@ -118,7 +119,15 @@ class BasicMolGANModel(WGANModel):
         self.nodes = nodes
         self.embedding_dim = embedding_dim
         self.dropout_rate = dropout_rate
-        self.device = device  # type: ignore
+        if device is None:
+            if torch.cuda.is_available():
+                self.device = torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                self.device = torch.device('mps')
+            else:
+                self.device = torch.device('cpu')
+        else:
+            self.device = device
 
         super(BasicMolGANModel, self).__init__(device=device, **kwargs)
 
@@ -187,6 +196,7 @@ class BasicMolGANModel(WGANModel):
         return Discriminator(dropout_rate=self.dropout_rate,
                              units=units,
                              edges=self.edges,
+                             nodes=self.nodes,
                              device=self.device)
 
     def predict_gan_generator(self,
@@ -234,8 +244,9 @@ class BasicMolGANModel(WGANModel):
         adjacency_matrix, nodes_features = self.generators[0](
             noise_input, training=False, sample_generation=True)
         graphs = [
-            GraphMatrix(i, j) for i, j in zip(adjacency_matrix.detach().numpy(),
-                                              nodes_features.detach().numpy())
+            GraphMatrix(i, j)
+            for i, j in zip(adjacency_matrix.cpu().detach().numpy(),
+                            nodes_features.cpu().detach().numpy())
         ]
         return graphs
 
@@ -375,6 +386,7 @@ class Discriminator(nn.Module):
         dropout_rate: float,
         units: List = [(128, 64), 64],
         edges: int = 5,
+        nodes: int = 5,
         device: Optional[torch.device] = torch.device('cpu')
     ) -> None:
         """Initialize the discriminator.
@@ -394,10 +406,13 @@ class Discriminator(nn.Module):
         self.dropout_rate = dropout_rate
         self.edges = edges
         self.units = units
-        self.device = device
+        self.nodes = nodes
+        self.device: torch.device = device  # type: ignore
         self.graph = MolGANEncoderLayer(units=self.units,
                                         dropout_rate=self.dropout_rate,
-                                        edges=self.edges)
+                                        edges=self.edges,
+                                        nodes=self.nodes,
+                                        device=self.device)
 
         # Define the dense layers
         self.dense1 = nn.Linear(units[1], 128)
