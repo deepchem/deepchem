@@ -1154,7 +1154,7 @@ def dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
 
 # rootfinder-based
 @functools.wraps(broyden1)  # type: ignore
-def broyden1_solve(A: torch.Tensor, B: torch.Tensor, E=None, M=None, **options):
+def broyden1_solve(A: LinearOperator, B: torch.Tensor, E=None, M=None, **options):
     """Solve the linear equations using Broyden1 algorithm
 
     Examples
@@ -1189,10 +1189,10 @@ def broyden1_solve(A: torch.Tensor, B: torch.Tensor, E=None, M=None, **options):
 
 
 def _rootfinder_solve(alg: str,
-                      A: torch.Tensor,
+                      A: LinearOperator,
                       B: torch.Tensor,
                       E: Union[torch.Tensor, None] = None,
-                      M: Union[torch.Tensor, None] = None,
+                      M: Union[LinearOperator, None] = None,
                       **options):
     """Solve the linear equations using rootfinder algorithm
 
