@@ -1154,12 +1154,56 @@ def dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
 
 # rootfinder-based
 @functools.wraps(broyden1)  # type: ignore
-def broyden1_solve(A, B, E=None, M=None, **options):
+def broyden1_solve(A: torch.Tensor, B: torch.Tensor, E=None, M=None, **options):
+    """Solve the linear equations using Broyden1 algorithm
+
+    Examples
+    --------
+    >>> import torch
+    >>> A = torch.tensor([[1., 2], [3, 4]])
+    >>> B = torch.tensor([[5., 6], [7, 8]])
+    >>> broyden1_solve(A, B)
+    tensor([[-3.0000, -4.0000],
+            [ 4.0000,  5.0000]])
+
+    Parameters
+    ----------
+    A: torch.Tensor
+        The matrix A. Shape: (*BA, nr, nr)
+    B: torch.Tensor
+        The matrix B. Shape: (*BB, nr, ncols)
+    E: torch.Tensor or None
+        The matrix E. Shape: (*BE, ncols)
+    M: torch.Tensor or None
+        The matrix M. Shape: (*BM, nr, nr)
+    options: dict
+        The options for the rootfinder algorithm
+
+    Returns
+    -------
+    torch.Tensor
+        The solution matrix X. Shape: (*BBE, nr, ncols)
+
+    """
     return _rootfinder_solve("broyden1", A, B, E, M, **options)
 
 
-def _rootfinder_solve(alg, A, B, E=None, M=None, **options):
+def _rootfinder_solve(alg: str,
+                      A: torch.Tensor,
+                      B: torch.Tensor,
+                      E: Union[torch.Tensor, None] = None,
+                      M: Union[torch.Tensor, None] = None,
+                      **options):
     """Solve the linear equations using rootfinder algorithm
+
+    Examples
+    --------
+    >>> import torch
+    >>> A = torch.tensor([[1., 2], [3, 4]])
+    >>> B = torch.tensor([[5., 6], [7, 8]])
+    >>> _rootfinder_solve("broyden1", A, B)
+    tensor([[-3.0000, -4.0000],
+            [ 4.0000,  5.0000]])
 
     Parameters
     ----------
@@ -1175,6 +1219,11 @@ def _rootfinder_solve(alg, A, B, E=None, M=None, **options):
         The matrix M. Shape: (*BM, nr, nr)
     options: dict
         The options for the rootfinder algorithm
+
+    Returns
+    -------
+    torch.Tensor
+        The solution matrix X. Shape: (*BBE, nr, ncols)
 
     """
     # using rootfinder algorithm

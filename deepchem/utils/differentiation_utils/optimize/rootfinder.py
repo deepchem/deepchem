@@ -400,6 +400,11 @@ def _get_rootfinder_default_method(
                       None] = None) -> Union[str, Callable, None]:
     """Get the default method for the rootfinder, minimizer, and equilibrium
 
+    Examples
+    --------
+    >>> _get_rootfinder_default_method(None)
+    'broyden1'
+
     Parameters
     ----------
     method: str or None
@@ -422,6 +427,11 @@ def _get_equilibrium_default_method(
                       None] = None) -> Union[str, Callable, None]:
     """Get the default method for the equilibrium
 
+    Examples
+    --------
+    >>> _get_equilibrium_default_method(None)
+    'broyden1'
+
     Parameters
     ----------
     method: str or None
@@ -443,6 +453,11 @@ def _get_minimizer_default_method(
         method: Union[str, Callable,
                       None] = None) -> Union[str, Callable, None]:
     """Get the default method for the minimizer
+
+    Examples
+    --------
+    >>> _get_minimizer_default_method(None)
+    'broyden1'
 
     Parameters
     ----------
