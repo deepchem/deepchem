@@ -762,7 +762,7 @@ def test_broyden1_solve():
     A = torch.tensor([[1., 2], [3, 4]])
     B = torch.tensor([[5., 6], [7, 8]])
     assert torch.allclose(broyden1_solve(A, B),
-                   torch.tensor([[-3.0000, -4.0000], [4.0000, 5.0000]]))
+                          torch.tensor([[-3.0000, -4.0000], [4.0000, 5.0000]]))
 
 
 @pytest.mark.torch
@@ -771,7 +771,7 @@ def test_rootfinder_solve():
     A = torch.tensor([[1., 2], [3, 4]])
     B = torch.tensor([[5., 6], [7, 8]])
     assert torch.allclose(_rootfinder_solve("broyden1", A, B),
-                     torch.tensor([[-3.0000, -4.0000], [4.0000, 5.0000]]))
+                          torch.tensor([[-3.0000, -4.0000], [4.0000, 5.0000]]))
 
 
 @pytest.mark.torch
