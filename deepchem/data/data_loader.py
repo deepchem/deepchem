@@ -25,6 +25,11 @@ try:
 except ModuleNotFoundError:
     pass
 
+try:
+    import pysam
+except ImportError:
+    pass
+
 logger = logging.getLogger(__name__)
 
 
@@ -1909,7 +1914,6 @@ class SAMLoader(DataLoader):
     --------
     >>> from deepchem.data.data_loader import SAMLoader
     >>> import deepchem as dc
-    >>> import pytest
     >>> inputs = 'deepchem/data/tests/example.sam'
     >>> data = SAMLoader()
     >>> output = data.create_dataset(inputs)
@@ -1998,7 +2002,6 @@ class BAMLoader(DataLoader):
     --------
     >>> from deepchem.data.data_loader import BAMLoader
     >>> import deepchem as dc
-    >>> import pytest
     >>> inputs = 'deepchem/data/tests/example.bam'
     >>> data = BAMLoader()
     >>> output = data.create_dataset(inputs)
@@ -2087,7 +2090,6 @@ class CRAMLoader(DataLoader):
     --------
     >>> from deepchem.data.data_loader import CRAMLoader
     >>> import deepchem as dc
-    >>> import pytest
     >>> inputs = 'deepchem/data/tests/example.cram'
     >>> data = CRAMLoader()
     >>> output = data.create_dataset(inputs)
