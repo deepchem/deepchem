@@ -1,5 +1,10 @@
 # This script creates the new deepchem enviroment
 
+param (
+    [double]$Python_version,
+    [string]$Type
+)
+
 $CMDNAME = $myInvocation.MyCommand.name
 if ($args.Count -ne 2)
 {
@@ -15,7 +20,7 @@ if ($args.Count -ne 2)
 
 # create deepchem environment
 conda config --set always_yes yes
-conda create --name deepchem python=$args[0]
+conda create --name deepchem python=$Python_version
 conda install -c conda-forge conda-merge
 
 $common = Join-Path (pwd).PATH "requirements/env_common.yml"
@@ -25,7 +30,7 @@ $out = Join-Path (pwd).PATH "env.yml"
 # Jax is not supported in windows. Hence, excluded.
 # Tensorflow is not supported in windows. Hence, excluded, install 
 # linux version using Windows Subsystem for Linux.
-if($args[1] -eq "gpu")
+if($Type -eq "gpu")
 {
     # We expect the CUDA vesion is 10.1.
     $torch_gpu = Join-Path (pwd).PATH "requirements/torch/env_torch.gpu.yml"
