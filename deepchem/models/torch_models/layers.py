@@ -6167,6 +6167,7 @@ class HighwayLayer(torch.nn.Module):
 
 
 def cosine_dist(x, y):
+  
   """Computes the inner product (cosine similarity) between two tensors.
 
     This assumes that the two input tensors contain rows of vectors where
@@ -6195,17 +6196,17 @@ def cosine_dist(x, y):
     the output tensor would be a tensor of shape `(n,n)` with 1 in every entry.
 
     >>> import numpy as np
-    >>> import tensorflow as tf
+    >>> import torch
     >>> import deepchem.models.layers as layers
-    >>> x = tf.ones((6, 4), dtype=tf.dtypes.float32, name=None)
-    >>> y_same = tf.ones((6, 4), dtype=tf.dtypes.float32, name=None)
+    >>> x = torch.ones((6, 4), dtype=torch.float32)
+    >>> y_same = torch.ones((6, 4), dtype=torch.float32)
     >>> cos_sim_same = layers.cosine_dist(x,y_same)
 
     `x` and `y_same` are the same tensor (equivalent at every element, in this
     case 1). As such, the pairwise inner product of the rows in `x` and `y` will
     always be 1. The output tensor will be of shape (6,6).
 
-    >>> diff = cos_sim_same - tf.ones((6, 6), dtype=tf.dtypes.float32, name=None)
+    >>> diff = cos_sim_same - torch.ones((6, 6), dtype=torch.float32)
     >>> np.allclose(0.0, tf.reduce_sum(diff).numpy(), atol=1e-05)
     True
     >>> cos_sim_same.shape
@@ -6216,7 +6217,7 @@ def cosine_dist(x, y):
     tensor of 0s. In the following example, each row in the tensor `x1` is orthogonal
     to each row in `x2` because they are halves of an identity matrix.
 
-    >>> identity_tensor = tf.eye(512, dtype=tf.dtypes.float32)
+    >>> identity_tensor = torch.eye(512, dtype=torch.float32)
     >>> x1 = identity_tensor[0:256,:]
     >>> x2 = identity_tensor[256:512,:]
     >>> cos_sim_orth = layers.cosine_dist(x1,x2)
@@ -6233,18 +6234,18 @@ def cosine_dist(x, y):
 
     Parameters
     ----------
-    x: tf.Tensor
+    x: torch.Tensor
         Input Tensor of shape `(n, p)`.
         The shape of this input tensor should be `n` rows by `p` columns.
         Note that `n` need not equal `m` (the number of rows in `y`).
-    y: tf.Tensor
+    y: torch.Tensor
         Input Tensor of shape `(m, p)`
         The shape of this input tensor should be `m` rows by `p` columns.
         Note that `m` need not equal `n` (the number of rows in `x`).
 
     Returns
     -------
-    tf.Tensor
+    torch.Tensor
         Returns a tensor of shape `(n, m)`, that is, `n` rows by `m` columns.
         Each `i,j`-th entry of this output tensor is the inner product between
         the l2-normalized `i`-th row of the input tensor `x` and the
@@ -6252,10 +6253,11 @@ def cosine_dist(x, y):
     """
   
   x_normalized = torch.nn.functional.normalize(x, p=2, dim=1)
-  y_normalized = torch.nn.functional.normalize(x, p=2, dim=1)
+  y_normalized = torch.nn.functional.normalize(y, p=2, dim=1)
   return torch.matmul(x_normalized, torch.transpose(y_normalized, 1, 0))
 
 class AttnLSTMEmbedding(nn.Module):
+
     """Implements AttnLSTM as in matching networks paper.
     The AttnLSTM embedding adjusts two sets of vectors, the "test" and
     "support" sets. The "support" consists of a set of evidence vectors.
@@ -6266,7 +6268,9 @@ class AttnLSTMEmbedding(nn.Module):
     the "support".  The AttnLSTMEmbedding is thus a type of learnable
     metric that allows a network to modify its internal notion of
     distance.
+
     See references [1]_ [2]_ for more details.
+
     References
     ----------
     .. [1] Vinyals, Oriol, et al. "Matching networks for one shot learning."
@@ -6274,9 +6278,11 @@ class AttnLSTMEmbedding(nn.Module):
     .. [2] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters:
         Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
     """
+    
     def __init__(self, n_test, n_support, n_feat, max_depth, **kwargs):
         """
         Parameters
+    
         ----------
         n_support: int
             Size of support set.
