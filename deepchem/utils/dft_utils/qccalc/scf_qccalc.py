@@ -2,31 +2,47 @@ from __future__ import annotations
 from abc import abstractmethod, abstractproperty
 from typing import Optional, Dict, Any, List, Union, Tuple
 import torch
-import xitorch as xt
-import xitorch.linalg
-import xitorch.optimize
-from dqc.system.base_system import BaseSystem
-from dqc.qccalc.base_qccalc import BaseQCCalc
-from dqc.utils.datastruct import SpinParam
-from dqc.utils.config import config
-from dqc.utils.misc import set_default_option
+from deepchem.utils.differentiation_utils import EditableModule, minimize, equilibrium, set_default_option
+from deepchem.utils.dft_utils import BaseSystem, BaseQCCalc, SpinParam
+from deepchem.utils.dft_utils.config import config
+
 
 class SCF_QCCalc(BaseQCCalc):
     """
-    Performing Restricted or Unrestricted self-consistent field iteration
-    (e.g. Hartree-Fock or Density Functional Theory)
+    Performing Restricted or Unrestricted self-consistent field
+    iteration (e.g. Hartree-Fock or Density Functional Theory)
 
-    Arguments
-    ---------
-    engine: BaseSCFEngine
-        The SCF engine
-    variational: bool
-        If True, then use optimization of the free orbital parameters to find
-        the minimum energy.
-        Otherwise, use self-consistent iterations.
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils import SCF_QCCalc, BaseSCFEngine
+    >>> from deepchem.utils.dft_utils import SpinParam
+
+    # Define the engine
+    >>> class engine(BaseSCFEngine):
+    ...     def polarised():
+    ...         return False
+    ...     def dm2energy(self, dm: torch.Tensor | SpinParam[torch.Tensor]) -> torch.Tensor:
+    ...        return dm * 1.1
+    >>> myEngine = engine()
+    >>> a = SCF_QCCalc(myEngine)
+    >>> a.dm2energy(torch.tensor([1.1]))
+    tensor([1.2100])
+
     """
 
     def __init__(self, engine: BaseSCFEngine, variational: bool = False):
+        """Initialize the SCF calculation.
+
+        Parameters
+        ----------
+        engine: BaseSCFEngine
+            The SCF engine
+        variational: bool
+            If True, then use optimization of the free orbital
+            parameters to find the minimum energy. Otherwise, use
+            self-consistent iterations.
+
+        """
         self._engine = engine
         self._polarized = engine.polarized
         self._shape = self._engine.shape
@@ -36,13 +52,46 @@ class SCF_QCCalc(BaseQCCalc):
         self._variational = variational
 
     def get_system(self) -> BaseSystem:
+        """Returns the system in the QC calculation
+
+        Returns
+        -------
+        BaseSystem
+            The system that is being calculated.
+
+        """
         return self._engine.get_system()
 
-    def run(self, dm0: Optional[Union[str, torch.Tensor, SpinParam[torch.Tensor]]] = "1e",  # type: ignore
+    def run(
+            self,
+            dm0: Optional[
+                Union[str, torch.Tensor,
+                      SpinParam[torch.Tensor]]] = "1e",  # type: ignore
             eigen_options: Optional[Dict[str, Any]] = None,
             fwd_options: Optional[Dict[str, Any]] = None,
             bck_options: Optional[Dict[str, Any]] = None) -> BaseQCCalc:
+        """Run the calculation.
 
+        Note that this method can be invoked several times for one
+        object to try for various self-consistent options to reach
+        convergence.
+
+        Parameters
+        ----------
+        dm0: Optional[Union[str, torch.Tensor, SpinParam[torch.Tensor]]]
+            The initial density matrix. If it is a string, it can be
+            "1e" to use the 1-electron Hamiltonian to generate the
+            initial density matrix.
+        eigen_options: Optional[Dict[str, Any]]
+            The options for the diagonalization (i.e. eigendecomposition).
+        fwd_options: Optional[Dict[str, Any]]
+            The options for the forward iteration (i.e. the iteration
+            to find the minimum energy).
+        bck_options: Optional[Dict[str, Any]]
+            The options for the backward iteration (i.e. the iteration
+            to find the minimum energy).
+
+        """
         # get default options
         if not self._variational:
             fwd_defopt = {
@@ -61,16 +110,12 @@ class SCF_QCCalc(BaseQCCalc):
                 "verbose": config.VERBOSE > 0,
             }
         bck_defopt = {
-            # NOTE: it seems like in most cases the jacobian matrix is posdef
-            # if it is not the case, we can just remove the line below
             "posdef": True,
         }
 
         # setup the default options
         if eigen_options is None:
-            eigen_options = {
-                "method": "exacteig"
-            }
+            eigen_options = {"method": "exacteig"}
         if fwd_options is None:
             fwd_options = {}
         if bck_options is None:
@@ -106,11 +151,10 @@ class SCF_QCCalc(BaseQCCalc):
             scp0 = self._engine.dm2scp(dm)
 
             # do the self-consistent iteration
-            scp = xitorch.optimize.equilibrium(
-                fcn=self._engine.scp2scp,
-                y0=scp0,
-                bck_options={**bck_options},
-                **fwd_options)
+            scp = equilibrium(fcn=self._engine.scp2scp,
+                              y0=scp0,
+                              bck_options={**bck_options},
+                              **fwd_options)
 
             # post-process parameters
             self._dm = self._engine.scp2dm(scp)
@@ -118,13 +162,14 @@ class SCF_QCCalc(BaseQCCalc):
             system = self.get_system()
             h = system.get_hamiltonian()
             orb_weights = system.get_orbweight(polarized=self._polarized)
-            norb = SpinParam.apply_fcn(lambda orb_weights: len(orb_weights), orb_weights)
+            norb = SpinParam.apply_fcn(lambda orb_weights: len(orb_weights),
+                                       orb_weights)
 
             def dm2params(dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> \
                     Tuple[torch.Tensor, torch.Tensor]:
                 pc = SpinParam.apply_fcn(
-                     lambda dm, norb: h.dm2ao_orb_params(SpinParam.sum(dm), norb=norb),
-                     dm, norb)
+                    lambda dm, norb: h.dm2ao_orb_params(SpinParam.sum(dm),
+                                                        norb=norb), dm, norb)
                 p = SpinParam.apply_fcn(lambda pc: pc[0], pc)
                 c = SpinParam.apply_fcn(lambda pc: pc[1], pc)
                 params = self._engine.pack_aoparams(p)
@@ -133,24 +178,36 @@ class SCF_QCCalc(BaseQCCalc):
 
             def params2dm(params: torch.Tensor, coeffs: torch.Tensor) \
                     -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
-                p: Union[torch.Tensor, SpinParam[torch.Tensor]] = self._engine.unpack_aoparams(params)
-                c: Union[torch.Tensor, SpinParam[torch.Tensor]] = self._engine.unpack_aoparams(coeffs)
+                p: Union[
+                    torch.Tensor,
+                    SpinParam[torch.Tensor]] = self._engine.unpack_aoparams(
+                        params)
+                c: Union[
+                    torch.Tensor,
+                    SpinParam[torch.Tensor]] = self._engine.unpack_aoparams(
+                        coeffs)
 
                 dm = SpinParam.apply_fcn(
-                    lambda p, c, orb_weights: h.ao_orb_params2dm(p, c, orb_weights, with_penalty=None),
-                    p, c, orb_weights)
+                    lambda p, c, orb_weights: h.ao_orb_params2dm(
+                        p, c, orb_weights, with_penalty=None), p, c,
+                    orb_weights)
                 return dm
 
             params0, coeffs0 = dm2params(dm)
             params0 = params0.detach()
             coeffs0 = coeffs0.detach()
-            min_params0: torch.Tensor = xitorch.optimize.minimize(
+            min_params0: torch.Tensor = minimize(
                 fcn=self._engine.aoparams2ene,
                 # random noise to add the chance of it gets to the minimum, not
                 # a saddle point
                 y0=params0 + torch.randn_like(params0) * 0.03 / params0.numel(),
-                params=(coeffs0, None,),  # coeffs & with_penalty
-                bck_options={**bck_options},
+                params=(
+                    coeffs0,
+                    None,
+                ),  # coeffs & with_penalty
+                bck_options={
+                    **bck_options
+                },
                 **fwd_options).detach()
 
             if torch.is_grad_enabled():
@@ -162,10 +219,13 @@ class SCF_QCCalc(BaseQCCalc):
                 # because of the overparameterization of the aoparams.
                 min_dm = params2dm(min_params0, coeffs0)
                 params0, coeffs0 = dm2params(min_dm)
-                min_params0 = xitorch.optimize.minimize(
+                min_params0 = minimize(
                     fcn=self._engine.aoparams2ene,
                     y0=params0,
-                    params=(coeffs0, 1e-1,),  # coeffs & with_penalty
+                    params=(
+                        coeffs0,
+                        1e-1,
+                    ),  # coeffs & with_penalty
                     bck_options={**bck_options},
                     method="gd",
                     step=0,
@@ -177,105 +237,264 @@ class SCF_QCCalc(BaseQCCalc):
         return self
 
     def energy(self) -> torch.Tensor:
-        # returns the total energy of the system
+        """Obtain the energy of the system.
+
+        Returns
+        -------
+        torch.Tensor
+            The energy of the system.
+
+        """
         assert self._has_run
         return self._engine.dm2energy(self._dm)
 
     def aodm(self) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
-        # returns the density matrix in the atomic-orbital basis
+        """
+        Returns the density matrix in atomic orbital. For polarized
+        case, it returns a SpinParam of 2 tensors representing the
+        density matrices for spin-up and spin-down.
+
+        Returns
+        -------
+        Union[torch.Tensor, SpinParam[torch.Tensor]]
+            The density matrix in atomic orbital. Shape: (nao, nao)
+
+        """
         assert self._has_run
         return self._dm
 
     def dm2energy(self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]):
-        # calculate the energy given the density matrix
+        """Calculate the energy from the given density matrix.
+
+        Parameters
+        ----------
+        dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
+            The input density matrix. It is tensor if restricted, and
+            SpinParam of tensor if unrestricted.
+
+        Returns
+        -------
+        torch.Tensor
+            Tensor that represents the energy given the energy.
+
+        """
         assert (isinstance(dm, torch.Tensor) and not self._polarized) or \
             (isinstance(dm, SpinParam) and self._polarized)
         return self._engine.dm2energy(dm)
 
     def _get_zero_dm(self) -> Union[SpinParam[torch.Tensor], torch.Tensor]:
-        # get the initial dm that are all zeros
+        """get the initial dm that are all zeros
+
+        Returns
+        -------
+        Union[SpinParam[torch.Tensor], torch.Tensor]
+            The initial density matrix. It is tensor if restricted,
+            and SpinParam of tensor if unrestricted.
+
+        """
         if not self._polarized:
-            return torch.zeros(self._shape, dtype=self.dtype,
+            return torch.zeros(self._shape,
+                               dtype=self.dtype,
                                device=self.device)
         else:
-            dm0_u = torch.zeros(self._shape, dtype=self.dtype,
+            dm0_u = torch.zeros(self._shape,
+                                dtype=self.dtype,
                                 device=self.device)
-            dm0_d = torch.zeros(self._shape, dtype=self.dtype,
+            dm0_d = torch.zeros(self._shape,
+                                dtype=self.dtype,
                                 device=self.device)
             return SpinParam(u=dm0_u, d=dm0_d)
 
-class BaseSCFEngine(xt.EditableModule):
+
+class BaseSCFEngine(EditableModule):
+    """Base class for the SCF engine.
+
+    This class is the base class for the self-consistent field (SCF) engine.
+    It is used to perform the SCF iteration to find the minimum energy of the
+    system.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils import SCF_QCCalc, BaseSCFEngine
+    >>> from deepchem.utils.dft_utils import SpinParam
+
+    # Define the engine
+    >>> class engine(BaseSCFEngine):
+    ...     def polarised():
+    ...         return False
+    ...     def dm2energy(self, dm: torch.Tensor | SpinParam[torch.Tensor]) -> torch.Tensor:
+    ...        return dm * 1.1
+    >>> myEngine = engine()
+    >>> a = SCF_QCCalc(myEngine)
+    >>> a.dm2energy(torch.tensor([1.1]))
+    tensor([1.2100])
+
+    """
+
     @abstractproperty
     def polarized(self) -> bool:
-        """
-        Returns if the system is polarized or not
+        """If the system is polarized or not.
+
+        Returns
+        -------
+        bool
+            True if the system is polarized, False otherwise.
+
         """
         pass
 
     @abstractproperty
     def shape(self):
-        """
-        Returns the shape of the density matrix in this engine.
+        """Shape of the density matrix in this engine.
+
+        Returns
+        -------
+        Any
+            The shape of the density matrix in this engine.
+
         """
         pass
 
     @abstractproperty
     def dtype(self) -> torch.dtype:
-        """
-        Returns the dtype of the tensors in this engine.
+        """dtype of the tensors in this engine.
+
+        Returns
+        -------
+        torch.dtype
+            The dtype of the tensors in this engine.
+
         """
         pass
 
     @abstractproperty
     def device(self) -> torch.device:
-        """
-        Returns the device of the tensors in this engine.
+        """Device of the tensors in this engine.
+
+        Returns
+        -------
+        torch.device
+            The device of the tensors in this engine.
+
         """
         pass
 
     @abstractmethod
     def get_system(self) -> BaseSystem:
-        """
-        Returns the system involved in the engine.
+        """System involved in the engine.
+
+        Returns
+        -------
+        BaseSystem
+            The system involved in the engine.
+
         """
         pass
 
     @abstractmethod
-    def dm2energy(self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> torch.Tensor:
-        """
-        Calculate the energy from the given density matrix.
+    def dm2energy(
+            self, dm: Union[torch.Tensor,
+                            SpinParam[torch.Tensor]]) -> torch.Tensor:
+        """Calculate the energy from the given density matrix.
+
+        Parameters
+        ----------
+        dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
+            The input density matrix. It is tensor if restricted, and
+            SpinParam of tensor if unrestricted.
+
+        Returns
+        -------
+        torch.Tensor
+            Energy of the given density matrix.
+
         """
         pass
 
     @abstractmethod
-    def dm2scp(self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> torch.Tensor:
+    def dm2scp(
+            self, dm: Union[torch.Tensor,
+                            SpinParam[torch.Tensor]]) -> torch.Tensor:
         """
         Convert the density matrix into the self-consistent parameter (scp).
         Self-consistent parameter is defined as the parameter that is put into
         the equilibrium function, i.e. y in `y = f(y, x)`.
+
+        Parameters
+        ----------
+        dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
+            The input density matrix. It is tensor if restricted, and
+            SpinParam of tensor if unrestricted.
+
+        Returns
+        -------
+        torch.Tensor
+            The self-consistent parameter.
+
         """
         pass
 
     @abstractmethod
-    def scp2dm(self, scp: torch.Tensor) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
-        """
-        Calculate the density matrix from the given self-consistent parameter (scp).
+    def scp2dm(
+            self,
+            scp: torch.Tensor) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
+        """Calculate the density matrix from the given self-consistent parameter (scp).
+
+        Parameters
+        ----------
+        scp: torch.Tensor
+            The input self-consistent parameter.
+
+        Returns
+        -------
+        Union[torch.Tensor, SpinParam[torch.Tensor]]
+            The density matrix. It is tensor if restricted, and SpinParam of
+            tensor if unrestricted.
+
         """
         pass
 
     @abstractmethod
     def scp2scp(self, scp: torch.Tensor) -> torch.Tensor:
-        """
-        Calculate the next self-consistent parameter (scp) for the next iteration
-        from the previous scp.
+        """Calculate the next self-consistent parameter (scp) for the
+        next iteration from the previous scp.
+
+        Parameters
+        ----------
+        scp: torch.Tensor
+            The previous self-consistent parameter.
+
+        Returns
+        -------
+        torch.Tensor
+            The next self-consistent parameter.
+
         """
         pass
 
     @abstractmethod
-    def aoparams2ene(self, aoparams: torch.Tensor, aocoeffs: torch.Tensor,
+    def aoparams2ene(self,
+                     aoparams: torch.Tensor,
+                     aocoeffs: torch.Tensor,
                      with_penalty: Optional[float] = None) -> torch.Tensor:
-        """
-        Calculate the energy from the given atomic orbital parameters and coefficients.
+        """Calculate the energy from the given atomic orbital parameters
+        and coefficients.
+
+        Parameters
+        ----------
+        aoparams: torch.Tensor
+            The atomic orbital parameters.
+        aocoeffs: torch.Tensor
+            The atomic orbital coefficients.
+        with_penalty: Optional[float]
+            The penalty factor.
+
+        Returns
+        -------
+        torch.Tensor
+            The energy from the given atomic orbital parameters and
+            coefficients.
+
         """
         pass
 
@@ -283,36 +502,94 @@ class BaseSCFEngine(xt.EditableModule):
     def aoparams2dm(self, aoparams: torch.Tensor, aocoeffs: torch.Tensor,
                     with_penalty: Optional[float] = None) -> \
             Tuple[Union[torch.Tensor, SpinParam[torch.Tensor]], Optional[torch.Tensor]]:
-        """
-        Calculate the density matrix and the penalty from the given atomic
-        orbital parameters and coefficients.
+        """Calculate the density matrix and the penalty from the given
+        atomic orbital parameters and coefficients.
+
+        Parameters
+        ----------
+        aoparams: torch.Tensor
+            The atomic orbital parameters.
+        aocoeffs: torch.Tensor
+            The atomic orbital coefficients.
+        with_penalty: Optional[float]
+            The penalty factor.
+
+        Returns
+        -------
+        Tuple[Union[torch.Tensor, SpinParam[torch.Tensor]], Optional[torch.Tensor]]
+            The density matrix and the penalty from the given atomic
+            orbital parameters and coefficients.
+
         """
         pass
 
     @abstractmethod
-    def pack_aoparams(self, aoparams: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> torch.Tensor:
-        """
-        Pack the ao params into a single tensor.
+    def pack_aoparams(
+            self, aoparams: Union[torch.Tensor,
+                                  SpinParam[torch.Tensor]]) -> torch.Tensor:
+        """Pack the ao params into a single tensor.
+
+        Parameters
+        ----------
+        aoparams: Union[torch.Tensor, SpinParam[torch.Tensor]]
+            The input atomic orbital parameters. It is tensor if
+            restricted, and SpinParam of tensor if unrestricted.
+
+        Returns
+        -------
+        torch.Tensor
+            The packed atomic orbital parameters.
+
         """
         pass
 
     @abstractmethod
-    def unpack_aoparams(self, aoparams: torch.Tensor) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
-        """
-        Unpack the ao params into a tensor or SpinParam of tensor.
+    def unpack_aoparams(
+            self, aoparams: torch.Tensor
+    ) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
+        """Unpack the ao params into a tensor or SpinParam of tensor.
+
+        Parameters
+        ----------
+        aoparams: torch.Tensor
+            The input packed atomic orbital parameters.
+
+        Returns
+        -------
+        Union[torch.Tensor, SpinParam[torch.Tensor]]
+            The atomic orbital parameters. It is tensor if restricted,
+            and SpinParam of tensor if unrestricted.
+
         """
         pass
 
     @abstractmethod
     def set_eigen_options(self, eigen_options: Dict[str, Any]) -> None:
-        """
-        Set the options for the diagonalization (i.e. eigendecomposition).
+        """Set the options for the diagonalization (i.e. eigendecomposition).
+
+        Parameters
+        ----------
+        eigen_options: Dict[str, Any]
+            The options for the diagonalization.
+
         """
         pass
 
     @abstractmethod
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
-        """
-        List all the names of parameters used in the given method.
+        """List all the names of parameters used in the given method.
+
+        Parameters
+        ----------
+        methodname: str
+            The name of the method.
+        prefix: str
+            The prefix to be added to the parameter names.
+
+        Returns
+        -------
+        List[str]
+            The list of parameter names.
+
         """
         pass
