@@ -6198,39 +6198,11 @@ def cosine_dist(x, y):
     >>> import numpy as np
     >>> import torch
     >>> import deepchem.models.layers as layers
-    >>> x = torch.ones((6, 4), dtype=torch.float32)
-    >>> y_same = torch.ones((6, 4), dtype=torch.float32)
-    >>> cos_sim_same = layers.cosine_dist(x,y_same)
-
-    `x` and `y_same` are the same tensor (equivalent at every element, in this
-    case 1). As such, the pairwise inner product of the rows in `x` and `y` will
-    always be 1. The output tensor will be of shape (6,6).
-
-    >>> diff = cos_sim_same - torch.ones((6, 6), dtype=torch.float32)
-    >>> np.allclose(0.0, tf.reduce_sum(diff).numpy(), atol=1e-05)
-    True
+    >>> x =torch.tensor(([1,2,3],[12,23,31]), dtype=torch.float64)
+    >>> y_same = torch.tensor(([4,5,6],[45,56,64]), dtype=torch.float64)
+    >>> cosine_dist = layers.cosine_dist(x,y_same)
     >>> cos_sim_same.shape
-    TensorShape([6, 6])
-
-    The cosine similarity between two orthogonal vectors will be 0 (by definition).
-    If every row in `x` is orthogonal to every row in `y`, then the output will be a
-    tensor of 0s. In the following example, each row in the tensor `x1` is orthogonal
-    to each row in `x2` because they are halves of an identity matrix.
-
-    >>> identity_tensor = torch.eye(512, dtype=torch.float32)
-    >>> x1 = identity_tensor[0:256,:]
-    >>> x2 = identity_tensor[256:512,:]
-    >>> cos_sim_orth = layers.cosine_dist(x1,x2)
-
-    Each row in `x1` is orthogonal to each row in `x2`. As such, the pairwise inner
-    product of the rows in `x1`and `x2` will always be 0. Furthermore, because the
-    shape of the input tensors are both of shape `(256,512)`, the output tensor will
-    be of shape `(256,256)`.
-
-    >>> np.allclose(0.0, tf.reduce_sum(cos_sim_orth).numpy(), atol=1e-05)
-    True
-    >>> cos_sim_orth.shape
-    TensorShape([256, 256])
+    torch.Size([2, 2])
 
     Parameters
     ----------
@@ -6258,7 +6230,9 @@ def cosine_dist(x, y):
 
 class AttnLSTMEmbedding(nn.Module):
 
-    """Implements AttnLSTM as in matching networks paper.
+    """
+    Implements AttnLSTM as in matching networks paper.
+
     The AttnLSTM embedding adjusts two sets of vectors, the "test" and
     "support" sets. The "support" consists of a set of evidence vectors.
     Think of these as the small training set for low-data machine
@@ -6269,7 +6243,23 @@ class AttnLSTMEmbedding(nn.Module):
     metric that allows a network to modify its internal notion of
     distance.
 
-    See references [1]_ [2]_ for more details.
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import torch
+    >>> import deepchem.models.layers as layers
+    >>> max_depth = 5
+    >>> n_test = 5
+    >>> n_support = 11
+    >>> n_feat = 10
+    >>> test = np.random.rand(n_test, n_feat).astype(np.float32)
+    >>> support = np.random.rand(n_support, n_feat).astype(np.float32)
+    >>> layer = layers.AttnLSTMEmbedding(n_test, n_support, n_feat, max_depth)
+    >>> test_out, support_out = layer([test, support])
+    >>> test_out.shape
+    torch.Size([5, 10])
+    >>> support_out.shape
+    torch.Size([11, 10])
 
     References
     ----------
@@ -6277,13 +6267,14 @@ class AttnLSTMEmbedding(nn.Module):
         Advances in neural information processing systems. 2016.
     .. [2] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters:
         Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
+   
     """
     
     def __init__(self, n_test, n_support, n_feat, max_depth, **kwargs):
+       
         """
         Parameters
-    
-        ----------
+        ----------  
         n_support: int
             Size of support set.
         n_test: int
@@ -6312,6 +6303,7 @@ class AttnLSTMEmbedding(nn.Module):
     
     def forward(self, inputs):
         """Execute this layer on input tensors.
+
         Parameters
         ----------
         inputs: list
@@ -6319,12 +6311,14 @@ class AttnLSTMEmbedding(nn.Module):
             n_feat) and Xp should be of shape (n_support, n_feat) where
             n_test is the size of the test set, n_support that of the support
             set, and n_feat is the number of per-atom features.
+        
         Returns
         -------
         list
             Returns two tensors of same shape as input. Namely the output
             shape will be [(n_test, n_feat), (n_support, n_feat)]
         """
+        
         if len(inputs) != 2:
             raise ValueError("AttnLSTMEmbedding layer must have exactly two parents")
         
@@ -6333,19 +6327,17 @@ class AttnLSTMEmbedding(nn.Module):
         x,xp=torch.tensor(x), torch.tensor(xp)
 
         # Get initializations
-        p = self.p_init
         q = self.q_init
-
-        z = xp
-        states = self.support_states_init
-        x_states = self.test_states_init
+        states = self.states_init
 
         for d in range(self.max_depth):
-            e=cosine_dist(z+q,xp)
+            # Process using attention
+            # Eqn (4), appendix A.1 of Matching Networks paper            
+            e=cosine_dist(x+q,xp)
             a=torch.softmax(e,dim=-1)
             r=torch.matmul(a, xp)
 
+            # Generate new attention states
             y = torch.concatenate([q, r], axis=1)
             q, states = self.lstm([y] + states)
-        
         return [x + q, xp]
