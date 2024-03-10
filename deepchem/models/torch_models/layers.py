@@ -6201,7 +6201,7 @@ def cosine_dist(x, y):
     >>> x =torch.tensor(([1,2,3],[12,23,31]), dtype=torch.float64)
     >>> y_same = torch.tensor(([4,5,6],[45,56,64]), dtype=torch.float64)
     >>> cosine_dist = layers.cosine_dist(x,y_same)
-    >>> cos_sim_same.shape
+    >>> cosine_dist.shape
     torch.Size([2, 2])
 
     Parameters
