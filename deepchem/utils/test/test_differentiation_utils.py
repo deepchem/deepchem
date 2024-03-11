@@ -757,6 +757,24 @@ def test_get_largest_eival():
 
 
 @pytest.mark.torch
+def test_broyden1_solve():
+    from deepchem.utils.differentiation_utils.solve import broyden1_solve
+    A = torch.tensor([[1., 2], [3, 4]])
+    B = torch.tensor([[5., 6], [7, 8]])
+    assert torch.allclose(broyden1_solve(A, B),
+                          torch.tensor([[-3.0000, -4.0000], [4.0000, 5.0000]]))
+
+
+@pytest.mark.torch
+def test_rootfinder_solve():
+    from deepchem.utils.differentiation_utils.solve import _rootfinder_solve
+    A = torch.tensor([[1., 2], [3, 4]])
+    B = torch.tensor([[5., 6], [7, 8]])
+    assert torch.allclose(_rootfinder_solve("broyden1", A, B),
+                          torch.tensor([[-3.0000, -4.0000], [4.0000, 5.0000]]))
+
+
+@pytest.mark.torch
 def test_symeig():
     from deepchem.utils.differentiation_utils import LinearOperator, symeig
     A = LinearOperator.m(torch.tensor([[3, -1j], [1j, 4]]))
@@ -1004,3 +1022,60 @@ def test_linear_mixing():
     x0 = torch.tensor(0.0, requires_grad=True)
     x = linearmixing(fcn, x0)
     assert torch.allclose(x, torch.tensor(2.0000))
+
+
+@pytest.mark.torch
+def test_rootfinder():
+    from deepchem.utils.differentiation_utils import rootfinder
+
+    def func1(y, A):
+        return torch.tanh(A @ y + 0.1) + y / 2.0
+
+    A = torch.tensor([[1.1, 0.4], [0.3, 0.8]]).requires_grad_()
+    y0 = torch.zeros((2, 1))  # zeros as the initial guess
+    yroot = rootfinder(func1, y0, params=(A,))
+    assert torch.allclose(yroot, torch.tensor([[-0.0459], [-0.0663]]), 0.001)
+
+
+@pytest.mark.torch
+def test_equilibrium():
+    from deepchem.utils.differentiation_utils import equilibrium
+
+    def func1(y, A):
+        return torch.tanh(A @ y + 0.1) + y / 2.0
+
+    A = torch.tensor([[1.1, 0.4], [0.3, 0.8]]).requires_grad_()
+    y0 = torch.zeros((2, 1))  # zeros as the initial guess
+    yequil = equilibrium(func1, y0, params=(A,))
+    assert torch.allclose(yequil, torch.tensor([[0.2313], [-0.5957]]), 0.001)
+
+
+@pytest.mark.torch
+def test_minimize():
+    from deepchem.utils.differentiation_utils import minimize
+
+    def func1(y, A):  # example function
+        return torch.sum((A @ y)**2 + y / 2.0)
+
+    A = torch.tensor([[1.1, 0.4], [0.3, 0.8]]).requires_grad_()
+    y0 = torch.zeros((2, 1))  # zeros as the initia
+    ymin = minimize(func1, y0, params=(A,))
+    assert torch.allclose(ymin, torch.tensor([[-0.0519], [-0.2684]]), 0.001)
+
+
+@pytest.mark.torch
+def test_get_rootfinder_default_method():
+    from deepchem.utils.differentiation_utils.optimize.rootfinder import _get_rootfinder_default_method
+    assert _get_rootfinder_default_method(None) == 'broyden1'
+
+
+@pytest.mark.torch
+def test_get_equilibrium_default_method():
+    from deepchem.utils.differentiation_utils.optimize.rootfinder import _get_equilibrium_default_method
+    assert _get_equilibrium_default_method(None) == 'broyden1'
+
+
+@pytest.mark.torch
+def test_get_minimizer_default_method():
+    from deepchem.utils.differentiation_utils.optimize.rootfinder import _get_minimizer_default_method
+    assert _get_minimizer_default_method(None) == 'broyden1'
