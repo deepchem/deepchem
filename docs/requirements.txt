@@ -5,7 +5,7 @@ scikit-learn
 # build fails.
 sphinx==7.2.6
 sphinx_rtd_theme>=1.0
-tensorflow
+tensorflow<2.16
 transformers>=4.34.1
 torch==2.1.0 --extra-index-url https://download.pytorch.org/whl/cpu
 lightning
