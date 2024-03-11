@@ -299,7 +299,7 @@ WGAN
 TextCNNModel
 ------------
 
-.. autoclass:: deepchem.models.torch_models.TextCNNModel
+.. autoclass:: deepchem.models.TextCNNModel
   :members:
 
 
