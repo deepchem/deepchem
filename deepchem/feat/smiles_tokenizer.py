@@ -30,7 +30,7 @@ VOCAB_FILES_NAMES = {"vocab_file": "vocab.txt"}
 
 def get_default_tokenizer():
     default_vocab_path = (pkg_resources.resource_filename(
-        "deepchem", "feat/tests/vocab.txt"))
+        "deepchem", "feat/tests/data/vocab.txt"))
     return SmilesTokenizer(default_vocab_path)
 
 
