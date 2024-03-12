@@ -1,8 +1,7 @@
 from typing import Optional, Dict, Any, List, Union, overload, Tuple
 import torch
-from deepchem.utils.dft_utils import BaseSystem, BaseXC, SpinParam, SCF_QCCalc, BaseSCFEngine
+from deepchem.utils.dft_utils import BaseSystem, BaseXC, SpinParam, SCF_QCCalc, BaseSCFEngine, HFEngine
 from deepchem.utils.differentiation_utils import LinearOperator
-from dqc.qccalc.hf import _HFEngine
 from dqc.api.getxc import get_xc
 
 
@@ -74,7 +73,7 @@ class _KSEngine(BaseSCFEngine):
 
         # get the HF engine and build the hamiltonian
         # no need to rebuild the grid because it has been constructed
-        self.hf_engine = _HFEngine(system,
+        self.hf_engine = HFEngine(system,
                                    restricted=restricted,
                                    build_grid_if_necessary=False)
         self._polarized = self.hf_engine.polarized
