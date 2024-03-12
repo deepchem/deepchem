@@ -2,11 +2,17 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from deepchem.utils.typing import OneOrMany, ActivationFn
+from deepchem.data import Dataset
+from deepchem.models import losses
+from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.utils.pytorch_utils import get_activation
+from deepchem.utils.typing import OneOrMany, ActivationFn, LossFn
 
+import logging
 from collections.abc import Sequence as SequenceCollection
-from typing import List, Tuple, Callable, Literal, Union
+from typing import List, Tuple, Callable, Literal, Optional, Union
+
+logger = logging.getLogger(__name__)
 
 
 class ProgressiveMultitask(nn.Module):
@@ -302,3 +308,218 @@ class ProgressiveMultitask(nn.Module):
         adapter_out = self.activation_fns[layer - 1](adapter_out)
         adapter_out = adapter[1](adapter_out)
         return adapter_out
+
+
+class ProgressiveMultitaskModel(TorchModel):
+    """Implements a progressive multitask neural network in PyTorch.
+
+    Progressive networks allow for multitask learning where each task
+    gets a new column of weights and lateral connections to previous tasks
+    are added to the network. As a result, there is no exponential
+    forgetting where previous tasks are ignored.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models import ProgressiveMultitaskModel
+    >>> featurizer = dc.feat.CircularFingerprint(size=1024, radius=4)
+    >>> tasks, datasets, transformers = dc.molnet.load_tox21(featurizer=featurizer)
+    >>> train_dataset, valid_dataset, test_dataset = datasets
+    >>> n_tasks = len(tasks)
+    >>> model = ProgressiveMultitaskModel(n_tasks, 1024, layer_sizes=[1024], mode='classification')
+    >>> model.fit(train_dataset, nb_epoch=10)
+
+    References
+    ----------
+    See [1]_ for a full description of the progressive architecture
+
+    .. [1] Rusu, Andrei A., et al. "Progressive neural networks." arXiv preprint
+        arXiv:1606.04671 (2016).
+    """
+
+    def __init__(self,
+                 n_tasks: int,
+                 n_features: int,
+                 layer_sizes: List[int] = [1000],
+                 mode: Literal['regression', 'classification'] = 'regression',
+                 alpha_init_stddevs: OneOrMany[float] = 0.02,
+                 weight_init_stddevs: OneOrMany[float] = 0.02,
+                 bias_init_consts: OneOrMany[float] = 1.0,
+                 weight_decay_penalty: float = 0.0,
+                 weight_decay_penalty_type: str = "l2",
+                 activation_fns: OneOrMany[ActivationFn] = 'relu',
+                 dropouts: OneOrMany[float] = 0.5,
+                 n_classes: Optional[int] = None,
+                 n_outputs: Optional[int] = None,
+                 **kwargs):
+        """
+        Parameters
+        ----------
+        n_tasks: int
+            Number of tasks.
+        n_features: int
+            Size of input feature vector.
+        layer_sizes: list of ints
+            List of layer sizes.
+        mode: str
+            Type of model.  Must be 'regression' or 'classification'.
+        alpha_init_stddevs: float or list of floats
+            Standard deviation for truncated normal distribution to initialize
+            alpha parameters.
+        weight_init_stddevs: float or list of floats
+            Standard deviation for truncated normal distribution to initialize
+            weight parameters.
+        bias_init_consts: float or list of floats
+            Constant value to initialize bias parameters.
+        weight_decay_penalty: float
+            Amount of weight decay penalty to use.
+        weight_decay_penalty_type: str
+            Type of weight decay penalty.  Must be 'l1' or 'l2'.
+        activation_fns: str or list of str
+            Name of activation function(s) to use.
+        dropouts: float or list of floats
+            Dropout probability.
+        n_classes: int
+            The number of classes to predict per task. Default to 2 for classification and 1 for regression.
+        n_outputs: int
+            The number of outputs to predict per task. Deprecated, use n_classes instead.
+        """
+
+        if n_outputs is not None:
+            logger.warning(
+                "n_outputs is deprecated and will be removed in future versions. Use n_classes instead."
+            )
+            if n_classes is not None and n_classes != n_outputs:
+                raise ValueError(
+                    "n_classes and n_outputs should have the same value if both are specified."
+                )
+            n_classes = n_outputs
+
+        loss: losses.Loss
+        if mode == 'regression':
+            loss = losses.L2Loss()
+            output_types = ['prediction']
+            if n_classes is None:
+                n_classes = 1
+        elif mode == 'classification':
+            loss = losses.SparseSoftmaxCrossEntropy()
+            output_types = ['prediction', 'loss']
+            if n_classes is None:
+                n_classes = 2
+        else:
+            raise ValueError(f'Invalid mode: {mode}')
+
+        model = ProgressiveMultitask(
+            n_tasks=n_tasks,
+            n_features=n_features,
+            layer_sizes=layer_sizes,
+            mode=mode,
+            alpha_init_stddevs=alpha_init_stddevs,
+            weight_init_stddevs=weight_init_stddevs,
+            bias_init_consts=bias_init_consts,
+            weight_decay_penalty=weight_decay_penalty,
+            weight_decay_penalty_type=weight_decay_penalty_type,
+            activation_fns=activation_fns,
+            dropouts=dropouts,
+            n_classes=n_classes)
+
+        super(ProgressiveMultitaskModel,
+              self).__init__(model, loss, output_types=output_types, **kwargs)
+
+    def fit(self,
+            dataset: Dataset,
+            nb_epoch: int = 10,
+            max_checkpoints_to_keep: int = 5,
+            checkpoint_interval: int = 1000,
+            deterministic: bool = False,
+            restore: bool = False,
+            variables: Optional[List[torch.nn.Parameter]] = None,
+            loss: Optional[LossFn] = None,
+            callbacks: Union[Callable, List[Callable]] = [],
+            all_losses: Optional[List[float]] = None):
+
+        for task in range(self.model.n_tasks):
+            self.fit_task(dataset=dataset,
+                          task=task,
+                          nb_epoch=nb_epoch,
+                          max_checkpoints_to_keep=max_checkpoints_to_keep,
+                          checkpoint_interval=checkpoint_interval,
+                          deterministic=deterministic,
+                          restore=restore,
+                          variables=variables,
+                          loss=loss,
+                          callbacks=callbacks,
+                          all_losses=all_losses)
+
+    def fit_task(self,
+                 dataset: Dataset,
+                 task: int,
+                 nb_epoch: int = 10,
+                 max_checkpoints_to_keep: int = 5,
+                 checkpoint_interval: int = 1000,
+                 deterministic: bool = False,
+                 restore: bool = False,
+                 variables: Optional[List[torch.nn.Parameter]] = None,
+                 loss: Optional[LossFn] = None,
+                 callbacks: Union[Callable, List[Callable]] = [],
+                 all_losses: Optional[List[float]] = None):
+        """Train this model on one task. Called by fit() to train each task sequentially.
+        Calls fit_generator() internally.
+
+        Parameters
+        ----------
+        dataset: Dataset
+            the Dataset to train on
+        task: int
+            the task to train on
+        nb_epoch: int
+            the number of epochs to train for
+        max_checkpoints_to_keep: int
+            the maximum number of checkpoints to keep.  Older checkpoints are discarded.
+        checkpoint_interval: int
+            the frequency at which to write checkpoints, measured in training steps.
+            Set this to 0 to disable automatic checkpointing.
+        deterministic: bool
+            if True, the samples are processed in order.  If False, a different random
+            order is used for each epoch.
+        restore: bool
+            if True, restore the model from the most recent checkpoint and continue training
+            from there.  If False, retrain the model from scratch.
+        variables: list of torch.nn.Parameter
+            the variables to train.  If None (the default), all trainable variables in
+            the model are used.
+        loss: function
+            a function of the form f(outputs, labels, weights) that computes the loss
+            for each batch.  If None (the default), the model's standard loss function
+            is used.
+        callbacks: function or list of functions
+            one or more functions of the form f(model, step) that will be invoked after
+            every step.  This can be used to perform validation, logging, etc.
+        all_losses: Optional[List[float]], optional (default None)
+            If specified, all logged losses are appended into this list. Note that
+            you can call `fit()` repeatedly with the same list and losses will
+            continue to be appended.
+
+        Returns
+        -------
+        The average loss over the most recent checkpoint interval
+        """
+
+        generator = self.default_generator(dataset,
+                                           epochs=nb_epoch,
+                                           deterministic=deterministic)
+
+        variables = list(self.model.layers[task].parameters())
+
+        if task > 0:
+            variables += list(self.model.adapters[task - 1].parameters())
+            variables += list(self.model.alphas[task - 1].parameters())
+
+        self.fit_generator(generator=generator,
+                           max_checkpoints_to_keep=max_checkpoints_to_keep,
+                           checkpoint_interval=checkpoint_interval,
+                           restore=restore,
+                           variables=variables,
+                           loss=loss,
+                           callbacks=callbacks,
+                           all_losses=all_losses)
