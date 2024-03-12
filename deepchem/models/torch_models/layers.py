@@ -6226,7 +6226,7 @@ class PaulinetElectronFeature(nn.Module):
 
     def forward(self, one_electron: torch.Tensor, two_electron: torch.Tensor):
         """
-        Perform forward pass of Parameters
+        Parameters
         ----------
         one_electron: torch.Tensor
             Tensor of shape (batch_size, total_electron, no_of_atoms, 4) containing the one-electron features for each electron in the system.
