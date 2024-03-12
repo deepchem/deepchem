@@ -20,3 +20,4 @@ dgl
 sphinx-copybutton
 sympy
 pysam
+pydantic
