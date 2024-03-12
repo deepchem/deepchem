@@ -2,7 +2,7 @@ from typing import Optional, Dict, Any, List, Union, overload, Tuple
 import torch
 from deepchem.utils.dft_utils import BaseSystem, BaseXC, SpinParam, SCF_QCCalc, BaseSCFEngine, HFEngine
 from deepchem.utils.differentiation_utils import LinearOperator
-from dqc.api.getxc import get_xc
+from deepchem.utils.dft_utils.api.getxc import get_xc
 
 
 class KS(SCF_QCCalc):
