@@ -109,4 +109,3 @@ jobs:
         python -c "import deepchem; print('DeepChem version %s' % deepchem.__version__)"
         python -c "import rdkit; print('RDKIT version %s' % rdkit.__version__)"
         python -c "import torch; print('Torch version %s' % torch.__version__)"
-        python -c "import tensorflow; print('Tensorflow version %s' % tensorflow.__version__)"
