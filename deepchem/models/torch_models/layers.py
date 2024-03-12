@@ -4863,7 +4863,7 @@ try:
                 h_j_new = res3(h_j_new)
 
         .. note::
-        Message passing and message aggregation(sum) is handled by ``self.propagate()``.
+        Message passing and message aggregation(sum) is handled by ``propagate()``.
 
         References
         ----------
