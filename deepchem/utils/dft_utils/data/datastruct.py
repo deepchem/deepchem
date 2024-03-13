@@ -58,15 +58,30 @@ class SpinParam(Generic[T]):
         """Return the string representation of the SpinParam object."""
         return f"SpinParam(u={self.u}, d={self.d})"
 
-    def sum(self):
+    def sum(a: Union['SpinParam[T]', T]) -> T:
         """Returns the sum of up and down parameters."""
+        if isinstance(a, SpinParam):
+            return a.u + a.d
+        else:
+            return a
 
-        return self.u + self.d
-
-    def reduce(self, fcn: Callable) -> T:
+    def reduce(a: Union['SpinParam[T]', T], fcn: Callable[[T, T], T]) -> T:
         """Reduce up and down parameters with the given function."""
+        if isinstance(a, SpinParam):
+            return fcn(a.u, a.d)
+        else:
+            return a
 
-        return fcn(self.u, self.d)
+    @staticmethod
+    def apply_fcn(fcn: Callable[..., P], *a):
+        """"apply the function for each up and down elements of a"""
+        assert len(a) > 0
+        if isinstance(a[0], SpinParam):
+            u_vals = [aa.u for aa in a]
+            d_vals = [aa.d for aa in a]
+            return SpinParam(u=fcn(*u_vals), d=fcn(*d_vals))
+        else:
+            return fcn(*a)
 
 
 @dataclass
