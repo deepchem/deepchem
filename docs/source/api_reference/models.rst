@@ -415,7 +415,7 @@ PagtnModel
   :members:
 
 AtomConvModel
-----------
+-------------
 
 .. autoclass:: deepchem.models.torch_models.AtomConvModel
   :members:
@@ -537,6 +537,11 @@ WeaveModel
 .. autoclass:: deepchem.models.torch_models.WeaveModel
   :members:
 
+ProgressiveMultitaskModel
+-------------------------
+
+.. autoclass:: deepchem.models.torch_models.ProgressiveMultitaskModel
+  :members:
 
 Density Functional Theory Model - XCModel
 -----------------------------------------

@@ -3376,7 +3376,8 @@ class MolGANConvolutionLayer(nn.Module):
                  dropout_rate: float = 0.0,
                  edges: int = 5,
                  name: str = "",
-                 prev_shape: int = 0):
+                 prev_shape: int = 0,
+                 device: torch.device = torch.device('cpu')):
         """
         Initialize this layer.
 
@@ -3406,7 +3407,7 @@ class MolGANConvolutionLayer(nn.Module):
         self.edges: int = edges
         self.name: str = name
         self.nodes: int = nodes
-
+        self.device = device
         # Case when >2 inputs are passed
         if prev_shape:
             self.dense1 = nn.ModuleList([
@@ -3456,8 +3457,8 @@ class MolGANConvolutionLayer(nn.Module):
                 "MolGANConvolutionLayer requires at least two inputs: [adjacency_tensor, node_features_tensor]"
             )
 
-        adjacency_tensor: torch.Tensor = inputs[0]
-        node_tensor: torch.Tensor = inputs[1]
+        adjacency_tensor: torch.Tensor = inputs[0].to(self.device)
+        node_tensor: torch.Tensor = inputs[1].to(self.device)
 
         if ic > 2:
             hidden_tensor: torch.Tensor = inputs[2]
@@ -3515,7 +3516,8 @@ class MolGANAggregationLayer(nn.Module):
                  activation=torch.tanh,
                  dropout_rate: float = 0.0,
                  name: str = "",
-                 prev_shape: int = 0):
+                 prev_shape: int = 0,
+                 device: torch.device = torch.device('cpu')):
         """
         Initialize the layer
 
@@ -3538,6 +3540,7 @@ class MolGANAggregationLayer(nn.Module):
         self.activation = activation
         self.dropout_rate: float = dropout_rate
         self.name: str = name
+        self.device = device
 
         if prev_shape:
             self.d1 = nn.Linear(prev_shape, self.units)
@@ -3558,7 +3561,7 @@ class MolGANAggregationLayer(nn.Module):
         """
         return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate}, Name={self.name})"
 
-    def forward(self, inputs: List) -> torch.Tensor:
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """
         Invoke this layer
 
@@ -3572,7 +3575,7 @@ class MolGANAggregationLayer(nn.Module):
         aggregation tensor: torch.Tensor
           Result of aggregation function on input convolution tensor.
         """
-
+        inputs = inputs.to(self.device)
         i = torch.sigmoid(self.d1(inputs))
         j = self.activation(self.d2(inputs))
         output = torch.sum(i * j, dim=1)
@@ -3618,6 +3621,7 @@ class MolGANMultiConvolutionLayer(nn.Module):
                  dropout_rate: float = 0.0,
                  edges: int = 5,
                  name: str = "",
+                 device: torch.device = torch.device('cpu'),
                  **kwargs):
         """
         Initialize the layer
@@ -3650,20 +3654,23 @@ class MolGANMultiConvolutionLayer(nn.Module):
         self.dropout_rate: float = dropout_rate
         self.edges: int = edges
         self.name: str = name
+        self.device = device
 
         self.first_convolution = MolGANConvolutionLayer(
             units=self.units[0],
             nodes=self.nodes,
             activation=self.activation,
             dropout_rate=self.dropout_rate,
-            edges=self.edges)
+            edges=self.edges,
+            device=self.device)
         self.gcl = nn.ModuleList([
             MolGANConvolutionLayer(units=u,
                                    nodes=self.nodes,
                                    activation=self.activation,
                                    dropout_rate=self.dropout_rate,
                                    edges=self.edges,
-                                   prev_shape=self.units[count])
+                                   prev_shape=self.units[count],
+                                   device=self.device)
             for count, u in enumerate(self.units[1:])
         ])
 
@@ -3694,8 +3701,8 @@ class MolGANMultiConvolutionLayer(nn.Module):
             Result of input tensors going through convolution a number of times.
         """
 
-        adjacency_tensor = inputs[0]
-        node_tensor = inputs[1]
+        adjacency_tensor = inputs[0].to(self.device)
+        node_tensor = inputs[1].to(self.device)
 
         tensors = self.first_convolution([adjacency_tensor, node_tensor])
 
@@ -3750,7 +3757,9 @@ class MolGANEncoderLayer(nn.Module):
                  dropout_rate: float = 0.0,
                  edges: int = 5,
                  nodes: int = 5,
-                 name: str = ""):
+                 name: str = "",
+                 device: torch.device = torch.device('cpu'),
+                 **kwargs):
         """
         Initialize the layer
 
@@ -3779,18 +3788,22 @@ class MolGANEncoderLayer(nn.Module):
         self.activation = activation
         self.dropout_rate = dropout_rate
         self.edges = edges
+        self.nodes = nodes
+        self.device = device
 
         self.multi_graph_convolution_layer = MolGANMultiConvolutionLayer(
             units=self.graph_convolution_units,
-            nodes=nodes,
+            nodes=self.nodes,
             activation=self.activation,
             dropout_rate=self.dropout_rate,
-            edges=self.edges)
+            edges=self.edges,
+            device=self.device)
         self.graph_aggregation_layer = MolGANAggregationLayer(
             units=self.auxiliary_units,
             activation=self.activation,
             dropout_rate=self.dropout_rate,
-            prev_shape=self.graph_convolution_units[-1] + nodes)
+            prev_shape=self.graph_convolution_units[-1] + nodes,
+            device=self.device)
 
     def __repr__(self) -> str:
         """
@@ -4850,7 +4863,7 @@ try:
                 h_j_new = res3(h_j_new)
 
         .. note::
-        Message passing and message aggregation(sum) is handled by ``self.propagate()``.
+        Message passing and message aggregation(sum) is handled by ``propagate()``.
 
         References
         ----------
