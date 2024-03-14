@@ -10,7 +10,7 @@ try:
     import torch.nn.functional as F
     from deepchem.models.torch_models import BasicMolGANModel as MolGAN
     has_torch = True
-except:
+except ImportError:
     has_torch = False
 
 
