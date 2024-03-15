@@ -1,3 +1,4 @@
+import pandas as pd
 from deepchem.feat import Featurizer
 from typing import Dict, List
 try:
@@ -60,5 +61,11 @@ class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
         encoding = list(self(datapoint, **kwargs).values())
         return encoding
 
-    def __call__(self, *args, **kwargs) -> Dict[str, List[int]]:
-        return super().__call__(*args, **kwargs)
+    def __call__(self,
+                 datapoints,
+                 padding: bool = True,
+                 **kwargs) -> Dict[str, List[int]]:
+        if isinstance(datapoints, pd.Series):
+            datapoints = datapoints.to_list()
+        results = super().__call__(datapoints, padding=padding, **kwargs)
+        return results['input_ids']
