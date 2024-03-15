@@ -519,8 +519,8 @@ def test_SCF_QCCalc():
             return False
 
         def dm2energy(
-                self,
-                dm: torch.Tensor | SpinParam[torch.Tensor]) -> torch.Tensor:
+                self, dm: Union[torch.Tensor,
+                                SpinParam[torch.Tensor]]) -> torch.Tensor:
             if isinstance(dm, SpinParam):
                 return dm.u + dm.d * 1.1
             return dm * 1.1
@@ -541,8 +541,8 @@ def test_BaseSCFEngine():
             return False
 
         def dm2energy(
-                self,
-                dm: torch.Tensor | SpinParam[torch.Tensor]) -> torch.Tensor:
+                self, dm: Union[torch.Tensor,
+                                SpinParam[torch.Tensor]]) -> torch.Tensor:
             if isinstance(dm, SpinParam):
                 return dm.u + dm.d * 1.1
             return dm * 1.1
