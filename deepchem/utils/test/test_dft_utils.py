@@ -514,22 +514,38 @@ def test_SCF_QCCalc():
 
     # Define the engine
     class engine(BaseSCFEngine):
+
         def polarised():
             return False
-        def dm2energy(self, dm: torch.Tensor | SpinParam[torch.Tensor]) -> torch.Tensor:
-           return dm * 1.1
+
+        def dm2energy(
+                self,
+                dm: torch.Tensor | SpinParam[torch.Tensor]) -> torch.Tensor:
+            if isinstance(dm, SpinParam):
+                return dm.u + dm.d * 1.1
+            return dm * 1.1
+
     myEngine = engine()
     a = SCF_QCCalc(myEngine)
-    assert torch.allclose(a.dm2energy(torch.tensor([1.1])), torch.tensor([1.2100]))
+    assert torch.allclose(a.dm2energy(torch.tensor([1.1])),
+                          torch.tensor([1.2100]))
 
 
 @pytest.mark.torch
 def test_BaseSCFEngine():
     from deepchem.utils.dft_utils import BaseSCFEngine, SpinParam
+
     class engine(BaseSCFEngine):
+
         def polarised():
             return False
-        def dm2energy(self, dm: torch.Tensor | SpinParam[torch.Tensor]) -> torch.Tensor:
-           return dm * 1.1
+
+        def dm2energy(
+                self,
+                dm: torch.Tensor | SpinParam[torch.Tensor]) -> torch.Tensor:
+            if isinstance(dm, SpinParam):
+                return dm.u + dm.d * 1.1
+            return dm * 1.1
+
     myEngine = engine()
     assert myEngine.dm2energy(torch.tensor(1.2)) == torch.tensor(1.32)

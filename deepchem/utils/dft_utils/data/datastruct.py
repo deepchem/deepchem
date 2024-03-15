@@ -1,7 +1,7 @@
 """
 Density Functional Theory Data Structure Utilities
 """
-from typing import Union, TypeVar, Generic, Optional, Callable, List, Dict
+from typing import Any, Union, TypeVar, Generic, Optional, Callable, List, Dict
 from dataclasses import dataclass
 import torch
 import numpy as np
@@ -58,10 +58,10 @@ class SpinParam(Generic[T]):
         """Return the string representation of the SpinParam object."""
         return f"SpinParam(u={self.u}, d={self.d})"
 
-    def sum(a: Union['SpinParam[T]', T]) -> T:
+    def sum(a: Union['SpinParam[T]', T]) -> Any:
         """Returns the sum of up and down parameters."""
         if isinstance(a, SpinParam):
-            return a.u + a.d
+            return a.u + a.d  # type: ignore
         else:
             return a
 

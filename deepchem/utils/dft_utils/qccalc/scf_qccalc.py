@@ -62,7 +62,7 @@ class SCF_QCCalc(BaseQCCalc):
         """
         return self._engine.get_system()
 
-    def run(
+    def run(  # type: ignore[override]
             self,
             dm0: Optional[
                 Union[str, torch.Tensor,
