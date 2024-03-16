@@ -6197,8 +6197,7 @@ def cosine_dist(x, y):
 
     >>> import numpy as np
     >>> import torch
-    >>> import deepchem as dc
-    >>> import dc.models.torch_models.layers as layers
+    >>> import deepchem.models.torch_models.layers as layers
     >>> x =torch.tensor(([1,2,3],[12,23,31]), dtype=torch.float64)
     >>> y_same = torch.tensor(([4,5,6],[45,56,64]), dtype=torch.float64)
     >>> cosine_dist = layers.cosine_dist(x,y_same)
@@ -6248,8 +6247,7 @@ class AttnLSTMEmbedding(nn.Module):
     --------
     >>> import numpy as np
     >>> import torch
-    >>> import deepchem as dc
-    >>> import dc.models.torch_models.layers as layers
+    >>> import deepchem.models.torch_models.layers as layers
     >>> max_depth = 5
     >>> n_test = 5
     >>> n_support = 11
