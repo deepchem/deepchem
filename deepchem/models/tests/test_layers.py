@@ -1453,7 +1453,7 @@ def test_torch_highway_layer():
 
  
 @pytest.mark.torch
-def test_attn_lstm_embedding():
+def test_torch_attn_lstm_embedding():
     """Test invoking AttnLSTMEmbedding."""
     max_depth = 5
     n_test = 5
