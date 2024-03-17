@@ -5570,8 +5570,9 @@ class FerminetElectronFeature(torch.nn.Module):
                 f: torch.Tensor = torch.cat((one_electron[:, i, :], g_one_up,
                                              g_one_down, g_two_up, g_two_down),
                                             dim=1)
-                if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
-                        self.n_two[l] != self.n_two[l - 1]):
+                if l == 0 or (self.n_one[l]
+                              != self.n_one[l - 1]) or (self.n_two[l]
+                                                        != self.n_two[l - 1]):
                     one_electron_tmp.append((torch.tanh(self.v[l](f))) +
                                             self.projection_module[0]
                                             (one_electron[:, i, :]))
@@ -6167,8 +6168,7 @@ class HighwayLayer(torch.nn.Module):
 
 
 def cosine_dist(x, y):
-  
-  """Computes the inner product (cosine similarity) between two tensors.
+    """Computes the inner product (cosine similarity) between two tensors.
 
     This assumes that the two input tensors contain rows of vectors where
     each column represents a different feature. The output tensor will have
@@ -6223,13 +6223,13 @@ def cosine_dist(x, y):
         the l2-normalized `i`-th row of the input tensor `x` and the
         the l2-normalized `j`-th row of the output tensor `y`.
     """
-  
-  x_normalized = torch.nn.functional.normalize(x, p=2, dim=1)
-  y_normalized = torch.nn.functional.normalize(y, p=2, dim=1)
-  return torch.matmul(x_normalized, torch.transpose(y_normalized, 1, 0))
+
+    x_normalized = torch.nn.functional.normalize(x, p=2, dim=1)
+    y_normalized = torch.nn.functional.normalize(y, p=2, dim=1)
+    return torch.matmul(x_normalized, torch.transpose(y_normalized, 1, 0))
+
 
 class AttnLSTMEmbedding(nn.Module):
-
     """
     Implements AttnLSTM as in matching networks paper.
 
@@ -6269,9 +6269,8 @@ class AttnLSTMEmbedding(nn.Module):
         Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
    
     """
-    
+
     def __init__(self, n_test, n_support, n_feat, max_depth, **kwargs):
-       
         """
         Parameters
         ----------  
@@ -6300,7 +6299,7 @@ class AttnLSTMEmbedding(nn.Module):
         return (
             f'{self.__class__.__name__}(n_test={self.n_test}, n_support={self.n_support}, n_feat={self.n_feat}, max_depth={self.max_depth})'
         )
-    
+
     def forward(self, inputs):
         """Execute this layer on input tensors.
 
@@ -6318,13 +6317,14 @@ class AttnLSTMEmbedding(nn.Module):
             Returns two tensors of same shape as input. Namely the output
             shape will be [(n_test, n_feat), (n_support, n_feat)]
         """
-        
+
         if len(inputs) != 2:
-            raise ValueError("AttnLSTMEmbedding layer must have exactly two parents")
-        
+            raise ValueError(
+                "AttnLSTMEmbedding layer must have exactly two parents")
+
         # x is test set, xp is support set.
-        x,xp=inputs
-        x,xp=torch.tensor(x), torch.tensor(xp)
+        x, xp = inputs
+        x, xp = torch.tensor(x), torch.tensor(xp)
 
         # Get initializations
         q = self.q_init
@@ -6332,10 +6332,10 @@ class AttnLSTMEmbedding(nn.Module):
 
         for d in range(self.max_depth):
             # Process using attention
-            # Eqn (4), appendix A.1 of Matching Networks paper            
-            e=cosine_dist(x+q,xp)
-            a=torch.softmax(e,dim=-1)
-            r=torch.matmul(a, xp)
+            # Eqn (4), appendix A.1 of Matching Networks paper
+            e = cosine_dist(x + q, xp)
+            a = torch.softmax(e, dim=-1)
+            r = torch.matmul(a, xp)
 
             # Generate new attention states
             y = torch.concatenate([q, r], axis=1)
