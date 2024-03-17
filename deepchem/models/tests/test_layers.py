@@ -1451,7 +1451,7 @@ def test_torch_highway_layer():
 
     assert output_tensor.shape == (batch_size, feat_dim)
 
- 
+
 @pytest.mark.torch
 def test_torch_attn_lstm_embedding():
     """Test invoking AttnLSTMEmbedding."""
@@ -1460,12 +1460,9 @@ def test_torch_attn_lstm_embedding():
     n_support = 11
     n_feat = 10
     test = np.random.rand(n_test, n_feat).astype(np.float32)
-    support =np.random.rand(n_support, n_feat).astype(np.float32)
-    layer =torch_layers.AttnLSTMEmbedding(n_test, n_support, n_feat, max_depth)
+    support = np.random.rand(n_support, n_feat).astype(np.float32)
+    layer = torch_layers.AttnLSTMEmbedding(n_test, n_support, n_feat, max_depth)
     test_out, support_out = layer([test, support])
 
     assert test_out.shape == (n_test, n_feat)
     assert support_out.shape == (n_support, n_feat)
-
-
-
