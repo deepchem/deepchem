@@ -8,6 +8,7 @@ dependencies:
     - dgl
     - torch==2.2.1+cpu
     - torch-geometric
+    - torch-cluster
     - lightning
     - pydantic
     - torch-cluster
