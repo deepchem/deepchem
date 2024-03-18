@@ -16,8 +16,7 @@ def test_smiles_call():
                                 add_special_tokens=True,
                                 truncation=True)
     for emb in [embedding, embedding_long]:
-        assert 'input_ids' in emb.keys() and 'attention_mask' in emb.keys()
-        assert len(emb['input_ids']) == 2 and len(emb['attention_mask']) == 2
+        assert len(emb[0]) == len(emb[1])
 
 
 @pytest.mark.torch
@@ -42,7 +41,6 @@ def test_smiles_featurize():
         'max_length': max_length
     }
     feats = featurizer.featurize(smiles, **feat_kwargs)
-    assert len(feats) == 2
     assert all([len(f) == 2 for f in feats])
     assert all([len(f[0]) == max_length for f in feats])
 

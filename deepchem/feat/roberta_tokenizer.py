@@ -58,7 +58,7 @@ class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
         """
 
         # the encoding is natively a dictionary with keys 'input_ids' and 'attention_mask'
-        encoding = list(self(datapoint, **kwargs).values())
+        encoding = list(super().__call__(datapoint, **kwargs).values())
         return encoding
 
     def __call__(self,
