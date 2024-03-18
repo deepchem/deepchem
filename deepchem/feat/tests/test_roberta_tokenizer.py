@@ -41,6 +41,7 @@ def test_smiles_featurize():
         'max_length': max_length
     }
     feats = featurizer.featurize(smiles, **feat_kwargs)
+    assert len(feats) == 2
     assert all([len(f) == 2 for f in feats])
     assert all([len(f[0]) == max_length for f in feats])
 
