@@ -169,7 +169,7 @@ class BasicMolGANModel(WGANModel):
         The model has two outputs:
             1. edges
             2. nodes
-        
+
         The format differs depending on intended use (training or sample generation).
         For sample generation use flag, sample_generation=True while calling generator
         i.e. gan.generators[0](noise_input, training=False, sample_generation=True).
@@ -189,7 +189,7 @@ class BasicMolGANModel(WGANModel):
         Takes two inputs:
             1. adjacency tensor, containing bond information
             2. nodes tensor, containing atom information
-        
+
         The input vectors need to be in one-hot encoding format.
         Use MolGAN featurizer for that purpose. It will be simplified
         in the future release.
