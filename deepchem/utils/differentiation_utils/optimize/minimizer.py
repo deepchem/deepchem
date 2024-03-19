@@ -195,7 +195,7 @@ class TerminationCondition(object):
     def __init__(self, f_tol: float, f_rtol: float, x_tol: float, x_rtol: float,
                  verbose: bool):
         """Initialize the TerminationCondition.
-        
+
         Parameters
         ----------
         f_tol: float or None

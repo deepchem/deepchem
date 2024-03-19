@@ -602,7 +602,7 @@ VocabularyBuilder
 If you're creating a vocabulary builder for generating vocabulary from a corpus or input data,
 the vocabulary builder must inhere from :code:`VocabularyBuilder` base class.
 
-.. autoclass:: deepchem.feat.vocabulary_builders.VocabularyBuilder
+.. autoclass:: deepchem.feat.vocabulary_builders.vocabulary_builder.VocabularyBuilder
   :members:
 
 HuggingFaceVocabularyBuilder

@@ -1,9 +1,4 @@
 import numpy as np
-import deepchem as dc
-try:
-    import pysam
-except ImportError:
-    pass
 from deepchem.feat import Featurizer
 
 
@@ -109,7 +104,7 @@ class BAMFeaturizer(Featurizer):
     (Sequence Alignment Map) files. This class extracts Query Name, Query
     Sequence, Query Length, Reference Name, Reference Start, CIGAR and Mapping
     Quality of the alignment in the BAM file.
-    
+
     This is the default featurizer used by BAMLoader, and it extracts the following
     fields from each read in each BAM file in the given order:-
     - Column 0: Query Name
@@ -134,7 +129,7 @@ class BAMFeaturizer(Featurizer):
     ----
     This class requires pysam to be installed. Pysam can be used with Linux or MacOS X.
     To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
-    
+
     """
 
     def __init__(self, max_records=None):
@@ -199,7 +194,7 @@ class CRAMFeaturizer(Featurizer):
     biological sequences aligned to a reference sequence. This class extracts Query Name, Query
     Sequence, Query Length, Reference Name, Reference Start, CIGAR and Mapping
     Quality of the alignment in the CRAM file.
-    
+
     This is the default featurizer used by CRAMLoader, and it extracts the following
     fields from each read in each CRAM file in the given order:-
     - Column 0: Query Name
@@ -224,7 +219,7 @@ class CRAMFeaturizer(Featurizer):
     ----
     This class requires pysam to be installed. Pysam can be used with Linux or MacOS X.
     To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
-    
+
     """
 
     def __init__(self, max_records=None):
