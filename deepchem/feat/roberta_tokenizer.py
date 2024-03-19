@@ -1,6 +1,6 @@
 import pandas as pd
 from deepchem.feat import Featurizer
-from typing import Dict, List
+from typing import List, Union
 try:
     from transformers import RobertaTokenizerFast
 except ModuleNotFoundError:
@@ -44,16 +44,16 @@ class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
         return
 
     def _featurize(self, datapoint: str, **kwargs) -> List[List[int]]:
-        """Calculate encoding using HuggingFace's RobertaTokenizerFast
+        """Calculate encoding using HuggingFace's RobertaTokenizerFast.
 
         Parameters
         ----------
-        sequence: str
+        datapoint: str
             Arbitrary string sequence to be tokenized.
 
         Returns
         -------
-        datapoint: List
+        encoding: List
             List containing two lists; the `input_ids` and the `attention_mask`
         """
 
@@ -62,10 +62,32 @@ class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
         return encoding
 
     def __call__(self,
-                 datapoints,
+                 datapoints: Union[str, List[str], List[List[str]], pd.Series],
                  padding: bool = True,
-                 **kwargs) -> Dict[str, List[int]]:
+                 **kwargs) -> List[List[int]]:
+        """Convert RobertaFeaturizer into a callable.
+
+        The embeddings of the datapoints are all padded to the
+        same length so that they can be featurized all together. Only
+        the input_ids are returned as they represent the features that are
+        used by _featurize_shard in downstream DataLoader object.
+
+        Parameters
+        ----------
+        datapoints: str | List[str] | List[List[str]] | pd.Series
+            Arbitrary string sequence to be featurized.
+        padding: bool, default True
+            Pad all the embeddings to the same length.
+
+        Returns
+        -------
+        results['input_ids]: List[List[int]]
+            A List of Lists where each sublist represents the input ids of the embedding.
+            All the sublists are padded to the same length.
+        """
+
         if isinstance(datapoints, pd.Series):
             datapoints = datapoints.to_list()
+        # results is natively a dictionary with keys 'input_ids' and 'attention_mask'
         results = super().__call__(datapoints, padding=padding, **kwargs)
         return results['input_ids']
