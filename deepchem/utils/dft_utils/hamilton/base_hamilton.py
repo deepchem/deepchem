@@ -146,7 +146,7 @@ class BaseHamilton(EditableModule):
         Returns
         -------
         LinearOperator
-            LinearOperator of the nuclear Coulomb attraction. Shape: (*BH, nao, nao)
+            LinearOperator of the nuclear Coulomb attraction. Shape: (`*BH`, nao, nao)
 
         """
         pass
@@ -163,7 +163,7 @@ class BaseHamilton(EditableModule):
         Returns
         -------
         LinearOperator
-            LinearOperator of the one-electron operator. Shape: (*BH, nao, nao)
+            LinearOperator of the one-electron operator. Shape: (`*BH`, nao, nao)
 
         """
         pass
@@ -179,7 +179,7 @@ class BaseHamilton(EditableModule):
         -------
         LinearOperator
             LinearOperator representing the overlap of the basis.
-            Shape: (*BH, nao, nao)
+            Shape: (`*BH`, nao, nao)
 
         """
         pass
@@ -198,13 +198,13 @@ class BaseHamilton(EditableModule):
         Parameters
         ----------
         dm: torch.Tensor
-            Density matrix. Shape: (*BD, nao, nao)
+            Density matrix. Shape: (`*BD`, nao, nao)
 
         Returns
         -------
         LinearOperator
             LinearOperator of the Coulomb electron repulsion operator.
-            Shape: (*BDH, nao, nao)
+            Shape: (`*BDH`, nao, nao)
 
         """
         pass
@@ -225,12 +225,12 @@ class BaseHamilton(EditableModule):
         Parameters
         ----------
         dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
-            Density matrix. Shape: (*BD, nao, nao)
+            Density matrix. Shape: (`*BD`, nao, nao)
 
         Returns
         -------
         Union[LinearOperator, SpinParam[LinearOperator]]
-            LinearOperator of the exchange operator. Shape: (*BDH, nao, nao)
+            LinearOperator of the exchange operator. Shape: (`*BDH`, nao, nao)
 
         """
         pass
@@ -251,12 +251,12 @@ class BaseHamilton(EditableModule):
         Parameters
         ----------
         vext: torch.Tensor
-            External potential in the grid. Shape: (*BR, ngrid)
+            External potential in the grid. Shape: (`*BR`, ngrid)
 
         Returns
         -------
         LinearOperator
-            LinearOperator of the external potential in the grid. Shape: (*BRH, nao, nao)
+            LinearOperator of the external potential in the grid. Shape: (`*BRH`, nao, nao)
 
         """
         pass
@@ -283,12 +283,12 @@ class BaseHamilton(EditableModule):
         Parameters
         ----------
         dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
-            Density matrix. Shape: (*BD, nao, nao)
+            Density matrix. Shape: (`*BD`, nao, nao)
 
         Returns
         -------
         Union[LinearOperator, SpinParam[LinearOperator]]
-            LinearOperator for the exchange-correlation potential. Shape: (*BDH, nao, nao)
+            LinearOperator for the exchange-correlation potential. Shape: (`*BDH`, nao, nao)
 
         """
         pass
@@ -321,14 +321,14 @@ class BaseHamilton(EditableModule):
         Parameters
         ----------
         dm: torch.Tensor
-            Density matrix. Shape: (*BD, nao, nao)
+            Density matrix. Shape: (`*BD`, nao, nao)
         xyz: torch.Tensor
-            Cartesian coordinate. Shape: (*BR, ndim)
+            Cartesian coordinate. Shape: (`*BR`, ndim)
 
         Returns
         -------
         torch.Tensor
-            Density value in the Cartesian coordinate. Shape: (*BRD)
+            Density value in the Cartesian coordinate. Shape: (`*BRD`)
 
         """
         pass
@@ -402,7 +402,7 @@ class BaseHamilton(EditableModule):
         Parameters
         ----------
         dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
-            Density matrix. Shape: (*BD, nao, nao)
+            Density matrix. Shape: (`*BD`, nao, nao)
 
         Returns
         -------

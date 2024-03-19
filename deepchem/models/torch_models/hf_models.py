@@ -51,6 +51,7 @@ class HuggingFaceModel(TorchModel):
          - `mtr` - multitask regression - a task used for both pretraining base models and finetuning
          - `regression` - use it for regression tasks, like property prediction
          - `classification` - use it for classification tasks
+         
         When the task is not specified or None, the wrapper returns raw output of the HuggingFaceModel.
         In cases where the HuggingFaceModel is a model without a task specific head, this output will be
         the last hidden states.
