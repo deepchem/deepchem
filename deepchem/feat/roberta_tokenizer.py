@@ -53,7 +53,7 @@ class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
 
         Returns
         -------
-        encoding: List
+        encoding: List[List[int]]
             List containing two lists; the `input_ids` and the `attention_mask`
         """
 
