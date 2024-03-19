@@ -157,8 +157,8 @@ def symeig(A: LinearOperator,
         params = A.getlinopparams()
         mparams = M.getlinopparams() if M is not None else []
         na = len(params)
-        return symeig_torchfcn.apply(A, neig, mode, M, fwd_options,
-                                     bck_options, na, *params, *mparams)
+        return symeig_torchfcn.apply(A, neig, mode, M, fwd_options, bck_options,
+                                     na, *params, *mparams)
 
 
 def svd(A: LinearOperator,
@@ -282,8 +282,7 @@ class symeig_torchfcn(torch.autograd.Function):
     """A wrapper for symeig to be used in torch.autograd.Function"""
 
     @staticmethod
-    def forward(ctx, A, neig, mode, M, fwd_options, bck_options, na,
-                *amparams):
+    def forward(ctx, A, neig, mode, M, fwd_options, bck_options, na, *amparams):
         """Calculate the eigenvalues and eigenvectors of a linear operator
 
         Parameters
@@ -451,9 +450,9 @@ class symeig_torchfcn(torch.autograd.Function):
         # accummulate the gradient contributions
         gaccumA = gevalsA + gevecsA
         grad_params = torch.autograd.grad(
-            outputs=(loss, ),
+            outputs=(loss,),
             inputs=params,
-            grad_outputs=(gaccumA, ),
+            grad_outputs=(gaccumA,),
             create_graph=torch.is_grad_enabled(),
         )
 
@@ -473,9 +472,9 @@ class symeig_torchfcn(torch.autograd.Function):
 
             gaccumM = gevalsM + gevecsM + gevecsM_par
             grad_mparams = torch.autograd.grad(
-                outputs=(mloss, ),
+                outputs=(mloss,),
                 inputs=mparams,
-                grad_outputs=(gaccumM, ),
+                grad_outputs=(gaccumM,),
                 create_graph=torch.is_grad_enabled(),
             )
 
