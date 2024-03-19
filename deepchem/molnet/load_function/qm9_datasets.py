@@ -90,6 +90,7 @@ def load_qm9(
         test sets.  Alternatively you can pass one of the names from
         dc.molnet.splitters as a shortcut.  If this is None, all the data
         will be included in a single dataset.
+        Check the description of each splitter here: https://deepchem.readthedocs.io/en/latest/api_reference/splitters.html
     transformers: list of TransformerGenerators or strings
         the Transformers to apply to the data.  Each one is specified by a
         TransformerGenerator or, as a shortcut, one of the names from
