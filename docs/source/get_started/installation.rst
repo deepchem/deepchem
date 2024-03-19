@@ -115,7 +115,7 @@ You can start playing with it in the command line.
 .. code-block:: bash
 
     (deepchem) root@xxxxxxxxxxxxx:~/mydir# python
-    Python 3.6.10 |Anaconda, Inc.| (default, May  8 2020, 02:54:21)
+    Python 3.10.13 |Anaconda, Inc.| (default, Aug 24 2023, 12:59:26)
     [GCC 7.3.0] on linux
     Type "help", "copyright", "credits" or "license" for more information.
     >>> import deepchem as dc
@@ -185,21 +185,21 @@ Then, execute the shell script. The shell scripts require two arguments,
 
 .. code-block:: bash
 
-    source scripts/install_deepchem_conda.sh 3.8 cpu
+    source scripts/install_deepchem_conda.sh 3.10 cpu
 
 
-If you want GPU support (we supports only CUDA 10.1):
+If you want GPU support (we supports only CUDA 11.8):
 
 .. code-block:: bash
 
-    source scripts/install_deepchem_conda.sh 3.8 gpu
+    source scripts/install_deepchem_conda.sh 3.10 gpu
 
 
 If you are using the Windows and the PowerShell:
 
 .. code-block:: ps1
 
-    .\scripts\install_deepchem_conda.ps1 3.7 cpu
+    .\scripts\install_deepchem_conda.ps1 3.10 cpu
 
 | Sometimes, PowerShell scripts can't be executed due to problems in Execution Policies.
 | In that case, you can either change the Execution policies or use the bypass argument.
@@ -207,7 +207,7 @@ If you are using the Windows and the PowerShell:
 
 .. code-block:: ps1
 
-    powershell -executionpolicy bypass -File .\scripts\install_deepchem_conda.ps1 3.7 cpu
+    powershell -executionpolicy bypass -File .\scripts\install_deepchem_conda.ps1 3.10 cpu
 
 | Before activating deepchem environment, make sure conda has been initialized.
 | Check if there is a :code:`(XXXX)` in your command line. 
@@ -242,7 +242,7 @@ We would advise all users to use conda environment, following below-
 
 .. code-block:: bash
 
-    conda create --name deepchem python=3.8
+    conda create --name deepchem python=3.10
     conda activate deepchem
     pip install -e .
 
