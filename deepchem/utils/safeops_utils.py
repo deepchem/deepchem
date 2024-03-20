@@ -309,14 +309,14 @@ def safe_cdist(a: torch.Tensor,
     Parameters
     ----------
     a: torch.Tensor
-        First Tensor. Shape: (*BA, na, ndim)
+        First Tensor. Shape: (`*BA`, na, ndim)
     n: torch.Tensor
-        Second Tensor. Shape: (*BB, nb, ndim)
+        Second Tensor. Shape: (`*BB`, nb, ndim)
 
     Returns
     -------
     torch.Tensor
-        Pairwise distance. Shape: (*BAB, na, nb)
+        Pairwise distance. Shape: (`*BAB`, na, nb)
 
     """
     square_mat = a.shape[-2] == b.shape[-2]

@@ -249,16 +249,12 @@ def svd(A: LinearOperator,
     """
     # adapted from scipy.sparse.linalg.svds
 
-    BA = A.shape[:-2]
-
     m = A.shape[-2]
     n = A.shape[-1]
     if m < n:
         AAsym = A.matmul(A.H, is_hermitian=True)
-        min_nm = m
     else:
         AAsym = A.H.matmul(A, is_hermitian=True)
-        min_nm = n
 
     eivals, eivecs = symeig(AAsym,
                             k,
