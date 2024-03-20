@@ -68,7 +68,7 @@ The AWS certificate manager issues the SSL/TLS certificate for the
 \*.deepchem.io and deepchem.io domains.
 
 GitHub Pages
-^^^^^^^^^^
+^^^^^^^^^^^^
 We make use of GitHub Pages to serve our static website. GitHub Pages
 connects to the certificate in Certificate Manager. We set CNAME for
 www.deepchem.io, and an A-record for deepchem.io.

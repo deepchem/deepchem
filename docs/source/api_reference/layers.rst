@@ -67,9 +67,6 @@ Keras Layers
 .. autoclass:: deepchem.models.layers.AtomicConvolution
   :members:
 
-.. autoclass:: deepchem.models.layers.AtomicConv
-  :members:
-
 .. autoclass:: deepchem.models.layers.AlphaShareLayer
   :members:
 
@@ -126,6 +123,9 @@ Keras Layers
 
 Torch Layers
 ------------
+
+.. autoclass:: deepchem.models.torch_models.layers.AtomicConv
+  :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.MultilayerPerceptron
   :members:
