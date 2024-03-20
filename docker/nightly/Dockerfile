@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.8.0-cudnn8-devel
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
 # Install some utilities
 RUN apt-get update && \
