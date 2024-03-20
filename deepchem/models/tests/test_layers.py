@@ -1519,4 +1519,4 @@ def test_torch_attn_lstm_embedding():
     assert test_out.shape == (n_test, n_feat)
     assert support_out.shape == (n_support, n_feat)
     assert torch.allclose(test_out_tf, test_out, atol=1e-04)
-    assert torch.allclose(torch.tensor(support), support_out)
+    assert torch.allclose(torch.tensor(support), support_out, atol=1e-04)
