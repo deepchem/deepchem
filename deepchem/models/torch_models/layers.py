@@ -6166,7 +6166,7 @@ class HighwayLayer(torch.nn.Module):
         return output
 
 
-def cosine_dist(x, y):
+def cosine_dist(x, y, eps=1e-8):
     """Computes the inner product (cosine similarity) between two tensors.
 
     This assumes that the two input tensors contain rows of vectors where
@@ -6213,6 +6213,8 @@ def cosine_dist(x, y):
         Input Tensor of shape `(m, p)`
         The shape of this input tensor should be `m` rows by `p` columns.
         Note that `m` need not equal `n` (the number of rows in `x`).
+    eps:(float, optional) 
+         Small value to avoid division by zero. Default: 1e-8
 
     Returns
     -------
@@ -6225,7 +6227,8 @@ def cosine_dist(x, y):
 
     x_normalized = torch.nn.functional.normalize(x, p=2, dim=1)
     y_normalized = torch.nn.functional.normalize(y, p=2, dim=1)
-    return torch.matmul(x_normalized, torch.transpose(y_normalized, 1, 0))
+    return torch.matmul(x_normalized, torch.transpose(y_normalized, 1,
+                                                      0)).clamp(min=eps)
 
 
 class AttnLSTMEmbedding(nn.Module):

@@ -1520,3 +1520,13 @@ def test_torch_attn_lstm_embedding():
     assert support_out.shape == (n_support, n_feat)
     assert torch.allclose(test_out_tf, test_out, atol=1e-04)
     assert torch.allclose(torch.tensor(support), support_out, atol=1e-04)
+
+
+@pytest.mark.torch
+def test_torch_cosine_dist():
+    vector1 = torch.tensor([[1, 2, 3], [4, 5, 6]], dtype=torch.float)
+    vector2 = torch.tensor([[1, 0, 0], [0, 1, 0]], dtype=torch.float)
+    result_tf = torch.tensor([[0.2673, 0.5345], [0.4558, 0.5698]],
+                             dtype=torch.float32)
+    y = torch_layers.cosine_dist(vector1, vector2, eps=1e-4)
+    assert torch.allclose(y, result_tf, atol=1e-4)
