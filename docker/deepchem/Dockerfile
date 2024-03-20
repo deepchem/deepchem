@@ -22,7 +22,7 @@ SHELL ["/bin/bash", "-c"]
 RUN conda update -n base conda && \
     git clone --depth 1 https://github.com/deepchem/deepchem.git && \
     cd deepchem && \
-    source scripts/light/install_deepchem.sh 3.8 cpu common && \
+    source scripts/light/install_deepchem.sh 3.10 cpu common && \
     conda activate deepchem && \
     pip install -e . && \
     conda clean -afy && \
