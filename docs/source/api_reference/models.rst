@@ -549,6 +549,12 @@ Density Functional Theory Model - XCModel
 .. autoclass:: deepchem.models.dft.dftxc.XCModel
   :members:
 
+TextCNNModel
+------------
+
+.. autoclass:: deepchem.models.torch_models.TextCNNModel
+  :members:
+
 PyTorch Lightning Models
 ========================
 
