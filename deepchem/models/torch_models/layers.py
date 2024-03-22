@@ -6177,8 +6177,7 @@ def cosine_dist(x, y, eps=1e-8):
     lengths. For example, in sentence similarity and sentence classification tasks,
     the number of columns is the embedding size. In these tasks, the rows of the
     input tensors would be different test vectors or sentences. The input tensors
-    themselves could be different batches. Using vectors or tensors of all 0s
-    should be avoided.
+    themselves could be different batches. 
 
     The vectors in the input tensors are first L2-normalized, ensuring each vector 
     has a length or magnitude of 1,dot product is computed between corresponding pairs
@@ -6305,9 +6304,7 @@ class AttnLSTMEmbedding(nn.Module):
         ----------
         inputs: list
             List of two tensors (X, Xp). X should be of shape (n_test,
-            n_feat) and Xp should be of shape (n_support, n_feat) where
-            n_test is the size of the test set, n_support that of the support
-            set, and n_feat is the number of per-atom features.
+            n_feat) and Xp should be of shape (n_support, n_feat)
         
         Returns
         -------
