@@ -6167,7 +6167,7 @@ class HighwayLayer(torch.nn.Module):
 
 
 def cosine_dist(x, y, eps=1e-8):
-    """Computes the inner product (cosine similarity) between two tensors.
+    """Computes the cosine distance (1 - inner product (cosine similarity)) between two tensors.
 
     This assumes that the two input tensors contain rows of vectors where
     each column represents a different feature. The output tensor will have
@@ -6180,29 +6180,13 @@ def cosine_dist(x, y, eps=1e-8):
     themselves could be different batches. Using vectors or tensors of all 0s
     should be avoided.
 
-    Methods
-    -------
-    The vectors in the input tensors are first l2-normalized such that each vector
-    has length or magnitude of 1. The inner product (dot product) is then taken
-    between corresponding pairs of row vectors in the input tensors and returned.
-
-    Examples
-    --------
-    The cosine similarity between two equivalent vectors will be 1. The cosine
-    similarity between two equivalent tensors (tensors where all the elements are
-    the same) will be a tensor of 1s. In this scenario, if the input tensors `x` and
-    `y` are each of shape `(n,p)`, where each element in `x` and `y` is the same, then
-    the output tensor would be a tensor of shape `(n,n)` with 1 in every entry.
-
-    >>> import numpy as np
-    >>> import torch
-    >>> import deepchem.models.torch_models.layers as layers
-    >>> x =torch.tensor(([1,2,3],[12,23,31]), dtype=torch.float64)
-    >>> y_same = torch.tensor(([4,5,6],[45,56,64]), dtype=torch.float64)
-    >>> cosine_dist = layers.cosine_dist(x,y_same)
-    >>> cosine_dist.shape
-    torch.Size([2, 2])
-
+    The vectors in the input tensors are first L2-normalized, ensuring each vector 
+    has a length or magnitude of 1,dot product is computed between corresponding pairs
+    of row vectors in the input tensors, to compute cosine similarity the dot product 
+    is divided by the maximum value between the product of the norms of the vectors and 
+    a small epsilon term to avoid "ZeroDivisonError".
+    The cosine distance is obtained by subtracting the cosine similarity from 1.
+        
     Parameters
     ----------
     x: torch.Tensor
@@ -6220,15 +6204,27 @@ def cosine_dist(x, y, eps=1e-8):
     -------
     torch.Tensor
         Returns a tensor of shape `(n, m)`, that is, `n` rows by `m` columns.
-        Each `i,j`-th entry of this output tensor is the inner product between
-        the l2-normalized `i`-th row of the input tensor `x` and the
-        the l2-normalized `j`-th row of the output tensor `y`.
+
+    Examples
+    --------
+    >>> import torch
+    >>> import deepchem.models.torch_models.layers as layers
+    >>> x =torch.tensor(([1,2,3],[12,23,31]), dtype=torch.float64)
+    >>> y_same = torch.tensor(([4,5,6],[45,56,64]), dtype=torch.float64)
+    >>> cosine_dist = layers.cosine_dist(x,y_same)
+    >>> cosine_dist.shape
+    torch.Size([2, 2])
     """
 
     x_normalized = torch.nn.functional.normalize(x, p=2, dim=1)
     y_normalized = torch.nn.functional.normalize(y, p=2, dim=1)
-    return torch.matmul(x_normalized, torch.transpose(y_normalized, 1,
-                                                      0)).clamp(min=eps)
+    dot_product = torch.matmul(x, torch.transpose(y, 1, 0))
+    cos_similarity = dot_product / torch.max(
+        torch.matmul(x_normalized, torch.transpose(y_normalized, 1, 0)),
+        torch.tensor(eps))
+    cosine_dist = 1 - cos_similarity
+
+    return cosine_dist
 
 
 class AttnLSTMEmbedding(nn.Module):

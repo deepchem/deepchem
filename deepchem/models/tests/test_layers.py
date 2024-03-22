@@ -1511,7 +1511,7 @@ def test_torch_attn_lstm_embedding():
                         [0.23823564, 0.40358722, 0.7951269]],
                        dtype=np.float32)
     test_out_tf = torch.tensor(
-        [[0.0292, 0.8319, 0.1675], [0.3945, 0.9680, 0.5746]],
+        [[0.0328, 0.8364, 0.1669], [0.3977, 0.9721, 0.5746]],
         dtype=torch.float32)
 
     test_out, support_out = layer([test, support])
@@ -1526,7 +1526,7 @@ def test_torch_attn_lstm_embedding():
 def test_torch_cosine_dist():
     vector1 = torch.tensor([[1, 2, 3], [4, 5, 6]], dtype=torch.float)
     vector2 = torch.tensor([[1, 0, 0], [0, 1, 0]], dtype=torch.float)
-    result_tf = torch.tensor([[0.2673, 0.5345], [0.4558, 0.5698]],
+    result_tf = torch.tensor([[-2.7417, -2.7417], [-7.7750, -7.7750]],
                              dtype=torch.float32)
     y = torch_layers.cosine_dist(vector1, vector2, eps=1e-4)
     assert torch.allclose(y, result_tf, atol=1e-4)
