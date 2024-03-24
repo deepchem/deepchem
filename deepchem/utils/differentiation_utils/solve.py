@@ -285,13 +285,13 @@ def wrap_gmres(A, B, E=None, M=None, min_eps=1e-9, max_niter=None, **unused):
     Parameters
     ----------
     A: LinearOperator
-        The linear operator A to be solved. Shape: (*BA, na, na)
+        The linear operator A to be solved. Shape: (`*BA`, na, na)
     B: torch.Tensor
-        Batched matrix B. Shape: (*BB, na, ncols)
+        Batched matrix B. Shape: (`*BB`, na, ncols)
     E: torch.Tensor or None
-        Batched vector E. Shape: (*BE, ncols)
+        Batched vector E. Shape: (`*BE`, ncols)
     M: LinearOperator or None
-        The linear operator M. Shape: (*BM, na, na)
+        The linear operator M. Shape: (`*BM`, na, na)
     min_eps: float
         Relative tolerance for stopping conditions
     max_niter: int or None
@@ -301,7 +301,7 @@ def wrap_gmres(A, B, E=None, M=None, min_eps=1e-9, max_niter=None, **unused):
     Returns
     -------
     torch.Tensor
-        The Solution matrix X. Shape: (*BBE, na, ncols)
+        The Solution matrix X. Shape: (`*BBE`, na, ncols)
 
     """
 
@@ -365,18 +365,18 @@ def exactsolve(A: LinearOperator, B: torch.Tensor, E: Union[torch.Tensor, None],
     Parameters
     ----------
     A: LinearOperator
-        The linear operator A to be solved. Shape: (*BA, na, na)
+        The linear operator A to be solved. Shape: (`*BA`, na, na)
     B: torch.Tensor
-        Batched matrix B. Shape: (*BB, na, ncols)
+        Batched matrix B. Shape: (`*BB`, na, ncols)
     E: torch.Tensor or None
-        Batched vector E. Shape: (*BE, ncols)
+        Batched vector E. Shape: (`*BE`, ncols)
     M: LinearOperator or None
-        The linear operator M. Shape: (*BM, na, na)
+        The linear operator M. Shape: (`*BM`, na, na)
 
     Returns
     -------
     torch.Tensor
-        The Solution matrix X. Shape: (*BBE, na, ncols)
+        The Solution matrix X. Shape: (`*BBE`, na, ncols)
 
     Warnings
     --------
@@ -419,11 +419,11 @@ def solve_ABE(A: torch.Tensor, B: torch.Tensor, E: torch.Tensor):
     Parameters
     ----------
     A: torch.Tensor
-        The batched matrix A. Shape: (*BA, na, na)
+        The batched matrix A. Shape: (`*BA`, na, na)
     B: torch.Tensor
-        The batched matrix B. Shape: (*BB, na, ncols)
+        The batched matrix B. Shape: (`*BB`, na, ncols)
     E: torch.Tensor
-        The batched vector E. Shape: (*BE, ncols)
+        The batched vector E. Shape: (`*BE`, ncols)
 
     Returns
     -------
@@ -756,13 +756,13 @@ def gmres(A: LinearOperator,
     Parameters
     ----------
     A: LinearOperator
-        The linear operator A to be solved. Shape: (*BA, na, na)
+        The linear operator A to be solved. Shape: (`*BA`, na, na)
     B: torch.Tensor
-        Batched matrix B. Shape: (*BB, na, ncols)
+        Batched matrix B. Shape: (`*BB`, na, ncols)
     E: torch.Tensor or None
-        Batched vector E. Shape: (*BE, ncols)
+        Batched vector E. Shape: (`*BE`, ncols)
     M: LinearOperator or None
-        The linear operator M. Shape: (*BM, na, na)
+        The linear operator M. Shape: (`*BM`, na, na)
     posdef: bool or None
         Indicating if the operation :math:`\mathbf{AX-MXE}` a positive
         definite for all columns and batches.
@@ -780,7 +780,7 @@ def gmres(A: LinearOperator,
     Returns
     -------
     torch.Tensor
-        The solution matrix X. Shape: (*BBE, na, ncols)
+        The solution matrix X. Shape: (`*BBE`, na, ncols)
 
     """
     converge = False
@@ -998,7 +998,6 @@ def setup_linear_problem(A: LinearOperator, B: torch.Tensor,
           torch.Tensor, bool]
         The function A, its transposed function, the matrix B, and whether the
         columns of B are swapped.
-
     """
 
     # get the linear operator (including the MXE part)
@@ -1110,14 +1109,14 @@ def safedenom(r: torch.Tensor, eps: float) -> torch.Tensor:
     Parameters
     ----------
     r: torch.Tensor
-        The input tensor. Shape: (*BR, nr, nc)
+        The input tensor. Shape: (`*BR`, nr, nc)
     eps: float
         The small number to replace the zero denominator
 
     Returns
     -------
     torch.Tensor
-        The tensor with non-zero denominator. Shape: (*BR, nr, nc)
+        The tensor with non-zero denominator. Shape: (`*BR`, nr, nc)
 
     """
     r[r == 0] = eps
@@ -1139,14 +1138,14 @@ def dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
     Parameters
     ----------
     r: torch.Tensor
-        The first vector. Shape: (*BR, nr, nc)
+        The first vector. Shape: (`*BR`, nr, nc)
     z: torch.Tensor
-        The second vector. Shape: (*BR, nr, nc)
+        The second vector. Shape: (`*BR`, nr, nc)
 
     Returns
     -------
     torch.Tensor
-        The dot product of r and z. Shape: (*BR, 1, nc)
+        The dot product of r and z. Shape: (`*BR`, 1, nc)
 
     """
     return torch.einsum("...rc,...rc->...c", r.conj(), z).unsqueeze(-2)
@@ -1173,13 +1172,13 @@ def broyden1_solve(A: LinearOperator,
     Parameters
     ----------
     A: torch.Tensor
-        The matrix A. Shape: (*BA, nr, nr)
+        The matrix A. Shape: (`*BA`, nr, nr)
     B: torch.Tensor
-        The matrix B. Shape: (*BB, nr, ncols)
+        The matrix B. Shape: (`*BB`, nr, ncols)
     E: torch.Tensor or None
-        The matrix E. Shape: (*BE, ncols)
+        The matrix E. Shape: (`*BE`, ncols)
     M: torch.Tensor or None
-        The matrix M. Shape: (*BM, nr, nr)
+        The matrix M. Shape: (`*BM`, nr, nr)
     options: dict
         The options for the rootfinder algorithm
 
@@ -1214,20 +1213,20 @@ def _rootfinder_solve(alg: str,
     alg: str
         The algorithm to use. Currently, only "broyden1" is supported.
     A: torch.Tensor
-        The matrix A. Shape: (*BA, nr, nr)
+        The matrix A. Shape: (`*BA`, nr, nr)
     B: torch.Tensor
-        The matrix B. Shape: (*BB, nr, ncols)
+        The matrix B. Shape: (`*BB`, nr, ncols)
     E: torch.Tensor or None
-        The matrix E. Shape: (*BE, ncols)
+        The matrix E. Shape: (`*BE`, ncols)
     M: torch.Tensor or None
-        The matrix M. Shape: (*BM, nr, nr)
+        The matrix M. Shape: (`*BM`, nr, nr)
     options: dict
         The options for the rootfinder algorithm
 
     Returns
     -------
     torch.Tensor
-        The solution matrix X. Shape: (*BBE, nr, ncols)
+        The solution matrix X. Shape: (`*BBE`, nr, ncols)
 
     """
     # using rootfinder algorithm
@@ -1275,12 +1274,12 @@ def get_largest_eival(Afcn: Callable, x: torch.Tensor) -> torch.Tensor:
     Afcn: Callable
         The linear operator A. It takes a tensor and returns a tensor.
     x: torch.Tensor
-        The input tensor. Shape: (*, nr, nc)
+        The input tensor. Shape: (`*`, nr, nc)
 
     Returns
     -------
     torch.Tensor
-        The largest eigenvalue. Shape: (*, 1, nc)
+        The largest eigenvalue. Shape: (`*`, 1, nc)
 
     """
     niter = 10

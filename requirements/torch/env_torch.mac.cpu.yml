@@ -1,7 +1,7 @@
 channels:
   - pytorch
 dependencies:
-  - pytorch==2.1.0
+  - pytorch==2.2.1
   - pip:
     - -f https://data.pyg.org/whl/torch-2.1.0+cpu.html
     - dgl

@@ -5,7 +5,7 @@ dependencies:
     # The above line is commented out due to a bug in the DGL wheel repository.
     # It contains wheels for the GPU version that are not compatible with the CPU version.
     - dgl
-    - torch==2.1.0+cpu
+    - torch==2.2.1+cpu
     - torch-geometric
     - lightning
     - pydantic

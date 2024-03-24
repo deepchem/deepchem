@@ -1511,7 +1511,6 @@ class ScaffoldSplitter(Splitter):
     Notes
     -----
     - This class requires RDKit to be installed.
-
     - When a SMILES representation of a molecule is invalid, the splitter skips processing
     the datapoint i.e it will not include the molecule in any splits.
 

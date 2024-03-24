@@ -79,15 +79,11 @@ from deepchem.feat.huggingface_featurizer import HuggingFaceFeaturizer
 try:
     from deepchem.feat.bio_seq_featurizer import SAMFeaturizer
     from deepchem.feat.bio_seq_featurizer import BAMFeaturizer
+    from deepchem.feat.bio_seq_featurizer import CRAMFeaturizer
 except ImportError as e:
     logger.warning(
         f'Skipped loading biological sequence featurized, missing a dependency. {e}'
     )
-
-try:
-    from deepchem.feat.bio_seq_featurizer import CRAMFeaturizer
-except ImportError:
-    print("Error: Unable to import pysam. Please make sure it is installed.")
 
 # tokenizers
 try:
