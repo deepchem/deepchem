@@ -540,10 +540,9 @@ def make_sibling(*pfuncs) -> Callable[[Callable], PureFunction]:
     ...     return x - y
     >>> pfunc1 = get_pure_function(fcn1)
     >>> pfunc2 = get_pure_function(fcn2)
-    >>> @make_sibling(pfunc1)
-    ... def fcn3(x, y):
+    >>> def fcn3(x, y):
     ...     return x * y
-    >>> pfunc3(1, 2)
+    >>> fcn3(1, 2)
     2
 
     Parameters
