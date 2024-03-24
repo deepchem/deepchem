@@ -9,4 +9,3 @@ dependencies:
     - torch-geometric
     - lightning
     - pydantic
-    - git+https://gitlab.com/libxc/libxc.git
