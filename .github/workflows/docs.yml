@@ -3,9 +3,13 @@ on:
   push: # ci work when pushing master branch
     branches:
       - master
+    paths:
+      - deepchem/**
   pull_request: # ci work when creating a PR to master branch
     branches:
       - master
+    paths:
+      - deepchem/**
 jobs:
   docs-build:
     runs-on: ubuntu-latest
