@@ -16,13 +16,35 @@ except (ImportError, ModuleNotFoundError) as e:
 # same length and shape, i.e. (ninps).
 
 class CalcLDALibXCUnpol(torch.autograd.Function):
+    """Calculates the energy density or its derivative w.r.t. density for
+    unpolarized LDA.
+
+    The result is a tensor with shape (ninps).
+
+    """
     @staticmethod
     def forward(ctx, rho: torch.Tensor, deriv: int,  # type: ignore
                 libxcfcn: pylibxc.functional.LibXCFunctional) -> \
             Tuple[torch.Tensor, ...]:  # type: ignore
-        # Calculates and returns the energy density or its derivative w.r.t.
-        # density.
-        # The result is a tensor with shape (ninps)
+        """Calculates and returns the energy density or its derivative w.r.t.
+        density.
+
+        Parameters
+        ----------
+        rho : torch.Tensor
+            The density tensor with shape (ninps)
+        deriv : int
+            The derivative order. 0 for energy density, 1 for derivative w.r.t.
+            density, 2 for second derivative w.r.t. density, etc.
+        libxcfcn : pylibxc.functional.LibXCFunctional
+            The libxc functional to use
+
+        Returns
+        -------
+        Tuple[torch.Tensor]
+            The result is a tensor with shape (ninps)
+
+        """
 
         inp = {
             "rho": rho.detach().numpy(),
@@ -36,6 +58,19 @@ class CalcLDALibXCUnpol(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, *grad_res: torch.Tensor) -> Tuple[Optional[torch.Tensor], ...]:  # type: ignore
+        """Calculates the gradient w.r.t. the input rho.
+
+        Parameters
+        ----------
+        grad_res : torch.Tensor
+            The gradient of the result w.r.t. the result itself.
+
+        Returns
+        -------
+        Tuple[torch.Tensor]
+            The gradient w.r.t. the input rho.
+
+        """
         rho, res = ctx.saved_tensors
 
         dres_drho = CalcLDALibXCUnpol.apply(rho, ctx.deriv + 1, ctx.libxcfcn)[0]
@@ -46,11 +81,30 @@ class CalcLDALibXCPol(torch.autograd.Function):
     @staticmethod
     def forward(ctx, rho_u: torch.Tensor, rho_d: torch.Tensor, deriv: int,  # type: ignore
                 libxcfcn: pylibxc.functional.LibXCFunctional) -> Tuple[torch.Tensor, ...]:
-        # Calculates and returns the energy density or its derivative w.r.t.
-        # density.
-        # The result is a tensor with shape (nderiv, ninps) where the first
-        # dimension indicates the result for derivatives of spin-up and
-        # spin-down and some of its combination.
+        """Calculates and returns the energy density or its derivative w.r.t.
+        density.
+
+        Parameters
+        ----------
+        rho_u : torch.Tensor
+            The density tensor for spin-up with shape (ninps)
+        rho_d : torch.Tensor
+            The density tensor for spin-down with shape (ninps)
+        deriv : int
+            The derivative order. 0 for energy density, 1 for derivative w.r.t.
+            density, 2 for second derivative w.r.t. density, etc.
+        libxcfcn : pylibxc.functional.LibXCFunctional
+            The libxc functional to use
+
+        Returns
+        -------
+        Tuple[torch.Tensor]
+            The result is a tensor with shape (nderiv, ninps)
+            The result is a tensor with shape (nderiv, ninps) where the first
+            dimension indicates the result for derivatives of spin-up and
+            spin-down and some of its combination.
+
+        """
 
         inp = {
             "rho": _pack_input(rho_u, rho_d),
