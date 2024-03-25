@@ -5,10 +5,8 @@ import torch.nn as nn
 
 
 class UNet(nn.Module):
-    
-    def __init__(self,
-                 in_channels: int = 3,
-                 out_channels: int = 1):
+
+    def __init__(self, in_channels: int = 3, out_channels: int = 1):
         """
         Parameters
         ----------
@@ -18,31 +16,33 @@ class UNet(nn.Module):
             Number of output channels.
         """
         super(UNet, self).__init__()
-        
+
         # Encoder
         self.encoder1 = self.conv_block(in_channels, 64)
         self.encoder2 = self.conv_block(64, 128)
         self.encoder3 = self.conv_block(128, 256)
         self.encoder4 = self.conv_block(256, 512)
-        
+
         # Bottleneck
         self.bottleneck = self.conv_block(512, 1024)
-        
+
         # Decoder
-        self.decoder4 = self.conv_block(1024+512, 512)
-        self.decoder3 = self.conv_block(512+256, 256)
-        self.decoder2 = self.conv_block(256+128, 128)
-        self.decoder1 = self.conv_block(128+64, 64)
+        self.decoder4 = self.conv_block(1024 + 512, 512)
+        self.decoder3 = self.conv_block(512 + 256, 256)
+        self.decoder2 = self.conv_block(256 + 128, 128)
+        self.decoder1 = self.conv_block(128 + 64, 64)
 
         # Maxpooling
         self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
 
         # Upsampling
-        self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-        
+        self.upsample = nn.Upsample(scale_factor=2,
+                                    mode='bilinear',
+                                    align_corners=True)
+
         # Output
         self.output = nn.Conv2d(64, out_channels, kernel_size=1)
-        
+
     def conv_block(self, in_channels, out_channels):
         """
         Parameters
@@ -55,9 +55,8 @@ class UNet(nn.Module):
         return nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding='same'),
             nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding='same'),
-            nn.ReLU(inplace=True)
-        )
+            nn.Conv2d(out_channels, out_channels, kernel_size=3,
+                      padding='same'), nn.ReLU(inplace=True))
 
     def forward(self, x):
         """
@@ -65,7 +64,7 @@ class UNet(nn.Module):
         ----------
         x: Tensor
             Input tensor.
-        
+
         Returns
         -------
         x: Tensor
@@ -99,11 +98,12 @@ class UNet(nn.Module):
         x = self.output(x)
         return x
 
+
 class UNetModel(TorchModel):
 
     def __init__(self,
-                 input_channels: int = 3,
-                 output_channels: int = 1,
+                 in_channels: int = 3,
+                 out_channels: int = 1,
                  **kwargs):
         """
         Parameters
@@ -113,15 +113,16 @@ class UNetModel(TorchModel):
         output_channels: int (default 1)
             Number of output channels.
         """
-        if input_channels <= 0:
+        if in_channels <= 0:
             raise ValueError("input_channels must be greater than 0")
 
-        if output_channels <= 0:
+        if out_channels <= 0:
             raise ValueError("output_channels must be greater than 0")
 
-        model = UNet(input_channels=input_channels, output_channels=output_channels)
+        model = UNet(in_channels=in_channels,
+                     out_channels=out_channels)
 
         if 'loss' not in kwargs:
             kwargs['loss'] = BinaryCrossEntropy()
-        
+
         super(UNetModel, self).__init__(model, **kwargs)
