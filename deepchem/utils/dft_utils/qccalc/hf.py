@@ -29,11 +29,11 @@ class HF(SCF_QCCalc):
                  restricted: Optional[bool] = None,
                  variational: bool = False):
 
-        engine = _HFEngine(system, restricted)
+        engine = HFEngine(system, restricted)
         super().__init__(engine, variational)
 
 
-class _HFEngine(BaseSCFEngine):
+class HFEngine(BaseSCFEngine):
     """
     Engine to be used with Hartree Fock.
     This class provides the calculation of the self-consistency iteration step

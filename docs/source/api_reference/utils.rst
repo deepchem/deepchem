@@ -371,6 +371,21 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.get_grid_transform
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.qccalc.hf.HF
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.hf.HFEngine
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.base_qccalc.BaseQCCalc
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.scf_qccalc.SCF_QCCalc
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.scf_qccalc import BaseSCFEngine
+  :members:
+
 .. autoclass:: deepchem.utils.differentiation_utils.editable_module.EditableModule
   :members:
 
