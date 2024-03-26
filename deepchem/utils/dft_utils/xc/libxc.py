@@ -28,21 +28,24 @@ class LibXCLDA(BaseXC):
     def family(self) -> int:
         return self._family
 
-    @overload
-    def get_vxc(self, densinfo: ValGrad) -> ValGrad:
-        ...
+    def get_vxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> Union[ValGrad, SpinParam[ValGrad]]:
+        """Get the exchange-correlation potential from libxc.
 
-    @overload
-    def get_vxc(self, densinfo: SpinParam[ValGrad]) -> SpinParam[ValGrad]:
-        ...
+        Parameters
+        ----------
+        densinfo: Union[ValGrad, SpinParam[ValGrad]]
+            density information
+            densinfo.value: (*BD, nr)
+            densinfo.grad: (*BD, nr, ndim)
 
-    def get_vxc(self, densinfo):
-        # densinfo.value: (*BD, nr)
-        # densinfo.grad: (*BD, nr, ndim)
-        # return:
-        # potentialinfo.value: (*BD, nr)
-        # potentialinfo.grad: (*BD, nr, ndim)
+        Returns
+        -------
+        Union[ValGrad, SpinParam[ValGrad]]
+            Potential information
+            potentialinfo.value: (*BD, nr)
+            potentialinfo.grad: (*BD, nr, ndim)
 
+        """
         libxc_inps = _prepare_libxc_input(densinfo, xcfamily=self.family)
         flatten_inps = tuple(inp.reshape(-1) for inp in libxc_inps)
 
@@ -63,10 +66,22 @@ class LibXCLDA(BaseXC):
 
     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> \
             torch.Tensor:
-        # densinfo.value & lapl: (*BD, nr)
-        # densinfo.grad: (*BD, nr, ndim)
-        # return: (*BD, nr)
+        """Get the exchange-correlation energy density from libxc.
 
+        Parameters
+        ----------
+        densinfo: Union[ValGrad, SpinParam[ValGrad]]
+            Density information
+            densinfo.value: (*BD, nr)
+            densinfo.grad: (*BD, nr, ndim)
+
+        Returns
+        -------
+        torch.Tensor
+            Exchange-correlation energy density
+            edens: (*BD, nr)
+
+        """
         libxc_inps = _prepare_libxc_input(densinfo, xcfamily=self.family)
         flatten_inps = tuple(inp.reshape(-1) for inp in libxc_inps)
 
@@ -85,6 +100,23 @@ class LibXCLDA(BaseXC):
 
     def _calc_pol(self, flatten_inps: Tuple[torch.Tensor, ...], shape: torch.Size, deriv: int) ->\
             Tuple[torch.Tensor, ...]:
+        """Calculate the polarized exchange-correlation potential from libxc.
+        
+        Parameters
+        ----------
+        flatten_inps: Tuple[torch.Tensor, ...]
+            Flattened inputs for libxc
+        shape: torch.Size
+            Shape of the density
+        deriv: int
+            Derivative order
+
+        Returns
+        -------
+        Tuple[torch.Tensor, ...]
+            Outputs from libxc
+
+        """
 
         outs = self._polfcn_wrapper.apply(*flatten_inps, deriv, self.libxc_pol)
 
@@ -94,6 +126,23 @@ class LibXCLDA(BaseXC):
 
     def _calc_unpol(self, flatten_inps: Tuple[torch.Tensor, ...], shape: torch.Size, deriv: int) ->\
             Tuple[torch.Tensor, ...]:
+        """Calculate the unpolarized exchange-correlation potential from libxc.
+
+        Parameters
+        ----------
+        flatten_inps: Tuple[torch.Tensor, ...]
+            Flattened inputs for libxc
+        shape: torch.Size
+            Shape of the density
+        deriv: int
+            Derivative order
+
+        Returns
+        -------
+        Tuple[torch.Tensor, ...]
+            Outputs from libxc
+
+        """
 
         outs = self._unpolfcn_wrapper.apply(*flatten_inps, deriv, self.libxc_unpol)
 
@@ -104,23 +153,64 @@ class LibXCLDA(BaseXC):
         return []
 
 class LibXCGGA(LibXCLDA):
+    """Generalized Gradient Approximation (GGA) wrapper for libxc."""
     _family: int = 2
     _unpolfcn_wrapper = CalcGGALibXCUnpol
     _polfcn_wrapper = CalcGGALibXCPol
 
 class LibXCMGGA(LibXCLDA):
+    """Meta-Generalized Gradient Approximation (MGGA) wrapper for libxc."""
     _family: int = 4
     _unpolfcn_wrapper = CalcMGGALibXCUnpol
     _polfcn_wrapper = CalcMGGALibXCPol
 
 def _all_same_shape(densinfo_u: ValGrad, densinfo_d: ValGrad) -> bool:
-    # TODO: check the grad shape as well
+    """Check if the shapes of the input are the same.
+
+    Parameters
+    ----------
+    densinfo_u: ValGrad
+        Density information for the up-spin
+    densinfo_d: ValGrad
+        Density information for the down-spin
+
+    """
     return densinfo_u.value.shape == densinfo_d.value.shape
 
 def _get_polstr(polarized: bool) -> str:
+    """Get the string representation of the polarization.
+
+    Parameters
+    ----------
+    polarized: bool
+        If the system is polarized
+
+    Returns
+    -------
+    str
+        String representation of the polarization
+
+    """
     return "polarized" if polarized else "unpolarized"
 
 def _prepare_libxc_input(densinfo: Union[SpinParam[ValGrad], ValGrad], xcfamily: int) -> Tuple[torch.Tensor, ...]:
+    """Prepare the input for libxc.
+
+    Parameters
+    ----------
+    densinfo: Union[SpinParam[ValGrad], ValGrad]
+        Density information
+        densinfo.value: (*BD, nr)
+        densinfo.grad: (*BD, nr, ndim)
+    xcfamily: int
+        Family of the exchange-correlation functional
+
+    Returns
+    -------
+    Tuple[torch.Tensor, ...]
+        Inputs for libxc
+
+    """
     # convert the densinfo into tuple of tensors for libxc inputs
     # the elements in the tuple is arranged according to libxc manual
 
@@ -189,11 +279,29 @@ def _postproc_libxc_voutput(densinfo: Union[SpinParam[ValGrad], ValGrad],
                             vsigma: Optional[torch.Tensor] = None,
                             vlapl: Optional[torch.Tensor] = None,
                             vkin: Optional[torch.Tensor] = None) -> Union[SpinParam[ValGrad], ValGrad]:
-    # postprocess the output from libxc's 1st derivative into derivative
-    # suitable for valgrad
-    # densinfo.value: (..., nr)
-    # densinfo.grad: (..., ndim, nr)
+    """Postprocess the output from libxc into potential information.
 
+    Parameters
+    ----------
+    densinfo: Union[SpinParam[ValGrad], ValGrad]
+        Density information
+        densinfo.value: (..., nr)
+        densinfo.grad: (..., ndim, nr)
+    vrho: torch.Tensor
+        Density potential
+    vsigma: Optional[torch.Tensor]
+        Gradient potential
+    vlapl: Optional[torch.Tensor]
+        Laplacian potential
+    vkin: Optional[torch.Tensor]
+        Kinetic potential
+
+    Returns
+    -------
+    Union[SpinParam[ValGrad], ValGrad]
+        Potential information
+
+    """
     # polarized case
     if isinstance(densinfo, SpinParam):
         # vrho: (2, *BD, nr)
