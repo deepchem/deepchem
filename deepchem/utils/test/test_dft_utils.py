@@ -506,3 +506,46 @@ def test_get_grid_transform():
     from deepchem.utils.dft_utils import get_grid_transform
     transform = get_grid_transform("logm3")
     transform.x2r(torch.tensor([0.5])) == torch.tensor([2.])
+
+
+@pytest.mark.torch
+def test_SCF_QCCalc():
+    from deepchem.utils.dft_utils import SCF_QCCalc, BaseSCFEngine, SpinParam
+
+    # Define the engine
+    class engine(BaseSCFEngine):
+
+        def polarised():
+            return False
+
+        def dm2energy(
+                self, dm: Union[torch.Tensor,
+                                SpinParam[torch.Tensor]]) -> torch.Tensor:
+            if isinstance(dm, SpinParam):
+                return dm.u + dm.d * 1.1
+            return dm * 1.1
+
+    myEngine = engine()
+    a = SCF_QCCalc(myEngine)
+    assert torch.allclose(a.dm2energy(torch.tensor([1.1])),
+                          torch.tensor([1.2100]))
+
+
+@pytest.mark.torch
+def test_BaseSCFEngine():
+    from deepchem.utils.dft_utils import BaseSCFEngine, SpinParam
+
+    class engine(BaseSCFEngine):
+
+        def polarised():
+            return False
+
+        def dm2energy(
+                self, dm: Union[torch.Tensor,
+                                SpinParam[torch.Tensor]]) -> torch.Tensor:
+            if isinstance(dm, SpinParam):
+                return dm.u + dm.d * 1.1
+            return dm * 1.1
+
+    myEngine = engine()
+    assert myEngine.dm2energy(torch.tensor(1.2)) == torch.tensor(1.32)

@@ -48,6 +48,10 @@ try:
     from deepchem.utils.dft_utils.system.base_system import BaseSystem
 
     from deepchem.utils.dft_utils.qccalc.base_qccalc import BaseQCCalc
+    from deepchem.utils.dft_utils.qccalc.scf_qccalc import SCF_QCCalc
+    from deepchem.utils.dft_utils.qccalc.scf_qccalc import BaseSCFEngine
+    from deepchem.utils.dft_utils.qccalc.hf import HF
+    from deepchem.utils.dft_utils.qccalc.hf import HFEngine
 except ModuleNotFoundError as e:
     logger_.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
