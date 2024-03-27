@@ -2,6 +2,7 @@ dependencies:
 channels:
   - conda-forge
   - defaults
+dependencies:
   - pip:
     - -f https://download.pytorch.org/whl/cpu/torch_stable.html
     # - -f https://data.dgl.ai/wheels/repo.html
