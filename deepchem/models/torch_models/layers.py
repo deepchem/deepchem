@@ -6166,7 +6166,7 @@ class HighwayLayer(torch.nn.Module):
         return output
 
 
-def cosine_dist(x, y, eps=1e-8):
+def cosine_dist(x, y):
     """Computes the cosine distance (1 - inner product (cosine similarity)) between two tensors.
 
     This assumes that the two input tensors contain rows of vectors where
@@ -6179,12 +6179,10 @@ def cosine_dist(x, y, eps=1e-8):
     input tensors would be different test vectors or sentences. The input tensors
     themselves could be different batches. 
 
-    The vectors in the input tensors are first L2-normalized, ensuring each vector 
-    has a length or magnitude of 1,dot product is computed between corresponding pairs
-    of row vectors in the input tensors, to compute cosine similarity the dot product 
-    is divided by the maximum value between the product of the norms of the vectors and 
-    a small epsilon term to avoid "ZeroDivisonError".
-    The cosine distance is obtained by subtracting the cosine similarity from 1.
+    The vectors in the input tensors are first l2-normalized such that each vector
+    has length or magnitude of 1. The inner product (dot product) is then taken
+    between corresponding pairs of row vectors in the input tensors.
+    The cosine distance is obtained by subtracting the inner product (cosine similarity) from 1.
         
     Parameters
     ----------
@@ -6217,13 +6215,9 @@ def cosine_dist(x, y, eps=1e-8):
 
     x_normalized = torch.nn.functional.normalize(x, p=2, dim=1)
     y_normalized = torch.nn.functional.normalize(y, p=2, dim=1)
-    dot_product = torch.matmul(x, torch.transpose(y, 1, 0))
-    cos_similarity = dot_product / torch.max(
-        torch.matmul(x_normalized, torch.transpose(y_normalized, 1, 0)),
-        torch.tensor(eps))
-    cosine_dist = 1 - cos_similarity
-
-    return cosine_dist
+    similarity = torch.matmul(x_normalized, torch.transpose(y_normalized, 1, 0))
+    cosine_distance = 1-similarity
+    return cosine_distance
 
 
 class AttnLSTMEmbedding(nn.Module):
