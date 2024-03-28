@@ -1450,3 +1450,47 @@ def test_torch_highway_layer():
     output_tensor = highway_layer(input_tensor)
 
     assert output_tensor.shape == (batch_size, feat_dim)
+
+
+@pytest.mark.torch
+def test_torch_attn_lstm_embedding():
+    """Test invoking AttnLSTMEmbedding."""
+    max_depth = 1
+    n_test = 2
+    n_support = 2
+    n_feat = 2
+    layer = torch_layers.AttnLSTMEmbedding(n_test, n_support, n_feat, max_depth)
+    layer.lstm.W = torch.tensor(
+        [[0.0593, -0.1627, -0.1686, -0.1779, -0.2994, -0.5953, 0.0621, 0.0995],
+         [0.2530, 0.0606, -0.7032, 0.1939, 0.6719, 0.3116, 0.0438, -0.4288],
+         [0.4632, 0.6251, -0.1295, 0.6756, 0.4071, 0.3695, 0.0697, -0.4325],
+         [0.5858, 0.6924, 0.0693, 0.1861, 0.6696, -0.0275, -0.5564, -0.1430]],
+        dtype=torch.float32)
+    layer.lstm.U = torch.tensor(
+        [[-0.2198, 0.3824, 0.6744, 0.1075, 0.5492, -0.0373, 0.1071, 0.1568],
+         [0.4142, 0.3414, 0.0076, -0.2362, -0.1280, 0.6586, 0.4043, 0.2060]],
+        dtype=torch.float32)
+    layer.lstm.b = torch.tensor([0., 0., 1., 1., 0., 0., 0., 0.],
+                                dtype=torch.float32)
+
+    test = np.array([[0.06616174, 0.8224941], [0.43049398, 0.9574964]],
+                    dtype=np.float32)
+    support = np.array([[0.52633643, 0.727206], [0.13802947, 0.5601545]],
+                       dtype=np.float32)
+    test_out_tf = torch.tensor([[0.1926, 0.8492], [0.5560, 0.9835]],
+                               dtype=torch.float32)
+    test_out, support_out = layer([test, support])
+    assert test_out.shape == (n_test, n_feat)
+    assert support_out.shape == (n_support, n_feat)
+    assert torch.allclose(test_out_tf, test_out, atol=1e-04)
+    assert torch.allclose(torch.tensor(support), support_out, atol=1e-04)
+
+
+@pytest.mark.torch
+def test_torch_cosine_dist():
+    vector1 = torch.tensor([[1, 2, 3], [4, 5, 6]], dtype=torch.float)
+    vector2 = torch.tensor([[1, 0, 0], [0, 1, 0]], dtype=torch.float)
+    result_tf = torch.tensor([[-2.7417, -2.7417], [-7.7750, -7.7750]],
+                             dtype=torch.float32)
+    y = torch_layers.cosine_dist(vector1, vector2, eps=1e-4)
+    assert torch.allclose(y, result_tf, atol=1e-4)

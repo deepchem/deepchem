@@ -6164,3 +6164,169 @@ class HighwayLayer(torch.nn.Module):
         output = H_out * T_out + x * (1 - T_out)
 
         return output
+
+
+def cosine_dist(x, y):
+    """Computes the cosine distance (1 - inner product (cosine similarity)) between two tensors.
+
+    This assumes that the two input tensors contain rows of vectors where
+    each column represents a different feature. The output tensor will have
+    elements that represent the inner product between pairs of normalized vectors
+    in the rows of `x` and `y`. The two tensors need to have the same number of
+    columns, because one cannot take the dot product between vectors of different
+    lengths. For example, in sentence similarity and sentence classification tasks,
+    the number of columns is the embedding size. In these tasks, the rows of the
+    input tensors would be different test vectors or sentences. The input tensors
+    themselves could be different batches. 
+
+    The vectors in the input tensors are first l2-normalized such that each vector
+    has length or magnitude of 1. The inner product (dot product) is then taken
+    between corresponding pairs of row vectors in the input tensors.
+    The cosine distance is obtained by subtracting the inner product (cosine similarity) from 1.
+        
+    Parameters
+    ----------
+    x: torch.Tensor
+        Input Tensor of shape `(n, p)`.
+        The shape of this input tensor should be `n` rows by `p` columns.
+        Note that `n` need not equal `m` (the number of rows in `y`).
+    y: torch.Tensor
+        Input Tensor of shape `(m, p)`
+        The shape of this input tensor should be `m` rows by `p` columns.
+        Note that `m` need not equal `n` (the number of rows in `x`).
+    eps:(float, optional) 
+         Small value to avoid division by zero. Default: 1e-8
+
+    Returns
+    -------
+    torch.Tensor
+        Returns a tensor of shape `(n, m)`, that is, `n` rows by `m` columns.
+
+    Examples
+    --------
+    >>> import torch
+    >>> import deepchem.models.torch_models.layers as layers
+    >>> x =torch.tensor(([1,2,3],[12,23,31]), dtype=torch.float64)
+    >>> y_same = torch.tensor(([4,5,6],[45,56,64]), dtype=torch.float64)
+    >>> cosine_dist = layers.cosine_dist(x,y_same)
+    >>> cosine_dist.shape
+    torch.Size([2, 2])
+    """
+
+    x_normalized = torch.nn.functional.normalize(x, p=2, dim=1)
+    y_normalized = torch.nn.functional.normalize(y, p=2, dim=1)
+    similarity = torch.matmul(x_normalized, torch.transpose(y_normalized, 1, 0))
+    cosine_distance = 1-similarity
+    return cosine_distance
+
+
+class AttnLSTMEmbedding(nn.Module):
+    """
+    Implements AttnLSTM as in matching networks paper.
+
+    The AttnLSTM embedding adjusts two sets of vectors, the "test" and
+    "support" sets. The "support" consists of a set of evidence vectors.
+    Think of these as the small training set for low-data machine
+    learning.  The "test" consists of the queries we wish to answer with
+    the small amounts of available data. The AttnLSTMEmbdding allows us to
+    modify the embedding of the "test" set depending on the contents of
+    the "support".  The AttnLSTMEmbedding is thus a type of learnable
+    metric that allows a network to modify its internal notion of
+    distance.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import torch
+    >>> import deepchem.models.torch_models.layers as layers
+    >>> max_depth = 5
+    >>> n_test = 5
+    >>> n_support = 11
+    >>> n_feat = 10
+    >>> test = np.random.rand(n_test, n_feat).astype(np.float32)
+    >>> support = np.random.rand(n_support, n_feat).astype(np.float32)
+    >>> layer = layers.AttnLSTMEmbedding(n_test, n_support, n_feat, max_depth)
+    >>> test_out, support_out = layer([test, support])
+    >>> test_out.shape
+    torch.Size([5, 10])
+    >>> support_out.shape
+    torch.Size([11, 10])
+
+    References
+    ----------
+    .. [1] Vinyals, Oriol, et al. "Matching networks for one shot learning."
+        Advances in neural information processing systems. 2016.
+    .. [2] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters:
+        Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
+   
+    """
+
+    def __init__(self, n_test, n_support, n_feat, max_depth, **kwargs):
+        """
+        Parameters
+        ----------  
+        n_support: int
+            Size of support set.
+        n_test: int
+            Size of test set.
+        n_feat: int
+            Number of features per atom
+        max_depth: int
+            Number of "processing steps" used by sequence-to-sequence for sets model.
+        """
+        super(AttnLSTMEmbedding, self).__init__(**kwargs)
+        self.max_depth = max_depth
+        self.n_test = n_test
+        self.n_support = n_support
+        self.n_feat = n_feat
+
+        n_feat = self.n_feat
+        self.lstm = LSTMStep(n_feat, 2 * n_feat)
+        self.q_init = torch.zeros([self.n_test, n_feat])
+        self.states_init = self.lstm.get_initial_states([self.n_test, n_feat])
+        self.built = True
+
+    def __repr__(self):
+        return (
+            f'{self.__class__.__name__}(n_test={self.n_test}, n_support={self.n_support}, n_feat={self.n_feat}, max_depth={self.max_depth})'
+        )
+
+    def forward(self, inputs):
+        """Execute this layer on input tensors.
+
+        Parameters
+        ----------
+        inputs: list
+            List of two tensors (X, Xp). X should be of shape (n_test,
+            n_feat) and Xp should be of shape (n_support, n_feat)
+        
+        Returns
+        -------
+        list
+            Returns two tensors of same shape as input. Namely the output
+            shape will be [(n_test, n_feat), (n_support, n_feat)]
+        """
+
+        if len(inputs) != 2:
+            raise ValueError(
+                "AttnLSTMEmbedding layer must have exactly two parents")
+
+        # x is test set, xp is support set.
+        x, xp = inputs
+        x, xp = torch.tensor(x), torch.tensor(xp)
+
+        # Get initializations
+        q = self.q_init
+        states = self.states_init
+
+        for d in range(self.max_depth):
+            # Process using attention
+            # Eqn (4), appendix A.1 of Matching Networks paper
+            e = cosine_dist(x + q, xp)
+            a = torch.softmax(e, dim=-1)
+            r = torch.matmul(a, xp)
+
+            # Generate new attention states
+            y = torch.concatenate([q, r], axis=1)
+            q, states = self.lstm([y] + states)
+        return [x + q, xp]
