@@ -505,4 +505,10 @@ def test_treutlerm4_transform():
 def test_get_grid_transform():
     from deepchem.utils.dft_utils import get_grid_transform
     transform = get_grid_transform("logm3")
-    transform.x2r(torch.tensor([0.5])) == torch.tensor([2.])
+    assert transform.x2r(torch.tensor([0.5])) == torch.tensor([2.])
+
+
+@pytest.mark.torch
+def test_pylibxc():
+    import pylibxc
+    assert pylibxc.version.__version__ == "6.2.2"
