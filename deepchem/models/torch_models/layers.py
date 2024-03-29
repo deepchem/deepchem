@@ -6216,7 +6216,7 @@ def cosine_dist(x, y):
     x_normalized = torch.nn.functional.normalize(x, p=2, dim=1)
     y_normalized = torch.nn.functional.normalize(y, p=2, dim=1)
     similarity = torch.matmul(x_normalized, torch.transpose(y_normalized, 1, 0))
-    cosine_distance = 1-similarity
+    cosine_distance = 1 - similarity
     return cosine_distance
 
 
