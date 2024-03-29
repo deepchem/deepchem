@@ -3,10 +3,10 @@ import tempfile
 import numpy as np
 import pytest
 from deepchem.feat.molecule_featurizers import MXMNetFeaturizer
-from deepchem.models.torch_models.mxmnet import MXMNet
 
 try:
     import torch
+    from deepchem.models.torch_models.mxmnet import MXMNet
     has_torch = True
 except:
     has_torch = False
