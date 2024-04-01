@@ -28,7 +28,11 @@ def test_mxmnet_regression():
         raise ImportError(
             "This test requires PyTorch Geometric to be installed.")
 
-    torch.manual_seed(0)
+    seed = 123
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     torch.set_default_device(device)
 
@@ -59,7 +63,6 @@ def test_mxmnet_regression():
 
     model.to(device)
     output = model(pyg_batch)
-    print(output)
     required_output = np.asarray([2.7267, 2.0136])
     assert np.allclose(output[0].cpu().detach().numpy(),
                        required_output[0],
