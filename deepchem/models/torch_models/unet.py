@@ -101,10 +101,7 @@ class UNet(nn.Module):
 
 class UNetModel(TorchModel):
 
-    def __init__(self,
-                 in_channels: int = 3,
-                 out_channels: int = 1,
-                 **kwargs):
+    def __init__(self, in_channels: int = 3, out_channels: int = 1, **kwargs):
         """
         Parameters
         ----------
@@ -119,8 +116,7 @@ class UNetModel(TorchModel):
         if out_channels <= 0:
             raise ValueError("output_channels must be greater than 0")
 
-        model = UNet(in_channels=in_channels,
-                     out_channels=out_channels)
+        model = UNet(in_channels=in_channels, out_channels=out_channels)
 
         if 'loss' not in kwargs:
             kwargs['loss'] = BinaryCrossEntropy()
