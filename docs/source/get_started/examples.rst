@@ -33,8 +33,9 @@ Before jumping in to examples, we'll import our libraries and ensure our doctest
 
     # Run before every test for reproducibility
     def seed_all():
-        np.random.seed(123)
-        tf.random.set_seed(123)
+        np.random.seed(456)
+        tf.random.set_seed(456)
+        random.seed(456)
 
 
 Delaney (ESOL)
@@ -160,6 +161,7 @@ GraphConvModel
 
 .. doctest:: chembl
 
+    >>> seed_all()
     >>> # Load ChEMBL dataset
     >>> chembl_tasks, datasets, transformers = dc.molnet.load_chembl(
     ...    shard_size=2000, featurizer="GraphConv", set="5thresh", split="random")
