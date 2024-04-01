@@ -99,7 +99,7 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `PyTorch Geometric`_           | latest (with   | :code:`dc.feat.graph_data`                        |
+| `PyTorch Geometric`_           | latest (with  | :code:`dc.feat.graph_data`                        |
 |                                | PyTorch 2.2.1)| :code:`dc.models.torch_models`                    |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
