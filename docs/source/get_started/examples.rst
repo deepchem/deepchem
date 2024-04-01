@@ -30,6 +30,7 @@ Before jumping in to examples, we'll import our libraries and ensure our doctest
     import numpy as np
     import tensorflow as tf
     import deepchem as dc
+    import random
 
     # Run before every test for reproducibility
     def seed_all():
