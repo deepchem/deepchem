@@ -34,16 +34,19 @@ class XCNNSCF(torch.nn.Module):
     ...         torch.nn.Linear(2, 10),
     ...         torch.nn.Tanh(),
     ...         torch.nn.Linear(10, 1))).to(torch.double)
+    >>> hybridxc = HybridXC("lda_x", nnmodel, aweight0=0.0)
     >>> e_type = 'dm'
     >>> true_val = 'deepchem/feat/tests/data/dftHF_output.npy'
     >>> systems = [{
-    >>>     'moldesc': 'H 0.86625 0 0; F -0.86625 0 0',
-    >>>     'basis': '6-311++G(3df,3pd)'
-    >>> }]
+    ...     'moldesc': 'H 0.86625 0 0; F -0.86625 0 0',
+    ...     'basis': '6-311++G(3df,3pd)'
+    ... }]
     >>> entry = DFTEntry.create(e_type, true_val, systems)
     >>> evl = XCNNSCF(hybridxc, entry)
     >>> system = DFTSystem(systems[0])
     >>> run = evl.run(system)
+    The 6-311++G(3df,3pd) basis for atomz 9 does not exist, but we will download it
+    Downloaded to /home/runner/miniconda3/envs/deepchem/lib/python3.8/site-packages/dqc/api/.database/6-311ppg_3df_3pd_/09.gaussian94
     >>> output = run.energy()
 
     Notes

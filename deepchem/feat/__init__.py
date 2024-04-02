@@ -2,6 +2,9 @@
 Making it easy to import in classes.
 """
 # flake8: noqa
+import logging
+
+logger = logging.getLogger(__name__)
 
 # base classes for featurizers
 from deepchem.feat.base_classes import Featurizer
@@ -71,6 +74,17 @@ from deepchem.feat.atomic_conformation import AtomicConformation
 from deepchem.feat.atomic_conformation import AtomicConformationFeaturizer
 
 from deepchem.feat.huggingface_featurizer import HuggingFaceFeaturizer
+
+# biological sequence featurizers
+try:
+    from deepchem.feat.bio_seq_featurizer import SAMFeaturizer
+    from deepchem.feat.bio_seq_featurizer import BAMFeaturizer
+    from deepchem.feat.bio_seq_featurizer import CRAMFeaturizer
+except ImportError as e:
+    logger.warning(
+        f'Skipped loading biological sequence featurized, missing a dependency. {e}'
+    )
+
 # tokenizers
 try:
     from deepchem.feat.smiles_tokenizer import SmilesTokenizer

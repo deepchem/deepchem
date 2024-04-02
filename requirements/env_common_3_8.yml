@@ -1,0 +1,29 @@
+name: deepchem
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - openmm
+  - mdtraj
+  - pdbfixer
+  - pip
+  - pip:
+    - numpy
+    - rdkit
+    - pre-commit
+    - biopython
+    - dgllife
+    - lightgbm==3.*
+    - matminer
+    - mordred
+    - networkx
+    - pillow
+    - pubchempy
+    - pyGPGO
+    - pymatgen
+    - simdna
+    - transformers>=4.34.1
+    - tokenizers
+    - xgboost
+    - gensim  # used by mol2vec
+    - tensorboard

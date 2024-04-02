@@ -51,6 +51,7 @@ class HuggingFaceModel(TorchModel):
          - `mtr` - multitask regression - a task used for both pretraining base models and finetuning
          - `regression` - use it for regression tasks, like property prediction
          - `classification` - use it for classification tasks
+
         When the task is not specified or None, the wrapper returns raw output of the HuggingFaceModel.
         In cases where the HuggingFaceModel is a model without a task specific head, this output will be
         the last hidden states.
@@ -248,7 +249,8 @@ class HuggingFaceModel(TorchModel):
                       max_checkpoints_to_keep: int = 5,
                       checkpoint_interval: int = 1000,
                       restore: bool = False,
-                      variables: Optional[List[torch.nn.Parameter]] = None,
+                      variables: Optional[Union[List[torch.nn.Parameter],
+                                                torch.nn.ParameterList]] = None,
                       loss: Optional[LossFn] = None,
                       callbacks: Union[Callable, List[Callable]] = [],
                       all_losses: Optional[List[float]] = None) -> float:
@@ -329,8 +331,6 @@ class HuggingFaceModel(TorchModel):
             optimizer.zero_grad()
             outputs = self.model(**inputs)
 
-            if self._loss_outputs is not None:
-                outputs = [outputs[i] for i in self._loss_outputs]
             batch_loss = outputs.get("loss")
             batch_loss.backward()
             optimizer.step()

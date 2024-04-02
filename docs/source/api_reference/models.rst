@@ -414,6 +414,12 @@ PagtnModel
 .. autoclass:: deepchem.models.PagtnModel
   :members:
 
+AtomConvModel
+-------------
+
+.. autoclass:: deepchem.models.torch_models.AtomConvModel
+  :members:
+
 MPNNModel
 ---------
 
@@ -501,6 +507,23 @@ GAN
 .. autoclass:: deepchem.models.torch_models.GAN
   :members:
 
+GANModel
+--------
+
+.. autoclass:: deepchem.models.torch_models.GANModel
+  :members:
+
+WGANModel
+---------
+
+.. autoclass:: deepchem.models.torch_models.WGANModel
+  :members:
+
+BasicMolGANModel
+----------------
+
+.. autoclass:: deepchem.models.torch_models.BasicMolGANModel
+  :members:
 
 Weave
 ----------
@@ -514,11 +537,22 @@ WeaveModel
 .. autoclass:: deepchem.models.torch_models.WeaveModel
   :members:
 
+ProgressiveMultitaskModel
+-------------------------
+
+.. autoclass:: deepchem.models.torch_models.ProgressiveMultitaskModel
+  :members:
 
 Density Functional Theory Model - XCModel
 -----------------------------------------
 
 .. autoclass:: deepchem.models.dft.dftxc.XCModel
+  :members:
+
+TextCNNModel
+------------
+
+.. autoclass:: deepchem.models.torch_models.TextCNNModel
   :members:
 
 PyTorch Lightning Models
@@ -567,4 +601,15 @@ Chemberta
 ---------
 
 .. autoclass:: deepchem.models.torch_models.chemberta.Chemberta
+  :members:
+
+Trainer
+=======
+
+A `Trainer` object automates the scaling of DeepChem model's training into multi-gpu and multi-node infrastructures.
+
+DistributedTrainer
+------------------
+
+.. autoclass:: deepchem.trainer.DistributedTrainer
   :members:

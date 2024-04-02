@@ -14,7 +14,7 @@ dependencies:
     - biopython
     - dgllife
     - lightgbm==3.*
-    - matminer
+    - git+https://github.com/hackingmaterials/matminer.git
     - mordred
     - networkx
     - pillow
@@ -22,7 +22,7 @@ dependencies:
     - pyGPGO
     - pymatgen
     - simdna
-    - transformers==4.34.1
+    - transformers>=4.34.1
     - tokenizers
     - xgboost
     - gensim  # used by mol2vec

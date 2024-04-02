@@ -18,7 +18,7 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
@@ -32,7 +32,7 @@ jobs:
         pip install conda-merge; 
         conda-merge requirements/env_dqc.yml requirements/env_test.yml > env.yml
     - name: Install all dependencies
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v3
       with:
         miniconda-version: "latest"
         auto-update-conda: true

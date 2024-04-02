@@ -22,7 +22,7 @@ class BertFeaturizer(Featurizer):
     >>> from transformers import BertTokenizerFast
     >>> tokenizer = BertTokenizerFast.from_pretrained("Rostlab/prot_bert", do_lower_case=False)
     >>> featurizer = BertFeaturizer(tokenizer)
-    >>> feats = featurizer.featurize('D L I P [MASK] L V T')
+    >>> feats = featurizer.featurize(['D L I P [MASK] L V T'])
 
     Notes
     -----

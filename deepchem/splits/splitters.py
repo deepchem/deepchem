@@ -482,7 +482,7 @@ class RandomGroupSplitter(Splitter):
                 group_dict[g] = []
             group_dict[g].append(idx)
 
-        group_idxs = np.array([g for g in group_dict.values()])
+        group_idxs = np.array([g for g in group_dict.values()], dtype=object)
 
         num_groups = len(group_idxs)
         train_cutoff = int(frac_train * num_groups)
@@ -1511,7 +1511,6 @@ class ScaffoldSplitter(Splitter):
     Notes
     -----
     - This class requires RDKit to be installed.
-
     - When a SMILES representation of a molecule is invalid, the splitter skips processing
     the datapoint i.e it will not include the molecule in any splits.
 

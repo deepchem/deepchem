@@ -190,7 +190,8 @@ class Adam(Optimizer):
                  learning_rate: Union[float, LearningRateSchedule] = 0.001,
                  beta1: float = 0.9,
                  beta2: float = 0.999,
-                 epsilon: float = 1e-08):
+                 epsilon: float = 1e-08,
+                 weight_decay: float = 0):
         """Construct an Adam optimizer.
 
         Parameters
@@ -203,11 +204,14 @@ class Adam(Optimizer):
             a parameter of the Adam algorithm
         epsilon: float
             a parameter of the Adam algorithm
+        weight_decay: float
+            L2 penalty - a parameter of the Adam algorithm
         """
         super(Adam, self).__init__(learning_rate)
         self.beta1 = beta1
         self.beta2 = beta2
         self.epsilon = epsilon
+        self.weight_decay = weight_decay
 
     def _create_tf_optimizer(self, global_step):
         import tensorflow as tf
@@ -226,8 +230,11 @@ class Adam(Optimizer):
             lr = self.learning_rate.initial_rate
         else:
             lr = self.learning_rate
-        return torch.optim.Adam(params, lr, (self.beta1, self.beta2),
-                                self.epsilon)
+        return torch.optim.Adam(params,
+                                lr=lr,
+                                betas=(self.beta1, self.beta2),
+                                eps=self.epsilon,
+                                weight_decay=self.weight_decay)
 
     def _create_jax_optimizer(self):
         import optax

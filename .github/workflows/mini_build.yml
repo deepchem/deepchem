@@ -13,16 +13,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.8', '3.10']
+        python-version: ['3.8', '3.10', '3.11']
         include:
         - os: windows-latest
           python-version: '3.9'
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       # using cached dependencies to speed up workflow
       # ref: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
     - name: Cache pip modules for Linux
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         # the key is used to search for cache
@@ -31,7 +31,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Build DeepChem
@@ -47,7 +47,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.8', '3.10']
+        python-version: ['3.8', '3.10', '3.11']
         include:
           - os: windows-latest
             python-version: 3.9
@@ -55,7 +55,15 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
     steps:
-    - uses: actions/checkout@v3
+    - name: Maximize build space
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        sudo rm -rf /usr/local/lib/android
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     # https://github.com/galaxyproject/tools-iuc/blob/master/.github/workflows/pr.yaml
@@ -75,7 +83,7 @@ jobs:
         echo "COMMIT_RANGE=origin/master..." >> $GITHUB_ENV
     - name: Cache pip packages for Linux
       if: runner.os == 'Linux'
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**') }}
@@ -83,7 +91,7 @@ jobs:
           ${{ runner.os }}-pip-
     - name: Cache pip packages for MacOS
       if: runner.os == 'macOS'
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/Library/Caches/pip
         key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/**') }}
@@ -91,14 +99,14 @@ jobs:
           ${{ runner.os }}-pip-
     - name: Cache pip packages for Windows
       if: runner.os == 'Windows'
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~\AppData\Local\pip\Cache
         key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install prerequisites for XGBoost and LightGBM (MacOS)
@@ -106,7 +114,7 @@ jobs:
       run: brew update && brew install libomp
     - name: Create env.yml for python >3.8
       shell: bash
-      if: ${{ matrix.python-version != '3.8' }}
+      if: ${{ matrix.python-version != '3.8' && matrix.python-version != '3.11'}}
       run: |
         python -m pip install --upgrade pip;
         pip install conda-merge;
@@ -115,6 +123,23 @@ jobs:
           conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml > env.yml
         elif [  "$(uname)" == 'Darwin' ]; then
           conda-merge env_common.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml jax/env_jax.cpu.yml > env.yml
+        elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
+          conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
+        fi;
+        cd ..
+        cp requirements/env.yml env.yml
+    - name: Create env.yml for python 3.11
+      shell: bash
+      # A special case of environment creation for python 3.8 which excludes hhsuite
+      if: ${{ matrix.python-version == '3.11' }}
+      run: |
+        python -m pip install --upgrade pip;
+        pip install conda-merge;
+        cd requirements
+        if [ "$(uname)" == 'Linux' ]; then
+          conda-merge env_common.yml env_test.yml env_ubuntu_3_11.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
+        elif [  "$(uname)" == 'Darwin' ]; then
+          conda-merge env_common.yml env_test.yml env_mac_3_11.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml > env.yml
         elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
           conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
         fi;
@@ -129,11 +154,11 @@ jobs:
         pip install conda-merge;
         cd requirements
         if [ "$(uname)" == 'Linux' ]; then
-          conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
+          conda-merge env_common_3_8.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
         elif [  "$(uname)" == 'Darwin' ]; then
-          conda-merge env_common.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml > env.yml
+          conda-merge env_common_3_8.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml > env.yml
         elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
-          conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
+          conda-merge env_common_3_8.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
         fi;
         cd ..
         cp requirements/env.yml env.yml
@@ -145,7 +170,7 @@ jobs:
         create-args: python=${{ matrix.python-version }}
 
 #    - name: Install all dependencies using conda
-#      uses: conda-incubator/setup-miniconda@v2
+#      uses: conda-incubator/setup-miniconda@v3
 #      with:
 #        miniconda-version: "latest"
 #        auto-update-conda: true
@@ -159,9 +184,9 @@ jobs:
     needs: [core-build]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: '3.9'
     - name: Install dependencies
@@ -170,8 +195,8 @@ jobs:
         pip install setuptools wheel twine
     - name: Publish (Nightly)
       env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
       run: |
         python setup.py sdist bdist_wheel
         twine upload dist/*
@@ -181,24 +206,31 @@ jobs:
     needs: [core-build, pypi-build]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - name: Maximize build space
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        sudo rm -rf /usr/local/lib/android
+    - uses: actions/checkout@v4
     - name: Set up Docker Buildx
       id: buildx
       uses: docker/setup-buildx-action@master
     - name: Cache Docker layers
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: /tmp/.buildx-cache
         key: ${{ runner.os }}-buildx-${{ github.sha }}
         restore-keys: ${{ runner.os }}-buildx-
     - name: Login to DockerHub
-      uses: docker/login-action@v1
+      uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
     - name: Build and push
       id: docker_build
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v5
       with:
         builder: ${{ steps.buildx.outputs.name }}
         context: ./docker/nightly

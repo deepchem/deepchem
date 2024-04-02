@@ -56,7 +56,7 @@ class TestPoseGeneration(unittest.TestCase):
         assert len(poses) == 1
         assert len(scores) == 1
         protein, ligand = poses[0]
-        from rdkit import Chem
+        from rdkit import Chem  # type: ignore
         assert isinstance(protein, Chem.Mol)
         assert isinstance(ligand, Chem.Mol)
 
@@ -84,7 +84,7 @@ class TestPoseGeneration(unittest.TestCase):
         assert len(poses) == 1
         assert len(scores) == 1
         protein, ligand = poses[0]
-        from rdkit import Chem
+        from rdkit import Chem  # type: ignore
         assert isinstance(protein, Chem.Mol)
         assert isinstance(ligand, Chem.Mol)
 
@@ -112,7 +112,7 @@ class TestPoseGeneration(unittest.TestCase):
 
         assert len(poses) == 1
         protein, ligand = poses[0]
-        from rdkit import Chem
+        from rdkit import Chem  # type: ignore
         assert isinstance(protein, Chem.Mol)
         assert isinstance(ligand, Chem.Mol)
 
@@ -145,7 +145,7 @@ class TestPoseGeneration(unittest.TestCase):
         assert len(poses) == 1
         assert len(scores) == 1
         protein, ligand = poses[0]
-        from rdkit import Chem
+        from rdkit import Chem  # type: ignore
         assert isinstance(protein, Chem.Mol)
         assert isinstance(ligand, Chem.Mol)
 
@@ -176,8 +176,38 @@ class TestPoseGeneration(unittest.TestCase):
 
         assert len(poses) == 2
         assert len(scores) == 2
-        from rdkit import Chem
+        from rdkit import Chem  # type: ignore
         for pose in poses:
             protein, ligand = pose
             assert isinstance(protein, Chem.Mol)
             assert isinstance(ligand, Chem.Mol)
+
+    @unittest.skipIf(IS_WINDOWS, "vina is not supported in windows")
+    @pytest.mark.slow
+    def test_pdbqt_scores(self):
+        """Test that VinaPoseGenerator returns scores for PDBQT proteins and ligands files.
+
+        This test is quite slow and takes about 5 minutes to run on a
+        development laptop.
+        """
+        # Let's turn on logging since this test will run for a while
+        logging.basicConfig(level=logging.INFO)
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        protein_file = os.path.join(current_dir, "1iep_receptor.pdbqt")
+        ligand_file = os.path.join(current_dir, "1iep_ligand.pdbqt")
+
+        # Note this may download autodock Vina...
+        vpg = dc.dock.VinaPoseGenerator()
+        centroid = np.array([15.190, 53.903, 16.917])
+        box_dims = np.array([20.0, 20.0, 20.0])
+        with tempfile.TemporaryDirectory() as tmp:
+            scores = vpg.generate_poses((protein_file, ligand_file),
+                                        centroid=centroid,
+                                        box_dims=box_dims,
+                                        exhaustiveness=1,
+                                        num_modes=1,
+                                        out_dir=tmp,
+                                        generate_scores=True)
+
+        assert len(scores) == 1
+        assert scores[0] <= -7.0

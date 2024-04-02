@@ -82,12 +82,15 @@ tutorials discuss about using DeepChem for specific applications.
 ### Quantum Chemistry
 * [1 Exploring Quantum Chemistry with GDB1k](Exploring_Quantum_Chemistry_with_GDB1k.ipynb)
 * [2 Finding ground state energy of molecules with DeepQMC](DeepQMC_tutorial.ipynb)
+* [3 Training an exchange correlation functional using DeepChem](Training_an_Exchange_Correlation_Functional_using_Deepchem.ipynb)
+* [4 Finding ground state energy of molecules with FermiNet(DeepChem Implementation)](FermiNet_DeepChem_tutorial.ipynb)
 
 ### Bioinformatics
 * [1 Introduction to BioInformatics](Introduction_to_Bioinformatics.ipynb)
 * [2 Multisequence Alignments](Multisequence_Alignments.ipynb)
 * [3 Scanpy](Scanpy.ipynb)
 * [4 Deep probabilistic analysis of omics data](Deep_probabilistic_analysis_of_single-cell_omics_data.ipynb)
+* [5 Automated Cell Counting](Cell_Counting_Tutorial.ipynb)
 
 ### Material Science
 * [1 Introduction to Material Science](Introduction_To_Material_Science.ipynb)
