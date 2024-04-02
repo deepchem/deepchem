@@ -13,12 +13,14 @@ RUN MINICONDA="Miniconda3-latest-Linux-x86_64.sh" && \
     echo ". /miniconda/etc/profile.d/conda.sh" >> ~/.bashrc
 ENV PATH /miniconda/bin:$PATH
 
+SHELL ["/bin/bash", "-c"]
+
 # install latest version deepchem
 RUN conda update -n base conda && \
-    conda create -y --name deepchem python=3.7 && \
+    conda create -y --name deepchem python=3.10 && \
     . /miniconda/etc/profile.d/conda.sh && \
     conda activate deepchem && \
-    pip install tensorflow~=2.7 deepchem && \
+    pip install deepchem && \
     conda clean -afy && \
     rm -rf ~/.cache/pip
 
