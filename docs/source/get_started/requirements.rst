@@ -95,12 +95,12 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `PyTorch`_                     | 2.1.0         | :code:`dc.models.torch_models`                    |
+| `PyTorch`_                     | 2.2.1         | :code:`dc.models.torch_models`                    |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `PyTorch Geometric`_           | 2.1.x (with   | :code:`dc.feat.graph_data`                        |
-|                                | PyTorch 2.1.0)| :code:`dc.models.torch_models`                    |
+| `PyTorch Geometric`_           | latest (with  | :code:`dc.feat.graph_data`                        |
+|                                | PyTorch 2.2.1)| :code:`dc.models.torch_models`                    |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `RDKit`_                       | latest        | Many modules                                      |
@@ -111,7 +111,11 @@ DeepChem has a number of "soft" requirements.
 |                                |               | :code:`dc.molnet.dnasim`                          |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `Tensorflow Probability`_      | 0.11.x        | :code:`dc.rl`                                     |
+| `TensorFlow`_                  | 2.15          | :code:`dc.models`                                 |
+|                                |               | `deepchem>=2.4.0` depends on TensorFlow v2(2.3.x) |
+|                                |               | `deepchem<2.4.0` depends on TensorFlow v1(>=1.14) |
++--------------------------------+---------------+---------------------------------------------------+
+| `Tensorflow Probability`_      | 0.23.x        | :code:`dc.rl`                                     |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
@@ -130,10 +134,6 @@ DeepChem has a number of "soft" requirements.
 | `pySCF`_                       | latest        | :code:`dc.models.torch_models.ferminet`           |
 |                                |               |                                                   |
 |                                |               |                                                   |
-+--------------------------------+---------------+---------------------------------------------------+
-| `TensorFlow`_                  | latest        | :code:`dc.models`                                 |
-|                                |               | `deepchem>=2.4.0` depends on TensorFlow v2(2.3.x) |
-|                                |               | `deepchem<2.4.0` depends on TensorFlow v1(>=1.14) |
 +--------------------------------+---------------+---------------------------------------------------+
 | `pysam`_                       | latest        | :code:`dc.feat.bio_seq_featurizer`                |
 |                                |               | :code:`dc.models.data_loader`                     |

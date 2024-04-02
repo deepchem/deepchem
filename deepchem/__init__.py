@@ -3,7 +3,7 @@ Imports all submodules
 """
 
 # If you push the tag, please remove `.dev`
-__version__ = '2.7.2.dev'
+__version__ = '2.8.0'
 
 import deepchem.data
 import deepchem.feat

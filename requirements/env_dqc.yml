@@ -9,7 +9,7 @@ dependencies:
    - scipy
    - h5py
    - -f https://download.pytorch.org/whl/cpu/torch_stable.html
-   - torch==2.1.0+cpu
+   - torch==2.2.1+cpu
    - torch-geometric
    - git+https://github.com/diffqc/dqc.git
    - xitorch
