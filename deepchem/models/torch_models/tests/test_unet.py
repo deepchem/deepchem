@@ -8,11 +8,12 @@ import tempfile
 def test_UNetModel():
     from deepchem.models.torch_models import UNetModel
 
-    input_samples = np.random.randn(5, 3, 32, 32).astype(
-        np.float32)  # 5 RGB 32x32 pixel input images
-    output_samples = np.random.randn(5, 1, 32, 32).astype(
-        np.float32)  # 5 grey scale 32x32 pixel output segmentation masks
+    # 5 RGB 32x32 pixel input images and 5 grey scale 32x32 pixel output segmentation masks
+    input_samples = np.random.randn(5, 3, 32, 32).astype(np.float32)
+    output_samples = np.random.rand(5, 1, 32, 32).astype(np.float32)
 
+    # Model works with ImageDataset as well as NumpyDataset.
+    # Using NumpyDataset for testing
     np_dataset = dc.data.NumpyDataset(input_samples, output_samples)
 
     unet_model = UNetModel(in_channels=3, out_channels=1)
@@ -27,12 +28,12 @@ def test_UNetModel():
 def test_restore_UNetModel():
     from deepchem.models.torch_models import UNetModel
 
-    input_samples = np.random.randn(5, 3, 32, 32).astype(
-        np.float32)  # 5 RGB 32x32 pixel input images
-    output_samples = np.random.randn(5, 1, 32, 32).astype(
-        np.float32)  # 5 grey scale 32x32 pixel output segmentation masks
+    # 5 RGB 32x32 pixel input images and 5 grey scale 32x32 pixel output segmentation masks
+    input_samples = np.random.randn(5, 3, 32, 32).astype(np.float32)
+    output_samples = np.random.rand(5, 1, 32, 32).astype(np.float32)
 
-    np_dataset = dc.data.NumpyDataset(input_samples, output_samples)
+    # Using ImageDataset for testing
+    np_dataset = dc.data.ImageDataset(input_samples, output_samples)
 
     model_dir = tempfile.mkdtemp()
     unet_model = UNetModel(in_channels=3, out_channels=1, model_dir=model_dir)
