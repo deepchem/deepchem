@@ -2,6 +2,7 @@ from deepchem.models.torch_models.modular import TorchModel
 from deepchem.models.losses import BinaryCrossEntropy
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class UNet(nn.Module):
@@ -96,6 +97,7 @@ class UNet(nn.Module):
 
         # Output
         x = self.output(x)
+        x = F.sigmoid(x)
         return x
 
 
