@@ -105,7 +105,7 @@ class ScScore(nn.Module):
         return output
 
 
-class ScScoreModel(ModularTorchModel):
+class ScScoreModel(TorchModel):
     """
     The SCScore model is a neural network model based on the work of Coley et al. [1]_ that predicts the synthetic complexity score (SCScore) of molecules and correlates it with the expected number of reaction steps required to produce the given target molecule.
     It is trained on a dataset of over 12 million reactions from the Reaxys database to impose a pairwise inequality constraint enforcing that on average the products of published chemical reactions should be more synthetically complex than their corresponding reactants.
