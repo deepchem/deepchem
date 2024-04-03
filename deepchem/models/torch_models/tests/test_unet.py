@@ -8,10 +8,10 @@ import tempfile
 def test_UNetModel():
     from deepchem.models.torch_models import UNetModel
 
-    input_samples = np.random.randn(5, 3, 28, 28).astype(
-        np.float32)  # 5 RGB 28x28 pixel input images
-    output_samples = np.random.randn(5, 1, 28, 28).astype(
-        np.float32)  # 5 grey scale 28x28 pixel output segmentation masks
+    input_samples = np.random.randn(5, 3, 32, 32).astype(
+        np.float32)  # 5 RGB 32x32 pixel input images
+    output_samples = np.random.randn(5, 1, 32, 32).astype(
+        np.float32)  # 5 grey scale 32x32 pixel output segmentation masks
 
     np_dataset = dc.data.NumpyDataset(input_samples, output_samples)
 
