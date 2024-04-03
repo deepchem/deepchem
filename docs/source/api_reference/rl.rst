@@ -23,13 +23,16 @@ Policies
 .. autoclass:: deepchem.rl.Policy
   :members:
 
+Tensorflow implementation
+-------------------------
+
 A2C
 ---
 
 .. autoclass:: deepchem.rl.a2c.A2C
   :members:
 
-.. autoclass:: deepchem.rl.a2c.A2CLossDiscrete
+.. autoclass:: deepchem.rl.A2CLossDiscrete
   :members:
 
 PPO
@@ -39,4 +42,20 @@ PPO
   :members:
 
 .. autoclass:: deepchem.rl.ppo.PPOLoss
+  :members:
+
+
+Torch implementation
+--------------------
+
+A2C
+---
+
+.. autoclass:: deepchem.rl.torch_rl.A2C
+  :members:
+
+.. autoclass:: deepchem.rl.torch_rl.A2CLossDiscrete
+  :members:
+
+.. autoclass:: deepchem.rl.torch_rl.A2CLossContinuous
   :members:

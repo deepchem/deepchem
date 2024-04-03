@@ -1,4 +1,5 @@
 """Interface for reinforcement learning."""
+# flake8: noqa
 try:
     from deepchem.rl.a2c import A2C  # noqa: F401
     from deepchem.rl.ppo import PPO  # noqa: F401
