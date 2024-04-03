@@ -45,6 +45,8 @@ def test_restore_UNetModel():
                                out_channels=1,
                                model_dir=model_dir)
 
+    reloaded_model.restore()
+
     pred = unet_model.predict(np_dataset)
     reloaded_pred = reloaded_model.predict(np_dataset)
 
