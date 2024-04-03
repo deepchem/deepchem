@@ -1,4 +1,4 @@
-from deepchem.models.torch_models.modular import ModularTorchModel
+from deepchem.models.torch_models import TorchModel
 from deepchem.models.losses import HingeLoss
 import torch.nn as nn
 import torch.nn.functional as F
@@ -20,6 +20,21 @@ class ScScore(nn.Module):
     This could cause differentiation issues with compounds that are "close" to each other in "complexity".
 
     The default values for the model are the same as the ones used in the original paper [1]_.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> from deepchem.models import ScScoreModel
+    >>> # preparing dataset
+    >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
+    >>> labels = [0., 1.]
+    >>> featurizer = dc.feat.CircularFingerprint(size=1024, radius=2, chiral=True)
+    >>> X = featurizer.featurize(smiles)
+    >>> dataset = dc.data.NumpyDataset(X=X, y=labels)
+    >>> # training model
+    >>> model = ScScoreModel(n_features=1024, layer_sizes=[300, 300, 300, 300, 300],
+    ...                      dropout=0.2, score_scale=5), batch_size=16, learning_rate=0.001)
+    >>> loss = model.fit(dataset, nb_epoch=5)
 
     References
     ----------
@@ -90,7 +105,7 @@ class ScScore(nn.Module):
         return output
 
 
-class ScScoreModel(ModularTorchModel):
+class ScScoreModel(TorchModel):
     """
     The SCScore model is a neural network model based on the work of Coley et al. [1]_ that predicts the synthetic complexity score (SCScore) of molecules and correlates it with the expected number of reaction steps required to produce the given target molecule.
     It is trained on a dataset of over 12 million reactions from the Reaxys database to impose a pairwise inequality constraint enforcing that on average the products of published chemical reactions should be more synthetically complex than their corresponding reactants.
@@ -119,7 +134,6 @@ class ScScoreModel(ModularTorchModel):
     >>> model = ScScoreModel(n_features=1024, layer_sizes=[300, 300, 300, 300, 300],
     ...                      dropout=0.2, score_scale=5), batch_size=16, learning_rate=0.001)
     >>> loss = model.fit(dataset, nb_epoch=5)
-
 
     References
     ----------
@@ -160,6 +174,7 @@ class ScScoreModel(ModularTorchModel):
                         dropout=dropout,
                         score_scale=score_scale)
 
-        loss = HingeLoss()
+        if 'loss' not in kwargs:
+            kwargs['loss'] = HingeLoss()
 
-        super(ScScoreModel, self).__init__(model, loss=loss, **kwargs)
+        super(ScScoreModel, self).__init__(model, **kwargs)
