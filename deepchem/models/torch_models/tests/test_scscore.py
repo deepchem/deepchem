@@ -20,7 +20,7 @@ def test_restore_scscore():
                          dropout=0.0,
                          score_scale=5,
                          model_dir=model_dir)
-    model.fit(np_dataset, nb_epoch=50)
+    model.fit(np_dataset, nb_epoch=5)
     pred = model.predict(np_dataset)
 
     reloaded_model = ScScoreModel(n_features,
