@@ -33,8 +33,13 @@ def test_restore_scscore():
     pred = model.predict(np_dataset)
     reloaded_pred = reloaded_model.predict(np_dataset)
 
-    assert len(pred) == len(reloaded_pred), f"Number of reloaded predictions do not match original predictions"
-    assert np.allclose(pred, reloaded_pred, atol=1e-04), f"Predictions do not match reloaded predictions"
+    assert len(pred) == len(
+        reloaded_pred
+    ), "Number of reloaded predictions do not match original predictions"
+    assert np.allclose(
+        pred, reloaded_pred,
+        atol=1e-04), "Predictions do not match reloaded predictions"
+
 
 @pytest.mark.torch
 def test_loaded_pretrained_scscore():
@@ -56,14 +61,19 @@ def test_loaded_pretrained_scscore():
     pred = model.predict(np_dataset)
 
     pretrained_model = ScScoreModel(n_features,
-                                  layer_sizes,
-                                  dropout=0.0,
-                                  score_scale=5,
-                                  model_dir=model_dir)
-    pretrained_model.load_from_pretrained(source_model=model, model_dir=model_dir)
+                                    layer_sizes,
+                                    dropout=0.0,
+                                    score_scale=5,
+                                    model_dir=model_dir)
+    pretrained_model.load_from_pretrained(source_model=model,
+                                          model_dir=model_dir)
 
     pred = model.predict(np_dataset)
     pretrained_pred = pretrained_model.predict(np_dataset)
 
-    assert len(pred) == len(pretrained_pred), f"Number of pretrained predictions do not match original predictions"
-    assert np.allclose(pred, pretrained_pred, atol=1e-04), f"Predictions do not match pretrained predictions"
+    assert len(pred) == len(
+        pretrained_pred
+    ), "Number of pretrained predictions do not match original predictions"
+    assert np.allclose(
+        pred, pretrained_pred,
+        atol=1e-04), "Predictions do not match pretrained predictions"
