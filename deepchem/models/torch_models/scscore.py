@@ -33,7 +33,7 @@ class ScScore(nn.Module):
     >>> dataset = dc.data.NumpyDataset(X=X, y=labels)
     >>> # training model
     >>> model = ScScoreModel(n_features=1024, layer_sizes=[300, 300, 300, 300, 300],
-    ...                      dropout=0.2, score_scale=5), batch_size=16, learning_rate=0.001)
+    ...                      dropout=0.2, score_scale=5)
     >>> loss = model.fit(dataset, nb_epoch=5)
 
     References
@@ -132,7 +132,7 @@ class ScScoreModel(TorchModel):
     >>> dataset = dc.data.NumpyDataset(X=X, y=labels)
     >>> # training model
     >>> model = ScScoreModel(n_features=1024, layer_sizes=[300, 300, 300, 300, 300],
-    ...                      dropout=0.2, score_scale=5), batch_size=16, learning_rate=0.001)
+    ...                      dropout=0.2, score_scale=5)
     >>> loss = model.fit(dataset, nb_epoch=5)
 
     References
