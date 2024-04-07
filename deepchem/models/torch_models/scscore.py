@@ -24,7 +24,7 @@ class ScScore(nn.Module):
     Examples
     --------
     >>> import deepchem as dc
-    >>> from deepchem.models import ScScoreModel
+    >>> from deepchem.models.torch_models import ScScoreModel
     >>> # preparing dataset
     >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
     >>> labels = [0., 1.]
@@ -123,7 +123,7 @@ class ScScoreModel(TorchModel):
     Examples
     --------
     >>> import deepchem as dc
-    >>> from deepchem.models import ScScoreModel
+    >>> from deepchem.models.torch_models import ScScoreModel
     >>> # preparing dataset
     >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
     >>> labels = [0., 1.]
