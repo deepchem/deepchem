@@ -2,10 +2,10 @@ channels:
   - pytorch
 dependencies:
   - pytorch==2.2.1
+  - pylibxc
   - pip:
     - -f https://data.pyg.org/whl/torch-2.1.0+cpu.html
     - dgl
     - torch-geometric
     - lightning
     - pydantic
-    - pylibxc2
