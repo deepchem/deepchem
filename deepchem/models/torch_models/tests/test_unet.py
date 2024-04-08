@@ -5,7 +5,7 @@ import tempfile
 
 
 @pytest.mark.torch
-def test_UNetModel():
+def test_unet():
     from deepchem.models.torch_models import UNetModel
 
     # 5 RGB 32x32 pixel input images and 5 grey scale 32x32 pixel output segmentation masks
@@ -25,7 +25,7 @@ def test_UNetModel():
 
 
 @pytest.mark.torch
-def test_restore_UNetModel():
+def test_restore_unet():
     from deepchem.models.torch_models import UNetModel
 
     # 5 RGB 32x32 pixel input images and 5 grey scale 32x32 pixel output segmentation masks

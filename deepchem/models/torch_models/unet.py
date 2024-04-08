@@ -6,6 +6,40 @@ import torch.nn.functional as F
 
 
 class UNet(nn.Module):
+    """
+    UNet model for image segmentation.
+
+    UNet is a convolutional neural network architecture for fast and precise segmentation of images
+    based on the works of Ronneberger et al. [1]. The architecture consists of an encoder, a bottleneck,
+    and a decoder. The encoder downsamples the input image to capture the context of the image. The
+    bottleneck captures the most important features of the image. The decoder upsamples the image to
+    generate the segmentation mask. The encoder and decoder are connected by skip connections to preserve
+    spatial information.
+
+    Examples
+    --------
+    Importing necessary modules
+
+    >>> import numpy as np
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models import UNet
+
+    Creating a random dataset of 5 32x32 pixel RGB input images and 5 32x32 pixel grey scale output images
+
+    >>> x = np.random.randn(5, 3, 32, 32).astype(np.float32)
+    >>> y = np.random.rand(5, 1, 32, 32).astype(np.float32)
+    >>> dataset = dc.data.NumpyDataset(input_samples, output_samples)
+
+    We will create a UNet model with 3 input channels and 1 output channel. We will then fit the model on the dataset for 5 epochs and predict the output images.
+
+    >>> model = UNet(in_channels=3, out_channels=1)
+    >>> model.fit(dataset, nb_epoch=5)
+    >>> predictions = model.predict(dataset)
+
+    References
+    ----------
+    .. [1] Ronneberger, O., Fischer, P., & Brox, T. (2015, May 18). U-NET: Convolutional Networks for Biomedical Image Segmentation. arXiv.org. https://arxiv.org/abs/1505.04597
+    """
 
     def __init__(self, in_channels: int = 3, out_channels: int = 1):
         """
@@ -102,6 +136,40 @@ class UNet(nn.Module):
 
 
 class UNetModel(TorchModel):
+    """
+    UNet model for image segmentation.
+
+    UNet is a convolutional neural network architecture for fast and precise segmentation of images
+    based on the works of Ronneberger et al. [1]. The architecture consists of an encoder, a bottleneck,
+    and a decoder. The encoder downsamples the input image to capture the context of the image. The
+    bottleneck captures the most important features of the image. The decoder upsamples the image to
+    generate the segmentation mask. The encoder and decoder are connected by skip connections to preserve
+    spatial information.
+
+    Examples
+    --------
+    Importing necessary modules
+
+    >>> import numpy as np
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models import UNet
+
+    Creating a random dataset of 5 32x32 pixel RGB input images and 5 32x32 pixel grey scale output images
+
+    >>> x = np.random.randn(5, 3, 32, 32).astype(np.float32)
+    >>> y = np.random.rand(5, 1, 32, 32).astype(np.float32)
+    >>> dataset = dc.data.NumpyDataset(input_samples, output_samples)
+
+    We will create a UNet model with 3 input channels and 1 output channel. We will then fit the model on the dataset for 5 epochs and predict the output images.
+
+    >>> model = UNet(in_channels=3, out_channels=1)
+    >>> model.fit(dataset, nb_epoch=5)
+    >>> predictions = model.predict(dataset)
+
+    References
+    ----------
+    .. [1] Ronneberger, O., Fischer, P., & Brox, T. (2015, May 18). U-NET: Convolutional Networks for Biomedical Image Segmentation. arXiv.org. https://arxiv.org/abs/1505.04597
+    """
 
     def __init__(self, in_channels: int = 3, out_channels: int = 1, **kwargs):
         """
