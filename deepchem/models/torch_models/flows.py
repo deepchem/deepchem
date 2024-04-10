@@ -104,7 +104,10 @@ class Affine(nn.Module):
     def forward(self, x: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
         """Performs a transformation between two different distributions. This
         particular transformation represents the following function:
-        y = x * exp(a) + b, where a is scale parameter and b performs a shift.
+
+        .. math:: y = x * exp(a) + b
+
+        where a is scale parameter and b performs a shift.
         This class also returns the logarithm of the jacobians determinant
         which is useful when invert a transformation and compute the
         probability of the transformation.
@@ -168,12 +171,56 @@ class MaskedAffineFlow(Flow):
     """
     This class implements the Masked Affine Flow layer
 
+    The Masked Affine Flow [maskedaffine1]_ layer is a type of normalizing flow layer which
+    is used to learn a target distribution. The layer is based on the
+    affine flow layer, but with a mask applied to the input data. The mask
+    is a tensor of the same size as the input data, filled with 0s and 1s.
+    The mask is used to determine which features are transformed by the
+    affine flow layer. The affine flow layer is defined as follows:
+
     Masked affine flow
     .. math:: f(z) = b * z + (1 - b) * (z * e^{s(b * z)} + t)
 
-    #TODO add reference to paper
-    #TODO add example
-    #TODO add details about the layer
+    Example
+    -------
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+    >>> from deepchem.models.torch_models.flows import MaskedAffineFlow
+    >>> from torch.distributions import MultivariateNormal
+
+    >>> dim = 2
+    >>> samples = 96
+    >>> data = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
+    >>> tensor = data.sample(torch.Size((samples, dim)))
+
+    >>> layers = 4
+    >>> hidden_size = 16
+    >>> masks = F.one_hot(torch.tensor([i % 2 for i in range(layers)])).float()
+
+    >>> s_func = nn.Sequential(
+    ...     nn.Linear(in_features=dim, out_features=hidden_size), nn.LeakyReLU(),
+    ...     nn.Linear(in_features=hidden_size, out_features=hidden_size),
+    ...     nn.LeakyReLU(), nn.Linear(in_features=hidden_size, out_features=dim))
+
+    >>> t_func = nn.Sequential(
+    ...     nn.Linear(in_features=dim, out_features=hidden_size), nn.LeakyReLU(),
+    ...     nn.Linear(in_features=hidden_size, out_features=hidden_size),
+    ...     nn.LeakyReLU(), nn.Linear(in_features=hidden_size, out_features=dim))
+
+    >>> layers = nn.ModuleList(
+    ...     [MaskedAffineFlow(mask, s_func, t_func) for mask in masks])
+
+    >>> for layer in layers:
+    ...   _, inverse_log_det_jacobian = layer.inverse(tensor)
+    ...   inverse_log_det_jacobian = inverse_log_det_jacobian.detach().numpy()
+    >>> len(inverse_log_det_jacobian)
+    96
+
+    References
+    ----------
+    .. [maskedaffine1] Dinh, L., Sohl-Dickstein, J., & Bengio, S. (2016).
+        Density estimation using real nvp. arXiv preprint arXiv:1605.08803.
     """
 
     def __init__(
