@@ -1832,15 +1832,16 @@ class RealNVPLayer(nn.Module):
     """Real NVP Transformation Layer
 
     This class class is a constructor transformation layer used on a
-    NormalizingFLow model.  The Real Non-Preserving-Volumen (Real NVP) is a type
+    NormalizingFLow model. The Real Non-Preserving-Volumen (Real NVP) is a type
     of normalizing flow layer which gives advantages over this mainly because an
-    ease to compute the inverse pass [1]_, this is to learn a target
+    ease to compute the inverse pass [realnvp1]_, this is to learn a target
     distribution.
 
     Example
     -------
     >>> import torch
     >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
     >>> from torch.distributions import MultivariateNormal
     >>> from deepchem.models.torch_models.layers import RealNVPLayer
     >>> dim = 2
@@ -1861,7 +1862,7 @@ class RealNVPLayer(nn.Module):
 
     References
     ----------
-    .. [1] Stimper, V., Schölkopf, B., & Hernández-Lobato, J. M. (2021). Resampling Base
+    .. [realnvp1] Stimper, V., Schölkopf, B., & Hernández-Lobato, J. M. (2021). Resampling Base
     Distributions of Normalizing Flows. (2017). Retrieved from http://arxiv.org/abs/2110.15828
     """
 
@@ -5667,13 +5668,13 @@ class FerminetEnvelope(torch.nn.Module):
 
         # initialized weights with torch.zeros, torch.eye and using xavier init.
         for i in range(self.determinant):
-            self.wdet.append(torch.nn.init.normal(torch.zeros(1)).squeeze(0))
+            self.wdet.append(torch.nn.init.normal_(torch.zeros(1)).squeeze(0))
             for j in range(self.total_electron):
                 self.envelope_w.append(
-                    (torch.nn.init.normal(torch.zeros(n_one[-1], 1),) /
+                    (torch.nn.init.normal_(torch.zeros(n_one[-1], 1),) /
                      math.sqrt(n_one[-1])).squeeze(-1))
                 self.envelope_g.append(
-                    (torch.nn.init.normal(torch.zeros(1))).squeeze(0))
+                    (torch.nn.init.normal_(torch.zeros(1))).squeeze(0))
                 for k in range(self.no_of_atoms):
                     self.pi.append((torch.zeros(1)))
                     self.sigma.append(torch.eye(3))
