@@ -28,11 +28,11 @@ class UNet(nn.Module):
 
     >>> x = np.random.randn(5, 3, 32, 32).astype(np.float32)
     >>> y = np.random.rand(5, 1, 32, 32).astype(np.float32)
-    >>> dataset = dc.data.NumpyDataset(input_samples, output_samples)
+    >>> dataset = dc.data.NumpyDataset(x, y)
 
     We will create a UNet model with 3 input channels and 1 output channel. We will then fit the model on the dataset for 5 epochs and predict the output images.
 
-    >>> model = UNet(in_channels=3, out_channels=1)
+    >>> model = UNetModel(in_channels=3, out_channels=1)
     >>> model.fit(dataset, nb_epoch=5)
     >>> predictions = model.predict(dataset)
 
@@ -166,11 +166,11 @@ class UNetModel(TorchModel):
 
     >>> x = np.random.randn(5, 3, 32, 32).astype(np.float32)
     >>> y = np.random.rand(5, 1, 32, 32).astype(np.float32)
-    >>> dataset = dc.data.NumpyDataset(input_samples, output_samples)
+    >>> dataset = dc.data.NumpyDataset(x, y)
 
     We will create a UNet model with 3 input channels and 1 output channel. We will then fit the model on the dataset for 5 epochs and predict the output images.
 
-    >>> model = UNet(in_channels=3, out_channels=1)
+    >>> model = UNetModel(in_channels=3, out_channels=1)
     >>> model.fit(dataset, nb_epoch=5)
     >>> predictions = model.predict(dataset)
 
