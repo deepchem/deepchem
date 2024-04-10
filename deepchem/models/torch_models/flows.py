@@ -2,7 +2,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Sequence, Tuple, Union
 
 
 class Flow(nn.Module):
@@ -177,10 +177,10 @@ class MaskedAffineFlow(Flow):
     """
 
     def __init__(
-            self,
-            b: torch.Tensor,
-            t: Optional[torch.nn.ModuleList | torch.nn.Sequential] = None,
-            s: Optional[torch.nn.ModuleList | torch.nn.Sequential] = None
+        self,
+        b: torch.Tensor,
+        t: Optional[Union[torch.nn.ModuleList, torch.nn.Sequential]] = None,
+        s: Optional[Union[torch.nn.ModuleList, torch.nn.Sequential]] = None
     ) -> None:
         """
         Initializes the Masked Affine Flow layer
@@ -189,10 +189,10 @@ class MaskedAffineFlow(Flow):
         ----------
         b: torch.Tensor
             mask for features, i.e. tensor of same size as latent data point filled with 0s and 1s
-        t: Optional[torch.nn.ModuleList  |  torch.nn.Sequential], optional
+        t: Optional[Union[torch.nn.ModuleList, torch.nn.Sequential]], optional
             translation mapping, i.e. neural network, where first input dimension is batch dim,
             if None no translation is applied
-        s: Optional[torch.nn.ModuleList  |  torch.nn.Sequential], optional
+        s: Optional[Union[torch.nn.ModuleList, torch.nn.Sequential]], optional
             scale mapping, i.e. neural network, where first input dimension is batch dim,
             if None no scale is applied
         """
