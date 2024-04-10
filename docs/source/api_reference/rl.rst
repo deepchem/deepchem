@@ -54,3 +54,9 @@ Torch implementation
 
 .. autoclass:: deepchem.rl.torch_rl.A2CLossContinuous
   :members:
+
+A2C
+---
+
+.. autoclass:: deepchem.rl.torch_rl.A2C
+  :members:
