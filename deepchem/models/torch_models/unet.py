@@ -36,6 +36,14 @@ class UNet(nn.Module):
     >>> model.fit(dataset, nb_epoch=5)
     >>> predictions = model.predict(dataset)
 
+    Notes
+    -----
+    1. This implementation of the UNet model makes some changes to the padding of the inputs to the convolutional layers.
+    The padding is set to 'same' to ensure that the output size of the convolutional layers is the same as the input size.
+    This is done to preserve the spatial information of the input image and to keep the output size of the encoder and decoder the same.
+
+    2. The input image size must be divisible by 2^4 = 16 to ensure that the output size of the encoder and decoder is the same.
+
     References
     ----------
     .. [1] Ronneberger, O., Fischer, P., & Brox, T. (2015, May 18). U-NET: Convolutional Networks for Biomedical Image Segmentation. arXiv.org. https://arxiv.org/abs/1505.04597
@@ -165,6 +173,14 @@ class UNetModel(TorchModel):
     >>> model = UNet(in_channels=3, out_channels=1)
     >>> model.fit(dataset, nb_epoch=5)
     >>> predictions = model.predict(dataset)
+
+    Notes
+    -----
+    1. This implementation of the UNet model makes some changes to the padding of the inputs to the convolutional layers.
+    The padding is set to 'same' to ensure that the output size of the convolutional layers is the same as the input size.
+    This is done to preserve the spatial information of the input image and to keep the output size of the encoder and decoder the same.
+
+    2. The input image size must be divisible by 2^4 = 16 to ensure that the output size of the encoder and decoder is the same.
 
     References
     ----------
