@@ -1,7 +1,8 @@
 """ This module contains the implementation of the various flow layers and models"""
+import numpy as np
 import torch
 import torch.nn as nn
-from typing import Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
 
 class Flow(nn.Module):
@@ -161,3 +162,105 @@ class Affine(nn.Module):
             x.shape[0]) * torch.log(det_jacobian)
 
         return x, inverse_log_det_jacobian
+
+
+class MaskedAffineFlow(Flow):
+    """
+    This class implements the Masked Affine Flow layer
+
+    Masked affine flow
+    .. math:: f(z) = b * z + (1 - b) * (z * e^{s(b * z)} + t)
+
+    #TODO add reference to paper
+    #TODO add example
+    #TODO add details about the layer
+    """
+
+    def __init__(
+            self,
+            b: torch.Tensor,
+            t: Optional[torch.nn.ModuleList | torch.nn.Sequential] = None,
+            s: Optional[torch.nn.ModuleList | torch.nn.Sequential] = None
+    ) -> None:
+        """
+        Initializes the Masked Affine Flow layer
+
+        Parameters
+        ----------
+        b: torch.Tensor
+            mask for features, i.e. tensor of same size as latent data point filled with 0s and 1s
+        t: Optional[torch.nn.ModuleList  |  torch.nn.Sequential], optional
+            translation mapping, i.e. neural network, where first input dimension is batch dim,
+            if None no translation is applied
+        s: Optional[torch.nn.ModuleList  |  torch.nn.Sequential], optional
+            scale mapping, i.e. neural network, where first input dimension is batch dim,
+            if None no scale is applied
+        """
+        super().__init__()
+        # self.b = b
+        self.b_cpu = b.view(1, *b.size())
+        self.register_buffer("b", self.b_cpu)
+
+        if s is None:
+            self.s = lambda x: torch.zeros_like(x)
+        else:
+            self.add_module("s", s)
+
+        if t is None:
+            self.t = lambda x: torch.zeros_like(x)
+        else:
+            self.add_module("t", t)
+
+    def forward(self, z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Forward pass of the Masked Affine Flow layer
+
+        Parameters
+        ----------
+        z : torch.Tensor
+            Input tensor
+
+        Returns
+        -------
+        z : torch.Tensor
+            Transformed tensor according to Masked Affine Flow layer with the shape of 'z'.
+        log_det : torch.Tensor
+            Tensor which represents the information of the deviation of the initial
+            and target distribution.
+        """
+        z_masked: torch.Tensor = self.b * z
+        scale = self.s(z_masked)
+        nan = torch.tensor(np.nan, dtype=z.dtype, device=z.device)
+        scale = torch.where(torch.isfinite(scale), scale, nan)
+        trans = self.t(z_masked)
+        trans = torch.where(torch.isfinite(trans), trans, nan)
+        z_ = z_masked + (1 - self.b) * (z * torch.exp(scale) + trans)
+        log_det = torch.sum((1 - self.b) * scale,
+                            dim=list(range(1, self.b.dim())))
+        return z_, log_det
+
+    def inverse(self, z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Inverse pass of the Masked Affine Flow layer
+
+        Parameters
+        ----------
+        z : torch.Tensor
+            Input tensor
+
+        Returns
+        -------
+        z_ : torch.Tensor
+            Transformed tensor according to Masked Affine Flow layer with the shape of 'z'.
+        log_det : torch.Tensor
+            Tensor which represents the information of the deviation of the initial
+            and target distribution.
+        """
+        z_masked = self.b * z
+        scale = self.s(z_masked)
+        nan = torch.tensor(np.nan, dtype=z.dtype, device=z.device)
+        scale = torch.where(torch.isfinite(scale), scale, nan)
+        trans = self.t(z_masked)
+        trans = torch.where(torch.isfinite(trans), trans, nan)
+        z_ = z_masked + (1 - self.b) * (z - trans) * torch.exp(-scale)
+        log_det = -torch.sum(
+            (1 - self.b) * scale, dim=list(range(1, self.b.dim())))
+        return z_, log_det
