@@ -74,7 +74,7 @@ class SpinParam(Generic[T]):
 
     @staticmethod
     def apply_fcn(fcn: Callable[..., P], *a):
-        """"apply the function for each up and down elements of a"""
+        """"Apply the function for each up and down elements of a"""
         assert len(a) > 0
         if isinstance(a[0], SpinParam):
             u_vals = [aa.u for aa in a]

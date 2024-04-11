@@ -36,7 +36,7 @@ class SCF_QCCalc(BaseQCCalc):
         Parameters
         ----------
         engine: BaseSCFEngine
-            The SCF engine
+            SCF engine
         variational: bool
             If True, then use optimization of the free orbital
             parameters to find the minimum energy. Otherwise, use
@@ -57,7 +57,7 @@ class SCF_QCCalc(BaseQCCalc):
         Returns
         -------
         BaseSystem
-            The system that is being calculated.
+            System that is being calculated.
 
         """
         return self._engine.get_system()
@@ -79,16 +79,16 @@ class SCF_QCCalc(BaseQCCalc):
         Parameters
         ----------
         dm0: Optional[Union[str, torch.Tensor, SpinParam[torch.Tensor]]]
-            The initial density matrix. If it is a string, it can be
+            Initial density matrix. If it is a string, it can be
             "1e" to use the 1-electron Hamiltonian to generate the
             initial density matrix.
         eigen_options: Optional[Dict[str, Any]]
-            The options for the diagonalization (i.e. eigendecomposition).
+            Options for the diagonalization (i.e. eigendecomposition).
         fwd_options: Optional[Dict[str, Any]]
-            The options for the forward iteration (i.e. the iteration
+            Options for the forward iteration (i.e. the iteration
             to find the minimum energy).
         bck_options: Optional[Dict[str, Any]]
-            The options for the backward iteration (i.e. the iteration
+            Options for the backward iteration (i.e. the iteration
             to find the minimum energy).
 
         """
@@ -213,7 +213,7 @@ class SCF_QCCalc(BaseQCCalc):
             if torch.is_grad_enabled():
                 # If the gradient is required, then put it through the minimization
                 # one more time with penalty on the parameters.
-                # The penalty is to keep the Hamiltonian invertible, stabilizing
+                # penalty is to keep the Hamiltonian invertible, stabilizing
                 # inverse.
                 # Without the penalty, the Hamiltonian could have 0 eigenvalues
                 # because of the overparameterization of the aoparams.
@@ -242,7 +242,7 @@ class SCF_QCCalc(BaseQCCalc):
         Returns
         -------
         torch.Tensor
-            The energy of the system.
+            Energy of the system.
 
         """
         assert self._has_run
@@ -257,7 +257,7 @@ class SCF_QCCalc(BaseQCCalc):
         Returns
         -------
         Union[torch.Tensor, SpinParam[torch.Tensor]]
-            The density matrix in atomic orbital. Shape: (nao, nao)
+            Density matrix in atomic orbital. Shape: (nao, nao)
 
         """
         assert self._has_run
@@ -269,7 +269,7 @@ class SCF_QCCalc(BaseQCCalc):
         Parameters
         ----------
         dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
-            The input density matrix. It is tensor if restricted, and
+            Input density matrix. It is tensor if restricted, and
             SpinParam of tensor if unrestricted.
 
         Returns
@@ -288,7 +288,7 @@ class SCF_QCCalc(BaseQCCalc):
         Returns
         -------
         Union[SpinParam[torch.Tensor], torch.Tensor]
-            The initial density matrix. It is tensor if restricted,
+            Initial density matrix. It is tensor if restricted,
             and SpinParam of tensor if unrestricted.
 
         """
@@ -350,7 +350,7 @@ class BaseSCFEngine(EditableModule):
         Returns
         -------
         Any
-            The shape of the density matrix in this engine.
+            shape of the density matrix in this engine.
 
         """
         pass
@@ -362,7 +362,7 @@ class BaseSCFEngine(EditableModule):
         Returns
         -------
         torch.dtype
-            The dtype of the tensors in this engine.
+            dtype of the tensors in this engine.
 
         """
         pass
@@ -374,7 +374,7 @@ class BaseSCFEngine(EditableModule):
         Returns
         -------
         torch.device
-            The device of the tensors in this engine.
+            device of the tensors in this engine.
 
         """
         pass
@@ -386,7 +386,7 @@ class BaseSCFEngine(EditableModule):
         Returns
         -------
         BaseSystem
-            The system involved in the engine.
+            system involved in the engine.
 
         """
         pass
@@ -400,7 +400,7 @@ class BaseSCFEngine(EditableModule):
         Parameters
         ----------
         dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
-            The input density matrix. It is tensor if restricted, and
+            input density matrix. It is tensor if restricted, and
             SpinParam of tensor if unrestricted.
 
         Returns
@@ -423,13 +423,13 @@ class BaseSCFEngine(EditableModule):
         Parameters
         ----------
         dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
-            The input density matrix. It is tensor if restricted, and
+            input density matrix. It is tensor if restricted, and
             SpinParam of tensor if unrestricted.
 
         Returns
         -------
         torch.Tensor
-            The self-consistent parameter.
+            Self-consistent parameter.
 
         """
         pass
@@ -443,12 +443,12 @@ class BaseSCFEngine(EditableModule):
         Parameters
         ----------
         scp: torch.Tensor
-            The input self-consistent parameter.
+            Input self-consistent parameter.
 
         Returns
         -------
         Union[torch.Tensor, SpinParam[torch.Tensor]]
-            The density matrix. It is tensor if restricted, and SpinParam of
+            Density matrix. It is tensor if restricted, and SpinParam of
             tensor if unrestricted.
 
         """
@@ -462,12 +462,12 @@ class BaseSCFEngine(EditableModule):
         Parameters
         ----------
         scp: torch.Tensor
-            The previous self-consistent parameter.
+            Previous self-consistent parameter.
 
         Returns
         -------
         torch.Tensor
-            The next self-consistent parameter.
+            Next self-consistent parameter.
 
         """
         pass
@@ -483,16 +483,16 @@ class BaseSCFEngine(EditableModule):
         Parameters
         ----------
         aoparams: torch.Tensor
-            The atomic orbital parameters.
+            Atomic orbital parameters.
         aocoeffs: torch.Tensor
-            The atomic orbital coefficients.
+            Atomic orbital coefficients.
         with_penalty: Optional[float]
-            The penalty factor.
+            Penalty factor.
 
         Returns
         -------
         torch.Tensor
-            The energy from the given atomic orbital parameters and
+            Energy from the given atomic orbital parameters and
             coefficients.
 
         """
@@ -508,16 +508,16 @@ class BaseSCFEngine(EditableModule):
         Parameters
         ----------
         aoparams: torch.Tensor
-            The atomic orbital parameters.
+            Atomic orbital parameters.
         aocoeffs: torch.Tensor
-            The atomic orbital coefficients.
+            Atomic orbital coefficients.
         with_penalty: Optional[float]
-            The penalty factor.
+            Penalty factor.
 
         Returns
         -------
         Tuple[Union[torch.Tensor, SpinParam[torch.Tensor]], Optional[torch.Tensor]]
-            The density matrix and the penalty from the given atomic
+            Density matrix and the penalty from the given atomic
             orbital parameters and coefficients.
 
         """
@@ -532,13 +532,13 @@ class BaseSCFEngine(EditableModule):
         Parameters
         ----------
         aoparams: Union[torch.Tensor, SpinParam[torch.Tensor]]
-            The input atomic orbital parameters. It is tensor if
+            Input atomic orbital parameters. It is tensor if
             restricted, and SpinParam of tensor if unrestricted.
 
         Returns
         -------
         torch.Tensor
-            The packed atomic orbital parameters.
+            Packed atomic orbital parameters.
 
         """
         pass
@@ -552,12 +552,12 @@ class BaseSCFEngine(EditableModule):
         Parameters
         ----------
         aoparams: torch.Tensor
-            The input packed atomic orbital parameters.
+            Input packed atomic orbital parameters.
 
         Returns
         -------
         Union[torch.Tensor, SpinParam[torch.Tensor]]
-            The atomic orbital parameters. It is tensor if restricted,
+            Atomic orbital parameters. It is tensor if restricted,
             and SpinParam of tensor if unrestricted.
 
         """
@@ -570,7 +570,7 @@ class BaseSCFEngine(EditableModule):
         Parameters
         ----------
         eigen_options: Dict[str, Any]
-            The options for the diagonalization.
+            Options for the diagonalization.
 
         """
         pass
@@ -582,14 +582,14 @@ class BaseSCFEngine(EditableModule):
         Parameters
         ----------
         methodname: str
-            The name of the method.
+            Name of the method.
         prefix: str
-            The prefix to be added to the parameter names.
+            Prefix to be added to the parameter names.
 
         Returns
         -------
         List[str]
-            The list of parameter names.
+            List of parameter names.
 
         """
         pass

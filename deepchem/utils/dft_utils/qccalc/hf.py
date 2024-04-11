@@ -82,43 +82,43 @@ class HFEngine(BaseSCFEngine):
 
     @property
     def shape(self):
-        """returns the shape of the density matrix
+        """Shape of the density matrix
 
         Returns
         -------
         Tuple[int, int]
-            The shape of the density matrix.
+            Shape of the density matrix.
 
         """
         return self._core1e_linop.shape
 
     @property
     def dtype(self):
-        """returns the dtype of the density matrix
+        """Dtype of the density matrix
 
         Returns
         -------
         torch.dtype
-            The dtype of the density matrix.
+            Dtype of the density matrix.
 
         """
         return self._core1e_linop.dtype
 
     @property
     def device(self):
-        """returns the device of the density matrix
+        """Device of the density matrix
 
         Returns
         -------
         torch.device
-            The device of the density matrix.
+            Device of the density matrix.
 
         """
         return self._core1e_linop.device
 
     @property
     def polarized(self):
-        """returns if the calculation is polarized
+        """Returns if the calculation is polarized
 
         Returns
         -------
@@ -131,17 +131,17 @@ class HFEngine(BaseSCFEngine):
     def dm2scp(
             self, dm: Union[torch.Tensor,
                             SpinParam[torch.Tensor]]) -> torch.Tensor:
-        """convert from density matrix to a self-consistent parameter (scp)
+        """Convert from density matrix to a self-consistent parameter (scp)
 
         Parameters
         ----------
         dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
-            The density matrix to be converted.
+            Density matrix to be converted.
 
         Returns
         -------
         torch.Tensor
-            The self-consistent parameter.
+            Self-consistent parameter.
 
         """
         if isinstance(dm, torch.Tensor):  # unpolarized
@@ -160,17 +160,17 @@ class HFEngine(BaseSCFEngine):
     def scp2dm(
             self,
             scp: torch.Tensor) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
-        """scp is like KS, using the concatenated Fock matrix
+        """Scp is like KS, using the concatenated Fock matrix
 
         Parameters
         ----------
         scp: torch.Tensor
-            The self-consistent parameter to be converted.
+            Self-consistent parameter to be converted.
 
         Returns
         -------
         Union[torch.Tensor, SpinParam[torch.Tensor]]
-            The density matrix.
+            Density matrix.
 
         """
         if not self._polarized:
@@ -182,18 +182,18 @@ class HFEngine(BaseSCFEngine):
             return self.__fock2dm(SpinParam(u=fock_u, d=fock_d))
 
     def scp2scp(self, scp: torch.Tensor) -> torch.Tensor:
-        """self-consistent iteration step from a self-consistent parameter (scp)
+        """Self-consistent iteration step from a self-consistent parameter (scp)
         to an scp
 
         Parameters
         ----------
         scp: torch.Tensor
-            The self-consistent parameter to be converted.
+            Self-consistent parameter to be converted.
 
         Returns
         -------
         torch.Tensor
-            The new self-consistent parameter.
+            New self-consistent parameter.
 
         """
         dm = self.scp2dm(scp)
@@ -203,21 +203,21 @@ class HFEngine(BaseSCFEngine):
                      aoparams: torch.Tensor,
                      aocoeffs: torch.Tensor,
                      with_penalty: Optional[float] = None) -> torch.Tensor:
-        """calculate the energy from the atomic orbital params
+        """Calculate the energy from the atomic orbital params
 
         Parameters
         ----------
         aoparams: torch.Tensor
-            The atomic orbital parameters.
+            Atomic orbital parameters.
         aocoeffs: torch.Tensor
-            The atomic orbital coefficients.
+            Atomic orbital coefficients.
         with_penalty: Optional[float]
-            The penalty factor to be added to the energy.
+            Penalty factor to be added to the energy.
 
         Returns
         -------
         torch.Tensor
-            The energy.
+            Energy value.
 
         """
         dm, penalty = self.aoparams2dm(aoparams, aocoeffs, with_penalty)
@@ -227,21 +227,21 @@ class HFEngine(BaseSCFEngine):
     def aoparams2dm(self, aoparams: torch.Tensor, aocoeffs: torch.Tensor,
                     with_penalty: Optional[float] = None) -> \
             Tuple[Union[torch.Tensor, SpinParam[torch.Tensor]], Optional[torch.Tensor]]:
-        """convert the aoparams to density matrix and penalty factor
+        """Convert the aoparams to density matrix and penalty factor
 
         Parameters
         ----------
         aoparams: torch.Tensor
-            The atomic orbital parameters.
+            Atomic orbital parameters.
         aocoeffs: torch.Tensor
-            The atomic orbital coefficients.
+            Atomic orbital coefficients.
         with_penalty: Optional[float]
-            The penalty factor to be added to the energy.
+            Penalty factor to be added to the energy.
 
         Returns
         -------
         Tuple[Union[torch.Tensor, SpinParam[torch.Tensor]], Optional[torch.Tensor]]
-            The density matrix and the penalty factor.
+            Density matrix and the penalty factor.
 
         """
         aop = self.unpack_aoparams(aoparams)  # tensor or SpinParam of tensor
@@ -264,17 +264,17 @@ class HFEngine(BaseSCFEngine):
     def pack_aoparams(
             self, aoparams: Union[torch.Tensor,
                                   SpinParam[torch.Tensor]]) -> torch.Tensor:
-        """if polarized, then pack it by concatenating them in the last dimension
+        """Check if polarized, then pack it by concatenating them in the last dimension
 
         Parameters
         ----------
         aoparams: Union[torch.Tensor, SpinParam[torch.Tensor]]
-            The atomic orbital parameters.
+            Atomic orbital parameters.
 
         Returns
         -------
         torch.Tensor
-            The packed atomic orbital parameters.
+            Packed atomic orbital parameters.
 
         """
         if isinstance(aoparams, SpinParam):
@@ -285,17 +285,17 @@ class HFEngine(BaseSCFEngine):
     def unpack_aoparams(
             self, aoparams: torch.Tensor
     ) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
-        """if polarized, then construct the SpinParam (reverting the pack_aoparams)
+        """Check if polarized, then construct the SpinParam (reverting the pack_aoparams)
 
         Parameters
         ----------
         aoparams: torch.Tensor
-            The packed atomic orbital parameters.
+            Packed atomic orbital parameters.
 
         Returns
         -------
         Union[torch.Tensor, SpinParam[torch.Tensor]]
-            The atomic orbital parameters.
+            Atomic orbital parameters.
 
         """
         if isinstance(self._norb, SpinParam):
@@ -305,12 +305,12 @@ class HFEngine(BaseSCFEngine):
             return aoparams
 
     def set_eigen_options(self, eigen_options: Dict[str, Any]) -> None:
-        """set the eigendecomposition (diagonalization) option
+        """Set the eigendecomposition (diagonalization) option
 
         Parameters
         ----------
         eigen_options: Dict[str, Any]
-            The options for the eigendecomposition.
+            Options for the eigendecomposition.
 
         """
         self.eigen_options = eigen_options
@@ -318,17 +318,17 @@ class HFEngine(BaseSCFEngine):
     def dm2energy(
             self, dm: Union[torch.Tensor,
                             SpinParam[torch.Tensor]]) -> torch.Tensor:
-        """calculate the energy given the density matrix
+        """Calculate the energy given the density matrix
 
         Parameters
         ----------
         dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
-            The density matrix.
+            Density matrix.
 
         Returns
         -------
         torch.Tensor
-            The energy.
+            Energy.
 
         """
         dmtot = SpinParam.sum(dm)
@@ -340,17 +340,17 @@ class HFEngine(BaseSCFEngine):
     def __dm2fock(
         self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
     ) -> Union[LinearOperator, SpinParam[LinearOperator]]:
-        """from density matrix, returns the fock matrix
+        """From density matrix, returns the fock matrix
 
         Parameters
         ----------
         dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
-            The density matrix.
+            Density matrix.
 
         Returns
         -------
         Union[LinearOperator, SpinParam[LinearOperator]]
-            The fock matrix.
+            Fock matrix.
 
         """
         vhf = self.__dm2vhf(dm)
@@ -366,12 +366,12 @@ class HFEngine(BaseSCFEngine):
         Parameters
         ----------
         dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
-            The density matrix.
+            Density matrix.
 
         Returns
         -------
         Union[LinearOperator, SpinParam[LinearOperator]]
-            The linear operator on electron-electron coulomb and exchange
+            Linear operator on electron-electron coulomb and exchange
 
         """
         elrep = self._hamilton.get_elrep(SpinParam.sum(dm))
@@ -382,17 +382,17 @@ class HFEngine(BaseSCFEngine):
     def __fock2dm(
         self, fock: Union[LinearOperator, SpinParam[LinearOperator]]
     ) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
-        """diagonalize the fock matrix and obtain the density matrix
+        """Diagonalize the fock matrix and obtain the density matrix
 
         Parameters
         ----------
         fock: Union[LinearOperator, SpinParam[LinearOperator]]
-            The fock matrix.
+            Fock matrix.
 
         Returns
         -------
         Union[torch.Tensor, SpinParam[torch.Tensor]]
-            The density matrix.
+            Density matrix.
 
         """
         eigvals, eigvecs = self.diagonalize(fock, self._norb)
@@ -403,6 +403,21 @@ class HFEngine(BaseSCFEngine):
 
     def diagonalize(self, fock: Union[LinearOperator, SpinParam[LinearOperator]], norb: Union[int, SpinParam[int]]) -> \
             Union[Tuple[torch.Tensor, torch.Tensor], Tuple[SpinParam[torch.Tensor], SpinParam[torch.Tensor]]]:
+        """Diagonalize the fock matrix
+
+        Parameters
+        ----------
+        fock: Union[LinearOperator, SpinParam[LinearOperator]]
+            Fock matrix.
+        norb: Union[int, SpinParam[int]]
+            Number of orbitals.
+
+        Returns
+        -------
+        Union[Tuple[torch.Tensor, torch.Tensor], Tuple[SpinParam[torch.Tensor], SpinParam[torch.Tensor]]]
+            Eigenvalues and eigenvectors.
+
+        """
         ovlp = self._hamilton.get_overlap()
         if isinstance(fock, SpinParam):
             assert isinstance(self._norb, SpinParam)
@@ -422,19 +437,19 @@ class HFEngine(BaseSCFEngine):
             return lsymeig(A=fock, neig=norb, M=ovlp, **self.eigen_options)
 
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
-        """get the parameter names for the given method
+        """Parameter names for the given method
 
         Parameters
         ----------
         methodname: str
-            The method name.
+            Method name.
         prefix: str
-            The prefix to be added to the parameter names.
+            Prefix to be added to the parameter names.
 
         Returns
         -------
         List[str]
-            The parameter names.
+            Parameter names.
 
         """
         if methodname == "scp2scp":
@@ -485,21 +500,20 @@ class HFEngine(BaseSCFEngine):
                                                 prefix=prefix + "_hamilton.")
         else:
             raise KeyError("Method %s has no paramnames set" % methodname)
-        return []  # TODO: to complete
 
 
 def _symm(scp: torch.Tensor):
-    """forcely symmetrize the tensor
+    """Forcely symmetrize the tensor
 
     Parameters
     ----------
     scp: torch.Tensor
-        The tensor to be symmetrized.
+        Tensor to be symmetrized.
 
     Returns
     -------
     torch.Tensor
-        The symmetrized tensor.
+        Symmetrized tensor.
 
     """
     return (scp + scp.transpose(-2, -1)) * 0.5
