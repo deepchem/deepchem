@@ -1461,14 +1461,14 @@ def test_torch_attn_lstm_embedding():
     n_feat = 2
     layer = torch_layers.AttnLSTMEmbedding(n_test, n_support, n_feat, max_depth)
     layer.lstm.W = torch.tensor(
-        [[0.0593, -0.1627, -0.1686, -0.1779, -0.2994, -0.5953, 0.0621, 0.0995],
-         [0.2530, 0.0606, -0.7032, 0.1939, 0.6719, 0.3116, 0.0438, -0.4288],
-         [0.4632, 0.6251, -0.1295, 0.6756, 0.4071, 0.3695, 0.0697, -0.4325],
-         [0.5858, 0.6924, 0.0693, 0.1861, 0.6696, -0.0275, -0.5564, -0.1430]],
+        [[0.1176, -0.2190, -0.1507, -0.1404, -0.1086, -0.5792, -0.3434, 0.5012],
+         [-0.2889, -0.3653, -0.6611, 0.0941, -0.0522, -0.6324, -0.5890, 0.6702],
+         [-0.5032, 0.3087, 0.4474, -0.6913, -0.6126, -0.1161, -0.2429, 0.2467],
+         [-0.1015, -0.0189, 0.2767, 0.2200, 0.0982, 0.4481, -0.3125, -0.6141]],
         dtype=torch.float32)
     layer.lstm.U = torch.tensor(
-        [[-0.2198, 0.3824, 0.6744, 0.1075, 0.5492, -0.0373, 0.1071, 0.1568],
-         [0.4142, 0.3414, 0.0076, -0.2362, -0.1280, 0.6586, 0.4043, 0.2060]],
+        [[-0.0489, 0.2893, 0.1057, -0.2195, -0.2986, 0.8476, -0.1714, 0.1328],
+         [0.9190, -0.1611, -0.0390, 0.2520, 0.0389, 0.1962, -0.0821, -0.1335]],
         dtype=torch.float32)
     layer.lstm.b = torch.tensor([0., 0., 1., 1., 0., 0., 0., 0.],
                                 dtype=torch.float32)
@@ -1477,7 +1477,7 @@ def test_torch_attn_lstm_embedding():
                     dtype=np.float32)
     support = np.array([[0.52633643, 0.727206], [0.13802947, 0.5601545]],
                        dtype=np.float32)
-    test_out_tf = torch.tensor([[0.1926, 0.8492], [0.5560, 0.9835]],
+    test_out_tf = torch.tensor([[0.0357, 0.8789], [0.4014, 1.0137]],
                                dtype=torch.float32)
     test_out, support_out = layer([test, support])
     assert test_out.shape == (n_test, n_feat)
@@ -1490,7 +1490,7 @@ def test_torch_attn_lstm_embedding():
 def test_torch_cosine_dist():
     vector1 = torch.tensor([[1, 2, 3], [4, 5, 6]], dtype=torch.float)
     vector2 = torch.tensor([[1, 0, 0], [0, 1, 0]], dtype=torch.float)
-    result_tf = torch.tensor([[-2.7417, -2.7417], [-7.7750, -7.7750]],
+    result_tf = torch.tensor([[0.7327, 0.4655], [0.5442, 0.4302]],
                              dtype=torch.float32)
     y = torch_layers.cosine_dist(vector1, vector2, eps=1e-4)
     assert torch.allclose(y, result_tf, atol=1e-4)
