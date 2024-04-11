@@ -147,12 +147,12 @@ class HFEngine(BaseSCFEngine):
         if isinstance(dm, torch.Tensor):  # unpolarized
             # scp is the fock matrix
             fork = self.__dm2fock(dm)
-            assert type(fork) == LinearOperator
+            assert isinstance(fork, LinearOperator), type(fork)
             return fork.fullmatrix()
         else:  # polarized
             # scp is the concatenated fock matrix
             fock = self.__dm2fock(dm)
-            assert type(fock) == SpinParam
+            assert isinstance(fock, SpinParam), type(fock)
             mat_u = fock.u.fullmatrix().unsqueeze(0)
             mat_d = fock.d.fullmatrix().unsqueeze(0)
             return torch.cat((mat_u, mat_d), dim=0)
@@ -331,6 +331,7 @@ class HFEngine(BaseSCFEngine):
             Energy.
 
         """
+        print("dm", dm)
         dmtot = SpinParam.sum(dm)
         e_core = self._hamilton.get_e_hcore(dmtot)
         e_elrep = self._hamilton.get_e_elrep(dmtot)
@@ -420,8 +421,8 @@ class HFEngine(BaseSCFEngine):
         """
         ovlp = self._hamilton.get_overlap()
         if isinstance(fock, SpinParam):
-            assert isinstance(self._norb, SpinParam)
-            assert isinstance(norb, SpinParam)
+            assert isinstance(self._norb, SpinParam), type(self._norb)
+            assert isinstance(norb, SpinParam), type(norb)
             eivals_u, eivecs_u = lsymeig(A=fock.u,
                                          neig=norb.u,
                                          M=ovlp,
