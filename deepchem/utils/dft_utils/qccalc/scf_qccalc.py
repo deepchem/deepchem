@@ -279,7 +279,7 @@ class SCF_QCCalc(BaseQCCalc):
 
         """
         assert (isinstance(dm, torch.Tensor) and not self._polarized) or \
-            (isinstance(dm, SpinParam) and self._polarized)
+            (isinstance(dm, SpinParam) and self._polarized), type(dm)
         return self._engine.dm2energy(dm)
 
     def _get_zero_dm(self) -> Union[SpinParam[torch.Tensor], torch.Tensor]:

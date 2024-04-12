@@ -331,7 +331,6 @@ class HFEngine(BaseSCFEngine):
             Energy.
 
         """
-        print("dm", dm)
         dmtot = SpinParam.sum(dm)
         e_core = self._hamilton.get_e_hcore(dmtot)
         e_elrep = self._hamilton.get_e_elrep(dmtot)
