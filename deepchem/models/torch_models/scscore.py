@@ -120,6 +120,14 @@ class ScScoreModel(TorchModel):
 
     The default values for the model are the same as the ones used in the original paper [1]_.
 
+    This model was originally trained on the Reaxys database, which is not publicly available. Therefore, the author has made public the weights of this model as mentioned in the supplementary material [2]_. We have adapted these weights to be seamlessly used in DeepChem.
+
+    There are 3 sets of weights available for the model, which are trained on different featurizations of the input molecules. The available featurizations are:
+    - Boolean Circular fingerprints with radius 2 and size 1024 including chirality : `scscore_1024bool.pt <https://deepchem-weights.s3.us-west-1.amazonaws.com/scscore-weights/scscore_1024bool.pt>`_
+    - Uint8 Circular fingerprints with radius 2 and size 1024 including chirality : `scscore_1024uint8.pt <https://deepchem-weights.s3.us-west-1.amazonaws.com/scscore-weights/scscore_1024uint8.pt>`_
+    - Boolean Circular fingerprints with radius 2 and size 2048 including chirality : `scscore_2048bool.pt <https://deepchem-weights.s3.us-west-1.amazonaws.com/scscore-weights/scscore_2048bool.pt>`_
+
+
     Examples
     --------
     >>> import deepchem as dc
@@ -134,6 +142,29 @@ class ScScoreModel(TorchModel):
     >>> model = ScScoreModel(n_features=1024, layer_sizes=[300, 300, 300, 300, 300],
     ...                      dropout=0.2, score_scale=5)
     >>> loss = model.fit(dataset, nb_epoch=5)
+
+
+    Using pre-trained weights:
+    --------------------------
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models import ScScoreModel
+    >>> # preparing dataset
+    >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
+    >>> labels = [0., 1.]
+    >>> featurizer = dc.feat.CircularFingerprint(size=1024, radius=2, chiral=True)
+    >>> X = featurizer.featurize(smiles)
+    >>> dataset = dc.data.NumpyDataset(X=X, y=labels)
+    >>> # loading pre-trained model
+    >>> model = ScScoreModel()
+    >>> model.restore(checkpoint="scscore_1024bool.pt")
+    >>> # evaluating model
+    >>> scores = model.predict(dataset)
+
+
+    Notes
+    -----
+    1. Although we have provided the option to add dropout to the model, the original model was trained without dropout.
+    2. While loading the pre-trained model, it is recommended to load the model with the default values of the parameters to get the best results.
 
     References
     ----------
