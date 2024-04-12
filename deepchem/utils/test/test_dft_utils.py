@@ -553,6 +553,7 @@ def test_BaseSCFEngine():
 
 @pytest.mark.torch
 def test_hf_engine():
+    """Tests HFEngine and methods of its parent class BaseSCFEngine."""
     from deepchem.utils.dft_utils import (BaseHamilton, BaseSystem, BaseGrid,
                                           SpinParam, HFEngine)
     from deepchem.utils.differentiation_utils import LinearOperator

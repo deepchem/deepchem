@@ -38,6 +38,98 @@ class HFEngine(BaseSCFEngine):
     Engine to be used with Hartree Fock.
     This class provides the calculation of the self-consistency iteration step
     and the calculation of the post-calculation properties.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.dft_utils import HFEngine, BaseSystem, BaseHamilton, SpinParam, BaseGrid
+    >>> from deepchem.utils.differentiation_utils import LinearOperator
+    >>> from typing import List, Optional
+    >>> class MyLinOp(LinearOperator):
+    ...     def __init__(self, shape):
+    ...         super(MyLinOp, self).__init__(shape)
+    ...         self.param = torch.rand(shape)
+    ...     def _getparamnames(self, prefix=""):
+    ...         return [prefix + "param"]
+    ...     def _mv(self, x):
+    ...         return torch.matmul(self.param, x)
+    ...     def _rmv(self, x):
+    ...         return torch.matmul(self.param.transpose(-2,-1).conj(), x)
+    ...     def _mm(self, x):
+    ...         return torch.matmul(self.param, x)
+    ...     def _rmm(self, x):
+    ...         return torch.matmul(self.param.transpose(-2,-1).conj(), x)
+    ...     def _fullmatrix(self):
+    ...         return self.param
+    >>> class MyHamilton(BaseHamilton):
+    ...     def __init__(self):
+    ...         self._nao = 2
+    ...         self._kpts = torch.tensor([[0.0, 0.0, 0.0]])
+    ...         self._df = None
+    ...     @property
+    ...     def nao(self):
+    ...         return self._nao
+    ...     @property
+    ...     def kpts(self):
+    ...         return self._kpts
+    ...     @property
+    ...     def df(self):
+    ...         return self._df
+    ...     def build(self):
+    ...         return self
+    ...     def get_nuclattr(self):
+    ...         return torch.ones((1, 1, self.nao, self.nao))
+    ...     def get_e_elrep(self, dmtot):
+    ...         return 2 * dmtot
+    ...     def get_e_exchange(self, dm):
+    ...         if isinstance(dm, SpinParam):
+    ...             return SpinParam.sum(dm)
+    ...         else:
+    ...             return 2 * dm
+    ...     def get_e_hcore(self, dm):
+    ...         return 4 * dm
+    ...     def get_elrep(self, dmtot):
+    ...         return MyLinOp((self.nao + 1, self.nao + 1))
+    ...     def get_exchange(self, dm):
+    ...         return MyLinOp((self.nao + 1, self.nao + 1))
+    ...     def get_kinnucl(self):
+    ...         linop = MyLinOp((self.nao + 1, self.nao + 1))
+    ...         return linop
+    ...     def ao_orb2dm(self, orb: torch.Tensor,
+    ...                   orb_weight: torch.Tensor) -> torch.Tensor:
+    ...         return orb * orb_weight
+    ...     def ao_orb_params2dm(
+    ...         self,
+    ...         ao_orb_params: torch.Tensor,
+    ...         ao_orb_coeffs: torch.Tensor,
+    ...         orb_weight: torch.Tensor,
+    ...         with_penalty: Optional[float] = None) -> List[torch.Tensor]:
+    ...         return [ao_orb_params * orb_weight, ao_orb_coeffs * orb_weight]
+    >>> ham = MyHamilton()
+    >>> class MySystem(BaseSystem):
+    ...     def __init__(self):
+    ...         self.hamiltonian = ham
+    ...         self.grid = BaseGrid()
+    ...     def get_hamiltonian(self):
+    ...         return self.hamiltonian
+    ...     def get_grid(self):
+    ...         return self.grid
+    ...     def requires_grid(self):
+    ...         return True
+    ...     def get_orbweight(self, polarized: bool = False) -> torch.Tensor | SpinParam[torch.Tensor]:
+    ...         return SpinParam(torch.tensor([2.0]), torch.tensor([2.0]))
+    ...     def get_nuclei_energy(self):
+    ...         return torch.tensor(10.0)
+    >>> system = MySystem()
+    >>> engine = HFEngine(system, False)
+    >>> engine.set_eigen_options(eigen_options={"method": "exacteig"})
+    >>> engine.dm2energy(torch.tensor([2])).shape
+    torch.Size([1])
+    >>> engine.dm2scp(torch.tensor([2])).shape
+    torch.Size([3, 3])
+    >>> engine.scp2dm(torch.rand((2, 2, 2))).u.shape
+    torch.Size([2, 1])
+
     """
 
     def __init__(self,
