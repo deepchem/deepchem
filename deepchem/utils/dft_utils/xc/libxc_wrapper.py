@@ -47,18 +47,18 @@ class CalcLDALibXCUnpol(torch.autograd.Function):
 
         Parameters
         ----------
-        rho : torch.Tensor
-            The density tensor with shape (ninps)
-        deriv : int
-            The derivative order. 0 for energy density, 1 for derivative w.r.t.
+        rho: torch.Tensor
+            Density tensor with shape (ninps)
+        deriv: int
+            Derivative order. 0 for energy density, 1 for derivative w.r.t.
             density, 2 for second derivative w.r.t. density, etc.
-        libxcfcn : pylibxc.functional.LibXCFunctional
-            The libxc functional to use
+        libxcfcn: pylibxc.functional.LibXCFunctional
+            libxc functional to use
 
         Returns
         -------
         Tuple[torch.Tensor]
-            The result is a tensor with shape (ninps)
+            Result is a tensor with shape (ninps)
 
         """
 
@@ -78,13 +78,13 @@ class CalcLDALibXCUnpol(torch.autograd.Function):
 
         Parameters
         ----------
-        grad_res : torch.Tensor
-            The gradient of the result w.r.t. the result itself.
+        grad_res: torch.Tensor
+            Gradient of the result w.r.t. the result itself.
 
         Returns
         -------
         Tuple[torch.Tensor]
-            The gradient w.r.t. the input rho.
+            Gradient w.r.t. the input rho.
 
         """
         rho, res = ctx.saved_tensors
@@ -94,35 +94,47 @@ class CalcLDALibXCUnpol(torch.autograd.Function):
         return (grad_rho, None, None)
 
 class CalcLDALibXCPol(torch.autograd.Function):
+    """
+    Local-density approximations (LDA) are a class of approximations to the
+    exchange–correlation (XC) energy functional in density functional theory
+    (DFT) that depend solely upon the value of the electronic density at each
+    point in space (and not, for example, derivatives of the density or the
+    Kohn–Sham orbitals).
+
+    Examples
+    --------
+    >>> import torch
+    >>> import pylibxc
+    >>> libxcfcn = pylibxc.LibXCFunctional("lda_x", "polarized")
+    >>> rho_u = torch.tensor([0.1, 0.2, 0.3])
+    >>> rho_d = torch.tensor([0.1, 0.2, 0.3])
+    >>> res = CalcLDALibXCPol.apply(rho_u, rho_d, 0, libxcfcn)[0]
+    >>> print(res)
+    tensor([[-0.0864, -0.2177, -0.3738]], dtype=torch.float64)
+
+    """
     @staticmethod
     def forward(ctx, rho_u: torch.Tensor, rho_d: torch.Tensor, deriv: int,  # type: ignore
                 libxcfcn: pylibxc.functional.LibXCFunctional) -> Tuple[torch.Tensor, ...]:
         """Calculates and returns the energy density or its derivative w.r.t.
         density for polarized LDA.
 
-        Local-density approximations (LDA) are a class of approximations to the
-        exchange–correlation (XC) energy functional in density functional theory
-        (DFT) that depend solely upon the value of the electronic density at each
-        point in space (and not, for example, derivatives of the density or the
-        Kohn–Sham orbitals).
-
         Parameters
         ----------
-        rho_u : torch.Tensor
-            The density tensor for spin-up with shape (ninps)
-        rho_d : torch.Tensor
-            The density tensor for spin-down with shape (ninps)
-        deriv : int
-            The derivative order. 0 for energy density, 1 for derivative w.r.t.
+        rho_u: torch.Tensor
+            Density tensor for spin-up with shape (ninps)
+        rho_d: torch.Tensor
+            Density tensor for spin-down with shape (ninps)
+        deriv: int
+            Derivative order. 0 for energy density, 1 for derivative w.r.t.
             density, 2 for second derivative w.r.t. density, etc.
-        libxcfcn : pylibxc.functional.LibXCFunctional
-            The libxc functional to use
+        libxcfcn: pylibxc.functional.LibXCFunctional
+            libxc functional to use
 
         Returns
         -------
         Tuple[torch.Tensor]
-            The result is a tensor with shape (nderiv, ninps)
-            The result is a tensor with shape (nderiv, ninps) where the first
+            Result is a tensor with shape (nderiv, ninps) where the first
             dimension indicates the result for derivatives of spin-up and
             spin-down and some of its combination.
 
@@ -142,6 +154,19 @@ class CalcLDALibXCPol(torch.autograd.Function):
     def backward(ctx,  # type: ignore
                  *grad_res: torch.Tensor) -> \
             Tuple[Optional[torch.Tensor], ...]:  # type: ignore
+        """Calculates the gradient w.r.t. the input rho.
+        
+        Parameters
+        ----------
+        grad_res: torch.Tensor
+            Gradient of the result w.r.t. the result itself.
+
+        Returns
+        -------
+        Tuple[torch.Tensor]
+            Gradient w.r.t. the input rho.
+
+        """
         inps = ctx.saved_tensors[:2]
         res = ctx.saved_tensors[2:]
         deriv = ctx.deriv
@@ -178,6 +203,17 @@ class CalcGGALibXCUnpol(torch.autograd.Function):
     (DFT) that depend not only upon the value of the electronic density at each
     point in space, but also upon its gradient.
 
+    Examples
+    --------
+    >>> import torch
+    >>> import pylibxc
+    >>> libxcfcn = pylibxc.LibXCFunctional("gga_c_pbe", "unpolarized")
+    >>> rho = torch.tensor([0.1, 0.2, 0.3])
+    >>> sigma = torch.tensor([0.1, 0.2, 0.3])
+    >>> res = CalcGGALibXCUnpol.apply(rho, sigma, 0, libxcfcn)[0]
+    >>> print(res)
+    tensor([[-0.0016, -0.0070, -0.0137]], dtype=torch.float64)
+
     """
     @staticmethod
     def forward(ctx, rho: torch.Tensor, sigma: torch.Tensor, deriv: int,  # type: ignore
@@ -190,15 +226,15 @@ class CalcGGALibXCUnpol(torch.autograd.Function):
 
         Parameters
         ----------
-        rho : torch.Tensor
-            The density tensor with shape (ninps)
-        sigma : torch.Tensor
-            The contracted gradient tensor with shape (ninps)
-        deriv : int
-            The derivative order. 0 for energy density, 1 for derivative w.r.t.
+        rho: torch.Tensor
+            Density tensor with shape (ninps)
+        sigma: torch.Tensor
+            Contracted gradient tensor with shape (ninps)
+        deriv: int
+            Derivative order. 0 for energy density, 1 for derivative w.r.t.
             density, 2 for second derivative w.r.t. density, etc.
-        libxcfcn : pylibxc.functional.LibXCFunctional
-            The libxc functional to use
+        libxcfcn: pylibxc.functional.LibXCFunctional
+            libxc functional to use
 
         """
 
@@ -222,12 +258,12 @@ class CalcGGALibXCUnpol(torch.autograd.Function):
         Parameters
         ----------
         grad_res : torch.Tensor
-            The gradient of the result w.r.t. the result itself.
+            Gradient of the result w.r.t. the result itself.
 
         Returns
         -------
         Tuple[torch.Tensor]
-            The gradient w.r.t. the input rho and sigma.
+            Gradient w.r.t. the input rho and sigma.
 
         """
         inps = ctx.saved_tensors[:2]
@@ -262,6 +298,20 @@ class CalcGGALibXCPol(torch.autograd.Function):
     (DFT) that depend not only upon the value of the electronic density at each
     point in space, but also upon its gradient.
 
+    Examples
+    --------
+    >>> import torch
+    >>> import pylibxc
+    >>> libxcfcn = pylibxc.LibXCFunctional("gga_c_pbe", "polarized")
+    >>> rho_u = torch.tensor([0.1, 0.2, 0.3])
+    >>> rho_d = torch.tensor([0.1, 0.2, 0.3])
+    >>> sigma_uu = torch.tensor([0.1, 0.2, 0.3])
+    >>> sigma_ud = torch.tensor([0.1, 0.2, 0.3])
+    >>> sigma_dd = torch.tensor([0.1, 0.2, 0.3])
+    >>> res = CalcGGALibXCPol.apply(rho_u, rho_d, sigma_uu, sigma_ud, sigma_dd, 0, libxcfcn)[0]
+    >>> print(res)
+    tensor([[-0.0047, -0.0175, -0.0322]], dtype=torch.float64)
+
     """
     @staticmethod
     def forward(ctx, rho_u: torch.Tensor, rho_d: torch.Tensor,  # type: ignore
@@ -271,9 +321,32 @@ class CalcGGALibXCPol(torch.autograd.Function):
         """
         Calculates and returns the energy density or its derivative w.r.t.
         density and contracted gradient.
-        Every element in the tuple is a tensor with shape of (nderiv, ninps)
-        where nderiv depends on the number of derivatives for spin-up and
-        spin-down combinations, e.g. nderiv == 3 for vsigma (see libxc manual)
+
+        Parameters
+        ----------
+        rho_u: torch.Tensor
+            Density tensor for spin-up with shape (ninps)
+        rho_d: torch.Tensor
+            Density tensor for spin-down with shape (ninps)
+        sigma_uu: torch.Tensor
+            Contracted gradient tensor for spin-up with shape (ninps)
+        sigma_ud: torch.Tensor
+            Contracted gradient tensor for spin-up and spin-down with shape (ninps)
+        sigma_dd: torch.Tensor
+            Contracted gradient tensor for spin-down with shape (ninps)
+        deriv: int
+            Derivative order. 0 for energy density, 1 for derivative w.r.t.
+            density, 2 for second derivative w.r.t. density, etc.
+        libxcfcn: pylibxc.functional.LibXCFunctional
+            libxc functional to use
+
+        Returns
+        -------
+        Tuple[torch.Tensor]
+            Result is a tensor with shape (nderiv, ninps) where the first
+            dimension indicates the result for derivatives of spin-up and
+            spin-down and some of its combination.
+
         """
 
         inp = {
@@ -295,12 +368,12 @@ class CalcGGALibXCPol(torch.autograd.Function):
         Parameters
         ----------
         grad_res : torch.Tensor
-            The gradient of the result w.r.t. the result itself.
+            Gradient of the result w.r.t. the result itself.
 
         Returns
         -------
         Tuple[torch.Tensor]
-            The gradient w.r.t. the input rho and sigma.
+            Gradient w.r.t. the input rho and sigma.
 
         """
         inps = ctx.saved_tensors[:5]
@@ -654,8 +727,11 @@ def _pack_input(*vals: torch.Tensor) -> np.ndarray:
     >>> rho = torch.tensor([[1, 2], [3, 4]])
     >>> sigma = torch.tensor([[1, 2], [3, 4]])
     >>> _pack_input(rho, sigma)
-    array([[1, 3],
-           [2, 4]])
+    array([[[1, 1],
+            [3, 3]],
+    <BLANKLINE>
+           [[2, 2],
+            [4, 4]]])
 
     Parameters
     ----------
