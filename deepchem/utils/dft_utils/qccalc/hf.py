@@ -1,3 +1,4 @@
+"""Part of this code adopted from https://github.com/diffqc/dqc"""
 from typing import Optional, Dict, Any, Tuple, List, Union
 import torch
 from deepchem.utils.dft_utils import BaseSystem, SCF_QCCalc, BaseSCFEngine, SpinParam

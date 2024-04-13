@@ -1,5 +1,6 @@
+"""Part of this code adopted from https://github.com/diffqc/dqc"""
 from __future__ import annotations
-from abc import abstractmethod, abstractproperty
+from abc import abstractmethod
 from typing import Optional, Dict, Any, List, Union, Tuple
 import torch
 from deepchem.utils.differentiation_utils import EditableModule, minimize, equilibrium, set_default_option
@@ -167,6 +168,20 @@ class SCF_QCCalc(BaseQCCalc):
 
             def dm2params(dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> \
                     Tuple[torch.Tensor, torch.Tensor]:
+                """Convert the density matrix to the atomic orbital parameters.
+
+                Parameters
+                ----------
+                dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
+                    Density matrix. It is tensor if restricted, and SpinParam
+                    of tensor if unrestricted.
+
+                Returns
+                -------
+                Tuple[torch.Tensor, torch.Tensor]
+                    Atomic orbital parameters and coefficients.
+
+                """
                 pc = SpinParam.apply_fcn(
                     lambda dm, norb: h.dm2ao_orb_params(SpinParam.sum(dm),
                                                         norb=norb), dm, norb)
@@ -178,6 +193,22 @@ class SCF_QCCalc(BaseQCCalc):
 
             def params2dm(params: torch.Tensor, coeffs: torch.Tensor) \
                     -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
+                """Convert the atomic orbital parameters to the density matrix.
+
+                Parameters
+                ----------
+                params: torch.Tensor
+                    Atomic orbital parameters.
+                coeffs: torch.Tensor
+                    Atomic orbital coefficients.
+
+                Returns
+                -------
+                Union[torch.Tensor, SpinParam[torch.Tensor]]
+                    Density matrix. It is tensor if restricted, and SpinParam
+                    of tensor if unrestricted.
+
+                """
                 p: Union[
                     torch.Tensor,
                     SpinParam[torch.Tensor]] = self._engine.unpack_aoparams(
@@ -331,7 +362,8 @@ class BaseSCFEngine(EditableModule):
 
     """
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def polarized(self) -> bool:
         """If the system is polarized or not.
 
@@ -343,7 +375,8 @@ class BaseSCFEngine(EditableModule):
         """
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def shape(self):
         """Shape of the density matrix in this engine.
 
@@ -355,7 +388,8 @@ class BaseSCFEngine(EditableModule):
         """
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def dtype(self) -> torch.dtype:
         """dtype of the tensors in this engine.
 
@@ -367,7 +401,8 @@ class BaseSCFEngine(EditableModule):
         """
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def device(self) -> torch.device:
         """Device of the tensors in this engine.
 
