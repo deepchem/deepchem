@@ -366,17 +366,17 @@ def tallqr(V, MV=None):
     Parameters
     ----------
     V: torch.Tensor
-        V is a matrix to be decomposed. (*BV, na, nguess)
+        V is a matrix to be decomposed. (`*BV`, na, nguess)
     MV: torch.Tensor
-        (*BM, na, nguess) where M is the basis to make Q M-orthogonal
+        (`*BM`, na, nguess) where M is the basis to make Q M-orthogonal
         if MV is None, then MV=V (default=None)
 
     Returns
     -------
     Q: torch.Tensor
-        The Orthogonal Part. Shape: (*BV, na, nguess)
+        The Orthogonal Part. Shape: (`*BV`, na, nguess)
     R: torch.Tensor
-        The (*BM, nguess, nguess) where M is the basis to make Q M-orthogonal
+        The (`*BM`, nguess, nguess) where M is the basis to make Q M-orthogonal
 
     """
     if MV is None:
@@ -418,12 +418,12 @@ def to_fortran_order(V):
     Parameters
     ----------
     V: torch.Tensor
-        V is a matrix to be converted. (*BV, na, nguess)
+        V is a matrix to be converted. (`*BV`, na, nguess)
 
     Returns
     -------
     outV: torch.Tensor
-        (*BV, nguess, na)
+        (`*BV`, nguess, na)
 
     """
     if V.is_contiguous():

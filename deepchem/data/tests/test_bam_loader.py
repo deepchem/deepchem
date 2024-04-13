@@ -1,11 +1,16 @@
 import os
 import unittest
 import deepchem as dc
+import logging
+
+logger = logging.getLogger(__name__)
+
 try:
     import pysam
-except ImportError:
-    print("Error: Unable to import pysam. Please make sure it is installed.")
-import numpy as np
+except ImportError as e:
+    logger.warning(
+        f'Skipped loading biological sequence featurized, missing a dependency. {e}'
+    )
 
 
 class TestBAMLoader(unittest.TestCase):

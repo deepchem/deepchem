@@ -10,7 +10,7 @@ from deepchem.models.torch_models.layers import MolGANEncoderLayer
 
 class BasicMolGANModel(WGANModel):
     """
-    Model for de-novo generation of small molecules based on work of Nicola De Cao et al. [1]_.
+    Model for de-novo generation of small molecules based on work of Nicola De Cao et al. [molgan1]_.
     It uses a GAN directly on graph data and a reinforcement learning objective to induce the network to generate molecules with certain chemical properties.
     Utilizes WGAN infrastructure; uses adjacency matrix and node features as inputs.
     Inputs need to be one-hot representation.
@@ -28,6 +28,7 @@ class BasicMolGANModel(WGANModel):
 
     Load dataset and featurize molecules
     We will use a small dataset for this example.
+    We will be using `MolGanFeaturizer` to featurize the molecules.
 
     >>> smiles = ['CCC', 'C1=CC=CC=C1', 'CNC' ]
     >>> # create featurizer
@@ -82,7 +83,7 @@ class BasicMolGANModel(WGANModel):
 
     References
     ----------
-    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+    .. [molgan1] Nicola De Cao et al. "MolGAN: An implicit generative model
         for small molecular graphs", https://arxiv.org/abs/1805.11973
     """
 
@@ -92,7 +93,7 @@ class BasicMolGANModel(WGANModel):
                  nodes: int = 5,
                  embedding_dim: int = 10,
                  dropout_rate: float = 0.0,
-                 device: Optional[torch.device] = torch.device('cpu'),
+                 device: Optional[torch.device] = None,
                  **kwargs):
         """
         Initialize the model
@@ -118,7 +119,15 @@ class BasicMolGANModel(WGANModel):
         self.nodes = nodes
         self.embedding_dim = embedding_dim
         self.dropout_rate = dropout_rate
-        self.device = device  # type: ignore
+        if device is None:
+            if torch.cuda.is_available():
+                self.device = torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                self.device = torch.device('mps')
+            else:
+                self.device = torch.device('cpu')
+        else:
+            self.device = device
 
         super(BasicMolGANModel, self).__init__(device=device, **kwargs)
 
@@ -160,6 +169,7 @@ class BasicMolGANModel(WGANModel):
         The model has two outputs:
             1. edges
             2. nodes
+
         The format differs depending on intended use (training or sample generation).
         For sample generation use flag, sample_generation=True while calling generator
         i.e. gan.generators[0](noise_input, training=False, sample_generation=True).
@@ -179,6 +189,7 @@ class BasicMolGANModel(WGANModel):
         Takes two inputs:
             1. adjacency tensor, containing bond information
             2. nodes tensor, containing atom information
+
         The input vectors need to be in one-hot encoding format.
         Use MolGAN featurizer for that purpose. It will be simplified
         in the future release.
@@ -187,6 +198,7 @@ class BasicMolGANModel(WGANModel):
         return Discriminator(dropout_rate=self.dropout_rate,
                              units=units,
                              edges=self.edges,
+                             nodes=self.nodes,
                              device=self.device)
 
     def predict_gan_generator(self,
@@ -234,8 +246,9 @@ class BasicMolGANModel(WGANModel):
         adjacency_matrix, nodes_features = self.generators[0](
             noise_input, training=False, sample_generation=True)
         graphs = [
-            GraphMatrix(i, j) for i, j in zip(adjacency_matrix.detach().numpy(),
-                                              nodes_features.detach().numpy())
+            GraphMatrix(i, j)
+            for i, j in zip(adjacency_matrix.cpu().detach().numpy(),
+                            nodes_features.cpu().detach().numpy())
         ]
         return graphs
 
@@ -375,6 +388,7 @@ class Discriminator(nn.Module):
         dropout_rate: float,
         units: List = [(128, 64), 64],
         edges: int = 5,
+        nodes: int = 5,
         device: Optional[torch.device] = torch.device('cpu')
     ) -> None:
         """Initialize the discriminator.
@@ -394,10 +408,13 @@ class Discriminator(nn.Module):
         self.dropout_rate = dropout_rate
         self.edges = edges
         self.units = units
-        self.device = device
+        self.nodes = nodes
+        self.device: torch.device = device  # type: ignore
         self.graph = MolGANEncoderLayer(units=self.units,
                                         dropout_rate=self.dropout_rate,
-                                        edges=self.edges)
+                                        edges=self.edges,
+                                        nodes=self.nodes,
+                                        device=self.device)
 
         # Define the dense layers
         self.dense1 = nn.Linear(units[1], 128)

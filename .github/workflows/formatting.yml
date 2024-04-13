@@ -20,6 +20,7 @@ jobs:
         sudo rm -rf /opt/ghc
         sudo rm -rf "/usr/local/share/boost"
         sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        sudo rm -rf /usr/local/lib/android
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
@@ -44,7 +45,7 @@ jobs:
           ${{ runner.os }}-pip-
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.9'
 

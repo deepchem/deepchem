@@ -1,9 +1,9 @@
 dependencies:
   - pip:
-    - -f https://download.pytorch.org/whl/cu113/torch_stable.html
-    - -f https://data.pyg.org/whl/torch-1.11.0+cu113.html
+    - -f https://download.pytorch.org/whl/cu118/torch_stable.html
     - -f https://data.dgl.ai/wheels/repo.html
-    - dgl-cu111
-    - torch==2.1.0+cu113
+    - dgl
+    - torch==2.2.1+cu118
     - torch-geometric
     - lightning
+    - pydantic
