@@ -2,7 +2,12 @@ import pytest
 try:
     import torch
 except:
-    pass
+    print("torch not available")
+try:
+    import pylibxc
+except:
+    print("pylibxc not available")
+
 import numpy as np
 from typing import Union
 
@@ -663,3 +668,22 @@ def test_hf_engine():
     assert engine.dm2energy(torch.tensor([2])) == torch.tensor([28.0])
     assert engine.dm2scp(torch.tensor([2])).shape == torch.Size([3, 3])
     assert engine.scp2dm(torch.rand((2, 2, 2))).u.shape == torch.Size([2, 1])
+
+
+@pytest.mark.torch
+def test_CalcLDALibXCUnpol():
+    from deepchem.utils.dft_utils import CalcLDALibXCUnpol
+    libxcfcn = pylibxc.LibXCFunctional("lda_x", "unpolarized")
+    rho = torch.tensor([0.1, 0.2, 0.3])
+    res = CalcLDALibXCUnpol.apply(rho, 0, libxcfcn)[0]
+    assert torch.allclose(res, torch.tensor([[-0.0343, -0.0864, -0.1483]], dtype=torch.float64))
+
+
+@pytest.mark.torch
+def test_CalcLDALibXCPol():
+    from deepchem.utils.dft_utils import CalcLDALibXCPol
+    libxcfcn = pylibxc.LibXCFunctional("lda_x", "polarized")
+    rho_u = torch.tensor([0.1, 0.2, 0.3])
+    rho_d = torch.tensor([0.1, 0.2, 0.3])
+    res = CalcLDALibXCPol.apply(rho_u, rho_d, 0, libxcfcn)[0]
+    assert torch.allclose(res, torch.tensor([[-0.0864, -0.2177, -0.3738]], dtype=torch.float64))
