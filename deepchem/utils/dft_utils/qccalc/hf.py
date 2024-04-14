@@ -117,7 +117,7 @@ class HFEngine(BaseSCFEngine):
     ...         return self.grid
     ...     def requires_grid(self):
     ...         return True
-    ...     def get_orbweight(self, polarized: bool = False) -> torch.Tensor | SpinParam[torch.Tensor]:
+    ...     def get_orbweight(self, polarized: bool = False):
     ...         return SpinParam(torch.tensor([2.0]), torch.tensor([2.0]))
     ...     def get_nuclei_energy(self):
     ...         return torch.tensor(10.0)
