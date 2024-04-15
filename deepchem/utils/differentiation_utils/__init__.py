@@ -28,6 +28,7 @@ try:
     from deepchem.utils.differentiation_utils.solve import wrap_gmres
     from deepchem.utils.differentiation_utils.solve import exactsolve
     from deepchem.utils.differentiation_utils.solve import solve_ABE
+    from deepchem.utils.differentiation_utils.solve import broyden1_solve
     from deepchem.utils.differentiation_utils.solve import get_batchdims
     from deepchem.utils.differentiation_utils.solve import setup_precond
     from deepchem.utils.differentiation_utils.solve import dot
@@ -44,5 +45,19 @@ try:
     from deepchem.utils.differentiation_utils.symeig import symeig
     from deepchem.utils.differentiation_utils.symeig import ortho
     from deepchem.utils.differentiation_utils.symeig import exacteig
+    from deepchem.utils.differentiation_utils.symeig import svd
+
+    from deepchem.utils.differentiation_utils.optimize.rootsolver import broyden1
+    from deepchem.utils.differentiation_utils.optimize.rootsolver import broyden2
+    from deepchem.utils.differentiation_utils.optimize.rootsolver import linearmixing
+
+    from deepchem.utils.differentiation_utils.optimize.equilibrium import anderson_acc
+
+    from deepchem.utils.differentiation_utils.optimize.minimizer import gd
+    from deepchem.utils.differentiation_utils.optimize.minimizer import adam
+
+    from deepchem.utils.differentiation_utils.optimize.rootfinder import rootfinder
+    from deepchem.utils.differentiation_utils.optimize.rootfinder import equilibrium
+    from deepchem.utils.differentiation_utils.optimize.rootfinder import minimize
 except:
     pass

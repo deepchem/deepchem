@@ -427,15 +427,15 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.assert_runtime
 
-.. autofunction:: deepchem.utils.differentiation_utils._set_initial_v
+.. autofunction:: deepchem.utils.differentiation_utils.symeig._set_initial_v
 
-.. autofunction:: deepchem.utils.differentiation_utils._take_eigpairs
+.. autofunction:: deepchem.utils.differentiation_utils.symeig._take_eigpairs
 
-.. autofunction:: deepchem.utils.differentiation_utils.exacteig
+.. autofunction:: deepchem.utils.differentiation_utils.symeig.exacteig
 
-.. autofunction:: deepchem.utils.differentiation_utils.degen_symeig
+.. autofunction:: deepchem.utils.differentiation_utils.symeig.degen_symeig
 
-.. autofunction:: deepchem.utils.differentiation_utils.davidson
+.. autofunction:: deepchem.utils.differentiation_utils.symeig.davidson
 
 .. autofunction:: deepchem.utils.differentiation_utils.symeig.lsymeig
 
@@ -481,12 +481,73 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.solve.solve
 
+.. autofunction:: deepchem.utils.differentiation_utils.solve.broyden1_solve
+
+.. autofunction:: deepchem.utils.differentiation_utils.solve._rootfinder_solve
+
 .. autofunction:: deepchem.utils.differentiation_utils.solve.cg
 
 .. autofunction:: deepchem.utils.differentiation_utils.solve.bicgstab
 
 .. autoclass:: deepchem.utils.differentiation_utils.solve.solve_torchfcn
   :members:
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.equilibrium.anderson_acc
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.minimizer.gd
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.minimizer.adam
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.minimizer.TerminationCondition
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver._nonlin_solver
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver.broyden1
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver.broyden2
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver.linearmixing
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver._safe_norm
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver._nonline_line_search
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver._scalar_search_armijo
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootsolver.TerminationCondition
+
+.. autoclass:: deepchem.utils.differentiation_utils.optimize.jacobian.Jacobian
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.optimize.jacobian.BroydenFirst
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.optimize.jacobian.BroydenSecond
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.optimize.jacobian.LinearMixing
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.optimize.jacobian.LowRankMatrix
+  :members:
+
+.. autoclass:: deepchem.utils.differentiation_utils.optimize.jacobian.FullRankMatrix
+  :members:
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootfinder.rootfinder
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootfinder.equilibrium
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootfinder.minimize
+
+.. autoclass:: deepchem.utils.differentiation_utils.optimize.rootfinder._RootFinder
+  :members:
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootfinder._get_rootfinder_default_method
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootfinder._get_equilibrium_default_method
+
+.. autofunction:: deepchem.utils.differentiation_utils.optimize.rootfinder._get_minimizer_default_method
 
 Attribute Utilities
 -------------------
@@ -496,7 +557,7 @@ The utilities here are used to modify the attributes of the classes. Used by dif
 .. autoclass:: deepchem.utils.attribute_utils.get_attr
   :members:
 
-.. autoclass:: deepchem.utils.attribute_utils.set_get_attr
+.. autoclass:: deepchem.utils.attribute_utils.set_attr
   :members:
 
 .. autoclass:: deepchem.utils.attribute_utils.del_attr
@@ -543,11 +604,7 @@ Periodic Table Utilities
 The Utilities here are used to computing atomic mass and radii data.
 These can be used by DFT and many other Molecular Models.
 
-.. autofunction:: deepchem.utils.periodictable_utils.get_atomz
-
-.. autofunction:: deepchem.utils.periodictable_utils.test_get_atom_mass
-
-.. autofunction:: deepchem.utils.periodictable_utils.test_get_period
+.. autofunction:: deepchem.utils.periodic_table_utils.get_atomz
 
 Equivariance Utilities
 ----------------------
@@ -578,19 +635,19 @@ Initial usecases are for improving the printing format of __repr__.
 
 .. autofunction:: deepchem.utils.misc_utils.shape2str
 
-.. autoclass:: deepchem.utils.attribute_utils.UnimplementedError
+.. autoclass:: deepchem.utils.misc_utils.UnimplementedError
   :members:
 
-.. autoclass:: deepchem.utils.attribute_utils.GetSetParamsError
+.. autoclass:: deepchem.utils.misc_utils.GetSetParamsError
   :members:
 
-.. autoclass:: deepchem.utils.attribute_utils.ConvergenceWarning
+.. autoclass:: deepchem.utils.misc_utils.ConvergenceWarning
   :members:
 
-.. autoclass:: deepchem.utils.attribute_utils.MathWarning
+.. autoclass:: deepchem.utils.misc_utils.MathWarning
   :members:
 
-.. autoclass:: deepchem.utils.attribute_utils.Uniquifier
+.. autoclass:: deepchem.utils.misc_utils.Uniquifier
   :members:
 
 SafeOperations Utilities
@@ -599,12 +656,12 @@ SafeOperations Utilities
 The utilities here are used for safe operations on tensors.
 These are used to avoid NaNs and Infs in the output.
 
-.. autofunction:: deepchem.utils.safe_ops.safepow
+.. autofunction:: deepchem.utils.safeops_utils.safepow
 
-.. autofunction:: deepchem.utils.safe_ops.safenorm
+.. autofunction:: deepchem.utils.safeops_utils.safenorm
 
-.. autofunction:: deepchem.utils.safe_ops.occnumber
+.. autofunction:: deepchem.utils.safeops_utils.occnumber
 
-.. autofunction:: deepchem.utils.safe_ops.get_floor_and_ceil
+.. autofunction:: deepchem.utils.safeops_utils.get_floor_and_ceil
 
-.. autofunction:: deepchem.utils.safe_ops.safe_cdist
+.. autofunction:: deepchem.utils.safeops_utils.safe_cdist

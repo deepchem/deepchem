@@ -120,6 +120,7 @@ class ScScoreModel(TorchModel):
 
     The default values for the model are the same as the ones used in the original paper [1]_.
 
+
     This model was originally trained on the Reaxys database, which is not publicly available. Therefore, the author has made public the weights of this model as mentioned in the supplementary material [2]_. We have adapted these weights to be seamlessly used in DeepChem.
 
     There are 3 sets of weights available for the model, which are trained on different featurizations of the input molecules. The available featurizations are:
@@ -172,6 +173,7 @@ class ScScoreModel(TorchModel):
     -----
     1. Although we have provided the option to add dropout to the model, the original model was trained without dropout.
     2. While loading the pre-trained model, it is recommended to load the model with the default values of the parameters to get the best results.
+
 
     References
     ----------

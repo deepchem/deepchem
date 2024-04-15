@@ -90,6 +90,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [2 Multisequence Alignments](Multisequence_Alignments.ipynb)
 * [3 Scanpy](Scanpy.ipynb)
 * [4 Deep probabilistic analysis of omics data](Deep_probabilistic_analysis_of_single-cell_omics_data.ipynb)
+* [5 Automated Cell Counting](Cell_Counting_Tutorial.ipynb)
 
 ### Material Science
 * [1 Introduction to Material Science](Introduction_To_Material_Science.ipynb)

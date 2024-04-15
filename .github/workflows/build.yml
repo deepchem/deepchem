@@ -21,8 +21,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ['3.9']
+        python-version: ['3.9', '3.11']
     steps:
+    - name: Maximize build space
+      if: runner.os == 'ubuntu-latest'
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        sudo rm -rf /usr/local/lib/android
     - uses: actions/checkout@v4
     - name: Cache pip modules for Linux
       if: runner.os == 'Linux'
@@ -71,7 +79,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9']
+        python-version: ['3.9', '3.11']
     steps:
     - uses: actions/checkout@v4
     - name: Cache pip packages for Windows
@@ -102,4 +110,3 @@ jobs:
         python -c "import deepchem; print('DeepChem version %s' % deepchem.__version__)"
         python -c "import rdkit; print('RDKIT version %s' % rdkit.__version__)"
         python -c "import torch; print('Torch version %s' % torch.__version__)"
-        python -c "import tensorflow; print('Tensorflow version %s' % tensorflow.__version__)"
