@@ -676,7 +676,11 @@ def test_CalcLDALibXCUnpol():
     libxcfcn = pylibxc.LibXCFunctional("lda_x", "unpolarized")
     rho = torch.tensor([0.1, 0.2, 0.3])
     res = CalcLDALibXCUnpol.apply(rho, 0, libxcfcn)[0]
-    assert torch.allclose(res, torch.tensor([[-0.0343, -0.0864, -0.1483]], dtype=torch.float64))
+    assert torch.allclose(
+        res,
+        torch.tensor([[-0.0343, -0.0686, -0.1028], [-0.0432, -0.0864, -0.1296],
+                      [-0.0494, -0.0989, -0.1483]],
+                     dtype=torch.float64), 0.001)
 
 
 @pytest.mark.torch
@@ -686,4 +690,136 @@ def test_CalcLDALibXCPol():
     rho_u = torch.tensor([0.1, 0.2, 0.3])
     rho_d = torch.tensor([0.1, 0.2, 0.3])
     res = CalcLDALibXCPol.apply(rho_u, rho_d, 0, libxcfcn)[0]
-    assert torch.allclose(res, torch.tensor([[-0.0864, -0.2177, -0.3738]], dtype=torch.float64))
+    assert torch.allclose(
+        res,
+        torch.tensor([[-0.0864, -0.1728, -0.2591], [-0.1088, -0.2177, -0.3265],
+                      [-0.1246, -0.2492, -0.3738]],
+                     dtype=torch.float64), 0.001)
+
+
+@pytest.mark.torch
+def test_CalcGGALibXCUnpol():
+    from deepchem.utils.dft_utils import CalcGGALibXCUnpol
+    libxcfcn = pylibxc.LibXCFunctional("gga_c_pbe", "unpolarized")
+    rho = torch.tensor([0.1, 0.2, 0.3])
+    sigma = torch.tensor([0.1, 0.2, 0.3])
+    res = CalcGGALibXCUnpol.apply(rho, sigma, 0, libxcfcn)[0]
+    assert torch.allclose(
+        res,
+        torch.tensor([[-0.0016, -0.0031, -0.0047], [-0.0035, -0.0070, -0.0105],
+                      [-0.0046, -0.0091, -0.0137]],
+                     dtype=torch.float64), 0.0001, 0.0001)
+
+
+@pytest.mark.torch
+def test_CalcGGALibXCPol():
+    from deepchem.utils.dft_utils import CalcGGALibXCPol
+    libxcfcn = pylibxc.LibXCFunctional("gga_c_pbe", "polarized")
+    rho_u = torch.tensor([0.1, 0.2, 0.3])
+    rho_d = torch.tensor([0.1, 0.2, 0.3])
+    sigma_uu = torch.tensor([0.1, 0.2, 0.3])
+    sigma_ud = torch.tensor([0.1, 0.2, 0.3])
+    sigma_dd = torch.tensor([0.1, 0.2, 0.3])
+    res = CalcGGALibXCPol.apply(rho_u, rho_d, sigma_uu, sigma_ud, sigma_dd, 0,
+                                libxcfcn)[0]
+    assert torch.allclose(
+        res,
+        torch.tensor([[-0.0047, -0.0094, -0.0141], [-0.0087, -0.0175, -0.0262],
+                      [-0.0107, -0.0215, -0.0322]],
+                     dtype=torch.float64), 0.0001, 0.0001)
+
+
+@pytest.mark.torch
+def test_CalcMGGALibXCUnpol():
+    from deepchem.utils.dft_utils import CalcMGGALibXCUnpol
+    libxcfcn = pylibxc.LibXCFunctional("mgga_c_m06_l", "unpolarized")
+    rho = torch.tensor([0.1, 0.2, 0.3])
+    sigma = torch.tensor([0.1, 0.2, 0.3])
+    lapl = torch.tensor([0.1, 0.2, 0.3])
+    kin = torch.tensor([0.1, 0.2, 0.3])
+    res = CalcMGGALibXCUnpol.apply(rho, sigma, lapl, kin, 0, libxcfcn)[0]
+    assert torch.allclose(
+        res,
+        torch.tensor([[-0.0032, -0.0063, -0.0095], [-0.0033, -0.0066, -0.0098],
+                      [-0.0029, -0.0058, -0.0087]],
+                     dtype=torch.float64), 0.0001, 0.0001)
+
+
+@pytest.mark.torch
+def test_CalcMGGALibXCPol():
+    from deepchem.utils.dft_utils import CalcMGGALibXCPol
+    libxcfcn = pylibxc.LibXCFunctional("mgga_c_m06_l", "polarized")
+    rho_u = torch.tensor([0.1, 0.2, 0.3])
+    rho_d = torch.tensor([0.1, 0.2, 0.3])
+    sigma_uu = torch.tensor([0.1, 0.2, 0.3])
+    sigma_ud = torch.tensor([0.1, 0.2, 0.3])
+    sigma_dd = torch.tensor([0.1, 0.2, 0.3])
+    lapl_u = torch.tensor([0.1, 0.2, 0.3])
+    lapl_d = torch.tensor([0.1, 0.2, 0.3])
+    kin_u = torch.tensor([0.1, 0.2, 0.3])
+    kin_d = torch.tensor([0.1, 0.2, 0.3])
+    res = CalcMGGALibXCPol.apply(rho_u, rho_d, sigma_uu, sigma_ud, sigma_dd,
+                                 lapl_u, lapl_d, kin_u, kin_d, 0, libxcfcn)[0]
+    assert torch.allclose(
+        res,
+        torch.tensor([[-0.0065, -0.0130, -0.0194], [-0.0057, -0.0115, -0.0172],
+                      [-0.0054, -0.0108, -0.0162]],
+                     dtype=torch.float64), 0.0001, 0.0001)
+
+
+@pytest.mark.torch
+def test_get_libxc_res():
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import _get_libxc_res
+    libxcfcn = pylibxc.LibXCFunctional("lda_x", "unpolarized")
+    rho = torch.tensor([0.1, 0.2, 0.3])
+    res = _get_libxc_res({"rho": rho}, 0, libxcfcn, 2, False)
+    assert torch.allclose(
+        res[0],
+        torch.tensor([[-0.0343, -0.0686, -0.1028], [-0.0432, -0.0864, -0.1296],
+                      [-0.0494, -0.0989, -0.1483]],
+                     dtype=torch.float64), 0.0001, 0.0001)
+
+
+@pytest.mark.torch
+def test_pack_input():
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import _pack_input
+    rho = torch.tensor([[1, 2], [3, 4]])
+    sigma = torch.tensor([[1, 2], [3, 4]])
+    assert np.allclose(_pack_input(rho, sigma),
+                       np.array([[[1, 1], [3, 3]], [[2, 2], [4, 4]]]))
+
+
+@pytest.mark.torch
+def test_unpack_input():
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import _unpack_input
+    inp = np.array([[1, 3], [2, 4]])
+    assert np.allclose(tuple(_unpack_input(inp))[0], np.array([1, 2]))
+    assert np.allclose(tuple(_unpack_input(inp))[1], np.array([3, 4]))
+
+
+@pytest.mark.torch
+def test_get_dos():
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import _get_dos
+    assert _get_dos(0) == (True, False, False, False, False)
+
+
+@pytest.mark.torch
+def test_extract_returns():
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import _extract_returns
+    ret = {"zk": np.array([1, 2, 3])}
+    assert torch.allclose(
+        _extract_returns(ret, 0, 1)[0], torch.tensor([1, 2, 3]))
+
+
+@pytest.mark.torch
+def test_get_grad_inps():
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import _get_grad_inps
+    grad_res = [torch.tensor([1, 2, 3]), torch.tensor([4, 5, 6])]
+    inps = [torch.tensor([1, 2, 3]), torch.tensor([4, 5, 6])]
+    derivs = [torch.tensor([1, 2, 3]), torch.tensor([4, 5, 6])]
+    needs_input_grad = [True, True]
+    deriv_idxs = [[0], [1]]
+    result = _get_grad_inps(grad_res, inps, derivs, needs_input_grad,
+                            deriv_idxs)
+    assert torch.allclose(result[0], torch.tensor([1, 4, 9]))
+    assert torch.allclose(result[1], torch.tensor([4, 10, 18]))
