@@ -37,9 +37,7 @@ class CalcLDALibXCUnpol(torch.autograd.Function):
     >>> rho = torch.tensor([0.1, 0.2, 0.3])
     >>> res = CalcLDALibXCUnpol.apply(rho, 0, libxcfcn)[0]
     >>> print(res)
-    tensor([[-0.0343, -0.0686, -0.1028],
-            [-0.0432, -0.0864, -0.1296],
-            [-0.0494, -0.0989, -0.1483]], dtype=torch.float64)
+    tensor([[-0.0343, -0.0864, -0.1483]], dtype=torch.float64)
 
     """
 
@@ -118,9 +116,7 @@ class CalcLDALibXCPol(torch.autograd.Function):
     >>> rho_d = torch.tensor([0.1, 0.2, 0.3])
     >>> res = CalcLDALibXCPol.apply(rho_u, rho_d, 0, libxcfcn)[0]
     >>> print(res)
-    tensor([[-0.0864, -0.1728, -0.2591],
-            [-0.1088, -0.2177, -0.3265],
-            [-0.1246, -0.2492, -0.3738]], dtype=torch.float64)
+    tensor([[-0.0864, -0.2177, -0.3738]], dtype=torch.float64)
 
     """
 
@@ -231,9 +227,7 @@ class CalcGGALibXCUnpol(torch.autograd.Function):
     >>> sigma = torch.tensor([0.1, 0.2, 0.3])
     >>> res = CalcGGALibXCUnpol.apply(rho, sigma, 0, libxcfcn)[0]
     >>> print(res)
-    tensor([[-0.0016, -0.0031, -0.0047],
-            [-0.0035, -0.0070, -0.0105],
-            [-0.0046, -0.0091, -0.0137]], dtype=torch.float64)
+    tensor([[-0.0016, -0.0070, -0.0137]], dtype=torch.float64)
 
     """
 
@@ -334,9 +328,7 @@ class CalcGGALibXCPol(torch.autograd.Function):
     >>> sigma_dd = torch.tensor([0.1, 0.2, 0.3])
     >>> res = CalcGGALibXCPol.apply(rho_u, rho_d, sigma_uu, sigma_ud, sigma_dd, 0, libxcfcn)[0]
     >>> print(res)
-    tensor([[-0.0047, -0.0094, -0.0141],
-            [-0.0087, -0.0175, -0.0262],
-            [-0.0107, -0.0215, -0.0322]], dtype=torch.float64)
+    tensor([[-0.0047, -0.0175, -0.0322]], dtype=torch.float64)
 
     """
 
@@ -476,9 +468,7 @@ class CalcMGGALibXCUnpol(torch.autograd.Function):
     >>> kin = torch.tensor([0.1, 0.2, 0.3])
     >>> res = CalcMGGALibXCUnpol.apply(rho, sigma, lapl, kin, 0, libxcfcn)[0]
     >>> print(res)
-    tensor([[-0.0032, -0.0063, -0.0095],
-            [-0.0033, -0.0066, -0.0098],
-            [-0.0029, -0.0058, -0.0087]], dtype=torch.float64)
+    tensor([[-0.0032, -0.0066, -0.0087]], dtype=torch.float64)
 
     """
 
@@ -615,9 +605,7 @@ class CalcMGGALibXCPol(torch.autograd.Function):
     >>> res = CalcMGGALibXCPol.apply(rho_u, rho_d, sigma_uu, sigma_ud, sigma_dd,
     ...                               lapl_u, lapl_d, kin_u, kin_d, 0, libxcfcn)[0]
     >>> print(res)
-    tensor([[-0.0065, -0.0130, -0.0194],
-            [-0.0057, -0.0115, -0.0172],
-            [-0.0054, -0.0108, -0.0162]], dtype=torch.float64)
+    tensor([[-0.0065, -0.0115, -0.0162]], dtype=torch.float64)
 
     """
 
@@ -799,9 +787,7 @@ def _get_libxc_res(inp: Mapping[str, Union[np.ndarray, Tuple[np.ndarray, ...],
     >>> rho = torch.tensor([0.1, 0.2, 0.3])
     >>> res = _get_libxc_res({"rho": rho}, 0, libxcfcn, 2, False)
     >>> print(res)
-    (tensor([[-0.0343, -0.0686, -0.1028],
-            [-0.0432, -0.0864, -0.1296],
-            [-0.0494, -0.0989, -0.1483]], dtype=torch.float64),)
+    (tensor([[-0.0343, -0.0864, -0.1483]], dtype=torch.float64),)
 
     Parameters
     ----------
@@ -1002,7 +988,7 @@ def _extract_returns(ret: Mapping[str, np.ndarray], deriv: int, family: int) -> 
     """
 
     def a(v):
-        return torch.as_tensor(v)
+        return torch.as_tensor(v.T)
 
     if family == 1:
         keys = LDA_KEYS
