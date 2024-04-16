@@ -62,8 +62,8 @@ class LibXCLDA(BaseXC):
         self.libxc_unpol = pylibxc.LibXCFunctional(name, "unpolarized")
         self.libxc_pol = pylibxc.LibXCFunctional(name, "polarized")
         self._family: int = 1
-        self._unpolfcn_wrapper = CalcLDALibXCUnpol
-        self._polfcn_wrapper = CalcLDALibXCPol
+        self._unpolfcn_wrapper = CalcLDALibXCUnpol  # type: ignore
+        self._polfcn_wrapper = CalcLDALibXCPol  # type: ignore
 
     @property
     def family(self) -> int:
@@ -255,8 +255,8 @@ class LibXCGGA(LibXCLDA):
         self.libxc_unpol = pylibxc.LibXCFunctional(name, "unpolarized")
         self.libxc_pol = pylibxc.LibXCFunctional(name, "polarized")
         self._family: int = 2
-        self._unpolfcn_wrapper = CalcGGALibXCUnpol
-        self._polfcn_wrapper = CalcGGALibXCPol
+        self._unpolfcn_wrapper = CalcGGALibXCUnpol  # type: ignore
+        self._polfcn_wrapper = CalcGGALibXCPol  # type: ignore
 
 
 class LibXCMGGA(LibXCLDA):
@@ -308,8 +308,8 @@ class LibXCMGGA(LibXCLDA):
         self.libxc_unpol = pylibxc.LibXCFunctional(name, "unpolarized")
         self.libxc_pol = pylibxc.LibXCFunctional(name, "polarized")
         self._family: int = 4
-        self._unpolfcn_wrapper = CalcMGGALibXCUnpol
-        self._polfcn_wrapper = CalcMGGALibXCPol
+        self._unpolfcn_wrapper = CalcMGGALibXCUnpol  # type: ignore
+        self._polfcn_wrapper = CalcMGGALibXCPol  # type: ignore
 
 
 def _prepare_libxc_input(densinfo: Union[SpinParam[ValGrad], ValGrad],

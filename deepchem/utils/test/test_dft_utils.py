@@ -900,3 +900,29 @@ def test_postproc_libxc_voutput():
         densinfo,
         torch.rand((n,), dtype=torch.float64).requires_grad_())
     assert potinfo.value.shape == torch.Size([2])
+
+
+@pytest.mark.torch
+def test_get_libxc():
+    from deepchem.utils.dft_utils import ValGrad, get_libxc
+    xc = get_libxc("gga_c_pbe")
+    n = 2
+    rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    densinfo = ValGrad(value=rho_u, grad=grad_u)
+    # get the exchange-correlation potential
+    potinfo = xc.get_vxc(densinfo)
+    assert potinfo.value.shape == torch.Size([2])
+
+
+@pytest.mark.torch
+def test_get_xc():
+    from deepchem.utils.dft_utils import ValGrad, get_xc
+    xc = get_xc("lda_x + gga_c_pbe")
+    n = 2
+    rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    densinfo = ValGrad(value=rho_u, grad=grad_u)
+    # get the exchange-correlation potential
+    potinfo = xc.get_vxc(densinfo)
+    assert potinfo.value.shape == torch.Size([2])

@@ -51,6 +51,9 @@ try:
     from deepchem.utils.dft_utils.xc.libxc import LibXCGGA
     from deepchem.utils.dft_utils.xc.libxc import LibXCMGGA
 
+    from deepchem.utils.dft_utils.api.getxc import get_libxc
+    from deepchem.utils.dft_utils.api.getxc import get_xc
+
     from deepchem.utils.dft_utils.df.base_df import BaseDF
 
     from deepchem.utils.dft_utils.hamilton.base_hamilton import BaseHamilton
