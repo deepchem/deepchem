@@ -3,8 +3,8 @@ import torch
 try:
     import pylibxc
 except (ImportError, ModuleNotFoundError) as e:
-    warnings.warn("Failed to import pylibxc. Might not be able to use xc.")
-from typing import List, Tuple, Union, overload, Optional
+    warnings.warn(f"Failed to import pylibxc. Might not be able to use xc. {e}")
+from typing import List, Tuple, Union, Optional
 from deepchem.utils.dft_utils import BaseXC, ValGrad, SpinParam
 from deepchem.utils.dft_utils.xc.libxc_wrapper import CalcLDALibXCPol, CalcLDALibXCUnpol, \
     CalcGGALibXCPol, CalcGGALibXCUnpol, CalcMGGALibXCUnpol, CalcMGGALibXCPol
@@ -14,6 +14,7 @@ ERRMSG = "This function cannot do broadcasting. " \
          "Please make sure the inputs have the same shape."
 N_VRHO = 2  # number of xc energy derivative w.r.t. density (i.e. 2: u, d)
 N_VSIGMA = 3  # number of energy derivative w.r.t. contracted gradient (i.e. 3: uu, ud, dd)
+
 
 class LibXCLDA(BaseXC):
     """Local Density Approximation (LDA) wrapper for libxc.
@@ -25,7 +26,6 @@ class LibXCLDA(BaseXC):
     Examples
     --------
     >>> from deepchem.utils.dft_utils import ValGrad
-    >>> from deepchem.utils.dft_utils.xc.libxc import LibXCLDA
     >>> import torch
     >>> # create a LDA wrapper for libxc
     >>> lda = LibXCLDA("lda_x")
@@ -49,9 +49,6 @@ class LibXCLDA(BaseXC):
         Wrapper for the polarized LDA functional
 
     """
-    _family: int = 1
-    _unpolfcn_wrapper = CalcLDALibXCUnpol
-    _polfcn_wrapper = CalcLDALibXCPol
 
     def __init__(self, name: str) -> None:
         """Initialize the LDA wrapper for libxc.
@@ -64,6 +61,9 @@ class LibXCLDA(BaseXC):
         """
         self.libxc_unpol = pylibxc.LibXCFunctional(name, "unpolarized")
         self.libxc_pol = pylibxc.LibXCFunctional(name, "polarized")
+        self._family: int = 1
+        self._unpolfcn_wrapper = CalcLDALibXCUnpol
+        self._polfcn_wrapper = CalcLDALibXCPol
 
     @property
     def family(self) -> int:
@@ -77,7 +77,9 @@ class LibXCLDA(BaseXC):
         """
         return self._family
 
-    def get_vxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> Union[ValGrad, SpinParam[ValGrad]]:
+    def get_vxc(
+        self, densinfo: Union[ValGrad, SpinParam[ValGrad]]
+    ) -> Union[ValGrad, SpinParam[ValGrad]]:
         """Get the exchange-correlation potential from libxc.
 
         Parameters
@@ -138,19 +140,21 @@ class LibXCLDA(BaseXC):
         if not isinstance(densinfo, ValGrad):
             rho_u = densinfo.u.value
 
-            edens = self._calc_pol(flatten_inps, densinfo.u.value.shape, 0)[0]  # (*BD, nr)
+            edens = self._calc_pol(flatten_inps, densinfo.u.value.shape,
+                                   0)[0]  # (*BD, nr)
             edens = edens.reshape(rho_u.shape)
             return edens
 
         # unpolarized case
         else:
-            edens = self._calc_unpol(flatten_inps, densinfo.value.shape, 0)[0]  # (*BD, nr)
+            edens = self._calc_unpol(flatten_inps, densinfo.value.shape,
+                                     0)[0]  # (*BD, nr)
             return edens
 
     def _calc_pol(self, flatten_inps: Tuple[torch.Tensor, ...], shape: torch.Size, deriv: int) ->\
             Tuple[torch.Tensor, ...]:
         """Calculate the polarized exchange-correlation potential from libxc.
-        
+
         Parameters
         ----------
         flatten_inps: Tuple[torch.Tensor, ...]
@@ -193,7 +197,8 @@ class LibXCLDA(BaseXC):
 
         """
 
-        outs = self._unpolfcn_wrapper.apply(*flatten_inps, deriv, self.libxc_unpol)
+        outs = self._unpolfcn_wrapper.apply(*flatten_inps, deriv,
+                                            self.libxc_unpol)
 
         # tuple of (*shape) where shape
         return tuple(out.reshape(shape) for out in outs)
@@ -201,25 +206,31 @@ class LibXCLDA(BaseXC):
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
         return []
 
+
 class LibXCGGA(LibXCLDA):
     """Generalized Gradient Approximation (GGA) wrapper for libxc.
+
+    GGA can correct the overestimated binding energy of LDA in
+    molecules and solids and extend the processing system to the
+    energy and structure of the hydrogen bond system. The
+    approximation greatly improves the calculation results of the
+    energy related to electrons and exchange.
 
     Examples
     --------
     >>> from deepchem.utils.dft_utils import ValGrad
-    >>> from deepchem.utils.dft_utils.xc.libxc import LibXCGGA
     >>> import torch
     >>> # create a GGA wrapper for libxc
-    >>> lda = LibXCGGA("lda_x")
+    >>> gga = LibXCGGA("gga_c_pbe")
     >>> # create a density information
-    >>> densinfo = ValGrad(value=torch.rand(2, 3, 4), grad=torch.rand(2, 3, 4, 3))
+    >>> n = 2
+    >>> rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    >>> grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    >>> densinfo = ValGrad(value=rho_u, grad=grad_u)
     >>> # get the exchange-correlation potential
-    >>> potinfo = lda.get_vxc(densinfo)
+    >>> potinfo = gga.get_vxc(densinfo)
     >>> potinfo.value.shape
-    torch.Size([2, 3, 4])
-    >>> edens = lda.get_edensityxc(densinfo)
-    >>> edens.shape
-    torch.Size([2, 3, 4])
+    torch.Size([2])
 
     Attributes
     ----------
@@ -231,13 +242,49 @@ class LibXCGGA(LibXCLDA):
         Wrapper for the polarized GGA functional
 
     """
-    _family: int = 2
-    _unpolfcn_wrapper = CalcGGALibXCUnpol
-    _polfcn_wrapper = CalcGGALibXCPol
+
+    def __init__(self, name: str) -> None:
+        """Initialize the LDA wrapper for libxc.
+
+        Parameters
+        ----------
+        name: str
+            Name of the exchange-correlation functional
+
+        """
+        self.libxc_unpol = pylibxc.LibXCFunctional(name, "unpolarized")
+        self.libxc_pol = pylibxc.LibXCFunctional(name, "polarized")
+        self._family: int = 2
+        self._unpolfcn_wrapper = CalcGGALibXCUnpol
+        self._polfcn_wrapper = CalcGGALibXCPol
+
 
 class LibXCMGGA(LibXCLDA):
     """Meta-Generalized Gradient Approximation (MGGA) wrapper for libxc.
-    
+
+    Meta-GGAs typically improve upon the accuracy of GGAs as they
+    additionally take into account the local kinetic energy density.
+    This allows meta-GGAs to more accurately treat different chemical
+    bonds (eg. covalent, metallic, and weak) compared to LDAs and GGAs.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils import ValGrad
+    >>> import torch
+    >>> # create a MGGA wrapper for libxc
+    >>> mgga = LibXCMGGA("mgga_x_scan")
+    >>> # create a density information
+    >>> n = 2
+    >>> rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    >>> grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    >>> lapl_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    >>> kin_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    >>> densinfo = ValGrad(value=rho_u, grad=grad_u, lapl=lapl_u, kin=kin_u)
+    >>> # get the exchange-correlation potential
+    >>> potinfo = mgga.get_vxc(densinfo)
+    >>> potinfo.value.shape
+    torch.Size([2])
+
     Attributes
     ----------
     _family: int (default 4)
@@ -248,46 +295,46 @@ class LibXCMGGA(LibXCLDA):
         Wrapper for the polarized MGGA functional
 
     """
-    _family: int = 4
-    _unpolfcn_wrapper = CalcMGGALibXCUnpol
-    _polfcn_wrapper = CalcMGGALibXCPol
 
-def _all_same_shape(densinfo_u: ValGrad, densinfo_d: ValGrad) -> bool:
-    """Check if the shapes of the input are the same.
+    def __init__(self, name: str) -> None:
+        """Initialize the LDA wrapper for libxc.
 
-    Parameters
-    ----------
-    densinfo_u: ValGrad
-        Density information for the up-spin
-    densinfo_d: ValGrad
-        Density information for the down-spin
+        Parameters
+        ----------
+        name: str
+            Name of the exchange-correlation functional
 
-    Returns
-    -------
-    bool
-        If the shapes are the same
+        """
+        self.libxc_unpol = pylibxc.LibXCFunctional(name, "unpolarized")
+        self.libxc_pol = pylibxc.LibXCFunctional(name, "polarized")
+        self._family: int = 4
+        self._unpolfcn_wrapper = CalcMGGALibXCUnpol
+        self._polfcn_wrapper = CalcMGGALibXCPol
 
-    """
-    return densinfo_u.value.shape == densinfo_d.value.shape
 
-def _get_polstr(polarized: bool) -> str:
-    """Get the string representation of the polarization.
-
-    Parameters
-    ----------
-    polarized: bool
-        If the system is polarized
-
-    Returns
-    -------
-    str
-        String representation of the polarization
-
-    """
-    return "polarized" if polarized else "unpolarized"
-
-def _prepare_libxc_input(densinfo: Union[SpinParam[ValGrad], ValGrad], xcfamily: int) -> Tuple[torch.Tensor, ...]:
+def _prepare_libxc_input(densinfo: Union[SpinParam[ValGrad], ValGrad],
+                         xcfamily: int) -> Tuple[torch.Tensor, ...]:
     """Prepare the input for libxc.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils import ValGrad, SpinParam
+    >>> import torch
+    >>> # create a density information
+    >>> n = 2
+    >>> rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    >>> grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    >>> lapl_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    >>> kin_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    >>> rho_d = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    >>> grad_d = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    >>> lapl_d = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    >>> kin_d = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    >>> densinfo = SpinParam(u=ValGrad(value=rho_u, grad=grad_u, lapl=lapl_u, kin=kin_u), d=ValGrad(value=rho_d, grad=grad_d, lapl=lapl_d, kin=kin_d))
+    >>> # prepare the input for libxc
+    >>> inputs = _prepare_libxc_input(densinfo, 4)
+    >>> len(inputs)
+    9
 
     Parameters
     ----------
@@ -339,7 +386,8 @@ def _prepare_libxc_input(densinfo: Union[SpinParam[ValGrad], ValGrad], xcfamily:
         kin_d = densinfo.d.kin
 
         if xcfamily == 4:  # MGGA
-            return (rho_u, rho_d, sigma_uu, sigma_ud, sigma_dd, lapl_u, lapl_d, kin_u, kin_d)
+            return (rho_u, rho_d, sigma_uu, sigma_ud, sigma_dd, lapl_u, lapl_d,
+                    kin_u, kin_d)
 
     # unpolarized case
     else:
@@ -367,12 +415,31 @@ def _prepare_libxc_input(densinfo: Union[SpinParam[ValGrad], ValGrad], xcfamily:
 
     raise RuntimeError(f"xcfamily {xcfamily} is not implemented")
 
-def _postproc_libxc_voutput(densinfo: Union[SpinParam[ValGrad], ValGrad],
-                            vrho: torch.Tensor,
-                            vsigma: Optional[torch.Tensor] = None,
-                            vlapl: Optional[torch.Tensor] = None,
-                            vkin: Optional[torch.Tensor] = None) -> Union[SpinParam[ValGrad], ValGrad]:
+
+def _postproc_libxc_voutput(
+        densinfo: Union[SpinParam[ValGrad], ValGrad],
+        vrho: torch.Tensor,
+        vsigma: Optional[torch.Tensor] = None,
+        vlapl: Optional[torch.Tensor] = None,
+        vkin: Optional[torch.Tensor] = None
+) -> Union[SpinParam[ValGrad], ValGrad]:
     """Postprocess the output from libxc into potential information.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils import ValGrad
+    >>> import torch
+    >>> # create a density information
+    >>> n = 2
+    >>> rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    >>> grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    >>> lapl_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    >>> kin_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    >>> densinfo = ValGrad(value=rho_u, grad=grad_u, lapl=lapl_u, kin=kin_u)
+    >>> # postprocess the output from libxc
+    >>> potinfo = _postproc_libxc_voutput(densinfo, torch.rand((n,), dtype=torch.float64).requires_grad_())
+    >>> potinfo.value.shape
+    torch.Size([2])
 
     Parameters
     ----------
@@ -426,8 +493,14 @@ def _postproc_libxc_voutput(densinfo: Union[SpinParam[ValGrad], ValGrad],
             vkin_u = vkin[0]
             vkin_d = vkin[1]
 
-        potinfo_u = ValGrad(value=vrho_u, grad=vgrad_u, lapl=vlapl_u, kin=vkin_u)
-        potinfo_d = ValGrad(value=vrho_d, grad=vgrad_d, lapl=vlapl_d, kin=vkin_d)
+        potinfo_u = ValGrad(value=vrho_u,
+                            grad=vgrad_u,
+                            lapl=vlapl_u,
+                            kin=vkin_u)
+        potinfo_d = ValGrad(value=vrho_d,
+                            grad=vgrad_d,
+                            lapl=vlapl_d,
+                            kin=vkin_d)
         return SpinParam(u=potinfo_u, d=potinfo_d)
 
     # unpolarized case

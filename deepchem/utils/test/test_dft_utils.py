@@ -809,3 +809,94 @@ def test_get_grad_inps():
                             deriv_idxs)
     assert torch.allclose(result[0], torch.tensor([1, 4, 9]))
     assert torch.allclose(result[1], torch.tensor([4, 10, 18]))
+
+
+@pytest.mark.torch
+def test_LibXCLDA():
+    from deepchem.utils.dft_utils import ValGrad, LibXCLDA
+    # create a LDA wrapper for libxc
+    lda = LibXCLDA("lda_x")
+    # create a density information
+    densinfo = ValGrad(value=torch.rand(2, 3, 4), grad=torch.rand(2, 3, 4, 3))
+    # get the exchange-correlation potential
+    potinfo = lda.get_vxc(densinfo)
+    assert potinfo.value.shape == torch.Size([2, 3, 4])
+    edens = lda.get_edensityxc(densinfo)
+    assert edens.shape == torch.Size([2, 3, 4])
+
+
+@pytest.mark.torch
+def test_LibXCGGA():
+    from deepchem.utils.dft_utils import ValGrad, LibXCGGA
+    # create a GGA wrapper for libxc
+    gga = LibXCGGA("gga_c_pbe")
+    # create a density information
+    n = 2
+    rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    densinfo = ValGrad(value=rho_u, grad=grad_u)
+    # get the exchange-correlation potential
+    potinfo = gga.get_vxc(densinfo)
+    assert potinfo.value.shape == torch.Size([2])
+
+
+@pytest.mark.torch
+def test_LibXCMGGA():
+    from deepchem.utils.dft_utils import ValGrad, LibXCMGGA
+    # create a MGGA wrapper for libxc
+    mgga = LibXCMGGA("mgga_x_scan")
+    # create a density information
+    n = 2
+    rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    lapl_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    kin_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    densinfo = ValGrad(value=rho_u, grad=grad_u, lapl=lapl_u, kin=kin_u)
+    # get the exchange-correlation potential
+    potinfo = mgga.get_vxc(densinfo)
+    assert potinfo.value.shape == torch.Size([2])
+
+
+@pytest.mark.torch
+def test_prepare_libxc_input():
+    from deepchem.utils.dft_utils import ValGrad, SpinParam
+    from deepchem.utils.dft_utils.xc.libxc import _prepare_libxc_input
+    # create a density information
+    n = 2
+    rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    lapl_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    kin_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    rho_d = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    grad_d = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    lapl_d = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    kin_d = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    densinfo = SpinParam(u=ValGrad(value=rho_u,
+                                   grad=grad_u,
+                                   lapl=lapl_u,
+                                   kin=kin_u),
+                         d=ValGrad(value=rho_d,
+                                   grad=grad_d,
+                                   lapl=lapl_d,
+                                   kin=kin_d))
+    # prepare the input for libxc
+    inputs = _prepare_libxc_input(densinfo, 4)
+    assert len(inputs) == 9
+
+
+@pytest.mark.torch
+def test_postproc_libxc_voutput():
+    from deepchem.utils.dft_utils import ValGrad
+    from deepchem.utils.dft_utils.xc.libxc import _postproc_libxc_voutput
+    # create a density information
+    n = 2
+    rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    lapl_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    kin_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    densinfo = ValGrad(value=rho_u, grad=grad_u, lapl=lapl_u, kin=kin_u)
+    # postprocess the output from libxc
+    potinfo = _postproc_libxc_voutput(
+        densinfo,
+        torch.rand((n,), dtype=torch.float64).requires_grad_())
+    assert potinfo.value.shape == torch.Size([2])
