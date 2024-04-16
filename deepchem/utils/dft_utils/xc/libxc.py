@@ -16,16 +16,65 @@ N_VRHO = 2  # number of xc energy derivative w.r.t. density (i.e. 2: u, d)
 N_VSIGMA = 3  # number of energy derivative w.r.t. contracted gradient (i.e. 3: uu, ud, dd)
 
 class LibXCLDA(BaseXC):
+    """Local Density Approximation (LDA) wrapper for libxc.
+    Local-density approximations (LDA) are a class of approximations
+    to the exchange–correlation (XC) energy functional in density
+    functional theory (DFT) that depend solely upon the value of the
+    electronic density at each point in space.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils import ValGrad
+    >>> from deepchem.utils.dft_utils.xc.libxc import LibXCLDA
+    >>> import torch
+    >>> # create a LDA wrapper for libxc
+    >>> lda = LibXCLDA("lda_x")
+    >>> # create a density information
+    >>> densinfo = ValGrad(value=torch.rand(2, 3, 4), grad=torch.rand(2, 3, 4, 3))
+    >>> # get the exchange-correlation potential
+    >>> potinfo = lda.get_vxc(densinfo)
+    >>> potinfo.value.shape
+    torch.Size([2, 3, 4])
+    >>> edens = lda.get_edensityxc(densinfo)
+    >>> edens.shape
+    torch.Size([2, 3, 4])
+
+    Attributes
+    ----------
+    _family: int (default 1)
+        Family of the exchange-correlation functional
+    _unpolfcn_wrapper: torch.autograd.Function (default CalcLDALibXCUnpol)
+        Wrapper for the unpolarized LDA functional
+    _polfcn_wrapper: torch.autograd.Function (default CalcLDALibXCPol)
+        Wrapper for the polarized LDA functional
+
+    """
     _family: int = 1
     _unpolfcn_wrapper = CalcLDALibXCUnpol
     _polfcn_wrapper = CalcLDALibXCPol
 
     def __init__(self, name: str) -> None:
+        """Initialize the LDA wrapper for libxc.
+
+        Parameters
+        ----------
+        name: str
+            Name of the exchange-correlation functional
+
+        """
         self.libxc_unpol = pylibxc.LibXCFunctional(name, "unpolarized")
         self.libxc_pol = pylibxc.LibXCFunctional(name, "polarized")
 
     @property
     def family(self) -> int:
+        """Get the family of the exchange-correlation functional.
+
+        Returns
+        -------
+        int
+            Family of the exchange-correlation functional
+
+        """
         return self._family
 
     def get_vxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> Union[ValGrad, SpinParam[ValGrad]]:
@@ -153,13 +202,52 @@ class LibXCLDA(BaseXC):
         return []
 
 class LibXCGGA(LibXCLDA):
-    """Generalized Gradient Approximation (GGA) wrapper for libxc."""
+    """Generalized Gradient Approximation (GGA) wrapper for libxc.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils import ValGrad
+    >>> from deepchem.utils.dft_utils.xc.libxc import LibXCGGA
+    >>> import torch
+    >>> # create a GGA wrapper for libxc
+    >>> lda = LibXCGGA("lda_x")
+    >>> # create a density information
+    >>> densinfo = ValGrad(value=torch.rand(2, 3, 4), grad=torch.rand(2, 3, 4, 3))
+    >>> # get the exchange-correlation potential
+    >>> potinfo = lda.get_vxc(densinfo)
+    >>> potinfo.value.shape
+    torch.Size([2, 3, 4])
+    >>> edens = lda.get_edensityxc(densinfo)
+    >>> edens.shape
+    torch.Size([2, 3, 4])
+
+    Attributes
+    ----------
+    _family: int (default 2)
+        Family of the exchange-correlation functional
+    _unpolfcn_wrapper: torch.autograd.Function (default CalcGGALibXCUnpol)
+        Wrapper for the unpolarized GGA functional
+    _polfcn_wrapper: torch.autograd.Function (default CalcGGALibXCPol)
+        Wrapper for the polarized GGA functional
+
+    """
     _family: int = 2
     _unpolfcn_wrapper = CalcGGALibXCUnpol
     _polfcn_wrapper = CalcGGALibXCPol
 
 class LibXCMGGA(LibXCLDA):
-    """Meta-Generalized Gradient Approximation (MGGA) wrapper for libxc."""
+    """Meta-Generalized Gradient Approximation (MGGA) wrapper for libxc.
+    
+    Attributes
+    ----------
+    _family: int (default 4)
+        Family of the exchange-correlation functional
+    _unpolfcn_wrapper: torch.autograd.Function (default CalcMGGALibXCUnpol)
+        Wrapper for the unpolarized MGGA functional
+    _polfcn_wrapper: torch.autograd.Function (default CalcMGGALibXCPol)
+        Wrapper for the polarized MGGA functional
+
+    """
     _family: int = 4
     _unpolfcn_wrapper = CalcMGGALibXCUnpol
     _polfcn_wrapper = CalcMGGALibXCPol
@@ -173,6 +261,11 @@ def _all_same_shape(densinfo_u: ValGrad, densinfo_d: ValGrad) -> bool:
         Density information for the up-spin
     densinfo_d: ValGrad
         Density information for the down-spin
+
+    Returns
+    -------
+    bool
+        If the shapes are the same
 
     """
     return densinfo_u.value.shape == densinfo_d.value.shape
