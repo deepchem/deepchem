@@ -47,7 +47,6 @@ try:
     from deepchem.utils.dft_utils.xc.libxc_wrapper import CalcMGGALibXCUnpol
     from deepchem.utils.dft_utils.xc.libxc_wrapper import CalcMGGALibXCPol
     from deepchem.utils.dft_utils.xc.libxc_wrapper import CalcLDALibXCUnpol
-    
 
     from deepchem.utils.dft_utils.df.base_df import BaseDF
 
