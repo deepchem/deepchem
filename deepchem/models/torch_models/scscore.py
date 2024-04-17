@@ -115,17 +115,13 @@ class ScScoreModel(TorchModel):
 
     The learned metric (SCScore) exhibits highly desirable nonlinear behavior, particularly in recognizing increases in synthetic complexity throughout a number of linear synthetic routes.
 
-    Our model uses hingeloss instead of the shifted relu loss as in the supplementary material [2]_ provided by the author.
-    This could cause differentiation issues with compounds that are "close" to each other in "complexity".
-
-    The default values for the model are the same as the ones used in the original paper [1]_.
-
     This model was originally trained on the Reaxys database, which is not publicly available. Therefore, the author has made public the weights of this model as mentioned in the supplementary material [2]_. We have adapted these weights to be seamlessly used in DeepChem.
 
     There are 3 sets of weights available for the model, which are trained on different featurizations of the input molecules. The available featurizations are:
-    - Boolean Circular fingerprints with radius 2 and size 1024 including chirality : `scscore_1024bool.pt <https://deepchem-weights.s3.us-west-1.amazonaws.com/scscore-weights/scscore_1024bool.pt>`_
-    - Uint8 Circular fingerprints with radius 2 and size 1024 including chirality : `scscore_1024uint8.pt <https://deepchem-weights.s3.us-west-1.amazonaws.com/scscore-weights/scscore_1024uint8.pt>`_
-    - Boolean Circular fingerprints with radius 2 and size 2048 including chirality : `scscore_2048bool.pt <https://deepchem-weights.s3.us-west-1.amazonaws.com/scscore-weights/scscore_2048bool.pt>`_
+
+    1. Boolean Circular fingerprints with radius 2 and size 1024 including chirality : `scscore_1024bool.pt <https://deepchem-weights.s3.us-west-1.amazonaws.com/scscore-weights/scscore_1024bool.pt>`_
+    2. Uint8 Circular fingerprints with radius 2 and size 1024 including chirality : `scscore_1024uint8.pt <https://deepchem-weights.s3.us-west-1.amazonaws.com/scscore-weights/scscore_1024uint8.pt>`_
+    3. Boolean Circular fingerprints with radius 2 and size 2048 including chirality : `scscore_2048bool.pt <https://deepchem-weights.s3.us-west-1.amazonaws.com/scscore-weights/scscore_2048bool.pt>`_
 
 
     Examples
@@ -172,6 +168,10 @@ class ScScoreModel(TorchModel):
     -----
     1. Although we have provided the option to add dropout to the model, the original model was trained without dropout.
     2. While loading the pre-trained model, it is recommended to load the model with the default values of the parameters to get the best results.
+    3. Our model uses hingeloss by default instead of the shifted relu loss as in the supplementary material [2]_ provided by the author. 
+       This could cause differentiation issues with compounds that are "close" to each other in "complexity".
+    4. The default values for the model are the same as the ones used in the original paper [1]_.
+
 
     References
     ----------
