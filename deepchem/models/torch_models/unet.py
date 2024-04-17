@@ -86,7 +86,7 @@ class UNet(nn.Module):
         # Output
         self.output = nn.Conv2d(64, out_channels, kernel_size=1)
 
-    def conv_block(self, in_channels, out_channels):
+    def conv_block(self, in_channels: int, out_channels: int):
         """
         Parameters
         ----------
@@ -101,7 +101,7 @@ class UNet(nn.Module):
             nn.Conv2d(out_channels, out_channels, kernel_size=3,
                       padding='same'), nn.ReLU(inplace=True))
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         """
         Parameters
         ----------
