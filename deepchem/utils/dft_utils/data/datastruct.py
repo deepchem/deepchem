@@ -176,7 +176,7 @@ class CGTOBasis:
 
     """
 
-    def __init__(self, angmom: int, alphas: torch.Tensor, coeffs: torch.Tensor):
+    def __init__(self, angmom: int, alphas: torch.Tensor, coeffs: torch.Tensor, normalized: bool = False):
         """Initialize the CGTOBasis object.
 
         Parameters
@@ -192,7 +192,7 @@ class CGTOBasis:
         self.angmom = angmom
         self.alphas = alphas
         self.coeffs = coeffs
-        self.normalized = False
+        self.normalized = normalized
 
     def __repr__(self):
         """Return the string representation of the CGTOBasis object.

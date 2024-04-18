@@ -4,11 +4,10 @@ from typing import List, Tuple, Iterator, Optional, Dict
 import copy
 import torch
 import numpy as np
+from deepchem.utils import memoize_method
 from deepchem.utils.dft_utils import AtomCGTOBasis, CGTOBasis, Lattice
 from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CINT
-from dqc.utils.misc import memoize_method
 
-__all__ = ["LibcintWrapper", "SubsetLibcintWrapper"]
 
 # Terminology:
 # * gauss: one gaussian element (multiple gaussian becomes one shell)
@@ -20,8 +19,27 @@ __all__ = ["LibcintWrapper", "SubsetLibcintWrapper"]
 PTR_RINV_ORIG = 4  # from libcint/src/cint_const.h
 
 class LibcintWrapper(object):
+    """ A class to wrap the libcint environment and parameters for the
+    integrals calculation. This class is used to store the environment and
+    parameters for the integrals calculation. It also provides the slicing
+    functionality to get the subset of the shells.
+
+    """
     def __init__(self, atombases: List[AtomCGTOBasis], spherical: bool = True,
                  lattice: Optional[Lattice] = None) -> None:
+        """Initialize the LibcintWrapper object.
+
+        Parameters
+        ----------
+        atombases: List[AtomCGTOBasis]
+            List of AtomCGTOBasis objects that contains the basis set for each atom
+        spherical: bool, optional (default=True)
+            Whether the basis is in spherical coordinate (otherwise, it is in
+            cartesian coordinate)
+        lattice: Optional[Lattice], optional (default=None)
+            The lattice of the system (if any)
+
+        """
         self._atombases = atombases
         self._spherical = spherical
         self._fracz = False
@@ -123,124 +141,250 @@ class LibcintWrapper(object):
 
     @property
     def parent(self) -> LibcintWrapper:
-        # parent is defined as the full LibcintWrapper where it takes the full
-        # shells for the integration (without the need for subsetting)
+        """parent is defined as the full LibcintWrapper where it takes the
+        full shells for the integration (without the need for subsetting)
+
+        Returns
+        -------
+        LibcintWrapper
+            The parent of this object
+
+        """
         return self
 
     @property
     def natoms(self) -> int:
-        # return the number of atoms in the environment
+        """Number of atoms in the environment
+
+        Returns
+        -------
+        int
+            Number of atoms in the environment
+
+        """
         return self._natoms
 
     @property
     def fracz(self) -> bool:
-        # indicating whether we are working with fractional z
+        """Indicating whether we are working with fractional z
+
+        Returns
+        -------
+        bool
+            Whether we are working with fractional z
+
+        """
         return self._fracz
 
     @property
     def lattice(self) -> Optional[Lattice]:
+        """The lattice of the system
+
+        Returns
+        -------
+        Optional[Lattice]
+            The lattice of the system
+
+        """
         return self._lattice
 
     @property
     def spherical(self) -> bool:
-        # returns whether the basis is in spherical coordinate (otherwise, it
-        # is in cartesian coordinate)
+        """returns whether the basis is in spherical coordinate (otherwise, it
+        is in cartesian coordinate)
+
+        Returns
+        -------
+        bool
+            Whether the basis is in spherical coordinate
+
+        """
         return self._spherical
 
     @property
     def atombases(self) -> List[AtomCGTOBasis]:
+        """List of AtomCGTOBasis objects that contains the basis set for each atom
+
+        Returns
+        -------
+        List[AtomCGTOBasis]
+            List of AtomCGTOBasis objects that contains the basis set for each atom
+
+        """
         return self._atombases
 
     @property
     def atm_bas_env(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        # returns the triplet lists, i.e. atm, bas, env
-        # this shouldn't change in the sliced wrapper
+        """returns the triplet lists, i.e. atm, bas, env
+        this shouldn't change in the sliced wrapper
+
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray, np.ndarray]
+            The triplet lists, i.e. atm, bas, env
+
+        """
         return self._atm, self._bas, self._env
 
     @property
     def full_angmoms(self) -> torch.Tensor:
+        """Returns the full angular momentums tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            The full angular momentums tensor.
+
+        """
         return self._allangmoms
 
     @property
     def params(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        # returns all the parameters of this object
-        # this shouldn't change in the sliced wrapper
+        """Returns all the parameters of this object.
+
+        This shouldn't change in the sliced wrapper.
+
+        Returns
+        -------
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+            All the parameters of this object.
+
+        """
+
         return self._allcoeffs_params, self._allalphas_params, self._allpos_params
 
     @property
     def shell_idxs(self) -> Tuple[int, int]:
-        # returns the lower and upper indices of the shells of this object
-        # in the absolute index (upper is exclusive)
+        """Returns the lower and upper indices of the shells of this object
+        in the absolute index (upper is exclusive).
+
+        Returns
+        -------
+        Tuple[int, int]
+            The lower and upper indices of the shells.
+        """
         return self._shell_idxs
 
     @property
     def full_shell_to_aoloc(self) -> np.ndarray:
-        # returns the full array mapping from shell index to absolute ao location
-        # the atomic orbital absolute index of i-th shell is given by
-        # (self.full_shell_to_aoloc[i], self.full_shell_to_aoloc[i + 1])
-        # if this object is a subset, then returns the complete mapping
+        """Returns the full array mapping from shell index to absolute AO location.
+
+        Returns
+        -------
+        np.ndarray
+            The full array mapping from shell index to absolute AO location.
+        """
         return self._shell_to_aoloc
 
     @property
     def full_gauss_to_shell(self) -> torch.Tensor:
-        # returns the full index mapping from gaussian to shell tensor
-        # if this object is a subset, then returns the complete mapping
+        """Returns the full index mapping from gaussian to shell tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            The full index mapping from gaussian to shell tensor.
+        """
         return self._gauss_to_shell
 
     @property
     def full_ao_to_atom(self) -> torch.Tensor:
-        # returns the full array mapping from atomic orbital index to the
-        # atom location
+        """Returns the full array mapping from atomic orbital index to the atom location.
+
+        Returns
+        -------
+        torch.Tensor
+            The full array mapping from atomic orbital index to the atom location.
+        """
         return self._ao_to_atom
 
     @property
     def full_ao_to_shell(self) -> torch.Tensor:
-        # returns the full array mapping from atomic orbital index to the
-        # shell location
+        """Returns the full array mapping from atomic orbital index to the shell location.
+
+        Returns
+        -------
+        torch.Tensor
+            The full array mapping from atomic orbital index to the shell location.
+        """
         return self._ao_to_shell
 
     @property
     def ngauss_at_shell(self) -> List[int]:
-        # returns the number of gaussian basis at the given shell
+        """Returns the number of gaussian basis at the given shell.
+
+        Returns
+        -------
+        List[int]
+            The number of gaussian basis at the given shell.
+        """
         return self._ngauss_at_shell_list
 
     @memoize_method
     def __len__(self) -> int:
-        # total shells
+        """Returns the total number of shells.
+
+        Returns
+        -------
+        int
+            The total number of shells.
+        """
         return self.shell_idxs[-1] - self.shell_idxs[0]
 
     @memoize_method
     def nao(self) -> int:
-        # returns the number of atomic orbitals
+        """Returns the number of atomic orbitals.
+
+        Returns
+        -------
+        int
+            The number of atomic orbitals.
+        """
         shell_idxs = self.shell_idxs
-        return self.full_shell_to_aoloc[shell_idxs[-1]] - \
-            self.full_shell_to_aoloc[shell_idxs[0]]
+        return self.full_shell_to_aoloc[shell_idxs[-1]] - self.full_shell_to_aoloc[shell_idxs[0]]
 
     @memoize_method
     def ao_idxs(self) -> Tuple[int, int]:
-        # returns the lower and upper indices of the atomic orbitals of this object
-        # in the full ao map (i.e. absolute indices)
+        """Returns the lower and upper indices of the atomic orbitals.
+
+        Returns
+        -------
+        Tuple[int, int]
+            The lower and upper indices of the atomic orbitals.
+        """
         shell_idxs = self.shell_idxs
-        return self.full_shell_to_aoloc[shell_idxs[0]], \
-            self.full_shell_to_aoloc[shell_idxs[1]]
+        return self.full_shell_to_aoloc[shell_idxs[0]], self.full_shell_to_aoloc[shell_idxs[1]]
 
     @memoize_method
     def ao_to_atom(self) -> torch.Tensor:
-        # get the relative mapping from atomic orbital relative index to the
-        # absolute atom position
-        # this is usually used in scatter in backward calculation
+        """Returns the relative mapping from atomic orbital relative index to the absolute atom position.
+
+        Returns
+        -------
+        torch.Tensor
+            The relative mapping from atomic orbital relative index to the absolute atom position.
+        """
         return self.full_ao_to_atom[slice(*self.ao_idxs())]
 
     @memoize_method
     def ao_to_shell(self) -> torch.Tensor:
-        # get the relative mapping from atomic orbital relative index to the
-        # absolute shell position
-        # this is usually used in scatter in backward calculation
+        """Returns the relative mapping from atomic orbital relative index to the absolute shell position.
+
+        Returns
+        -------
+        torch.Tensor
+            The relative mapping from atomic orbital relative index to the absolute shell position.
+        """
         return self.full_ao_to_shell[slice(*self.ao_idxs())]
 
     def __getitem__(self, inp) -> LibcintWrapper:
-        # get the subset of the shells, but keeping the environment and
-        # parameters the same
+        """Gets the subset of the shells, but keeping the environment and parameters the same.
+
+        Returns
+        -------
+        LibcintWrapper
+            The subset of the shells with the same environment and parameters.
+        """
         assert isinstance(inp, slice)
         assert inp.step is None or inp.step == 1
         assert inp.start is not None or inp.stop is not None
@@ -262,9 +406,13 @@ class LibcintWrapper(object):
 
     @memoize_method
     def get_uncontracted_wrapper(self) -> Tuple[LibcintWrapper, torch.Tensor]:
-        # returns the uncontracted LibcintWrapper as well as the mapping from
-        # uncontracted atomic orbital (relative index) to the relative index
-        # of the atomic orbital
+        """Returns the uncontracted LibcintWrapper and the mapping from uncontracted to contracted AO indices.
+
+        Returns
+        -------
+        Tuple[LibcintWrapper, torch.Tensor]
+            The uncontracted LibcintWrapper and the mapping from uncontracted to contracted AO indices.
+        """
         new_atombases = []
         for atombasis in self.atombases:
             atomz = atombasis.atomz
@@ -305,10 +453,16 @@ class LibcintWrapper(object):
         If all the wrappers are from the same parent, then this function does
         not do anything.
 
-        Arguments
-        ---------
-        *wrappers: LibcintWrapper
-            List of LibcintWrapper to be concatenated
+        Parameters
+        ----------
+        wrappers : Tuple[LibcintWrapper, ...]
+            The wrappers to concatenate.
+
+        Returns
+        -------
+        Tuple[LibcintWrapper, ...]
+            The subsets corresponding to the input wrappers.
+
         """
 
         # construct the parent mapping
@@ -362,8 +516,18 @@ class LibcintWrapper(object):
     ############### misc functions ###############
     @contextmanager
     def centre_on_r(self, r: torch.Tensor) -> Iterator:
-        # set the centre of coordinate to r (usually used in rinv integral)
-        # r: (ndim,)
+        """Sets the centre of coordinate to r.
+
+        Parameters
+        ----------
+        r : torch.Tensor
+            The coordinates to set the centre to.
+
+        Yields
+        ------
+        Iterator
+            A context manager.
+        """
         try:
             env = self.atm_bas_env[-1]
             prev_centre = env[PTR_RINV_ORIG: PTR_RINV_ORIG + NDIM]
@@ -373,13 +537,25 @@ class LibcintWrapper(object):
             env[PTR_RINV_ORIG: PTR_RINV_ORIG + NDIM] = prev_centre
 
     def _nao_at_shell(self, sh: int) -> int:
-        # returns the number of atomic orbital at the given shell index
+        """Returns the number of atomic orbital at the given shell index.
+
+        Parameters
+        ----------
+        sh : int
+            The shell index.
+
+        Returns
+        -------
+        int
+            The number of atomic orbital at the given shell index.
+        """
         if self.spherical:
             op = CINT().CINTcgto_spheric
         else:
             op = CINT().CINTcgto_cart
         bas = self.atm_bas_env[1]
         return op(int2ctypes(sh), np2ctypes(bas))
+
 
 class SubsetLibcintWrapper(LibcintWrapper):
     """
@@ -389,23 +565,57 @@ class SubsetLibcintWrapper(LibcintWrapper):
     The environment will still be the same as its parent.
     """
     def __init__(self, parent: LibcintWrapper, subset: slice):
+        """
+        Initializes the SubsetLibcintWrapper.
+
+        Parameters
+        ----------
+        parent : LibcintWrapper
+            The parent LibcintWrapper.
+        subset : slice
+            The slice representing the subset of shells.
+        """
         self._parent = parent
         self._shell_idxs = subset.start, subset.stop
 
     @property
     def parent(self) -> LibcintWrapper:
+        """
+        Returns the parent LibcintWrapper.
+
+        Returns
+        -------
+        LibcintWrapper
+            The parent LibcintWrapper.
+        """
         return self._parent
 
     @property
     def shell_idxs(self) -> Tuple[int, int]:
+        """
+        Returns the shell indices of the subset.
+
+        Returns
+        -------
+        Tuple[int, int]
+            The shell indices of the subset.
+        """
         return self._shell_idxs
 
     @memoize_method
     def get_uncontracted_wrapper(self):
-        # returns the uncontracted LibcintWrapper as well as the mapping from
-        # uncontracted atomic orbital (relative index) to the relative index
-        # of the atomic orbital of the contracted wrapper
+        """
+        Returns the uncontracted LibcintWrapper and the mapping from
+        uncontracted atomic orbital (relative index) to the relative index
+        of the atomic orbital of the contracted wrapper.
 
+        Returns
+        -------
+        Tuple[LibcintWrapper, torch.Tensor]
+            The uncontracted LibcintWrapper and the mapping from uncontracted
+            atomic orbital (relative index) to the relative index of the atomic
+            orbital of the contracted wrapper.
+        """
         pu_wrapper, p_uao2ao = self._parent.get_uncontracted_wrapper()
 
         # determine the corresponding shell indices in the new uncontracted wrapper
@@ -426,7 +636,33 @@ class SubsetLibcintWrapper(LibcintWrapper):
         return u_wrapper, uao2ao_res
 
     def __getitem__(self, inp):
+        """
+        Raises NotImplementedError as indexing of SubsetLibcintWrapper is not implemented.
+
+        Parameters
+        ----------
+        inp : Any
+            The input for indexing.
+
+        Raises
+        ------
+        NotImplementedError
+            Indexing of SubsetLibcintWrapper is not implemented.
+        """
         raise NotImplementedError("Indexing of SubsetLibcintWrapper is not implemented")
 
     def __getattr__(self, name):
+        """
+        Delegate attribute access to the parent LibcintWrapper.
+
+        Parameters
+        ----------
+        name : str
+            The name of the attribute.
+
+        Returns
+        -------
+        Any
+            The attribute value from the parent LibcintWrapper.
+        """
         return getattr(self._parent, name)
