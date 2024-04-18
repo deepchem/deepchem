@@ -5,19 +5,31 @@ import operator
 from functools import reduce
 import numpy as np
 import torch
-from dqc.hamilton.intor.lcintwrap import LibcintWrapper
-from dqc.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CINT, CGTO
-from dqc.hamilton.intor.namemgr import IntorNameManager
+from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import LibcintWrapper
+from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CINT, CGTO
+from deepchem.utils.dft_utils.hamilton.intor.namemgr import IntorNameManager
 
-__all__ = ["int1e", "int3c2e", "int2e",
-           "overlap", "kinetic", "nuclattr", "elrep", "coul2c", "coul3c"]
-
-# integrals
 def int1e(shortname: str, wrapper: LibcintWrapper, other: Optional[LibcintWrapper] = None, *,
-          # additional options for some specific integrals
           rinv_pos: Optional[torch.Tensor] = None) -> torch.Tensor:
-    # 2-centre 1-electron integral
+    """
+    Calculate 2-centre 1-electron integrals.
 
+    Parameters
+    ----------
+    shortname : str
+        Short name of the integral.
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    other : Optional[LibcintWrapper], optional
+        Other wrapper object if necessary, by default None.
+    rinv_pos : Optional[torch.Tensor], optional
+        Tensor containing positions if shortname contains 'rinv', by default None.
+
+    Returns
+    -------
+    torch.Tensor
+        Tensor containing the calculated integrals.
+    """
     # check and set the other parameters
     other1 = _check_and_set(wrapper, other)
 
@@ -36,10 +48,24 @@ def int1e(shortname: str, wrapper: LibcintWrapper, other: Optional[LibcintWrappe
 def int2c2e(shortname: str, wrapper: LibcintWrapper,
             other: Optional[LibcintWrapper] = None) -> torch.Tensor:
     """
-    2-centre 2-electron integrals where the `wrapper` and `other1` correspond
+    Calculate 2-centre 2-electron integrals where the `wrapper` and `other1` correspond
     to the first electron, and `other2` corresponds to another electron.
     The returned indices are sorted based on `wrapper`, `other1`, and `other2`.
     The available shortname: "ar12"
+
+    Parameters
+    ----------
+    shortname : str
+        Short name of the integral.
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    other : Optional[LibcintWrapper], optional
+        Other wrapper object if necessary, by default None.
+
+    Returns
+    -------
+    torch.Tensor
+        Tensor containing the calculated integrals.
     """
 
     # don't really care, it will be ignored
@@ -57,10 +83,26 @@ def int3c2e(shortname: str, wrapper: LibcintWrapper,
             other1: Optional[LibcintWrapper] = None,
             other2: Optional[LibcintWrapper] = None) -> torch.Tensor:
     """
-    3-centre 2-electron integrals where the `wrapper` and `other1` correspond
+    Calculate 3-centre 2-electron integrals where the `wrapper` and `other1` correspond
     to the first electron, and `other2` corresponds to another electron.
     The returned indices are sorted based on `wrapper`, `other1`, and `other2`.
     The available shortname: "ar12"
+
+    Parameters
+    ----------
+    shortname : str
+        Short name of the integral.
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    other1 : Optional[LibcintWrapper], optional
+        Other wrapper object if necessary for the first electron, by default None.
+    other2 : Optional[LibcintWrapper], optional
+        Other wrapper object if necessary for the second electron, by default None.
+
+    Returns
+    -------
+    torch.Tensor
+        Tensor containing the calculated integrals.
     """
 
     # check and set the others
@@ -76,11 +118,29 @@ def int2e(shortname: str, wrapper: LibcintWrapper,
           other2: Optional[LibcintWrapper] = None,
           other3: Optional[LibcintWrapper] = None) -> torch.Tensor:
     """
-    4-centre 2-electron integrals where the `wrapper` and `other1` correspond
+    Calculate 4-centre 2-electron integrals where the `wrapper` and `other1` correspond
     to the first electron, and `other2` and `other3` correspond to another
     electron.
     The returned indices are sorted based on `wrapper`, `other1`, `other2`, and `other3`.
     The available shortname: "ar12b"
+
+    Parameters
+    ----------
+    shortname : str
+        Short name of the integral.
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    other1 : Optional[LibcintWrapper], optional
+        Other wrapper object if necessary for the first electron, by default None.
+    other2 : Optional[LibcintWrapper], optional
+        Other wrapper object if necessary for the second electron, by default None.
+    other3 : Optional[LibcintWrapper], optional
+        Other wrapper object if necessary for the third electron, by default None.
+
+    Returns
+    -------
+    torch.Tensor
+        Tensor containing the calculated integrals.
     """
 
     # check and set the others
@@ -94,12 +154,57 @@ def int2e(shortname: str, wrapper: LibcintWrapper,
 
 # shortcuts
 def overlap(wrapper: LibcintWrapper, other: Optional[LibcintWrapper] = None) -> torch.Tensor:
+    """
+    Shortcut for calculating overlap integrals.
+
+    Parameters
+    ----------
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    other : Optional[LibcintWrapper], optional
+        Other wrapper object if necessary, by default None.
+
+    Returns
+    -------
+    torch.Tensor
+        Tensor containing the calculated overlap integrals.
+    """
     return int1e("ovlp", wrapper, other=other)
 
 def kinetic(wrapper: LibcintWrapper, other: Optional[LibcintWrapper] = None) -> torch.Tensor:
+    """
+    Shortcut for calculating kinetic energy integrals.
+
+    Parameters
+    ----------
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    other : Optional[LibcintWrapper], optional
+        Other wrapper object if necessary, by default None.
+
+    Returns
+    -------
+    torch.Tensor
+        Tensor containing the calculated kinetic energy integrals.
+    """
     return int1e("kin", wrapper, other=other)
 
 def nuclattr(wrapper: LibcintWrapper, other: Optional[LibcintWrapper] = None) -> torch.Tensor:
+    """
+    Shortcut for calculating nuclear attraction integrals.
+
+    Parameters
+    ----------
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    other : Optional[LibcintWrapper], optional
+        Other wrapper object if necessary, by default None.
+
+    Returns
+    -------
+    torch.Tensor
+        Tensor containing the calculated nuclear attraction integrals.
+    """
     if not wrapper.fracz:
         return int1e("nuc", wrapper, other=other)
     else:
@@ -116,21 +221,87 @@ def elrep(wrapper: LibcintWrapper,
           other2: Optional[LibcintWrapper] = None,
           other3: Optional[LibcintWrapper] = None,
           ) -> torch.Tensor:
+    """
+    Calculate electron repulsion integrals with three additional wrappers.
+
+    Parameters
+    ----------
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    other1 : Optional[LibcintWrapper], optional
+        Other wrapper object if necessary for the first electron, by default None.
+    other2 : Optional[LibcintWrapper], optional
+        Other wrapper object if necessary for the second electron, by default None.
+    other3 : Optional[LibcintWrapper], optional
+        Other wrapper object if necessary for the third electron, by default None.
+
+    Returns
+    -------
+    torch.Tensor
+        Tensor containing the calculated electron repulsion integrals.
+    """
     return int2e("ar12b", wrapper, other1, other2, other3)
 
 def coul2c(wrapper: LibcintWrapper,
            other: Optional[LibcintWrapper] = None,
            ) -> torch.Tensor:
+    """
+    Calculate 2-centre Coulomb integrals.
+
+    Parameters
+    ----------
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    other : Optional[LibcintWrapper], optional
+        Other wrapper object if necessary, by default None.
+
+    Returns
+    -------
+    torch.Tensor
+        Tensor containing the calculated 2-centre Coulomb integrals.
+    """
     return int2c2e("r12", wrapper, other)
 
 def coul3c(wrapper: LibcintWrapper,
            other1: Optional[LibcintWrapper] = None,
            other2: Optional[LibcintWrapper] = None,
            ) -> torch.Tensor:
+    """
+    Calculate 3-centre Coulomb integrals.
+
+    Parameters
+    ----------
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    other1 : Optional[LibcintWrapper], optional
+        Other wrapper object if necessary for the first electron, by default None.
+    other2 : Optional[LibcintWrapper], optional
+        Other wrapper object if necessary for the second electron, by default None.
+
+    Returns
+    -------
+    torch.Tensor
+        Tensor containing the calculated 3-centre Coulomb integrals.
+    """
     return int3c2e("ar12", wrapper, other1, other2)
 
 # misc functions
 def _check_and_set(wrapper: LibcintWrapper, other: Optional[LibcintWrapper]) -> LibcintWrapper:
+    """
+    Helper function to check and set parameters if necessary.
+
+    Parameters
+    ----------
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    other : Optional[LibcintWrapper]
+        Other wrapper object if necessary.
+
+    Returns
+    -------
+    LibcintWrapper
+        Other wrapper object if necessary.
+    """
     # check the value and set the default value of "other" in the integrals
     if other is not None:
         atm0, bas0, env0 = wrapper.atm_bas_env
@@ -147,22 +318,35 @@ def _check_and_set(wrapper: LibcintWrapper, other: Optional[LibcintWrapper]) -> 
 
 ############### pytorch functions ###############
 class _Int2cFunction(torch.autograd.Function):
-    # wrapper class to provide the gradient of the 2-centre integrals
+    """wrapper class to provide the gradient of the 2-centre integrals"""
     @staticmethod
     def forward(ctx,  # type: ignore
                 allcoeffs: torch.Tensor, allalphas: torch.Tensor, allposs: torch.Tensor,
                 rinv_pos: torch.Tensor,
                 wrappers: List[LibcintWrapper], int_nmgr: IntorNameManager) -> torch.Tensor:
-        # allcoeffs: (ngauss_tot,)
-        # allalphas: (ngauss_tot,)
-        # allposs: (natom, ndim)
-        # rinv_pos: (ndim,) if contains "rinv"
-        #           rinv_pos is only meaningful if shortname contains "rinv"
-        # In "rinv", rinv_pos becomes the centre
-        # Wrapper0 and wrapper1 must have the same _atm, _bas, and _env.
-        # The check should be done before calling this function.
-        # Those tensors are not used directly in the forward calculation, but
-        #   required for backward propagation
+        """Forward calculation of the 2-centre integrals.
+
+        Parameters
+        ----------
+        allcoeffs : torch.Tensor
+            Coefficients of the basis functions.
+        allalphas : torch.Tensor
+            Exponents of the basis functions.
+        allposs : torch.Tensor
+            Atomic positions.
+        rinv_pos : torch.Tensor
+            Positions for the rinv integrals.
+        wrappers : List[LibcintWrapper]
+            List of wrapper objects.
+        int_nmgr : IntorNameManager
+            Integral name manager object.
+
+        Returns
+        -------
+        torch.Tensor
+            Tensor containing the calculated integrals.
+
+        """
         assert len(wrappers) == 2
 
         if int_nmgr.rawopname == "rinv":
@@ -177,6 +361,19 @@ class _Int2cFunction(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_out: torch.Tensor) -> Tuple[Optional[torch.Tensor], ...]:  # type: ignore
+        """Backward calculation of the 2-centre integrals.
+
+        Parameters
+        ----------
+        grad_out : torch.Tensor
+            Gradient of the output tensor.
+
+        Returns
+        -------
+        Tuple[Optional[torch.Tensor], ...]
+            Tuple containing the gradients of the basis coefficients, basis exponents,
+
+        """
         # grad_out: (..., nao0, nao1)
         allcoeffs, allalphas, allposs, \
             rinv_pos = ctx.saved_tensors
@@ -330,6 +527,27 @@ class _Int3cFunction(torch.autograd.Function):
                 allcoeffs: torch.Tensor, allalphas: torch.Tensor, allposs: torch.Tensor,
                 wrappers: List[LibcintWrapper],
                 int_nmgr: IntorNameManager) -> torch.Tensor:
+        """Forward calculation of the 3-centre integrals.
+
+        Parameters
+        ----------
+        allcoeffs : torch.Tensor
+            Coefficients of the basis functions.
+        allalphas : torch.Tensor
+            Exponents of the basis functions.
+        allposs : torch.Tensor
+            Atomic positions.
+        wrappers : List[LibcintWrapper]
+            List of wrapper objects.
+        int_nmgr : IntorNameManager
+            Integral name manager object.
+
+        Returns
+        -------
+        torch.Tensor
+            Tensor containing the calculated integrals.
+
+        """
 
         assert len(wrappers) == 3
 
@@ -340,6 +558,19 @@ class _Int3cFunction(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_out) -> Tuple[Optional[torch.Tensor], ...]:  # type: ignore
+        """Backward calculation of the 3-centre integrals.
+
+        Parameters
+        ----------
+        grad_out : torch.Tensor
+            Gradient of the output tensor.
+
+        Returns
+        -------
+        Tuple[Optional[torch.Tensor], ...]
+            Tuple containing the gradients of the basis coefficients, basis exponents,
+
+        """
         # grad_out: (..., nao0, nao1, nao2)
         allcoeffs, allalphas, allposs = ctx.saved_tensors
         wrappers, int_nmgr = ctx.other_info
@@ -446,13 +677,33 @@ class _Int3cFunction(torch.autograd.Function):
             None, None, None
 
 class _Int4cFunction(torch.autograd.Function):
-    # wrapper class for the 4-centre integrals
+    """wrapper class for the 4-centre integrals"""
     @staticmethod
     def forward(ctx,  # type: ignore
                 allcoeffs: torch.Tensor, allalphas: torch.Tensor, allposs: torch.Tensor,
                 wrappers: List[LibcintWrapper],
                 int_nmgr: IntorNameManager) -> torch.Tensor:
+        """Forward calculation of the 4-centre integrals.
 
+        Parameters
+        ----------
+        allcoeffs : torch.Tensor
+            Coefficients of the basis functions.
+        allalphas : torch.Tensor
+            Exponents of the basis functions.
+        allposs : torch.Tensor
+            Atomic positions.
+        wrappers : List[LibcintWrapper]
+            List of wrapper objects.
+        int_nmgr : IntorNameManager
+            Integral name manager object.
+
+        Returns
+        -------
+        torch.Tensor
+            Tensor containing the calculated integrals.
+
+        """
         assert len(wrappers) == 4
 
         out_tensor = Intor(int_nmgr, wrappers).calc()
@@ -462,6 +713,19 @@ class _Int4cFunction(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_out) -> Tuple[Optional[torch.Tensor], ...]:  # type: ignore
+        """Backward calculation of the 4-centre integrals.
+
+        Parameters
+        ----------
+        grad_out : torch.Tensor
+            Gradient of the output tensor.
+
+        Returns
+        -------
+        Tuple[Optional[torch.Tensor], ...]
+            Tuple containing the gradients of the basis coefficients, basis exponents,
+
+        """
         # grad_out: (..., nao0, nao1, nao2, nao3)
         allcoeffs, allalphas, allposs = ctx.saved_tensors
         wrappers, int_nmgr = ctx.other_info
@@ -581,14 +845,41 @@ class _Int4cFunction(torch.autograd.Function):
 
 # Optimizer class
 class _cintoptHandler(ctypes.c_void_p):
+    """
+    Handler for the CINT optimizer.
+
+    This class handles the CINT optimizer and releases resources when the object is deleted.
+    """
+
     def __del__(self):
+        """
+        Destructor for the _cintoptHandler class.
+
+        Releases resources when the object is deleted.
+        """
         try:
             CGTO().CINTdel_optimizer(ctypes.byref(self))
         except AttributeError:
             pass
 
 class Intor(object):
+    """
+    Integral operator class.
+
+    This class represents an integral operator and calculates the integrals based on the provided atomic information.
+    """
+
     def __init__(self, int_nmgr: IntorNameManager, wrappers: List[LibcintWrapper]):
+        """
+        Initialize the Integral Operator.
+
+        Parameters
+        ----------
+        int_nmgr : IntorNameManager
+            Integral name manager.
+        wrappers : List[LibcintWrapper]
+            List of LibcintWrapper objects containing the atomic information.
+        """
         assert len(wrappers) > 0
         wrapper0 = wrappers[0]
         self.int_type = int_nmgr.int_type
@@ -610,6 +901,14 @@ class Intor(object):
         self.integral_done = False
 
     def calc(self) -> torch.Tensor:
+        """
+        Calculate the integrals.
+
+        Returns
+        -------
+        torch.Tensor
+            Tensor containing the calculated integrals.
+        """
         assert not self.integral_done
         self.integral_done = True
         if self.int_type == "int1e" or self.int_type == "int2c2e":
@@ -622,6 +921,14 @@ class Intor(object):
             raise ValueError("Unknown integral type: %s" % self.int_type)
 
     def _int2c(self) -> torch.Tensor:
+        """
+        Calculate 2-centre integrals.
+
+        Returns
+        -------
+        torch.Tensor
+            Tensor containing the calculated 2-centre integrals.
+        """
         # performing 2-centre integrals with libcint
         drv = CGTO().GTOint2c
         outshape = self.outshape
@@ -638,17 +945,20 @@ class Intor(object):
             np2ctypes(self.env))
 
         out = np.swapaxes(out, -2, -1)
-        # TODO: check if we need to do the lines below for 3rd order grad and higher
-        # if out.ndim > 2:
-        #     out = np.moveaxis(out, -3, 0)
         return self._to_tensor(out)
 
     def _int3c(self) -> torch.Tensor:
+        """
+        Calculate 3-centre integrals.
+
+        Returns
+        -------
+        torch.Tensor
+            Tensor containing the calculated 3-centre integrals.
+        """
         # performing 3-centre integrals with libcint
         drv = CGTO().GTOnr3c_drv
         fill = CGTO().GTOnr3c_fill_s1
-        # TODO: create optimizer without the 3rd index like in
-        # https://github.com/pyscf/pyscf/blob/e833b9a4fd5fb24a061721e5807e92c44bb66d06/pyscf/gto/moleintor.py#L538
         outsh = self.outshape
         out = np.empty((*outsh[:-3], outsh[-1], outsh[-2], outsh[-3]), dtype=np.float64)
         drv(self.op, fill,
@@ -665,6 +975,14 @@ class Intor(object):
         return self._to_tensor(out)
 
     def _int4c(self) -> torch.Tensor:
+        """
+        Calculate 4-centre integrals.
+
+        Returns
+        -------
+        torch.Tensor
+            Tensor containing the calculated 4-centre integrals.
+        """
         # performing 4-centre integrals with libcint
         symm = self.int_nmgr.get_intgl_symmetry(self.wrapper_uniqueness)
         outshape = symm.get_reduced_shape(self.outshape)
@@ -688,15 +1006,44 @@ class Intor(object):
         return self._to_tensor(out)
 
     def _to_tensor(self, out: np.ndarray) -> torch.Tensor:
-        # convert the numpy array to the appropriate tensor
+        """
+        Convert numpy array to tensor.
+
+        Parameters
+        ----------
+        out : np.ndarray
+            Numpy array to be converted.
+
+        Returns
+        -------
+        torch.Tensor
+            Tensor containing the converted array.
+        """
         return torch.as_tensor(out, dtype=self.wrapper0.dtype,
                                device=self.wrapper0.device)
 
+
 def _get_intgl_optimizer(opname: str,
-                         atm: np.ndarray, bas: np.ndarray, env: np.ndarray)\
-                         -> ctypes.c_void_p:
-    # get the optimizer of the integrals
-    # setup the optimizer
+                         atm: np.ndarray, bas: np.ndarray, env: np.ndarray) -> ctypes.c_void_p:
+    """
+    Get the optimizer for the integral.
+
+    Parameters
+    ----------
+    opname : str
+        Name of the integral.
+    atm : np.ndarray
+        Array containing atomic information.
+    bas : np.ndarray
+        Array containing basis set information.
+    env : np.ndarray
+        Array containing environmental information.
+
+    Returns
+    -------
+    ctypes.c_void_p
+        Optimizer for the integral.
+    """
     cintopt = ctypes.POINTER(ctypes.c_void_p)()
     optname = opname.replace("_cart", "").replace("_sph", "") + "_optimizer"
     copt = getattr(CINT(), optname)
@@ -708,16 +1055,31 @@ def _get_intgl_optimizer(opname: str,
     return opt
 
 ############### name derivation manager functions ###############
+
+
 def _get_integrals(int_nmgrs: List[IntorNameManager],
                    wrappers: List[LibcintWrapper],
                    int_fcn: Callable[[List[LibcintWrapper], IntorNameManager], torch.Tensor],
-                   new_axes_pos: List[int]) \
-                   -> List[torch.Tensor]:
-    # Return the list of tensors of the integrals given by the list of integral names.
-    # Int_fcn is the integral function that receives the name and returns the results.
-    # If new_axes_pos is specified, then move the new axes to 0, otherwise, just leave
-    # it as it is
+                   new_axes_pos: List[int]) -> List[torch.Tensor]:
+    """
+    Get the list of tensors of the integrals.
 
+    Parameters
+    ----------
+    int_nmgrs : List[IntorNameManager]
+        List of integral name managers.
+    wrappers : List[LibcintWrapper]
+        List of LibcintWrapper objects containing atomic information.
+    int_fcn : Callable[[List[LibcintWrapper], IntorNameManager], torch.Tensor]
+        Integral function that receives the name and returns the results.
+    new_axes_pos : List[int]
+        List specifying the position of new axes.
+
+    Returns
+    -------
+    List[torch.Tensor]
+        List of tensors containing the calculated integrals.
+    """
     res: List[torch.Tensor] = []
     # indicating if the integral is available in the libcint-generated file
     int_avail: List[bool] = [False] * len(int_nmgrs)
@@ -778,21 +1140,71 @@ def _get_integrals(int_nmgrs: List[IntorNameManager],
 
     return res
 
+
 def _transpose(a: torch.Tensor, axes: List[Tuple[int, int]]) -> torch.Tensor:
+    """
+    Transpose the tensor.
+
+    Parameters
+    ----------
+    a : torch.Tensor
+        Tensor to be transposed.
+    axes : List[Tuple[int, int]]
+        List of tuples specifying the axes to be transposed.
+
+    Returns
+    -------
+    torch.Tensor
+        Transposed tensor.
+    """
     # perform the transpose of two axes for tensor a
     for axis2 in axes:
         a = a.transpose(*axis2)
     return a
 
+
 def _swap_list(a: List, swaps: List[Tuple[int, int]]) -> List:
+    """
+    Swap elements in the list.
+
+    Parameters
+    ----------
+    a : List
+        List containing elements.
+    swaps : List[Tuple[int, int]]
+        List of tuples specifying the elements to be swapped.
+
+    Returns
+    -------
+    List
+        List with swapped elements.
+    """
     # swap the elements according to the swaps input
     res = copy.copy(a)  # shallow copy
     for idxs in swaps:
         res[idxs[0]], res[idxs[1]] = res[idxs[1]], res[idxs[0]]  # swap the elements
     return res
 
+
 def _gather_at_dims(inp: torch.Tensor, mapidxs: List[torch.Tensor],
                     dims: List[int]) -> torch.Tensor:
+    """
+    Gather values based on mapping indices.
+
+    Parameters
+    ----------
+    inp : torch.Tensor
+        Input tensor.
+    mapidxs : List[torch.Tensor]
+        List of mapping indices.
+    dims : List[int]
+        List of dimensions.
+
+    Returns
+    -------
+    torch.Tensor
+        Tensor with gathered values.
+    """
     # expand inp in the dimension dim by gathering values based on the given
     # mapping indices
 
@@ -808,7 +1220,21 @@ def _gather_at_dims(inp: torch.Tensor, mapidxs: List[torch.Tensor],
         out = torch.gather(out, dim=dim, index=map2)
     return out
 
+
 def _get_uniqueness(a: List) -> List[int]:
+    """
+    Get the uniqueness pattern from the list.
+
+    Parameters
+    ----------
+    a : List
+        List of elements.
+
+    Returns
+    -------
+    List[int]
+        List representing the uniqueness pattern.
+    """
     # get the uniqueness pattern from the list, e.g. _get_uniqueness([1, 1, 2, 3, 2])
     # will return [0, 0, 1, 2, 1]
     s: Dict = {}
