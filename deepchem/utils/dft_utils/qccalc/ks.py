@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any, List, Union, overload, Tuple
+from typing import Optional, Dict, Any, List, Union, Tuple
 import torch
 from deepchem.utils.differentiation_utils import LinearOperator
 from deepchem.utils.dft_utils import HFEngine, SpinParam, get_xc, BaseXC, SCF_QCCalc, BaseSCFEngine, BaseSystem
@@ -9,6 +9,12 @@ class KS(SCF_QCCalc):
     """
     Performing Restricted or Unrestricted Kohn-Sham DFT calculation.
 
+    In physics and quantum chemistry, specifically density functional
+    theory, the Kohn–Sham equation is the non-interacting Schrödinger
+    equation (more clearly, Schrödinger-like equation) of a fictitious
+    system (the "Kohn–Sham system") of non-interacting particles
+    (typically electrons) that generate the same density as any given
+    system of interacting particles.
 
     """
 
@@ -196,14 +202,42 @@ class KSEngine(BaseSCFEngine):
         return self.hf_engine.scp2dm(scp)
 
     def scp2scp(self, scp: torch.Tensor) -> torch.Tensor:
-        # self-consistent iteration step from a self-consistent parameter (scp)
-        # to an scp
+        """Self-consistent iteration step from a self-consistent parameter (scp)
+        to an scp
+
+        Parameters
+        ----------
+        scp: torch.Tensor
+            Self-consistent parameter to be converted.
+
+        Returns
+        -------
+        torch.Tensor
+            New self-consistent parameter.
+
+        """
         dm = self.scp2dm(scp)
         return self.dm2scp(dm)
 
     def aoparams2ene(self, aoparams: torch.Tensor, aocoeffs: torch.Tensor,
                      with_penalty: Optional[float] = None) -> torch.Tensor:
-        # calculate the energy from the atomic orbital params
+        """Calculate the energy from the atomic orbital params
+
+        Parameters
+        ----------
+        aoparams: torch.Tensor
+            Atomic orbital parameters.
+        aocoeffs: torch.Tensor
+            Atomic orbital coefficients.
+        with_penalty: Optional[float]
+            Penalty factor to be added to the energy.
+
+        Returns
+        -------
+        torch.Tensor
+            Energy value.
+
+        """
         dm, penalty = self.aoparams2dm(aoparams, aocoeffs, with_penalty)
         ene = self.dm2energy(dm)
         return (ene + penalty) if penalty is not None else ene
@@ -211,23 +245,82 @@ class KSEngine(BaseSCFEngine):
     def aoparams2dm(self, aoparams: torch.Tensor, aocoeffs: torch.Tensor,
                     with_penalty: Optional[float] = None) -> \
             Tuple[Union[torch.Tensor, SpinParam[torch.Tensor]], Optional[torch.Tensor]]:
-        # calculate the density matrix and the penalty factor
+        """Convert the aoparams to density matrix and penalty factor
+
+        Parameters
+        ----------
+        aoparams: torch.Tensor
+            Atomic orbital parameters.
+        aocoeffs: torch.Tensor
+            Atomic orbital coefficients.
+        with_penalty: Optional[float]
+            Penalty factor to be added to the energy.
+
+        Returns
+        -------
+        Tuple[Union[torch.Tensor, SpinParam[torch.Tensor]], Optional[torch.Tensor]]
+            Density matrix and the penalty factor.
+
+        """
         return self.hf_engine.aoparams2dm(aoparams, aocoeffs, with_penalty)
 
     def pack_aoparams(self, aoparams: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> torch.Tensor:
-        # pack the aoparams from tensor or SpinParam into a single tensor
+        """Check if polarized, then pack it by concatenating them in the last dimension
+
+        Parameters
+        ----------
+        aoparams: Union[torch.Tensor, SpinParam[torch.Tensor]]
+            Atomic orbital parameters.
+
+        Returns
+        -------
+        torch.Tensor
+            Packed atomic orbital parameters.
+
+        """
         return self.hf_engine.pack_aoparams(aoparams)
 
     def unpack_aoparams(self, aoparams: torch.Tensor) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
-        # unpack the single tensor aoparams to SpinParam or a tensor
+        """Check if polarized, then construct the SpinParam (reverting the pack_aoparams)
+
+        Parameters
+        ----------
+        aoparams: torch.Tensor
+            Packed atomic orbital parameters.
+
+        Returns
+        -------
+        Union[torch.Tensor, SpinParam[torch.Tensor]]
+            Atomic orbital parameters.
+
+        """
         return self.hf_engine.unpack_aoparams(aoparams)
 
     def set_eigen_options(self, eigen_options: Dict[str, Any]) -> None:
-        # set the eigendecomposition (diagonalization) option
+        """Set the eigendecomposition (diagonalization) option
+
+        Parameters
+        ----------
+        eigen_options: Dict[str, Any]
+            Options for the eigendecomposition.
+
+        """
         self.hf_engine.set_eigen_options(eigen_options)
 
     def dm2energy(self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> torch.Tensor:
-        # calculate the energy given the density matrix
+        """Calculate the energy given the density matrix
+
+        Parameters
+        ----------
+        dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
+            Density matrix.
+
+        Returns
+        -------
+        torch.Tensor
+            Energy.
+
+        """
         dmtot = SpinParam.sum(dm)
         e_core = self.hamilton.get_e_hcore(dmtot)
         e_elrep = self.hamilton.get_e_elrep(dmtot)
@@ -237,15 +330,20 @@ class KSEngine(BaseSCFEngine):
             e_xc = 0.0
         return e_core + e_elrep + e_xc + self._system.get_nuclei_energy()
 
-    @overload
-    def __dm2fock(self, dm: torch.Tensor) -> LinearOperator:
-        ...
+    def __dm2fock(self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> Union[LinearOperator, SpinParam[LinearOperator]]:
+        """From density matrix, returns the fock matrix
 
-    @overload
-    def __dm2fock(self, dm: SpinParam[torch.Tensor]) -> SpinParam[LinearOperator]:
-        ...
+        Parameters
+        ----------
+        dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
+            Density matrix.
 
-    def __dm2fock(self, dm):
+        Returns
+        -------
+        Union[LinearOperator, SpinParam[LinearOperator]]
+            Fock matrix.
+
+        """
         elrep = self.hamilton.get_elrep(SpinParam.sum(dm))  # (..., nao, nao)
         core_coul = self.knvext_linop + elrep
 
@@ -259,6 +357,21 @@ class KSEngine(BaseSCFEngine):
                 return core_coul
 
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+        """Parameter names for the given method
+
+        Parameters
+        ----------
+        methodname: str
+            Method name.
+        prefix: str
+            Prefix to be added to the parameter names.
+
+        Returns
+        -------
+        List[str]
+            Parameter names.
+
+        """
         if methodname == "scp2scp":
             return self.getparamnames("scp2dm", prefix=prefix) + \
                 self.getparamnames("dm2scp", prefix=prefix)
@@ -297,4 +410,3 @@ class KSEngine(BaseSCFEngine):
                 self.knvext_linop._getparamnames(prefix=prefix + "knvext_linop.")
         else:
             raise KeyError("Method %s has no paramnames set" % methodname)
-        return []  # TODO: to complete

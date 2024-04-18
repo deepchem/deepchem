@@ -3,7 +3,7 @@ from abc import abstractmethod
 from typing import Union
 import torch
 import numpy as np
-from dqc.qccalc.ks import KS
+from deepchem.utils.dft_utils import KS
 from deepchem.feat.dft_data import DFTEntry, DFTSystem
 from deepchem.utils.dftutils import KSCalc, hashstr, SpinParam
 from deepchem.models.dft.nnxc import BaseNNXC, HybridXC
