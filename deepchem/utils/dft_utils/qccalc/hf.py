@@ -253,7 +253,7 @@ class HFEngine(BaseSCFEngine):
     def scp2dm(
             self,
             scp: torch.Tensor) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
-        """Scp is like KS, using the concatenated Fock matrix
+        """Convert from self-consistent parameter (scp) to density matrix
 
         Parameters
         ----------
