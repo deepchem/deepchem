@@ -168,7 +168,7 @@ class ScScoreModel(TorchModel):
     -----
     1. Although we have provided the option to add dropout to the model, the original model was trained without dropout.
     2. While loading the pre-trained model, it is recommended to load the model with the default values of the parameters to get the best results.
-    3. Our model uses hingeloss by default instead of the shifted relu loss as in the supplementary material [2]_ provided by the author. 
+    3. Our model uses hingeloss by default instead of the shifted relu loss as in the supplementary material [2]_ provided by the author.
        This could cause differentiation issues with compounds that are "close" to each other in "complexity".
     4. The default values for the model are the same as the ones used in the original paper [1]_.
 
