@@ -564,6 +564,12 @@ TextCNNModel
 .. autoclass:: deepchem.models.torch_models.TextCNNModel
   :members:
 
+UNetModel
+------------
+
+.. autoclass:: deepchem.models.torch_models.UNetModel
+  :members:
+
 PyTorch Lightning Models
 ========================
 
