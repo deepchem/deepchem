@@ -1,4 +1,5 @@
 dependencies:
+  - pylibxc
   - pip:
     - -f https://download.pytorch.org/whl/cu118/torch_stable.html
     - -f https://data.dgl.ai/wheels/repo.html
