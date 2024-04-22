@@ -537,26 +537,17 @@ WeaveModel
 .. autoclass:: deepchem.models.torch_models.WeaveModel
   :members:
 
-
 ScScoreModel
 ----------
 
 .. autoclass:: deepchem.models.torch_models.ScScoreModel
   :members:
-
 
 ProgressiveMultitaskModel
 -------------------------
 
 .. autoclass:: deepchem.models.torch_models.ProgressiveMultitaskModel
   :members:
-
-ScScoreModel
-----------
-
-.. autoclass:: deepchem.models.torch_models.ScScoreModel
-  :members:
-
 
 Density Functional Theory Model - XCModel
 -----------------------------------------
