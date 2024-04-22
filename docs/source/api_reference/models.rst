@@ -542,6 +542,7 @@ ProgressiveMultitaskModel
 
 .. autoclass:: deepchem.models.torch_models.ProgressiveMultitaskModel
   :members:
+
 ScScoreModel
 ----------
 
