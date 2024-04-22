@@ -506,3 +506,157 @@ def test_get_grid_transform():
     from deepchem.utils.dft_utils import get_grid_transform
     transform = get_grid_transform("logm3")
     transform.x2r(torch.tensor([0.5])) == torch.tensor([2.])
+
+
+@pytest.mark.torch
+def test_SCF_QCCalc():
+    from deepchem.utils.dft_utils import SCF_QCCalc, BaseSCFEngine, SpinParam
+
+    # Define the engine
+    class engine(BaseSCFEngine):
+
+        def polarised():
+            return False
+
+        def dm2energy(
+                self, dm: Union[torch.Tensor,
+                                SpinParam[torch.Tensor]]) -> torch.Tensor:
+            if isinstance(dm, SpinParam):
+                return dm.u + dm.d * 1.1
+            return dm * 1.1
+
+    myEngine = engine()
+    a = SCF_QCCalc(myEngine)
+    assert torch.allclose(a.dm2energy(torch.tensor([1.1])),
+                          torch.tensor([1.2100]))
+
+
+@pytest.mark.torch
+def test_BaseSCFEngine():
+    from deepchem.utils.dft_utils import BaseSCFEngine, SpinParam
+
+    class engine(BaseSCFEngine):
+
+        def polarised():
+            return False
+
+        def dm2energy(
+                self, dm: Union[torch.Tensor,
+                                SpinParam[torch.Tensor]]) -> torch.Tensor:
+            if isinstance(dm, SpinParam):
+                return dm.u + dm.d * 1.1
+            return dm * 1.1
+
+    myEngine = engine()
+    assert myEngine.dm2energy(torch.tensor(1.2)) == torch.tensor(1.32)
+
+
+@pytest.mark.torch
+def test_hf_engine():
+    """Tests HFEngine and methods of its parent class BaseSCFEngine."""
+    from deepchem.utils.dft_utils import (BaseHamilton, BaseSystem, BaseGrid,
+                                          SpinParam, HFEngine)
+    from deepchem.utils.differentiation_utils import LinearOperator
+
+    class MyLinOp(LinearOperator):
+
+        def __init__(self, shape):
+            super(MyLinOp, self).__init__(shape)
+            self.param = torch.rand(shape)
+
+        def _getparamnames(self, prefix=""):
+            return [prefix + "param"]
+
+        def _mv(self, x):
+            return torch.matmul(self.param, x)
+
+        def _rmv(self, x):
+            return torch.matmul(self.param.transpose(-2, -1).conj(), x)
+
+        def _mm(self, x):
+            return torch.matmul(self.param, x)
+
+        def _rmm(self, x):
+            return torch.matmul(self.param.transpose(-2, -1).conj(), x)
+
+        def _fullmatrix(self):
+            return self.param
+
+    class MyHamilton(BaseHamilton):
+
+        def __init__(self):
+            self._nao = 2
+            self._kpts = torch.tensor([[0.0, 0.0, 0.0]])
+            self._df = None
+
+        @property
+        def nao(self):
+            return self._nao
+
+        @property
+        def kpts(self):
+            return self._kpts
+
+        @property
+        def df(self):
+            return self._df
+
+        def build(self):
+            return self
+
+        def get_nuclattr(self):
+            return torch.ones((1, 1, self.nao, self.nao))
+
+        def get_e_elrep(self, dmtot):
+            return 2 * dmtot
+
+        def get_e_exchange(self, dm):
+            return 3 * dm
+
+        def get_e_hcore(self, dm):
+            return 4.0 * dm
+
+        def get_elrep(self, dmtot):
+            return MyLinOp((self.nao + 1, self.nao + 1))
+
+        def get_exchange(self, dm):
+            return MyLinOp((self.nao + 1, self.nao + 1))
+
+        def get_kinnucl(self):
+            linop = MyLinOp((self.nao + 1, self.nao + 1))
+            return linop
+
+        def ao_orb2dm(self, orb: torch.Tensor,
+                      orb_weight: torch.Tensor) -> torch.Tensor:
+            return orb * orb_weight
+
+    ham = MyHamilton()
+
+    class MySystem(BaseSystem):
+
+        def __init__(self):
+            self.hamiltonian = ham
+            self.grid = BaseGrid()
+
+        def get_hamiltonian(self):
+            return self.hamiltonian
+
+        def get_grid(self):
+            return self.grid
+
+        def requires_grid(self):
+            return True
+
+        def get_orbweight(self, polarized: bool = False):
+            return SpinParam(torch.tensor([1.0]), torch.tensor([2.0]))
+
+        def get_nuclei_energy(self):
+            return 10.0
+
+    system = MySystem()
+    engine = HFEngine(system)
+    engine.set_eigen_options(eigen_options={"method": "exacteig"})
+
+    assert engine.dm2energy(torch.tensor([2])) == torch.tensor([28.0])
+    assert engine.dm2scp(torch.tensor([2])).shape == torch.Size([3, 3])
+    assert engine.scp2dm(torch.rand((2, 2, 2))).u.shape == torch.Size([2, 1])
