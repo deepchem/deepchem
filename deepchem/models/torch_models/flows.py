@@ -2,12 +2,30 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from typing import Optional, Sequence, Tuple, Union
+from typing import Optional, Tuple, Union
 
 
 class Flow(nn.Module):
     """
     Generic class for flow functions
+
+    Flows [flow1]_ should satisfy several conditions in order to be practical. They should:
+
+    - be invertible; for sampling we need g while for computing likelihood we need `f` ,
+    - be sufficiently expressive to model the distribution of interest,
+    - be computationally efficient, both in terms of computing `f` and `g` (depending on the application) but also in terms of the calculation of the determinant of the Jacobian.
+
+    Flow layers are generally used as a part of a Normalizing Flow model,
+    which is a generative model that learns a target distribution by transforming a
+    simple base distribution through a series of invertible transformations.
+    The target distribution is then defined as the composition of the base distribution
+    and the flow transformations.
+
+    References
+    ----------
+    .. [flow1] Kobyzev, I., Prince, S. J., & Brubaker, M. A. (2020).
+        Normalizing flows: An introduction and review of current methods.
+        IEEE transactions on pattern analysis and machine intelligence, 43(11), 3964-3979.
     """
 
     def __init__(self):
@@ -52,8 +70,7 @@ class Flow(nn.Module):
         raise NotImplementedError("This flow has no algebraic inverse.")
 
 
-# Adding duplicate class here, the layers `Affine` class to be deprecated
-class Affine(nn.Module):
+class Affine(Flow):
     """Class which performs the Affine transformation.
 
     This transformation is based on the affinity of the base distribution with
@@ -100,8 +117,10 @@ class Affine(nn.Module):
         self.dim = dim
         self.scale = nn.Parameter(torch.zeros(self.dim))
         self.shift = nn.Parameter(torch.zeros(self.dim))
+        self.batch_dims = torch.nonzero(torch.tensor(self.scale.shape) == 1,
+                                        as_tuple=False)[:, 0].tolist()
 
-    def forward(self, x: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Performs a transformation between two different distributions. This
         particular transformation represents the following function:
 
@@ -114,7 +133,7 @@ class Affine(nn.Module):
 
         Parameters
         ----------
-        x : Sequence
+        x : torch.Tensor
             Tensor sample with the initial distribution data which will pass into
             the normalizing flow algorithm.
 
@@ -134,7 +153,7 @@ class Affine(nn.Module):
 
         return y, log_det_jacobian
 
-    def inverse(self, y: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
+    def inverse(self, y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Performs a transformation between two different distributions.
         This transformation represents the bacward pass of the function
         mention before. Its mathematical representation is x = (y - b) / exp(a)
@@ -145,7 +164,7 @@ class Affine(nn.Module):
 
         Parameters
         ----------
-        y : Sequence
+        y : torch.Tensor
             Tensor sample with transformed distribution data which will be used in
             the normalizing algorithm inverse pass.
 
@@ -311,3 +330,113 @@ class MaskedAffineFlow(Flow):
         log_det = -torch.sum(
             (1 - self.b) * scale, dim=list(range(1, self.b.dim())))
         return z_, log_det
+
+
+class ActNorm(Affine):
+    """
+    This class implements the ActNorm layer (for activation normalizaton)
+
+    ActNorm is an Affine layer but with a data-dependent initialization,
+    where on the very first batch we clever initialize the scale,shift so that the output
+    is unit gaussian. As described in [glow]_ Kingma et al (2018).
+
+    ActNorm is a layer that performs an affine transformation of the activations using a scale
+    and bias parameter per channel, similar to batch normalization.
+    These parameters are initialized such that the post-actnorm activations
+    per-channel have zero mean and unit variance given an initial minibatch of data.
+    This is a form of data dependent initialization [weight_norm]_.
+    After initialization, the scale and bias are treated as regular trainable parameters
+    that are independent of the data.
+
+    Examples
+    --------
+    Importing necessary libraries
+
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
+    >>> from deepchem.models.torch_models.flows import MaskedAffineFlow
+    >>> from torch.distributions import MultivariateNormal
+
+    Creating sample data
+
+    >>> dim = 2
+    >>> samples = 96
+    >>> data = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
+    >>> tensor = data.sample(torch.Size((samples, dim)))
+
+    Initializing the ActNorm layer and performing forward and inverse pass
+
+    >>> actnorm = ActNorm(dim)
+    >>> _, log_det_jacobian = actnorm.forward(tensor)
+    >>> _, inverse_log_det_jacobian = actnorm.inverse(tensor)
+    >>> len(inverse_log_det_jacobian)
+    96
+
+    References
+    ----------
+    .. [glow] Kingma, D. P., & Dhariwal, P. (2018).
+        Glow: Generative flow with invertible 1x1 convolutions.
+        Advances in neural information processing systems, 31.
+    .. [weight_norm] Salimans, T., & Kingma, D. P. (2016).
+        Weight normalization: A simple reparameterization to
+        accelerate training of deep neural networks.
+        Advances in neural information processing systems, 29.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        """Initializes the ActNorm layer
+        """
+        super().__init__(*args, **kwargs)
+        self.data_dep_init_done = torch.tensor(0.0).detach().cpu()
+
+    def forward(self, z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Forward pass of the ActNorm layer
+
+        Parameters
+        ----------
+        z : torch.Tensor
+            Input tensor
+
+        Returns
+        -------
+        z_ : torch.Tensor
+            Transformed tensor according to ActNorm layer with the shape of 'z'.
+        log_det : torch.Tensor
+            Tensor which represents the information of the deviation of the initial
+            and target distribution.
+        """
+        # first batch is used for initialization, c.f. batchnorm
+        if not self.data_dep_init_done > 0.0:  # type: ignore
+            assert self.scale is not None and self.shift is not None
+            s_init = -torch.log(z.std(dim=self.batch_dims, keepdim=True) + 1e-6)
+            self.scale.data = s_init.data
+            self.shift.data = (-z.mean(dim=self.batch_dims, keepdim=True) *
+                               torch.exp(self.scale)).data
+            self.data_dep_init_done = torch.tensor(1.0)
+        return super().forward(z)
+
+    def inverse(self, z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Inverse pass of the ActNorm layer
+
+        Parameters
+        ----------
+        z : torch.Tensor
+            Input tensor
+
+        Returns
+        -------
+        z_ : torch.Tensor
+            Transformed tensor according to ActNorm layer with the shape of 'z'.
+        log_det : torch.Tensor
+            Tensor which represents the information of the deviation of the initial
+            and target distribution.
+        """
+        # first batch is used for initialization, c.f. batchnorm
+        if not self.data_dep_init_done:  # type: ignore
+            assert self.scale is not None and self.shift is not None
+            s_init = torch.log(z.std(dim=self.batch_dims, keepdim=True) + 1e-6)
+            self.scale.data = s_init.data
+            self.shift.data = z.mean(dim=self.batch_dims, keepdim=True).data
+            self.data_dep_init_done = torch.tensor(1.0)
+        return super().inverse(z)
