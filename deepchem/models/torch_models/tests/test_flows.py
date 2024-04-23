@@ -11,7 +11,7 @@ try:
     import torch.nn as nn
     import torch.nn.functional as F
     from torch.distributions import MultivariateNormal
-    from deepchem.models.torch_models.flows import Affine, MaskedAffineFlow
+    from deepchem.models.torch_models.flows import Affine, MaskedAffineFlow, ActNorm
     has_torch = True
 except:
     has_torch = False
@@ -76,3 +76,28 @@ def test_Masked_Affine_flow():
         _, inverse_log_det_jacobian = layer.inverse(tensor)
         inverse_log_det_jacobian = inverse_log_det_jacobian.detach().numpy()
         assert np.any(inverse_log_det_jacobian)
+
+
+@unittest.skipIf(not has_torch, 'torch is not installed')
+@pytest.mark.torch
+def test_actnorm():
+    """
+    This test evaluates ActNorm layer.
+    """
+    dim = 2
+    samples = 96
+    data = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
+    tensor = data.sample(torch.Size((samples, dim)))
+
+    actnorm = ActNorm(dim)
+    _, log_det_jacobian = actnorm.forward(tensor)
+    _, inverse_log_det_jacobian = actnorm.inverse(tensor)
+
+    log_det_jacobian = log_det_jacobian.detach().numpy()
+    inverse_log_det_jacobian = inverse_log_det_jacobian.detach().numpy()
+    ones = np.ones((samples,))
+    value = ones * log_det_jacobian[
+        0]  # the first pass should have all the values equal
+
+    assert np.array_equal(log_det_jacobian, value)
+    assert np.any(inverse_log_det_jacobian)
