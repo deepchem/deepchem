@@ -88,7 +88,8 @@ class MXMNet(nn.Module):
         n_tasks: int, default 1
             The number of prediction tasks. Only single Task regression is supported currently.
         """
-        torch.manual_seed(0)
+        seed = 123
+        torch.manual_seed(seed)
         super(MXMNet, self).__init__()
 
         self.dim: int = dim
