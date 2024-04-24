@@ -117,7 +117,7 @@ class HFEngine(BaseSCFEngine):
     ...         return self.grid
     ...     def requires_grid(self):
     ...         return True
-    ...     def get_orbweight(self, polarized: bool = False):
+    ...     def get_orbweight(self, polarized: bool = False) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
     ...         return SpinParam(torch.tensor([2.0]), torch.tensor([2.0]))
     ...     def get_nuclei_energy(self):
     ...         return torch.tensor(10.0)
@@ -253,7 +253,7 @@ class HFEngine(BaseSCFEngine):
     def scp2dm(
             self,
             scp: torch.Tensor) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
-        """Scp is like KS, using the concatenated Fock matrix
+        """Convert from self-consistent parameter (scp) to density matrix
 
         Parameters
         ----------

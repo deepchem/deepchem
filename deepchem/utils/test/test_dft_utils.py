@@ -2,7 +2,12 @@ import pytest
 try:
     import torch
 except:
-    pass
+    print("torch not available")
+try:
+    import pylibxc
+except:
+    print("pylibxc not available")
+
 import numpy as np
 from typing import Union
 
@@ -647,7 +652,10 @@ def test_hf_engine():
         def requires_grid(self):
             return True
 
-        def get_orbweight(self, polarized: bool = False):
+        def get_orbweight(
+            self,
+            polarized: bool = False
+        ) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
             return SpinParam(torch.tensor([1.0]), torch.tensor([2.0]))
 
         def get_nuclei_energy(self):
@@ -660,3 +668,261 @@ def test_hf_engine():
     assert engine.dm2energy(torch.tensor([2])) == torch.tensor([28.0])
     assert engine.dm2scp(torch.tensor([2])).shape == torch.Size([3, 3])
     assert engine.scp2dm(torch.rand((2, 2, 2))).u.shape == torch.Size([2, 1])
+
+
+@pytest.mark.torch
+def test_CalcLDALibXCUnpol():
+    from deepchem.utils.dft_utils import CalcLDALibXCUnpol
+    libxcfcn = pylibxc.LibXCFunctional("lda_x", "unpolarized")
+    rho = torch.tensor([0.1, 0.2, 0.3])
+    res = CalcLDALibXCUnpol.apply(rho, 0, libxcfcn)[0]
+    assert torch.allclose(
+        res, torch.tensor([[-0.0343, -0.0864, -0.1483]], dtype=torch.float64),
+        0.001)
+
+
+@pytest.mark.torch
+def test_CalcLDALibXCPol():
+    from deepchem.utils.dft_utils import CalcLDALibXCPol
+    libxcfcn = pylibxc.LibXCFunctional("lda_x", "polarized")
+    rho_u = torch.tensor([0.1, 0.2, 0.3])
+    rho_d = torch.tensor([0.1, 0.2, 0.3])
+    res = CalcLDALibXCPol.apply(rho_u, rho_d, 0, libxcfcn)[0]
+    assert torch.allclose(
+        res, torch.tensor([[-0.0864, -0.2177, -0.3738]], dtype=torch.float64),
+        0.001)
+
+
+@pytest.mark.torch
+def test_CalcGGALibXCUnpol():
+    from deepchem.utils.dft_utils import CalcGGALibXCUnpol
+    libxcfcn = pylibxc.LibXCFunctional("gga_c_pbe", "unpolarized")
+    rho = torch.tensor([0.1, 0.2, 0.3])
+    sigma = torch.tensor([0.1, 0.2, 0.3])
+    res = CalcGGALibXCUnpol.apply(rho, sigma, 0, libxcfcn)[0]
+    assert torch.allclose(
+        res, torch.tensor([[-0.0016, -0.0070, -0.0137]], dtype=torch.float64),
+        0.0001, 0.0001)
+
+
+@pytest.mark.torch
+def test_CalcGGALibXCPol():
+    from deepchem.utils.dft_utils import CalcGGALibXCPol
+    libxcfcn = pylibxc.LibXCFunctional("gga_c_pbe", "polarized")
+    rho_u = torch.tensor([0.1, 0.2, 0.3])
+    rho_d = torch.tensor([0.1, 0.2, 0.3])
+    sigma_uu = torch.tensor([0.1, 0.2, 0.3])
+    sigma_ud = torch.tensor([0.1, 0.2, 0.3])
+    sigma_dd = torch.tensor([0.1, 0.2, 0.3])
+    res = CalcGGALibXCPol.apply(rho_u, rho_d, sigma_uu, sigma_ud, sigma_dd, 0,
+                                libxcfcn)[0]
+    assert torch.allclose(
+        res, torch.tensor([[-0.0047, -0.0175, -0.0322]], dtype=torch.float64),
+        0.0001, 0.0001)
+
+
+@pytest.mark.torch
+def test_CalcMGGALibXCUnpol():
+    from deepchem.utils.dft_utils import CalcMGGALibXCUnpol
+    libxcfcn = pylibxc.LibXCFunctional("mgga_c_m06_l", "unpolarized")
+    rho = torch.tensor([0.1, 0.2, 0.3])
+    sigma = torch.tensor([0.1, 0.2, 0.3])
+    lapl = torch.tensor([0.1, 0.2, 0.3])
+    kin = torch.tensor([0.1, 0.2, 0.3])
+    res = CalcMGGALibXCUnpol.apply(rho, sigma, lapl, kin, 0, libxcfcn)[0]
+    assert torch.allclose(
+        res, torch.tensor([[-0.0032, -0.0066, -0.0087]], dtype=torch.float64),
+        0.0001, 0.0001)
+
+
+@pytest.mark.torch
+def test_CalcMGGALibXCPol():
+    from deepchem.utils.dft_utils import CalcMGGALibXCPol
+    libxcfcn = pylibxc.LibXCFunctional("mgga_c_m06_l", "polarized")
+    rho_u = torch.tensor([0.1, 0.2, 0.3])
+    rho_d = torch.tensor([0.1, 0.2, 0.3])
+    sigma_uu = torch.tensor([0.1, 0.2, 0.3])
+    sigma_ud = torch.tensor([0.1, 0.2, 0.3])
+    sigma_dd = torch.tensor([0.1, 0.2, 0.3])
+    lapl_u = torch.tensor([0.1, 0.2, 0.3])
+    lapl_d = torch.tensor([0.1, 0.2, 0.3])
+    kin_u = torch.tensor([0.1, 0.2, 0.3])
+    kin_d = torch.tensor([0.1, 0.2, 0.3])
+    res = CalcMGGALibXCPol.apply(rho_u, rho_d, sigma_uu, sigma_ud, sigma_dd,
+                                 lapl_u, lapl_d, kin_u, kin_d, 0, libxcfcn)[0]
+    assert torch.allclose(
+        res, torch.tensor([[-0.0065, -0.0115, -0.0162]], dtype=torch.float64),
+        0.0001, 0.0001)
+
+
+@pytest.mark.torch
+def test_get_libxc_res():
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import _get_libxc_res
+    libxcfcn = pylibxc.LibXCFunctional("lda_x", "unpolarized")
+    rho = torch.tensor([0.1, 0.2, 0.3])
+    res = _get_libxc_res({"rho": rho}, 0, libxcfcn, 2, False)
+    assert torch.allclose(
+        res[0], torch.tensor([[-0.0343, -0.0864, -0.1483]],
+                             dtype=torch.float64), 0.0001, 0.0001)
+
+
+@pytest.mark.torch
+def test_pack_input():
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import _pack_input
+    rho = torch.tensor([[1, 2], [3, 4]])
+    sigma = torch.tensor([[1, 2], [3, 4]])
+    assert np.allclose(_pack_input(rho, sigma),
+                       np.array([[[1, 1], [3, 3]], [[2, 2], [4, 4]]]))
+
+
+@pytest.mark.torch
+def test_unpack_input():
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import _unpack_input
+    inp = np.array([[1, 3], [2, 4]])
+    assert np.allclose(tuple(_unpack_input(inp))[0], np.array([1, 2]))
+    assert np.allclose(tuple(_unpack_input(inp))[1], np.array([3, 4]))
+
+
+@pytest.mark.torch
+def test_get_dos():
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import _get_dos
+    assert _get_dos(0) == (True, False, False, False, False)
+
+
+@pytest.mark.torch
+def test_extract_returns():
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import _extract_returns
+    ret = {"zk": np.array([1, 2, 3])}
+    assert torch.allclose(
+        _extract_returns(ret, 0, 1)[0], torch.tensor([1, 2, 3]))
+
+
+@pytest.mark.torch
+def test_get_grad_inps():
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import _get_grad_inps
+    grad_res = [torch.tensor([1, 2, 3]), torch.tensor([4, 5, 6])]
+    inps = [torch.tensor([1, 2, 3]), torch.tensor([4, 5, 6])]
+    derivs = [torch.tensor([1, 2, 3]), torch.tensor([4, 5, 6])]
+    needs_input_grad = [True, True]
+    deriv_idxs = [[0], [1]]
+    result = _get_grad_inps(grad_res, inps, derivs, needs_input_grad,
+                            deriv_idxs)
+    assert torch.allclose(result[0], torch.tensor([1, 4, 9]))
+    assert torch.allclose(result[1], torch.tensor([4, 10, 18]))
+
+
+@pytest.mark.torch
+def test_LibXCLDA():
+    from deepchem.utils.dft_utils import ValGrad, LibXCLDA
+    # create a LDA wrapper for libxc
+    lda = LibXCLDA("lda_x")
+    # create a density information
+    densinfo = ValGrad(value=torch.rand(2, 3, 4), grad=torch.rand(2, 3, 4, 3))
+    # get the exchange-correlation potential
+    potinfo = lda.get_vxc(densinfo)
+    assert potinfo.value.shape == torch.Size([2, 3, 4])
+    edens = lda.get_edensityxc(densinfo)
+    assert edens.shape == torch.Size([2, 3, 4])
+
+
+@pytest.mark.torch
+def test_LibXCGGA():
+    from deepchem.utils.dft_utils import ValGrad, LibXCGGA
+    # create a GGA wrapper for libxc
+    gga = LibXCGGA("gga_c_pbe")
+    # create a density information
+    n = 2
+    rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    densinfo = ValGrad(value=rho_u, grad=grad_u)
+    # get the exchange-correlation potential
+    potinfo = gga.get_vxc(densinfo)
+    assert potinfo.value.shape == torch.Size([2])
+
+
+@pytest.mark.torch
+def test_LibXCMGGA():
+    from deepchem.utils.dft_utils import ValGrad, LibXCMGGA
+    # create a MGGA wrapper for libxc
+    mgga = LibXCMGGA("mgga_x_scan")
+    # create a density information
+    n = 2
+    rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    lapl_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    kin_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    densinfo = ValGrad(value=rho_u, grad=grad_u, lapl=lapl_u, kin=kin_u)
+    # get the exchange-correlation potential
+    potinfo = mgga.get_vxc(densinfo)
+    assert potinfo.value.shape == torch.Size([2])
+
+
+@pytest.mark.torch
+def test_prepare_libxc_input():
+    from deepchem.utils.dft_utils import ValGrad, SpinParam
+    from deepchem.utils.dft_utils.xc.libxc import _prepare_libxc_input
+    # create a density information
+    n = 2
+    rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    lapl_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    kin_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    rho_d = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    grad_d = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    lapl_d = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    kin_d = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    densinfo = SpinParam(u=ValGrad(value=rho_u,
+                                   grad=grad_u,
+                                   lapl=lapl_u,
+                                   kin=kin_u),
+                         d=ValGrad(value=rho_d,
+                                   grad=grad_d,
+                                   lapl=lapl_d,
+                                   kin=kin_d))
+    # prepare the input for libxc
+    inputs = _prepare_libxc_input(densinfo, 4)
+    assert len(inputs) == 9
+
+
+@pytest.mark.torch
+def test_postproc_libxc_voutput():
+    from deepchem.utils.dft_utils import ValGrad
+    from deepchem.utils.dft_utils.xc.libxc import _postproc_libxc_voutput
+    # create a density information
+    n = 2
+    rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    lapl_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    kin_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    densinfo = ValGrad(value=rho_u, grad=grad_u, lapl=lapl_u, kin=kin_u)
+    # postprocess the output from libxc
+    potinfo = _postproc_libxc_voutput(
+        densinfo,
+        torch.rand((n,), dtype=torch.float64).requires_grad_())
+    assert potinfo.value.shape == torch.Size([2])
+
+
+@pytest.mark.torch
+def test_get_libxc():
+    from deepchem.utils.dft_utils import ValGrad, get_libxc
+    xc = get_libxc("gga_c_pbe")
+    n = 2
+    rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    densinfo = ValGrad(value=rho_u, grad=grad_u)
+    # get the exchange-correlation potential
+    potinfo = xc.get_vxc(densinfo)
+    assert potinfo.value.shape == torch.Size([2])
+
+
+@pytest.mark.torch
+def test_get_xc():
+    from deepchem.utils.dft_utils import ValGrad, get_xc
+    xc = get_xc("lda_x + gga_c_pbe")
+    n = 2
+    rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
+    grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
+    densinfo = ValGrad(value=rho_u, grad=grad_u)
+    # get the exchange-correlation potential
+    potinfo = xc.get_vxc(densinfo)
+    assert potinfo.value.shape == torch.Size([2])
