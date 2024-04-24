@@ -1,3 +1,4 @@
+import os
 import deepchem as dc
 import tempfile
 import numpy as np
@@ -44,9 +45,12 @@ def test_mxmnet_regression():
     loader = dc.data.SDFLoader(tasks=[QM9_TASKS[0]],
                                featurizer=feat,
                                sanitize=True)
+    
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    dataset_path = os.path.join(current_dir, "assets/qm9_mini.sdf")
 
     dataset = loader.create_dataset(
-        inputs="/home/riya/Documents/gsoc/deepchem/deepchem/models/tests/assets/qm9_mini.sdf", shard_size=1)
+        inputs=dataset_path, shard_size=1)
 
     model = MXMNet(dim=dim, n_layer=n_layer, cutoff=cutoff)
 
