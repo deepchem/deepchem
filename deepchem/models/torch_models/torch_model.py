@@ -465,7 +465,7 @@ class TorchModel(Model):
             if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
                 self.save_checkpoint(max_checkpoints_to_keep)
             for c in callbacks:
-                c(self, current_step)
+                c(self, batch_loss, current_step)
             if self.tensorboard and should_log:
                 self._log_scalar_to_tensorboard('loss', batch_loss,
                                                 current_step)
