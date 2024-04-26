@@ -154,9 +154,9 @@ class ScScoreModel(TorchModel):
     >>> # downloading pre-trained weights from given URL (Alternatively, you can download the weights manually and provide the path to the weights file)
     >>> data_dir = dc.utils.get_data_dir()
     >>> scscore_weights = os.path.join(data_dir, "scscore_weights")
-    >>> if not os.path.exists(scscore_weights):
-    ...     dc.utils.data_utils.download_url(url="https://deepchem-weights.s3.us-west-1.amazonaws.com/scscore-weights/scscore_1024bool.pt",
-    ...                                      dest_dir=data_dir)
+    >> if not os.path.exists(scscore_weights):
+    ..     dc.utils.data_utils.download_url(url="https://deepchem-weights.s3.us-west-1.amazonaws.com/scscore-weights/scscore_1024bool.pt",
+    ..                                      dest_dir=data_dir)
     >>> # loading pre-trained model
     >>> model = ScScoreModel()
     >>> model.restore(checkpoint=scscore_weights)
