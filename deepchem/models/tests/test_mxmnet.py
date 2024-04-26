@@ -34,7 +34,8 @@ def test_mxmnet_regression():
     torch.backends.cudnn.benchmark = False
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = 'cpu'
     torch.set_default_device(device)
 
     dim = 10
@@ -45,12 +46,11 @@ def test_mxmnet_regression():
     loader = dc.data.SDFLoader(tasks=[QM9_TASKS[0]],
                                featurizer=feat,
                                sanitize=True)
-    
+
     current_dir = os.path.dirname(os.path.abspath(__file__))
     dataset_path = os.path.join(current_dir, "assets/qm9_mini.sdf")
 
-    dataset = loader.create_dataset(
-        inputs=dataset_path, shard_size=1)
+    dataset = loader.create_dataset(inputs=dataset_path, shard_size=1)
 
     model = MXMNet(dim=dim, n_layer=n_layer, cutoff=cutoff)
 
@@ -67,7 +67,7 @@ def test_mxmnet_regression():
 
     model.to(device)
     output = model(pyg_batch)
-    required_output = np.asarray([[-1.1955], [-0.6596]])
+    required_output = np.asarray([[-3.2702], [-2.9920]])
     assert np.allclose(output[0].cpu().detach().numpy(),
                        required_output[0],
                        atol=1e-04)

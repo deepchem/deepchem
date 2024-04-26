@@ -33,7 +33,7 @@ class MXMNet(nn.Module):
     >>> from deepchem.feat.molecule_featurizers import MXMNetFeaturizer
     >>> QM9_TASKS = ["mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv", "u0", "u298",
     ...              "h298", "g298"]
-    >>> device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    >>> device = 'cpu'
     >>> torch.set_default_device(device)
     >>> dim = 10
     >>> n_layer = 6
@@ -43,7 +43,9 @@ class MXMNet(nn.Module):
     >>> loader = dc.data.SDFLoader(tasks=[QM9_TASKS[0]],
     ...                            featurizer=feat,
     ...                            sanitize=True)
-    >>> dataset = loader.create_dataset(inputs="deepchem/models/tests/assets/qm9_mini.sdf",
+    >>> current_dir = os.path.dirname(os.path.abspath(__file__))
+    >>> dataset_path = os.path.join(current_dir, "assets/qm9_mini.sdf")
+    >>> dataset = loader.create_dataset(inputs=dataset_path,
     ...                            shard_size=1)
     >>> model = MXMNet(dim=dim, n_layer=n_layer, cutoff=cutoff)
     >>> train_dir = None
@@ -54,6 +56,7 @@ class MXMNet(nn.Module):
     >>> data = [data[i].to_pyg_graph() for i in range(1)]
     >>> pyg_batch = Batch()
     >>> pyg_batch = pyg_batch.from_data_list(data).to(device)
+    >>> model.to(device)
     >>> output = model(pyg_batch)
     >>> output[0].shape
     torch.Size([1])
