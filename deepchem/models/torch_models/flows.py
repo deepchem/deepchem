@@ -198,6 +198,7 @@ class MaskedAffineFlow(Flow):
     affine flow layer. The affine flow layer is defined as follows:
 
     Masked affine flow
+
     .. math:: f(z) = b * z + (1 - b) * (z * e^{s(b * z)} + t)
 
     Example
@@ -440,3 +441,95 @@ class ActNorm(Affine):
             self.shift.data = z.mean(dim=self.batch_dims, keepdim=True).data
             self.data_dep_init_done = torch.tensor(1.0)
         return super().inverse(z)
+
+
+class ClampExp(nn.Module):
+    """
+    A non Linearity layer that clamps the input tensor by taking the minimum of the
+    exponential of the input multiplied by a lambda parameter and 1.
+
+    .. math:: f(x) = min(exp(\lambda * x), 1)
+
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.models.torch_models.flows import ClampExp
+    >>> lambda_param = 1.0
+    >>> clamp_exp = ClampExp(lambda_param)
+    >>> input = torch.tensor([-1 ,0.5, 0.6, 0.7])
+    >>> clamp_exp(input)
+    tensor([0.3679, 1.0000, 1.0000, 1.0000])
+    """
+
+    def __init__(self, lambda_param: float = 1.0) -> None:
+        """
+        Initializes the ClampExp layer
+
+        Parameters
+        ----------
+        lambda_param : float
+            Lambda parameter for the ClampExp layer
+        """
+
+        self.lambda_param = lambda_param
+        super(ClampExp, self).__init__()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the ClampExp layer
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor
+
+        Returns
+        -------
+        torch.Tensor
+            Transformed tensor according to ClampExp layer with the shape of 'x'.
+        """
+        one = torch.tensor(1.0, device=x.device, dtype=x.dtype)
+        return torch.min(torch.exp(self.lambda_param * x), one)
+
+
+class ConstScaleLayer(nn.Module):
+    """
+    This layer scales the input tensor by a fixed factor
+
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.models.torch_models.flows import ConstScaleLayer
+    >>> scale = 2.0
+    >>> const_scale = ConstScaleLayer(scale)
+    >>> input = torch.tensor([1, 2, 3])
+    >>> const_scale(input)
+    tensor([2., 4., 6.])
+    """
+
+    def __init__(self, scale: float = 1.0):
+        """
+        Initializes the ConstScaleLayer
+
+        Parameters
+        ----------
+        scale : float
+            Scaling factor
+        """
+        super().__init__()
+        self.scale = torch.tensor(scale)
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        """Forward pass of the ConstScaleLayer
+
+        Parameters
+        ----------
+        input : torch.Tensor
+            Input tensor
+
+        Returns
+        -------
+        torch.Tensor
+            Scaled tensor
+        """
+        return input * self.scale
