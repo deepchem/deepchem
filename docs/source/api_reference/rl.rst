@@ -60,3 +60,13 @@ A2C
 
 .. autoclass:: deepchem.rl.torch_rl.A2C
   :members:
+
+
+PPO
+---
+
+.. autoclass:: deepchem.rl.torch_rl.PPO
+  :members:
+
+.. autoclass:: deepchem.rl.torch_rl.PPOLoss
+  :members:
