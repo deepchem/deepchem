@@ -10,6 +10,7 @@ try:
     from torch import Tensor
     import torch.nn as nn
     import torch.nn.functional as F
+    from deepchem.models.torch_models.flows import Affine
 except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
 
@@ -1257,117 +1258,6 @@ class GraphNetwork(torch.nn.Module):
         )
 
 
-class Affine(nn.Module):
-    """Class which performs the Affine transformation.
-
-    This transformation is based on the affinity of the base distribution with
-    the target distribution. A geometric transformation is applied where
-    the parameters performs changes on the scale and shift of a function
-    (inputs).
-
-    Normalizing Flow transformations must be bijective in order to compute
-    the logarithm of jacobian's determinant. For this reason, transformations
-    must perform a forward and inverse pass.
-
-    Example
-    --------
-    >>> import deepchem as dc
-    >>> from deepchem.models.torch_models.layers import Affine
-    >>> import torch
-    >>> from torch.distributions import MultivariateNormal
-    >>> # initialize the transformation layer's parameters
-    >>> dim = 2
-    >>> samples = 96
-    >>> transforms = Affine(dim)
-    >>> # forward pass based on a given distribution
-    >>> distribution = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
-    >>> input = distribution.sample(torch.Size((samples, dim)))
-    >>> len(transforms.forward(input))
-    2
-    >>> # inverse pass based on a distribution
-    >>> len(transforms.inverse(input))
-    2
-
-    """
-
-    def __init__(self, dim: int) -> None:
-        """Create a Affine transform layer.
-
-        Parameters
-        ----------
-        dim: int
-            Value of the Nth dimension of the dataset.
-
-        """
-
-        super().__init__()
-        self.dim = dim
-        self.scale = nn.Parameter(torch.zeros(self.dim))
-        self.shift = nn.Parameter(torch.zeros(self.dim))
-
-    def forward(self, x: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Performs a transformation between two different distributions. This
-        particular transformation represents the following function:
-        y = x * exp(a) + b, where a is scale parameter and b performs a shift.
-        This class also returns the logarithm of the jacobians determinant
-        which is useful when invert a transformation and compute the
-        probability of the transformation.
-
-        Parameters
-        ----------
-        x : Sequence
-            Tensor sample with the initial distribution data which will pass into
-            the normalizing flow algorithm.
-
-        Returns
-        -------
-        y : torch.Tensor
-            Transformed tensor according to Affine layer with the shape of 'x'.
-        log_det_jacobian : torch.Tensor
-            Tensor which represents the info about the deviation of the initial
-            and target distribution.
-
-        """
-
-        y = torch.exp(self.scale) * x + self.shift
-        det_jacobian = torch.exp(self.scale.sum())
-        log_det_jacobian = torch.ones(y.shape[0]) * torch.log(det_jacobian)
-
-        return y, log_det_jacobian
-
-    def inverse(self, y: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Performs a transformation between two different distributions.
-        This transformation represents the bacward pass of the function
-        mention before. Its mathematical representation is x = (y - b) / exp(a)
-        , where "a" is scale parameter and "b" performs a shift. This class
-        also returns the logarithm of the jacobians determinant which is
-        useful when invert a transformation and compute the probability of
-        the transformation.
-
-        Parameters
-        ----------
-        y : Sequence
-            Tensor sample with transformed distribution data which will be used in
-            the normalizing algorithm inverse pass.
-
-        Returns
-        -------
-        x : torch.Tensor
-            Transformed tensor according to Affine layer with the shape of 'y'.
-        inverse_log_det_jacobian : torch.Tensor
-            Tensor which represents the information of the deviation of the initial
-            and target distribution.
-
-        """
-
-        x = (y - self.shift) / torch.exp(self.scale)
-        det_jacobian = 1 / torch.exp(self.scale.sum())
-        inverse_log_det_jacobian = torch.ones(
-            x.shape[0]) * torch.log(det_jacobian)
-
-        return x, inverse_log_det_jacobian
-
-
 class DMPNNEncoderLayer(nn.Module):
     """
     Encoder layer for use in the Directed Message Passing Neural Network (D-MPNN) [1]_.
@@ -1832,15 +1722,16 @@ class RealNVPLayer(nn.Module):
     """Real NVP Transformation Layer
 
     This class class is a constructor transformation layer used on a
-    NormalizingFLow model.  The Real Non-Preserving-Volumen (Real NVP) is a type
+    NormalizingFLow model. The Real Non-Preserving-Volumen (Real NVP) is a type
     of normalizing flow layer which gives advantages over this mainly because an
-    ease to compute the inverse pass [1]_, this is to learn a target
+    ease to compute the inverse pass [realnvp1]_, this is to learn a target
     distribution.
 
     Example
     -------
     >>> import torch
     >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
     >>> from torch.distributions import MultivariateNormal
     >>> from deepchem.models.torch_models.layers import RealNVPLayer
     >>> dim = 2
@@ -1861,7 +1752,7 @@ class RealNVPLayer(nn.Module):
 
     References
     ----------
-    .. [1] Stimper, V., Schölkopf, B., & Hernández-Lobato, J. M. (2021). Resampling Base
+    .. [realnvp1] Stimper, V., Schölkopf, B., & Hernández-Lobato, J. M. (2021). Resampling Base
     Distributions of Normalizing Flows. (2017). Retrieved from http://arxiv.org/abs/2110.15828
     """
 
@@ -5667,13 +5558,13 @@ class FerminetEnvelope(torch.nn.Module):
 
         # initialized weights with torch.zeros, torch.eye and using xavier init.
         for i in range(self.determinant):
-            self.wdet.append(torch.nn.init.normal(torch.zeros(1)).squeeze(0))
+            self.wdet.append(torch.nn.init.normal_(torch.zeros(1)).squeeze(0))
             for j in range(self.total_electron):
                 self.envelope_w.append(
-                    (torch.nn.init.normal(torch.zeros(n_one[-1], 1),) /
+                    (torch.nn.init.normal_(torch.zeros(n_one[-1], 1),) /
                      math.sqrt(n_one[-1])).squeeze(-1))
                 self.envelope_g.append(
-                    (torch.nn.init.normal(torch.zeros(1))).squeeze(0))
+                    (torch.nn.init.normal_(torch.zeros(1))).squeeze(0))
                 for k in range(self.no_of_atoms):
                     self.pi.append((torch.zeros(1)))
                     self.sigma.append(torch.eye(3))

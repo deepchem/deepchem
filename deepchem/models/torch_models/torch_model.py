@@ -401,18 +401,21 @@ class TorchModel(Model):
             optimizer = self._pytorch_optimizer
             lr_schedule = self._lr_schedule
         else:
-            var_key = tuple(variables)
-            if var_key in self._optimizer_for_vars:
-                optimizer, lr_schedule = self._optimizer_for_vars[var_key]
+            variables_tuple = tuple(variables)
+            if variables_tuple in self._optimizer_for_vars:
+                optimizer, lr_schedule = self._optimizer_for_vars[
+                    variables_tuple]
             else:
-                optimizer = self.optimizer._create_pytorch_optimizer(variables)
+                optimizer = self.optimizer._create_pytorch_optimizer(
+                    variables_tuple)
                 if isinstance(self.optimizer.learning_rate,
                               LearningRateSchedule):
                     lr_schedule = self.optimizer.learning_rate._create_pytorch_schedule(
                         optimizer)
                 else:
                     lr_schedule = None
-                self._optimizer_for_vars[var_key] = (optimizer, lr_schedule)
+                self._optimizer_for_vars[variables_tuple] = (optimizer,
+                                                             lr_schedule)
         time1 = time.time()
 
         # Main training loop.
