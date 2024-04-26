@@ -11,7 +11,7 @@ try:
     import torch.nn as nn
     import torch.nn.functional as F
     from torch.distributions import MultivariateNormal
-    from deepchem.models.torch_models.flows import Affine, MaskedAffineFlow, ActNorm, ClampExp, ConstScaleLayer
+    from deepchem.models.torch_models.flows import Affine, MaskedAffineFlow, ActNorm, ClampExp, ConstScaleLayer, MLP_flow
     has_torch = True
 except:
     has_torch = False
@@ -139,3 +139,19 @@ def test_constscalelayer():
     tensor = torch.tensor([1, 2, 3, 4])
     tensor_out = const_scale_layer(tensor)
     assert torch.allclose(tensor_out, tensor * scale)
+
+
+@unittest.skipIf(not has_torch, 'torch is not installed')
+@pytest.mark.torch
+def test_mlp_flow():
+    """
+    This test evaluates the MLP_flow.
+    """
+    seed = 42
+    layers = [2, 4, 4, 2]
+    mlp_flow = MLP_flow(layers)
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    input_tensor = torch.randn(1, 2)
+    output_tensor = mlp_flow(input_tensor)
+    assert output_tensor.shape == torch.Size([1, 2])

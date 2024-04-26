@@ -297,6 +297,9 @@ Flow Layers
 .. autoclass:: deepchem.models.torch_models.flows.ActNorm
   :members:
 
+.. autoclass:: deepchem.models.torch_models.flows.MLP_flow
+  :members:
+
 Grover Layers
 ^^^^^^^^^^^^^
 
