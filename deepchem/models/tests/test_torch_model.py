@@ -447,3 +447,57 @@ def test_fit_loss():
     model.fit_generator([(x, 3 * x, x)] * 300, loss=loss2)
     vars = model.predict_on_batch(x)
     assert np.allclose(vars[0] + vars[1], 3.0)
+
+
+@pytest.mark.torch
+def test_fit_generator_parameters():
+    """Test confirming that fit_generator accepts variables both as a generator object and as an iteable object like list or tuple."""
+
+    from typing import Generator
+
+    class Model(torch.nn.Module):
+
+        def __init__(self):
+            super(Model, self).__init__()
+            self.dense1 = torch.nn.Linear(100, 50)
+            self.dense2 = torch.nn.Linear(50, 1)
+
+        def forward(self, x):
+            x = torch.nn.functional.relu(self.dense1(x))
+            x = self.dense2(x)
+            return x
+
+    model1 = Model()
+    model2 = Model()
+    model2.load_state_dict(model1.state_dict())
+
+    torch_model1 = dc.models.TorchModel(model1,
+                                        dc.models.losses.L2Loss(),
+                                        output_types=['prediction'])
+    torch_model2 = dc.models.TorchModel(model2,
+                                        dc.models.losses.L2Loss(),
+                                        output_types=['prediction'])
+
+    variables_generator = torch_model1.model.parameters()
+    variables_list = list(torch_model2.model.parameters())
+
+    assert isinstance(variables_generator, Generator)
+
+    X = np.random.rand(10, 100)
+    y = np.random.rand(10, 1)
+
+    dataset = dc.data.NumpyDataset(X, y)
+
+    # fit both models with the same dataset
+    torch_model1.fit_generator(torch_model1.default_generator(dataset),
+                               variables=variables_generator)
+    torch_model2.fit_generator(torch_model2.default_generator(dataset),
+                               variables=variables_list)
+
+    # check if the models are the same
+    X_ = np.random.rand(10, 100)
+
+    prediction1 = torch_model1.predict_on_batch(X_)
+    prediction2 = torch_model2.predict_on_batch(X_)
+
+    assert np.allclose(prediction1, prediction2)

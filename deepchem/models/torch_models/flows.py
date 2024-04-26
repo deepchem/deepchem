@@ -198,7 +198,6 @@ class MaskedAffineFlow(Flow):
     affine flow layer. The affine flow layer is defined as follows:
 
     Masked affine flow
-
     .. math:: f(z) = b * z + (1 - b) * (z * e^{s(b * z)} + t)
 
     Example
