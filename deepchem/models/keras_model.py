@@ -395,8 +395,8 @@ class KerasModel(Model):
             for each batch.  If None (the default), the model's standard loss function
             is used.
         callbacks: function or list of functions
-            one or more functions of the form f(model, step) that will be invoked after
-            every step.  This can be used to perform validation, logging, etc.
+            one or more functions of the form f(model, step, **kwargs) that will be invoked
+            after every step.  This can be used to perform validation, logging, etc.
         all_losses: Optional[List[float]], optional (default None)
             If specified, all logged losses are appended into this list. Note that
             you can call `fit()` repeatedly with the same list and losses will
@@ -475,7 +475,7 @@ class KerasModel(Model):
                 try:
                     # NOTE In DeepChem > 2.8.0, callback signature is updated to allow
                     # variable arguments.
-                    c(self, current_step, {'iteration_loss': batch_loss})
+                    c(self, current_step, iteration_loss=batch_loss)
                 except TypeError:
                     # DeepChem <= 2.8.0, the callback should have this signature.
                     c(self, current_step)
