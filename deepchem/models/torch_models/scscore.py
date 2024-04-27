@@ -159,7 +159,7 @@ class ScScoreModel(TorchModel):
     ..                                      dest_dir=data_dir)
     >>> # loading pre-trained model
     >>> model = ScScoreModel()
-    >>> model.restore(checkpoint=scscore_weights)
+    >> model.restore(checkpoint=scscore_weights)
     >>> # evaluating model
     >>> scores = model.predict(dataset)
 
