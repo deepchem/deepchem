@@ -142,15 +142,16 @@ class ScScoreModel(TorchModel):
 
     Using pre-trained weights:
     --------------------------
-    >>> import os
-    >>> import deepchem as dc
-    >>> from deepchem.models.torch_models import ScScoreModel
-    >>> # preparing dataset
-    >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
-    >>> labels = [0., 1.]
-    >>> featurizer = dc.feat.CircularFingerprint(size=1024, radius=2, chiral=True)
-    >>> X = featurizer.featurize(smiles)
-    >>> dataset = dc.data.NumpyDataset(X=X, y=labels)
+    >>>
+    >> import os
+    >> import deepchem as dc
+    >> from deepchem.models.torch_models import ScScoreModel
+    >> # preparing dataset
+    >> smiles = ["C1CCC1", "C1=CC=CN=C1"]
+    >> labels = [0., 1.]
+    >> featurizer = dc.feat.CircularFingerprint(size=1024, radius=2, chiral=True)
+    >> X = featurizer.featurize(smiles)
+    >> dataset = dc.data.NumpyDataset(X=X, y=labels)
     >> # downloading pre-trained weights from given URL (Alternatively, you can download the weights manually and provide the path to the weights file)
     >> data_dir = dc.utils.get_data_dir()
     >> scscore_weights = os.path.join(data_dir, "scscore_weights")
