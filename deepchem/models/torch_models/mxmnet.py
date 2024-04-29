@@ -33,7 +33,6 @@ class MXMNet(nn.Module):
     >>> from deepchem.feat.molecule_featurizers import MXMNetFeaturizer
     >>> QM9_TASKS = ["mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv", "u0", "u298",
     ...              "h298", "g298"]
-    >>> device = 'cpu'
     >>> torch.set_default_device(device)
     >>> dim = 10
     >>> n_layer = 6
@@ -91,8 +90,6 @@ class MXMNet(nn.Module):
         n_tasks: int, default 1
             The number of prediction tasks. Only single Task regression is supported currently.
         """
-        seed = 123
-        torch.manual_seed(seed)
         super(MXMNet, self).__init__()
 
         self.dim: int = dim
