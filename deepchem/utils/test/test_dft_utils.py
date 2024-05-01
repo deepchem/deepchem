@@ -926,3 +926,28 @@ def test_get_xc():
     # get the exchange-correlation potential
     potinfo = xc.get_vxc(densinfo)
     assert potinfo.value.shape == torch.Size([2])
+
+
+@pytest.mark.torch
+def test_libcintwrapper():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis
+    dtype = torch.double
+    d = 1.0
+    pos_requires_grad = True
+    pos1 = torch.tensor([0.1 * d,  0.0 * d,  0.2 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d,  1.0 * d, -0.4 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    poss = [pos1, pos2, pos3]
+    atomzs = [1, 1, 1]
+
+    allbases = [
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"), dtype=dtype, requires_grad=False)
+        for atomz in atomzs
+    ]
+
+    atombases = [
+        AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i]) \
+        for i in range(len(allbases))
+    ]
+    wrap = LibcintWrapper(atombases, True, None)
+    assert wrap.ao_idxs() == (0, 6)

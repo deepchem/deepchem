@@ -23,8 +23,11 @@ try:
     from deepchem.utils.dft_utils.hamilton.orbparams import BaseOrbParams
     from deepchem.utils.dft_utils.hamilton.orbparams import QROrbParams
     from deepchem.utils.dft_utils.hamilton.orbparams import MatExpOrbParams
+    from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import LibcintWrapper
+    from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import SubsetLibcintWrapper
 
     from deepchem.utils.dft_utils.api.parser import parse_moldesc
+    from deepchem.utils.dft_utils.api.loadbasis import loadbasis
 
     from deepchem.utils.dft_utils.grid.base_grid import BaseGrid
 

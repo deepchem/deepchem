@@ -177,13 +177,20 @@ class KSEngine(BaseSCFEngine):
         """
         if isinstance(dm, torch.Tensor):  # unpolarized
             # scp is the fock matrix
-            return self.__dm2fock(dm).fullmatrix()
+            fork = self.__dm2fock(dm)
+            if isinstance(fork, LinearOperator):
+                return fork.fullmatrix()
+            else:
+                raise Exception("Unpolarized calculation should return a LinearOperator")
         else:  # polarized
             # scp is the concatenated fock matrix
             fock = self.__dm2fock(dm)
-            mat_u = fock.u.fullmatrix().unsqueeze(0)
-            mat_d = fock.d.fullmatrix().unsqueeze(0)
-            return torch.cat((mat_u, mat_d), dim=0)
+            if isinstance(fock, SpinParam):
+                mat_u = fock.u.fullmatrix().unsqueeze(0)
+                mat_d = fock.d.fullmatrix().unsqueeze(0)
+                return torch.cat((mat_u, mat_d), dim=0)
+            else:
+                raise Exception("Polarized calculation should return a SpinParam of LinearOperator")
 
     def scp2dm(self, scp: torch.Tensor) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
         """Convert from self-consistent parameter (scp) to density matrix

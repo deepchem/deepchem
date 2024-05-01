@@ -278,7 +278,10 @@ class AtomCGTOBasis:
         """
         self.atomz = atomz
         self.bases = bases
-        self.pos = torch.tensor(pos)
+        if isinstance(pos, torch.Tensor):
+            self.pos = pos
+        else:
+            self.pos = torch.tensor(pos)
 
     def __repr__(self):
         """Return the string representation of the AtomCGTOBasis object.
