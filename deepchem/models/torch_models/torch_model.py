@@ -324,7 +324,7 @@ class TorchModel(Model):
             for each batch.  If None (the default), the model's standard loss function
             is used.
         callbacks: function or list of functions
-            one or more functions of the form f(model, step) that will be invoked after
+            one or more functions of the form f(model, step, **kwargs) that will be invoked after
             every step.  This can be used to perform validation, logging, etc.
         all_losses: Optional[List[float]], optional (default None)
             If specified, all logged losses are appended into this list. Note that
@@ -401,18 +401,21 @@ class TorchModel(Model):
             optimizer = self._pytorch_optimizer
             lr_schedule = self._lr_schedule
         else:
-            var_key = tuple(variables)
-            if var_key in self._optimizer_for_vars:
-                optimizer, lr_schedule = self._optimizer_for_vars[var_key]
+            variables_tuple = tuple(variables)
+            if variables_tuple in self._optimizer_for_vars:
+                optimizer, lr_schedule = self._optimizer_for_vars[
+                    variables_tuple]
             else:
-                optimizer = self.optimizer._create_pytorch_optimizer(variables)
+                optimizer = self.optimizer._create_pytorch_optimizer(
+                    variables_tuple)
                 if isinstance(self.optimizer.learning_rate,
                               LearningRateSchedule):
                     lr_schedule = self.optimizer.learning_rate._create_pytorch_schedule(
                         optimizer)
                 else:
                     lr_schedule = None
-                self._optimizer_for_vars[var_key] = (optimizer, lr_schedule)
+                self._optimizer_for_vars[variables_tuple] = (optimizer,
+                                                             lr_schedule)
         time1 = time.time()
 
         # Main training loop.
@@ -462,7 +465,13 @@ class TorchModel(Model):
             if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
                 self.save_checkpoint(max_checkpoints_to_keep)
             for c in callbacks:
-                c(self, current_step)
+                try:
+                    # NOTE In DeepChem > 2.8.0, callback signature is updated to allow
+                    # variable arguments.
+                    c(self, current_step, iteration_loss=batch_loss)
+                except TypeError:
+                    # DeepChem <= 2.8.0, the callback should have this signature.
+                    c(self, current_step)
             if self.tensorboard and should_log:
                 self._log_scalar_to_tensorboard('loss', batch_loss,
                                                 current_step)

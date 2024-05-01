@@ -653,9 +653,9 @@ def test_hf_engine():
             return True
 
         def get_orbweight(
-                self,
-                polarized: bool = False
-        ) -> torch.Tensor | SpinParam[torch.Tensor]:
+            self,
+            polarized: bool = False
+        ) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
             return SpinParam(torch.tensor([1.0]), torch.tensor([2.0]))
 
         def get_nuclei_energy(self):
