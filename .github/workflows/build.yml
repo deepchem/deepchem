@@ -20,9 +20,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macos-latest-large to be removed when apple removes support for intel macs
         # macos-latest is for apple silicon
-        os: [ubuntu-latest, macos-latest, macos-latest-large]
+        os: [ubuntu-latest, macos-latest]
         python-version: ['3.9', '3.11']
     steps:
     - name: Maximize build space
