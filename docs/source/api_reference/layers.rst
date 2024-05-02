@@ -276,6 +276,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.HighwayLayer
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.GraphConv
+  :members:
+
 .. autoclass:: deepchem.models.torch_models.flows.ClampExp
   :members:
 
@@ -298,9 +301,6 @@ Flow Layers
   :members:
 
 .. autoclass:: deepchem.models.torch_models.flows.MLP_flow
-  :members:
-
-.. autoclass:: deepchem.models.torch_models.layers.GraphConv
   :members:
 
 Grover Layers

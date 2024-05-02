@@ -6159,6 +6159,18 @@ class GraphConv(nn.Module):
         )
 
     def forward(self, inputs: List[np.ndarray]) -> torch.Tensor:
+        """
+        The forward pass combines per-node feature vectors in a nonlinear fashion with
+        the feature vectors for neighboring nodes.
+        Parameters
+        ----------
+        inputs: List[np.ndarray]
+        Should contain atom features and arrays describing graph topology
+        Returns:
+        -------
+        torch.Tensor
+          Combined atom features
+        """
 
         # Extract atom_features
         atom_features: torch.Tensor = torch.tensor(inputs[0])
