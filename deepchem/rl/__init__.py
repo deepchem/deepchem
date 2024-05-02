@@ -151,7 +151,7 @@ class GymEnvironment(Environment):
     def __init__(self, name):
         """Create an Environment wrapping the OpenAI Gym environment with a specified name."""
         import gym
-        self.env = gym.make(name)
+        self.env = gym.make(name, render_mode='human')
         self.name = name
         space = self.env.action_space
         if 'n' in dir(space):
@@ -163,11 +163,12 @@ class GymEnvironment(Environment):
                                  action_shape=space.shape)
 
     def reset(self):
-        self._state = self.env.reset()
+        self._state = self.env.reset()[0]
         self._terminated = False
 
     def step(self, action):
-        self._state, reward, self._terminated, info = self.env.step(action)
+        self._state, reward, self._terminated, bool_val, info = self.env.step(
+            action)
         return reward
 
     def __deepcopy__(self, memo):
