@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - hhsuite
+  # - hhsuite // not available for Apple Silicon
   - vina
   - pip:
     - vina
