@@ -5,7 +5,7 @@ import operator
 from functools import reduce
 import numpy as np
 import torch
-from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import LibcintWrapper
+from deepchem.utils.dft_utils import LibcintWrapper
 from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CINT, CGTO
 from deepchem.utils.dft_utils.hamilton.intor.namemgr import IntorNameManager
 

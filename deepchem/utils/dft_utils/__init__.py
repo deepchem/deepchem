@@ -25,6 +25,16 @@ try:
     from deepchem.utils.dft_utils.hamilton.orbparams import MatExpOrbParams
     from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import LibcintWrapper
     from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import SubsetLibcintWrapper
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import int1e
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import int2c2e
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import int3c2e
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import int2e
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import overlap
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import kinetic
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import nuclattr
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import elrep
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import coul2c
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import coul3c
 
     from deepchem.utils.dft_utils.api.parser import parse_moldesc
     from deepchem.utils.dft_utils.api.loadbasis import loadbasis
