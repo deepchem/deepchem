@@ -55,6 +55,10 @@ jobs:
         miniconda-version: "latest"
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
+    - name: Install libomp with Homebrew
+        if: ${{ runner.os == 'macOS' && runner.arch == 'ARM64' }}
+        run: |
+          brew install libomp
     - name: Install dependencies (failure check)
       continue-on-error: true
       shell: bash -l {0}
