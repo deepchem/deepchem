@@ -56,10 +56,9 @@ jobs:
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
     - name: Install libomp with Homebrew
-        shell: bash -l {0}
-        if: runner.os == 'macOS'
-        run: |
-          brew install libomp
+      if: ${{ runner.os == 'macOS' && runner.arch == 'ARM64' }}
+      run: |
+        brew install libomp
     - name: Install dependencies (failure check)
       continue-on-error: true
       shell: bash -l {0}
