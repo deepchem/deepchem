@@ -9,6 +9,7 @@ from deepchem.utils.dft_utils import LibcintWrapper
 from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CINT, CGTO
 from deepchem.utils.dft_utils.hamilton.intor.namemgr import IntorNameManager
 
+
 def int1e(shortname: str, wrapper: LibcintWrapper, other: Optional[LibcintWrapper] = None, *,
           rinv_pos: Optional[torch.Tensor] = None) -> torch.Tensor:
     """
@@ -51,7 +52,7 @@ def int2c2e(shortname: str, wrapper: LibcintWrapper,
     Calculate 2-centre 2-electron integrals where the `wrapper` and `other1` correspond
     to the first electron, and `other2` corresponds to another electron.
     The returned indices are sorted based on `wrapper`, `other1`, and `other2`.
-    The available shortname: "ar12"
+    The available shortname: "ar12", "ipip1"
 
     Parameters
     ----------

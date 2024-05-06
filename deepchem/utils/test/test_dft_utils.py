@@ -955,8 +955,8 @@ def test_libcintwrapper():
 
 @pytest.mark.torch
 def test_molintor():
-    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis, int1e, int2e, int2c2e, int3c2e, \
-        overlap, kinetic, nuclattr, elrep, coul2c, coul3c
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis, \
+        int1e, int2e, int2c2e, int3c2e, overlap, kinetic, nuclattr, elrep, coul2c, coul3c
     dtype = torch.double
     d = 1.0
     pos_requires_grad = True
@@ -980,3 +980,21 @@ def test_molintor():
     assert int1e("r0", env).shape == torch.Size([3, 6, 6])
     assert int1e("r0r0", env).shape == torch.Size([9, 6, 6])
     assert int1e("r0r0r0", env).shape == torch.Size([27, 6, 6])
+    assert int2e("ar12b", env).shape == torch.Size([6, 6, 6, 6])
+    assert int2c2e("ipip1", env).shape == torch.Size([3, 3, 6, 6])
+    assert int3c2e("ar12", env).shape == torch.Size([6, 6, 6])
+    assert overlap(env).shape == torch.Size([6, 6])
+    assert kinetic(env).shape == torch.Size([6, 6])
+    assert nuclattr(env).shape == torch.Size([6, 6])
+    assert elrep(env).shape == torch.Size([6, 6, 6, 6])
+    assert coul2c(env).shape == torch.Size([6, 6])
+    assert coul3c(env).shape == torch.Size([6, 6, 6])
+
+
+@pytest.mark.torch
+def test_intor_name_manager():
+    from deepchem.utils.dft_utils.hamilton.intor.namemgr import IntorNameManager
+    mgr = IntorNameManager("int1e", "r0")
+    assert mgr.fullname == "int1e_r0"
+    assert mgr.get_intgl_name(True) == "int1e_r0_sph"
+    assert mgr.get_ft_intgl_name(True) == "GTO_ft_r0_sph"
