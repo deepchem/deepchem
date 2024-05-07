@@ -998,3 +998,75 @@ def test_intor_name_manager():
     assert mgr.fullname == "int1e_r0"
     assert mgr.get_intgl_name(True) == "int1e_r0_sph"
     assert mgr.get_ft_intgl_name(True) == "GTO_ft_r0_sph"
+    assert mgr.get_intgl_symmetry([0, 1, 2, 0]).code == "s1"
+    assert mgr.get_intgl_components_shape() == (3,)
+
+
+@pytest.mark.torch
+def test_base_symmetry():
+    from deepchem.utils.dft_utils.hamilton.intor.symmetry import BaseSymmetry
+    class SemNew(BaseSymmetry):
+        def get_reduced_shape(self, orig_shape):
+            return orig_shape
+        @property
+        def code(self) -> str:
+            return "sn" 
+        def reconstruct_array(self, arr, orig_shape):
+            return arr
+    sym = SemNew()
+    assert sym.get_reduced_shape((2, 3, 4)) == (2, 3, 4)
+    assert sym.code == 'sn'
+    assert sym.reconstruct_array(torch.rand((2, 3, 4)), (2, 3, 4)).shape == torch.Size([2, 3, 4])
+
+
+@pytest.mark.torch
+def test_s1_symmetry():
+    from deepchem.utils.dft_utils.hamilton.intor.symmetry import S1Symmetry
+    sym = S1Symmetry()
+    assert sym.get_reduced_shape((2, 3, 4)) == (2, 3, 4)
+    assert sym.code == 's1'
+    assert sym.reconstruct_array(np.random.rand(2, 3, 4), (2, 3, 4)).shape == torch.Size([2, 3, 4])
+
+
+@pytest.mark.torch
+def test_s4_symmetry():
+    from deepchem.utils.dft_utils.hamilton.intor.symmetry import S4Symmetry
+    sym = S4Symmetry()
+    assert sym.get_reduced_shape((3, 3, 4, 4)) == (6, 10)
+    assert sym.code == 's4'
+    assert sym.reconstruct_array(np.random.rand(2, 3, 4, 4), (3, 3, 4, 4)).shape == (3, 3, 4, 4)
+
+
+@pytest.mark.torch
+def test_np2ctypes():
+    """Just checks that it doesn't raise errors."""
+    from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes
+    arr = np.random.rand(2, 3, 4)
+    np2ctypes(arr)
+
+
+@pytest.mark.torch
+def test_int2ctypes():
+    """Just checks that it doesn't raise errors."""
+    from deepchem.utils.dft_utils.hamilton.intor.utils import int2ctypes
+    arr = 51
+    int2ctypes(arr)
+
+
+@pytest.mark.torch
+def test_memoize_method():
+    from deepchem.utils import memoize_method
+    class A:
+        @memoize_method
+        def foo(self):
+            print("foo")
+            return 1
+    a = A()
+    assert a.foo() == 1
+
+
+@pytest.mark.torch
+def test_load_basis():
+    from deepchem.utils.dft_utils import loadbasis
+    H = loadbasis("1:3-21G")
+    assert H[0].alphas.shape == torch.Size([2])
