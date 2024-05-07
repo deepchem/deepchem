@@ -14,8 +14,14 @@ def loadbasis(cmd: str, dtype: torch.dtype = _dtype,
     """
     Load basis from a file and return the list of CGTOBasis.
 
-    Arguments
-    ---------
+    Examples
+    --------
+    >>> H = loadbasis("1:3-21G")
+    >>> H[0].alphas.shape
+    torch.Size([2])
+
+    Parameters
+    ----------
     cmd: str
         This can be a file path where the basis is stored or a
         string in format ``"atomz:basis"``, e.g. ``"1:6-311++G**"``.
@@ -30,6 +36,7 @@ def loadbasis(cmd: str, dtype: torch.dtype = _dtype,
     -------
     list of CGTOBasis
         List of GTO basis loaded from the given file
+
     """
     res = []
     if not os.path.exists(cmd):
@@ -83,12 +90,46 @@ def loadbasis(cmd: str, dtype: torch.dtype = _dtype,
     return res
 
 def _read_float(s: str) -> float:
+    """Read a float from a string, replacing D with E.
+
+    Examples
+    --------
+    >>> _read_float("1.0D+00")
+    1.0
+
+    Parameters
+    ----------
+    s: str
+        String to be converted to float
+
+    Returns
+    -------
+    float
+        Float number
+
+    """
     s = s.replace("D", "E")
     return float(s)
 
 def _get_basis_file(cmd: str) -> str:
-    # parse the string command, check if the basis has already been downloaded
-    # (download if not), and return the file name
+    """parse the string command, check if the basis has already been downloaded
+    (download if not), and return the file name
+
+    Examples
+    --------
+    >>> path = _get_basis_file("1:6-311++G**")
+
+    Parameters
+    ----------
+    cmd: str
+        Command string in the format "atomz:basis"
+
+    Returns
+    -------
+    str
+        File path to the basis set
+
+    """
 
     # parse to get the atomz and the basisname
     atomz_str, raw_basisname = cmd.split(":")
@@ -113,6 +154,24 @@ def _get_basis_file(cmd: str) -> str:
     return fpath
 
 def _normalize_basisname(basisname: str) -> str:
+    """Normalize the basis name to a file name
+
+    Examples
+    --------
+    >>> _normalize_basisname("6-311++G**")
+    '6-311ppgss'
+
+    Parameters
+    ----------
+    basisname: str
+        Basis name to be normalized
+
+    Returns
+    -------
+    str
+        Normalized basis name
+
+    """
     b = basisname.lower()
     b = b.replace("+", "p")
     b = b.replace("*", "s")
@@ -121,16 +180,53 @@ def _normalize_basisname(basisname: str) -> str:
     b = b.replace(",", "_")
     return b
 
-def _download_basis(fname: str, atomz: int, basisname: str) -> None:
+def _download_basis(fname: str, atomz: int, basisname: str) -> str:
+    """Download the basis set from the basis set exchange and save it to a file
+
+    Examples
+    --------
+    >>> import pathlib
+    >>> path = pathlib.Path(__file__).parent.resolve()
+    >>> path = _download_basis(str(path) + "/.database/6-311ppgss/01.gaussian94", 1, "6-311++G**")
+
+    Parameters
+    ----------
+    fname: str
+        File name to save the basis set
+    atomz: int
+        Atomic number of the atom
+    basisname: str
+        Basis name to be downloaded
+
+    """
     import basis_set_exchange as bse
     s = bse.get_basis(basisname, elements=[atomz], fmt="gaussian94")
     with open(fname, "w") as f:
         f.write(s)
-    print("Downloaded to %s" % fname)
+    return fname
 
 def _expand_angmoms(s: str, n: int) -> List[int]:
-    # convert the angular momentum characters into angmom and returns a list
-    # of n integer containing the angular momentums
+    """convert the angular momentum characters into angmom and returns a list
+    of n integer containing the angular momentums
+
+    Examples
+    --------
+    >>> _expand_angmoms("SP", 2)
+    [0, 1]
+
+    Parameters
+    ----------
+    s: str
+        Angular momentum characters
+    n: int
+        Number of coefficients
+
+    Returns
+    -------
+    List[int]
+        List of angular momentums
+
+    """
     if len(s) == n:
         pass
     elif n % len(s) == 0:
