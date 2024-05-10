@@ -8,7 +8,6 @@ from deepchem.utils import memoize_method
 from deepchem.utils.dft_utils import AtomCGTOBasis, CGTOBasis, Lattice
 from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CINT
 
-
 # Terminology:
 # * gauss: one gaussian element (multiple gaussian becomes one shell)
 # * shell: one contracted basis (the same contracted gaussian for different atoms
@@ -18,14 +17,41 @@ from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes,
 
 PTR_RINV_ORIG = 4  # from libcint/src/cint_const.h
 
+
 class LibcintWrapper(object):
     """ A class to wrap the libcint environment and parameters for the
     integrals calculation. This class is used to store the environment and
     parameters for the integrals calculation. It also provides the slicing
     functionality to get the subset of the shells.
 
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis
+    >>> dtype = torch.double
+    >>> d = 1.0
+    >>> pos_requires_grad = True
+    >>> pos1 = torch.tensor([0.1 * d,  0.0 * d,  0.2 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> pos2 = torch.tensor([0.0 * d,  1.0 * d, -0.4 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> poss = [pos1, pos2, pos3]
+    >>> atomzs = [1, 1, 1]
+    >>> allbases = [
+    ...     loadbasis("%d:%s" % (max(atomz, 1), "3-21G"), dtype=dtype, requires_grad=False)
+    ...     for atomz in atomzs
+    ... ]
+    >>> atombases = [
+    ...     AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+    ...     for i in range(len(allbases))
+    ... ]
+    >>> wrap = LibcintWrapper(atombases, True, None)
+    >>> wrap.ao_idxs()
+    (0, 6)
+
     """
-    def __init__(self, atombases: List[AtomCGTOBasis], spherical: bool = True,
+
+    def __init__(self,
+                 atombases: List[AtomCGTOBasis],
+                 spherical: bool = True,
                  lattice: Optional[Lattice] = None) -> None:
         """Initialize the LibcintWrapper object.
 
@@ -68,7 +94,8 @@ class LibcintWrapper(object):
         ishell = 0
         for iatom, atombasis in enumerate(atombases):
             # construct the atom environment
-            assert atombasis.pos.numel() == NDIM, "Please report this bug in Github"
+            assert atombasis.pos.numel(
+            ) == NDIM, "Please report this bug in Github"
             atomz = atombasis.atomz
             #                charge    ptr_coord, nucl model (unused for standard nucl model)
             atm_list.append([int(atomz), ptr_env, 1, ptr_env + NDIM, 0, 0])
@@ -95,9 +122,17 @@ class LibcintWrapper(object):
                 shell.wfnormalize_()
                 ngauss = len(shell.alphas)
                 #                iatom, angmom,       ngauss, ncontr, kappa, ptr_exp
-                bas_list.append([iatom, shell.angmom, ngauss, 1, 0, ptr_env,
-                                 # ptr_coeffs,           unused
-                                 ptr_env + ngauss, 0])
+                bas_list.append([
+                    iatom,
+                    shell.angmom,
+                    ngauss,
+                    1,
+                    0,
+                    ptr_env,
+                    # ptr_coeffs,           unused
+                    ptr_env + ngauss,
+                    0
+                ])
                 env_list.extend(shell.alphas.detach())
                 env_list.extend(shell.coeffs.detach())
                 ptr_env += 2 * ngauss
@@ -114,8 +149,12 @@ class LibcintWrapper(object):
         self._allpos_params = torch.cat(allpos, dim=0)  # (natom, NDIM)
         self._allalphas_params = torch.cat(allalphas, dim=0)  # (ntot_gauss)
         self._allcoeffs_params = torch.cat(allcoeffs, dim=0)  # (ntot_gauss)
-        self._allangmoms = torch.tensor(allangmoms, dtype=torch.int32, device=self.device)  # (ntot_gauss)
-        self._gauss_to_shell = torch.tensor(gauss_to_shell, dtype=torch.int32, device=self.device)
+        self._allangmoms = torch.tensor(allangmoms,
+                                        dtype=torch.int32,
+                                        device=self.device)  # (ntot_gauss)
+        self._gauss_to_shell = torch.tensor(gauss_to_shell,
+                                            dtype=torch.int32,
+                                            device=self.device)
 
         # convert the lists to numpy to make it contiguous (Python lists are not contiguous)
         self._atm = np.array(atm_list, dtype=np.int32, order="C")
@@ -136,8 +175,12 @@ class LibcintWrapper(object):
         self._ngauss_at_shell_list = ngauss_at_shell
         self._shell_to_aoloc = np.array(shell_to_aoloc, dtype=np.int32)
         self._shell_idxs = (0, nshells)
-        self._ao_to_shell = torch.tensor(ao_to_shell, dtype=torch.long, device=self.device)
-        self._ao_to_atom = torch.tensor(ao_to_atom, dtype=torch.long, device=self.device)
+        self._ao_to_shell = torch.tensor(ao_to_shell,
+                                         dtype=torch.long,
+                                         device=self.device)
+        self._ao_to_atom = torch.tensor(ao_to_atom,
+                                        dtype=torch.long,
+                                        device=self.device)
 
     @property
     def parent(self) -> LibcintWrapper:
@@ -341,7 +384,8 @@ class LibcintWrapper(object):
             The number of atomic orbitals.
         """
         shell_idxs = self.shell_idxs
-        return self.full_shell_to_aoloc[shell_idxs[-1]] - self.full_shell_to_aoloc[shell_idxs[0]]
+        return self.full_shell_to_aoloc[
+            shell_idxs[-1]] - self.full_shell_to_aoloc[shell_idxs[0]]
 
     @memoize_method
     def ao_idxs(self) -> Tuple[int, int]:
@@ -353,7 +397,8 @@ class LibcintWrapper(object):
             The lower and upper indices of the atomic orbitals.
         """
         shell_idxs = self.shell_idxs
-        return self.full_shell_to_aoloc[shell_idxs[0]], self.full_shell_to_aoloc[shell_idxs[1]]
+        return self.full_shell_to_aoloc[
+            shell_idxs[0]], self.full_shell_to_aoloc[shell_idxs[1]]
 
     @memoize_method
     def ao_to_atom(self) -> torch.Tensor:
@@ -424,12 +469,16 @@ class LibcintWrapper(object):
                 coeffs = shell.coeffs
                 normalized = shell.normalized
                 new_bases.extend([
-                    CGTOBasis(angmom, alpha[None], coeff[None], normalized=normalized)
+                    CGTOBasis(angmom,
+                              alpha[None],
+                              coeff[None],
+                              normalized=normalized)
                     for (alpha, coeff) in zip(alphas, coeffs)
                 ])
-            new_atombases.append(AtomCGTOBasis(atomz=atomz, bases=new_bases, pos=pos))
-        uncontr_wrapper = LibcintWrapper(
-            new_atombases, spherical=self.spherical)
+            new_atombases.append(
+                AtomCGTOBasis(atomz=atomz, bases=new_bases, pos=pos))
+        uncontr_wrapper = LibcintWrapper(new_atombases,
+                                         spherical=self.spherical)
 
         # get the mapping uncontracted ao to the contracted ao
         uao2ao: List[int] = []
@@ -437,7 +486,8 @@ class LibcintWrapper(object):
         # iterate over shells
         for i in range(len(self)):
             nao = self._nao_at_shell(i)
-            uao2ao += list(range(idx_ao, idx_ao + nao)) * self.ngauss_at_shell[i]
+            uao2ao += list(range(idx_ao,
+                                 idx_ao + nao)) * self.ngauss_at_shell[i]
             idx_ao += nao
         uao2ao_res = torch.tensor(uao2ao, dtype=torch.long, device=self.device)
         return uncontr_wrapper, uao2ao_res
@@ -499,8 +549,7 @@ class LibcintWrapper(object):
             atombases.extend(p.atombases)
 
         # get the grand environment
-        grandp = LibcintWrapper(atombases, spherical=sph,
-                                lattice=latt)
+        grandp = LibcintWrapper(atombases, spherical=sph, lattice=latt)
 
         # get the subsets which correspond to the input wrappers
         res: List[LibcintWrapper] = []
@@ -513,7 +562,7 @@ class LibcintWrapper(object):
 
         return (*res,)
 
-    ############### misc functions ###############
+    # misc functions
     @contextmanager
     def centre_on_r(self, r: torch.Tensor) -> Iterator:
         """Sets the centre of coordinate to r.
@@ -530,11 +579,11 @@ class LibcintWrapper(object):
         """
         try:
             env = self.atm_bas_env[-1]
-            prev_centre = env[PTR_RINV_ORIG: PTR_RINV_ORIG + NDIM]
-            env[PTR_RINV_ORIG: PTR_RINV_ORIG + NDIM] = r.detach().numpy()
+            prev_centre = env[PTR_RINV_ORIG:PTR_RINV_ORIG + NDIM]
+            env[PTR_RINV_ORIG:PTR_RINV_ORIG + NDIM] = r.detach().numpy()
             yield
         finally:
-            env[PTR_RINV_ORIG: PTR_RINV_ORIG + NDIM] = prev_centre
+            env[PTR_RINV_ORIG:PTR_RINV_ORIG + NDIM] = prev_centre
 
     def _nao_at_shell(self, sh: int) -> int:
         """Returns the number of atomic orbital at the given shell index.
@@ -563,7 +612,33 @@ class SubsetLibcintWrapper(LibcintWrapper):
     If put into integrals or evaluations, this class will only evaluate
         the subset of the shells from its parent.
     The environment will still be the same as its parent.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis
+    >>> dtype = torch.double
+    >>> d = 1.0
+    >>> pos_requires_grad = True
+    >>> pos1 = torch.tensor([0.1 * d,  0.0 * d,  0.2 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> pos2 = torch.tensor([0.0 * d,  1.0 * d, -0.4 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> poss = [pos1, pos2, pos3]
+    >>> atomzs = [1, 1, 1]
+    >>> allbases = [
+    ...     loadbasis("%d:%s" % (max(atomz, 1), "3-21G"), dtype=dtype, requires_grad=False)
+    ...     for atomz in atomzs
+    ... ]
+    >>> atombases = [
+    ...     AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+    ...     for i in range(len(allbases))
+    ... ]
+    >>> wrap = LibcintWrapper(atombases, True, None)
+    >>> subset = wrap[1:3]
+    >>> subset.ao_idxs()
+    (1, 3)
+
     """
+
     def __init__(self, parent: LibcintWrapper, subset: slice):
         """
         Initializes the SubsetLibcintWrapper.
@@ -620,9 +695,9 @@ class SubsetLibcintWrapper(LibcintWrapper):
 
         # determine the corresponding shell indices in the new uncontracted wrapper
         shell_idxs = self.shell_idxs
-        gauss_idx0 = sum(self._parent.ngauss_at_shell[: shell_idxs[0]])
-        gauss_idx1 = sum(self._parent.ngauss_at_shell[: shell_idxs[1]])
-        u_wrapper = pu_wrapper[gauss_idx0: gauss_idx1]
+        gauss_idx0 = sum(self._parent.ngauss_at_shell[:shell_idxs[0]])
+        gauss_idx1 = sum(self._parent.ngauss_at_shell[:shell_idxs[1]])
+        u_wrapper = pu_wrapper[gauss_idx0:gauss_idx1]
 
         # construct the uao (relative index) mapping to the absolute index
         # of the atomic orbital in the contracted basis
@@ -630,7 +705,8 @@ class SubsetLibcintWrapper(LibcintWrapper):
         idx_ao = 0
         for i in range(shell_idxs[0], shell_idxs[1]):
             nao = self._parent._nao_at_shell(i)
-            uao2ao += list(range(idx_ao, idx_ao + nao)) * self._parent.ngauss_at_shell[i]
+            uao2ao += list(range(
+                idx_ao, idx_ao + nao)) * self._parent.ngauss_at_shell[i]
             idx_ao += nao
         uao2ao_res = torch.tensor(uao2ao, dtype=torch.long, device=self.device)
         return u_wrapper, uao2ao_res
@@ -649,7 +725,8 @@ class SubsetLibcintWrapper(LibcintWrapper):
         NotImplementedError
             Indexing of SubsetLibcintWrapper is not implemented.
         """
-        raise NotImplementedError("Indexing of SubsetLibcintWrapper is not implemented")
+        raise NotImplementedError(
+            "Indexing of SubsetLibcintWrapper is not implemented")
 
     def __getattr__(self, name):
         """

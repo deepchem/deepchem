@@ -5,7 +5,6 @@ import re
 import copy
 from deepchem.utils.dft_utils.hamilton.intor.symmetry import BaseSymmetry, S1Symmetry, S4Symmetry
 
-# name manager of the integrals
 
 class IntorNameManager(object):
     """
@@ -13,6 +12,20 @@ class IntorNameManager(object):
 
     This class is supposed to be string-manipulation only, so no array calculation
     should be performed here.
+
+    Examples
+    --------
+    >>> mgr = IntorNameManager("int1e", "r0")
+    >>> mgr.fullname
+    'int1e_r0'
+    >>> mgr.get_intgl_name(True)
+    'int1e_r0_sph'
+    >>> mgr.get_ft_intgl_name(True)
+    'GTO_ft_r0_sph'
+    >>> mgr.get_intgl_symmetry([0, 1, 2, 0]).code
+    's1'
+    >>> mgr.get_intgl_components_shape()
+    (3,)
     """
 
     # Operators name must not contain separator name
@@ -21,14 +34,18 @@ class IntorNameManager(object):
 
     # Components shape of raw operator and basis operators
     # should be a tuple with AT MOST 1 element
-    rawop_comp = defaultdict(tuple, {  # type: ignore
-        "r0": (3,),
-        "r0r0": (9,),
-        "r0r0r0": (27,),
-    })
-    op_comp = defaultdict(tuple, {  # type: ignore
-        "ip": (3,),
-    })
+    rawop_comp = defaultdict(
+        tuple,
+        {  # type: ignore
+            "r0": (3,),
+            "r0r0": (9,),
+            "r0r0r0": (27,),
+        })
+    op_comp = defaultdict(
+        tuple,
+        {  # type: ignore
+            "ip": (3,),
+        })
 
     # The number of new dimensions added with the operators
     rawop_ndim = defaultdict(int, {k: len(v) for (k, v) in rawop_comp.items()})
@@ -49,7 +66,8 @@ class IntorNameManager(object):
         self._shortname = shortname
         self._rawop, self._ops = self.split_name(int_type, shortname)
         self._nbasis = len(self._ops)
-        self._imid = (self._nbasis + 1) // 2  # Middle index (where the rawops should be)
+        self._imid = (self._nbasis +
+                      1) // 2  # Middle index (where the rawops should be)
 
     @property
     def fullname(self) -> str:
@@ -135,9 +153,11 @@ class IntorNameManager(object):
         if int_type == "int1e":
             return "GTO_ft_%s_%s" % (self._shortname, cartsph)
         else:
-            raise NotImplementedError("Unimplemented FT integral for %s" % int_type)
+            raise NotImplementedError("Unimplemented FT integral for %s" %
+                                      int_type)
 
-    def get_intgl_deriv_namemgr(self, derivop: str, ibasis: int) -> IntorNameManager:
+    def get_intgl_deriv_namemgr(self, derivop: str,
+                                ibasis: int) -> IntorNameManager:
         """
         Get the name manager of a new integral when a derivative operation is applied.
 
@@ -161,7 +181,8 @@ class IntorNameManager(object):
         sname = self.join_name(self._int_type, self._rawop, ops)
         return IntorNameManager(self._int_type, sname)
 
-    def get_intgl_deriv_newaxispos(self, derivop: str, ibasis: int) -> Optional[int]:
+    def get_intgl_deriv_newaxispos(self, derivop: str,
+                                   ibasis: int) -> Optional[int]:
         """
         Get the new axis position in the new integral name.
 
@@ -228,7 +249,8 @@ class IntorNameManager(object):
                     return S4Symmetry()
         return S1Symmetry()
 
-    def get_transpose_path_to(self, other: IntorNameManager) -> Optional[List[Tuple[int, int]]]:
+    def get_transpose_path_to(
+            self, other: IntorNameManager) -> Optional[List[Tuple[int, int]]]:
         """
         Check if the integration `other` can be achieved by transposing `self`.
 
@@ -269,7 +291,8 @@ class IntorNameManager(object):
         else:
             raise self._nbasis_error(nbasis)
 
-        def _swap(p: List[List[str]], path: List[Tuple[int, int]]) -> List[List[str]]:
+        def _swap(p: List[List[str]],
+                  path: List[Tuple[int, int]]) -> List[List[str]]:
             # swap the pattern according to the given transpose path
             r = p[:]  # make a copy
             for i0, i1 in path:
@@ -282,7 +305,8 @@ class IntorNameManager(object):
                 return transpose_path
         return None
 
-    def get_comp_permute_path(self, transpose_path: List[Tuple[int, int]]) -> List[int]:
+    def get_comp_permute_path(
+            self, transpose_path: List[Tuple[int, int]]) -> List[int]:
         """
         Get the component permute path given the basis transpose path.
 
@@ -297,7 +321,7 @@ class IntorNameManager(object):
             Component permute path.
         """
         flat_ops: List[str] = sum(self._ops, [])
-        n_ip = flat_ops.count("ip")
+        _ = flat_ops.count("ip")  # number of ip operators
 
         # get the positions of the axes
         dim_pos = []
@@ -329,7 +353,8 @@ class IntorNameManager(object):
         return dim_pos_flat
 
     @classmethod
-    def split_name(cls, int_type: str, shortname: str) -> Tuple[str, List[List[str]]]:
+    def split_name(cls, int_type: str,
+                   shortname: str) -> Tuple[str, List[List[str]]]:
         """
         Split the shortname into operator per basis and return the raw shortname as well.
 
@@ -377,7 +402,8 @@ class IntorNameManager(object):
         return rawsname, ops
 
     @classmethod
-    def join_name(cls, int_type: str, rawsname: str, ops: List[List[str]]) -> str:
+    def join_name(cls, int_type: str, rawsname: str,
+                  ops: List[List[str]]) -> str:
         """
         Get the shortname given rawsname and list of basis ops.
 
@@ -402,7 +428,8 @@ class IntorNameManager(object):
         if nbasis == 2:
             return ops_str[0] + rawsname + ops_str[1]
         elif nbasis == 3:
-            return ops_str[0] + cls.sep_name[0] + ops_str[1] + rawsname + ops_str[2]
+            return ops_str[0] + cls.sep_name[0] + ops_str[
+                1] + rawsname + ops_str[2]
         elif nbasis == 4:
             return ops_str[0] + cls.sep_name[0] + ops_str[1] + rawsname + ops_str[2] + \
                 cls.sep_name[1] + ops_str[3]
