@@ -10,3 +10,4 @@ dependencies:
     - lightning
     - pydantic
     - git+https://github.com/diffqc/dqclibs.git
+    - torch-cluster

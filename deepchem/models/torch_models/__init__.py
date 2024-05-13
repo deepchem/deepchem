@@ -30,7 +30,7 @@ from deepchem.models.torch_models.seqtoseq import SeqToSeq, SeqToSeqModel
 from deepchem.models.torch_models.acnn import AtomConvModel
 from deepchem.models.torch_models.progressive_multitask import ProgressiveMultitask, ProgressiveMultitaskModel
 from deepchem.models.torch_models.text_cnn import TextCNNModel
-from deepchem.models.torch_models.flows import Flow, Affine, MaskedAffineFlow, ActNorm
+from deepchem.models.torch_models.flows import Flow, Affine, MaskedAffineFlow, ActNorm, ClampExp, ConstScaleLayer, MLP_flow
 from deepchem.models.torch_models.unet import UNet, UNetModel
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
