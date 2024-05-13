@@ -934,15 +934,22 @@ def test_libcintwrapper():
     dtype = torch.double
     d = 1.0
     pos_requires_grad = True
-    pos1 = torch.tensor([0.1 * d,  0.0 * d,  0.2 * d], dtype=dtype, requires_grad=pos_requires_grad)
-    pos2 = torch.tensor([0.0 * d,  1.0 * d, -0.4 * d], dtype=dtype, requires_grad=pos_requires_grad)
-    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    pos1 = torch.tensor([0.1 * d, 0.0 * d, 0.2 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d, 1.0 * d, -0.4 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
     poss = [pos1, pos2, pos3]
     atomzs = [1, 1, 1]
 
     allbases = [
-        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"), dtype=dtype, requires_grad=False)
-        for atomz in atomzs
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"),
+                  dtype=dtype,
+                  requires_grad=False) for atomz in atomzs
     ]
 
     atombases = [
@@ -959,14 +966,21 @@ def test_SubsetLibcintWrapper():
     dtype = torch.double
     d = 1.0
     pos_requires_grad = True
-    pos1 = torch.tensor([0.1 * d,  0.0 * d,  0.2 * d], dtype=dtype, requires_grad=pos_requires_grad)
-    pos2 = torch.tensor([0.0 * d,  1.0 * d, -0.4 * d], dtype=dtype, requires_grad=pos_requires_grad)
-    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    pos1 = torch.tensor([0.1 * d, 0.0 * d, 0.2 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d, 1.0 * d, -0.4 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
     poss = [pos1, pos2, pos3]
     atomzs = [1, 1, 1]
     allbases = [
-        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"), dtype=dtype, requires_grad=False)
-        for atomz in atomzs
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"),
+                  dtype=dtype,
+                  requires_grad=False) for atomz in atomzs
     ]
     atombases = [
         AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
@@ -974,7 +988,7 @@ def test_SubsetLibcintWrapper():
     ]
     wrap = LibcintWrapper(atombases, True, None)
     subset = wrap[1:3]
-    assert subset.ao_idxs() ==(1, 3)
+    assert subset.ao_idxs() == (1, 3)
 
 
 @pytest.mark.torch
@@ -984,15 +998,22 @@ def test_molintor():
     dtype = torch.double
     d = 1.0
     pos_requires_grad = True
-    pos1 = torch.tensor([0.1 * d,  0.0 * d,  0.2 * d], dtype=dtype, requires_grad=pos_requires_grad)
-    pos2 = torch.tensor([0.0 * d,  1.0 * d, -0.4 * d], dtype=dtype, requires_grad=pos_requires_grad)
-    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    pos1 = torch.tensor([0.1 * d, 0.0 * d, 0.2 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d, 1.0 * d, -0.4 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
     poss = [pos1, pos2, pos3]
     atomzs = [1, 1, 1]
 
     allbases = [
-        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"), dtype=dtype, requires_grad=False)
-        for atomz in atomzs
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"),
+                  dtype=dtype,
+                  requires_grad=False) for atomz in atomzs
     ]
 
     atombases = [
@@ -1029,18 +1050,24 @@ def test_intor_name_manager():
 @pytest.mark.torch
 def test_base_symmetry():
     from deepchem.utils.dft_utils.hamilton.intor.symmetry import BaseSymmetry
+
     class SemNew(BaseSymmetry):
+
         def get_reduced_shape(self, orig_shape):
             return orig_shape
+
         @property
         def code(self) -> str:
-            return "sn" 
+            return "sn"
+
         def reconstruct_array(self, arr, orig_shape):
             return arr
+
     sym = SemNew()
     assert sym.get_reduced_shape((2, 3, 4)) == (2, 3, 4)
     assert sym.code == 'sn'
-    assert sym.reconstruct_array(torch.rand((2, 3, 4)), (2, 3, 4)).shape == torch.Size([2, 3, 4])
+    assert sym.reconstruct_array(torch.rand((2, 3, 4)),
+                                 (2, 3, 4)).shape == torch.Size([2, 3, 4])
 
 
 @pytest.mark.torch
@@ -1049,7 +1076,8 @@ def test_s1_symmetry():
     sym = S1Symmetry()
     assert sym.get_reduced_shape((2, 3, 4)) == (2, 3, 4)
     assert sym.code == 's1'
-    assert sym.reconstruct_array(np.random.rand(2, 3, 4), (2, 3, 4)).shape == torch.Size([2, 3, 4])
+    assert sym.reconstruct_array(np.random.rand(2, 3, 4),
+                                 (2, 3, 4)).shape == torch.Size([2, 3, 4])
 
 
 @pytest.mark.torch
@@ -1058,7 +1086,8 @@ def test_s4_symmetry():
     sym = S4Symmetry()
     assert sym.get_reduced_shape((3, 3, 4, 4)) == (6, 10)
     assert sym.code == 's4'
-    assert sym.reconstruct_array(np.random.rand(2, 3, 4, 4), (3, 3, 4, 4)).shape == (3, 3, 4, 4)
+    assert sym.reconstruct_array(np.random.rand(2, 3, 4, 4),
+                                 (3, 3, 4, 4)).shape == (3, 3, 4, 4)
 
 
 @pytest.mark.torch
@@ -1080,11 +1109,14 @@ def test_int2ctypes():
 @pytest.mark.torch
 def test_memoize_method():
     from deepchem.utils import memoize_method
+
     class A:
+
         @memoize_method
         def foo(self):
             print("foo")
             return 1
+
     a = A()
     assert a.foo() == 1
 
@@ -1234,5 +1266,3 @@ def test_normalize_basisname():
 def test_expand_angmoms():
     from deepchem.utils.dft_utils.api.loadbasis import _expand_angmoms
     assert _expand_angmoms("SP", 2) == [0, 1]
-
-

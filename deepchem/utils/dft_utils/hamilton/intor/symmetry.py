@@ -6,9 +6,9 @@ from deepchem.utils.dft_utils.hamilton.intor.utils import CSYMM, np2ctypes, int2
 
 class BaseSymmetry(object):
     """ Base class for symmetry operations.
-    
+
     This class defines the interface for symmetry operations.
-    
+
     Examples
     --------
     >>> class SemNew(BaseSymmetry):
@@ -16,7 +16,7 @@ class BaseSymmetry(object):
     ...         return orig_shape
     ...     @property
     ...     def code(self) -> str:
-    ...         return "sn" 
+    ...         return "sn"
     ...     def reconstruct_array(self, arr: np.ndarray, orig_shape: Tuple[int, ...]) -> np.ndarray:
     ...         return arr
     >>> sym = SemNew()
@@ -26,6 +26,7 @@ class BaseSymmetry(object):
     'sn'
 
     """
+
     @abstractmethod
     def get_reduced_shape(self, orig_shape: Tuple[int, ...]) -> Tuple[int, ...]:
         """
@@ -57,7 +58,8 @@ class BaseSymmetry(object):
         pass
 
     @abstractmethod
-    def reconstruct_array(self, arr: np.ndarray, orig_shape: Tuple[int, ...]) -> np.ndarray:
+    def reconstruct_array(self, arr: np.ndarray,
+                          orig_shape: Tuple[int, ...]) -> np.ndarray:
         """
         Reconstruct full array from reduced symmetrized array.
 
@@ -75,6 +77,7 @@ class BaseSymmetry(object):
         """
         pass
 
+
 class S1Symmetry(BaseSymmetry):
     """ Class for S1 symmetry.
 
@@ -91,6 +94,7 @@ class S1Symmetry(BaseSymmetry):
     array([1, 2, 3])
 
     """
+
     def get_reduced_shape(self, orig_shape: Tuple[int, ...]) -> Tuple[int, ...]:
         """
         Get reduced shape from original shape (no symmetry).
@@ -119,7 +123,8 @@ class S1Symmetry(BaseSymmetry):
         """
         return "s1"
 
-    def reconstruct_array(self, arr: np.ndarray, orig_shape: Tuple[int, ...]) -> np.ndarray:
+    def reconstruct_array(self, arr: np.ndarray,
+                          orig_shape: Tuple[int, ...]) -> np.ndarray:
         """
         Reconstruct full array from reduced symmetrized array (no symmetry).
 
@@ -137,6 +142,7 @@ class S1Symmetry(BaseSymmetry):
         """
         return arr
 
+
 class S4Symmetry(BaseSymmetry):
     """ Class for S4 symmetry.
 
@@ -153,6 +159,7 @@ class S4Symmetry(BaseSymmetry):
     array([1, 2, 3])
 
     """
+
     def get_reduced_shape(self, orig_shape: Tuple[int, ...]) -> Tuple[int, ...]:
         """
         Get reduced shape from original shape for S4 symmetry.
@@ -187,7 +194,8 @@ class S4Symmetry(BaseSymmetry):
         """
         return "s4"
 
-    def reconstruct_array(self, arr: np.ndarray, orig_shape: Tuple[int, ...]) -> np.ndarray:
+    def reconstruct_array(self, arr: np.ndarray,
+                          orig_shape: Tuple[int, ...]) -> np.ndarray:
         """
         Reconstruct full array from reduced symmetrized array for S4 symmetry. (..., ij/2, kl/2)
 
@@ -207,8 +215,8 @@ class S4Symmetry(BaseSymmetry):
 
         out = np.zeros(orig_shape, dtype=arr.dtype)
         fcn = CSYMM().fills4
-        fcn(np2ctypes(out), np2ctypes(arr),
-            int2ctypes(orig_shape[-4]), int2ctypes(orig_shape[-2]))
+        fcn(np2ctypes(out), np2ctypes(arr), int2ctypes(orig_shape[-4]),
+            int2ctypes(orig_shape[-2]))
         return out
 
     def __check_orig_shape(self, orig_shape: Tuple[int, ...]):

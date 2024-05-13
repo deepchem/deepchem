@@ -5,6 +5,7 @@ from deepchem.utils.dft_utils import HFEngine, SpinParam, get_xc, BaseXC, SCF_QC
 
 __all__ = ["KS"]
 
+
 class KS(SCF_QCCalc):
     """
     Performing Restricted or Unrestricted Kohn-Sham DFT calculation.
@@ -18,7 +19,9 @@ class KS(SCF_QCCalc):
 
     """
 
-    def __init__(self, system: BaseSystem, xc: Union[str, BaseXC, None],
+    def __init__(self,
+                 system: BaseSystem,
+                 xc: Union[str, BaseXC, None],
                  restricted: Optional[bool] = None,
                  variational: bool = False):
         """Initialize the Kohn-Sham DFT calculation.
@@ -45,6 +48,7 @@ class KS(SCF_QCCalc):
         engine = KSEngine(system, xc)
         super().__init__(engine, variational)
 
+
 class KSEngine(BaseSCFEngine):
     """
     Private class of Engine to be used with KS.
@@ -52,10 +56,13 @@ class KSEngine(BaseSCFEngine):
     and the calculation of the post-calculation properties.
 
     """
-    def __init__(self, system: BaseSystem, xc: Union[str, BaseXC, None],
+
+    def __init__(self,
+                 system: BaseSystem,
+                 xc: Union[str, BaseXC, None],
                  restricted: Optional[bool] = None):
         """Initialize the Kohn-Sham DFT engine.
-        
+
         Parameters
         ----------
         system: BaseSystem
@@ -91,16 +98,20 @@ class KSEngine(BaseSCFEngine):
 
         # get the HF engine and build the hamiltonian
         # no need to rebuild the grid because it has been constructed
-        self.hf_engine = HFEngine(system, restricted=restricted, build_grid_if_necessary=False)
+        self.hf_engine = HFEngine(system,
+                                  restricted=restricted,
+                                  build_grid_if_necessary=False)
         self._polarized = self.hf_engine.polarized
 
         # get the orbital info
-        self.orb_weight = system.get_orbweight(polarized=self._polarized)  # (norb,)
-        self.norb = SpinParam.apply_fcn(lambda orb_weight: int(orb_weight.shape[-1]),
-                                        self.orb_weight)
+        self.orb_weight = system.get_orbweight(
+            polarized=self._polarized)  # (norb,)
+        self.norb = SpinParam.apply_fcn(
+            lambda orb_weight: int(orb_weight.shape[-1]), self.orb_weight)
 
         # set up the vext linear operator
-        self.knvext_linop = self.hamilton.get_kinnucl()  # kinetic, nuclear, and external potential
+        self.knvext_linop = self.hamilton.get_kinnucl(
+        )  # kinetic, nuclear, and external potential
 
     def get_system(self) -> BaseSystem:
         """Return the system object.
@@ -161,7 +172,9 @@ class KSEngine(BaseSCFEngine):
         """
         return self._polarized
 
-    def dm2scp(self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> torch.Tensor:
+    def dm2scp(
+            self, dm: Union[torch.Tensor,
+                            SpinParam[torch.Tensor]]) -> torch.Tensor:
         """Convert from density matrix to a self-consistent parameter (scp)
 
         Parameters
@@ -181,7 +194,8 @@ class KSEngine(BaseSCFEngine):
             if isinstance(fork, LinearOperator):
                 return fork.fullmatrix()
             else:
-                raise Exception("Unpolarized calculation should return a LinearOperator")
+                raise Exception(
+                    "Unpolarized calculation should return a LinearOperator")
         else:  # polarized
             # scp is the concatenated fock matrix
             fock = self.__dm2fock(dm)
@@ -190,9 +204,13 @@ class KSEngine(BaseSCFEngine):
                 mat_d = fock.d.fullmatrix().unsqueeze(0)
                 return torch.cat((mat_u, mat_d), dim=0)
             else:
-                raise Exception("Polarized calculation should return a SpinParam of LinearOperator")
+                raise Exception(
+                    "Polarized calculation should return a SpinParam of LinearOperator"
+                )
 
-    def scp2dm(self, scp: torch.Tensor) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
+    def scp2dm(
+            self,
+            scp: torch.Tensor) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
         """Convert from self-consistent parameter (scp) to density matrix
 
         Parameters
@@ -226,7 +244,9 @@ class KSEngine(BaseSCFEngine):
         dm = self.scp2dm(scp)
         return self.dm2scp(dm)
 
-    def aoparams2ene(self, aoparams: torch.Tensor, aocoeffs: torch.Tensor,
+    def aoparams2ene(self,
+                     aoparams: torch.Tensor,
+                     aocoeffs: torch.Tensor,
                      with_penalty: Optional[float] = None) -> torch.Tensor:
         """Calculate the energy from the atomic orbital params
 
@@ -271,7 +291,9 @@ class KSEngine(BaseSCFEngine):
         """
         return self.hf_engine.aoparams2dm(aoparams, aocoeffs, with_penalty)
 
-    def pack_aoparams(self, aoparams: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> torch.Tensor:
+    def pack_aoparams(
+            self, aoparams: Union[torch.Tensor,
+                                  SpinParam[torch.Tensor]]) -> torch.Tensor:
         """Check if polarized, then pack it by concatenating them in the last dimension
 
         Parameters
@@ -287,7 +309,9 @@ class KSEngine(BaseSCFEngine):
         """
         return self.hf_engine.pack_aoparams(aoparams)
 
-    def unpack_aoparams(self, aoparams: torch.Tensor) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
+    def unpack_aoparams(
+            self, aoparams: torch.Tensor
+    ) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
         """Check if polarized, then construct the SpinParam (reverting the pack_aoparams)
 
         Parameters
@@ -314,7 +338,9 @@ class KSEngine(BaseSCFEngine):
         """
         self.hf_engine.set_eigen_options(eigen_options)
 
-    def dm2energy(self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> torch.Tensor:
+    def dm2energy(
+            self, dm: Union[torch.Tensor,
+                            SpinParam[torch.Tensor]]) -> torch.Tensor:
         """Calculate the energy given the density matrix
 
         Parameters
@@ -337,7 +363,9 @@ class KSEngine(BaseSCFEngine):
             e_xc = 0.0
         return e_core + e_elrep + e_xc + self._system.get_nuclei_energy()
 
-    def __dm2fock(self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> Union[LinearOperator, SpinParam[LinearOperator]]:
+    def __dm2fock(
+        self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
+    ) -> Union[LinearOperator, SpinParam[LinearOperator]]:
         """From density matrix, returns the fock matrix
 
         Parameters
@@ -355,7 +383,8 @@ class KSEngine(BaseSCFEngine):
         core_coul = self.knvext_linop + elrep
 
         if self.xc is not None:
-            vxc = self.hamilton.get_vxc(dm)  # spin param or tensor (..., nao, nao)
+            vxc = self.hamilton.get_vxc(
+                dm)  # spin param or tensor (..., nao, nao)
             return SpinParam.apply_fcn(lambda vxc_: vxc_ + core_coul, vxc)
         else:
             if isinstance(dm, SpinParam):
@@ -383,20 +412,23 @@ class KSEngine(BaseSCFEngine):
             return self.getparamnames("scp2dm", prefix=prefix) + \
                 self.getparamnames("dm2scp", prefix=prefix)
         elif methodname == "scp2dm":
-            return self.hf_engine.getparamnames("scp2dm", prefix=prefix + "hf_engine.")
+            return self.hf_engine.getparamnames("scp2dm",
+                                                prefix=prefix + "hf_engine.")
         elif methodname == "dm2scp":
             return self.getparamnames("__dm2fock", prefix=prefix)
         elif methodname == "aoparams2ene":
             return self.getparamnames("aoparams2dm", prefix=prefix) + \
                 self.getparamnames("dm2energy", prefix=prefix)
         elif methodname in ["aoparams2dm", "pack_aoparams", "unpack_aoparams"]:
-            return self.hf_engine.getparamnames(methodname, prefix=prefix + "hf_engine.")
+            return self.hf_engine.getparamnames(methodname,
+                                                prefix=prefix + "hf_engine.")
         elif methodname == "dm2energy":
             hprefix = prefix + "hamilton."
             sprefix = prefix + "_system."
 
             if self.xc is not None:
-                e_xc_params = self.hamilton.getparamnames("get_e_xc", prefix=hprefix)
+                e_xc_params = self.hamilton.getparamnames("get_e_xc",
+                                                          prefix=hprefix)
             else:
                 e_xc_params = []
 
@@ -408,7 +440,8 @@ class KSEngine(BaseSCFEngine):
             hprefix = prefix + "hamilton."
 
             if self.xc is not None:
-                vxc_params = self.hamilton.getparamnames("get_vxc", prefix=hprefix)
+                vxc_params = self.hamilton.getparamnames("get_vxc",
+                                                         prefix=hprefix)
             else:
                 vxc_params = []
 

@@ -176,7 +176,11 @@ class CGTOBasis:
 
     """
 
-    def __init__(self, angmom: int, alphas: torch.Tensor, coeffs: torch.Tensor, normalized: bool = False):
+    def __init__(self,
+                 angmom: int,
+                 alphas: torch.Tensor,
+                 coeffs: torch.Tensor,
+                 normalized: bool = False):
         """Initialize the CGTOBasis object.
 
         Parameters

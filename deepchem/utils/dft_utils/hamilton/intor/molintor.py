@@ -1312,7 +1312,37 @@ class Intor(object):
     """
     Integral operator class.
 
-    This class represents an integral operator and calculates the integrals based on the provided atomic information.
+    This class represents an integral operator and calculates the
+    integrals based on the provided atomic information.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis
+    >>> from deepchem.utils.dft_utils.hamilton.intor.namemgr import IntorNameManager
+    >>> dtype = torch.double
+    >>> d = 1.0
+    >>> pos_requires_grad = True
+    >>> pos1 = torch.tensor([0.1 * d,  0.0 * d,  0.2 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> pos2 = torch.tensor([0.0 * d,  1.0 * d, -0.4 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> poss = [pos1, pos2, pos3]
+    >>> atomzs = [1, 1, 1]
+    >>> allbases = [
+    ...     loadbasis("%d:%s" % (max(atomz, 1), "3-21G"), dtype=dtype, requires_grad=False)
+    ...     for atomz in atomzs
+    ... ]
+    The 3-21G basis for atomz 1 does not exist, but we will download it
+    >>> atombases = [
+    ...     AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+    ...     for i in range(len(allbases))
+    ... ]
+    >>> wrap = LibcintWrapper(atombases, True, None)
+    >>> int_nmgr = IntorNameManager("int1e", "r0")
+    >>> intor = Intor(int_nmgr, [wrap])
+    >>> intor.calc().shape
+    torch.Size([3, 6])
+
     """
 
     def __init__(self, int_nmgr: IntorNameManager,
@@ -1477,6 +1507,14 @@ def _get_intgl_optimizer(opname: str, atm: np.ndarray, bas: np.ndarray,
     """
     Get the optimizer for the integral.
 
+    Examples
+    --------
+    >>> import numpy as np
+    >>> atm = np.array([[1, 0, 0, 0, 0], [1, 0, 0, 0, 0], [1, 0, 0, 0, 0]])
+    >>> bas = np.array([[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
+    >>> env = np.array([0.0, 0.0, 0.0, 0.0])
+    >>> opt = _get_intgl_optimizer("int1e_ovlp", atm, bas, env)
+
     Parameters
     ----------
     opname : str
@@ -1597,6 +1635,18 @@ def _transpose(a: torch.Tensor, axes: List[Tuple[int, int]]) -> torch.Tensor:
     """
     Transpose the tensor.
 
+    Examples
+    --------
+    >>> import torch
+    >>> a = torch.tensor([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+    >>> axes = [(0, 1), (1, 2)]
+    >>> _transpose(a, axes)
+    tensor([[[1, 5],
+             [2, 6]],
+    <BLANKLINE>
+            [[3, 7],
+             [4, 8]]])
+
     Parameters
     ----------
     a : torch.Tensor
@@ -1618,6 +1668,13 @@ def _transpose(a: torch.Tensor, axes: List[Tuple[int, int]]) -> torch.Tensor:
 def _swap_list(a: List, swaps: List[Tuple[int, int]]) -> List:
     """
     Swap elements in the list.
+
+    Examples
+    --------
+    >>> a = [1, 2, 3, 4]
+    >>> swaps = [(0, 1), (2, 3)]
+    >>> _swap_list(a, swaps)
+    [2, 1, 4, 3]
 
     Parameters
     ----------
@@ -1644,12 +1701,25 @@ def _gather_at_dims(inp: torch.Tensor, mapidxs: List[torch.Tensor],
     """
     Gather values based on mapping indices.
 
+    Examples
+    --------
+    >>> import torch
+    >>> inp = torch.tensor([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+    >>> mapidxs = [torch.tensor([[0, 1], [1, 0]]), torch.tensor([[0, 1], [1, 0]])]
+    >>> dims = [-2, -1]
+    >>> _gather_at_dims(inp, mapidxs, dims)
+    tensor([[[1, 2],
+             [4, 3]],
+    <BLANKLINE>
+            [[7, 8],
+             [6, 5]]])
+
     Parameters
     ----------
     inp : torch.Tensor
-        Input tensor.
+        Input tensor. (..., nold, ...)
     mapidxs : List[torch.Tensor]
-        List of mapping indices.
+        List of mapping indices. (..., nnew, ...)
     dims : List[int]
         List of dimensions.
 
@@ -1658,12 +1728,6 @@ def _gather_at_dims(inp: torch.Tensor, mapidxs: List[torch.Tensor],
     torch.Tensor
         Tensor with gathered values.
     """
-    # expand inp in the dimension dim by gathering values based on the given
-    # mapping indices
-
-    # mapidx: (nnew,) with value from 0 to nold - 1
-    # inp: (..., nold, ...)
-    # out: (..., nnew, ...)
     out = inp
     for (dim, mapidx) in zip(dims, mapidxs):
         if dim < 0:
@@ -1678,6 +1742,12 @@ def _get_uniqueness(a: List) -> List[int]:
     """
     Get the uniqueness pattern from the list.
 
+    Examples
+    --------
+    >>> a = [1, 2, 3, 1, 2]
+    >>> _get_uniqueness(a)
+    [0, 1, 2, 0, 1]
+
     Parameters
     ----------
     a : List
@@ -1688,8 +1758,6 @@ def _get_uniqueness(a: List) -> List[int]:
     List[int]
         List representing the uniqueness pattern.
     """
-    # get the uniqueness pattern from the list, e.g. _get_uniqueness([1, 1, 2, 3, 2])
-    # will return [0, 0, 1, 2, 1]
     s: Dict = {}
     res: List[int] = []
     i = 0

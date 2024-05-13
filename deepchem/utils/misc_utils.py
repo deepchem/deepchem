@@ -171,6 +171,7 @@ class Uniquifier(object):
 
 T = TypeVar('T')
 
+
 def memoize_method(fcn: Callable[[Any], T]) -> Callable[[Any], T]:
     """Memoize a method without any arguments using a cache in the object
 
