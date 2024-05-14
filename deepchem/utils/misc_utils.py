@@ -1,7 +1,8 @@
 """
 Utilities for miscellaneous tasks.
 """
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Callable, TypeVar, Any
+import functools
 
 
 def indent(s, nspace):
@@ -166,3 +167,48 @@ class Uniquifier(object):
         if self.all_unique:
             return uniqueobjs
         return [uniqueobjs[idx] for idx in self.nonunique_map_idxs]
+
+
+T = TypeVar('T')
+
+
+def memoize_method(fcn: Callable[[Any], T]) -> Callable[[Any], T]:
+    """Memoize a method without any arguments using a cache in the object
+
+    Examples
+    --------
+    >>> class A:
+    ...     @memoize_method
+    ...     def foo(self):
+    ...         print("foo")
+    ...         return 1
+    >>> a = A()
+    >>> a.foo()
+    foo
+    1
+    >>> a.foo()
+    1
+
+    Parameters
+    ----------
+    fcn: callable
+        Function to memoize
+
+    Returns
+    -------
+    callable
+        Memoized function
+
+    """
+    cachename = "__cch_" + fcn.__name__
+
+    @functools.wraps(fcn)
+    def new_fcn(self) -> T:
+        if cachename in self.__dict__:
+            return self.__dict__[cachename]
+        else:
+            res = fcn(self)
+            self.__dict__[cachename] = res
+            return res
+
+    return new_fcn

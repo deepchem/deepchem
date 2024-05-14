@@ -926,3 +926,343 @@ def test_get_xc():
     # get the exchange-correlation potential
     potinfo = xc.get_vxc(densinfo)
     assert potinfo.value.shape == torch.Size([2])
+
+
+@pytest.mark.torch
+def test_libcintwrapper():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis
+    dtype = torch.double
+    d = 1.0
+    pos_requires_grad = True
+    pos1 = torch.tensor([0.1 * d, 0.0 * d, 0.2 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d, 1.0 * d, -0.4 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    poss = [pos1, pos2, pos3]
+    atomzs = [1, 1, 1]
+
+    allbases = [
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"),
+                  dtype=dtype,
+                  requires_grad=False) for atomz in atomzs
+    ]
+
+    atombases = [
+        AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i]) \
+        for i in range(len(allbases))
+    ]
+    wrap = LibcintWrapper(atombases, True, None)
+    assert wrap.ao_idxs() == (0, 6)
+
+
+@pytest.mark.torch
+def test_SubsetLibcintWrapper():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis
+    dtype = torch.double
+    d = 1.0
+    pos_requires_grad = True
+    pos1 = torch.tensor([0.1 * d, 0.0 * d, 0.2 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d, 1.0 * d, -0.4 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    poss = [pos1, pos2, pos3]
+    atomzs = [1, 1, 1]
+    allbases = [
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"),
+                  dtype=dtype,
+                  requires_grad=False) for atomz in atomzs
+    ]
+    atombases = [
+        AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+        for i in range(len(allbases))
+    ]
+    wrap = LibcintWrapper(atombases, True, None)
+    subset = wrap[1:3]
+    assert subset.ao_idxs() == (1, 3)
+
+
+@pytest.mark.torch
+def test_molintor():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis, \
+        int1e, int2e, int2c2e, int3c2e, overlap, kinetic, nuclattr, elrep, coul2c, coul3c
+    dtype = torch.double
+    d = 1.0
+    pos_requires_grad = True
+    pos1 = torch.tensor([0.1 * d, 0.0 * d, 0.2 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d, 1.0 * d, -0.4 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    poss = [pos1, pos2, pos3]
+    atomzs = [1, 1, 1]
+
+    allbases = [
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"),
+                  dtype=dtype,
+                  requires_grad=False) for atomz in atomzs
+    ]
+
+    atombases = [
+        AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i]) \
+        for i in range(len(allbases))
+    ]
+    env = LibcintWrapper(atombases, True, None)
+
+    assert int1e("r0", env).shape == torch.Size([3, 6, 6])
+    assert int1e("r0r0", env).shape == torch.Size([9, 6, 6])
+    assert int1e("r0r0r0", env).shape == torch.Size([27, 6, 6])
+    assert int2e("ar12b", env).shape == torch.Size([6, 6, 6, 6])
+    assert int2c2e("ipip1", env).shape == torch.Size([3, 3, 6, 6])
+    assert int3c2e("ar12", env).shape == torch.Size([6, 6, 6])
+    assert overlap(env).shape == torch.Size([6, 6])
+    assert kinetic(env).shape == torch.Size([6, 6])
+    assert nuclattr(env).shape == torch.Size([6, 6])
+    assert elrep(env).shape == torch.Size([6, 6, 6, 6])
+    assert coul2c(env).shape == torch.Size([6, 6])
+    assert coul3c(env).shape == torch.Size([6, 6, 6])
+
+
+@pytest.mark.torch
+def test_intor_name_manager():
+    from deepchem.utils.dft_utils.hamilton.intor.namemgr import IntorNameManager
+    mgr = IntorNameManager("int1e", "r0")
+    assert mgr.fullname == "int1e_r0"
+    assert mgr.get_intgl_name(True) == "int1e_r0_sph"
+    assert mgr.get_ft_intgl_name(True) == "GTO_ft_r0_sph"
+    assert mgr.get_intgl_symmetry([0, 1, 2, 0]).code == "s1"
+    assert mgr.get_intgl_components_shape() == (3,)
+
+
+@pytest.mark.torch
+def test_base_symmetry():
+    from deepchem.utils.dft_utils.hamilton.intor.symmetry import BaseSymmetry
+
+    class SemNew(BaseSymmetry):
+
+        def get_reduced_shape(self, orig_shape):
+            return orig_shape
+
+        @property
+        def code(self) -> str:
+            return "sn"
+
+        def reconstruct_array(self, arr, orig_shape):
+            return arr
+
+    sym = SemNew()
+    assert sym.get_reduced_shape((2, 3, 4)) == (2, 3, 4)
+    assert sym.code == 'sn'
+    assert sym.reconstruct_array(torch.rand((2, 3, 4)),
+                                 (2, 3, 4)).shape == torch.Size([2, 3, 4])
+
+
+@pytest.mark.torch
+def test_s1_symmetry():
+    from deepchem.utils.dft_utils.hamilton.intor.symmetry import S1Symmetry
+    sym = S1Symmetry()
+    assert sym.get_reduced_shape((2, 3, 4)) == (2, 3, 4)
+    assert sym.code == 's1'
+    assert sym.reconstruct_array(np.random.rand(2, 3, 4),
+                                 (2, 3, 4)).shape == torch.Size([2, 3, 4])
+
+
+@pytest.mark.torch
+def test_s4_symmetry():
+    from deepchem.utils.dft_utils.hamilton.intor.symmetry import S4Symmetry
+    sym = S4Symmetry()
+    assert sym.get_reduced_shape((3, 3, 4, 4)) == (6, 10)
+    assert sym.code == 's4'
+    assert sym.reconstruct_array(np.random.rand(2, 3, 4, 4),
+                                 (3, 3, 4, 4)).shape == (3, 3, 4, 4)
+
+
+@pytest.mark.torch
+def test_np2ctypes():
+    """Just checks that it doesn't raise errors."""
+    from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes
+    arr = np.random.rand(2, 3, 4)
+    np2ctypes(arr)
+
+
+@pytest.mark.torch
+def test_int2ctypes():
+    """Just checks that it doesn't raise errors."""
+    from deepchem.utils.dft_utils.hamilton.intor.utils import int2ctypes
+    arr = 51
+    int2ctypes(arr)
+
+
+@pytest.mark.torch
+def test_memoize_method():
+    from deepchem.utils import memoize_method
+
+    class A:
+
+        @memoize_method
+        def foo(self):
+            print("foo")
+            return 1
+
+    a = A()
+    assert a.foo() == 1
+
+
+@pytest.mark.torch
+def test_load_basis():
+    from deepchem.utils.dft_utils import loadbasis
+    H = loadbasis("1:3-21G")
+    assert H[0].alphas.shape == torch.Size([2])
+
+
+@pytest.mark.torch
+def test_ks_engine():
+    """Tests KSEngine and KS Class."""
+    from deepchem.utils.dft_utils import (BaseHamilton, BaseSystem, BaseGrid,
+                                          SpinParam, KSEngine)
+    from deepchem.utils.differentiation_utils import LinearOperator
+
+    class MyLinOp(LinearOperator):
+
+        def __init__(self, shape):
+            super(MyLinOp, self).__init__(shape)
+            self.param = torch.rand(shape)
+
+        def _getparamnames(self, prefix=""):
+            return [prefix + "param"]
+
+        def _mv(self, x):
+            return torch.matmul(self.param, x)
+
+        def _rmv(self, x):
+            return torch.matmul(self.param.transpose(-2, -1).conj(), x)
+
+        def _mm(self, x):
+            return torch.matmul(self.param, x)
+
+        def _rmm(self, x):
+            return torch.matmul(self.param.transpose(-2, -1).conj(), x)
+
+        def _fullmatrix(self):
+            return self.param
+
+    class MyHamilton(BaseHamilton):
+
+        def __init__(self):
+            self._nao = 2
+            self._kpts = torch.tensor([[0.0, 0.0, 0.0]])
+            self._df = None
+
+        @property
+        def nao(self):
+            return self._nao
+
+        @property
+        def kpts(self):
+            return self._kpts
+
+        @property
+        def df(self):
+            return self._df
+
+        def build(self):
+            return self
+
+        def get_nuclattr(self):
+            return torch.ones((1, 1, self.nao, self.nao))
+
+        def get_e_elrep(self, dmtot):
+            return 2 * dmtot
+
+        def get_e_exchange(self, dm):
+            return 3 * dm
+
+        def get_e_hcore(self, dm):
+            return 4.0 * dm
+
+        def get_elrep(self, dmtot):
+            return MyLinOp((self.nao + 1, self.nao + 1))
+
+        def get_exchange(self, dm):
+            return MyLinOp((self.nao + 1, self.nao + 1))
+
+        def get_kinnucl(self):
+            linop = MyLinOp((self.nao + 1, self.nao + 1))
+            return linop
+
+        def ao_orb2dm(self, orb: torch.Tensor,
+                      orb_weight: torch.Tensor) -> torch.Tensor:
+            return orb * orb_weight
+
+    ham = MyHamilton()
+
+    class MySystem(BaseSystem):
+
+        def __init__(self):
+            self.hamiltonian = ham
+            self.grid = BaseGrid()
+
+        def get_hamiltonian(self):
+            return self.hamiltonian
+
+        def get_grid(self):
+            return self.grid
+
+        def requires_grid(self):
+            return True
+
+        def get_orbweight(
+            self,
+            polarized: bool = False
+        ) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
+            return SpinParam(torch.tensor([1.0]), torch.tensor([2.0]))
+
+        def get_nuclei_energy(self):
+            return 10.0
+
+    system = MySystem()
+    engine = KSEngine(system, None)
+    engine.set_eigen_options(eigen_options={"method": "exacteig"})
+
+    assert engine.dm2energy(torch.tensor([2])) == torch.tensor([22.0])
+    assert engine.dm2scp(torch.tensor([2])).shape == torch.Size([3, 3])
+    assert engine.scp2dm(torch.rand((2, 2, 2))).u.shape == torch.Size([2, 1])
+
+
+@pytest.mark.torch
+def test_read_float():
+    from deepchem.utils.dft_utils.api.loadbasis import _read_float
+    assert _read_float("1.0D+00") == 1.0
+
+
+@pytest.mark.torch
+def test_get_basis_file():
+    from deepchem.utils.dft_utils.api.loadbasis import _get_basis_file
+    fname = _get_basis_file("1:3-21G")
+    path = fname.split("/")[-1]
+    assert path == "01.gaussian94"
+
+
+@pytest.mark.torch
+def test_normalize_basisname():
+    from deepchem.utils.dft_utils.api.loadbasis import _normalize_basisname
+    assert _normalize_basisname("6-311++G**") == '6-311ppgss'
+
+
+@pytest.mark.torch
+def test_expand_angmoms():
+    from deepchem.utils.dft_utils.api.loadbasis import _expand_angmoms
+    assert _expand_angmoms("SP", 2) == [0, 1]
