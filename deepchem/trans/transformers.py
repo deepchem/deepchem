@@ -2006,6 +2006,7 @@ class ImageTransformer(Transformer):
             assert len(
                 X.shape
             ) >= 3, "X must be an array of images with shape (n_samples, width, height) or (n_samples, width, height, channels)."
+            # PIL only accepts uint8 data type as inputs, so we multiply then divide by 255 to minimize information loss while resizing.
             x = [
                 np.array(
                     Image.fromarray(
