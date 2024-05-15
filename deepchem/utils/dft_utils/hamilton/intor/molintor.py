@@ -839,7 +839,8 @@ class _Int2cFunction(torch.autograd.Function):
 
 
 class _Int3cFunction(torch.autograd.Function):
-    # wrapper class for the 3-centre integrals
+    """wrapper class for the 3-centre integrals"""
+
     @staticmethod
     def forward(
             ctx,  # type: ignore

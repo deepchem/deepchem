@@ -337,6 +337,18 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.dft_utils.api.getxc.get_xc
 
+.. autofunction:: deepchem.utils.dft_utils.api.loadbasis.loadbasis
+
+.. autofunction:: deepchem.utils.dft_utils.api.loadbasis._read_float
+
+.. autofunction:: deepchem.utils.dft_utils.api.loadbasis._get_basis_file
+
+.. autofunction:: deepchem.utils.dft_utils.api.loadbasis._normalize_basisname
+
+.. autofunction:: deepchem.utils.dft_utils.api.loadbasis._download_basis
+
+.. autofunction:: deepchem.utils.dft_utils.api.loadbasis._expand_angmoms
+
 .. autoclass:: deepchem.utils.dft_utils.BaseGrid
   :members:
 
@@ -345,6 +357,74 @@ The utilites here are used to create an object that contains information about a
 
 .. autoclass:: deepchem.utils.dft_utils.hamilton.base_hamilton.BaseHamilton
   :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.lcintwrap.LibcintWrapper
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.lcintwrap.SubsetLibcintWrapper
+  :members:
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.int1e
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.int2c2e
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.int3c2e
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.int2e
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.overlap
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.kinetic
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.nuclattr
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.elrep
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.coul2c
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.coul3c
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor._check_and_set
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor._get_intgl_optimizer
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor._get_integrals
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor._transpose
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor._swap_list
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor._gather_at_dims
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor._get_uniqueness
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.molintor._Int2cFunction
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.molintor._Int3cFunction
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.molintor._Int4cFunction
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.molintor._cintoptHandler
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.molintor.Intor
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.symmetry.BaseSymmetry
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.symmetry.S1Symmetry
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.symmetry.S4Symmetry
+  :members:
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.utils.np2ctypes
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.utils.int2ctypes
 
 .. autoclass:: deepchem.utils.dftutils.KSCalc
   :members:
@@ -414,7 +494,13 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.qccalc.scf_qccalc.SCF_QCCalc
   :members:
 
-.. autoclass:: deepchem.utils.dft_utils.qccalc.scf_qccalc import BaseSCFEngine
+.. autoclass:: deepchem.utils.dft_utils.qccalc.scf_qccalc.BaseSCFEngine
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.ks.KS
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.ks.KSEngine
   :members:
 
 .. autoclass:: deepchem.utils.differentiation_utils.editable_module.EditableModule
@@ -680,6 +766,8 @@ Initial usecases are for improving the printing format of __repr__.
 .. autofunction:: deepchem.utils.misc_utils.indent
 
 .. autofunction:: deepchem.utils.misc_utils.shape2str
+
+.. autofunction:: deepchem.utils.misc_utils.memoize_method
 
 .. autoclass:: deepchem.utils.misc_utils.UnimplementedError
   :members:
