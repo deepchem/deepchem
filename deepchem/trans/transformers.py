@@ -1943,25 +1943,36 @@ class DAGTransformer(Transformer):
 
 
 class ImageTransformer(Transformer):
-    """Convert an image into width, height, channel
+    """
+    Transforms images to a specified size.
 
     Note
     ----
     This class require Pillow to be installed.
     """
 
-    def __init__(self, size: Tuple[int, int]):
+    def __init__(self,
+                 size: Tuple[int, int],
+                 transform_X: bool = True,
+                 transform_y: bool = False):
         """Initializes ImageTransformer.
 
         Parameters
         ----------
         size: Tuple[int, int]
             The image size, a tuple of (width, height).
+        transform_X: bool, optional (default True)
+            Whether to transform X
+        transform_y: bool, optional (default False)
+            Whether to transform y
         """
         self.size = size
-        super(ImageTransformer, self).__init__(transform_X=True)
+        super(ImageTransformer, self).__init__(transform_X=transform_X,
+                                               transform_y=transform_y)
 
-    def transform_array(self, X, y, w):
+    def transform_array(
+        self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Transform the data in a set of (X, y, w, ids) arrays.
 
         Parameters
@@ -1990,9 +2001,28 @@ class ImageTransformer(Transformer):
             from PIL import Image
         except ModuleNotFoundError:
             raise ImportError("This function requires Pillow to be installed.")
-        images = [scipy.ndimage.imread(x, mode='RGB') for x in X]
-        images = [Image.fromarray(x).resize(self.size) for x in images]
-        return np.array(images), y, w
+
+        if self.transform_X:
+            assert len(
+                X.shape
+            ) >= 3, "X must be an array of images with shape (n_samples, width, height) or (n_samples, width, height, channels)."
+            x = [
+                np.array(
+                    Image.fromarray(
+                        (img * 255).astype(np.uint8)).resize(self.size)) / 255
+                for img in X
+            ]
+        if self.transform_y:
+            assert len(
+                y.shape
+            ) >= 3, "y must be an array of images with shape (n_samples, width, height) or (n_samples, width, height, channels)."
+            y = [
+                np.array(
+                    Image.fromarray(
+                        (img * 255).astype(np.uint8)).resize(self.size)) / 255
+                for img in y
+            ]
+        return (np.array(x), np.array(y), w, ids)
 
 
 # class ANITransformer(Transformer):
