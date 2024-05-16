@@ -42,7 +42,7 @@ def test_y_image_transform():
 
     dataset = dc.data.ImageDataset(X, y, w, ids)
     img_transformer = dc.trans.ImageTransformer(size=new_size,
-                                                transform_x=False,
+                                                transform_X=False,
                                                 transform_y=True)
     dataset = dataset.transform(img_transformer)
 
@@ -67,7 +67,7 @@ def test_xy_image_transform():
 
     dataset = dc.data.ImageDataset(X, y, w, ids)
     img_transformer = dc.trans.ImageTransformer(size=new_size,
-                                                transform_x=True,
+                                                transform_X=True,
                                                 transform_y=True)
     dataset = dataset.transform(img_transformer)
 
@@ -91,7 +91,7 @@ def test_image_transform_array():
     ids = np.random.randn(n_samples, 1)
 
     img_transform = dc.trans.ImageTransformer(size=new_size,
-                                              transform_x=True,
+                                              transform_X=True,
                                               transform_y=True)
     data = img_transform.transform_array(X, y, w, ids)
 
