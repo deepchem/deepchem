@@ -224,7 +224,7 @@ Torch Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.MolGANAggregationLayer
   :members:
-  
+
 .. autoclass:: deepchem.models.torch_models.layers.MolGANMultiConvolutionLayer
   :members:
 
@@ -239,7 +239,7 @@ Torch Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.WeaveGather
   :members:
-  
+
 .. autoclass:: deepchem.models.torch_models.layers.MXMNetGlobalMessagePassing
   :members:
 
@@ -274,6 +274,9 @@ Torch Layers
   :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.HighwayLayer
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.GraphConv
   :members:
 
 .. autoclass:: deepchem.models.torch_models.flows.ClampExp
