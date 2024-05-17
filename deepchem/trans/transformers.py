@@ -2013,6 +2013,8 @@ class ImageTransformer(Transformer):
                         (img * 255).astype(np.uint8)).resize(self.size)) / 255
                 for img in X
             ]
+        else:  # if not transforming X, return the original X
+            x = X
         if self.transform_y:
             assert len(
                 y.shape
