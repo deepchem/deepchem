@@ -41,3 +41,14 @@ def solver_euler_n(x, y, h, ode, steps):
         x_new = x + h
         x, y = x_new, y_new
     return x, y
+
+
+def solver_midpoint_n(x, y, h, ode, steps):
+    for i in range(steps):
+        y_new = [1] * len(y)
+        for f in range(0, len(y)-1):
+            y_new[f] = y[f] + h * y[f+1]
+        y_new[-1] = y[-1] + h * ode(x + (h/2), y + (h/2) * ode(x, y))
+        x_new = x + h
+        x, y = x_new, y_new
+    return y
