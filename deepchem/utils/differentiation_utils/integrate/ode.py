@@ -17,8 +17,8 @@ def solver_euler_3(x, y, h, tode, steps):
 
 
 def solver_euler_n(x, y, h, ode, steps):
-    y_new = [1] * len(y)
     for i in range(steps):
+        y_new = [1] * len(y)
         for f in range(0, len(y)-1):
             y_new[f] = y[f] + h * y[f+1]
         y_new[-1] = y[-1] + h * ode(x, y)
