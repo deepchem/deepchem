@@ -136,6 +136,7 @@ class SklearnModel(Model):
         Raises
         ------
         ValueError: If model being used for classification and classes not provided.
+        AttributeError: If model does not implement partial_fit.
         """
         if self.is_classifier and classes is None:
             raise ValueError(
