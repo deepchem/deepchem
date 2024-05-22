@@ -1,3 +1,5 @@
+from typing import List
+
 def solver_euler_1(x, y, h, dydx, steps):
     for i in range(steps):
         y = y + h * dydx(x, y)
@@ -33,6 +35,8 @@ def solver_euler_n(x, y, h, ode, steps):
     (2.0000000000000004, [4.45391412194374, 2.6909199119204628, 1.1562909374702801])
 
     """
+    x_val = []
+    y_val = []
     for i in range(steps):
         y_new = [1] * len(y)
         for f in range(0, len(y)-1):
@@ -40,7 +44,10 @@ def solver_euler_n(x, y, h, ode, steps):
         y_new[-1] = y[-1] + h * ode(x, y)
         x_new = x + h
         x, y = x_new, y_new
-    return x, y
+        x_val.append(x)
+        y_val.append(y)
+    result = {'x_val': x_val, 'y_val': y_val}
+    return result
 
 
 def solver_midpoint_n(x, y, h, ode, steps):
@@ -52,3 +59,15 @@ def solver_midpoint_n(x, y, h, ode, steps):
         x_new = x + h
         x, y = x_new, y_new
     return y
+
+
+def solver_euler_1_2(ode, t_start: float, y_start: List[List[int]], t_step: float, t_end: float):
+    steps = round((t_end - t_start)/t_step)
+    n_var = len(y_start)
+    Y = y_start.copy()
+    T = [t_start]
+    for i in range(steps):
+        for f in range(n_var):
+            Y[f].append(Y[f][-1] + t_step * ode(T[-1], [[a[-1]] for a in Y])[f])
+        T.append(T[-1] + t_step)
+    return T, Y
