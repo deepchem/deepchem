@@ -11,3 +11,4 @@ dependencies:
     - pydantic
     - torch-cluster
     - git+https://github.com/diffqc/dqclibs.git
+    - basis-set-exchange
