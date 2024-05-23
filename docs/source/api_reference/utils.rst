@@ -306,6 +306,37 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.xc.base_xc.MulBaseXC
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc_wrapper.CalcLDALibXCPol
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc_wrapper.CalcLDALibXCUnpol
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc_wrapper.CalcGGALibXCUnpol
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc_wrapper.CalcGGALibXCPol
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc_wrapper.CalcMGGALibXCUnpol
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc_wrapper.CalcMGGALibXCPol
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc.LibXCLDA
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc.LibXCGGA
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc.LibXCMGGA
+  :members:
+
+.. autofunction:: deepchem.utils.dft_utils.api.getxc.get_libxc
+
+.. autofunction:: deepchem.utils.dft_utils.api.getxc.get_xc
+
 .. autoclass:: deepchem.utils.dft_utils.BaseGrid
   :members:
 
@@ -369,6 +400,21 @@ The utilites here are used to create an object that contains information about a
   :members:
 
 .. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.get_grid_transform
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.hf.HF
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.hf.HFEngine
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.base_qccalc.BaseQCCalc
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.scf_qccalc.SCF_QCCalc
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.scf_qccalc import BaseSCFEngine
   :members:
 
 .. autoclass:: deepchem.utils.differentiation_utils.editable_module.EditableModule

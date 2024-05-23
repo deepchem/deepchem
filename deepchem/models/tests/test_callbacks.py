@@ -76,3 +76,22 @@ class TestCallbacks(unittest.TestCase):
             scores.append(score)
 
         self.assertTrue(abs(max(scores) - callback.get_best_score()) < 0.05)
+
+
+@pytest.mark.torch
+def test_torch_model_callback():
+    import torch
+    pytorch_model = torch.nn.Sequential(torch.nn.Linear(128, 32),
+                                        torch.nn.Linear(32, 1))
+
+    X = np.random.randn(1024, 128)
+    y = np.random.randn(1024, 1)
+
+    dataset = dc.data.DiskDataset.from_numpy(X=X, y=y)
+    model = dc.models.TorchModel(pytorch_model, dc.models.losses.L2Loss())
+
+    def callback(model, step, **kwargs):
+        pass
+
+    loss = model.fit(dataset, callbacks=[callback], nb_epoch=1)
+    assert loss

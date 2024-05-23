@@ -40,6 +40,18 @@ try:
     from deepchem.utils.dft_utils.xc.base_xc import BaseXC
     from deepchem.utils.dft_utils.xc.base_xc import AddBaseXC
     from deepchem.utils.dft_utils.xc.base_xc import MulBaseXC
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import CalcLDALibXCPol
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import CalcLDALibXCUnpol
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import CalcGGALibXCUnpol
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import CalcGGALibXCPol
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import CalcMGGALibXCUnpol
+    from deepchem.utils.dft_utils.xc.libxc_wrapper import CalcMGGALibXCPol
+    from deepchem.utils.dft_utils.xc.libxc import LibXCLDA
+    from deepchem.utils.dft_utils.xc.libxc import LibXCGGA
+    from deepchem.utils.dft_utils.xc.libxc import LibXCMGGA
+
+    from deepchem.utils.dft_utils.api.getxc import get_libxc
+    from deepchem.utils.dft_utils.api.getxc import get_xc
 
     from deepchem.utils.dft_utils.df.base_df import BaseDF
 
@@ -48,6 +60,10 @@ try:
     from deepchem.utils.dft_utils.system.base_system import BaseSystem
 
     from deepchem.utils.dft_utils.qccalc.base_qccalc import BaseQCCalc
+    from deepchem.utils.dft_utils.qccalc.scf_qccalc import SCF_QCCalc
+    from deepchem.utils.dft_utils.qccalc.scf_qccalc import BaseSCFEngine
+    from deepchem.utils.dft_utils.qccalc.hf import HF
+    from deepchem.utils.dft_utils.qccalc.hf import HFEngine
 except ModuleNotFoundError as e:
     logger_.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')

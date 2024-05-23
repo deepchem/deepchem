@@ -224,7 +224,7 @@ Torch Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.MolGANAggregationLayer
   :members:
-  
+
 .. autoclass:: deepchem.models.torch_models.layers.MolGANMultiConvolutionLayer
   :members:
 
@@ -239,7 +239,7 @@ Torch Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.WeaveGather
   :members:
-  
+
 .. autoclass:: deepchem.models.torch_models.layers.MXMNetGlobalMessagePassing
   :members:
 
@@ -274,6 +274,33 @@ Torch Layers
   :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.HighwayLayer
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.GraphConv
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.ClampExp
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.ConstScaleLayer
+  :members:
+
+Flow Layers
+^^^^^^^^^^^
+
+.. autoclass:: deepchem.models.torch_models.flows.Flow
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.Affine
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.MaskedAffineFlow
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.ActNorm
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.MLP_flow
   :members:
 
 Grover Layers
