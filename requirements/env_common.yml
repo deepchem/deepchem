@@ -9,7 +9,7 @@ dependencies:
   - pip
   - pip:
     - numpy
-    - rdkit
+    - rdkit==2023.09.5
     - pre-commit
     - biopython
     - dgllife
