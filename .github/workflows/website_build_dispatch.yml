@@ -5,12 +5,12 @@ on:
       - master
 jobs:
   website-rebuild-trigger-dispatch:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Repository Dispatch
-          uses: peter-evans/repository-dispatch@v3
-          with:
-            token: ${{ secrets.WEBSITE_REPO_PAT }}
-            repository: deepchem/deepchem.github.io
-            event-type: rebuild-website
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.WEBSITE_REPO_PAT }}
+          repository: deepchem/deepchem.github.io
+          event-type: rebuild-website
            
