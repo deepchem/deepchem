@@ -1,6 +1,6 @@
 name: Dispatch trigger for deepchem website re-build
 on:
-  push:
+  push: # ci work when pushing to master branch
     branches:
       - master
 jobs:
