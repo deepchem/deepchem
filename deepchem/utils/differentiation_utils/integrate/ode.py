@@ -62,19 +62,19 @@ def solver_midpoint_n(x, y, h, ode, steps):
     return y
 
 
-def solver_euler_1_n(ode, t_start: float, y_start: List[List[int]], t_step: float, t_end: float):
-    steps = round((t_end - t_start)/t_step)
-    n_var = len(y_start)
-    Y = y_start.copy()
-    T = [t_start]
-    for i in range(steps):
-        for f in range(n_var):
-            Y[f].append(Y[f][-1] + t_step * ode(T[-1], [[a[-1]] for a in Y])[f])
-        T.append(T[-1] + t_step)
-    return T, Y
+#def solver_euler_1_n(ode, t_start: float, y_start: List[List[int]], t_step: float, t_end: float):
+#    steps = round((t_end - t_start)/t_step)
+#    n_var = len(y_start)
+#    Y = y_start.copy()
+#    T = [t_start]
+#    for i in range(steps):
+#        for f in range(n_var):
+#            Y[f].append(Y[f][-1] + t_step * ode(T[-1], [[a[-1]] for a in Y])[f])
+#       T.append(T[-1] + t_step)
+#   return T, Y
 
 
-def solver_euler_1_new3(ode, y_start: np.ndarray, t: np.ndarray, args:np.ndarray=np.array([])):
+def solver_euler_1_n(ode, y_start: np.ndarray, t: np.ndarray, args:np.ndarray=np.array([])):
     n_var = len(y_start)
     Y = [[a] for a in y_start]
     t_i = t[0]
