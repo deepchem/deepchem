@@ -1,4 +1,5 @@
 from typing import List
+import numpy as np
 
 def solver_euler_1(x, y, h, dydx, steps):
     for i in range(steps):
