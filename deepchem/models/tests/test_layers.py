@@ -1487,3 +1487,26 @@ def test_torch_graph_conv():
     assert result.shape == (n_atoms, out_channels)
     num_deg = 2 * layer.max_degree + (1 - layer.min_degree)
     assert len(list(layer.parameters())) == 2 * num_deg
+
+
+@pytest.mark.torch
+def test_torch_graph_pool():
+    """Test invoking GraphPool."""
+    n_atoms = 4  # In CCC and C, there are 4 atoms
+    raw_smiles = ['CCC', 'C']
+    from rdkit import Chem
+    mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
+    featurizer = dc.feat.graph_features.ConvMolFeaturizer()
+    mols = featurizer.featurize(mols)
+    multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
+    atom_features = multi_mol.get_atom_features().astype(np.float32)
+    degree_slice = multi_mol.deg_slice
+    membership = multi_mol.membership
+    deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
+    args = [atom_features, degree_slice, membership] + deg_adjs
+    result = torch_layers.GraphPool()(args)
+    assert np.allclose(
+        result.detach().numpy(),
+        np.load("deepchem/models/tests/assets/graphpoollayer_result.npy"),
+        atol=1e-4)
+    assert result.shape[0] == n_atoms

@@ -5442,6 +5442,7 @@ class FerminetElectronFeature(torch.nn.Module):
             The one electron feature after passing through the layer which has the shape (batch_size, number of electrons, n_one shape).
         two_electron: torch.Tensor
             The two electron feature after passing through the layer which has the shape (batch_size, number of electrons, number of electron , n_two shape).
+            The two electron feature after passing through the layer which has the shape (batch_size, number of electrons, number of electron , n_two shape).
         """
         for l in range(self.layer_size):
             # Calculating one-electron feature's average
@@ -6237,3 +6238,128 @@ class GraphConv(nn.Module):
             deg_summed.append(summed_atoms.detach().numpy())
 
         return deg_summed
+
+
+class GraphPool(nn.Module):
+    """A GraphPool gathers data from local neighborhoods of a graph.
+
+    This layer does a max-pooling over the feature vectors of atoms in a
+    neighborhood. You can think of this layer as analogous to a max-pooling
+    layer for 2D convolutions but which operates on graphs instead. This
+    technique is described in [1]_.
+
+    Example
+    --------
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> import deepchem.models.torch_models.layers as torch_layers
+    >>> n_atoms = 4  # In CCC and C, there are 4 atoms
+    >>> raw_smiles = ['CCC', 'C']
+    >>> from rdkit import Chem
+    >>> mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
+    >>> featurizer = dc.feat.graph_features.ConvMolFeaturizer()
+    >>> mols = featurizer.featurize(mols)
+    >>> multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
+    >>> atom_features = multi_mol.get_atom_features().astype(np.float32)
+    >>> degree_slice = multi_mol.deg_slice
+    >>> membership = multi_mol.membership
+    >>> deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
+    >>> args = [atom_features, degree_slice, membership] + deg_adjs
+    >>> result = torch_layers.GraphPool()(args)
+    >>> type(result)
+    <class 'torch.Tensor'>
+    >>> result.shape
+    torch.Size([4, 75])
+
+    References
+    ----------
+    .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
+        learning molecular fingerprints." Advances in neural information processing
+        systems. 2015. https://arxiv.org/abs/1509.09292
+
+    """
+
+    def __init__(self, min_degree: int = 0, max_degree: int = 10, **kwargs):
+        """Initialize this layer
+
+        Parameters
+        ----------
+        min_deg: int, optional (default 0)
+            The minimum allowed degree for each graph node.
+        max_deg: int, optional (default 10)
+            The maximum allowed degree for each graph node. Note that this
+            is set to 10 to handle complex molecules (some organometallic
+            compounds have strange structures). If you're using this for
+            non-molecular applications, you may need to set this much higher
+            depending on your dataset.
+        """
+        super(GraphPool, self).__init__(**kwargs)
+        self.min_degree: int = min_degree
+        self.max_degree: int = max_degree
+
+    def get_config(self) -> str:
+        """
+        Returns a string representation of the object.
+
+        Returns:
+        -------
+        str: A string that contains the class name followed by the values of its instance variable.
+        """
+        # flake8: noqa
+        return (
+            f'{self.__class__.__name__}(min_degree:{self.min_degree},max_degree:{self.max_degree})'
+        )
+
+    def forward(self, inputs: List[np.ndarray]) -> torch.Tensor:
+        """
+        The forward pass performs max-pooling over the feature vectors of atoms in a neighborhood.
+
+        Parameters
+        ----------
+        inputs: List[np.ndarray]
+        Should contain atom features and arrays describing graph topology.
+
+        Returns:
+        -------
+        torch.Tensor
+        """
+        atom_features = torch.tensor(inputs[0])
+        deg_slice: np.ndarray = inputs[1]
+        deg_adj_lists: List[np.ndarray] = inputs[3:]
+
+        # Perform the mol gather
+        # atom_features = graph_pool(atom_features, deg_adj_lists, deg_slice,
+        #                            self.max_degree, self.min_degree)
+
+        #deg_maxed = (self.max_degree + 1 - self.min_degree) * [None]
+        deg_maxed = []
+
+        split_features: Tuple[torch.Tensor,
+                              ...] = torch.split(atom_features,
+                                                 (deg_slice[:, 1]).tolist())
+        for deg in range(1, self.max_degree + 1):
+            # Get self atoms
+            self_atoms: torch.Tensor = split_features[deg - self.min_degree]
+
+            if deg_adj_lists[deg - 1].shape[0] == 0:
+                # There are no neighbors of this degree, so just create an empty tensor directly.
+                maxed_atoms: torch.Tensor = torch.zeros(
+                    (0, self_atoms.shape[-1]))
+                deg_maxed.append(maxed_atoms)
+            else:
+                # Expand dims
+                self_atoms = torch.unsqueeze(self_atoms, 1)
+
+                # always deg-1 for deg_adj_lists
+                gathered_atoms: torch.Tensor = atom_features[deg_adj_lists[deg -
+                                                                           1]]
+                gathered_atoms = torch.concat([self_atoms, gathered_atoms], 1)
+
+                max_atoms: tuple = torch.max(gathered_atoms, 1)
+                deg_maxed.append(max_atoms[0])
+
+        if self.min_degree == 0:
+            self_atoms = split_features[0]
+            deg_maxed.insert(0, self_atoms)
+
+        return torch.concat(deg_maxed, 0)
