@@ -306,3 +306,43 @@ class AtomCGTOBasis:
 # input basis type
 BasisInpType = Union[str, List[CGTOBasis], List[str], List[List[CGTOBasis]],
                      Dict[Union[str, int], Union[List[CGTOBasis], str]]]
+
+
+def is_z_float(a: ZType) -> bool:
+    """Checks if the given z-type is a floating point.
+
+    Parameters
+    ----------
+    a: ZType
+        Given Ztype.
+
+    Returns
+    -------
+    bool
+        Returns true if its a floating point.
+
+    """
+    if isinstance(a, torch.Tensor):
+        return a.is_floating_point()
+    else:
+        return isinstance(a, float)
+
+
+@dataclass
+class DensityFitInfo:
+    """Density fitting (DF), sometimes also called the resolution of
+    identity (RI) approximation, is a method to approximate the
+    four-index electron repulsion integrals (ERIs) by two- and
+    three-index tensors. [54] In DF, the atomic orbital (AO) product
+    space is expanded in terms of an auxiliary basis set.
+
+    Attributes
+    ----------
+    method: str
+        Mathod for approxitmating the Density Fitting.
+    auxbasis: List[AtomCGTOBasis]
+        Auxiliary Basis Set.
+
+    """
+    method: str
+    auxbasis: List[AtomCGTOBasis]

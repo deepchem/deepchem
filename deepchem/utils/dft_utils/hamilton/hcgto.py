@@ -1,30 +1,46 @@
 from typing import List, Optional, Union, overload, Tuple
 import torch
-from dqc.df.base_df import BaseDF
-from dqc.df.dfmol import DFMol
-from dqc.hamilton.base_hamilton import BaseHamilton
-from dqc.hamilton.orbconverter import OrbitalOrthogonalizer
-from dqc.utils.cache import Cache
 from deepchem.utils import chunkify
+from deepchem.utils.dft_utils import BaseDF
 from deepchem.utils.differentiation_utils import LinearOperator
-from deepchem.utils.dft_utils import LibcintWrapper, overlap, kinetic, nuclattr, int1e, elrep, config, BaseXC, BaseGrid, AtomCGTOBasis, ValGrad, SpinParam, DensityFitInfo
+from deepchem.utils.dft_utils import LibcintWrapper, BaseHamilton, overlap, kinetic, nuclattr, int1e, elrep, config, BaseXC, BaseGrid, AtomCGTOBasis, ValGrad, SpinParam
 from deepchem.utils.dft_utils.hamilton.intor.gtoeval import eval_gto, eval_gradgto, eval_laplgto
+from deepchem.utils.dft_utils.data.datastruct import DensityFitInfo
+from deepchem.utils.misc_utils import Cache
+from deepchem.utils.dft_utils.hamilton.orbconverter import OrbitalOrthogonalizer
+from deepchem.utils.dft_utils.df.dfmol import DFMol
 from deepchem.utils.pytorch_utils import get_dtype_memsize
 
 
 class HamiltonCGTO(BaseHamilton):
     """
     Hamiltonian object of contracted Gaussian type-orbital.
-    This class orthogonalizes the basis by taking the weighted eigenvectors of
-        the overlap matrix, i.e. the eigenvectors divided by square root of the
-        eigenvalues.
+    This class orthogonalizes the basis by taking the weighted
+    eigenvectors of the overlap matrix, i.e. the eigenvectors
+    divided by square root of the eigenvalues.
     The advantage of doing this is making the overlap matrix in Roothan's equation
-        identity and it could handle overcomplete basis.
+    identity and it could handle overcomplete basis.
     """
     def __init__(self, atombases: List[AtomCGTOBasis], spherical: bool = True,
                  df: Optional[DensityFitInfo] = None,
                  efield: Optional[Tuple[torch.Tensor, ...]] = None,
                  cache: Optional[Cache] = None) -> None:
+        """Initialise the HamiltonCGTO
+
+        Parameters
+        ----------
+        atombases: List[AtomCGTOBasis]
+            Basis information of the concerned atom.
+        spherical: bool
+            Is the given orbital spherical.
+        df: Optional[DensityFitInfo]
+            Density Fitting information of the atom.
+        efield: Optional[Tuple[torch.Tensor, ...]]
+            Electrostatic Force field information about the environment.
+        cache: Optional[Cache]
+            Optional Cache parameters.
+
+        """
         self.atombases = atombases
         self.spherical = spherical
         self.libcint_wrapper = LibcintWrapper(atombases, spherical)
@@ -54,17 +70,40 @@ class HamiltonCGTO(BaseHamilton):
 
     @property
     def nao(self) -> int:
+        """Number of Atomic Orbitals.
+
+        Returns
+        -------
+        int
+            No. of Atomic Orbitals.
+
+        """
         return self._orthozer.nao()
 
     @property
     def kpts(self) -> torch.Tensor:
+        """The KPOINTS specifies the Bloch vectors (k points) used to
+        sample the Brillouin zone. Converging this sampling is one of
+        the essential tasks in many calculations concerning the
+        electronic minimization.
+
+        Bloch sphere is a geometrical representation of the pure state
+        space of a two-level quantum mechanical system (qubit).
+
+        Returns
+        -------
+        torch.Tensor
+            List of k-points in the Hamiltonian. Shape: (nkpts, ndim)
+
+        """
         raise TypeError("Isolated molecule Hamiltonian does not have kpts property")
 
     @property
     def df(self) -> Optional[BaseDF]:
+        """"""
         return self._df
 
-    ############# setups #############
+    # setups
     def build(self) -> BaseHamilton:
         # get the matrices (all (nao, nao), except el_mat)
         # these matrices have already been normalized
