@@ -32,7 +32,12 @@ else
         if [ "$1" = "3.11" ]; then
             conda-merge $dir/env_common.yml $dir/env_mac_3_11.yml $dir/env_test.yml $dir/tensorflow/env_tensorflow.cpu.yml $dir/torch/env_torch.mac.cpu.yml $dir/jax/env_jax.cpu.yml > $PWD/env.yml
         else
-            conda-merge $dir/env_common.yml $dir/env_mac.yml $dir/env_test.yml $dir/tensorflow/env_tensorflow.cpu.yml $dir/torch/env_torch.mac.cpu.yml $dir/jax/env_jax.cpu.yml > $PWD/env.yml
+            if [[ $(uname -m) == 'arm64' ]]; then
+                conda-merge $dir/env_common.yml $dir/env_mac_arm64.yml $dir/env_test.yml $dir/tensorflow/env_tensorflow.cpu.yml $dir/torch/env_torch.mac.cpu.yml $dir/jax/env_jax.cpu.yml > $PWD/env.yml
+                echo "Installing DeepChem for Apple Silicon in the CPU environment"
+            else
+                conda-merge $dir/env_common.yml $dir/env_mac.yml $dir/env_test.yml $dir/tensorflow/env_tensorflow.cpu.yml $dir/torch/env_torch.mac.cpu.yml $dir/jax/env_jax.cpu.yml > $PWD/env.yml
+            fi
         fi
     elif [ "$(uname)" = 'Linux' ]; then
         if [ "$1" = "3.11" ]; then

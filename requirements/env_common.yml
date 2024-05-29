@@ -9,11 +9,11 @@ dependencies:
   - pip
   - pip:
     - numpy
-    - rdkit
+    - rdkit==2023.09.5
     - pre-commit
     - biopython
     - dgllife
-    - lightgbm==3.*
+    - lightgbm
     - git+https://github.com/hackingmaterials/matminer.git
     - mordred
     - networkx
