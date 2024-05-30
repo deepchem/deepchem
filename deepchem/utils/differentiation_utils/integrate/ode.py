@@ -1,12 +1,6 @@
 from typing import List
 import numpy as np
 
-def solver_euler_1(x, y, h, dydx, steps):
-    for i in range(steps):
-        y = y + h * dydx(x, y)
-        x = x + h
-    return y
-
 
 def solver_euler_3(x, y, h, tode, steps):
     y, y1, y2 = y
@@ -62,6 +56,21 @@ def solver_midpoint_n(x, y, h, ode, steps):
     return y
 
 
+#def solver_euler_1_1(x, y, h, ode, steps):
+#    for i in range(steps):
+#        y = y + h * ode(y, x)
+#        x = x + h
+#    return y
+#
+#
+#def solver_midpoint_1_1(x, y, h, ode, steps):
+#    for i in range(steps):
+#        y = y + h * ode(y + h *(ode(y, x)/2), x + (h/2))
+#        x = x + h
+#    return y
+
+
+
 #def solver_euler_1_n(ode, t_start: float, y_start: List[List[int]], t_step: float, t_end: float):
 #    steps = round((t_end - t_start)/t_step)
 #    n_var = len(y_start)
@@ -74,7 +83,28 @@ def solver_midpoint_n(x, y, h, ode, steps):
 #   return T, Y
 
 
+#def solver_euler_1_n(ode, y_start: np.ndarray, t: np.ndarray, args:np.ndarray=np.array([])):
+#    n_var = len(y_start)
+#    Y = [[a] for a in y_start]
+#    t_i = t[0]
+#    for i in t:
+#        for f in range(n_var):
+#            Y[f].append(Y[f][-1] + (i-t_i) * ode([m[-1] for m in Y], i, args)[f])
+#        t_i = i
+#    Y = np.array(Y).T
+#    return Y
+
 def solver_euler_1_n(ode, y_start: np.ndarray, t: np.ndarray, args:np.ndarray=np.array([])):
+    n_var = len(y_start)
+    Y = [[a] for a in y_start]
+    for i in range(1, len(t)):
+        for f in range(n_var):
+            Y[f].append(Y[f][-1] + (t[i]-t[i-1]) * ode([m[-1] for m in Y], t[i], args)[f])
+    Y = np.array(Y).T
+    return Y
+
+
+def solver_midpoint_1_n(ode, y_start: np.ndarray, t: np.ndarray, args:np.ndarray=np.array([])):
     n_var = len(y_start)
     Y = [[a] for a in y_start]
     t_i = t[0]
@@ -84,3 +114,23 @@ def solver_euler_1_n(ode, y_start: np.ndarray, t: np.ndarray, args:np.ndarray=np
         t_i = i
     Y = np.array(Y).T
     return Y
+
+
+def solver_euler_1_1(ode, y_start: np.ndarray, t: np.ndarray, args:np.ndarray = np.array([])):
+    y = [y_start]
+    for i in range(1, len(t)):
+        h = t[i] - t[i-1]
+        y.append(y[-1] + h * ode(y[-1], t[i], args))
+    y = np.array(y)
+    return y
+
+
+def solver_midpoint_1_1(ode, y_start: np.ndarray, t: np.ndarray, args:np.ndarray = np.array([])):
+    y = [y_start]
+    for i in range(1, len(t)):
+        h = t[i] - t[i-1]
+        y.append(y[-1] + h * ode(y[-1] + h * (ode(y[-1], t[i], args)/2), t[i] + (h/2), args))
+    y = np.array(y)
+    return y
+
+
