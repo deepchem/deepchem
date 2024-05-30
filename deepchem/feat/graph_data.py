@@ -72,8 +72,8 @@ class GraphData:
             raise ValueError('The shape of edge_index is [2, num_edges].')
 
         # np.max() method works only for a non-empty array, so size of the array should be non-zero
-        elif (edge_index.size != 0) and (np.max(edge_index) >=
-                                         len(node_features)):
+        elif (edge_index.size != 0) and (np.max(edge_index)
+                                         >= len(node_features)):
             raise ValueError('edge_index contains the invalid node number.')
 
         if edge_features is not None:
@@ -581,7 +581,7 @@ class WeightedDirectedGraphData:
     WeightedDirectedGraphData(node_features=[5, 10], edge_features=[7, 10],
                     node_to_edge_mapping=5, node_weights=[5],
                     edge_weights=[7], edge_to_node_mapping=7,
-                edge_to_reverse_edge_mapping=7)
+                    edge_to_reverse_edge_mapping=7)
     """
 
     def __init__(self,
@@ -614,41 +614,61 @@ class WeightedDirectedGraphData:
         kwargs: dict
         """
         # validate param datatypes
-        array_params = {"node_features": node_features,
-                        "edge_features": edge_features,
-                        "node_weights": node_weights,
-                        "edge_weights": edge_weights}
+        array_params = {
+            "node_features": node_features,
+            "edge_features": edge_features,
+            "node_weights": node_weights,
+            "edge_weights": edge_weights
+        }
 
         for array_label, array_param in array_params.items():
             if isinstance(array_param, np.ndarray) is False:
                 raise ValueError(f'{array_label} must be np.ndarray.')
 
         if type(node_to_edge_mapping) is not list:
-            raise ValueError('node_to_edge_mapping needs to to be a list to handle heterogeneous shaped arrays')
+            raise ValueError(
+                'node_to_edge_mapping needs to to be a list to handle heterogeneous shaped arrays'
+            )
 
         # validate param shapes
         elif len(node_to_edge_mapping) != node_features.shape[0]:
-            raise ValueError('The length of node_to_edge_mapping must be the same as the first dimension of node_features.')
+            raise ValueError(
+                'The length of node_to_edge_mapping must be the same as the first dimension of node_features.'
+            )
 
         elif node_features.shape[0] != node_weights.shape[0]:
-            raise ValueError('The first dimension of node_features must be the same as the dimension of node_weights.')
+            raise ValueError(
+                'The first dimension of node_features must be the same as the dimension of node_weights.'
+            )
         elif edge_features.shape[0] != edge_weights.shape[0]:
-            raise ValueError('The first dimension of edge_features must be the same as the dimension of edge_weights.')
+            raise ValueError(
+                'The first dimension of edge_features must be the same as the dimension of edge_weights.'
+            )
         if edge_to_node_mapping is not None:
             if issubclass(edge_to_node_mapping.dtype.type, np.integer) is False:
                 raise ValueError('edge_to_node_mapping contain integers only.')
             elif len(edge_to_node_mapping.shape) != 1:
-                raise ValueError('edge_to_node_mapping must be an 1-D non-empty array.')
+                raise ValueError(
+                    'edge_to_node_mapping must be an 1-D non-empty array.')
             elif edge_features.shape[0] != edge_to_node_mapping.shape[0]:
-                raise ValueError('The first dimension of edge_features must be the same as the dimension of edge_to_node_mapping.')
+                raise ValueError(
+                    'The first dimension of edge_features must be the same as the dimension of edge_to_node_mapping.'
+                )
 
         if edge_to_reverse_edge_mapping is not None:
-            if issubclass(edge_to_reverse_edge_mapping.dtype.type, np.integer) is False:
-                raise ValueError('edge_to_reverse_edge_mapping contain integers only.')
+            if issubclass(edge_to_reverse_edge_mapping.dtype.type,
+                          np.integer) is False:
+                raise ValueError(
+                    'edge_to_reverse_edge_mapping contain integers only.')
             elif len(edge_to_reverse_edge_mapping.shape) != 1:
-                raise ValueError('edge_to_reverse_edge_mapping must be an 1-D non-empty array.')
-            elif edge_features.shape[0] != edge_to_reverse_edge_mapping.shape[0]:
-                raise ValueError('The first dimension of edge_features must be the same as the dimension of edge_to_reverse_edge_mapping.')
+                raise ValueError(
+                    'edge_to_reverse_edge_mapping must be an 1-D non-empty array.'
+                )
+            elif edge_features.shape[0] != edge_to_reverse_edge_mapping.shape[
+                    0]:
+                raise ValueError(
+                    'The first dimension of edge_features must be the same as the dimension of edge_to_reverse_edge_mapping.'
+                )
 
         self.node_features = node_features
         self.edge_features = edge_features
@@ -681,7 +701,8 @@ class WeightedDirectedGraphData:
         else:
             edge_to_node_mapping_str = "None"
         if self.edge_to_reverse_edge_mapping is not None:
-            edge_to_reverse_edge_mapping_str = str(len(self.edge_to_reverse_edge_mapping))
+            edge_to_reverse_edge_mapping_str = str(
+                len(self.edge_to_reverse_edge_mapping))
         else:
             edge_to_reverse_edge_mapping_str = "None"
 
