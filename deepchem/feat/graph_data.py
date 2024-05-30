@@ -550,8 +550,8 @@ class WeightedDirectedGraphData:
         Weight distribution array for each node with shape [num_nodes]
     edge_weights: np.array
         Weight distribution array for each edge with shape [num_edges]
-    node_to_edge_mapping: list 
-        Mapping from node index to edge index with shape [num_nodes,x] 
+    node_to_edge_mapping: list
+        Mapping from node index to edge index with shape [num_nodes,x]
         (where x is an integer representing number of edge connected to node)
     edge_to_node_mapping: np.ndarray, optional (default None)
         Mapping from edge index to node index with shape [num_edges]
@@ -566,7 +566,7 @@ class WeightedDirectedGraphData:
     num_edge_features: int, optional (default None)
         The number of features per edge in the graph
 
-    Examples 
+    Examples
     --------
     >>> import numpy as np
     >>> node_features = np.random.rand(5,10)
@@ -581,7 +581,7 @@ class WeightedDirectedGraphData:
     WeightedDirectedGraphData(node_features=[5, 10], edge_features=[7, 10],
                     node_to_edge_mapping=5, node_weights=[5],
                     edge_weights=[7], edge_to_node_mapping=7,
-                edge_to_reverse_edge_mapping=7) 
+                edge_to_reverse_edge_mapping=7)
     """
 
     def __init__(self,
@@ -602,10 +602,10 @@ class WeightedDirectedGraphData:
             Edge feature matrix with shape [num_edges, num_edge_features]
         node_to_edge_mapping: list
             Mapping from node index to edge index with shape [num_nodes,x]
-            (where x is an integer representing number of edge connected to node)   
+            (where x is an integer representing number of edge connected to node)
         node_weights: np.array
             Weight distribution array for each node with shape [num_nodes]
-        edge_weights: np.array 
+        edge_weights: np.array
             Weight distribution array for each edge with shape [num_edges]
         edge_to_node_mapping: np.ndarray, optional (default None)
             Mapping from edge index to node index with shape [num_edges]
@@ -614,12 +614,12 @@ class WeightedDirectedGraphData:
         kwargs: dict
         """
         # validate param datatypes
-        array_params = {"node_features":node_features,
-                        "edge_features":edge_features,
-                        "node_weights":node_weights,
-                        "edge_weights":edge_weights}
+        array_params = {"node_features": node_features,
+                        "edge_features": edge_features,
+                        "node_weights": node_weights,
+                        "edge_weights": edge_weights}
 
-        for array_label,array_param in array_params.items():
+        for array_label, array_param in array_params.items():
             if isinstance(array_param, np.ndarray) is False:
                 raise ValueError(f'{array_label} must be np.ndarray.')
 
@@ -631,11 +631,9 @@ class WeightedDirectedGraphData:
             raise ValueError('The length of node_to_edge_mapping must be the same as the first dimension of node_features.')
 
         elif node_features.shape[0] != node_weights.shape[0]:
-            raise ValueError('The first dimension of node_features must be the same as the dimension of node_weights.') 
-        
+            raise ValueError('The first dimension of node_features must be the same as the dimension of node_weights.')
         elif edge_features.shape[0] != edge_weights.shape[0]:
             raise ValueError('The first dimension of edge_features must be the same as the dimension of edge_weights.')
-        
         if edge_to_node_mapping is not None:
             if issubclass(edge_to_node_mapping.dtype.type, np.integer) is False:
                 raise ValueError('edge_to_node_mapping contain integers only.')
@@ -658,7 +656,7 @@ class WeightedDirectedGraphData:
         self.node_weights = node_weights
         self.edge_weights = edge_weights
 
-        self.edge_to_node_mapping = edge_to_node_mapping if edge_to_node_mapping is not None else None 
+        self.edge_to_node_mapping = edge_to_node_mapping if edge_to_node_mapping is not None else None
         self.edge_to_reverse_edge_mapping = edge_to_reverse_edge_mapping if edge_to_reverse_edge_mapping is not None else None
 
         self.num_nodes = node_features.shape[0]
@@ -676,21 +674,20 @@ class WeightedDirectedGraphData:
         node_features_str = str(list(self.node_features.shape))
         edge_features_str = str(list(self.edge_features.shape))
         node_to_edge_mapping_str = str(len(self.node_to_edge_mapping))
-        node_weights_str= str(list(self.node_weights.shape))
-        edge_weights_str= str(list(self.edge_weights.shape))
+        node_weights_str = str(list(self.node_weights.shape))
+        edge_weights_str = str(list(self.edge_weights.shape))
         if self.edge_to_node_mapping is not None:
             edge_to_node_mapping_str = str(len(self.edge_to_node_mapping))
         else:
             edge_to_node_mapping_str = "None"
-        
         if self.edge_to_reverse_edge_mapping is not None:
             edge_to_reverse_edge_mapping_str = str(len(self.edge_to_reverse_edge_mapping))
         else:
             edge_to_reverse_edge_mapping_str = "None"
 
-        out = f"""{cls}(node_features={node_features_str}, edge_features={edge_features_str}, 
-                node_to_edge_mapping={node_to_edge_mapping_str}, node_weights={node_weights_str}, 
-                edge_weights={edge_weights_str}, edge_to_node_mapping={edge_to_node_mapping_str}, 
+        out = f"""{cls}(node_features={node_features_str}, edge_features={edge_features_str},
+                node_to_edge_mapping={node_to_edge_mapping_str}, node_weights={node_weights_str},
+                edge_weights={edge_weights_str}, edge_to_node_mapping={edge_to_node_mapping_str},
                 edge_to_reverse_edge_mapping={edge_to_reverse_edge_mapping_str}"""
         # Adding shapes of kwargs
         for key, value in self.kwargs.items():

@@ -480,8 +480,8 @@ class MaterialCompositionFeaturizer(Featurizer):
 class PolymerFeaturizer(Featurizer):
     """Abstract class for calculating features for polymer materials.
 
-    The `PolymerFeaturzer` is responsibe for conversion of different 
-    polymer representations to features. The child classes can 
+    The `PolymerFeaturzer` is responsibe for conversion of different
+    polymer representations to features. The child classes can
     following representations for feature conversions.
 
     i)  Weighted Directed Graph Representation (Monomer SMILES + Fragments + Weight Distrbution)
@@ -500,7 +500,7 @@ class PolymerFeaturizer(Featurizer):
 
         Parameters
         ----------
-        datapoints: BigSMILES Strings /  Iterable of BigSMILES Strings 
+        datapoints: BigSMILES Strings /  Iterable of BigSMILES Strings
         Weighted Directed Graph Objects / Iterable of Weighted Directed Graph Objects
 
         log_every_n: int, default 1000
@@ -511,14 +511,8 @@ class PolymerFeaturizer(Featurizer):
         features: np.ndarray
             A numpy array containing a featurized representation of `datapoints`.
         """
-        try:
-            from rdkit import Chem
-            
-        except ModuleNotFoundError:
-            raise ImportError("This class requires RDKit to be installed.")
-
         # converting single data point to array
-        if isinstance(datapoints, str): 
+        if isinstance(datapoints, str):
             datapoints = [datapoints]
         else:
             datapoints = list(datapoints)
@@ -534,12 +528,12 @@ class PolymerFeaturizer(Featurizer):
                     features.append(self._featurize(mol))
                 else:
                     raise ValueError(
-                        f"""The input data point has to be of string representation of 
+                        f"""The input data point has to be of string representation of
                         BigSMILES or Weight Distributed String Representation not {type(mol)}"""
                     )
             except Exception as e:
                 # if it fails to featurize the polymer data point from given string
-                # then append an empty array 
+                # then append an empty array
                 logger.warning("Exception message: {}".format(e))
                 features.append(np.array([]))
         try:
@@ -547,6 +541,7 @@ class PolymerFeaturizer(Featurizer):
         except ValueError as e:
             logger.warning("Exception message: {}".format(e))
             return np.asarray(features, dtype=object)
+
 
 class UserDefinedFeaturizer(Featurizer):
     """Directs usage of user-computed featurizations."""
