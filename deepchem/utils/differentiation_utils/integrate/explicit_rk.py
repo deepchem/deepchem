@@ -88,22 +88,22 @@ def explicit_rk(tableau: _Tableau,
     # set up the results list
     yt_lst: List[torch.Tensor] = []
     yt_lst.append(y0)
+    y = yt_lst[-1]
     for i in range(nt - 1):
         t0 = t[i]
         t1 = t[i + 1]
         h = t1 - t0
         ks: List[torch.Tensor] = []
         ksum: Union[float, torch.Tensor] = 0.0
-        y = yt_lst[-1]
         for j in range(s):
             if j == 0:
-                k = fcn(t0, y, *params)
+                k = fcn(y, t0, params)
             else:
                 ak: Union[float, torch.Tensor] = 0.0
                 aj = a[j]
                 for m in range(j):
                     ak = aj[m] * ks[m] + ak
-                k = fcn(t0 + c[j] * h, h * ak + y, *params)
+                k = fcn(h * ak + y, t0 + c[j] * h, params)
             ks.append(k)
             ksum = ksum + b[j] * k
         y = h * ksum + y
