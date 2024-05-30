@@ -107,11 +107,11 @@ def solver_euler_1_n(ode, y_start: np.ndarray, t: np.ndarray, args:np.ndarray=np
 def solver_midpoint_1_n(ode, y_start: np.ndarray, t: np.ndarray, args:np.ndarray=np.array([])):
     n_var = len(y_start)
     Y = [[a] for a in y_start]
-    t_i = t[0]
-    for i in t:
+    for i in range(1, len(t)):
+        h = t[i]-t[i-1]
         for f in range(n_var):
-            Y[f].append(Y[f][-1] + (i-t_i) * ode([m[-1] for m in Y], i, args)[f])
-        t_i = i
+            k_1 = ode([m[-1] for m in Y], t[i], args)
+            Y[f].append(Y[f][-1] + h * ode(Y[f][-1] + h * (k_1 / 2), t[i] + (h / 2), args)[f])
     Y = np.array(Y).T
     return Y
 
