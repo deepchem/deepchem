@@ -265,7 +265,7 @@ class TestWeightedDirectedGraph(unittest.TestCase):
         num_edges, num_edge_features = 7, 32
         node_features = np.random.random_sample((num_nodes, num_node_features))
         edge_features = np.random.random_sample((num_edges, num_edge_features))
-        node_to_edge_mapping = [[x, x + 1] for x in range(num_nodes)]
+        node_to_edge_mapping = [[min(0, x - 1), x] for x in range(num_nodes)]
         node_weights = np.random.rand(num_nodes)
         edge_weights = np.random.rand(num_edges)
         edge_to_node_mapping = np.array([x for x in range(num_edges)])
@@ -302,7 +302,7 @@ class TestWeightedDirectedGraph(unittest.TestCase):
         with self.assertRaises(ValueError):
             node_features = np.random.rand(5, 10)
             edge_features = np.random.rand(7, 10)
-            invalid_node_to_edge_mapping = [[x, x + 1] for x in range(10)]
+            invalid_node_to_edge_mapping = [[x, x] for x in range(10)]
             node_weights = np.random.rand(5)
             edge_weights = np.random.rand(7)
             _ = WeightedDirectedGraphData(
@@ -328,7 +328,7 @@ class TestWeightedDirectedGraph(unittest.TestCase):
         with self.assertRaises(ValueError):
             node_features = np.random.rand(5, 10)
             edge_features = np.random.rand(7, 10)
-            node_to_edge_mapping = [[x, x + 1] for x in range(5)]
+            node_to_edge_mapping = [[x, x] for x in range(5)]
             invalid_shape_node_weights = np.random.rand(4)
             edge_weights = np.random.rand(7)
             _ = WeightedDirectedGraphData(
@@ -341,7 +341,7 @@ class TestWeightedDirectedGraph(unittest.TestCase):
         with self.assertRaises(ValueError):
             node_features = np.random.rand(5, 10)
             edge_features = np.random.rand(7, 10)
-            node_to_edge_mapping = [[x, x + 1] for x in range(5)]
+            node_to_edge_mapping = [[x, x] for x in range(5)]
             node_weights = np.random.rand(5)
             invalid_shape_edge_weights = np.random.rand()
             _ = WeightedDirectedGraphData(
@@ -354,7 +354,7 @@ class TestWeightedDirectedGraph(unittest.TestCase):
         with self.assertRaises(ValueError):
             node_features = np.random.rand(5, 10)
             edge_features = np.random.rand(7, 10)
-            invaild_value_node_to_edge_mapping = [[x, x + 1] for x in range(4)
+            invaild_value_node_to_edge_mapping = [[x, x] for x in range(4)
                                                  ].append([1, 69])
             node_weights = np.random.rand(5)
             edge_weights = np.random.rand(7)
@@ -368,7 +368,7 @@ class TestWeightedDirectedGraph(unittest.TestCase):
         with self.assertRaises(ValueError):
             node_features = np.random.rand(5, 10)
             edge_features = np.random.rand(7, 10)
-            node_to_edge_mapping = [[x, x + 1] for x in range(5)]
+            node_to_edge_mapping = [[x, x] for x in range(5)]
             node_weights = np.random.rand(5)
             edge_weights = np.random.rand(7)
             invalid_value_edge_to_node_mapping = np.array([x for x in range(6)
@@ -386,7 +386,7 @@ class TestWeightedDirectedGraph(unittest.TestCase):
         with self.assertRaises(ValueError):
             node_features = np.random.rand(5, 10)
             edge_features = np.random.rand(7, 10)
-            node_to_edge_mapping = [[x, x + 1] for x in range(5)]
+            node_to_edge_mapping = [[x, x] for x in range(5)]
             node_weights = np.random.rand(5)
             edge_weights = np.random.rand(7)
             edge_to_node_mapping = np.array([x for x in range(7)])

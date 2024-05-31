@@ -570,7 +570,7 @@ class WeightedDirectedGraphData:
     >>> import numpy as np
     >>> node_features = np.random.rand(5,10)
     >>> edge_features = np.random.rand(7,10)
-    >>> node_to_edge_mapping = [[x,x+1] for x in range(5)]
+    >>> node_to_edge_mapping = [[x,x] for x in range(5)]
     >>> node_weights = np.random.rand(5)
     >>> edge_weights = np.random.rand(7)
     >>> edge_to_node_mapping = np.array([x for x in range(7)])
@@ -657,7 +657,7 @@ class WeightedDirectedGraphData:
                 raise ValueError(
                     'The first dimension of edge_features must be the same as the dimension of edge_to_node_mapping.'
                 )
-            elif np.max(edge_to_node_mapping) >= node_features.shape[0]:
+            elif np.max(edge_to_node_mapping) >= edge_features.shape[0]:
                 raise ValueError(
                     f'The maximum value in edge_to_node_mapping is {np.max(edge_to_node_mapping)}. Which should have been below {node_features.shape[0]}!'
                 )
