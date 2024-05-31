@@ -48,8 +48,6 @@ def smiles_multitask_regression_dataset():
     return dataset
 
 
-
-
 @pytest.fixture
 def protein_classification_dataset(tmpdir):
     protein = [
