@@ -35,15 +35,15 @@ class IntorNameManager(object):
     # Components shape of raw operator and basis operators
     # should be a tuple with AT MOST 1 element
     rawop_comp = defaultdict(
-        tuple,
-        {  # type: ignore
+        tuple,  # type: ignore
+        {
             "r0": (3,),
             "r0r0": (9,),
             "r0r0r0": (27,),
         })
     op_comp = defaultdict(
-        tuple,
-        {  # type: ignore
+        tuple,  # type: ignore
+        {
             "ip": (3,),
         })
 

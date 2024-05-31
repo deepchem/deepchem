@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple, Callable, Dict
+from typing import Optional, List, Tuple, Callable, Dict, no_type_check
 import ctypes
 import copy
 import operator
@@ -616,10 +616,10 @@ class _Int2cFunction(torch.autograd.Function):
         ctx.other_info = (wrappers, int_nmgr)
         return out_tensor  # (..., nao0, nao1)
 
+    @no_type_check
     @staticmethod
-    def backward(
-        ctx, grad_out: torch.Tensor
-    ) -> Tuple[Optional[torch.Tensor], ...]:  # type: ignore
+    def backward(ctx,
+                 grad_out: torch.Tensor) -> Tuple[Optional[torch.Tensor], ...]:
         """Backward calculation of the 2-centre integrals.
 
         Parameters
@@ -878,6 +878,7 @@ class _Int3cFunction(torch.autograd.Function):
         ctx.other_info = (wrappers, int_nmgr)
         return out_tensor  # (..., nao0, nao1, nao2)
 
+    @no_type_check
     @staticmethod
     def backward(
             ctx,
@@ -1092,6 +1093,7 @@ class _Int4cFunction(torch.autograd.Function):
         ctx.other_info = (wrappers, int_nmgr)
         return out_tensor  # (..., nao0, nao1, nao2, nao3)
 
+    @no_type_check
     @staticmethod
     def backward(
             ctx,

@@ -2,6 +2,10 @@ import os
 import torch
 from typing import List
 from deepchem.utils.dft_utils import CGTOBasis
+try:
+    import basis_set_exchange as bse
+except Exception as e:
+    print(f'basis-set-exchange Not Found: {e}')
 
 __all__ = ["loadbasis"]
 
@@ -211,7 +215,6 @@ def _download_basis(fname: str, atomz: int, basisname: str) -> str:
         Basis name to be downloaded
 
     """
-    import basis_set_exchange as bse
     s = bse.get_basis(basisname, elements=[atomz], fmt="gaussian94")
     with open(fname, "w") as f:
         f.write(s)
