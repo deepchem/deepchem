@@ -284,6 +284,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.GraphPool
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.GraphGather
+  :members:
+
 .. autoclass:: deepchem.models.torch_models.flows.ClampExp
   :members:
 
