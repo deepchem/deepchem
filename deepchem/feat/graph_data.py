@@ -545,9 +545,9 @@ class WeightedDirectedGraphData:
         Node feature matrix with shape [num_nodes, num_node_features]
     edge_features: np.ndarray
         Edge feature matrix with shape [num_edges, num_edge_features]
-    node_weights: np.array
+    node_weights: np.ndarray
         Weight distribution array for each node with shape [num_nodes]
-    edge_weights: np.array
+    edge_weights: np.ndarray
         Weight distribution array for each edge with shape [num_edges]
     node_to_edge_mapping: list
         Mapping from node index to edge index with shape [num_nodes,x]
@@ -601,7 +601,7 @@ class WeightedDirectedGraphData:
             Edge feature matrix with shape [num_edges, num_edge_features]
         node_to_edge_mapping: list
             Mapping from node index to edge index with shape [num_nodes,x]
-            (where x is an integer representing number of edge connected to node)
+            (where x is an integer representing number of edge connected to node, while node is represented with the index of the edge list)
         node_weights: np.array
             Weight distribution array for each node with shape [num_nodes]
         edge_weights: np.array
@@ -622,19 +622,22 @@ class WeightedDirectedGraphData:
 
         for array_label, array_param in array_params.items():
             if isinstance(array_param, np.ndarray) is False:
-                raise ValueError(f'{array_label} must be np.ndarray.')
+                raise ValueError(
+                    f'Datatype of {array_label} must be np.ndarray.')
 
         if type(node_to_edge_mapping) is not list:
             raise ValueError(
                 'node_to_edge_mapping needs to to be a list to handle heterogeneous shaped arrays'
             )
-
+        elif len(node_to_edge_mapping) > 0 and type(
+                node_to_edge_mapping[0]) is not list:
+            raise ValueError(
+                "node_to_edge_mapping stores lists in it's first dimension")
         # validate param shapes
         elif len(node_to_edge_mapping) != node_features.shape[0]:
             raise ValueError(
                 'The length of node_to_edge_mapping must be the same as the first dimension of node_features.'
             )
-
         elif node_features.shape[0] != node_weights.shape[0]:
             raise ValueError(
                 'The first dimension of node_features must be the same as the dimension of node_weights.'
@@ -643,6 +646,7 @@ class WeightedDirectedGraphData:
             raise ValueError(
                 'The first dimension of edge_features must be the same as the dimension of edge_weights.'
             )
+
         if edge_to_node_mapping is not None:
             if issubclass(edge_to_node_mapping.dtype.type, np.integer) is False:
                 raise ValueError('edge_to_node_mapping contain integers only.')
@@ -652,6 +656,14 @@ class WeightedDirectedGraphData:
             elif edge_features.shape[0] != edge_to_node_mapping.shape[0]:
                 raise ValueError(
                     'The first dimension of edge_features must be the same as the dimension of edge_to_node_mapping.'
+                )
+            elif np.max(edge_to_node_mapping) >= node_features.shape[0]:
+                raise ValueError(
+                    f'The maximum value in edge_to_node_mapping is {np.max(edge_to_node_mapping)}. Which should have been below {node_features.shape[0]}!'
+                )
+            elif np.min(edge_to_node_mapping) < 0:
+                raise ValueError(
+                    f'The minimum value in edge_to_node_mapping is {np.min(edge_to_node_mapping)}. Which should have been zero or above !'
                 )
 
         if edge_to_reverse_edge_mapping is not None:
@@ -667,6 +679,28 @@ class WeightedDirectedGraphData:
                 raise ValueError(
                     'The first dimension of edge_features must be the same as the dimension of edge_to_reverse_edge_mapping.'
                 )
+            elif np.max(edge_to_reverse_edge_mapping) >= edge_features.shape[0]:
+                raise ValueError(
+                    f'The maximum value in edge_to_reverse_edge_mapping is {np.max(edge_to_reverse_edge_mapping)}. Which should have been below {edge_features.shape[0]}!'
+                )
+            elif np.min(edge_to_reverse_edge_mapping) < 0:
+                raise ValueError(
+                    f'The minimum value in edge_to_reverse_edge_mapping is {np.min(edge_to_reverse_edge_mapping)}. Which should have been zero or above !'
+                )
+
+        # validate index params
+        max_val = max(
+            [item for sublist in node_to_edge_mapping for item in sublist])
+        min_val = max(
+            [item for sublist in node_to_edge_mapping for item in sublist])
+        if max_val >= node_features.shape[0]:
+            raise ValueError(
+                f'The maximum index in node_to_edge_mapping is {max_val}. Which should have been below {node_features.shape[0]}!'
+            )
+        elif min_val < 0:
+            raise ValueError(
+                f'The minimum index in node_to_edge_mapping is {min_val}. Which should have been zero or above !'
+            )
 
         self.node_features = node_features
         self.edge_features = edge_features
