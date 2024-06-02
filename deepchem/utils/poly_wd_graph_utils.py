@@ -59,7 +59,8 @@ class FeaturizationParameters:
                 Chem.rdchem.HybridizationType.SP2,
                 Chem.rdchem.HybridizationType.SP3,
                 Chem.rdchem.HybridizationType.SP3D,
-                Chem.rdchem.HybridizationType.SP3D2]
+                Chem.rdchem.HybridizationType.SP3D,
+            ]
         }
 
         # Distance feature sizes
@@ -396,9 +397,9 @@ def generate_atom_features(atom: Chem.rdchem.Atom,
                         PARAMS.ATOM_FEATURES['num_Hs']) + onek_encoding_unk(
                             int(atom.GetHybridization()),
                             PARAMS.ATOM_FEATURES['hybridization']
-                                ) + [1 if atom.GetIsAromatic() else 0] + [
-                                atom.GetMass() * 0.01
-                            ]  # scaled to about the same range as other features
+                        ) + [1 if atom.GetIsAromatic() else 0] + [
+                            atom.GetMass() * 0.01
+                        ]  # scaled to about the same range as other features
         if functional_groups is not None:
             features += functional_groups
     return features
