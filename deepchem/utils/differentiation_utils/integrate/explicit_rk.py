@@ -170,7 +170,7 @@ def fwd_euler_ivp(fcn: Callable[..., torch.Tensor], t: torch.Tensor, y0: torch.T
     """
     return explicit_rk(fwd_euler_tableau, fcn, t, y0, params)
 
-def rk4_ivp(fcn: Callable[..., torch.Tensor], t: torch.Tensor, y0: torch.Tensor,
+def rk4_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor, t: torch.Tensor, 
             params: Sequence[torch.Tensor], **kwargs):
     """The most commonly used Runge Kutta method to find the solution
     of a differential equation is the RK4 method, i.e., the fourth-order
