@@ -2012,7 +2012,8 @@ class BAMLoader(DataLoader):
     or MacOS X. To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
     """
 
-    def __init__(self, featurizer: Optional[Featurizer] = None,
+    def __init__(self,
+                 featurizer: Optional[Featurizer] = None,
                  get_pileup: Optional[bool] = False):
         """Initialize BAMLoader.
 
