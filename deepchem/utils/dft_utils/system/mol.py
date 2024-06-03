@@ -11,7 +11,9 @@ from deepchem.utils.dft_utils.data.datastruct import is_z_float, DensityFitInfo
 from deepchem.utils.periodic_table_utils import get_atomz, get_atom_mass
 from deepchem.utils import occnumber, safe_cdist
 from deepchem.utils.misc_utils import Cache
+import logging
 
+logger = logging.getLogger(__name__)
 __all__ = ["Mol"]
 
 class Mol(BaseSystem):
@@ -231,10 +233,10 @@ class Mol(BaseSystem):
 
     def setup_grid(self) -> None:
         grid_inp = self._grid_inp
-        print("Constructing the integration grid")
+        logger.info("Constructing the integration grid")
         self._grid = get_predefined_grid(self._grid_inp, self._atomzs_int, self._atompos,
                                          dtype=self._dtype, device=self._device)
-        print("Constructing the integration grid: done")
+        logger.info("Constructing the integration grid: done")
 
         # #        0,  1,  2,  3,  4,  5
         # nr   = [20, 40, 60, 75, 100, 125][grid_inp]

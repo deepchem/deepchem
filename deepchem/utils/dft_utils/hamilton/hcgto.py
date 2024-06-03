@@ -10,6 +10,9 @@ from deepchem.utils.misc_utils import Cache
 from deepchem.utils.dft_utils.hamilton.orbconverter import OrbitalOrthogonalizer
 from deepchem.utils.dft_utils.df.dfmol import DFMol
 from deepchem.utils.pytorch_utils import get_dtype_memsize
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class HamiltonCGTO(BaseHamilton):
@@ -116,11 +119,11 @@ class HamiltonCGTO(BaseHamilton):
                 "dfoptions": self._dfoptions,
             })
 
-            print("Calculating the overlap matrix")
+            logger.info("Calculating the overlap matrix")
             self.olp_mat = self._cache.cache("overlap", lambda: overlap(self.libcint_wrapper))
-            print("Calculating the kinetic matrix")
+            logger.info("Calculating the kinetic matrix")
             kin_mat = self._cache.cache("kinetic", lambda: kinetic(self.libcint_wrapper))
-            print("Calculating the nuclear attraction matrix")
+            logger.info("Calculating the nuclear attraction matrix")
             nucl_mat = self._cache.cache("nuclattr", lambda: nuclattr(self.libcint_wrapper))
             self.nucl_mat = nucl_mat
             self.kinnucl_mat = kin_mat + nucl_mat
@@ -137,13 +140,13 @@ class HamiltonCGTO(BaseHamilton):
                     self.kinnucl_mat = self.kinnucl_mat + efield_mat / fac
 
             if self._df is None:
-                print("Calculating the electron repulsion matrix")
+                logger.info("Calculating the electron repulsion matrix")
                 self.el_mat = self._cache.cache("elrep", lambda: elrep(self.libcint_wrapper))  # (nao^4)
                 # TODO: decide whether to precompute the 2-eris in the new basis
                 # based on the memory
                 self.el_mat = self._orthozer.convert4(self.el_mat)
             else:
-                print("Building the density fitting matrices")
+                logger.info("Building the density fitting matrices")
                 self._df.build()
             self.is_built = True
 
@@ -152,7 +155,7 @@ class HamiltonCGTO(BaseHamilton):
             self.kinnucl_mat = self._orthozer.convert2(self.kinnucl_mat)
             self.nucl_mat = self._orthozer.convert2(self.nucl_mat)
 
-            print("Setting up the Hamiltonian done")
+            logger.info("Setting up the Hamiltonian done")
 
         return self
 
@@ -170,7 +173,7 @@ class HamiltonCGTO(BaseHamilton):
         assert grid.coord_type == "cart"
 
         # setup the basis as a spatial function
-        print("Calculating the basis values in the grid")
+        logger.info("Calculating the basis values in the grid")
         self.is_ao_set = True
         self.basis = eval_gto(self.libcint_wrapper, self.rgrid, to_transpose=True)  # (ngrid, nao)
         self.dvolume = self.grid.get_dvolume()
@@ -180,7 +183,7 @@ class HamiltonCGTO(BaseHamilton):
             return
 
         # setup the gradient of the basis
-        print("Calculating the basis gradient values in the grid")
+        logger.info("Calculating the basis gradient values in the grid")
         self.is_grad_ao_set = True
         # (ndim, nao, ngrid)
         self.grad_basis = eval_gradgto(self.libcint_wrapper, self.rgrid, to_transpose=True)
@@ -189,7 +192,7 @@ class HamiltonCGTO(BaseHamilton):
 
         # setup the laplacian of the basis
         self.is_lapl_ao_set = True
-        print("Calculating the basis laplacian values in the grid")
+        logger.info("Calculating the basis laplacian values in the grid")
         self.lapl_basis = eval_laplgto(self.libcint_wrapper, self.rgrid, to_transpose=True)  # (nao, ngrid)
 
     ############ fock matrix components ############

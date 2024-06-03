@@ -5,6 +5,10 @@ from deepchem.utils.dft_utils.hamilton.orbconverter import OrbitalOrthogonalizer
 from deepchem.utils.dft_utils import LibcintWrapper, coul2c, coul3c, overlap, BaseDF, config
 from deepchem.utils.dft_utils.data.datastruct import DensityFitInfo
 from deepchem.utils import get_memory
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class DFMol(BaseDF):
     """
@@ -29,9 +33,9 @@ class DFMol(BaseDF):
         basisw, auxbw = LibcintWrapper.concatenate(self.wrapper, auxbasiswrapper)
 
         if method == "coulomb":
-            print("Calculating the 2e2c integrals")
+            logger.info("Calculating the 2e2c integrals")
             j2c = coul2c(auxbw)  # (nxao, nxao)
-            print("Calculating the 2e3c integrals")
+            logger.info("Calculating the 2e3c integrals")
             j3c = coul3c(basisw, other1=basisw,
                                other2=auxbw)  # (nao, nao, nxao)
         elif method == "overlap":
@@ -41,7 +45,7 @@ class DFMol(BaseDF):
                 "Density fitting with overlap minimization is not implemented")
         self._j2c = j2c  # (nxao, nxao)
         self._j3c = j3c  # (nao, nao, nxao)
-        print("Precompute matrix for density fittings")
+        logger.info("Precompute matrix for density fittings")
         self._inv_j2c = torch.inverse(j2c)
 
         # if the memory is too big, then don't precompute elmat
@@ -51,7 +55,7 @@ class DFMol(BaseDF):
             self._precompute_elmat = True
             self._el_mat = torch.matmul(j3c, self._inv_j2c)  # (nao, nao, nxao)
 
-        print("Density fitting done")
+        logger.info("Density fitting done")
         return self
 
     def get_elrep(self, dm: torch.Tensor) -> LinearOperator:
