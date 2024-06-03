@@ -56,3 +56,8 @@ purposes are listed here.
 + `env_ubuntu.yml` and `env_mac.yml` contain scientific dependencies which are have OS specific support. Currently, vina
 + `env_test.yml` - it is mostly used for the purpose of testing in development purpose. It contains the test dependencies.
 + The installation files in `tensorflow`, `torch` and `jax` directories contain the installation command for backend deep learning frameworks. For torch and jax, installation command is different for CPU and GPU. Hence, we use different installation files for CPU and GPU respectively.
+
+Website Rebuild Trigger
+-----------------------
+
+Whenever new commits are pushed to the master branch, it triggers the `website_build_dispatch` workflow. This workflow uses `peter-evans/repository-dispatch` github action to send a repository dispatch event called `rebuild-website` to the `deepchem.github.io` repository, which will rebuild the `deepchem.io` website and the `The deepchem Book`.
