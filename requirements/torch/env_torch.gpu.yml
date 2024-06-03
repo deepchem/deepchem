@@ -10,3 +10,5 @@ dependencies:
     - pydantic
     - -f https://data.pyg.org/whl/torch-2.2.1+cu118.html
     - torch-cluster
+    - git+https://github.com/diffqc/dqclibs.git
+    - basis-set-exchange
