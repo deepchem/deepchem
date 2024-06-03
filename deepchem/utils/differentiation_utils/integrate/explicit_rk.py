@@ -46,6 +46,13 @@ fwd_euler_tableau = _Tableau(
     b=[1.0],
     a=[[0.0]]
 )
+midpoint_fableau = _Tableau(
+    c = [0.0, 0.5],
+    b = [0.0, 1.0],
+    a = [[0.0, 0.0],
+         [0.5, 0.0]]
+)
+
 
 def explicit_rk(tableau: _Tableau,
                 fcn: Callable[..., torch.Tensor], t: torch.Tensor, y0: torch.Tensor,
@@ -112,7 +119,7 @@ def explicit_rk(tableau: _Tableau,
     return yt
 
 # list of methods
-def rk38_ivp(fcn: Callable[..., torch.Tensor], t: torch.Tensor, y0: torch.Tensor,
+def rk38_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor, t: torch.Tensor,
              params: Sequence[torch.Tensor], **kwargs):
     """A slight variation of "the" Runge–Kutta method is also due to
     Kutta in 1901 and is called the 3/8-rule.[19] The primary advantage
@@ -142,7 +149,7 @@ def rk38_ivp(fcn: Callable[..., torch.Tensor], t: torch.Tensor, y0: torch.Tensor
     """
     return explicit_rk(rk38_tableau, fcn, t, y0, params)
 
-def fwd_euler_ivp(fcn: Callable[..., torch.Tensor], t: torch.Tensor, y0: torch.Tensor,
+def fwd_euler_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor, t: torch.Tensor, 
                   params: Sequence[torch.Tensor], **kwargs):
     """However, the simplest Runge–Kutta method is the (forward) Euler method,
     given by the formula $y_{n+1} = y_{n} + hf(t_{n}, y_{n}). This is the only
@@ -199,3 +206,32 @@ def rk4_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor, t: torch.Tensor,
 
     """
     return explicit_rk(rk4_tableau, fcn, t, y0, params)
+
+def mid_point_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor, t: torch.Tensor, 
+                  params: Sequence[torch.Tensor], **kwargs):
+    """The explicit midpoint method is sometimes also known as the
+    modified Euler method, the implicit method is the most simple
+    collocation method, and, applied to Hamiltonian dynamics, a
+    symplectic integrator.
+
+    Parameters
+    ----------
+    fcn: callable dy/dt = fcn(t, y, *params)
+        The function to be integrated. It should produce output of list of
+        tensors following the shapes of tuple `y`. `t` should be a single element.
+    t: torch.Tensor (nt,)
+        The integrated times
+    y0: list of torch.Tensor (*ny)
+        The list of initial values
+    params: list
+        List of any other parameters
+    **kwargs: dict
+        Any other keyword arguments
+
+    Returns
+    -------
+    yt: list of torch.Tensor (nt,*ny)
+        The value of `y` at the given time `t`
+
+    """
+    return explicit_rk(midpoint_fableau, fcn, t, y0, params)
