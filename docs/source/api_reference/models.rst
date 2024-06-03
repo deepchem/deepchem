@@ -562,6 +562,12 @@ UNetModel
 .. autoclass:: deepchem.models.torch_models.UNetModel
   :members:
 
+MXMNet
+------
+
+.. autoclass:: deepchem.models.torch_models.MXMNet
+  :members:
+
 PyTorch Lightning Models
 ========================
 
