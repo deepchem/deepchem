@@ -107,3 +107,5 @@ datasets/qm8.csv
 env.yml
 .python-version
 **/*.ipynb_checkpoints/
+
+.database/
