@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Optional
 from deepchem.feat import Featurizer
 
 
@@ -132,7 +133,7 @@ class BAMFeaturizer(Featurizer):
 
     """
 
-    def __init__(self, max_records=None):
+    def __init__(self, max_records=None, get_pileup: Optional[bool] = False):
         """
         Initialize BAMFeaturizer.
 
@@ -141,9 +142,13 @@ class BAMFeaturizer(Featurizer):
         max_records : int or None, optional
             The maximum number of records to extract from the BAM file. If None, all
             records will be extracted.
+        get_pileup : bool, optional
+            If True, pileup information will be extracted from the BAM file. This is used in DeepVariant.
+            False by default.
 
         """
         self.max_records = max_records
+        self.get_pileup = get_pileup
 
     def _featurize(self, datapoint):
         """
@@ -175,6 +180,25 @@ class BAMFeaturizer(Featurizer):
                 record.cigar,
                 record.mapping_quality,
             ]
+
+            if (self.get_pileup):
+                pileup_columns = []
+                for pileupcolumn in datapoint.pileup(
+                        reference=record.reference_name,
+                        start=record.reference_start,
+                        end=record.reference_end):
+                    pileup_info = {
+                        "pos":
+                            pileupcolumn.reference_pos,
+                        "depth":
+                            pileupcolumn.nsegments,
+                        "reads": [
+                            pileupread.alignment.query_sequence
+                            for pileupread in pileupcolumn.pileups
+                        ]
+                    }
+                    pileup_columns.append(pileup_info)
+                feature_vector.append(pileup_columns)
 
             features.append(feature_vector)
             record_count += 1
