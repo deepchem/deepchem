@@ -1104,7 +1104,6 @@ class TorchModel(Model):
             If True, `torch.compile` will require that the entire function be
             capturable into a single graph. If this is not possible (that is,
             if there are graph breaks), then the function will raise an error.
-            Default is False.
         dynamic: bool, default None
             Use dynamic shape tracing. When this is True, the function will
             up-front attempt to generate a kernel that is as dynamic as possible to
