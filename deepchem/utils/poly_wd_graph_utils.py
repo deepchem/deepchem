@@ -242,6 +242,9 @@ def parse_polymer_rules(rules: List[str]) -> (List[tuple], float):
         # QC of input string
         if len(rule.split(':')) != 3:
             raise ValueError(f'incorrect format for input information "{rule}"')
+        if len(rule.split(":")[0].split("-")) != 2:
+            raise ValueError(
+                f'incorrect format for bond index mentioning "{rule}"')
         idx1, idx2 = rule.split(':')[0].split('-')
         w12 = float(rule.split(':')[1])  # weight for bond R_idx1 -> R_idx2
         w21 = float(rule.split(':')[2])  # weight for bond R_idx2 -> R_idx1
@@ -249,12 +252,6 @@ def parse_polymer_rules(rules: List[str]) -> (List[tuple], float):
         counter[idx1] += float(w21)
         counter[idx2] += float(w12)
 
-    # validate input: sum of incoming weights should be one for each vertex
-    for k, v in counter.items():
-        if np.isclose(v, 1.0) is False:
-            raise ValueError(
-                f'sum of weights of incoming stochastic edges should be 1 -- found {v} for [*:{k}]'
-            )
     return polymer_info, 1. + np.log10(Xn)
 
 
