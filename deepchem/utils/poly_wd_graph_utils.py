@@ -1,6 +1,7 @@
 from rdkit import Chem
 from collections import Counter
 import numpy as np
+from typing import List
 
 
 class FeaturizationParameters:
@@ -130,7 +131,7 @@ def handle_hydrogen(smiles: str,
 
 def make_polymer_mol(
     smiles: str,
-    fragment_weights: list[float],
+    fragment_weights: List[float],
     keep_h: bool,
     add_h: bool,
 ) -> Chem.rdchem.Mol:
@@ -190,7 +191,7 @@ def make_polymer_mol(
     return mol
 
 
-def parse_polymer_rules(rules: list[str]) -> (list[tuple], float):
+def parse_polymer_rules(rules: List[str]) -> (List[tuple], float):
     """
     This function extracts probabilty weight distribution details for bonds
     from string to list of tuples in following format.
