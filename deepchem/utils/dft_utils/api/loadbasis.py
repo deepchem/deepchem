@@ -1,14 +1,15 @@
+import logging
 import os
 import torch
+import warnings
 from typing import List
 from deepchem.utils.dft_utils import CGTOBasis
 try:
     import basis_set_exchange as bse
 except Exception as e:
-    print(f'basis-set-exchange Not Found: {e}')
+    warnings.warn(f'basis-set-exchange Not Found: {e}')
 
-__all__ = ["loadbasis"]
-
+logger = logging.getLogger(__name__)
 _dtype = torch.double
 _device = torch.device("cpu")
 
@@ -158,7 +159,7 @@ def _get_basis_file(cmd: str) -> str:
 
     # if the file does not exist, download it
     if not os.path.exists(fpath):
-        print(
+        logger.info(
             "The %s basis for atomz %d does not exist, but we will download it"
             % (raw_basisname, atomz))
         if not os.path.exists(fdir):
@@ -202,8 +203,12 @@ def _download_basis(fname: str, atomz: int, basisname: str) -> str:
     Examples
     --------
     >>> import pathlib
+    >>> import os
     >>> path = pathlib.Path(__file__).parent.resolve()
-    >>> path = _download_basis(str(path) + "/.database/6-311ppgss/01.gaussian94", 1, "6-311++G**")
+    >>> dir = str(path) + "/.database/6-311ppgss"
+    >>> if not os.path.exists(dir):
+    ...     os.makedirs(dir)
+    >>> path = _download_basis(str(path) + "/01.gaussian94", 1, "6-311++G**")
 
     Parameters
     ----------

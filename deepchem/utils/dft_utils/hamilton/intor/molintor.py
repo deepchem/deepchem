@@ -1335,7 +1335,6 @@ class Intor(object):
     ...     loadbasis("%d:%s" % (max(atomz, 1), "3-21G"), dtype=dtype, requires_grad=False)
     ...     for atomz in atomzs
     ... ]
-    The 3-21G basis for atomz 1 does not exist, but we will download it
     >>> atombases = [
     ...     AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
     ...     for i in range(len(allbases))

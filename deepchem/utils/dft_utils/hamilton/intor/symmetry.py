@@ -151,12 +151,12 @@ class S4Symmetry(BaseSymmetry):
     Examples
     --------
     >>> sym = S4Symmetry()
-    >>> sym.get_reduced_shape((2, 3, 4, 4))
-    (2, 6, 6)
+    >>> sym.get_reduced_shape((3, 3, 4, 4))
+    (6, 10)
     >>> sym.code
     's4'
-    >>> sym.reconstruct_array(np.array([1, 2, 3]), (3,))
-    array([1, 2, 3])
+    >>> sym.reconstruct_array(np.random.rand(2, 3, 4, 4), (3, 3, 4, 4)).shape
+    (3, 3, 4, 4)
 
     """
 
