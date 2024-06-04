@@ -17,6 +17,24 @@ BLKSIZE = 128  # same as lib/gto/grid_ao_drv.c
 # evaluation of the gaussian basis
 def evl(shortname: str, wrapper: LibcintWrapper, rgrid: torch.Tensor,
         *, to_transpose: bool = False) -> torch.Tensor:
+    """Evaluates the Gaussian Basis
+
+    Parameters
+    ----------
+    shortname : str
+        Short name of the integral.
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    rgrid: torch.Tensor
+        grid points position in the specified coordinate
+    to_transpose: book (default False)
+        True for transposing the matrix.
+
+    Returns
+    -------
+    torch.Tensor
+        Gradient for evaluating the contracted gto
+    """
     # expand ao_to_atom to have shape of (nao, ndim)
     ao_to_atom = wrapper.ao_to_atom().unsqueeze(-1).expand(-1, NDIM)
 
@@ -31,13 +49,27 @@ def evl(shortname: str, wrapper: LibcintWrapper, rgrid: torch.Tensor,
 def pbc_evl(shortname: str, wrapper: LibcintWrapper, rgrid: torch.Tensor,
             kpts: Optional[torch.Tensor] = None,
             options: Optional[PBCIntOption] = None) -> torch.Tensor:
-    # evaluate the basis in periodic boundary condition, i.e. evaluate
-    # sum_L exp(i*k*L) * phi(r - L)
-    # rgrid: (ngrid, ndim)
-    # kpts: (nkpts, ndim)
-    # ls: (nls, ndim)
-    # returns: (*ncomp, nkpts, nao, ngrid)
+    """evaluate the basis in periodic boundary condition,
+    i.e. evaluate sum_L exp(i*k*L) * phi(r - L)
+    
+    Parameters
+    ----------
+    shortname : str
+        Short name of the integral.
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    rgrid: torch.Tensor
+        grid points position in the specified coordinate. (ngrid, ndim)
+    kpts: Optional[torch.Tensor] (default None)
+        k-points in the Hamiltonian. (nkpts, ndim)
+    options: Optional[PBCIntOption] (default None)
 
+    Returns
+    -------
+    torch.Tensor
+        Gradient for evaluating the contracted gto. (*ncomp, nkpts, nao, ngrid)
+
+    """
     # get the default arguments
     kpts1 = _get_default_kpts(kpts, dtype=wrapper.dtype, device=wrapper.device)
     options1 = _get_default_options(options)
@@ -58,63 +90,172 @@ def pbc_evl(shortname: str, wrapper: LibcintWrapper, rgrid: torch.Tensor,
 
 # shortcuts
 def eval_gto(wrapper: LibcintWrapper, rgrid: torch.Tensor, *, to_transpose: bool = False) -> torch.Tensor:
-    # rgrid: (ngrid, ndim)
-    # return: (nao, ngrid)
+    """Evaluates GTO
+
+    Parameters
+    ----------
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    rgrid: torch.Tensor
+        grid points position in the specified coordinate
+    to_transpose: book (default False)
+        True for transposing the matrix.
+
+    Returns
+    -------
+    torch.Tensor
+        Gradient for evaluating the contracted gto
+
+    """
     return evl("", wrapper, rgrid, to_transpose=to_transpose)
 
 def eval_gradgto(wrapper: LibcintWrapper, rgrid: torch.Tensor, *, to_transpose: bool = False) -> torch.Tensor:
-    # rgrid: (ngrid, ndim)
-    # return: (ndim, nao, ngrid)
+    """Evaluates Grad GTO
+
+    Parameters
+    ----------
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    rgrid: torch.Tensor
+        grid points position in the specified coordinate
+    to_transpose: book (default False)
+        True for transposing the matrix.
+
+    Returns
+    -------
+    torch.Tensor
+        Gradient for evaluating the contracted gto
+    """
     return evl("ip", wrapper, rgrid, to_transpose=to_transpose)
 
 def eval_laplgto(wrapper: LibcintWrapper, rgrid: torch.Tensor, *, to_transpose: bool = False) -> torch.Tensor:
-    # rgrid: (ngrid, ndim)
-    # return: (nao, ngrid)
+    """Evaluates laplgto
+
+    Parameters
+    ----------
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    rgrid: torch.Tensor
+        grid points position in the specified coordinate
+    to_transpose: book (default False)
+        True for transposing the matrix.
+
+    Returns
+    -------
+    torch.Tensor
+        Gradient for evaluating the contracted gto
+    """
     return evl("lapl", wrapper, rgrid, to_transpose=to_transpose)
 
 def pbc_eval_gto(wrapper: LibcintWrapper, rgrid: torch.Tensor,
                  kpts: Optional[torch.Tensor] = None,
                  options: Optional[PBCIntOption] = None) -> torch.Tensor:
-    # rgrid: (ngrid, ndim)
-    # kpts: (nkpts, ndim)
-    # return: (nkpts, nao, ngrid)
+    """evaluate the basis in periodic boundary condition,
+    i.e. evaluate sum_L exp(i*k*L) * phi(r - L)
+    
+    Parameters
+    ----------
+    shortname : str
+        Short name of the integral.
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    rgrid: torch.Tensor
+        grid points position in the specified coordinate. (ngrid, ndim)
+    kpts: Optional[torch.Tensor] (default None)
+        k-points in the Hamiltonian. (nkpts, ndim)
+    options: Optional[PBCIntOption] (default None)
+
+    Returns
+    -------
+    torch.Tensor
+        Gradient for evaluating the contracted gto. (*ncomp, nkpts, nao, ngrid)
+
+    """
     return pbc_evl("", wrapper, rgrid, kpts, options)
 
 def pbc_eval_gradgto(wrapper: LibcintWrapper, rgrid: torch.Tensor,
                      kpts: Optional[torch.Tensor] = None,
                      options: Optional[PBCIntOption] = None) -> torch.Tensor:
-    # rgrid: (ngrid, ndim)
-    # kpts: (nkpts, ndim)
-    # return: (ndim, nkpts, nao, ngrid)
+    """evaluate the basis in periodic boundary condition,
+    i.e. evaluate sum_L exp(i*k*L) * phi(r - L)
+    
+    Parameters
+    ----------
+    shortname : str
+        Short name of the integral.
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    rgrid: torch.Tensor
+        grid points position in the specified coordinate. (ngrid, ndim)
+    kpts: Optional[torch.Tensor] (default None)
+        k-points in the Hamiltonian. (nkpts, ndim)
+    options: Optional[PBCIntOption] (default None)
+
+    Returns
+    -------
+    torch.Tensor
+        Gradient for evaluating the contracted gto. (*ncomp, nkpts, nao, ngrid)
+
+    """
     return pbc_evl("ip", wrapper, rgrid, kpts, options)
 
 def pbc_eval_laplgto(wrapper: LibcintWrapper, rgrid: torch.Tensor,
                      kpts: Optional[torch.Tensor] = None,
                      options: Optional[PBCIntOption] = None) -> torch.Tensor:
-    # rgrid: (ngrid, ndim)
-    # kpts: (nkpts, ndim)
-    # return: (nkpts, nao, ngrid)
+    """evaluate the basis in periodic boundary condition,
+    i.e. evaluate sum_L exp(i*k*L) * phi(r - L)
+    
+    Parameters
+    ----------
+    shortname : str
+        Short name of the integral.
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    rgrid: torch.Tensor
+        grid points position in the specified coordinate. (ngrid, ndim)
+    kpts: Optional[torch.Tensor] (default None)
+        k-points in the Hamiltonian. (nkpts, ndim)
+    options: Optional[PBCIntOption] (default None)
+
+    Returns
+    -------
+    torch.Tensor
+        Gradient for evaluating the contracted gto. (*ncomp, nkpts, nao, ngrid)
+
+    """
     return pbc_evl("lapl", wrapper, rgrid, kpts, options)
 
-################## pytorch function ##################
+# pytorch function
 class _EvalGTO(torch.autograd.Function):
-    # wrapper class to provide the gradient for evaluating the contracted gto
+    """wrapper class to provide the gradient for evaluating the contracted gto"""
     @staticmethod
     def forward(ctx,  # type: ignore
-                # tensors not used in calculating the forward, but required
-                # for the backward propagation
-                coeffs: torch.Tensor,  # (ngauss_tot)
-                alphas: torch.Tensor,  # (ngauss_tot)
-                pos: torch.Tensor,  # (natom, ndim)
-
-                # tensors used in forward
-                rgrid: torch.Tensor,  # (ngrid, ndim)
-
-                # other non-tensor info
-                ao_to_atom: torch.Tensor,  # int tensor (nao, ndim)
+                coeffs: torch.Tensor,
+                alphas: torch.Tensor,
+                pos: torch.Tensor,
+                rgrid: torch.Tensor,
+                ao_to_atom: torch.Tensor,
                 wrapper: LibcintWrapper,
                 shortname: str,
                 to_transpose: bool) -> torch.Tensor:
+        """Forward function for EvalGTO.
+
+        Parameters
+        ----------
+        coeffs: torch.Tensor
+            The coefficients to get the orthogonal orbitals. (ngauss_tot)
+        alphas: torch.Tensor
+            gaussian exponents of the basis. (ngauss_tot)
+        pos: torch.Tensor
+            Position of the atom. (natom, ndim)
+        rgrid: torch.Tensor
+            Grid points positioned according to a center point. (ngrid, ndim)
+        ao_to_atom: torch.Tensor
+        (nao, ndim)
+                wrapper: LibcintWrapper,
+                shortname: str,
+                to_transpose: bool) -> torch.Tensor:
+        """
 
         res = gto_evaluator(wrapper, shortname, rgrid, to_transpose)  # (*, nao, ngrid)
         ctx.save_for_backward(coeffs, alphas, pos, rgrid)

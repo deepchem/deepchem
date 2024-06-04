@@ -103,11 +103,31 @@ class HamiltonCGTO(BaseHamilton):
 
     @property
     def df(self) -> Optional[BaseDF]:
-        """"""
+        """
+        Returns the density fitting object (if any) attached to this
+        Hamiltonian object.
+
+        Returns
+        -------
+        Optional[BaseDF]
+            Returns the density fitting object (if any) attached to this
+            Hamiltonian object.
+
+        """
         return self._df
 
     # setups
     def build(self) -> BaseHamilton:
+        """
+        Construct the elements needed for the Hamiltonian.
+        Heavy-lifting operations should be put here.
+
+        Returns
+        -------
+        BaseHamilton
+            The Hamiltonian representing the total energy operator for a system of
+            interacting electrons.
+        """
         # get the matrices (all (nao, nao), except el_mat)
         # these matrices have already been normalized
         with self._cache.open():
@@ -160,6 +180,20 @@ class HamiltonCGTO(BaseHamilton):
         return self
 
     def setup_grid(self, grid: BaseGrid, xc: Optional[BaseXC] = None) -> None:
+        """
+        Setup the basis (with its grad) in the spatial grid and prepare the
+        gradient of atomic orbital according to the ones required by the xc.
+        If xc is not given, then only setup the grid with ao (without any
+        gradients of ao)
+
+        Parameters
+        ----------
+        grid: BaseGrid
+            Grid used to setup this Hamilton.
+        xc: Optional[BaseXC] (default None)
+            Exchange Corelation functional of this Hamiltonian.
+
+        """
         # save the family and save the xc
         self.xc = xc
         if xc is None:
@@ -195,26 +229,78 @@ class HamiltonCGTO(BaseHamilton):
         logger.info("Calculating the basis laplacian values in the grid")
         self.lapl_basis = eval_laplgto(self.libcint_wrapper, self.rgrid, to_transpose=True)  # (nao, ngrid)
 
-    ############ fock matrix components ############
+    # fock matrix components
     def get_nuclattr(self) -> LinearOperator:
-        # nucl_mat: (nao, nao)
-        # return: (nao, nao)
+        """LinearOperator of the nuclear Coulomb attraction.
+
+        Nuclear Coulomb attraction is the electrostatic force binding electrons
+        to a nucleus. Positively charged protons attract negatively charged
+        electrons, creating stability in quantum systems. This force plays a
+        fundamental role in determining the structure and behavior of atoms,
+        contributing significantly to the overall potential energy in atomic
+        physics.
+
+        Returns
+        -------
+        LinearOperator
+            LinearOperator of the nuclear Coulomb attraction. Shape: (`*BH`, nao, nao)
+
+        """
         return LinearOperator.m(self.nucl_mat, is_hermitian=True)
 
     def get_kinnucl(self) -> LinearOperator:
-        # kinnucl_mat: (nao, nao)
-        # return: (nao, nao)
+        """
+        Returns the LinearOperator of the one-electron operator (i.e. kinetic
+        and nuclear attraction). Action of a LinearOperator on a function is a
+        linear transformation. In the case of one-electron operators, these
+        transformations are essential for solving the Schrödinger equation and
+        understanding the behavior of electrons in an atomic or molecular system.
+
+        Returns
+        -------
+        LinearOperator
+            LinearOperator of the one-electron operator. Shape: (`*BH`, nao, nao)
+
+        """
         return LinearOperator.m(self.kinnucl_mat, is_hermitian=True)
 
     def get_overlap(self) -> LinearOperator:
-        # olp_mat: (nao, nao)
-        # return: (nao, nao)
+        """
+        Returns the LinearOperator representing the overlap of the basis.
+        The overlap of the basis refers to the degree to which atomic or
+        molecular orbitals in a quantum mechanical system share common space.
+
+        Returns
+        -------
+        LinearOperator
+            LinearOperator representing the overlap of the basis.
+            Shape: (`*BH`, nao, nao)
+
+        """
         return LinearOperator.m(self.olp_mat, is_hermitian=True)
 
     def get_elrep(self, dm: torch.Tensor) -> LinearOperator:
-        # dm: (*BD, nao, nao)
-        # elrep_mat: (nao, nao, nao, nao)
-        # return: (*BD, nao, nao)
+        """
+        Obtains the LinearOperator of the Coulomb electron repulsion operator.
+        Known as the J-matrix.
+
+        In the context of electronic structure theory, it accounts for the
+        repulsive interaction between electrons in a many-electron system. The
+        J-matrix elements involve the Coulombic interactions between pairs of
+        electrons, influencing the total energy and behavior of the system.
+
+        Parameters
+        ----------
+        dm: torch.Tensor
+            Density matrix. Shape: (`*BD`, nao, nao)
+
+        Returns
+        -------
+        LinearOperator
+            LinearOperator of the Coulomb electron repulsion operator.
+            Shape: (`*BDH`, nao, nao)
+
+        """
         if self._df is None:
             mat = torch.einsum("...ij,ijkl->...kl", dm, self.el_mat)
             mat = (mat + mat.transpose(-2, -1)) * 0.5  # reduce numerical instability
@@ -223,19 +309,27 @@ class HamiltonCGTO(BaseHamilton):
             elrep = self._df.get_elrep(dm)
             return elrep
 
-    @overload
-    def get_exchange(self, dm: torch.Tensor) -> LinearOperator:
-        ...
+    def get_exchange(self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> Union[LinearOperator, SpinParam[LinearOperator]]:
+        """
+        Obtains the LinearOperator of the exchange operator.
+        It is -0.5 * K where K is the K matrix obtained from 2-electron integral.
 
-    @overload
-    def get_exchange(self, dm: SpinParam[torch.Tensor]) -> SpinParam[LinearOperator]:
-        ...
+        Exchange operator is a mathematical representation of the exchange
+        interaction between identical particles, such as electrons. The
+        exchange operator quantifies the effect of interchanging the
+        positions of two particles.
 
-    def get_exchange(self, dm):
-        # get the exchange operator
-        # dm: (*BD, nao, nao)
-        # el_mat: (nao, nao, nao, nao)
-        # return: (*BD, nao, nao)
+        Parameters
+        ----------
+        dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
+            Density matrix. Shape: (`*BD`, nao, nao)
+
+        Returns
+        -------
+        Union[LinearOperator, SpinParam[LinearOperator]]
+            LinearOperator of the exchange operator. Shape: (`*BDH`, nao, nao)
+
+        """
         if self._df is not None:
             raise RuntimeError("Exact exchange cannot be computed with density fitting")
         elif isinstance(dm, torch.Tensor):
@@ -251,7 +345,28 @@ class HamiltonCGTO(BaseHamilton):
                              d=self.get_exchange(2 * dm.d))
 
     def get_vext(self, vext: torch.Tensor) -> LinearOperator:
-        # vext: (*BR, ngrid)
+        r"""
+        Returns a LinearOperator of the external potential in the grid.
+
+        .. math::
+            \mathbf{V}_{ij} = \int b_i(\mathbf{r}) V(\mathbf{r}) b_j(\mathbf{r})\ d\mathbf{r}
+
+        External potential energy that a particle experiences in a discretized
+        space or grid. In quantum mechanics or computational physics, when
+        solving for the behavior of particles, an external potential is often
+        introduced to represent the influence of external forces.
+
+        Parameters
+        ----------
+        vext: torch.Tensor
+            External potential in the grid. Shape: (`*BR`, ngrid)
+
+        Returns
+        -------
+        LinearOperator
+            LinearOperator of the external potential in the grid. Shape: (`*BRH`, nao, nao)
+
+        """
         if not self.is_ao_set:
             raise RuntimeError("Please call `setup_grid(grid, xc)` to call this function")
         mat = torch.einsum("...r,rb,rc->...bc", vext, self.basis_dvolume, self.basis)  # (*BR, nao, nao)
@@ -259,16 +374,35 @@ class HamiltonCGTO(BaseHamilton):
         mat = (mat + mat.transpose(-2, -1)) * 0.5  # ensure the symmetricity and reduce numerical instability
         return LinearOperator.m(mat, is_hermitian=True)
 
-    @overload
-    def get_vxc(self, dm: SpinParam[torch.Tensor]) -> SpinParam[LinearOperator]:
-        ...
+    def get_vxc(
+        self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
+    ) -> Union[LinearOperator, SpinParam[LinearOperator]]:
+        """
+        Returns a LinearOperator for the exchange-correlation potential
 
-    @overload
-    def get_vxc(self, dm: torch.Tensor) -> LinearOperator:
-        ...
+        The exchange-correlation potential combines two effects:
 
-    def get_vxc(self, dm):
-        # dm: (*BD, nao, nao)
+        1. Exchange potential: Arises from the antisymmetry of the electron
+        wave function. It quantifies the tendency of electrons to avoid each
+        other due to their indistinguishability.
+
+        2. Correlation potential: Accounts for the electron-electron
+        correlation effects that arise from the repulsion between electrons.
+
+        TODO: check if what we need for Meta-GGA involving kinetics and for
+        exact-exchange
+
+        Parameters
+        ----------
+        dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
+            Density matrix. Shape: (`*BD`, nao, nao)
+
+        Returns
+        -------
+        Union[LinearOperator, SpinParam[LinearOperator]]
+            LinearOperator for the exchange-correlation potential. Shape: (`*BDH`, nao, nao)
+
+        """
         assert self.xc is not None, "Please call .setup_grid with the xc object"
 
         densinfo = SpinParam.apply_fcn(
@@ -278,22 +412,43 @@ class HamiltonCGTO(BaseHamilton):
             lambda potinfo_: self._get_vxc_from_potinfo(potinfo_), potinfo)
         return vxc_linop
 
-    ############### interface to dm ###############
+    # interface to dm
     def ao_orb2dm(self, orb: torch.Tensor, orb_weight: torch.Tensor) -> torch.Tensor:
-        # convert the atomic orbital to the density matrix
-        # in CGTO, it is U.W.U^T
+        """Convert the atomic orbital to the density matrix.
 
-        # orb: (*BO, nao, norb)
-        # orb_weight: (*BW, norb)
-        # return: (*BOW, nao, nao)
+        Parameters
+        ----------
+        orb: torch.Tensor
+            Atomic orbital. Shape: (*BO, nao, norb)
+        orb_weight: torch.Tensor
+            Orbital weight. Shape: (*BW, norb)
+
+        Returns
+        -------
+        torch.Tensor
+            Density matrix. Shape: (*BOWH, nao, nao)
+
+        """
 
         orb_w = orb * orb_weight.unsqueeze(-2)  # (*BOW, nao, norb)
         return torch.matmul(orb, orb_w.transpose(-2, -1))  # (*BOW, nao, nao)
 
     def aodm2dens(self, dm: torch.Tensor, xyz: torch.Tensor) -> torch.Tensor:
-        # xyz: (*BR, ndim)
-        # dm: (*BD, nao, nao)
-        # returns: (*BRD)
+        """Get the density value in the Cartesian coordinate.
+
+        Parameters
+        ----------
+        dm: torch.Tensor
+            Density matrix. Shape: (`*BD`, nao, nao)
+        xyz: torch.Tensor
+            Cartesian coordinate. Shape: (`*BR`, ndim)
+
+        Returns
+        -------
+        torch.Tensor
+            Density value in the Cartesian coordinate. Shape: (`*BRD`)
+
+        """
 
         nao = dm.shape[-1]
         xyzshape = xyz.shape
@@ -306,18 +461,58 @@ class HamiltonCGTO(BaseHamilton):
         dens = torch.matmul(basis.unsqueeze(-2), dens).squeeze(-1).squeeze(-1)  # (*BRD)
         return dens
 
-    ############### energy of the Hamiltonian ###############
+    # energy of the Hamiltonian
     def get_e_hcore(self, dm: torch.Tensor) -> torch.Tensor:
-        # get the energy from one electron operator
+        """
+        Get the energy from the one-electron Hamiltonian. The input is total
+        density matrix.
+
+        Parameters
+        ----------
+        dm: torch.Tensor
+            Total Density matrix.
+
+        Returns
+        -------
+        torch.Tensor
+            Energy from the one-electron Hamiltonian.
+
+        """
         return torch.einsum("...ij,...ji->...", self.kinnucl_mat, dm)
 
     def get_e_elrep(self, dm: torch.Tensor) -> torch.Tensor:
-        # get the energy from two electron repulsion operator
+        """
+        Get the energy from the electron repulsion. The input is total density
+        matrix.
+
+        Parameters
+        ----------
+        dm: torch.Tensor
+            Total Density matrix.
+
+        Returns
+        -------
+        torch.Tensor
+            Energy from the one-electron Hamiltonian.
+
+        """
         elrep_mat = self.get_elrep(dm).fullmatrix()
         return 0.5 * torch.einsum("...ij,...ji->...", elrep_mat, dm)
 
     def get_e_exchange(self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> torch.Tensor:
-        # get the energy from two electron exchange operator
+        """Get the energy from the exact exchange.
+
+        Parameters
+        ----------
+        dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
+            Density matrix.
+
+        Returns
+        -------
+        torch.Tensor
+            Energy from the exact exchange.
+
+        """
         exc_mat = self.get_exchange(dm)
         ene = SpinParam.apply_fcn(
             lambda exc_mat, dm: 0.5 * torch.einsum("...ij,...ji->...", exc_mat.fullmatrix(), dm),
@@ -326,6 +521,20 @@ class HamiltonCGTO(BaseHamilton):
         return enetot
 
     def get_e_xc(self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> torch.Tensor:
+        """Returns the exchange-correlation energy using the xc object given in
+        ``.setup_grid()``
+
+        Parameters
+        ----------
+        dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
+            Density matrix. Shape: (`*BD`, nao, nao)
+
+        Returns
+        -------
+        torch.Tensor
+            Exchange-correlation energy.
+
+        """
         assert self.xc is not None, "Please call .setup_grid with the xc object"
 
         # obtain the energy density per unit volume
@@ -335,21 +544,46 @@ class HamiltonCGTO(BaseHamilton):
 
         return torch.sum(self.grid.get_dvolume() * edens, dim=-1)
 
-    ############### free parameters for variational method ###############
-    @overload
-    def ao_orb_params2dm(self, ao_orb_params: torch.Tensor, orb_weight: torch.Tensor,
-                         with_penalty: None) -> torch.Tensor:
-        ...
+    # free parameters for variational method
+    def ao_orb_params2dm(
+            self,
+            ao_orb_params: torch.Tensor,
+            ao_orb_coeffs: torch.Tensor,
+            orb_weight: torch.Tensor,
+            with_penalty: Optional[float] = None) -> List[torch.Tensor]:
+        """
+        Convert the atomic orbital free parameters (parametrized in such a way
+        so it is not bounded) to the density matrix.
 
-    @overload
-    def ao_orb_params2dm(self, ao_orb_params: torch.Tensor, orb_weight: torch.Tensor,
-                         with_penalty: float) -> Union[torch.Tensor, torch.Tensor]:
-        ...
+        Parameters
+        ----------
+        ao_orb_params: torch.Tensor
+            The tensor that parametrized atomic orbital in an unbounded space.
+        ao_orb_coeffs: torch.Tensor
+            The tensor that helps ``ao_orb_params`` in describing the orbital.
+            The difference with ``ao_orb_params`` is that ``ao_orb_coeffs`` is
+            not differentiable and not to be optimized in variational method.
+        orb_weight: torch.Tensor
+            The orbital weights.
+        with_penalty: float or None
+            If a float, it returns a tuple of tensors where the first element is
+            ``dm``, and the second element is the penalty multiplied by the
+            penalty weights. The penalty is to compensate the overparameterization
+            of ``ao_orb_params``, stabilizing the Hessian for gradient calculation.
 
-    def ao_orb_params2dm(self, ao_orb_params, orb_weight, with_penalty=None):
-        # convert from atomic orbital parameters to density matrix
-        # the atomic orbital parameter is the inverse QR of the orbital
-        # ao_orb_params: (*BD, nao, norb)
+        Returns
+        -------
+        torch.Tensor or tuple of torch.Tensor
+            The density matrix from the orbital parameters and (if ``with_penalty``)
+            the penalty of the overparameterization of ``ao_orb_params``.
+
+        Notes
+        -----
+        * The penalty should be 0 if ``ao_orb_params`` is from ``dm2ao_orb_params``.
+        * The density matrix should be recoverable when put through ``dm2ao_orb_params``
+          and ``ao_orb_params2dm``.
+
+        """
         ao_orbq, _ = torch.linalg.qr(ao_orb_params)  # (*BD, nao, norb)
         ao_orb = ao_orbq
         dm = self.ao_orb2dm(ao_orb, orb_weight)
@@ -366,16 +600,50 @@ class HamiltonCGTO(BaseHamilton):
             return dm, penalty
 
     def dm2ao_orb_params(self, dm: torch.Tensor, norb: int) -> torch.Tensor:
-        # convert back the density matrix to one solution in the parameters space
-        # NOTE: this assumes that the orbital weights always decreasing in order
+        """
+        Convert from the density matrix to the orbital parameters.
+        The map is not one-to-one, but instead one-to-many where there might
+        be more than one orbital parameters to describe the same density matrix.
+        For restricted systems, only one of the ``dm`` (``dm.u`` or ``dm.d``) is
+        sufficient.
+
+        Parameters
+        ----------
+        dm: torch.Tensor
+            The density matrix.
+        norb: int
+            The number of orbitals for the system.
+
+        Returns
+        -------
+        tuple of 2 torch.Tensor
+            The atomic orbital parameters for the first returned value and the
+            atomic orbital coefficients for the second value.
+
+        Note
+        ----
+        This assumes that the orbital weights always decreasing in order
+        """
         mdmm = dm
         w, orbq = torch.linalg.eigh(mdmm)
         # w is ordered increasingly, so we take the last parts
         orbq_params = orbq[..., -norb:]  # (nao, norb)
         return torch.flip(orbq_params, dims=(-1,))
 
-    ################ misc ################
+    # misc
     def _dm2densinfo(self, dm: torch.Tensor) -> ValGrad:
+        """Gets Density Fitting Info from Density Matrix.
+
+        Parameters
+        ----------
+        dm: torch.Tensor
+            Density Matrix
+
+        Returns
+        -------
+        ValGrad
+
+        """
         # dm: (*BD, nao, nao), Hermitian
         # family: 1 for LDA, 2 for GGA, 3 for MGGA
         # self.basis: (ngrid, nao)
@@ -450,13 +718,20 @@ class HamiltonCGTO(BaseHamilton):
         return res
 
     def _get_vxc_from_potinfo(self, potinfo: ValGrad) -> LinearOperator:
-        # obtain the vxc operator from the potential information
-        # potinfo.value: (*BD, nr)
-        # potinfo.grad: (*BD, ndim, nr)
-        # potinfo.lapl: (*BD, nr)
-        # potinfo.kin: (*BD, nr)
-        # self.basis: (nr, nao)
-        # self.grad_basis: (ndim, nr, nao)
+        """obtain the vxc operator from the potential information
+
+        Parameters
+        ----------
+        potinfo: ValGrad
+            potential information as ValGrad.
+            potinfo.value (*BD, nr)
+            potinfo.grad (*BD, ndim, nr)
+            potinfo.lapl (*BD, nr)
+
+        Returns
+        -------
+        LinearOperator
+            vxc LinearOperator"""
 
         # prepare the fock matrix component from vxc
         nao = self.basis.shape[-1]
@@ -502,6 +777,21 @@ class HamiltonCGTO(BaseHamilton):
         return vxc_linop
 
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+        """Return the paramnames
+
+        Parameters
+        ----------
+        methodname: str
+            Name of the method.
+        prefix: str (default "")
+            Prefix of the paramnames.
+
+        Returns
+        -------
+        List[str]
+            Paramnames.
+
+        """
         if methodname == "get_kinnucl":
             return [prefix + "kinnucl_mat"]
         elif methodname == "get_nuclattr":
@@ -561,4 +851,3 @@ class HamiltonCGTO(BaseHamilton):
             return params
         else:
             raise KeyError("getparamnames has no %s method" % methodname)
-        # TODO: complete this

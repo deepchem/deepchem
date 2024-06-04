@@ -13,9 +13,29 @@ logger = logging.getLogger(__name__)
 class DFMol(BaseDF):
     """
     DFMol represents the class of density fitting for an isolated molecule.
+    
+    Density fitting is a standard technique in quantum chemistry as it
+    helps to accelerate certain parts of a calculation, such as the
+    computation of the electron repulsion energy, without significant
+    loss of accuracy.
+
     """
     def __init__(self, dfinfo: DensityFitInfo, wrapper: LibcintWrapper,
                  orthozer: Optional[OrbitalOrthogonalizer] = None):
+        """Initializes the DFMol Class.
+        
+        Parameters
+        ----------
+        dfinfo: DensityFitInfo
+            Info about DF Method name and Auxiliary Basis Set.
+        wrapper: LibcintWrapper
+            Python wrapper for storing info of environment and
+            parameters for the integrals calculation.
+        orthozer: Optional[OrbitalOrthogonalizer] (default None)
+            OrbitalOrthogonalizer for converting orbital to another
+            type of orbital by orthogonalizing the basis sets.
+
+        """
         self.dfinfo = dfinfo
         self.wrapper = wrapper
         self._is_built = False
@@ -23,6 +43,12 @@ class DFMol(BaseDF):
         self._orthozer = orthozer
 
     def build(self) -> BaseDF:
+        """Build the Density Fitting Object
+
+        Returns
+        -------
+        BaseDF
+            The constructed density fitting object."""
         self._is_built = True
 
         # construct the matrix used to calculate the electron repulsion for
@@ -59,9 +85,21 @@ class DFMol(BaseDF):
         return self
 
     def get_elrep(self, dm: torch.Tensor) -> LinearOperator:
-        # dm: (*BD, nao, nao)
-        # elrep_mat: (nao, nao, nao, nao)
-        # return: (*BD, nao, nao)
+        """
+        Construct the electron repulsion linear operator from the given density
+        matrix using the density fitting method.
+
+        Parameters
+        ----------
+        dm : torch.Tensor
+            Density matrix. (*BD, nao, nao)
+
+        Returns
+        -------
+        LinearOperator
+            The electron repulsion linear operator.
+
+        """
 
         # convert the dm into the original cgto basis
         if self._orthozer is not None:
@@ -81,13 +119,49 @@ class DFMol(BaseDF):
 
     @property
     def j2c(self) -> torch.Tensor:
+        """Returns the 2-centre 2-electron integrals of the auxiliary basis.
+
+        Returns
+        -------
+        torch.Tensor
+            2-centre 2-electron integrals of the auxiliary basis.
+
+        """
         return self._j2c
 
     @property
     def j3c(self) -> torch.Tensor:
+        """
+        Return the 3-centre 2-electron integrals of the auxiliary basis and the
+        basis.
+
+        Returns
+        -------
+        torch.Tensor
+            3-centre 2-electron integrals of the auxiliary basis and the basis.
+
+        """
         return self._j3c
 
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+        """
+        This method should list tensor names that affect the output of the
+        method with name indicated in ``methodname``.
+
+        Parameters
+        ---------
+        methodname: str
+            The name of the method of the class.
+        prefix: str (default="")
+            The prefix to be appended in front of the parameters name.
+            This usually contains the dots.
+
+        Returns
+        -------
+        List[str]
+            Sequence of name of parameters affecting the output of the method.
+
+        """
         if methodname == "get_elrep":
             if self._precompute_elmat:
                 params = [prefix + "_el_mat", prefix + "_j3c"]

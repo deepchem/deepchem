@@ -333,7 +333,7 @@ class DensityFitInfo:
     """Density fitting (DF), sometimes also called the resolution of
     identity (RI) approximation, is a method to approximate the
     four-index electron repulsion integrals (ERIs) by two- and
-    three-index tensors. [54] In DF, the atomic orbital (AO) product
+    three-index tensors. In DF, the atomic orbital (AO) product
     space is expanded in terms of an auxiliary basis set.
 
     Attributes
