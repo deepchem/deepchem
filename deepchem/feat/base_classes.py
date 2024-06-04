@@ -487,6 +487,9 @@ class PolymerFeaturizer(Featurizer):
     i)  Weighted Directed Graph Representation (Monomer SMILES + Fragments + Weight Distrbution)
     ii) BigSMILES String Representation
 
+    This polymer base class is useful considering it handles batches and validates the individual data points
+    before passing it for featurization. Currently it only validates the string type for above representations.
+
     Child classes need to implement the _featurize method for
     calculating features for a polymer.
 

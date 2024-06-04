@@ -537,7 +537,31 @@ def shortest_path_length(graph_data, source, cutoff=None):
 class WeightedDirectedGraphData:
     """WeightedDirectedGraphData class
 
-    This class is used to represent weighted directed graphs.
+    This class is used to represent weighted directed graphs. The instances of this class will be
+    useful specifically for the graph neural network models that support weighted message passing.
+    The corresponding featurizers will have return type of this class.
+
+    While the conventional `GraphData` stores the feature vectors and index of the edges this class
+    stores the feature vectors alongs with weight values, edge mapping for the nodes for both directions,
+    and reverse edge mapping for the edges (optional). This class is useful for the graph neural network models
+    that can encode this directional data with the weights to hold most features in similar manner to macromolecules.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> node_features = np.random.rand(5,10)
+    >>> edge_features = np.random.rand(7,10)
+    >>> node_to_edge_mapping = [[x,x] for x in range(5)]
+    >>> node_weights = np.random.rand(5)
+    >>> edge_weights = np.random.rand(7)
+    >>> edge_to_node_mapping = np.array([x for x in range(7)])
+    >>> edge_to_reverse_edge_mapping = np.array([x for x in range(7)[::-1]])
+    >>> w_g_obj = WeightedDirectedGraphData(node_features,edge_features,node_to_edge_mapping, node_weights, edge_weights, edge_to_node_mapping, edge_to_reverse_edge_mapping)
+    >>> w_g_obj
+    WeightedDirectedGraphData(node_features=[5, 10], edge_features=[7, 10],
+                    node_to_edge_mapping=5, node_weights=[5],
+                    edge_weights=[7], edge_to_node_mapping=7,
+                    edge_to_reverse_edge_mapping=7)
 
     Attributes
     ----------
@@ -565,22 +589,6 @@ class WeightedDirectedGraphData:
     num_edge_features: int, optional (default None)
         The number of features per edge in the graph
 
-    Examples
-    --------
-    >>> import numpy as np
-    >>> node_features = np.random.rand(5,10)
-    >>> edge_features = np.random.rand(7,10)
-    >>> node_to_edge_mapping = [[x,x] for x in range(5)]
-    >>> node_weights = np.random.rand(5)
-    >>> edge_weights = np.random.rand(7)
-    >>> edge_to_node_mapping = np.array([x for x in range(7)])
-    >>> edge_to_reverse_edge_mapping = np.array([x for x in range(7)[::-1]])
-    >>> w_g_obj = WeightedDirectedGraphData(node_features,edge_features,node_to_edge_mapping, node_weights, edge_weights, edge_to_node_mapping, edge_to_reverse_edge_mapping)
-    >>> w_g_obj
-    WeightedDirectedGraphData(node_features=[5, 10], edge_features=[7, 10],
-                    node_to_edge_mapping=5, node_weights=[5],
-                    edge_weights=[7], edge_to_node_mapping=7,
-                    edge_to_reverse_edge_mapping=7)
     """
 
     def __init__(self,
