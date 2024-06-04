@@ -12,23 +12,9 @@ class ProtBERT(HuggingFaceModel):
     supports only MLM pretraining and classification mode, as described by the
     authors in HuggingFace[2]. For classfication we currently only support
     Logistic regression and a simple Feed forward neural network.
-
-
-    Parameters
-    ----------
-    task: str
-        The task defines the type of learning task in the model. The supported tasks are
-         - `mlm` - masked language modeling commonly used in pretraining
-         - `classification` - use it for classification tasks
-    model_path: str
-        Path to the HuggingFace model
-    n_tasks: int, default 1
-        Number of prediction targets for a multitask learning model
-    cls_name: str
-        The classifier head to use for classification mode.
-
-    Example
-    -------
+    
+    Examples
+    --------
     >>> import os
     >>> import tempfile
     >>> tempdir = tempfile.mkdtemp()
@@ -73,7 +59,21 @@ class ProtBERT(HuggingFaceModel):
                  model_path: str = 'Rostlab/prot_bert',
                  n_tasks: int = 1,
                  cls_name: str = "LogReg",
-                 **kwargs):
+                 **kwargs) -> None:
+        """
+        Parameters
+        ----------
+        task: str
+            The task defines the type of learning task in the model. The supported tasks are
+            - `mlm` - masked language modeling commonly used in pretraining
+            - `classification` - use it for classification tasks
+        model_path: str
+            Path to the HuggingFace model
+        n_tasks: int, default 1
+            Number of prediction targets for a multitask learning model
+        cls_name: str
+            The classifier head to use for classification mode. Currently only supports "FFN" and "LogReg"
+        """
         self.n_tasks = n_tasks
         tokenizer = BertTokenizer.from_pretrained(model_path,
                                                   do_lower_case=False)
