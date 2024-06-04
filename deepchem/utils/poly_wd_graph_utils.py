@@ -93,6 +93,16 @@ def handle_hydrogen(smiles: str,
 
     This function is useful to process organic molecules properly.
 
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> mol = dc.utils.handle_hydrogen('C', keep_h=True, add_h=False)
+    >>> mol.GetNumAtoms()
+    1
+    >>> mol = dc.utils.handle_hydrogen('C', keep_h=True, add_h=True)
+    >>> mol.GetNumAtoms()
+    5
+
     Parameters
     ----------
     smiles : str
@@ -107,15 +117,6 @@ def handle_hydrogen(smiles: str,
     rdkit.Chem.rdchem.Mol
         RDKit molecule object.
 
-    Examples
-    --------
-    >>> import deepchem as dc
-    >>> mol = dc.utils.handle_hydrogen('C', keep_h=True, add_h=False)
-    >>> mol.GetNumAtoms()
-    1
-    >>> mol = dc.utils.handle_hydrogen('C', keep_h=True, add_h=True)
-    >>> mol.GetNumAtoms()
-    5
     """
     if keep_h:
         mol = Chem.MolFromSmiles(smiles, sanitize=False)
@@ -139,6 +140,14 @@ def make_polymer_mol(
     Builds an RDKit joined molecule from a SMILES string of monomer molecules.
     The weight of each monomer is stored as a metadata property of each atom.
 
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> mol = dc.utils.make_polymer_mol('C.C', True, False, [1, 1])
+    >>> for atom in mol.GetAtoms():
+    ...     print(atom.GetDoubleProp('w_frag'))
+    1.0
+    1.0
     Parameters
     ----------
     smiles : str
@@ -149,19 +158,11 @@ def make_polymer_mol(
         Whether to keep hydrogens in the molecule.
     add_h : bool
         Whether to add hydrogens to the molecule.
+
     Returns
     -------
     rdkit.Chem.rdchem.Mol
         RDKit polymer molecule object.
-
-    Examples
-    --------
-    >>> import deepchem as dc
-    >>> mol = dc.utils.make_polymer_mol('C.C', True, False, [1, 1])
-    >>> for atom in mol.GetAtoms():
-    ...     print(atom.GetDoubleProp('w_frag'))
-    1.0
-    1.0
     """
 
     # check input is correct, we need the same number of fragments and their weights
@@ -202,6 +203,16 @@ def parse_polymer_rules(rules: List[str]) -> (List[tuple], float):
     The DoP can be mentioned at the end of the rules separated by "~".
     If DoP is not given, the function assumes DoP = 1.
 
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> polymer_info, degree_of_polymerization = dc.utils.parse_polymer_rules(
+    ...     ['1-2:0.5:0.5'])
+    >>> polymer_info
+    [('1', '2', 0.5, 0.5)]
+    >>> degree_of_polymerization
+    1.0
+
     Parameters
     ----------
     rules : list[str]
@@ -214,17 +225,8 @@ def parse_polymer_rules(rules: List[str]) -> (List[tuple], float):
         (start, end, weight_forward, weight_reverse)
     degree_of_polymerization : float
         Degree of polymerization of the polymer.
-
-    Examples
-    --------
-    >>> import deepchem as dc
-    >>> polymer_info, degree_of_polymerization = dc.utils.parse_polymer_rules(
-    ...     ['1-2:0.5:0.5'])
-    >>> polymer_info
-    [('1', '2', 0.5, 0.5)]
-    >>> degree_of_polymerization
-    1.0
     """
+
     polymer_info = []
     counter = Counter()  # used for validating the input
 
@@ -261,6 +263,15 @@ def tag_atoms_in_repeating_unit(mol):
     serving to identify attachment points. In addition, create a map of bond
     types based on what bonds are connected to R groups in the input.
 
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> mol, _ = dc.utils.tag_atoms_in_repeating_unit(Chem.MolFromSmiles('[1*]CC.C[2*]'))
+    >>> mol.GetAtomWithIdx(0).GetBoolProp('core')
+    False
+    >>> mol.GetAtomWithIdx(1).GetBoolProp('core')
+    True
+
     Parameters
     ----------
     mol : rdkit.Chem.rdchem.Mol
@@ -272,16 +283,8 @@ def tag_atoms_in_repeating_unit(mol):
         RDKit molecule object.
     dict
         Map of R group to bond type.
-
-    Examples
-    --------
-    >>> import deepchem as dc
-    >>> mol, _ = dc.utils.tag_atoms_in_repeating_unit(Chem.MolFromSmiles('[1*]CC.C[2*]'))
-    >>> mol.GetAtomWithIdx(0).GetBoolProp('core')
-    False
-    >>> mol.GetAtomWithIdx(1).GetBoolProp('core')
-    True
     """
+
     atoms = [a for a in mol.GetAtoms()]
     neighbor_map = {}  # map R group to index of atom it is attached to
     r_bond_types = {}  # map R group to bond type
@@ -322,6 +325,14 @@ def onek_encoding_unk(value: int, choices: list) -> list:
     This function generates the vector for a value as one hot encoded list.
     If there is an unknown value, it will be encoded as 1 in the last index
 
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> dc.utils.onek_encoding_unk(1, [1, 2, 3])
+    [1, 0, 0, 0]
+    >>> dc.utils.onek_encoding_unk(69, [1, 2, 3])
+    [0, 0, 0, 1]
+
     Parameters
     ----------
     value : int
@@ -333,14 +344,8 @@ def onek_encoding_unk(value: int, choices: list) -> list:
     -------
     list
         One hot encoded vector.
-    Examples
-    --------
-    >>> import deepchem as dc
-    >>> dc.utils.onek_encoding_unk(1, [1, 2, 3])
-    [1, 0, 0, 0]
-    >>> dc.utils.onek_encoding_unk(69, [1, 2, 3])
-    [0, 0, 0, 1]
     """
+
     encoding = [0] * (len(choices) + 1)
     index = choices.index(value) if value in choices else -1
     encoding[index] = 1
@@ -353,6 +358,18 @@ def generate_atom_features(atom: Chem.rdchem.Atom,
                            functional_groups=None):
     """
     This function generates the feature vector for an atom.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> mol = Chem.MolFromSmiles("C")
+    >>> PARAMS = dc.feat.FeaturizationParameters()
+    >>> for atom in mol.GetAtoms():
+    ...     atom_feat_vector = dc.utils.generate_atom_features(
+    ...         atom, PARAMS = PARAMS))
+    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0.12011]
 
     Parameters
     ----------
@@ -367,19 +384,8 @@ def generate_atom_features(atom: Chem.rdchem.Atom,
     -------
     list
         Feature vector.
-
-    Examples
-    --------
-    >>> import deepchem as dc
-    >>> mol = Chem.MolFromSmiles("C")
-    >>> PARAMS = dc.feat.FeaturizationParameters()
-    >>> for atom in mol.GetAtoms():
-    ...     atom_feat_vector = dc.utils.generate_atom_features(
-    ...         atom, PARAMS = PARAMS))
-    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0,
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0.12011]
     """
+
     if atom is None:
         features = [0] * PARAMS.ATOM_FDIM
     else:
@@ -408,6 +414,15 @@ def generate_bond_features(bond: Chem.rdchem.Bond,
     """
     This function generates the feature vector for a bond.
 
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> mol = Chem.MolFromSmiles("CC")
+    >>> PARAMS = dc.feat.FeaturizationParameters()
+    >>> for bond in mol.GetBonds():
+    ...     print(dc.feat.generate_bond_features(bond, PARAMS = PARAMS))
+    [0, True, False, False, False, False, False, 1, 0, 0, 0, 0, 0, 0]
+
     Parameters
     ----------
     bond : rdkit.Chem.rdchem.Bond
@@ -419,15 +434,6 @@ def generate_bond_features(bond: Chem.rdchem.Bond,
     -------
     list
         Feature vector.
-
-    Examples
-    --------
-    >>> import deepchem as dc
-    >>> mol = Chem.MolFromSmiles("CC")
-    >>> PARAMS = dc.feat.FeaturizationParameters()
-    >>> for bond in mol.GetBonds():
-    ...     print(dc.feat.generate_bond_features(bond, PARAMS = PARAMS))
-    [0, True, False, False, False, False, False, 1, 0, 0, 0, 0, 0, 0]
     """
     if bond is None:
         fbond = [1] + [0] * (PARAMS.BOND_FDIM - 1)
@@ -451,6 +457,15 @@ def remove_wildcard_atoms(rwmol: Chem.rdchem.RWMol):
     This function removes the connection virtual atoms for open bonds in a molecule.
     This is necessary for molecules with wildcard notations.
 
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> mol = Chem.MolFromSmiles("[*]CC")
+    >>> rwmol = Chem.RWMol(mol)
+    >>> rwmol = dc.utils.remove_wildcard_atoms(rwmol)
+    >>> Chem.MolToSmiles(rwmol)
+    'CC'
+
     Parameters
     ----------
     rwmol : rdkit.Chem.rdchem.RWMol
@@ -460,15 +475,6 @@ def remove_wildcard_atoms(rwmol: Chem.rdchem.RWMol):
     -------
     rdkit.Chem.rdchem.RWMol
         Read and writable RDKit molecule object.
-
-    Examples
-    --------
-    >>> import deepchem as dc
-    >>> mol = Chem.MolFromSmiles("[*]CC")
-    >>> rwmol = Chem.RWMol(mol)
-    >>> rwmol = dc.utils.remove_wildcard_atoms(rwmol)
-    >>> Chem.MolToSmiles(rwmol)
-    'CC'
     """
     indices = [a.GetIdx() for a in rwmol.GetAtoms() if '*' in a.GetSmarts()]
     while len(indices) > 0:
