@@ -12,7 +12,7 @@ class ProtBERT(HuggingFaceModel):
     supports only MLM pretraining and classification mode, as described by the
     authors in HuggingFace[2]. For classfication we currently only support
     Logistic regression and a simple Feed forward neural network.
-    
+
     Examples
     --------
     >>> import os
