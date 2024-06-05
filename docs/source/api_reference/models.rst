@@ -476,7 +476,8 @@ MATModel
 NormalizingFlowModel
 --------------------
 
-.. autoclass:: deepchem.models.torch_models.NormalizingFlow
+.. autoclass:: deepchem.models.torch_models.flows.NormalizingFlowModel
+  :members:
 
 DMPNNModel
 ----------
