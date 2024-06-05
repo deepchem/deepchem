@@ -1,5 +1,4 @@
 from rdkit import Chem
-from collections import Counter
 import numpy as np
 from typing import List
 
@@ -192,7 +191,7 @@ def make_polymer_mol(
     return mol
 
 
-def parse_polymer_rules(rules: List[str]) -> (List[tuple], float):
+def parse_polymer_rules(rules: List[str]) -> tuple[List[tuple], float]:
     """
     This function extracts probabilty weight distribution details for bonds
     from string to list of tuples in following format.
@@ -228,7 +227,6 @@ def parse_polymer_rules(rules: List[str]) -> (List[tuple], float):
     """
 
     polymer_info = []
-    counter = Counter()  # used for validating the input
 
     # check if deg of polymerization is provided
     if '~' in rules[-1]:
@@ -251,8 +249,6 @@ def parse_polymer_rules(rules: List[str]) -> (List[tuple], float):
         w12 = float(rule.split(':')[1])  # weight for bond R_idx1 -> R_idx2
         w21 = float(rule.split(':')[2])  # weight for bond R_idx2 -> R_idx1
         polymer_info.append((idx1, idx2, w12, w21))
-        counter[idx1] += float(w21)
-        counter[idx2] += float(w12)
 
     return polymer_info, 1. + np.log10(Xn)
 
@@ -355,7 +351,7 @@ def onek_encoding_unk(value: int, choices: list) -> list:
 
 def generate_atom_features(atom: Chem.rdchem.Atom,
                            PARAMS: FeaturizationParameters,
-                           functional_groups=None):
+                           functional_groups=None) -> list:
     """
     This function generates the feature vector for an atom.
 
@@ -410,7 +406,7 @@ def generate_atom_features(atom: Chem.rdchem.Atom,
 
 
 def generate_bond_features(bond: Chem.rdchem.Bond,
-                           PARAMS: FeaturizationParameters):
+                           PARAMS: FeaturizationParameters) -> list:
     """
     This function generates the feature vector for a bond.
 
@@ -452,7 +448,7 @@ def generate_bond_features(bond: Chem.rdchem.Bond,
     return fbond
 
 
-def remove_wildcard_atoms(rwmol: Chem.rdchem.RWMol):
+def remove_wildcard_atoms(rwmol: Chem.rdchem.RWMol) -> Chem.rdchem.RWMol:
     """
     This function removes the connection virtual atoms for open bonds in a molecule.
     This is necessary for molecules with wildcard notations.
