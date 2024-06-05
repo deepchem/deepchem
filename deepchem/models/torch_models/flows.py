@@ -2,7 +2,6 @@
 from typing import Optional, Tuple, Union, List, Sequence, Any
 
 import numpy as np
-from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 import torch
@@ -838,7 +837,6 @@ class NormalizingFlowModel(TorchModel):
             learning_rate: float = 0.001,
             weight_decay: float = 0.0001,
             optimizer: Any = torch.optim.Adam,
-            plot: bool = False,
             logging: bool = False) -> None:
         """Fit the Normalizing Flow
 
@@ -873,13 +871,6 @@ class NormalizingFlowModel(TorchModel):
                 optimizer.step()
 
             # Log loss
-            loss_hist = np.append(self.loss_hist, loss.to('cpu').data.numpy())
             if logging:
                 print(f"Epoch: {epoch} Loss: {loss}")
-        if plot:
-            # Plot loss
-            plt.figure(figsize=(10, 10))
-            plt.plot(loss_hist, label='loss')
-            plt.legend()
-            plt.show()
         self.nfm = nfm
