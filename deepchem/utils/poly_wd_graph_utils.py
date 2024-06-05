@@ -1,6 +1,6 @@
 from rdkit import Chem
 import numpy as np
-from typing import List
+from typing import List, Tuple
 
 
 class FeaturizationParameters:
@@ -191,7 +191,7 @@ def make_polymer_mol(
     return mol
 
 
-def parse_polymer_rules(rules: List[str]) -> tuple[List[tuple], float]:
+def parse_polymer_rules(rules: List[str]) -> Tuple[List[tuple], float]:
     """
     This function extracts probabilty weight distribution details for bonds
     from string to list of tuples in following format.
