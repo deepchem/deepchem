@@ -211,6 +211,7 @@ def test_grover_model_overfit_finetune(tmpdir):
                                                    GroverBondVocabularyBuilder)
     # arranging test - preparing dataset
     import pandas as pd
+    torch.manual_seed(0)
 
     df = pd.DataFrame({'smiles': ['CC', 'CCC'], 'preds': [0, 0]})
 
