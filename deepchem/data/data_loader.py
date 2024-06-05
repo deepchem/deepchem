@@ -1996,6 +1996,8 @@ class BAMLoader(DataLoader):
     section and an alignment section.
     Here, we extract Query Name, Query Sequence, Query Length, Reference Name,
     Reference Start, CIGAR and Mapping Quality of each read in the BAM file.
+    Additionally, we can also get pileups from BAM files by setting
+    get_pileup=True.
     This class provides methods to load and featurize data from BAM files.
 
     Examples

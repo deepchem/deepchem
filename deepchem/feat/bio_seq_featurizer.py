@@ -106,8 +106,8 @@ class BAMFeaturizer(Featurizer):
     Sequence, Query Length, Reference Name, Reference Start, CIGAR and Mapping
     Quality of the alignment in the BAM file.
 
-    This is the default featurizer used by BAMLoader, and it extracts the following
-    fields from each read in each BAM file in the given order:-
+    This is the default featurizer used by BAMLoader, and it extracts the
+    following fields from each read in each BAM file in the given order:-
     - Column 0: Query Name
     - Column 1: Query Sequence
     - Column 2: Query Length
@@ -115,6 +115,22 @@ class BAMFeaturizer(Featurizer):
     - Column 4: Reference Start
     - Column 5: CIGAR
     - Column 6: Mapping Quality
+    - Column 7: Pileup Information (if get_pileup=True)
+
+    Additionally, we can also get pileups from BAM files by setting
+    get_pileup=True.A pileup is a summary of the alignment of reads
+    at each position in a reference sequence. Specifically, it
+    provides information on the position on the reference genome,
+    the depth of coverage (i.e., the number of reads aligned to that
+    position), and the actual bases from the aligned reads at that
+    position, along with their quality scores. This data structure
+    is useful for identifying variations, such as single nucleotide
+    polymorphisms (SNPs), insertions, and deletions by comparing the
+    aligned reads to the reference genome. A pileup can be visualized
+    as a vertical stack of aligned sequences, showing how each read
+    matches or mismatches the reference at each position.
+    In DeepVariant, pileups are utilized during the initial stages to
+    select candidate windows for further analysis.
 
     Examples
     --------
@@ -143,8 +159,8 @@ class BAMFeaturizer(Featurizer):
             The maximum number of records to extract from the BAM file. If None, all
             records will be extracted.
         get_pileup : bool, optional
-            If True, pileup information will be extracted from the BAM file. This is used in DeepVariant.
-            False by default.
+            If True, pileup information will be extracted from the BAM file.
+            This is used in DeepVariant. False by default.
 
         """
         self.max_records = max_records
