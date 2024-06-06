@@ -324,7 +324,7 @@ class TorchModel(Model):
             for each batch.  If None (the default), the model's standard loss function
             is used.
         callbacks: function or list of functions
-            one or more functions of the form f(model, step) that will be invoked after
+            one or more functions of the form f(model, step, **kwargs) that will be invoked after
             every step.  This can be used to perform validation, logging, etc.
         all_losses: Optional[List[float]], optional (default None)
             If specified, all logged losses are appended into this list. Note that
@@ -347,7 +347,8 @@ class TorchModel(Model):
                       max_checkpoints_to_keep: int = 5,
                       checkpoint_interval: int = 1000,
                       restore: bool = False,
-                      variables: Optional[List[torch.nn.Parameter]] = None,
+                      variables: Optional[Union[List[torch.nn.Parameter],
+                                                torch.nn.ParameterList]] = None,
                       loss: Optional[LossFn] = None,
                       callbacks: Union[Callable, List[Callable]] = [],
                       all_losses: Optional[List[float]] = None) -> float:
@@ -366,9 +367,11 @@ class TorchModel(Model):
         restore: bool
             if True, restore the model from the most recent checkpoint and continue training
             from there.  If False, retrain the model from scratch.
-        variables: list of torch.nn.Parameter
+        variables: list of torch.nn.Parameter or torch.nn.ParameterList
             the variables to train.  If None (the default), all trainable variables in
             the model are used.
+            ParameterList can be used like a regular Python list, but Tensors that are
+            `Parameter` are properly registered, and will be visible by all `Module` methods.
         loss: function
             a function of the form f(outputs, labels, weights) that computes the loss
             for each batch.  If None (the default), the model's standard loss function
@@ -398,18 +401,21 @@ class TorchModel(Model):
             optimizer = self._pytorch_optimizer
             lr_schedule = self._lr_schedule
         else:
-            var_key = tuple(variables)
-            if var_key in self._optimizer_for_vars:
-                optimizer, lr_schedule = self._optimizer_for_vars[var_key]
+            variables_tuple = tuple(variables)
+            if variables_tuple in self._optimizer_for_vars:
+                optimizer, lr_schedule = self._optimizer_for_vars[
+                    variables_tuple]
             else:
-                optimizer = self.optimizer._create_pytorch_optimizer(variables)
+                optimizer = self.optimizer._create_pytorch_optimizer(
+                    variables_tuple)
                 if isinstance(self.optimizer.learning_rate,
                               LearningRateSchedule):
                     lr_schedule = self.optimizer.learning_rate._create_pytorch_schedule(
                         optimizer)
                 else:
                     lr_schedule = None
-                self._optimizer_for_vars[var_key] = (optimizer, lr_schedule)
+                self._optimizer_for_vars[variables_tuple] = (optimizer,
+                                                             lr_schedule)
         time1 = time.time()
 
         # Main training loop.
@@ -459,7 +465,13 @@ class TorchModel(Model):
             if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
                 self.save_checkpoint(max_checkpoints_to_keep)
             for c in callbacks:
-                c(self, current_step)
+                try:
+                    # NOTE In DeepChem > 2.8.0, callback signature is updated to allow
+                    # variable arguments.
+                    c(self, current_step, iteration_loss=batch_loss)
+                except TypeError:
+                    # DeepChem <= 2.8.0, the callback should have this signature.
+                    c(self, current_step)
             if self.tensorboard and should_log:
                 self._log_scalar_to_tensorboard('loss', batch_loss,
                                                 current_step)
@@ -898,6 +910,7 @@ class TorchModel(Model):
                 grad_output.zero_()
                 grad_output[i] = 1
                 output.backward(grad_output, retain_graph=True)
+                assert isinstance(X_tensor.grad, torch.Tensor)
                 result.append(X_tensor.grad.clone())
                 X_tensor.grad.zero_()
             final_result.append(
@@ -993,9 +1006,12 @@ class TorchModel(Model):
         ----------
         max_checkpoints_to_keep: int
             the maximum number of checkpoints to keep.  Older checkpoints are discarded.
+            If set to zero, the function will simply return as no checkpoint is saved.
         model_dir: str, default None
             Model directory to save checkpoint to. If None, revert to self.model_dir
         """
+        if max_checkpoints_to_keep == 0:
+            return
         self._ensure_built()
         if model_dir is None:
             model_dir = self.model_dir
@@ -1044,7 +1060,8 @@ class TorchModel(Model):
 
     def restore(self,
                 checkpoint: Optional[str] = None,
-                model_dir: Optional[str] = None) -> None:
+                model_dir: Optional[str] = None,
+                strict: Optional[bool] = True) -> None:
         """Reload the values of all variables from a checkpoint file.
 
         Parameters
@@ -1056,6 +1073,9 @@ class TorchModel(Model):
         model_dir: str, default None
             Directory to restore checkpoint from. If None, use self.model_dir.  If
             checkpoint is not None, this is ignored.
+        strict: bool, default True
+            Whether or not to strictly enforce that the keys in checkpoint match
+            the keys returned by this model's get_variable_scope() method.
         """
         logger.info('Restoring model')
         self._ensure_built()
@@ -1065,9 +1085,59 @@ class TorchModel(Model):
                 raise ValueError('No checkpoint found')
             checkpoint = checkpoints[0]
         data = torch.load(checkpoint, map_location=self.device)
-        self.model.load_state_dict(data['model_state_dict'])
+        self.model.load_state_dict(data['model_state_dict'], strict=strict)
         self._pytorch_optimizer.load_state_dict(data['optimizer_state_dict'])
         self._global_step = data['global_step']
+
+    def compile(self,
+                fullgraph: bool = False,
+                dynamic: Union[None, bool] = None,
+                backend: str = "inductor",
+                mode: str = "default",
+                **kwargs) -> None:
+        """Compiles the model using `torch.compile` for faster training and inference.
+        Visit https://pytorch.org/docs/stable/generated/torch.compile.html for more information.
+
+        Parameters
+        ----------
+        fullgraph: bool, default False
+            If True, `torch.compile` will require that the entire function be
+            capturable into a single graph. If this is not possible (that is,
+            if there are graph breaks), then the function will raise an error.
+        dynamic: bool, default None
+            Use dynamic shape tracing. When this is True, the function will
+            up-front attempt to generate a kernel that is as dynamic as possible to
+            avoid recompilations when sizes change. This may not always work
+            as some operations/optimizations will force specialization. When
+            set to False, `torch.compile` will never generate dynamic kernels.
+            By default, the function automatically detects if dynamism
+            has occurred and will compile a more dynamic kernel upon recompile.
+        backend: str, default 'inductor'
+            The backend to use for compilation. Currently, only 'inductor'
+            is supported.
+        mode: str, default 'default'
+            The mode to use for compilation. Currently, only 'default' and
+            'max-autotune-no-cudagraphs' are supported.
+        kwargs: dict
+            Additional arguments to pass to `torch.compile`.
+        """
+
+        if backend not in ["inductor"]:
+            raise ValueError(
+                f"Backend {backend} is not supported currently. Supported backends are "
+                "['inductor'].")
+
+        if mode not in ["default", "max-autotune-no-cudagraphs"]:
+            raise ValueError(
+                f"Mode {mode} is not supported currently. Supported modes are "
+                "['default', 'max-autotune-no-cudagraphs'].")
+
+        self.model = torch.compile(self.model,
+                                   mode=mode,
+                                   dynamic=dynamic,
+                                   fullgraph=fullgraph,
+                                   backend=backend,
+                                   **kwargs)
 
     def get_global_step(self) -> int:
         """Get the number of steps of fitting that have been performed."""

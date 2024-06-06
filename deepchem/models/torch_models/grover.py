@@ -5,14 +5,16 @@ import torch.nn.functional as F
 import numpy as np
 from typing import List, Sequence, Optional, Any, Tuple
 from rdkit import Chem
-from deepchem.feat.graph_data import BatchGraphData
 from deepchem.models.torch_models.modular import ModularTorchModel
 from deepchem.models.torch_models.grover_layers import (
     GroverEmbedding, GroverBondVocabPredictor, GroverAtomVocabPredictor,
     GroverFunctionalGroupPredictor)
 from deepchem.models.torch_models.readout import GroverReadout
 from deepchem.feat.vocabulary_builders import GroverAtomVocabularyBuilder, GroverBondVocabularyBuilder
-from deepchem.utils.grover import extract_grover_attributes
+from deepchem.utils.grover import BatchGroverGraph
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class GroverPretrain(nn.Module):
@@ -48,8 +50,7 @@ class GroverPretrain(nn.Module):
     Example
     -------
     >>> import deepchem as dc
-    >>> from deepchem.feat.graph_data import BatchGraphData
-    >>> from deepchem.utils.grover import extract_grover_attributes
+    >>> from deepchem.utils.grover import BatchGroverGraph
     >>> from deepchem.models.torch_models.grover import GroverPretrain
     >>> from deepchem.models.torch_models.grover_layers import GroverEmbedding, GroverAtomVocabPredictor, GroverBondVocabPredictor, GroverFunctionalGroupPredictor
     >>> smiles = ['CC', 'CCC', 'CC(=O)C']
@@ -58,9 +59,9 @@ class GroverPretrain(nn.Module):
     >>> featurizer = dc.feat.GroverFeaturizer(features_generator=fg)
 
     >>> graphs = featurizer.featurize(smiles)
-    >>> batched_graph = BatchGraphData(graphs)
-    >>> grover_graph_attributes = extract_grover_attributes(batched_graph)
-    >>> f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, _ = grover_graph_attributes
+    >>> batched_graph = BatchGroverGraph(graphs)
+    >>> grover_graph_attributes = batched_graph.get_components()
+    >>> f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _ = grover_graph_attributes
     >>> components = {}
     >>> components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1], edge_fdim=f_bonds.shape[1])
     >>> components['atom_vocab_task_atom'] = GroverAtomVocabPredictor(vocab_size=10, in_features=128)
@@ -150,8 +151,7 @@ class GroverFinetune(nn.Module):
     Example
     -------
     >>> import deepchem as dc
-    >>> from deepchem.feat.graph_data import BatchGraphData
-    >>> from deepchem.utils.grover import extract_grover_attributes
+    >>> from deepchem.utils.grover import BatchGroverGraph
     >>> from deepchem.models.torch_models.grover_layers import GroverEmbedding
     >>> from deepchem.models.torch_models.readout import GroverReadout
     >>> from deepchem.models.torch_models.grover import GroverFinetune
@@ -159,10 +159,11 @@ class GroverFinetune(nn.Module):
     >>> fg = dc.feat.CircularFingerprint()
     >>> featurizer = dc.feat.GroverFeaturizer(features_generator=fg)
     >>> graphs = featurizer.featurize(smiles)
-    >>> batched_graph = BatchGraphData(graphs)
-    >>> attributes = extract_grover_attributes(batched_graph)
+    >>> batched_graph = BatchGroverGraph(graphs)
+    >>> attributes = batched_graph.get_components()
     >>> components = {}
-    >>> f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels, additional_features = attributes
+    >>> additional_features = batched_graph.additional_features
+    >>> f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels = attributes
     >>> inputs = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
     >>> components = {}
     >>> components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1], edge_fdim=f_bonds.shape[1])
@@ -288,6 +289,12 @@ class GroverModel(ModularTorchModel):
         Size of additional molecular features, like fingerprints.
     ffn_num_layers: int (default: 1)
         Number of linear layers to use for feature extraction from embeddings
+    ffn_hidden_size: int (default: 64)
+        Hidden size of feed forward network
+    attn_out_size: int (default: 16)
+        Size of attention heads
+    num_attn_heads: int (default: 4)
+        Number of attention heads
     task: str (pretraining or finetuning)
         Pretraining or finetuning tasks.
     mode: str (classification or regression)
@@ -300,8 +307,10 @@ class GroverModel(ModularTorchModel):
         Directory to save model checkpoints
     dropout: float, optional (default: 0.2)
         dropout value
-    actionvation: str, optional (default: 'relu')
+    activation: str, optional (default: 'relu')
         supported activation function
+    depth: int (default: 1)
+        Dynamic message passing depth for use in MPNEncoder
 
     Example
     -------
@@ -336,17 +345,21 @@ class GroverModel(ModularTorchModel):
     def __init__(self,
                  node_fdim: int,
                  edge_fdim: int,
-                 atom_vocab: GroverAtomVocabularyBuilder,
-                 bond_vocab: GroverBondVocabularyBuilder,
                  hidden_size: int,
                  self_attention=False,
                  features_only=False,
-                 functional_group_size: int = 85,
-                 features_dim=128,
-                 dropout=0.2,
-                 activation='relu',
-                 task='pretraining',
-                 ffn_num_layers=1,
+                 atom_vocab: Optional[GroverAtomVocabularyBuilder] = None,
+                 bond_vocab: Optional[GroverBondVocabularyBuilder] = None,
+                 functional_group_size: Optional[int] = 85,
+                 features_dim: int = 128,
+                 dropout: float = 0.2,
+                 activation: str = 'relu',
+                 task: str = 'pretraining',
+                 ffn_num_layers: int = 1,
+                 ffn_hidden_size: int = 64,
+                 attn_out_size: int = 16,
+                 num_attn_heads: int = 4,
+                 depth: int = 1,
                  mode: Optional[str] = None,
                  model_dir=None,
                  n_tasks: int = 1,
@@ -354,31 +367,47 @@ class GroverModel(ModularTorchModel):
                  **kwargs):
         assert task in ['pretraining', 'finetuning']
         self.ffn_num_layers = ffn_num_layers
+        self.ffn_hidden_size = ffn_hidden_size
         self.activation = activation
         self.node_fdim = node_fdim
         self.edge_fdim = edge_fdim
         self.atom_vocab = atom_vocab
         self.bond_vocab = bond_vocab
-        self.atom_vocab_size = atom_vocab.size
-        self.bond_vocab_size = bond_vocab.size
+        if isinstance(atom_vocab, GroverAtomVocabularyBuilder):
+            self.atom_vocab_size = atom_vocab.size
+        else:
+            self.atom_vocab_size = None
+        if isinstance(bond_vocab, GroverBondVocabularyBuilder):
+            self.bond_vocab_size = bond_vocab.size
+        else:
+            self.bond_vocab_size = None
         self.task = task
         self.model_dir = model_dir
         self.hidden_size = hidden_size
         self.attn_hidden_size = hidden_size
-        self.attn_out_size = hidden_size
+        self.attn_out_size = attn_out_size
+        self.num_attn_heads = num_attn_heads
         self.functional_group_size = functional_group_size
         self.self_attention = self_attention
         self.features_only = features_only
         self.features_dim = features_dim
         self.dropout = dropout
+        self.depth = depth
         self.mode = mode
         self.n_tasks = n_tasks
         self.n_classes = n_classes
         self.components = self.build_components()
         self.model = self.build_model()
+        if self.mode == 'regression':
+            output_types = ['prediction']
+        elif self.mode == 'classification':
+            output_types = ['prediction', 'loss']
+        else:
+            output_types = None
         super().__init__(self.model,
                          self.components,
                          model_dir=self.model_dir,
+                         output_types=output_types,
                          **kwargs)
         # FIXME In the above step, we initialize modular torch model but
         # something is missing here. The attribute loss from TorchModel gets assigned `loss_func`
@@ -445,7 +474,7 @@ class GroverModel(ModularTorchModel):
         elif self.task == 'finetuning':
             return GroverFinetune(**self.components,
                                   mode=self.mode,
-                                  hidden_size=self.hidden_size,
+                                  hidden_size=self.ffn_hidden_size,
                                   n_tasks=self.n_tasks,
                                   n_classes=self.n_classes)
 
@@ -471,7 +500,10 @@ class GroverModel(ModularTorchModel):
         """
         components = {}
         components['embedding'] = GroverEmbedding(node_fdim=self.node_fdim,
-                                                  edge_fdim=self.edge_fdim)
+                                                  edge_fdim=self.edge_fdim,
+                                                  hidden_size=self.hidden_size,
+                                                  num_heads=self.num_attn_heads,
+                                                  depth=self.depth)
         components['atom_vocab_task_atom'] = GroverAtomVocabPredictor(
             self.atom_vocab_size, self.hidden_size)
         components['atom_vocab_task_bond'] = GroverAtomVocabPredictor(
@@ -482,7 +514,7 @@ class GroverModel(ModularTorchModel):
             self.bond_vocab_size, self.hidden_size)
         components[
             'functional_group_predictor'] = GroverFunctionalGroupPredictor(
-                self.functional_group_size)
+                self.functional_group_size, self.hidden_size)
         return components
 
     def _get_finetuning_components(self):
@@ -492,13 +524,15 @@ class GroverModel(ModularTorchModel):
         """
         components = {}
         components['embedding'] = GroverEmbedding(node_fdim=self.node_fdim,
-                                                  edge_fdim=self.edge_fdim)
+                                                  edge_fdim=self.edge_fdim,
+                                                  hidden_size=self.hidden_size,
+                                                  num_heads=self.num_attn_heads)
         if self.self_attention:
             components['readout'] = GroverReadout(
                 rtype="self_attention",
                 in_features=self.hidden_size,
-                attn_hidden=self.attn_hidden_size,
-                attn_out=self.attn_out_size)
+                attn_hidden_size=self.attn_hidden_size,
+                attn_out_size=self.attn_out_size)
         else:
             components['readout'] = GroverReadout(rtype="mean",
                                                   in_features=self.hidden_size)
@@ -537,23 +571,24 @@ class GroverModel(ModularTorchModel):
             Weights of data point
         """
         X, y, w = batch
-        batchgraph = BatchGraphData(X[0])
-        fgroup_label = getattr(batchgraph, 'fg_labels')
-        smiles_batch = getattr(batchgraph, 'smiles').reshape(-1).tolist()
+        batchgraph = BatchGroverGraph(X[0])
+        smiles_batch = getattr(batchgraph, 'smiles_batch')
 
-        f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, _ = extract_grover_attributes(
-            batchgraph)
+        f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fgroup_label = batchgraph.get_components(
+        )
 
         atom_vocab_label = torch.Tensor(
-            self.atom_vocab_random_mask(self.atom_vocab,
-                                        smiles_batch)).long().to(self.device)
+            self.atom_vocab_random_mask(
+                self.atom_vocab,  # type: ignore
+                smiles_batch)).long().to(self.device)
         bond_vocab_label = torch.Tensor(
-            self.bond_vocab_random_mask(self.bond_vocab,
-                                        smiles_batch)).long().to(self.device)
+            self.bond_vocab_random_mask(
+                self.bond_vocab,  # type: ignore
+                smiles_batch)).long().to(self.device)
         labels = {
             "av_task": atom_vocab_label,
             "bv_task": bond_vocab_label,
-            "fg_task": torch.Tensor(fgroup_label).to(self.device)
+            "fg_task": fgroup_label.to(self.device)
         }
         inputs = (f_atoms.to(self.device), f_bonds.to(self.device),
                   a2b.to(self.device), b2a.to(self.device),
@@ -583,13 +618,14 @@ class GroverModel(ModularTorchModel):
             Weights of data point
         """
         X, y, w = batch
-        batchgraph = BatchGraphData(X[0])
+        batchgraph = BatchGroverGraph(X[0])
         if y is not None:
             labels = torch.FloatTensor(y[0]).to(self.device)
         else:
             labels = None
-        f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _, additional_features = extract_grover_attributes(
-            batchgraph)
+        f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, _ = batchgraph.get_components(
+        )
+        additional_features = getattr(batchgraph, 'additional_features')
         inputs = (f_atoms.to(self.device), f_bonds.to(self.device),
                   a2b.to(self.device), b2a.to(self.device),
                   b2revb.to(self.device), a_scope.to(self.device),
@@ -698,12 +734,14 @@ class GroverModel(ModularTorchModel):
 
         if self.activation == 'relu':
             activation = nn.ReLU()
+        elif self.activation == 'prelu':
+            activation = nn.PReLU()
 
-        ffn = [dropout, nn.Linear(first_linear_dim, self.hidden_size)]
+        ffn = [dropout, nn.Linear(first_linear_dim, self.ffn_hidden_size)]
         for i in range(self.ffn_num_layers - 1):
             ffn.extend([
                 activation, dropout,
-                nn.Linear(self.hidden_size, self.hidden_size)
+                nn.Linear(self.ffn_hidden_size, self.ffn_hidden_size)
             ])
 
         return nn.Sequential(*ffn)

@@ -20,13 +20,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # macos-latest is for apple silicon
         os: [ubuntu-latest, macos-latest]
-        python-version: ['3.9']
+        python-version: ['3.9', '3.11']
     steps:
-    - uses: actions/checkout@v3
+    - name: Maximize build space
+      if: runner.os == 'ubuntu-latest'
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        sudo rm -rf /usr/local/lib/android
+    - uses: actions/checkout@v4
     - name: Cache pip modules for Linux
       if: runner.os == 'Linux'
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**') }}
@@ -34,18 +43,22 @@ jobs:
           ${{ runner.os }}-pip-
     - name: Cache pip modules for MacOS
       if: runner.os == 'macOS'
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/Library/Caches/pip
         key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/**') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Install miniconda
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v3
       with:
         miniconda-version: "latest"
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
+    - name: Install libomp with Homebrew
+      if: ${{ runner.os == 'macOS' && runner.arch == 'ARM64' }}
+      run: |
+        brew install libomp
     - name: Install dependencies (failure check)
       continue-on-error: true
       shell: bash -l {0}
@@ -71,16 +84,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9']
+        python-version: ['3.9', '3.11']
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Cache pip packages for Windows
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~\AppData\Local\pip\Cache
         key: ${{ matrix.os }}-pip-${{ hashFiles('env.*.yml') }}
     - name: Install miniconda
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v3
       with:
         miniconda-version: "latest"
         auto-update-conda: true
@@ -102,4 +115,3 @@ jobs:
         python -c "import deepchem; print('DeepChem version %s' % deepchem.__version__)"
         python -c "import rdkit; print('RDKIT version %s' % rdkit.__version__)"
         python -c "import torch; print('Torch version %s' % torch.__version__)"
-        python -c "import tensorflow; print('Tensorflow version %s' % tensorflow.__version__)"

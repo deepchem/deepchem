@@ -13,7 +13,15 @@ jobs:
   linting:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - name: Maximize build space
+      if: runner.os == 'ubuntu-latest'
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        sudo rm -rf /usr/local/lib/android
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -29,7 +37,7 @@ jobs:
 
     - name: Cache pip packages for Linux
       if: runner.os == 'Linux'
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**') }}
@@ -37,7 +45,7 @@ jobs:
           ${{ runner.os }}-pip-
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.9'
 
@@ -56,8 +64,7 @@ jobs:
       with:
         environment-file: env.yml
         environment-name: deepchem
-        channels: conda-forge,defaults
-        extra-specs: python=${{ matrix.python-version }}
+        create-args: python=${{ matrix.python-version }}
 
     - name: Install DeepChem
       id: install

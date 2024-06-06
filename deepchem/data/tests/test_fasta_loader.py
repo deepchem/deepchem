@@ -45,7 +45,7 @@ class TestFASTALoader(unittest.TestCase):
         ]
         input_file = os.path.join(self.current_dir, "uniprot_truncated.fasta")
         loader = dc.data.FASTALoader(OneHotFeaturizer(charset=protein,
-                                                      max_length=1000),
+                                                      max_length=1165),
                                      legacy=False)
         sequences = loader.create_dataset(input_file)
 

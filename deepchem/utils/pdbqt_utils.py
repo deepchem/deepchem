@@ -1,7 +1,7 @@
 """Utilities for handling PDBQT files."""
 
 from typing import Dict, List, Optional, Set, Tuple
-from deepchem.utils.typing import RDKitMol
+from deepchem.utils.typing import RDKitMol  # type: ignore
 
 
 def pdbqt_to_pdb(filename: Optional[str] = None,
@@ -88,7 +88,7 @@ def _mol_to_graph(mol: RDKitMol):
     This function requires NetworkX to be installed.
     """
     try:
-        import networkx as nx
+        import networkx as nx  # type: ignore
     except ModuleNotFoundError:
         raise ImportError("This function requires NetworkX to be installed.")
 
@@ -124,8 +124,8 @@ def _get_rotatable_bonds(mol: RDKitMol) -> List[Tuple[int, int]]:
     This function requires RDKit to be installed.
     """
     try:
-        from rdkit import Chem
-        from rdkit.Chem import rdmolops
+        from rdkit import Chem  # type: ignore
+        from rdkit.Chem import rdmolops  # type: ignore
     except ModuleNotFoundError:
         raise ImportError("This function requires RDKit to be installed.")
 
@@ -227,7 +227,7 @@ def _create_pdb_map(outfile: str) -> Dict[int, str]:
     for line in lines:
         my_values = line.split()
         atom_number = int(my_values[1])
-        atom_symbol = my_values[2]
+        atom_symbol = my_values[2].capitalize()
         atom_symbol = ''.join([i for i in atom_symbol if not i.isdigit()])
         line = line.replace("HETATM", "ATOM  ")
         line = "%s    +0.000 %s\n" % (line, atom_symbol.ljust(2))

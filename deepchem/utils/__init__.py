@@ -6,7 +6,20 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from deepchem.utils.misc_utils import indent
+from deepchem.utils.misc_utils import shape2str
+from deepchem.utils.misc_utils import UnimplementedError
+from deepchem.utils.misc_utils import GetSetParamsError
+from deepchem.utils.misc_utils import ConvergenceWarning
+from deepchem.utils.misc_utils import MathWarning
+from deepchem.utils.misc_utils import Uniquifier
+from deepchem.utils.misc_utils import memoize_method
+
 from deepchem.utils.batch_utils import batch_coulomb_matrix_features
+
+from deepchem.utils.attribute_utils import set_attr
+from deepchem.utils.attribute_utils import get_attr
+from deepchem.utils.attribute_utils import del_attr
 
 from deepchem.utils.conformers import ConformerGenerator
 from deepchem.utils.evaluate import relative_difference
@@ -125,6 +138,17 @@ try:
     from deepchem.utils.pytorch_utils import segment_sum
     from deepchem.utils.pytorch_utils import chunkify
     from deepchem.utils.pytorch_utils import get_memory
+    from deepchem.utils.pytorch_utils import gaussian_integral
+    from deepchem.utils.pytorch_utils import TensorNonTensorSeparator
+    from deepchem.utils.pytorch_utils import tallqr
+    from deepchem.utils.pytorch_utils import to_fortran_order
+    from deepchem.utils.pytorch_utils import get_np_dtype
+
+    from deepchem.utils.safeops_utils import safepow
+    from deepchem.utils.safeops_utils import safenorm
+    from deepchem.utils.safeops_utils import occnumber
+    from deepchem.utils.safeops_utils import get_floor_and_ceil
+    from deepchem.utils.safeops_utils import safe_cdist
 except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')

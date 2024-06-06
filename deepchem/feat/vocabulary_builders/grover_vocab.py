@@ -1,6 +1,7 @@
 import json
 import logging
 import numpy as np
+import pandas as pd
 from typing import Dict, Optional
 from collections import Counter
 from rdkit import Chem
@@ -96,6 +97,49 @@ class GroverAtomVocabularyBuilder(VocabularyBuilder):
             for atom in mol.GetAtoms():
                 v = self.atom_to_vocab(mol, atom)
                 counter[v] += 1
+        logger.info('Completed enumeration of atom contextual properties.')
+        # sort first by frequency, then alphabetically
+        words_and_frequencies = sorted(counter.items(), key=lambda tup: tup[0])
+        words_and_frequencies.sort(key=lambda tup: tup[1], reverse=True)
+        for word, freq in words_and_frequencies:
+            if len(self.itos) == self.size:
+                break
+            self.itos.append(word)
+        if self.size is None:
+            self.size = len(self.itos)
+        self.stoi = self._make_reverse_mapping(self.itos)
+        logger.info('Completed building of atom vocabulary')
+
+    def build_from_csv(self,
+                       csv_path: str,
+                       smiles_field: str,
+                       log_every_n: int = 1000) -> None:
+        """Builds vocabulary from csv file
+
+        Parameters
+        ----------
+        csv_path: str
+            Path to csv file containing smiles string
+        smiles_field: str
+            Name of column containing smiles string
+        log_every_n: int, default 1000
+            Logs vocabulary building progress every `log_every_n` steps.
+        """
+        counter: Dict[str, int] = Counter()
+        logger.info('Starting to build atom vocabulary')
+        chunksize = 8196
+        for i, df in enumerate(pd.read_csv(csv_path, chunksize=chunksize)):
+            for index, row in df.iterrows():
+                if (i * chunksize + index) % log_every_n == 0:
+                    logger.info(
+                        'Computing contextual property of atoms in molecule %i'
+                        % i)
+                smiles = row[smiles_field]
+                mol = Chem.MolFromSmiles(smiles)
+                for atom in mol.GetAtoms():
+                    v = self.atom_to_vocab(mol, atom)
+                    counter[v] += 1
+
         logger.info('Completed enumeration of atom contextual properties.')
         # sort first by frequency, then alphabetically
         words_and_frequencies = sorted(counter.items(), key=lambda tup: tup[0])
@@ -310,6 +354,53 @@ class GroverBondVocabularyBuilder(VocabularyBuilder):
         self.stoi = self._make_reverse_mapping(self.itos)
         logger.info('Completed building of bond vocabulary')
 
+    def build_from_csv(self,
+                       csv_path: str,
+                       smiles_field: str,
+                       log_every_n: int = 1000) -> None:
+        """Builds vocabulary
+
+        Parameters
+        ----------
+        csv_path: str
+            Path to csv file containing smiles string
+        smiles_field: str
+            Name of column containing smiles string
+        log_every_n: int, default 1000
+            Logs vocabulary building progress every `log_every_n` steps.
+        """
+        counter: Dict[str, int] = Counter()
+        logger.info('Starting to build bond vocabulary')
+        chunksize = 8196
+        for i, df in enumerate(pd.read_csv(csv_path, chunksize=chunksize)):
+            row_count = i * chunksize
+            for index, row in df.iterrows():
+                if (row_count + i) % log_every_n == 0:
+                    logger.info(
+                        'Computing contextual property of bonds in molecule %i'
+                        % i)
+
+                smiles = row[smiles_field]
+
+                mol = Chem.MolFromSmiles(smiles)
+                for bond in mol.GetBonds():
+                    v = self.bond_to_vocab(mol, bond)
+                    counter[v] += 1
+
+            logger.info('Completed enumeration of bond contextual properties.')
+
+        # sort first by frequency, then alphabetically
+        words_and_frequencies = sorted(counter.items(), key=lambda tup: tup[0])
+        words_and_frequencies.sort(key=lambda tup: tup[1], reverse=True)
+        for word, freq in words_and_frequencies:
+            if len(self.itos) == self.size:
+                break
+            self.itos.append(word)
+        if self.size is None:
+            self.size = len(self.itos)
+        self.stoi = self._make_reverse_mapping(self.itos)
+        logger.info('Completed building of bond vocabulary')
+
     def save(self, fname: str) -> None:
         """Saves a vocabulary in json format
 
@@ -431,7 +522,7 @@ class GroverAtomVocabTokenizer(Featurizer):
     >>> import deepchem as dc
     >>> from deepchem.feat.vocabulary_builders.grover_vocab import GroverAtomVocabularyBuilder
     >>> file = tempfile.NamedTemporaryFile()
-    >>> dataset = dc.data.NumpyDataset(X=[['CC(=O)C', 'CCC']])
+    >>> dataset = dc.data.NumpyDataset(X=[['CC(=O)C'], ['CCC']])
     >>> vocab = GroverAtomVocabularyBuilder()
     >>> vocab.build(dataset)
     >>> vocab.save(file.name)  # build and save the vocabulary
@@ -465,7 +556,7 @@ class GroverBondVocabTokenizer(Featurizer):
     >>> import deepchem as dc
     >>> from deepchem.feat.vocabulary_builders.grover_vocab import GroverBondVocabularyBuilder
     >>> file = tempfile.NamedTemporaryFile()
-    >>> dataset = dc.data.NumpyDataset(X=[['CC(=O)C', 'CCC']])
+    >>> dataset = dc.data.NumpyDataset(X=[['CC(=O)C'], ['CCC']])
     >>> vocab = GroverBondVocabularyBuilder()
     >>> vocab.build(dataset)
     >>> vocab.save(file.name)  # build and save the vocabulary

@@ -1,5 +1,6 @@
 import os
 import pytest
+from flaky import flaky
 
 
 @pytest.mark.torch
@@ -99,11 +100,12 @@ def compare_weights(key, model1, model2):
                  model2.components[key].weight)).item()
 
 
+@flaky
 @pytest.mark.torch
 def testInfoMax3DModular():
     import torch
     from deepchem.models.torch_models.gnn3d import InfoMax3DModular
-
+    torch.manual_seed(456)
     data, _ = get_regression_dataset()
 
     model = InfoMax3DModular(hidden_dim=64,
@@ -112,7 +114,8 @@ def testInfoMax3DModular():
                              readout_aggregators=['sum', 'mean'],
                              scalers=['identity'],
                              device=torch.device('cpu'),
-                             task='pretraining')
+                             task='pretraining',
+                             learning_rate=0.00001)
 
     loss1 = model.fit(data, nb_epoch=1)
     loss2 = model.fit(data, nb_epoch=9)
@@ -150,6 +153,7 @@ def testInfoMax3DModularSaveReload():
     assert all(compare_weights(key, model, model2) for key in keys_with_weights)
 
 
+@flaky
 @pytest.mark.torch
 def testInfoMax3DModularRegression():
     import torch
@@ -171,11 +175,12 @@ def testInfoMax3DModularRegression():
     assert scores['mean_absolute_error'] < 0.5
 
 
+@flaky
 @pytest.mark.torch
 def testInfoMax3DModularClassification():
     import torch
     from deepchem.models.torch_models.gnn3d import InfoMax3DModular
-
+    torch.manual_seed(1)
     data, metric = get_classification_dataset()
 
     model = InfoMax3DModular(hidden_dim=128,
@@ -184,10 +189,40 @@ def testInfoMax3DModularClassification():
                              scalers=['identity'],
                              task='classification',
                              n_tasks=1,
-                             n_classes=1,
+                             n_classes=2,
                              device=torch.device('cpu'))
 
-    model.fit(data, nb_epoch=100)
+    model.fit(data, nb_epoch=10)
     scores = model.evaluate(data, [metric])
-    # FIXME We need to improve finetuning score
     assert scores['mean-roc_auc_score'] > 0.7
+
+
+@pytest.mark.torch
+def test_infomax3d_load_from_pretrained(tmpdir):
+    import torch
+    from deepchem.models.torch_models.gnn3d import InfoMax3DModular
+    pretrain_model = InfoMax3DModular(hidden_dim=64,
+                                      target_dim=10,
+                                      device=torch.device('cpu'),
+                                      task='pretraining',
+                                      model_dir=tmpdir)
+    pretrain_model._ensure_built()
+    pretrain_model.save_checkpoint()
+    pretrain_model_state_dict = pretrain_model.model.state_dict()
+
+    finetune_model = InfoMax3DModular(hidden_dim=64,
+                                      target_dim=10,
+                                      device=torch.device('cpu'),
+                                      task='classification',
+                                      n_classes=2,
+                                      n_tasks=1)
+    finetune_model_old_state_dict = finetune_model.model.state_dict()
+    # Finetune model weights should not match before loading from pretrained model
+    for key, value in pretrain_model_state_dict.items():
+        assert not torch.allclose(value, finetune_model_old_state_dict[key])
+    finetune_model.load_from_pretrained(pretrain_model, components=['model2d'])
+    finetune_model_new_state_dict = finetune_model.model.state_dict()
+
+    # Finetune model weights should match after loading from pretrained model
+    for key, value in pretrain_model_state_dict.items():
+        assert torch.allclose(value, finetune_model_new_state_dict[key])

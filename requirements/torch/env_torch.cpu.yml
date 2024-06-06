@@ -1,9 +1,16 @@
 dependencies:
+  - pylibxc
   - pip:
     - -f https://download.pytorch.org/whl/cpu/torch_stable.html
-    - -f https://data.pyg.org/whl/torch-1.12.0+cpu.html
-    - -f https://data.dgl.ai/wheels/repo.html
+    # - -f https://data.dgl.ai/wheels/repo.html
+    # The above line is commented out due to a bug in the DGL wheel repository.
+    # It contains wheels for the GPU version that are not compatible with the CPU version.
     - dgl
-    - torch==1.12.0+cpu
+    - torch==2.2.1+cpu
     - torch-geometric
-    - pytorch-lightning==1.6.5
+    - lightning
+    - pydantic
+    - -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
+    - torch-cluster
+    - git+https://github.com/diffqc/dqclibs.git
+    - basis-set-exchange

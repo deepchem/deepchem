@@ -210,7 +210,7 @@ class ComplexFeaturizer(Featurizer):
         for idx in failures:
             features[idx] = dummy_array
 
-        return np.asarray(features)
+        return np.asarray(features, dtype=object)
 
     def _featurize(self, datapoint: Optional[Tuple[str, str]] = None, **kwargs):
         """

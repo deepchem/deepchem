@@ -1,10 +1,10 @@
 """
 Test Attribute Utils
 """
-import deepchem.utils as utils
 
 
 def test_get_attr():
+    from deepchem.utils.attribute_utils import get_attr
 
     class MyClass:
 
@@ -13,7 +13,7 @@ def test_get_attr():
             self.b = 2
 
     obj = MyClass()
-    assert utils.get_attr(obj, "a") == 1
+    assert get_attr(obj, "a") == 1
 
 
 def test_set_attr():

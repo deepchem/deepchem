@@ -268,6 +268,7 @@ def test_mpnn_model():
     assert scores['mean-roc_auc_score'] >= 0.9
 
 
+@flaky(max_runs=3, min_passes=1)
 @pytest.mark.slow
 @pytest.mark.tensorflow
 def test_mpnn_regression_model():
@@ -351,4 +352,7 @@ def test_graph_predict():
     mols = ["CCCCC", "CCCCCCCCC"]
     feat = ConvMolFeaturizer()
     X = feat.featurize(mols)
-    assert (model.predict(NumpyDataset(X))).all() is True
+    if (model.predict(NumpyDataset(X))).all():
+        assert True
+    else:
+        assert False

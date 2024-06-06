@@ -8,10 +8,10 @@ from typing import List, Dict, Optional
 import numpy as np
 
 # dqc dependencies
-import dqc
 from dqc.system.mol import Mol
 from dqc.system.base_system import BaseSystem
-from deepchem.utils.dftutils import KSCalc, BaseGrid
+from deepchem.utils.dftutils import KSCalc
+from deepchem.utils.dft_utils import parse_moldesc, BaseGrid
 
 
 class DFTSystem():
@@ -68,7 +68,7 @@ class DFTSystem():
         mol
             DQC mol object
         """
-        atomzs, atomposs = dqc.parse_moldesc(self.moldesc)
+        atomzs, atomposs = parse_moldesc(self.moldesc)
         if pos_reqgrad:
             atomposs.requires_grad_()
         mol = Mol(self.moldesc, self.basis, spin=self.spin, charge=self.charge)

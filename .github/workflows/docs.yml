@@ -12,11 +12,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9']
+        python-version: ['3.9', '3.11']
     steps:
-    - uses: actions/checkout@v3
+    - name: Maximize build space
+      if: runner.os == 'ubuntu-latest'
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        sudo rm -rf /usr/local/lib/android
+    - uses: actions/checkout@v4
     - name: Cache pip packages for Linux
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       # use cached dependencies to speed up workflow
       # ref: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
       with:
@@ -27,7 +35,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies (docs)

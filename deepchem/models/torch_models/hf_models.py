@@ -51,6 +51,7 @@ class HuggingFaceModel(TorchModel):
          - `mtr` - multitask regression - a task used for both pretraining base models and finetuning
          - `regression` - use it for regression tasks, like property prediction
          - `classification` - use it for classification tasks
+
         When the task is not specified or None, the wrapper returns raw output of the HuggingFaceModel.
         In cases where the HuggingFaceModel is a model without a task specific head, this output will be
         the last hidden states.
@@ -225,7 +226,8 @@ class HuggingFaceModel(TorchModel):
                 tokens['input_ids'])
             inputs = {
                 'input_ids': inputs.to(self.device),
-                'labels': labels.to(self.device)
+                'labels': labels.to(self.device),
+                'attention_mask': tokens['attention_mask'].to(self.device),
             }
             return inputs, None, w
         elif self.task in ['regression', 'classification', 'mtr']:
@@ -247,7 +249,8 @@ class HuggingFaceModel(TorchModel):
                       max_checkpoints_to_keep: int = 5,
                       checkpoint_interval: int = 1000,
                       restore: bool = False,
-                      variables: Optional[List[torch.nn.Parameter]] = None,
+                      variables: Optional[Union[List[torch.nn.Parameter],
+                                                torch.nn.ParameterList]] = None,
                       loss: Optional[LossFn] = None,
                       callbacks: Union[Callable, List[Callable]] = [],
                       all_losses: Optional[List[float]] = None) -> float:
@@ -274,8 +277,8 @@ class HuggingFaceModel(TorchModel):
             for each batch.  If None (the default), the model's standard loss function
             is used.
         callbacks: function or list of functions
-            one or more functions of the form f(model, step) that will be invoked after
-            every step.  This can be used to perform validation, logging, etc.
+            one or more functions of the form f(model, step, **kwargs) that will be invoked
+            after every step.  This can be used to perform validation, logging, etc.
         all_losses: Optional[List[float]], optional (default None)
             If specified, all logged losses are appended into this list. Note that
             you can call `fit()` repeatedly with the same list and losses will
@@ -328,8 +331,6 @@ class HuggingFaceModel(TorchModel):
             optimizer.zero_grad()
             outputs = self.model(**inputs)
 
-            if self._loss_outputs is not None:
-                outputs = [outputs[i] for i in self._loss_outputs]
             batch_loss = outputs.get("loss")
             batch_loss.backward()
             optimizer.step()
@@ -357,7 +358,13 @@ class HuggingFaceModel(TorchModel):
             if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
                 self.save_checkpoint(max_checkpoints_to_keep)
             for c in callbacks:
-                c(self, current_step)
+                try:
+                    # NOTE In DeepChem > 2.8.0, callback signature is updated to allow
+                    # variable arguments.
+                    c(self, current_step, iteration_loss=batch_loss)
+                except TypeError:
+                    # DeepChem <= 2.8.0, the callback should have this signature.
+                    c(self, current_step)
             if self.tensorboard and should_log:
                 self._log_scalar_to_tensorboard('loss', batch_loss,
                                                 current_step)

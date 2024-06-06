@@ -27,7 +27,7 @@ featurization methods which we will review on this page.
 
 
 Molecule Featurizers
----------------------
+--------------------
 
 These featurizers work with datasets of molecules.
 
@@ -61,7 +61,7 @@ WeaveFeaturizer
   :inherited-members:
 
 MolGanFeaturizer
-**********************
+****************
 
 .. autoclass:: deepchem.feat.MolGanFeaturizer
   :members:
@@ -75,14 +75,14 @@ MolGraphConvFeaturizer
   :inherited-members:
 
 PagtnMolGraphFeaturizer
-**********************
+***********************
 
 .. autoclass:: deepchem.feat.PagtnMolGraphFeaturizer
   :members:
   :inherited-members:
 
 DMPNNFeaturizer
-**********************
+***************
 
 .. autoclass:: deepchem.feat.DMPNNFeaturizer
   :members:
@@ -95,13 +95,13 @@ GroverFeaturizer
   :members:
 
 RDKitConformerFeaturizer
-*************************
+************************
 
 .. autoclass:: deepchem.feat.RDKitConformerFeaturizer
   :members:
 
 MXMNetFeaturizer
-**********************
+****************
 
 .. autoclass:: deepchem.feat.MXMNetFeaturizer
   :members:
@@ -160,7 +160,7 @@ MACCSKeysFingerprint
   :members:
 
 MATFeaturizer
-^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.MATFeaturizer
   :members:
@@ -250,7 +250,7 @@ OneHotFeaturizer
   :inherited-members:
 
 SparseMatrixOneHotFeaturizer
-^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.SparseMatrixOneHotFeaturizer
   :members:
@@ -264,14 +264,14 @@ RawFeaturizer
   :inherited-members:
 
 SNAPFeaturizer
-^^^^^^^^^^^^^
+^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.SNAPFeaturizer
   :members:
   :inherited-members:
 
 Molecular Complex Featurizers
--------------------------------
+-----------------------------
 
 These featurizers work with three dimensional molecular complexes.
 
@@ -291,7 +291,7 @@ AtomicConvFeaturizer
 
 
 Inorganic Crystal Featurizers
-------------------------------
+-----------------------------
 
 These featurizers work with datasets of inorganic crystals.
 
@@ -346,6 +346,33 @@ LCNNFeaturizer
 ^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.feat.LCNNFeaturizer
+  :members:
+  :inherited-members:
+
+
+Biological Sequence Featurizers
+-------------------------------
+
+These featurizers work with biological sequences.
+
+SAMFeaturizer
+^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.SAMFeaturizer
+  :members:
+  :inherited-members: 
+
+BAMFeaturizer
+^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.BAMFeaturizer
+  :members:
+  :inherited-members:
+
+CRAMFeaturizer
+^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.CRAMFeaturizer
   :members:
   :inherited-members:
 
@@ -575,7 +602,7 @@ VocabularyBuilder
 If you're creating a vocabulary builder for generating vocabulary from a corpus or input data,
 the vocabulary builder must inhere from :code:`VocabularyBuilder` base class.
 
-.. autoclass:: deepchem.feat.vocabulary_builders.VocabularyBuilder
+.. autoclass:: deepchem.feat.vocabulary_builders.vocabulary_builder.VocabularyBuilder
   :members:
 
 HuggingFaceVocabularyBuilder
