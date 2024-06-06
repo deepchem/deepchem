@@ -14,7 +14,7 @@ except ModuleNotFoundError:
     pass
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_FerminetModel():
     # Test for the init function of FerminetModel class
     FH_molecule = [['F', [0, 0, 0]], ['H', [0, 0.5, 0.5]]]
@@ -30,7 +30,7 @@ def test_FerminetModel():
     assert mol.up_spin == 2 and mol.down_spin == 1
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_forward():
     FH_molecule = [['F', [0.424, 0.424, 0.23]], ['H', [0.4, 0.5, 0.5]]]
     # Testing ionic initialization
@@ -39,7 +39,7 @@ def test_forward():
     assert result.size() == torch.Size([8])
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_evaluate_hf_solution():
     # Test for the evaluate_hf_solution function of FerminetModel class
     H2_molecule = [['F', [0, 0, 0]], ['He', [0, 0, 0.748]]]
@@ -51,7 +51,7 @@ def test_evaluate_hf_solution():
     assert np.shape(spin_down_orbitals) == (10, 5, 5)
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_FerminetModel_pretrain():
     # Test for the init function of FerminetModel class
     H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
@@ -61,7 +61,7 @@ def test_FerminetModel_pretrain():
     assert mol.loss_value <= torch.tensor(1.0)
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_FerminetModel_energy():
     # Test for the init function of FerminetModel class
     H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
@@ -76,7 +76,7 @@ def test_FerminetModel_energy():
     assert mean_energy <= torch.tensor(1.0)
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_FerminetModel_train():
     # Test for the init function of FerminetModel class
     H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
@@ -88,7 +88,7 @@ def test_FerminetModel_train():
     assert mol.final_energy <= torch.tensor(0.0)
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_FerminetModel_ion_train():
     # Test for the init function of FerminetModel class
     H2_molecule = [['H', [0, 0, 0]], ['H', [0, 0, 0.748]]]
