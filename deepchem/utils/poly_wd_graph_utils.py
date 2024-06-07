@@ -142,7 +142,7 @@ def make_polymer_mol(
     Examples
     --------
     >>> import deepchem as dc
-    >>> mol = dc.utils.make_polymer_mol('C.C', True, False, [1, 1])
+    >>> mol = dc.utils.make_polymer_mol('C.C', [1, 1], True, False)
     >>> for atom in mol.GetAtoms():
     ...     print(atom.GetDoubleProp('w_frag'))
     1.0
@@ -359,7 +359,7 @@ def generate_atom_features(atom: Chem.rdchem.Atom,
     --------
     >>> import deepchem as dc
     >>> mol = Chem.MolFromSmiles("C")
-    >>> PARAMS = dc.feat.FeaturizationParameters()
+    >>> PARAMS = dc.utils.FeaturizationParameters()
     >>> for atom in mol.GetAtoms():
     ...     atom_feat_vector = dc.utils.generate_atom_features(
     ...         atom, PARAMS = PARAMS))
@@ -371,7 +371,7 @@ def generate_atom_features(atom: Chem.rdchem.Atom,
     ----------
     atom : rdkit.Chem.rdchem.Atom
         RDKit atom object.
-    PARAMS : deepchem.feat.FeaturizationParameters
+    PARAMS : deepchem.utils.FeaturizationParameters
         Featurization parameters.
     functional_groups : list, optional
         List of functional groups.
@@ -414,7 +414,7 @@ def generate_bond_features(bond: Chem.rdchem.Bond,
     --------
     >>> import deepchem as dc
     >>> mol = Chem.MolFromSmiles("CC")
-    >>> PARAMS = dc.feat.FeaturizationParameters()
+    >>> PARAMS = dc.utils.FeaturizationParameters()
     >>> for bond in mol.GetBonds():
     ...     print(dc.feat.generate_bond_features(bond, PARAMS = PARAMS))
     [0, True, False, False, False, False, False, 1, 0, 0, 0, 0, 0, 0]
@@ -423,7 +423,7 @@ def generate_bond_features(bond: Chem.rdchem.Bond,
     ----------
     bond : rdkit.Chem.rdchem.Bond
         RDKit bond object.
-    PARAMS : deepchem.feat.FeaturizationParameters
+    PARAMS : deepchem.utils.FeaturizationParameters
         Featurization parameters.
 
     Returns
