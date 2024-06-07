@@ -668,7 +668,8 @@ class NormalizingFlow(nn.Module):
 
     """
 
-    def __init__(self, transform: Sequence, base_distribution: torch.Tensor,
+    def __init__(self, transform: Sequence,
+                 base_distribution: torch.distributions.Distribution,
                  dim: int) -> None:
         """This class considers a transformation, or a composition of transformations
         functions (layers), between a base distribution and a target distribution.
@@ -745,7 +746,7 @@ class NormalizingFlow(nn.Module):
             shape: ((samples, dim), (samples))
 
         """
-        outputs = self.base_distribution.sample((n_samples,))
+        outputs = self.base_distribution.sample(torch.Size((n_samples,)))
         log_prob = self.base_distribution.log_prob(outputs)
         for biject in self.transforms:
             outputs, log_det_jacobian = biject.forward(outputs)
@@ -798,7 +799,7 @@ class NormalizingFlowModel(TorchModel):
         self.dim = dim
         self.num_layers = num_layers
         if flowList is not None:
-            self.flows = flowList
+            self.flows: Sequence = flowList
         else:
             latent_size = dim
             self.latent_size = latent_size
@@ -815,8 +816,8 @@ class NormalizingFlowModel(TorchModel):
                     flows += [MaskedAffineFlow(b, t, s)]
                 else:
                     flows += [MaskedAffineFlow(1 - b, t, s)]
-                flows += [ActNorm(latent_size)]
-            self.flows = flows
+                flows += [ActNorm(latent_size)]  # type: ignore
+            self.flows: Sequence = flows  # type: ignore
         if device is None:
             if torch.cuda.is_available():
                 device = torch.device('cuda')
@@ -828,11 +829,15 @@ class NormalizingFlowModel(TorchModel):
             torch.zeros(dim).to(device=device),
             torch.eye(dim).to(device=device))
         self.nfm = NormalizingFlow(self.flows, self.distribution, dim)
-        super(NormalizingFlowModel, self).__init__(self.nfm,
-                                                   loss=self.nfm.log_prob)
+        super(NormalizingFlowModel,
+              self).__init__(self.nfm, loss=self.nfm.log_prob)  # type: ignore
 
-    def fit(self,
-            data: torch.Tensor,
+    # adding a # type: ignore to the fit method to avoid the following error:
+    # error: Signature of "fit" incompatible with supertype "TorchModel"
+    # This is because the fit method in the TorchModel class has a different signature
+    def fit(  # type: ignore
+            self,
+            dataset: torch.Tensor,
             epochs: int = 10,
             learning_rate: float = 0.001,
             weight_decay: float = 0.0001,
@@ -842,7 +847,7 @@ class NormalizingFlowModel(TorchModel):
 
         Parameters
         ----------
-        data : torch.Tensor
+        dataset : torch.Tensor
             The dequantized dataset
         epochs : int, optional
             number of epochs for training, by default 10
@@ -862,7 +867,7 @@ class NormalizingFlowModel(TorchModel):
             optimizer.zero_grad()  # type: ignore
 
             # Get training samples
-            x = data
+            x = dataset
 
             # Compute loss
             loss = -torch.mean(nfm.log_prob(x.to(self.device)))
