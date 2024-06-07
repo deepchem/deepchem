@@ -2,7 +2,7 @@ FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
 # Install some utilities
 RUN apt-get update && \
-    apt-get install -y -q wget git libxrender1 libsm6 bzip2 && \
+    apt-get install -y -q wget git libxrender1 libsm6 bzip2 cmake build-essential libatlas-base-dev libblas-dev liblapack-dev libhdf5-dev && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Install miniconda
