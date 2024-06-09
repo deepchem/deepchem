@@ -1,6 +1,7 @@
 from rdkit import Chem
 import numpy as np
-from typing import List, Tuple
+from typing import List, Tuple, Union
+import re
 
 
 class FeaturizationParameters:
@@ -81,6 +82,87 @@ class FeaturizationParameters:
         self.REACTION = False
         self.POLYMER = False
         self.ADDING_H = False
+
+
+class PolyWDGStringValidator():
+    @staticmethod
+    def get_parsed_vals(datapoint: str) -> Tuple[str, list, str]:
+        base_parsed = datapoint.split("|")
+        if len(base_parsed) < 3:
+            raise ValueError(
+                f"Invalid datapoint format: At least 3 splits should be there but found {len(base_parsed)} no. of splist"
+            )
+        monomer_mols = base_parsed[0]
+        parsing_rules = base_parsed[-1]
+        fragments = base_parsed[1:-1]
+        return monomer_mols, fragments, polymer_rules
+
+    @staticmethod
+    def get_polymer_rules(rules_str: str) -> List[str]:
+        if len(rules_str.split("<")) == 0:
+            raise ValueError(
+                "Invalid rules string: The rule string must contain '<' as a separator for rules !"
+            )
+        return rules_str.split("<")[1:]
+
+    def _validate_fragments(self, datapoint: str):
+        monomer_mols, fragments, _ = self.get_parsed_vals(datapoint)
+        if len(fragments) != len(monomer_mols.split(".")):
+            raise ValueError(
+                f"Number of fragments and number of monomers should match. Mismatch -> No. of Fragments {len(fragments)} , No. of Monomers{len(monomer_mols.split('.'))}"
+            )
+
+    def _get_all_wildcards(text: str) -> List[str]:
+        """
+        This function extracts all numbers separated by asterisks (*) in a string using regular expressions.
+
+        Args:
+            text: The string to process.
+
+        Returns:
+            list: A list of strings containing the extracted numbers (str), or an empty list if no numbers are found.
+        """
+        matches = re.findall(r"\d+(?=\*)", text)
+        return matches
+
+    def _validate_wildcards(self, datapoint: str):
+        monomer_mols, _, _ = self.get_parsed_vals(datapoint)
+        max_wildcard = max(
+            [int(x) for x in self.get_all_wildcards(monomer_mols)])
+        for wildcard in range(max_wildcard):
+            if str(wildcard) not in monomer_mols:
+                raise ValueError(
+                    f"Invalid wildcard format: The wildcard {wildcard} is not present in the monomer molecules string  as per the sequence of the maximum {max_wildcard}!"
+                )
+
+    def _validate_polymer_rules(self, datapoint: str):
+        monomer_mols, _, polymer_rules = self.get_parsed_vals(datapoint)
+        polymer_rules = self.get_polymer_rules(polymer_rules)
+        for rules in polymer_rules:
+            splits = rules.split(":")
+            if len(splis) != 3:
+                raise ValueError(
+                    f"Invalid polymer rule format: The rule must contain exactly 3 splits ! but found {len(splits)} splits"
+                )
+            if len(splits[0].split("-")) != 2:
+                raise ValueError(
+                    f"Invalid polymer rule format: The first split must contain exactly 2 splits to depict connection between atom indexes! but found {len(splits[0].split('-'))} splits"
+                )
+            else:
+                for wild_card_index in splits[0].split("-"):
+                    if not wild_card_index.isdigit():
+                        raise ValueError(
+                            f"Invalid polymer rule format: The first split must contain only digits! but found {wild_card_index}"
+                        )
+                    if wild_card_index not in monomer_mols:
+                        raise ValueError(
+                            f"Invalid polymer rule format: The first split must contain only valid wild card indexes! but found {wild_card_index} which is not in {monomer_mols}"
+                        )
+
+    def validate(self, datapoint: str):
+        self._validate_fragments(datapoint)
+        self._validate_wildcards(datapoint)
+        self._validate_polymer_rules(datapoint)
 
 
 def handle_hydrogen(smiles: str,
