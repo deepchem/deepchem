@@ -603,7 +603,7 @@ If you're creating a new featurizer that featurizes polymer material,
 you will want to inherit from the abstract :code:`PolymerFeaturizer` base class.
 This featurizer can take a single string representation or datapoints of the same.
 
-.. autoclass:: deepchem.feat.ComplexFeaturizer
+.. autoclass:: deepchem.feat.PolymerFeaturizer
   :members:
 
 VocabularyBuilder
