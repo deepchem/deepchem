@@ -1,6 +1,6 @@
 from rdkit import Chem
 import numpy as np
-from typing import List, Tuple, Union
+from typing import List, Tuple
 import re
 
 
@@ -85,9 +85,31 @@ class FeaturizationParameters:
 
 
 class PolyWDGStringValidator():
+    """
+    Class for validating the string format of weighted directed graph data
+
+    Example
+    -------
+    >>> from deepchem.utils import PolyWDGStringValidator
+    >>> validator = PolyWDGStringValidator()
+    >>> validator.validate("[1*]C.C[2*]|0.5|0.5|<1-2:0.5:0.5")
+    True
+    """
 
     @staticmethod
     def get_parsed_vals(datapoint: str) -> Tuple[str, list, str]:
+        """
+        This function parses the datapoint string into 3 parts:
+        1. Monomer molecules
+        2. Fragments
+        3. Polymer rules
+
+        Args:
+            datapoint: The string to parse.
+
+        Returns:
+            tuple: A tuple containing the parsed values.
+        """
         base_parsed = datapoint.split("|")
         if len(base_parsed) < 3:
             raise ValueError(
@@ -100,6 +122,15 @@ class PolyWDGStringValidator():
 
     @staticmethod
     def get_polymer_rules(rules_str: str) -> List[str]:
+        """
+        This function parses the polymer rules string into a list of rules.
+
+        Args:
+            rules_str: The string to parse.
+
+        Returns:
+            list: A list of rules.
+        """
         if len(rules_str.split("<")) == 1:
             raise ValueError(
                 "Invalid rules string: The rule string must contain '<' as a separator for rules !"
@@ -114,23 +145,14 @@ class PolyWDGStringValidator():
             )
 
     def _get_all_wildcards(self, text: str) -> List[str]:
-        """
-        This function extracts all numbers separated by asterisks (*) (That represents wildcard index) in a string using regular expressions.
-
-        Args:
-            text: The string to process.
-
-        Returns:
-            list: A list of strings containing the extracted numbers (str), or an empty list if no numbers are found.
-        """
         matches = re.findall(r"\d+(?=\*)", text)
         return matches
 
     def _validate_wildcards(self, datapoint: str):
-        monomer_mols,_ ,_ = self.get_parsed_vals(datapoint)
+        monomer_mols, _, _ = self.get_parsed_vals(datapoint)
         max_wildcard = max(
             [int(x) for x in self._get_all_wildcards(monomer_mols)])
-        for wildcard in range(1,max_wildcard+1):
+        for wildcard in range(1, max_wildcard + 1):
             if str(wildcard) + "*" not in monomer_mols:
                 raise ValueError(
                     f"Invalid wildcard format: The wildcard {wildcard} is not present in the monomer molecules string  as per the sequence of the maximum {max_wildcard}!"
@@ -138,8 +160,8 @@ class PolyWDGStringValidator():
 
     def _validate_polymer_rules(self, datapoint: str):
         monomer_mols, _, polymer_rules = self.get_parsed_vals(datapoint)
-        polymer_rules = self.get_polymer_rules(polymer_rules)
-        for rules in polymer_rules:
+        polymer_rule_list = self.get_polymer_rules(polymer_rules)
+        for rules in polymer_rule_list:
             splits = rules.split(":")
             if len(splits) != 3:
                 raise ValueError(

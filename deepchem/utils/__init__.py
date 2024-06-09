@@ -138,7 +138,7 @@ from deepchem.utils.poly_wd_graph_utils import onek_encoding_unk
 from deepchem.utils.poly_wd_graph_utils import generate_atom_features
 from deepchem.utils.poly_wd_graph_utils import generate_bond_features
 from deepchem.utils.poly_wd_graph_utils import remove_wildcard_atoms
-from deepchem.utils.poly_wd_graph_utils import PolyWDGStringValidator 
+from deepchem.utils.poly_wd_graph_utils import PolyWDGStringValidator
 
 try:
     from deepchem.utils.periodic_table_utils import get_atomz

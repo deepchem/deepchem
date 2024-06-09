@@ -33,7 +33,7 @@ class PolyWDGStringValidateTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             polymer_rules = "1-2:0.5:0.5"
             _ = PolyWDGStringValidator.get_polymer_rules(polymer_rules)
-        
+
         polymer_rules = "<1-2:0.5:0.5"
         polymer_rules = PolyWDGStringValidator.get_polymer_rules(polymer_rules)
         assert polymer_rules == ["1-2:0.5:0.5"]
@@ -57,7 +57,7 @@ class PolyWDGStringValidateTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             datapoint = "[1*]C.C[2*]|0.5|0.5|<1-3:0.5:0.5"
             _ = PolyWDGStringValidator().validate(datapoint)
-        
+
         # test for _validate_polymer_rules
         with self.assertRaises(ValueError):
             datapoint = "[1*]C.C[2*]|0.5|0.5|<1-3:0.5"
