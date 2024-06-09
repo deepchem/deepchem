@@ -6,7 +6,7 @@ import os
 import logging
 import tempfile
 import warnings
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, List, Any
 
 import numpy as np
 from sklearn.base import BaseEstimator
@@ -48,10 +48,10 @@ class GBDTModel(SklearnModel):
         try:
             import xgboost
             import lightgbm
-        except:
-            raise ModuleNotFoundError(
-                "XGBoost or LightGBM modules not found. This function requires these modules to be installed."
-            )
+        except ModuleNotFoundError:
+            raise ImportError(
+                'This function requires XGBoost and LightGBM modules '
+                'to be installed.')
 
         if model_dir is not None:
             if not os.path.exists(model_dir):
@@ -63,6 +63,7 @@ class GBDTModel(SklearnModel):
         self.model_class = model.__class__
         self.early_stopping_rounds = early_stopping_rounds
         self.model_type = self._check_model_type()
+        self.callbacks: List[Union[Any, Any]]
 
         if self.early_stopping_rounds <= 0:
             raise ValueError("Early Stopping Rounds cannot be less than 1.")
