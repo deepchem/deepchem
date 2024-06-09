@@ -113,7 +113,7 @@ class ScScoreModel(TorchModel):
     The SCScore model can accurately predict the synthetic complexity of a variety of molecules, including both drug-like and natural product molecules.
     SCScore has the potential to be a valuable tool for chemists who are working on drug discovery and other areas of chemistry.
 
-    The learned metric (SCScore) exhibits highly desirable nonlinear behavior, particularly in recognizing increases in synthetic complexity throughout a number of linear synthetic routes.
+    The learned metric (SCScore) exhibits highly desirable nonlinear behavior particularly in recognizing increases in synthetic complexity throughout a number of linear synthetic routes.
 
     This model was originally trained on the Reaxys database, which is not publicly available. Therefore, the author has made public the weights of this model as mentioned in the supplementary material [2]_. We have adapted these weights to be seamlessly used in DeepChem.
 
