@@ -1116,8 +1116,7 @@ class TorchModel(Model):
             The backend to use for compilation. Currently, only 'inductor'
             is supported.
         mode: str, default 'default'
-            The mode to use for compilation. Currently, only 'default' and
-            'max-autotune-no-cudagraphs' are supported.
+            The mode to use for compilation. See the `torch.compile` documentation for available modes and detailed descriptions.
         kwargs: dict
             Additional arguments to pass to `torch.compile`.
         """
@@ -1126,11 +1125,6 @@ class TorchModel(Model):
             raise ValueError(
                 f"Backend {backend} is not supported currently. Supported backends are "
                 "['inductor'].")
-
-        if mode not in ["default", "max-autotune-no-cudagraphs"]:
-            raise ValueError(
-                f"Mode {mode} is not supported currently. Supported modes are "
-                "['default', 'max-autotune-no-cudagraphs'].")
 
         self.model = torch.compile(self.model,
                                    mode=mode,

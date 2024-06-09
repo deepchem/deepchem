@@ -517,30 +517,36 @@ def test_torch_compile():
                           size=(n_samples, n_tasks)).astype(np.float32)
     dataset = dc.data.NumpyDataset(X, y)
 
+    def test_config_overfit(mode='default', backend='inductor'):
+        model = dc.models.torch_models.CNN(n_tasks,
+                                           n_features,
+                                           dims=1,
+                                           kernel_size=3,
+                                           mode='classification')
+        model.compile(mode=mode, backend=backend)
+        model.fit(dataset, nb_epoch=500)
+
+        model_output = model.predict_on_batch(X)
+        model_output = np.argmax(model_output, axis=2)
+        return model_output
+
     # Testing backends
-    inductor_model = dc.models.torch_models.CNN(n_tasks,
-                                                n_features,
-                                                dims=1,
-                                                kernel_size=3,
-                                                mode='classification')
-    inductor_model.compile(backend='inductor')
-    inductor_model.fit(dataset, nb_epoch=500)
-
-    inductor_model_output = inductor_model.predict_on_batch(X)
-    inductor_model_output = np.argmax(inductor_model_output, axis=2)
-
+    inductor_model_output = test_config_overfit(mode='default',
+                                                backend='inductor')
     assert np.all(inductor_model_output == y)
 
     # Testing modes
-    max_at_no_cu_model = dc.models.torch_models.CNN(n_tasks,
-                                                    n_features,
-                                                    dims=1,
-                                                    kernel_size=3,
-                                                    mode='classification')
-    max_at_no_cu_model.compile(mode='max-autotune-no-cudagraphs')
-    max_at_no_cu_model.fit(dataset, nb_epoch=500)
+    # mode='default' is tested in the previous test
 
-    max_at_no_cu_model_output = max_at_no_cu_model.predict_on_batch(X)
-    max_at_no_cu_model_output = np.argmax(max_at_no_cu_model_output, axis=2)
+    # mode='reduce-overhead'
+    reduce_overhead_model_output = test_config_overfit(mode='reduce-overhead')
+    assert np.all(reduce_overhead_model_output == y)
 
+    # mode='max-autotune'
+    max_at_model_output = test_config_overfit(mode='max-autotune')
+    assert np.all(max_at_model_output == y)
+
+    # mode='max-autotune-no-cudagraphs'
+    max_at_no_cu_model_output = test_config_overfit(
+        mode='max-autotune-no-cudagraphs')
     assert np.all(max_at_no_cu_model_output == y)
