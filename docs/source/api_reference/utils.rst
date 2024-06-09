@@ -614,6 +614,9 @@ Polymer Weighted Directed Graph Utilities
 
 .. autoclass:: deepchem.utils.poly_wd_graph_utils.FeaturizationParameters
 
+.. autoclass:: deepchem.utils.poly_wd_graph_utils.PolyWDGStringValidator
+  :members:
+
 .. autofunction:: deepchem.utils.poly_wd_graph_utils.handle_hydrogen 
 
 .. autofunction:: deepchem.utils.poly_wd_graph_utils.make_polymer_mol

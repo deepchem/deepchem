@@ -99,16 +99,20 @@ class PolyWDGStringValidator():
     @staticmethod
     def get_parsed_vals(datapoint: str) -> Tuple[str, list, str]:
         """
-        This function parses the datapoint string into 3 parts:
+        This static method parses the datapoint string into 3 parts:
         1. Monomer molecules
         2. Fragments
         3. Polymer rules
 
-        Args:
-            datapoint: The string to parse.
-
-        Returns:
-            tuple: A tuple containing the parsed values.
+        Parameters
+        ----------
+        datapoint : str
+            The datapoint string to parse
+        
+        Returns
+        -------
+        Tuple[str, list, str]
+            A tuple containing the 3 parts of the datapoint string
         """
         base_parsed = datapoint.split("|")
         if len(base_parsed) < 3:
@@ -123,13 +127,17 @@ class PolyWDGStringValidator():
     @staticmethod
     def get_polymer_rules(rules_str: str) -> List[str]:
         """
-        This function parses the polymer rules string into a list of rules.
+        This static method parses the polymer rules string into a list of rules.
 
-        Args:
-            rules_str: The string to parse.
+        Parameters
+        ----------
+        rules_str : str
+            The polymer rules string to parse
 
-        Returns:
-            list: A list of rules.
+        Returns
+        -------
+        List[str]
+            A list containing the parsed rule strings
         """
         if len(rules_str.split("<")) == 1:
             raise ValueError(
@@ -188,6 +196,20 @@ class PolyWDGStringValidator():
                         )
 
     def validate(self, datapoint: str):
+        """
+        This method validates the string format of weighted directed graph data.
+        It raises ValueError if the string format is invalid.
+
+        Parameters
+        ----------
+        datapoint : str
+            The datapoint string to validate
+        
+        Returns
+        -------
+        bool
+            True if the string format is valid, None otherwise (Error will be raised otherwise)
+        """
         self._validate_fragments(datapoint)
         self._validate_wildcards(datapoint)
         self._validate_polymer_rules(datapoint)
