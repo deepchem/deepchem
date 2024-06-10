@@ -202,7 +202,6 @@ jobs:
         twine upload dist/*
 
   docker-build-test:
-    needs: [core-build, pypi-build]
     runs-on: ubuntu-latest
     steps:
     - name: Maximize build space
