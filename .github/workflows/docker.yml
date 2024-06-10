@@ -8,6 +8,7 @@ permissions:
 
 jobs:
   Test-Docker:
+    runs-on: ubuntu-latest
     name: 'Test-Docker'
 
     steps:
