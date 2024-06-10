@@ -17,5 +17,5 @@ jobs:
 
     - name: Dockerise
       run: |
-        cd docker/nightly/Dockerfile
+        cd docker/nightly
         sudo docker build -t test-image .
