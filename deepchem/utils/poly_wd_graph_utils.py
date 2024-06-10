@@ -396,11 +396,15 @@ def tag_atoms_in_repeating_unit(mol: Chem.rdchem.RWMol) -> Tuple[Chem.rdchem.RWM
     Examples
     --------
     >>> import deepchem as dc
-    >>> mol, _ = dc.utils.tag_atoms_in_repeating_unit(Chem.MolFromSmiles('[1*]CC.C[2*]'))
+    >>> from rdkit import Chem
+    >>> rw_mol = Chem.rdchem.RWMol(Chem.MolFromSmiles('[1*]CC.C[2*]'))
+    >>> mol, _ = dc.utils.tag_atoms_in_repeating_unit(rw_mol)
     >>> mol.GetAtomWithIdx(0).GetBoolProp('core')
     False
     >>> mol.GetAtomWithIdx(1).GetBoolProp('core')
     True
+    >>> mol.GetAtomWithIdx(3).GetProp('R')
+    2*
 
     Parameters
     ----------
@@ -591,6 +595,7 @@ def remove_wildcard_atoms(rwmol: Chem.rdchem.RWMol) -> Chem.rdchem.RWMol:
     Examples
     --------
     >>> import deepchem as dc
+    >>> from rdkit import Chem
     >>> mol = Chem.MolFromSmiles("[*]CC")
     >>> rwmol = Chem.RWMol(mol)
     >>> rwmol = dc.utils.remove_wildcard_atoms(rwmol)
