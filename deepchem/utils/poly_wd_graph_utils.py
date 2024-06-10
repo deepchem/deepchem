@@ -386,7 +386,8 @@ def parse_polymer_rules(rules: List[str]) -> Tuple[List[tuple], float]:
     return polymer_info, 1. + np.log10(Xn)
 
 
-def tag_atoms_in_repeating_unit(mol: Chem.rdchem.RWMol) -> Tuple[Chem.rdchem.RWMol, dict]:
+def tag_atoms_in_repeating_unit(
+        mol: Chem.rdchem.RWMol) -> Tuple[Chem.rdchem.RWMol, dict]:
     """
     This function tags atoms that are part of the core units, as well as atoms
     serving to identify attachment points. In addition, create a map of bond
