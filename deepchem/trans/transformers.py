@@ -2036,25 +2036,25 @@ class ImageTransformer(Transformer):
                 X.shape
             ) >= 3, "X must be an array of images with shape (n_samples, width, height) or (n_samples, width, height, channels)."
             # PIL only accepts uint8 data type as inputs, so we multiply then divide by 255 to minimize information loss while resizing.
-            x = [
+            x = np.array([
                 np.array(
                     Image.fromarray(
                         (img * 255).astype(np.uint8)).resize(self.size)) / 255
                 for img in X
-            ]
+            ])
         else:  # if not transforming X, return the original X
-            x = X
+            x = np.array(X)
         if self.transform_y:
             assert len(
                 y.shape
             ) >= 3, "y must be an array of images with shape (n_samples, width, height) or (n_samples, width, height, channels)."
-            y = [
+            y = np.array([
                 np.array(
                     Image.fromarray(
                         (img * 255).astype(np.uint8)).resize(self.size)) / 255
                 for img in y
-            ]
-        return (np.array(x), np.array(y), w, ids)
+            ])
+        return (x, y, w, ids)
 
 
 # class ANITransformer(Transformer):
