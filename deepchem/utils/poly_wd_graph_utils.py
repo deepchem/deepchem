@@ -386,11 +386,12 @@ def parse_polymer_rules(rules: List[str]) -> Tuple[List[tuple], float]:
     return polymer_info, 1. + np.log10(Xn)
 
 
-def tag_atoms_in_repeating_unit(mol):
+def tag_atoms_in_repeating_unit(mol: Chem.rdchem.RWMol) -> Tuple[Chem.rdchem.RWMol, dict]:
     """
     This function tags atoms that are part of the core units, as well as atoms
     serving to identify attachment points. In addition, create a map of bond
-    types based on what bonds are connected to R groups in the input.
+    types based on what bonds are connected to R groups in the input. The input molecules must be
+    of `Chem.rdchem.RWMol` type to be editable.
 
     Examples
     --------
@@ -403,13 +404,14 @@ def tag_atoms_in_repeating_unit(mol):
 
     Parameters
     ----------
-    mol : rdkit.Chem.rdchem.Mol
-        RDKit molecule object.
+    mol : rdkit.Chem.rdchem.RWMol
+        RDKit read and write enabled molecule object.
 
     Returns
     -------
-    rdkit.Chem.rdchem.Mol
-        RDKit molecule object.
+    rdkit.Chem.rdchem.RWMol
+        RDKit read and write enabled molecule object.
+        
     dict
         Map of R group to bond type.
     """
