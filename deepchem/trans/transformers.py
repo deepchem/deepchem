@@ -1943,8 +1943,12 @@ class DAGTransformer(Transformer):
 
 
 class ImageTransformer(Transformer):
-    """
-    Transforms images to a specified size.
+    """Transforms images to a specified width and/or height.
+
+    Images of shape (n_samples, width, height) and (n_samples, width, height, channels) are supported.
+
+    Images of shape (n_samples, width, height, channels) can be resized to
+    (n_samples, new_width, new_height, channels).
 
     Note
     ----
@@ -1955,7 +1959,8 @@ class ImageTransformer(Transformer):
                  size: Tuple[int, int],
                  transform_X: bool = True,
                  transform_y: bool = False):
-        """Initializes ImageTransformer.
+        """
+        Initializes ImageTransformer.
 
         Parameters
         ----------
@@ -1965,6 +1970,30 @@ class ImageTransformer(Transformer):
             Whether to transform X
         transform_y: bool, optional (default False)
             Whether to transform y
+
+        Examples
+        --------
+        Let's transform a small dataset of images and their masks.
+
+        >>> import deepchem as dc
+        >>> import numpy as np
+        >>> X = np.random.rand(10, 256, 256, 3)
+        >>> y = np.random.rand(10, 256, 256, 3)
+
+        Let's now make a ImageDataset using the ImageLoader
+        >>> loader = dc.data.ImageLoader(tasks=['image-resizing'])
+        >>> dataset = loader.create_dataset(inputs=(X, y), in_memory=False)
+
+        And let's apply our transformer with a size of (128, 128, 3).
+        >>> img_transform = dc.trans.ImageTransformer(size=(128, 128), transform_X=True, transform_y=True)
+        >>> resized_dataset = dataset.transform(img_transform)
+
+        We can see that our dataset has been resized.
+        >>> resized_dataset.get_shape()
+        (10, 128, 128, 3)
+
+        We can also see that the masks have been resized.
+        If you want to transform only X, you can set `transform_y` to `False`, and vice versa.
         """
         self.size = size
         super(ImageTransformer, self).__init__(transform_X=transform_X,
