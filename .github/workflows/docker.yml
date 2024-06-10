@@ -1,0 +1,19 @@
+name: 'Docker Build Test'
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  Test-Docker:
+    name: 'Test-Docker'
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Dockerise
+      run: |
+        sudo docker build -t test-image .
