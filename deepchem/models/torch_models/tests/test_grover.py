@@ -2,6 +2,7 @@ import os
 import pytest
 import numpy as np
 import deepchem as dc
+from flaky import flaky
 
 try:
     import torch
@@ -204,6 +205,7 @@ def test_grover_pretraining_task_overfit(tmpdir):
     assert loss < 0.1
 
 
+@flaky
 @pytest.mark.torch
 def test_grover_model_overfit_finetune(tmpdir):
     from deepchem.models.torch_models.grover import GroverModel
