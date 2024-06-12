@@ -74,12 +74,13 @@ class ProtBERT(HuggingFaceModel):
         cls_name: str
             The classifier head to use for classification mode. Currently only supports "FFN" and "LogReg"
         """
-        self.n_tasks = n_tasks
-        tokenizer = BertTokenizer.from_pretrained(model_path,
-                                                  do_lower_case=False)
-        protbert_config = BertConfig.from_pretrained(
+        self.n_tasks: int = n_tasks
+        tokenizer: BertTokenizer = BertTokenizer.from_pretrained(
+            model_path, do_lower_case=False)
+        protbert_config: BertConfig = BertConfig.from_pretrained(
             pretrained_model_name_or_path=model_path,
             vocab_size=tokenizer.vocab_size)
+        model: Union[BertForMaskedLM, BertForSequenceClassification]
         if task == "mlm":
             model = BertForMaskedLM.from_pretrained(model_path)
         elif task == "classification":
