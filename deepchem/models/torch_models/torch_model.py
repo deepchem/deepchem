@@ -1089,6 +1089,56 @@ class TorchModel(Model):
         self._pytorch_optimizer.load_state_dict(data['optimizer_state_dict'])
         self._global_step = data['global_step']
 
+    def compile(self,
+                fullgraph: bool = False,
+                dynamic: Union[None, bool] = None,
+                backend: str = "inductor",
+                mode: str = "default",
+                **kwargs) -> None:
+        """Compiles the model using `torch.compile` for faster training and inference.
+        Visit https://pytorch.org/docs/stable/generated/torch.compile.html for more information.
+
+        Parameters
+        ----------
+        fullgraph: bool, default False
+            If True, `torch.compile` will require that the entire function be
+            capturable into a single graph. If this is not possible (that is,
+            if there are graph breaks), then the function will raise an error.
+        dynamic: bool, default None
+            Use dynamic shape tracing. When this is True, the function will
+            up-front attempt to generate a kernel that is as dynamic as possible to
+            avoid recompilations when sizes change. This may not always work
+            as some operations/optimizations will force specialization. When
+            set to False, `torch.compile` will never generate dynamic kernels.
+            By default, the function automatically detects if dynamism
+            has occurred and will compile a more dynamic kernel upon recompile.
+        backend: str, default 'inductor'
+            The backend to use for compilation. Currently, only 'inductor'
+            is supported.
+        mode: str, default 'default'
+            The mode to use for compilation. Currently, only 'default' and
+            'max-autotune-no-cudagraphs' are supported.
+        kwargs: dict
+            Additional arguments to pass to `torch.compile`.
+        """
+
+        if backend not in ["inductor"]:
+            raise ValueError(
+                f"Backend {backend} is not supported currently. Supported backends are "
+                "['inductor'].")
+
+        if mode not in ["default", "max-autotune-no-cudagraphs"]:
+            raise ValueError(
+                f"Mode {mode} is not supported currently. Supported modes are "
+                "['default', 'max-autotune-no-cudagraphs'].")
+
+        self.model = torch.compile(self.model,
+                                   mode=mode,
+                                   dynamic=dynamic,
+                                   fullgraph=fullgraph,
+                                   backend=backend,
+                                   **kwargs)
+
     def get_global_step(self) -> int:
         """Get the number of steps of fitting that have been performed."""
         return self._global_step
