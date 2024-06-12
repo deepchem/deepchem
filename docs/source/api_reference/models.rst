@@ -609,6 +609,12 @@ Chemberta
 .. autoclass:: deepchem.models.torch_models.chemberta.Chemberta
   :members:
 
+ProtBERT
+---------
+
+.. autoclass:: deepchem.models.torch_models.prot_bert.ProtBERT
+  :members:
+
 Trainer
 =======
 
