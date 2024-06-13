@@ -7,12 +7,18 @@ from deepchem.utils.dft_utils import Lattice, BaseGrid
 class BeckeGrid(BaseGrid):
     """
     Using Becke's scheme to construct the 3D grid consists of multiple 3D grids
-    centered on each atom
+    centered on each atom.
     """
 
     def __init__(self, atomgrid: List[LebedevGrid], atompos: torch.Tensor,
                  atomradii: Optional[torch.Tensor] = None,
                  ratom_adjust: str = "becke") -> None:
+        """Initialize the Becke grid.
+        
+        Parameters
+        ----------
+        atomgrid: List[LebedevGrid]
+            List of Lebedev grids for each atom."""
         # atomgrid: list with length (natoms)
         # atompos: (natoms, ndim)
 

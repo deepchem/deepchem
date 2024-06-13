@@ -137,6 +137,41 @@ def get_grid(atomzs: Union[List[int], torch.Tensor], atompos: torch.Tensor,
              truncate: Optional[str] = "dasgupta",
              dtype: torch.dtype = _dtype,
              device: torch.device = _device) -> BaseGrid:
+    """Get the Molecular Grid.
+    
+    Parameters
+    ----------
+    atomzs: Union[List[int], torch.Tensor]
+        Atomic Number of the atoms in the molecule.
+    atompos: torch.Tensor
+        Positions of the atoms in 3d. (natoms, ndim)
+    lattice: Optional[Lattice] (Default None)
+        Lattice Object descibing periodicity. 
+    nr: Union[int, Callable[[int], int]] (default 99)
+        Number of radial points.
+    nang: Union[int, Callable[[int], int]] = 590
+        Number of angular points.
+    radgrid_generator: str (default "uniform")
+        Radial grid generator.
+    radgrid_transform: str (default "sg2-dasgupta")
+        Radial grid transformation.
+    atom_radii: str (default "expected")
+        Atom radii to use.
+    multiatoms_scheme: str (default "becke")
+        Multiatoms scheme to use.
+    truncate: Optional[str] (default "dasgupta")
+        Truncation rule to use.
+    dtype: torch.dtype (default _dtype)
+        Data type to use.
+    device: torch.device (default _device)
+        Device to use.
+
+    Returns
+    -------
+    BaseGrid
+        Molecular Grid.
+
+    """
     # atompos: (natoms, ndim)
     assert atompos.ndim == 2
     assert atompos.shape[-2] == len(atomzs)
@@ -182,7 +217,22 @@ def get_grid(atomzs: Union[List[int], torch.Tensor], atompos: torch.Tensor,
         prec = _prec_fcn
 
     # wrap up a function to get the nr
-    def _get_nr(nr: Union[int, Callable[[int], int]], atz: int):
+    def _get_nr(nr: Union[int, Callable[[int], int]], atz: int) -> int:
+        """Get the number of radial points for the atom z.
+
+        Parameters
+        ----------
+        nr: Union[int, Callable[[int], int]]
+            Number of radial points.
+        atz: int
+            Atomic Number of the atom.
+
+        Returns
+        -------
+        int
+            Number of radial points.
+
+        """
         if isinstance(nr, int):
             return nr
         else:
@@ -241,8 +291,28 @@ def get_predefined_grid(grid_inp: Union[int, str], atomzs: Union[List[int], torc
                         *,
                         lattice: Optional[Lattice] = None,
                         dtype: torch.dtype = _dtype, device: torch.device = _device) -> BaseGrid:
-    """
-    Returns the predefined grid object given the grid name.
+    """Returns the predefined grid object given the grid name.
+
+    Parameters
+    ----------
+    grid_inp: Union[int, str]
+        Grid name or number of angular points.
+    atomzs: Union[List[int], torch.Tensor]
+        Atomic Number of the atoms in the molecule.
+    atompos: torch.Tensor
+        Positions of the atoms in 3d. (natoms, ndim)
+    lattice: Optional[Lattice] (Default None)
+        Lattice Object descibing periodicity.
+    dtype: torch.dtype (default _dtype)
+        Data type to use.
+    device: torch.device (default _device)
+        Device to use.
+
+    Returns
+    -------
+    BaseGrid
+        Molecular Grid.
+
     """
     if isinstance(grid_inp, str):
         if grid_inp == "sg2":
