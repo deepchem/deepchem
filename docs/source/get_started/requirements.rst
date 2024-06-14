@@ -119,10 +119,6 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `Triton`_                      | latest        | :code:`dc.models.torch_models.torch_model`        |
-|                                |               |                                                   |
-|                                |               |                                                   |
-+--------------------------------+---------------+---------------------------------------------------+
 | `Weights & Biases`_            | Not Testing   | :code:`dc.models.keras_model`,                    |
 |                                |               | :code:`dc.models.callbacks`                       |
 |                                |               |                                                   |
@@ -174,7 +170,6 @@ DeepChem has a number of "soft" requirements.
 .. _`RDKit`: http://www.rdkit.org/docs/Install.html
 .. _`simdna`: https://github.com/kundajelab/simdna
 .. _`Tensorflow Probability`: https://www.tensorflow.org/probability
-.. _`Triton`: https://triton-lang.org/main/index.html
 .. _`Weights & Biases`: https://docs.wandb.com/
 .. _`XGBoost`: https://xgboost.readthedocs.io/en/latest/
 .. _`Tensorflow Addons`: https://www.tensorflow.org/addons/overview
