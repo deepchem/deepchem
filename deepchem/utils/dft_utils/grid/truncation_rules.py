@@ -9,31 +9,112 @@ class BaseTruncationRules(object):
     """
     @abstractmethod
     def to_truncate(self, atz: int) -> bool:
-        # decide whether to truncate the atom's grid
+        """Decide whether to truncate the atom's grid
+
+        Parameters
+        ----------
+        atz: int
+            Atomic number of the atom
+
+        Returns
+        -------
+        bool
+            True if the grid should be truncated, False otherwise
+
+        """
         pass
 
     @abstractmethod
     def rad_slices(self, atz: int, radgrid: RadialGrid) -> List[slice]:
-        # get the list of slices of radial grid
+        """Get the list of slices of radial grid
+
+        Parameters
+        ----------
+        atz: int
+            Atomic number of the atom
+        radgrid: RadialGrid
+            RadialGrid object of the atom
+
+        Returns
+        -------
+        List[slice]
+            List of slices of the radial grid
+
+        """
         pass
 
     @abstractmethod
     def precs(self, atz: int, radgrid: RadialGrid) -> List[int]:
-        # get the list of precisions of angular grid for each slice in the
-        # sliced radial grids
+        """Get the list of precisions of angular grid for each slice in the
+        sliced radial grids
+
+        Parameters
+        ----------
+        atz: int
+            Atomic number of the atom
+        radgrid: RadialGrid
+            RadialGrid object of the atom
+
+        """
         pass
 
 class NoTrunc(BaseTruncationRules):
+    """No truncation rule. Use the full grid for all atoms."""
     def __init__(self):
+        """Initialize the NoTrunc object"""
         pass
 
     def to_truncate(self, atz: int) -> bool:
+        """Decide whether to truncate the atom's grid
+
+        Parameters
+        ----------
+        atz: int
+            Atomic number of the atom
+
+        Returns
+        -------
+        bool
+            Always False
+
+        """
         return False
 
     def rad_slices(self, atz: int, radgrid: RadialGrid) -> List[slice]:
+        """Get the list of slices of radial grid
+
+        Parameters
+        ----------
+        atz: int
+            Atomic number of the atom
+        radgrid: RadialGrid
+            RadialGrid object of the atom
+
+        Returns
+        -------
+        List[slice]
+            Always raises RuntimeError
+
+        """
         raise RuntimeError("This shouldn't be called. Report to Github")
 
     def precs(self, atz: int, radgrid: RadialGrid) -> List[int]:
+        """Get the list of precisions of angular grid for each slice in the
+        sliced radial grids
+
+        Parameters
+        ----------
+        atz: int
+            Atomic number of the atom
+        radgrid: RadialGrid
+            RadialGrid object of the atom
+
+        Returns
+        -------
+        List[int]
+            Always raises RuntimeError
+
+        """
         raise RuntimeError("This shouldn't be called. Report to Github")
 
 class DasguptaTrunc(BaseTruncationRules):
@@ -41,6 +122,15 @@ class DasguptaTrunc(BaseTruncationRules):
     Truncation rule from Dasgupta et al., https://onlinelibrary.wiley.com/doi/epdf/10.1002/jcc.24761
     """
     def __init__(self, nr: Union[int, Callable[[int], int]]):
+        """Initialize the DasguptaTrunc object.
+
+        Parameters
+        ----------
+        nr: Union[int, Callable[[int], int]]
+            Number of radial points or a function of atomic number to
+            get the number of radial points.
+
+        """
         self._truncate_idxs = {
             75: {
                 1: [0, 35, 47, 63, 70, 75],

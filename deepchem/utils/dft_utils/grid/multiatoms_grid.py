@@ -18,10 +18,15 @@ class BeckeGrid(BaseGrid):
         Parameters
         ----------
         atomgrid: List[LebedevGrid]
-            List of Lebedev grids for each atom."""
-        # atomgrid: list with length (natoms)
-        # atompos: (natoms, ndim)
+            List of Lebedev grids for each atom. (natoms)
+        atompos: torch.Tensor
+            Position of each atom. (natoms, ndim)
+        atomradii: Optional[torch.Tensor] (default None)
+            Radii of each atom. (natoms,) or None
+        ratom_adjust: str (default "becke")
+            Adjustment method for the atom radii. Available: ['becke', 'treutler']
 
+        """
         assert atompos.shape[0] == len(atomgrid), \
             "The lengths of atomgrid and atompos must be the same"
         assert len(atomgrid) > 0
@@ -38,23 +43,76 @@ class BeckeGrid(BaseGrid):
 
     @property
     def dtype(self):
+        """Return the data type of the grid.
+
+        Returns
+        -------
+        torch.dtype
+            Data type of the grid.
+
+        """
         return self._dtype
 
     @property
     def device(self):
+        """device of the grid points
+
+        Returns
+        -------
+        torch.device
+            device of the grid points
+
+        """
         return self._device
 
     @property
     def coord_type(self):
+        """type of the coordinate returned in get_rgrid.
+
+        Returns
+        -------
+        str
+            type of the coordinate returned in get_rgrid. It can be 'cartesian'
+            or 'spherical'.
+
+        """
         return "cart"
 
     def get_dvolume(self):
+        """Obtain the torch.tensor containing the dV elements for the integration.
+
+        Returns
+        -------
+        torch.tensor (*BG, ngrid)
+            The dV elements for the integration. *BG is the length of the BaseGrid.
+
+        """
         return self._dvolume
 
     def get_rgrid(self) -> torch.Tensor:
+        """
+        Returns the grid points position in the specified coordinate in
+        self.coord_type.
+
+        Returns
+        -------
+        torch.tensor (*BG, ngrid, ndim)
+            The grid points position. *BG is the length of the BaseGrid.
+
+        """
         return self._rgrid
 
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+        """
+        Return a list with the parameter names corresponding to the given method
+        (methodname)
+
+        Returns
+        -------
+        List[str]
+            List of parameter names of methodname
+
+        """
         if methodname == "get_rgrid":
             return [prefix + "_rgrid"]
         elif methodname == "get_dvolume":
@@ -71,9 +129,20 @@ class PBCBeckeGrid(BaseGrid):
     """
     def __init__(self, atomgrid: List[LebedevGrid], atompos: torch.Tensor, lattice: Lattice,
                  ratom_adjust: str = "becke"):
-        # atomgrid: list with length (natoms)
-        # atompos: (natoms, ndim)
+        """Initialize the PBCBecke grid.
+        
+        Parameters
+        ----------
+        atomgrid: List[LebedevGrid]
+            List of Lebedev grids for each atom. (natoms)
+        atompos: torch.Tensor
+            Position of each atom. (natoms, ndim)
+        lattice: Lattice
+            Lattice object for the periodic cell.
+        ratom_adjust: str (default "becke")
+            Adjustment method for the atom radii. Available: ['becke', 'treutler']
 
+        """
         assert atompos.shape[0] == len(atomgrid), \
             "The lengths of atomgrid and atompos must be the same"
         assert len(atomgrid) > 0
@@ -135,24 +204,77 @@ class PBCBeckeGrid(BaseGrid):
         self._dvolume = dvol_atoms * watoms
 
     @property
-    def dtype(self) -> torch.dtype:
+    def dtype(self):
+        """Return the data type of the grid.
+
+        Returns
+        -------
+        torch.dtype
+            Data type of the grid.
+
+        """
         return self._dtype
 
     @property
-    def device(self) -> torch.device:
+    def device(self):
+        """device of the grid points
+
+        Returns
+        -------
+        torch.device
+            device of the grid points
+
+        """
         return self._device
 
     @property
-    def coord_type(self) -> str:
+    def coord_type(self):
+        """type of the coordinate returned in get_rgrid.
+
+        Returns
+        -------
+        str
+            type of the coordinate returned in get_rgrid. It can be 'cartesian'
+            or 'spherical'.
+
+        """
         return "cart"
 
-    def get_dvolume(self) -> torch.Tensor:
+    def get_dvolume(self):
+        """Obtain the torch.tensor containing the dV elements for the integration.
+
+        Returns
+        -------
+        torch.tensor (*BG, ngrid)
+            The dV elements for the integration. *BG is the length of the BaseGrid.
+
+        """
         return self._dvolume
 
     def get_rgrid(self) -> torch.Tensor:
+        """
+        Returns the grid points position in the specified coordinate in
+        self.coord_type.
+
+        Returns
+        -------
+        torch.tensor (*BG, ngrid, ndim)
+            The grid points position. *BG is the length of the BaseGrid.
+
+        """
         return self._rgrid
 
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+        """
+        Return a list with the parameter names corresponding to the given method
+        (methodname)
+
+        Returns
+        -------
+        List[str]
+            List of parameter names of methodname
+
+        """
         if methodname == "get_rgrid":
             return [prefix + "_rgrid"]
         elif methodname == "get_dvolume":
@@ -162,8 +284,22 @@ class PBCBeckeGrid(BaseGrid):
 
 def _construct_rgrids(atomgrid: List[LebedevGrid], atompos: torch.Tensor) \
         -> Tuple[List[torch.Tensor], torch.Tensor, torch.Tensor]:
-    # construct the grid positions in a 2D tensor, the weights per isolated atom
+    """construct the grid positions in a 2D tensor, the weights per isolated atom
 
+    Parameters
+    ----------
+    atomgrid: List[LebedevGrid]
+        List of Lebedev grids for each atom. (natoms)
+    atompos: torch.Tensor
+        Position of each atom. (natoms, ndim)
+
+    Returns
+    -------
+    Tuple[List[torch.Tensor], torch.Tensor, torch.Tensor]
+        List of grid positions for each atom, the concatenated grid
+        positions, and the dV elements.
+
+    """
     allpos_lst = [
         # rgrid: (ngrid[i], ndim), pos: (ndim,)
         (gr.get_rgrid() + pos) \
@@ -178,10 +314,26 @@ def _construct_rgrids(atomgrid: List[LebedevGrid], atompos: torch.Tensor) \
 def _get_atom_weights(rgrids: List[torch.Tensor], atompos: torch.Tensor,
                       atomradii: Optional[torch.Tensor] = None,
                       ratom_adjust: str = "becke") -> torch.Tensor:
-    # rgrids: list of (natgrid, ndim) with length natoms consisting of absolute position of the grids
-    # atompos: (natoms, ndim)
-    # atomradii: (natoms,) or None
-    # returns: (ngrid,)
+    """Calculate the weights for each grid point due to the atoms
+
+    Parameters
+    ----------
+    rgrids: List[torch.Tensor]
+        List of grid positions for each atom, with length natoms
+        consisting of absolute position of the grids (natoms)
+    atompos: torch.Tensor
+        Position of each atom. (natoms, ndim)
+    atomradii: Optional[torch.Tensor] (default None)
+        Radii of each atom. (natoms,) or None
+    ratom_adjust: str (default "becke")
+        Adjustment method for the atom radii. Available: ['becke', 'treutler']
+
+    Returns
+    -------
+    torch.Tensor
+        The weights for each grid point. (ngrid,)
+
+    """
     assert len(rgrids) == atompos.shape[0]
     dtype = atompos.dtype
     device = atompos.device
