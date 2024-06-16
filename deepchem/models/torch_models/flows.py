@@ -639,7 +639,7 @@ class MLPFlow(nn.Module):
 
 
 class NormalizingFlow(nn.Module):
-    """Normalizing flows are widley used to perform generative models.
+    """Normalizing flows are widely used to perform generative models.
     This algorithm gives advantages over variational autoencoders (VAE) because
     of ease in sampling by applying invertible transformations
     (Frey, Gadepally, & Ramsundar, 2022).
