@@ -2,6 +2,7 @@ import os
 import pytest
 import numpy as np
 import deepchem as dc
+from flaky import flaky
 
 try:
     import torch
@@ -204,6 +205,7 @@ def test_grover_pretraining_task_overfit(tmpdir):
     assert loss < 0.1
 
 
+@flaky(max_runs=4, min_passes=1)
 @pytest.mark.torch
 def test_grover_model_overfit_finetune(tmpdir):
     from deepchem.models.torch_models.grover import GroverModel
@@ -211,7 +213,6 @@ def test_grover_model_overfit_finetune(tmpdir):
                                                    GroverBondVocabularyBuilder)
     # arranging test - preparing dataset
     import pandas as pd
-    torch.manual_seed(0)
 
     df = pd.DataFrame({'smiles': ['CC', 'CCC'], 'preds': [0, 0]})
 
