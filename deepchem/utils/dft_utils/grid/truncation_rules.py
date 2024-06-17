@@ -206,28 +206,93 @@ class DasguptaTrunc(BaseTruncationRules):
         self._nr = nr
 
     def _get_truncate_idxs(self, atz: int) -> List[int]:
-        # return the truncate indices for the given atom z
+        """Return the truncate indices for the given atom z
+
+        Parameters
+        ----------
+        atz: int
+            Atomic number of the atom
+
+        Returns
+        -------
+        List[int]
+            List of truncate indices
+
+        """
         nr = _get_nr(self._nr, atz)
         return self._truncate_idxs[nr][atz]
 
     def _get_truncate_precs(self, atz: int) -> List[int]:
-        # return the truncate precisions for the given atom z
+        """Return the truncate precisions for the given atom z
+
+        Parameters
+        ----------
+        atz: int
+            Atomic number of the atom
+
+        Returns
+        -------
+        List[int]
+            List of truncate precisions
+
+        """
         nr = _get_nr(self._nr, atz)
         return self._truncate_precs[nr][atz]
 
     def to_truncate(self, atz: int) -> bool:
-        # decide whether to truncate the atom's grid
+        """Decide whether to truncate the atom's grid
+
+        Parameters
+        ----------
+        atz: int
+            Atomic number of the atom
+
+        Returns
+        -------
+        bool
+            True if the grid should be truncated, False otherwise
+
+        """
         nr = _get_nr(self._nr, atz)
         return atz in self._truncate_idxs[nr]
 
     def rad_slices(self, atz: int, radgrid: RadialGrid) -> List[slice]:
-        # get the list of slices of radial grid
+        """Get the list of slices of radial grid
+
+        Parameters
+        ----------
+        atz: int
+            Atomic number of the atom
+        radgrid: RadialGrid
+            RadialGrid object of the atom
+
+        Returns
+        -------
+        List[slice]
+            List of slices of the radial grid
+
+        """
         idxs = self._get_truncate_idxs(atz)
         return [slice(idxs[i], idxs[i + 1], None) for i in range(len(idxs) - 1)]
 
     def precs(self, atz: int, radgrid: RadialGrid) -> List[int]:
-        # get the list of precisions of angular grid for each slice in the
-        # sliced radial grids
+        """Get the list of precisions of angular grid for each slice in the
+        sliced radial grids
+        
+        Parameters
+        ----------
+        atz: int
+            Atomic number of the atom
+        radgrid: RadialGrid
+            RadialGrid object of the atom
+        
+        Returns
+        -------
+        List[int]
+            List of precisions of angular grid for each slice in the
+            sliced radial grids
+
+        """
         return self._get_truncate_precs(atz)
 
 class NWChemTrunc(BaseTruncationRules):
@@ -240,6 +305,27 @@ class NWChemTrunc(BaseTruncationRules):
                  precs_list: List[int],
                  dtype: torch.dtype,
                  device: torch.device):
+        """Initialize the NWChemTrunc object.
+
+        Parameters
+        ----------
+        radii_list: List[float]
+            List of atomic radii
+        prec: Union[int, Callable[[int], int]]
+            Precision as a number or a function of atomic number
+        precs_list: List[int]
+            Complete list of available precision
+        dtype: torch.dtype
+            Data type of the tensors
+        device: torch.device
+            Device of the tensors
+
+        Returns
+        -------
+        NWChemTrunc
+            Initialized NWChemTrunc object
+
+        """
         self._radii_list = radii_list
         self._alphas = torch.tensor([
             [0.25, 0.5, 1.0, 4.5],
@@ -250,7 +336,19 @@ class NWChemTrunc(BaseTruncationRules):
         self._precs_list = precs_list  # complete list of available precision
 
     def _get_precs(self, atz: int) -> List[int]:
-        # returns the list of precisions
+        """Returns the list of precisions
+
+        Parameters
+        ----------
+        atz: int
+            Atomic number of the atom
+
+        Returns
+        -------
+        List[int]
+            List of precisions
+
+        """
         prec_val = _get_nr(self._prec, atz)
         if prec_val == 13:
             precs_idxs = [5, 6, 6, 6, 5]
@@ -265,12 +363,40 @@ class NWChemTrunc(BaseTruncationRules):
             raise RuntimeError("This shouldn't be displayed. Please report to Github")
 
     def to_truncate(self, atz: int) -> bool:
+        """Decide whether to truncate the atom's grid
+
+        Parameters
+        ----------
+        atz: int
+            Atomic number of the atom
+
+        Returns
+        -------
+        bool
+            True if the grid should be truncated, False otherwise
+
+        """
         prec_val = _get_nr(self._prec, atz)
         if prec_val < 13:
             return False
         return True
 
     def rad_slices(self, atz: int, radgrid: RadialGrid) -> List[slice]:
+        """Get the list of slices of radial grid
+
+        Parameters
+        ----------
+        atz: int
+            Atomic number of the atom
+        radgrid: RadialGrid
+            RadialGrid object of the atom
+
+        Returns
+        -------
+        List[slice]
+            List of slices of the radial grid
+
+        """
         ratom = self._radii_list[atz]
         ralphas = self._alphas * ratom
         rgrid = radgrid.get_rgrid().reshape(-1, 1)  # (nr, 1)
@@ -295,12 +421,43 @@ class NWChemTrunc(BaseTruncationRules):
         return res
 
     def precs(self, atz: int, radgrid: RadialGrid) -> List[int]:
-        # get the list of precisions of angular grid for each slice in the
-        # sliced radial grids
+        """Get the list of precisions of angular grid for each slice in the
+        sliced radial grids
+
+        Parameters
+        ----------
+        atz: int
+            Atomic number of the atom
+        radgrid: RadialGrid
+            RadialGrid object of the atom
+
+        Returns
+        -------
+        List[int]
+            List of precisions of angular grid for each slice in the
+            sliced radial grids
+
+        """
         return self._get_precs(atz)
 
 def _get_nr(nr: Union[int, Callable[[int], int]], atz: int) -> int:
-    # if nr is a number, return nr, if it is a function, call it with atz as the input
+    """If nr is a number, return nr, if it is a function, call it with
+    atz as the input
+
+    Parameters
+    ----------
+    nr: Union[int, Callable[[int], int]]
+        Number of radial points or a function of atomic number to
+        get the number of radial points.
+    atz: int
+        Atomic number of the atom
+
+    Returns
+    -------
+    int
+        Number of radial points
+
+    """
     if isinstance(nr, int):
         return nr
     else:

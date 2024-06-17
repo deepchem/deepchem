@@ -240,17 +240,46 @@ class Cache(object):
         `check_signature` do not match.
     """
     def __init__(self):
+        """Initialize the cache object."""
         self._cacheable_pnames: List[str] = []
         self._fname: Optional[str] = None
         self._pnames_to_cache: Optional[List[str]] = None
         self._fhandler: Optional[h5py.File] = None
 
     def set(self, fname: str, pnames: Optional[List[str]] = None):
-        # set up the cache
+        """set up the cache
+
+        Parameters
+        ----------
+        fname : str
+            File name to store the cache
+        pnames : Optional[List[str]], optional
+            List of parameter names to be cached, by default None
+
+        Raises
+        ------
+        RuntimeError
+            If the cache has been set before
+        """
         self._fname = fname
         self._pnames_to_cache = pnames
 
     def cache(self, pname: str, fcn: Callable[[], torch.Tensor]) -> torch.Tensor:
+        """cache the result of the function
+
+        Parameters
+        ----------
+        pname : str
+            Parameter name to be cached
+        fcn : Callable[[], torch.Tensor]
+            Function to be cached
+
+        Returns
+        -------
+        torch.Tensor
+            Result of the function
+
+        """
         # if not has been set, then just calculate and return
         if not self.isset():
             return fcn()
@@ -275,7 +304,21 @@ class Cache(object):
 
     def cache_multi(self, pnames: List[str], fcn: Callable[[], Tuple[torch.Tensor, ...]]) \
             -> Tuple[torch.Tensor, ...]:
+        """Cache the result of the function for multiple parameters
 
+        Parameters
+        ----------
+        pnames : List[str]
+            List of parameter names to be cached
+        fcn : Callable[[], Tuple[torch.Tensor, ...]]
+            Function to be cached
+
+        Returns
+        -------
+        Tuple[torch.Tensor, ...]
+            Tuple of results of the function
+
+        """
         if not self.isset():
             return fcn()
 
@@ -301,7 +344,14 @@ class Cache(object):
 
     @contextlib.contextmanager
     def open(self):
-        # open the cache file
+        """Open the cache file
+
+        Yields
+        -------
+        h5py.File
+            File handler
+
+        """
         try:
             if self._fname is not None:
                 self._fhandler = h5py.File(self._fname, "a")
@@ -312,26 +362,60 @@ class Cache(object):
                 self._fhandler = None
 
     def add_prefix(self, prefix: str) -> Cache:
-        # return a Cache object that will add the prefix for every input of
-        # parameter names
+        """Return a Cache object that will add the prefix for every input of
+        parameter names
+
+        Parameters
+        ----------
+        prefix : str
+            Prefix to be added to the parameter names
+
+        Returns
+        -------
+        Cache
+            Cache object with the prefix added to the parameter names
+
+        """
         prefix = _normalize_prefix(prefix)
         return _PrefixedCache(self, prefix)
 
     def add_cacheable_params(self, pnames: List[str]):
-        # add the cacheable parameter names
+        """Add the cacheable parameter names
+
+        Parameters
+        ----------
+        pnames : List[str]
+            List of parameter names to be cached
+
+        """
         self._cacheable_pnames.extend(pnames)
 
     def get_cacheable_params(self) -> List[str]:
-        # return the cacheable parameter names
+        """return the cacheable parameter names
+
+        Returns
+        -------
+        List[str]
+            List of cacheable parameter names
+
+        """
         return self._cacheable_pnames
 
     def check_signature(self, sig_dict: Dict[str, Any], _groupname: Optional[str] = "/"):
-        # Executed while the file is opened, if there is no signature, then add
-        # the signature, if there is a signature in the file, then match it.
-        # If they do not match, print a warning, otherwise, do nothing
-        # _groupname is internal parameter within this class, should not be
-        # specified by classes other than Cache and its inheritances.
+        """Executed while the file is opened, if there is no signature, then add
+        the signature, if there is a signature in the file, then match it.
+        If they do not match, print a warning, otherwise, do nothing
+        _groupname is internal parameter within this class, should not be
+         specified by classes other than Cache and its inheritances.
 
+        Parameters
+        ----------
+        sig_dict : Dict[str, Any]
+            Dictionary of signature
+        _groupname : Optional[str] (default "/")
+            Group name in the h5py file
+
+        """
         if not self.isset():
             return
 
@@ -364,19 +448,58 @@ class Cache(object):
 
     @staticmethod
     def get_dummy() -> Cache:
-        # returns a dummy cache that does not do anything
+        """Returns a dummy cache that does not do anything
+
+        Returns
+        -------
+        Cache
+            Dummy cache object
+
+        """
         return _DummyCache()
 
     def _pname_to_cache(self, pname: str) -> bool:
-        # check if the input parameter name is to be cached
+        """Check if the input parameter name is to be cached
+
+        Parameters
+        ----------
+        pname : str
+            Parameter name to be checked
+
+        Returns
+        -------
+        bool
+            Indicator whether the parameter name is to be cached
+
+        """
         return (self._pnames_to_cache is None) or (pname in self._pnames_to_cache)
 
     def _pname2dsetname(self, pname: str) -> str:
-        # convert the parameter name to dataset name
+        """Convert the parameter name to dataset name
+
+        Parameters
+        ----------
+        pname : str
+            Parameter name to be converted to dataset name
+
+        Returns
+        -------
+        str
+            Dataset name
+
+        """
         return pname.replace(".", "/")
 
     def _get_file_handler(self) -> h5py.File:
-        # return the file handler, if the file is not opened yet, then raise an error
+        """Return the file handler, if the file is not opened yet,
+        then raise an error
+
+        Returns
+        -------
+        h5py.File
+            File handler
+
+        """
         if self._fhandler is None:
             msg = "The cache file has not been opened yet, please use .open() before reading/writing to the cache"
             raise RuntimeError(msg)
@@ -384,39 +507,118 @@ class Cache(object):
             return self._fhandler
 
     def isset(self) -> bool:
-        # returns the indicator whether the cache object has been set
+        """Returns the indicator whether the cache object has been set
+
+        Returns
+        -------
+        bool
+            Indicator whether the cache object has been set
+
+        """
         return self._fname is not None
 
     def _load_dset(self, dset_name: str, fhandler: h5py.File) -> torch.Tensor:
-        # load the dataset from the file handler (check is performed outside)
+        """Load the dataset from the file handler (check is performed outside)
+
+        Parameters
+        ----------
+        dset_name : str
+            Dataset name
+        fhandler : h5py.File
+            File handler for the dataset
+
+        """
         dset_np = np.asarray(fhandler[dset_name])
         dset = torch.as_tensor(dset_np)
         return dset
 
     def _save_dset(self, dset_name: str, fhandler: h5py.File, dset: torch.Tensor):
-        # save res to the h5py in the dataset name
+        """Save res to the h5py in the dataset name
+
+        Parameters
+        ----------
+        dset_name : str
+            Dataset name
+        fhandler : h5py.File
+            File handler for the dataset
+        dset : torch.Tensor
+            Tensor to be saved
+
+        """
         fhandler[dset_name] = dset.detach()
 
 class _PrefixedCache(Cache):
-    # this class adds a prefix to every parameter names input
+    """This class adds a prefix to every parameter names input"""
     def __init__(self, obj: Cache, prefix: str):
+        """Initialize the PrefixedCache object
+
+        Parameters
+        ----------
+        obj : Cache
+            Cache object to be prefixed
+        prefix : str
+            Prefix to be added to the parameter names
+
+        """
         self._obj = obj
         self._prefix = prefix
 
     def set(self, fname: str, pnames: Optional[List[str]] = None):
-        # set must only be done in the parent object, not in the children objects
+        """set must only be done in the parent object, not in the children objects
+
+        Parameters
+        ----------
+        fname : str
+            File name to store the cache
+        pnames : Optional[List[str]] (default None)
+            List of parameter names to be cached, by default None
+
+        """
         raise RuntimeError("Cache.set() must be done on non-prefixed cache")
 
     def cache(self, pname: str, fcn: Callable[[], torch.Tensor]) -> torch.Tensor:
+        """Cache the result of the function
+
+        Parameters
+        ----------
+        pname : str
+            Parameter name to be cached
+        fcn : Callable[[], torch.Tensor]
+            Function to be cached
+
+        Returns
+        -------
+        torch.Tensor
+            Result of the function
+
+        """
         return self._obj.cache(self._prefixed(pname), fcn)
 
     def cache_multi(self, pnames: List[str], fcn: Callable[[], Tuple[torch.Tensor, ...]]) \
             -> Tuple[torch.Tensor, ...]:
+        """Cache the result of the function for multiple parameters
+
+        Parameters
+        ----------
+        pnames : List[str]
+            List of parameter names to be cached
+        fcn : Callable[[], Tuple[torch.Tensor, ...]]
+            Function to be cached
+
+        Returns"""
         ppnames = [self._prefixed(pname) for pname in pnames]
         return self._obj.cache_multi(ppnames, fcn)
 
     @contextlib.contextmanager
     def open(self):
+        """Open the cache file
+
+        Yields
+        -------
+        h5py.File
+            File handler
+
+        """
         with self._obj.open() as f:
             try:
                 yield f
@@ -424,22 +626,62 @@ class _PrefixedCache(Cache):
                 pass
 
     def add_prefix(self, prefix: str) -> Cache:
-        # return a deeper prefixed object
+        """Return a deeper prefixed object
+
+        Parameters
+        ----------
+        prefix : str
+            Prefix to be added to the parameter names
+
+        Returns
+        -------
+        Cache
+            Cache object with the prefix added to the parameter names
+
+        """
         prefix = self._prefixed(_normalize_prefix(prefix))
         return self._obj.add_prefix(prefix)
 
     def add_cacheable_params(self, pnames: List[str]):
-        # add the cacheable parameter names
+        """Add the cacheable parameter names
+
+        Parameters
+        ----------
+        pnames : List[str]
+            List of parameter names to be cached
+
+        """
         pnames = [self._prefixed(pname) for pname in pnames]
         self._obj.add_cacheable_params(pnames)
 
     def get_cacheable_params(self) -> List[str]:
-        # this can only be done on the root cache (non-prefixed) to avoid
-        # confusion about which name should be provided (absolute or relative)
+        """This can only be done on the root cache (non-prefixed) to avoid
+        confusion about which name should be provided (absolute or relative)
+
+        Returns
+        -------
+        List[str]
+            List of cacheable parameter names
+
+        Raises
+        ------
+        RuntimeError
+            If the method is called on the prefixed cache
+
+        """
         raise RuntimeError("Cache.get_cacheable_params() must be done on non-prefixed cache")
 
     def check_signature(self, sig_dict: Dict[str, Any], _groupname: Optional[str] = "/"):
-        # use the prefix as the groupname to do signature check of the root object
+        """use the prefix as the groupname to do signature check of the root object
+
+        Parameters
+        ----------
+        sig_dict : Dict[str, Any]
+            Dictionary of signature
+        _groupname : Optional[str] (default "/")
+            Group name in the h5py file
+
+        """
         if not self.isset():
             return
 
@@ -450,52 +692,184 @@ class _PrefixedCache(Cache):
         self._obj.check_signature(sig_dict, _groupname=groupname)
 
     def isset(self) -> bool:
+        """Returns the indicator whether the cache object has been set
+
+        Returns
+        -------
+        bool
+            Indicator whether the cache object has been set
+
+        """
         return self._obj.isset()
 
     def _prefixed(self, pname: str) -> str:
-        # returns the prefixed name
+        """Returns the prefixed name
+
+        Parameters
+        ----------
+        pname : str
+            Parameter name to be prefixed
+
+        Returns
+        -------
+        str
+            Prefixed parameter name
+
+        """
         return self._prefix + pname
 
 class _DummyCache(Cache):
-    # this class just an interface of cache without doing anything
+    """This class just an interface of cache without doing anything"""
     def __init__(self):
+        """Initialize the DummyCache object."""
         pass
 
     def set(self, fname: str, pnames: Optional[List[str]] = None):
+        """set up the cache
+
+        Parameters
+        ----------
+        fname : str
+            File name to store the cache
+        pnames : Optional[List[str]], optional
+            List of parameter names to be cached, by default None
+
+        """
         pass
 
     def cache(self, pname: str, fcn: Callable[[], torch.Tensor]) -> torch.Tensor:
+        """cache the result of the function
+
+        Parameters
+        ----------
+        pname : str
+            Parameter name to be cached
+        fcn : Callable[[], torch.Tensor]
+            Function to be cached
+
+        Returns
+        -------
+        torch.Tensor
+            Result of the function
+
+        """
         return fcn()
 
     def cache_multi(self, pnames: List[str], fcn: Callable[[], Tuple[torch.Tensor, ...]]) \
             -> Tuple[torch.Tensor, ...]:
+        """Cache the result of the function for multiple parameters
+
+        Parameters
+        ----------
+        pnames : List[str]
+            List of parameter names to be cached
+        fcn : Callable[[], Tuple[torch.Tensor, ...]]
+            Function to be cached
+
+        Returns
+        -------
+        Tuple[torch.Tensor, ...]
+            Tuple of results of the function
+
+        """
         return fcn()
 
     @contextlib.contextmanager
     def open(self):
+        """Open the cache file
+
+        Yields
+        -------
+        h5py.File
+            File handler
+
+        """
         try:
             yield None
         finally:
             pass
 
     def add_prefix(self, prefix: str) -> Cache:
-        # return a deeper prefixed object
+        """Return a Cache object that will add the prefix for every input of
+        parameter names
+
+        Parameters
+        ----------
+        prefix : str
+            Prefix to be added to the parameter names
+
+        Returns
+        -------
+        Cache
+            Cache object with the prefix added to the parameter names
+
+        """
         return self
 
     def add_cacheable_params(self, pnames: List[str]):
+        """Add the cacheable parameter names
+
+        Parameters
+        ----------
+        pnames : List[str]
+            List of parameter names to be cached
+
+        """
         pass
 
     def get_cacheable_params(self) -> List[str]:
+        """return the cacheable parameter names
+
+        Returns
+        -------
+        List[str]
+            List of cacheable parameter names
+
+        """
         return []
 
     def check_signature(self, sig_dict: Dict[str, Any], _groupname: Optional[str] = "/"):
+        """Executed while the file is opened, if there is no signature, then add
+        the signature, if there is a signature in the file, then match it.
+        If they do not match, print a warning, otherwise, do nothing
+        _groupname is internal parameter within this class, should not be
+         specified by classes other than Cache and its inheritances.
+
+        Parameters
+        ----------
+        sig_dict : Dict[str, Any]
+            Dictionary of signature
+        _groupname : Optional[str] (default "/")
+            Group name in the h5py file
+
+        """
         pass
 
     def isset(self):
+        """Returns the indicator whether the cache object has been set
+
+        Returns
+        -------
+        bool
+            Indicator whether the cache object has been set
+
+        """
         return False
 
 def _normalize_prefix(prefix: str) -> str:
-    # added a dot at the end of prefix if it is not so
+    """Added a dot at the end of prefix if it is not so.
+
+    Parameters
+    ----------
+    prefix : str
+        Prefix to be normalized
+
+    Returns
+    -------
+    str
+        Normalized prefix
+
+    """
     if not prefix.endswith("."):
         prefix = prefix + "."
     return prefix
@@ -506,9 +880,52 @@ K = TypeVar('K')
 
 
 def get_option(name: str, s: K, options: Mapping[K, T]) -> T:
-    # get the value from dictionary of options, if not found, then raise an error
+    """Get the value from dictionary of options, if not found, then raise an error
+
+    Parameters
+    ----------
+    name : str
+        Name of the option
+    s : K
+        Key to be searched
+    options : Mapping[K, T]
+        Dictionary of options
+
+    Returns
+    -------
+    T
+        Value of the option
+
+    """
     if s in options:
         return options[s]
     else:
         raise ValueError(f"Unknown {name}: {s}. The available options are: {str(list(options.keys()))}")
 
+
+def estimate_ovlp_rcut(precision: float, coeffs: torch.Tensor, alphas: torch.Tensor) -> float:
+    """estimate the rcut for lattice sum to achieve the given precision
+    it is estimated based on the overlap integral
+    
+    Parameters
+    ----------
+    precision : float
+        Precision to be achieved
+    coeffs : torch.Tensor
+        Coefficients of the basis functions
+    alphas : torch.Tensor
+        Alpha values of the basis functions
+
+    Returns
+    -------
+    float
+        Estimated rcut
+
+    """
+    langmom = 1
+    C = (coeffs * coeffs + 1e-200) * (2 * langmom + 1) * alphas / precision
+    r0 = torch.tensor(20.0, dtype=coeffs.dtype, device=coeffs.device)
+    for i in range(2):
+        r0 = torch.sqrt(2.0 * torch.log(C * (r0 * r0 * alphas) ** (langmom + 1) + 1.) / alphas)
+    rcut = float(torch.max(r0).detach())
+    return rcut

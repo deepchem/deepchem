@@ -9,7 +9,7 @@ import numpy as np
 import torch
 from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, CPBC, CGTO, NDIM, c_null_ptr
 from deepchem.utils.pytorch_utils import get_complex_dtype
-from dqc.utils.pbc import estimate_ovlp_rcut
+from deepchem.utils.misc_utils import estimate_ovlp_rcut
 from deepchem.utils.dft_utils.hamilton.intor.molintor import _check_and_set, _get_intgl_optimizer
 from deepchem.utils.dft_utils.hamilton.intor.namemgr import IntorNameManager
 from deepchem.utils.dft_utils import LibcintWrapper, Lattice

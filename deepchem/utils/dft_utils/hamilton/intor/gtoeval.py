@@ -3,14 +3,12 @@ import ctypes
 from typing import Tuple, Optional
 import torch
 import numpy as np
-from dqc.hamilton.intor.lcintwrap import LibcintWrapper
-from dqc.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CGTO
-from dqc.hamilton.intor.pbcintor import _get_default_kpts, _get_default_options, PBCIntOption
-from dqc.utils.pbc import estimate_ovlp_rcut
-from dqc.hamilton.intor.molintor import _gather_at_dims
+from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import LibcintWrapper
+from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CGTO
+from deepchem.utils.dft_utils.hamilton.intor.pbcintor import _get_default_kpts, _get_default_options, PBCIntOption
+from deepchem.utils.misc_utils import estimate_ovlp_rcut
+from deepchem.utils.dft_utils.hamilton.intor.molintor import _gather_at_dims
 
-__all__ = ["evl", "eval_gto", "eval_gradgto", "eval_laplgto",
-           "pbc_evl", "pbc_eval_gto", "pbc_eval_gradgto", "pbc_eval_laplgto"]
 
 BLKSIZE = 128  # same as lib/gto/grid_ao_drv.c
 
@@ -264,7 +262,21 @@ class _EvalGTO(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_res: torch.Tensor) -> Tuple[Optional[torch.Tensor], ...]:  # type: ignore
-        # grad_res: (*, nao, ngrid)
+        """Backward function for EvalGTO.
+
+        Parameters
+        ----------
+        ctx : torch.autograd.Function
+            Context object containing the saved tensors.
+        grad_res : torch.Tensor
+            Gradient of the result. (nao, ngrid)
+
+        Returns
+        -------
+        Tuple[Optional[torch.Tensor], ...]
+            Gradients for the coefficients, alphas, positions, rgrid
+
+        """
         ao_to_atom, wrapper, shortname, to_transpose = ctx.other_info
         coeffs, alphas, pos, rgrid = ctx.saved_tensors
 
@@ -333,15 +345,34 @@ class _EvalGTO(torch.autograd.Function):
         return grad_coeffs, grad_alphas, grad_pos, grad_rgrid, \
             None, None, None, None, None, None
 
-################### evaluator (direct interfact to libcgto) ###################
+# evaluator (direct interfact to libcgto)
 def gto_evaluator(wrapper: LibcintWrapper, shortname: str, rgrid: torch.Tensor,
                   to_transpose: bool):
-    # NOTE: this function do not propagate gradient and should only be used
-    # in this file only
+    """Evaluate the contracted GTO
 
-    # rgrid: (ngrid, ndim)
-    # returns: (*, nao, ngrid) if not to_transpose else (*, ngrid, nao)
+    Parameters
+    ----------
+    wrapper : LibcintWrapper
+        Wrapper object containing the atomic information.
+    shortname: str
+        Short name of the integral.
+    rgrid: torch.Tensor
+        grid points position in the specified coordinate (ngrid, ndim)
+    to_transpose: bool
+        True for transposing the matrix.
+    
+    Returns
+    -------
+    torch.Tensor
+        Gradient for evaluating the contracted gto.
+        (*, nao, ngrid) if not to_transpose else (*, ngrid, nao)
 
+    NOTE
+    ----
+    This function do not propagate gradient and should only be used
+    in this file only
+
+    """
     ngrid = rgrid.shape[0]
     nshells = len(wrapper)
     nao = wrapper.nao()
@@ -351,8 +382,6 @@ def gto_evaluator(wrapper: LibcintWrapper, shortname: str, rgrid: torch.Tensor,
     out = np.empty(outshape, dtype=np.float64)
     non0tab = np.ones(((ngrid + BLKSIZE - 1) // BLKSIZE, nshells),
                       dtype=np.int8)
-
-    # TODO: check if we need to transpose it first?
     rgrid = rgrid.contiguous()
     coords = np.asarray(rgrid, dtype=np.float64, order='F')
     ao_loc = np.asarray(wrapper.full_shell_to_aoloc, dtype=np.int32)
@@ -380,19 +409,60 @@ def gto_evaluator(wrapper: LibcintWrapper, shortname: str, rgrid: torch.Tensor,
     return out_tensor
 
 def _get_evalgto_opname(shortname: str, spherical: bool) -> str:
-    # returns the complete name of the evalgto operation
+    """Returns the complete name of the evalgto operation
+
+    Parameters
+    ----------
+    shortname : str
+        Short name of the integral.
+    spherical : bool
+        True if the basis is spherical
+
+    Returns
+    -------
+    str
+        Name of the evalgto operation
+
+    """
     sname = ("_" + shortname) if (shortname != "") else ""
     suffix = "_sph" if spherical else "_cart"
     return "GTOval%s%s" % (sname, suffix)
 
 def _get_evalgto_compshape(shortname: str) -> Tuple[int, ...]:
-    # returns the component shape of the evalgto function
+    """returns the component shape of the evalgto function
+
+    Parameters
+    ----------
+    shortname : str
+        Short name of the integral.
+
+    Returns
+    -------
+    Tuple[int, ...]
+        Component shape of the evalgto function
+
+    """
 
     # count "ip" only at the beginning
     n_ip = len(re.findall(r"^(?:ip)*(?:ip)?", shortname)[0]) // 2
     return (NDIM, ) * n_ip
 
 def _get_evalgto_derivname(shortname: str, derivmode: str):
+    """Returns the derivative name of the evalgto operation
+
+    Parameters
+    ----------
+    shortname : str
+        Short name of the integral.
+    derivmode : str
+        Derivative mode
+
+    Returns
+    -------
+    str
+        Derivative name of the evalgto operation
+
+    """
     if derivmode == "r":
         return "ip%s" % shortname
     elif derivmode == "a":
