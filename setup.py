@@ -72,7 +72,7 @@ setup(name='deepchem',
       },
       install_requires=[
           'joblib',
-          'numpy>=1.21',
+          'numpy<2',
           'pandas',
           'scikit-learn',
           'sympy',
