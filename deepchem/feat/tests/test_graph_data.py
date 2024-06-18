@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import pytest
 
-from deepchem.feat.graph_data import BatchGraphData, GraphData, shortest_path_length
+from deepchem.feat.graph_data import BatchGraphData, GraphData, shortest_path_length, WeightedDirectedGraphData
 
 
 class TestGraph(unittest.TestCase):
@@ -62,13 +62,13 @@ class TestGraph(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             node_features = np.random.random_sample((5, 32))
-            invalid_edge_index_shape = np.array([
+            invalid_node_index_in_edge_index = np.array([
                 [0, 1, 2, 2, 3, 4],
                 [1, 2, 0, 3, 4, 5],
             ])
             _ = GraphData(
                 node_features=node_features,
-                edge_index=invalid_edge_index_shape,
+                edge_index=invalid_node_index_in_edge_index,
             )
 
         with self.assertRaises(ValueError):
