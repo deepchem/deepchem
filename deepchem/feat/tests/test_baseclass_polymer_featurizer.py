@@ -90,7 +90,6 @@ class TestPolymerFeatObjClass(unittest.TestCase):
         Test featurization of dummy polymer class that returns object
         """
         datapoint = 'CCC'
-        datapoints = ['CCC']
         features = self.polymer_feat.featurize(datapoint)
         assert features.dtype == 'object'
         assert isinstance(features[0], SampleObject)
