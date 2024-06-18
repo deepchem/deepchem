@@ -72,8 +72,8 @@ class GraphData:
             raise ValueError('The shape of edge_index is [2, num_edges].')
 
         # np.max() method works only for a non-empty array, so size of the array should be non-zero
-        elif (edge_index.size != 0) and (np.max(edge_index)
-                                         >= len(node_features)):
+        elif (edge_index.size != 0) and (np.max(edge_index) >=
+                                         len(node_features)):
             raise ValueError('edge_index contains the invalid node number.')
 
         if edge_features is not None:
@@ -684,8 +684,7 @@ class WeightedDirectedGraphData:
                 raise ValueError(
                     'edge_to_reverse_edge_mapping must be an 1-D non-empty array.'
                 )
-            elif edge_features.shape[0] != edge_to_reverse_edge_mapping.shape[
-                    0]:
+            elif edge_features.shape[0] != edge_to_reverse_edge_mapping.shape[0]:
                 raise ValueError(
                     'The first dimension of edge_features must be the same as the dimension of edge_to_reverse_edge_mapping.'
                 )
