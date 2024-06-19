@@ -35,7 +35,7 @@ class PolyWDGStringValidator():
         base_parsed = datapoint.split("|")
         if len(base_parsed) < 3:
             raise ValueError(
-                f"Invalid datapoint format: At least 3 splits should be there but found {len(base_parsed)} no. of splist"
+                f"Invalid datapoint format: At least 3 splits should be there but found {len(base_parsed)} no. of splits"
             )
         monomer_mols = base_parsed[0]
         polymer_rules = base_parsed[-1]
