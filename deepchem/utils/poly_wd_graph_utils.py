@@ -2,6 +2,7 @@ from rdkit import Chem
 import numpy as np
 from typing import List, Tuple
 
+
 def handle_hydrogen(smiles: str,
                     keep_h: bool = False,
                     add_h: bool = False) -> Chem.rdchem.Mol:
@@ -274,6 +275,7 @@ def onek_encoding_unk(value: int, choices: list) -> list:
 
     return encoding
 
+
 def remove_wildcard_atoms(rwmol: Chem.rdchem.RWMol) -> Chem.rdchem.RWMol:
     """
     This function removes the connection virtual atoms for open bonds in a molecule.
@@ -304,7 +306,8 @@ def remove_wildcard_atoms(rwmol: Chem.rdchem.RWMol) -> Chem.rdchem.RWMol:
         rwmol.RemoveAtom(indices[0])  # removing the wildcard atom
         indices = [a.GetIdx() for a in rwmol.GetAtoms() if '*' in a.GetSmarts()]
     Chem.SanitizeMol(rwmol, Chem.SanitizeFlags.SANITIZE_ALL)
-    return rwmolfrom typing import List, Tuple
+    return rwmol
+from typing import List, Tuple
 import re
 
 
