@@ -203,7 +203,6 @@ def tag_atoms_in_repeating_unit(
     -------
     rdkit.Chem.rdchem.RWMol
         RDKit read and write enabled molecule object.
-        
     dict
         Map of R group to bond type.
     """
