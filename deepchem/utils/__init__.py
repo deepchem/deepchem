@@ -134,7 +134,7 @@ from deepchem.utils.sequence_utils import hhsearch
 from deepchem.utils.poly_wd_graph_utils import PolyWDGStringValidator
 
 try:
-    from deepchem.utils.periodic_tudsusudaoble_utils import get_atomz
+    from deepchem.utils.periodic_table_utils import get_atomz
     from deepchem.utils.periodic_table_utils import get_atom_mass
     from deepchem.utils.periodic_table_utils import get_period
 
