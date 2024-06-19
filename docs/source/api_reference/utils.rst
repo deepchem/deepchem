@@ -714,6 +714,18 @@ Polymer Weighted Directed Graph Data Utilities
 These classes and functions are required to handle converstion of string data to graph data 
 and validation of the same.
 
+.. autofunction:: deepchem.utils.poly_wd_graph_utils.handle_hydrogen 
+
+.. autofunction:: deepchem.utils.poly_wd_graph_utils.make_polymer_mol
+
+.. autofunction:: deepchem.utils.poly_wd_graph_utils.parse_polymer_rules
+
+.. autofunction:: deepchem.utils.poly_wd_graph_utils.tag_atoms_in_repeating_unit
+
+.. autofunction:: deepchem.utils.poly_wd_graph_utils.onek_encoding_unk
+
+.. autofunction:: deepchem.utils.poly_wd_graph_utils.remove_wildcard_atoms
+
 Polymer Weighted Directed Graph String Validator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
