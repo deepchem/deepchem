@@ -708,6 +708,12 @@ The utilities here are used to modify the attributes of the classes. Used by dif
 .. autoclass:: deepchem.utils.attribute_utils.del_attr
   :members:
 
+Polymer Weighted Directed Graph Data Utilities
+-----------------------------------------
+
+These classes and functions are required to handle converstion of string data to graph data 
+and validation of the same.
+
 Polymer Weighted Directed Graph String Validator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
