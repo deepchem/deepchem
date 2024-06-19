@@ -129,7 +129,6 @@ class Smiles2Vec(nn.Module):
                                              bidirectional=self.use_bidir)
 
         input_size = self.rnn_sizes[-1] * (2 if self.use_bidir else 1)
-        print(f"Shape after rnn: {input_size}")
 
         # Define the fully connected layer for final output
         if self.mode == "classification":
@@ -166,12 +165,9 @@ class Smiles2Vec(nn.Module):
 
         # Global Average Pooling
         x = rnn_embeddings.mean(dim=1)
-        print(f"shape before fc: {x.shape}")
 
-        Logits = self.fc(x)
-        print(f"Shape of logits:{Logits.shape}")
-        print(f"logits: {Logits}")
-
+        Logits = self.fc(x)                    
+  
         if self.mode == "classification":
             Logits = Logits.view(-1, self.n_tasks, self.n_classes)
             print(f"Shape of after reshape: {Logits}")
