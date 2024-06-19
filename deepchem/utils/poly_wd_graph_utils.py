@@ -26,7 +26,6 @@ class PolyWDGStringValidator():
         ----------
         datapoint : str
             The datapoint string to parse
-        
         Returns
         -------
         Tuple[str, list, str]
@@ -122,7 +121,6 @@ class PolyWDGStringValidator():
         ----------
         datapoint : str
             The datapoint string to validate
-        
         Returns
         -------
         bool

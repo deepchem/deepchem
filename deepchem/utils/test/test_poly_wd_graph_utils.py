@@ -4,7 +4,7 @@ from deepchem.utils import PolyWDGStringValidator
 
 class PolyWDGStringValidateTest(unittest.TestCase):
     """
-    Tests for validator class to validate polymer weighted string representation 
+    Tests for validator class to validate polymer weighted string representation
     """
 
     def test_get_parsed_vals(self):
