@@ -2,6 +2,7 @@ from rdkit import Chem
 import numpy as np
 from typing import List, Tuple
 
+
 def handle_hydrogen(smiles: str,
                     keep_h: bool = False,
                     add_h: bool = False) -> Chem.rdchem.Mol:
@@ -273,6 +274,7 @@ def onek_encoding_unk(value: int, choices: list) -> list:
     encoding[index] = 1
 
     return encoding
+
 
 def remove_wildcard_atoms(rwmol: Chem.rdchem.RWMol) -> Chem.rdchem.RWMol:
     """
