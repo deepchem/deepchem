@@ -13,6 +13,13 @@ class ProtBERT(HuggingFaceModel):
     authors in HuggingFace[2]. For classfication we currently only support
     Logistic regression and a simple Feed forward neural network.
 
+    The model converts the input protein sequence into a vector through a trained BERT tokenizer, which is then
+    processed by the corresponding model based on the task. `BertForMaskedLM` is used to facilitate the MLM
+    pretraining task. For the sequence classification task, we follow `BertForSequenceClassification` but change
+    the classifier to either a logistic regression (LogReg) or a feed-forward neural network (FFN), depending on
+    the specified `cls_name`. The FFN is a simple 2-layer network with 512 as the hidden dimension.
+
+
     Examples
     --------
     >>> import os
