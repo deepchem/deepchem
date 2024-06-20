@@ -120,7 +120,7 @@ Losses
 .. autoclass:: deepchem.models.losses.GraphContextPredLoss
   :members:
 
-.. autoclass:: deepchem.models.losses.DensityProfileLoss
+.. autoclass:: deepchem.models.losses.XCLoss
   :members:
 
 .. autoclass:: deepchem.models.losses.NTXentMultiplePositives

@@ -3,7 +3,7 @@ try:
     from deepchem.models.dft.scf import XCNNSCF
     from deepchem.models.dft.nnxc import HybridXC
     import torch
-    from deepchem.models.losses import DensityProfileLoss
+    from deepchem.models.losses import XCLoss
     has_dqc = True
 except ModuleNotFoundError:
     has_dqc = False
@@ -29,8 +29,8 @@ def test_densHF():
     for system in entry.get_systems():
         qcs.append(evl.run(system))
     val = entry.get_val(qcs)
-    output = torch.as_tensor(val)
-    loss = ((DensityProfileLoss()._create_pytorch_loss(volume))(
-        output, labels)).detach().numpy()
+    output_a = torch.as_tensor(val)
+    output = ((labels - output_a)**2 * volume)
+    loss = (XCLoss()._create_pytorch_loss()(output, labels)).detach().numpy()
     expected = np.array(0.0068712)
     assert np.allclose(loss, expected)

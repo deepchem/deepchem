@@ -1263,20 +1263,22 @@ class GraphContextPredLoss(Loss):
         return loss
 
 
-class DensityProfileLoss(Loss):
+class XCLoss(Loss):
     """
     Loss for the density profile entry type for Quantum Chemistry calculations.
     It is an integration of the squared difference between ground truth and calculated
     values, at all spaces in the integration grid.
-
+    For the rest of the entry object we use a simple L2Loss. We differentiate
+    between the types of entries and their outputs based on the shape of the
+    output. The output shape for a density profile entry would be [n(r)], which corresponds to the electron density at all positions 'r'.
     Examples
     --------
-    >>> from deepchem.models.losses import DensityProfileLoss
+    >>> from deepchem.models.losses import XCLoss
     >>> import torch
     >>> volume = torch.Tensor([2.0])
     >>> output = torch.Tensor([3.0])
     >>> labels = torch.Tensor([4.0])
-    >>> loss = (DensityProfileLoss()._create_pytorch_loss(volume))(output, labels)
+    >>> loss = (XCLoss()._create_pytorch_loss())(output, labels)
     >>> # Generating volume tensor for an entry object:
     >>> from deepchem.feat.dft_data import DFTEntry
     >>> e_type = 'dens'
@@ -1300,18 +1302,16 @@ class DensityProfileLoss(Loss):
     https://github.com/deepchem/deepchem/blob/0bc3139bb99ae7700ba2325a6756e33b6c327842/deepchem/models/dft/dftxc.py
     """
 
-    def _create_pytorch_loss(self, volume):
-        """
-        Parameters
-        ----------
-        volume: torch.Tensor
-            Shape of the tensor depends on the molecule/crystal and the integration grid
-        """
+    def _create_pytorch_loss(self):
+
         import torch
 
         def loss(output, labels):
             output, labels = _make_pytorch_shapes_consistent(output, labels)
-            return torch.sum((labels - output)**2 * volume)
+            if output.shape[0] > 1 and len(output.shape) == 1:
+                return torch.sum(output)
+            else:
+                return (L2Loss()._create_pytorch_loss()(output, labels))
 
         return loss
 
