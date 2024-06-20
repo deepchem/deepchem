@@ -537,6 +537,12 @@ WeaveModel
 .. autoclass:: deepchem.models.torch_models.WeaveModel
   :members:
 
+ScScoreModel
+----------
+
+.. autoclass:: deepchem.models.torch_models.ScScoreModel
+  :members:
+
 ProgressiveMultitaskModel
 -------------------------
 
