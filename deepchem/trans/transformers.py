@@ -1980,16 +1980,16 @@ class ImageTransformer(Transformer):
         >>> X = np.random.rand(10, 256, 256, 3)
         >>> y = np.random.rand(10, 256, 256, 3)
 
-        Let's now make a ImageDataset using the ImageLoader
-        >>> loader = dc.data.ImageLoader(tasks=['image-resizing'])
-        >>> dataset = loader.create_dataset(inputs=(X, y), in_memory=False)
+        Let's now make a ImageDataset
+        >>> dataset = dc.data.ImageDataset(X, y)
 
         And let's apply our transformer with a size of (128, 128, 3).
         >>> img_transform = dc.trans.ImageTransformer(size=(128, 128), transform_X=True, transform_y=True)
         >>> resized_dataset = dataset.transform(img_transform)
 
         We can see that our dataset has been resized.
-        >>> resized_dataset.get_shape()
+        >>> resized_X = resized_dataset.X
+        >>> resized_X.shape
         (10, 128, 128, 3)
 
         We can also see that the masks have been resized.
