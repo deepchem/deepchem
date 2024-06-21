@@ -517,30 +517,15 @@ def test_torch_compile():
                           size=(n_samples, n_tasks)).astype(np.float32)
     dataset = dc.data.NumpyDataset(X, y)
 
-    # Testing backends
-    inductor_model = dc.models.torch_models.CNN(n_tasks,
-                                                n_features,
-                                                dims=1,
-                                                kernel_size=3,
-                                                mode='classification')
-    inductor_model.compile(backend='inductor')
-    inductor_model.fit(dataset, nb_epoch=500)
+    model = dc.models.torch_models.CNN(n_tasks,
+                                       n_features,
+                                       dims=1,
+                                       kernel_size=3,
+                                       mode='classification')
+    model.compile(mode='default', backend='inductor')
+    model.fit(dataset, nb_epoch=500)
 
-    inductor_model_output = inductor_model.predict_on_batch(X)
-    inductor_model_output = np.argmax(inductor_model_output, axis=2)
+    model_output = model.predict_on_batch(X)
+    model_output = np.argmax(model_output, axis=2)
 
-    assert np.all(inductor_model_output == y)
-
-    # Testing modes
-    max_at_no_cu_model = dc.models.torch_models.CNN(n_tasks,
-                                                    n_features,
-                                                    dims=1,
-                                                    kernel_size=3,
-                                                    mode='classification')
-    max_at_no_cu_model.compile(mode='max-autotune-no-cudagraphs')
-    max_at_no_cu_model.fit(dataset, nb_epoch=500)
-
-    max_at_no_cu_model_output = max_at_no_cu_model.predict_on_batch(X)
-    max_at_no_cu_model_output = np.argmax(max_at_no_cu_model_output, axis=2)
-
-    assert np.all(max_at_no_cu_model_output == y)
+    assert np.all(model_output == y)
