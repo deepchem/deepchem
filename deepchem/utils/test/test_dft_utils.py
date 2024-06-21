@@ -1266,3 +1266,22 @@ def test_normalize_basisname():
 def test_expand_angmoms():
     from deepchem.utils.dft_utils.api.loadbasis import _expand_angmoms
     assert _expand_angmoms("SP", 2) == [0, 1]
+
+
+@pytest.mark.torch
+def test_is_z_float():
+    from deepchem.utils.dft_utils import is_z_float
+    assert is_z_float(0.1) == True
+    assert is_z_float(1) == False
+    assert is_z_float(torch.tensor(1.0)) == True
+
+
+@pytest.mark.torch
+def test_DensityFitInfo():
+    import torch
+    from deepchem.utils.dft_utils import DensityFitInfo, AtomCGTOBasis, CGTOBasis
+    method = "df"
+    auxbasis = [AtomCGTOBasis(atomz=1, bases=[CGTOBasis(angmom=0, alphas=torch.ones(1), coeffs=torch.ones(1))], pos=[[0.0, 0.0, 0.0]])]
+    df = DensityFitInfo(method=method, auxbasis=auxbasis)
+    assert df.method == 'df'
+

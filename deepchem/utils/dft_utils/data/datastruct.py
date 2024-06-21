@@ -311,6 +311,15 @@ BasisInpType = Union[str, List[CGTOBasis], List[str], List[List[CGTOBasis]],
 def is_z_float(a: ZType) -> bool:
     """Checks if the given z-type is a floating point.
 
+    Examples
+    --------
+    >>> is_z_float(0.1)
+    True
+    >>> is_z_float(1)
+    False
+    >>> is_z_float(torch.tensor(1.0))
+    True
+
     Parameters
     ----------
     a: ZType
@@ -335,6 +344,14 @@ class DensityFitInfo:
     four-index electron repulsion integrals (ERIs) by two- and
     three-index tensors. In DF, the atomic orbital (AO) product
     space is expanded in terms of an auxiliary basis set.
+
+    Examples
+    --------
+    >>> method = "df"
+    >>> auxbasis = [AtomCGTOBasis(atomz=1, bases=[CGTOBasis(angmom=0, alphas=torch.ones(1), coeffs=torch.ones(1))], pos=[[0.0, 0.0, 0.0]])]
+    >>> df = DensityFitInfo(method=method, auxbasis=auxbasis)
+    >>> df
+    DensityFitInfo(method='df', auxbasis=[AtomCGTOBasis(atomz=1, bases=[CGTOBasis(angmom=0, alphas=tensor([1.]), coeffs=tensor([1.]), normalized=False)], pos=tensor([[0., 0., 0.]]))])
 
     Attributes
     ----------

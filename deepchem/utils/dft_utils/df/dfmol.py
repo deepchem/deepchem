@@ -19,6 +19,24 @@ class DFMol(BaseDF):
     computation of the electron repulsion energy, without significant
     loss of accuracy.
 
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import LibcintWrapper
+    >>> from deepchem.utils.dft_utils import OrbitalOrthogonalizer
+    >>> from deepchem.utils.dft_utils import DFMol
+    >>> from deepchem.utils.dft_utils.data.datastruct import DensityFitInfo
+
+    >>> wrapper = LibcintWrapper("sto-3g")
+    >>> dfinfo = DensityFitInfo("coulomb", "weigend")
+    >>> orthozer = OrbitalOrthogonalizer(wrapper)
+    >>> dfmol = DFMol(dfinfo, wrapper, orthozer)
+    >>> dfmol.build()
+    Density fitting done
+    >>> dm = torch.rand(2, 5, 5)
+    >>> elrep = dfmol.get_elrep(dm)
+    >>> elrep
+    LinearOperator with shape=(2, 5, 5) and dtype=float64
+
     """
     def __init__(self, dfinfo: DensityFitInfo, wrapper: LibcintWrapper,
                  orthozer: Optional[OrbitalOrthogonalizer] = None):
