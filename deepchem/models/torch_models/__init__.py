@@ -45,5 +45,7 @@ except ModuleNotFoundError as e:
 try:
     from deepchem.models.torch_models.hf_models import HuggingFaceModel
     from deepchem.models.torch_models.chemberta import Chemberta
+    from deepchem.models.torch_models.prot_bert import ProtBERT
+
 except ModuleNotFoundError as e:
     logger.warning(f'Skipped loading modules with transformers dependency. {e}')

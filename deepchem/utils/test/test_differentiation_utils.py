@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 try:
     import torch
     from deepchem.utils.differentiation_utils import EditableModule
@@ -1079,3 +1080,151 @@ def test_get_equilibrium_default_method():
 def test_get_minimizer_default_method():
     from deepchem.utils.differentiation_utils.optimize.rootfinder import _get_minimizer_default_method
     assert _get_minimizer_default_method(None) == 'broyden1'
+
+
+@pytest.mark.torch
+def test_tableau():
+    from deepchem.utils.differentiation_utils.integrate.explicit_rk import _Tableau
+    euler = _Tableau(c=[0.0], b=[1.0], a=[[0.0]])
+    assert euler.c == [0.0]
+
+
+@pytest.mark.torch
+def test_explicit_rk():
+    from deepchem.utils.differentiation_utils import explicit_rk
+    from deepchem.utils.differentiation_utils.integrate.explicit_rk import rk4_tableau
+    from scipy.integrate import solve_ivp
+
+    def lotka_volterra(y, x, params):
+        y1, y2 = y
+        a, b, c, d = params
+        return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+
+    y0 = torch.tensor([10., 1.])
+    t = torch.linspace(0, 10, 100)
+    params = torch.tensor([1.1, 0.4, 0.1, 0.4])
+    sol = explicit_rk(rk4_tableau, lotka_volterra, y0, t, params)
+
+    def lotka_volterra(t, z, *params):
+        y1, y2 = z
+        a, b, c, d = params
+        return [(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)]
+
+    sol_scipy = solve_ivp(lotka_volterra, [0, 10], [10, 1],
+                          t_eval=np.linspace(0, 10, 10),
+                          args=([1.1, 0.4, 0.1, 0.4]))
+    assert torch.allclose(sol[-1][0],
+                          torch.tensor(sol_scipy.y[0][-1], dtype=torch.float),
+                          0.01, 0.001)
+
+
+@pytest.mark.torch
+def test_rk38_ivp():
+    from deepchem.utils.differentiation_utils import rk38_ivp
+    from scipy.integrate import solve_ivp
+
+    def lotka_volterra(y, x, params):
+        y1, y2 = y
+        a, b, c, d = params
+        return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+
+    y0 = torch.tensor([10., 1.])
+    t = torch.linspace(0, 10, 100)
+    params = torch.tensor([1.1, 0.4, 0.1, 0.4])
+    sol = rk38_ivp(lotka_volterra, y0, t, params)
+
+    def lotka_volterra(t, z, *params):
+        y1, y2 = z
+        a, b, c, d = params
+        return [(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)]
+
+    sol_scipy = solve_ivp(lotka_volterra, [0, 10], [10, 1],
+                          t_eval=np.linspace(0, 10, 10),
+                          args=([1.1, 0.4, 0.1, 0.4]))
+    assert torch.allclose(sol[-1][0],
+                          torch.tensor(sol_scipy.y[0][-1], dtype=torch.float),
+                          0.01, 0.001)
+
+
+@pytest.mark.torch
+def test_rk4_ivp():
+    from deepchem.utils.differentiation_utils import rk4_ivp
+    from scipy.integrate import solve_ivp
+
+    def lotka_volterra(y, x, params):
+        y1, y2 = y
+        a, b, c, d = params
+        return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+
+    y0 = torch.tensor([10., 1.])
+    t = torch.linspace(0, 10, 100)
+    params = torch.tensor([1.1, 0.4, 0.1, 0.4])
+    sol = rk4_ivp(lotka_volterra, y0, t, params)
+
+    def lotka_volterra(t, z, *params):
+        y1, y2 = z
+        a, b, c, d = params
+        return [(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)]
+
+    sol_scipy = solve_ivp(lotka_volterra, [0, 10], [10, 1],
+                          t_eval=np.linspace(0, 10, 10),
+                          args=([1.1, 0.4, 0.1, 0.4]))
+    assert torch.allclose(sol[-1][0],
+                          torch.tensor(sol_scipy.y[0][-1], dtype=torch.float),
+                          0.01, 0.001)
+
+
+@pytest.mark.torch
+def test_euler():
+    from deepchem.utils.differentiation_utils import fwd_euler_ivp
+    from scipy.integrate import solve_ivp
+
+    def lotka_volterra(y, x, params):
+        y1, y2 = y
+        a, b, c, d = params
+        return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+
+    y0 = torch.tensor([10., 1.])
+    t = torch.linspace(0, 10, 1000)
+    params = torch.tensor([1.1, 0.4, 0.1, 0.4])
+    sol = fwd_euler_ivp(lotka_volterra, y0, t, params)
+
+    def lotka_volterra(t, z, *params):
+        y1, y2 = z
+        a, b, c, d = params
+        return [(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)]
+
+    sol_scipy = solve_ivp(lotka_volterra, [0, 10], [10, 1],
+                          t_eval=np.linspace(0, 10, 10),
+                          args=([1.1, 0.4, 0.1, 0.4]))
+    assert torch.allclose(sol[-1][0],
+                          torch.tensor(sol_scipy.y[0][-1], dtype=torch.float),
+                          0.1, 0.01)
+
+
+@pytest.mark.torch
+def test_midpoint():
+    from deepchem.utils.differentiation_utils import mid_point_ivp
+    from scipy.integrate import solve_ivp
+
+    def lotka_volterra(y, x, params):
+        y1, y2 = y
+        a, b, c, d = params
+        return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+
+    y0 = torch.tensor([10., 1.])
+    t = torch.linspace(0, 10, 100)
+    params = torch.tensor([1.1, 0.4, 0.1, 0.4])
+    sol = mid_point_ivp(lotka_volterra, y0, t, params)
+
+    def lotka_volterra(t, z, *params):
+        y1, y2 = z
+        a, b, c, d = params
+        return [(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)]
+
+    sol_scipy = solve_ivp(lotka_volterra, [0, 10], [10, 1],
+                          t_eval=np.linspace(0, 10, 10),
+                          args=([1.1, 0.4, 0.1, 0.4]))
+    assert torch.allclose(sol[-1][0],
+                          torch.tensor(sol_scipy.y[0][-1], dtype=torch.float),
+                          0.01, 0.001)

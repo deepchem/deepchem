@@ -8,7 +8,7 @@ dependencies:
   - pdbfixer
   - pip
   - pip:
-    - numpy
+    - numpy==1.26.4
     - rdkit==2023.09.5
     - pre-commit
     - biopython

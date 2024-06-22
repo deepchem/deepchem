@@ -681,6 +681,19 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.optimize.rootfinder._get_minimizer_default_method
 
+.. autoclass:: deepchem.utils.differentiation_utils.integrate.explicit_rk._Tableau
+  :members:
+
+.. autofunction:: deepchem.utils.differentiation_utils.integrate.explicit_rk.explicit_rk
+
+.. autofunction:: deepchem.utils.differentiation_utils.integrate.explicit_rk.rk38_ivp
+
+.. autofunction:: deepchem.utils.differentiation_utils.integrate.explicit_rk.fwd_euler_ivp
+
+.. autofunction:: deepchem.utils.differentiation_utils.integrate.explicit_rk.rk4_ivp
+
+.. autofunction:: deepchem.utils.differentiation_utils.integrate.explicit_rk.mid_point_ivp
+
 Attribute Utilities
 -------------------
 
