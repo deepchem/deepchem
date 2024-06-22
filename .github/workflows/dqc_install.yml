@@ -30,7 +30,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip;
         pip install conda-merge; 
-        conda-merge requirements/env_dqc.yml requirements/env_test.yml > env.yml
+        conda-merge requirements/env_dqc_3_8.yml requirements/env_test.yml > env.yml
     - name: Install all dependencies
       uses: conda-incubator/setup-miniconda@v3
       with:
