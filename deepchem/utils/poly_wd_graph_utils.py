@@ -67,6 +67,7 @@ def make_polymer_mol(
     ...     print(atom.GetDoubleProp('w_frag'))
     1.0
     1.0
+
     Parameters
     ----------
     smiles : str
@@ -192,7 +193,7 @@ def tag_atoms_in_repeating_unit(
     >>> mol.GetAtomWithIdx(1).GetBoolProp('core')
     True
     >>> mol.GetAtomWithIdx(3).GetProp('R')
-    2*
+    '2*'
 
     Parameters
     ----------
