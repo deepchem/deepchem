@@ -6,6 +6,7 @@ dependencies:
  - pip
  - pip:
    - h5py
+   - numpy==1.24.4
    - -f https://download.pytorch.org/whl/cpu/torch_stable.html
    - torch==2.2.1+cpu
    - torch-geometric
