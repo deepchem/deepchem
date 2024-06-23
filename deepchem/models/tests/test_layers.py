@@ -1469,7 +1469,8 @@ def test_torch_graph_conv():
     membership = multi_mol.membership
     deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
     args = [atom_features, degree_slice, membership] + deg_adjs
-    layer = torch_layers.GraphConv(out_channels)
+    layer = torch_layers.GraphConv(
+        out_channels, number_input_features=atom_features.shape[-1])
     torch.set_printoptions(precision=8)
     W_list = np.load("deepchem/models/tests/assets/graphconvlayer_weights.npy",
                      allow_pickle=True).tolist()
