@@ -158,10 +158,7 @@ class GBDTModel(SklearnModel):
                 (self.model.best_iteration + 1) * 1.25)
         else:
             estimated_best_round = np.round(self.model.best_iteration_ * 1.25)
-
-
         self.model.n_estimators = np.int64(estimated_best_round)
-
         if self.model.__class__.__name__.startswith('XGB'):
             if self.early_stopping_rounds == 0:
                 self.model.fit(X, y)
@@ -190,7 +187,7 @@ class GBDTModel(SklearnModel):
             self.model.fit(
                 X_train,
                 y_train,
-                eval_set=[(X_test, y_test)],
+                eval_set=[(X_valid, y_valid)],
             )
 
         elif self.model.__class__.__name__.startswith('LGBM'):
@@ -199,7 +196,7 @@ class GBDTModel(SklearnModel):
                 y_train,
                 callbacks=self.callbacks,
                 eval_metric=self.eval_metric,
-                eval_set=[(X_test, y_test)],
+                eval_set=[(X_valid, y_valid)],
             )
 
 
