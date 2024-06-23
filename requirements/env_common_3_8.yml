@@ -24,6 +24,6 @@ dependencies:
     - simdna
     - transformers>=4.34.1
     - tokenizers
-    - xgboost
+    - xgboost<=2.0.3
     - gensim  # used by mol2vec
     - tensorboard
