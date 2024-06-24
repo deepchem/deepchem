@@ -26,4 +26,5 @@ dependencies:
     - tokenizers
     - xgboost
     - gensim  # used by mol2vec
+    - scipy<=1.12.0
     - tensorboard

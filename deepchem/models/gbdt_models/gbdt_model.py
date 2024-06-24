@@ -73,6 +73,7 @@ class GBDTModel(SklearnModel):
                 xgboost.callback.EarlyStopping(
                     rounds=self.early_stopping_rounds)
             ]
+            self.model.callbacks = self.callbacks
         elif self.model.__class__.__name__.startswith('LGBM'):
             self.callbacks = [
                 lightgbm.early_stopping(
@@ -88,6 +89,9 @@ class GBDTModel(SklearnModel):
                 self.eval_metric = eval_metric
         else:
             self.eval_metric = eval_metric
+
+        if self.model.__class__.__name__.startswith('XGB'):
+            self.model.eval_metric = self.eval_metric
 
     def _check_model_type(self) -> str:
         class_name = self.model.__class__.__name__
@@ -131,23 +135,35 @@ class GBDTModel(SklearnModel):
                                                             test_size=0.2,
                                                             random_state=seed,
                                                             stratify=stratify)
-        self.model.fit(
-            X_train,
-            y_train,
-            callbacks=self.callbacks,
-            eval_metric=self.eval_metric,
-            eval_set=[(X_test, y_test)],
-        )
 
-        # retrain model to whole data using best n_estimators * 1.25
+        if self.model.__class__.__name__.startswith('XGB'):
+            self.model.fit(
+                X_train,
+                y_train,
+                eval_set=[(X_test, y_test)],
+            )
+
+        elif self.model.__class__.__name__.startswith('LGBM'):
+            self.model.fit(
+                X_train,
+                y_train,
+                callbacks=self.callbacks,
+                eval_metric=self.eval_metric,
+                eval_set=[(X_test, y_test)],
+            )
+
+        # retrain model to whole data using best n_estimators * 1.25 [ XGBoost requires an evalset if early stopping setup is done.]
         if self.model.__class__.__name__.startswith('XGB'):
             estimated_best_round = np.round(
                 (self.model.best_iteration + 1) * 1.25)
         else:
             estimated_best_round = np.round(self.model.best_iteration_ * 1.25)
-
         self.model.n_estimators = np.int64(estimated_best_round)
-        self.model.fit(X, y, eval_metric=self.eval_metric)
+        if self.model.__class__.__name__.startswith('XGB'):
+            if self.early_stopping_rounds == 0:
+                self.model.fit(X, y)
+        if self.model.__class__.__name__.startswith('LGBM'):
+            self.model.fit(X, y, eval_metric=self.eval_metric)
 
     def fit_with_eval(self, train_dataset: Dataset, valid_dataset: Dataset):
         """Fits GDBT model with valid data.
@@ -167,13 +183,21 @@ class GBDTModel(SklearnModel):
         if len(y_train.shape) != 1 or len(y_valid.shape) != 1:
             raise ValueError("GDBT model doesn't support multi-output(task)")
 
-        self.model.fit(
-            X_train,
-            y_train,
-            callbacks=self.callbacks,
-            eval_metric=self.eval_metric,
-            eval_set=[(X_valid, y_valid)],
-        )
+        if self.model.__class__.__name__.startswith('XGB'):
+            self.model.fit(
+                X_train,
+                y_train,
+                eval_set=[(X_valid, y_valid)],
+            )
+
+        elif self.model.__class__.__name__.startswith('LGBM'):
+            self.model.fit(
+                X_train,
+                y_train,
+                callbacks=self.callbacks,
+                eval_metric=self.eval_metric,
+                eval_set=[(X_valid, y_valid)],
+            )
 
 
 #########################################
