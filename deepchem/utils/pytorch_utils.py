@@ -469,3 +469,27 @@ def get_np_dtype(dtype: torch.dtype) -> Any:
         return np.complex128
     else:
         raise TypeError("Unknown type: %s" % dtype)
+
+
+def get_complex_dtype(dtype: torch.dtype) -> torch.dtype:
+    # return the corresponding complex type given the real floating point datatype
+    if dtype == torch.float64:
+        return torch.complex128
+    elif dtype == torch.float32:
+        return torch.complex64
+    else:
+        raise TypeError("Unsupported datatype %s for conversion to complex" % dtype)
+
+
+def get_dtype_memsize(a: torch.Tensor) -> int:
+    # returns the size of each element in the tensor in bytes
+    if a.dtype == torch.float64 or a.dtype == torch.int64:
+        size = 8
+    elif a.dtype == torch.float32 or a.dtype == torch.int32:
+        size = 4
+    elif a.dtype == torch.bool:
+        size = 1
+    else:
+        raise TypeError("Unknown tensor type: %s" % a.dtype)
+    return size
+

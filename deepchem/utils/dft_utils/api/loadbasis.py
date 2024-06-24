@@ -4,6 +4,8 @@ import torch
 import warnings
 from typing import List
 from deepchem.utils.dft_utils import CGTOBasis
+import warnings
+import logging
 try:
     import basis_set_exchange as bse
 except Exception as e:
@@ -12,6 +14,7 @@ except Exception as e:
 logger = logging.getLogger(__name__)
 _dtype = torch.double
 _device = torch.device("cpu")
+logger = logging.getLogger(__name__)
 
 
 def loadbasis(cmd: str, dtype: torch.dtype = _dtype,

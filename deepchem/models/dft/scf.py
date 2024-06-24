@@ -3,7 +3,7 @@ from abc import abstractmethod
 from typing import Union
 import torch
 import numpy as np
-from dqc.qccalc.ks import KS
+from deepchem.utils.dft_utils import KS
 from deepchem.feat.dft_data import DFTEntry, DFTSystem
 from deepchem.utils.dftutils import KSCalc, hashstr, SpinParam
 from deepchem.models.dft.nnxc import BaseNNXC, HybridXC
@@ -45,8 +45,14 @@ class XCNNSCF(torch.nn.Module):
     >>> evl = XCNNSCF(hybridxc, entry)
     >>> system = DFTSystem(systems[0])
     >>> run = evl.run(system)
-    The 6-311++G(3df,3pd) basis for atomz 9 does not exist, but we will download it
-    Downloaded to /home/runner/miniconda3/envs/deepchem/lib/python3.8/site-packages/dqc/api/.database/6-311ppg_3df_3pd_/09.gaussian94
+    Constructing the integration grid
+    Constructing the integration grid: done
+    Calculating the basis values in the grid
+    Calculating the overlap matrix
+    Calculating the kinetic matrix
+    Calculating the nuclear attraction matrix
+    Calculating the electron repulsion matrix
+    Setting up the Hamiltonian done
     >>> output = run.energy()
 
     Notes
