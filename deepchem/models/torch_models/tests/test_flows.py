@@ -11,7 +11,8 @@ try:
     import torch.nn as nn
     import torch.nn.functional as F
     from torch.distributions import MultivariateNormal
-    from deepchem.models.torch_models.flows import Affine, MaskedAffineFlow, ActNorm, ClampExp, ConstScaleLayer, MLP_flow
+    from deepchem.models.torch_models.layers import RealNVPLayer
+    from deepchem.models.torch_models.flows import Affine, MaskedAffineFlow, ActNorm, ClampExp, ConstScaleLayer, MLPFlow, NormalizingFlowModel, NormalizingFlow
     has_torch = True
 except:
     has_torch = False
@@ -149,9 +150,103 @@ def test_mlp_flow():
     """
     seed = 42
     layers = [2, 4, 4, 2]
-    mlp_flow = MLP_flow(layers)
+    mlp_flow = MLPFlow(layers)
     torch.manual_seed(seed)
     np.random.seed(seed)
     input_tensor = torch.randn(1, 2)
     output_tensor = mlp_flow(input_tensor)
     assert output_tensor.shape == torch.Size([1, 2])
+
+
+@unittest.skipIf(not has_torch, 'torch is not installed')
+@pytest.mark.torch
+def test_normalizing_flow_model():
+    """
+    This test aims to evaluate if the normalizingFlow model is working correctly.
+    """
+    nfmodel = NormalizingFlowModel(dim=4, num_layers=2)
+    onehots = [[0, 1, 1, 0], [0, 1, 0, 1]]
+    input_tensor = torch.tensor(onehots)
+    noise_tensor = torch.rand(input_tensor.shape)
+    data = torch.add(input_tensor, noise_tensor)
+    nfmodel.fit(data, epochs=10, learning_rate=0.001, weight_decay=0.0001)
+    gen_mols, _ = nfmodel.nfm.sample(10)
+
+    assert gen_mols.shape == torch.Size([10, 4])
+
+
+@unittest.skipIf(not has_torch, 'torch is not installed')
+@pytest.mark.torch
+def test_normalizing_flow_pytorch():
+    """
+  This test aims to evaluate if the normalizingFlow model is being applied
+  correctly. That is if the sampling, and its log_prob, are being computed
+  after performing the transformation layers. Also, if log_prob of an input
+  tensor have consistency with the NormalizingFlow model.
+
+  NormalizingFlow:
+    sample:
+      input shape: (samples)
+      output shape: ((samples, dim), (samples))
+
+    log_prob: Method used to learn parameter (optimizing loop)
+      input shape: (samples)
+      output shape: (samples)
+
+  """
+
+    dim = 2
+    samples = 96
+    base_distribution = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
+    tensor = base_distribution.sample(torch.Size((samples, dim)))
+    transformation = [Affine(dim)]
+    model = NormalizingFlow(transformation, base_distribution, dim)
+
+    # Test sampling method
+    sampling, log_prob_ = model.sample(samples)
+
+    # Test log_prob method (this method is used when inverse pass)
+    # Output must be a Nth zero array since nothing is being learned yet
+    log_prob = model.log_prob(tensor)
+
+    # Featurize to assert for tests
+    log_prob_ = log_prob_.detach().numpy()
+    log_prob = log_prob.detach().numpy()
+    zeros = np.zeros((samples,))
+
+    # Assert errors for sample method
+    assert log_prob_.any()
+
+    # Assert errors for log_prob method
+    assert np.array_equal(log_prob, zeros)
+
+
+@unittest.skipIf(not has_torch, 'torch is not installed')
+@pytest.mark.torch
+def test_RealNVPLayer():
+    """
+  This test should evaluate if the transformation its being applied
+  correctly. When computing the logarithm of the determinant jacobian matrix
+  the result must be zero for any distribution when performing the first forward
+  and inverse pass (initialized). This is the expected
+  behavior since nothing is being learned yet.
+
+  input shape: (samples, dim)
+  output shape: (samples, dim)
+
+  """
+
+    dim = 2
+    samples = 96
+    data = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
+    tensor = data.sample(torch.Size((samples, dim)))
+
+    layers = 4
+    hidden_size = 16
+    masks = F.one_hot(torch.tensor([i % 2 for i in range(layers)])).float()
+    layers = nn.ModuleList([RealNVPLayer(mask, hidden_size) for mask in masks])
+
+    for layer in layers:
+        _, inverse_log_det_jacobian = layer.inverse(tensor)
+        inverse_log_det_jacobian = inverse_log_det_jacobian.detach().numpy()
+        assert np.any(inverse_log_det_jacobian)

@@ -305,7 +305,16 @@ Flow Layers
 .. autoclass:: deepchem.models.torch_models.flows.ActNorm
   :members:
 
-.. autoclass:: deepchem.models.torch_models.flows.MLP_flow
+.. autoclass:: deepchem.models.torch_models.flows.ClampExp
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.ConstScaleLayer
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.MLPFlow
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.NormalizingFlow
   :members:
 
 Grover Layers
