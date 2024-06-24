@@ -23,7 +23,7 @@ except ModuleNotFoundError:
     pass
 
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
-from deepchem.utils.pytorch_utils import get_activation, segment_sum
+from deepchem.utils.pytorch_utils import get_activation, segment_sum, unsorted_segment_sum, unsorted_segment_max
 from torch.nn import init as initializers
 
 
@@ -6084,7 +6084,7 @@ class GraphConv(nn.Module):
     >>> membership = multi_mol.membership
     >>> deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
     >>> args = [atom_features, degree_slice, membership] + deg_adjs
-    >>> layer = torch_layers.GraphConv(out_channels)
+    >>> layer = torch_layers.GraphConv(out_channels, number_input_features=atom_features.shape[-1])
     >>> result = layer(args)
     >>> type(result)
     <class 'torch.Tensor'>
@@ -6103,6 +6103,7 @@ class GraphConv(nn.Module):
 
     def __init__(self,
                  out_channel: int,
+                 number_input_features: int,
                  min_deg: int = 0,
                  max_deg: int = 10,
                  activation_fn: Optional[Callable] = None,
@@ -6113,6 +6114,8 @@ class GraphConv(nn.Module):
         ----------
         out_channel: int
             The number of output channels per graph node.
+        number_input_features: int
+            The number of input features.
         min_deg: int, optional (default 0)
             The minimum allowed degree for each graph node.
         max_deg: int, optional (default 10)
@@ -6129,6 +6132,7 @@ class GraphConv(nn.Module):
         self.out_channel: int = out_channel
         self.min_degree: int = min_deg
         self.max_degree: int = max_deg
+        self.number_input_features: int = number_input_features
         self.activation_fn: Optional[Callable] = activation_fn
 
         # Generate the nb_affine weights and biases
@@ -6136,7 +6140,8 @@ class GraphConv(nn.Module):
         self.W_list: nn.ParameterList = nn.ParameterList([
             nn.Parameter(
                 getattr(initializers,
-                        'xavier_uniform_')(torch.empty(75, self.out_channel)))
+                        'xavier_uniform_')(torch.empty(number_input_features,
+                                                       self.out_channel)))
             for k in range(num_deg)
         ])
         self.b_list: nn.ParameterList = nn.ParameterList([
@@ -6167,6 +6172,7 @@ class GraphConv(nn.Module):
         ----------
         inputs: List[np.ndarray]
         Should contain atom features and arrays describing graph topology
+
         Returns:
         -------
         torch.Tensor
@@ -6174,10 +6180,10 @@ class GraphConv(nn.Module):
         """
 
         # Extract atom_features
-        atom_features: torch.Tensor = torch.tensor(inputs[0])
+        atom_features: torch.Tensor = torch.from_numpy(inputs[0])
 
         # Extract graph topology
-        deg_slice: np.ndarray = inputs[1]
+        deg_slice: torch.Tensor = torch.from_numpy(inputs[1])
         deg_adj_lists: List[np.ndarray] = inputs[3:]
 
         W = iter(self.W_list)
@@ -6323,15 +6329,11 @@ class GraphPool(nn.Module):
         -------
         torch.Tensor
         """
-        atom_features = torch.tensor(inputs[0])
-        deg_slice: np.ndarray = inputs[1]
+        atom_features: torch.Tensor = torch.from_numpy(inputs[0])
+        deg_slice: torch.Tensor = torch.from_numpy(inputs[1])
         deg_adj_lists: List[np.ndarray] = inputs[3:]
 
         # Perform the mol gather
-        # atom_features = graph_pool(atom_features, deg_adj_lists, deg_slice,
-        #                            self.max_degree, self.min_degree)
-
-        #deg_maxed = (self.max_degree + 1 - self.min_degree) * [None]
         deg_maxed = []
 
         split_features: Tuple[torch.Tensor,
@@ -6363,3 +6365,115 @@ class GraphPool(nn.Module):
             deg_maxed.insert(0, self_atoms)
 
         return torch.concat(deg_maxed, 0)
+
+
+class GraphGather(nn.Module):
+    """A GraphGather layer pools node-level feature vectors to create a graph feature vector.
+
+    Many graph convolutional networks manipulate feature vectors per
+    graph-node. For a molecule for example, each node might represent an
+    atom, and the network would manipulate atomic feature vectors that
+    summarize the local chemistry of the atom. However, at the end of
+    the application, we will likely want to work with a molecule level
+    feature representation. The `GraphGather` layer creates a graph level
+    feature vector by combining all the node-level feature vectors.
+
+    One subtlety about this layer is that it depends on the
+    `batch_size`. This is done for internal implementation reasons. The
+    `GraphConv`, and `GraphPool` layers pool all nodes from all graphs
+    in a batch that's being processed. The `GraphGather` reassembles
+    these jumbled node feature vectors into per-graph feature vectors.
+
+    Example
+    --------
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> import deepchem.models.torch_models.layers as torch_layers
+    >>> batch_size = 2
+    >>> raw_smiles = ['CCC', 'C']
+    >>> from rdkit import Chem
+    >>> mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
+    >>> featurizer = dc.feat.graph_features.ConvMolFeaturizer()
+    >>> mols = featurizer.featurize(mols)
+    >>> multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
+    >>> atom_features = multi_mol.get_atom_features().astype(np.float32)
+    >>> degree_slice = multi_mol.deg_slice
+    >>> membership = multi_mol.membership
+    >>> deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
+    >>> args = [atom_features, degree_slice, membership] + deg_adjs
+    >>> result = torch_layers.GraphGather(batch_size)(args)
+    >>> type(result)
+    <class 'torch.Tensor'>
+    >>> result.shape
+    torch.Size([2, 150])
+
+    References
+    ----------
+    .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
+        learning molecular fingerprints." Advances in neural information processing
+        systems. 2015. https://arxiv.org/abs/1509.09292
+    """
+
+    def __init__(self,
+                 batch_size: int,
+                 activation_fn: Optional[Callable] = None,
+                 **kwargs):
+        """Initialize this layer.
+
+        Parameters
+        ---------
+        batch_size: int
+            The batch size for this layer. Note that the layer's behavior
+            changes depending on the batch size.
+        activation_fn: function
+            A nonlinear activation function to apply. If you're not sure,
+            `relu` is probably a good default for your application.
+        """
+
+        super(GraphGather, self).__init__(**kwargs)
+        self.batch_size: int = batch_size
+        self.activation_fn: Optional[Callable] = activation_fn
+
+    def get_config(self) -> str:
+        """
+        Returns a string representation of the object.
+
+        Returns:
+        -------
+        str: A string that contains the class name followed by the values of its instance variable.
+        """
+        # flake8: noqa
+        return (
+            f'{self.__class__.__name__}(batch_size:{self.batch_size},activation_fn:{self.activation_fn})'
+        )
+
+    def forward(self, inputs: List[np.ndarray]):
+        """Invoking this layer.
+
+        Parameters
+        ----------
+        inputs: List[np.ndarray]
+            This list should consist of `inputs = [atom_features, deg_slice,
+            membership, deg_adj_list placeholders...]`. These are all
+            tensors that are created/process by `GraphConv` and `GraphPool`
+
+        Returns:
+        -------
+        torch.Tensor
+        """
+        atom_features: torch.Tensor = torch.from_numpy(inputs[0])
+
+        # Extract graph topology
+        membership: torch.Tensor = torch.from_numpy(inputs[2]).to(torch.int64)
+
+        assert self.batch_size > 1, "graph_gather requires batches larger than 1"
+
+        sparse_reps: torch.Tensor = unsorted_segment_sum(
+            atom_features, membership, self.batch_size)
+        max_reps: torch.Tensor = unsorted_segment_max(atom_features, membership,
+                                                      self.batch_size)
+        mol_features: torch.Tensor = torch.concat([sparse_reps, max_reps], 1)
+
+        if self.activation_fn is not None:
+            mol_features = self.activation_fn(mol_features)
+        return mol_features
