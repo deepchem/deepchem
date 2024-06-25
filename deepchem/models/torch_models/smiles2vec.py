@@ -33,7 +33,6 @@ class Smiles2Vec(nn.Module):
     developed for the purpose of investigating a transfer learning protocol,
     ChemNet (which can be found at https://arxiv.org/abs/1712.02734).
     """
-
     def __init__(
         self,
         char_to_idx: int,
@@ -149,8 +148,8 @@ class Smiles2Vec(nn.Module):
         if self.use_conv:
 
             rnn_input = rnn_input.permute(
-                0, 2,
-                1)  # Convert to (batch_size, embedding_dim, seq_len) for Conv1D
+                0, 2, 1
+            )  # Convert to (batch_size, embedding_dim, seq_len) for Conv1D
             rnn_input = self.conv1d(rnn_input)
             rnn_input = rnn_input.permute(
                 0, 2, 1)  # Convert back to (batch_size, seq_len, filters)
@@ -166,8 +165,8 @@ class Smiles2Vec(nn.Module):
         # Global Average Pooling
         x = rnn_embeddings.mean(dim=1)
 
-        Logits = self.fc(x)                    
-  
+        Logits = self.fc(x)
+
         if self.mode == "classification":
             Logits = Logits.view(-1, self.n_tasks, self.n_classes)
             print(f"Shape of after reshape: {Logits}")
