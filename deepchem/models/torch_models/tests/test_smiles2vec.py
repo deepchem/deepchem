@@ -1,5 +1,4 @@
 import os
-import torch
 import numpy as np
 import tempfile
 import pytest
@@ -7,6 +6,11 @@ import pytest
 import deepchem as dc
 from deepchem.feat import create_char_to_idx, SmilesToSeq
 from deepchem.molnet.load_function.chembl25_datasets import CHEMBL25_TASKS
+
+try:
+    import torch
+except ModuleNotFoundError:
+    pass
 
 
 def get_dataset(mode="regression",
@@ -48,8 +52,8 @@ def get_dataset(mode="regression",
                                    mode="regression")
 
     if featurizer == "smiles2seq":
-        dataset = dc.data.NumpyDataset(dataset.X[:data_points, :max_seq_len], y,
-                                       w, dataset.ids[:data_points])
+        dataset = dc.data.NumpyDataset(dataset.X[:data_points, :max_seq_len],
+                                       y, w, dataset.ids[:data_points])
     else:
         dataset = dc.data.NumpyDataset(dataset.X[:data_points], y, w,
                                        dataset.ids[:data_points])
@@ -67,11 +71,12 @@ def test_smiles2vec_model():
     n_tasks = 10
     max_seq_len = 20
 
-    _, _, char_to_idx = get_dataset(mode="regression",
-                                    featurizer="smiles2seq",
-                                    n_tasks=n_tasks,
-                                    max_seq_len=max_seq_len,
-                                    )
+    _, _, char_to_idx = get_dataset(
+        mode="regression",
+        featurizer="smiles2seq",
+        n_tasks=n_tasks,
+        max_seq_len=max_seq_len,
+    )
     model = Smiles2Vec(char_to_idx)
     input = torch.randint(low=0, high=len(char_to_idx), size=(1, max_seq_len))
     # Ex: input = torch.tensor([[32,32,32,32,32,32,25,29,15,17,29,29,32,32,32,32,32,32,32,32]])
