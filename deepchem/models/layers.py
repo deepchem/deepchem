@@ -2052,7 +2052,7 @@ class AtomicConvolution(tf.keras.layers.Layer):
 class AlphaShareLayer(tf.keras.layers.Layer):
     """
     Part of a sluice network. Adds alpha parameters to control
-    sharing between the main and auxillary tasks
+    sharing between the main and auxiliary tasks
 
     Factory method AlphaShare should be used for construction
 
@@ -2076,38 +2076,30 @@ class AlphaShareLayer(tf.keras.layers.Layer):
 
     def build(self, input_shape):
         n_alphas = 2 * len(input_shape)
-        self.alphas = tf.Variable(tf.random.normal([n_alphas, n_alphas]),
+        self.alphas = self.add_weight(shape=(n_alphas, n_alphas),
+                                  initializer='random_normal',
                                   name='alphas')
         self.built = True
 
     def call(self, inputs):
-        # check that there isnt just one or zero inputs
+        # check that there isn't just one or zero inputs
         if len(inputs) <= 1:
             raise ValueError("AlphaShare must have more than one input")
         self.num_outputs = len(inputs)
         # create subspaces
         subspaces = []
-        original_cols = int(inputs[0].get_shape()[-1])
-        subspace_size = int(original_cols / 2)
+        subspace_size = int(inputs[0].shape[-1] / 2)
         for input_tensor in inputs:
             subspaces.append(tf.reshape(input_tensor[:, :subspace_size], [-1]))
             subspaces.append(tf.reshape(input_tensor[:, subspace_size:], [-1]))
-        n_alphas = len(subspaces)
         subspaces = tf.reshape(tf.stack(subspaces), [n_alphas, -1])
         subspaces = tf.matmul(self.alphas, subspaces)
 
         # concatenate subspaces, reshape to size of original input, then stack
         # such that out_tensor has shape (2,?,original_cols)
-        count = 0
         out_tensors = []
-        tmp_tensor = []
-        for row in range(n_alphas):
-            tmp_tensor.append(tf.reshape(subspaces[row,], [-1, subspace_size]))
-            count += 1
-            if (count == 2):
-                out_tensors.append(tf.concat(tmp_tensor, 1))
-                tmp_tensor = []
-                count = 0
+        for row in range(0, len(subspaces), 2):
+            out_tensors.append(tf.concat([subspaces[row], subspaces[row + 1]], axis=1))
         return out_tensors
 
 
