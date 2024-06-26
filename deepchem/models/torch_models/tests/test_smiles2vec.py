@@ -52,8 +52,8 @@ def get_dataset(mode="regression",
                                    mode="regression")
 
     if featurizer == "smiles2seq":
-        dataset = dc.data.NumpyDataset(dataset.X[:data_points, :max_seq_len],
-                                       y, w, dataset.ids[:data_points])
+        dataset = dc.data.NumpyDataset(dataset.X[:data_points, :max_seq_len], y,
+                                       w, dataset.ids[:data_points])
     else:
         dataset = dc.data.NumpyDataset(dataset.X[:data_points], y, w,
                                        dataset.ids[:data_points])
