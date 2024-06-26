@@ -56,6 +56,17 @@ class TestBAMLoader(unittest.TestCase):
 
         assert dataset.shape == (5, 7)
 
+    def test_bam_featurizer_with_pileup(self):
+        """
+        Tests BAMFeaturizer with pileup generation.
+        """
+        bam_featurizer = dc.feat.BAMFeaturizer(max_records=5, get_pileup=True)
+        bam_file_path = os.path.join(self.current_dir, "example.bam")
+        bamfile = pysam.AlignmentFile(bam_file_path, "rb")
+        dataset = bam_featurizer._featurize(bamfile)
+
+        assert dataset.shape == (4, 8)
+
 
 if __name__ == "__main__":
     unittest.main()
