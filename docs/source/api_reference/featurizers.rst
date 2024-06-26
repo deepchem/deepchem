@@ -546,7 +546,7 @@ DummyFeaturizer
   :inherited-members:
 
 
-Base Featurizers (for develop)
+Base Featurizers (for developers)
 ------------------------------
 
 Featurizer
@@ -594,6 +594,16 @@ you will want to inherit from the abstract :code:`ComplexFeaturizer` base class.
 This featurizer can take a pair of PDB or SDF files which contain ligand molecules and proteins.
 
 .. autoclass:: deepchem.feat.ComplexFeaturizer
+  :members:
+
+PolymerFeaturizer
+^^^^^^^^^^^^^^^^^
+
+If you're creating a new featurizer that featurizes polymer material,
+you will want to inherit from the abstract :code:`PolymerFeaturizer` base class.
+This featurizer can take a single string representation or datapoints of the same.
+
+.. autoclass:: deepchem.feat.PolymerFeaturizer
   :members:
 
 VocabularyBuilder

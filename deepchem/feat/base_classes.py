@@ -477,6 +477,88 @@ class MaterialCompositionFeaturizer(Featurizer):
         return np.asarray(features)
 
 
+class PolymerFeaturizer(Featurizer):
+    """Abstract class for calculating features for polymer materials.
+
+    The `PolymerFeaturzer` is responsibe for conversion of different
+    polymer representations to features. The child classes can
+    following representations for feature conversions.
+
+    i)  Weighted Directed Graph Representation (Monomer SMILES + Fragments + Weight Distrbution)
+    ii) BigSMILES String Representation
+
+    This polymer base class is useful considering it handles batches and validates the individual data points
+    before passing it for featurization. Currently it only validates the string type for above representations.
+
+    Child classes need to implement the _featurize method for
+    calculating features for a polymer.
+
+    Example
+    -------
+    >>> from deepchem.feat import PolymerFeaturizer
+    >>> class MyPolymerFeaturizer(PolymerFeaturizer):
+    ...     def _featurize(self, datapoint):
+    ...         # Implement your featurization logic here
+    ...         pass
+    >>> featurizer = MyPolymerFeaturizer()
+    >>> features = featurizer.featurize(['CCC'])
+
+    Note
+    ----
+    The subclasses of this class require RDKit to be installed.
+    """
+
+    def featurize(self,
+                  datapoints: Iterable[Any],
+                  log_every_n: int = 1000,
+                  **kwargs) -> np.ndarray:
+        """Calculate features for polymers.
+
+        Parameters
+        ----------
+        datapoints: BigSMILES Strings /  Iterable of BigSMILES Strings
+        Weighted Directed Graph Objects / Iterable of Weighted Directed Graph Objects
+
+        log_every_n: int, default 1000
+            Logging messages reported every `log_every_n` samples.
+
+        Returns
+        -------
+        features: np.ndarray
+            A numpy array containing a featurized representation of `datapoints`.
+        """
+        # converting single data point to array
+        if isinstance(datapoints, str):
+            datapoints = [datapoints]
+        else:
+            datapoints = list(datapoints)
+
+        features: list = []
+        for i, mol in enumerate(datapoints):
+            if i % log_every_n == 0:
+                logger.info("Featurizing datapoint %i" % i)
+
+            try:
+                if isinstance(mol, str):
+                    # logic for string representation of the molecules
+                    features.append(self._featurize(mol))
+                else:
+                    raise ValueError(
+                        f"""The input data point has to be of string representation of
+                        BigSMILES or Weight Distributed String Representation not {type(mol)}"""
+                    )
+            except Exception as e:
+                # if it fails to featurize the polymer data point from given string
+                # then append an empty array
+                logger.warning("Exception message: {}".format(e))
+                features.append(np.array([]))
+        try:
+            return np.asarray(features)
+        except ValueError as e:
+            logger.warning("Exception message: {}".format(e))
+            return np.asarray(features, dtype=object)
+
+
 class UserDefinedFeaturizer(Featurizer):
     """Directs usage of user-computed featurizations."""
 
