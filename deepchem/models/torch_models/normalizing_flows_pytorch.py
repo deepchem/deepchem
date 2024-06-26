@@ -97,7 +97,7 @@ class NormalizingFlow(nn.Module):
         sample: tuple
             This tuple contains a two torch.Tensor objects. The first represents
             a sampling of the learned distribution when transformations had been
-            applied. The secong torc.Tensor is the computation of log probabilities
+            applied. The second torch.Tensor is the computation of log probabilities
             of the transformed distribution.
             shape: ((samples, dim), (samples))
 
