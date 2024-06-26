@@ -582,6 +582,9 @@ MXMNet
 .. autoclass:: deepchem.models.torch_models.MXMNet
   :members:
 
+.. autoclass:: deepchem.models.torch_models.MXMNetModel
+  :members:
+
 PyTorch Lightning Models
 ========================
 
