@@ -63,7 +63,7 @@ class ProtBERT(HuggingFaceModel):
 
     def __init__(self,
                  task: str,
-                 model_path: str = 'Rostlab/prot_bert',
+                 model_pretrain_dataset = "uniref100",
                  n_tasks: int = 1,
                  cls_name: str = "LogReg",
                  **kwargs) -> None:
@@ -81,17 +81,30 @@ class ProtBERT(HuggingFaceModel):
         cls_name: str
             The classifier head to use for classification mode. Currently only supports "FFN" and "LogReg"
         """
+
+        
+
         self.n_tasks: int = n_tasks
-        tokenizer: BertTokenizer = BertTokenizer.from_pretrained(
-            model_path, do_lower_case=False)
-        protbert_config: BertConfig = BertConfig.from_pretrained(
-            pretrained_model_name_or_path=model_path,
-            vocab_size=tokenizer.vocab_size)
+        tokenizer: BertTokenizer 
         model: Union[BertForMaskedLM, BertForSequenceClassification]
+
+        if(model_pretrain_dataset == "uniref100"):
+            model_path = 'Rostlab/prot_bert'
+        elif(model_pretrain_dataset == "bfd"):
+            model_path = 'Rostlab/prot_bert_bfd'
+        else:
+            raise ValueError('Invalid pretraining data: {}.'.format(model_pretrain_dataset))
+
+        tokenizer =  BertTokenizer.from_pretrained(
+            model_path, do_lower_case=False)
+
         if task == "mlm":
             model = BertForMaskedLM.from_pretrained(model_path)
         elif task == "classification":
             cls_head: Union[nn.Linear, nn.Sequential]
+            protbert_config: BertConfig = BertConfig.from_pretrained(
+            pretrained_model_name_or_path=model_path,
+            vocab_size=tokenizer.vocab_size)
             if n_tasks == 1:
                 protbert_config.problem_type = 'single_label_classification'
             else:
