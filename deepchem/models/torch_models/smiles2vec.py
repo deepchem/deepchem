@@ -1,9 +1,6 @@
 import torch.nn as nn
-from torch.nn import GRU, LSTM
 import math
-from typing import List
-
-RNN_DICT = {"GRU": GRU, "LSTM": LSTM}
+from typing import List, Dict, Optional
 
 
 class Smiles2Vec(nn.Module):
@@ -33,9 +30,10 @@ class Smiles2Vec(nn.Module):
     developed for the purpose of investigating a transfer learning protocol,
     ChemNet (which can be found at https://arxiv.org/abs/1712.02734).
     """
+
     def __init__(
         self,
-        char_to_idx: int,
+        char_to_idx: Dict,
         n_tasks: int = 10,
         max_seq_len: int = 270,
         embedding_dim: int = 50,
@@ -105,10 +103,10 @@ class Smiles2Vec(nn.Module):
         self.filters = filters
         self.rnn_sizes = rnn_sizes
         self.use_bidir = use_bidir
-        self.rnn_layers = []
+        self.rnn_layers: nn.ModuleList = nn.ModuleList()
+        self.output_activation: Optional[nn.Module] = None
 
         # Define RNN layers
-        self.rnn_layers = nn.ModuleList()
         for idx, rnn_type in enumerate(self.rnn_types):
             rnn_layer = self.RNN_DICT[rnn_type](
                 input_size=self.filters if idx == 0 else self.rnn_sizes[idx -
@@ -121,7 +119,7 @@ class Smiles2Vec(nn.Module):
         # Create the last RNN layer separately
         last_layer_input_size = self.rnn_sizes[-2] * (2
                                                       if self.use_bidir else 1)
-        last_rnn_layer = RNN_DICT[self.rnn_types[-1]]
+        last_rnn_layer = self.RNN_DICT[self.rnn_types[-1]]
         self.last_rnn_layer = last_rnn_layer(last_layer_input_size,
                                              self.rnn_sizes[-1],
                                              batch_first=True,
@@ -140,16 +138,16 @@ class Smiles2Vec(nn.Module):
                 self.output_activation = nn.Sigmoid()
             else:
                 self.output_activation = nn.Softmax(dim=-1)
+        else:
+            self.output_activation = None
 
     def forward(self, smiles_seqs: List):
         """Build the model."""
         rnn_input = self.embedding(smiles_seqs)
 
         if self.use_conv:
-
-            rnn_input = rnn_input.permute(
-                0, 2, 1
-            )  # Convert to (batch_size, embedding_dim, seq_len) for Conv1D
+            # Convert to (batch_size, seq_len, filters) for conv1d
+            rnn_input = rnn_input.permute(0, 2, 1)
             rnn_input = self.conv1d(rnn_input)
             rnn_input = rnn_input.permute(
                 0, 2, 1)  # Convert back to (batch_size, seq_len, filters)
@@ -169,10 +167,9 @@ class Smiles2Vec(nn.Module):
 
         if self.mode == "classification":
             Logits = Logits.view(-1, self.n_tasks, self.n_classes)
-            print(f"Shape of after reshape: {Logits}")
 
-            output = self.output_activation(Logits)
-            print(f"output: {output}")
+            if self.output_activation is not None:
+                output = self.output_activation(Logits)
             return Logits, output
         else:
             Logits = Logits.view(-1, self.n_tasks, 1)
