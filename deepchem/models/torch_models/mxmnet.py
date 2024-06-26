@@ -338,7 +338,7 @@ class MXMNetModel(TorchModel):
 
     References
     ----------
-    .. [1] Molecular Mechanics-Driven Graph Neural Network with Multiplex Graph for Molecular Structures https://arxiv.org/pdf/2011.07457.pdf
+    .. [1] Molecular Mechanics-Driven Graph Neural Network with Multiplex Graph for Molecular Structures https://arxiv.org/pdf/2011.07457
     """
 
     def __init__(self,
