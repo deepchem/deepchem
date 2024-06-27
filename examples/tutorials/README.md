@@ -56,6 +56,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [17 Advanced model training using Hyperopt](Advanced_model_training_using_hyperopt.ipynb)
 * [18 Introduction to Gaussian Processes](Introduction_to_Gaussian_Processes.ipynb)
 * [19 Pytorch-Lightning Integration for DeepChem Models](PytorchLightning_Integration.ipynb)
+* [20 Compiling DeepChem PyTorch Models](Compiling_DeepChem_Torch_Models.ipynb)
 
 ### Molecular Machine Learning
 * [1 Molecular Fingerprints](Molecular_Fingerprints.ipynb)
