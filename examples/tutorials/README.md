@@ -73,6 +73,7 @@ tutorials discuss about using DeepChem for specific applications.
 
 ### Modeling Proteins
 * [1 Protein Deep Learning](Protein_Deep_Learning.ipynb)
+* [2 Antibody Design via Protein Language Models and Directed Evolution](DeepChem_AntibodyTutorial_Simplified.ipynb)
 
 ### Protein Ligand Modeling
 * [1 Modeling Protein Ligand Interactions](Modeling_Protein_Ligand_Interactions.ipynb)
