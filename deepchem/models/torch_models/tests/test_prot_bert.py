@@ -10,7 +10,8 @@ try:
     import torch.nn.functional as F
 except ModuleNotFoundError:
     pass
-
+np.random.seed(32)
+torch.manual_seed(32)
 
 class SimpleCNN(nn.Module):
 
@@ -242,11 +243,8 @@ def test_protbert_save_reload(tmpdir):
     assert all(matches)
 
 
-####
 @pytest.mark.torch
 def test_protbert_overfit():
-    np.random.seed(32)
-    torch.manual_seed(32)
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
     featurizer = dc.feat.DummyFeaturizer()
