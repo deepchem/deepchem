@@ -10,8 +10,7 @@ try:
     import torch.nn.functional as F
 except ModuleNotFoundError:
     pass
-np.random.seed(32)
-torch.manual_seed(32)
+
 
 class SimpleCNN(nn.Module):
 
@@ -245,6 +244,8 @@ def test_protbert_save_reload(tmpdir):
 
 @pytest.mark.torch
 def test_protbert_overfit():
+    np.random.seed(32)
+    torch.manual_seed(32)
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
     featurizer = dc.feat.DummyFeaturizer()
@@ -257,23 +258,25 @@ def test_protbert_overfit():
                      "../../tests/assets/example_protein_classification.csv"))
 
     pretrain_data_type = "bfd"
-    custom_torch_cls_seq_network = nn.Sequential(nn.Linear(1024, 512),
-                                                 nn.ReLU(), nn.Linear(512, 2))
+
     finetune_model_bfd = ProtBERT(task='classification',
-                                  model_pretrain_dataset=pretrain_data_type,
-                                  cls_task="custom",
-                                  cls_head=custom_torch_cls_seq_network,
+                                  model_pretrain_dataset="bfd",
+                                  cls_task="membrane",
                                   n_tasks=1,
-                                  batch_size=5,
+                                  batch_size=1,
                                   learning_rate=1e-5)
+
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
-    finetune_model_bfd.fit(dataset, nb_epoch=100)
+    finetune_model_bfd.fit(dataset, nb_epoch=10)
     eval_score_bfd = finetune_model_bfd.evaluate(dataset,
                                                  [classification_metric])
     assert eval_score_bfd[classification_metric.name] > 0.9
 
-    pretrain_data_type = "uniref100"
+    del finetune_model_bfd  # Free Memory
 
+    pretrain_data_type = "uniref100"
+    custom_torch_cls_seq_network = nn.Sequential(nn.Linear(1024, 512),
+                                                 nn.ReLU(), nn.Linear(512, 2))
     finetune_model_uniref = ProtBERT(task='classification',
                                      model_pretrain_dataset=pretrain_data_type,
                                      cls_task="custom",
