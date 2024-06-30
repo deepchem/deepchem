@@ -6079,10 +6079,10 @@ class GraphConv(nn.Module):
     >>> featurizer = dc.feat.graph_features.ConvMolFeaturizer()
     >>> mols = featurizer.featurize(mols)
     >>> multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
-    >>> atom_features = multi_mol.get_atom_features().astype(np.float32)
-    >>> degree_slice = multi_mol.deg_slice
-    >>> membership = multi_mol.membership
-    >>> deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
+    >>> atom_features = torch.from_numpy(multi_mol.get_atom_features().astype(np.float32))
+    >>> degree_slice = torch.from_numpy(multi_mol.deg_slice)
+    >>> membership = torch.from_numpy(multi_mol.membership)
+    >>> deg_adjs = [torch.from_numpy(i) for i in multi_mol.get_deg_adjacency_lists()[1:]]
     >>> args = [atom_features, degree_slice, membership] + deg_adjs
     >>> layer = torch_layers.GraphConv(out_channels, number_input_features=atom_features.shape[-1])
     >>> result = layer(args)
@@ -6164,13 +6164,13 @@ class GraphConv(nn.Module):
             f'{self.__class__.__name__}(out_channel:{self.out_channel},min_deg:{self.min_deg},max_deg:{self.max_deg},activation_fn:{self.activation_fn})'
         )
 
-    def forward(self, inputs: List[np.ndarray]) -> torch.Tensor:
+    def forward(self, inputs: List[torch.Tensor]) -> torch.Tensor:
         """
         The forward pass combines per-node feature vectors in a nonlinear fashion with
         the feature vectors for neighboring nodes.
         Parameters
         ----------
-        inputs: List[np.ndarray]
+        inputs: List[torch.Tensor]
         Should contain atom features and arrays describing graph topology
 
         Returns:
@@ -6180,11 +6180,11 @@ class GraphConv(nn.Module):
         """
 
         # Extract atom_features
-        atom_features: torch.Tensor = torch.from_numpy(inputs[0])
+        atom_features: torch.Tensor = inputs[0]
 
         # Extract graph topology
-        deg_slice: torch.Tensor = torch.from_numpy(inputs[1])
-        deg_adj_lists: List[np.ndarray] = inputs[3:]
+        deg_slice: torch.Tensor = inputs[1]
+        deg_adj_lists: List[torch.Tensor] = inputs[3:]
 
         W = iter(self.W_list)
         b = iter(self.b_list)
@@ -6266,10 +6266,10 @@ class GraphPool(nn.Module):
     >>> featurizer = dc.feat.graph_features.ConvMolFeaturizer()
     >>> mols = featurizer.featurize(mols)
     >>> multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
-    >>> atom_features = multi_mol.get_atom_features().astype(np.float32)
-    >>> degree_slice = multi_mol.deg_slice
-    >>> membership = multi_mol.membership
-    >>> deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
+    >>> atom_features = torch.from_numpy(multi_mol.get_atom_features().astype(np.float32))
+    >>> degree_slice = torch.from_numpy(multi_mol.deg_slice)
+    >>> membership = torch.from_numpy(multi_mol.membership)
+    >>> deg_adjs = [torch.from_numpy(i) for i in multi_mol.get_deg_adjacency_lists()[1:]]
     >>> args = [atom_features, degree_slice, membership] + deg_adjs
     >>> result = torch_layers.GraphPool()(args)
     >>> type(result)
@@ -6316,7 +6316,7 @@ class GraphPool(nn.Module):
             f'{self.__class__.__name__}(min_degree:{self.min_degree},max_degree:{self.max_degree})'
         )
 
-    def forward(self, inputs: List[np.ndarray]) -> torch.Tensor:
+    def forward(self, inputs: List[torch.Tensor]) -> torch.Tensor:
         """
         The forward pass performs max-pooling over the feature vectors of atoms in a neighborhood.
 
@@ -6329,9 +6329,9 @@ class GraphPool(nn.Module):
         -------
         torch.Tensor
         """
-        atom_features: torch.Tensor = torch.from_numpy(inputs[0])
-        deg_slice: torch.Tensor = torch.from_numpy(inputs[1])
-        deg_adj_lists: List[np.ndarray] = inputs[3:]
+        atom_features: torch.Tensor = inputs[0]
+        deg_slice: torch.Tensor = inputs[1]
+        deg_adj_lists: List[torch.Tensor] = inputs[3:]
 
         # Perform the mol gather
         deg_maxed = []
@@ -6396,10 +6396,10 @@ class GraphGather(nn.Module):
     >>> featurizer = dc.feat.graph_features.ConvMolFeaturizer()
     >>> mols = featurizer.featurize(mols)
     >>> multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
-    >>> atom_features = multi_mol.get_atom_features().astype(np.float32)
-    >>> degree_slice = multi_mol.deg_slice
-    >>> membership = multi_mol.membership
-    >>> deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
+    >>> atom_features = torch.from_numpy(multi_mol.get_atom_features().astype(np.float32))
+    >>> degree_slice = torch.from_numpy(multi_mol.deg_slice)
+    >>> membership = torch.from_numpy(multi_mol.membership)
+    >>> deg_adjs = [torch.from_numpy(i) for i in multi_mol.get_deg_adjacency_lists()[1:]]
     >>> args = [atom_features, degree_slice, membership] + deg_adjs
     >>> result = torch_layers.GraphGather(batch_size)(args)
     >>> type(result)
@@ -6447,12 +6447,12 @@ class GraphGather(nn.Module):
             f'{self.__class__.__name__}(batch_size:{self.batch_size},activation_fn:{self.activation_fn})'
         )
 
-    def forward(self, inputs: List[np.ndarray]):
+    def forward(self, inputs: List[torch.Tensor]):
         """Invoking this layer.
 
         Parameters
         ----------
-        inputs: List[np.ndarray]
+        inputs: List[torch.Tensor]
             This list should consist of `inputs = [atom_features, deg_slice,
             membership, deg_adj_list placeholders...]`. These are all
             tensors that are created/process by `GraphConv` and `GraphPool`
@@ -6461,10 +6461,10 @@ class GraphGather(nn.Module):
         -------
         torch.Tensor
         """
-        atom_features: torch.Tensor = torch.from_numpy(inputs[0])
+        atom_features: torch.Tensor = inputs[0]
 
         # Extract graph topology
-        membership: torch.Tensor = torch.from_numpy(inputs[2]).to(torch.int64)
+        membership: torch.Tensor = inputs[2].to(torch.int64)
 
         assert self.batch_size > 1, "graph_gather requires batches larger than 1"
 
