@@ -414,7 +414,7 @@ a Byte-Piece Encoder, which can be found `here.`_
 
 .. _`(transformers.PreTrainedTokenizer)`: https://huggingface.co/transformers/main_classes/tokenizer.html#transformers.PreTrainedTokenizer
 .. _`HuggingFace tokenizers docs`: https://huggingface.co/transformers/main_classes/tokenizer.html
-.. _`here.`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/22_Transfer_Learning_With_HuggingFace_tox21.ipynb
+.. _`here.`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/Transfer_Learning_With_ChemBERTa_Transformers.ipynb
 
 SmilesTokenizer
 ^^^^^^^^^^^^^^^
