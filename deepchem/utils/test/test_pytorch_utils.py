@@ -116,3 +116,26 @@ def test_get_np_dtype():
     """Test the get_np_dtype utility."""
     assert dc.utils.pytorch_utils.get_np_dtype(torch.float32) == np.float32
     assert dc.utils.pytorch_utils.get_np_dtype(torch.float64) == np.float64
+
+
+@pytest.mark.torch
+def test_unsorted_segment_max():
+
+    segment_ids = torch.Tensor([0, 1, 0]).to(torch.int64)
+    data = torch.Tensor([[1, 2, 3, 4], [5, 6, 7, 8], [4, 3, 2, 1]])
+    num_segments = 2
+
+    if len(segment_ids.shape) != 1:
+        raise AssertionError("segment_ids have be a 1-D tensor")
+
+    if data.shape[0] != segment_ids.shape[0]:
+        raise AssertionError(
+            "segment_ids should be the same size as dimension 0 of input.")
+
+    result = dc.utils.pytorch_utils.unsorted_segment_max(
+        data=data, segment_ids=segment_ids, num_segments=num_segments)
+
+    assert np.allclose(
+        np.array(result),
+        np.load("deepchem/utils/test/assets/result_segment_max.npy"),
+        atol=1e-04)

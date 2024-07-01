@@ -13,6 +13,7 @@ from deepchem.utils.misc_utils import GetSetParamsError
 from deepchem.utils.misc_utils import ConvergenceWarning
 from deepchem.utils.misc_utils import MathWarning
 from deepchem.utils.misc_utils import Uniquifier
+from deepchem.utils.misc_utils import memoize_method
 
 from deepchem.utils.batch_utils import batch_coulomb_matrix_features
 
@@ -142,6 +143,7 @@ try:
     from deepchem.utils.pytorch_utils import tallqr
     from deepchem.utils.pytorch_utils import to_fortran_order
     from deepchem.utils.pytorch_utils import get_np_dtype
+    from deepchem.utils.pytorch_utils import unsorted_segment_max
 
     from deepchem.utils.safeops_utils import safepow
     from deepchem.utils.safeops_utils import safenorm

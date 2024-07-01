@@ -501,3 +501,31 @@ def test_fit_generator_parameters():
     prediction2 = torch_model2.predict_on_batch(X_)
 
     assert np.allclose(prediction1, prediction2)
+
+
+@pytest.mark.torch
+def test_torch_compile():
+    """Test compiling a TorchModel."""
+
+    n_samples = 16
+    n_features = 32
+    n_tasks = 1
+    n_classes = 2
+
+    X = np.random.rand(n_samples, 32, n_features)
+    y = np.random.randint(n_classes,
+                          size=(n_samples, n_tasks)).astype(np.float32)
+    dataset = dc.data.NumpyDataset(X, y)
+
+    model = dc.models.torch_models.CNN(n_tasks,
+                                       n_features,
+                                       dims=1,
+                                       kernel_size=3,
+                                       mode='classification')
+    model.compile(mode='default', backend='inductor')
+    model.fit(dataset, nb_epoch=500)
+
+    model_output = model.predict_on_batch(X)
+    model_output = np.argmax(model_output, axis=2)
+
+    assert np.all(model_output == y)

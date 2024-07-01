@@ -33,7 +33,7 @@ class UNet(nn.Module):
     We will create a UNet model with 3 input channels and 1 output channel. We will then fit the model on the dataset for 5 epochs and predict the output images.
 
     >>> model = UNetModel(in_channels=3, out_channels=1)
-    >>> model.fit(dataset, nb_epoch=5)
+    >>> loss = model.fit(dataset, nb_epoch=5)
     >>> predictions = model.predict(dataset)
 
     Notes
@@ -171,7 +171,7 @@ class UNetModel(TorchModel):
     We will create a UNet model with 3 input channels and 1 output channel. We will then fit the model on the dataset for 5 epochs and predict the output images.
 
     >>> model = UNetModel(in_channels=3, out_channels=1)
-    >>> model.fit(dataset, nb_epoch=5)
+    >>> loss = model.fit(dataset, nb_epoch=5)
     >>> predictions = model.predict(dataset)
 
     Notes

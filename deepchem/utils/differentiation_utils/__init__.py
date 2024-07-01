@@ -1,5 +1,11 @@
 # flake8: noqa
 try:
+    from deepchem.utils.differentiation_utils.integrate.explicit_rk import explicit_rk
+    from deepchem.utils.differentiation_utils.integrate.explicit_rk import rk38_ivp
+    from deepchem.utils.differentiation_utils.integrate.explicit_rk import fwd_euler_ivp
+    from deepchem.utils.differentiation_utils.integrate.explicit_rk import rk4_ivp
+    from deepchem.utils.differentiation_utils.integrate.explicit_rk import mid_point_ivp
+
     from deepchem.utils.differentiation_utils.editable_module import EditableModule
 
     from deepchem.utils.differentiation_utils.bcast import normalize_bcast_dims

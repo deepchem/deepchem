@@ -469,3 +469,61 @@ def get_np_dtype(dtype: torch.dtype) -> Any:
         return np.complex128
     else:
         raise TypeError("Unknown type: %s" % dtype)
+
+
+def unsorted_segment_max(data: torch.Tensor, segment_ids: torch.Tensor,
+                         num_segments: int) -> torch.Tensor:
+    """Computes the maximum along segments of a tensor. Analogous to tf.unsorted_segment_max.
+
+    Parameters
+    ----------
+    data: torch.Tensor
+        A tensor whose segments are to be maximized.
+    segment_ids: torch.Tensor
+        The segment indices tensor.
+    num_segments: int
+        The number of segments.
+
+    Returns
+    -------
+    tensor: torch.Tensor
+
+    Examples
+    --------
+    >>> segment_ids = torch.Tensor([0, 1, 0]).to(torch.int64)
+    >>> data = torch.Tensor([[1, 2, 3, 4], [5, 6, 7, 8], [4, 3, 2, 1]])
+    >>> num_segments = 2
+    >>> result = unsorted_segment_max(data=data,
+    ...                               segment_ids=segment_ids,
+    ...                               num_segments=num_segments)
+    >>> data.shape[0]
+    3
+    >>> segment_ids.shape[0]
+    3
+    >>> len(segment_ids.shape)
+    1
+    >>> result
+    tensor([[4., 3., 3., 4.],
+            [5., 6., 7., 8.]])
+
+    """
+    if len(segment_ids.shape) != 1:
+        raise AssertionError("segment_ids have to be a 1-D tensor")
+
+    if data.shape[0] != segment_ids.shape[0]:
+        raise AssertionError(
+            "segment_ids should be the same size as dimension 0 of input.")
+
+    # Initialize the tensor to hold the maximum values for each segment
+    shape = [num_segments] + list(data.shape[1:])
+    tensor = torch.full(shape, float('-inf'), dtype=data.dtype)
+
+    # Create an expanded segment_ids tensor to match data shape
+    expanded_segment_ids = segment_ids.unsqueeze(-1).expand(-1, *data.shape[1:])
+
+    # Update the maximum values for each segment
+    for i in range(num_segments):
+        mask = expanded_segment_ids == i
+        tensor[i] = torch.max(data.masked_fill(~mask, float('-inf')), dim=0)[0]
+
+    return tensor

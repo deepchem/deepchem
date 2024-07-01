@@ -23,8 +23,21 @@ try:
     from deepchem.utils.dft_utils.hamilton.orbparams import BaseOrbParams
     from deepchem.utils.dft_utils.hamilton.orbparams import QROrbParams
     from deepchem.utils.dft_utils.hamilton.orbparams import MatExpOrbParams
+    from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import LibcintWrapper
+    from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import SubsetLibcintWrapper
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import int1e
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import int2c2e
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import int3c2e
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import int2e
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import overlap
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import kinetic
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import nuclattr
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import elrep
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import coul2c
+    from deepchem.utils.dft_utils.hamilton.intor.molintor import coul3c
 
     from deepchem.utils.dft_utils.api.parser import parse_moldesc
+    from deepchem.utils.dft_utils.api.loadbasis import loadbasis
 
     from deepchem.utils.dft_utils.grid.base_grid import BaseGrid
 
@@ -46,6 +59,7 @@ try:
     from deepchem.utils.dft_utils.xc.libxc_wrapper import CalcGGALibXCPol
     from deepchem.utils.dft_utils.xc.libxc_wrapper import CalcMGGALibXCUnpol
     from deepchem.utils.dft_utils.xc.libxc_wrapper import CalcMGGALibXCPol
+
     from deepchem.utils.dft_utils.xc.libxc import LibXCLDA
     from deepchem.utils.dft_utils.xc.libxc import LibXCGGA
     from deepchem.utils.dft_utils.xc.libxc import LibXCMGGA
@@ -64,6 +78,8 @@ try:
     from deepchem.utils.dft_utils.qccalc.scf_qccalc import BaseSCFEngine
     from deepchem.utils.dft_utils.qccalc.hf import HF
     from deepchem.utils.dft_utils.qccalc.hf import HFEngine
+    from deepchem.utils.dft_utils.qccalc.ks import KS
+    from deepchem.utils.dft_utils.qccalc.ks import KSEngine
 except ModuleNotFoundError as e:
     logger_.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')

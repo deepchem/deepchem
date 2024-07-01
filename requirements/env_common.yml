@@ -8,8 +8,8 @@ dependencies:
   - pdbfixer
   - pip
   - pip:
-    - numpy
-    - rdkit
+    - numpy==1.26.4
+    - rdkit==2023.09.5
     - pre-commit
     - biopython
     - dgllife
@@ -26,4 +26,5 @@ dependencies:
     - tokenizers
     - xgboost
     - gensim  # used by mol2vec
+    - scipy<=1.12.0
     - tensorboard
