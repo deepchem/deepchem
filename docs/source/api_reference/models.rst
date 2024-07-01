@@ -562,6 +562,12 @@ UNetModel
 .. autoclass:: deepchem.models.torch_models.UNetModel
   :members:
 
+Smiles2Vec
+------------
+
+.. autoclass:: deepchem.models.torch_models.Smiles2Vec
+  :members:
+
 PyTorch Lightning Models
 ========================
 
