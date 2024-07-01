@@ -562,6 +562,12 @@ UNetModel
 .. autoclass:: deepchem.models.torch_models.UNetModel
   :members:
 
+_GraphConvTorchModel
+--------------------
+
+.. autoclass:: deepchem.models.torch_models._GraphConvTorchModel
+  :members:
+
 PyTorch Lightning Models
 ========================
 

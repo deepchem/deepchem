@@ -729,6 +729,8 @@ Pytorch Utilities
 
 .. autofunction:: deepchem.utils.pytorch_utils.get_np_dtype
 
+.. autofunction:: deepchem.utils.pytorch_utils.unsorted_segment_max
+
 Batch Utilities
 ---------------
 
