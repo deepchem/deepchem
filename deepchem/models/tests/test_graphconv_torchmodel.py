@@ -1,11 +1,11 @@
 import deepchem as dc
 import numpy as np
 import pytest
-from deepchem.models.torch_models import _GraphConvTorchModel
 
 try:
     import torch
     import torch.nn as nn
+    from deepchem.models.torch_models import _GraphConvTorchModel
     has_torch = True
 except:
     has_torch = False
