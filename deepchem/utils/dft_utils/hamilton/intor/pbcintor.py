@@ -15,10 +15,6 @@ from deepchem.utils.dft_utils.hamilton.intor.namemgr import IntorNameManager
 from deepchem.utils.dft_utils import LibcintWrapper, Lattice
 
 
-
-__all__ = ["PBCIntOption", "pbc_int1e", "pbc_int3c2e",
-           "pbc_overlap", "pbc_kinetic", "pbc_coul2c", "pbc_coul3c"]
-
 @dataclass
 class PBCIntOption:
     """
@@ -29,6 +25,21 @@ class PBCIntOption:
 
     @staticmethod
     def get_default(lattsum_opt: Optional[Union[PBCIntOption, Dict]] = None) -> PBCIntOption:
+        """Get the default PBCIntOption object.
+
+        Parameters
+        ----------
+        lattsum_opt: Optional[Union[PBCIntOption, Dict]]
+            The lattice sum option. If it is a dictionary, then it will be
+            converted to a PBCIntOption object. If it is None, then just use
+            the default value of PBCIntOption.
+
+        Returns
+        -------
+        PBCIntOption
+            The default PBCIntOption object.
+
+        """
         if lattsum_opt is None:
             return PBCIntOption()
         elif isinstance(lattsum_opt, dict):
@@ -38,14 +49,14 @@ class PBCIntOption:
 
 def pbc_int1e(shortname: str, wrapper: LibcintWrapper,
               other: Optional[LibcintWrapper] = None,
-              kpts: Optional[torch.Tensor] = None,  # (nkpts, ndim)
+              kpts: Optional[torch.Tensor] = None,
               options: Optional[PBCIntOption] = None,
               ):
     """
     Performing the periodic boundary condition (PBC) on 1-electron integrals.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     shortname: str
         The shortname of the integral (i.e. without the prefix `int1e_` or else)
     wrapper: LibcintWrapper
@@ -93,8 +104,8 @@ def pbc_int2c2e(shortname: str, wrapper: LibcintWrapper,
     Performing the periodic boundary condition (PBC) on 2-centre 2-electron
     integrals.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     shortname: str
         The shortname of the integral (i.e. without the prefix `int2c2e_` or else)
     wrapper: LibcintWrapper
@@ -142,8 +153,8 @@ def pbc_int3c2e(shortname: str, wrapper: LibcintWrapper,
     """
     Performing the periodic boundary condition (PBC) on 3-electron integrals.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     shortname: str
         The shortname of the integral (i.e. without the prefix `int1e_` or else)
     wrapper: LibcintWrapper
@@ -200,29 +211,150 @@ def pbc_int3c2e(shortname: str, wrapper: LibcintWrapper,
 def pbc_overlap(wrapper: LibcintWrapper, other: Optional[LibcintWrapper] = None,
                 kpts: Optional[torch.Tensor] = None,
                 options: Optional[PBCIntOption] = None) -> torch.Tensor:
+    """
+    Shortcut for the overlap integral. This is equivalent to `pbc_int1e("ovlp", ...)`.
+
+    Parameters
+    ----------
+    wrapper: LibcintWrapper
+        The environment wrapper containing the basis
+    other: Optional[LibcintWrapper]
+        Another environment wrapper containing the basis. This environment
+        must have the same complete environment as `wrapper` (e.g. `other` can be
+        a subset of `wrapper`). If unspecified, then `other = wrapper`.
+    kpts: Optional[torch.Tensor]
+        k-points where the integration is supposed to be performed. If specified,
+        it should have the shape of `(nkpts, ndim)`. Otherwise, it is assumed
+        to be all zeros.
+    options: Optional[PBCIntOption]
+        The integration options. If unspecified, then just use the default
+        value of `PBCIntOption`.
+
+    Returns
+    -------
+    torch.Tensor
+        A complex tensor representing the 1-electron integral with shape
+        `(nkpts, *ncomp, nwrapper, nother)` where `ncomp` is the Cartesian
+        components of the integral, e.g. `"ipovlp"` integral will have 3
+        components each for x, y, and z.
+    """
     return pbc_int1e("ovlp", wrapper, other=other, kpts=kpts, options=options)
 
 def pbc_kinetic(wrapper: LibcintWrapper, other: Optional[LibcintWrapper] = None,
                 kpts: Optional[torch.Tensor] = None,
                 options: Optional[PBCIntOption] = None) -> torch.Tensor:
+    """
+    Shortcut for the kinetic energy integral. This is equivalent to `pbc_int1e("kin", ...)`.
+
+    Parameters
+    ----------
+    wrapper: LibcintWrapper
+        The environment wrapper containing the basis
+    other: Optional[LibcintWrapper]
+        Another environment wrapper containing the basis. This environment
+        must have the same complete environment as `wrapper` (e.g. `other` can be
+        a subset of `wrapper`). If unspecified, then `other = wrapper`.
+    kpts: Optional[torch.Tensor]
+        k-points where the integration is supposed to be performed. If specified,
+        it should have the shape of `(nkpts, ndim)`. Otherwise, it is assumed
+        to be all zeros.
+    options: Optional[PBCIntOption]
+        The integration options. If unspecified, then just use the default
+        value of `PBCIntOption`.
+
+    Returns
+    -------
+    torch.Tensor
+        A complex tensor representing the 1-electron integral with shape
+        `(nkpts, *ncomp, nwrapper, nother)` where `ncomp` is the Cartesian
+        components of the integral, e.g. `"ipovlp"` integral will have 3
+        components each for x, y, and z.
+    """
     return pbc_int1e("kin", wrapper, other=other, kpts=kpts, options=options)
 
 def pbc_coul2c(wrapper: LibcintWrapper, other: Optional[LibcintWrapper] = None,
                kpts: Optional[torch.Tensor] = None,
                options: Optional[PBCIntOption] = None) -> torch.Tensor:
-    # 2-centre integral for electron repulsion
+    """
+    Shortcut for the Coulomb integral. This is equivalent to `pbc_int2c2e("coul", ...)`.
+
+    Parameters
+    ----------
+    wrapper: LibcintWrapper
+        The environment wrapper containing the basis
+    other: Optional[LibcintWrapper]
+        Another environment wrapper containing the basis. This environment
+        must have the same complete environment as `wrapper` (e.g. `other` can be
+        a subset of `wrapper`). If unspecified, then `other = wrapper`.
+    kpts: Optional[torch.Tensor]
+        k-points where the integration is supposed to be performed. If specified,
+        it should have the shape of `(nkpts, ndim)`. Otherwise, it is assumed
+        to be all zeros.
+    options: Optional[PBCIntOption]
+        The integration options. If unspecified, then just use the default
+        value of `PBCIntOption`.
+
+    Returns
+    -------
+    torch.Tensor
+        A complex tensor representing the 1-electron integral with shape
+        `(nkpts, *ncomp, nwrapper, nother)` where `ncomp` is the Cartesian
+        components of the integral, e.g. `"ipr12"` integral will have 3
+        components each for x, y, and z.
+    """
     return pbc_int2c2e("r12", wrapper, other=other, kpts=kpts, options=options)
 
 def pbc_coul3c(wrapper: LibcintWrapper, other1: Optional[LibcintWrapper] = None,
                other2: Optional[LibcintWrapper] = None,
                kpts_ij: Optional[torch.Tensor] = None,
                options: Optional[PBCIntOption] = None) -> torch.Tensor:
+    """
+    Shortcut for the Coulomb integral. This is equivalent to `pbc_int3c2e("coul", ...)`.
+
+    Parameters
+    ----------
+    wrapper: LibcintWrapper
+        The environment wrapper containing the basis. `wrapper` and `other1`
+        correspond to the first electron.
+    other1: Optional[LibcintWrapper]
+        Another environment wrapper containing the basis. This environment
+        must have the same complete environment as `wrapper` (e.g. `other1` can be
+        a subset of `wrapper`). If unspecified, then `other1 = wrapper`.
+        `wrapper` and `other1` correspond to the first electron.
+    other2: Optional[LibcintWrapper]
+        Another environment wrapper containing the basis. This environment
+        must have the same complete environment as `wrapper` (e.g. `other2` can be
+        a subset of `wrapper`). If unspecified, then `other2 = wrapper`.
+        `other2` corresponds to the second electron (usually density-fitted).
+    kpts_ij: Optional[torch.Tensor]
+        k-points where the integration is supposed to be performed. If specified,
+        it should have the shape of `(nkpts_ij, 2, ndim)`. Otherwise, it is assumed
+        to be all zeros.
+    options: Optional[PBCIntOption]
+        The integration options. If unspecified, then just use the default
+        value of `PBCIntOption`.
+
+    Returns
+    -------
+    torch.Tensor
+        A complex tensor representing the 3-centre integral with shape
+        `(nkpts_ij, *ncomp, nwrapper, nother1, nother2)` where `ncomp` is the Cartesian
+        components of the integral, e.g. `"ipovlp"` integral will have 3
+        components each for x, y, and z.
+
+    Note
+    ----
+    The default 2-electron integrals are non-convergence for non-neutral,
+    non-zero dipole and quadrupole `other2` environment, so make sure the
+    `other2` environment is electrically neutral and free from dipole and
+    quadrupole.
+    """
     return pbc_int3c2e("ar12", wrapper, other1=other1, other2=other2,
                        kpts_ij=kpts_ij, options=options)
 
-################# torch autograd function wrappers #################
+# torch autograd function wrappers
 class _PBCInt2cFunction(torch.autograd.Function):
-    # wrapper class for the periodic boundary condition 2-centre integrals
+    """wrapper class for the periodic boundary condition 2-centre integrals"""
     @staticmethod
     def forward(ctx,  # type: ignore
                 # basis params
@@ -233,6 +365,33 @@ class _PBCInt2cFunction(torch.autograd.Function):
                 kpts: torch.Tensor,
                 wrappers: List[LibcintWrapper], int_nmgr: IntorNameManager,
                 options: PBCIntOption) -> torch.Tensor:
+        """Forward pass of the PBC 2-centre integrals
+        
+        Parameters
+        ----------
+        allcoeffs: torch.Tensor
+            Coefficients of the basis functions
+        allalphas: torch.Tensor
+            Exponents of the basis functions
+        allposs: torch.Tensor
+            Positions of the atoms
+        alattice: torch.Tensor
+            Lattice parameters
+        kpts: torch.Tensor
+            k-points where the integration is supposed to be performed
+        wrappers: List[LibcintWrapper]
+            List of environment wrappers
+        int_nmgr: IntorNameManager
+            The integral name manager
+        options: PBCIntOption
+            The integration options object
+
+        Returns
+        -------
+        torch.Tensor
+            The calculated integral tensor
+
+        """
         # allcoeffs: (ngauss_tot,)
         # allalphas: (ngauss_tot,)
         # allposs: (natom, ndim)
@@ -244,6 +403,21 @@ class _PBCInt2cFunction(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_out: torch.Tensor) -> Tuple[Optional[torch.Tensor], ...]:  # type: ignore
+        """backward pass of the PBC 2-centre integrals
+
+        Parameters
+        ----------
+        ctx: torch.autograd.function._ContextMethodMixin
+            The context object
+        grad_out: torch.Tensor
+            The gradient of the output tensor
+
+        Returns
+        -------
+        Tuple[Optional[torch.Tensor], ...]
+            The gradients of the input tensors
+
+        """
         raise NotImplementedError("gradients of PBC 2-centre integrals are not implemented")
 
 class _PBCInt3cFunction(torch.autograd.Function):
@@ -272,14 +446,27 @@ class _PBCInt3cFunction(torch.autograd.Function):
     def backward(ctx, grad_out: torch.Tensor) -> Tuple[Optional[torch.Tensor], ...]:  # type: ignore
         raise NotImplementedError("gradients of PBC 3-centre integrals are not implemented")
 
-################# integrator object (direct interface to lib*) #################
+# integrator object (direct interface to lib*)
 class PBCIntor(object):
     def __init__(self, int_nmgr: IntorNameManager, wrappers: List[LibcintWrapper],
                  kpts_inp: torch.Tensor, options: PBCIntOption):
-        # This is a class for once integration only
-        # I made a class for refactoring reason because the integrals share
-        # some parameters
-        # No gradients propagated in the methods of this class
+        """This is a class for once integration only
+        This class is made for refactoring reason because the integrals share
+        some parameters
+        No gradients propagated in the methods of this class
+
+        Parameters
+        ----------
+        int_nmgr: IntorNameManager
+            Integral name manager
+        wrappers: List[LibcintWrapper]
+            List of environment wrappers
+        kpts_inp: torch.Tensor
+            k-points where the integration is supposed to be performed
+        options: PBCIntOption
+            The integration options object
+
+        """
 
         assert len(wrappers) > 0
         wrapper0 = wrappers[0]
@@ -312,6 +499,15 @@ class PBCIntor(object):
         self.integral_done = False
 
     def calc(self) -> torch.Tensor:
+        """Perform the integration and return the result. This method can only be
+        called once.
+
+        Returns
+        -------
+        torch.Tensor
+            Calculated integral tensor
+
+        """
         assert not self.integral_done
         self.integral_done = True
         if self.int_type == "int1e" or self.int_type == "int2c2e":
@@ -322,12 +518,17 @@ class PBCIntor(object):
             raise ValueError("Unknown integral type: %s" % self.int_type)
 
     def _int2c(self) -> torch.Tensor:
-        # 2-centre integral
-        # this function works mostly in numpy
-        # no gradients propagated in this function (and it's OK)
-        # this function mostly replicate the `intor_cross` function in pyscf
-        # https://github.com/pyscf/pyscf/blob/master/pyscf/pbc/gto/cell.py
-        # https://github.com/pyscf/pyscf/blob/f1321d5dd4fa103b5b04f10f31389c408949269d/pyscf/pbc/gto/cell.py#L345
+        """2-centre integral
+        this function works mostly in numpy
+        no gradients propagated in this function
+        this function mostly replicate the `intor_cross` function in pyscf
+
+        References
+        ----------
+        [1].. https://github.com/pyscf/pyscf/blob/master/pyscf/pbc/gto/cell.py
+        [2].. https://github.com/pyscf/pyscf/blob/f1321d5dd4fa103b5b04f10f31389c408949269d/pyscf/pbc/gto/cell.py#L345
+        
+        """
         assert len(self.wrappers) == 2
 
         # libpbc will do in-place shift of the basis of one of the wrappers, so
@@ -376,12 +577,17 @@ class PBCIntor(object):
         return out_tensor
 
     def _int3c(self) -> torch.Tensor:
-        # 3-centre integral
-        # this function works mostly in numpy
-        # no gradients propagated in this function (and it's OK)
-        # this function mostly replicate the `aux_e2` and `wrap_int3c` functions in pyscf
-        # https://github.com/pyscf/pyscf/blob/master/pyscf/pbc/df/incore.py
-        # https://github.com/pyscf/pyscf/blob/f1321d5dd4fa103b5b04f10f31389c408949269d/pyscf/pbc/df/incore.py#L46
+        """3-centre integral
+        this function works mostly in numpy
+        no gradients propagated in this function (and it's OK)
+        this function mostly replicate the `aux_e2` and `wrap_int3c` functions in pyscf
+
+        References
+        ----------
+        [1].. https://github.com/pyscf/pyscf/blob/master/pyscf/pbc/df/incore.py
+        [2].. https://github.com/pyscf/pyscf/blob/f1321d5dd4fa103b5b04f10f31389c408949269d/pyscf/pbc/df/incore.py#L46
+
+        """
         assert len(self.wrappers) == 3
 
         # libpbc will do in-place shift of the basis of one of the wrappers, so
@@ -444,17 +650,43 @@ class PBCIntor(object):
                                      device=self.device)
         return out_tensor
 
-################# helper functions #################
+# helper functions
 def _check_and_set_pbc(wrapper: LibcintWrapper, other: Optional[LibcintWrapper]) -> LibcintWrapper:
-    # check the `other` parameter if it is compatible to `wrapper`, then return
-    # the `other` parameter (set to wrapper if it is `None`)
+    """check the `other` parameter if it is compatible to `wrapper`, then return
+    the `other` parameter (set to wrapper if it is `None`)
+
+    Parameters
+    ----------
+    wrapper: LibcintWrapper
+        Main environment wrapper
+    other: Optional[LibcintWrapper]
+        Another environment wrapper
+
+    Returns
+    -------
+    LibcintWrapper
+        `other` parameter that is compatible with `wrapper`
+
+    """
     other1 = _check_and_set(wrapper, other)
     assert other1.lattice is wrapper.lattice
     return other1
 
 def _get_default_options(options: Optional[PBCIntOption]) -> PBCIntOption:
-    # if options is None, then set the default option.
-    # otherwise, just return the input options
+    """if options is None, then set the default option.
+    otherwise, just return the input options
+
+    Parameters
+    ----------
+    options: Optional[PBCIntOption]
+        Input options object
+
+    Returns
+    -------
+    PBCIntOption
+        The options object
+
+    """
     if options is None:
         options1 = PBCIntOption()
     else:
@@ -463,8 +695,24 @@ def _get_default_options(options: Optional[PBCIntOption]) -> PBCIntOption:
 
 def _get_default_kpts(kpts: Optional[torch.Tensor], dtype: torch.dtype,
                       device: torch.device) -> torch.Tensor:
-    # if kpts is None, then set the default kpts (k = zeros)
-    # otherwise, just return the input kpts in the correct dtype and device
+    """if kpts is None, then set the default kpts (k = zeros)
+    otherwise, just return the input kpts in the correct dtype and device
+
+    Parameters
+    ----------
+    kpts: Optional[torch.Tensor]
+        Input k-points
+    dtype: torch.dtype
+        The dtype of the kpts
+    device: torch.device
+        Device on which the tensord are located. Ex: cuda, cpu
+
+    Returns
+    -------
+    torch.Tensor
+        Default k-points
+
+    """
     if kpts is None:
         kpts1 = torch.zeros((1, NDIM), dtype=dtype, device=device)
     else:
@@ -476,8 +724,24 @@ def _get_default_kpts(kpts: Optional[torch.Tensor], dtype: torch.dtype,
 
 def _get_default_kpts_ij(kpts_ij: Optional[torch.Tensor], dtype: torch.dtype,
                          device: torch.device) -> torch.Tensor:
-    # if kpts_ij is None, then set the default kpts_ij (k = zeros)
-    # otherwise, just return the input kpts_ij in the correct dtype and device
+    """if kpts_ij is None, then set the default kpts_ij (k = zeros)
+    otherwise, just return the input kpts_ij in the correct dtype and device
+
+    Parameters
+    ----------
+    kpts_ij: Optional[torch.Tensor]
+        K-points along i, j coordinates.
+    dtype: torch.dtype
+        Datatype of the output tensors.
+    device: torch.device
+        Device of the output tensors.
+
+    Returns
+    -------
+    torch.Tensor
+        Default K-Points.
+
+    """
     if kpts_ij is None:
         kpts1 = torch.zeros((1, 2, NDIM), dtype=dtype, device=device)
     else:
@@ -488,8 +752,20 @@ def _get_default_kpts_ij(kpts_ij: Optional[torch.Tensor], dtype: torch.dtype,
     return kpts1
 
 def _concat_atm_bas_env(*wrappers: LibcintWrapper) -> Tuple[np.ndarray, ...]:
-    # make a copy of the concatenated atm, bas, env, and also return the new
-    # ao_location
+    """make a copy of the concatenated atm, bas, env, and also return the new
+    ao_location
+
+    Parameters
+    ----------
+    *wrappers: LibcintWrapper
+        List of environment wrappers
+
+    Returns
+    -------
+    Tuple[np.ndarray, ...]
+        The concatenated atm, bas, env, and also the new ao_location
+
+    """
     assert len(wrappers) >= 2
 
     PTR_COORD = 1

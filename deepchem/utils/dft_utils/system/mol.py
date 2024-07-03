@@ -20,43 +20,6 @@ class Mol(BaseSystem):
     """
     Describe the system of an isolated molecule.
 
-    Arguments
-    ---------
-    * moldesc: str or 2-elements tuple
-        Description of the molecule system.
-        If string, it can be described like ``"H 1 0 0; H -1 0 0"``.
-        If tuple, the first element of the tuple is the Z number of the atoms while
-        the second element is the position of the atoms: ``(atomzs, atomposs)``.
-    * basis: str, CGTOBasis, list of str, or CGTOBasis
-        The string describing the gto basis. If it is a list, then it must have
-        the same length as the number of atoms.
-    * grid: int
-        Describe the grid.
-        If it is an integer, then it uses the default grid with specified level
-        of accuracy.
-    * spin: int, float, torch.Tensor, or None
-        The difference between spin-up and spin-down electrons.
-        It must be an integer or ``None``.
-        If ``None``, then it is ``num_electrons % 2``.
-        For floating point atomzs and/or charge, the ``spin`` must be specified.
-    * charge: int, float, or torch.Tensor
-        The charge of the molecule.
-    * orb_weights: SpinParam[torch.Tensor] or None
-        Specifiying the orbital occupancy (or weights) directly. If specified,
-        ``spin`` and ``charge`` arguments are ignored.
-    * efield: tensor, tuple of tensor, or None
-        Uniform electric field of the system. If a tensor, then it is assumed
-        to be a constant electric field with the energy is
-        calculated based on potential at ``(0, 0, 0)`` is ``0``.
-        If a tuple of tensor, then the first element will have a shape of ``(ndim,)``
-        representing the constant electric field, second element is the gradient
-        of electric field with the last dimension is the direction of the electric
-        field, third element is the gradgrad of electric field, etc.
-        If ``None``, then the electric field is assumed to be ``0``.
-    * dtype: torch.dtype
-        The data type of tensors in this class.
-    * device: torch.device
-        The device on which the tensors in this class are stored.
     """
 
     def __init__(self,
@@ -71,6 +34,47 @@ class Mol(BaseSystem):
                  dtype: torch.dtype = torch.float64,
                  device: torch.device = torch.device('cpu'),
                  ):
+        """Initialize the molecule system.
+
+        Parameters
+        ----------
+        moldesc: str or 2-elements tuple
+            Description of the molecule system.
+            If string, it can be described like ``"H 1 0 0; H -1 0 0"``.
+            If tuple, the first element of the tuple is the Z number of the atoms while
+            the second element is the position of the atoms: ``(atomzs, atomposs)``.
+        basis: str, CGTOBasis, list of str, or CGTOBasis
+            The string describing the gto basis. If it is a list, then it must have
+            the same length as the number of atoms.
+        grid: int
+            Describe the grid.
+            If it is an integer, then it uses the default grid with specified level
+            of accuracy.
+        spin: int, float, torch.Tensor, or None
+            The difference between spin-up and spin-down electrons.
+            It must be an integer or ``None``.
+            If ``None``, then it is ``num_electrons % 2``.
+            For floating point atomzs and/or charge, the ``spin`` must be specified.
+        charge: int, float, or torch.Tensor
+            The charge of the molecule.
+        orb_weights: SpinParam[torch.Tensor] or None
+            Specifiying the orbital occupancy (or weights) directly. If specified,
+            ``spin`` and ``charge`` arguments are ignored.
+        efield: tensor, tuple of tensor, or None
+            Uniform electric field of the system. If a tensor, then it is assumed
+            to be a constant electric field with the energy is
+            calculated based on potential at ``(0, 0, 0)`` is ``0``.
+            If a tuple of tensor, then the first element will have a shape of ``(ndim,)``
+            representing the constant electric field, second element is the gradient
+            of electric field with the last dimension is the direction of the electric
+            field, third element is the gradgrad of electric field, etc.
+            If ``None``, then the electric field is assumed to be ``0``.
+        dtype: torch.dtype
+            The data type of tensors in this class.
+        device: torch.device
+            The device on which the tensors in this class are stored.
+
+        """
         self._dtype = dtype
         self._device = device
         self._grid_inp = grid
@@ -147,8 +151,8 @@ class Mol(BaseSystem):
         """
         Indicate that the system's Hamiltonian uses density fit for its integral.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         method: Optional[str]
             Density fitting method. Available methods in this class are:
 
@@ -160,6 +164,12 @@ class Mol(BaseSystem):
         auxbasis: Optional[BasisInpType]
             Auxiliary basis for the density fit. If not specified, then it uses
             ``"cc-pvtz-jkfit"``.
+        
+        Returns
+        -------
+        BaseSystem
+            The system with the density fit Hamiltonian.
+
         """
         if method is None:
             method = "coulomb"
@@ -195,12 +205,18 @@ class Mol(BaseSystem):
         Cache is usually used for repeated calculations where the cached parameters
         are not changed (e.g. running multiple systems with slightly different environment.)
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         fname: str
             The file to store the cache.
         paramnames: list of str or None
             List of parameter names to be read/write from the cache.
+
+        Returns
+        -------
+        BaseSystem
+            The system with the cache setup.
+
         """
         all_paramnames = self._cache.get_cacheable_params()
         if paramnames is not None:
@@ -216,12 +232,34 @@ class Mol(BaseSystem):
         return self
 
     def get_orbweight(self, polarized: bool = False) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
+        """Get the orbital weights of the system.
+
+        Parameters
+        ----------
+        polarized: bool
+            If True, then return the polarized orbital weights.
+
+        Returns
+        -------
+        torch.Tensor or SpinParam[torch.Tensor]
+            The orbital weights of the system.
+            If polarized is True, then it returns the polarized orbital weights.
+
+        """
         if not polarized:
             return self._orb_weights
         else:
             return SpinParam(u=self._orb_weights_u, d=self._orb_weights_d)
 
     def get_nuclei_energy(self) -> torch.Tensor:
+        """Get the nuclei-nuclei energy of the system.
+
+        Returns
+        -------
+        torch.Tensor
+            Nuclei-nuclei energy of the system.
+
+        """
         # atomzs: (natoms,)
         # atompos: (natoms, ndim)
 
@@ -232,6 +270,7 @@ class Mol(BaseSystem):
         return q_by_r.sum() * 0.5
 
     def setup_grid(self) -> None:
+        """Setup the integration grid for the system."""
         grid_inp = self._grid_inp
         logger.info("Constructing the integration grid")
         self._grid = get_predefined_grid(self._grid_inp, self._atomzs_int, self._atompos,
@@ -250,11 +289,34 @@ class Mol(BaseSystem):
         # self._grid = BeckeGrid(sphgrids, self._atompos)
 
     def get_grid(self) -> BaseGrid:
+        """Get the integration grid of the system.
+
+        Returns
+        -------
+        BaseGrid
+            The integration grid of the system.
+
+        """
         if self._grid is None:
             raise RuntimeError("Please run mol.setup_grid() first before calling get_grid()")
         return self._grid
 
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+        """Get the parameter names of the system.
+
+        Parameters
+        ----------
+        methodname: str
+            Method name to get the parameter names.
+        prefix: str
+            Prefix to be added to the parameter names.
+
+        Returns
+        -------
+        List[str]
+            List of parameter names.
+
+        """
         if methodname == "get_nuclei_energy":
             params = [prefix + "_atompos"]
             if torch.is_floating_point(self._atomzs):
@@ -263,18 +325,41 @@ class Mol(BaseSystem):
         else:
             raise KeyError("Unknown methodname: %s" % methodname)
 
-    ################### properties ###################
+    # properties
     @property
     def atompos(self) -> torch.Tensor:
+        """Get the atomic positions of the system.
+
+        Returns
+        -------
+        torch.Tensor
+            Atomic positions of the system.
+
+        """
         return self._atompos
 
     @property
     def atomzs(self) -> torch.Tensor:
+        """Get the atomic numbers of the system.
+
+        Returns
+        -------
+        torch.Tensor
+            Atomic numbers of the system.
+
+        """
         return self._atomzs
 
     @property
     def atommasses(self) -> torch.Tensor:
-        # returns the atomic mass (only for non-isotope for now)
+        """returns the atomic mass (only for non-isotope for now)
+
+        Returns
+        -------
+        torch.Tensor
+            Atomic masses of the system.
+
+        """
         if torch.is_floating_point(self._atomzs):
             raise RuntimeError("Atom masses are not available for floating point Z")
         return torch.tensor([get_atom_mass(int(atomz)) for atomz in self._atomzs],
@@ -282,22 +367,68 @@ class Mol(BaseSystem):
 
     @property
     def spin(self) -> ZType:
+        """Get the spin of the system.
+
+        Returns
+        -------
+        ZType
+            Spin of the system.
+
+        """
         return self._spin
 
     @property
     def charge(self) -> ZType:
+        """Get the charge of the system.
+
+        Returns
+        -------
+        ZType
+            Charge of the system.
+
+        """
         return self._charge
 
     @property
     def numel(self) -> ZType:
+        """Get the number of electrons of the system.
+
+        Returns
+        -------
+        ZType
+            Number of electrons of the system.
+
+        """
         return self._numel
 
     @property
     def efield(self) -> Optional[Tuple[torch.Tensor, ...]]:
+        """Get the electric field of the system.
+
+        Returns
+        -------
+        Optional[Tuple[torch.Tensor, ...]]
+            Electric field of the system.
+
+        """
         return self._efield
 
 def _parse_basis(atomzs: torch.Tensor, basis: BasisInpType) -> List[List[CGTOBasis]]:
-    # returns the list of cgto basis for every atoms
+    """Returns the list of cgto basis for every atoms.
+
+    Parameters
+    ----------
+    atomzs: torch.Tensor
+        Atomic numbers of the atoms.
+    basis: BasisInpType
+        The basis input.
+
+    Returns
+    -------
+    List[List[CGTOBasis]]
+        List of CGTOBasis for every atoms.
+
+    """
     natoms = len(atomzs)
 
     if isinstance(basis, str):
