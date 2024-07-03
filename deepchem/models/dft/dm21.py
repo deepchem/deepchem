@@ -72,14 +72,14 @@ class DM21(nn.Module):
         self.n_layers: int = n_layers
 
         # Layer Initialisation
-        self.lin_tanh: nn.Module = nn.Linear(11, self.hidden_size)
-        self.lin_elu: nn.Module = nn.ModuleList()
+        self.lin_tanh = nn.Linear(11, self.hidden_size)
+        self.lin_elu = nn.ModuleList()
         for i in range(self.n_layers):
             self.lin_elu.append(nn.Linear(self.hidden_size, self.hidden_size))
-        self.final: nn.Module = nn.Linear(self.hidden_size, 3)
-        self.acti_tanh: nn.Module = nn.Tanh()
-        self.acti_elu: nn.Module = nn.ELU()
-        self.acti_scaled_sigmoid: nn.Module = nn.Sigmoid()
+        self.final = nn.Linear(self.hidden_size, 3)
+        self.acti_tanh = nn.Tanh()
+        self.acti_elu = nn.ELU()
+        self.acti_scaled_sigmoid = nn.Sigmoid()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward Method for the DeepMind 21 Model.
