@@ -11,7 +11,7 @@ try:
 except ModuleNotFoundError:
     pass
 
-
+@pytest.mark.torch
 class SimpleCNN(nn.Module):
 
     def __init__(self, input_dim=1024, num_classes=2):
