@@ -1464,12 +1464,16 @@ def test_torch_graph_conv():
     featurizer = dc.feat.graph_features.ConvMolFeaturizer()
     mols = featurizer.featurize(mols)
     multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
-    atom_features = multi_mol.get_atom_features().astype(np.float32)
-    degree_slice = multi_mol.deg_slice
-    membership = multi_mol.membership
-    deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
+    atom_features = torch.from_numpy(multi_mol.get_atom_features().astype(
+        np.float32))
+    degree_slice = torch.from_numpy(multi_mol.deg_slice)
+    membership = torch.from_numpy(multi_mol.membership)
+    deg_adjs = [
+        torch.from_numpy(i) for i in multi_mol.get_deg_adjacency_lists()[1:]
+    ]
     args = [atom_features, degree_slice, membership] + deg_adjs
-    layer = torch_layers.GraphConv(out_channels)
+    layer = torch_layers.GraphConv(
+        out_channels, number_input_features=atom_features.shape[-1])
     torch.set_printoptions(precision=8)
     W_list = np.load("deepchem/models/tests/assets/graphconvlayer_weights.npy",
                      allow_pickle=True).tolist()
@@ -1499,10 +1503,13 @@ def test_torch_graph_pool():
     featurizer = dc.feat.graph_features.ConvMolFeaturizer()
     mols = featurizer.featurize(mols)
     multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
-    atom_features = multi_mol.get_atom_features().astype(np.float32)
-    degree_slice = multi_mol.deg_slice
-    membership = multi_mol.membership
-    deg_adjs = multi_mol.get_deg_adjacency_lists()[1:]
+    atom_features = torch.from_numpy(multi_mol.get_atom_features().astype(
+        np.float32))
+    degree_slice = torch.from_numpy(multi_mol.deg_slice)
+    membership = torch.from_numpy(multi_mol.membership)
+    deg_adjs = [
+        torch.from_numpy(i) for i in multi_mol.get_deg_adjacency_lists()[1:]
+    ]
     args = [atom_features, degree_slice, membership] + deg_adjs
     result = torch_layers.GraphPool()(args)
     assert np.allclose(
@@ -1510,3 +1517,30 @@ def test_torch_graph_pool():
         np.load("deepchem/models/tests/assets/graphpoollayer_result.npy"),
         atol=1e-4)
     assert result.shape[0] == n_atoms
+
+
+@pytest.mark.torch
+def test_torch_graph_gather():
+    import deepchem as dc
+    batch_size = 2
+    n_features = 75
+    raw_smiles = ['CCC', 'C']
+    from rdkit import Chem
+    mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
+    featurizer = dc.feat.graph_features.ConvMolFeaturizer()
+    mols = featurizer.featurize(mols)
+    multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
+    atom_features = torch.from_numpy(multi_mol.get_atom_features().astype(
+        np.float32))
+    degree_slice = torch.from_numpy(multi_mol.deg_slice)
+    membership = torch.from_numpy(multi_mol.membership)
+    deg_adjs = [
+        torch.from_numpy(i) for i in multi_mol.get_deg_adjacency_lists()[1:]
+    ]
+    args = [atom_features, degree_slice, membership] + deg_adjs
+    result = torch_layers.GraphGather(batch_size)(args)
+    assert np.allclose(
+        result.detach().numpy(),
+        np.load("deepchem/models/tests/assets/graphgatherlayer_result.npy"),
+        atol=1e-4)
+    assert result.shape == (batch_size, 2 * n_features)

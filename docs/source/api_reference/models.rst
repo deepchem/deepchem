@@ -476,7 +476,8 @@ MATModel
 NormalizingFlowModel
 --------------------
 
-.. autoclass:: deepchem.models.torch_models.NormalizingFlow
+.. autoclass:: deepchem.models.torch_models.flows.NormalizingFlowModel
+  :members:
 
 DMPNNModel
 ----------
@@ -561,6 +562,12 @@ UNetModel
 .. autoclass:: deepchem.models.torch_models.UNetModel
   :members:
 
+_GraphConvTorchModel
+--------------------
+
+.. autoclass:: deepchem.models.torch_models._GraphConvTorchModel
+  :members:
+
 PyTorch Lightning Models
 ========================
 
@@ -607,6 +614,12 @@ Chemberta
 ---------
 
 .. autoclass:: deepchem.models.torch_models.chemberta.Chemberta
+  :members:
+
+ProtBERT
+---------
+
+.. autoclass:: deepchem.models.torch_models.prot_bert.ProtBERT
   :members:
 
 Trainer

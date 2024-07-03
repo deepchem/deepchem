@@ -56,6 +56,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [17 Advanced model training using Hyperopt](Advanced_model_training_using_hyperopt.ipynb)
 * [18 Introduction to Gaussian Processes](Introduction_to_Gaussian_Processes.ipynb)
 * [19 Pytorch-Lightning Integration for DeepChem Models](PytorchLightning_Integration.ipynb)
+* [20 Compiling DeepChem PyTorch Models](Compiling_DeepChem_Torch_Models.ipynb)
 
 ### Molecular Machine Learning
 * [1 Molecular Fingerprints](Molecular_Fingerprints.ipynb)
@@ -111,3 +112,6 @@ tutorials discuss about using DeepChem for specific applications.
 
 ### Olfaction
 * [1 Predict Multi-Label Odor Descriptors using OpenPOM](Predict_Multi_Label_Odor_Descriptors_using_OpenPOM.ipynb)
+
+### PROTACs
+* [1 Introduction to PROTACs](Introduction_to_PROTACs.ipynb)
