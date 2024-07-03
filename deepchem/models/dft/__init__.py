@@ -7,6 +7,8 @@ import logging
 logger_ = logging.getLogger(__name__)
 
 try:
+    from deepchem.models.dft.dm21 import DM21
+
     from deepchem.models.dft.hamilton.orbparams import BaseOrbParams
     from deepchem.models.dft.hamilton.orbparams import QROrbParams
     from deepchem.models.dft.hamilton.orbparams import MatExpOrbParams
