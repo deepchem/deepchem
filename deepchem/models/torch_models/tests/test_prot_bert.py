@@ -11,29 +11,29 @@ try:
 except ModuleNotFoundError:
     pass
 
-@pytest.mark.torch
-class SimpleCNN(nn.Module):
-
-    def __init__(self, input_dim=1024, num_classes=2):
-        super(SimpleCNN, self).__init__()
-        self.conv1 = nn.Conv1d(in_channels=1,
-                               out_channels=32,
-                               kernel_size=3,
-                               padding=1)
-        self.pool = nn.MaxPool1d(kernel_size=2, stride=2)
-        self.fc1 = nn.Linear(32 * (input_dim // 2),
-                             num_classes)  # Adjusting for the pooling layer
-
-    def forward(self, x):
-        x = x.unsqueeze(1)  # Adding channel dimension
-        x = self.pool(F.relu(self.conv1(x)))
-        x = x.view(x.size(0), -1)
-        x = self.fc1(x)
-        return x
-
 
 @pytest.mark.torch
 def test_prot_bert_load():
+
+    class SimpleCNN(nn.Module):
+
+        def __init__(self, input_dim=1024, num_classes=2):
+            super(SimpleCNN, self).__init__()
+            self.conv1 = nn.Conv1d(in_channels=1,
+                                   out_channels=32,
+                                   kernel_size=3,
+                                   padding=1)
+            self.pool = nn.MaxPool1d(kernel_size=2, stride=2)
+            self.fc1 = nn.Linear(32 * (input_dim // 2),
+                                 num_classes)  # Adjusting for the pooling layer
+
+        def forward(self, x):
+            x = x.unsqueeze(1)  # Adding channel dimension
+            x = self.pool(F.relu(self.conv1(x)))
+            x = x.view(x.size(0), -1)
+            x = self.fc1(x)
+            return x
+
     # Test to ensure all variants of the model are supported
     model = ProtBERT(task='mlm', model_pretrain_dataset="uniref100", n_tasks=1)
     model = ProtBERT(task='mlm', model_pretrain_dataset="bfd", n_tasks=1)
@@ -81,6 +81,25 @@ def test_prot_bert_pretraining_mlm(protein_classification_dataset):
 
 @pytest.mark.torch
 def test_prot_bert_finetuning(protein_classification_dataset):
+
+    class SimpleCNN(nn.Module):
+
+        def __init__(self, input_dim=1024, num_classes=2):
+            super(SimpleCNN, self).__init__()
+            self.conv1 = nn.Conv1d(in_channels=1,
+                                   out_channels=32,
+                                   kernel_size=3,
+                                   padding=1)
+            self.pool = nn.MaxPool1d(kernel_size=2, stride=2)
+            self.fc1 = nn.Linear(32 * (input_dim // 2),
+                                 num_classes)  # Adjusting for the pooling layer
+
+        def forward(self, x):
+            x = x.unsqueeze(1)  # Adding channel dimension
+            x = self.pool(F.relu(self.conv1(x)))
+            x = x.view(x.size(0), -1)
+            x = self.fc1(x)
+            return x
 
     custom_torch_cls_seq_network = nn.Sequential(nn.Linear(1024, 512),
                                                  nn.ReLU(), nn.Linear(512, 2))
