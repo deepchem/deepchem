@@ -8,8 +8,8 @@ class Smiles2Vec(nn.Module):
     Implements the Smiles2Vec model, that learns neural representations of SMILES
     strings which can be used for downstream tasks.
 
-    The goal here is to take SMILES strings as inputs, turn them into vector representations which can then
-    be used in predicting molecular properties.
+    The goal here is to take SMILES strings as inputs, turn them into vector representations
+    which can then be used in predicting molecular properties.
 
     The model consists of an Embedding layer that retrieves embeddings for each
     character in the SMILES string. These embeddings are learnt jointly with the
@@ -29,8 +29,8 @@ class Smiles2Vec(nn.Module):
 
     References
     ----------
-    .. [1] Goh et al., "SMILES2vec: An Interpretable General-Purpose Deep Neural Network for Predicting Chemical
-    Properties" (https://arxiv.org/pdf/1712.02034.pdf)
+    .. [1] Goh et al., "SMILES2vec: An Interpretable General-Purpose Deep Neural Network for
+    Predicting Chemical Properties" (https://arxiv.org/pdf/1712.02034.pdf)
     .. [2] Chemnet (https://arxiv.org/abs/1712.02734)
     """
 
