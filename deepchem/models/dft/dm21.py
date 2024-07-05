@@ -46,12 +46,12 @@ class DM21(nn.Module):
 
     References
     ----------
-    ..[1] Simulating matter on the quantum scale with AI. (2024, May 14). Google DeepMind.
-      https://deepmind.google/discover/blog/simulating-matter-on-the-quantum-scale-with-ai/
-    ..[2] James Kirkpatrick et al. ,Pushing the frontiers of density functionals by solving
-      the fractional electron problem. Science374,1385-1389(2021).DOI:10.1126/science.abj6511
-    ..[3] Density functional theory. (2024, April 24).
-      In Wikipedia. https://en.wikipedia.org/wiki/Density_functional_theory
+    .. [1] Simulating matter on the quantum scale with AI. (2024, May 14). Google DeepMind.
+        https://deepmind.google/discover/blog/simulating-matter-on-the-quantum-scale-with-ai/
+    .. [2] James Kirkpatrick et al. ,Pushing the frontiers of density functionals by solving
+        the fractional electron problem. Science374,1385-1389(2021).DOI:10.1126/science.abj6511
+    .. [3] Density functional theory. (2024, April 24).
+        In Wikipedia. https://en.wikipedia.org/wiki/Density_functional_theory
 
     """
 

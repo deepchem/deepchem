@@ -6477,3 +6477,51 @@ class GraphGather(nn.Module):
         if self.activation_fn is not None:
             mol_features = self.activation_fn(mol_features)
         return mol_features
+
+
+class Logistic(nn.Module):
+    """A logistic function or logistic curve is a common S-shaped curve (sigmoid curve).
+    Logistic functions are often used in artificial neural networks to introduce
+    nonlinearity in the model or to clamp signals to within a specified interval.
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models.layers import Logistic
+    >>> import torch
+    >>> layer = Logistic()
+    >>> input = torch.arange(-10, 11)
+    >>> output = layer(input)
+    >>> output.shape
+    torch.Size([21])
+
+    References
+    ----------
+    .. [1] Verhulst, Pierre-François (1838). "Notice sur la loi que la population
+        poursuit dans son accroissement" (PDF). Correspondance Mathématique et
+        Physique. 10: 113–121. Retrieved 3 December 2014.
+    .. [2] Sigmoid function. (2024, May 10). In Wikipedia. https://en.wikipedia.org/wiki/Sigmoid_function
+    .. [3] Logistic function. (2024, June 12). In Wikipedia. https://en.wikipedia.org/wiki/Logistic_function
+
+    """
+    def __init__(self, L: torch.Tensor = 1, k: torch.Tensor = 1, x_0: torch.Tensor = 0, **kwargs):
+        """Initialize the Logistic Function
+
+        Parameters
+        ----------
+        L: torch.Tensor
+            L is the carrying capacity, the supremum of the values of the function.
+            The carrying capacity is defined as the system's maximal load.
+        k: torch.Tensor
+            k is the logistic growth rate, the steepness of the curve.
+        x_0: torch.Tensor
+            x_0 is the value of the function's midpoint.
+
+        """
+        super(Logistic, self).__init__(**kwargs)
+        self.L = L
+        self.k = k
+        self.x_0 = x_0
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.L / (1 + torch.exp(-self.k * (x - self.x_0)))
+

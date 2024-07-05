@@ -1544,3 +1544,13 @@ def test_torch_graph_gather():
         np.load("deepchem/models/tests/assets/graphgatherlayer_result.npy"),
         atol=1e-4)
     assert result.shape == (batch_size, 2 * n_features)
+
+
+@pytest.mark.torch
+def test_logistic():
+    from deepchem.models.torch_models import Logistic
+    layer = Logistic()
+    inputs = torch.arange(-10, 11)
+    result = layer(inputs)
+    sigmoid_result = torch.sigmoid(inputs)
+    assert torch.allclose(result, sigmoid_result)
