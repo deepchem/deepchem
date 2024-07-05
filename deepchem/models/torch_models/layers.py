@@ -6496,6 +6496,16 @@ class Logistic(nn.Module):
     >>> output.shape
     torch.Size([21])
 
+    Scaling the Sigmoid/Logistic function to 0-10
+
+    >>> from deepchem.models.torch_models.layers import Logistic
+    >>> import torch
+    >>> layer = Logistic(10)
+    >>> input = torch.arange(-10, 11)
+    >>> output = layer(input)
+    >>> output.shape
+    torch.Size([21])
+
     References
     ----------
     .. [1] Verhulst, Pierre-François (1838). "Notice sur la loi que la population
