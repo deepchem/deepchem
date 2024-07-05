@@ -77,6 +77,7 @@ class DM21(nn.Module):
         self.lin_elu = nn.ModuleList()
         for i in range(self.n_layers):
             self.lin_elu.append(nn.Linear(self.hidden_size, self.hidden_size))
+            self.lin_elu.append(nn.LayerNorm(self.hidden_size))
         self.final = nn.Linear(self.hidden_size, 3)
         self.acti_tanh = nn.Tanh()
         self.acti_elu = nn.ELU()
@@ -100,5 +101,6 @@ class DM21(nn.Module):
         x = self.acti_tanh(self.lin_tanh(x))
         for i in range(self.n_layers):
             x = self.acti_elu(self.lin_elu[i](x))
+            x = self.lin_elu[2*i+1](x)
         x = self.acti_scaled_sigmoid(self.final(x))
         return x
