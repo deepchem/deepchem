@@ -56,7 +56,6 @@ class _GraphConvTorchModel(nn.Module):
     >>> membership = torch.from_numpy(multi_mol.membership)
     >>> deg_adjs = [torch.from_numpy(i) for i in multi_mol.get_deg_adjacency_lists()[1:]]
     >>> args = [atom_features, degree_slice, membership, torch.tensor(2)] + deg_adjs
-    >>> torch.set_printoptions(precision=8)
     >>> model = _GraphConvTorchModel(out_channels, graph_conv_layers=[64, 64], number_input_features=[atom_features.shape[-1], 64],dense_layer_size=128,dropout=0.0,mode="classification",number_atom_features=75,n_classes=2,batch_normalize=False,uncertainty=False,batch_size=batch_size)
     >>> result = model(args)
     >>> len(result)

@@ -29,7 +29,6 @@ def test_graph_conv_classification():
         torch.from_numpy(i) for i in multi_mol.get_deg_adjacency_lists()[1:]
     ]
     args = [atom_features, degree_slice, membership, torch.tensor(2)] + deg_adjs
-    torch.set_printoptions(precision=8)
     model_p = _GraphConvTorchModel(
         out_channels,
         graph_conv_layers=[64, 64],
