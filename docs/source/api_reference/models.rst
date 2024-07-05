@@ -568,6 +568,12 @@ _GraphConvTorchModel
 .. autoclass:: deepchem.models.torch_models._GraphConvTorchModel
   :members:
 
+Smiles2Vec
+--------------------
+
+.. autoclass:: deepchem.models.torch_models.Smiles2Vec
+  :members:
+
 PyTorch Lightning Models
 ========================
 
