@@ -27,6 +27,7 @@ NNLDA, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
 HybridXC, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
 XCNNSCF, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
 DM21, `ref <https://doi.org/10.1126/science.abj6511>`_, DM21Model-DFT
+Logistic, `ref <https://en.wikipedia.org/wiki/Logistic_function>`_, DM21Model-DFT
 AtomEncoder, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
 BondEncoder, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
 Net3DLayer, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
