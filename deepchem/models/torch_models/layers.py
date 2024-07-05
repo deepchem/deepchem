@@ -6505,6 +6505,7 @@ class Logistic(nn.Module):
     .. [3] Logistic function. (2024, June 12). In Wikipedia. https://en.wikipedia.org/wiki/Logistic_function
 
     """
+
     def __init__(self, L: int = 1, k: int = 1, x_0: int = 0, **kwargs):
         """Initialize the Logistic Function
 
@@ -6526,4 +6527,3 @@ class Logistic(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.L / (1 + torch.exp(-self.k * (x - self.x_0)))
-
