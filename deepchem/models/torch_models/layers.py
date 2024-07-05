@@ -6484,6 +6484,8 @@ class Logistic(nn.Module):
     Logistic functions are often used in artificial neural networks to introduce
     nonlinearity in the model or to clamp signals to within a specified interval.
 
+    .. math:: f(x) = \frac{L}{1 + e^{-k * (x - x_{0})}}
+
     Examples
     --------
     >>> from deepchem.models.torch_models.layers import Logistic

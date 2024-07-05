@@ -1,5 +1,6 @@
-import torch
+from deepchem.models.torch_models import Logistic
 import torch.nn as nn
+import torch
 
 
 class DM21(nn.Module):
@@ -79,7 +80,7 @@ class DM21(nn.Module):
         self.final = nn.Linear(self.hidden_size, 3)
         self.acti_tanh = nn.Tanh()
         self.acti_elu = nn.ELU()
-        self.acti_scaled_sigmoid = nn.Sigmoid()
+        self.acti_scaled_sigmoid = Logistic(2)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward Method for the DeepMind 21 Model.
