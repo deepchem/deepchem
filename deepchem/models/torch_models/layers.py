@@ -6505,17 +6505,17 @@ class Logistic(nn.Module):
     .. [3] Logistic function. (2024, June 12). In Wikipedia. https://en.wikipedia.org/wiki/Logistic_function
 
     """
-    def __init__(self, L: torch.Tensor = 1, k: torch.Tensor = 1, x_0: torch.Tensor = 0, **kwargs):
+    def __init__(self, L: int = 1, k: int = 1, x_0: int = 0, **kwargs):
         """Initialize the Logistic Function
 
         Parameters
         ----------
-        L: torch.Tensor
+        L: int
             L is the carrying capacity, the supremum of the values of the function.
             The carrying capacity is defined as the system's maximal load.
-        k: torch.Tensor
+        k: int
             k is the logistic growth rate, the steepness of the curve.
-        x_0: torch.Tensor
+        x_0: int
             x_0 is the value of the function's midpoint.
 
         """
