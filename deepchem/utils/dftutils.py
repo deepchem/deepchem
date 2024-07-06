@@ -1,10 +1,10 @@
 """
 Density Functional Theory Utilities
 Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcca3e314a538ca/xcdnn2/kscalc.py """
-import torch
 import hashlib
 try:
     import xitorch as xt
+    import torch
 except:
     pass
 from dataclasses import dataclass
