@@ -4,7 +4,7 @@ try:
     import torch
     from deepchem.models.dft.nnxc import HybridXC
     has_dqc = True
-except ModuleNotFoundError:
+except:
     has_dqc = False
 import pytest
 import numpy as np
