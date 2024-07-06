@@ -77,7 +77,10 @@ def test_Smiles2Vec_forward():
         n_tasks=n_tasks,
         max_seq_len=max_seq_len,
     )
-    model = Smiles2Vec(char_to_idx)
+    model = Smiles2Vec(char_to_idx=char_to_idx,
+                       max_seq_len=max_seq_len,
+                       n_tasks=n_tasks)
+    
     input = torch.randint(low=0, high=len(char_to_idx), size=(1, max_seq_len))
     # Ex: input = torch.tensor([[32,32,32,32,32,32,25,29,15,17,29,29,32,32,32,32,32,32,32,32]])
 
@@ -105,7 +108,7 @@ def test_Smiles2VecModel_regression():
                             model_dir=None,
                             mode="regression")
 
-    model.fit(dataset, nb_epoch=500)
+    model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric], [])
     assert scores['mean_absolute_error'] < 0.1
 
@@ -128,6 +131,6 @@ def test_Smiles2VecModel_classification():
                             n_tasks=n_tasks,
                             mode="classification")
 
-    model.fit(dataset, nb_epoch=500)
+    model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric], [])
     assert scores['mean-roc_auc_score'] >= 0.9
