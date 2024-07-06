@@ -12,9 +12,9 @@ try:
     from dqc.system.mol import Mol
     from dqc.system.base_system import BaseSystem
     from deepchem.utils.dftutils import KSCalc
+    from deepchem.utils.dft_utils import parse_moldesc, BaseGrid
 except:
     pass
-from deepchem.utils.dft_utils import parse_moldesc, BaseGrid
 
 
 class DFTSystem():
