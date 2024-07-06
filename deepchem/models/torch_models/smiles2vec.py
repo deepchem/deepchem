@@ -1,6 +1,11 @@
 import torch.nn as nn
+import torch.nn.functional as F
+import torch
 import math
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
+
+from deepchem.models.torch_models import TorchModel
+from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy, SigmoidCrossEntropy
 
 
 class Smiles2Vec(nn.Module):
@@ -177,3 +182,104 @@ class Smiles2Vec(nn.Module):
         else:
             Logits = Logits.view(-1, self.n_tasks, 1)
             return Logits
+
+
+class Smiles2VecModel(TorchModel):
+
+    def __init__(self,
+                 char_to_idx: Dict,
+                 n_tasks: int = 10,
+                 max_seq_len: int = 270,
+                 embedding_dim: int = 50,
+                 n_classes: int = 2,
+                 use_bidir: bool = True,
+                 use_conv: bool = True,
+                 filters: int = 192,
+                 kernel_size: int = 3,
+                 strides: int = 1,
+                 rnn_sizes: List[int] = [224, 384],
+                 rnn_types: List[str] = ["GRU", "GRU"],
+                 mode: str = "regression",
+                 **kwargs):
+        """
+        Parameters
+        ----------
+        char_to_idx: dict,
+            char_to_idx contains character to index mapping for SMILES characters
+        embedding_dim: int, default 50
+            Size of character embeddings used.
+        use_bidir: bool, default True
+            Whether to use BiDirectional RNN Cells
+        use_conv: bool, default True
+            Whether to use a conv-layer
+        kernel_size: int, default 3
+            Kernel size for convolutions
+        filters: int, default 192
+            Number of filters
+        strides: int, default 1
+            Strides used in convolution
+        rnn_sizes: list[int], default [224, 384]
+            Number of hidden units in the RNN cells
+        mode: str, default regression
+            Whether to use model for regression or classification
+        """
+        self.n_tasks = n_tasks
+        self.n_classes = n_classes
+        self.mode: str = mode
+        self.model = Smiles2Vec(char_to_idx=char_to_idx,
+                                n_tasks=n_tasks,
+                                max_seq_len=max_seq_len,
+                                embedding_dim=embedding_dim,
+                                n_classes=n_classes,
+                                use_bidir=use_bidir,
+                                use_conv=use_conv,
+                                filters=filters,
+                                kernel_size=kernel_size,
+                                strides=strides,
+                                rnn_sizes=rnn_sizes,
+                                rnn_types=rnn_types,
+                                mode=mode)
+        loss: Union[SigmoidCrossEntropy, SoftmaxCrossEntropy, L2Loss]
+
+        if mode == "classification":
+            if n_classes == 2:
+                loss = SigmoidCrossEntropy()
+            else:
+                loss = SoftmaxCrossEntropy()
+
+            output_types = ['prediction', 'loss']
+
+        else:
+            loss = L2Loss()
+            output_types = ['prediction']
+
+        super(Smiles2VecModel, self).__init__(self.model,
+                                              loss=loss,
+                                              output_types=output_types,
+                                              **kwargs)
+
+    def default_generator(self,
+                          dataset,
+                          epochs=1,
+                          mode='regression',
+                          deterministic=True,
+                          pad_batches=True):
+
+        for epoch in range(epochs):
+
+            for X_b, y_b, w_b, ids_b in dataset.iterbatches(
+                    batch_size=self.batch_size,
+                    deterministic=deterministic,
+                    pad_batches=pad_batches):
+                #  print(f"Shape of y_b: {y_b.shape}")
+
+                if self.mode == 'classification':
+
+                    # Convert to torch.int64 for F.one_hot calculation
+                    y_b = torch.from_numpy(y_b.flatten()).long()
+                    y_b = F.one_hot(y_b, self.n_classes).view(
+                        -1, self.n_tasks, self.n_classes)
+                    # Convert to float for further steps
+                    y_b = y_b.float()
+
+                yield ([X_b], [y_b], [w_b])

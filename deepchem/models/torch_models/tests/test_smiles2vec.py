@@ -65,7 +65,7 @@ def get_dataset(mode="regression",
 
 
 @pytest.mark.torch
-def test_smiles2vec_model():
+def test_Smiles2Vec_forward():
     from deepchem.models.torch_models import Smiles2Vec
 
     n_tasks = 10
@@ -83,3 +83,51 @@ def test_smiles2vec_model():
 
     logits = model.forward(input)
     assert np.shape(logits) == (1, n_tasks, 1)
+
+
+@pytest.mark.torch
+def test_Smiles2VecModel_regression():
+    from deepchem.models.torch_models import Smiles2VecModel
+
+    n_tasks = 10
+    max_seq_len = 20
+
+    dataset, metric, char_to_idx = get_dataset(
+        mode="regression",
+        featurizer="smiles2seq",
+        n_tasks=n_tasks,
+        max_seq_len=max_seq_len,
+    )
+    model = Smiles2VecModel(char_to_idx=char_to_idx,
+                            max_seq_len=max_seq_len,
+                            use_conv=True,
+                            n_tasks=n_tasks,
+                            model_dir=None,
+                            mode="regression")
+
+    model.fit(dataset, nb_epoch=500)
+    scores = model.evaluate(dataset, [metric], [])
+    assert scores['mean_absolute_error'] < 0.1
+
+
+@pytest.mark.torch
+def test_Smiles2VecModel_classification():
+    from deepchem.models.torch_models import Smiles2VecModel
+
+    n_tasks = 10
+    max_seq_len = 20
+
+    dataset, metric, char_to_idx, = get_dataset(mode="classification",
+                                                featurizer="smiles2seq",
+                                                n_tasks=n_tasks,
+                                                max_seq_len=max_seq_len)
+
+    model = Smiles2VecModel(char_to_idx=char_to_idx,
+                            max_seq_len=max_seq_len,
+                            use_conv=True,
+                            n_tasks=n_tasks,
+                            mode="classification")
+
+    model.fit(dataset, nb_epoch=500)
+    scores = model.evaluate(dataset, [metric], [])
+    assert scores['mean-roc_auc_score'] >= 0.9
