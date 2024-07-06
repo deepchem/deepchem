@@ -271,7 +271,6 @@ class Smiles2VecModel(TorchModel):
                     batch_size=self.batch_size,
                     deterministic=deterministic,
                     pad_batches=pad_batches):
-                #  print(f"Shape of y_b: {y_b.shape}")
 
                 if self.mode == 'classification':
 
