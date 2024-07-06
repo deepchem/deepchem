@@ -68,7 +68,7 @@ def get_dataset(mode="regression",
 def test_Smiles2Vec_forward():
     from deepchem.models.torch_models import Smiles2Vec
 
-    n_tasks = 10
+    n_tasks = 5
     max_seq_len = 20
 
     _, _, char_to_idx = get_dataset(
@@ -89,7 +89,7 @@ def test_Smiles2Vec_forward():
 def test_Smiles2VecModel_regression():
     from deepchem.models.torch_models import Smiles2VecModel
 
-    n_tasks = 10
+    n_tasks = 5
     max_seq_len = 20
 
     dataset, metric, char_to_idx = get_dataset(
@@ -114,7 +114,7 @@ def test_Smiles2VecModel_regression():
 def test_Smiles2VecModel_classification():
     from deepchem.models.torch_models import Smiles2VecModel
 
-    n_tasks = 10
+    n_tasks = 5
     max_seq_len = 20
 
     dataset, metric, char_to_idx, = get_dataset(mode="classification",
