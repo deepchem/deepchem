@@ -22,7 +22,7 @@ try:
     from deepchem.feat.dft_data import DFTEntry
     import yaml
     from yaml.loader import SafeLoader
-except ModuleNotFoundError:
+except:
     pass
 
 try:
