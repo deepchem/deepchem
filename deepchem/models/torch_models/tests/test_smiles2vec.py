@@ -80,7 +80,7 @@ def test_Smiles2Vec_forward():
     model = Smiles2Vec(char_to_idx=char_to_idx,
                        max_seq_len=max_seq_len,
                        n_tasks=n_tasks)
-    
+
     input = torch.randint(low=0, high=len(char_to_idx), size=(1, max_seq_len))
     # Ex: input = torch.tensor([[32,32,32,32,32,32,25,29,15,17,29,29,32,32,32,32,32,32,32,32]])
 
