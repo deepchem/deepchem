@@ -108,7 +108,7 @@ def test_Smiles2VecModel_regression():
                             model_dir=None,
                             mode="regression")
 
-    model.fit(dataset, nb_epoch=100)
+    model.fit(dataset, nb_epoch=500)
     scores = model.evaluate(dataset, [metric], [])
     assert scores['mean_absolute_error'] < 0.1
 
@@ -131,6 +131,6 @@ def test_Smiles2VecModel_classification():
                             n_tasks=n_tasks,
                             mode="classification")
 
-    model.fit(dataset, nb_epoch=100)
+    model.fit(dataset, nb_epoch=500)
     scores = model.evaluate(dataset, [metric], [])
     assert scores['mean-roc_auc_score'] >= 0.9
