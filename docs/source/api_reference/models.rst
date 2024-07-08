@@ -162,6 +162,8 @@ Optimizers
 .. autoclass:: deepchem.models.optimizers.LinearCosineDecay
   :members:
 
+.. autoclass:: deepchem.models.optimizers.LambdaLRWithWarmup
+  :members:
 
 Keras Models
 ============
