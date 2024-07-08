@@ -188,8 +188,9 @@ class TestOptimizers(unittest.TestCase):
     def test_lambda_lr_with_warmup(self):
         opt = optimizers.Adam(learning_rate=5e-5)
         lr_schedule = optimizers.LambdaLRWithWarmup(initial_rate=5e-5,
-                                            num_training_steps=100_000 * 10,
-                                            num_warmup_steps=10_000)
+                                                    num_training_steps=100_000 *
+                                                    10,
+                                                    num_warmup_steps=10_000)
         params = [torch.nn.Parameter(torch.Tensor([1.0]))]
         torchopt = opt._create_pytorch_optimizer(params)
         _ = lr_schedule._create_pytorch_schedule(torchopt)
