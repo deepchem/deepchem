@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import pytest
 
-from deepchem.feat.graph_data import BatchGraphData, GraphData, shortest_path_length
+from deepchem.feat.graph_data import BatchGraphData, GraphData, shortest_path_length, WeightedDirectedGraphData
 
 
 class TestGraph(unittest.TestCase):
@@ -62,13 +62,13 @@ class TestGraph(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             node_features = np.random.random_sample((5, 32))
-            invalid_edge_index_shape = np.array([
+            invalid_node_index_in_edge_index = np.array([
                 [0, 1, 2, 2, 3, 4],
                 [1, 2, 0, 3, 4, 5],
             ])
             _ = GraphData(
                 node_features=node_features,
-                edge_index=invalid_edge_index_shape,
+                edge_index=invalid_node_index_in_edge_index,
             )
 
         with self.assertRaises(ValueError):
@@ -256,3 +256,149 @@ class TestGraph(unittest.TestCase):
 
         expected_node_mapping = {0: 0, 1: 1, 2: 2, 4: 3}
         assert node_mapping == expected_node_mapping
+
+
+class TestWeightedDirectedGraph(unittest.TestCase):
+
+    def test_wdgraph_data(self):
+        num_nodes, num_node_features = 5, 32
+        num_edges, num_edge_features = 7, 32
+        node_features = np.random.random_sample((num_nodes, num_node_features))
+        edge_features = np.random.random_sample((num_edges, num_edge_features))
+        node_to_edge_mapping = [[min(0, x - 1), x] for x in range(num_nodes)]
+        node_weights = np.random.rand(num_nodes)
+        edge_weights = np.random.rand(num_edges)
+        edge_to_node_mapping = np.array([x for x in range(num_edges)])
+        edge_to_reverse_edge_mapping = np.array(
+            [x for x in range(num_edges)[::-1]])
+        # z is kwargs
+        z = np.random.random(5)
+
+        wd_graph = WeightedDirectedGraphData(
+            node_features=node_features,
+            edge_features=edge_features,
+            node_to_edge_mapping=node_to_edge_mapping,
+            node_weights=node_weights,
+            edge_weights=edge_weights,
+            edge_to_node_mapping=edge_to_node_mapping,
+            edge_to_reverse_edge_mapping=edge_to_reverse_edge_mapping,
+            z=z)
+
+        assert wd_graph.num_nodes == num_nodes
+        assert wd_graph.num_node_features == num_node_features
+        assert wd_graph.num_edges == num_edges
+        assert wd_graph.num_edge_features == num_edge_features
+        assert wd_graph.z.shape == z.shape
+        assert str(
+            wd_graph
+        ) == """WeightedDirectedGraphData(node_features=[5, 32], edge_features=[7, 32],
+                node_to_edge_mapping=5, node_weights=[5],
+                edge_weights=[7], edge_to_node_mapping=7,
+                edge_to_reverse_edge_mapping=7, z=[5])"""
+
+    def test_invalid_nodee_to_edge_wdgraph_data(self):
+        with self.assertRaises(ValueError):
+            node_features = np.random.rand(5, 10)
+            edge_features = np.random.rand(7, 10)
+            invalid_node_to_edge_mapping = [[x, x] for x in range(10)]
+            node_weights = np.random.rand(5)
+            edge_weights = np.random.rand(7)
+            _ = WeightedDirectedGraphData(
+                node_features=node_features,
+                edge_features=edge_features,
+                node_to_edge_mapping=invalid_node_to_edge_mapping,
+                node_weights=node_weights,
+                edge_weights=edge_weights)
+
+        with self.assertRaises(ValueError):
+            node_features = np.random.rand(5, 10)
+            edge_features = np.random.rand(7, 10)
+            invalid_shape_node_to_edge_mapping = [x for x in range(10)]
+            node_weights = np.random.rand(5)
+            edge_weights = np.random.rand(7)
+            _ = WeightedDirectedGraphData(
+                node_features=node_features,
+                edge_features=edge_features,
+                node_to_edge_mapping=invalid_shape_node_to_edge_mapping,
+                node_weights=node_weights,
+                edge_weights=edge_weights)
+
+        with self.assertRaises(ValueError):
+            node_features = np.random.rand(5, 10)
+            edge_features = np.random.rand(7, 10)
+            invaild_value_node_to_edge_mapping = [[x, x] for x in range(4)
+                                                 ].append([1, 69])
+            node_weights = np.random.rand(5)
+            edge_weights = np.random.rand(7)
+            _ = WeightedDirectedGraphData(
+                node_features=node_features,
+                edge_features=edge_features,
+                node_to_edge_mapping=invaild_value_node_to_edge_mapping,
+                node_weights=node_weights,
+                edge_weights=edge_weights)
+
+    def test_invalid_weight_wdgraph_data(self):
+        with self.assertRaises(ValueError):
+            node_features = np.random.rand(5, 10)
+            edge_features = np.random.rand(7, 10)
+            node_to_edge_mapping = [[x, x] for x in range(5)]
+            invalid_shape_node_weights = np.random.rand(4)
+            edge_weights = np.random.rand(7)
+            _ = WeightedDirectedGraphData(
+                node_features=node_features,
+                edge_features=edge_features,
+                node_to_edge_mapping=node_to_edge_mapping,
+                node_weights=invalid_shape_node_weights,
+                edge_weights=edge_weights)
+
+        with self.assertRaises(ValueError):
+            node_features = np.random.rand(5, 10)
+            edge_features = np.random.rand(7, 10)
+            node_to_edge_mapping = [[x, x] for x in range(5)]
+            node_weights = np.random.rand(5)
+            invalid_shape_edge_weights = np.random.rand()
+            _ = WeightedDirectedGraphData(
+                node_features=node_features,
+                edge_features=edge_features,
+                node_to_edge_mapping=node_to_edge_mapping,
+                node_weights=node_weights,
+                edge_weights=invalid_shape_edge_weights)
+
+    def test_invalid_edge_to_node_wdgraph_data(self):
+        with self.assertRaises(ValueError):
+            node_features = np.random.rand(5, 10)
+            edge_features = np.random.rand(7, 10)
+            node_to_edge_mapping = [[x, x] for x in range(5)]
+            node_weights = np.random.rand(5)
+            edge_weights = np.random.rand(7)
+            invalid_value_edge_to_node_mapping = np.array([x for x in range(6)
+                                                          ].append(69))
+            edge_to_reverse_edge_mapping = np.array([x for x in range(7)[::-1]])
+            _ = WeightedDirectedGraphData(
+                node_features=node_features,
+                edge_features=edge_features,
+                node_to_edge_mapping=node_to_edge_mapping,
+                node_weights=node_weights,
+                edge_weights=edge_weights,
+                edge_to_node_mapping=invalid_value_edge_to_node_mapping,
+                edge_to_reverse_edge_mapping=edge_to_reverse_edge_mapping)
+
+    def test_invalid_edge_to_reverse_edge_wdgraph_data(self):
+        with self.assertRaises(ValueError):
+            node_features = np.random.rand(5, 10)
+            edge_features = np.random.rand(7, 10)
+            node_to_edge_mapping = [[x, x] for x in range(5)]
+            node_weights = np.random.rand(5)
+            edge_weights = np.random.rand(7)
+            edge_to_node_mapping = np.array([x for x in range(7)])
+            invalid_edge_to_reverse_edge_mapping = np.array(
+                [x for x in range(6)[::-1]].append(69))
+            _ = WeightedDirectedGraphData(
+                node_features=node_features,
+                edge_features=edge_features,
+                node_to_edge_mapping=node_to_edge_mapping,
+                node_weights=node_weights,
+                edge_weights=edge_weights,
+                edge_to_node_mapping=edge_to_node_mapping,
+                edge_to_reverse_edge_mapping=invalid_edge_to_reverse_edge_mapping
+            )
