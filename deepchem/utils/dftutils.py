@@ -7,7 +7,10 @@ except:
     pass
 
 import hashlib
-import xitorch as xt
+try:
+    import xitorch as xt
+except:
+    pass
 from dataclasses import dataclass
 from abc import abstractmethod, abstractproperty
 from typing import Union, List, TypeVar, Generic, Callable
