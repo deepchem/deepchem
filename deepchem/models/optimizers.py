@@ -551,19 +551,37 @@ class ExponentialDecay(LearningRateSchedule):
 
 
 class LambdaLRWithWarmup(LearningRateSchedule):
+    """A learning rate scheduler supporting warmup."""
 
     def __init__(self,
                  initial_rate: float,
                  num_warmup_steps: int,
-                 num_training_steps: int = 1,
+                 num_training_steps: Optional[int] = None,
                  warmup_type: str = 'linear'):
-        assert warmup_type == 'linear', f'Warmup type {warmup_type} is not supported.'
+        """
+        Parameters
+        ----------
+        initial_rate: float
+            Initial learning rate
+        num_warmup_steps: int
+            Number of warmup steps
+        num_training_steps: int
+            Number of training steps - required for linear schedule.
+        warmup_type: str, optional. default: linear
+            When `linear`, creates a learning rate schedule that decreases linearly from
+                the initial lr in the optimizer to 0.
+            When `constant`, creates a constant learning rate preceded by a warmup period
+                during which the learning rate increases linearly between 0 and the initial
+                lr set in the optimizer.
+        """
+        assert warmup_type == 'linear' or 'constant', f'Warmup type {warmup_type} is not supported.'
         self.initial_rate = initial_rate
         self.num_warmup_steps = num_warmup_steps
         self.num_training_steps = num_training_steps
         self.warmup_type = warmup_type
 
     def _create_pytorch_schedule(self, optimizer):
+
         def _linear_schedule_with_warmup(current_step: int, *,
                                          num_warmup_steps: int,
                                          num_training_steps: int):
@@ -574,10 +592,19 @@ class LambdaLRWithWarmup(LearningRateSchedule):
                 float(num_training_steps - current_step) /
                 float(max(1, num_training_steps - num_warmup_steps)))
 
+        def _constant_schedule_with_warmup(current_step: int, *,
+                                           num_warmup_steps: int):
+            if current_step < num_warmup_steps:
+                return float(current_step) / float(max(1.0, num_warmup_steps))
+            return 1.0
+
         if self.warmup_type == 'linear':
-            f = partial(_linear_schedule_with_warmup, 
-                num_warmup_steps=self.num_warmup_steps,
-                num_training_steps=self.num_training_steps)
+            f = partial(_linear_schedule_with_warmup,
+                        num_warmup_steps=self.num_warmup_steps,
+                        num_training_steps=self.num_training_steps)
+        elif self.warmup_type == 'constant':
+            f = partial(_constant_schedule_with_warmup,
+                        num_warmup_steps=self.num_warmup_steps)
 
         import torch
         return torch.optim.lr_scheduler.LambdaLR(optimizer, f)
