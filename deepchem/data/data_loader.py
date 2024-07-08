@@ -22,12 +22,12 @@ try:
     from deepchem.feat.dft_data import DFTEntry
     import yaml
     from yaml.loader import SafeLoader
-except ModuleNotFoundError:
+except:
     pass
 
 try:
     import pysam
-except ImportError:
+except:
     pass
 
 logger = logging.getLogger(__name__)

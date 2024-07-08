@@ -5,7 +5,7 @@ try:
     from deepchem.models.dft.scf import XCNNSCF
     from deepchem.feat.dft_data import DFTEntry
     has_dqc = True
-except ModuleNotFoundError:
+except:
     has_dqc = False
 import pytest
 
