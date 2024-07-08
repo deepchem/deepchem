@@ -39,13 +39,13 @@ jobs:
     - name: Prepare for publishing
       run: |
         rm -rf ./build ./dist ./*egg-info
-        pip install setuptools wheel twine
+        pip install setuptools wheel twine build
     - name: Publish (Stable)
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
       run: |
-        python setup.py sdist bdist_wheel --release
+        python -m build
         twine upload dist/*
 
   docker:

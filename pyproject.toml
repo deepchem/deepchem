@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deepchem"
+requires-python = ">=3.7,<3.12"
+description = "Deep learning models for drug discovery, quantum chemistry, and the life sciences."
+authors = [{ name = "DeepChem contributors" }]
+license = { text = "MIT" }
+dependencies = [
+  "joblib",
+  "numpy<2",
+  "pandas",
+  "scikit-learn",
+  "sympy",
+  "scipy>=1.10.1",
+  "rdkit",
+]
+keywords = [
+  "deepchem",
+  "chemistry",
+  "biology",
+  "materials-science",
+  "life-science",
+  "drug-discovery",
+]
+classifiers = [
+  "Environment :: Console",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Information Technology",
+]
+dynamic = ["version", "readme"]
+
+[project.optional-dependencies]
+jax = ["jax", "jaxlib", "dm-haiku", "optax"]
+torch = ["torch", "torchvision", "pytorch-lightning", "dgl", "dgllife"]
+tensorflow = ["tensorflow", "tensorflow_probability", "tensorflow_addons"]
+dqc = ["dqc", "xitorch", "torch", "pylibxc2"]
+
+[project.urls]
+homepage = "https://deepchem.io/"
+documentation = "https://deepchem.readthedocs.io/en/latest/"
+repository = "https://github.com/deepchem/deepchem"
+
+[tool.setuptools.dynamic]
+readme = { file = ["README.md"], content-type = "text/markdown" }
+version = { attr = "deepchem.__init__.__version__" }
+
+[tool.setuptools.packages.find]
+exclude = ["*.tests"]
+
+[tool.pytest.ini_options]
+markers = [
+  "jax: marks tests for deepchem-jax only (deselect with '-m \"not jax\"')",
+  "torch: marks tests for deepchem-torch only (deselect with '-m \"not torch\"')",
+  "tensorflow: marks tests for deepchem-torch only (deselect with '-m \"not tensorflow\"')",
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "serial",
+  "dqc: marks tests for deepchem-dqc only (deselect with '-m \"not dqc\"')",
+]
+
+[[tool.mypy.overrides]]
+module = ["mypy-yaml.*"]
+ignore_missing_imports = true
+
+[tool.yapfignore]
+style = "google"
+indent_width = 4
