@@ -551,7 +551,18 @@ class ExponentialDecay(LearningRateSchedule):
 
 
 class LambdaLRWithWarmup(LearningRateSchedule):
-    """A learning rate scheduler supporting warmup."""
+    """A learning rate scheduler supporting warmup followed by cool down.
+
+    Example
+    -------
+    >>> import deepchem.models.optimizers as optimizers
+    >>> opt = optimizers.Adam(learning_rate=5e-5)
+    >>> lr_schedule = optimizers.LambdaLRWithWarmup(initial_rate=5e-5,
+    ...     num_training_steps=100, num_warmup_steps=10)
+    >>> params = [torch.nn.Parameter(torch.Tensor([1.0]))]
+    >>> optimizer = opt._create_pytorch_optimizer(params)
+    >>> scheduler = lr_schedule._create_pytorch_schedule(optimizer)
+    """
 
     def __init__(self,
                  initial_rate: float,
@@ -581,6 +592,17 @@ class LambdaLRWithWarmup(LearningRateSchedule):
         self.warmup_type = warmup_type
 
     def _create_pytorch_schedule(self, optimizer):
+        """Creates a PyTorch learning rate scheduler for the given optimizer.
+
+        When the warmup type is linear, the method _linear_schedule_with_warmup
+        is used to create a learning rate schedule such that the learning
+        rate increases linearly from 0 to initial_rate and
+        then cools down to 0 linearly.
+
+        When the warmup type is constant, the method _constant_schedule_with_warmup
+        is used to create a learning rate schedule such that the learning
+        rate linearly increases form 0 to initial_rate and then stays constant.
+        """
 
         def _linear_schedule_with_warmup(current_step: int, *,
                                          num_warmup_steps: int,
