@@ -1,7 +1,7 @@
 """Optimizers and related classes for use with TensorGraph."""
 
 import math
-
+from functools import partial
 from typing import Dict, Union, Optional
 
 
@@ -548,6 +548,88 @@ class ExponentialDecay(LearningRateSchedule):
                                        transition_steps=self.decay_steps,
                                        decay_rate=self.decay_rate,
                                        staircase=self.staircase)
+
+
+class LambdaLRWithWarmup(LearningRateSchedule):
+    """A learning rate scheduler supporting warmup followed by cool down.
+
+    Example
+    -------
+    >>> import deepchem.models.optimizers as optimizers
+    >>> opt = optimizers.Adam(learning_rate=5e-5)
+    >>> lr_schedule = optimizers.LambdaLRWithWarmup(initial_rate=5e-5,
+    ...     num_training_steps=100, num_warmup_steps=10)
+    >>> params = [torch.nn.Parameter(torch.Tensor([1.0]))]
+    >>> optimizer = opt._create_pytorch_optimizer(params)
+    >>> scheduler = lr_schedule._create_pytorch_schedule(optimizer)
+    """
+
+    def __init__(self,
+                 initial_rate: float,
+                 num_warmup_steps: int,
+                 num_training_steps: Optional[int] = None,
+                 warmup_type: str = 'linear'):
+        """
+        Parameters
+        ----------
+        initial_rate: float
+            Initial learning rate
+        num_warmup_steps: int
+            Number of warmup steps
+        num_training_steps: int
+            Number of training steps - required for linear schedule.
+        warmup_type: str, optional. default: linear
+            When `linear`, creates a learning rate schedule that decreases linearly from
+                the initial lr in the optimizer to 0.
+            When `constant`, creates a constant learning rate preceded by a warmup period
+                during which the learning rate increases linearly between 0 and the initial
+                lr set in the optimizer.
+        """
+        assert warmup_type == 'linear' or 'constant', f'Warmup type {warmup_type} is not supported.'
+        self.initial_rate = initial_rate
+        self.num_warmup_steps = num_warmup_steps
+        self.num_training_steps = num_training_steps
+        self.warmup_type = warmup_type
+
+    def _create_pytorch_schedule(self, optimizer):
+        """Creates a PyTorch learning rate scheduler for the given optimizer.
+
+        When the warmup type is linear, the method _linear_schedule_with_warmup
+        is used to create a learning rate schedule such that the learning
+        rate increases linearly from 0 to initial_rate and
+        then cools down to 0 linearly.
+
+        When the warmup type is constant, the method _constant_schedule_with_warmup
+        is used to create a learning rate schedule such that the learning
+        rate linearly increases form 0 to initial_rate and then stays constant.
+        """
+
+        def _linear_schedule_with_warmup(current_step: int, *,
+                                         num_warmup_steps: int,
+                                         num_training_steps: int):
+            if current_step < num_warmup_steps:
+                return float(current_step) / float(max(1, num_warmup_steps))
+            return max(
+                0.0,
+                float(num_training_steps - current_step) /
+                float(max(1, num_training_steps - num_warmup_steps)))
+
+        def _constant_schedule_with_warmup(current_step: int, *,
+                                           num_warmup_steps: int):
+            if current_step < num_warmup_steps:
+                return float(current_step) / float(max(1.0, num_warmup_steps))
+            return 1.0
+
+        if self.warmup_type == 'linear':
+            f = partial(_linear_schedule_with_warmup,
+                        num_warmup_steps=self.num_warmup_steps,
+                        num_training_steps=self.num_training_steps)
+        elif self.warmup_type == 'constant':
+            f = partial(_constant_schedule_with_warmup,
+                        num_warmup_steps=self.num_warmup_steps)
+
+        import torch
+        return torch.optim.lr_scheduler.LambdaLR(optimizer, f)
 
 
 class PolynomialDecay(LearningRateSchedule):
