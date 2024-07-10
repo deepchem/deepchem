@@ -134,3 +134,41 @@ def test_Smiles2VecModel_classification():
     model.fit(dataset, nb_epoch=500)
     scores = model.evaluate(dataset, [metric], [])
     assert scores['mean-roc_auc_score'] >= 0.9
+
+
+@pytest.mark.torch
+def test_Smiles2VecModel_reload():
+    from deepchem.models.torch_models import Smiles2VecModel
+
+    n_tasks = 5
+    max_seq_len = 20
+
+    # Create a temporary directory for the model
+    model_dir = tempfile.mkdtemp()
+
+    # Load dataset
+    dataset, metric, char_to_idx = get_dataset(mode="regression",
+                                               featurizer="smiles2seq",
+                                               n_tasks=n_tasks,
+                                               max_seq_len=max_seq_len)
+    # Initialize and train the model
+    model = Smiles2VecModel(char_to_idx=char_to_idx,
+                            max_seq_len=max_seq_len,
+                            use_conv=True,
+                            n_tasks=n_tasks,
+                            model_dir=model_dir,
+                            mode="regression")
+    model.fit(dataset, nb_epoch=10)
+    scores = model.evaluate(dataset, [metric], [])
+
+    # Reload the trained model
+    reloaded_model = Smiles2VecModel(char_to_idx=char_to_idx,
+                                     max_seq_len=max_seq_len,
+                                     use_conv=True,
+                                     n_tasks=n_tasks,
+                                     model_dir=model_dir,
+                                     mode="regression")
+    reloaded_model.restore()
+    reloaded_scores = reloaded_model.evaluate(dataset, [metric], [])
+
+    assert scores == reloaded_scores
