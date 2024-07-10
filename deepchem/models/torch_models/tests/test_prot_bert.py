@@ -6,6 +6,8 @@ import pytest
 try:
     import torch
     from deepchem.models.torch_models.prot_bert import ProtBERT
+    import torch.nn.functional as F
+    import torch.nn as nn
 except ModuleNotFoundError:
     pass
 
@@ -13,6 +15,11 @@ except ModuleNotFoundError:
 @pytest.mark.torch
 def test_prot_bert_pretraining_mlm(protein_classification_dataset):
     model_path = 'Rostlab/prot_bert'
+    model = ProtBERT(task='mlm', HG_model_path=model_path, n_tasks=1)
+    loss = model.fit(protein_classification_dataset, nb_epoch=1)
+    assert loss
+
+    model_path = 'Rostlab/prot_bert_BFD'
     model = ProtBERT(task='mlm', HG_model_path=model_path, n_tasks=1)
     loss = model.fit(protein_classification_dataset, nb_epoch=1)
     assert loss
@@ -39,6 +46,38 @@ def test_prot_bert_finetuning(protein_classification_dataset):
                      HG_model_path=model_path,
                      n_tasks=1,
                      cls_name="FFN")
+    loss = model.fit(protein_classification_dataset, nb_epoch=1)
+    eval_score = model.evaluate(protein_classification_dataset,
+                                metrics=dc.metrics.Metric(
+                                    dc.metrics.accuracy_score))
+    assert eval_score, loss
+    prediction = model.predict(protein_classification_dataset)
+    assert prediction.shape == (protein_classification_dataset.y.shape[0], 2)
+
+    class SimpleCNN(nn.Module):
+
+        def __init__(self, input_dim=1024, num_classes=2):
+            super(SimpleCNN, self).__init__()
+            self.conv1 = nn.Conv1d(in_channels=1,
+                                   out_channels=32,
+                                   kernel_size=3,
+                                   padding=1)
+            self.pool = nn.MaxPool1d(kernel_size=2, stride=2)
+            self.fc1 = nn.Linear(32 * (input_dim // 2), num_classes)
+
+        def forward(self, x):
+            x = x.unsqueeze(1)
+            x = self.pool(F.relu(self.conv1(x)))
+            x = x.view(x.size(0), -1)
+            x = self.fc1(x)
+            return x
+
+    custom_torch_CNN_network = SimpleCNN()
+    model = ProtBERT(task='classification',
+                     HG_model_path=model_path,
+                     n_tasks=1,
+                     cls_name="custom",
+                     classifier_net=custom_torch_CNN_network)
     loss = model.fit(protein_classification_dataset, nb_epoch=1)
     eval_score = model.evaluate(protein_classification_dataset,
                                 metrics=dc.metrics.Metric(
@@ -131,6 +170,6 @@ def test_protbert_overfit():
                               batch_size=1,
                               learning_rate=1e-5)
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
-    finetune_model.fit(dataset, nb_epoch=10)
+    finetune_model.fit(dataset, nb_epoch=20)
     eval_score = finetune_model.evaluate(dataset, [classification_metric])
     assert eval_score[classification_metric.name] > 0.9
