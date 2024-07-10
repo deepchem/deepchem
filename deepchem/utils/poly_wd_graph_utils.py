@@ -4,7 +4,17 @@ import re
 
 class PolyWDGStringValidator():
     """
-    Class for validating the string format of weighted directed graph data
+    Class for validating the string format of weighted directed graph data.
+    This class provides methods to validate the format of a datapoint string.
+    This is a specific string format that is used for storing weighted directed polymer data in a parsable format.
+    
+    The format is as follows:
+        [monomer1].[monomer2]|[fraction_of_monomer1]|[fraction_of_monomer2]|<[polymer_rule1]<[polymer_rule2]
+    The polymer rule has an own format in it. Which is as follows:
+        [[atom_index1]-[atom_index2]]:[fraction_of_bond_between_atom1_to_atom2]:[fraction_of_bond_between_atom2_to_atom1] 
+
+    The validate method validates the proper formatting for monomer molecules, proper value of the fractions and valid atom indicies and weights
+    in the polymer rules. 
 
     Example
     -------
