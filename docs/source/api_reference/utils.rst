@@ -721,6 +721,15 @@ This class validates the input string representation for graphical conversion of
 It splits the input strings, validates their order and values. Upon recieving error it can return
 meaningful error message to the user indicating the type of error that hinders the conversion process.
 
+The :code:`dc.utils.PolyWDGStringValidator` class is explicitly useful for validating a Weighted Directed
+Graph Representaion within a string data for polymers. It validates atom notations in monomer, valid Fragment
+weights for monomers, and valid polymer rules within the string representation. The string that contains this data
+format is used for following research works.
+
+References:
+
+- `Aldeghi, Matteo, and Connor W. Coley. "A graph representation of molecular ensembles for polymer property prediction." Chemical Science 13.35 (2022): 10486-10498.`
+
 .. autoclass:: deepchem.utils.poly_wd_graph_utils.PolyWDGStringValidator
   :members:
 

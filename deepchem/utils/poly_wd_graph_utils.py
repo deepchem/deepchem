@@ -7,13 +7,13 @@ class PolyWDGStringValidator():
     Class for validating the string format of weighted directed graph data.
     This class provides methods to validate the format of a datapoint string.
     This is a specific string format that is used for storing weighted directed polymer data in a parsable format.
-    
+
     The format is as follows:
         [monomer1].[monomer2]|[fraction_of_monomer1]|[fraction_of_monomer2]|<[polymer_rule1]<[polymer_rule2]
     The polymer rule has an own format in it. Which is as follows:
         [[atom_index1]-[atom_index2]]:[fraction_of_bond_between_atom1_to_atom2]:[fraction_of_bond_between_atom2_to_atom1] 
 
-    The validate method validates the proper formatting for monomer molecules, proper value of the fractions and valid atom indicies and weights
+    The validate method validates the proper formatting for monomer molecules, proper value of the fractions and valid atom indicies and corresponding weights
     in the polymer rules. 
 
     Example
@@ -125,6 +125,13 @@ class PolyWDGStringValidator():
     def validate(self, datapoint: str):
         """
         This method validates the string format of weighted directed graph data.
+        To validate the string format it checks for following conditions:
+
+        1. The number of fragments and the number of monomer molecules should match.
+        2. The wild card indexes should be present in the monomer molecules string and should be in the correct sequence.
+        3. The polymer rules should be in the correct format.
+        4. The atom indexes in the polymer rules should be valid and present in the monomer molecules string.
+
         It raises ValueError if the string format is invalid.
 
         Parameters
