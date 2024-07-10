@@ -1,4 +1,4 @@
-from typing import List, Optional, Union, overload, Tuple
+from typing import List, Optional, Union, Tuple
 import torch
 from deepchem.utils import chunkify
 from deepchem.utils.dft_utils import BaseDF
@@ -17,14 +17,25 @@ logger = logging.getLogger(__name__)
 
 class HamiltonCGTO(BaseHamilton):
     """
-    Hamiltonian object of contracted Gaussian type-orbital.
-    This class orthogonalizes the basis by taking the weighted
-    eigenvectors of the overlap matrix, i.e. the eigenvectors
-    divided by square root of the eigenvalues.
-    The advantage of doing this is making the overlap matrix in Roothan's equation
-    identity and it could handle overcomplete basis.
+    Hamiltonian object of contracted Gaussian type-orbital. This class
+    orthogonalizes the basis by taking the weighted eigenvectors of the
+    overlap matrix, i.e. the eigenvectors divided by square root of the
+    eigenvalues. The advantage of doing this is making the overlap matrix
+    in Roothan's equation identity and it could handle overcomplete basis.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.hamilton.hcgto import HamiltonCGTO
+    >>> from deepchem.utils.dft_utils import AtomCGTOBasis, CGTOBasis
+    >>> import torch
+    >>> cgto = CGTOBasis(angmom=0, alphas=torch.ones(1), coeffs=torch.ones(1))
+    >>> atomcgto = AtomCGTOBasis(atomz=1, bases=[cgto], pos=[[0.0, 0.0, 0.0]])
+
     """
-    def __init__(self, atombases: List[AtomCGTOBasis], spherical: bool = True,
+
+    def __init__(self,
+                 atombases: List[AtomCGTOBasis],
+                 spherical: bool = True,
                  df: Optional[DensityFitInfo] = None,
                  efield: Optional[Tuple[torch.Tensor, ...]] = None,
                  cache: Optional[Cache] = None) -> None:
@@ -54,7 +65,9 @@ class HamiltonCGTO(BaseHamilton):
         if df is None:
             self._df: Optional[DFMol] = None
         else:
-            self._df = DFMol(df, wrapper=self.libcint_wrapper, orthozer=self._orthozer)
+            self._df = DFMol(df,
+                             wrapper=self.libcint_wrapper,
+                             orthozer=self._orthozer)
 
         self._efield = efield
         self.is_grid_set = False
@@ -67,7 +80,8 @@ class HamiltonCGTO(BaseHamilton):
 
         # initialize cache
         self._cache = cache if cache is not None else Cache.get_dummy()
-        self._cache.add_cacheable_params(["overlap", "kinetic", "nuclattr", "efield0"])
+        self._cache.add_cacheable_params(
+            ["overlap", "kinetic", "nuclattr", "efield0"])
         if self._df is None:
             self._cache.add_cacheable_params(["elrep"])
 
@@ -99,7 +113,8 @@ class HamiltonCGTO(BaseHamilton):
             List of k-points in the Hamiltonian. Shape: (nkpts, ndim)
 
         """
-        raise TypeError("Isolated molecule Hamiltonian does not have kpts property")
+        raise TypeError(
+            "Isolated molecule Hamiltonian does not have kpts property")
 
     @property
     def df(self) -> Optional[BaseDF]:
@@ -140,11 +155,14 @@ class HamiltonCGTO(BaseHamilton):
             })
 
             logger.info("Calculating the overlap matrix")
-            self.olp_mat = self._cache.cache("overlap", lambda: overlap(self.libcint_wrapper))
+            self.olp_mat = self._cache.cache(
+                "overlap", lambda: overlap(self.libcint_wrapper))
             logger.info("Calculating the kinetic matrix")
-            kin_mat = self._cache.cache("kinetic", lambda: kinetic(self.libcint_wrapper))
+            kin_mat = self._cache.cache("kinetic",
+                                        lambda: kinetic(self.libcint_wrapper))
             logger.info("Calculating the nuclear attraction matrix")
-            nucl_mat = self._cache.cache("nuclattr", lambda: nuclattr(self.libcint_wrapper))
+            nucl_mat = self._cache.cache("nuclattr",
+                                         lambda: nuclattr(self.libcint_wrapper))
             self.nucl_mat = nucl_mat
             self.kinnucl_mat = kin_mat + nucl_mat
 
@@ -154,14 +172,19 @@ class HamiltonCGTO(BaseHamilton):
                 fac: float = 1.0
                 for i in range(len(self._efield)):
                     fac *= i + 1
-                    intor_fcn = lambda: int1e("r0" * (i + 1), self.libcint_wrapper)
+
+                    def intor_fcn():
+                        return int1e("r0" * (i + 1), self.libcint_wrapper)
+
                     efield_mat_f = self._cache.cache(f"efield{i}", intor_fcn)
-                    efield_mat = torch.einsum("dab,d->ab", efield_mat_f, self._efield[i])
+                    efield_mat = torch.einsum("dab,d->ab", efield_mat_f,
+                                              self._efield[i])
                     self.kinnucl_mat = self.kinnucl_mat + efield_mat / fac
 
             if self._df is None:
                 logger.info("Calculating the electron repulsion matrix")
-                self.el_mat = self._cache.cache("elrep", lambda: elrep(self.libcint_wrapper))  # (nao^4)
+                self.el_mat = self._cache.cache(
+                    "elrep", lambda: elrep(self.libcint_wrapper))  # (nao^4)
                 # TODO: decide whether to precompute the 2-eris in the new basis
                 # based on the memory
                 self.el_mat = self._orthozer.convert4(self.el_mat)
@@ -209,9 +232,12 @@ class HamiltonCGTO(BaseHamilton):
         # setup the basis as a spatial function
         logger.info("Calculating the basis values in the grid")
         self.is_ao_set = True
-        self.basis = eval_gto(self.libcint_wrapper, self.rgrid, to_transpose=True)  # (ngrid, nao)
+        self.basis = eval_gto(self.libcint_wrapper,
+                              self.rgrid,
+                              to_transpose=True)  # (ngrid, nao)
         self.dvolume = self.grid.get_dvolume()
-        self.basis_dvolume = self.basis * self.dvolume.unsqueeze(-1)  # (ngrid, nao)
+        self.basis_dvolume = self.basis * self.dvolume.unsqueeze(
+            -1)  # (ngrid, nao)
 
         if self.xcfamily == 1:  # LDA
             return
@@ -220,14 +246,18 @@ class HamiltonCGTO(BaseHamilton):
         logger.info("Calculating the basis gradient values in the grid")
         self.is_grad_ao_set = True
         # (ndim, nao, ngrid)
-        self.grad_basis = eval_gradgto(self.libcint_wrapper, self.rgrid, to_transpose=True)
+        self.grad_basis = eval_gradgto(self.libcint_wrapper,
+                                       self.rgrid,
+                                       to_transpose=True)
         if self.xcfamily == 2:  # GGA
             return
 
         # setup the laplacian of the basis
         self.is_lapl_ao_set = True
         logger.info("Calculating the basis laplacian values in the grid")
-        self.lapl_basis = eval_laplgto(self.libcint_wrapper, self.rgrid, to_transpose=True)  # (nao, ngrid)
+        self.lapl_basis = eval_laplgto(self.libcint_wrapper,
+                                       self.rgrid,
+                                       to_transpose=True)  # (nao, ngrid)
 
     # fock matrix components
     def get_nuclattr(self) -> LinearOperator:
@@ -303,13 +333,16 @@ class HamiltonCGTO(BaseHamilton):
         """
         if self._df is None:
             mat = torch.einsum("...ij,ijkl->...kl", dm, self.el_mat)
-            mat = (mat + mat.transpose(-2, -1)) * 0.5  # reduce numerical instability
+            mat = (mat +
+                   mat.transpose(-2, -1)) * 0.5  # reduce numerical instability
             return LinearOperator.m(mat, is_hermitian=True)
         else:
             elrep = self._df.get_elrep(dm)
             return elrep
 
-    def get_exchange(self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> Union[LinearOperator, SpinParam[LinearOperator]]:
+    def get_exchange(
+        self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]
+    ) -> Union[LinearOperator, SpinParam[LinearOperator]]:
         """
         Obtains the LinearOperator of the exchange operator.
         It is -0.5 * K where K is the K matrix obtained from 2-electron integral.
@@ -331,13 +364,16 @@ class HamiltonCGTO(BaseHamilton):
 
         """
         if self._df is not None:
-            raise RuntimeError("Exact exchange cannot be computed with density fitting")
+            raise RuntimeError(
+                "Exact exchange cannot be computed with density fitting")
         elif isinstance(dm, torch.Tensor):
             # the einsum form below is to hack PyTorch's bug #57121
             # mat = -0.5 * torch.einsum("...jk,ijkl->...il", dm, self.el_mat)  # slower
-            mat = -0.5 * torch.einsum("...il,ijkl->...ijk", dm, self.el_mat).sum(dim=-3)  # faster
+            mat = -0.5 * torch.einsum("...il,ijkl->...ijk", dm,
+                                      self.el_mat).sum(dim=-3)  # faster
 
-            mat = (mat + mat.transpose(-2, -1)) * 0.5  # reduce numerical instability
+            mat = (mat +
+                   mat.transpose(-2, -1)) * 0.5  # reduce numerical instability
             return LinearOperator.m(mat, is_hermitian=True)
         else:  # dm is SpinParam
             # using the spin-scaling property of exchange energy
@@ -368,10 +404,14 @@ class HamiltonCGTO(BaseHamilton):
 
         """
         if not self.is_ao_set:
-            raise RuntimeError("Please call `setup_grid(grid, xc)` to call this function")
-        mat = torch.einsum("...r,rb,rc->...bc", vext, self.basis_dvolume, self.basis)  # (*BR, nao, nao)
+            raise RuntimeError(
+                "Please call `setup_grid(grid, xc)` to call this function")
+        mat = torch.einsum("...r,rb,rc->...bc", vext, self.basis_dvolume,
+                           self.basis)  # (*BR, nao, nao)
         mat = self._orthozer.convert2(mat)
-        mat = (mat + mat.transpose(-2, -1)) * 0.5  # ensure the symmetricity and reduce numerical instability
+        mat = (
+            mat + mat.transpose(-2, -1)
+        ) * 0.5  # ensure the symmetricity and reduce numerical instability
         return LinearOperator.m(mat, is_hermitian=True)
 
     def get_vxc(
@@ -405,15 +445,16 @@ class HamiltonCGTO(BaseHamilton):
         """
         assert self.xc is not None, "Please call .setup_grid with the xc object"
 
-        densinfo = SpinParam.apply_fcn(
-            lambda dm_: self._dm2densinfo(dm_), dm)  # value: (*BD, nr)
+        densinfo = SpinParam.apply_fcn(lambda dm_: self._dm2densinfo(dm_),
+                                       dm)  # value: (*BD, nr)
         potinfo = self.xc.get_vxc(densinfo)  # value: (*BD, nr)
         vxc_linop = SpinParam.apply_fcn(
             lambda potinfo_: self._get_vxc_from_potinfo(potinfo_), potinfo)
         return vxc_linop
 
     # interface to dm
-    def ao_orb2dm(self, orb: torch.Tensor, orb_weight: torch.Tensor) -> torch.Tensor:
+    def ao_orb2dm(self, orb: torch.Tensor,
+                  orb_weight: torch.Tensor) -> torch.Tensor:
         """Convert the atomic orbital to the density matrix.
 
         Parameters
@@ -453,12 +494,15 @@ class HamiltonCGTO(BaseHamilton):
         nao = dm.shape[-1]
         xyzshape = xyz.shape
         # basis: (nao, *BR)
-        basis = eval_gto(self.libcint_wrapper, xyz.reshape(-1, xyzshape[-1])).reshape((nao, *xyzshape[:-1]))
+        basis = eval_gto(self.libcint_wrapper,
+                         xyz.reshape(-1, xyzshape[-1])).reshape(
+                             (nao, *xyzshape[:-1]))
         basis = torch.movedim(basis, 0, -1)  # (*BR, nao)
 
         # torch.einsum("...ij,...i,...j->...", dm, basis, basis)
         dens = torch.matmul(dm, basis.unsqueeze(-1))  # (*BRD, nao, 1)
-        dens = torch.matmul(basis.unsqueeze(-2), dens).squeeze(-1).squeeze(-1)  # (*BRD)
+        dens = torch.matmul(basis.unsqueeze(-2),
+                            dens).squeeze(-1).squeeze(-1)  # (*BRD)
         return dens
 
     # energy of the Hamiltonian
@@ -499,7 +543,9 @@ class HamiltonCGTO(BaseHamilton):
         elrep_mat = self.get_elrep(dm).fullmatrix()
         return 0.5 * torch.einsum("...ij,...ji->...", elrep_mat, dm)
 
-    def get_e_exchange(self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> torch.Tensor:
+    def get_e_exchange(
+            self, dm: Union[torch.Tensor,
+                            SpinParam[torch.Tensor]]) -> torch.Tensor:
         """Get the energy from the exact exchange.
 
         Parameters
@@ -515,12 +561,15 @@ class HamiltonCGTO(BaseHamilton):
         """
         exc_mat = self.get_exchange(dm)
         ene = SpinParam.apply_fcn(
-            lambda exc_mat, dm: 0.5 * torch.einsum("...ij,...ji->...", exc_mat.fullmatrix(), dm),
+            lambda exc_mat, dm: 0.5 * torch.einsum("...ij,...ji->...",
+                                                   exc_mat.fullmatrix(), dm),
             exc_mat, dm)
         enetot = SpinParam.sum(ene)
         return enetot
 
-    def get_e_xc(self, dm: Union[torch.Tensor, SpinParam[torch.Tensor]]) -> torch.Tensor:
+    def get_e_xc(
+            self, dm: Union[torch.Tensor,
+                            SpinParam[torch.Tensor]]) -> torch.Tensor:
         """Returns the exchange-correlation energy using the xc object given in
         ``.setup_grid()``
 
@@ -538,8 +587,8 @@ class HamiltonCGTO(BaseHamilton):
         assert self.xc is not None, "Please call .setup_grid with the xc object"
 
         # obtain the energy density per unit volume
-        densinfo = SpinParam.apply_fcn(
-            lambda dm_: self._dm2densinfo(dm_), dm)  # (spin) value: (*BD, nr)
+        densinfo = SpinParam.apply_fcn(lambda dm_: self._dm2densinfo(dm_),
+                                       dm)  # (spin) value: (*BD, nr)
         edens = self.xc.get_edensityxc(densinfo)  # (*BD, nr)
 
         return torch.sum(self.grid.get_dvolume() * edens, dim=-1)
@@ -596,7 +645,8 @@ class HamiltonCGTO(BaseHamilton):
             # positive.
             s1 = torch.sign(ao_orbq.sum(dim=-2, keepdim=True))  # (*BD, 1, norb)
             s2 = torch.sign(ao_orb_params.sum(dim=-2, keepdim=True))
-            penalty = torch.mean((ao_orbq * s1 - ao_orb_params * s2) ** 2) * with_penalty
+            penalty = torch.mean(
+                (ao_orbq * s1 - ao_orb_params * s2)**2) * with_penalty
             return dm, penalty
 
     def dm2ao_orb_params(self, dm: torch.Tensor, norb: int) -> torch.Tensor:
@@ -658,16 +708,23 @@ class HamiltonCGTO(BaseHamilton):
         dmdmt = self._orthozer.unconvert_dm(dmdmt)
 
         # prepare the densinfo components
-        dens = torch.empty((*batchshape, ngrid), dtype=self.dtype, device=self.device)
+        dens = torch.empty((*batchshape, ngrid),
+                           dtype=self.dtype,
+                           device=self.device)
         gdens: Optional[torch.Tensor] = None
         lapldens: Optional[torch.Tensor] = None
         kindens: Optional[torch.Tensor] = None
         if self.xcfamily == 2 or self.xcfamily == 4:  # GGA or MGGA
             gdens = torch.empty((*dm.shape[:-2], 3, ngrid),
-                                dtype=self.dtype, device=self.device)  # (..., ndim, ngrid)
+                                dtype=self.dtype,
+                                device=self.device)  # (..., ndim, ngrid)
         if self.xcfamily == 4:  # MGGA
-            lapldens = torch.empty((*batchshape, ngrid), dtype=self.dtype, device=self.device)
-            kindens = torch.empty((*batchshape, ngrid), dtype=self.dtype, device=self.device)
+            lapldens = torch.empty((*batchshape, ngrid),
+                                   dtype=self.dtype,
+                                   device=self.device)
+            kindens = torch.empty((*batchshape, ngrid),
+                                  dtype=self.dtype,
+                                  device=self.device)
 
         # It is faster to split into chunks than evaluating a single big chunk
         maxnumel = config.CHUNK_MEMORY // get_dtype_memsize(self.basis)
@@ -688,9 +745,12 @@ class HamiltonCGTO(BaseHamilton):
                 grad_basis1 = self.grad_basis[1, ioff:iend, :]
                 grad_basis2 = self.grad_basis[2, ioff:iend, :]
 
-                gdens[..., 0, ioff:iend] = torch.einsum("...ri,ri->...r", dmao, grad_basis0) * 2
-                gdens[..., 1, ioff:iend] = torch.einsum("...ri,ri->...r", dmao, grad_basis1) * 2
-                gdens[..., 2, ioff:iend] = torch.einsum("...ri,ri->...r", dmao, grad_basis2) * 2
+                gdens[..., 0, ioff:iend] = torch.einsum("...ri,ri->...r", dmao,
+                                                        grad_basis0) * 2
+                gdens[..., 1, ioff:iend] = torch.einsum("...ri,ri->...r", dmao,
+                                                        grad_basis1) * 2
+                gdens[..., 2, ioff:iend] = torch.einsum("...ri,ri->...r", dmao,
+                                                        grad_basis2) * 2
 
             if self.xcfamily == 4:
                 assert lapldens is not None
@@ -701,10 +761,17 @@ class HamiltonCGTO(BaseHamilton):
                     raise RuntimeError(msg)
 
                 lapl_basis_cat = self.lapl_basis[ioff:iend, :]
-                lapl_basis = torch.einsum("...ri,ri->...r", dmao, lapl_basis_cat)
-                grad_grad = torch.einsum("...ri,ri->...r", torch.matmul(grad_basis0, dmdmt), grad_basis0)
-                grad_grad += torch.einsum("...ri,ri->...r", torch.matmul(grad_basis1, dmdmt), grad_basis1)
-                grad_grad += torch.einsum("...ri,ri->...r", torch.matmul(grad_basis2, dmdmt), grad_basis2)
+                lapl_basis = torch.einsum("...ri,ri->...r", dmao,
+                                          lapl_basis_cat)
+                grad_grad = torch.einsum("...ri,ri->...r",
+                                         torch.matmul(grad_basis0, dmdmt),
+                                         grad_basis0)
+                grad_grad += torch.einsum("...ri,ri->...r",
+                                          torch.matmul(grad_basis1, dmdmt),
+                                          grad_basis1)
+                grad_grad += torch.einsum("...ri,ri->...r",
+                                          torch.matmul(grad_basis2, dmdmt),
+                                          grad_basis2)
                 # pytorch's "...ij,ir,jr->...r" is really slow for large matrix
                 # grad_grad = torch.einsum("...ij,ir,jr->...r", dmdmt, self.grad_basis[0], self.grad_basis[0])
                 # grad_grad += torch.einsum("...ij,ir,jr->...r", dmdmt, self.grad_basis[1], self.grad_basis[1])
@@ -735,23 +802,29 @@ class HamiltonCGTO(BaseHamilton):
 
         # prepare the fock matrix component from vxc
         nao = self.basis.shape[-1]
-        mat = torch.zeros((*potinfo.value.shape[:-1], nao, nao), dtype=self.dtype, device=self.device)
+        mat = torch.zeros((*potinfo.value.shape[:-1], nao, nao),
+                          dtype=self.dtype,
+                          device=self.device)
 
         # Split the r-dimension into several parts, it is usually faster than
         # evaluating all at once
         maxnumel = config.CHUNK_MEMORY // get_dtype_memsize(self.basis)
         for basis, ioff, iend in chunkify(self.basis, dim=0, maxnumel=maxnumel):
             # basis: (nr, nao)
-            vb = potinfo.value[..., ioff:iend].unsqueeze(-1) * basis  # (*BD, nr, nao)
+            vb = potinfo.value[..., ioff:iend].unsqueeze(
+                -1) * basis  # (*BD, nr, nao)
             if self.xcfamily in [2, 4]:  # GGA or MGGA
                 assert potinfo.grad is not None  # (..., ndim, nr)
                 vgrad = potinfo.grad[..., ioff:iend] * 2
                 grad_basis0 = self.grad_basis[0, ioff:iend, :]  # (nr, nao)
                 grad_basis1 = self.grad_basis[1, ioff:iend, :]
                 grad_basis2 = self.grad_basis[2, ioff:iend, :]
-                vb += torch.einsum("...r,ra->...ra", vgrad[..., 0, :], grad_basis0)
-                vb += torch.einsum("...r,ra->...ra", vgrad[..., 1, :], grad_basis1)
-                vb += torch.einsum("...r,ra->...ra", vgrad[..., 2, :], grad_basis2)
+                vb += torch.einsum("...r,ra->...ra", vgrad[..., 0, :],
+                                   grad_basis0)
+                vb += torch.einsum("...r,ra->...ra", vgrad[..., 1, :],
+                                   grad_basis1)
+                vb += torch.einsum("...r,ra->...ra", vgrad[..., 2, :],
+                                   grad_basis2)
             if self.xcfamily == 4:  # MGGA
                 assert potinfo.lapl is not None  # (..., nrgrid)
                 assert potinfo.kin is not None
@@ -760,15 +833,20 @@ class HamiltonCGTO(BaseHamilton):
                 vb += 2 * lapl.unsqueeze(-1) * self.lapl_basis[ioff:iend, :]
 
             # calculating the matrix from multiplication with the basis
-            mat += torch.matmul(self.basis_dvolume[ioff:iend, :].transpose(-2, -1), vb)
+            mat += torch.matmul(
+                self.basis_dvolume[ioff:iend, :].transpose(-2, -1), vb)
 
             if self.xcfamily == 4:  # MGGA
                 assert potinfo.lapl is not None  # (..., nrgrid)
                 assert potinfo.kin is not None
-                lapl_kin_dvol = (2 * lapl + 0.5 * kin) * self.dvolume[..., ioff:iend]
-                mat += torch.einsum("...r,rb,rc->...bc", lapl_kin_dvol, grad_basis0, grad_basis0)
-                mat += torch.einsum("...r,rb,rc->...bc", lapl_kin_dvol, grad_basis1, grad_basis1)
-                mat += torch.einsum("...r,rb,rc->...bc", lapl_kin_dvol, grad_basis2, grad_basis2)
+                lapl_kin_dvol = (2 * lapl + 0.5 * kin) * self.dvolume[...,
+                                                                      ioff:iend]
+                mat += torch.einsum("...r,rb,rc->...bc", lapl_kin_dvol,
+                                    grad_basis0, grad_basis0)
+                mat += torch.einsum("...r,rb,rc->...bc", lapl_kin_dvol,
+                                    grad_basis1, grad_basis1)
+                mat += torch.einsum("...r,rb,rc->...bc", lapl_kin_dvol,
+                                    grad_basis2, grad_basis2)
 
         # construct the Hermitian linear operator
         mat = self._orthozer.convert2(mat)
@@ -802,7 +880,8 @@ class HamiltonCGTO(BaseHamilton):
             if self._df is None:
                 return [prefix + "el_mat"]
             else:
-                return self._df.getparamnames("get_elrep", prefix=prefix + "_df.")
+                return self._df.getparamnames("get_elrep",
+                                              prefix=prefix + "_df.")
         elif methodname == "get_exchange":
             return [prefix + "el_mat"]
         elif methodname == "ao_orb2dm":
@@ -826,8 +905,10 @@ class HamiltonCGTO(BaseHamilton):
         elif methodname == "get_grad_vext":
             return [prefix + "basis_dvolume", prefix + "grad_basis"]
         elif methodname == "get_lapl_kin_vext":
-            return [prefix + "dvolume", prefix + "basis", prefix + "grad_basis",
-                    prefix + "lapl_basis"]
+            return [
+                prefix + "dvolume", prefix + "basis", prefix + "grad_basis",
+                prefix + "lapl_basis"
+            ]
         elif methodname == "get_vxc":
             assert self.xc is not None
             return self.getparamnames("_dm2densinfo", prefix=prefix) + \

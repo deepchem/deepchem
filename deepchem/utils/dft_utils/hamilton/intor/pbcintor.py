@@ -17,14 +17,29 @@ from deepchem.utils.dft_utils import LibcintWrapper, Lattice
 
 @dataclass
 class PBCIntOption:
+    """PBCIntOption is a class that contains parameters for the PBC integrals.
+
+    Examples
+    --------
+    >>> pbc = PBCIntOption()
+    >>> pbc.get_default()
+    PBCIntOption(precision=1e-08, kpt_diff_tol=1e-06)
+
+    Attributes
+    ----------
+    precision: float (default 1e-8)
+        Precision of the integral to limit the lattice sum.
+    kpt_diff_tol: float (default 1e-6)
+        Difference between k-points to be regarded as the same.
+
     """
-    PBCIntOption is a class that contains parameters for the PBC integrals.
-    """
-    precision: float = 1e-8  # precision of the integral to limit the lattice sum
-    kpt_diff_tol: float = 1e-6  # the difference between k-points to be regarded as the same
+    precision: float = 1e-8 
+    kpt_diff_tol: float = 1e-6
 
     @staticmethod
-    def get_default(lattsum_opt: Optional[Union[PBCIntOption, Dict]] = None) -> PBCIntOption:
+    def get_default(
+        lattsum_opt: Optional[Union[PBCIntOption,
+                                    Dict]] = None) -> PBCIntOption:
         """Get the default PBCIntOption object.
 
         Parameters
@@ -47,13 +62,43 @@ class PBCIntOption:
         else:
             return lattsum_opt
 
-def pbc_int1e(shortname: str, wrapper: LibcintWrapper,
-              other: Optional[LibcintWrapper] = None,
-              kpts: Optional[torch.Tensor] = None,
-              options: Optional[PBCIntOption] = None,
-              ):
+
+def pbc_int1e(
+    shortname: str,
+    wrapper: LibcintWrapper,
+    other: Optional[LibcintWrapper] = None,
+    kpts: Optional[torch.Tensor] = None,
+    options: Optional[PBCIntOption] = None,
+):
     """
     Performing the periodic boundary condition (PBC) on 1-electron integrals.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis, Lattice
+    >>> from deepchem.utils.dft_utils.grid.radial_grid import RadialGrid
+    >>> dtype = torch.float64
+    >>> d = 1.0
+    >>> pos_requires_grad = True
+    >>> pos1 = torch.tensor([0.1 * d,  0.0 * d,  0.2 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> pos2 = torch.tensor([0.0 * d,  1.0 * d, -0.4 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> poss = [pos1, pos2, pos3]
+    >>> atomzs = [1, 1, 1]
+    >>> allbases = [
+    ...     loadbasis("%d:%s" % (max(atomz, 1), "3-21G"), dtype=dtype, requires_grad=False)
+    ...     for atomz in atomzs
+    ... ]
+    >>> atombases = [
+    ...     AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+    ...     for i in range(len(allbases))
+    ... ]
+    >>> a = torch.tensor([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]], dtype=dtype)
+    >>> lattice = Lattice(a)
+    >>> wrap = LibcintWrapper(atombases, True, lattice)
+    >>> inte = pbc_int1e("r0", wrap)
+    >>> inte.shape
+    torch.Size([1, 3, 6, 6])
 
     Parameters
     ----------
@@ -87,22 +132,51 @@ def pbc_int1e(shortname: str, wrapper: LibcintWrapper,
     options1 = _get_default_options(options)
     kpts1 = _get_default_kpts(kpts, dtype=wrapper.dtype, device=wrapper.device)
 
-    assert isinstance(wrapper.lattice, Lattice)  # check if wrapper has a lattice
-    return _PBCInt2cFunction.apply(
-        *wrapper.params,
-        *wrapper.lattice.params,
-        kpts1,
-        [wrapper, other1],
-        IntorNameManager("int1e", shortname), options1)
+    assert isinstance(wrapper.lattice,
+                      Lattice)  # check if wrapper has a lattice
+    return _PBCInt2cFunction.apply(*wrapper.params, *wrapper.lattice.params,
+                                   kpts1, [wrapper, other1],
+                                   IntorNameManager("int1e",
+                                                    shortname), options1)
 
-def pbc_int2c2e(shortname: str, wrapper: LibcintWrapper,
-                other: Optional[LibcintWrapper] = None,
-                kpts: Optional[torch.Tensor] = None,  # (nkpts, ndim)
-                options: Optional[PBCIntOption] = None,
-                ):
+
+def pbc_int2c2e(
+    shortname: str,
+    wrapper: LibcintWrapper,
+    other: Optional[LibcintWrapper] = None,
+    kpts: Optional[torch.Tensor] = None,  # (nkpts, ndim)
+    options: Optional[PBCIntOption] = None,
+):
     """
     Performing the periodic boundary condition (PBC) on 2-centre 2-electron
     integrals.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis, Lattice
+    >>> from deepchem.utils.dft_utils.grid.radial_grid import RadialGrid
+    >>> dtype = torch.float64
+    >>> d = 1.0
+    >>> pos_requires_grad = True
+    >>> pos1 = torch.tensor([0.1 * d,  0.0 * d,  0.2 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> pos2 = torch.tensor([0.0 * d,  1.0 * d, -0.4 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> poss = [pos1, pos2, pos3]
+    >>> atomzs = [1, 1, 1]
+    >>> allbases = [
+    ...     loadbasis("%d:%s" % (max(atomz, 1), "3-21G"), dtype=dtype, requires_grad=False)
+    ...     for atomz in atomzs
+    ... ]
+    >>> atombases = [
+    ...     AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+    ...     for i in range(len(allbases))
+    ... ]
+    >>> a = torch.tensor([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]], dtype=dtype)
+    >>> lattice = Lattice(a)
+    >>> wrap = LibcintWrapper(atombases, True, lattice)
+    >>> inte = pbc_int2c2e("r12", wrap)
+    >>> inte.shape
+    torch.Size([1, 6, 6])
 
     Parameters
     ----------
@@ -136,22 +210,51 @@ def pbc_int2c2e(shortname: str, wrapper: LibcintWrapper,
     options1 = _get_default_options(options)
     kpts1 = _get_default_kpts(kpts, dtype=wrapper.dtype, device=wrapper.device)
 
-    assert isinstance(wrapper.lattice, Lattice)  # check if wrapper has a lattice
-    return _PBCInt2cFunction.apply(
-        *wrapper.params,
-        *wrapper.lattice.params,
-        kpts1,
-        [wrapper, other1],
-        IntorNameManager("int2c2e", shortname), options1)
+    assert isinstance(wrapper.lattice,
+                      Lattice)  # check if wrapper has a lattice
+    return _PBCInt2cFunction.apply(*wrapper.params, *wrapper.lattice.params,
+                                   kpts1, [wrapper, other1],
+                                   IntorNameManager("int2c2e",
+                                                    shortname), options1)
 
-def pbc_int3c2e(shortname: str, wrapper: LibcintWrapper,
-                other1: Optional[LibcintWrapper] = None,
-                other2: Optional[LibcintWrapper] = None,
-                kpts_ij: Optional[torch.Tensor] = None,  # (nkpts, 2, ndim)
-                options: Optional[PBCIntOption] = None,
-                ):
+
+def pbc_int3c2e(
+    shortname: str,
+    wrapper: LibcintWrapper,
+    other1: Optional[LibcintWrapper] = None,
+    other2: Optional[LibcintWrapper] = None,
+    kpts_ij: Optional[torch.Tensor] = None,  # (nkpts, 2, ndim)
+    options: Optional[PBCIntOption] = None,
+):
     """
     Performing the periodic boundary condition (PBC) on 3-electron integrals.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis, Lattice
+    >>> from deepchem.utils.dft_utils.grid.radial_grid import RadialGrid
+    >>> dtype = torch.float64
+    >>> d = 1.0
+    >>> pos_requires_grad = True
+    >>> pos1 = torch.tensor([0.1 * d,  0.0 * d,  0.2 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> pos2 = torch.tensor([0.0 * d,  1.0 * d, -0.4 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d], dtype=dtype, requires_grad=pos_requires_grad)
+    >>> poss = [pos1, pos2, pos3]
+    >>> atomzs = [1, 1, 1]
+    >>> allbases = [
+    ...     loadbasis("%d:%s" % (max(atomz, 1), "3-21G"), dtype=dtype, requires_grad=False)
+    ...     for atomz in atomzs
+    ... ]
+    >>> atombases = [
+    ...     AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+    ...     for i in range(len(allbases))
+    ... ]
+    >>> a = torch.tensor([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]], dtype=dtype)
+    >>> lattice = Lattice(a)
+    >>> wrap = LibcintWrapper(atombases, True, lattice)
+    >>> inte = pbc_int3c2e("ar12", wrap)
+    >>> inte.shape
+    torch.Size([1, 6, 6])
 
     Parameters
     ----------
@@ -196,19 +299,21 @@ def pbc_int3c2e(shortname: str, wrapper: LibcintWrapper,
     other1w = _check_and_set_pbc(wrapper, other1)
     other2w = _check_and_set_pbc(wrapper, other2)
     options1 = _get_default_options(options)
-    kpts_ij1 = _get_default_kpts_ij(kpts_ij, dtype=wrapper.dtype, device=wrapper.device)
+    kpts_ij1 = _get_default_kpts_ij(kpts_ij,
+                                    dtype=wrapper.dtype,
+                                    device=wrapper.device)
 
     # check if wrapper has a defined lattice
     assert isinstance(wrapper.lattice, Lattice)
-    return _PBCInt3cFunction.apply(
-        *wrapper.params,
-        *wrapper.lattice.params,
-        kpts_ij1,
-        [wrapper, other1w, other2w],
-        IntorNameManager("int3c2e", shortname), options1)
+    return _PBCInt3cFunction.apply(*wrapper.params, *wrapper.lattice.params,
+                                   kpts_ij1, [wrapper, other1w, other2w],
+                                   IntorNameManager("int3c2e",
+                                                    shortname), options1)
+
 
 # shortcuts
-def pbc_overlap(wrapper: LibcintWrapper, other: Optional[LibcintWrapper] = None,
+def pbc_overlap(wrapper: LibcintWrapper,
+                other: Optional[LibcintWrapper] = None,
                 kpts: Optional[torch.Tensor] = None,
                 options: Optional[PBCIntOption] = None) -> torch.Tensor:
     """
@@ -240,7 +345,9 @@ def pbc_overlap(wrapper: LibcintWrapper, other: Optional[LibcintWrapper] = None,
     """
     return pbc_int1e("ovlp", wrapper, other=other, kpts=kpts, options=options)
 
-def pbc_kinetic(wrapper: LibcintWrapper, other: Optional[LibcintWrapper] = None,
+
+def pbc_kinetic(wrapper: LibcintWrapper,
+                other: Optional[LibcintWrapper] = None,
                 kpts: Optional[torch.Tensor] = None,
                 options: Optional[PBCIntOption] = None) -> torch.Tensor:
     """
@@ -272,7 +379,9 @@ def pbc_kinetic(wrapper: LibcintWrapper, other: Optional[LibcintWrapper] = None,
     """
     return pbc_int1e("kin", wrapper, other=other, kpts=kpts, options=options)
 
-def pbc_coul2c(wrapper: LibcintWrapper, other: Optional[LibcintWrapper] = None,
+
+def pbc_coul2c(wrapper: LibcintWrapper,
+               other: Optional[LibcintWrapper] = None,
                kpts: Optional[torch.Tensor] = None,
                options: Optional[PBCIntOption] = None) -> torch.Tensor:
     """
@@ -304,7 +413,9 @@ def pbc_coul2c(wrapper: LibcintWrapper, other: Optional[LibcintWrapper] = None,
     """
     return pbc_int2c2e("r12", wrapper, other=other, kpts=kpts, options=options)
 
-def pbc_coul3c(wrapper: LibcintWrapper, other1: Optional[LibcintWrapper] = None,
+
+def pbc_coul3c(wrapper: LibcintWrapper,
+               other1: Optional[LibcintWrapper] = None,
                other2: Optional[LibcintWrapper] = None,
                kpts_ij: Optional[torch.Tensor] = None,
                options: Optional[PBCIntOption] = None) -> torch.Tensor:
@@ -349,24 +460,31 @@ def pbc_coul3c(wrapper: LibcintWrapper, other1: Optional[LibcintWrapper] = None,
     `other2` environment is electrically neutral and free from dipole and
     quadrupole.
     """
-    return pbc_int3c2e("ar12", wrapper, other1=other1, other2=other2,
-                       kpts_ij=kpts_ij, options=options)
+    return pbc_int3c2e("ar12",
+                       wrapper,
+                       other1=other1,
+                       other2=other2,
+                       kpts_ij=kpts_ij,
+                       options=options)
+
 
 # torch autograd function wrappers
 class _PBCInt2cFunction(torch.autograd.Function):
     """wrapper class for the periodic boundary condition 2-centre integrals"""
+
     @staticmethod
-    def forward(ctx,  # type: ignore
-                # basis params
-                allcoeffs: torch.Tensor, allalphas: torch.Tensor, allposs: torch.Tensor,
-                # lattice params
-                alattice: torch.Tensor,
-                # other parameters
-                kpts: torch.Tensor,
-                wrappers: List[LibcintWrapper], int_nmgr: IntorNameManager,
-                options: PBCIntOption) -> torch.Tensor:
+    def forward(
+            ctx,  # type: ignore
+            allcoeffs: torch.Tensor,
+            allalphas: torch.Tensor,
+            allposs: torch.Tensor,
+            alattice: torch.Tensor,
+            kpts: torch.Tensor,
+            wrappers: List[LibcintWrapper],
+            int_nmgr: IntorNameManager,
+            options: PBCIntOption) -> torch.Tensor:
         """Forward pass of the PBC 2-centre integrals
-        
+
         Parameters
         ----------
         allcoeffs: torch.Tensor
@@ -402,7 +520,9 @@ class _PBCInt2cFunction(torch.autograd.Function):
         return out_tensor
 
     @staticmethod
-    def backward(ctx, grad_out: torch.Tensor) -> Tuple[Optional[torch.Tensor], ...]:  # type: ignore
+    def backward(
+        ctx, grad_out: torch.Tensor
+    ) -> Tuple[Optional[torch.Tensor], ...]:  # type: ignore
         """backward pass of the PBC 2-centre integrals
 
         Parameters
@@ -418,20 +538,23 @@ class _PBCInt2cFunction(torch.autograd.Function):
             The gradients of the input tensors
 
         """
-        raise NotImplementedError("gradients of PBC 2-centre integrals are not implemented")
+        raise NotImplementedError(
+            "gradients of PBC 2-centre integrals are not implemented")
+
 
 class _PBCInt3cFunction(torch.autograd.Function):
     # wrapper class for the periodic boundary condition 3-centre integrals
     @staticmethod
-    def forward(ctx,  # type: ignore
-                # basis params
-                allcoeffs: torch.Tensor, allalphas: torch.Tensor, allposs: torch.Tensor,
-                # lattice params
-                alattice: torch.Tensor,
-                # other parameters
-                kpts_ij: torch.Tensor,
-                wrappers: List[LibcintWrapper], int_nmgr: IntorNameManager,
-                options: PBCIntOption) -> torch.Tensor:
+    def forward(
+            ctx,  # type: ignore
+            allcoeffs: torch.Tensor,
+            allalphas: torch.Tensor,
+            allposs: torch.Tensor,
+            alattice: torch.Tensor,
+            kpts_ij: torch.Tensor,
+            wrappers: List[LibcintWrapper],
+            int_nmgr: IntorNameManager,
+            options: PBCIntOption) -> torch.Tensor:
         # allcoeffs: (ngauss_tot,)
         # allalphas: (ngauss_tot,)
         # allposs: (natom, ndim)
@@ -443,13 +566,19 @@ class _PBCInt3cFunction(torch.autograd.Function):
         return out_tensor
 
     @staticmethod
-    def backward(ctx, grad_out: torch.Tensor) -> Tuple[Optional[torch.Tensor], ...]:  # type: ignore
-        raise NotImplementedError("gradients of PBC 3-centre integrals are not implemented")
+    def backward(
+        ctx, grad_out: torch.Tensor
+    ) -> Tuple[Optional[torch.Tensor], ...]:  # type: ignore
+        raise NotImplementedError(
+            "gradients of PBC 3-centre integrals are not implemented")
+
 
 # integrator object (direct interface to lib*)
 class PBCIntor(object):
-    def __init__(self, int_nmgr: IntorNameManager, wrappers: List[LibcintWrapper],
-                 kpts_inp: torch.Tensor, options: PBCIntOption):
+
+    def __init__(self, int_nmgr: IntorNameManager,
+                 wrappers: List[LibcintWrapper], kpts_inp: torch.Tensor,
+                 options: PBCIntOption):
         """This is a class for once integration only
         This class is made for refactoring reason because the integrals share
         some parameters
@@ -527,13 +656,14 @@ class PBCIntor(object):
         ----------
         [1].. https://github.com/pyscf/pyscf/blob/master/pyscf/pbc/gto/cell.py
         [2].. https://github.com/pyscf/pyscf/blob/f1321d5dd4fa103b5b04f10f31389c408949269d/pyscf/pbc/gto/cell.py#L345
-        
+
         """
         assert len(self.wrappers) == 2
 
         # libpbc will do in-place shift of the basis of one of the wrappers, so
         # we need to make a concatenated copy of the wrapper's atm_bas_env
-        atm, bas, env, ao_loc = _concat_atm_bas_env(self.wrappers[0], self.wrappers[1])
+        atm, bas, env, ao_loc = _concat_atm_bas_env(self.wrappers[0],
+                                                    self.wrappers[1])
         i0, i1 = self.wrappers[0].shell_idxs
         j0, j1 = self.wrappers[1].shell_idxs
         nshls0 = len(self.wrappers[0].parent)
@@ -541,7 +671,8 @@ class PBCIntor(object):
 
         # prepare the output
         nkpts = len(self.kpts_inp_np)
-        outshape = (nkpts,) + self.comp_shape + tuple(w.nao() for w in self.wrappers)
+        outshape = (nkpts,) + self.comp_shape + tuple(
+            w.nao() for w in self.wrappers)
         out = np.empty(outshape, dtype=np.complex128)
 
         # TODO: add symmetry here
@@ -552,27 +683,27 @@ class PBCIntor(object):
         cpbcopt = c_null_ptr()
 
         # get the lattice translation vectors and the exponential factors
-        expkl = np.asarray(np.exp(1j * np.dot(self.kpts_inp_np, self.ls.T)), order='C')
+        expkl = np.asarray(np.exp(1j * np.dot(self.kpts_inp_np, self.ls.T)),
+                           order='C')
 
         # if the ls is too big, it might produce segfault
         if (self.ls.shape[0] > 1e6):
-            warnings.warn("The number of neighbors in the integral is too many, "
-                          "it might causes segfault")
+            warnings.warn(
+                "The number of neighbors in the integral is too many, "
+                "it might causes segfault")
 
         # perform the integration
         drv = CPBC().PBCnr2c_drv
         drv(fintor, fill, out.ctypes.data_as(ctypes.c_void_p),
             int2ctypes(nkpts), int2ctypes(self.ncomp), int2ctypes(len(self.ls)),
             np2ctypes(self.ls),
-            np2ctypes(expkl),
-            (ctypes.c_int * len(shls_slice))(*shls_slice),
-            np2ctypes(ao_loc),
-            cintopt, cpbcopt,
-            np2ctypes(atm), int2ctypes(atm.shape[0]),
-            np2ctypes(bas), int2ctypes(bas.shape[0]),
+            np2ctypes(expkl), (ctypes.c_int * len(shls_slice))(*shls_slice),
+            np2ctypes(ao_loc), cintopt, cpbcopt, np2ctypes(atm),
+            int2ctypes(atm.shape[0]), np2ctypes(bas), int2ctypes(bas.shape[0]),
             np2ctypes(env), int2ctypes(env.size))
 
-        out_tensor = torch.as_tensor(out, dtype=get_complex_dtype(self.dtype),
+        out_tensor = torch.as_tensor(out,
+                                     dtype=get_complex_dtype(self.dtype),
                                      device=self.device)
         return out_tensor
 
@@ -598,11 +729,13 @@ class PBCIntor(object):
         k0, k1 = self.wrappers[2].shell_idxs
         nshls0 = len(self.wrappers[0].parent)
         nshls01 = len(self.wrappers[1].parent) + nshls0
-        shls_slice = (i0, i1, j0 + nshls0, j1 + nshls0, k0 + nshls01, k1 + nshls01)
+        shls_slice = (i0, i1, j0 + nshls0, j1 + nshls0, k0 + nshls01,
+                      k1 + nshls01)
 
         # kpts is actually kpts_ij in this function
         nkpts_ij = len(self.kpts_inp_np)
-        outshape = (nkpts_ij,) + self.comp_shape + tuple(w.nao() for w in self.wrappers)
+        outshape = (nkpts_ij,) + self.comp_shape + tuple(
+            w.nao() for w in self.wrappers)
         out = np.empty(outshape, dtype=np.complex128)
 
         # get the unique k-points
@@ -610,48 +743,53 @@ class PBCIntor(object):
         kpts_j = self.kpts_inp_np[:, 1, :]
         kpts_stack = np.concatenate((kpts_i, kpts_j), axis=0)
         kpt_diff_tol = self.options.kpt_diff_tol
-        _, kpts_idxs = np.unique(np.floor(kpts_stack / kpt_diff_tol) * kpt_diff_tol,
-                                 axis=0, return_index=True)
+        _, kpts_idxs = np.unique(np.floor(kpts_stack / kpt_diff_tol) *
+                                 kpt_diff_tol,
+                                 axis=0,
+                                 return_index=True)
         kpts = kpts_stack[kpts_idxs, :]
         nkpts = len(kpts)
         expkl = np.asarray(np.exp(1j * np.dot(kpts, self.ls.T)), order="C")
 
         # get the kpts_ij_idxs
         # TODO: check if it is the index inverse from unique
-        wherei = np.where(np.abs(kpts_i.reshape(-1, 1, 3) - kpts).sum(axis=2) < kpt_diff_tol)[1]
-        wherej = np.where(np.abs(kpts_j.reshape(-1, 1, 3) - kpts).sum(axis=2) < kpt_diff_tol)[1]
+        wherei = np.where(
+            np.abs(kpts_i.reshape(-1, 1, 3) -
+                   kpts).sum(axis=2) < kpt_diff_tol)[1]
+        wherej = np.where(
+            np.abs(kpts_j.reshape(-1, 1, 3) -
+                   kpts).sum(axis=2) < kpt_diff_tol)[1]
         kpts_ij_idxs = np.asarray(wherei * nkpts + wherej, dtype=np.int32)
 
         # prepare the optimizers
         # TODO: use proper optimizers
         # NOTE: using _get_intgl_optimizer in this case produce wrong results (I don't know why)
-        cintopt = c_null_ptr()  # _get_intgl_optimizer(self.opname, atm, bas, env)
+        cintopt = c_null_ptr(
+        )  # _get_intgl_optimizer(self.opname, atm, bas, env)
         cpbcopt = c_null_ptr()
 
         # do the integration
         drv = CPBC().PBCnr3c_drv
-        fill = CPBC().PBCnr3c_fill_kks1  # TODO: optimize the kk-type and symmetry
+        fill = CPBC(
+        ).PBCnr3c_fill_kks1  # TODO: optimize the kk-type and symmetry
         fintor = getattr(CPBC(), self.opname)
-        drv(fintor, fill, np2ctypes(out),
-            int2ctypes(nkpts_ij),
-            int2ctypes(nkpts),
-            int2ctypes(self.ncomp), int2ctypes(len(self.ls)),
-            np2ctypes(self.ls),
-            np2ctypes(expkl),
-            np2ctypes(kpts_ij_idxs),
-            (ctypes.c_int * len(shls_slice))(*shls_slice),
-            np2ctypes(ao_loc),
-            cintopt, cpbcopt,
-            np2ctypes(atm), int2ctypes(atm.shape[0]),
-            np2ctypes(bas), int2ctypes(bas.shape[0]),
-            np2ctypes(env), int2ctypes(env.size))
+        drv(fintor, fill, np2ctypes(out), int2ctypes(nkpts_ij),
+            int2ctypes(nkpts), int2ctypes(self.ncomp), int2ctypes(len(self.ls)),
+            np2ctypes(self.ls), np2ctypes(expkl), np2ctypes(kpts_ij_idxs),
+            (ctypes.c_int * len(shls_slice))(*shls_slice), np2ctypes(ao_loc),
+            cintopt, cpbcopt, np2ctypes(atm), int2ctypes(atm.shape[0]),
+            np2ctypes(bas), int2ctypes(bas.shape[0]), np2ctypes(env),
+            int2ctypes(env.size))
 
-        out_tensor = torch.as_tensor(out, dtype=get_complex_dtype(self.dtype),
+        out_tensor = torch.as_tensor(out,
+                                     dtype=get_complex_dtype(self.dtype),
                                      device=self.device)
         return out_tensor
 
+
 # helper functions
-def _check_and_set_pbc(wrapper: LibcintWrapper, other: Optional[LibcintWrapper]) -> LibcintWrapper:
+def _check_and_set_pbc(wrapper: LibcintWrapper,
+                       other: Optional[LibcintWrapper]) -> LibcintWrapper:
     """check the `other` parameter if it is compatible to `wrapper`, then return
     the `other` parameter (set to wrapper if it is `None`)
 
@@ -671,6 +809,7 @@ def _check_and_set_pbc(wrapper: LibcintWrapper, other: Optional[LibcintWrapper])
     other1 = _check_and_set(wrapper, other)
     assert other1.lattice is wrapper.lattice
     return other1
+
 
 def _get_default_options(options: Optional[PBCIntOption]) -> PBCIntOption:
     """if options is None, then set the default option.
@@ -692,6 +831,7 @@ def _get_default_options(options: Optional[PBCIntOption]) -> PBCIntOption:
     else:
         options1 = options
     return options1
+
 
 def _get_default_kpts(kpts: Optional[torch.Tensor], dtype: torch.dtype,
                       device: torch.device) -> torch.Tensor:
@@ -750,6 +890,7 @@ def _get_default_kpts_ij(kpts_ij: Optional[torch.Tensor], dtype: torch.dtype,
         assert kpts1.shape[-1] == NDIM
         assert kpts1.shape[-2] == 2
     return kpts1
+
 
 def _concat_atm_bas_env(*wrappers: LibcintWrapper) -> Tuple[np.ndarray, ...]:
     """make a copy of the concatenated atm, bas, env, and also return the new

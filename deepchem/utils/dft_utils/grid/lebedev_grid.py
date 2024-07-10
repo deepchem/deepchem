@@ -6,8 +6,18 @@ from deepchem.utils.dft_utils import BaseGrid, RadialGrid
 
 __all__ = ["LebedevGrid", "TruncatedLebedevGrid"]
 
+
 class LebedevLoader(object):
-    """load the lebedev points and save the cache to save time"""
+    """load the lebedev points and save the cache to save time
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.grid.lebedev_grid import LebedevLoader
+    >>> grid = LebedevLoader.load(3)
+    >>> grid.shape
+    (6, 3)
+
+    """
     caches: Dict[int, np.ndarray] = {}
 
     @classmethod
@@ -30,15 +40,19 @@ class LebedevLoader(object):
         """
         if prec not in cls.caches:
             # load the lebedev grid points
-            dset_path = os.path.join(os.path.split(__file__)[0],
-                                     "lebedevquad", "lebedev_%03d.txt" % prec)
-            assert os.path.exists(dset_path), "The dataset lebedev_%03d.txt does not exist" % prec
+            dset_path = os.path.join(
+                os.path.split(__file__)[0], "lebedevquad",
+                "lebedev_%03d.txt" % prec)
+            assert os.path.exists(
+                dset_path), "The dataset lebedev_%03d.txt does not exist" % prec
             lebedev_dsets = np.loadtxt(dset_path)
-            lebedev_dsets[:, :2] *= (np.pi / 180)  # convert the angles to radians
+            lebedev_dsets[:, :2] *= (np.pi / 180
+                                    )  # convert the angles to radians
             # save to the cache
             cls.caches[prec] = lebedev_dsets
 
         return cls.caches[prec]
+
 
 class LebedevGrid(BaseGrid):
     """Using Lebedev predefined angular points + radial grid to form 3D grid.
@@ -46,6 +60,18 @@ class LebedevGrid(BaseGrid):
     Lebedev grids. These are specially-constructed grids for quadrature
     on the surface of a sphere,543, 541, 542, 540 based on the octahedral
     point group.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.grid.radial_grid import RadialGrid
+    >>> from deepchem.utils.dft_utils.grid.lebedev_grid import LebedevGrid
+    >>> grid = RadialGrid(100, grid_integrator="chebyshev",
+    ...                   grid_transform="logm3")
+    >>> l_grid = LebedevGrid(grid, 3)
+    >>> l_grid.get_rgrid().shape
+    torch.Size([600, 3])
+    >>> grid.get_rgrid().shape
+    torch.Size([100, 1])
 
     """
 
@@ -64,11 +90,12 @@ class LebedevGrid(BaseGrid):
         self._dtype = radgrid.dtype
         self._device = radgrid.device
 
-        assert (prec % 2 == 1) and (3 <= prec <= 131),\
-            "Precision must be an odd number between 3 and 131"
+        assert (prec % 2 == 1) and (3 <= prec <= 131), "Precision must be an odd number between 3 and 131"
 
         # load the Lebedev grid points
-        lebedev_dsets = torch.tensor(LebedevLoader.load(prec), dtype=self._dtype, device=self._device)
+        lebedev_dsets = torch.tensor(LebedevLoader.load(prec),
+                                     dtype=self._dtype,
+                                     device=self._device)
         wphitheta = lebedev_dsets[:, -1]  # (nphitheta)
         phi = lebedev_dsets[:, 0]
         theta = lebedev_dsets[:, 1]
@@ -170,11 +197,25 @@ class LebedevGrid(BaseGrid):
         else:
             raise KeyError("Invalid methodname: %s" % methodname)
 
+
 class TruncatedLebedevGrid(LebedevGrid):
-    """A class to represent the truncated lebedev grid
-    It is represented by various radial grid (usually the sliced ones)
-    with different precisions
+    """A class to represent the truncated lebedev grid. It is represented
+    by various radial grid (usually the sliced ones) with different precisions.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.grid.radial_grid import RadialGrid
+    >>> from deepchem.utils.dft_utils.grid.lebedev_grid import TruncatedLebedevGrid
+    >>> grid = RadialGrid(100, grid_integrator="chebyshev",
+    ...                   grid_transform="logm3")
+    >>> l_grid = TruncatedLebedevGrid([grid, grid], [3, 5])
+    >>> l_grid.get_rgrid().shape
+    torch.Size([2000, 3])
+    >>> grid.get_rgrid().shape
+    torch.Size([100, 1])
+
     """
+
     def __init__(self, radgrids: Sequence[RadialGrid], precs: Sequence[int]):
         """Initialize the truncated Lebedev grid.
 
@@ -189,11 +230,17 @@ class TruncatedLebedevGrid(LebedevGrid):
         """
         assert len(radgrids) == len(precs)
         assert len(precs) > 0
-        self.lebedevs = [LebedevGrid(radgrid, prec) for (radgrid, prec) in zip(radgrids, precs)]
+        self.lebedevs = [
+            LebedevGrid(radgrid, prec)
+            for (radgrid, prec) in zip(radgrids, precs)
+        ]
         grid0 = self.lebedevs[0]
 
         # set the variables to be used in the properties
         self._dtype = grid0.dtype
         self._device = grid0.device
-        self._xyz = torch.cat(tuple(grid.get_rgrid() for grid in self.lebedevs), dim=0)
-        self._dvolume = torch.cat(tuple(grid.get_dvolume() for grid in self.lebedevs), dim=0)
+        self._xyz = torch.cat(tuple(grid.get_rgrid() for grid in self.lebedevs),
+                              dim=0)
+        self._dvolume = torch.cat(tuple(
+            grid.get_dvolume() for grid in self.lebedevs),
+                                  dim=0)
