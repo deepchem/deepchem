@@ -3,7 +3,6 @@ from collections import defaultdict
 from deepchem.feat import Featurizer
 from typing import List, Dict, Tuple, Optional, Any
 
-
 class _Realigner(object):
 
     def left_align_indel(self, seq: str, pos: int,
@@ -42,10 +41,9 @@ class _Realigner(object):
             return pos, f"-{del_len}"
         return pos, indel
 
-    def decode_one_hot(
-            self,
-            one_hot_vector: List[np.ndarray],
-            charset: Optional[List[str]] = ["A", "C", "T", "G", "N"]) -> str:
+    def decode_one_hot(self, one_hot_vector,
+            charset: Optional[List[str]] = 
+            ["A", "C", "T", "G", "N"]):
         """
         Decode a one-hot encoded sequence into astring of
         nucleotides.
@@ -139,8 +137,8 @@ class _Realigner(object):
             allele_counts[(pileupcolumn['name'], pos)] = allele_count
 
     def generate_pileup_and_reads(
-        self, bamfile_path: str, reference_path: str
-    ) -> Tuple[Dict[Tuple[str, int], Dict[str, Any]], List[Any]]:
+        self, bamfile_path, reference_path
+    ):
         """
         Generate pileup and reads from BAM and reference FASTA files.
 
@@ -166,11 +164,11 @@ class _Realigner(object):
         fasta_loader = FASTALoader(None, None, False)
         fasta_dataset = fasta_loader.create_dataset(reference_path)
 
-        allele_counts: Dict[Tuple[str, int], Dict[str, Any]] = {}
-        reads: List[Any] = []
+        allele_counts = {}
+        reads = []
 
         one_hot_encoded_sequences = fasta_dataset.X
-        reference_seq_dict: List[str] = []
+        reference_seq_dict = []
 
         # Convert the one-hot encoded sequences to strings
         reference_seq_dict = []
@@ -201,8 +199,8 @@ class _Realigner(object):
 
         return allele_counts, reads
 
-    def update_counts(self, count: int, start: int, end: int,
-                      window_counts: Dict[int, int]) -> None:
+    def update_counts(self, count, start, end,
+                      window_counts):
         """
         Update counts in a window.
 
@@ -223,8 +221,8 @@ class _Realigner(object):
             window_counts[pos] += count
 
     def select_candidate_regions(
-        self, allele_counts: Dict[Tuple[str, int], Dict[str, Any]]
-    ) -> List[Tuple[str, int, int, int]]:
+        self, allele_counts
+    ):
         """
         Select candidate regions based on allele counts.
 
@@ -241,8 +239,8 @@ class _Realigner(object):
             List of candidate regions.
 
         """
-        window_counts: Dict[int, int] = defaultdict(int)
-        chrom_positions: Dict[str, List[Tuple[int, int]]] = defaultdict(list)
+        window_counts = defaultdict(int)
+        chrom_positions = defaultdict(list)
 
         for (chrom, pos), allele_count in allele_counts.items():
             for allele, count in allele_count["read_alleles"].items():
@@ -276,7 +274,7 @@ class _Realigner(object):
                     self.update_counts(count, start, end, window_counts)
                     chrom_positions[chrom].append((start, end))
 
-        candidate_regions: List[Tuple[str, int, int, int]] = []
+        candidate_regions = []
         for chrom, positions in chrom_positions.items():
             positions.sort()
             if positions:
@@ -311,9 +309,7 @@ class RealignerFeaturizer(Featurizer):
     def __init__(self):
         self.realigner = _Realigner()
 
-    def _featurize(
-        self, datapoint: Tuple[str, str]
-    ) -> Tuple[List[Tuple[str, int, int, int]], List[Any]]:
+    def _featurize(self, datapoint):
         """
         Featurizes a datapoint by generating candidate regions and reads.
 
