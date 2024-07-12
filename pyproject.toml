@@ -16,6 +16,7 @@ dependencies = [
   "sympy",
   "scipy>=1.10.1",
   "rdkit",
+  "toml",
 ]
 keywords = [
   "deepchem",
