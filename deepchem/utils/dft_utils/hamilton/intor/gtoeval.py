@@ -5,7 +5,7 @@ import torch
 import numpy as np
 from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import LibcintWrapper
 from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CGTO
-from deepchem.utils.dft_utils.hamilton.intor.pbcintor import _get_default_kpts, _get_default_options, PBCIntOption
+from deepchem.utils.dft_utils.hamilton.intor.pbcintor import get_default_kpts, get_default_options, PBCIntOption
 from deepchem.utils.misc_utils import estimate_ovlp_rcut
 from deepchem.utils.dft_utils.hamilton.intor.molintor import _gather_at_dims
 
@@ -135,8 +135,8 @@ def pbc_evl(shortname: str,
 
     """
     # get the default arguments
-    kpts1 = _get_default_kpts(kpts, dtype=wrapper.dtype, device=wrapper.device)
-    options1 = _get_default_options(options)
+    kpts1 = get_default_kpts(kpts, dtype=wrapper.dtype, device=wrapper.device)
+    options1 = get_default_options(options)
 
     # get the shifts
     coeffs, alphas, _ = wrapper.params

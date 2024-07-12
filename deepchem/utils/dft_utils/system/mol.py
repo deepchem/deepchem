@@ -14,26 +14,35 @@ from deepchem.utils.misc_utils import Cache
 import logging
 
 logger = logging.getLogger(__name__)
-__all__ = ["Mol"]
+
 
 class Mol(BaseSystem):
     """
     Describe the system of an isolated molecule.
 
+    Examples
+    --------
+    >>> mol = Mol("H 1 0 0; H -1 0 0", "sto-3g", spin=1)
+    >>> hamilton = mol.get_hamiltonian()
+    >>> mol.setup_grid()
+    >>> grid = mol.get_grid()
+    >>> orb_weights = mol.get_orbweight()
+
     """
 
-    def __init__(self,
-                 moldesc: Union[str, Tuple[AtomZsType, AtomPosType]],
-                 basis: BasisInpType,
-                 *,
-                 grid: Union[int, str] = "sg3",
-                 spin: Optional[ZType] = None,
-                 charge: ZType = 0,
-                 orb_weights: Optional[SpinParam[torch.Tensor]] = None,
-                 efield: Union[torch.Tensor, Tuple[torch.Tensor, ...], None] = None,
-                 dtype: torch.dtype = torch.float64,
-                 device: torch.device = torch.device('cpu'),
-                 ):
+    def __init__(
+            self,
+            moldesc: Union[str, Tuple[AtomZsType, AtomPosType]],
+            basis: BasisInpType,
+            *,
+            grid: Union[int, str] = "sg3",
+            spin: Optional[ZType] = None,
+            charge: ZType = 0,
+            orb_weights: Optional[SpinParam[torch.Tensor]] = None,
+            efield: Union[torch.Tensor, Tuple[torch.Tensor, ...], None] = None,
+            dtype: torch.dtype = torch.float64,
+            device: torch.device = torch.device('cpu'),
+    ):
         """Initialize the molecule system.
 
         Parameters
@@ -91,14 +100,17 @@ class Mol(BaseSystem):
         # get the AtomCGTOBasis & the hamiltonian
         # atomzs: (natoms,) dtype: torch.int or dtype for floating point
         # atompos: (natoms, ndim)
-        atomzs, atompos = parse_moldesc(
-            moldesc, dtype=dtype, device=device)
-        atomzs_int = torch.round(atomzs).to(torch.int) if atomzs.is_floating_point() else atomzs
+        atomzs, atompos = parse_moldesc(moldesc, dtype=dtype, device=device)
+        atomzs_int = torch.round(atomzs).to(
+            torch.int) if atomzs.is_floating_point() else atomzs
         allbases = _parse_basis(atomzs_int, basis)  # list of list of CGTOBasis
-        atombases = [AtomCGTOBasis(atomz=atz, bases=bas, pos=atpos)
-                     for (atz, bas, atpos) in zip(atomzs, allbases, atompos)]
+        atombases = [
+            AtomCGTOBasis(atomz=atz, bases=bas, pos=atpos)
+            for (atz, bas, atpos) in zip(atomzs, allbases, atompos)
+        ]
         self._atombases = atombases
-        self._hamilton = HamiltonCGTO(atombases, efield=self._preproc_efield,
+        self._hamilton = HamiltonCGTO(atombases,
+                                      efield=self._preproc_efield,
                                       cache=self._cache.add_prefix("hamilton"))
         self._atompos = atompos  # (natoms, ndim)
         self._atomzs = atomzs  # (natoms,) int-type or dtype if floating point
@@ -123,18 +135,22 @@ class Mol(BaseSystem):
         # orb_weights is specified, so calculate the spin and charge from it
         else:
             if not isinstance(orb_weights, SpinParam):
-                raise TypeError("Specifying orb_weights must be in SpinParam type")
+                raise TypeError(
+                    "Specifying orb_weights must be in SpinParam type")
             assert orb_weights.u.ndim == 1
             assert orb_weights.d.ndim == 1
             assert len(orb_weights.u) == len(orb_weights.d)
 
             # check if it is decreasing
-            orb_u_dec = torch.all(orb_weights.u[:-1] - orb_weights.u[1:] > -1e-4)
-            orb_d_dec = torch.all(orb_weights.d[:-1] - orb_weights.d[1:] > -1e-4)
+            orb_u_dec = torch.all(
+                orb_weights.u[:-1] - orb_weights.u[1:] > -1e-4)
+            orb_d_dec = torch.all(
+                orb_weights.d[:-1] - orb_weights.d[1:] > -1e-4)
             if not (orb_u_dec and orb_d_dec):
                 # if not decreasing, the variational might give the wrong results
-                warnings.warn("The orbitals should be ordered in a non-increasing manner. "
-                              "Otherwise, some calculations might be wrong.")
+                warnings.warn(
+                    "The orbitals should be ordered in a non-increasing manner. "
+                    "Otherwise, some calculations might be wrong.")
 
             utot = orb_weights.u.sum()
             dtot = orb_weights.d.sum()
@@ -146,7 +162,8 @@ class Mol(BaseSystem):
             self._orb_weights_d = orb_weights.d
             self._orb_weights = orb_weights.u + orb_weights.d
 
-    def densityfit(self, method: Optional[str] = None,
+    def densityfit(self,
+                   method: Optional[str] = None,
                    auxbasis: Optional[BasisInpType] = None) -> BaseSystem:
         """
         Indicate that the system's Hamiltonian uses density fit for its integral.
@@ -164,7 +181,7 @@ class Mol(BaseSystem):
         auxbasis: Optional[BasisInpType]
             Auxiliary basis for the density fit. If not specified, then it uses
             ``"cc-pvtz-jkfit"``.
-        
+
         Returns
         -------
         BaseSystem
@@ -180,23 +197,35 @@ class Mol(BaseSystem):
         # get the auxiliary basis
         assert auxbasis is not None
         auxbasis_lst = _parse_basis(self._atomzs_int, auxbasis)
-        atomauxbases = [AtomCGTOBasis(atomz=atz, bases=bas, pos=atpos)
-                        for (atz, bas, atpos) in zip(self._atomzs, auxbasis_lst, self._atompos)]
+        atomauxbases = [
+            AtomCGTOBasis(atomz=atz, bases=bas, pos=atpos)
+            for (atz, bas,
+                 atpos) in zip(self._atomzs, auxbasis_lst, self._atompos)
+        ]
 
         # change the hamiltonian to have density fit
         df = DensityFitInfo(method=method, auxbases=atomauxbases)
-        self._hamilton = HamiltonCGTO(self._atombases, df=df, efield=self._preproc_efield,
+        self._hamilton = HamiltonCGTO(self._atombases,
+                                      df=df,
+                                      efield=self._preproc_efield,
                                       cache=self._cache.add_prefix("hamilton"))
         return self
 
     def get_hamiltonian(self) -> BaseHamilton:
         """
-        Returns the Hamiltonian that corresponds to the system, i.e.
-        :class:`~dqc.hamilton.HamiltonCGTO`
+        Hamiltonian that corresponds to the system.
+
+        Returns
+        -------
+        BaseHamilton
+            The Hamiltonian of the system.
+
         """
         return self._hamilton
 
-    def set_cache(self, fname: str, paramnames: Optional[List[str]] = None) -> BaseSystem:
+    def set_cache(self,
+                  fname: str,
+                  paramnames: Optional[List[str]] = None) -> BaseSystem:
         """
         Setup the cache of some parameters specified by `paramnames` to be read/written
         on a file.
@@ -231,7 +260,10 @@ class Mol(BaseSystem):
 
         return self
 
-    def get_orbweight(self, polarized: bool = False) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
+    def get_orbweight(
+        self,
+        polarized: bool = False
+    ) -> Union[torch.Tensor, SpinParam[torch.Tensor]]:
         """Get the orbital weights of the system.
 
         Parameters
@@ -264,17 +296,23 @@ class Mol(BaseSystem):
         # atompos: (natoms, ndim)
 
         # r12: (natoms, natom)
-        r12 = safe_cdist(self._atompos, self._atompos, add_diag_eps=True, diag_inf=True)
-        z12 = self._atomzs.unsqueeze(-2) * self._atomzs.unsqueeze(-1)  # (natoms, natoms)
+        r12 = safe_cdist(self._atompos,
+                         self._atompos,
+                         add_diag_eps=True,
+                         diag_inf=True)
+        z12 = self._atomzs.unsqueeze(-2) * self._atomzs.unsqueeze(
+            -1)  # (natoms, natoms)
         q_by_r = z12 / r12
         return q_by_r.sum() * 0.5
 
     def setup_grid(self) -> None:
         """Setup the integration grid for the system."""
-        grid_inp = self._grid_inp
         logger.info("Constructing the integration grid")
-        self._grid = get_predefined_grid(self._grid_inp, self._atomzs_int, self._atompos,
-                                         dtype=self._dtype, device=self._device)
+        self._grid = get_predefined_grid(self._grid_inp,
+                                         self._atomzs_int,
+                                         self._atompos,
+                                         dtype=self._dtype,
+                                         device=self._device)
         logger.info("Constructing the integration grid: done")
 
         # #        0,  1,  2,  3,  4,  5
@@ -298,7 +336,8 @@ class Mol(BaseSystem):
 
         """
         if self._grid is None:
-            raise RuntimeError("Please run mol.setup_grid() first before calling get_grid()")
+            raise RuntimeError(
+                "Please run mol.setup_grid() first before calling get_grid()")
         return self._grid
 
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
@@ -361,9 +400,12 @@ class Mol(BaseSystem):
 
         """
         if torch.is_floating_point(self._atomzs):
-            raise RuntimeError("Atom masses are not available for floating point Z")
-        return torch.tensor([get_atom_mass(int(atomz)) for atomz in self._atomzs],
-                            dtype=self._dtype, device=self._device)
+            raise RuntimeError(
+                "Atom masses are not available for floating point Z")
+        return torch.tensor(
+            [get_atom_mass(int(atomz)) for atomz in self._atomzs],
+            dtype=self._dtype,
+            device=self._device)
 
     @property
     def spin(self) -> ZType:
@@ -413,8 +455,15 @@ class Mol(BaseSystem):
         """
         return self._efield
 
-def _parse_basis(atomzs: torch.Tensor, basis: BasisInpType) -> List[List[CGTOBasis]]:
+
+def _parse_basis(atomzs: torch.Tensor,
+                 basis: BasisInpType) -> List[List[CGTOBasis]]:
     """Returns the list of cgto basis for every atoms.
+
+    Examples
+    --------
+    >>> _parse_basis(torch.tensor([1, 1]), "sto-3g")
+    [[CGTOBasis(angmom=0, alphas=tensor([3.4253, 0.6239, 0.1689], dtype=torch.float64), coeffs=tensor([0.9817, 0.9495, 0.2959], dtype=torch.float64), normalized=True)], [CGTOBasis(angmom=0, alphas=tensor([3.4253, 0.6239, 0.1689], dtype=torch.float64), coeffs=tensor([0.9817, 0.9495, 0.2959], dtype=torch.float64), normalized=True)]]
 
     Parameters
     ----------
@@ -455,15 +504,40 @@ def _parse_basis(atomzs: torch.Tensor, basis: BasisInpType) -> List[List[CGTOBas
 
         # list of str
         elif isinstance(basis[0], str):
-            return [loadbasis("%d:%s" % (atz, b)) for (atz, b) in zip(atomzs, basis)]  # type: ignore
+            return [
+                loadbasis("%d:%s" % (atz, b))
+                for (atz, b) in zip(atomzs, basis)
+            ]  # type: ignore
 
         # list of list of cgto basis
         else:
             return basis  # type: ignore
 
+
 def _get_nelecs_spin(nelecs_tot: torch.Tensor, spin: Optional[ZType],
                      charge: ZType) -> Tuple[torch.Tensor, ZType, bool]:
-    # get the number of electrons and spins
+    """get the number of electrons and spins
+
+    Examples
+    --------
+    >>> _get_nelecs_spin(torch.tensor(2), None, 0)
+    (tensor(2), tensor(0), False)
+
+    Parameters
+    ----------
+    nelecs_tot: torch.Tensor
+        Total number of electrons.
+    spin: int, float, torch.Tensor, or None
+        Spin of the system.
+    charge: int, float, or torch.Tensor
+        Charge of the system.
+
+    Returns
+    -------
+    Tuple[torch.Tensor, ZType, bool]
+        Number of electrons, spin, and whether the system is in fractional mode.
+
+    """
 
     # a boolean to indicate if working in a fractional mode
     frac_mode = nelecs_tot.is_floating_point() or is_z_float(charge) or \
@@ -487,11 +561,37 @@ def _get_nelecs_spin(nelecs_tot: torch.Tensor, spin: Optional[ZType],
                 "Spin %d is not suited for %d electrons" % (spin, nelecs)
     return nelecs, spin, frac_mode
 
+
 def _get_orb_weights(nelecs: torch.Tensor, spin: ZType, frac_mode: bool,
                      dtype: torch.dtype, device: torch.device) \
         -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    # returns the orbital weights given the electronic information
-    # (total orbital weights, spin-up orb weights, spin-down orb weights)
+    """returns the orbital weights given the electronic information
+    (total orbital weights, spin-up orb weights, spin-down orb weights)
+
+    Examples
+    --------
+    >>> _get_orb_weights(torch.tensor(2), 1, False, torch.float64, torch.device('cpu'))
+    (tensor([1.], dtype=torch.float64), tensor([1.], dtype=torch.float64), tensor([0.], dtype=torch.float64))
+
+    Parameters
+    ----------
+    nelecs: torch.Tensor
+        Number of electrons.
+    spin: int
+        Spin of the system.
+    frac_mode: bool
+        Whether the system is in fractional mode.
+    dtype: torch.dtype
+        Data type of the tensors.
+    device: torch.device
+        Device of the tensors.
+
+    Returns
+    -------
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+        Total orbital weights, spin-up orbital weights, and spin-down orbital weights.
+
+    """
 
     # calculate the orbital weights
     nspin_dn: torch.Tensor = (nelecs - spin) * 0.5 if frac_mode else \
@@ -500,7 +600,10 @@ def _get_orb_weights(nelecs: torch.Tensor, spin: ZType, frac_mode: bool,
 
     # total orbital weights
     _orb_weights_u = occnumber(nspin_up, dtype=dtype, device=device)
-    _orb_weights_d = occnumber(nspin_dn, n=len(_orb_weights_u), dtype=dtype, device=device)
+    _orb_weights_d = occnumber(nspin_dn,
+                               n=len(_orb_weights_u),
+                               dtype=dtype,
+                               device=device)
     _orb_weights = _orb_weights_u + _orb_weights_d
 
     # get the polarized orbital weights
@@ -511,9 +614,27 @@ def _get_orb_weights(nelecs: torch.Tensor, spin: ZType, frac_mode: bool,
 
     return _orb_weights, _orb_weights_u, _orb_weights_d
 
+
 def _normalize_efield(efield: Union[torch.Tensor, Tuple[torch.Tensor, ...], None]) \
         -> Optional[Tuple[torch.Tensor, ...]]:
-    # making efield a tuple or None
+    """making efield a tuple or None
+
+    Examples
+    --------
+    >>> _normalize_efield(torch.tensor([1, 2, 3]))
+    (tensor([1, 2, 3]),)
+
+    Parameters
+    ----------
+    efield: torch.Tensor, tuple of torch.Tensor, or None
+        Electric field of the system.
+
+    Returns
+    -------
+    Optional[Tuple[torch.Tensor, ...]]
+        Electric field of the system.
+
+    """
 
     if isinstance(efield, torch.Tensor):
         efs: Optional[Tuple[torch.Tensor, ...]] = (efield,)
@@ -522,9 +643,29 @@ def _normalize_efield(efield: Union[torch.Tensor, Tuple[torch.Tensor, ...], None
 
     return efs
 
-def _preprocess_efield(efs: Optional[Tuple[torch.Tensor, ...]]) -> Optional[Tuple[torch.Tensor, ...]]:
-    # preprocess the efield tuple such that the energy is just a simple tensor
-    # product with the integrals
+
+def _preprocess_efield(
+    efs: Optional[Tuple[torch.Tensor,
+                        ...]]) -> Optional[Tuple[torch.Tensor, ...]]:
+    """preprocess the efield tuple such that the energy is just a simple tensor
+    product with the integrals
+
+    Examples
+    --------
+    >>> _preprocess_efield((torch.tensor([1, 2, 3]),))
+    (tensor([1, 2, 3]),)
+
+    Parameters
+    ----------
+    efs: tuple of torch.Tensor or None
+        Electric field of the system.
+
+    Returns
+    -------
+    tuple of torch.Tensor or None
+        Preprocessed electric field of the system
+
+    """
 
     if efs is None:
         return efs
@@ -533,7 +674,7 @@ def _preprocess_efield(efs: Optional[Tuple[torch.Tensor, ...]]) -> Optional[Tupl
     res_list: List[torch.Tensor] = []
     for i in range(len(efs)):
         efi = efs[i]
-        numel = 3 ** (i + 1)
+        numel = 3**(i + 1)
         assert efi.numel() == numel, \
             f"The {i}-th tuple element of efield must have {numel} elements"
 

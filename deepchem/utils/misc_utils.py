@@ -3,12 +3,11 @@ Utilities for miscellaneous tasks.
 """
 from __future__ import annotations
 import contextlib
-from typing import Optional, List, Callable, Dict, Any, Tuple
+from typing import Optional, List, Callable, Dict, Any, Tuple, TypeVar, Mapping
 import warnings
 import torch
 import numpy as np
 import h5py
-from typing import Dict, List, Optional, Callable, TypeVar, Any, Mapping
 import functools
 
 
@@ -238,7 +237,22 @@ class Cache(object):
         different objects), we provide `check_signature` method which will
         raise a warning if the signature from the cached file and the input of
         `check_signature` do not match.
+
+    Examples
+    --------
+    >>> class A:
+    ...     def __init__(self):
+    ...         self.cache = Cache.get_dummy()
+    ...     def foo(self, x):
+    ...         return self.cache.cache("foo", lambda: x * x)
+    >>> a = A()
+    >>> a.foo(2)
+    4
+    >>> a.foo(2)
+    4
+
     """
+
     def __init__(self):
         """Initialize the cache object."""
         self._cacheable_pnames: List[str] = []
@@ -264,7 +278,8 @@ class Cache(object):
         self._fname = fname
         self._pnames_to_cache = pnames
 
-    def cache(self, pname: str, fcn: Callable[[], torch.Tensor]) -> torch.Tensor:
+    def cache(self, pname: str, fcn: Callable[[],
+                                              torch.Tensor]) -> torch.Tensor:
         """cache the result of the function
 
         Parameters
@@ -333,9 +348,11 @@ class Cache(object):
         file = self._get_file_handler()
 
         # check if all the dataset is in the cache file, otherwise, just evaluate
-        all_dset_names_in_file = all([dset_name in file for dset_name in dset_names])
+        all_dset_names_in_file = all(
+            [dset_name in file for dset_name in dset_names])
         if all_dset_names_in_file:
-            all_res = tuple(self._load_dset(dset_name, file) for dset_name in dset_names)
+            all_res = tuple(
+                self._load_dset(dset_name, file) for dset_name in dset_names)
         else:
             all_res = fcn()
             for dset_name, res in zip(dset_names, all_res):
@@ -401,7 +418,9 @@ class Cache(object):
         """
         return self._cacheable_pnames
 
-    def check_signature(self, sig_dict: Dict[str, Any], _groupname: Optional[str] = "/"):
+    def check_signature(self,
+                        sig_dict: Dict[str, Any],
+                        _groupname: Optional[str] = "/"):
         """Executed while the file is opened, if there is no signature, then add
         the signature, if there is a signature in the file, then match it.
         If they do not match, print a warning, otherwise, do nothing
@@ -429,7 +448,8 @@ class Cache(object):
             group = fh.create_group(_groupname)
 
         # create the signature string
-        sig_str = "\n\n".join(["%s:\n%s" % (k, str(v)) for (k, v) in sig_dict.items()])
+        sig_str = "\n\n".join(
+            ["%s:\n%s" % (k, str(v)) for (k, v) in sig_dict.items()])
 
         # if the signature does not exist, then write the signature as an attribute
         if sig_attrname not in group.attrs:
@@ -439,9 +459,10 @@ class Cache(object):
         else:
             cached_sig = str(group.attrs[sig_attrname])
             if cached_sig != sig_str:
-                msg = ("Mismatch of the cached signature.\nCached signature:\n%s\n"
-                       "-----------------------\n"
-                       "Current signature:\n%s" % (cached_sig, sig_str))
+                msg = (
+                    "Mismatch of the cached signature.\nCached signature:\n%s\n"
+                    "-----------------------\n"
+                    "Current signature:\n%s" % (cached_sig, sig_str))
                 warnings.warn(msg)
 
         group.attrs["signature"] = str(sig_str)
@@ -472,7 +493,8 @@ class Cache(object):
             Indicator whether the parameter name is to be cached
 
         """
-        return (self._pnames_to_cache is None) or (pname in self._pnames_to_cache)
+        return (self._pnames_to_cache is None) or (pname
+                                                   in self._pnames_to_cache)
 
     def _pname2dsetname(self, pname: str) -> str:
         """Convert the parameter name to dataset name
@@ -532,7 +554,8 @@ class Cache(object):
         dset = torch.as_tensor(dset_np)
         return dset
 
-    def _save_dset(self, dset_name: str, fhandler: h5py.File, dset: torch.Tensor):
+    def _save_dset(self, dset_name: str, fhandler: h5py.File,
+                   dset: torch.Tensor):
         """Save res to the h5py in the dataset name
 
         Parameters
@@ -547,8 +570,21 @@ class Cache(object):
         """
         fhandler[dset_name] = dset.detach()
 
+
 class _PrefixedCache(Cache):
-    """This class adds a prefix to every parameter names input"""
+    """This class adds a prefix to every parameter names input
+
+    Examples
+    --------
+    >>> cache = Cache.get_dummy()
+    >>> pcache = _PrefixedCache(cache, "prefix.")
+    >>> pcache.cache("foo", lambda: 1)
+    1
+    >>> pcache.cache("foo", lambda: 2)
+    2
+
+    """
+
     def __init__(self, obj: Cache, prefix: str):
         """Initialize the PrefixedCache object
 
@@ -576,7 +612,8 @@ class _PrefixedCache(Cache):
         """
         raise RuntimeError("Cache.set() must be done on non-prefixed cache")
 
-    def cache(self, pname: str, fcn: Callable[[], torch.Tensor]) -> torch.Tensor:
+    def cache(self, pname: str, fcn: Callable[[],
+                                              torch.Tensor]) -> torch.Tensor:
         """Cache the result of the function
 
         Parameters
@@ -669,9 +706,12 @@ class _PrefixedCache(Cache):
             If the method is called on the prefixed cache
 
         """
-        raise RuntimeError("Cache.get_cacheable_params() must be done on non-prefixed cache")
+        raise RuntimeError(
+            "Cache.get_cacheable_params() must be done on non-prefixed cache")
 
-    def check_signature(self, sig_dict: Dict[str, Any], _groupname: Optional[str] = "/"):
+    def check_signature(self,
+                        sig_dict: Dict[str, Any],
+                        _groupname: Optional[str] = "/"):
         """use the prefix as the groupname to do signature check of the root object
 
         Parameters
@@ -718,8 +758,21 @@ class _PrefixedCache(Cache):
         """
         return self._prefix + pname
 
+
 class _DummyCache(Cache):
-    """This class just an interface of cache without doing anything"""
+    """This class just an interface of cache without doing anything.
+
+    Examples
+    --------
+    >>> cache = _DummyCache()
+    >>> cache.set("cache.h5")
+    >>> cache.cache("foo", lambda: 1)
+    1
+    >>> cache.cache("foo", lambda: 2)
+    2
+
+    """
+
     def __init__(self):
         """Initialize the DummyCache object."""
         pass
@@ -737,7 +790,8 @@ class _DummyCache(Cache):
         """
         pass
 
-    def cache(self, pname: str, fcn: Callable[[], torch.Tensor]) -> torch.Tensor:
+    def cache(self, pname: str, fcn: Callable[[],
+                                              torch.Tensor]) -> torch.Tensor:
         """cache the result of the function
 
         Parameters
@@ -828,7 +882,9 @@ class _DummyCache(Cache):
         """
         return []
 
-    def check_signature(self, sig_dict: Dict[str, Any], _groupname: Optional[str] = "/"):
+    def check_signature(self,
+                        sig_dict: Dict[str, Any],
+                        _groupname: Optional[str] = "/"):
         """Executed while the file is opened, if there is no signature, then add
         the signature, if there is a signature in the file, then match it.
         If they do not match, print a warning, otherwise, do nothing
@@ -856,8 +912,16 @@ class _DummyCache(Cache):
         """
         return False
 
+
 def _normalize_prefix(prefix: str) -> str:
     """Added a dot at the end of prefix if it is not so.
+
+    Examples
+    --------
+    >>> _normalize_prefix("prefix")
+    'prefix.'
+    >>> _normalize_prefix("prefix.")
+    'prefix.'
 
     Parameters
     ----------
@@ -882,6 +946,12 @@ K = TypeVar('K')
 def get_option(name: str, s: K, options: Mapping[K, T]) -> T:
     """Get the value from dictionary of options, if not found, then raise an error
 
+    Examples
+    --------
+    >>> options = {"a": 1, "b": 2}
+    >>> get_option("name", "a", options)
+    1
+
     Parameters
     ----------
     name : str
@@ -900,13 +970,16 @@ def get_option(name: str, s: K, options: Mapping[K, T]) -> T:
     if s in options:
         return options[s]
     else:
-        raise ValueError(f"Unknown {name}: {s}. The available options are: {str(list(options.keys()))}")
+        raise ValueError(
+            f"Unknown {name}: {s}. The available options are: {str(list(options.keys()))}"
+        )
 
 
-def estimate_ovlp_rcut(precision: float, coeffs: torch.Tensor, alphas: torch.Tensor) -> float:
+def estimate_ovlp_rcut(precision: float, coeffs: torch.Tensor,
+                       alphas: torch.Tensor) -> float:
     """estimate the rcut for lattice sum to achieve the given precision
     it is estimated based on the overlap integral
-    
+
     Parameters
     ----------
     precision : float
@@ -926,6 +999,8 @@ def estimate_ovlp_rcut(precision: float, coeffs: torch.Tensor, alphas: torch.Ten
     C = (coeffs * coeffs + 1e-200) * (2 * langmom + 1) * alphas / precision
     r0 = torch.tensor(20.0, dtype=coeffs.dtype, device=coeffs.device)
     for i in range(2):
-        r0 = torch.sqrt(2.0 * torch.log(C * (r0 * r0 * alphas) ** (langmom + 1) + 1.) / alphas)
+        r0 = torch.sqrt(
+            2.0 * torch.log(C *
+                            (r0 * r0 * alphas)**(langmom + 1) + 1.) / alphas)
     rcut = float(torch.max(r0).detach())
     return rcut

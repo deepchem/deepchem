@@ -3,8 +3,19 @@ import torch
 from deepchem.utils.differentiation_utils import EditableModule, LinearOperator, symeig
 
 class OrbitalOrthogonalizer(EditableModule):
-    """
-    Convert orbital to another type of orbital by orthogonalizing the basis sets.
+    """Convert orbital to another type of orbital by orthogonalizing the basis sets.
+
+    Examples
+    --------
+    >>> ovlp = torch.tensor([[1.0, 0.5], [0.5, 1.0]])
+    >>> orthozer = OrbitalOrthogonalizer(ovlp)
+    >>> orthozer.nao()
+    2
+    >>> mat = torch.tensor([[1.0, 0.5], [0.5, 1.0]])
+    >>> orthozer.convert2(mat)
+    tensor([[1.0000, 0.0000],
+            [0.0000, 1.0000]])
+
     """
     def __init__(self, ovlp: torch.Tensor, threshold: float = 1e-6):
         """Initialize the orbital orthogonalizer.
