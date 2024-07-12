@@ -1,15 +1,15 @@
 import numpy as np
 from collections import defaultdict
 from deepchem.feat import Featurizer
-from typing import List, Dict, Tuple, Optional, Any
+from typing import List, Dict, Tuple, Any
+
 
 class _Realigner(object):
 
-    def left_align_indel(self, seq: str, pos: int,
-                         indel: str) -> Tuple[int, str]:
+    def left_align_indel(self, seq, pos, indel):
         """
-
-        Left align an indel by shifting it to the left as much as possible.
+        Left align an indel by shifting it to the left as
+        much as possible.
 
         Parameters
         ----------
@@ -42,10 +42,9 @@ class _Realigner(object):
         return pos, indel
 
     def decode_one_hot(self, one_hot_vector,
-            charset: Optional[List[str]] = 
-            ["A", "C", "T", "G", "N"]):
+                       charset=["A", "C", "T", "G", "N"]):
         """
-        Decode a one-hot encoded sequence into astring of
+        Decode a one-hot encoded sequence into a string of
         nucleotides.
 
         Parameters
