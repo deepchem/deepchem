@@ -765,7 +765,6 @@ class _DummyCache(Cache):
     Examples
     --------
     >>> cache = _DummyCache()
-    >>> cache.set("cache.h5")
     >>> cache.cache("foo", lambda: 1)
     1
     >>> cache.cache("foo", lambda: 2)
@@ -977,8 +976,16 @@ def get_option(name: str, s: K, options: Mapping[K, T]) -> T:
 
 def estimate_ovlp_rcut(precision: float, coeffs: torch.Tensor,
                        alphas: torch.Tensor) -> float:
-    """estimate the rcut for lattice sum to achieve the given precision
+    """Estimate the rcut for lattice sum to achieve the given precision
     it is estimated based on the overlap integral
+
+    Examples
+    --------
+    >>> precision = 1e-6
+    >>> coeffs = torch.tensor([1.0, 2.0, 3.0])
+    >>> alphas = torch.tensor([1.0, 2.0, 3.0])
+    >>> estimate_ovlp_rcut(precision, coeffs, alphas)
+    6.7652716636657715
 
     Parameters
     ----------

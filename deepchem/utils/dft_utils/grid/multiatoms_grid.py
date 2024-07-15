@@ -4,17 +4,35 @@ from typing import List, Optional, Tuple
 from deepchem.utils.dft_utils.grid.lebedev_grid import LebedevGrid
 from deepchem.utils.dft_utils import Lattice, BaseGrid
 
+
 class BeckeGrid(BaseGrid):
     """
     Using Becke's scheme to construct the 3D grid consists of multiple 3D grids
     centered on each atom.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.grid.lebedev_grid import LebedevGrid
+    >>> from deepchem.utils.dft_utils.grid.multiatoms_grid import BeckeGrid
+    >>> from deepchem.utils.dft_utils.grid.radial_grid import RadialGrid
+    >>> grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    >>> atomgrid = [LebedevGrid(grid, 3), LebedevGrid(grid, 3)]
+    >>> atompos = torch.tensor([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]], dtype=torch.float64)
+    >>> grid = BeckeGrid(atomgrid, atompos)
+    >>> grid.get_rgrid().shape
+    torch.Size([1200, 3])
+    >>> grid.get_dvolume().shape
+    torch.Size([1200])
+
     """
 
-    def __init__(self, atomgrid: List[LebedevGrid], atompos: torch.Tensor,
+    def __init__(self,
+                 atomgrid: List[LebedevGrid],
+                 atompos: torch.Tensor,
                  atomradii: Optional[torch.Tensor] = None,
                  ratom_adjust: str = "becke") -> None:
         """Initialize the Becke grid.
-        
+
         Parameters
         ----------
         atomgrid: List[LebedevGrid]
@@ -37,7 +55,9 @@ class BeckeGrid(BaseGrid):
         rgrids, self._rgrid, dvol_atoms = _construct_rgrids(atomgrid, atompos)
 
         # calculate the integration weights
-        weights_atoms = _get_atom_weights(rgrids, atompos, atomradii=atomradii,
+        weights_atoms = _get_atom_weights(rgrids,
+                                          atompos,
+                                          atomradii=atomradii,
                                           ratom_adjust=ratom_adjust)  # (ngrid,)
         self._dvolume = dvol_atoms * weights_atoms
 
@@ -120,17 +140,40 @@ class BeckeGrid(BaseGrid):
         else:
             raise KeyError("Invalid methodname: %s" % methodname)
 
+
 class PBCBeckeGrid(BaseGrid):
     """
     Use Becke's scheme to construct the 3D grid in a periodic cell. It is similar
     to non-pbc BeckeGrid, but in this case, only grid points inside the lattice
     are considered, and atoms corresponds to each grid points are involved in
     calculating the weights.
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.grid.lebedev_grid import LebedevGrid
+    >>> from deepchem.utils.dft_utils.grid.multiatoms_grid import PBCBeckeGrid
+    >>> from deepchem.utils.dft_utils.grid.radial_grid import RadialGrid
+    >>> grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    >>> atomgrid = [LebedevGrid(grid, 3), LebedevGrid(grid, 3)]
+    >>> atompos = torch.tensor([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]], dtype=torch.float64)
+    >>> from deepchem.utils.dft_utils import Lattice
+    >>> a = torch.tensor([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]], dtype=torch.float64)
+    >>> lattice = Lattice(a)
+    >>> grid = PBCBeckeGrid(atomgrid, atompos, lattice)
+    >>> grid.get_rgrid().shape
+    torch.Size([720, 3])
+    >>> grid.get_dvolume().shape
+    torch.Size([720])
+
     """
-    def __init__(self, atomgrid: List[LebedevGrid], atompos: torch.Tensor, lattice: Lattice,
+
+    def __init__(self,
+                 atomgrid: List[LebedevGrid],
+                 atompos: torch.Tensor,
+                 lattice: Lattice,
                  ratom_adjust: str = "becke"):
         """Initialize the PBCBecke grid.
-        
+
         Parameters
         ----------
         atomgrid: List[LebedevGrid]
@@ -151,7 +194,8 @@ class PBCBeckeGrid(BaseGrid):
 
         # get the normalized coordinates
         a = lattice.lattice_vectors()  # (nlvec=ndim, ndim)
-        b = lattice.recip_vectors() / (2 * np.pi)  # (ndim, ndim) just the inverse of lattice vector.T
+        b = lattice.recip_vectors() / (
+            2 * np.pi)  # (ndim, ndim) just the inverse of lattice vector.T
 
         new_atompos_lst: List[torch.Tensor] = []
         new_rgrids: List[torch.Tensor] = []
@@ -165,7 +209,9 @@ class PBCBeckeGrid(BaseGrid):
             ugrid = torch.einsum("cd,gd->gc", b, rgrid)  # (natgrid, ndim)
 
             # get the shift required to make the grid point inside the lattice
-            ns = -ugrid.floor().to(torch.int)  # (natgrid, ndim) # ratoms + ns @ a will be the new atompos
+            ns = -ugrid.floor().to(
+                torch.int
+            )  # (natgrid, ndim) # ratoms + ns @ a will be the new atompos
 
             # ns_unique: (nunique, ndim), ns_unique_idx: (natgrid,), ns_count: (nunique)
             ns_unique, ns_unique_idx, ns_count = torch.unique(
@@ -175,7 +221,8 @@ class PBCBeckeGrid(BaseGrid):
             significant_uniq_idx = ns_count > 8  # (nunique)
             significant_idx = significant_uniq_idx[ns_unique_idx]  # (natgrid,)
             ns_unique = ns_unique[significant_uniq_idx, :]  # (nunique2, ndim)
-            ls_unique = torch.matmul(ns_unique.to(a.dtype), a)  # (nunique2, ndim)
+            ls_unique = torch.matmul(ns_unique.to(a.dtype),
+                                     a)  # (nunique2, ndim)
 
             # flag the unaccepted points with -1
             flag = -1
@@ -200,7 +247,9 @@ class PBCBeckeGrid(BaseGrid):
         self._rgrid = torch.cat(new_rgrids, dim=0)  # (ngrid, ndim)
         dvol_atoms = torch.cat(new_dvols, dim=0)  # (ngrid)
         new_atompos = torch.cat(new_atompos_lst, dim=0)  # (nnewatoms, ndim)
-        watoms = _get_atom_weights(new_rgrids, new_atompos, ratom_adjust=ratom_adjust)  # (ngrid,)
+        watoms = _get_atom_weights(new_rgrids,
+                                   new_atompos,
+                                   ratom_adjust=ratom_adjust)  # (ngrid,)
         self._dvolume = dvol_atoms * watoms
 
     @property
@@ -282,9 +331,22 @@ class PBCBeckeGrid(BaseGrid):
         else:
             raise KeyError("Invalid methodname: %s" % methodname)
 
+
 def _construct_rgrids(atomgrid: List[LebedevGrid], atompos: torch.Tensor) \
         -> Tuple[List[torch.Tensor], torch.Tensor, torch.Tensor]:
-    """construct the grid positions in a 2D tensor, the weights per isolated atom
+    """Construct the grid positions in a 2D tensor, the weights per isolated atom
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.grid.lebedev_grid import LebedevGrid
+    >>> from deepchem.utils.dft_utils.grid.multiatoms_grid import _construct_rgrids
+    >>> from deepchem.utils.dft_utils.grid.radial_grid import RadialGrid
+    >>> grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    >>> atomgrid = [LebedevGrid(grid, 3), LebedevGrid(grid, 3)]
+    >>> atompos = torch.tensor([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]], dtype=torch.float64)
+    >>> allpos_lst, rgrid, dvol_atoms = _construct_rgrids(atomgrid, atompos)
+    >>> len(allpos_lst)
+    2
 
     Parameters
     ----------
@@ -311,10 +373,25 @@ def _construct_rgrids(atomgrid: List[LebedevGrid], atompos: torch.Tensor) \
 
     return allpos_lst, rgrid, dvol_atoms
 
-def _get_atom_weights(rgrids: List[torch.Tensor], atompos: torch.Tensor,
+
+def _get_atom_weights(rgrids: List[torch.Tensor],
+                      atompos: torch.Tensor,
                       atomradii: Optional[torch.Tensor] = None,
                       ratom_adjust: str = "becke") -> torch.Tensor:
     """Calculate the weights for each grid point due to the atoms
+
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.grid.lebedev_grid import LebedevGrid
+    >>> from deepchem.utils.dft_utils.grid.multiatoms_grid import _get_atom_weights
+    >>> from deepchem.utils.dft_utils.grid.radial_grid import RadialGrid
+    >>> grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    >>> atomgrid = [LebedevGrid(grid, 3), LebedevGrid(grid, 3)]
+    >>> atompos = torch.tensor([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]], dtype=torch.float64)
+    >>> rgrids, _, _ = _construct_rgrids(atomgrid, atompos)
+    >>> w = _get_atom_weights(rgrids, atompos)
+    >>> w.shape
+    torch.Size([1200])
 
     Parameters
     ----------
@@ -341,7 +418,8 @@ def _get_atom_weights(rgrids: List[torch.Tensor], atompos: torch.Tensor,
     natoms = atompos.shape[0]
     rdatoms = atompos - atompos.unsqueeze(1)  # (natoms, natoms, ndim)
     # add the diagonal to stabilize the gradient calculation
-    rdatoms = rdatoms + torch.eye(rdatoms.shape[0], dtype=rdatoms.dtype,
+    rdatoms = rdatoms + torch.eye(rdatoms.shape[0],
+                                  dtype=rdatoms.dtype,
                                   device=rdatoms.device).unsqueeze(-1)
     ratoms = torch.norm(rdatoms, dim=-1)  # (natoms, natoms)
 
@@ -352,14 +430,15 @@ def _get_atom_weights(rgrids: List[torch.Tensor], atompos: torch.Tensor,
             rad = atomradii
         elif ratom_adjust == "treutler":
             # https://aip.scitation.org/doi/pdf/10.1063/1.469408 eq (13)
-            rad = atomradii ** 0.5
+            rad = atomradii**0.5
         else:
             msg = "Unknown atom adjustment: %s. Available: ['becke', 'treutler']" % ratom_adjust
             raise ValueError(msg)
-        chiij = rad / rad.unsqueeze(1)  # (natoms, natoms)
+        # chiij = rad / rad.unsqueeze(1)  # (natoms, natoms)
         uij = (rad - rad.unsqueeze(1)) / \
               (rad + rad.unsqueeze(1))
-        aij = torch.clamp(uij / (uij * uij - 1), min=-0.45, max=0.45)  # (natoms, natoms)
+        aij = torch.clamp(uij / (uij * uij - 1), min=-0.45,
+                          max=0.45)  # (natoms, natoms)
         aij = aij.unsqueeze(-1)  # (natoms, natoms, 1)
 
     xyz_full = torch.cat(rgrids, dim=0)
@@ -373,7 +452,8 @@ def _get_atom_weights(rgrids: List[torch.Tensor], atompos: torch.Tensor,
         iend = ioff + rgrids[ia].shape[0]
         xyz = xyz_full[ioff:iend, :]
 
-        rgatoms = torch.norm(xyz - atompos.unsqueeze(1), dim=-1)  # (natoms, ngrid)
+        rgatoms = torch.norm(xyz - atompos.unsqueeze(1),
+                             dim=-1)  # (natoms, ngrid)
         mu_ij = (rgatoms - rgatoms.unsqueeze(1))  # (natoms, natoms, ngrid)
         mu_ij /= ratoms.unsqueeze(-1)  # (natoms, natoms, ngrid)
 
@@ -387,13 +467,20 @@ def _get_atom_weights(rgrids: List[torch.Tensor], atompos: torch.Tensor,
 
         # making mu_ij sparse for efficiency
         # threshold: mu_ij < 0.65 (s > 1e-3), mu_ij < 0.74 (s > 1e-4)
-        nnz_idx_bool = torch.all(mu_ij < 0.74, dim=0).unsqueeze(0)  # (1, natoms, ngrid)
-        mu_ij_nnz = mu_ij[:, nnz_idx_bool.squeeze(0)].reshape(-1)  # (natoms * nnz_col)
+        nnz_idx_bool = torch.all(mu_ij < 0.74,
+                                 dim=0).unsqueeze(0)  # (1, natoms, ngrid)
+        mu_ij_nnz = mu_ij[:, nnz_idx_bool.squeeze(0)].reshape(
+            -1)  # (natoms * nnz_col)
         nnz_idx0 = torch.nonzero(nnz_idx_bool).unsqueeze(0)  # (1, nnz_col, 3)
         nnz_col_idx = nnz_idx0[0, :, 1:].transpose(-2, -1)  # (2, nnz_col)
-        nnz_idx_atm = torch.zeros((natoms, 1, 3), dtype=nnz_idx0.dtype, device=nnz_idx0.device)  # (natoms, 1, 3)
-        nnz_idx_atm[:, 0, 0] = torch.arange(natoms, dtype=nnz_idx0.dtype, device=nnz_idx0.device)
-        nnz_idx = (nnz_idx0 + nnz_idx_atm).reshape(-1, 3)  # (nnz = natoms * nnz_col, 3)
+        nnz_idx_atm = torch.zeros((natoms, 1, 3),
+                                  dtype=nnz_idx0.dtype,
+                                  device=nnz_idx0.device)  # (natoms, 1, 3)
+        nnz_idx_atm[:, 0, 0] = torch.arange(natoms,
+                                            dtype=nnz_idx0.dtype,
+                                            device=nnz_idx0.device)
+        nnz_idx = (nnz_idx0 + nnz_idx_atm).reshape(
+            -1, 3)  # (nnz = natoms * nnz_col, 3)
         atom_diag_idx = nnz_idx[:, 0] == nnz_idx[:, 1]  # (nnz,)
 
         f = mu_ij_nnz
@@ -418,7 +505,8 @@ def _get_atom_weights(rgrids: List[torch.Tensor], atompos: torch.Tensor,
         psparse = s.prod(dim=0)  # (nnz_col,)
 
         # densify and normalize p
-        p = torch.zeros((natoms, mu_ij.shape[-1]), dtype=dtype, device=device)  # (natoms, ngrid)
+        p = torch.zeros((natoms, mu_ij.shape[-1]), dtype=dtype,
+                        device=device)  # (natoms, ngrid)
         p[nnz_col_idx[0], nnz_col_idx[1]] = psparse
         p = p / p.sum(dim=0, keepdim=True)  # (natoms, ngrid)
 

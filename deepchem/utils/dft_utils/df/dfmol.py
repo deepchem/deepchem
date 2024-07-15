@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class DFMol(BaseDF):
     """
     DFMol represents the class of density fitting for an isolated molecule.
-    
+
     Density fitting is a standard technique in quantum chemistry as it
     helps to accelerate certain parts of a calculation, such as the
     computation of the electron repulsion energy, without significant
@@ -22,8 +22,8 @@ class DFMol(BaseDF):
     Examples
     --------
     >>> from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import LibcintWrapper
-    >>> from deepchem.utils.dft_utils import OrbitalOrthogonalizer
-    >>> from deepchem.utils.dft_utils import DFMol
+    >>> from deepchem.utils.dft_utils.hamilton.orbconverter import OrbitalOrthogonalizer
+    >>> from deepchem.utils.dft_utils.df.dfmol import DFMol
     >>> from deepchem.utils.dft_utils.data.datastruct import DensityFitInfo
 
     >>> wrapper = LibcintWrapper("sto-3g")
@@ -38,10 +38,13 @@ class DFMol(BaseDF):
     LinearOperator with shape=(2, 5, 5) and dtype=float64
 
     """
-    def __init__(self, dfinfo: DensityFitInfo, wrapper: LibcintWrapper,
+
+    def __init__(self,
+                 dfinfo: DensityFitInfo,
+                 wrapper: LibcintWrapper,
                  orthozer: Optional[OrbitalOrthogonalizer] = None):
         """Initializes the DFMol Class.
-        
+
         Parameters
         ----------
         dfinfo: DensityFitInfo
@@ -66,22 +69,26 @@ class DFMol(BaseDF):
         Returns
         -------
         BaseDF
-            The constructed density fitting object."""
+            The constructed density fitting object.
+
+        """
         self._is_built = True
 
         # construct the matrix used to calculate the electron repulsion for
         # density fitting method
         method = self.dfinfo.method
+        print(self.dfinfo.auxbasis)
         auxbasiswrapper = LibcintWrapper(self.dfinfo.auxbasis,
-                                               spherical=self.wrapper.spherical)
-        basisw, auxbw = LibcintWrapper.concatenate(self.wrapper, auxbasiswrapper)
+                                         spherical=self.wrapper.spherical)
+        basisw, auxbw = LibcintWrapper.concatenate(self.wrapper,
+                                                   auxbasiswrapper)
 
         if method == "coulomb":
             logger.info("Calculating the 2e2c integrals")
             j2c = coul2c(auxbw)  # (nxao, nxao)
             logger.info("Calculating the 2e3c integrals")
             j3c = coul3c(basisw, other1=basisw,
-                               other2=auxbw)  # (nao, nao, nxao)
+                         other2=auxbw)  # (nao, nao, nxao)
         elif method == "overlap":
             j2c = overlap(auxbw)  # (nxao, nxao)
             # TODO: implement overlap3c
@@ -124,12 +131,15 @@ class DFMol(BaseDF):
             dm = self._orthozer.unconvert_dm(dm)
 
         if self._precompute_elmat:
-            df_coeffs = torch.einsum("...ij,ijk->...k", dm, self._el_mat)  # (*BD, nxao)
+            df_coeffs = torch.einsum("...ij,ijk->...k", dm,
+                                     self._el_mat)  # (*BD, nxao)
         else:
             temp = torch.einsum("...ij,ijl->...l", dm, self._j3c)
-            df_coeffs = torch.einsum("...l,lk->...k", temp, self._inv_j2c)  # (*BD, nxao)
+            df_coeffs = torch.einsum("...l,lk->...k", temp,
+                                     self._inv_j2c)  # (*BD, nxao)
 
-        mat = torch.einsum("...k,ijk->...ij", df_coeffs, self._j3c)  # (*BD, nao, nao)
+        mat = torch.einsum("...k,ijk->...ij", df_coeffs,
+                           self._j3c)  # (*BD, nao, nao)
         mat = (mat + mat.transpose(-2, -1)) * 0.5
         if self._orthozer is not None:
             mat = self._orthozer.convert2(mat)

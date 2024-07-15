@@ -146,7 +146,6 @@ def get_grid(atomzs: Union[List[int], torch.Tensor],
     Examples
     --------
     >>> from deepchem.utils.dft_utils.grid.factory import get_grid
-    >>> import torch
     >>> grid = get_grid(torch.tensor([1]), torch.tensor([[0,0,0]], dtype=torch.float64))
     >>> grid.get_rgrid().shape
     torch.Size([16710, 3])
@@ -341,7 +340,6 @@ def get_predefined_grid(grid_inp: Union[int, str],
     Examples
     --------
     >>> from deepchem.utils.dft_utils.grid.factory import get_predefined_grid
-    >>> import torch
     >>> grid = get_predefined_grid(3, torch.tensor([2]), torch.tensor([[0,0,0]], dtype=torch.float64))
     >>> grid.get_rgrid().shape
     torch.Size([8608, 3])

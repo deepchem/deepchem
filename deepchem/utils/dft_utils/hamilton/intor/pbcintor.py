@@ -1,18 +1,8 @@
 from __future__ import annotations
-from typing import Optional, List, Tuple, Union, Dict
-import ctypes
-import operator
-import warnings
+from typing import Optional, Union, Dict
 from dataclasses import dataclass
-from functools import reduce
-import numpy as np
 import torch
-from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, CPBC, CGTO, NDIM, c_null_ptr
-from deepchem.utils.pytorch_utils import get_complex_dtype
-from deepchem.utils.misc_utils import estimate_ovlp_rcut
-from deepchem.utils.dft_utils.hamilton.intor.molintor import _check_and_set, _get_intgl_optimizer
-from deepchem.utils.dft_utils.hamilton.intor.namemgr import IntorNameManager
-from deepchem.utils.dft_utils import LibcintWrapper, Lattice
+from deepchem.utils.dft_utils.hamilton.intor.utils import NDIM
 
 
 @dataclass
@@ -33,7 +23,7 @@ class PBCIntOption:
         Difference between k-points to be regarded as the same.
 
     """
-    precision: float = 1e-8 
+    precision: float = 1e-8
     kpt_diff_tol: float = 1e-6
 
     @staticmethod
@@ -92,7 +82,7 @@ def get_default_options(options: Optional[PBCIntOption] = None) -> PBCIntOption:
 
 
 def get_default_kpts(kpts: Optional[torch.Tensor], dtype: torch.dtype,
-                      device: torch.device) -> torch.Tensor:
+                     device: torch.device) -> torch.Tensor:
     """if kpts is None, then set the default kpts (k = zeros)
     otherwise, just return the input kpts in the correct dtype and device
 

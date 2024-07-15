@@ -23,10 +23,9 @@ class Mol(BaseSystem):
     Examples
     --------
     >>> mol = Mol("H 1 0 0; H -1 0 0", "sto-3g", spin=1)
-    >>> hamilton = mol.get_hamiltonian()
     >>> mol.setup_grid()
-    >>> grid = mol.get_grid()
-    >>> orb_weights = mol.get_orbweight()
+    >>> mol.get_orbweight()
+    tensor([1.5000, 0.5000], dtype=torch.float64)
 
     """
 

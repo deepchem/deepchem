@@ -3,10 +3,21 @@ from typing import List, Callable, Union
 import torch
 from deepchem.utils.dft_utils import RadialGrid
 
+
 class BaseTruncationRules(object):
+    """Base class to store the truncation rules of an individual atomic grid.
+
+    Examples
+    --------
+    >>> class MyTrunc(BaseTruncationRules):
+    ...     def to_truncate(self, atm: int) -> bool:
+    ...         return False
+    >>> trunc = MyTrunc()
+    >>> trunc.to_truncate(1)
+    False
+
     """
-    Base class to store the truncation rules of an individual atomic grid.
-    """
+
     @abstractmethod
     def to_truncate(self, atz: int) -> bool:
         """Decide whether to truncate the atom's grid
@@ -58,8 +69,18 @@ class BaseTruncationRules(object):
         """
         pass
 
+
 class NoTrunc(BaseTruncationRules):
-    """No truncation rule. Use the full grid for all atoms."""
+    """No truncation rule. Use the full grid for all atoms.
+
+    Examples
+    --------
+    >>> rule = NoTrunc()
+    >>> rule.to_truncate(1)
+    False
+
+    """
+
     def __init__(self):
         """Initialize the NoTrunc object"""
         pass
@@ -117,10 +138,19 @@ class NoTrunc(BaseTruncationRules):
         """
         raise RuntimeError("This shouldn't be called. Report to Github")
 
+
 class DasguptaTrunc(BaseTruncationRules):
     """
     Truncation rule from Dasgupta et al., https://onlinelibrary.wiley.com/doi/epdf/10.1002/jcc.24761
+
+    Examples
+    --------
+    >>> rule = DasguptaTrunc(75)
+    >>> rule.to_truncate(1)
+    True
+
     """
+
     def __init__(self, nr: Union[int, Callable[[int], int]]):
         """Initialize the DasguptaTrunc object.
 
@@ -278,14 +308,14 @@ class DasguptaTrunc(BaseTruncationRules):
     def precs(self, atz: int, radgrid: RadialGrid) -> List[int]:
         """Get the list of precisions of angular grid for each slice in the
         sliced radial grids
-        
+
         Parameters
         ----------
         atz: int
             Atomic number of the atom
         radgrid: RadialGrid
             RadialGrid object of the atom
-        
+
         Returns
         -------
         List[int]
@@ -295,16 +325,25 @@ class DasguptaTrunc(BaseTruncationRules):
         """
         return self._get_truncate_precs(atz)
 
+
 class NWChemTrunc(BaseTruncationRules):
     """
     NWChem truncation rules.
     From https://github.com/pyscf/pyscf/blob/18030c75a5c69c1da84574d111693074a622de56/pyscf/dft/gen_grid.py#L122
+
+    Examples
+    --------
+    >>> rule = NWChemTrunc([0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5],
+    ...                     13, [3, 5, 7, 9, 13],
+    ...                     torch.float64, torch.device('cpu'))
+    >>> rule.to_truncate(10)
+    True
+
     """
+
     def __init__(self, radii_list: List[float],
-                 prec: Union[int, Callable[[int], int]],
-                 precs_list: List[int],
-                 dtype: torch.dtype,
-                 device: torch.device):
+                 prec: Union[int, Callable[[int], int]], precs_list: List[int],
+                 dtype: torch.dtype, device: torch.device):
         """Initialize the NWChemTrunc object.
 
         Parameters
@@ -331,7 +370,9 @@ class NWChemTrunc(BaseTruncationRules):
             [0.25, 0.5, 1.0, 4.5],
             [0.1667, 0.5, 0.9, 3.5],
             [0.1, 0.4, 0.8, 2.5],
-        ], dtype=dtype, device=device)
+        ],
+                                    dtype=dtype,
+                                    device=device)
         self._prec = prec  # precision as a number or a function of atomz
         self._precs_list = precs_list  # complete list of available precision
 
@@ -360,7 +401,8 @@ class NWChemTrunc(BaseTruncationRules):
             res = [self._precs_list[ii] for ii in precs_idxs]
             return res
         else:
-            raise RuntimeError("This shouldn't be displayed. Please report to Github")
+            raise RuntimeError(
+                "This shouldn't be displayed. Please report to Github")
 
     def to_truncate(self, atz: int) -> bool:
         """Decide whether to truncate the atom's grid
@@ -440,9 +482,15 @@ class NWChemTrunc(BaseTruncationRules):
         """
         return self._get_precs(atz)
 
+
 def _get_nr(nr: Union[int, Callable[[int], int]], atz: int) -> int:
     """If nr is a number, return nr, if it is a function, call it with
     atz as the input
+
+    Examples
+    --------
+    >>> _get_nr(5, 1)
+    5
 
     Parameters
     ----------
