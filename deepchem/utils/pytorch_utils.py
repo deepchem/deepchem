@@ -527,3 +527,58 @@ def unsorted_segment_max(data: torch.Tensor, segment_ids: torch.Tensor,
         tensor[i] = torch.max(data.masked_fill(~mask, float('-inf')), dim=0)[0]
 
     return tensor
+
+
+def get_complex_dtype(dtype: torch.dtype) -> torch.dtype:
+    """corresponding complex type given the real floating point datatype
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.pytorch_utils import get_complex_dtype
+    >>> get_complex_dtype(torch.float32)
+    torch.complex64
+    >>> get_complex_dtype(torch.float64)
+    torch.complex128
+
+    Parameters
+    ----------
+    dtype: torch.dtype
+        real floating point datatype
+
+    Returns
+    -------
+    torch.dtype
+        corresponding complex datatype
+
+    """
+    if dtype == torch.float64:
+        return torch.complex128
+    elif dtype == torch.float32:
+        return torch.complex64
+    else:
+        raise TypeError("Unsupported datatype %s for conversion to complex" %
+                        dtype)
+
+
+def get_dtype_memsize(a: torch.Tensor) -> int:
+    """ size of each element in the tensor in bytes
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.pytorch_utils import get_dtype_memsize
+    >>> a = torch.randn(3, 2)
+    >>> get_dtype_memsize(a)
+    4
+
+    """
+    if a.dtype == torch.float64 or a.dtype == torch.int64:
+        size = 8
+    elif a.dtype == torch.float32 or a.dtype == torch.int32:
+        size = 4
+    elif a.dtype == torch.bool:
+        size = 1
+    else:
+        raise TypeError("Unknown tensor type: %s" % a.dtype)
+    return size
