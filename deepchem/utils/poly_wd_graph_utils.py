@@ -11,10 +11,14 @@ class PolyWDGStringValidator():
     The format is as follows:
         [monomer1].[monomer2]|[fraction_of_monomer1]|[fraction_of_monomer2]|<[polymer_rule1]<[polymer_rule2]
     The polymer rule has an own format in it. Which is as follows:
-        [[atom_index1]-[atom_index2]]:[fraction_of_bond_between_atom1_to_atom2]:[fraction_of_bond_between_atom2_to_atom1] 
+        [[atom_index1]-[atom_index2]]:[fraction_of_bond_between_atom1_to_atom2]:[fraction_of_bond_between_atom2_to_atom1]
+
+    This format is explicitly used for formatting the input for Weighted Directed Message Passing Neural Networks (wD-MPNN).
+    The input format holds a SMART notation and regular expression formatting to keep molecular data with corresponding bonds and weights.
+    Irrespective of this explicit usecase, the formatting can allow featurization of same data for other graph based neural networks.
 
     The validate method validates the proper formatting for monomer molecules, proper value of the fractions and valid atom indicies and corresponding weights
-    in the polymer rules. 
+    in the polymer rules.
 
     Example
     -------

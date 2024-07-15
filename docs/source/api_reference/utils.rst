@@ -721,14 +721,29 @@ This class validates the input string representation for graphical conversion of
 It splits the input strings, validates their order and values. Upon recieving error it can return
 meaningful error message to the user indicating the type of error that hinders the conversion process.
 
+The format is an extended string representation that is used as input format for Weighted Directed Message Passing Neural Network (wDMPNN) implementation
+using :code:`polymer-chemprop` python module. For more information and understanding, visit the `github repo <https://github.com/coleygroup/polymer-chemprop>`.
+The format development and implementation is done by Matteo Aldeghi and Connor W. Coley for their 
+work on "A graph representation of molecular ensembles for polymer property prediction". 
+
 The :code:`dc.utils.PolyWDGStringValidator` class is explicitly useful for validating a Weighted Directed
 Graph Representaion within a string data for polymers. It validates atom notations in monomer, valid Fragment
-weights for monomers, and valid polymer rules within the string representation. The string that contains this data
-format is used for following research works.
+weights for monomers, and valid polymer rules within the string representation.
 
 References:
 
-- `Aldeghi, Matteo, and Connor W. Coley. "A graph representation of molecular ensembles for polymer property prediction." Chemical Science 13.35 (2022): 10486-10498.`
+- `@article{wdmpnn,
+         title={A graph representation of molecular ensembles for polymer property prediction}, 
+         author={Matteo Aldeghi and Connor W. Coley},
+         journal="Chem. Sci.",
+         year="2022",
+         volume="13",
+         issue="35",
+         pages="10486-10498",
+         publisher="The Royal Society of Chemistry",
+         doi="10.1039/D2SC02839E",
+         url="http://dx.doi.org/10.1039/D2SC02839E"
+}`
 
 .. autoclass:: deepchem.utils.poly_wd_graph_utils.PolyWDGStringValidator
   :members:
