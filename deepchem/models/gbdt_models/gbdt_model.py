@@ -23,7 +23,6 @@ class GBDTModel(SklearnModel):
 
     This class supports LightGBM/XGBoost models.
     """
-
     def __init__(self,
                  model: BaseEstimator,
                  model_dir: Optional[str] = None,
@@ -38,11 +37,14 @@ class GBDTModel(SklearnModel):
         model_dir: str, optional (default None)
             Path to directory where model will be stored.
         early_stopping_rounds: int, optional (default 50)
-            Activates early stopping. Validation metric needs to improve at least once
+            Activates early stopping. Validation metric
+            needs to improve at least once
             in every early_stopping_rounds round(s) to continue training.
         eval_metric: Union[str, Callable]
-            If string, it should be a built-in evaluation metric to use.
-            If callable, it should be a custom evaluation metric, see official note for more details.
+            If string, it should be a built-in
+            evaluation metric to use.
+            If callable, it should be a custom
+            evaluation metric, see official note for more details.
         """
 
         try:
@@ -109,7 +111,8 @@ class GBDTModel(SklearnModel):
         """Fits GDBT model with all data.
 
         First, this function splits all data into train and valid data (8:2),
-        and finds the best n_estimators. And then, we retrain all data using
+        and finds the best n_estimators. And then, we
+        retrain all data using
         best n_estimators * 1.25.
 
         Parameters
@@ -129,7 +132,8 @@ class GBDTModel(SklearnModel):
         if self.model_type == "classification":
             stratify = y
 
-        # Find optimal n_estimators based on original learning_rate and early_stopping_rounds
+        # Find optimal n_estimators based on
+        # original learning_rate and early_stopping_rounds
         X_train, X_test, y_train, y_test = train_test_split(X,
                                                             y,
                                                             test_size=0.2,
@@ -206,7 +210,6 @@ class GBDTModel(SklearnModel):
 
 
 class XGBoostModel(GBDTModel):
-
     def __init__(self, *args, **kwargs):
         warnings.warn(
             "XGBoostModel is deprecated and has been renamed to GBDTModel.",
