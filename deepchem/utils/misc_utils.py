@@ -5,10 +5,13 @@ from __future__ import annotations
 import contextlib
 from typing import Optional, List, Callable, Dict, Any, Tuple, TypeVar, Mapping
 import warnings
-import torch
 import numpy as np
 import h5py
 import functools
+try:
+    import torch
+except ImportError:
+    pass
 
 
 def indent(s, nspace):
