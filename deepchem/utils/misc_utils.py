@@ -6,11 +6,14 @@ import contextlib
 from typing import Optional, List, Callable, Dict, Any, Tuple, TypeVar, Mapping
 import warnings
 import numpy as np
-import h5py
 import functools
 try:
     import torch
-except ImportError:
+except Exception:
+    pass
+try:
+    import h5py
+except Exception:
     pass
 
 
