@@ -80,13 +80,13 @@ class ProtBERT(HuggingFaceModel):
             Path to the HuggingFace model
             - 'Rostlab/prot_bert' - Pretrained on Uniref100 dataset
             - `Rostlab/prot_bert_bfd` - Pretrained on BFD dataset
-        n_tasks: int, default 1
+        n_tasks: int
             Number of prediction targets for a multitask learning model
         cls_name: str
             The classifier head to use for classification mode. Currently supports "FFN" and "LogReg" and custom classfier head.
         classifier_net: nn.Module, optional
             A custom classifier head to use for classification mode. The network must have input size of 1024.
-        n_classes: int, default 2
+        n_classes: int
             Number of classes for classification.
         """
         self.n_tasks: int = n_tasks
