@@ -2,7 +2,6 @@ import os
 import numpy as np
 import tempfile
 import pytest
-import torch.nn.functional as F
 
 import deepchem as dc
 from deepchem.feat import create_char_to_idx, SmilesToSeq
@@ -10,6 +9,7 @@ from deepchem.molnet.load_function.chembl25_datasets import CHEMBL25_TASKS
 
 try:
     import torch
+    import torch.nn.functional as F
 except ModuleNotFoundError:
     pass
 

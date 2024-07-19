@@ -10,7 +10,7 @@ GraphConvModel,`ref <https://arxiv.org/abs/1509.09292>`_,Classifier/ Regressor,C
 MEGNetModel,`ref <https://arxiv.org/abs/1812.05055>`_,Classifier/ Regressor,,PyTorch/PyTorch Geometric,
 MPNNModel,`ref <https://arxiv.org/abs/1704.01212>`_,Classifier/ Regressor,MolGraphConvFeaturizer,DGL/PyTorch,
 PagtnModel,`ref <https://arxiv.org/abs/1905.12712>`_,Classifier/ Regressor,PagtnMolGraphFeaturizer MolGraphConvFeaturizer,DGL/PyTorch,
-Smiles2Vec,`ref <https://arxiv.org/abs/1712.02034>`_,Classifier/ Regressor,SmilesToSeq,Keras,
+Smiles2Vec,`ref <https://arxiv.org/abs/1712.02034>`_,Classifier/ Regressor,SmilesToSeq,,Keras/PyTorch,
 TextCNNModel,`ref <https://arxiv.org/abs/1705.10843>`_,Classifier/ Regressor,,Keras/PyTorch,
 DTNNModel,`ref <https://arxiv.org/abs/1609.08259>`_,Regressor,CoulombMatrix,PyTorch,
 MATModel,`ref <https://arxiv.org/abs/2002.08264>`_,Regressor,MATFeaturizer,PyTorch,
