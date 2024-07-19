@@ -2,6 +2,7 @@ import os
 import numpy as np
 import tempfile
 import pytest
+import torch.nn.functional as F
 
 import deepchem as dc
 from deepchem.feat import create_char_to_idx, SmilesToSeq
@@ -17,7 +18,9 @@ def get_dataset(mode="regression",
                 featurizer="smiles2seq",
                 max_seq_len=20,
                 data_points=10,
-                n_tasks=5):
+                n_tasks=5,
+                n_classes=2):
+
     dataset_file = os.path.join(os.path.dirname(__file__), "assets",
                                 "chembl_25_small.csv")
     if featurizer == "smiles2seq":
@@ -43,6 +46,9 @@ def get_dataset(mode="regression",
 
     if mode == 'classification':
         y = np.random.randint(0, 2, size=(data_points, n_tasks))
+        y = torch.from_numpy(y.flatten()).long()
+        y = F.one_hot(y, n_classes).view(-1, n_tasks, n_classes)
+        y = y.float()
         metric = dc.metrics.Metric(dc.metrics.roc_auc_score,
                                    np.mean,
                                    mode="classification")
