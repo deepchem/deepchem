@@ -570,6 +570,12 @@ _GraphConvTorchModel
 .. autoclass:: deepchem.models.torch_models._GraphConvTorchModel
   :members:
 
+GraphConvModel
+--------------------
+
+.. autoclass:: deepchem.models.torch_models.GraphConvModel
+  :members:
+
 Smiles2Vec
 --------------------
 
