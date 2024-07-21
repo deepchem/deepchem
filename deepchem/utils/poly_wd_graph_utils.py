@@ -4,21 +4,27 @@ import re
 
 class PolyWDGStringValidator():
     """
-    Class for validating the string format of weighted directed graph data.
-    This class provides methods to validate the format of a datapoint string.
-    This is a specific string format that is used for storing weighted directed polymer data in a parsable format.
+    Class for validating the string format of weighted directed graph
+    data.This class provides methods to validate the format of a
+    datapoint string. This is a specific string format that is used
+    for storing weighted directed polymer data in a parsable format.
 
     The format is as follows:
         [monomer1].[monomer2]|[fraction_of_monomer1]|[fraction_of_monomer2]|<[polymer_rule1]<[polymer_rule2]
     The polymer rule has an own format in it. Which is as follows:
         [[atom_index1]-[atom_index2]]:[fraction_of_bond_between_atom1_to_atom2]:[fraction_of_bond_between_atom2_to_atom1]
 
-    This format is explicitly used for formatting the input for Weighted Directed Message Passing Neural Networks (wD-MPNN).
-    The input format holds a SMART notation and regular expression formatting to keep molecular data with corresponding bonds and weights.
-    Irrespective of this explicit usecase, the formatting can allow featurization of same data for other graph based neural networks.
+    This format is explicitly used for formatting the input for
+    Weighted Directed Message Passing Neural Networks (wD-MPNN).
+    The input format holds a SMART notation and regular expression
+    formatting to keep molecular data with corresponding bonds and
+    weights. Irrespective of this explicit usecase, the formatting
+    can allow featurization of same data for other graph based neural
+    networks.
 
-    The validate method validates the proper formatting for monomer molecules, proper value of the fractions and valid atom indicies and corresponding weights
-    in the polymer rules.
+    The validate method validates the proper formatting for monomer
+    molecules, proper value of the fractions and valid atom indicies
+    and corresponding weights in the polymer rules.
 
     Example
     -------
@@ -40,6 +46,7 @@ class PolyWDGStringValidator():
         ----------
         datapoint : str
             The datapoint string to parse
+
         Returns
         -------
         Tuple[str, list, str]
@@ -77,6 +84,20 @@ class PolyWDGStringValidator():
         return rules_str.split("<")[1:]
 
     def _validate_fragments(self, datapoint: str):
+        """
+        This method validate the number of fragments match 
+        the number of monomers.
+
+        Parameters
+        ----------
+        datapoint : str
+            The datapoint string to validate 
+
+        Raises
+        ------
+        ValueError
+            If the number of fragments does not match the number of monomers
+        """
         monomer_mols, fragments, _ = self.get_parsed_vals(datapoint)
         if len(fragments) != len(monomer_mols.split(".")):
             raise ValueError(
@@ -84,10 +105,40 @@ class PolyWDGStringValidator():
             )
 
     def _get_all_wildcards(self, text: str) -> List[str]:
+        """
+        This method returns all the wildcards present in the given string
+        representation by using regular expression to detect digits after
+        '*'.
+
+        Parameters
+        ----------
+        text : str
+
+        Returns
+        -------
+        List[str]
+            A list of all wildcards present in the text
+        """
         matches = re.findall(r"\d+(?=\*)", text)
         return matches
 
     def _validate_wildcards(self, datapoint: str):
+        """
+        This method validates the presence of wildcards in the polymer 
+        molecules string and ensures that the sequence of the wildcard
+        notation is proper.
+
+        Parameters
+        ----------
+        datapoint : str
+            The datapoint string to validate
+
+        Raises
+        ------
+        ValueError
+            If the wildcards are not present in the sequce the maximum 
+            wildcard value, ValueError is raised.
+        """
         monomer_mols, _, _ = self.get_parsed_vals(datapoint)
         max_wildcard = max(
             [int(x) for x in self._get_all_wildcards(monomer_mols)])
@@ -98,6 +149,25 @@ class PolyWDGStringValidator():
                 )
 
     def _validate_polymer_rules(self, datapoint: str):
+        """
+        This method validates the format of the polymer rules string
+        by checking for the presence of the '-' separator between the
+        atom indexes, the correct number of splits in the rule string,
+        and the validity of the atom indexes present in the monomer
+        SMILES. It also checks if the atom indexes are in the correct
+        correct count for a valid bond formation.
+
+        Parameters
+        ----------
+        datapoint : str
+            The datapoint string to validate
+
+        Raises
+        ------
+        ValueError
+            If the polymer rules string is invalid, ValueError is raised
+            with appropriate error messages
+        """
         monomer_mols, _, polymer_rules = self.get_parsed_vals(datapoint)
         polymer_rule_list = self.get_polymer_rules(polymer_rules)
         for rules in polymer_rule_list:
@@ -128,13 +198,17 @@ class PolyWDGStringValidator():
 
     def validate(self, datapoint: str):
         """
-        This method validates the string format of weighted directed graph data.
-        To validate the string format it checks for following conditions:
+        This method validates the string format of weighted
+        directed graph data. To validate the string format
+        it checks for following conditions:
 
-        1. The number of fragments and the number of monomer molecules should match.
-        2. The wild card indexes should be present in the monomer molecules string and should be in the correct sequence.
+        1. The number of fragments and the number of monomer 
+           molecules should match.
+        2. The wild card indexes should be present in the monomer 
+           molecules string and should be in the correct sequence.
         3. The polymer rules should be in the correct format.
-        4. The atom indexes in the polymer rules should be valid and present in the monomer molecules string.
+        4. The atom indexes in the polymer rules should be valid 
+           and present in the monomer molecules string.
 
         It raises ValueError if the string format is invalid.
 
@@ -142,10 +216,12 @@ class PolyWDGStringValidator():
         ----------
         datapoint : str
             The datapoint string to validate
+
         Returns
         -------
         bool
-            True if the string format is valid, None otherwise (Error will be raised otherwise)
+            True if the string format is valid, None otherwise 
+            (Error will be raised otherwise)
         """
         self._validate_fragments(datapoint)
         self._validate_wildcards(datapoint)

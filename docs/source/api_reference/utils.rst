@@ -732,18 +732,7 @@ weights for monomers, and valid polymer rules within the string representation.
 
 References:
 
-- `@article{wdmpnn,
-         title={A graph representation of molecular ensembles for polymer property prediction}, 
-         author={Matteo Aldeghi and Connor W. Coley},
-         journal="Chem. Sci.",
-         year="2022",
-         volume="13",
-         issue="35",
-         pages="10486-10498",
-         publisher="The Royal Society of Chemistry",
-         doi="10.1039/D2SC02839E",
-         url="http://dx.doi.org/10.1039/D2SC02839E"
-}`
+- `Aldeghi M, Coley CW. A graph representation of molecular ensembles for polymer property prediction. Chemical Science. 2022;13(35):10486-98.`
 
 .. autoclass:: deepchem.utils.poly_wd_graph_utils.PolyWDGStringValidator
   :members:
