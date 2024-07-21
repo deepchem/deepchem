@@ -555,9 +555,9 @@ class LambdaLRWithWarmup(LearningRateSchedule):
 
     Example
     -------
-    >>> import deepchem.models.optimizers as optimizers
-    >>> opt = optimizers.Adam(learning_rate=5e-5)
-    >>> lr_schedule = optimizers.LambdaLRWithWarmup(initial_rate=5e-5,
+    >>> import torch
+    >>> opt = Adam(learning_rate=5e-5)
+    >>> lr_schedule = LambdaLRWithWarmup(initial_rate=5e-5,
     ...     num_training_steps=100, num_warmup_steps=10)
     >>> params = [torch.nn.Parameter(torch.Tensor([1.0]))]
     >>> optimizer = opt._create_pytorch_optimizer(params)
