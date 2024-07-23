@@ -1,5 +1,5 @@
-from typing import List
 import torch
+from typing import List
 from deepchem.utils.differentiation_utils import EditableModule, LinearOperator, symeig
 
 
@@ -20,9 +20,10 @@ class OrbitalOrthogonalizer(EditableModule):
             [0.0000, 1.0000]])
 
     """
+
     def __init__(self, ovlp: torch.Tensor, threshold: float = 1e-6):
         """Initialize the orbital orthogonalizer.
-        
+
         Parameters
         ----------
         ovlp: torch.Tensor
@@ -30,9 +31,11 @@ class OrbitalOrthogonalizer(EditableModule):
         threshold: float
             Threshold to determine the accuracy of the overlap matrix.
         """
-        ovlp_eival, ovlp_eivec = symeig(LinearOperator.m(ovlp, is_hermitian=True))
+        ovlp_eival, ovlp_eivec = symeig(
+            LinearOperator.m(ovlp, is_hermitian=True))
         acc_idx = ovlp_eival > threshold
-        orthozer = ovlp_eivec[..., acc_idx] * (ovlp_eival[acc_idx]) ** (-0.5)  # (nao, nao2)
+        orthozer = ovlp_eivec[..., acc_idx] * (ovlp_eival[acc_idx])**(
+            -0.5)  # (nao, nao2)
         self._orthozer = orthozer
 
     def nao(self) -> int:
@@ -79,8 +82,8 @@ class OrbitalOrthogonalizer(EditableModule):
             Converted matrix.
         """
         orthozer = self._orthozer
-        res = torch.einsum("...ijkl,...im,...jn,...kp,...lq->...mnpq",
-                           mat, orthozer, orthozer, orthozer, orthozer)
+        res = torch.einsum("...ijkl,...im,...jn,...kp,...lq->...mnpq", mat,
+                           orthozer, orthozer, orthozer, orthozer)
         return res
 
     def unconvert_dm(self, dm: torch.Tensor) -> torch.Tensor:
@@ -99,7 +102,8 @@ class OrbitalOrthogonalizer(EditableModule):
         torch.Tensor
             Density matrix in the original orbital basis.
         """
-        dm = torch.einsum("...kl,ik,jl->ij", dm, self._orthozer, self._orthozer.conj())
+        dm = torch.einsum("...kl,ik,jl->ij", dm, self._orthozer,
+                          self._orthozer.conj())
         return dm
 
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:

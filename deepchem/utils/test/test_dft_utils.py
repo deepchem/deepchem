@@ -1330,3 +1330,55 @@ def test_LebedevGrid():
     l_grid = LebedevGrid(grid, 3)
     assert l_grid.get_rgrid().shape == torch.Size([600, 3])
     assert grid.get_rgrid().shape == torch.Size([100, 1])
+
+
+@pytest.mark.torch
+def test_BeckeGrid():
+    from deepchem.utils.dft_utils import LebedevGrid, BeckeGrid, RadialGrid
+    grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    atomgrid = [LebedevGrid(grid, 3), LebedevGrid(grid, 3)]
+    atompos = torch.tensor([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]],
+                           dtype=torch.float64)
+    grid = BeckeGrid(atomgrid, atompos)
+    assert grid.get_rgrid().shape == torch.Size([1200, 3])
+    assert grid.get_dvolume().shape == torch.Size([1200])
+
+
+@pytest.mark.torch
+def test_PBCBeckeGrid():
+    from deepchem.utils.dft_utils import LebedevGrid, PBCBeckeGrid, RadialGrid, Lattice
+    grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    atomgrid = [LebedevGrid(grid, 3), LebedevGrid(grid, 3)]
+    atompos = torch.tensor([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]],
+                           dtype=torch.float64)
+    a = torch.tensor([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]],
+                     dtype=torch.float64)
+    lattice = Lattice(a)
+    grid = PBCBeckeGrid(atomgrid, atompos, lattice)
+    assert grid.get_rgrid().shape == torch.Size([720, 3])
+    assert grid.get_dvolume().shape == torch.Size([720])
+
+
+@pytest.mark.torch
+def test_construct_rgrids():
+    from deepchem.utils.dft_utils import LebedevGrid, RadialGrid
+    from deepchem.utils.dft_utils.grid.multiatoms_grid import _construct_rgrids
+    grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    atomgrid = [LebedevGrid(grid, 3), LebedevGrid(grid, 3)]
+    atompos = torch.tensor([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]],
+                           dtype=torch.float64)
+    allpos_lst, rgrid, dvol_atoms = _construct_rgrids(atomgrid, atompos)
+    assert len(allpos_lst) == 2
+
+
+@pytest.mark.torch
+def test_get_atom_weights():
+    from deepchem.utils.dft_utils import LebedevGrid, RadialGrid
+    from deepchem.utils.dft_utils.grid.multiatoms_grid import _get_atom_weights, _construct_rgrids
+    grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    atomgrid = [LebedevGrid(grid, 3), LebedevGrid(grid, 3)]
+    atompos = torch.tensor([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]],
+                           dtype=torch.float64)
+    rgrids, _, _ = _construct_rgrids(atomgrid, atompos)
+    w = _get_atom_weights(rgrids, atompos)
+    assert w.shape == torch.Size([1200])
