@@ -1311,4 +1311,22 @@ def test_OrbitalOrthogonalizer():
     orthozer = OrbitalOrthogonalizer(ovlp)
     assert orthozer.nao() == 2
     mat = torch.tensor([[1.0, 0.5], [0.5, 1.0]])
-    assert torch.allclose(orthozer.convert2(mat), torch.tensor([[1.0000, 0.0000], [0.0000, 1.0000]]))
+    assert torch.allclose(orthozer.convert2(mat),
+                          torch.tensor([[1.0000, 0.0000], [0.0000, 1.0000]]))
+
+
+@pytest.mark.torch
+def test_LebedevLoader():
+    from deepchem.utils.dft_utils.grid.lebedev_grid import LebedevLoader
+    grid = LebedevLoader.load(3)
+    assert grid.shape == (6, 3)
+
+
+@pytest.mark.torch
+def test_LebedevGrid():
+    from deepchem.utils.dft_utils.grid.radial_grid import RadialGrid
+    from deepchem.utils.dft_utils.grid.lebedev_grid import LebedevGrid
+    grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    l_grid = LebedevGrid(grid, 3)
+    assert l_grid.get_rgrid().shape == torch.Size([600, 3])
+    assert grid.get_rgrid().shape == torch.Size([100, 1])
