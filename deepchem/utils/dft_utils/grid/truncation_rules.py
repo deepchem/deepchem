@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import List, Callable, Union
 import torch
-from deepchem.utils.dft_utils import RadialGrid
+from deepchem.utils.dft_utils.grid.radial_grid import RadialGrid
 
 
 class BaseTruncationRules(object):
