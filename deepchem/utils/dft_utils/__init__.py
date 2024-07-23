@@ -19,7 +19,10 @@ try:
     from deepchem.utils.dft_utils.data.datastruct import CGTOBasis
     from deepchem.utils.dft_utils.data.datastruct import AtomCGTOBasis
     from deepchem.utils.dft_utils.data.datastruct import BasisInpType
+    from deepchem.utils.dft_utils.data.datastruct import DensityFitInfo
+    from deepchem.utils.dft_utils.data.datastruct import is_z_float
 
+    from deepchem.utils.dft_utils.hamilton.orbconverter import OrbitalOrthogonalizer
     from deepchem.utils.dft_utils.hamilton.orbparams import BaseOrbParams
     from deepchem.utils.dft_utils.hamilton.orbparams import QROrbParams
     from deepchem.utils.dft_utils.hamilton.orbparams import MatExpOrbParams
