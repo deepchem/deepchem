@@ -139,3 +139,41 @@ def test_unsorted_segment_max():
         np.array(result),
         np.load("deepchem/utils/test/assets/result_segment_max.npy"),
         atol=1e-04)
+
+
+@pytest.mark.torch
+def test_estimate_ovlp_rcut():
+    from deepchem.utils.pytorch_utils import estimate_ovlp_rcut
+    precision = 1e-6
+    coeffs = torch.tensor([1.0, 2.0, 3.0])
+    alphas = torch.tensor([1.0, 2.0, 3.0])
+    assert estimate_ovlp_rcut(precision, coeffs, alphas) == 6.7652716636657715
+
+
+@pytest.mark.torch
+def test_Cache():
+    from deepchem.utils.pytorch_utils import Cache
+    class A:
+        def __init__(self):
+            self.cache = Cache.get_dummy()
+        def foo(self, x):
+            return self.cache.cache("foo", lambda: x * x)
+    a = A()
+    assert a.foo(2) == 4
+
+
+@pytest.mark.torch
+def test_PrefixedCache():
+    from deepchem.utils.pytorch_utils import Cache, _PrefixedCache
+    cache = Cache.get_dummy()
+    pcache = _PrefixedCache(cache, "prefix.")
+    assert pcache.cache("foo", lambda: 1) == 1
+    assert pcache.cache("foo", lambda: 2) == 2
+
+
+@pytest.mark.torch
+def test_DummyCache():
+    from deepchem.utils.pytorch_utils import _DummyCache
+    cache = _DummyCache()
+    assert cache.cache("foo", lambda: 1) == 1
+    assert cache.cache("foo", lambda: 2) == 2

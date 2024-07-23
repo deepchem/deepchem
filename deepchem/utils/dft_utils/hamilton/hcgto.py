@@ -6,7 +6,7 @@ from deepchem.utils.differentiation_utils import LinearOperator
 from deepchem.utils.dft_utils import LibcintWrapper, BaseHamilton, overlap, kinetic, nuclattr, int1e, elrep, config, BaseXC, BaseGrid, AtomCGTOBasis, ValGrad, SpinParam
 from deepchem.utils.dft_utils.hamilton.intor.gtoeval import eval_gto, eval_gradgto, eval_laplgto
 from deepchem.utils.dft_utils.data.datastruct import DensityFitInfo
-from deepchem.utils.misc_utils import Cache
+from deepchem.utils.pytorch_utils import Cache
 from deepchem.utils.dft_utils.hamilton.orbconverter import OrbitalOrthogonalizer
 from deepchem.utils.dft_utils.df.dfmol import DFMol
 from deepchem.utils.pytorch_utils import get_dtype_memsize

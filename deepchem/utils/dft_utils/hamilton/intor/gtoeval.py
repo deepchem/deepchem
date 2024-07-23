@@ -6,7 +6,7 @@ import numpy as np
 from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import LibcintWrapper
 from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CGTO
 from deepchem.utils.dft_utils.hamilton.intor.pbcintor import get_default_kpts, get_default_options, PBCIntOption
-from deepchem.utils.misc_utils import estimate_ovlp_rcut
+from deepchem.utils.pytorch_utils import estimate_ovlp_rcut
 from deepchem.utils.dft_utils.hamilton.intor.molintor import _gather_at_dims
 
 BLKSIZE = 128  # same as lib/gto/grid_ao_drv.c

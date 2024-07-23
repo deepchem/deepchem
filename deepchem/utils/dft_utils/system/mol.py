@@ -10,7 +10,7 @@ from deepchem.utils.dft_utils.hamilton.hcgto import HamiltonCGTO
 from deepchem.utils.dft_utils.data.datastruct import is_z_float, DensityFitInfo
 from deepchem.utils.periodic_table_utils import get_atomz, get_atom_mass
 from deepchem.utils import occnumber, safe_cdist
-from deepchem.utils.misc_utils import Cache
+from deepchem.utils.pytorch_utils import Cache
 import logging
 
 logger = logging.getLogger(__name__)

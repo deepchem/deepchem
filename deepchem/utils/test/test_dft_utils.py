@@ -1802,55 +1802,10 @@ def test_preprocess_efield():
 
 
 @pytest.mark.torch
-def test_Cache():
-    from deepchem.utils.misc_utils import Cache
-    class A:
-        def __init__(self):
-            self.cache = Cache.get_dummy()
-        def foo(self, x):
-            return self.cache.cache("foo", lambda: x * x)
-    a = A()
-    assert a.foo(2) == 4
-
-
-@pytest.mark.torch
-def test_PrefixedCache():
-    from deepchem.utils.misc_utils import Cache, _PrefixedCache
-    cache = Cache.get_dummy()
-    pcache = _PrefixedCache(cache, "prefix.")
-    assert pcache.cache("foo", lambda: 1) == 1
-    assert pcache.cache("foo", lambda: 2) == 2
-
-
-@pytest.mark.torch
-def test_DummyCache():
-    from deepchem.utils.misc_utils import _DummyCache
-    cache = _DummyCache()
-    assert cache.cache("foo", lambda: 1) == 1
-    assert cache.cache("foo", lambda: 2) == 2
-
-
-@pytest.mark.torch
-def test_normalize_prefix():
-    from deepchem.utils.misc_utils import _normalize_prefix
-    assert _normalize_prefix("prefix") == 'prefix.'
-    assert _normalize_prefix("prefix.") == 'prefix.'
-
-
-@pytest.mark.torch
 def test_get_option():
     from deepchem.utils.misc_utils import get_option
     options = {"a": 1, "b": 2}
     assert get_option("name", "a", options) == 1
-
-
-@pytest.mark.torch
-def test_estimate_ovlp_rcut():
-    from deepchem.utils.misc_utils import estimate_ovlp_rcut
-    precision = 1e-6
-    coeffs = torch.tensor([1.0, 2.0, 3.0])
-    alphas = torch.tensor([1.0, 2.0, 3.0])
-    assert estimate_ovlp_rcut(precision, coeffs, alphas) == 6.7652716636657715
 
 
 @pytest.mark.torch
