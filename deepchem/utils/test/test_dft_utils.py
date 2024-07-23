@@ -1266,3 +1266,49 @@ def test_normalize_basisname():
 def test_expand_angmoms():
     from deepchem.utils.dft_utils.api.loadbasis import _expand_angmoms
     assert _expand_angmoms("SP", 2) == [0, 1]
+
+
+@pytest.mark.torch
+def test_DensityFitInfo():
+    from deepchem.utils.dft_utils.data.datastruct import DensityFitInfo, AtomCGTOBasis, CGTOBasis
+    method = "df"
+    auxbasis = [
+        AtomCGTOBasis(atomz=1,
+                      bases=[
+                          CGTOBasis(angmom=0,
+                                    alphas=torch.ones(1),
+                                    coeffs=torch.ones(1))
+                      ],
+                      pos=[[0.0, 0.0, 0.0]])
+    ]
+    df = DensityFitInfo(method=method, auxbasis=auxbasis)
+    assert df == DensityFitInfo(method='df',
+                                auxbasis=[
+                                    AtomCGTOBasis(
+                                        atomz=1,
+                                        bases=[
+                                            CGTOBasis(angmom=0,
+                                                      alphas=torch.tensor([1.]),
+                                                      coeffs=torch.tensor([1.]),
+                                                      normalized=False)
+                                        ],
+                                        pos=torch.tensor([[0., 0., 0.]]))
+                                ])
+
+
+@pytest.mark.torch
+def test_is_z_float():
+    from deepchem.utils.dft_utils.data.datastruct import is_z_float
+    assert is_z_float(0.1)
+    assert not is_z_float(1)
+    assert is_z_float(torch.tensor(1.0))
+
+
+@pytest.mark.torch
+def test_OrbitalOrthogonalizer():
+    from deepchem.utils.dft_utils.hamilton.orbconverter import OrbitalOrthogonalizer
+    ovlp = torch.tensor([[1.0, 0.5], [0.5, 1.0]])
+    orthozer = OrbitalOrthogonalizer(ovlp)
+    assert orthozer.nao() == 2
+    mat = torch.tensor([[1.0, 0.5], [0.5, 1.0]])
+    assert torch.allclose(orthozer.convert2(mat), torch.tensor([[1.0000, 0.0000], [0.0000, 1.0000]]))
