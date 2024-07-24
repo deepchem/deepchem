@@ -6,7 +6,8 @@ from typing import List, Dict, Tuple, Any
 
 class _Realigner(object):
 
-    def left_align_indel(self, seq, pos, indel):
+    def left_align_indel(self, seq: str, pos: int,
+                         indel: str) -> Tuple[int, str]:
         """
         Left align an indel by shifting it to the left as
         much as possible.
@@ -41,8 +42,9 @@ class _Realigner(object):
             return pos, f"-{del_len}"
         return pos, indel
 
-    def decode_one_hot(self, one_hot_vector,
-                       charset=["A", "C", "T", "G", "N"]):
+    def decode_one_hot(self,
+                       one_hot_vector: List[np.ndarray],
+                       charset: List[str] = ["A", "C", "T", "G", "N"]) -> str:
         """
         Decode a one-hot encoded sequence into a string of
         nucleotides.
@@ -92,7 +94,7 @@ class _Realigner(object):
         for pileupcolumn in pileup_info:
             ref_base = reference_seq_dict[pileupcolumn['name']][
                 pileupcolumn['pos']]
-            allele_count = {
+            allele_count: Dict[str, Any] = {
                 "reference_base": ref_base,
                 "read_alleles": defaultdict(int),
                 "coverage": 0
@@ -135,9 +137,7 @@ class _Realigner(object):
             pos = pileupcolumn['pos'] + 1
             allele_counts[(pileupcolumn['name'], pos)] = allele_count
 
-    def generate_pileup_and_reads(
-        self, bamfile_path, reference_path
-    ):
+    def generate_pileup_and_reads(self, bamfile_path, reference_path):
         """
         Generate pileup and reads from BAM and reference FASTA files.
 
@@ -198,8 +198,7 @@ class _Realigner(object):
 
         return allele_counts, reads
 
-    def update_counts(self, count, start, end,
-                      window_counts):
+    def update_counts(self, count, start, end, window_counts):
         """
         Update counts in a window.
 
@@ -219,9 +218,7 @@ class _Realigner(object):
         for pos in range(start, end):
             window_counts[pos] += count
 
-    def select_candidate_regions(
-        self, allele_counts
-    ):
+    def select_candidate_regions(self, allele_counts):
         """
         Select candidate regions based on allele counts.
 
