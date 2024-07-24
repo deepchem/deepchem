@@ -44,6 +44,10 @@ try:
 
     from deepchem.utils.dft_utils.grid.base_grid import BaseGrid
     from deepchem.utils.dft_utils.grid.radial_grid import RadialGrid
+    from deepchem.utils.dft_utils.grid.truncation_rules import BaseTruncationRules
+    from deepchem.utils.dft_utils.grid.truncation_rules import NoTrunc
+    from deepchem.utils.dft_utils.grid.truncation_rules import DasguptaTrunc
+    from deepchem.utils.dft_utils.grid.truncation_rules import NWChemTrunc
     from deepchem.utils.dft_utils.grid.lebedev_grid import LebedevLoader
     from deepchem.utils.dft_utils.grid.lebedev_grid import LebedevGrid
     from deepchem.utils.dft_utils.grid.lebedev_grid import TruncatedLebedevGrid
