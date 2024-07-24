@@ -576,6 +576,12 @@ Smiles2Vec
 .. autoclass:: deepchem.models.torch_models.Smiles2Vec
   :members:
 
+MXMNet
+------
+
+.. autoclass:: deepchem.models.torch_models.MXMNet
+  :members:
+
 PyTorch Lightning Models
 ========================
 
