@@ -7,7 +7,7 @@ from deepchem.feat.molecule_featurizers import MXMNetFeaturizer
 
 try:
     import torch
-    from deepchem.models.torch_models.mxmnet import MXMNet
+    from deepchem.models.torch_models.mxmnet import MXMNet, MXMNetModel
     has_torch = True
 except:
     has_torch = False
@@ -74,3 +74,98 @@ def test_mxmnet_regression():
                        required_output[1],
                        atol=1e-04)
     assert output.shape == (2, 1)
+
+
+@pytest.mark.torch
+def test_mxmnet_model_regression():
+    """
+    Test MXMNetModel class for regression
+    """
+    seed = 123
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    device = 'cpu'
+    torch.set_default_device(device)
+    # load sample dataset
+    dim = 10
+    n_layer = 6
+    cutoff = 5
+    feat = MXMNetFeaturizer()
+    tasks = [QM9_TASKS[0]]
+    loader = dc.data.SDFLoader(tasks=tasks, featurizer=feat, sanitize=True)
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    dataset_path = os.path.join(current_dir, "assets/qm9_mini.sdf")
+    dataset = loader.create_dataset(inputs=dataset_path, shard_size=1)
+
+    model = MXMNetModel(
+        dim=dim,
+        n_layer=n_layer,
+        cutoff=cutoff,
+        n_tasks=len(tasks),
+        batch_size=1,
+        device=device,
+    )
+
+    assert isinstance(model.model, MXMNet)
+    # overfit test
+    model.fit(dataset, nb_epoch=20)
+    metric = dc.metrics.Metric(dc.metrics.mean_absolute_error,
+                               mode="regression")
+    scores = model.evaluate(dataset, [metric])
+    assert scores['mean_absolute_error'] < 0.5
+
+
+@pytest.mark.torch
+def test_mxmnet_model_reload():
+    """
+    Test MXMNetModel class for model reload
+    """
+    seed = 123
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    device = 'cpu'
+    torch.set_default_device(device)
+
+    # load sample dataset
+    dim = 10
+    n_layer = 6
+    cutoff = 5
+    feat = MXMNetFeaturizer()
+    tasks = [QM9_TASKS[0]]
+    loader = dc.data.SDFLoader(tasks=tasks, featurizer=feat, sanitize=True)
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    dataset_path = os.path.join(current_dir, "assets/qm9_mini.sdf")
+    dataset = loader.create_dataset(inputs=dataset_path, shard_size=1)
+
+    # initialize the model
+    model_dir = tempfile.mkdtemp()
+    model = MXMNetModel(dim=dim,
+                        n_layer=n_layer,
+                        cutoff=cutoff,
+                        n_tasks=len(tasks),
+                        batch_size=2,
+                        model_dir=model_dir,
+                        device=device)
+
+    # fit the model
+    model.fit(dataset, nb_epoch=2)
+
+    # reload the model
+    reloaded_model = MXMNetModel(dim=dim,
+                                 n_layer=n_layer,
+                                 cutoff=cutoff,
+                                 n_tasks=len(tasks),
+                                 batch_size=2,
+                                 model_dir=model_dir,
+                                 device=device)
+    reloaded_model.restore()
+
+    orig_predict = model.predict(dataset)
+    reloaded_predict = reloaded_model.predict(dataset)
+    assert np.all(orig_predict == reloaded_predict)
