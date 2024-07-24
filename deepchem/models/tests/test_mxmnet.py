@@ -1,10 +1,14 @@
 import deepchem as dc
-import torch
 import tempfile
 import numpy as np
 import pytest
-from deepchem.feat.molecule_featurizers import MXMNetFeaturizer
-from deepchem.models.torch_models.mxmnet import MXMNet, MXMNetModel
+try:
+    import torch
+    from deepchem.feat.molecule_featurizers import MXMNetFeaturizer
+    from deepchem.models.torch_models.mxmnet import MXMNet, MXMNetModel
+    has_torch = True
+except:
+    has_torch = False
 
 QM9_TASKS = [
     "mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv", "u0", "u298",
