@@ -8,11 +8,11 @@ dependencies:
     - dgl
     - torch==2.2.1+cpu
     - torch-geometric
-    - torch-sparse
     - lightning
     - pydantic
     - -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
     - torch-cluster
+    - torch-sparse
     - git+https://github.com/diffqc/dqclibs.git
     - basis-set-exchange
     - pyscf
