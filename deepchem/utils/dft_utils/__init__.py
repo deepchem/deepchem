@@ -38,6 +38,18 @@ try:
     from deepchem.utils.dft_utils.hamilton.intor.molintor import elrep
     from deepchem.utils.dft_utils.hamilton.intor.molintor import coul2c
     from deepchem.utils.dft_utils.hamilton.intor.molintor import coul3c
+    from deepchem.utils.dft_utils.hamilton.intor.pbcintor import PBCIntOption
+    from deepchem.utils.dft_utils.hamilton.intor.pbcintor import get_default_options
+    from deepchem.utils.dft_utils.hamilton.intor.pbcintor import get_default_kpts
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import evl
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import pbc_evl
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import eval_gto
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import eval_gradgto
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import eval_laplgto
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import pbc_eval_gto
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import pbc_eval_gradgto
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import pbc_eval_laplgto
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import gto_evaluator
 
     from deepchem.utils.dft_utils.api.parser import parse_moldesc
     from deepchem.utils.dft_utils.api.loadbasis import loadbasis
