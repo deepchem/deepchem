@@ -1382,3 +1382,44 @@ def test_get_atom_weights():
     rgrids, _, _ = _construct_rgrids(atomgrid, atompos)
     w = _get_atom_weights(rgrids, atompos)
     assert w.shape == torch.Size([1200])
+
+
+@pytest.mark.torch
+def test_BaseTruncationRules():
+    from deepchem.utils.dft_utils import BaseTruncationRules
+
+    class MyTrunc(BaseTruncationRules):
+
+        def to_truncate(self, atm: int) -> bool:
+            return False
+
+    trunc = MyTrunc()
+    assert not trunc.to_truncate(1)
+
+
+@pytest.mark.torch
+def test_NoTrunc():
+    from deepchem.utils.dft_utils import NoTrunc
+    rule = NoTrunc()
+    assert not rule.to_truncate(1)
+
+
+@pytest.mark.torch
+def test_DasguptaTrunc():
+    from deepchem.utils.dft_utils import DasguptaTrunc
+    rule = DasguptaTrunc(75)
+    assert rule.to_truncate(1)
+
+
+@pytest.mark.torch
+def test_NWChemTrunc():
+    from deepchem.utils.dft_utils import NWChemTrunc
+    rule = NWChemTrunc([0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5], 13,
+                       [3, 5, 7, 9, 13], torch.float64, torch.device('cpu'))
+    assert rule.to_truncate(10)
+
+
+@pytest.mark.torch
+def test_get_nr():
+    from deepchem.utils.dft_utils.grid.truncation_rules import _get_nr
+    assert _get_nr(5, 1) == 5
