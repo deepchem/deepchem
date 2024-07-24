@@ -1423,3 +1423,339 @@ def test_NWChemTrunc():
 def test_get_nr():
     from deepchem.utils.dft_utils.grid.truncation_rules import _get_nr
     assert _get_nr(5, 1) == 5
+
+
+@pytest.mark.torch
+def test_evl():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis, RadialGrid, evl
+    dtype = torch.double
+    d = 1.0
+    pos_requires_grad = True
+    pos1 = torch.tensor([0.1 * d, 0.0 * d, 0.2 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d, 1.0 * d, -0.4 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    poss = [pos1, pos2, pos3]
+    atomzs = [1, 1, 1]
+    allbases = [
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"),
+                  dtype=dtype,
+                  requires_grad=False) for atomz in atomzs
+    ]
+    atombases = [
+        AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+        for i in range(len(allbases))
+    ]
+    wrap = LibcintWrapper(atombases, True, None)
+    grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    grad = evl("", wrap, grid.get_rgrid())
+    assert grad.shape == torch.Size([6, 100])
+
+
+@pytest.mark.torch
+def test_pbc_evl():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis, Lattice, RadialGrid, pbc_evl
+    dtype = torch.float64
+    d = 1.0
+    pos_requires_grad = True
+    pos1 = torch.tensor([0.1 * d, 0.0 * d, 0.2 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d, 1.0 * d, -0.4 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    poss = [pos1, pos2, pos3]
+    atomzs = [1, 1, 1]
+    allbases = [
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"),
+                  dtype=dtype,
+                  requires_grad=False) for atomz in atomzs
+    ]
+    atombases = [
+        AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+        for i in range(len(allbases))
+    ]
+    a = torch.tensor([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]], dtype=dtype)
+    lattice = Lattice(a)
+    wrap = LibcintWrapper(atombases, True, lattice)
+    grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    grad = pbc_evl("", wrap, grid.get_rgrid())
+    assert grad.shape == torch.Size([1, 6, 100])
+
+
+@pytest.mark.torch
+def test_eval_gto():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis, RadialGrid, eval_gto
+    dtype = torch.double
+    d = 1.0
+    pos_requires_grad = True
+    pos1 = torch.tensor([0.1 * d, 0.0 * d, 0.2 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d, 1.0 * d, -0.4 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    poss = [pos1, pos2, pos3]
+    atomzs = [1, 1, 1]
+    allbases = [
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"),
+                  dtype=dtype,
+                  requires_grad=False) for atomz in atomzs
+    ]
+    atombases = [
+        AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+        for i in range(len(allbases))
+    ]
+    wrap = LibcintWrapper(atombases, True, None)
+    grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    grad = eval_gto(wrap, grid.get_rgrid())
+    assert grad.shape == torch.Size([6, 100])
+
+
+@pytest.mark.torch
+def test_eval_gradgto():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis, RadialGrid, eval_gradgto
+    dtype = torch.double
+    d = 1.0
+    pos_requires_grad = True
+    pos1 = torch.tensor([0.1 * d, 0.0 * d, 0.2 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d, 1.0 * d, -0.4 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    poss = [pos1, pos2, pos3]
+    atomzs = [1, 1, 1]
+    allbases = [
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"),
+                  dtype=dtype,
+                  requires_grad=False) for atomz in atomzs
+    ]
+    atombases = [
+        AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+        for i in range(len(allbases))
+    ]
+    wrap = LibcintWrapper(atombases, True, None)
+    grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    grad = eval_gradgto(wrap, grid.get_rgrid())
+    assert grad.shape == torch.Size([3, 6, 100])
+
+
+@pytest.mark.torch
+def test_eval_laplgto():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis, RadialGrid, eval_laplgto
+    dtype = torch.double
+    d = 1.0
+    pos_requires_grad = True
+    pos1 = torch.tensor([0.1 * d, 0.0 * d, 0.2 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d, 1.0 * d, -0.4 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    poss = [pos1, pos2, pos3]
+    atomzs = [1, 1, 1]
+    allbases = [
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"),
+                  dtype=dtype,
+                  requires_grad=False) for atomz in atomzs
+    ]
+    atombases = [
+        AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+        for i in range(len(allbases))
+    ]
+    wrap = LibcintWrapper(atombases, True, None)
+    grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    grad = eval_laplgto(wrap, grid.get_rgrid())
+    assert grad.shape == torch.Size([6, 100])
+
+
+@pytest.mark.torch
+def test_pbc_eval_gto():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis, Lattice, RadialGrid, pbc_eval_gto
+    dtype = torch.float64
+    d = 1.0
+    pos_requires_grad = True
+    pos1 = torch.tensor([0.1 * d, 0.0 * d, 0.2 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d, 1.0 * d, -0.4 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    poss = [pos1, pos2, pos3]
+    atomzs = [1, 1, 1]
+    allbases = [
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"),
+                  dtype=dtype,
+                  requires_grad=False) for atomz in atomzs
+    ]
+    atombases = [
+        AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+        for i in range(len(allbases))
+    ]
+    a = torch.tensor([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]], dtype=dtype)
+    lattice = Lattice(a)
+    wrap = LibcintWrapper(atombases, True, lattice)
+    grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    grad = pbc_eval_gto(wrap, grid.get_rgrid())
+    assert grad.shape == torch.Size([1, 6, 100])
+
+
+@pytest.mark.torch
+def test_pbc_eval_gradgto():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis, Lattice, RadialGrid, pbc_eval_gradgto
+    dtype = torch.float64
+    d = 1.0
+    pos_requires_grad = True
+    pos1 = torch.tensor([0.1 * d, 0.0 * d, 0.2 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d, 1.0 * d, -0.4 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    poss = [pos1, pos2, pos3]
+    atomzs = [1, 1, 1]
+    allbases = [
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"),
+                  dtype=dtype,
+                  requires_grad=False) for atomz in atomzs
+    ]
+    atombases = [
+        AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+        for i in range(len(allbases))
+    ]
+    a = torch.tensor([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]], dtype=dtype)
+    lattice = Lattice(a)
+    wrap = LibcintWrapper(atombases, True, lattice)
+    grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    grad = pbc_eval_gradgto(wrap, grid.get_rgrid())
+    assert grad.shape == torch.Size([3, 1, 6, 100])
+
+
+@pytest.mark.torch
+def test_pbc_eval_laplgto():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis, Lattice, RadialGrid, pbc_eval_laplgto
+    dtype = torch.float64
+    d = 1.0
+    pos_requires_grad = True
+    pos1 = torch.tensor([0.1 * d, 0.0 * d, 0.2 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d, 1.0 * d, -0.4 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    poss = [pos1, pos2, pos3]
+    atomzs = [1, 1, 1]
+    allbases = [
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"),
+                  dtype=dtype,
+                  requires_grad=False) for atomz in atomzs
+    ]
+    atombases = [
+        AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+        for i in range(len(allbases))
+    ]
+    a = torch.tensor([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]], dtype=dtype)
+    lattice = Lattice(a)
+    wrap = LibcintWrapper(atombases, True, lattice)
+    grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    grad = pbc_eval_laplgto(wrap, grid.get_rgrid())
+    assert grad.shape == torch.Size([1, 6, 100])
+
+
+@pytest.mark.torch
+def test_gto_evaluator():
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis, RadialGrid, gto_evaluator
+    dtype = torch.double
+    d = 1.0
+    pos_requires_grad = True
+    pos1 = torch.tensor([0.1 * d, 0.0 * d, 0.2 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d, 1.0 * d, -0.4 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    poss = [pos1, pos2, pos3]
+    atomzs = [1, 1, 1]
+    allbases = [
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"),
+                  dtype=dtype,
+                  requires_grad=False) for atomz in atomzs
+    ]
+    atombases = [
+        AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+        for i in range(len(allbases))
+    ]
+    wrap = LibcintWrapper(atombases, True, None)
+    grid = RadialGrid(100, grid_integrator="chebyshev", grid_transform="logm3")
+    grad = gto_evaluator(wrap, "", grid.get_rgrid(), False)
+    assert grad.shape == torch.Size([6, 100])
+
+
+@pytest.mark.torch
+def test_get_evalgto_opname():
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import _get_evalgto_opname
+    assert _get_evalgto_opname("", False) == 'GTOval_cart'
+
+
+@pytest.mark.torch
+def test_get_evalgto_compshape():
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import _get_evalgto_compshape
+    assert _get_evalgto_compshape("ip") == (3,)
+
+
+@pytest.mark.torch
+def test_get_evalgto_derivname():
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import _get_evalgto_derivname
+    assert _get_evalgto_derivname("", "a") == 'rr'
+
+
+@pytest.mark.torch
+def test_PBCIntOption():
+    from deepchem.utils.dft_utils import PBCIntOption
+    pbc = PBCIntOption()
+    assert pbc.get_default() == PBCIntOption(precision=1e-08,
+                                             kpt_diff_tol=1e-06)
+
+
+@pytest.mark.torch
+def test_get_default_options():
+    from deepchem.utils.dft_utils import get_default_options
+    assert get_default_options().precision == 1e-08
+
+
+@pytest.mark.torch
+def test_get_default_kpts():
+    from deepchem.utils.dft_utils import get_default_kpts
+    assert torch.allclose(
+        get_default_kpts(torch.tensor([[1, 1, 1]]), torch.float64, 'cpu'),
+        torch.tensor([[1., 1., 1.]], dtype=torch.float64))

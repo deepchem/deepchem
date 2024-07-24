@@ -527,3 +527,42 @@ def unsorted_segment_max(data: torch.Tensor, segment_ids: torch.Tensor,
         tensor[i] = torch.max(data.masked_fill(~mask, float('-inf')), dim=0)[0]
 
     return tensor
+
+
+def estimate_ovlp_rcut(precision: float, coeffs: torch.Tensor,
+                       alphas: torch.Tensor) -> float:
+    """Estimate the rcut for lattice sum to achieve the given precision
+    it is estimated based on the overlap integral
+
+    Examples
+    --------
+    >>> from deepchem.utils import estimate_ovlp_rcut
+    >>> precision = 1e-6
+    >>> coeffs = torch.tensor([1.0, 2.0, 3.0])
+    >>> alphas = torch.tensor([1.0, 2.0, 3.0])
+    >>> estimate_ovlp_rcut(precision, coeffs, alphas)
+    6.7652716636657715
+
+    Parameters
+    ----------
+    precision : float
+        Precision to be achieved
+    coeffs : torch.Tensor
+        Coefficients of the basis functions
+    alphas : torch.Tensor
+        Alpha values of the basis functions
+
+    Returns
+    -------
+    float
+        Estimated rcut
+    """
+    langmom = 1
+    C = (coeffs * coeffs + 1e-200) * (2 * langmom + 1) * alphas / precision
+    r0 = torch.tensor(20.0, dtype=coeffs.dtype, device=coeffs.device)
+    for i in range(2):
+        r0 = torch.sqrt(
+            2.0 * torch.log(C *
+                            (r0 * r0 * alphas)**(langmom + 1) + 1.) / alphas)
+    rcut = float(torch.max(r0).detach())
+    return rcut
