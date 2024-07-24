@@ -7,7 +7,7 @@ from deepchem.feat.molecule_featurizers import MXMNetFeaturizer
 
 try:
     import torch
-    from deepchem.models.torch_models.mxmnet import MXMNet
+    from deepchem.models.torch_models.mxmnet import MXMNet, MXMNetModel
     has_torch = True
 except:
     has_torch = False
@@ -92,9 +92,9 @@ def test_mxmnet_model_regression():
     feat = MXMNetFeaturizer()
     tasks = [QM9_TASKS[0]]
     loader = dc.data.SDFLoader(tasks=tasks, featurizer=feat, sanitize=True)
-
-    dataset = loader.create_dataset(
-        inputs="deepchem/models/tests/assets/qm9_mini.sdf", shard_size=1)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    dataset_path = os.path.join(current_dir, "assets/qm9_mini.sdf")
+    dataset = loader.create_dataset(inputs=dataset_path, shard_size=1)
 
     model = MXMNetModel(
         dim=dim,
@@ -131,9 +131,9 @@ def test_mxmnet_model_reload():
     feat = MXMNetFeaturizer()
     tasks = [QM9_TASKS[0]]
     loader = dc.data.SDFLoader(tasks=tasks, featurizer=feat, sanitize=True)
-
-    dataset = loader.create_dataset(
-        inputs="deepchem/models/tests/assets/qm9_mini.sdf", shard_size=1)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    dataset_path = os.path.join(current_dir, "assets/qm9_mini.sdf")
+    dataset = loader.create_dataset(inputs=dataset_path, shard_size=1)
 
     # initialize the model
     model_dir = tempfile.mkdtemp()
