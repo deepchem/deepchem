@@ -1775,3 +1775,40 @@ def test_get_predefined_grid():
     grid = get_predefined_grid(3, torch.tensor([2]),
                                torch.tensor([[0, 0, 0]], dtype=torch.float64))
     assert grid.get_rgrid().shape == torch.Size([8608, 3])
+
+
+@pytest.mark.torch
+def test_dfmol():
+    from deepchem.utils.dft_utils import LibcintWrapper, OrbitalOrthogonalizer, DFMol, DensityFitInfo, AtomCGTOBasis, loadbasis
+    dtype = torch.double
+    d = 1.0
+    pos_requires_grad = True
+    pos1 = torch.tensor([0.1 * d, 0.0 * d, 0.2 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos2 = torch.tensor([0.0 * d, 1.0 * d, -0.4 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    pos3 = torch.tensor([0.2 * d, -1.4 * d, -0.9 * d],
+                        dtype=dtype,
+                        requires_grad=pos_requires_grad)
+    poss = [pos1, pos2, pos3]
+    atomzs = [1, 1, 1]
+    allbases = [
+        loadbasis("%d:%s" % (max(atomz, 1), "3-21G"),
+                  dtype=dtype,
+                  requires_grad=False) for atomz in atomzs
+    ]
+    atombases = [
+        AtomCGTOBasis(atomz=atomzs[i], bases=allbases[i], pos=poss[i])
+        for i in range(len(allbases))
+    ]
+    wrapper = LibcintWrapper(atombases, True, None)
+    wrapper.ao_idxs()
+    dfinfo = DensityFitInfo("coulomb", atombases)
+    orthozer = OrbitalOrthogonalizer(torch.eye(6, dtype=dtype))
+    dfmol = DFMol(dfinfo, wrapper, orthozer)
+    dfmol.build()
+    dm = torch.rand(2, 6, 1)
+    elrep = dfmol.get_elrep(dm.to(dtype))
+    assert elrep.fullmatrix().shape == torch.Size([6, 6])

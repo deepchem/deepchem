@@ -50,6 +50,8 @@ try:
     from deepchem.utils.dft_utils.hamilton.intor.gtoeval import pbc_eval_gradgto
     from deepchem.utils.dft_utils.hamilton.intor.gtoeval import pbc_eval_laplgto
     from deepchem.utils.dft_utils.hamilton.intor.gtoeval import gto_evaluator
+    from deepchem.utils.dft_utils.df.base_df import BaseDF
+    from deepchem.utils.dft_utils.df.dfmol import DFMol
 
     from deepchem.utils.dft_utils.api.parser import parse_moldesc
     from deepchem.utils.dft_utils.api.loadbasis import loadbasis
@@ -91,8 +93,6 @@ try:
 
     from deepchem.utils.dft_utils.api.getxc import get_libxc
     from deepchem.utils.dft_utils.api.getxc import get_xc
-
-    from deepchem.utils.dft_utils.df.base_df import BaseDF
 
     from deepchem.utils.dft_utils.hamilton.base_hamilton import BaseHamilton
 
