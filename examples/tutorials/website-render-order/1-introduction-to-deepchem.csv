@@ -18,3 +18,4 @@ Distributed Multi-GPU Training of DeepChem Models with LitMatter,https://github.
 Advanced model training using Hyperopt,Advanced_model_training_using_hyperopt.ipynb
 Introduction to Gaussian Processes,Introduction_to_Gaussian_Processes.ipynb
 Pytorch-Lightning Integration for DeepChem Models,PytorchLightning_Integration.ipynb
+Compiling DeepChem PyTorch Models,Compiling_DeepChem_Torch_Models.ipynb

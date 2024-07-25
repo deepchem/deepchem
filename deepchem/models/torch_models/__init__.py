@@ -32,12 +32,15 @@ from deepchem.models.torch_models.progressive_multitask import ProgressiveMultit
 from deepchem.models.torch_models.text_cnn import TextCNNModel
 from deepchem.models.torch_models.flows import Flow, Affine, MaskedAffineFlow, ActNorm, ClampExp, ConstScaleLayer, MLPFlow, NormalizingFlow, NormalizingFlowModel
 from deepchem.models.torch_models.unet import UNet, UNetModel
+from deepchem.models.torch_models.graphconvmodel import _GraphConvTorchModel
+from deepchem.models.torch_models.smiles2vec import Smiles2Vec
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
     from deepchem.models.torch_models.gnn import GNN, GNNHead, GNNModular
     from deepchem.models.torch_models.pna_gnn import AtomEncoder, BondEncoder, PNALayer, PNAGNN, PNA
     from deepchem.models.torch_models.gnn3d import Net3D, InfoMax3DModular
     from deepchem.models.torch_models.weavemodel_pytorch import Weave, WeaveModel
+    from deepchem.models.torch_models.mxmnet import MXMNet
 except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'

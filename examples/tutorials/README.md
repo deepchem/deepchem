@@ -56,6 +56,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [17 Advanced model training using Hyperopt](Advanced_model_training_using_hyperopt.ipynb)
 * [18 Introduction to Gaussian Processes](Introduction_to_Gaussian_Processes.ipynb)
 * [19 Pytorch-Lightning Integration for DeepChem Models](PytorchLightning_Integration.ipynb)
+* [20 Compiling DeepChem PyTorch Models](Compiling_DeepChem_Torch_Models.ipynb)
 
 ### Molecular Machine Learning
 * [1 Molecular Fingerprints](Molecular_Fingerprints.ipynb)
@@ -73,7 +74,8 @@ tutorials discuss about using DeepChem for specific applications.
 
 ### Modeling Proteins
 * [1 Protein Deep Learning](Protein_Deep_Learning.ipynb)
-
+* [2 Antibody Design via Protein Language Models and Directed Evolution](DeepChem_AntibodyTutorial_Simplified.ipynb)
+* [3 Protein Structure Prediction with ESMFold](Protein_Structure_Prediction_with_ESMFold.ipynb)
 ### Protein Ligand Modeling
 * [1 Modeling Protein Ligand Interactions](Modeling_Protein_Ligand_Interactions.ipynb)
 * [2 Modeling Protein Ligand Interactions with Atomic Convolutions](Modeling_Protein_Ligand_Interactions_With_Atomic_Convolutions.ipynb)
