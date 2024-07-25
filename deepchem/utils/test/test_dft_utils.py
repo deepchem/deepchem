@@ -1759,3 +1759,19 @@ def test_get_default_kpts():
     assert torch.allclose(
         get_default_kpts(torch.tensor([[1, 1, 1]]), torch.float64, 'cpu'),
         torch.tensor([[1., 1., 1.]], dtype=torch.float64))
+
+
+@pytest.mark.torch
+def test_get_grid():
+    from deepchem.utils.dft_utils.grid.factory import get_grid
+    grid = get_grid(torch.tensor([1]),
+                    torch.tensor([[0, 0, 0]], dtype=torch.float64))
+    assert grid.get_rgrid().shape == torch.Size([16710, 3])
+
+
+@pytest.mark.torch
+def test_get_predefined_grid():
+    from deepchem.utils.dft_utils import get_predefined_grid
+    grid = get_predefined_grid(3, torch.tensor([2]),
+                               torch.tensor([[0, 0, 0]], dtype=torch.float64))
+    assert grid.get_rgrid().shape == torch.Size([8608, 3])
