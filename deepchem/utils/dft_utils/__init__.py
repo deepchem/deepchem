@@ -72,6 +72,8 @@ try:
     from deepchem.utils.dft_utils.grid.radial_grid import LogM3Transformation
     from deepchem.utils.dft_utils.grid.radial_grid import TreutlerM4Transformation
     from deepchem.utils.dft_utils.grid.radial_grid import get_grid_transform
+    from deepchem.utils.dft_utils.grid.factory import get_grid
+    from deepchem.utils.dft_utils.grid.factory import get_predefined_grid
 
     from deepchem.utils.dft_utils.xc.base_xc import BaseXC
     from deepchem.utils.dft_utils.xc.base_xc import AddBaseXC

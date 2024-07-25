@@ -1,8 +1,8 @@
 """
 Utilities for miscellaneous tasks.
 """
-from typing import Dict, List, Optional, Callable, TypeVar, Any
 import functools
+from typing import Dict, List, Mapping, Optional, Callable, TypeVar, Any
 
 
 def indent(s, nspace):
@@ -212,3 +212,39 @@ def memoize_method(fcn: Callable[[Any], T]) -> Callable[[Any], T]:
             return res
 
     return new_fcn
+
+
+T = TypeVar('T')
+K = TypeVar('K')
+
+
+def get_option(name: str, s: K, options: Mapping[K, T]) -> T:
+    """Get the value from dictionary of options, if not found, then raise an error
+
+    Examples
+    --------
+    >>> from deepchem.utils import get_option
+    >>> options = {"a": 1, "b": 2}
+    >>> get_option("name", "a", options)
+    1
+
+    Parameters
+    ----------
+    name : str
+        Name of the option
+    s : K
+        Key to be searched
+    options : Mapping[K, T]
+        Dictionary of options
+
+    Returns
+    -------
+    T
+        Value of the option
+    """
+    if s in options:
+        return options[s]
+    else:
+        raise ValueError(
+            f"Unknown {name}: {s}. The available options are: {str(list(options.keys()))}"
+        )
