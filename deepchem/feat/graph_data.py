@@ -533,3 +533,231 @@ def shortest_path_length(graph_data, source, cutoff=None):
                     queue.append(neighbor)
 
     return {i: int(d) for i, d in enumerate(distances) if d <= cutoff}
+
+
+class WeightedDirectedGraphData:
+    """WeightedDirectedGraphData class
+
+    This class is used to represent weighted directed graphs. The instances of this class will be
+    useful specifically for the graph neural network models that support weighted message passing.
+    The corresponding featurizers will have return type of this class.
+
+    While the conventional `GraphData` stores the feature vectors and index of the edges this class
+    stores the feature vectors alongs with weight values, edge mapping for the nodes for both directions,
+    and reverse edge mapping for the edges (optional). This class is useful for the graph neural network models
+    that can encode this directional data with the weights to hold most features in similar manner to macromolecules.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> node_features = np.random.rand(5,10)
+    >>> edge_features = np.random.rand(7,10)
+    >>> node_to_edge_mapping = [[x,x] for x in range(5)]
+    >>> node_weights = np.random.rand(5)
+    >>> edge_weights = np.random.rand(7)
+    >>> edge_to_node_mapping = np.array([x for x in range(7)])
+    >>> edge_to_reverse_edge_mapping = np.array([x for x in range(7)[::-1]])
+    >>> w_g_obj = WeightedDirectedGraphData(node_features,edge_features,node_to_edge_mapping, node_weights, edge_weights, edge_to_node_mapping, edge_to_reverse_edge_mapping)
+    >>> w_g_obj
+    WeightedDirectedGraphData(node_features=[5, 10], edge_features=[7, 10],
+                    node_to_edge_mapping=5, node_weights=[5],
+                    edge_weights=[7], edge_to_node_mapping=7,
+                    edge_to_reverse_edge_mapping=7)
+
+    Attributes
+    ----------
+    node_features: np.ndarray
+        Node feature matrix with shape [num_nodes, num_node_features]
+    edge_features: np.ndarray
+        Edge feature matrix with shape [num_edges, num_edge_features]
+    node_weights: np.ndarray
+        Weight distribution array for each node with shape [num_nodes]
+    edge_weights: np.ndarray
+        Weight distribution array for each edge with shape [num_edges]
+    node_to_edge_mapping: list
+        Mapping from node index to edge index with shape [num_nodes,x]
+        (where x is an integer representing number of edge connected to node)
+    edge_to_node_mapping: np.ndarray, optional (default None)
+        Mapping from edge index to node index with shape [num_edges]
+    edge_to_reverse_edge_mapping: np.ndarray, optional (default None)
+        Mapping from edge index to reverse edge index with shape [num_edges]
+    num_nodes: int
+        The number of nodes in the graph
+    num_node_features: int
+        The number of features per node in the graph
+    num_edges: int
+        The number of edges in the graph
+    num_edge_features: int, optional (default None)
+        The number of features per edge in the graph
+
+    """
+
+    def __init__(self,
+                 node_features: np.ndarray,
+                 edge_features: np.ndarray,
+                 node_to_edge_mapping: list,
+                 node_weights: np.ndarray,
+                 edge_weights: np.ndarray,
+                 edge_to_node_mapping: Optional[np.ndarray] = None,
+                 edge_to_reverse_edge_mapping: Optional[np.ndarray] = None,
+                 **kwargs):
+        """
+        Parameters
+        ----------
+        node_features: np.ndarray
+            Node feature matrix with shape [num_nodes, num_node_features]
+        edge_features: np.ndarray
+            Edge feature matrix with shape [num_edges, num_edge_features]
+        node_to_edge_mapping: list
+            Mapping from node index to edge index with shape [num_nodes,x]
+            (where x is an integer representing number of edge connected to node, while node is represented with the index of the edge list)
+        node_weights: np.array
+            Weight distribution array for each node with shape [num_nodes]
+        edge_weights: np.array
+            Weight distribution array for each edge with shape [num_edges]
+        edge_to_node_mapping: np.ndarray, optional (default None)
+            Mapping from edge index to node index with shape [num_edges]
+        edge_to_reverse_edge_mapping: np.ndarray, optional (default None)
+            Mapping from edge index to reverse edge index with shape [num_edges]
+        kwargs: dict
+        """
+        # validate param datatypes
+        array_params = {
+            "node_features": node_features,
+            "edge_features": edge_features,
+            "node_weights": node_weights,
+            "edge_weights": edge_weights
+        }
+
+        for array_label, array_param in array_params.items():
+            if isinstance(array_param, np.ndarray) is False:
+                raise ValueError(
+                    f'Datatype of {array_label} must be np.ndarray.')
+
+        if type(node_to_edge_mapping) is not list:
+            raise ValueError(
+                'node_to_edge_mapping needs to to be a list to handle heterogeneous shaped arrays'
+            )
+        elif len(node_to_edge_mapping) > 0 and type(
+                node_to_edge_mapping[0]) is not list:
+            raise ValueError(
+                "node_to_edge_mapping stores lists in it's first dimension")
+        # validate param shapes
+        elif len(node_to_edge_mapping) != node_features.shape[0]:
+            raise ValueError(
+                'The length of node_to_edge_mapping must be the same as the first dimension of node_features.'
+            )
+        elif node_features.shape[0] != node_weights.shape[0]:
+            raise ValueError(
+                'The first dimension of node_features must be the same as the dimension of node_weights.'
+            )
+        elif edge_features.shape[0] != edge_weights.shape[0]:
+            raise ValueError(
+                'The first dimension of edge_features must be the same as the dimension of edge_weights.'
+            )
+
+        if edge_to_node_mapping is not None:
+            if issubclass(edge_to_node_mapping.dtype.type, np.integer) is False:
+                raise ValueError('edge_to_node_mapping contain integers only.')
+            elif len(edge_to_node_mapping.shape) != 1:
+                raise ValueError(
+                    'edge_to_node_mapping must be an 1-D non-empty array.')
+            elif edge_features.shape[0] != edge_to_node_mapping.shape[0]:
+                raise ValueError(
+                    'The first dimension of edge_features must be the same as the dimension of edge_to_node_mapping.'
+                )
+            elif np.max(edge_to_node_mapping) >= edge_features.shape[0]:
+                raise ValueError(
+                    f'The maximum value in edge_to_node_mapping is {np.max(edge_to_node_mapping)}. Which should have been below {node_features.shape[0]}!'
+                )
+            elif np.min(edge_to_node_mapping) < 0:
+                raise ValueError(
+                    f'The minimum value in edge_to_node_mapping is {np.min(edge_to_node_mapping)}. Which should have been zero or above !'
+                )
+
+        if edge_to_reverse_edge_mapping is not None:
+            if issubclass(edge_to_reverse_edge_mapping.dtype.type,
+                          np.integer) is False:
+                raise ValueError(
+                    'edge_to_reverse_edge_mapping contain integers only.')
+            elif len(edge_to_reverse_edge_mapping.shape) != 1:
+                raise ValueError(
+                    'edge_to_reverse_edge_mapping must be an 1-D non-empty array.'
+                )
+            elif edge_features.shape[0] != edge_to_reverse_edge_mapping.shape[0]:
+                raise ValueError(
+                    'The first dimension of edge_features must be the same as the dimension of edge_to_reverse_edge_mapping.'
+                )
+            elif np.max(edge_to_reverse_edge_mapping) >= edge_features.shape[0]:
+                raise ValueError(
+                    f'The maximum value in edge_to_reverse_edge_mapping is {np.max(edge_to_reverse_edge_mapping)}. Which should have been below {edge_features.shape[0]}!'
+                )
+            elif np.min(edge_to_reverse_edge_mapping) < 0:
+                raise ValueError(
+                    f'The minimum value in edge_to_reverse_edge_mapping is {np.min(edge_to_reverse_edge_mapping)}. Which should have been zero or above !'
+                )
+
+        # validate index params
+        max_val = max(
+            [item for sublist in node_to_edge_mapping for item in sublist])
+        min_val = max(
+            [item for sublist in node_to_edge_mapping for item in sublist])
+        if max_val >= node_features.shape[0]:
+            raise ValueError(
+                f'The maximum index in node_to_edge_mapping is {max_val}. Which should have been below {node_features.shape[0]}!'
+            )
+        elif min_val < 0:
+            raise ValueError(
+                f'The minimum index in node_to_edge_mapping is {min_val}. Which should have been zero or above !'
+            )
+
+        self.node_features = node_features
+        self.edge_features = edge_features
+        self.node_to_edge_mapping = node_to_edge_mapping
+        self.node_weights = node_weights
+        self.edge_weights = edge_weights
+
+        self.edge_to_node_mapping = edge_to_node_mapping if edge_to_node_mapping is not None else None
+        self.edge_to_reverse_edge_mapping = edge_to_reverse_edge_mapping if edge_to_reverse_edge_mapping is not None else None
+
+        self.num_nodes = node_features.shape[0]
+        self.num_node_features = node_features.shape[1]
+        self.num_edges = edge_features.shape[0]
+        self.num_edge_features = edge_features.shape[1]
+        self.kwargs = kwargs
+
+        for key, value in self.kwargs.items():
+            setattr(self, key, value)
+
+    def __repr__(self) -> str:
+        """Returns a string containing the printable representation of the object"""
+        cls = self.__class__.__name__
+        node_features_str = str(list(self.node_features.shape))
+        edge_features_str = str(list(self.edge_features.shape))
+        node_to_edge_mapping_str = str(len(self.node_to_edge_mapping))
+        node_weights_str = str(list(self.node_weights.shape))
+        edge_weights_str = str(list(self.edge_weights.shape))
+        if self.edge_to_node_mapping is not None:
+            edge_to_node_mapping_str = str(len(self.edge_to_node_mapping))
+        else:
+            edge_to_node_mapping_str = "None"
+        if self.edge_to_reverse_edge_mapping is not None:
+            edge_to_reverse_edge_mapping_str = str(
+                len(self.edge_to_reverse_edge_mapping))
+        else:
+            edge_to_reverse_edge_mapping_str = "None"
+
+        out = f"""{cls}(node_features={node_features_str}, edge_features={edge_features_str},
+                node_to_edge_mapping={node_to_edge_mapping_str}, node_weights={node_weights_str},
+                edge_weights={edge_weights_str}, edge_to_node_mapping={edge_to_node_mapping_str},
+                edge_to_reverse_edge_mapping={edge_to_reverse_edge_mapping_str}"""
+        # Adding shapes of kwargs
+        for key, value in self.kwargs.items():
+            if isinstance(value, np.ndarray):
+                out += (', ' + key + '=' + str(list(value.shape)))
+            elif isinstance(value, str):
+                out += (', ' + key + '=' + value)
+            elif isinstance(value, int) or isinstance(value, float):
+                out += (', ' + key + '=' + str(value))
+        out += ')'
+        return out

@@ -162,6 +162,8 @@ Optimizers
 .. autoclass:: deepchem.models.optimizers.LinearCosineDecay
   :members:
 
+.. autoclass:: deepchem.models.optimizers.LambdaLRWithWarmup
+  :members:
 
 Keras Models
 ============
@@ -572,6 +574,12 @@ Smiles2Vec
 --------------------
 
 .. autoclass:: deepchem.models.torch_models.Smiles2Vec
+  :members:
+
+MXMNet
+------
+
+.. autoclass:: deepchem.models.torch_models.MXMNet
   :members:
 
 PyTorch Lightning Models
