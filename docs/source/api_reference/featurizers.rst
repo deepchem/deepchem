@@ -377,6 +377,19 @@ CRAMFeaturizer
   :inherited-members:
 
 
+DeepVariant Featurizers
+-----------------------
+
+These featurizers are used in DeepVariant
+
+RealignerFeaturizer
+^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.RealignerFeaturizer
+  :members:
+  :inherited-members:
+
+
 Molecule Tokenizers
 -------------------
 
