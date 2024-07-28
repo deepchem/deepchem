@@ -371,8 +371,9 @@ class HamiltonCGTO(BaseHamilton):
             return LinearOperator.m(mat, is_hermitian=True)
         else:  # dm is SpinParam
             # using the spin-scaling property of exchange energy
-            return SpinParam(u=self.get_exchange(2 * dm.u),  # type: ignore
-                             d=self.get_exchange(2 * dm.d))  # type: ignore
+            return SpinParam(
+                u=self.get_exchange(2 * dm.u),  # type: ignore
+                d=self.get_exchange(2 * dm.d))  # type: ignore
 
     def get_vext(self, vext: torch.Tensor) -> LinearOperator:
         r"""
@@ -589,11 +590,12 @@ class HamiltonCGTO(BaseHamilton):
 
     # free parameters for variational method
     def ao_orb_params2dm(
-            self,
-            ao_orb_params: torch.Tensor,
-            ao_orb_coeffs: torch.Tensor,
-            orb_weight: torch.Tensor,
-            with_penalty: Optional[float] = None) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+        self,
+        ao_orb_params: torch.Tensor,
+        ao_orb_coeffs: torch.Tensor,
+        orb_weight: torch.Tensor,
+        with_penalty: Optional[float] = None
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """
         Convert the atomic orbital free parameters (parametrized in such a way
         so it is not bounded) to the density matrix.
@@ -643,7 +645,9 @@ class HamiltonCGTO(BaseHamilton):
                 (ao_orbq * s1 - ao_orb_params * s2)**2) * with_penalty
             return dm, penalty
 
-    def dm2ao_orb_params(self, dm: torch.Tensor, norb: int) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+    def dm2ao_orb_params(
+            self, dm: torch.Tensor, norb: int
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """
         Convert from the density matrix to the orbital parameters.
         The map is not one-to-one, but instead one-to-many where there

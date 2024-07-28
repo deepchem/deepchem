@@ -8,6 +8,7 @@ try:
 except:
     warnings.warn("h5py is not installed, cache will not work.")
 
+
 class Cache(object):
     """
     Internal object to store/load cache for heavy-load calculations.
