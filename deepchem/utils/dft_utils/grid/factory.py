@@ -289,9 +289,13 @@ def get_grid(atomzs: Union[List[int], torch.Tensor],
             rad_slices = trunc.rad_slices(atz, radgrid)
             radgrids: List[BaseGrid] = [radgrid[sl] for sl in rad_slices]
             precs = trunc.precs(atz, radgrid)
-            sphgrid = TruncatedLebedevGrid(radgrids, precs)
+            sphgrid = TruncatedLebedevGrid(radgrids, precs)  # type: ignore
         else:
-            sphgrid = LebedevGrid(radgrid, prec=_get_nr(prec, atz))
+            sphgrid = LebedevGrid(
+                radgrid,
+                prec=_get_nr(
+                    prec,  # type: ignore
+                    atz))
         sphgrids_dict[atz] = sphgrid
         sphgrids.append(sphgrid)
 
@@ -300,24 +304,31 @@ def get_grid(atomzs: Union[List[int], torch.Tensor],
     if lattice is None:
         multiatoms_options: Mapping[str, Callable[[], BaseGrid]] = {
             "becke":
-                lambda: BeckeGrid(sphgrids, atompos, atomradii=atomradii),
+                lambda: BeckeGrid(
+                    sphgrids,  # type: ignore
+                    atompos,
+                    atomradii=atomradii
+                ),
             "treutler":
-                lambda: BeckeGrid(sphgrids,
-                                  atompos,
-                                  atomradii=atomradii,
-                                  ratom_adjust="treutler"),
+                lambda: BeckeGrid(
+                    sphgrids,  # type: ignore
+                    atompos,
+                    atomradii=atomradii,
+                    ratom_adjust="treutler"),
         }
     else:
         assert isinstance(lattice, Lattice)
         multiatoms_options = {
             "becke":
-                lambda: PBCBeckeGrid(sphgrids, atompos, lattice=lattice
-                                    ),  # type: ignore
+                lambda: PBCBeckeGrid(
+                    sphgrids,  # type: ignore
+                    atompos,
+                    lattice=lattice),
             "treutler":
                 lambda: PBCBeckeGrid(
-                    sphgrids,
+                    sphgrids,  # type: ignore
                     atompos,
-                    lattice=lattice,  # type: ignore
+                    lattice=lattice,
                     ratom_adjust="treutler"),
         }
     grid = get_option("multiatoms scheme", multiatoms_scheme,

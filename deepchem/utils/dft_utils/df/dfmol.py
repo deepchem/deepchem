@@ -3,7 +3,7 @@ import logging
 from typing import List, Optional
 from deepchem.utils import get_memory
 from deepchem.utils.differentiation_utils import LinearOperator
-from deepchem.utils.dft_utils import DensityFitInfo, OrbitalOrthogonalizer, LibcintWrapper, coul2c, coul3c, overlap, BaseDF, config
+from deepchem.utils.dft_utils import DensityFitInfo, OrbitalOrthogonalizer, LibcintWrapper, coul2c, coul3c, overlap, BaseDF
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +109,7 @@ class DFMol(BaseDF):
         self._inv_j2c = torch.inverse(j2c)
 
         # if the memory is too big, then don't precompute elmat
-        if get_memory(j3c) > config.THRESHOLD_MEMORY:
+        if get_memory(j3c) > 10 * 1024**3:
             self._precompute_elmat = False
         else:
             self._precompute_elmat = True
