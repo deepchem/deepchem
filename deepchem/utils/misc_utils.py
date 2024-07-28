@@ -170,6 +170,7 @@ class Uniquifier(object):
 
 
 T = TypeVar('T')
+K = TypeVar('K')
 
 
 def memoize_method(fcn: Callable[[Any], T]) -> Callable[[Any], T]:
@@ -212,10 +213,6 @@ def memoize_method(fcn: Callable[[Any], T]) -> Callable[[Any], T]:
             return res
 
     return new_fcn
-
-
-T = TypeVar('T')
-K = TypeVar('K')
 
 
 def get_option(name: str, s: K, options: Mapping[K, T]) -> T:
