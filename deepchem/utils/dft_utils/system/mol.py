@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class Mol(BaseSystem):
     """
-    Describe the system of an isolated molecule.
+    Describe the system of an isolated molecule
 
     Examples
     --------
