@@ -10,10 +10,10 @@ from deepchem.feat import ConvMolFeaturizer
 from deepchem.metrics import Metric, roc_auc_score, mean_absolute_error
 from deepchem.molnet import load_bace_classification, load_delaney
 from deepchem.utils.data_utils import download_url, get_data_dir
-from deepchem.models.torch_models import GraphConvModel
 
 try:
     import torch
+    from deepchem.models.torch_models import GraphConvModel
     has_torch = True
 except:
     has_torch = False
