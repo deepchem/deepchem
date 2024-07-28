@@ -1812,3 +1812,50 @@ def test_dfmol():
     dm = torch.rand(2, 6, 1)
     elrep = dfmol.get_elrep(dm.to(dtype))
     assert elrep.fullmatrix().shape == torch.Size([6, 6])
+
+
+@pytest.mark.torch
+def test_mol():
+    from deepchem.utils.dft_utils.system.mol import Mol
+    mol = Mol("H 1 0 0; H -1 0 0", "sto-3g", spin=1)
+    mol.setup_grid()
+    assert torch.allclose(mol.get_orbweight(),
+                          torch.tensor([1.5000, 0.5000], dtype=torch.float64))
+
+
+@pytest.mark.torch
+def test_parse_basis():
+    from deepchem.utils.dft_utils.system.mol import _parse_basis
+    assert len(_parse_basis(torch.tensor([1, 1]), "sto-3g")) == 2
+
+
+@pytest.mark.torch
+def test_get_nelecs_spin():
+    from deepchem.utils.dft_utils.system.mol import _get_nelecs_spin
+    assert _get_nelecs_spin(torch.tensor(2), None,
+                            0) == (torch.tensor(2), torch.tensor(0), False)
+
+
+@pytest.mark.torch
+def test_get_orb_weights():
+    from deepchem.utils.dft_utils.system.mol import _get_orb_weights
+    assert _get_orb_weights(
+        torch.tensor(2), 1, False, torch.float64,
+        torch.device('cpu')) == (torch.tensor([1.], dtype=torch.float64),
+                                 torch.tensor([1.], dtype=torch.float64),
+                                 torch.tensor([0.], dtype=torch.float64))
+
+
+@pytest.mark.torch
+def test_normalize_efield():
+    from deepchem.utils.dft_utils.system.mol import _normalize_efield
+    assert torch.allclose(
+        _normalize_efield(torch.tensor([1, 2, 3]))[0], torch.tensor([1, 2, 3]))
+
+
+@pytest.mark.torch
+def test_preprocess_efield():
+    from deepchem.utils.dft_utils.system.mol import _preprocess_efield
+    assert torch.allclose(
+        _preprocess_efield((torch.tensor([1, 2, 3]),))[0],
+        torch.tensor([1, 2, 3]))

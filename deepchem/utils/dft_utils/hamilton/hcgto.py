@@ -2,7 +2,7 @@ import logging
 import torch
 from typing import List, Optional, Union, Tuple
 from deepchem.utils import chunkify, get_dtype_memsize
-from deepchem.utils.dft_utils import BaseDF, DFMol, DensityFitInfo, eval_gto, eval_gradgto, eval_laplgto, LibcintWrapper, BaseHamilton, overlap, kinetic, nuclattr, int1e, elrep, config, BaseXC, BaseGrid, AtomCGTOBasis, ValGrad, SpinParam
+from deepchem.utils.dft_utils import BaseDF, DFMol, DensityFitInfo, eval_gto, eval_gradgto, eval_laplgto, LibcintWrapper, BaseHamilton, overlap, kinetic, nuclattr, int1e, elrep, BaseXC, BaseGrid, AtomCGTOBasis, ValGrad, SpinParam
 from deepchem.utils.differentiation_utils import LinearOperator
 from deepchem.utils.cache_utils import Cache
 from deepchem.utils.dft_utils.hamilton.orbconverter import OrbitalOrthogonalizer
@@ -371,8 +371,8 @@ class HamiltonCGTO(BaseHamilton):
             return LinearOperator.m(mat, is_hermitian=True)
         else:  # dm is SpinParam
             # using the spin-scaling property of exchange energy
-            return SpinParam(u=self.get_exchange(2 * dm.u),
-                             d=self.get_exchange(2 * dm.d))
+            return SpinParam(u=self.get_exchange(2 * dm.u),  # type: ignore
+                             d=self.get_exchange(2 * dm.d))  # type: ignore
 
     def get_vext(self, vext: torch.Tensor) -> LinearOperator:
         r"""
@@ -593,7 +593,7 @@ class HamiltonCGTO(BaseHamilton):
             ao_orb_params: torch.Tensor,
             ao_orb_coeffs: torch.Tensor,
             orb_weight: torch.Tensor,
-            with_penalty: Optional[float] = None) -> List[torch.Tensor]:
+            with_penalty: Optional[float] = None) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """
         Convert the atomic orbital free parameters (parametrized in such a way
         so it is not bounded) to the density matrix.
@@ -643,13 +643,13 @@ class HamiltonCGTO(BaseHamilton):
                 (ao_orbq * s1 - ao_orb_params * s2)**2) * with_penalty
             return dm, penalty
 
-    def dm2ao_orb_params(self, dm: torch.Tensor, norb: int) -> torch.Tensor:
+    def dm2ao_orb_params(self, dm: torch.Tensor, norb: int) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """
         Convert from the density matrix to the orbital parameters.
-        The map is not one-to-one, but instead one-to-many where there might
-        be more than one orbital parameters to describe the same density matrix.
-        For restricted systems, only one of the ``dm`` (``dm.u`` or ``dm.d``) is
-        sufficient.
+        The map is not one-to-one, but instead one-to-many where there
+        might be more than one orbital parameters to describe the same
+        density matrix. For restricted systems, only one of the ``dm``
+        (``dm.u`` or ``dm.d``) is sufficient.
 
         Parameters
         ----------
@@ -721,7 +721,7 @@ class HamiltonCGTO(BaseHamilton):
                                   device=self.device)
 
         # It is faster to split into chunks than evaluating a single big chunk
-        maxnumel = config.CHUNK_MEMORY // get_dtype_memsize(self.basis)
+        maxnumel = 16 * 1024**2 // get_dtype_memsize(self.basis)
         for basis, ioff, iend in chunkify(self.basis, dim=0, maxnumel=maxnumel):
             # basis: (ngrid2, nao)
 
@@ -802,7 +802,7 @@ class HamiltonCGTO(BaseHamilton):
 
         # Split the r-dimension into several parts, it is usually faster than
         # evaluating all at once
-        maxnumel = config.CHUNK_MEMORY // get_dtype_memsize(self.basis)
+        maxnumel = 16 * 1024**2 // get_dtype_memsize(self.basis)
         for basis, ioff, iend in chunkify(self.basis, dim=0, maxnumel=maxnumel):
             # basis: (nr, nao)
             vb = potinfo.value[..., ioff:iend].unsqueeze(

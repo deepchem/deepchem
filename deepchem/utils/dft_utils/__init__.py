@@ -98,6 +98,7 @@ try:
     from deepchem.utils.dft_utils.hamilton.hcgto import HamiltonCGTO
 
     from deepchem.utils.dft_utils.system.base_system import BaseSystem
+    from deepchem.utils.dft_utils.system.mol import Mol
 
     from deepchem.utils.dft_utils.qccalc.base_qccalc import BaseQCCalc
     from deepchem.utils.dft_utils.qccalc.scf_qccalc import SCF_QCCalc
