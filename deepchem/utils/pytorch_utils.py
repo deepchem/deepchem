@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Union, List, Generat
 import numpy as np
 try:
     import h5py
-except Exception:
+except:
     warnings.warn("h5py is not installed, cache will not work.")
 
 
