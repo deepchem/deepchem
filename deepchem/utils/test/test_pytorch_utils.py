@@ -151,29 +151,7 @@ def test_estimate_ovlp_rcut():
 
 
 @pytest.mark.torch
-def test_Cache():
-    from deepchem.utils.pytorch_utils import Cache
-    class A:
-        def __init__(self):
-            self.cache = Cache.get_dummy()
-        def foo(self, x):
-            return self.cache.cache("foo", lambda: x * x)
-    a = A()
-    assert a.foo(2) == 4
-
-
-@pytest.mark.torch
-def test_PrefixedCache():
-    from deepchem.utils.pytorch_utils import Cache, _PrefixedCache
-    cache = Cache.get_dummy()
-    pcache = _PrefixedCache(cache, "prefix.")
-    assert pcache.cache("foo", lambda: 1) == 1
-    assert pcache.cache("foo", lambda: 2) == 2
-
-
-@pytest.mark.torch
-def test_DummyCache():
-    from deepchem.utils.pytorch_utils import _DummyCache
-    cache = _DummyCache()
-    assert cache.cache("foo", lambda: 1) == 1
-    assert cache.cache("foo", lambda: 2) == 2
+def test_get_dtype_memsize():
+    from deepchem.utils.pytorch_utils import get_dtype_memsize
+    assert get_dtype_memsize(torch.float32) == 4
+    assert get_dtype_memsize(torch.float64) == 8

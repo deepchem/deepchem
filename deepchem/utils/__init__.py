@@ -146,6 +146,7 @@ try:
     from deepchem.utils.pytorch_utils import get_np_dtype
     from deepchem.utils.pytorch_utils import unsorted_segment_max
     from deepchem.utils.pytorch_utils import estimate_ovlp_rcut
+    from deepchem.utils.pytorch_utils import get_dtype_memsize
 
     from deepchem.utils.safeops_utils import safepow
     from deepchem.utils.safeops_utils import safenorm

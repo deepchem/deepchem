@@ -95,6 +95,7 @@ try:
     from deepchem.utils.dft_utils.api.getxc import get_xc
 
     from deepchem.utils.dft_utils.hamilton.base_hamilton import BaseHamilton
+    from deepchem.utils.dft_utils.hamilton.hcgto import HamiltonCGTO
 
     from deepchem.utils.dft_utils.system.base_system import BaseSystem
 
