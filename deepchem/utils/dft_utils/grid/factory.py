@@ -307,8 +307,7 @@ def get_grid(atomzs: Union[List[int], torch.Tensor],
                 lambda: BeckeGrid(
                     sphgrids,  # type: ignore
                     atompos,
-                    atomradii=atomradii
-                ),
+                    atomradii=atomradii),
             "treutler":
                 lambda: BeckeGrid(
                     sphgrids,  # type: ignore
