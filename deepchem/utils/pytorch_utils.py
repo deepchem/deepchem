@@ -565,3 +565,26 @@ def estimate_ovlp_rcut(precision: float, coeffs: torch.Tensor,
                             (r0 * r0 * alphas)**(langmom + 1) + 1.) / alphas)
     rcut = float(torch.max(r0).detach())
     return rcut
+
+
+def get_dtype_memsize(a: torch.Tensor) -> int:
+    """Size of each element in the tensor in bytes
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils import get_dtype_memsize
+    >>> a = torch.randn(3, 2)
+    >>> get_dtype_memsize(a)
+    4
+
+    """
+    if a.dtype == torch.float64 or a.dtype == torch.int64:
+        size = 8
+    elif a.dtype == torch.float32 or a.dtype == torch.int32:
+        size = 4
+    elif a.dtype == torch.bool:
+        size = 1
+    else:
+        raise TypeError("Unknown tensor type: %s" % a.dtype)
+    return size
