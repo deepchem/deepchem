@@ -4,11 +4,15 @@ import pytest
 @pytest.mark.torch
 def test_Cache():
     from deepchem.utils.cache_utils import Cache
+
     class A:
+
         def __init__(self):
             self.cache = Cache.get_dummy()
+
         def foo(self, x):
             return self.cache.cache("foo", lambda: x * x)
+
     a = A()
     assert a.foo(2) == 4
 
