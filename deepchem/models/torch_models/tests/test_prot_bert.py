@@ -15,14 +15,14 @@ except ModuleNotFoundError:
 @pytest.mark.torch
 def test_prot_bert_pretraining_mlm(protein_classification_dataset):
     model_path = 'Rostlab/prot_bert'
-    model = ProtBERT(task='mlm', HG_model_path=model_path, n_tasks=1)
+    model = ProtBERT(task='mlm', model_path=model_path, n_tasks=1)
     loss = model.fit(protein_classification_dataset, nb_epoch=1)
     assert loss
 
-    # model_path = 'Rostlab/prot_bert_BFD'
-    # model = ProtBERT(task='mlm', HG_model_path=model_path, n_tasks=1)
-    # loss = model.fit(protein_classification_dataset, nb_epoch=1)
-    # assert loss
+    model_path = 'Rostlab/prot_bert_BFD'
+    model = ProtBERT(task='mlm', model_path=model_path, n_tasks=1)
+    loss = model.fit(protein_classification_dataset, nb_epoch=1)
+    assert loss
 
 
 @pytest.mark.torch
@@ -31,7 +31,7 @@ def test_prot_bert_finetuning(protein_classification_dataset):
     model_path = 'Rostlab/prot_bert'
 
     model = ProtBERT(task='classification',
-                     HG_model_path=model_path,
+                     model_path=model_path,
                      n_tasks=1,
                      cls_name="LogReg")
     loss = model.fit(protein_classification_dataset, nb_epoch=1)
@@ -43,7 +43,7 @@ def test_prot_bert_finetuning(protein_classification_dataset):
     assert prediction.shape == (protein_classification_dataset.y.shape[0], 2)
 
     model = ProtBERT(task='classification',
-                     HG_model_path=model_path,
+                     model_path=model_path,
                      n_tasks=1,
                      cls_name="FFN")
     loss = model.fit(protein_classification_dataset, nb_epoch=1)
@@ -74,7 +74,7 @@ def test_prot_bert_finetuning(protein_classification_dataset):
 
     custom_torch_CNN_network = SimpleCNN()
     model = ProtBERT(task='classification',
-                     HG_model_path=model_path,
+                     model_path=model_path,
                      n_tasks=1,
                      cls_name="custom",
                      classifier_net=custom_torch_CNN_network)
@@ -93,13 +93,13 @@ def test_protbert_load_from_pretrained(tmpdir):
     finetune_model_dir = os.path.join(tmpdir, 'finetune')
     model_path = 'Rostlab/prot_bert'
     pretrain_model = ProtBERT(task='mlm',
-                              HG_model_path=model_path,
+                              model_path=model_path,
                               n_tasks=1,
                               model_dir=pretrain_model_dir)
     pretrain_model.save_checkpoint()
 
     finetune_model = ProtBERT(task='classification',
-                              HG_model_path=model_path,
+                              model_path=model_path,
                               n_tasks=1,
                               cls_name="LogReg",
                               model_dir=finetune_model_dir)
@@ -125,7 +125,7 @@ def test_protbert_load_from_pretrained(tmpdir):
 def test_protbert_save_reload(tmpdir):
     model_path = 'Rostlab/prot_bert'
     model = ProtBERT(task='classification',
-                     HG_model_path=model_path,
+                     model_path=model_path,
                      n_tasks=1,
                      cls_name="FFN",
                      model_dir=tmpdir)
@@ -133,7 +133,7 @@ def test_protbert_save_reload(tmpdir):
     model.save_checkpoint()
 
     model_new = ProtBERT(task='classification',
-                         HG_model_path=model_path,
+                         model_path=model_path,
                          n_tasks=1,
                          cls_name="FFN",
                          model_dir=tmpdir)
@@ -164,7 +164,7 @@ def test_protbert_overfit():
                      "../../tests/assets/example_protein_classification.csv"))
     model_path = 'Rostlab/prot_bert'
     finetune_model = ProtBERT(task='classification',
-                              HG_model_path=model_path,
+                              model_path=model_path,
                               n_tasks=1,
                               cls_name="FFN",
                               batch_size=1,
