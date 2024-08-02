@@ -7,6 +7,7 @@ dependencies:
     # It contains wheels for the GPU version that are not compatible with the CPU version.
     - dgl
     - torch==2.2.1+cpu
+    - torchdata==0.7.1
     - torch-geometric
     - lightning
     - pydantic
