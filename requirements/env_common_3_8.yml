@@ -27,3 +27,5 @@ dependencies:
     - xgboost
     - gensim  # used by mol2vec
     - tensorboard
+    - torchdata<0.8.0
+
