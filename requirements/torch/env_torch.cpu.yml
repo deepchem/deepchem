@@ -5,7 +5,7 @@ dependencies:
     # - -f https://data.dgl.ai/wheels/repo.html
     # The above line is commented out due to a bug in the DGL wheel repository.
     # It contains wheels for the GPU version that are not compatible with the CPU version.
-    - dgl
+    - dgl==2.2.0
     - torch==2.2.1+cpu
     - torch-geometric
     - lightning
