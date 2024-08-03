@@ -15,12 +15,12 @@ except ModuleNotFoundError:
 # @pytest.mark.torch
 # def test_prot_bert_pretraining_mlm(protein_classification_dataset):
 #     model_path = 'Rostlab/prot_bert'
-#     model = ProtBERT(task='mlm', HG_model_path=model_path, n_tasks=1)
+#     model = ProtBERT(task='mlm', model_path=model_path, n_tasks=1)
 #     loss = model.fit(protein_classification_dataset, nb_epoch=1)
 #     assert loss
 
 #     model_path = 'Rostlab/prot_bert_BFD'
-#     model = ProtBERT(task='mlm', HG_model_path=model_path, n_tasks=1)
+#     model = ProtBERT(task='mlm', model_path=model_path, n_tasks=1)
 #     loss = model.fit(protein_classification_dataset, nb_epoch=1)
 #     assert loss
 
