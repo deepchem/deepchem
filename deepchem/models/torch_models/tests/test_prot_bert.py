@@ -12,17 +12,21 @@ except ModuleNotFoundError:
     pass
 
 
-# @pytest.mark.torch
-# def test_prot_bert_pretraining_mlm(protein_classification_dataset):
-#     model_path = 'Rostlab/prot_bert'
-#     model = ProtBERT(task='mlm', model_path=model_path, n_tasks=1)
-#     loss = model.fit(protein_classification_dataset, nb_epoch=1)
-#     assert loss
+@pytest.mark.torch
+def test_prot_bert_pretraining_mlm_uniref(protein_classification_dataset):
+    model_path = 'Rostlab/prot_bert'
+    model = ProtBERT(task='mlm', model_path=model_path, n_tasks=1)
+    loss = model.fit(protein_classification_dataset, nb_epoch=1)
+    assert loss
 
-#     model_path = 'Rostlab/prot_bert_BFD'
-#     model = ProtBERT(task='mlm', model_path=model_path, n_tasks=1)
-#     loss = model.fit(protein_classification_dataset, nb_epoch=1)
-#     assert loss
+
+@pytest.mark.torch
+def test_prot_bert_pretraining_mlm_bfd(protein_classification_dataset):
+
+    model_path = 'Rostlab/prot_bert_BFD'
+    model = ProtBERT(task='mlm', model_path=model_path, n_tasks=1)
+    loss = model.fit(protein_classification_dataset, nb_epoch=1)
+    assert loss
 
 
 @pytest.mark.torch
