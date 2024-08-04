@@ -5,5 +5,5 @@ channels:
 dependencies:
   - vina
   - pip:
-    - dgl
+    - dgl<2.2.1
     - pysam

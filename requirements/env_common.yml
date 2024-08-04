@@ -12,7 +12,7 @@ dependencies:
     - rdkit==2023.09.5
     - pre-commit
     - biopython
-    - dgl
+    - dgl<2.2.1
     - dgllife
     - lightgbm
     - git+https://github.com/hackingmaterials/matminer.git
