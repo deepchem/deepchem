@@ -6,5 +6,4 @@ dependencies:
   - vina
   - pip:
     - pysam
-    - -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
     - dgl
