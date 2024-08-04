@@ -8,3 +8,4 @@ dependencies:
   - pip:
     - pysam
     - dgl
+    - torch
