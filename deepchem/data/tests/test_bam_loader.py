@@ -65,7 +65,7 @@ class TestBAMLoader(unittest.TestCase):
         bamfile = pysam.AlignmentFile(bam_file_path, "rb")
         dataset = bam_featurizer._featurize(bamfile)
 
-        assert dataset.shape == (4, 8)
+        assert dataset.shape == (5, 8)
 
 
 if __name__ == "__main__":

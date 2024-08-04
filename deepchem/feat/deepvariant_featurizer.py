@@ -1,16 +1,28 @@
 import numpy as np
 from collections import defaultdict
 from deepchem.feat import Featurizer
-from typing import List, Dict, Tuple, Any
+from typing import List, Dict, Tuple, Any, Optional
+import dgl
+import torch
 
 
 class _Realigner(object):
+    """
+    A private class for realigning sequencing reads to a reference sequence.
+    This class provides methods for left-aligning indels, processing pileup
+    information, generating pileups and reads, selecting candidate regions,
+    fetching reads, building De Bruijn graphs, pruning graphs, and generating
+    candidate haplotypes.
+
+    """
 
     def left_align_indel(self, seq: str, pos: int,
                          indel: str) -> Tuple[int, str]:
         """
         Left align an indel by shifting it to the left as
-        much as possible.
+        much as possible. This function shifts an indel to the left
+        if the preceding bases match the end of the indel sequence,
+        making the indel left-aligned.
 
         Parameters
         ----------
@@ -42,42 +54,15 @@ class _Realigner(object):
             return pos, f"-{del_len}"
         return pos, indel
 
-    def decode_one_hot(self,
-                       one_hot_vector: List[np.ndarray],
-                       charset: List[str] = ["A", "C", "T", "G", "N"]) -> str:
-        """
-        Decode a one-hot encoded sequence into a string of
-        nucleotides.
-
-        Parameters
-        ----------
-
-        one_hot_vector : List[np.ndarray]
-            List of one-hot encoded vectors.
-        charset : Optional[List[str]]
-            List of characters corresponding to the encoding.
-            Default is ["A", "C", "T", "G", "N"].
-
-        Returns
-        -------
-
-        str
-            Decoded sequence as a string.
-
-        """
-        decoded_seq = []
-        for vector in one_hot_vector:
-            idx = np.argmax(vector)
-            decoded_seq.append(charset[idx])
-        return ''.join(decoded_seq)
-
     def process_pileup(
             self, pileup_info: List[Dict[str,
                                          Any]], reference_seq_dict: Dict[str,
                                                                          str],
             allele_counts: Dict[Tuple[str, int], Dict[str, Any]]) -> None:
         """
-        Process pileup information to extract allele counts.
+        Process pileup information to extract allele counts. This function
+        processes each pileup column to count the occurrences of each
+        allele at each position, updating the allele counts dictionary.
 
         Parameters
         ----------
@@ -139,10 +124,12 @@ class _Realigner(object):
             allele_counts[(pileupcolumn['name'], pos)] = allele_count
 
     def generate_pileup_and_reads(
-        self, bamfile_path: str, reference_path: str
+        self, bamfiles, reference_seq_dict
     ) -> Tuple[Dict[Tuple[str, int], Dict[str, Any]], List[Any]]:
         """
-        Generate pileup and reads from BAM and reference FASTA files.
+        Generate pileup and reads from BAM and reference FASTA files. This
+        function generates pileup information and reads from the provided
+        BAM files and reference sequences, returning both allele counts and reads.
 
         Parameters
         ----------
@@ -159,33 +146,10 @@ class _Realigner(object):
             Dictionary of allele counts and list of reads.
 
         """
-        from deepchem.data import FASTALoader, BAMLoader
-
-        bam_loader = BAMLoader(get_pileup=True)
-        bam_dataset = bam_loader.create_dataset(bamfile_path)
-
-        fasta_loader = FASTALoader(None, False, False)
-        fasta_dataset = fasta_loader.create_dataset(reference_path)
-
         allele_counts: Dict[Tuple[str, int], Dict[str, Any]] = {}
         reads = []
 
-        one_hot_encoded_sequences = fasta_dataset.X
-        decoded_sequences: List[str] = []
-
-        # Convert the one-hot encoded sequences to strings
-        for seq in one_hot_encoded_sequences:
-            decoded_seq = self.decode_one_hot(seq)
-            decoded_sequences.append(decoded_seq)
-
-        # Map the sequences to chrom names
-        chrom_names = ["chr1", "chr2"]
-
-        reference_seq_dict: Dict[str, str] = {
-            chrom_names[i]: seq for i, seq in enumerate(decoded_sequences)
-        }
-
-        for x, y, w, ids in bam_dataset.itersamples():
+        for x in bamfiles:
             chrom = x[3]  # Reference name
 
             pileup_info = x[7] if len(x) > 7 else None
@@ -205,7 +169,8 @@ class _Realigner(object):
     def update_counts(self, count: int, start: int, end: int,
                       window_counts: Dict[int, int]) -> None:
         """
-        Update counts in a window.
+        Update counts in a window. This function increments the count
+        for each position in the specified range by the given count.
 
         Parameters
         ----------
@@ -227,7 +192,9 @@ class _Realigner(object):
         self, allele_counts: Dict[Tuple[str, int], Dict[str, Any]]
     ) -> List[Tuple[str, int, int, int]]:
         """
-        Select candidate regions based on allele counts.
+        Select candidate regions based on allele counts. This function
+        identifies candidate regions with significant allele counts
+        and groups adjacent positions into regions.
 
         Parameters
         ----------
@@ -300,6 +267,268 @@ class _Realigner(object):
 
         return candidate_regions
 
+    def fetchreads(self, bamfiles: List[Tuple[str, Any, int, str, int, Any, int,
+                                              Any]], chrom: str, start: int,
+                   end: int) -> List[str]:
+        """
+        Fetch reads from BAM files for a specific chromosome and region.
+        This function extracts reads from BAM files that overlap with the
+        specified chromosome and region.
+
+        Parameters
+        ----------
+
+        bamfiles : List[Tuple[str, Any, int, str, int, Any, int, Any]]
+            List of BAM file records, where each record is a tuple containing
+            information about reads in the BAM file.
+        chrom : str
+            Chromosome name to fetch reads from.
+        start : int
+            Start position of the region.
+        end : int
+            End position of the region.
+
+        Returns
+        -------
+
+        List[str]
+            List of read sequences that fall within the specified region.
+        """
+        reads: List[str] = []
+        for bamfile in bamfiles:
+            refname = bamfile[3]
+            refstart = bamfile[4]
+            refend = refstart + bamfile[2]
+
+            if refname == chrom and refstart < end and refend > start:
+                reads.append(bamfile[1])
+        return reads
+
+    def build_debruijn_graph(
+        self, ref: str, reads: List[str], k: int
+    ) -> Tuple[Optional[dgl.DGLGraph], Optional[Dict[str, int]], Optional[Dict[
+            int, str]]]:
+        """
+        Build a De Bruijn graph from reference and reads. This function
+        constructs a De Bruijn graph from k-mers found in the reference
+        and reads, where nodes represent k-mers and edges represent
+        overlaps between k-mers.
+
+        Parameters
+        ----------
+
+        ref : str
+            Reference sequence as a string.
+        reads : List[str]
+            List of read sequences.
+        k : int
+            Length of k-mers.
+
+        Returns
+        -------
+
+        Tuple[Optional[dgl.DGLGraph], Optional[Dict[str, int]], Optional[Dict[int, str]]]
+            A tuple containing:
+            - De Bruijn graph (dgl.DGLGraph)
+            - Dictionary mapping k-mer strings to node IDs (Dict[str, int])
+            - Dictionary mapping node IDs to k-mer strings (Dict[int, str])
+        """
+        kmer_counts: Dict[str, int] = defaultdict(int)
+
+        def get_kmers(sequence: str, k: int):
+            for i in range(len(sequence) - k + 1):
+                yield sequence[i:i + k]
+
+        # Count k-mers in reference
+        for kmer in get_kmers(ref, k):
+            kmer_counts[kmer] += 1
+
+        # Count k-mers in reads
+        for read in reads:
+            for kmer in get_kmers(read, k):
+                kmer_counts[kmer] += 1
+
+        kmer_to_id: Dict[str, int] = {}
+        id_to_kmer: Dict[int, str] = {}
+        node_id: int = 0
+        edges: List[Tuple[int, int]] = []
+        edge_weights: List[int] = []
+
+        for kmer in kmer_counts:
+            if kmer not in kmer_to_id:
+                kmer_to_id[kmer] = node_id
+                id_to_kmer[node_id] = kmer
+                node_id += 1
+
+        # Add edges between overlapping k-mers
+        for kmer in kmer_counts:
+            suffix = kmer[1:]
+            for next_kmer in kmer_counts:
+                if suffix == next_kmer[:-1]:
+                    edges.append((kmer_to_id[kmer], kmer_to_id[next_kmer]))
+                    edge_weights.append(kmer_counts[next_kmer])
+
+        if not edges:
+            return None, None, None
+
+        src, dst = zip(*edges)
+        G = dgl.graph((src, dst), num_nodes=node_id)
+        G.ndata['weight'] = torch.tensor([kmer_counts[k] for k in kmer_counts],
+                                         dtype=torch.float32)
+        G.edata['weight'] = torch.tensor(edge_weights, dtype=torch.float32)
+
+        return G, kmer_to_id, id_to_kmer
+
+    def prune_debruijn_graph(self, G: dgl.DGLGraph,
+                             min_edge_weight: float) -> dgl.DGLGraph:
+        """
+        This function removes edges with weights below the specified threshold
+        and removes nodes that become isolated after pruning.
+
+        Parameters
+        ----------
+
+        G : dgl.DGLGraph
+            The original De Bruijn graph.
+        min_edge_weight : float
+            The minimum edge weight threshold for keeping an edge.
+
+        Returns
+        -------
+
+        dgl.DGLGraph
+            The pruned subgraph.
+        """
+        edge_weights = G.edata['weight']
+        mask = edge_weights >= min_edge_weight
+        edges_to_keep = mask.nonzero(as_tuple=False).squeeze().tolist()
+
+        # Create a subgraph with the edges to keep
+        subgraph = dgl.edge_subgraph(G, edges_to_keep, relabel_nodes=False)
+
+        # Identify and remove isolated nodes
+        isolated_nodes = (subgraph.in_degrees() == 0) & (subgraph.out_degrees()
+                                                         == 0)
+        isolated_nodes = isolated_nodes.nonzero(
+            as_tuple=False).squeeze().tolist()
+        subgraph = dgl.remove_nodes(subgraph, isolated_nodes)
+
+        return subgraph
+
+    def candidate_haplotypes(self, G: dgl.DGLGraph, k: int,
+                             id_to_kmer: Optional[Dict[int, str]]) -> List[str]:
+        """
+        Generate candidate haplotypes from the De Bruijn graph. This function
+        traverses the De Bruijn graph to generate potential haplotypes by
+        combining k-mers along paths from start to end nodes.
+
+        Parameters
+        ----------
+
+        G : dgl.DGLGraph
+            The De Bruijn graph.
+        k : int
+            The k-mer length.
+        id_to_kmer : Dict[int, str]
+            A dictionary mapping node IDs to k-mers.
+
+        Returns
+        -------
+
+        List[str]
+            Sorted list of candidate haplotypes.
+        """
+        haplotypes: List[str] = []
+        nodes = list(G.nodes().numpy())
+
+        if not nodes:
+            return haplotypes
+
+        if id_to_kmer is None:
+            return haplotypes
+
+        start_node = nodes[0]
+        end_node = nodes[-1]
+
+        def dfs(node: int, path: List[int]) -> None:
+            path.append(node)
+            if node == end_node:
+                haplotype = id_to_kmer[path[0]]
+                for p in path[1:]:
+                    haplotype += id_to_kmer[p][-1]
+                haplotypes.append(haplotype)
+            else:
+                for succ in G.successors(node).numpy():
+                    dfs(succ, path[:])
+
+        dfs(start_node, [])
+
+        return sorted(haplotypes)
+
+    def process_candidate_windows(
+        self, candidate_regions: List[Tuple[str, int, int, int]],
+        bamfiles: List[Any], reference_seq_dict: Dict[str, str]
+    ) -> List[Tuple[str, int, int, int, int, List[str]]]:
+        """
+        Process candidate regions to generate candidate windows with haplotypes.
+
+        Parameters
+        ----------
+
+        candidate_regions : List[Tuple[str, int, int, int]]
+            List of candidate regions.
+        bamfiles : List[Any]
+            List of BAM file data.
+        reference_seq_dict : Dict[str, str]
+            Dictionary with chromosome names as keys and reference sequences as values.
+
+        Returns
+        -------
+
+        List[Tuple[str, int, int, int, int, List[str]]]
+            List of candidate windows with haplotypes.
+        """
+        candidate_windows: List[Tuple[str, int, int, int, int, List[str]]] = []
+
+        for chrom, start, end, count in candidate_regions:
+            window_reads = self.fetchreads(bamfiles, chrom, start, end)
+            ref_sequence = reference_seq_dict[chrom][start:end + 1]
+
+            kmin, kmax, step_k = 15, 21, 2
+            found_graph = False
+
+            for k in range(kmin, kmax + 1, step_k):
+                dbg, kmer_to_id, id_to_kmer = self.build_debruijn_graph(
+                    ref_sequence, window_reads, k)
+
+                if dbg is None:
+                    continue
+
+                if kmer_to_id is None:
+                    continue
+
+                dbg = self.prune_debruijn_graph(dbg, min_edge_weight=2)
+
+                if dbg.number_of_nodes() == 0:
+                    continue
+
+                found_graph = True
+                candidate_haplotypes_list = self.candidate_haplotypes(
+                    dbg, k, id_to_kmer)
+
+                if candidate_haplotypes_list and candidate_haplotypes_list != [
+                        ref_sequence
+                ]:
+                    candidate_windows.append((chrom, start, end, count, k,
+                                              candidate_haplotypes_list))
+                    break
+
+            if not found_graph:
+                candidate_windows.append(
+                    (chrom, start, end, count, k, [ref_sequence]))
+
+        return candidate_windows
+
 
 class RealignerFeaturizer(Featurizer):
     """
@@ -307,10 +536,45 @@ class RealignerFeaturizer(Featurizer):
 
     More features can be added to this class in the future.
 
+    Note
+    ----
+    This class requires Pysam, DGL and Pytorch to be installed. Pysam can be
+    used with Linux or MacOS X. To use Pysam on Windows, use Windows
+    Subsystem for Linux(WSL).
+
     """
 
     def __init__(self):
         self.realigner = _Realigner()
+
+    def decode_one_hot(self,
+                       one_hot_vector: List[np.ndarray],
+                       charset: List[str] = ["A", "C", "T", "G", "N"]) -> str:
+        """
+        Decode a one-hot encoded sequence into a string of
+        nucleotides.
+
+        Parameters
+        ----------
+
+        one_hot_vector : List[np.ndarray]
+            List of one-hot encoded vectors.
+        charset : Optional[List[str]]
+            List of characters corresponding to the encoding.
+            Default is ["A", "C", "T", "G", "N"].
+
+        Returns
+        -------
+
+        str
+            Decoded sequence as a string.
+
+        """
+        decoded_seq = []
+        for vector in one_hot_vector:
+            idx = np.argmax(vector)
+            decoded_seq.append(charset[idx])
+        return ''.join(decoded_seq)
 
     def _featurize(self, datapoint):
         """
@@ -325,8 +589,37 @@ class RealignerFeaturizer(Featurizer):
             containing the candidate regions and reads.
 
         """
+        bamfile_path = datapoint[0]
+        reference_file_path = datapoint[1]
+
+        from deepchem.data import BAMLoader, FASTALoader
+
+        bam_loader = BAMLoader(get_pileup=True)
+        bam_dataset = bam_loader.create_dataset(bamfile_path)
+        bamfiles = bam_dataset.X
+
+        fasta_loader = FASTALoader(None, False, False)
+        fasta_dataset = fasta_loader.create_dataset(reference_file_path)
+
+        one_hot_encoded_sequences = fasta_dataset.X
+        decoded_sequences: List[str] = []
+
+        # Convert the one-hot encoded sequences to strings
+        for seq in one_hot_encoded_sequences:
+            decoded_seq = self.decode_one_hot(seq)
+            decoded_sequences.append(decoded_seq)
+
+        # Map the sequences to chrom names
+        chrom_names = ["chr1", "chr2"]
+
+        reference_seq_dict: Dict[str, str] = {
+            chrom_names[i]: seq for i, seq in enumerate(decoded_sequences)
+        }
+
         allele_counts, reads = self.realigner.generate_pileup_and_reads(
-            datapoint[0], datapoint[1])
+            bamfiles, reference_seq_dict)
         candidate_regions = self.realigner.select_candidate_regions(
             allele_counts)
-        return candidate_regions, reads
+        candidate_windows = self.realigner.process_candidate_windows(
+            candidate_regions, bamfiles, reference_seq_dict)
+        return candidate_windows

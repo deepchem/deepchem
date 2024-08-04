@@ -13,23 +13,17 @@ class TestRealignerFeaturizer(unittest.TestCase):
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
         self.featurizer = dc.feat.RealignerFeaturizer()
 
-    def test_candidate_regions_length(self):
+    def test_candidate_windows(self):
         bam_file_path = os.path.join(self.current_dir, "example.bam")
         fasta_file_path = os.path.join(self.current_dir, "sample.fa")
         datapoint = (bam_file_path, fasta_file_path)
-        candidate_regions, _ = self.featurizer._featurize(datapoint)
-
-        # Assert the number of candidate regions
-        self.assertEqual(len(candidate_regions), 54)
-
-    def test_reads_length(self):
-        bam_file_path = os.path.join(self.current_dir, "example.bam")
-        fasta_file_path = os.path.join(self.current_dir, "sample.fa")
-        datapoint = (bam_file_path, fasta_file_path)
-        _, reads = self.featurizer._featurize(datapoint)
+        candidate_windows = self.featurizer._featurize(datapoint)
 
         # Assert the number of reads
-        self.assertEqual(len(reads), 33988)
+        self.assertEqual(len(candidate_windows), 14)
+        self.assertEqual(candidate_windows[13],
+                         ('chr2', 193, 197, 18, 21,
+                          ['GTAAATTGATTTGAATTTTATTTCTTGGTAATGAGG']))
 
 
 if __name__ == "__main__":
