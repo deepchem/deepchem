@@ -12,6 +12,7 @@ dependencies:
     - rdkit==2023.09.5
     - pre-commit
     - biopython
+    - dgl
     - dgllife
     - lightgbm
     - matminer
