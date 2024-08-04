@@ -2,8 +2,12 @@ import numpy as np
 from collections import defaultdict
 from deepchem.feat import Featurizer
 from typing import List, Dict, Tuple, Any, Optional
-import dgl
-import torch
+
+try:
+    import dgl
+    import torch
+except ImportError:
+    pass
 
 
 class _Realigner(object):
