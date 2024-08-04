@@ -6,3 +6,4 @@ dependencies:
   - vina
   - pip:
     - pysam
+    - dgl

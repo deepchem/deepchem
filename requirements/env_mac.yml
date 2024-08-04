@@ -8,3 +8,4 @@ dependencies:
   - pip:
     - vina
     - pysam
+    - dgl
