@@ -1,9 +1,6 @@
 from abc import abstractmethod
 from typing import Union, List
-try:
-    import torch
-except:
-    pass
+import torch
 
 try:
     from dqc.utils.datastruct import ValGrad
