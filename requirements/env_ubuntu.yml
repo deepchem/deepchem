@@ -7,3 +7,4 @@ dependencies:
   - vina
   - pip:
     - pysam
+    - dgl<2.2.1
