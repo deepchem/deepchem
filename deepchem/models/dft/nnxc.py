@@ -1,6 +1,10 @@
 from abc import abstractmethod
 from typing import Union, List
-import torch
+try:
+    import torch
+except:
+    pass
+
 try:
     from dqc.utils.datastruct import ValGrad
     from deepchem.utils.dftutils import SpinParam
