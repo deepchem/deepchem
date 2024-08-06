@@ -1,17 +1,17 @@
 try:
     import torch
+    has_torch = True
+except ModuleNotFoundError:
+    has_torch = False
+import pytest
+
+
+@pytest.mark.torch
+def test_pbe():
     from deepchem.models.dft.nnxc import HybridXC
     from deepchem.models.dft.dftxc import _construct_nn_model
     from deepchem.models.dft.scf import XCNNSCF
     from deepchem.feat.dft_data import DFTEntry
-    has_dqc = True
-except ModuleNotFoundError:
-    has_dqc = False
-import pytest
-
-
-@pytest.mark.dqc
-def test_pbe():
     input_size = 3
     hidden_size = 3
     n_layers = 3

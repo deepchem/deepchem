@@ -1,17 +1,17 @@
 try:
-    from deepchem.data.data_loader import DFTYamlLoader
-    from deepchem.models.dft.scf import XCNNSCF
     import torch
-    from deepchem.models.dft.nnxc import HybridXC
-    has_dqc = True
+    has_torch = True
 except ModuleNotFoundError:
-    has_dqc = False
+    has_torch = False
 import pytest
 import numpy as np
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_multiatom():
+    from deepchem.data.data_loader import DFTYamlLoader
+    from deepchem.models.dft.nnxc import HybridXC
+    from deepchem.models.dft.scf import XCNNSCF
     inputs = 'deepchem/models/tests/assets/test_beh2.yaml'
     k = DFTYamlLoader()
     data = k.create_dataset(inputs)
