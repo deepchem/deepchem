@@ -11,7 +11,6 @@ try:
 except ModuleNotFoundError:
     pass
 
-
 # @pytest.mark.torch
 # def test_prot_bert_pretraining_mlm(protein_classification_dataset):
 #     model_path = 'Rostlab/prot_bert'
