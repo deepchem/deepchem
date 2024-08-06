@@ -65,7 +65,7 @@ class OneHotFeaturizer(Featurizer):
         if len(charset) != len(set(charset)):
             raise ValueError("All values in charset must be unique.")
         self.charset = charset
-        self.max_length = Optional[int]
+        self.max_length: Optional[int]
         if max_length is not None:
             self.max_length = int(max_length)
         else:
