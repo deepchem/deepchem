@@ -19,11 +19,6 @@ from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 from deepchem.utils.genomics_utils import encode_bio_sequence
 
 try:
-    from deepchem.feat.dft_data import DFTEntry
-except Exception:
-    pass
-
-try:
     import yaml
     from yaml.loader import SafeLoader
 except ModuleNotFoundError:
@@ -1884,6 +1879,7 @@ class DFTYamlLoader(DataLoader):
         -------
         x: featurized shard (DFTEntry objects)
         """
+        from deepchem.feat.dft_data import DFTEntry
         try:
             e_type = shard['e_type']
             if 'true_val' in shard.keys():
