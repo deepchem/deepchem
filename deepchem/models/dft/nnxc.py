@@ -8,7 +8,7 @@ try:
     from dqc.api.getxc import get_xc
     from dqc.xc.base_xc import BaseXC
     from dqc.utils.safeops import safenorm, safepow
-except:
+except (ImportError, ModuleNotFoundError) as e:
     pass
 
 

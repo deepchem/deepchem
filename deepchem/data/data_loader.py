@@ -19,16 +19,15 @@ from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 from deepchem.utils.genomics_utils import encode_bio_sequence
 
 try:
-    from deepchem.feat.dft_data import DFTEntry
     import yaml
     from yaml.loader import SafeLoader
-except:
-    pass
+except (ImportError, ModuleNotFoundError) as e:
+    warnings.warn("PyYAML is not installed. Please install PyYAML to use the DataLoader class.")
 
 try:
     import pysam
-except:
-    pass
+except (ImportError, ModuleNotFoundError) as e:
+    warnings.warn("pysam is not installed. Please install pysam to use the DataLoader class.")
 
 logger = logging.getLogger(__name__)
 
@@ -1880,6 +1879,7 @@ class DFTYamlLoader(DataLoader):
         -------
         x: featurized shard (DFTEntry objects)
         """
+        from deepchem.feat.dft_data import DFTEntry
         try:
             e_type = shard['e_type']
             if 'true_val' in shard.keys():
