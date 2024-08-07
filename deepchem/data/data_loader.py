@@ -46,7 +46,7 @@ def _convert_df_to_numpy(df: pd.DataFrame,
     Parameters
     ----------
     df: pd.DataFrame
-        Pandas dataframe with columns for all tasks
+        Pandas dataframe with columns for all tasks.
     tasks: List[str]
         List of tasks
 
