@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 def _convert_df_to_numpy(df: pd.DataFrame,
                          tasks: List[str]) -> Tuple[np.ndarray, np.ndarray]:
-    """Transforms a dataframe containing deepchem input into numpy arrays
+    """Transforms a dataframe containing deepchem input into numpy arrays.
 
     This is a private helper method intended to help parse labels and
     weights arrays from a pandas dataframe. Here `df` is a dataframe
