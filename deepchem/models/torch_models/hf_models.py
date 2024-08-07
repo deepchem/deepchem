@@ -502,3 +502,82 @@ class HuggingFaceModel(TorchModel):
             return final_results[0]
         else:
             return np.array(final_results)
+    
+    def fill_mask(self,
+                  inputs: Union[str, List[str]],
+                  top_k: int = 5) -> Union[List[Dict], List[List[Dict]]]:
+        """
+        Fill the masked token in the text(s) given as inputs.
+
+        Parameters
+        ----------
+        inputs : Union[str, List[str]]
+            One or several texts (or one list of texts) with masked tokens.
+        top_k : int, optional
+            The number of predictions to return for each mask. Default is 5.
+
+        Returns
+        -------
+        Union[List[Dict], List[List[Dict]]]
+            A list or a list of list of dictionaries with the following keys:
+            - sequence (str): The corresponding input with the mask token prediction.
+            - score (float): The corresponding probability.
+            - token (int): The predicted token id (to replace the masked one).
+            - token_str (str): The predicted token (to replace the masked one).
+
+
+        DEV NOTES:
+
+        Dhuvi 07/19/2024
+
+         > The current fill-mask implementation does not use the function signature
+         as the _predict method. This is intentional because IMO it does not need
+         the same compatibility as the other torch models since the other ones dont
+         do fill mask. Therefore I ended up with this instead of trying to wrangle things
+         into the DC signature
+
+        '''
+                generator: Iterable[Tuple[Any, Any, Any]],
+                 transformers: List[Transformer], uncertainty: bool,
+                 other_output_types: Optional[OneOrMany[str]]
+        '''
+
+        and then re-expand them back out again.
+
+        """
+        self._ensure_built()
+        self.model.eval()
+
+        if isinstance(inputs, str):
+            inputs = [inputs]
+
+        results = []
+        for text in inputs:
+            encoded_input = self.tokenizer(text, return_tensors='pt')
+            mask_token_index = torch.where(
+                encoded_input["input_ids"] == self.tokenizer.mask_token_id)[1]
+            assert mask_token_index.numel(
+            ) == 1, f"Sequence has masked indices at: {list(mask_token_index)}. Please ensure that only one position is masked in the sequence."
+
+            with torch.no_grad():
+                output = self.model(**encoded_input)
+
+            logits = output.logits
+            mask_token_logits = logits[0, mask_token_index, :]
+            top_k_tokens = torch.topk(mask_token_logits, top_k,
+                                      dim=1).indices[0].tolist()
+
+            text_results = []
+            for token in top_k_tokens:
+                token_str = self.tokenizer.decode([token])
+                filled_text = text.replace(self.tokenizer.mask_token, token_str)
+                score = torch.softmax(mask_token_logits, dim=1)[0, token].item()
+                text_results.append({
+                    'sequence': filled_text,
+                    'score': score,
+                    'token': token,
+                    'token_str': token_str
+                })
+            results.append(text_results)
+
+        return results[0] if len(results) == 1 else results
