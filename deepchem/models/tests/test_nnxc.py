@@ -5,7 +5,7 @@ try:
     import torch.nn as nn
     from dqc.utils.datastruct import ValGrad
     has_dqc = True
-except (ImportError, ModuleNotFoundError) as e:
+except:
     has_dqc = False
 
 

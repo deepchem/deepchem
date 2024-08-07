@@ -12,7 +12,7 @@ try:
     from dqc.system.mol import Mol
     from dqc.system.base_system import BaseSystem
     from deepchem.utils.dftutils import KSCalc
-except (ImportError, ModuleNotFoundError) as e:
+except:
     pass
 from deepchem.utils.dft_utils import parse_moldesc, BaseGrid
 

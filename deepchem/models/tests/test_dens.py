@@ -5,7 +5,7 @@ try:
     import torch
     from deepchem.models.losses import DensityProfileLoss
     has_dqc = True
-except (ImportError, ModuleNotFoundError) as e:
+except:
     has_dqc = False
 import numpy as np
 import pytest
