@@ -7,10 +7,10 @@ except ModuleNotFoundError:
     pass
 
 import hashlib
-import xitorch as xt
 from dataclasses import dataclass
 from abc import abstractmethod, abstractproperty
 from typing import Union, List, TypeVar, Generic, Callable
+from deepchem.utils.differentiation_utils import EditableModule
 
 __all__ = ["SpinParam"]
 
@@ -228,7 +228,7 @@ def hashstr(s: str) -> str:
     return str(hashlib.blake2s(str.encode(s)).hexdigest())
 
 
-class BaseGrid(xt.EditableModule):
+class BaseGrid(EditableModule):
     """
     Interface to DQC's BaseGrid class. BaseGrid is a class that regulates the integration points over the spatial
     dimensions.

@@ -1,7 +1,8 @@
 """
 Utilities for miscellaneous tasks.
 """
-from typing import Dict, List, Optional, Callable, TypeVar, Any
+from __future__ import annotations
+from typing import Optional, List, Callable, Dict, Any, TypeVar, Mapping
 import functools
 
 
@@ -212,3 +213,65 @@ def memoize_method(fcn: Callable[[Any], T]) -> Callable[[Any], T]:
             return res
 
     return new_fcn
+
+
+def normalize_prefix(prefix: str) -> str:
+    """Added a dot at the end of prefix if it is not so.
+
+    Examples
+    --------
+    >>> _normalize_prefix("prefix")
+    'prefix.'
+    >>> _normalize_prefix("prefix.")
+    'prefix.'
+
+    Parameters
+    ----------
+    prefix : str
+        Prefix to be normalized
+
+    Returns
+    -------
+    str
+        Normalized prefix
+
+    """
+    if not prefix.endswith("."):
+        prefix = prefix + "."
+    return prefix
+
+
+T = TypeVar('T')
+K = TypeVar('K')
+
+
+def get_option(name: str, s: K, options: Mapping[K, T]) -> T:
+    """Get the value from dictionary of options, if not found, then raise an error
+
+    Examples
+    --------
+    >>> options = {"a": 1, "b": 2}
+    >>> get_option("name", "a", options)
+    1
+
+    Parameters
+    ----------
+    name : str
+        Name of the option
+    s : K
+        Key to be searched
+    options : Mapping[K, T]
+        Dictionary of options
+
+    Returns
+    -------
+    T
+        Value of the option
+
+    """
+    if s in options:
+        return options[s]
+    else:
+        raise ValueError(
+            f"Unknown {name}: {s}. The available options are: {str(list(options.keys()))}"
+        )
