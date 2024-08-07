@@ -1,7 +1,7 @@
 """Derived from https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcca3e314a538ca/xcdnn2/litmodule.py"""
 from deepchem.models.dft.scf import XCNNSCF
-import torch
 from deepchem.models.dft.nnxc import HybridXC
+import torch
 from deepchem.models.losses import Loss, L2Loss
 from deepchem.models.torch_models.torch_model import TorchModel
 from typing import Tuple, Optional, List, Any

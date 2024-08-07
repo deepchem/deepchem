@@ -7,7 +7,7 @@ try:
     from dqc.qccalc.ks import KS
     from deepchem.utils.dftutils import KSCalc, hashstr, SpinParam
     import torch
-except ModuleNotFoundError:
+except:
     pass
 import pytest
 

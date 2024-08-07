@@ -5,7 +5,7 @@ try:
     from deepchem.feat.dft_data import DFTEntry, DFTSystem
     from deepchem.models.dft.nnxc import HybridXC
     has_dqc = True
-except ModuleNotFoundError:
+except:
     has_dqc = False
     pass
 

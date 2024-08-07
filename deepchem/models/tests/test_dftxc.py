@@ -1,16 +1,12 @@
 import deepchem as dc
-try:
-    from deepchem.models.dft.dftxc import XCModel
-    from deepchem.data.data_loader import DFTYamlLoader
-    has_dqc = True
-except ModuleNotFoundError:
-    has_dqc = False
 import pytest
 import tempfile
 
 
 @pytest.mark.dqc
 def test_dftxc_eval():
+    from deepchem.models.dft.dftxc import XCModel
+    from deepchem.data.data_loader import DFTYamlLoader
     inputs = 'deepchem/models/tests/assets/test_dftxcdata.yaml'
     data = DFTYamlLoader()
     model_dir = tempfile.mkdtemp()
@@ -48,6 +44,8 @@ def test_dftxc_eval():
 
 @pytest.mark.dqc
 def test_dm():
+    from deepchem.models.dft.dftxc import XCModel
+    from deepchem.data.data_loader import DFTYamlLoader
     inputs = 'deepchem/models/tests/assets/test_dm.yaml'
     data = DFTYamlLoader()
     dataset = (data.create_dataset(inputs))
