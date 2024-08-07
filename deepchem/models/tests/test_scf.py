@@ -1,17 +1,17 @@
 import pytest
 try:
-    from deepchem.models.dft.scf import XCNNSCF
     import torch
-    from deepchem.feat.dft_data import DFTEntry, DFTSystem
-    from deepchem.models.dft.nnxc import HybridXC
-    has_dqc = True
+    has_torch = True
 except ModuleNotFoundError:
-    has_dqc = False
+    has_torch = False
     pass
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_scf():
+    from deepchem.models.dft.scf import XCNNSCF
+    from deepchem.feat.dft_data import DFTEntry, DFTSystem
+    from deepchem.models.dft.nnxc import HybridXC
     torch.manual_seed(42)
     nnmodel = (torch.nn.Sequential(torch.nn.Linear(2, 10), torch.nn.Softplus(),
                                    torch.nn.Linear(10, 1, bias=False))).to(

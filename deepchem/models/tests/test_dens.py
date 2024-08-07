@@ -1,18 +1,18 @@
 try:
-    from deepchem.data.data_loader import DFTYamlLoader
-    from deepchem.models.dft.scf import XCNNSCF
-    from deepchem.models.dft.nnxc import HybridXC
     import torch
-    from deepchem.models.losses import DensityProfileLoss
-    has_dqc = True
+    has_torch = True
 except ModuleNotFoundError:
-    has_dqc = False
+    has_torch = False
 import numpy as np
 import pytest
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_densHF():
+    from deepchem.data.data_loader import DFTYamlLoader
+    from deepchem.models.dft.scf import XCNNSCF
+    from deepchem.models.dft.nnxc import HybridXC
+    from deepchem.models.losses import DensityProfileLoss
     inputs = 'deepchem/models/tests/assets/test_HFdp.yaml'
     data = DFTYamlLoader()
     dataset = data.create_dataset(inputs)

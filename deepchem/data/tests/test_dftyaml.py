@@ -1,13 +1,9 @@
-try:
-    from deepchem.data.data_loader import DFTYamlLoader
-    has_dqc = True
-except ModuleNotFoundError:
-    has_dqc = False
 import pytest
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_dftloader():
+    from deepchem.data.data_loader import DFTYamlLoader
     inputs = 'deepchem/data/tests/dftdata.yaml'
     k = DFTYamlLoader()
     data = k.create_dataset(inputs)

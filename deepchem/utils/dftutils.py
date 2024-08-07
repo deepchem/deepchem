@@ -7,7 +7,7 @@ except ModuleNotFoundError:
     pass
 
 import hashlib
-import xitorch as xt
+import deepchem.utils.differentiation_utils as xt
 from dataclasses import dataclass
 from abc import abstractmethod, abstractproperty
 from typing import Union, List, TypeVar, Generic, Callable
