@@ -77,6 +77,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [2 Antibody Design via Protein Language Models and Directed Evolution](DeepChem_AntibodyTutorial_Simplified.ipynb)
 * [3 Protein Structure Prediction with ESMFold](Protein_Structure_Prediction_with_ESMFold.ipynb)
 * [4 Introduction to ProtBERT](Introduction_to_ProtBERT.ipynb)
+* [5 Protein Language Models (Intuition)](ProteinLM_Tutorial0.ipynb)
 
 ### Protein Ligand Modeling
 * [1 Modeling Protein Ligand Interactions](Modeling_Protein_Ligand_Interactions.ipynb)
