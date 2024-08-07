@@ -1,18 +1,21 @@
 """
 Density Functional Theory Utilities
 Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcca3e314a538ca/xcdnn2/kscalc.py """
-try:
-    import torch
-except ModuleNotFoundError:
-    pass
-
 import hashlib
-import xitorch as xt
+import warnings
 from dataclasses import dataclass
 from abc import abstractmethod, abstractproperty
 from typing import Union, List, TypeVar, Generic, Callable
+try:
+    import torch
+except Exception as e:
+    warnings.warn("Could not import torch. Skipping tests." + str(e))
 
-__all__ = ["SpinParam"]
+try:
+    import xitorch as xt
+except Exception as e:
+    warnings.warn("Could not import xitorch. Skipping tests." + str(e))
+
 
 T = TypeVar('T')
 

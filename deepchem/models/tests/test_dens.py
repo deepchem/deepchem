@@ -1,18 +1,18 @@
-try:
-    from deepchem.data.data_loader import DFTYamlLoader
-    from deepchem.models.dft.scf import XCNNSCF
-    from deepchem.models.dft.nnxc import HybridXC
-    import torch
-    from deepchem.models.losses import DensityProfileLoss
-    has_dqc = True
-except ModuleNotFoundError:
-    has_dqc = False
-import numpy as np
 import pytest
+import warnings
+import numpy as np
+try:
+    import torch
+except Exception as e:
+    warnings.warn("Could not import torch. Skipping tests. Error is: " + str(e))
 
 
 @pytest.mark.dqc
 def test_densHF():
+    from deepchem.data.data_loader import DFTYamlLoader
+    from deepchem.models.dft.scf import XCNNSCF
+    from deepchem.models.dft.nnxc import HybridXC
+    from deepchem.models.losses import DensityProfileLoss
     inputs = 'deepchem/models/tests/assets/test_HFdp.yaml'
     data = DFTYamlLoader()
     dataset = data.create_dataset(inputs)

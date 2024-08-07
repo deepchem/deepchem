@@ -1,19 +1,20 @@
 """
 Test for DFT Utilities
 """
-try:
-    import dqc
-    from dqc.system.mol import Mol
-    from dqc.qccalc.ks import KS
-    from deepchem.utils.dftutils import KSCalc, hashstr, SpinParam
-    import torch
-except ModuleNotFoundError:
-    pass
 import pytest
+import warnings
+try:
+    import torch
+except Exception as e:
+    warnings.warn("Could not import torch. Skipping tests." + str(e))
 
 
 @pytest.mark.dqc
 def test_dftutils():
+    import dqc
+    from dqc.system.mol import Mol
+    from dqc.qccalc.ks import KS
+    from deepchem.utils.dftutils import KSCalc
     system = {
         'type': 'mol',
         'kwargs': {
@@ -32,6 +33,7 @@ def test_dftutils():
 
 @pytest.mark.dqc
 def test_SpinParam_sum():
+    from deepchem.utils.dftutils import SpinParam
     dens_u = torch.rand(10)
     dens_d = torch.rand(10)
     sp = SpinParam(u=dens_u, d=dens_d)
@@ -41,6 +43,7 @@ def test_SpinParam_sum():
 
 @pytest.mark.dqc
 def test_SpinParam_reduce():
+    from deepchem.utils.dftutils import SpinParam
     dens_u = torch.rand(10)
     dens_d = torch.rand(10)
     sp = SpinParam(u=dens_u, d=dens_d)
@@ -53,6 +56,7 @@ def test_SpinParam_reduce():
 
 @pytest.mark.dqc
 def test_str():
+    from deepchem.utils.dftutils import hashstr
     s = "hydrogen fluoride"
     s = hashstr(s)
     s1 = "df4e3775493a2e784618edaf9e96b7ecb6ce2b4cd022e8619588d55009872bb2"

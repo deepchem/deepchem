@@ -1,17 +1,17 @@
+import pytest
+import warnings
 try:
     import torch
-    from deepchem.models.dft.nnxc import HybridXC
-    from deepchem.models.dft.dftxc import _construct_nn_model
-    from deepchem.models.dft.scf import XCNNSCF
-    from deepchem.feat.dft_data import DFTEntry
-    has_dqc = True
-except ModuleNotFoundError:
-    has_dqc = False
-import pytest
+except Exception as e:
+    warnings.warn("Could not import torch. Skipping tests." + str(e))
 
 
 @pytest.mark.dqc
 def test_pbe():
+    from deepchem.models.dft.nnxc import HybridXC
+    from deepchem.models.dft.dftxc import _construct_nn_model
+    from deepchem.models.dft.scf import XCNNSCF
+    from deepchem.feat.dft_data import DFTEntry
     input_size = 3
     hidden_size = 3
     n_layers = 3
