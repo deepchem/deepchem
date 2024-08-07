@@ -20,6 +20,10 @@ from deepchem.utils.genomics_utils import encode_bio_sequence
 
 try:
     from deepchem.feat.dft_data import DFTEntry
+except ImportError:
+    pass
+
+try:
     import yaml
     from yaml.loader import SafeLoader
 except ModuleNotFoundError:
