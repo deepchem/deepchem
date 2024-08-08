@@ -1237,6 +1237,7 @@ class DiskDataset(Dataset):
                 "Malformed metadata on disk. Metadata must have columns 'ids', 'X', 'y', 'w', "
                 "'ids_shape', 'X_shape', 'y_shape', 'w_shape' (or if in legacy metadata format,"
                 "columns 'ids', 'X', 'y', 'w')")
+        self._cache_data = True
         self._cached_shards: Optional[List] = None
         self._memory_cache_size = 20 * (1 << 20)  # 20 MB
         self._cache_used = 0
@@ -2259,14 +2260,17 @@ class DiskDataset(Dataset):
         # as we can and then stop.
 
         shard = _Shard(X, y, w, ids)
-        shard_size = X.nbytes + ids.nbytes
-        if y is not None:
-            shard_size += y.nbytes
-        if w is not None:
-            shard_size += w.nbytes
-        if self._cache_used + shard_size < self._memory_cache_size:
-            self._cached_shards[i] = shard
-            self._cache_used += shard_size
+
+        if self.cache_data:
+            shard_size = X.nbytes + ids.nbytes
+            if y is not None:
+                shard_size += y.nbytes
+            if w is not None:
+                shard_size += w.nbytes
+            if self._cache_used + shard_size < self._memory_cache_size:
+                self._cached_shards[i] = shard
+                self._cache_used += shard_size
+
         return (shard.X, shard.y, shard.w, shard.ids)
 
     def get_shard_ids(self, i: int) -> np.ndarray:
@@ -2620,6 +2624,18 @@ class DiskDataset(Dataset):
         """Get the size of the memory cache for this dataset, measured in bytes."""
         self._memory_cache_size = size
         if self._cache_used > size:
+            self._cached_shards = None
+
+    @property
+    def cache_data(self) -> bool:
+        """Get whether this dataset caches data in memory."""
+        return self._cache_data
+
+    @cache_data.setter
+    def cache_data(self, cache: bool) -> None:
+        """Set whether this dataset caches data in memory."""
+        self._cache_data = cache
+        if not cache:
             self._cached_shards = None
 
     def __len__(self) -> int:
