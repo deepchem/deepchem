@@ -2,7 +2,7 @@ import logging
 import time
 from collections.abc import Sequence as SequenceCollection
 from typing import (TYPE_CHECKING, Any, Callable, Iterable, List, Optional,
-                    Tuple, Union)
+                    Tuple, Union, Dict)
 
 import numpy as np
 import torch
