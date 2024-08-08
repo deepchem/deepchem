@@ -3643,7 +3643,7 @@ class MolGANEncoderLayer(nn.Module):
     """
 
     def __init__(self,
-                 units: List = [(128, 64), 128],
+                 units: List = [(64, 32), 128], # rn from paper, OG + repo - [(128, 64), 128],
                  activation: Callable = torch.tanh,
                  dropout_rate: float = 0.0,
                  edges: int = 5,

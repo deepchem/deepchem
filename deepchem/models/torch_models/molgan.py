@@ -386,7 +386,7 @@ class Discriminator(nn.Module):
     def __init__(
         self,
         dropout_rate: float,
-        units: List = [(128, 64), 64],
+        units: List = [(64, 32), 128], # rn from paper, OG - [(128, 64), 64], from repo - [(128, 64), 128]
         edges: int = 5,
         nodes: int = 5,
         device: Optional[torch.device] = torch.device('cpu')
@@ -419,9 +419,10 @@ class Discriminator(nn.Module):
         # Define the dense layers
         self.dense1 = nn.Linear(units[1], 128)
         self.dropout1 = nn.Dropout(dropout_rate)
-        self.dense2 = nn.Linear(128, 64)
-        self.dropout2 = nn.Dropout(dropout_rate)
-        self.dense3 = nn.Linear(64, 1)
+        self.dense2 = nn.Linear(128, 1)
+        # self.dense2 = nn.Linear(128, 64)
+        # self.dropout2 = nn.Dropout(dropout_rate)
+        # self.dense3 = nn.Linear(64, 1)
 
     def forward(
         self,
@@ -454,7 +455,9 @@ class Discriminator(nn.Module):
         output = F.tanh(output)
         output = self.dropout1(output)
         output = self.dense2(output)
-        output = F.tanh(output)
-        output = self.dropout2(output)
-        output = self.dense3(output)
+        # rn from paper
+        # OG + repo -
+        # output = F.tanh(output)
+        # output = self.dropout2(output)
+        # output = self.dense3(output)
         return output
