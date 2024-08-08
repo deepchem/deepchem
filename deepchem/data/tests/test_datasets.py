@@ -709,6 +709,8 @@ def test_disk_cache():
 
             yield X_b, y_b, w_b, ids_b
 
+    # Tests with cache_data = True
+    # By default the cache_data is True, so the dataset will cache the data
     dataset = dc.data.DiskDataset.create_dataset(shard_generator())
 
     # Test that the cache is initially empty
@@ -741,6 +743,16 @@ def test_disk_cache():
     # Test that the cache is cleared
     dataset.cache_data = False
     assert dataset._cached_shards is None
+
+    # Tests with cache_data = False
+    dataset2 = dc.data.DiskDataset(dataset.data_dir, cache_data=False)
+
+    # Test that the cache is initially empty
+    assert dataset2._cached_shards is None
+
+    # Test that the cache is not populated
+    for i, (X, y, w, ids) in enumerate(dataset2.itershards()):
+        assert dataset2._cached_shards[i] is None
 
 
 @pytest.mark.tensorflow

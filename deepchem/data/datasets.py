@@ -1201,7 +1201,7 @@ class DiskDataset(Dataset):
     projects.
     """
 
-    def __init__(self, data_dir: str) -> None:
+    def __init__(self, data_dir: str, cache_data: bool = True) -> None:
         """Load a constructed DiskDataset from disk
 
         Note that this method cannot construct a new disk dataset. Instead use
@@ -1213,6 +1213,9 @@ class DiskDataset(Dataset):
         ----------
         data_dir: str
             Location on disk of an existing `DiskDataset`.
+        cache_data: bool, optional (default True)
+            Whether to cache data in memory. Modify `memory_cache_size` to
+            control how much data is cached (default 20 MB).
         """
         self.data_dir = data_dir
 
@@ -1237,7 +1240,8 @@ class DiskDataset(Dataset):
                 "Malformed metadata on disk. Metadata must have columns 'ids', 'X', 'y', 'w', "
                 "'ids_shape', 'X_shape', 'y_shape', 'w_shape' (or if in legacy metadata format,"
                 "columns 'ids', 'X', 'y', 'w')")
-        self._cache_data = True
+
+        self._cache_data = cache_data
         self._cached_shards: Optional[List] = None
         self._memory_cache_size = 20 * (1 << 20)  # 20 MB
         self._cache_used = 0
