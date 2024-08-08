@@ -19,7 +19,10 @@ try:
     from deepchem.utils.dft_utils.data.datastruct import CGTOBasis
     from deepchem.utils.dft_utils.data.datastruct import AtomCGTOBasis
     from deepchem.utils.dft_utils.data.datastruct import BasisInpType
+    from deepchem.utils.dft_utils.data.datastruct import DensityFitInfo
+    from deepchem.utils.dft_utils.data.datastruct import is_z_float
 
+    from deepchem.utils.dft_utils.hamilton.orbconverter import OrbitalOrthogonalizer
     from deepchem.utils.dft_utils.hamilton.orbparams import BaseOrbParams
     from deepchem.utils.dft_utils.hamilton.orbparams import QROrbParams
     from deepchem.utils.dft_utils.hamilton.orbparams import MatExpOrbParams
@@ -35,13 +38,35 @@ try:
     from deepchem.utils.dft_utils.hamilton.intor.molintor import elrep
     from deepchem.utils.dft_utils.hamilton.intor.molintor import coul2c
     from deepchem.utils.dft_utils.hamilton.intor.molintor import coul3c
+    from deepchem.utils.dft_utils.hamilton.intor.pbcintor import PBCIntOption
+    from deepchem.utils.dft_utils.hamilton.intor.pbcintor import get_default_options
+    from deepchem.utils.dft_utils.hamilton.intor.pbcintor import get_default_kpts
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import evl
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import pbc_evl
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import eval_gto
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import eval_gradgto
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import eval_laplgto
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import pbc_eval_gto
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import pbc_eval_gradgto
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import pbc_eval_laplgto
+    from deepchem.utils.dft_utils.hamilton.intor.gtoeval import gto_evaluator
+    from deepchem.utils.dft_utils.df.base_df import BaseDF
+    from deepchem.utils.dft_utils.df.dfmol import DFMol
 
     from deepchem.utils.dft_utils.api.parser import parse_moldesc
     from deepchem.utils.dft_utils.api.loadbasis import loadbasis
 
     from deepchem.utils.dft_utils.grid.base_grid import BaseGrid
-
     from deepchem.utils.dft_utils.grid.radial_grid import RadialGrid
+    from deepchem.utils.dft_utils.grid.truncation_rules import BaseTruncationRules
+    from deepchem.utils.dft_utils.grid.truncation_rules import NoTrunc
+    from deepchem.utils.dft_utils.grid.truncation_rules import DasguptaTrunc
+    from deepchem.utils.dft_utils.grid.truncation_rules import NWChemTrunc
+    from deepchem.utils.dft_utils.grid.lebedev_grid import LebedevLoader
+    from deepchem.utils.dft_utils.grid.lebedev_grid import LebedevGrid
+    from deepchem.utils.dft_utils.grid.lebedev_grid import TruncatedLebedevGrid
+    from deepchem.utils.dft_utils.grid.multiatoms_grid import BeckeGrid
+    from deepchem.utils.dft_utils.grid.multiatoms_grid import PBCBeckeGrid
     from deepchem.utils.dft_utils.grid.radial_grid import get_xw_integration
     from deepchem.utils.dft_utils.grid.radial_grid import SlicedRadialGrid
     from deepchem.utils.dft_utils.grid.radial_grid import BaseGridTransform
@@ -49,6 +74,8 @@ try:
     from deepchem.utils.dft_utils.grid.radial_grid import LogM3Transformation
     from deepchem.utils.dft_utils.grid.radial_grid import TreutlerM4Transformation
     from deepchem.utils.dft_utils.grid.radial_grid import get_grid_transform
+    from deepchem.utils.dft_utils.grid.factory import get_grid
+    from deepchem.utils.dft_utils.grid.factory import get_predefined_grid
 
     from deepchem.utils.dft_utils.xc.base_xc import BaseXC
     from deepchem.utils.dft_utils.xc.base_xc import AddBaseXC
@@ -67,11 +94,11 @@ try:
     from deepchem.utils.dft_utils.api.getxc import get_libxc
     from deepchem.utils.dft_utils.api.getxc import get_xc
 
-    from deepchem.utils.dft_utils.df.base_df import BaseDF
-
     from deepchem.utils.dft_utils.hamilton.base_hamilton import BaseHamilton
+    from deepchem.utils.dft_utils.hamilton.hcgto import HamiltonCGTO
 
     from deepchem.utils.dft_utils.system.base_system import BaseSystem
+    from deepchem.utils.dft_utils.system.mol import Mol
 
     from deepchem.utils.dft_utils.qccalc.base_qccalc import BaseQCCalc
     from deepchem.utils.dft_utils.qccalc.scf_qccalc import SCF_QCCalc

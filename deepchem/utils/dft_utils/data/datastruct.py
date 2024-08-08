@@ -306,3 +306,64 @@ class AtomCGTOBasis:
 # input basis type
 BasisInpType = Union[str, List[CGTOBasis], List[str], List[List[CGTOBasis]],
                      Dict[Union[str, int], Union[List[CGTOBasis], str]]]
+
+
+@dataclass
+class DensityFitInfo:
+    """Density fitting (DF), sometimes also called the resolution of
+    identity (RI) approximation, is a method to approximate the
+    four-index electron repulsion integrals (ERIs) by two- and
+    three-index tensors. In DF, the atomic orbital (AO) product
+    space is expanded in terms of an auxiliary basis set.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.dft_utils import DensityFitInfo, AtomCGTOBasis, CGTOBasis
+    >>> method = "df"
+    >>> auxbasis = [AtomCGTOBasis(atomz=1, bases=[CGTOBasis(angmom=0, alphas=torch.ones(1), coeffs=torch.ones(1))], pos=[[0.0, 0.0, 0.0]])]
+    >>> df = DensityFitInfo(method=method, auxbasis=auxbasis)
+    >>> df
+    DensityFitInfo(method='df', auxbasis=[AtomCGTOBasis(atomz=1, bases=[CGTOBasis(angmom=0, alphas=tensor([1.]), coeffs=tensor([1.]), normalized=False)], pos=tensor([[0., 0., 0.]]))])
+
+    Attributes
+    ----------
+    method: str
+        Mathod for approxitmating the Density Fitting.
+    auxbasis: List[AtomCGTOBasis]
+        Auxiliary Basis Set.
+
+    """
+    method: str
+    auxbasis: List[AtomCGTOBasis]
+
+
+def is_z_float(a: ZType) -> bool:
+    """Checks if the given z-type is a floating point.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.dft_utils import is_z_float
+    >>> is_z_float(0.1)
+    True
+    >>> is_z_float(1)
+    False
+    >>> is_z_float(torch.tensor(1.0))
+    True
+
+    Parameters
+    ----------
+    a: ZType
+        Given Ztype.
+
+    Returns
+    -------
+    bool
+        Returns true if its a floating point.
+
+    """
+    if isinstance(a, torch.Tensor):
+        return a.is_floating_point()
+    else:
+        return isinstance(a, float)
