@@ -19,6 +19,7 @@ from deepchem.feat.base_classes import PolymerFeaturizer
 from deepchem.feat.graph_features import ConvMolFeaturizer
 from deepchem.feat.graph_features import WeaveFeaturizer
 from deepchem.feat.graph_data import GraphData
+from deepchem.feat.graph_data import WeightedDirectedGraphData
 from deepchem.feat.binding_pocket_features import BindingPocketFeaturizer
 
 # molecule featurizers
@@ -83,8 +84,10 @@ try:
     from deepchem.feat.bio_seq_featurizer import CRAMFeaturizer
 except ImportError as e:
     logger.warning(
-        f'Skipped loading biological sequence featurized, missing a dependency. {e}'
+        f'Skipped loading biological sequence featurizer, missing a dependency. {e}'
     )
+
+from deepchem.feat.deepvariant_featurizer import RealignerFeaturizer
 
 # tokenizers
 try:

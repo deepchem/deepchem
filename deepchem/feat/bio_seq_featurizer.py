@@ -204,14 +204,17 @@ class BAMFeaturizer(Featurizer):
                         start=record.reference_start,
                         end=record.reference_end):
                     pileup_info = {
+                        "name":
+                            pileupcolumn.reference_name,
                         "pos":
                             pileupcolumn.reference_pos,
                         "depth":
                             pileupcolumn.nsegments,
-                        "reads": [
-                            pileupread.alignment.query_sequence
-                            for pileupread in pileupcolumn.pileups
-                        ]
+                        "reads": [[
+                            pileupread.alignment.query_sequence,
+                            pileupread.query_position, pileupread.is_del,
+                            pileupread.is_refskip, pileupread.indel
+                        ] for pileupread in pileupcolumn.pileups]
                     }
                     pileup_columns.append(pileup_info)
                 feature_vector.append(pileup_columns)

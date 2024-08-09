@@ -66,6 +66,8 @@ class ProtBERT(HuggingFaceModel):
                  model_path: str = 'Rostlab/prot_bert',
                  n_tasks: int = 1,
                  cls_name: str = "LogReg",
+                 classifier_net: Union[nn.Module, None] = None,
+                 n_classes: int = 2,
                  **kwargs) -> None:
         """
         Parameters
@@ -76,10 +78,16 @@ class ProtBERT(HuggingFaceModel):
             - `classification` - use it for classification tasks
         model_path: str
             Path to the HuggingFace model
-        n_tasks: int, default 1
+            - 'Rostlab/prot_bert' - Pretrained on Uniref100 dataset
+            - `Rostlab/prot_bert_bfd` - Pretrained on BFD dataset
+        n_tasks: int
             Number of prediction targets for a multitask learning model
         cls_name: str
-            The classifier head to use for classification mode. Currently only supports "FFN" and "LogReg"
+            The classifier head to use for classification mode. Currently supports "FFN" and "LogReg" and custom classfier head.
+        classifier_net: nn.Module, optional
+            A custom classifier head to use for classification mode. The network must have input size of 1024.
+        n_classes: int
+            Number of classes for classification.
         """
         self.n_tasks: int = n_tasks
         tokenizer: BertTokenizer = BertTokenizer.from_pretrained(
@@ -91,17 +99,20 @@ class ProtBERT(HuggingFaceModel):
         if task == "mlm":
             model = BertForMaskedLM.from_pretrained(model_path)
         elif task == "classification":
-            cls_head: Union[nn.Linear, nn.Sequential]
+            cls_head: Union[nn.Linear, nn.Sequential, nn.Module, None]
+            protbert_config.num_labels = n_classes
             if n_tasks == 1:
                 protbert_config.problem_type = 'single_label_classification'
             else:
                 protbert_config.problem_type = 'multi_label_classification'
 
             if (cls_name == "LogReg"):
-                cls_head = nn.Linear(1024, n_tasks + 1)
+                cls_head = nn.Linear(1024, n_classes)
             elif (cls_name == "FFN"):
                 cls_head = nn.Sequential(nn.Linear(1024, 512), nn.ReLU(),
-                                         nn.Linear(512, n_tasks + 1))
+                                         nn.Linear(512, n_classes))
+            elif (cls_name == "custom"):
+                cls_head = classifier_net
 
             else:
                 raise ValueError('Invalid classifier: {}.'.format(cls_name))
