@@ -502,7 +502,7 @@ class HuggingFaceModel(TorchModel):
             return final_results[0]
         else:
             return np.array(final_results)
-    
+
     def fill_mask(self,
                   inputs: Union[str, List[str]],
                   top_k: int = 5) -> Union[List[Dict], List[List[Dict]]]:

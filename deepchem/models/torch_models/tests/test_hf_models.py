@@ -202,9 +202,9 @@ def test_load_from_hf_checkpoint():
     # keys should not match
     assert all(not_matches)
 
+
 @pytest.mark.torch
 def test_fill_mask(tmpdir, hf_tokenizer):
-    def test_fill_mask(tmpdir):
     from transformers import (RobertaConfig, RobertaForMaskedLM)
 
     config = RobertaConfig(vocab_size=hf_tokenizer.vocab_size)
@@ -216,13 +216,12 @@ def test_fill_mask(tmpdir, hf_tokenizer):
                                 device=torch.device('cpu'))
     hf_model._ensure_built()
 
-
     test_string = "CN(c1ccccc1)c1ccccc1C(=O)NCC1(O)CCOCC1"
     tokenized_test_string = hf_tokenizer(test_string)
     tokenized_test_string.input_ids[1] = hf_tokenizer.mask_token_id
     masked_test_string = hf_tokenizer.decode(tokenized_test_string.input_ids)
-    
-    # Test 1. Ensure that the mask is inserted 
+
+    # Test 1. Ensure that the mask is inserted
     assert '<mask>' in masked_test_string
 
     results = hf_model.fill_mask([masked_test_string, masked_test_string])
@@ -241,7 +240,6 @@ def test_fill_mask(tmpdir, hf_tokenizer):
             # Test 4, Check that the scores are probabilities
             assert filled['score'] < 1
             assert filled['score'] >= 0
-            
+
             # Test 5. Check that the infilling went to the right spot
             assert filled['sequence'].startswith(f'<s>{filled["token_str"]}')
-            
