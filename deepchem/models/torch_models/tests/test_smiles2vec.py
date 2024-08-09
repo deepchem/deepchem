@@ -9,6 +9,7 @@ from deepchem.molnet.load_function.chembl25_datasets import CHEMBL25_TASKS
 
 try:
     import torch
+    import torch.nn.functional as F
 except ModuleNotFoundError:
     pass
 
@@ -17,7 +18,9 @@ def get_dataset(mode="regression",
                 featurizer="smiles2seq",
                 max_seq_len=20,
                 data_points=10,
-                n_tasks=5):
+                n_tasks=5,
+                n_classes=2):
+
     dataset_file = os.path.join(os.path.dirname(__file__), "assets",
                                 "chembl_25_small.csv")
     if featurizer == "smiles2seq":
@@ -43,6 +46,9 @@ def get_dataset(mode="regression",
 
     if mode == 'classification':
         y = np.random.randint(0, 2, size=(data_points, n_tasks))
+        y = torch.from_numpy(y.flatten()).long()
+        y = F.one_hot(y, n_classes).view(-1, n_tasks, n_classes)
+        y = y.float()
         metric = dc.metrics.Metric(dc.metrics.roc_auc_score,
                                    np.mean,
                                    mode="classification")
@@ -65,10 +71,10 @@ def get_dataset(mode="regression",
 
 
 @pytest.mark.torch
-def test_smiles2vec_model():
+def test_Smiles2Vec_forward():
     from deepchem.models.torch_models import Smiles2Vec
 
-    n_tasks = 10
+    n_tasks = 5
     max_seq_len = 20
 
     _, _, char_to_idx = get_dataset(
@@ -77,9 +83,98 @@ def test_smiles2vec_model():
         n_tasks=n_tasks,
         max_seq_len=max_seq_len,
     )
-    model = Smiles2Vec(char_to_idx)
+    model = Smiles2Vec(char_to_idx=char_to_idx,
+                       max_seq_len=max_seq_len,
+                       n_tasks=n_tasks)
+
     input = torch.randint(low=0, high=len(char_to_idx), size=(1, max_seq_len))
     # Ex: input = torch.tensor([[32,32,32,32,32,32,25,29,15,17,29,29,32,32,32,32,32,32,32,32]])
 
     logits = model.forward(input)
     assert np.shape(logits) == (1, n_tasks, 1)
+
+
+@pytest.mark.torch
+def test_Smiles2VecModel_regression():
+    from deepchem.models.torch_models import Smiles2VecModel
+
+    n_tasks = 5
+    max_seq_len = 20
+
+    dataset, metric, char_to_idx = get_dataset(
+        mode="regression",
+        featurizer="smiles2seq",
+        n_tasks=n_tasks,
+        max_seq_len=max_seq_len,
+    )
+    model = Smiles2VecModel(char_to_idx=char_to_idx,
+                            max_seq_len=max_seq_len,
+                            use_conv=True,
+                            n_tasks=n_tasks,
+                            model_dir=None,
+                            mode="regression")
+
+    model.fit(dataset, nb_epoch=500)
+    scores = model.evaluate(dataset, [metric], [])
+    assert scores['mean_absolute_error'] < 0.1
+
+
+@pytest.mark.torch
+def test_Smiles2VecModel_classification():
+    from deepchem.models.torch_models import Smiles2VecModel
+
+    n_tasks = 5
+    max_seq_len = 20
+
+    dataset, metric, char_to_idx, = get_dataset(mode="classification",
+                                                featurizer="smiles2seq",
+                                                n_tasks=n_tasks,
+                                                max_seq_len=max_seq_len)
+
+    model = Smiles2VecModel(char_to_idx=char_to_idx,
+                            max_seq_len=max_seq_len,
+                            use_conv=True,
+                            n_tasks=n_tasks,
+                            mode="classification")
+
+    model.fit(dataset, nb_epoch=500)
+    scores = model.evaluate(dataset, [metric], [])
+    assert scores['mean-roc_auc_score'] >= 0.9
+
+
+@pytest.mark.torch
+def test_Smiles2VecModel_reload():
+    from deepchem.models.torch_models import Smiles2VecModel
+
+    n_tasks = 5
+    max_seq_len = 20
+
+    # Create a temporary directory for the model
+    model_dir = tempfile.mkdtemp()
+
+    # Load dataset
+    dataset, metric, char_to_idx = get_dataset(mode="regression",
+                                               featurizer="smiles2seq",
+                                               n_tasks=n_tasks,
+                                               max_seq_len=max_seq_len)
+    # Initialize and train the model
+    model = Smiles2VecModel(char_to_idx=char_to_idx,
+                            max_seq_len=max_seq_len,
+                            use_conv=True,
+                            n_tasks=n_tasks,
+                            model_dir=model_dir,
+                            mode="regression")
+    model.fit(dataset, nb_epoch=10)
+    scores = model.evaluate(dataset, [metric], [])
+
+    # Reload the trained model
+    reloaded_model = Smiles2VecModel(char_to_idx=char_to_idx,
+                                     max_seq_len=max_seq_len,
+                                     use_conv=True,
+                                     n_tasks=n_tasks,
+                                     model_dir=model_dir,
+                                     mode="regression")
+    reloaded_model.restore()
+    reloaded_scores = reloaded_model.evaluate(dataset, [metric], [])
+
+    assert scores == reloaded_scores
