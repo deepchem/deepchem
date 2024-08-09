@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 import math
 from typing import List, Dict, Optional, Union
 
@@ -102,6 +103,7 @@ class Smiles2Vec(nn.Module):
                                     filters,
                                     kernel_size,
                                     stride=strides)
+            self.relu = nn.ReLU()
             self.conv_output = math.floor(
                 (max_seq_len - kernel_size + 1) / strides)
 
@@ -113,7 +115,7 @@ class Smiles2Vec(nn.Module):
         self.output_activation: Optional[nn.Module] = None
 
         # Define RNN layers
-        for idx, rnn_type in enumerate(self.rnn_types):
+        for idx, rnn_type in enumerate(self.rnn_types[:-1]):
             rnn_layer = self.RNN_DICT[rnn_type](
                 input_size=self.filters if idx == 0 else self.rnn_sizes[idx -
                                                                         1],
@@ -126,8 +128,8 @@ class Smiles2Vec(nn.Module):
         last_layer_input_size = self.rnn_sizes[-2] * (2
                                                       if self.use_bidir else 1)
         last_rnn_layer = self.RNN_DICT[self.rnn_types[-1]]
-        self.last_rnn_layer = last_rnn_layer(last_layer_input_size,
-                                             self.rnn_sizes[-1],
+        self.last_rnn_layer = last_rnn_layer(input_size=last_layer_input_size,
+                                             hidden_size=self.rnn_sizes[-1],
                                              batch_first=True,
                                              bidirectional=self.use_bidir)
 
@@ -149,25 +151,28 @@ class Smiles2Vec(nn.Module):
 
     def forward(self, smiles_seqs: List):
         """Build the model."""
+
         rnn_input = self.embedding(smiles_seqs)
 
         if self.use_conv:
             # Convert to (batch_size, seq_len, filters) for conv1d
             rnn_input = rnn_input.permute(0, 2, 1)
             rnn_input = self.conv1d(rnn_input)
+            rnn_input = self.relu(rnn_input)
             rnn_input = rnn_input.permute(
                 0, 2, 1)  # Convert back to (batch_size, seq_len, filters)
 
         # RNN layers
         rnn_embeddings = rnn_input
-        for layer in self.rnn_layers[:-1]:
+        for layer in self.rnn_layers:
             rnn_embeddings, _ = layer(rnn_embeddings)
 
         # Pass through the last RNN layer
-        rnn_embeddings, _ = self.last_rnn_layer(rnn_embeddings)
+        _, hn = self.last_rnn_layer(rnn_embeddings)
 
-        # Global Average Pooling
-        x = rnn_embeddings.mean(dim=1)
+        # to match the way tf rnn layers output
+        hn = hn.permute(1, 0, 2)
+        x = hn.contiguous().view(hn.shape[0], -1)
 
         Logits = self.fc(x)
 
@@ -217,13 +222,14 @@ class Smiles2VecModel(TorchModel):
     >>> smiles = ["C1CCC1", "C1=CC=CN=C1"]
     >>> data_points = len(smiles)
 
-    >>> max_seq_len = 250
+    >>> max_seq_len = 20
+    >>> max_len = 250
     >>> pad_len = 10
     >>> n_tasks = 5
 
     >>> dataset_file = os.path.join(os.path.dirname(__file__), "tests", "assets", "chembl_25_small.csv")
-    >>> char_to_idx = create_char_to_idx(dataset_file, max_len=max_seq_len, smiles_field="smiles")
-    >>> featurizer = SmilesToSeq(char_to_idx=char_to_idx, max_len=max_seq_len, pad_len=pad_len)
+    >>> char_to_idx = create_char_to_idx(dataset_file, max_len=max_len, smiles_field="smiles")
+    >>> featurizer = SmilesToSeq(char_to_idx=char_to_idx, max_len=max_len, pad_len=pad_len)
 
     >>> X = featurizer.featurize(smiles)
     >>> y = np.random.normal(size=(data_points, n_tasks))
@@ -260,6 +266,7 @@ class Smiles2VecModel(TorchModel):
                  rnn_sizes: List[int] = [224, 384],
                  rnn_types: List[str] = ["GRU", "GRU"],
                  mode: str = "regression",
+                 device: Optional[torch.device] = None,
                  **kwargs):
         """
         Parameters
@@ -284,6 +291,16 @@ class Smiles2VecModel(TorchModel):
             Whether to use model for regression or classification
         """
         self.n_tasks = n_tasks
+        if device is None:
+            if torch.cuda.is_available():
+                self.device = torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                self.device = torch.device('mps')
+            else:
+                self.device = torch.device('cpu')
+        else:
+            self.device = device
+
         self.n_classes = n_classes
         self.mode: str = mode
         self.model = Smiles2Vec(char_to_idx=char_to_idx,
@@ -313,7 +330,8 @@ class Smiles2VecModel(TorchModel):
             loss = L2Loss()
             output_types = ['prediction']
 
-        super(Smiles2VecModel, self).__init__(self.model,
+        super(Smiles2VecModel, self).__init__(model=self.model,
                                               loss=loss,
                                               output_types=output_types,
+                                              device=self.device,
                                               **kwargs)
