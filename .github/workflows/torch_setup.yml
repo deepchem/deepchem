@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-20.04]
         python-version: ['3.8', '3.10', '3.11']
         include:
           - os: windows-latest
@@ -42,7 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-20.04]
         python-version: ['3.8', '3.10', '3.11']
         include:
           - os: windows-latest
@@ -52,7 +52,7 @@ jobs:
       PYTHON_VERSION: ${{ matrix.python-version }}
     steps:
     - name: Maximize build space
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-20.04'
       run: |
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf /opt/ghc
