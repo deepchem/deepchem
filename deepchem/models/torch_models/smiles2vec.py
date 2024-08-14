@@ -289,6 +289,9 @@ class Smiles2VecModel(TorchModel):
             Number of hidden units in the RNN cells
         mode: str, default regression
             Whether to use model for regression or classification
+        device: torch.device, optional (default None)
+            the device on which to run computations.  If None, a device is
+            chosen automatically
         """
         self.n_tasks = n_tasks
         if device is None:
