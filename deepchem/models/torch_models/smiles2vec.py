@@ -294,16 +294,6 @@ class Smiles2VecModel(TorchModel):
             chosen automatically
         """
         self.n_tasks = n_tasks
-        if device is None:
-            if torch.cuda.is_available():
-                self.device = torch.device('cuda')
-            elif torch.backends.mps.is_available():
-                self.device = torch.device('mps')
-            else:
-                self.device = torch.device('cpu')
-        else:
-            self.device = device
-
         self.n_classes = n_classes
         self.mode: str = mode
         self.model = Smiles2Vec(char_to_idx=char_to_idx,
@@ -336,5 +326,5 @@ class Smiles2VecModel(TorchModel):
         super(Smiles2VecModel, self).__init__(model=self.model,
                                               loss=loss,
                                               output_types=output_types,
-                                              device=self.device,
+                                              device=device,
                                               **kwargs)

@@ -231,14 +231,6 @@ def test_smiles2vec_compare_with_tf_impl():
         [z, r, h] = np.split(weight_or_bias_gru, 3, axis=axis)
         return np.concatenate((r, z, h), axis=axis)
 
-    torch_model = Smiles2VecModel(char_to_idx=char_to_idx,
-                                  max_seq_len=max_seq_len,
-                                  use_conv=True,
-                                  n_tasks=n_tasks,
-                                  model_dir=None,
-                                  mode="regression",
-                                  device=torch.device('cpu'))
-
     # Copy layer weights
     torch_layer_names = [
         "embedding", "conv1d", "rnn_layers", "last_rnn_layer", "fc"
