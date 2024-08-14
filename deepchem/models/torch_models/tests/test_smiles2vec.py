@@ -358,7 +358,7 @@ def test_smiles2vec_compare_with_tf_impl():
                             torch.from_numpy(bias_ih_reverse).float())
                         torch_layer.bias_hh_l0_reverse.data.copy_(
                             torch.from_numpy(bias_hh_reverse).float())
-    
+
     # predicting using the torch model with copied weights and biases
     torch_outputs = torch_model.predict(dataset)
     with open(os.path.join(tensorflow_weights_dir, 'tf_outputs.pickle'),
