@@ -23,7 +23,7 @@ except ModuleNotFoundError:
 #     loss = model.fit(protein_classification_dataset, nb_epoch=1)
 #     assert loss
 
-
+@pytest.mark.slow
 @pytest.mark.torch
 def test_prot_bert_finetuning(protein_classification_dataset):
 
