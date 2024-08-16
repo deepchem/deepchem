@@ -541,7 +541,7 @@ class HuggingFaceModel(TorchModel):
         results = []
         # Iterate over the input sequences (NOTE: DO NOT Parallelize)
         for text in inputs:
-            encoded_input = self.tokenizer(text, return_tensors='pt')
+            encoded_input = self.tokenizer(text, return_tensors='pt').to(self.device)
             # Find all the occurrences where the mask token idx is used
             mask_token_index = torch.where(
                 encoded_input["input_ids"] == self.tokenizer.mask_token_id)[1]
