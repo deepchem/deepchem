@@ -510,7 +510,7 @@ class HuggingFaceModel(TorchModel):
         https://huggingface.co/docs/transformers/main_classes/pipelines
 
         Takes as input a sequence or list of sequences where each sequence
-        containts a single masked position and returs a list of dictionaries per sequence
+        containts a single masked position and returns a list of dictionaries per sequence
         containing the filled sequence, the token, and the score for that token.
 
         Parameters
