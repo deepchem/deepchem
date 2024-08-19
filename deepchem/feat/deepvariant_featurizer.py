@@ -310,7 +310,7 @@ class _Realigner(object):
 
     def build_debruijn_graph(
         self, ref: str, reads: List[str], k: int
-    ) -> Tuple[Optional[dgl.DGLGraph], Optional[Dict[str, int]], Optional[Dict[
+    ) -> Tuple[Optional[Any], Optional[Dict[str, int]], Optional[Dict[
             int, str]]]:
         """
         Build a De Bruijn graph from reference and reads. This function
@@ -331,7 +331,7 @@ class _Realigner(object):
         Returns
         -------
 
-        Tuple[Optional[dgl.DGLGraph], Optional[Dict[str, int]], Optional[Dict[int, str]]]
+        Tuple[Optional[Any], Optional[Dict[str, int]], Optional[Dict[int, str]]]
             A tuple containing:
             - De Bruijn graph (dgl.DGLGraph)
             - Dictionary mapping k-mer strings to node IDs (Dict[str, int])
@@ -383,8 +383,8 @@ class _Realigner(object):
 
         return G, kmer_to_id, id_to_kmer
 
-    def prune_debruijn_graph(self, G: dgl.DGLGraph,
-                             min_edge_weight: float) -> dgl.DGLGraph:
+    def prune_debruijn_graph(self, G: Any,
+                             min_edge_weight: float) -> Any:
         """
         This function removes edges with weights below the specified threshold
         and removes nodes that become isolated after pruning.
@@ -392,7 +392,7 @@ class _Realigner(object):
         Parameters
         ----------
 
-        G : dgl.DGLGraph
+        G : Any
             The original De Bruijn graph.
         min_edge_weight : float
             The minimum edge weight threshold for keeping an edge.
@@ -400,7 +400,7 @@ class _Realigner(object):
         Returns
         -------
 
-        dgl.DGLGraph
+        Any
             The pruned subgraph.
         """
         edge_weights = G.edata['weight']
@@ -419,7 +419,7 @@ class _Realigner(object):
 
         return subgraph
 
-    def candidate_haplotypes(self, G: dgl.DGLGraph, k: int,
+    def candidate_haplotypes(self, G: Any, k: int,
                              id_to_kmer: Optional[Dict[int, str]]) -> List[str]:
         """
         Generate candidate haplotypes from the De Bruijn graph. This function
