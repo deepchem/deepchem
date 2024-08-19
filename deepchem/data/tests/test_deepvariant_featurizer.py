@@ -5,15 +5,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-try:
-    import pysam
-    import torch
-    import dgl
-except ImportError as e:
-    logger.warning(
-        f'Skipped loading deepvariant featurizer, missing a dependency. {e}'
-    )
-
 
 class TestRealignerFeaturizer(unittest.TestCase):
 
@@ -33,7 +24,6 @@ class TestRealignerFeaturizer(unittest.TestCase):
         self.assertEqual(candidate_windows[13],
                          ('chr2', 193, 197, 18, 21,
                           ['GTAAATTGATTTGAATTTTATTTCTTGGTAATGAGG']))
-
 
 
 if __name__ == "__main__":
