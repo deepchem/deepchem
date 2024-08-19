@@ -187,6 +187,7 @@ class BAMFeaturizer(Featurizer):
         record_count = 0
 
         for record in datapoint:
+            initial_position = datapoint.tell()
             feature_vector = [
                 record.query_name,
                 record.query_sequence,
@@ -221,6 +222,7 @@ class BAMFeaturizer(Featurizer):
 
             features.append(feature_vector)
             record_count += 1
+            datapoint.seek(initial_position)
 
             # Break the loop if max_records is set
             if self.max_records is not None and record_count >= self.max_records:
