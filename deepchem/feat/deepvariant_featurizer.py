@@ -310,8 +310,8 @@ class _Realigner(object):
 
     def build_debruijn_graph(
         self, ref: str, reads: List[str], k: int
-    ) -> Tuple[Optional[Any], Optional[Dict[str, int]], Optional[Dict[
-            int, str]]]:
+    ) -> Tuple[Optional[Any], Optional[Dict[str, int]], Optional[Dict[int,
+                                                                      str]]]:
         """
         Build a De Bruijn graph from reference and reads. This function
         constructs a De Bruijn graph from k-mers found in the reference
@@ -383,8 +383,7 @@ class _Realigner(object):
 
         return G, kmer_to_id, id_to_kmer
 
-    def prune_debruijn_graph(self, G: Any,
-                             min_edge_weight: float) -> Any:
+    def prune_debruijn_graph(self, G: Any, min_edge_weight: float) -> Any:
         """
         This function removes edges with weights below the specified threshold
         and removes nodes that become isolated after pruning.
