@@ -357,4 +357,5 @@ def test_smiles2vec_compare_with_tf_impl():
               'rb') as f:
         tf_outputs = pickle.load(f)
 
+    # comparing tf_outputs and torch_outputs
     assert np.allclose(torch_outputs, tf_outputs, rtol=1e-5, atol=1e-6)
