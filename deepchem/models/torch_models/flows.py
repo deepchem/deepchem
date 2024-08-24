@@ -1,13 +1,9 @@
 """ This module contains the implementation of the various flow layers and models"""
 from typing import Optional, Tuple, Union, List, Sequence, Any
-
 import numpy as np
-from tqdm import tqdm
-
 import torch
 import torch.nn as nn
 from torch.distributions import MultivariateNormal
-
 from deepchem.models.torch_models.torch_model import TorchModel
 
 
@@ -863,7 +859,8 @@ class NormalizingFlowModel(TorchModel):
                               lr=learning_rate,
                               weight_decay=weight_decay)
         nfm = self.nfm
-        for epoch in tqdm(range(epochs)):
+
+        for epoch in range(epochs):
             optimizer.zero_grad()  # type: ignore
 
             # Get training samples
