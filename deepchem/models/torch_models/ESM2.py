@@ -12,7 +12,7 @@ class ESM2(HuggingFaceModel):
     The model architecture is based on the ESM (Evolutionary Scale Modeling) architecture.
     The model can be used for both pretraining an embedding and finetuning for downstream applications.
 
-    The model supports sequence-level tasks for regression or classification and they can be specified 
+    The model supports sequence-level tasks for regression or classification and they can be specified
     using `regression` and `classification` as arguments to the `task` keyword during model initialisation.
 
     The model uses a tokenizer to create input tokens for the model from the protein sequence strings.
@@ -31,7 +31,6 @@ class ESM2(HuggingFaceModel):
     **kwargs
         Additional keyword arguments to be passed to the `HuggingFaceModel` class.
 
-        
     Example
     -------
 
@@ -71,6 +70,7 @@ class ESM2(HuggingFaceModel):
     >>> eval_results = finetune_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.accuracy_score))
     >>> print(eval_results)
     """
+
     def __init__(self,
                  task: str,
                  tokenizer_path: str = 'facebook/esm2_t12_35M_UR50D',
@@ -85,13 +85,15 @@ class ESM2(HuggingFaceModel):
 
         if task == 'regression':
             esm2_config.problem_type = 'regression'
-            model = AutoModelForSequenceClassification.from_pretrained(tokenizer_path, config=esm2_config)
+            model = AutoModelForSequenceClassification.from_pretrained(
+                tokenizer_path, config=esm2_config)
         elif task == 'classification':
             if n_tasks == 1:
                 esm2_config.problem_type = 'single_label_classification'
             else:
                 esm2_config.problem_type = 'multi_label_classification'
-            model = AutoModelForSequenceClassification.from_pretrained(tokenizer_path, config=esm2_config)
+            model = AutoModelForSequenceClassification.from_pretrained(
+                tokenizer_path, config=esm2_config)
         else:
             raise ValueError('invalid task specification')
 
