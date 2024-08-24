@@ -10,7 +10,7 @@ class ESM2(HuggingFaceModel):
 
     ESM-2 is a transformer model for learning on protein sequences.
     The model architecture is based on the ESM (Evolutionary Scale Modeling) architecture.
-    The model can be used for both pretraining an embedding and finetuning for downstream applications.
+    The model can be used for finetuning ESM-2 for downstream applications.
 
     The model supports sequence-level tasks for regression or classification and they can be specified
     using `regression` and `classification` as arguments to the `task` keyword during model initialisation.
@@ -54,21 +54,14 @@ class ESM2(HuggingFaceModel):
     ...     loader = dc.data.CSVLoader(["label"], feature_field="sequence", featurizer=dc.feat.DummyFeaturizer()) 
     ...     dataset = loader.create_dataset(tmpfile.name)
 
-    >>> # pretraining
-    >>> pretrain_model_dir = os.path.join(tempdir, 'pretrain-model')
-    >>> pretrain_model = ESM2(task='mlm', model_dir=pretrain_model_dir)  # mlm pretraining
-    >>> pretraining_loss = pretrain_model.fit(dataset, nb_epoch=1)
-
     >>> # finetuning in classification mode
     >>> finetune_model_dir = os.path.join(tempdir, 'finetune-model')
     >>> finetune_model = ESM2(task='classification', model_dir=finetune_model_dir)
-    >>> finetune_model.load_from_pretrained(pretrain_model_dir)
     >>> finetuning_loss = finetune_model.fit(dataset, nb_epoch=1)
 
     >>> # prediction and evaluation
     >>> result = finetune_model.predict(dataset)
     >>> eval_results = finetune_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.accuracy_score))
-    >>> print(eval_results)
     """
 
     def __init__(self,
