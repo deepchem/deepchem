@@ -18,6 +18,7 @@ def gd(
         x_rtol: float = 1e-8,
         # misc parameters
         verbose=False,
+        terminate=True,
         **unused):
     r"""
     Vanilla gradient descent with momentum. The stopping conditions use OR criteria.
@@ -61,6 +62,9 @@ def gd(
         The absolute tolerance of the norm of the input ``x``.
     x_rtol: float or None
         The relative tolerance of the norm of the input ``x``.
+    terminate: bool (default True)
+        Wether to use termiation condition or, keep on running the
+        minimizer.
 
     """
 
@@ -79,11 +83,13 @@ def gd(
         # check the stopping conditions
         to_stop = stop_cond.to_stop(i, x, xprev, f, fprev)
 
-        if to_stop:
+        if to_stop and terminate:
             break
 
         fprev = f
-    x = stop_cond.get_best_x(x)
+    if terminate:
+        x = stop_cond.get_best_x(x)
+
     return x
 
 
@@ -104,6 +110,7 @@ def adam(
         x_rtol: float = 1e-8,
         # misc parameters
         verbose=False,
+        terminate=True,
         **unused):
     r"""
     Adam optimizer by Kingma & Ba (2015). The stopping conditions use OR criteria.
@@ -148,6 +155,10 @@ def adam(
         The absolute tolerance of the norm of the input ``x``.
     x_rtol: float or None
         The relative tolerance of the norm of the input ``x``.
+    terminate: bool (default True)
+        Wether to use the termination condition, or keep running the
+        minimizer.
+
     """
 
     x = x0.clone()
@@ -175,11 +186,12 @@ def adam(
         # check the stopping conditions
         to_stop = stop_cond.to_stop(i, x, xprev, f, fprev)
 
-        if to_stop:
+        if to_stop and terminate:
             break
 
         fprev = f
-    x = stop_cond.get_best_x(x)
+    if terminate:
+        x = stop_cond.get_best_x(x)
     return x
 
 
