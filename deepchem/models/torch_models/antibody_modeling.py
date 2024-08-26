@@ -20,7 +20,7 @@ class DeepAbLLM(HuggingFaceModel):
     ----------
     task: str
         The task the HuggingFaceModel is performing. Default: 'mlm'.
-    model_path : str
+    model_path: str
         The huggingface model path of the pLM.
     n_tasks: int
         Number of tasks for a given model. Default: 1
@@ -137,10 +137,9 @@ class DeepAbLLM(HuggingFaceModel):
 
         cleaned_sequence = sequence.replace(
             ' ', '')  # Get ride of extraneous spaces if any
-        cleaned_sequence = list(
-            cleaned_sequence)  # Turn the sequence into a list
-        cleaned_sequence[idx] = '*'  # Mask the sequence at idx
-        masked_sequence = ' '.join(cleaned_sequence)  # Convert list -> seq
+        temp_sequence = list(cleaned_sequence)  # Turn the sequence into a list
+        temp_sequence[idx] = '*'  # Mask the sequence at idx
+        masked_sequence = ' '.join(temp_sequence)  # Convert list -> seq
         masked_sequence = masked_sequence.replace('*',
                                                   self.tokenizer.mask_token)
         return masked_sequence
@@ -176,14 +175,17 @@ class DeepAbLLM(HuggingFaceModel):
         masked_sequence = self._mask_seq_pos(sequence, residue_index)
         results = self.fill_mask(masked_sequence,
                                  top_k=top_k)  # List of dictionaries
+
         if verbose:
             print(
                 f"Original Residue at Position {residue_index}: {sequence[residue_index]}\n"
             )
-        sequence_tuples = [(result['token_str'],
-                            result['sequence'].replace(' ',
-                                                       ''), result['score'])
-                           for result in results]
+        sequence_tuples = [[(result.get('token_str',
+                                        ''), result.get('sequence',
+                                                        '').replace(' ', ''),
+                             result.get('score', None))
+                            for result in results
+                            if isinstance(result, dict)]]
         return sequence_tuples
 
     def optimize_residue_pos(self,
