@@ -1,5 +1,3 @@
-from typing import List
-
 import torch
 import torch.nn as nn
 
@@ -113,11 +111,11 @@ class DTNN(nn.Module):
         self.n_steps = n_steps
 
         # get DTNNEmbedding
-        self.dtnn_embedding = layers.DTNNEmbedding(n_embedding=self.n_embedding)
+        self.dtnn_embedding = layers.DTNNEmbedding(self.n_embedding)
 
         # get DTNNSteps
         self.dtnn_step = nn.ModuleList()
-        for i in range(self.n_steps):
+        for _ in range(self.n_steps):
             self.dtnn_step.append(
                 layers.DTNNStep(n_embedding=self.n_embedding,
                                 n_distance=self.n_distance))
@@ -133,7 +131,7 @@ class DTNN(nn.Module):
         # get Final Linear Layer
         self.linear = nn.LazyLinear(self.n_tasks)
 
-    def forward(self, inputs: List[torch.Tensor]):
+    def forward(self, inputs: list[torch.Tensor]):
         """
         Parameters
         ----------
