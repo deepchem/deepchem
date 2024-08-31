@@ -1,9 +1,13 @@
 """ This module contains the implementation of the various flow layers and models"""
-from typing import Optional, Tuple, Union, List, Sequence, Any
+
+from typing import Any, List, Optional, Sequence, Tuple, Union
+
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.distributions import MultivariateNormal
+from tqdm import tqdm
+
 from deepchem.models.torch_models.torch_model import TorchModel
 
 
@@ -31,8 +35,7 @@ class Flow(nn.Module):
     """
 
     def __init__(self):
-        """Initializes the flow function
-        """
+        """Initializes the flow function"""
         super().__init__()
 
     def forward(self, z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -119,8 +122,9 @@ class Affine(Flow):
         self.dim = dim
         self.scale = nn.Parameter(torch.zeros(self.dim))
         self.shift = nn.Parameter(torch.zeros(self.dim))
-        self.batch_dims = torch.nonzero(torch.tensor(self.scale.shape) == 1,
-                                        as_tuple=False)[:, 0].tolist()
+        self.batch_dims = torch.nonzero(
+            torch.tensor(self.scale.shape) == 1, as_tuple=False
+        )[:, 0].tolist()
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Performs a transformation between two different distributions. This
@@ -151,8 +155,9 @@ class Affine(Flow):
 
         y = torch.exp(self.scale) * x + self.shift
         det_jacobian = torch.exp(self.scale.sum())
-        log_det_jacobian = torch.ones(y.shape[0],
-                                      device=y.device) * torch.log(det_jacobian)
+        log_det_jacobian = torch.ones(y.shape[0], device=y.device) * torch.log(
+            det_jacobian
+        )
 
         return y, log_det_jacobian
 
@@ -183,8 +188,9 @@ class Affine(Flow):
 
         x = (y - self.shift) / torch.exp(self.scale)
         det_jacobian = 1 / torch.exp(self.scale.sum())
-        inverse_log_det_jacobian = torch.ones(
-            x.shape[0], device=y.device) * torch.log(det_jacobian)
+        inverse_log_det_jacobian = torch.ones(x.shape[0], device=y.device) * torch.log(
+            det_jacobian
+        )
 
         return x, inverse_log_det_jacobian
 
@@ -248,10 +254,12 @@ class MaskedAffineFlow(Flow):
     def __init__(
         self,
         b: torch.Tensor,
-        t: Optional[Union[torch.nn.ModuleList, torch.nn.Sequential,
-                          torch.nn.Module]] = None,
-        s: Optional[Union[torch.nn.ModuleList, torch.nn.Sequential,
-                          torch.nn.Module]] = None
+        t: Optional[
+            Union[torch.nn.ModuleList, torch.nn.Sequential, torch.nn.Module]
+        ] = None,
+        s: Optional[
+            Union[torch.nn.ModuleList, torch.nn.Sequential, torch.nn.Module]
+        ] = None,
     ) -> None:
         """
         Initializes the Masked Affine Flow layer
@@ -306,8 +314,7 @@ class MaskedAffineFlow(Flow):
         trans = self.t(z_masked)
         trans = torch.where(torch.isfinite(trans), trans, nan)
         z_ = z_masked + (1 - self.b) * (z * torch.exp(scale) + trans)
-        log_det = torch.sum((1 - self.b) * scale,
-                            dim=list(range(1, self.b.dim())))
+        log_det = torch.sum((1 - self.b) * scale, dim=list(range(1, self.b.dim())))
         return z_, log_det
 
     def inverse(self, z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -333,8 +340,7 @@ class MaskedAffineFlow(Flow):
         trans = self.t(z_masked)
         trans = torch.where(torch.isfinite(trans), trans, nan)
         z_ = z_masked + (1 - self.b) * (z - trans) * torch.exp(-scale)
-        log_det = -torch.sum(
-            (1 - self.b) * scale, dim=list(range(1, self.b.dim())))
+        log_det = -torch.sum((1 - self.b) * scale, dim=list(range(1, self.b.dim())))
         return z_, log_det
 
 
@@ -391,8 +397,7 @@ class ActNorm(Affine):
     """
 
     def __init__(self, *args, **kwargs) -> None:
-        """Initializes the ActNorm layer
-        """
+        """Initializes the ActNorm layer"""
         super().__init__(*args, **kwargs)
         self.data_dep_init_done = torch.tensor(0.0).detach().cpu()
 
@@ -417,8 +422,9 @@ class ActNorm(Affine):
             assert self.scale is not None and self.shift is not None
             s_init = -torch.log(z.std(dim=self.batch_dims, keepdim=True) + 1e-6)
             self.scale.data = s_init.data
-            self.shift.data = (-z.mean(dim=self.batch_dims, keepdim=True) *
-                               torch.exp(self.scale)).data
+            self.shift.data = (
+                -z.mean(dim=self.batch_dims, keepdim=True) * torch.exp(self.scale)
+            ).data
             self.data_dep_init_done = torch.tensor(1.0)
         return super().forward(z)
 
@@ -664,9 +670,12 @@ class NormalizingFlow(nn.Module):
 
     """
 
-    def __init__(self, transform: Sequence,
-                 base_distribution: torch.distributions.Distribution,
-                 dim: int) -> None:
+    def __init__(
+        self,
+        transform: Sequence,
+        base_distribution: torch.distributions.Distribution,
+        dim: int,
+    ) -> None:
         """This class considers a transformation, or a composition of transformations
         functions (layers), between a base distribution and a target distribution.
 
@@ -775,11 +784,13 @@ class NormalizingFlowModel(TorchModel):
     10
     """
 
-    def __init__(self,
-                 dim: int,
-                 num_layers: int,
-                 flowList: Optional[List[Flow]] = None,
-                 device: Optional[torch.device] = None):
+    def __init__(
+        self,
+        dim: int,
+        num_layers: int,
+        flowList: Optional[List[Flow]] = None,
+        device: Optional[torch.device] = None,
+    ):
         """Initializes the Normalizing Flow model
 
         Parameters
@@ -800,14 +811,15 @@ class NormalizingFlowModel(TorchModel):
             latent_size = dim
             self.latent_size = latent_size
 
-            b = torch.Tensor(
-                [1 if i % 2 == 0 else 0 for i in range(latent_size)])
+            b = torch.Tensor([1 if i % 2 == 0 else 0 for i in range(latent_size)])
             flows = []
             for i in range(num_layers):
-                s = MLPFlow([latent_size, 2 * latent_size, latent_size],
-                            init_zeros=True)
-                t = MLPFlow([latent_size, 2 * latent_size, latent_size],
-                            init_zeros=True)
+                s = MLPFlow(
+                    [latent_size, 2 * latent_size, latent_size], init_zeros=True
+                )
+                t = MLPFlow(
+                    [latent_size, 2 * latent_size, latent_size], init_zeros=True
+                )
                 if i % 2 == 0:
                     flows += [MaskedAffineFlow(b, t, s)]
                 else:
@@ -816,29 +828,31 @@ class NormalizingFlowModel(TorchModel):
             self.flows: Sequence = flows  # type: ignore
         if device is None:
             if torch.cuda.is_available():
-                device = torch.device('cuda')
+                device = torch.device("cuda")
             elif torch.backends.mps.is_available():
-                device = torch.device('mps')
+                device = torch.device("mps")
             else:
-                device = torch.device('cpu')
+                device = torch.device("cpu")
         self.distribution = MultivariateNormal(
-            torch.zeros(dim).to(device=device),
-            torch.eye(dim).to(device=device))
+            torch.zeros(dim).to(device=device), torch.eye(dim).to(device=device)
+        )
         self.nfm = NormalizingFlow(self.flows, self.distribution, dim)
-        super(NormalizingFlowModel,
-              self).__init__(self.nfm, loss=self.nfm.log_prob)  # type: ignore
+        super(NormalizingFlowModel, self).__init__(
+            self.nfm, loss=self.nfm.log_prob
+        )  # type: ignore
 
     # adding a # type: ignore to the fit method to avoid the following error:
     # error: Signature of "fit" incompatible with supertype "TorchModel"
     # This is because the fit method in the TorchModel class has a different signature
     def fit(  # type: ignore
-            self,
-            dataset: torch.Tensor,
-            epochs: int = 10,
-            learning_rate: float = 0.001,
-            weight_decay: float = 0.0001,
-            optimizer: Any = torch.optim.Adam,
-            logging: bool = False) -> None:
+        self,
+        dataset: torch.Tensor,
+        epochs: int = 10,
+        learning_rate: float = 0.001,
+        weight_decay: float = 0.0001,
+        optimizer: Any = torch.optim.Adam,
+        logging: bool = False,
+    ) -> None:
         """Fit the Normalizing Flow
 
         Parameters
@@ -855,12 +869,11 @@ class NormalizingFlowModel(TorchModel):
             Optimizer for the model, by default torch.optim.Adam
         """
         self.loss_hist = np.array([])
-        optimizer = optimizer(self.nfm.parameters(),
-                              lr=learning_rate,
-                              weight_decay=weight_decay)
+        optimizer = optimizer(
+            self.nfm.parameters(), lr=learning_rate, weight_decay=weight_decay
+        )
         nfm = self.nfm
-
-        for epoch in range(epochs):
+        for epoch in tqdm(range(epochs)):
             optimizer.zero_grad()  # type: ignore
 
             # Get training samples
