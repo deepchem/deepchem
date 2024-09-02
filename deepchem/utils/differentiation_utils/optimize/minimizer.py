@@ -17,8 +17,8 @@ def gd(
         x_tol: float = 0.0,
         x_rtol: float = 1e-8,
         # misc parameters
-        verbose = False,
-        terminate = False,
+        verbose=False,
+        terminate=False,
         **unused):
     r"""
     Vanilla gradient descent with momentum. The stopping conditions use OR criteria.
@@ -107,8 +107,8 @@ def adam(
         x_tol: float = 0.0,
         x_rtol: float = 1e-8,
         # misc parameters
-        verbose = False,
-        terminate = False,
+        verbose=False,
+        terminate=False,
         **unused):
     r"""
     Adam optimizer by Kingma & Ba (2015). The stopping conditions use OR criteria.
