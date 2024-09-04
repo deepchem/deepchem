@@ -20,7 +20,7 @@ class TestRealignerFeaturizer(unittest.TestCase):
         candidate_regions, _ = self.featurizer._featurize(datapoint)
 
         # Assert the number of candidate regions
-        self.assertEqual(len(candidate_regions), 54)
+        self.assertEqual(len(candidate_regions), 53)
 
     def test_reads_length(self):
         bam_file_path = os.path.join(self.current_dir, "example.bam")
@@ -29,7 +29,7 @@ class TestRealignerFeaturizer(unittest.TestCase):
         _, reads = self.featurizer._featurize(datapoint)
 
         # Assert the number of reads
-        self.assertEqual(len(reads), 33988)
+        self.assertEqual(len(reads), 19898)
 
 
 if __name__ == "__main__":

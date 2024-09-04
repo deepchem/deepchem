@@ -199,10 +199,7 @@ class BAMFeaturizer(Featurizer):
 
             if (self.get_pileup):
                 pileup_columns = []
-                for pileupcolumn in datapoint.pileup(
-                        reference=record.reference_name,
-                        start=record.reference_start,
-                        end=record.reference_end):
+                for pileupcolumn in datapoint.pileup():
                     pileup_info = {
                         "name":
                             pileupcolumn.reference_name,
