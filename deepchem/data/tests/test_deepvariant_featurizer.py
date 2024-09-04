@@ -21,11 +21,11 @@ class TestRealignerFeaturizer(unittest.TestCase):
 
         # Assert the number of reads
         self.assertEqual(len(candidate_windows), 15)
-        self.assertEqual(candidate_windows[13][0],'chr2')
-        self.assertEqual(candidate_windows[13][1],136)
-        self.assertEqual(candidate_windows[13][2],137)
-        self.assertEqual(candidate_windows[13][3],102)
-        self.assertEqual(candidate_windows[13][4],21)
+        self.assertEqual(candidate_windows[13][0], 'chr2')
+        self.assertEqual(candidate_windows[13][1], 136)
+        self.assertEqual(candidate_windows[13][2], 137)
+        self.assertEqual(candidate_windows[13][3], 102)
+        self.assertEqual(candidate_windows[13][4], 21)
 
 
 if __name__ == "__main__":
