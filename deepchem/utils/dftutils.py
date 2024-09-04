@@ -11,11 +11,7 @@ try:
 except Exception as e:
     warnings.warn("Could not import torch. Skipping tests." + str(e))
 
-try:
-    import xitorch as xt
-except Exception as e:
-    warnings.warn("Could not import xitorch. Skipping tests." + str(e))
-
+from deepchem.utils.differentiation_utils import EditableModule
 
 T = TypeVar('T')
 
@@ -231,7 +227,7 @@ def hashstr(s: str) -> str:
     return str(hashlib.blake2s(str.encode(s)).hexdigest())
 
 
-class BaseGrid(xt.EditableModule):
+class BaseGrid(EditableModule):
     """
     Interface to DQC's BaseGrid class. BaseGrid is a class that regulates the integration points over the spatial
     dimensions.
