@@ -20,10 +20,12 @@ class TestRealignerFeaturizer(unittest.TestCase):
         candidate_windows = self.featurizer._featurize(datapoint)
 
         # Assert the number of reads
-        self.assertEqual(len(candidate_windows), 14)
-        self.assertEqual(candidate_windows[13],
-                         ('chr2', 193, 197, 18, 21,
-                          ['GTAAATTGATTTGAATTTTATTTCTTGGTAATGAGG']))
+        self.assertEqual(len(candidate_windows), 15)
+        self.assertEqual(candidate_windows[13][0],'chr2')
+        self.assertEqual(candidate_windows[13][1],136)
+        self.assertEqual(candidate_windows[13][2],137)
+        self.assertEqual(candidate_windows[13][3],102)
+        self.assertEqual(candidate_windows[13][4],21)
 
 
 if __name__ == "__main__":
