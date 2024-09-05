@@ -21,7 +21,7 @@ def test_dftutils():
         }
     }
     atomzs, atomposs = parse_moldesc(system["kwargs"]["moldesc"])
-    mol = Mol(**system["kwargs"])
+    mol = Mol(**system["kwargs"], spin=0.0)
     qc = KS(mol, xc='lda_x').run()
     qcs = KSCalc(qc)
     a = qcs.energy()
