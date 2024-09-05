@@ -93,6 +93,7 @@ class BasicMolGANModel(WGANModel):
                  nodes: int = 5,
                  embedding_dim: int = 10,
                  dropout_rate: float = 0.0,
+                 mode: str = "",
                  device: Optional[torch.device] = None,
                  **kwargs):
         """
@@ -110,6 +111,11 @@ class BasicMolGANModel(WGANModel):
             Size of noise input array
         dropout_rate: float, default = 0.
             Rate of dropout used across whole model
+        mode: str, default = ""
+            The mode for generation used during training,
+            "" => normal softmax
+            "gumbel" => softmax + gumbel noise
+            "straight" => straight-through estimator
         name: str, default ''
             Name of the model
         """
@@ -119,6 +125,7 @@ class BasicMolGANModel(WGANModel):
         self.nodes = nodes
         self.embedding_dim = embedding_dim
         self.dropout_rate = dropout_rate
+        self.mode = mode
         if device is None:
             if torch.cuda.is_available():
                 self.device = torch.device('cuda')
@@ -179,7 +186,8 @@ class BasicMolGANModel(WGANModel):
                                     edges=self.edges,
                                     nodes=self.nodes,
                                     dropout_rate=self.dropout_rate,
-                                    embedding_dim=self.embedding_dim)
+                                    embedding_dim=self.embedding_dim,
+                                    mode=self.mode)
 
     def create_discriminator(self,
                              units: List[Union[Tuple[int, int],
@@ -267,10 +275,11 @@ class BasicMolGANGenerator(nn.Module):
 
     def __init__(self,
                  vertices: int = 9,
-                 edges: int = 5,
+                 edges: int = 4,
                  nodes: int = 5,
                  dropout_rate: float = 0.0,
                  embedding_dim: int = 10,
+                 mode: str = "",
                  name: str = "SimpleMolGANGenerator",
                  **kwargs):
         """
@@ -297,6 +306,7 @@ class BasicMolGANGenerator(nn.Module):
         self.nodes = nodes
         self.dropout_rate = dropout_rate
         self.embedding_dim = embedding_dim
+        self.mode = mode
 
         self.dense1 = nn.Linear(self.embedding_dim, 128)  # tanh
         self.dropout1 = nn.Dropout(dropout_rate)
@@ -340,11 +350,14 @@ class BasicMolGANGenerator(nn.Module):
         if isinstance(inputs, list):
             inputs = inputs[0]
         x = F.tanh(self.dense1(inputs))
-        x = self.dropout1(x)
+        if training:
+            x = self.dropout1(x)
         x = F.tanh(self.dense2(x))
-        x = self.dropout2(x)
+        if training:
+            x = self.dropout2(x)
         x = F.tanh(self.dense3(x))
-        x = self.dropout3(x)
+        if training:
+            x = self.dropout3(x)
 
         # edges logits
         edges_logits = self.edges_dense(x)
@@ -353,17 +366,28 @@ class BasicMolGANGenerator(nn.Module):
         matrix_transpose = edges_logits.permute(0, 1, 3, 2)
         edges_logits = (edges_logits + matrix_transpose) / 2
         edges_logits = edges_logits.permute(0, 2, 3, 1)
-        edges_logits = self.edges_dropout(edges_logits)
+        if training:
+            edges_logits = self.edges_dropout(edges_logits)
 
         # nodes logits
         nodes_logits = self.nodes_dense(x)
         nodes_logits = nodes_logits.view(-1, self.vertices, self.nodes)
-        nodes_logits = self.nodes_dropout(nodes_logits)
+        if training:
+            nodes_logits = self.nodes_dropout(nodes_logits)
 
         if sample_generation is False:
             # For training
-            edges = F.softmax(edges_logits, dim=-1)
-            nodes = F.softmax(nodes_logits, dim=-1)
+            if self.mode == "":
+                edges = F.softmax(edges_logits, dim=-1)
+                nodes = F.softmax(nodes_logits, dim=-1)
+            elif self.mode == "gumbel":
+                edges = F.gumbel_softmax(edges_logits, dim=-1)
+                nodes = F.gumbel_softmax(nodes_logits, dim=-1)
+            elif self.mode == "straight":
+                edges = F.gumbel_softmax(edges_logits, hard=True, dim=-1)
+                nodes = F.gumbel_softmax(nodes_logits, hard=True, dim=-1)
+            else:
+                raise NotImplementedError
         else:
             # For sample generation
             e_gumbel_logits = edges_logits - torch.log(-torch.log(
@@ -387,7 +411,7 @@ class Discriminator(nn.Module):
         self,
         dropout_rate: float,
         units: List = [(64, 32), 128], # rn from paper, OG - [(128, 64), 64], from repo - [(128, 64), 128]
-        edges: int = 5,
+        edges: int = 4,
         nodes: int = 5,
         device: Optional[torch.device] = torch.device('cpu')
     ) -> None:
