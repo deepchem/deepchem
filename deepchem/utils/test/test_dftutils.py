@@ -9,7 +9,7 @@ except Exception as e:
     warnings.warn("Could not import torch. Skipping tests." + str(e))
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_dftutils():
     from deepchem.utils.dft_utils import parse_moldesc, Mol, KS
     from deepchem.utils.dftutils import KSCalc
@@ -29,7 +29,7 @@ def test_dftutils():
     assert torch.allclose(a, b)
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_SpinParam_sum():
     from deepchem.utils.dftutils import SpinParam
     dens_u = torch.rand(10)
@@ -39,7 +39,7 @@ def test_SpinParam_sum():
     assert torch.all(sp.sum().eq(dens_u + dens_d)).item()
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_SpinParam_reduce():
     from deepchem.utils.dftutils import SpinParam
     dens_u = torch.rand(10)
@@ -52,7 +52,7 @@ def test_SpinParam_reduce():
     assert torch.all(sp.reduce(fcn).eq(dens_u * dens_d)).item()
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_str():
     from deepchem.utils.dftutils import hashstr
     s = "hydrogen fluoride"
