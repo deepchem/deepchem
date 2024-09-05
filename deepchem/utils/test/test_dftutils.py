@@ -11,9 +11,7 @@ except Exception as e:
 
 @pytest.mark.dqc
 def test_dftutils():
-    import dqc
-    from dqc.system.mol import Mol
-    from dqc.qccalc.ks import KS
+    from deepchem.utils.dft_utils import parse_moldesc, Mol, KS
     from deepchem.utils.dftutils import KSCalc
     system = {
         'type': 'mol',
@@ -22,7 +20,7 @@ def test_dftutils():
             'basis': '6-311++G(3df,3pd)'
         }
     }
-    atomzs, atomposs = dqc.parse_moldesc(system["kwargs"]["moldesc"])
+    atomzs, atomposs = parse_moldesc(system["kwargs"]["moldesc"])
     mol = Mol(**system["kwargs"])
     qc = KS(mol, xc='lda_x').run()
     qcs = KSCalc(qc)
