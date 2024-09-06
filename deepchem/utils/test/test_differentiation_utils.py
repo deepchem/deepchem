@@ -1236,11 +1236,10 @@ def test_terminate_param():
     import torch
 
     def fun(x):
-        return torch.tan(x), (1/torch.cos(x))**2
+        return torch.tan(x), (1 / torch.cos(x))**2
 
     x0 = torch.tensor(0.0, requires_grad=True)
     x0.grad = torch.tensor(1.0)
     x1 = gd(fun, x0, [], terminate=True)
     x2 = gd(fun, x0, [], terminate=False)
     assert not torch.allclose(x1, x2)
-
