@@ -192,3 +192,4 @@ DeepChem has a number of "soft" requirements.
 .. _`pylibxc`: https://gitlab.com/libxc/libxc/
 .. _`dqclibs`: https://github.com/diffqc/dqclibs
 .. _`basis-set-exchange`: https://www.basissetexchange.org/
+.. _`ssw`: https://github.com/vishnubob/ssw
