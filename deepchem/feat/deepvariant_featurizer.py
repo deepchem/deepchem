@@ -539,10 +539,10 @@ class _Realigner(object):
         return aligned_reads
 
     def process_candidate_windows(
-        self, candidate_regions: List[Tuple[str, int, int,
-                                            int]], bamfiles: List[Any],
-        reference_seq_dict: Dict[str,
-                                 str]) -> List[dict[str, Sequence[object]]]:
+        self, candidate_regions: List[Tuple[str, int, int, int]],
+        bamfiles: List[Any], reference_seq_dict: Dict[str, str]
+    ) -> List[dict[str, Sequence[tuple[str, Any, int, str, int, Any, int] |
+                                 str | int]]]:
         """
         Process candidate regions to generate window haplotyples with realigned reads.
 
