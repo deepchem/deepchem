@@ -149,6 +149,9 @@ DeepChem has a number of "soft" requirements.
 | `basis-set-exchange`_          | latest        | :code:`deepchem.utils.dft_utils.api.loadbasis`    |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
+| `ssw`_                         | latest        | :code:`dc.feat.deepvariant_featurizer`            |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
 
 
 .. _`joblib`: https://pypi.python.org/pypi/joblib

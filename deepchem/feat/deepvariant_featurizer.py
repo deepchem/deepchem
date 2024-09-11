@@ -1,9 +1,10 @@
 import numpy as np
 from collections import defaultdict
 from deepchem.feat import Featurizer
-from typing import List, Dict, Tuple, Any, Optional
+from typing import List, Dict, Tuple, Any, Optional, Sequence
 
 try:
+    import ssw
     import dgl
     import torch
 except ImportError:
@@ -273,7 +274,7 @@ class _Realigner(object):
 
     def fetchreads(self, bamfiles: List[Tuple[str, Any, int, str, int, Any, int,
                                               Any]], chrom: str, start: int,
-                   end: int) -> List[str]:
+                   end: int) -> List[Tuple[str, Any, int, str, int, Any, int]]:
         """
         Fetch reads from BAM files for a specific chromosome and region.
         This function extracts reads from BAM files that overlap with the
@@ -295,21 +296,22 @@ class _Realigner(object):
         Returns
         -------
 
-        List[str]
-            List of read sequences that fall within the specified region.
+        List[Tuple[str, Any, int, str, int, Any, int]]
+            List of reads that overlap with the specified chromosome and region.
         """
-        reads: List[str] = []
+        reads: List[Tuple[str, Any, int, str, int, Any, int]] = []
         for bamfile in bamfiles:
             refname = bamfile[3]
             refstart = bamfile[4]
             refend = refstart + bamfile[2]
 
             if refname == chrom and refstart < end and refend > start:
-                reads.append(bamfile[1])
+                reads.append(bamfile[0:7])
         return reads
 
     def build_debruijn_graph(
-        self, ref: str, reads: List[str], k: int
+        self, ref: str, reads: List[Tuple[str, Any, int, str, int, Any,
+                                          int]], k: int
     ) -> Tuple[Optional[Any], Optional[Dict[str, int]], Optional[Dict[int,
                                                                       str]]]:
         """
@@ -323,7 +325,7 @@ class _Realigner(object):
 
         ref : str
             Reference sequence as a string.
-        reads : List[str]
+        reads : List[Tuple[str, Any, int, str, int, Any, int]]
             List of read sequences.
         k : int
             Length of k-mers.
@@ -349,7 +351,7 @@ class _Realigner(object):
 
         # Count k-mers in reads
         for read in reads:
-            for kmer in get_kmers(read, k):
+            for kmer in get_kmers(read[1], k):
                 kmer_counts[kmer] += 1
 
         kmer_to_id: Dict[str, int] = {}
@@ -468,12 +470,81 @@ class _Realigner(object):
 
         return sorted(haplotypes)
 
-    def process_candidate_windows(
-        self, candidate_regions: List[Tuple[str, int, int, int]],
-        bamfiles: List[Any], reference_seq_dict: Dict[str, str]
-    ) -> List[Tuple[str, int, int, int, int, List[str]]]:
+    def assign_reads_to_regions(
+        self, assembled_regions: List[Dict[str, Any]],
+        reads: List[Tuple[str, Any, int, str, int, Any, int]]
+    ) -> List[Tuple[str, Any, int, str, int, Any, int]]:
         """
-        Process candidate regions to generate candidate windows with haplotypes.
+        Assign reads to regions based on maximum overlap with haplotypes.
+
+        Parameters
+        ----------
+        assembled_regions : List[Dict[str, Any]]
+            List of dictionaries, where each dictionary contains information about
+            a region, including its haplotypes and reads.
+        reads : List[Tuple[str, Any, int, str, int, Any, int]]
+            List of reads.
+
+        Returns
+        -------
+        List[Tuple[str, Any, int, str, int, Any, int]]
+            List of reads that couldn't be assigned to any region.
+
+        """
+        regions = [(0, len(ar["haplotypes"][0])) for ar in assembled_regions]
+        unassigned_reads: List[Tuple[str, Any, int, str, int, Any, int]] = []
+        for read in reads:
+            read_start = read[4]
+            read_end = read_start + read[2]
+            # to find maximum overlap
+            max_overlap = 0
+            max_index = None
+            for i, region in enumerate(regions):
+                region_start, region_end = map(
+                    int, region)  # Ensure regions are integers
+                overlap = max(
+                    0,
+                    min(read_end, region_end) - max(read_start, region_start))
+                if overlap > max_overlap:
+                    max_overlap = overlap
+                    max_index = i
+            window_i = max_index
+            if window_i is not None:
+                assembled_regions[window_i]["reads"].append(read)
+            else:
+                unassigned_reads.append(read)
+        return unassigned_reads
+
+    def fast_pass_aligner(self, assembled_region: Dict[str, Any]) -> List[Any]:
+        """
+        Align reads to the haplotype of the assembled region using SSW Aligner.
+
+        Parameters
+        ----------
+        assembled_region : Dict[str, Any]
+            Dictionary containing the haplotype information and reads for a given region.
+
+        Returns
+        -------
+        List[Any]
+            List of alignments returned by the aligner.
+        """
+        aligner = ssw.Aligner()
+        aligned_reads: List[Any] = []
+        ref_sequence = assembled_region["haplotypes"][0]
+        for read in assembled_region["reads"]:
+            query_sequence = read[1]
+            alignment = aligner.align(query_sequence, ref_sequence)
+            aligned_reads.append(alignment)
+        return aligned_reads
+
+    def process_candidate_windows(
+        self, candidate_regions: List[Tuple[str, int, int,
+                                            int]], bamfiles: List[Any],
+        reference_seq_dict: Dict[str,
+                                 str]) -> List[dict[str, Sequence[object]]]:
+        """
+        Process candidate regions to generate window haplotyples with realigned reads.
 
         Parameters
         ----------
@@ -488,10 +559,14 @@ class _Realigner(object):
         Returns
         -------
 
-        List[Tuple[str, int, int, int, int, List[str]]]
-            List of candidate windows with haplotypes.
+        List[Dict[str, Any]]
+            List of dictionaries, where each dictionary represents a candidate window
+            and contains:
+            - 'span' : Tuple of (chromosome, start, end)
+            - 'haplotypes' : List of haplotypes (List[str])
+            - 'realigned_reads' : List of realigned reads (List[Any])
         """
-        candidate_windows: List[Tuple[str, int, int, int, int, List[str]]] = []
+        windows_haplotypes = []
 
         for chrom, start, end, count in candidate_regions:
             window_reads = self.fetchreads(bamfiles, chrom, start, end)
@@ -522,15 +597,29 @@ class _Realigner(object):
                 if candidate_haplotypes_list and candidate_haplotypes_list != [
                         ref_sequence
                 ]:
-                    candidate_windows.append((chrom, start, end, count, k,
-                                              candidate_haplotypes_list))
                     break
 
             if not found_graph:
-                candidate_windows.append(
-                    (chrom, start, end, count, k, [ref_sequence]))
+                candidate_haplotypes_list = [ref_sequence]
 
-        return candidate_windows
+            assembled_regions = [{
+                "haplotypes": haplotypes,
+                "reads": []
+            } for haplotypes in candidate_haplotypes_list]
+            realigned_reads = self.assign_reads_to_regions(
+                assembled_regions, window_reads)
+
+            for assembled_region in assembled_regions:
+                aligned_reads = self.fast_pass_aligner(assembled_region)
+                realigned_reads.extend(aligned_reads)
+
+            windows_haplotypes.append({
+                'span': (chrom, start, end),
+                'haplotypes': candidate_haplotypes_list,
+                'realigned_reads': realigned_reads
+            })
+
+        return windows_haplotypes
 
 
 class RealignerFeaturizer(Featurizer):
@@ -623,6 +712,6 @@ class RealignerFeaturizer(Featurizer):
             bamfiles, reference_seq_dict)
         candidate_regions = self.realigner.select_candidate_regions(
             allele_counts)
-        candidate_windows = self.realigner.process_candidate_windows(
+        windows_haplotypes = self.realigner.process_candidate_windows(
             candidate_regions, bamfiles, reference_seq_dict)
-        return candidate_windows
+        return windows_haplotypes
