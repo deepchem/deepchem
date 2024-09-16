@@ -582,6 +582,12 @@ Smiles2Vec
 .. autoclass:: deepchem.models.torch_models.Smiles2Vec
   :members:
 
+Smiles2VecModel
+--------------------
+
+.. autoclass:: deepchem.models.torch_models.Smiles2VecModel
+  :members:
+
 MXMNet
 ------
 

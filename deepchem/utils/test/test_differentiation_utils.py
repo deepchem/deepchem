@@ -1228,3 +1228,18 @@ def test_midpoint():
     assert torch.allclose(sol[-1][0],
                           torch.tensor(sol_scipy.y[0][-1], dtype=torch.float),
                           0.01, 0.001)
+
+
+@pytest.mark.torch
+def test_terminate_param():
+    from deepchem.utils.differentiation_utils import gd
+    import torch
+
+    def fun(x):
+        return torch.tan(x), (1 / torch.cos(x))**2
+
+    x0 = torch.tensor(0.0, requires_grad=True)
+    x0.grad = torch.tensor(1.0)
+    x1 = gd(fun, x0, [], terminate=True)
+    x2 = gd(fun, x0, [], terminate=False)
+    assert not torch.allclose(x1, x2)
