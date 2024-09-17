@@ -117,17 +117,11 @@ class DeepAbLLM(HuggingFaceModel):
     >>> # Optimize Sequence
     >>> from deepchem.models.torch_models.antibody_modeling import DeepAbLLM
     >>> model_path = 'Rostlab/prot_bert'
-    >>> anti_llm = DeepAbLLM(task='mlm', model_path=model_path, n_tasks=1)
-    >>> anti_llm.model.to('cuda')  # Move to GPU for faster inference
-    >>> optimized_sequences = anti_llm.redesign_sequence('GSELTQDPAVSVALGQTVRITCQGDSLRNYYASWYQQKPRQAPVLVFYGKNNRPSGIPDRFSGSSSGNTASLTISGAQAEDEADYYCNSRDSSSNHLVFGGGTKLTVLSQ', rounds=1)
-    >>> optimized_sequences
-
-    >>> [(0,
-        'Q',
-        'QSETQDPAVSVALGQTVRITCQGDSLRNYYASWYQQKPRQAPVLVFYGKNNRPSGIPDRFSGSSSGNTASLTISGAQAEDEADYYCNSRDSSSNHLVFGGGTKLTVLSQ',
-        0.7314766049385071),
-        ...
-        ]
+    >>> anti_llm = DeepAbLLM(task='mlm', model_path=model_path, n_tasks=1, is_esm_variant=False)
+    >>> anti_llm.model.to('cpu')  # Move to GPU for faster inference with .to('cuda')
+    >>> optimized_sequences = anti_llm.redesign_sequence('GSELTQDPAVSVALGQTVRITCQGDSLRNYYASWYQQKPRQAPVLVFYGKNNRPSGIPDRFSGSSSGNTASLTISGAQAEDEADYYCNSRDSSSNHLVFGGGTKLTVLSQ')
+    >>> optimized_sequences[0]
+    (0,'Q','QSETQDPAVSVALGQTVRITCQGDSLRNYYASWYQQKPRQAPVLVFYGKNNRPSGIPDRFSGSSSGNTASLTISGAQAEDEADYYCNSRDSSSNHLVFGGGTKLTVLSQ',0.7314766049385071)
     """
 
     def __init__(self,
