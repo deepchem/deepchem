@@ -58,6 +58,21 @@ def test_load_from_pretrained(tmpdir):
 
 
 @pytest.mark.torch
+def test_initialize_new_config():
+    model_path = 'Rostlab/prot_bert'
+    config = {"num_attention_heads": 8, "num_hidden_layers": 6}
+    model = DeepAbLLM(
+        task='mlm',
+        model_path=model_path,
+        n_tasks=1,
+        config=config,
+    )
+
+    assert model.model.config['num_attention_heads'] == 8
+    assert model.model.config['num_hidden_layers'] == 6
+
+
+@pytest.mark.torch
 def test_save_reload(tmpdir):
     model_path = 'Exscientia/IgBert'
     anti_model = DeepAbLLM(task='mlm',
@@ -87,8 +102,9 @@ def test_save_reload(tmpdir):
 @pytest.mark.torch
 def test_mask_seq_pos(igbert_tokenizer):
     from deepchem.models.torch_models.antibody_modeling import DeepAbLLM
-    anti_model = DeepAbLLM(model_path='Rostlab/prot_bert',
+    anti_model = DeepAbLLM(model_path='facebook/esm2_t6_8M_UR50D',
                            task='mlm',
+                           is_esm_variant=True,
                            device=torch.device('cpu'))
     anti_model._ensure_built()
 
@@ -130,7 +146,7 @@ def test_optimize_sequence():
     anti_model = DeepAbLLM(model_path='Exscientia/IgBert', task='mlm')
     anti_model._ensure_built()
     ab_sequence = "ALTQPASVSGSPGQSITISCTGTSSDVGGYNYVSWYQQHPGKAPKLMIYDVSKRPSGVSNRFSGSKSGNTASLTISGLQSEDEADYYCNSLTSISTWVFGGGTKLTVL"
-    redesigned_sequences = anti_model.optimize_sequence(ab_sequence)
+    redesigned_sequences = anti_model.redesign_sequence(ab_sequence)
     assert len(redesigned_sequences) > 0
     for item in redesigned_sequences:
         # Assert that the tuples are of (token_str, full_seq, score)
