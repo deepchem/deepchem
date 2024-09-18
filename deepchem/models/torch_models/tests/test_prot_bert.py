@@ -6,8 +6,8 @@ import pytest
 try:
     import torch
     from deepchem.models.torch_models.prot_bert import ProtBERT
-    import torch.nn.functional as F
-    import torch.nn as nn
+    # import torch.nn.functional as F
+    # import torch.nn as nn
 except ModuleNotFoundError:
     pass
 
@@ -23,9 +23,8 @@ except ModuleNotFoundError:
 #     loss = model.fit(protein_classification_dataset, nb_epoch=1)
 #     assert loss
 
-
-#@pytest.mark.torch
-#def test_prot_bert_finetuning(protein_classification_dataset):
+# @pytest.mark.torch
+# def test_prot_bert_finetuning(protein_classification_dataset):
 
 #    model_path = 'Rostlab/prot_bert'
 
