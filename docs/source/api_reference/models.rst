@@ -648,6 +648,12 @@ ProtBERT
 .. autoclass:: deepchem.models.torch_models.prot_bert.ProtBERT
   :members:
 
+DeepAbLLM
+---------
+
+.. autoclass:: deepchem.models.torch_models.antibody_modeling.DeepAbLLM
+  :members:
+  
 Trainer
 =======
 
