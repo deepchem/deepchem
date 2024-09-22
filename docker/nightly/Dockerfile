@@ -1,8 +1,8 @@
-FROM nvidia/cuda:11.3.0-cudnn8-devel
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
 # Install some utilities
 RUN apt-get update && \
-    apt-get install -y -q wget git libxrender1 libsm6 bzip2 && \
+    apt-get install -y -q wget git libxrender1 libsm6 bzip2 cmake build-essential libblas-dev && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Install miniconda
@@ -19,7 +19,7 @@ SHELL ["/bin/bash", "-c"]
 RUN conda update -n base conda && \
     git clone --depth 1 https://github.com/deepchem/deepchem.git && \
     cd deepchem && \
-    source scripts/install_deepchem_conda.sh 3.7 gpu && \
+    source scripts/install_deepchem_conda.sh 3.10 gpu && \
     conda activate deepchem && \
     pip install -e . && \
     conda clean -afy && \

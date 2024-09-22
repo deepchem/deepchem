@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 try:
     import torch
     from deepchem.utils.differentiation_utils import EditableModule
@@ -757,6 +758,24 @@ def test_get_largest_eival():
 
 
 @pytest.mark.torch
+def test_broyden1_solve():
+    from deepchem.utils.differentiation_utils.solve import broyden1_solve
+    A = torch.tensor([[1., 2], [3, 4]])
+    B = torch.tensor([[5., 6], [7, 8]])
+    assert torch.allclose(broyden1_solve(A, B),
+                          torch.tensor([[-3.0000, -4.0000], [4.0000, 5.0000]]))
+
+
+@pytest.mark.torch
+def test_rootfinder_solve():
+    from deepchem.utils.differentiation_utils.solve import _rootfinder_solve
+    A = torch.tensor([[1., 2], [3, 4]])
+    B = torch.tensor([[5., 6], [7, 8]])
+    assert torch.allclose(_rootfinder_solve("broyden1", A, B),
+                          torch.tensor([[-3.0000, -4.0000], [4.0000, 5.0000]]))
+
+
+@pytest.mark.torch
 def test_symeig():
     from deepchem.utils.differentiation_utils import LinearOperator, symeig
     A = LinearOperator.m(torch.tensor([[3, -1j], [1j, 4]]))
@@ -845,3 +864,382 @@ def test_cg():
     B = torch.tensor([[5., 6], [7, 8]])
     assert torch.allclose(cg(A, B),
                           torch.tensor([[-3.0000, -4.0000], [4.0000, 5.0000]]))
+
+
+@pytest.mark.torch
+def test_svd():
+    from deepchem.utils.differentiation_utils import LinearOperator, svd
+    A = LinearOperator.m(torch.tensor([[3, 1], [1, 4.]]))
+    U, S, _ = svd(A)
+    assert torch.allclose(torch.tensor([[-0.8507, 0.5257], [0.5257, 0.8507]]),
+                          U, 0.001)
+    assert torch.allclose(torch.tensor([2.3820, 4.6180]), S, 0.001)
+
+
+@pytest.mark.torch
+def test_BroydenFirst():
+    from deepchem.utils.differentiation_utils.optimize.jacobian import BroydenFirst
+    jacobian = BroydenFirst()
+    x0 = torch.tensor([1.0, 1.0], requires_grad=True)
+
+    def func(x):
+        return torch.tensor([x[0]**2 + x[1]**2 - 1.0, x[0] - x[1]])
+
+    y0 = func(x0)
+    v = torch.tensor([1.0, 1.0])
+    jacobian.setup(x0, y0, func)
+    assert torch.allclose(jacobian.solve(v), torch.tensor([-0.7071, -0.7071]))
+
+
+@pytest.mark.torch
+def test_BroydenSecond():
+    from deepchem.utils.differentiation_utils.optimize.jacobian import BroydenSecond
+    jacobian = BroydenSecond()
+    x0 = torch.tensor([1.0, 1.0], requires_grad=True)
+
+    def func(x):
+        return torch.tensor([x[0]**2 + x[1]**2 - 1.0, x[0] - x[1]])
+
+    y0 = func(x0)
+    v = torch.tensor([1.0, 1.0])
+    jacobian.setup(x0, y0, func)
+    assert torch.allclose(jacobian.solve(v), torch.tensor([-0.7071, -0.7071]))
+
+
+@pytest.mark.torch
+def test_LinearMixing():
+    from deepchem.utils.differentiation_utils.optimize.jacobian import LinearMixing
+    jacobian = LinearMixing()
+    x0 = torch.tensor([1.0, 1.0], requires_grad=True)
+
+    def func(x):
+        return torch.tensor([x[0]**2 + x[1]**2 - 1.0, x[0] - x[1]])
+
+    y0 = func(x0)
+    v = torch.tensor([1.0, 1.0])
+    jacobian.setup(x0, y0, func)
+    assert torch.allclose(jacobian.solve(v), torch.tensor([1., 1.]))
+
+
+@pytest.mark.torch
+def test_low_rank_matrix():
+    from deepchem.utils.differentiation_utils.optimize.jacobian import LowRankMatrix
+    import torch
+    alpha = 1.0
+    uv0 = (torch.tensor([1.0, 1.0]), torch.tensor([1.0, 1.0]))
+    reduce_method = "restart"
+    matrix = LowRankMatrix(alpha, uv0, reduce_method)
+    v = torch.tensor([1.0, 1.0])
+    assert torch.allclose(matrix.mv(v), torch.tensor([3., 3.]))
+
+
+@pytest.mark.torch
+def test_full_rank_matrix():
+    from deepchem.utils.differentiation_utils.optimize.jacobian import FullRankMatrix
+    alpha = 1.0
+    cns = [torch.tensor([1.0, 1.0]), torch.tensor([1.0, 1.0])]
+    dns = [torch.tensor([1.0, 1.0]), torch.tensor([1.0, 1.0])]
+    matrix = FullRankMatrix(alpha, cns, dns)
+    v = torch.tensor([1.0, 1.0])
+    assert torch.allclose(matrix.mv(v), torch.tensor([5., 5.]))
+    assert torch.allclose(matrix.rmv(v), torch.tensor([5., 5.]))
+
+
+@pytest.mark.torch
+def test_gd():
+    from deepchem.utils.differentiation_utils.optimize.minimizer import gd
+
+    def fcn(x):
+        return (x - 2)**2, 2 * (x - 2)
+
+    x0 = torch.tensor(0.0, requires_grad=True)
+    x = gd(fcn, x0, [])
+    assert torch.allclose(x, torch.tensor(2.0000))
+
+
+@pytest.mark.torch
+def test_adam():
+    from deepchem.utils.differentiation_utils.optimize.minimizer import adam
+
+    def fcn(x):
+        return (x - 2)**2, 2 * (x - 2)
+
+    x0 = torch.tensor(0.0, requires_grad=True)
+    x = adam(fcn, x0, [], maxiter=10000)
+    assert torch.allclose(x, torch.tensor(2.0000))
+
+
+@pytest.mark.torch
+def test_termination_condition():
+    from deepchem.utils.differentiation_utils.optimize.minimizer import TerminationCondition
+    stop_cond = TerminationCondition(1e-8, 1e-8, 1e-8, 1e-8, True)
+    assert not stop_cond.to_stop(0, torch.tensor(0.0), torch.tensor(0.0),
+                                 torch.tensor(0.0), torch.tensor(0.0))
+
+
+@pytest.mark.torch
+def test_anderson_acc():
+    from deepchem.utils.differentiation_utils.optimize.equilibrium import anderson_acc
+
+    def fcn(x):
+        return x
+
+    x0 = torch.tensor([0.0], requires_grad=True)
+    x = anderson_acc(fcn, x0, [])
+    assert torch.allclose(x, torch.tensor([0.]))
+
+
+@pytest.mark.torch
+def test_broyden1():
+    from deepchem.utils.differentiation_utils.optimize.rootsolver import broyden1
+
+    def fcn(x):
+        return x**2 - 4
+
+    x0 = torch.tensor(0.0, requires_grad=True)
+    x = broyden1(fcn, x0)
+    assert torch.allclose(x, torch.tensor(-2.0000))
+
+
+@pytest.mark.torch
+def test_broyden2():
+    from deepchem.utils.differentiation_utils.optimize.rootsolver import broyden2
+
+    def fcn(x):
+        return x**2 - 4
+
+    x0 = torch.tensor(0.0, requires_grad=True)
+    x = broyden2(fcn, x0)
+    assert torch.allclose(x, torch.tensor(-2.0000))
+
+
+@pytest.mark.torch
+def test_linear_mixing():
+    from deepchem.utils.differentiation_utils.optimize.rootsolver import linearmixing
+
+    def fcn(x):
+        return x**2 - 4
+
+    x0 = torch.tensor(0.0, requires_grad=True)
+    x = linearmixing(fcn, x0)
+    assert torch.allclose(x, torch.tensor(2.0000))
+
+
+@pytest.mark.torch
+def test_rootfinder():
+    from deepchem.utils.differentiation_utils import rootfinder
+
+    def func1(y, A):
+        return torch.tanh(A @ y + 0.1) + y / 2.0
+
+    A = torch.tensor([[1.1, 0.4], [0.3, 0.8]]).requires_grad_()
+    y0 = torch.zeros((2, 1))  # zeros as the initial guess
+    yroot = rootfinder(func1, y0, params=(A,))
+    assert torch.allclose(yroot, torch.tensor([[-0.0459], [-0.0663]]), 0.001)
+
+
+@pytest.mark.torch
+def test_equilibrium():
+    from deepchem.utils.differentiation_utils import equilibrium
+
+    def func1(y, A):
+        return torch.tanh(A @ y + 0.1) + y / 2.0
+
+    A = torch.tensor([[1.1, 0.4], [0.3, 0.8]]).requires_grad_()
+    y0 = torch.zeros((2, 1))  # zeros as the initial guess
+    yequil = equilibrium(func1, y0, params=(A,))
+    assert torch.allclose(yequil, torch.tensor([[0.2313], [-0.5957]]), 0.001)
+
+
+@pytest.mark.torch
+def test_minimize():
+    from deepchem.utils.differentiation_utils import minimize
+
+    def func1(y, A):  # example function
+        return torch.sum((A @ y)**2 + y / 2.0)
+
+    A = torch.tensor([[1.1, 0.4], [0.3, 0.8]]).requires_grad_()
+    y0 = torch.zeros((2, 1))  # zeros as the initia
+    ymin = minimize(func1, y0, params=(A,))
+    assert torch.allclose(ymin, torch.tensor([[-0.0519], [-0.2684]]), 0.001)
+
+
+@pytest.mark.torch
+def test_get_rootfinder_default_method():
+    from deepchem.utils.differentiation_utils.optimize.rootfinder import _get_rootfinder_default_method
+    assert _get_rootfinder_default_method(None) == 'broyden1'
+
+
+@pytest.mark.torch
+def test_get_equilibrium_default_method():
+    from deepchem.utils.differentiation_utils.optimize.rootfinder import _get_equilibrium_default_method
+    assert _get_equilibrium_default_method(None) == 'broyden1'
+
+
+@pytest.mark.torch
+def test_get_minimizer_default_method():
+    from deepchem.utils.differentiation_utils.optimize.rootfinder import _get_minimizer_default_method
+    assert _get_minimizer_default_method(None) == 'broyden1'
+
+
+@pytest.mark.torch
+def test_tableau():
+    from deepchem.utils.differentiation_utils.integrate.explicit_rk import _Tableau
+    euler = _Tableau(c=[0.0], b=[1.0], a=[[0.0]])
+    assert euler.c == [0.0]
+
+
+@pytest.mark.torch
+def test_explicit_rk():
+    from deepchem.utils.differentiation_utils import explicit_rk
+    from deepchem.utils.differentiation_utils.integrate.explicit_rk import rk4_tableau
+    from scipy.integrate import solve_ivp
+
+    def lotka_volterra(y, x, params):
+        y1, y2 = y
+        a, b, c, d = params
+        return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+
+    y0 = torch.tensor([10., 1.])
+    t = torch.linspace(0, 10, 100)
+    params = torch.tensor([1.1, 0.4, 0.1, 0.4])
+    sol = explicit_rk(rk4_tableau, lotka_volterra, y0, t, params)
+
+    def lotka_volterra(t, z, *params):
+        y1, y2 = z
+        a, b, c, d = params
+        return [(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)]
+
+    sol_scipy = solve_ivp(lotka_volterra, [0, 10], [10, 1],
+                          t_eval=np.linspace(0, 10, 10),
+                          args=([1.1, 0.4, 0.1, 0.4]))
+    assert torch.allclose(sol[-1][0],
+                          torch.tensor(sol_scipy.y[0][-1], dtype=torch.float),
+                          0.01, 0.001)
+
+
+@pytest.mark.torch
+def test_rk38_ivp():
+    from deepchem.utils.differentiation_utils import rk38_ivp
+    from scipy.integrate import solve_ivp
+
+    def lotka_volterra(y, x, params):
+        y1, y2 = y
+        a, b, c, d = params
+        return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+
+    y0 = torch.tensor([10., 1.])
+    t = torch.linspace(0, 10, 100)
+    params = torch.tensor([1.1, 0.4, 0.1, 0.4])
+    sol = rk38_ivp(lotka_volterra, y0, t, params)
+
+    def lotka_volterra(t, z, *params):
+        y1, y2 = z
+        a, b, c, d = params
+        return [(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)]
+
+    sol_scipy = solve_ivp(lotka_volterra, [0, 10], [10, 1],
+                          t_eval=np.linspace(0, 10, 10),
+                          args=([1.1, 0.4, 0.1, 0.4]))
+    assert torch.allclose(sol[-1][0],
+                          torch.tensor(sol_scipy.y[0][-1], dtype=torch.float),
+                          0.01, 0.001)
+
+
+@pytest.mark.torch
+def test_rk4_ivp():
+    from deepchem.utils.differentiation_utils import rk4_ivp
+    from scipy.integrate import solve_ivp
+
+    def lotka_volterra(y, x, params):
+        y1, y2 = y
+        a, b, c, d = params
+        return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+
+    y0 = torch.tensor([10., 1.])
+    t = torch.linspace(0, 10, 100)
+    params = torch.tensor([1.1, 0.4, 0.1, 0.4])
+    sol = rk4_ivp(lotka_volterra, y0, t, params)
+
+    def lotka_volterra(t, z, *params):
+        y1, y2 = z
+        a, b, c, d = params
+        return [(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)]
+
+    sol_scipy = solve_ivp(lotka_volterra, [0, 10], [10, 1],
+                          t_eval=np.linspace(0, 10, 10),
+                          args=([1.1, 0.4, 0.1, 0.4]))
+    assert torch.allclose(sol[-1][0],
+                          torch.tensor(sol_scipy.y[0][-1], dtype=torch.float),
+                          0.01, 0.001)
+
+
+@pytest.mark.torch
+def test_euler():
+    from deepchem.utils.differentiation_utils import fwd_euler_ivp
+    from scipy.integrate import solve_ivp
+
+    def lotka_volterra(y, x, params):
+        y1, y2 = y
+        a, b, c, d = params
+        return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+
+    y0 = torch.tensor([10., 1.])
+    t = torch.linspace(0, 10, 1000)
+    params = torch.tensor([1.1, 0.4, 0.1, 0.4])
+    sol = fwd_euler_ivp(lotka_volterra, y0, t, params)
+
+    def lotka_volterra(t, z, *params):
+        y1, y2 = z
+        a, b, c, d = params
+        return [(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)]
+
+    sol_scipy = solve_ivp(lotka_volterra, [0, 10], [10, 1],
+                          t_eval=np.linspace(0, 10, 10),
+                          args=([1.1, 0.4, 0.1, 0.4]))
+    assert torch.allclose(sol[-1][0],
+                          torch.tensor(sol_scipy.y[0][-1], dtype=torch.float),
+                          0.1, 0.01)
+
+
+@pytest.mark.torch
+def test_midpoint():
+    from deepchem.utils.differentiation_utils import mid_point_ivp
+    from scipy.integrate import solve_ivp
+
+    def lotka_volterra(y, x, params):
+        y1, y2 = y
+        a, b, c, d = params
+        return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+
+    y0 = torch.tensor([10., 1.])
+    t = torch.linspace(0, 10, 100)
+    params = torch.tensor([1.1, 0.4, 0.1, 0.4])
+    sol = mid_point_ivp(lotka_volterra, y0, t, params)
+
+    def lotka_volterra(t, z, *params):
+        y1, y2 = z
+        a, b, c, d = params
+        return [(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)]
+
+    sol_scipy = solve_ivp(lotka_volterra, [0, 10], [10, 1],
+                          t_eval=np.linspace(0, 10, 10),
+                          args=([1.1, 0.4, 0.1, 0.4]))
+    assert torch.allclose(sol[-1][0],
+                          torch.tensor(sol_scipy.y[0][-1], dtype=torch.float),
+                          0.01, 0.001)
+
+
+@pytest.mark.torch
+def test_terminate_param():
+    from deepchem.utils.differentiation_utils import gd
+    import torch
+
+    def fun(x):
+        return torch.tan(x), (1 / torch.cos(x))**2
+
+    x0 = torch.tensor(0.0, requires_grad=True)
+    x0.grad = torch.tensor(1.0)
+    x1 = gd(fun, x0, [], terminate=True)
+    x2 = gd(fun, x0, [], terminate=False)
+    assert not torch.allclose(x1, x2)

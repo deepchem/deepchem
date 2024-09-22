@@ -5,7 +5,7 @@
 import collections
 import os
 import re
-import pkg_resources
+import importlib.resources
 from typing import List, Optional
 from transformers import BertTokenizer
 from logging import getLogger
@@ -29,7 +29,7 @@ VOCAB_FILES_NAMES = {"vocab_file": "vocab.txt"}
 
 
 def get_default_tokenizer():
-    default_vocab_path = (pkg_resources.resource_filename(
+    default_vocab_path = (importlib.resources.resource_filename(
         "deepchem", "feat/tests/vocab.txt"))
     return SmilesTokenizer(default_vocab_path)
 

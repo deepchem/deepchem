@@ -83,7 +83,7 @@ class Smiles2Vec(KerasModel):
         use_bidir: bool, default True
             Whether to use BiDirectional RNN Cells
         use_conv: bool, default True
-            Whether to use a conv-layer
+            Whether to use a 1D conv-layer
         kernel_size: int, default 3
             Kernel size for convolutions
         filters: int, default 192

@@ -12,9 +12,9 @@ else:
 # Environment-specific dependencies.
 extras = {
     'jax': ['jax', 'jaxlib', 'dm-haiku', 'optax'],
-    'torch': ['torch', 'torchvision', 'pytorch-lightning', 'dgl', 'dgllife'],
+    'torch': ['torch==2.2.1', 'torchvision', 'pytorch-lightning', 'dgl<2.2.1', 'dgllife'],
     'tensorflow': ['tensorflow', 'tensorflow_probability', 'tensorflow_addons'],
-    'dqc': ['dqc', 'xitorch', 'torch', 'pylibxc2']
+    'dqc': ['dqc', 'xitorch', 'torch==2.2.1', 'pylibxc2']
 }
 
 
@@ -52,6 +52,7 @@ setup(name='deepchem',
           'Programming Language :: Python :: 3.8',
           'Programming Language :: Python :: 3.9',
           'Programming Language :: Python :: 3.10',
+          'Programming Language :: Python :: 3.11',
       ],
       license='MIT',
       description='Deep learning models for drug discovery, \
@@ -71,7 +72,7 @@ setup(name='deepchem',
       },
       install_requires=[
           'joblib',
-          'numpy>=1.21',
+          'numpy<2',
           'pandas',
           'scikit-learn',
           'sympy',
@@ -79,4 +80,4 @@ setup(name='deepchem',
           'rdkit',
       ],
       extras_require=extras,
-      python_requires='>=3.7,<3.11')
+      python_requires='>=3.7,<3.12')

@@ -75,7 +75,8 @@ class test_molgan_model(unittest.TestCase):
 
         for _ in range(self.training_attempts):
             # create new model
-            gan = MolGAN(learning_rate=ExponentialDecay(0.001, 0.9, 5000))
+            gan = MolGAN(learning_rate=ExponentialDecay(0.001, 0.9, 5000),
+                         device=torch.device('cpu'))
 
             # to avoid flake8 E125/yapf incompatibility
             s = gan.batch_size

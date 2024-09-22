@@ -1,9 +1,8 @@
 """Utility functions for working with PyTorch."""
-
 import scipy
 import torch
-from typing import Any, Callable, Sequence, Union, List, Generator, Tuple
 import numpy as np
+from typing import Any, Callable, Sequence, Union, List, Generator, Tuple
 
 
 def get_activation(fn: Union[Callable, str]):
@@ -366,17 +365,17 @@ def tallqr(V, MV=None):
     Parameters
     ----------
     V: torch.Tensor
-        V is a matrix to be decomposed. (*BV, na, nguess)
+        V is a matrix to be decomposed. (`*BV`, na, nguess)
     MV: torch.Tensor
-        (*BM, na, nguess) where M is the basis to make Q M-orthogonal
+        (`*BM`, na, nguess) where M is the basis to make Q M-orthogonal
         if MV is None, then MV=V (default=None)
 
     Returns
     -------
     Q: torch.Tensor
-        The Orthogonal Part. Shape: (*BV, na, nguess)
+        The Orthogonal Part. Shape: (`*BV`, na, nguess)
     R: torch.Tensor
-        The (*BM, nguess, nguess) where M is the basis to make Q M-orthogonal
+        The (`*BM`, nguess, nguess) where M is the basis to make Q M-orthogonal
 
     """
     if MV is None:
@@ -418,12 +417,12 @@ def to_fortran_order(V):
     Parameters
     ----------
     V: torch.Tensor
-        V is a matrix to be converted. (*BV, na, nguess)
+        V is a matrix to be converted. (`*BV`, na, nguess)
 
     Returns
     -------
     outV: torch.Tensor
-        (*BV, nguess, na)
+        (`*BV`, nguess, na)
 
     """
     if V.is_contiguous():
@@ -469,3 +468,123 @@ def get_np_dtype(dtype: torch.dtype) -> Any:
         return np.complex128
     else:
         raise TypeError("Unknown type: %s" % dtype)
+
+
+def unsorted_segment_max(data: torch.Tensor, segment_ids: torch.Tensor,
+                         num_segments: int) -> torch.Tensor:
+    """Computes the maximum along segments of a tensor. Analogous to tf.unsorted_segment_max.
+
+    Parameters
+    ----------
+    data: torch.Tensor
+        A tensor whose segments are to be maximized.
+    segment_ids: torch.Tensor
+        The segment indices tensor.
+    num_segments: int
+        The number of segments.
+
+    Returns
+    -------
+    tensor: torch.Tensor
+
+    Examples
+    --------
+    >>> segment_ids = torch.Tensor([0, 1, 0]).to(torch.int64)
+    >>> data = torch.Tensor([[1, 2, 3, 4], [5, 6, 7, 8], [4, 3, 2, 1]])
+    >>> num_segments = 2
+    >>> result = unsorted_segment_max(data=data,
+    ...                               segment_ids=segment_ids,
+    ...                               num_segments=num_segments)
+    >>> data.shape[0]
+    3
+    >>> segment_ids.shape[0]
+    3
+    >>> len(segment_ids.shape)
+    1
+    >>> result
+    tensor([[4., 3., 3., 4.],
+            [5., 6., 7., 8.]])
+
+    """
+    if len(segment_ids.shape) != 1:
+        raise AssertionError("segment_ids have to be a 1-D tensor")
+
+    if data.shape[0] != segment_ids.shape[0]:
+        raise AssertionError(
+            "segment_ids should be the same size as dimension 0 of input.")
+
+    # Initialize the tensor to hold the maximum values for each segment
+    shape = [num_segments] + list(data.shape[1:])
+    tensor = torch.full(shape, float('-inf'), dtype=data.dtype)
+
+    # Create an expanded segment_ids tensor to match data shape
+    expanded_segment_ids = segment_ids.unsqueeze(-1).expand(-1, *data.shape[1:])
+
+    # Update the maximum values for each segment
+    for i in range(num_segments):
+        mask = expanded_segment_ids == i
+        tensor[i] = torch.max(data.masked_fill(~mask, float('-inf')), dim=0)[0]
+
+    return tensor
+
+
+def estimate_ovlp_rcut(precision: float, coeffs: torch.Tensor,
+                       alphas: torch.Tensor) -> float:
+    """Estimate the rcut for lattice sum to achieve the given precision
+    it is estimated based on the overlap integral
+
+    Examples
+    --------
+    >>> from deepchem.utils import estimate_ovlp_rcut
+    >>> precision = 1e-6
+    >>> coeffs = torch.tensor([1.0, 2.0, 3.0])
+    >>> alphas = torch.tensor([1.0, 2.0, 3.0])
+    >>> estimate_ovlp_rcut(precision, coeffs, alphas)
+    6.7652716636657715
+
+    Parameters
+    ----------
+    precision : float
+        Precision to be achieved
+    coeffs : torch.Tensor
+        Coefficients of the basis functions
+    alphas : torch.Tensor
+        Alpha values of the basis functions
+
+    Returns
+    -------
+    float
+        Estimated rcut
+    """
+    langmom = 1
+    C = (coeffs * coeffs + 1e-200) * (2 * langmom + 1) * alphas / precision
+    r0 = torch.tensor(20.0, dtype=coeffs.dtype, device=coeffs.device)
+    for i in range(2):
+        r0 = torch.sqrt(
+            2.0 * torch.log(C *
+                            (r0 * r0 * alphas)**(langmom + 1) + 1.) / alphas)
+    rcut = float(torch.max(r0).detach())
+    return rcut
+
+
+def get_dtype_memsize(a: torch.Tensor) -> int:
+    """Size of each element in the tensor in bytes
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils import get_dtype_memsize
+    >>> a = torch.randn(3, 2)
+    >>> get_dtype_memsize(a)
+    4
+
+    """
+    if a.dtype == torch.float64 or a.dtype == torch.int64:
+        size = 8
+    elif a.dtype == torch.float32 or a.dtype == torch.int32:
+        size = 4
+    elif a.dtype == torch.bool:
+        size = 1
+    else:
+        raise TypeError("Unknown tensor type: %s" % a.dtype)
+    return size

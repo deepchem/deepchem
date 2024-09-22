@@ -10,6 +10,7 @@ try:
     from torch import Tensor
     import torch.nn as nn
     import torch.nn.functional as F
+    from deepchem.models.torch_models.flows import Affine
 except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
 
@@ -22,7 +23,7 @@ except ModuleNotFoundError:
     pass
 
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
-from deepchem.utils.pytorch_utils import get_activation, segment_sum
+from deepchem.utils.pytorch_utils import get_activation, segment_sum, unsorted_segment_sum, unsorted_segment_max
 from torch.nn import init as initializers
 
 
@@ -1257,117 +1258,6 @@ class GraphNetwork(torch.nn.Module):
         )
 
 
-class Affine(nn.Module):
-    """Class which performs the Affine transformation.
-
-    This transformation is based on the affinity of the base distribution with
-    the target distribution. A geometric transformation is applied where
-    the parameters performs changes on the scale and shift of a function
-    (inputs).
-
-    Normalizing Flow transformations must be bijective in order to compute
-    the logarithm of jacobian's determinant. For this reason, transformations
-    must perform a forward and inverse pass.
-
-    Example
-    --------
-    >>> import deepchem as dc
-    >>> from deepchem.models.torch_models.layers import Affine
-    >>> import torch
-    >>> from torch.distributions import MultivariateNormal
-    >>> # initialize the transformation layer's parameters
-    >>> dim = 2
-    >>> samples = 96
-    >>> transforms = Affine(dim)
-    >>> # forward pass based on a given distribution
-    >>> distribution = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
-    >>> input = distribution.sample(torch.Size((samples, dim)))
-    >>> len(transforms.forward(input))
-    2
-    >>> # inverse pass based on a distribution
-    >>> len(transforms.inverse(input))
-    2
-
-    """
-
-    def __init__(self, dim: int) -> None:
-        """Create a Affine transform layer.
-
-        Parameters
-        ----------
-        dim: int
-            Value of the Nth dimension of the dataset.
-
-        """
-
-        super().__init__()
-        self.dim = dim
-        self.scale = nn.Parameter(torch.zeros(self.dim))
-        self.shift = nn.Parameter(torch.zeros(self.dim))
-
-    def forward(self, x: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Performs a transformation between two different distributions. This
-        particular transformation represents the following function:
-        y = x * exp(a) + b, where a is scale parameter and b performs a shift.
-        This class also returns the logarithm of the jacobians determinant
-        which is useful when invert a transformation and compute the
-        probability of the transformation.
-
-        Parameters
-        ----------
-        x : Sequence
-            Tensor sample with the initial distribution data which will pass into
-            the normalizing flow algorithm.
-
-        Returns
-        -------
-        y : torch.Tensor
-            Transformed tensor according to Affine layer with the shape of 'x'.
-        log_det_jacobian : torch.Tensor
-            Tensor which represents the info about the deviation of the initial
-            and target distribution.
-
-        """
-
-        y = torch.exp(self.scale) * x + self.shift
-        det_jacobian = torch.exp(self.scale.sum())
-        log_det_jacobian = torch.ones(y.shape[0]) * torch.log(det_jacobian)
-
-        return y, log_det_jacobian
-
-    def inverse(self, y: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Performs a transformation between two different distributions.
-        This transformation represents the bacward pass of the function
-        mention before. Its mathematical representation is x = (y - b) / exp(a)
-        , where "a" is scale parameter and "b" performs a shift. This class
-        also returns the logarithm of the jacobians determinant which is
-        useful when invert a transformation and compute the probability of
-        the transformation.
-
-        Parameters
-        ----------
-        y : Sequence
-            Tensor sample with transformed distribution data which will be used in
-            the normalizing algorithm inverse pass.
-
-        Returns
-        -------
-        x : torch.Tensor
-            Transformed tensor according to Affine layer with the shape of 'y'.
-        inverse_log_det_jacobian : torch.Tensor
-            Tensor which represents the information of the deviation of the initial
-            and target distribution.
-
-        """
-
-        x = (y - self.shift) / torch.exp(self.scale)
-        det_jacobian = 1 / torch.exp(self.scale.sum())
-        inverse_log_det_jacobian = torch.ones(
-            x.shape[0]) * torch.log(det_jacobian)
-
-        return x, inverse_log_det_jacobian
-
-
 class DMPNNEncoderLayer(nn.Module):
     """
     Encoder layer for use in the Directed Message Passing Neural Network (D-MPNN) [1]_.
@@ -1832,15 +1722,16 @@ class RealNVPLayer(nn.Module):
     """Real NVP Transformation Layer
 
     This class class is a constructor transformation layer used on a
-    NormalizingFLow model.  The Real Non-Preserving-Volumen (Real NVP) is a type
+    NormalizingFLow model. The Real Non-Preserving-Volumen (Real NVP) is a type
     of normalizing flow layer which gives advantages over this mainly because an
-    ease to compute the inverse pass [1]_, this is to learn a target
+    ease to compute the inverse pass [realnvp1]_, this is to learn a target
     distribution.
 
     Example
     -------
     >>> import torch
     >>> import torch.nn as nn
+    >>> import torch.nn.functional as F
     >>> from torch.distributions import MultivariateNormal
     >>> from deepchem.models.torch_models.layers import RealNVPLayer
     >>> dim = 2
@@ -1861,7 +1752,7 @@ class RealNVPLayer(nn.Module):
 
     References
     ----------
-    .. [1] Stimper, V., Schölkopf, B., & Hernández-Lobato, J. M. (2021). Resampling Base
+    .. [realnvp1] Stimper, V., Schölkopf, B., & Hernández-Lobato, J. M. (2021). Resampling Base
     Distributions of Normalizing Flows. (2017). Retrieved from http://arxiv.org/abs/2110.15828
     """
 
@@ -3376,7 +3267,8 @@ class MolGANConvolutionLayer(nn.Module):
                  dropout_rate: float = 0.0,
                  edges: int = 5,
                  name: str = "",
-                 prev_shape: int = 0):
+                 prev_shape: int = 0,
+                 device: torch.device = torch.device('cpu')):
         """
         Initialize this layer.
 
@@ -3406,7 +3298,7 @@ class MolGANConvolutionLayer(nn.Module):
         self.edges: int = edges
         self.name: str = name
         self.nodes: int = nodes
-
+        self.device = device
         # Case when >2 inputs are passed
         if prev_shape:
             self.dense1 = nn.ModuleList([
@@ -3456,8 +3348,8 @@ class MolGANConvolutionLayer(nn.Module):
                 "MolGANConvolutionLayer requires at least two inputs: [adjacency_tensor, node_features_tensor]"
             )
 
-        adjacency_tensor: torch.Tensor = inputs[0]
-        node_tensor: torch.Tensor = inputs[1]
+        adjacency_tensor: torch.Tensor = inputs[0].to(self.device)
+        node_tensor: torch.Tensor = inputs[1].to(self.device)
 
         if ic > 2:
             hidden_tensor: torch.Tensor = inputs[2]
@@ -3515,7 +3407,8 @@ class MolGANAggregationLayer(nn.Module):
                  activation=torch.tanh,
                  dropout_rate: float = 0.0,
                  name: str = "",
-                 prev_shape: int = 0):
+                 prev_shape: int = 0,
+                 device: torch.device = torch.device('cpu')):
         """
         Initialize the layer
 
@@ -3538,6 +3431,7 @@ class MolGANAggregationLayer(nn.Module):
         self.activation = activation
         self.dropout_rate: float = dropout_rate
         self.name: str = name
+        self.device = device
 
         if prev_shape:
             self.d1 = nn.Linear(prev_shape, self.units)
@@ -3558,7 +3452,7 @@ class MolGANAggregationLayer(nn.Module):
         """
         return f"{self.__class__.__name__}(units={self.units}, activation={self.activation}, dropout_rate={self.dropout_rate}, Name={self.name})"
 
-    def forward(self, inputs: List) -> torch.Tensor:
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """
         Invoke this layer
 
@@ -3572,7 +3466,7 @@ class MolGANAggregationLayer(nn.Module):
         aggregation tensor: torch.Tensor
           Result of aggregation function on input convolution tensor.
         """
-
+        inputs = inputs.to(self.device)
         i = torch.sigmoid(self.d1(inputs))
         j = self.activation(self.d2(inputs))
         output = torch.sum(i * j, dim=1)
@@ -3618,6 +3512,7 @@ class MolGANMultiConvolutionLayer(nn.Module):
                  dropout_rate: float = 0.0,
                  edges: int = 5,
                  name: str = "",
+                 device: torch.device = torch.device('cpu'),
                  **kwargs):
         """
         Initialize the layer
@@ -3650,20 +3545,23 @@ class MolGANMultiConvolutionLayer(nn.Module):
         self.dropout_rate: float = dropout_rate
         self.edges: int = edges
         self.name: str = name
+        self.device = device
 
         self.first_convolution = MolGANConvolutionLayer(
             units=self.units[0],
             nodes=self.nodes,
             activation=self.activation,
             dropout_rate=self.dropout_rate,
-            edges=self.edges)
+            edges=self.edges,
+            device=self.device)
         self.gcl = nn.ModuleList([
             MolGANConvolutionLayer(units=u,
                                    nodes=self.nodes,
                                    activation=self.activation,
                                    dropout_rate=self.dropout_rate,
                                    edges=self.edges,
-                                   prev_shape=self.units[count])
+                                   prev_shape=self.units[count],
+                                   device=self.device)
             for count, u in enumerate(self.units[1:])
         ])
 
@@ -3694,8 +3592,8 @@ class MolGANMultiConvolutionLayer(nn.Module):
             Result of input tensors going through convolution a number of times.
         """
 
-        adjacency_tensor = inputs[0]
-        node_tensor = inputs[1]
+        adjacency_tensor = inputs[0].to(self.device)
+        node_tensor = inputs[1].to(self.device)
 
         tensors = self.first_convolution([adjacency_tensor, node_tensor])
 
@@ -3750,7 +3648,9 @@ class MolGANEncoderLayer(nn.Module):
                  dropout_rate: float = 0.0,
                  edges: int = 5,
                  nodes: int = 5,
-                 name: str = ""):
+                 name: str = "",
+                 device: torch.device = torch.device('cpu'),
+                 **kwargs):
         """
         Initialize the layer
 
@@ -3779,18 +3679,22 @@ class MolGANEncoderLayer(nn.Module):
         self.activation = activation
         self.dropout_rate = dropout_rate
         self.edges = edges
+        self.nodes = nodes
+        self.device = device
 
         self.multi_graph_convolution_layer = MolGANMultiConvolutionLayer(
             units=self.graph_convolution_units,
-            nodes=nodes,
+            nodes=self.nodes,
             activation=self.activation,
             dropout_rate=self.dropout_rate,
-            edges=self.edges)
+            edges=self.edges,
+            device=self.device)
         self.graph_aggregation_layer = MolGANAggregationLayer(
             units=self.auxiliary_units,
             activation=self.activation,
             dropout_rate=self.dropout_rate,
-            prev_shape=self.graph_convolution_units[-1] + nodes)
+            prev_shape=self.graph_convolution_units[-1] + nodes,
+            device=self.device)
 
     def __repr__(self) -> str:
         """
@@ -4850,7 +4754,7 @@ try:
                 h_j_new = res3(h_j_new)
 
         .. note::
-        Message passing and message aggregation(sum) is handled by ``self.propagate()``.
+        Message passing and message aggregation(sum) is handled by ``propagate()``.
 
         References
         ----------
@@ -5537,7 +5441,8 @@ class FerminetElectronFeature(torch.nn.Module):
         one_electron: torch.Tensor
             The one electron feature after passing through the layer which has the shape (batch_size, number of electrons, n_one shape).
         two_electron: torch.Tensor
-            The two electron feature after passing through the layer which has the shape (batch_size, number of electrons, number of electron , n_two shape).   
+            The two electron feature after passing through the layer which has the shape (batch_size, number of electrons, number of electron , n_two shape).
+            The two electron feature after passing through the layer which has the shape (batch_size, number of electrons, number of electron , n_two shape).
         """
         for l in range(self.layer_size):
             # Calculating one-electron feature's average
@@ -5654,13 +5559,13 @@ class FerminetEnvelope(torch.nn.Module):
 
         # initialized weights with torch.zeros, torch.eye and using xavier init.
         for i in range(self.determinant):
-            self.wdet.append(torch.nn.init.normal(torch.zeros(1)).squeeze(0))
+            self.wdet.append(torch.nn.init.normal_(torch.zeros(1)).squeeze(0))
             for j in range(self.total_electron):
                 self.envelope_w.append(
-                    (torch.nn.init.normal(torch.zeros(n_one[-1], 1),) /
+                    (torch.nn.init.normal_(torch.zeros(n_one[-1], 1),) /
                      math.sqrt(n_one[-1])).squeeze(-1))
                 self.envelope_g.append(
-                    (torch.nn.init.normal(torch.zeros(1))).squeeze(0))
+                    (torch.nn.init.normal_(torch.zeros(1))).squeeze(0))
                 for k in range(self.no_of_atoms):
                     self.pi.append((torch.zeros(1)))
                     self.sigma.append(torch.eye(3))
@@ -6151,3 +6056,424 @@ class HighwayLayer(torch.nn.Module):
         output = H_out * T_out + x * (1 - T_out)
 
         return output
+
+
+class GraphConv(nn.Module):
+    """Graph Convolutional Layers
+
+    This layer implements the graph convolution introduced in [1]_.  The graph
+    convolution combines per-node feature vectures in a nonlinear fashion with
+    the feature vectors for neighboring nodes.  This "blends" information in
+    local neighborhoods of a graph.
+
+    Example
+    --------
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> import deepchem.models.torch_models.layers as torch_layers
+    >>> out_channels = 2
+    >>> n_atoms = 4  # In CCC and C, there are 4 atoms
+    >>> raw_smiles = ['CCC', 'C']
+    >>> from rdkit import Chem
+    >>> mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
+    >>> featurizer = dc.feat.graph_features.ConvMolFeaturizer()
+    >>> mols = featurizer.featurize(mols)
+    >>> multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
+    >>> atom_features = torch.from_numpy(multi_mol.get_atom_features().astype(np.float32))
+    >>> degree_slice = torch.from_numpy(multi_mol.deg_slice)
+    >>> membership = torch.from_numpy(multi_mol.membership)
+    >>> deg_adjs = [torch.from_numpy(i) for i in multi_mol.get_deg_adjacency_lists()[1:]]
+    >>> args = [atom_features, degree_slice, membership] + deg_adjs
+    >>> layer = torch_layers.GraphConv(out_channels, number_input_features=atom_features.shape[-1])
+    >>> result = layer(args)
+    >>> type(result)
+    <class 'torch.Tensor'>
+    >>> result.shape
+    torch.Size([4, 2])
+    >>> num_deg = 2 * layer.max_degree + (1 - layer.min_degree)
+    >>> num_deg
+    21
+
+    References
+    ----------
+    .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints."
+        Advances in neural information processing systems. 2015. https://arxiv.org/abs/1509.09292
+
+  """
+
+    def __init__(self,
+                 out_channel: int,
+                 number_input_features: int,
+                 min_deg: int = 0,
+                 max_deg: int = 10,
+                 activation_fn: Optional[Callable] = None,
+                 **kwargs):
+        """Initialize a graph convolutional layer.
+
+        Parameters
+        ----------
+        out_channel: int
+            The number of output channels per graph node.
+        number_input_features: int
+            The number of input features.
+        min_deg: int, optional (default 0)
+            The minimum allowed degree for each graph node.
+        max_deg: int, optional (default 10)
+            The maximum allowed degree for each graph node. Note that this
+            is set to 10 to handle complex molecules (some organometallic
+            compounds have strange structures). If you're using this for
+            non-molecular applications, you may need to set this much higher
+            depending on your dataset.
+        activation_fn: function
+            A nonlinear activation function to apply. If you're not sure,
+            `torch.nn.ReLU` is probably a good default for your application.
+        """
+        super(GraphConv, self).__init__(**kwargs)
+        self.out_channel: int = out_channel
+        self.min_degree: int = min_deg
+        self.max_degree: int = max_deg
+        self.number_input_features: int = number_input_features
+        self.activation_fn: Optional[Callable] = activation_fn
+
+        # Generate the nb_affine weights and biases
+        num_deg: int = 2 * self.max_degree + (1 - self.min_degree)
+        self.W_list: nn.ParameterList = nn.ParameterList([
+            nn.Parameter(
+                getattr(initializers,
+                        'xavier_uniform_')(torch.empty(number_input_features,
+                                                       self.out_channel)))
+            for k in range(num_deg)
+        ])
+        self.b_list: nn.ParameterList = nn.ParameterList([
+            nn.Parameter(
+                getattr(initializers, 'zeros_')(torch.empty(self.out_channel,)))
+            for k in range(num_deg)
+        ])
+        self.built = True
+
+    def __repr__(self) -> str:
+        """
+        Returns a string representation of the object.
+
+        Returns:
+        -------
+        str: A string that contains the class name followed by the values of its instance variable.
+        """
+        # flake8: noqa
+        return (
+            f'{self.__class__.__name__}(out_channel:{self.out_channel},min_deg:{self.min_deg},max_deg:{self.max_deg},activation_fn:{self.activation_fn})'
+        )
+
+    def forward(self, inputs: List[torch.Tensor]) -> torch.Tensor:
+        """
+        The forward pass combines per-node feature vectors in a nonlinear fashion with
+        the feature vectors for neighboring nodes.
+        Parameters
+        ----------
+        inputs: List[torch.Tensor]
+        Should contain atom features and arrays describing graph topology
+
+        Returns:
+        -------
+        torch.Tensor
+          Combined atom features
+        """
+
+        # Extract atom_features
+        atom_features: torch.Tensor = inputs[0]
+
+        # Extract graph topology
+        deg_slice: torch.Tensor = inputs[1]
+        deg_adj_lists: List[torch.Tensor] = inputs[3:]
+
+        W = iter(self.W_list)
+        b = iter(self.b_list)
+
+        # Sum all neighbors using adjacency matrix
+        deg_summed: List[np.ndarray] = self.sum_neigh(atom_features,
+                                                      deg_adj_lists)
+
+        # Get collection of modified atom features
+        new_rel_atoms_collection = []
+
+        split_features: Tuple[torch.Tensor,
+                              ...] = torch.split(atom_features,
+                                                 (deg_slice[:, 1]).tolist())
+        for deg in range(1, self.max_degree + 1):
+            # Obtain relevant atoms for this degree
+            rel_atoms: torch.Tensor = torch.from_numpy(deg_summed[deg - 1])
+
+            # Get self atoms
+            self_atoms: torch.Tensor = split_features[deg - self.min_degree]
+
+            # Apply hidden affine to relevant atoms and append
+            rel_out: torch.Tensor = torch.matmul(rel_atoms.type(torch.float32),
+                                                 next(W)) + next(b)
+            self_out: torch.Tensor = torch.matmul(
+                self_atoms.type(torch.float32), next(W)) + next(b)
+            out: torch.Tensor = rel_out + self_out
+            new_rel_atoms_collection.append(
+                torch.from_numpy(out.detach().numpy()))
+
+        # Determine the min_deg=0 case
+        if self.min_degree == 0:
+            self_atoms = split_features[0]
+
+            # Only use the self layer
+            out = torch.matmul(self_atoms.type(torch.float32),
+                               next(W)) + next(b)
+            new_rel_atoms_collection.insert(
+                0, torch.from_numpy(out.detach().numpy()))
+
+        # Combine all atoms back into the list
+        atom_features = torch.concat(new_rel_atoms_collection, 0)
+
+        if self.activation_fn is not None:
+            atom_features = self.activation_fn(atom_features)
+
+        return atom_features
+
+    def sum_neigh(self, atoms: torch.Tensor, deg_adj_lists) -> List[np.ndarray]:
+        """Store the summed atoms by degree"""
+        deg_summed = []
+
+        for deg in range(1, self.max_degree + 1):
+            gathered_atoms: torch.Tensor = atoms[deg_adj_lists[deg - 1]]
+            # Sum along neighbors as well as self, and store
+            summed_atoms: torch.Tensor = torch.sum(gathered_atoms, 1)
+            deg_summed.append(summed_atoms.detach().numpy())
+
+        return deg_summed
+
+
+class GraphPool(nn.Module):
+    """A GraphPool gathers data from local neighborhoods of a graph.
+
+    This layer does a max-pooling over the feature vectors of atoms in a
+    neighborhood. You can think of this layer as analogous to a max-pooling
+    layer for 2D convolutions but which operates on graphs instead. This
+    technique is described in [1]_.
+
+    Example
+    --------
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> import deepchem.models.torch_models.layers as torch_layers
+    >>> n_atoms = 4  # In CCC and C, there are 4 atoms
+    >>> raw_smiles = ['CCC', 'C']
+    >>> from rdkit import Chem
+    >>> mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
+    >>> featurizer = dc.feat.graph_features.ConvMolFeaturizer()
+    >>> mols = featurizer.featurize(mols)
+    >>> multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
+    >>> atom_features = torch.from_numpy(multi_mol.get_atom_features().astype(np.float32))
+    >>> degree_slice = torch.from_numpy(multi_mol.deg_slice)
+    >>> membership = torch.from_numpy(multi_mol.membership)
+    >>> deg_adjs = [torch.from_numpy(i) for i in multi_mol.get_deg_adjacency_lists()[1:]]
+    >>> args = [atom_features, degree_slice, membership] + deg_adjs
+    >>> result = torch_layers.GraphPool()(args)
+    >>> type(result)
+    <class 'torch.Tensor'>
+    >>> result.shape
+    torch.Size([4, 75])
+
+    References
+    ----------
+    .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
+        learning molecular fingerprints." Advances in neural information processing
+        systems. 2015. https://arxiv.org/abs/1509.09292
+
+    """
+
+    def __init__(self, min_degree: int = 0, max_degree: int = 10, **kwargs):
+        """Initialize this layer
+
+        Parameters
+        ----------
+        min_deg: int, optional (default 0)
+            The minimum allowed degree for each graph node.
+        max_deg: int, optional (default 10)
+            The maximum allowed degree for each graph node. Note that this
+            is set to 10 to handle complex molecules (some organometallic
+            compounds have strange structures). If you're using this for
+            non-molecular applications, you may need to set this much higher
+            depending on your dataset.
+        """
+        super(GraphPool, self).__init__(**kwargs)
+        self.min_degree: int = min_degree
+        self.max_degree: int = max_degree
+
+    def get_config(self) -> str:
+        """
+        Returns a string representation of the object.
+
+        Returns:
+        -------
+        str: A string that contains the class name followed by the values of its instance variable.
+        """
+        # flake8: noqa
+        return (
+            f'{self.__class__.__name__}(min_degree:{self.min_degree},max_degree:{self.max_degree})'
+        )
+
+    def forward(self, inputs: List[torch.Tensor]) -> torch.Tensor:
+        """
+        The forward pass performs max-pooling over the feature vectors of atoms in a neighborhood.
+
+        Parameters
+        ----------
+        inputs: List[np.ndarray]
+        Should contain atom features and arrays describing graph topology.
+
+        Returns:
+        -------
+        torch.Tensor
+        """
+        atom_features: torch.Tensor = inputs[0]
+        deg_slice: torch.Tensor = inputs[1]
+        deg_adj_lists: List[torch.Tensor] = inputs[3:]
+
+        # Perform the mol gather
+        deg_maxed = []
+
+        split_features: Tuple[torch.Tensor,
+                              ...] = torch.split(atom_features,
+                                                 (deg_slice[:, 1]).tolist())
+        for deg in range(1, self.max_degree + 1):
+            # Get self atoms
+            self_atoms: torch.Tensor = split_features[deg - self.min_degree]
+
+            if deg_adj_lists[deg - 1].shape[0] == 0:
+                # There are no neighbors of this degree, so just create an empty tensor directly.
+                maxed_atoms: torch.Tensor = torch.zeros(
+                    (0, self_atoms.shape[-1]))
+                deg_maxed.append(maxed_atoms)
+            else:
+                # Expand dims
+                self_atoms = torch.unsqueeze(self_atoms, 1)
+
+                # always deg-1 for deg_adj_lists
+                gathered_atoms: torch.Tensor = atom_features[deg_adj_lists[deg -
+                                                                           1]]
+                gathered_atoms = torch.concat([self_atoms, gathered_atoms], 1)
+
+                max_atoms: tuple = torch.max(gathered_atoms, 1)
+                deg_maxed.append(max_atoms[0])
+
+        if self.min_degree == 0:
+            self_atoms = split_features[0]
+            deg_maxed.insert(0, self_atoms)
+
+        return torch.concat(deg_maxed, 0)
+
+
+class GraphGather(nn.Module):
+    """A GraphGather layer pools node-level feature vectors to create a graph feature vector.
+
+    Many graph convolutional networks manipulate feature vectors per
+    graph-node. For a molecule for example, each node might represent an
+    atom, and the network would manipulate atomic feature vectors that
+    summarize the local chemistry of the atom. However, at the end of
+    the application, we will likely want to work with a molecule level
+    feature representation. The `GraphGather` layer creates a graph level
+    feature vector by combining all the node-level feature vectors.
+
+    One subtlety about this layer is that it depends on the
+    `batch_size`. This is done for internal implementation reasons. The
+    `GraphConv`, and `GraphPool` layers pool all nodes from all graphs
+    in a batch that's being processed. The `GraphGather` reassembles
+    these jumbled node feature vectors into per-graph feature vectors.
+
+    Example
+    --------
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> import deepchem.models.torch_models.layers as torch_layers
+    >>> batch_size = 2
+    >>> raw_smiles = ['CCC', 'C']
+    >>> from rdkit import Chem
+    >>> mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
+    >>> featurizer = dc.feat.graph_features.ConvMolFeaturizer()
+    >>> mols = featurizer.featurize(mols)
+    >>> multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
+    >>> atom_features = torch.from_numpy(multi_mol.get_atom_features().astype(np.float32))
+    >>> degree_slice = torch.from_numpy(multi_mol.deg_slice)
+    >>> membership = torch.from_numpy(multi_mol.membership)
+    >>> deg_adjs = [torch.from_numpy(i) for i in multi_mol.get_deg_adjacency_lists()[1:]]
+    >>> args = [atom_features, degree_slice, membership] + deg_adjs
+    >>> result = torch_layers.GraphGather(batch_size)(args)
+    >>> type(result)
+    <class 'torch.Tensor'>
+    >>> result.shape
+    torch.Size([2, 150])
+
+    References
+    ----------
+    .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
+        learning molecular fingerprints." Advances in neural information processing
+        systems. 2015. https://arxiv.org/abs/1509.09292
+    """
+
+    def __init__(self,
+                 batch_size: int,
+                 activation_fn: Optional[Callable] = None,
+                 **kwargs):
+        """Initialize this layer.
+
+        Parameters
+        ---------
+        batch_size: int
+            The batch size for this layer. Note that the layer's behavior
+            changes depending on the batch size.
+        activation_fn: function
+            A nonlinear activation function to apply. If you're not sure,
+            `relu` is probably a good default for your application.
+        """
+
+        super(GraphGather, self).__init__(**kwargs)
+        self.batch_size: int = batch_size
+        self.activation_fn: Optional[Callable] = activation_fn
+
+    def get_config(self) -> str:
+        """
+        Returns a string representation of the object.
+
+        Returns:
+        -------
+        str: A string that contains the class name followed by the values of its instance variable.
+        """
+        # flake8: noqa
+        return (
+            f'{self.__class__.__name__}(batch_size:{self.batch_size},activation_fn:{self.activation_fn})'
+        )
+
+    def forward(self, inputs: List[torch.Tensor]):
+        """Invoking this layer.
+
+        Parameters
+        ----------
+        inputs: List[torch.Tensor]
+            This list should consist of `inputs = [atom_features, deg_slice,
+            membership, deg_adj_list placeholders...]`. These are all
+            tensors that are created/process by `GraphConv` and `GraphPool`
+
+        Returns:
+        -------
+        torch.Tensor
+        """
+        atom_features: torch.Tensor = inputs[0]
+
+        # Extract graph topology
+        membership: torch.Tensor = inputs[2].to(torch.int64)
+
+        assert self.batch_size > 1, "graph_gather requires batches larger than 1"
+
+        sparse_reps: torch.Tensor = unsorted_segment_sum(
+            atom_features, membership, self.batch_size)
+        max_reps: torch.Tensor = unsorted_segment_max(atom_features, membership,
+                                                      self.batch_size)
+        mol_features: torch.Tensor = torch.concat([sparse_reps, max_reps], 1)
+
+        if self.activation_fn is not None:
+            mol_features = self.activation_fn(mol_features)
+        return mol_features

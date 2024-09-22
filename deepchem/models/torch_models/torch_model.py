@@ -324,7 +324,7 @@ class TorchModel(Model):
             for each batch.  If None (the default), the model's standard loss function
             is used.
         callbacks: function or list of functions
-            one or more functions of the form f(model, step) that will be invoked after
+            one or more functions of the form f(model, step, **kwargs) that will be invoked after
             every step.  This can be used to perform validation, logging, etc.
         all_losses: Optional[List[float]], optional (default None)
             If specified, all logged losses are appended into this list. Note that
@@ -401,18 +401,21 @@ class TorchModel(Model):
             optimizer = self._pytorch_optimizer
             lr_schedule = self._lr_schedule
         else:
-            var_key = tuple(variables)
-            if var_key in self._optimizer_for_vars:
-                optimizer, lr_schedule = self._optimizer_for_vars[var_key]
+            variables_tuple = tuple(variables)
+            if variables_tuple in self._optimizer_for_vars:
+                optimizer, lr_schedule = self._optimizer_for_vars[
+                    variables_tuple]
             else:
-                optimizer = self.optimizer._create_pytorch_optimizer(variables)
+                optimizer = self.optimizer._create_pytorch_optimizer(
+                    variables_tuple)
                 if isinstance(self.optimizer.learning_rate,
                               LearningRateSchedule):
                     lr_schedule = self.optimizer.learning_rate._create_pytorch_schedule(
                         optimizer)
                 else:
                     lr_schedule = None
-                self._optimizer_for_vars[var_key] = (optimizer, lr_schedule)
+                self._optimizer_for_vars[variables_tuple] = (optimizer,
+                                                             lr_schedule)
         time1 = time.time()
 
         # Main training loop.
@@ -462,7 +465,13 @@ class TorchModel(Model):
             if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
                 self.save_checkpoint(max_checkpoints_to_keep)
             for c in callbacks:
-                c(self, current_step)
+                try:
+                    # NOTE In DeepChem > 2.8.0, callback signature is updated to allow
+                    # variable arguments.
+                    c(self, current_step, iteration_loss=batch_loss)
+                except TypeError:
+                    # DeepChem <= 2.8.0, the callback should have this signature.
+                    c(self, current_step)
             if self.tensorboard and should_log:
                 self._log_scalar_to_tensorboard('loss', batch_loss,
                                                 current_step)
@@ -997,9 +1006,12 @@ class TorchModel(Model):
         ----------
         max_checkpoints_to_keep: int
             the maximum number of checkpoints to keep.  Older checkpoints are discarded.
+            If set to zero, the function will simply return as no checkpoint is saved.
         model_dir: str, default None
             Model directory to save checkpoint to. If None, revert to self.model_dir
         """
+        if max_checkpoints_to_keep == 0:
+            return
         self._ensure_built()
         if model_dir is None:
             model_dir = self.model_dir
@@ -1076,6 +1088,50 @@ class TorchModel(Model):
         self.model.load_state_dict(data['model_state_dict'], strict=strict)
         self._pytorch_optimizer.load_state_dict(data['optimizer_state_dict'])
         self._global_step = data['global_step']
+
+    def compile(self,
+                fullgraph: bool = False,
+                dynamic: Union[None, bool] = None,
+                backend: str = "inductor",
+                mode: str = "default",
+                **kwargs) -> None:
+        """Compiles the model using `torch.compile` for faster training and inference.
+        Visit https://pytorch.org/docs/stable/generated/torch.compile.html for more information.
+
+        Parameters
+        ----------
+        fullgraph: bool, default False
+            If True, `torch.compile` will require that the entire function be
+            capturable into a single graph. If this is not possible (that is,
+            if there are graph breaks), then the function will raise an error.
+        dynamic: bool, default None
+            Use dynamic shape tracing. When this is True, the function will
+            up-front attempt to generate a kernel that is as dynamic as possible to
+            avoid recompilations when sizes change. This may not always work
+            as some operations/optimizations will force specialization. When
+            set to False, `torch.compile` will never generate dynamic kernels.
+            By default, the function automatically detects if dynamism
+            has occurred and will compile a more dynamic kernel upon recompile.
+        backend: str, default 'inductor'
+            The backend to use for compilation. Currently, only 'inductor'
+            is supported.
+        mode: str, default 'default'
+            The mode to use for compilation. See the `torch.compile` documentation for available modes and detailed descriptions.
+        kwargs: dict
+            Additional arguments to pass to `torch.compile`.
+        """
+
+        if backend not in ["inductor"]:
+            raise ValueError(
+                f"Backend {backend} is not supported currently. Supported backends are "
+                "['inductor'].")
+
+        self.model = torch.compile(self.model,
+                                   mode=mode,
+                                   dynamic=dynamic,
+                                   fullgraph=fullgraph,
+                                   backend=backend,
+                                   **kwargs)
 
     def get_global_step(self) -> int:
         """Get the number of steps of fitting that have been performed."""

@@ -101,6 +101,7 @@ def generate_random_rotation_matrix() -> np.ndarray:
         v that's in u's direction
       c. normalize v" (this isn"t in Stack but I assume it must be
         done)
+
     3. find w = u \cross v"
     4. u, v", and w will form the columns of a rotation matrix, R.
       The intuition is that u, v" and w are, respectively, what

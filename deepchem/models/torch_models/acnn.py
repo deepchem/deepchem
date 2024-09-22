@@ -85,7 +85,7 @@ class AtomConvModel(TorchModel):
                  **kwargs) -> None:
         """TorchModel wrapper for ACNN
 
-         Parameters
+        Parameters
         ----------
         n_tasks: int
             number of tasks

@@ -5,7 +5,7 @@ CMDNAME=`basename ${BASH_SOURCE:-$0}`
 if [ $# -ne 3 ]; then
     echo "Please set two arguments."
     echo "Usage) source $CMDNAME python_version cpu_or_gpu" 1>&2
-    echo "Example) source $CMDNAME 3.8 gpu tensorflow" 1>&2
+    echo "Example) source $CMDNAME 3.10 gpu tensorflow" 1>&2
     return 1
 fi
 

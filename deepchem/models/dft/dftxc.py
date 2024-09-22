@@ -1,11 +1,15 @@
 """Derived from https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcca3e314a538ca/xcdnn2/litmodule.py"""
-from deepchem.models.dft.scf import XCNNSCF
 import torch
-from deepchem.models.dft.nnxc import HybridXC
 from deepchem.models.losses import Loss, L2Loss
 from deepchem.models.torch_models.torch_model import TorchModel
 from typing import Tuple, Optional, List, Any
 import numpy as np
+import warnings
+try:
+    from deepchem.models.dft.scf import XCNNSCF
+    from deepchem.models.dft.nnxc import HybridXC
+except Exception as e:
+    warnings.warn(str(e))
 
 
 class DFTXC(torch.nn.Module):
@@ -32,7 +36,7 @@ class DFTXC(torch.nn.Module):
     >>> model = DFTXC("lda_x", nnmodel)
     >>> output = model([entry])
     The 6-311++G(3df,3pd) basis for atomz 7 does not exist, but we will download it
-    Downloaded to /usr/share/miniconda3/envs/deepchem/lib/python3.8/site-packages/dqc/api/.database/6-311ppg_3df_3pd_/07.gaussian94
+    Downloaded to /home/runner/miniconda3/envs/deepchem/lib/python3.8/site-packages/dqc/api/.database/6-311ppg_3df_3pd_/07.gaussian94
 
     """
 
@@ -105,7 +109,9 @@ class XCModel(TorchModel):
     >>> model = XCModel("lda_x", batch_size=1)
     >>> loss = model.fit(dataset, nb_epoch=1, checkpoint_interval=1)
     The 6-311++G(3df,3pd) basis for atomz 3 does not exist, but we will download it
-    Downloaded to /usr/share/miniconda3/envs/deepchem/lib/python3.8/site-packages/dqc/api/.database/6-311ppg_3df_3pd_/03.gaussian94
+    Downloaded to /home/runner/miniconda3/envs/deepchem/lib/python3.8/site-packages/dqc/api/.database/6-311ppg_3df_3pd_/03.gaussian94
+    The 6-311++G(3df,3pd) basis for atomz 1 does not exist, but we will download it
+    Downloaded to /home/runner/miniconda3/envs/deepchem/lib/python3.8/site-packages/dqc/api/.database/6-311ppg_3df_3pd_/01.gaussian94
 
     Notes
     -----

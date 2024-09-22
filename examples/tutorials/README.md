@@ -56,6 +56,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [17 Advanced model training using Hyperopt](Advanced_model_training_using_hyperopt.ipynb)
 * [18 Introduction to Gaussian Processes](Introduction_to_Gaussian_Processes.ipynb)
 * [19 Pytorch-Lightning Integration for DeepChem Models](PytorchLightning_Integration.ipynb)
+* [20 Compiling DeepChem PyTorch Models](Compiling_DeepChem_Torch_Models.ipynb)
 
 ### Molecular Machine Learning
 * [1 Molecular Fingerprints](Molecular_Fingerprints.ipynb)
@@ -73,6 +74,10 @@ tutorials discuss about using DeepChem for specific applications.
 
 ### Modeling Proteins
 * [1 Protein Deep Learning](Protein_Deep_Learning.ipynb)
+* [2 Antibody Design via Protein Language Models and Directed Evolution](DeepChem_AntibodyTutorial_Simplified.ipynb)
+* [3 Protein Structure Prediction with ESMFold](Protein_Structure_Prediction_with_ESMFold.ipynb)
+* [4 Introduction to ProtBERT](Introduction_to_ProtBERT.ipynb)
+* [5 Protein Language Models (Intuition)](ProteinLM_Tutorial0.ipynb)
 
 ### Protein Ligand Modeling
 * [1 Modeling Protein Ligand Interactions](Modeling_Protein_Ligand_Interactions.ipynb)
@@ -82,12 +87,15 @@ tutorials discuss about using DeepChem for specific applications.
 ### Quantum Chemistry
 * [1 Exploring Quantum Chemistry with GDB1k](Exploring_Quantum_Chemistry_with_GDB1k.ipynb)
 * [2 Finding ground state energy of molecules with DeepQMC](DeepQMC_tutorial.ipynb)
+* [3 Training an exchange correlation functional using DeepChem](Training_an_Exchange_Correlation_Functional_using_Deepchem.ipynb)
+* [4 Finding ground state energy of molecules with FermiNet(DeepChem Implementation)](FermiNet_DeepChem_tutorial.ipynb)
 
 ### Bioinformatics
 * [1 Introduction to BioInformatics](Introduction_to_Bioinformatics.ipynb)
 * [2 Multisequence Alignments](Multisequence_Alignments.ipynb)
 * [3 Scanpy](Scanpy.ipynb)
 * [4 Deep probabilistic analysis of omics data](Deep_probabilistic_analysis_of_single-cell_omics_data.ipynb)
+* [5 Automated Cell Counting](Cell_Counting_Tutorial.ipynb)
 
 ### Material Science
 * [1 Introduction to Material Science](Introduction_To_Material_Science.ipynb)
@@ -107,3 +115,13 @@ tutorials discuss about using DeepChem for specific applications.
 
 ### Olfaction
 * [1 Predict Multi-Label Odor Descriptors using OpenPOM](Predict_Multi_Label_Odor_Descriptors_using_OpenPOM.ipynb)
+
+### PROTACs
+* [1 Introduction to PROTACs](Introduction_to_PROTACs.ipynb)
+
+### Polymers
+* [1 An Introduction to the Polymers and Their Representation](An_Introduction_to_the_Polymers_and_Their_Representation.ipynb)
+* [2 Utilizing Deepchem Molecular Models for Crystalization Tendency Regression of Polymers](crystallization_tendency_regression.ipynb)
+* [3 Introduction to Polymer SMILES](Introduction_to_Polymer_SMILES.ipynb)
+* [4 Understanding Weighted Directed Graphs for Polymer Implementations](Understanding_Weighted_Directed_Graphs_for_Polymer_Implimentations.ipynb)
+* [5 PolyBERT: Introduction to Chemical Language Models for Fingerprint Generation](PolyBERT___Introduction_to_Chemical_Language_Models_for_Fingerprint_Generation.ipynb)

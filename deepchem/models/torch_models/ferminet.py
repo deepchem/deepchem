@@ -141,7 +141,9 @@ class Ferminet(torch.nn.Module):
                                      (self.batch_size, self.total_electron, -1))
         one_electron_vector_permuted = one_electron_vector.permute(0, 2, 1,
                                                                    3).float()
-
+        # setting the fermient layer and fermient envelope layer batch size to be that of the current batch size of the model. This enables for vectorized calculations of hessians and jacobians.
+        self.ferminet_layer[0].batch_size = self.batch_size
+        self.ferminet_layer_envelope[0].batch_size = self.batch_size
         one_electron, _ = self.ferminet_layer[0].forward(
             one_electron.to(torch.float32), two_electron.to(torch.float32))
         self.psi, self.psi_up, self.psi_down = self.ferminet_layer_envelope[
@@ -244,26 +246,30 @@ class Ferminet(torch.nn.Module):
         """
         # using functorch to calcualte hessian and jacobian in one go
         # using index tensors to index out the hessian elemennts corresponding to the same variable (cross-variable derivatives are ignored)
-        i = torch.arange(self.batch_size).view(self.batch_size, 1, 1, 1, 1, 1,
-                                               1)
+        i = torch.arange(self.batch_size).view(self.batch_size, 1, 1, 1, 1)
         j = torch.arange(self.total_electron).view(1, self.total_electron, 1, 1,
-                                                   1, 1, 1)
-        k = torch.arange(3).view(1, 1, 3, 1, 1, 1, 1)
-
+                                                   1)
+        k = torch.arange(3).view(1, 1, 3, 1, 1)
         # doing all the calculation and detaching from graph to save memory, which allows larger batch size
-        jacobian_square_sum = torch.sum(torch.sum(torch.sum(torch.pow(
-            torch.func.jacrev(lambda x: torch.log(torch.abs(self.forward(x))))(
-                self.input), 2),
-                                                            axis=-1),
-                                                  axis=-1),
-                                        axis=-1).detach()
-        hessian_sum = torch.sum(torch.reshape(
-            torch.func.hessian(lambda x: torch.log(torch.abs(self.forward(x))))(
-                self.input)[i, i, j, k, i, j, k],
-            (self.batch_size, self.total_electron, 3)).detach(),
-                                axis=(1, 2))
+        # cloning self.input which will serve as the new input for the vectorized functions.
+        input = torch.clone(self.input).detach()
+        # lambda function for calculating the log of absolute value of the wave function.
+        # using jacrev for the jacobian and jacrev twice for to calculate the hessian. The functorch's hessian function if directly used does not give stable results.
+        jac = torch.func.jacrev(lambda x: torch.log(torch.abs(self.forward(x))))
+        hess = torch.func.jacrev(jac)
+        # making the batch size temporarily as 1 for the vectorization of hessian and jacobian.
+        tmp_batch_size = self.batch_size
+        self.batch_size = 1
+        jacobian_square_sum = torch.sum(torch.pow(
+            torch.func.vmap(jac)(input).detach().squeeze(1), 2),
+                                        axis=(1, 2))
+        vectorized_hessian = torch.func.vmap(hess)
+        hessian_sum = torch.sum(
+            vectorized_hessian(input).detach().squeeze(1)[i, j, k, j, k],
+            axis=(1, 2)).squeeze(1).squeeze(1)
+        self.batch_size = tmp_batch_size
         kinetic_energy = -1 * 0.5 * (jacobian_square_sum + hessian_sum)
-        return kinetic_energy
+        return kinetic_energy.detach()
 
 
 class FerminetModel(TorchModel):
@@ -455,7 +461,7 @@ class FerminetModel(TorchModel):
                 self.nucleon_coordinates[i][1][0]) + " " + str(
                     self.nucleon_coordinates[i][1][1]) + " " + str(
                         self.nucleon_coordinates[i][1][2]) + ";"
-        self.mol = pyscf.gto.Mole(atom=molecule, basis='sto-3g')
+        self.mol = pyscf.gto.Mole(atom=molecule, basis='sto-6g')
         self.mol.parse_arg = False
         self.mol.unit = 'Bohr'
         self.mol.spin = (self.up_spin - self.down_spin)

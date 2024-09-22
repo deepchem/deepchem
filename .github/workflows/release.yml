@@ -10,16 +10,24 @@ jobs:
       matrix:
         python-version: ['3.9']
     steps:
-    - uses: actions/checkout@v3
+    - name: Maximize build space
+      if: runner.os == 'ubuntu-latest'
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        sudo rm -rf /usr/local/lib/android
+    - uses: actions/checkout@v4
     - name: Cache pip modules for Linux
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('env.*.yml') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Build DeepChem
@@ -44,18 +52,26 @@ jobs:
     needs: [pypi]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - name: Maximize build space
+      if: runner.os == 'ubuntu-latest'
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        sudo rm -rf /usr/local/lib/android
+    - uses: actions/checkout@v4
     - name: Get the tag version
       id: get_tag_version
       run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
     - name: Login to DockerHub
-      uses: docker/login-action@v1 
+      uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
     - name: Build and push
       id: docker_build
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v5
       with:
         context: ./docker/tag
         push: true

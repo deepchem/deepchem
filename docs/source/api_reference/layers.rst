@@ -67,9 +67,6 @@ Keras Layers
 .. autoclass:: deepchem.models.layers.AtomicConvolution
   :members:
 
-.. autoclass:: deepchem.models.layers.AtomicConv
-  :members:
-
 .. autoclass:: deepchem.models.layers.AlphaShareLayer
   :members:
 
@@ -126,6 +123,9 @@ Keras Layers
 
 Torch Layers
 ------------
+
+.. autoclass:: deepchem.models.torch_models.layers.AtomicConv
+  :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.MultilayerPerceptron
   :members:
@@ -224,7 +224,8 @@ Torch Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.MolGANAggregationLayer
   :members:
-  
+
+
 .. autoclass:: deepchem.models.torch_models.layers.MolGANMultiConvolutionLayer
   :members:
 
@@ -239,7 +240,8 @@ Torch Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.WeaveGather
   :members:
-  
+
+
 .. autoclass:: deepchem.models.torch_models.layers.MXMNetGlobalMessagePassing
   :members:
 
@@ -274,6 +276,48 @@ Torch Layers
   :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.HighwayLayer
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.GraphConv
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.GraphPool
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.GraphGather
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.ClampExp
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.ConstScaleLayer
+  :members:
+
+Flow Layers
+^^^^^^^^^^^
+
+.. autoclass:: deepchem.models.torch_models.flows.Flow
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.Affine
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.MaskedAffineFlow
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.ActNorm
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.ClampExp
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.ConstScaleLayer
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.MLPFlow
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.flows.NormalizingFlow
   :members:
 
 Grover Layers

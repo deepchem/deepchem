@@ -8,13 +8,13 @@ dependencies:
   - pdbfixer
   - pip
   - pip:
-    - numpy
-    - rdkit
+    - numpy==1.26.4
+    - rdkit==2023.09.5
     - pre-commit
     - biopython
     - dgllife
-    - lightgbm==3.*
-    - matminer
+    - lightgbm
+    - git+https://github.com/hackingmaterials/matminer.git
     - mordred
     - networkx
     - pillow
@@ -26,4 +26,5 @@ dependencies:
     - tokenizers
     - xgboost
     - gensim  # used by mol2vec
+    - scipy<=1.12.0
     - tensorboard

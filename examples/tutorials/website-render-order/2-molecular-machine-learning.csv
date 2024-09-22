@@ -11,3 +11,6 @@ Large Scale Chemical Screens,Large_Scale_Chemical_Screens.ipynb
 Introduction to Molecular Attention Transformer,Introduction_to_Molecular_Attention_Transformer.ipynb
 Generating Molecules with MolGAN,Generating_molecules_with_MolGAN.ipynb
 Introduction to GROVER,Introduction_to_GROVER.ipynb
+Introduction to PROTACs,Introduction_to_PROTACs.ipynb
+Druggability Assessment of Protein Drug Targets with Fpocket and Machine Learning,Druggablity_Assessment_with_Fpocket_and_Machine_Learning.ipynb
+Fine-tuning ESM-2 for binding sites prediction,Fine-tuning_ESM-2_for_Binding_Sites_Prediction.ipynb

@@ -162,6 +162,8 @@ Optimizers
 .. autoclass:: deepchem.models.optimizers.LinearCosineDecay
   :members:
 
+.. autoclass:: deepchem.models.optimizers.LambdaLRWithWarmup
+  :members:
 
 Keras Models
 ============
@@ -415,7 +417,7 @@ PagtnModel
   :members:
 
 AtomConvModel
-----------
+-------------
 
 .. autoclass:: deepchem.models.torch_models.AtomConvModel
   :members:
@@ -476,7 +478,8 @@ MATModel
 NormalizingFlowModel
 --------------------
 
-.. autoclass:: deepchem.models.torch_models.NormalizingFlow
+.. autoclass:: deepchem.models.torch_models.flows.NormalizingFlowModel
+  :members:
 
 DMPNNModel
 ----------
@@ -537,11 +540,58 @@ WeaveModel
 .. autoclass:: deepchem.models.torch_models.WeaveModel
   :members:
 
+ProgressiveMultitaskModel
+-------------------------
+
+.. autoclass:: deepchem.models.torch_models.ProgressiveMultitaskModel
+  :members:
 
 Density Functional Theory Model - XCModel
 -----------------------------------------
 
 .. autoclass:: deepchem.models.dft.dftxc.XCModel
+  :members:
+
+TextCNNModel
+------------
+
+.. autoclass:: deepchem.models.torch_models.TextCNNModel
+  :members:
+
+UNetModel
+------------
+
+.. autoclass:: deepchem.models.torch_models.UNetModel
+  :members:
+
+_GraphConvTorchModel
+--------------------
+
+.. autoclass:: deepchem.models.torch_models._GraphConvTorchModel
+  :members:
+
+GraphConvModel
+--------------------
+
+.. autoclass:: deepchem.models.torch_models.GraphConvModel
+  :members:
+
+Smiles2Vec
+--------------------
+
+.. autoclass:: deepchem.models.torch_models.Smiles2Vec
+  :members:
+
+Smiles2VecModel
+--------------------
+
+.. autoclass:: deepchem.models.torch_models.Smiles2VecModel
+  :members:
+
+MXMNet
+------
+
+.. autoclass:: deepchem.models.torch_models.MXMNet
   :members:
 
 PyTorch Lightning Models
@@ -592,6 +642,18 @@ Chemberta
 .. autoclass:: deepchem.models.torch_models.chemberta.Chemberta
   :members:
 
+ProtBERT
+---------
+
+.. autoclass:: deepchem.models.torch_models.prot_bert.ProtBERT
+  :members:
+
+DeepAbLLM
+---------
+
+.. autoclass:: deepchem.models.torch_models.antibody_modeling.DeepAbLLM
+  :members:
+  
 Trainer
 =======
 

@@ -22,7 +22,7 @@ import deepchem  # noqa
 # -- Project information -----------------------------------------------------
 
 project = 'deepchem'
-copyright = '2022, deepchem-contributors'
+copyright = '2024, deepchem-contributors'
 author = 'deepchem-contributors'
 
 # The full version, including alpha/beta/rc tags
@@ -35,8 +35,8 @@ release = deepchem.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
+    'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
     'sphinx.ext.linkcode',
     'sphinx.ext.mathjax',

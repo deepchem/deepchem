@@ -129,6 +129,16 @@ SAM Loader
 .. autoclass:: deepchem.data.data_loader.SAMLoader
   :members: __init__, create_dataset
 
+BAM Loader
+^^^^^^^^^^
+.. autoclass:: deepchem.data.data_loader.BAMLoader
+  :members: __init__, create_dataset
+
+CRAM Loader
+^^^^^^^^^^^
+.. autoclass:: deepchem.data.data_loader.CRAMLoader
+  :members: __init__, create_dataset
+
 
 Data Classes
 ------------
@@ -160,6 +170,19 @@ On the other hand, the graph convolution models which inherit :code:`TorchModel`
   :undoc-members:
 
 .. autoclass:: deepchem.feat.graph_data.GraphData
+  :members:
+
+Weighted Directed Graph Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+These classes are designed to represent weighted directed graphs, making them useful for modeling macromolecules like polymers 
+and represent their stoichiometry. This representation is compatible with specific neural networks, such as the weighted Directed Message 
+Passing Neural Network. Additionally, portions of the data can be converted into graph data with extra details to be compatible 
+with graph-based neural networks.
+
+We are working on some polymer featurizers which inherit :code:`PolymerFeaturizer` depend on :code:`WeightedDirectedGraphData` 
+
+.. autoclass:: deepchem.feat.graph_data.WeightedDirectedGraphData
   :members:
 
 Density Functional Theory Data
