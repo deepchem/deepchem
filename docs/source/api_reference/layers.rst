@@ -287,6 +287,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.GraphGather
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.Logistic
+  :members:
+
 .. autoclass:: deepchem.models.torch_models.flows.ClampExp
   :members:
 
@@ -371,7 +374,7 @@ Readout Layers
 ^^^^^^^^^^^^^^
 
 .. autoclass:: deepchem.models.torch_models.readout.GroverReadout
-   :members:
+  :members:
 
 Jax Layers
 ----------
@@ -383,19 +386,22 @@ Density Functional Theory Layers
 --------------------------------
 
 .. autoclass:: deepchem.models.dft.nnxc.BaseNNXC
-   :members:
+  :members:
 
 .. autoclass:: deepchem.models.dft.nnxc.NNLDA
-   :members:
+  :members:
 
 .. autoclass:: deepchem.models.dft.nnxc.NNPBE
-   :members:
+  :members:
 
 .. autoclass:: deepchem.models.dft.nnxc.HybridXC
-   :members:
+  :members:
 
 .. autoclass:: deepchem.models.dft.scf.XCNNSCF
-   :members:
+  :members:
 
 .. autoclass:: deepchem.models.dft.dftxc.DFTXC
-   :members:
+  :members:
+
+.. autoclass:: deepchem.models.dft.dm21.dm21
+  :members:
