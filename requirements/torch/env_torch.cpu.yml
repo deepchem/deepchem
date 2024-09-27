@@ -15,5 +15,5 @@ dependencies:
     - git+https://github.com/GreatRSingh/dqclibs@feature
     - git+https://gitlab.com/libxc/libxc.git@6.0.0
     - basis-set-exchange
-    - git+https://github.com/pyscf/pyscf.git
+    - pyscf
     - h5py
