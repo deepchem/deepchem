@@ -3,14 +3,17 @@ import ctypes.util
 import dqclibs
 import numpy as np
 import pyscf
+import sys
 
 # CONSTANTS
 NDIM = 3
 
-CINT = dqclibs.CINT
+def CINT():
+    return np.ctypeslib.load_library("libcint", sys.prefix + '/lib')
 def CGTO():
     return pyscf.lib.load_library('libcgto')
-CPBC = dqclibs.CPBC
+def CPBC():
+    return pyscf.lib.load_library('libcpbc')
 # CVHF = dqclibs.CVHF
 CSYMM = dqclibs.CSYMM
 
