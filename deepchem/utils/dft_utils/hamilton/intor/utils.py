@@ -2,12 +2,14 @@ import ctypes
 import ctypes.util
 import dqclibs
 import numpy as np
+import pyscf
 
 # CONSTANTS
 NDIM = 3
 
 CINT = dqclibs.CINT
-CGTO = dqclibs.CGTO
+def CGTO():
+    return pyscf.lib.load_library('libcgto')
 CPBC = dqclibs.CPBC
 # CVHF = dqclibs.CVHF
 CSYMM = dqclibs.CSYMM
