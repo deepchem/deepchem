@@ -17,3 +17,4 @@ dependencies:
     - basis-set-exchange
     - pyscf
     - h5py
+    - libcint
