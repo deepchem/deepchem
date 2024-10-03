@@ -12,7 +12,7 @@ dependencies:
     - pydantic
     - -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
     - torch-cluster
-    - git+https://github.com/diffqc/dqclibs.git
+    - https://blog-greatrsingh-storage.s3.ap-south-1.amazonaws.com/dqclibs-0.1.1-cp311-cp311-linux_x86_64.whl
     - git+https://gitlab.com/libxc/libxc.git@6.0.0
     - basis-set-exchange
     - pyscf
