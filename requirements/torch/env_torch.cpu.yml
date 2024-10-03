@@ -3,7 +3,7 @@ dependencies:
     - -f https://download.pytorch.org/whl/cpu/torch_stable.html
     # - -f https://data.dgl.ai/wheels/repo.html
     # The above line is commented out due to a bug in the DGL wheel repository.
-    # It contains wheels for the GPU version that are not compatible with the CPU version.
+    # It contains wheels for the GPU version that are not compatible with the CPU version..
     - torchdata<0.8.0
     - dgl<2.2.1
     - torch==2.2.1+cpu
@@ -12,8 +12,9 @@ dependencies:
     - pydantic
     - -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
     - torch-cluster
-    - git+https://github.com/diffqc/dqclibs.git
+    - https://blog-greatrsingh-storage.s3.ap-south-1.amazonaws.com/dqclibs-0.1.1-cp311-cp311-linux_x86_64.whl
     - git+https://gitlab.com/libxc/libxc.git@6.0.0
     - basis-set-exchange
     - pyscf
     - h5py
+    - libcint
