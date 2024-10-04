@@ -136,7 +136,4 @@ jobs:
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
-      run: |
-        conda deactivate;
-        conda activate deepchem;
-        pytest -v -m 'torch' deepchem
+      run: pytest -v -m 'torch' deepchem
