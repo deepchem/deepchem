@@ -6,8 +6,12 @@ from __future__ import annotations
 from abc import abstractmethod, abstractproperty
 from typing import List, Dict, Optional
 import numpy as np
-from deepchem.utils.dftutils import KSCalc
-from deepchem.utils.dft_utils import Mol, BaseSystem, parse_moldesc, BaseGrid
+import warnings
+try:
+    from deepchem.utils.dftutils import KSCalc
+    from deepchem.utils.dft_utils import Mol, BaseSystem, parse_moldesc, BaseGrid
+except Exception as e:
+    warnings.warn(e)
 
 
 class DFTSystem():
