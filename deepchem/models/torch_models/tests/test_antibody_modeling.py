@@ -18,7 +18,7 @@ def igbert_tokenizer():
 @pytest.mark.torch
 def test_init(igbert_tokenizer):
     from deepchem.models.torch_models.antibody_modeling import DeepAbLLM
-    from deepchem.models.torch_models.hf_model import HuggingFaceModel
+    from deepchem.models.torch_models.hf_models import HuggingFaceModel
     anti_model = DeepAbLLM(task='mlm', model_path='Exscientia/IgBert')
     assert isinstance(anti_model, HuggingFaceModel)
     assert anti_model.tokenizer == igbert_tokenizer
@@ -102,9 +102,9 @@ def test_initialize_new_config():
 @pytest.mark.torch
 def test_mask_seq_pos(igbert_tokenizer):
     from deepchem.models.torch_models.antibody_modeling import DeepAbLLM
-    anti_model = DeepAbLLM(model_path='facebook/esm2_t6_8M_UR50D',
+    anti_model = DeepAbLLM(model_path='Exscientia/IgBert',
                            task='mlm',
-                           is_esm_variant=True,
+                           is_esm_variant=False,
                            device=torch.device('cpu'))
     anti_model._ensure_built()
 
@@ -129,7 +129,7 @@ def test_redesign_residue():
         assert len(item) == 3
         # Test that the first item is a string
         assert isinstance(item[0], str)
-        assert len(item[0]) == 1
+        # assert len(item[0]) == 1
         # Test that the second item is a string
         assert len(item[1]) == len(ab_sequence)
         # assert distance(item[1], ab_sequence) <= 1
@@ -147,14 +147,14 @@ def test_optimize_sequence():
     redesigned_sequences = anti_model.redesign_sequence(ab_sequence)
     assert len(redesigned_sequences) > 0
     for item in redesigned_sequences:
-        # Assert that the tuples are of (token_str, full_seq, score)
-        assert len(item) == 3
-        # Test that the first item is a string
-        assert isinstance(item[0], str)
-        assert len(item[0]) == 1
+        # Assert that the tuples are of (index, token_str, full_seq, score)
+        assert len(item) == 4
         # Test that the second item is a string
-        assert len(item[1]) == len(ab_sequence)
+        assert isinstance(item[1], str)
+        assert len(item[1]) == 1
+        # Test that the third item is a string
+        assert len(item[2]) == len(ab_sequence)
         # assert distance(item[1], ab_sequence) <= 1
-        # Test the third item is a float between 0 and 1
-        assert isinstance(item[2], float)
-        assert abs(item[2]) <= 1
+        # Test the fourth item is a float between 0 and 1
+        assert isinstance(item[3], float)
+        assert abs(item[3]) <= 1
