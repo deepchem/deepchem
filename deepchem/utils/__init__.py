@@ -130,6 +130,13 @@ from deepchem.utils.voxel_utils import voxelize
 from deepchem.utils.sequence_utils import hhblits
 from deepchem.utils.sequence_utils import hhsearch
 
+from deepchem.utils.poly_wd_graph_utils import handle_hydrogen
+from deepchem.utils.poly_wd_graph_utils import make_polymer_mol
+from deepchem.utils.poly_wd_graph_utils import parse_polymer_rules
+from deepchem.utils.poly_wd_graph_utils import tag_atoms_in_repeating_unit
+from deepchem.utils.poly_wd_graph_utils import onek_encoding_unk
+from deepchem.utils.poly_wd_graph_utils import remove_wildcard_atoms
+
 try:
     from deepchem.utils.periodic_table_utils import get_atomz
     from deepchem.utils.periodic_table_utils import get_atom_mass
