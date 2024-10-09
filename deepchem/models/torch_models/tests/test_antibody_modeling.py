@@ -21,7 +21,7 @@ def test_init(igbert_tokenizer):
     from deepchem.models.torch_models.hf_models import HuggingFaceModel
     anti_model = DeepAbLLM(task='mlm', model_path='Exscientia/IgBert')
     assert isinstance(anti_model, HuggingFaceModel)
-    assert isinstance(anti_model.tokenizer) == isinstance(igbert_tokenizer)
+    assert type(anti_model.tokenizer) == type(igbert_tokenizer)
     assert anti_model.n_tasks == 1
 
 
