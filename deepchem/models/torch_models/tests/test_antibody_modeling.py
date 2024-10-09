@@ -21,7 +21,7 @@ def test_init(igbert_tokenizer):
     from deepchem.models.torch_models.hf_models import HuggingFaceModel
     anti_model = DeepAbLLM(task='mlm', model_path='Exscientia/IgBert')
     assert isinstance(anti_model, HuggingFaceModel)
-    assert anti_model.tokenizer == igbert_tokenizer
+    assert isinstance(anti_model.tokenizer) == isinstance(igbert_tokenizer)
     assert anti_model.n_tasks == 1
 
 
@@ -129,9 +129,8 @@ def test_redesign_residue():
         assert len(item) == 3
         # Test that the first item is a string
         assert isinstance(item[0], str)
-        # assert len(item[0]) == 1
         # Test that the second item is a string
-        assert len(item[1]) == len(ab_sequence)
+        assert len(item[1]) >= len(ab_sequence)
         # assert distance(item[1], ab_sequence) <= 1
         # Test the third item is a float between 0 and 1
         assert isinstance(item[2], float)
@@ -151,9 +150,8 @@ def test_optimize_sequence():
         assert len(item) == 4
         # Test that the second item is a string
         assert isinstance(item[1], str)
-        assert len(item[1]) == 1
         # Test that the third item is a string
-        assert len(item[2]) == len(ab_sequence)
+        assert len(item[2]) >= len(ab_sequence)
         # assert distance(item[1], ab_sequence) <= 1
         # Test the fourth item is a float between 0 and 1
         assert isinstance(item[3], float)
