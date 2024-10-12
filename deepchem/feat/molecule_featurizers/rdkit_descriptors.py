@@ -96,9 +96,8 @@ class RDKitDescriptors(MolecularFeaturizer):
         self.reqd_properties = {}
         self.normalized_desc: Dict[str, Callable] = {}
 
-        self.descriptors = all_descriptors = {
-            name: func for name, func in Descriptors.descList
-        }
+        all_descriptors = {name: func for name, func in Descriptors.descList}
+        self.descriptors = all_descriptors
 
         if not descriptors:
             # user has not specified a descriptor list
