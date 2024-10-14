@@ -130,6 +130,9 @@ from deepchem.utils.voxel_utils import voxelize
 from deepchem.utils.sequence_utils import hhblits
 from deepchem.utils.sequence_utils import hhsearch
 
+# Polymer Weighted Directed Graph Featurization Utilities
+from deepchem.utils.poly_wd_graph_utils import PolyWDGStringValidator
+
 try:
     from deepchem.utils.periodic_table_utils import get_atomz
     from deepchem.utils.periodic_table_utils import get_atom_mass

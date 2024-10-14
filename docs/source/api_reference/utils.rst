@@ -708,6 +708,29 @@ The utilities here are used to modify the attributes of the classes. Used by dif
 .. autoclass:: deepchem.utils.attribute_utils.del_attr
   :members:
 
+Polymer Weighted Directed Graph String Validator
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This class validates the input string representation for graphical conversion of polymer data.
+It splits the input strings, validates their order and values. Upon recieving error it can return
+meaningful error message to the user indicating the type of error that hinders the conversion process.
+
+The format is an extended string representation that is used as input format for Weighted Directed Message Passing Neural Network (wDMPNN) implementation
+using :code:`polymer-chemprop` python module. For more information and understanding, visit the `github repo <https://github.com/coleygroup/polymer-chemprop>`.
+The format development and implementation is done by Matteo Aldeghi and Connor W. Coley for their 
+work on "A graph representation of molecular ensembles for polymer property prediction". 
+
+The :code:`dc.utils.PolyWDGStringValidator` class is explicitly useful for validating a Weighted Directed
+Graph Representaion within a string data for polymers. It validates atom notations in monomer, valid Fragment
+weights for monomers, and valid polymer rules within the string representation.
+
+References:
+
+- `Aldeghi M, Coley CW. A graph representation of molecular ensembles for polymer property prediction. Chemical Science. 2022;13(35):10486-98.`_
+
+.. autoclass:: deepchem.utils.poly_wd_graph_utils.PolyWDGStringValidator
+  :members:
+
 Pytorch Utilities
 -----------------
 
