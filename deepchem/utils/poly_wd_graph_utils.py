@@ -32,6 +32,11 @@ class PolyWDGStringValidator():
     >>> validator = PolyWDGStringValidator()
     >>> validator.validate("[1*]C.C[2*]|0.5|0.5|<1-2:0.5:0.5")
     True
+
+    References
+    ----------
+    .. [1] Aldeghi, Matteo, and Connor W. Coley. "A graph representation of molecular 
+        ensembles for polymer property prediction." Chemical Science 13.35 (2022): 10486-10498. 
     """
 
     @staticmethod

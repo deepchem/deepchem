@@ -708,12 +708,6 @@ The utilities here are used to modify the attributes of the classes. Used by dif
 .. autoclass:: deepchem.utils.attribute_utils.del_attr
   :members:
 
-Polymer Weighted Directed Graph Data Utilities
------------------------------------------
-
-These classes and functions are required to handle converstion of string data to graph data 
-and validation of the same. 
-
 Polymer Weighted Directed Graph String Validator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -732,7 +726,7 @@ weights for monomers, and valid polymer rules within the string representation.
 
 References:
 
-- `Aldeghi M, Coley CW. A graph representation of molecular ensembles for polymer property prediction. Chemical Science. 2022;13(35):10486-98.`
+- `Aldeghi M, Coley CW. A graph representation of molecular ensembles for polymer property prediction. Chemical Science. 2022;13(35):10486-98.`_
 
 .. autoclass:: deepchem.utils.poly_wd_graph_utils.PolyWDGStringValidator
   :members:
