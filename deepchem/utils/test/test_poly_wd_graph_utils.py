@@ -5,7 +5,10 @@ from deepchem.utils import parse_polymer_rules
 from deepchem.utils import tag_atoms_in_repeating_unit
 from deepchem.utils import onek_encoding_unk
 from deepchem.utils import remove_wildcard_atoms
+from deepchem.utils import PolyWDGStringValidator
 from rdkit import Chem
+
+
 
 
 class WDGraphUtilsTest(unittest.TestCase):
@@ -87,9 +90,6 @@ class WDGraphUtilsTest(unittest.TestCase):
         rwmol = Chem.RWMol(mol)
         rwmol = remove_wildcard_atoms(rwmol)
         assert Chem.MolToSmiles(rwmol) == "CC"
-import unittest
-from deepchem.utils import PolyWDGStringValidator
-
 
 class PolyWDGStringValidateTest(unittest.TestCase):
     """

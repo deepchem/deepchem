@@ -1,7 +1,7 @@
 from rdkit import Chem
 import numpy as np
 from typing import List, Tuple
-
+import re
 
 def handle_hydrogen(smiles: str,
                     keep_h: bool = False,
@@ -307,8 +307,7 @@ def remove_wildcard_atoms(rwmol: Chem.rdchem.RWMol) -> Chem.rdchem.RWMol:
         indices = [a.GetIdx() for a in rwmol.GetAtoms() if '*' in a.GetSmarts()]
     Chem.SanitizeMol(rwmol, Chem.SanitizeFlags.SANITIZE_ALL)
     return rwmol
-from typing import List, Tuple
-import re
+
 
 
 class PolyWDGStringValidator():
