@@ -7,18 +7,20 @@ import logging
 from collections.abc import Sequence as SequenceCollection
 from typing import Union, Dict, Tuple, Iterable, List, Optional, Callable, Any
 
-import deepchem as dc
 from deepchem.models.optimizers import LearningRateSchedule
-from deepchem.utils.typing import LossFn
+from deepchem.trans import Transformer
+from deepchem.utils.typing import LossFn, OneOrMany
 from deepchem.models.torch_models import HuggingFaceModel
 
-from transformers import AutoProcessor, AutoModelForUniversalSegmentation, OneFormerConfig, OneFormerForUniversalSegmentation
+from transformers import AutoProcessor, AutoModelForUniversalSegmentation, OneFormerConfig
+
+logger = logging.getLogger(__name__)
 
 
 class OneFormer(HuggingFaceModel):
 
     def __init__(self,
-                 model_path: str = 'shi-labs/oneformer_coco_swin_large',
+                 model_path: str = 'shi-labs/oneformer_coco_swin_tiny',
                  segmentation_task: str = "semantic",
                  id2label: Dict = {
                      0: "unlabelled",
@@ -58,7 +60,10 @@ class OneFormer(HuggingFaceModel):
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
         X, y, w = batch
-        X, y, w = X[0], y[0], w[0]
+        if y is not None:
+            X, y, w = X[0], y[0], w[0]
+        else:
+            X = X[0]
 
         images = []
         for x in X:
@@ -71,26 +76,33 @@ class OneFormer(HuggingFaceModel):
         else:
             masks = None
 
-        processed_inputs = []
+        processed_inputs = {}
         for idx, img in enumerate(images):
             if masks is not None:
                 inputs = self.model_processor(
                     images=images[idx],
                     segmentation_maps=masks[idx],
                     task_inputs=[self.segmentation_task],
-                    return_tensors="pt").to(self.device)
+                    return_tensors="pt")
             else:
                 inputs = self.model_processor(
                     images=images[idx],
                     task_inputs=[self.segmentation_task],
-                    return_tensors="pt").to(self.device)
-            inputs = {
-                k: v.squeeze() if isinstance(v, torch.Tensor) else v[0]
-                for k, v in inputs.items()
-            }
-            processed_inputs.append(inputs)
+                    return_tensors="pt")
+            # Process and append to the same dictionary
+            for k, v in inputs.items():
+                v = v.squeeze().to(self.device) if isinstance(
+                    v, torch.Tensor) else v[0]
 
-        return inputs, y, w
+                # If this is the first time we're adding  to processed_inputs, initialize it with the correct batch shape
+                if k in processed_inputs:
+                    processed_inputs[k] = torch.cat(
+                        (processed_inputs[k], v.unsqueeze(0)),
+                        dim=0)  # Concatenate along batch dimension
+                else:
+                    processed_inputs[k] = v.unsqueeze(0)  # Add batch dimension
+
+        return processed_inputs, y, w
 
     def fit_generator(self,
                       generator: Iterable[Tuple[Any, Any, Any]],
@@ -177,7 +189,10 @@ class OneFormer(HuggingFaceModel):
             inputs: OneOrMany[torch.Tensor]
             inputs, labels, weights = self._prepare_batch(batch)
 
-            inputs = {k: v.to(device) for k, v in inputs.items()}
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            for k, v in inputs.items():
+                if isinstance(v, torch.Tensor):
+                    print(k, v.shape)
 
             optimizer.zero_grad()
             outputs = self.model(**inputs)
@@ -239,7 +254,9 @@ class OneFormer(HuggingFaceModel):
         logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
         return last_avg_loss
 
-    def _predict(self, generator: Iterable[Tuple[Any, Any, Any]]):
+    def _predict(self, generator: Iterable[Tuple[Any, Any, Any]],
+                 transformers: List[Transformer], uncertainty: bool,
+                 other_output_types: Optional[OneOrMany[str]]):
         """Predicts output for data provided by generator.
 
         This is the private implementation of prediction. Do not
@@ -263,17 +280,23 @@ class OneFormer(HuggingFaceModel):
         results: Optional[List[List[np.ndarray]]] = None
         self._ensure_built()
         self.model.eval()
+        self.model.model.is_training = False
 
         for batch in generator:
             inputs, labels, weights = batch
             inputs, _, _ = self._prepare_batch((inputs, None, None))
 
+            for k, v in inputs.items():
+                if isinstance(v, torch.Tensor):
+                    print(k, v.shape)
+
             # Invoke the model.
-            output_values = self.model(**inputs)
+            with torch.no_grad():
+                output_values = self.model(**inputs)
             for i in output_values:
                 if self.segmentation_task == "semantic":
                     output_values[
-                        i] = self.processor.post_process_semantic_segmentation(
+                        i] = self.model_processor.post_process_semantic_segmentation(
                             output_values[i],
                             target_sizes=[self.image_size[::-1]])[0]
 
@@ -298,18 +321,20 @@ class OneFormer(HuggingFaceModel):
             return np.array(final_results)
 
 
-model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
-                  segmentation_task="instance",
-                  id2label={
-                      0: "unlabelled",
-                      1: "cell"
-                  },
-                  torch_dtype=torch.float16)
+# model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
+#                   segmentation_task="semantic",
+#                   id2label={
+#                       0: "unlabelled",
+#                       1: "cell"
+#                   },
+#                   torch_dtype=torch.float16,
+#                   batch_size = 1)
 
-inputs = np.random.rand(10, 224, 224, 3)
-labels = np.random.rand(10, 224, 224)
+# inputs = np.random.rand(10, 224, 224, 3)
+# labels = np.random.rand(10, 224, 224)
 
-# make deepchem dataset
-dataset = dc.data.ImageDataset(inputs, labels)
+# # make deepchem dataset
+# dataset = dc.data.ImageDataset(inputs, labels)
 
-model.fit(dataset, nb_epoch=1)
+# # model.fit(dataset, nb_epoch=2)
+# model.predict(dataset)
