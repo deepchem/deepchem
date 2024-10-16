@@ -9,8 +9,6 @@ from deepchem.utils import PolyWDGStringValidator
 from rdkit import Chem
 
 
-
-
 class WDGraphUtilsTest(unittest.TestCase):
     """
     Tests for polymer weighted directed graph util functions
@@ -90,6 +88,7 @@ class WDGraphUtilsTest(unittest.TestCase):
         rwmol = Chem.RWMol(mol)
         rwmol = remove_wildcard_atoms(rwmol)
         assert Chem.MolToSmiles(rwmol) == "CC"
+
 
 class PolyWDGStringValidateTest(unittest.TestCase):
     """
