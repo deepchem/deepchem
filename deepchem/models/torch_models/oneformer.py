@@ -1,9 +1,18 @@
-from transformers import AutoProcessor, AutoModelForUniversalSegmentation, OneFormerConfig, OneFormerForUniversalSegmentation
-from deepchem.models.torch_models import HuggingFaceModel
-import torch
 from PIL import Image
+import torch
 import numpy as np
-from typing import Union, Dict, Any
+
+import time
+import logging
+from collections.abc import Sequence as SequenceCollection
+from typing import Union, Dict, Tuple, Iterable, List, Optional, Callable, Any
+
+import deepchem as dc
+from deepchem.models.optimizers import LearningRateSchedule
+from deepchem.utils.typing import LossFn
+from deepchem.models.torch_models import HuggingFaceModel
+
+from transformers import AutoProcessor, AutoModelForUniversalSegmentation, OneFormerConfig, OneFormerForUniversalSegmentation
 
 
 class OneFormer(HuggingFaceModel):
@@ -11,8 +20,12 @@ class OneFormer(HuggingFaceModel):
     def __init__(self,
                  model_path: str = 'shi-labs/oneformer_coco_swin_large',
                  segmentation_task: str = "semantic",
-                 id2label: Dict,
-                 torch_dtype: torch.dtype = torch.float32):
+                 id2label: Dict = {
+                     0: "unlabelled",
+                     1: "cell"
+                 },
+                 torch_dtype: torch.dtype = torch.float32,
+                 **kwargs):
 
         self.model_path = model_path
         self.segmentation_task = segmentation_task
@@ -25,43 +38,57 @@ class OneFormer(HuggingFaceModel):
         if model_path:
             self.model_config = OneFormerConfig().from_pretrained(
                 model_path, is_training=True, torch_dtype=torch_dtype)
-            self.model_processor = AutoProcessor().from_pretrained(model_path)
+            self.model_processor = AutoProcessor.from_pretrained(model_path)
         else:
-            model_config = OneFormerConfig(torch_dtype=torch_dtype)
+            self.model_config = OneFormerConfig(torch_dtype=torch_dtype)
             self.model_processor = AutoProcessor()
 
         self.model_config.id2label = self.id2label
         self.model_config.label2id = self.label2id
 
-        self.model = AutoModelForUniversalSegmentation.from_config(model_config)
+        self.model = AutoModelForUniversalSegmentation.from_config(
+            self.model_config)
 
-        self.model_processor.image_processor.num_text = model.config.num_queries - model.config.text_encoder_n_ctx
+        self.model_processor.image_processor.num_text = self.model.config.num_queries - self.model.config.text_encoder_n_ctx
 
-        super().__init__(model=self.model, task=self.task, tokenizer=None, **kwargs)
+        super().__init__(model=self.model,
+                         task=self.task,
+                         tokenizer=None,
+                         **kwargs)
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
         X, y, w = batch
+        X, y, w = X[0], y[0], w[0]
 
-        images = Image.from_array(X.astype(np.uint8))
-        
+        images = []
+        for x in X:
+            images.append(Image.fromarray(x.astype(np.uint8)))
+
         self.image_size = images[0].size
 
         if y is not None:
             masks = y.astype(np.uint8)
-
-        if masks:
-            inputs = self.processor(images=images,
-                                    segmentation_maps=masks,
-                                    task_inputs=[self.segmentation_task],
-                                    return_tensors="pt").to(self.device)
         else:
-            inputs = self.processor(images=images,
-                                    task_inputs=[self.segmentation_task],
-                                    return_tensors="pt").to(self.device)
-        inputs = {
-            k: v.squeeze() if isinstance(v, torch.Tensor) else v[0]
-            for k, v in inputs.items()
-        }
+            masks = None
+
+        processed_inputs = []
+        for idx, img in enumerate(images):
+            if masks is not None:
+                inputs = self.model_processor(
+                    images=images[idx],
+                    segmentation_maps=masks[idx],
+                    task_inputs=[self.segmentation_task],
+                    return_tensors="pt").to(self.device)
+            else:
+                inputs = self.model_processor(
+                    images=images[idx],
+                    task_inputs=[self.segmentation_task],
+                    return_tensors="pt").to(self.device)
+            inputs = {
+                k: v.squeeze() if isinstance(v, torch.Tensor) else v[0]
+                for k, v in inputs.items()
+            }
+            processed_inputs.append(inputs)
 
         return inputs, y, w
 
@@ -236,7 +263,7 @@ class OneFormer(HuggingFaceModel):
         results: Optional[List[List[np.ndarray]]] = None
         self._ensure_built()
         self.model.eval()
-        
+
         for batch in generator:
             inputs, labels, weights = batch
             inputs, _, _ = self._prepare_batch((inputs, None, None))
@@ -245,12 +272,15 @@ class OneFormer(HuggingFaceModel):
             output_values = self.model(**inputs)
             for i in output_values:
                 if self.segmentation_task == "semantic":
-                    output_values[i] = self.processor.post_process_semantic_segmentation(output_values[i], target_sizes=[self.image_size[::-1]])[0]
+                    output_values[
+                        i] = self.processor.post_process_semantic_segmentation(
+                            output_values[i],
+                            target_sizes=[self.image_size[::-1]])[0]
 
             if isinstance(output_values, torch.Tensor):
                 output_values = [output_values]
             output_values = [t.detach().cpu().numpy() for t in output_values]
-            
+
             if results is None:
                 results = [[] for i in range(len(output_values))]
             for i, t in enumerate(output_values):
@@ -266,3 +296,20 @@ class OneFormer(HuggingFaceModel):
             return final_results[0]
         else:
             return np.array(final_results)
+
+
+model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
+                  segmentation_task="instance",
+                  id2label={
+                      0: "unlabelled",
+                      1: "cell"
+                  },
+                  torch_dtype=torch.float16)
+
+inputs = np.random.rand(10, 224, 224, 3)
+labels = np.random.rand(10, 224, 224)
+
+# make deepchem dataset
+dataset = dc.data.ImageDataset(inputs, labels)
+
+model.fit(dataset, nb_epoch=1)
