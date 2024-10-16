@@ -1,7 +1,7 @@
 import numpy as np
 from collections import defaultdict
 from deepchem.feat import Featurizer
-from typing import List, Dict, Tuple, Any, Optional, Sequence
+from typing import List, Dict, Tuple, Any, Optional
 
 try:
     import dgl
@@ -158,6 +158,8 @@ class _Realigner(object):
             chrom = x[3]  # Reference name
 
             pileup_info = x[7] if len(x) > 7 else None
+            if pileup_info is None:
+                continue
             for pileupcolumn in pileup_info:
                 for read_seq in pileupcolumn['reads']:
                     reads.append(read_seq)
@@ -587,8 +589,8 @@ class _Realigner(object):
 
             # Track the max score and its position
             if H[i, 1:].max().item() > max_score:
-                max_score = H[i, 1:].max().item()
-                end_ref = torch.argmax(H[i, 1:]).item()
+                max_score = int(H[i, 1:].max().item())
+                end_ref = int(torch.argmax(H[i, 1:]).item())
                 end_query = i
 
         return {
@@ -601,7 +603,8 @@ class _Realigner(object):
 
     def fast_pass_aligner(self, assembled_region: Dict[str, Any]) -> List[Any]:
         """
-        Align reads to the haplotype of the assembled region using SSW Aligner.
+        Align reads to the haplotype of the assembled region using Striped Smith
+        Waterman algorithm.
 
         Parameters
         ----------
@@ -623,9 +626,9 @@ class _Realigner(object):
         return aligned_reads
 
     def process_candidate_windows(
-        self, candidate_regions: List[Tuple[str, int, int, int]],
-        bamfiles: List[Any], reference_seq_dict: Dict[str, str]
-    ) -> List[Dict[str, Sequence[Tuple[str, Any, int, str, int, Any, int]]]]:
+            self, candidate_regions: List[Tuple[str, int, int,
+                                                int]], bamfiles: List[Any],
+            reference_seq_dict: Dict[str, str]) -> List[Dict[str, Any]]:
         """
         Process candidate regions to generate window haplotyples with
         realigned reads.
@@ -779,7 +782,7 @@ class RealignerFeaturizer(Featurizer):
         fasta_dataset = fasta_loader.create_dataset(reference_file_path)
 
         one_hot_encoded_sequences = fasta_dataset.X
-        decoded_sequences: List[str] = []
+        decoded_sequences = []
 
         # Convert the one-hot encoded sequences to strings
         for seq in one_hot_encoded_sequences:
@@ -789,7 +792,7 @@ class RealignerFeaturizer(Featurizer):
         # Map the sequences to chrom names
         chrom_names = ["chr1", "chr2"]
 
-        reference_seq_dict: Dict[str, str] = {
+        reference_seq_dict = {
             chrom_names[i]: seq for i, seq in enumerate(decoded_sequences)
         }
 
