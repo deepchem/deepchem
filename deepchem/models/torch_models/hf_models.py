@@ -11,7 +11,7 @@ from deepchem.models.torch_models import TorchModel
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
 from transformers.data.data_collator import DataCollatorForLanguageModeling
-from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM
+from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM, AutoModelForUniversalSegmentation
 
 logger = logging.getLogger(__name__)
 
@@ -202,6 +202,9 @@ class HuggingFaceModel(TorchModel):
                 self.model = AutoModelForMaskedLM.from_pretrained(model_dir)
             elif self.task in ['mtr', 'regression', 'classification']:
                 self.model = AutoModelForSequenceClassification.from_pretrained(
+                    model_dir)
+            elif self.task == "universal_segmentation":
+                self.model = AutoModelForUniversalSegmentation.from_pretrained(
                     model_dir)
             else:
                 self.model = AutoModel.from_pretrained(model_dir)
