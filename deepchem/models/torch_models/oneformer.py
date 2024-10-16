@@ -7,6 +7,7 @@ import logging
 from collections.abc import Sequence as SequenceCollection
 from typing import Union, Dict, Tuple, Iterable, List, Optional, Callable, Any
 
+import deepchem as dc
 from deepchem.models.optimizers import LearningRateSchedule
 from deepchem.trans import Transformer
 from deepchem.utils.typing import LossFn, OneOrMany
@@ -290,23 +291,27 @@ class OneFormer(HuggingFaceModel):
                 if isinstance(v, torch.Tensor):
                     print(k, v.shape)
 
+            outputs = []
             # Invoke the model.
             with torch.no_grad():
                 output_values = self.model(**inputs)
-            for i in output_values:
+                outputs.append(output_values)
+
+            print(len(outputs))
+            for idx, i in enumerate(outputs):
                 if self.segmentation_task == "semantic":
-                    output_values[
-                        i] = self.model_processor.post_process_semantic_segmentation(
-                            output_values[i],
+                    outputs[
+                        idx] = self.model_processor.post_process_semantic_segmentation(
+                            outputs[idx],
                             target_sizes=[self.image_size[::-1]])[0]
 
-            if isinstance(output_values, torch.Tensor):
-                output_values = [output_values]
-            output_values = [t.detach().cpu().numpy() for t in output_values]
+            if isinstance(outputs, torch.Tensor):
+                outputs = [outputs]
+            outputs = [t.detach().cpu().numpy() for t in outputs]
 
             if results is None:
-                results = [[] for i in range(len(output_values))]
-            for i, t in enumerate(output_values):
+                results = [[] for i in range(len(outputs))]
+            for i, t in enumerate(outputs):
                 results[i].append(t)
 
         # Concatenate arrays to create the final results.
@@ -319,22 +324,3 @@ class OneFormer(HuggingFaceModel):
             return final_results[0]
         else:
             return np.array(final_results)
-
-
-# model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
-#                   segmentation_task="semantic",
-#                   id2label={
-#                       0: "unlabelled",
-#                       1: "cell"
-#                   },
-#                   torch_dtype=torch.float16,
-#                   batch_size = 1)
-
-# inputs = np.random.rand(10, 224, 224, 3)
-# labels = np.random.rand(10, 224, 224)
-
-# # make deepchem dataset
-# dataset = dc.data.ImageDataset(inputs, labels)
-
-# # model.fit(dataset, nb_epoch=2)
-# model.predict(dataset)
