@@ -266,3 +266,16 @@ def test_fill_mask_fidelity(tmpdir, hf_tokenizer):
 
             # Test 3. Check that the infilling went to the right spot
             assert filled['sequence'].startswith(f'<s>{filled["token_str"]}')
+
+
+@pytest.mark.torch
+def test_load_from_pretrained_with_diff_task(tmpdir):
+    # Tests loading a pretrained model where the weight shape in last layer
+    # (the final projection layer) of the pretrained model does not match
+    # with the weight shape in new model.
+    from deepchem.models.torch_models import Chemberta
+    model = Chemberta(task='mtr', n_tasks=10, model_dir=tmpdir)
+    model.save_checkpoint()
+
+    model = Chemberta(task='regression', n_tasks=20)
+    model.load_from_pretrained(model_dir=tmpdir)
