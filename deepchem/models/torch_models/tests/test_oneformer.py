@@ -10,6 +10,7 @@ def test_oneformer_train():
         from deepchem.models.torch_models import OneFormer, HuggingFaceModel
     except ModuleNotFoundError:
         pass
+
     model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
                       segmentation_task="semantic",
                       torch_dtype=torch.float16,
@@ -30,6 +31,7 @@ def test_oneformer_predict():
         from deepchem.models.torch_models import OneFormer, HuggingFaceModel
     except ModuleNotFoundError:
         pass
+
     model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
                       segmentation_task="semantic",
                       torch_dtype=torch.float16,

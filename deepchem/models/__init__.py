@@ -56,7 +56,6 @@ except ModuleNotFoundError as e:
 try:
     from deepchem.models.torch_models import HuggingFaceModel
     from deepchem.models.torch_models import Chemberta
-    from deepchem.models.torch_models import OneFormer
 except ImportError as e:
     logger.warning(e)
 

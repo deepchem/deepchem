@@ -444,7 +444,7 @@ class OneFormer(HuggingFaceModel):
             for i, t in enumerate(output_values):
                 results[i].append(t)
 
-        # Concatenate arrays to create the final results.
+        # Concatenate arrays to create the final results
         if results is not None:
             final_results = results
         if variances is not None:
