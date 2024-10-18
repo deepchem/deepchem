@@ -159,6 +159,7 @@ class OneFormer(HuggingFaceModel):
         else:
             masks = None
 
+        processed_inputs: Dict[str, torch.Tensor]
         processed_inputs = {}
         for idx, img in enumerate(images):
             if masks is not None:
@@ -177,11 +178,10 @@ class OneFormer(HuggingFaceModel):
                 v = v.squeeze().to(self.device) if isinstance(
                     v, torch.Tensor) else v[0]
 
-                # If this is the first time we're adding  to processed_inputs, initialize it with the correct batch shape
+                # If this is the first time we're adding to processed_inputs, initialize it with the correct batch shape
                 if k in processed_inputs:
                     processed_inputs[k] = torch.cat(
-                        (processed_inputs[k], v.unsqueeze(0)),
-                        dim=0)  # Concatenate along batch dimension
+                        (processed_inputs[k], v.unsqueeze(0)), dim=0)
                 else:
                     processed_inputs[k] = v.unsqueeze(0)  # Add batch dimension
 
@@ -264,18 +264,13 @@ class OneFormer(HuggingFaceModel):
         time1 = time.time()
 
         # Main training loop.
-
         for batch in generator:
             if restore:
                 self.restore()
                 restore = False
-            inputs: OneOrMany[torch.Tensor]
-            inputs, labels, weights = self._prepare_batch(batch)
 
+            inputs, labels, weights = self._prepare_batch(batch)
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
-            # for k, v in inputs.items():
-            #     if isinstance(v, torch.Tensor):
-            #         print(k, v.shape)
 
             optimizer.zero_grad()
             outputs = self.model(**inputs)
@@ -450,8 +445,10 @@ class OneFormer(HuggingFaceModel):
                 results[i].append(t)
 
         # Concatenate arrays to create the final results.
-        final_results = results
-        final_variances = variances
+        if results is not None:
+            final_results = results
+        if variances is not None:
+            final_variances = variances
 
         if uncertainty and variances is not None:
             return zip(final_results, final_variances)
