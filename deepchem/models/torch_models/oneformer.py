@@ -1,5 +1,4 @@
 from PIL import Image
-import torch
 import numpy as np
 
 import time
@@ -10,9 +9,14 @@ from typing import Union, Dict, Tuple, Iterable, List, Optional, Callable, Any
 from deepchem.models.optimizers import LearningRateSchedule
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
-from deepchem.models.torch_models import HuggingFaceModel
 
-from transformers import AutoProcessor, AutoModelForUniversalSegmentation, OneFormerConfig
+try:
+    import torch
+    from deepchem.models.torch_models import HuggingFaceModel
+    from transformers import AutoProcessor, AutoModelForUniversalSegmentation, OneFormerConfig
+except ImportError:
+    raise ImportError(
+        "This module requires the `transformers` and the `torch` packages.")
 
 logger = logging.getLogger(__name__)
 

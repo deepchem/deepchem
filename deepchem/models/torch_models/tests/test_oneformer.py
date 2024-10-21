@@ -8,6 +8,7 @@ try:
 except ModuleNotFoundError:
     pass
 
+
 @pytest.mark.torch
 def test_oneformer_train():
     model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
