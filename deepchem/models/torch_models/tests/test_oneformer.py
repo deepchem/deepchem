@@ -1,16 +1,15 @@
 import pytest
 import numpy as np
 from deepchem.data import ImageDataset
-import torch
-
+try:
+    import torch
+    from deepchem.models.torch_models.oneformer import OneFormer
+    from deepchem.models.torch_models import HuggingFaceModel
+except ModuleNotFoundError:
+    pass
 
 @pytest.mark.torch
 def test_oneformer_train():
-    try:
-        from deepchem.models.torch_models import OneFormer, HuggingFaceModel
-    except ModuleNotFoundError:
-        pass
-
     model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
                       segmentation_task="semantic",
                       torch_dtype=torch.float16,
@@ -27,11 +26,6 @@ def test_oneformer_train():
 
 @pytest.mark.torch
 def test_oneformer_predict():
-    try:
-        from deepchem.models.torch_models import OneFormer, HuggingFaceModel
-    except ModuleNotFoundError:
-        pass
-
     model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
                       segmentation_task="semantic",
                       torch_dtype=torch.float16,
