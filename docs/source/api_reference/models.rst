@@ -639,7 +639,7 @@ HuggingFace models from the `transformers <https://huggingface.co/models>`_ libr
 
 ---------
 
-.. autoclass:: deepchem.models.torch_models..Chemberta
+.. autoclass:: deepchem.models.torch_models.chemberta.Chemberta
   :members:
 
 MoLFormer
