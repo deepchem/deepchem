@@ -104,7 +104,6 @@ class MoLFormer(HuggingFaceModel):
             model = AutoModelForSequenceClassification.from_pretrained(
                 "ibm/MoLFormer-XL-both-10pct",
                 problem_type=problem_type,
-                num_labels=n_tasks,
                 deterministic_eval=True,
                 trust_remote_code=True)
         else:
