@@ -636,10 +636,16 @@ HuggingFace models from the `transformers <https://huggingface.co/models>`_ libr
 .. autoclass:: deepchem.models.torch_models.hf_models.HuggingFaceModel
   :members:
 
-Chemberta
+
 ---------
 
-.. autoclass:: deepchem.models.torch_models.chemberta.Chemberta
+.. autoclass:: deepchem.models.torch_models..Chemberta
+  :members:
+
+MoLFormer
+---------
+
+.. autoclass:: deepchem.models.torch_models.molformer.MoLFormer
   :members:
 
 ProtBERT
