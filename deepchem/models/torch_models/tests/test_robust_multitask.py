@@ -2,7 +2,6 @@ import numpy as np
 from deepchem.models.torch_models import RobustMultitask, RobustMultitaskModel
 import deepchem as dc
 import tempfile
-
 import pytest
 
 try:
