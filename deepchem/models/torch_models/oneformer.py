@@ -31,8 +31,9 @@ class OneFormer(HuggingFaceModel):
     and panoptic segmentation tasks.
 
     Whilst all official HuggingFace model weights by shi-labs [2] are supported, the current implementation only
-    supports the OneFormer model for semantic segmentation. Instance and panoptic segmentation tasks are not
-    supported yet.
+    supports the OneFormer model for semantic segmentation. 
+    
+    Instance and panoptic segmentation tasks are not supported yet.
 
     Usage Example:
     --------------
