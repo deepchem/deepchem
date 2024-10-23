@@ -136,6 +136,7 @@ class RobustMultitaskClassifier(KerasModel):
                 layer = tf.keras.layers.Dropout(rate=dropout)(layer)
             prev_layer = layer
         top_multitask_layer = prev_layer
+        self.layers = top_multitask_layer # TODO: Remove this.
 
         task_outputs = []
         for i in range(self.n_tasks):
@@ -156,6 +157,7 @@ class RobustMultitaskClassifier(KerasModel):
                     layer = tf.keras.layers.Dropout(rate=dropout)(layer)
                 prev_layer = layer
             top_bypass_layer = prev_layer
+            self.bypass_layers = top_bypass_layer # TODO: Remove this.
 
             if n_bypass_layers > 0:
                 task_layer = tf.keras.layers.Concatenate(axis=1)(

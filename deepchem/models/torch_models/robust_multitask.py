@@ -107,7 +107,7 @@ class RobustMultitask(nn.Module):
         if not isinstance(bias_init_consts, SequenceCollection):
             bias_init_consts = [bias_init_consts] * n_layers
         if not isinstance(dropouts, SequenceCollection):
-            dropouts = [dropouts] * n_layers        
+            dropouts = [dropouts] * n_layers
         if not isinstance(bypass_weight_init_stddevs, SequenceCollection):
             bypass_weight_init_stddevs = [bypass_weight_init_stddevs
                                          ] * n_bypass_layers
@@ -116,8 +116,7 @@ class RobustMultitask(nn.Module):
                                       ] * n_bypass_layers
         if not isinstance(bypass_dropouts, SequenceCollection):
             bypass_dropouts = [bypass_dropouts] * n_bypass_layers
-        if not isinstance(activation_fns, SequenceCollection):
-            # activation_fns = [activation_fns] * n_layers
+        if isinstance(activation_fns, str) or not isinstance(activation_fns, SequenceCollection):
             activation_fns = [self.__map_activation(activation_fns)] * n_layers
         
         self.activation_fns: SequenceCollection[ActivationFn] = [
@@ -125,8 +124,9 @@ class RobustMultitask(nn.Module):
         ]
 
         self.weight_init_stddevs: SequenceCollection[float] = weight_init_stddevs
+
         self.bias_init_consts: SequenceCollection[float] = bias_init_consts
-        self.dropouts: SequenceCollection[float] = dropouts        
+        self.dropouts: SequenceCollection[float] = dropouts
         self.bypass_activation_fns: SequenceCollection[ActivationFn] = [self.activation_fns[0]] * n_bypass_layers
 
         super(RobustMultitask, self).__init__()
@@ -156,16 +156,17 @@ class RobustMultitask(nn.Module):
             nn.init.constant_(layer.bias, self.bias_init_consts[i])
             layers.append(layer)
 
-            try:
-                layers.append(activation_fns[i]())
-            except Exception as e:
-                logger.warning(f"Warning: Mismatch in number of activation functions and layers detected.")
-                pass
-            try:
-                layers.append(nn.Dropout(dropouts[i]))
-            except Exception as e:
-                logger.warning(f"Warning: Mismatch in number of dropouts and layers detected.")
-                pass
+            if i > 0: # Add activations and dropouts after the first/input layer.
+                try:
+                    layers.append(activation_fns[i]())
+                except Exception as e:
+                    logger.warning(f"Warning: Mismatch in number of activation functions and layers detected.")
+                    pass
+                try:
+                    layers.append(nn.Dropout(dropouts[i]))
+                except Exception as e:
+                    logger.warning(f"Warning: Mismatch in number of dropouts and layers detected.")
+                    pass
 
             prev_size = size
         
@@ -223,7 +224,7 @@ class RobustMultitask(nn.Module):
             proba = F.softmax(logits, dim=softmax_dim)
             return proba, logits
         else:
-            return output
+            return output.squeeze(-2)
         
     def regularization_loss(self):
         """Compute the regularization loss for the model."""
@@ -338,5 +339,9 @@ class RobustMultitaskModel(TorchModel):
             bypass_dropouts=bypass_dropouts
         )
 
+        self.shared_layers = model.shared_layers
+        self.bypass_layers = model.bypass_layers
+        self.output_layers = model.output_layers
+        
         super(RobustMultitaskModel,
               self).__init__(model, loss, output_types=output_types, regularization_loss=model.regularization_loss, **kwargs)
