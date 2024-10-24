@@ -196,6 +196,8 @@ class BAMFeaturizer(Featurizer):
                 record.reference_start,
                 record.cigar,
                 record.mapping_quality,
+                record.is_reverse,
+                np.array(record.query_qualities)
             ]
 
             if (self.get_pileup):
