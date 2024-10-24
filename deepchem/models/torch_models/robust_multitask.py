@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 import logging
 from collections.abc import Sequence as SequenceCollection
-from typing import List, Tuple, Callable, Literal, Optional, Union
+from typing import List, Tuple, Callable, Literal, Union
 
 from deepchem.data import Dataset
 from deepchem.models import losses
@@ -14,9 +14,11 @@ from deepchem.utils.typing import OneOrMany, ActivationFn, LossFn
 
 
 logger = logging.getLogger(__name__)
+        
 
-class RobustMultitask(nn.Module):
-    """Implements a neural network for robust multitasking.
+class RobustMultitaskClassifier(TorchModel):
+    """
+    Implements a neural network for robust multitasking.
 
     The key idea of this model is to have bypass layers that feed
     directly from features to task output. This might provide some
@@ -28,29 +30,24 @@ class RobustMultitask(nn.Module):
     This technique was introduced in [1]_
 
     .. [1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
-
     """
-
     def __init__(self,
-                 n_tasks,
-                 n_features,
-                 layer_sizes=[1000],
-                 mode: Literal['regression', 'classification'] = 'regression',
+                 n_tasks: int,
+                 n_features: int,
+                 layer_sizes: OneOrMany[int] = [1000],
                  weight_init_stddevs: OneOrMany[float] = 0.02,
                  bias_init_consts: OneOrMany[float] = 1.0,
-                 weight_decay_penalty=0.0, 
-                 weight_decay_penalty_type="l2",
-                 activation_fns: OneOrMany[ActivationFn] = nn.ReLU(),
+                 weight_decay_penalty: float = 0.0,
+                 weight_decay_penalty_type: Literal['l1', 'l2'] = "l2",
                  dropouts: OneOrMany[float] = 0.5,
+                 activation_fns: OneOrMany[ActivationFn] = nn.ReLU(),
                  n_classes: int = 2,
-                 bypass_layer_sizes=[100],
-                 bypass_weight_init_stddevs=[.02],
-                 bypass_bias_init_consts=[1.0],
-                 bypass_dropouts=[0.5],
+                 bypass_layer_sizes: OneOrMany[int] = [100],
+                 bypass_weight_init_stddevs: OneOrMany[float] = [0.02],
+                 bypass_bias_init_consts: OneOrMany[float] = [1.0],
+                 bypass_dropouts: OneOrMany[float] = [0.5],
                  **kwargs):
-        
-        """  Create a RobustMultitaskClassifier.
-
+        """
         Parameters
         ----------
         n_tasks: int
@@ -91,6 +88,182 @@ class RobustMultitask(nn.Module):
             the dropout probablity to use for bypass layers.
             same requirements as dropouts
         """
+        if not isinstance(activation_fns, nn.Module):
+            logger.warning(f"Warning: Activation functions should be of type nn.Module. Using default activation function: ReLU.")
+            activation_fns = nn.ReLU()
+
+        # The labels are not one-hot encoded.
+        # Hence, SparseSoftmaxCE is being used because it takes integer encoded labels which is the default usually.
+        loss = losses.SparseSoftmaxCrossEntropy()
+        output_types = ['prediction', 'loss']            
+        n_classes = n_classes
+
+        model = RobustMultitask(
+            n_tasks=n_tasks,
+            n_features=n_features,
+            layer_sizes=layer_sizes,
+            mode='classification',
+            weight_init_stddevs=weight_init_stddevs,
+            bias_init_consts=bias_init_consts,
+            weight_decay_penalty=weight_decay_penalty,
+            weight_decay_penalty_type=weight_decay_penalty_type,
+            activation_fns=activation_fns,
+            dropouts=dropouts,
+            n_classes=n_classes,
+            bypass_layer_sizes=bypass_layer_sizes,
+            bypass_weight_init_stddevs=bypass_weight_init_stddevs,
+            bypass_bias_init_consts=bypass_bias_init_consts,
+            bypass_dropouts=bypass_dropouts
+        )
+        self.activation_fns = model.activation_fns
+        self.dropouts = model.dropouts
+        self.shared_layers = model.shared_layers
+        self.bypass_layers = model.bypass_layers
+        self.output_layers = model.output_layers
+        
+        super(RobustMultitaskClassifier,
+              self).__init__(model, loss, output_types=output_types, regularization_loss=model.regularization_loss, **kwargs)
+
+
+class RobustMultitaskRegressor(TorchModel):
+    """Implements a neural network for robust multitasking.
+
+    The key idea of this model is to have bypass layers that feed
+    directly from features to task output. This might provide some
+    flexibility toroute around challenges in multitasking with
+    destructive interference.
+
+    References
+    ----------
+    This technique was introduced in [1]_
+
+    .. [1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
+
+    """
+    def __init__(self,
+                 n_tasks: int,
+                 n_features: int,
+                 layer_sizes: OneOrMany[int] = [1000],
+                 weight_init_stddevs: OneOrMany[float] = 0.02,
+                 bias_init_consts: OneOrMany[float] = 1.0,
+                 weight_decay_penalty: float = 0.0,
+                 weight_decay_penalty_type: str = "l2",
+                 dropouts: OneOrMany[float] = 0.5,
+                 activation_fns: OneOrMany[ActivationFn] = nn.ReLU(),
+                 bypass_layer_sizes: OneOrMany[int] = [100],
+                 bypass_weight_init_stddevs: OneOrMany[float] = [.02],
+                 bypass_bias_init_consts: OneOrMany[float] = [1.0],
+                 bypass_dropouts: OneOrMany[float] = [0.5],
+                 **kwargs):
+        """ Create a RobustMultitaskRegressor.
+
+        Parameters
+        ----------
+        n_tasks: int
+            number of tasks
+        n_features: int
+            number of features
+        layer_sizes: list
+            the size of each dense layer in the network.  The length of this list determines the number of layers.
+        weight_init_stddevs: list or float
+            the standard deviation of the distribution to use for weight initialization of each layer.  The length
+            of this list should equal len(layer_sizes).  Alternatively this may be a single value instead of a list,
+            in which case the same value is used for every layer.
+        bias_init_consts: list or loat
+            the value to initialize the biases in each layer to.  The length of this list should equal len(layer_sizes).
+            Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
+        weight_decay_penalty: float
+            the magnitude of the weight decay penalty to use
+        weight_decay_penalty_type: str
+            the type of penalty to use for weight decay, either 'l1' or 'l2'
+        dropouts: list or float
+            the dropout probablity to use for each layer.  The length of this list should equal len(layer_sizes).
+            Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
+        activation_fns: list or object
+            the Tensorflow activation function to apply to each layer.  The length of this list should equal
+            len(layer_sizes).  Alternatively this may be a single value instead of a list, in which case the
+            same value is used for every layer.
+        bypass_layer_sizes: list
+            the size of each dense layer in the bypass network. The length of this list determines the number of bypass layers.
+        bypass_weight_init_stddevs: list or float
+            the standard deviation of the distribution to use for weight initialization of bypass layers.
+            same requirements as weight_init_stddevs
+        bypass_bias_init_consts: list or float
+            the value to initialize the biases in bypass layers
+            same requirements as bias_init_consts
+        bypass_dropouts: list or float
+            the dropout probablity to use for bypass layers.
+            same requirements as dropouts
+        """
+        loss = losses.L2Loss()
+        output_types = ['prediction']
+        n_classes = 1
+
+        if not isinstance(activation_fns, nn.Module):
+            logger.warning(f"Warning: Activation functions should be of type nn.Module. Using default activation function: ReLU.")
+            activation_fns = nn.ReLU()
+
+        model = RobustMultitask(
+            n_tasks=n_tasks,
+            n_features=n_features,
+            layer_sizes=layer_sizes,
+            mode='regression',
+            weight_init_stddevs=weight_init_stddevs,
+            bias_init_consts=bias_init_consts,
+            weight_decay_penalty=weight_decay_penalty,
+            weight_decay_penalty_type=weight_decay_penalty_type,
+            activation_fns=activation_fns,
+            dropouts=dropouts,
+            n_classes=n_classes,
+            bypass_layer_sizes=bypass_layer_sizes,
+            bypass_weight_init_stddevs=bypass_weight_init_stddevs,
+            bypass_bias_init_consts=bypass_bias_init_consts,
+            bypass_dropouts=bypass_dropouts
+        )
+        self.activation_fns = model.activation_fns
+        self.dropouts = model.dropouts
+        self.shared_layers = model.shared_layers
+        self.bypass_layers = model.bypass_layers
+        self.output_layers = model.output_layers
+        
+        super(RobustMultitaskRegressor,
+              self).__init__(model, loss, output_types=output_types, regularization_loss=model.regularization_loss, **kwargs)
+   
+
+class RobustMultitask(nn.Module):
+    """Implements a neural network for robust multitasking.
+
+    The key idea of this model is to have bypass layers that feed
+    directly from features to task output. This might provide some
+    flexibility toroute around challenges in multitasking with
+    destructive interference.
+
+    References
+    ----------
+    This technique was introduced in [1]_
+
+    .. [1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
+
+    """
+
+    def __init__(self,
+                 n_tasks,
+                 n_features,
+                 layer_sizes=[1000],
+                 mode: Literal['regression', 'classification'] = 'regression',
+                 weight_init_stddevs: OneOrMany[float] = 0.02,
+                 bias_init_consts: OneOrMany[float] = 1.0,
+                 weight_decay_penalty=0.0, 
+                 weight_decay_penalty_type="l2",
+                 activation_fns: OneOrMany[ActivationFn] = nn.ReLU(),
+                 dropouts: OneOrMany[float] = 0.5,
+                 n_classes: int = 2,
+                 bypass_layer_sizes: OneOrMany[int] = [100],
+                 bypass_weight_init_stddevs: OneOrMany[float] = [.02],
+                 bypass_bias_init_consts: OneOrMany[float] = [1.0],
+                 bypass_dropouts: OneOrMany[float] = [0.5],
+                 **kwargs):
+        
         self.n_tasks: int = n_tasks
         self.n_features: int = n_features
         self.n_classes: int = n_classes
@@ -109,23 +282,18 @@ class RobustMultitask(nn.Module):
         if not isinstance(dropouts, SequenceCollection):
             dropouts = [dropouts] * n_layers
         if not isinstance(bypass_weight_init_stddevs, SequenceCollection):
-            bypass_weight_init_stddevs = [bypass_weight_init_stddevs
-                                         ] * n_bypass_layers
+            bypass_weight_init_stddevs = [bypass_weight_init_stddevs] * n_bypass_layers
         if not isinstance(bypass_bias_init_consts, SequenceCollection):
-            bypass_bias_init_consts = [bypass_bias_init_consts
-                                      ] * n_bypass_layers
+            bypass_bias_init_consts = [bypass_bias_init_consts] * n_bypass_layers
         if not isinstance(bypass_dropouts, SequenceCollection):
             bypass_dropouts = [bypass_dropouts] * n_bypass_layers
-
         if isinstance(activation_fns, str) or not isinstance(activation_fns, SequenceCollection):
             activation_fns = [activation_fns] * n_layers
         
         self.activation_fns: SequenceCollection[ActivationFn] = [
             self._get_activation_class(f) for f in activation_fns
         ]
-
         self.weight_init_stddevs: SequenceCollection[float] = weight_init_stddevs
-
         self.bias_init_consts: SequenceCollection[float] = bias_init_consts
         self.dropouts: SequenceCollection[float] = dropouts
         self.bypass_activation_fns: SequenceCollection[ActivationFn] = [self.activation_fns[0]] * n_bypass_layers
@@ -240,7 +408,7 @@ class RobustMultitask(nn.Module):
         return self.weight_decay_penalty * reg_loss
 
     
-    def _get_activation_class(self, activation_name: str) -> Callable:
+    def _get_activation_class(self, activation_name: ActivationFn) -> Callable:
         """Get the activation class from the name of the activation function.
 
         Parameters
@@ -259,136 +427,3 @@ class RobustMultitask(nn.Module):
             return activation_name
         else:
             raise ValueError(f"Invalid activation function: {activation_name}. Only activations of type nn.Module")
-        
-class RobustMultitaskRegressor(TorchModel):
-    """Implements a neural network for robust multitasking.
-
-    The key idea of this model is to have bypass layers that feed
-    directly from features to task output. This might provide some
-    flexibility toroute around challenges in multitasking with
-    destructive interference.
-
-    References
-    ----------
-    This technique was introduced in [1]_
-
-    .. [1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
-
-    """
-    def __init__(self,
-                 n_tasks,
-                 n_features,
-                 layer_sizes=[1000],
-                 weight_init_stddevs: OneOrMany[float] = 0.02,
-                 bias_init_consts: OneOrMany[float] = 1.0,
-                 weight_decay_penalty: float = 0.0,
-                 weight_decay_penalty_type: str = "l2",
-                 dropouts: OneOrMany[float] = 0.5,
-                 activation_fns: OneOrMany[ActivationFn] = nn.ReLU(),
-                 bypass_layer_sizes=[100],
-                 bypass_weight_init_stddevs=[.02],
-                 bypass_bias_init_consts=[1.0],
-                 bypass_dropouts=[0.5],
-                 **kwargs):
-                
-        loss = losses.L2Loss()
-        output_types = ['prediction']
-        n_classes = 1
-
-        if not isinstance(activation_fns, nn.Module):
-            logger.warning(f"Warning: Activation functions should be of type nn.Module. Using default activation function: ReLU.")
-            activation_fns = nn.ReLU()
-
-        model = RobustMultitask(
-            n_tasks=n_tasks,
-            n_features=n_features,
-            layer_sizes=layer_sizes,
-            mode='regression',
-            weight_init_stddevs=weight_init_stddevs,
-            bias_init_consts=bias_init_consts,
-            weight_decay_penalty=weight_decay_penalty,
-            weight_decay_penalty_type=weight_decay_penalty_type,
-            activation_fns=activation_fns,
-            dropouts=dropouts,
-            n_classes=n_classes,
-            bypass_layer_sizes=bypass_layer_sizes,
-            bypass_weight_init_stddevs=bypass_weight_init_stddevs,
-            bypass_bias_init_consts=bypass_bias_init_consts,
-            bypass_dropouts=bypass_dropouts
-        )
-        self.activation_fns = model.activation_fns
-        self.dropouts = model.dropouts
-        self.shared_layers = model.shared_layers
-        self.bypass_layers = model.bypass_layers
-        self.output_layers = model.output_layers
-        
-        super(RobustMultitaskRegressor,
-              self).__init__(model, loss, output_types=output_types, regularization_loss=model.regularization_loss, **kwargs)
-        
-class RobustMultitaskClassifier(TorchModel):
-    """Implements a neural network for robust multitasking.
-
-    The key idea of this model is to have bypass layers that feed
-    directly from features to task output. This might provide some
-    flexibility toroute around challenges in multitasking with
-    destructive interference.
-
-    References
-    ----------
-    This technique was introduced in [1]_
-
-    .. [1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
-
-    """
-    def __init__(self,
-                 n_tasks,
-                 n_features,
-                 layer_sizes=[1000],
-                 weight_init_stddevs: OneOrMany[float] = 0.02,
-                 bias_init_consts: OneOrMany[float] = 1.0,
-                 weight_decay_penalty: float = 0.0,
-                 weight_decay_penalty_type: str = "l2",
-                 dropouts: OneOrMany[float] = 0.5,
-                 activation_fns: OneOrMany[ActivationFn] = nn.ReLU(),
-                 n_classes: int = 2,
-                 bypass_layer_sizes=[100],
-                 bypass_weight_init_stddevs=[.02],
-                 bypass_bias_init_consts=[1.0],
-                 bypass_dropouts=[0.5],
-                 **kwargs):
-        
-        if not isinstance(activation_fns, nn.Module):
-            logger.warning(f"Warning: Activation functions should be of type nn.Module. Using default activation function: ReLU.")
-            activation_fns = nn.ReLU()
-
-        # The labels are not one-hot encoded.
-        # Hence, SparseSoftmaxCE is being used because it takes integer encoded labels which is the default usually.
-        loss = losses.SparseSoftmaxCrossEntropy()
-        output_types = ['prediction', 'loss']            
-        n_classes = n_classes
-
-        model = RobustMultitask(
-            n_tasks=n_tasks,
-            n_features=n_features,
-            layer_sizes=layer_sizes,
-            mode='classification',
-            weight_init_stddevs=weight_init_stddevs,
-            bias_init_consts=bias_init_consts,
-            weight_decay_penalty=weight_decay_penalty,
-            weight_decay_penalty_type=weight_decay_penalty_type,
-            activation_fns=activation_fns,
-            dropouts=dropouts,
-            n_classes=n_classes,
-            bypass_layer_sizes=bypass_layer_sizes,
-            bypass_weight_init_stddevs=bypass_weight_init_stddevs,
-            bypass_bias_init_consts=bypass_bias_init_consts,
-            bypass_dropouts=bypass_dropouts
-        )
-        self.activation_fns = model.activation_fns
-        self.dropouts = model.dropouts
-        self.shared_layers = model.shared_layers
-        self.bypass_layers = model.bypass_layers
-        self.output_layers = model.output_layers
-        
-        super(RobustMultitaskClassifier,
-              self).__init__(model, loss, output_types=output_types, regularization_loss=model.regularization_loss, **kwargs)
