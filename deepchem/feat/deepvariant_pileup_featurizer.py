@@ -41,11 +41,11 @@ class PileupFeaturizer(Featurizer):
 
     def _featurize(self, datapoint):
         """
-        Featurizes a datapoint by generating candidate regions and reads.
+        Featurizes a datapoint by generating pileup images.
 
         Args:
-            datapoint (Tuple[str, str]): A tuple containing two strings
-            representing allele counts and reads.
+            datapoint (Tuple[List[Any], str]): A tuple containing
+            haplotypes and reference file path.
 
         Returns:
             ImageDataset: An ImageDataset containing the images and labels.
