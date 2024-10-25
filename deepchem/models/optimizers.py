@@ -847,13 +847,12 @@ class Lamb(Optimizer):
         self.weight_decay = weight_decay
 
     def _create_pytorch_optimizer(self, params):
-        import torch
         if isinstance(self.learning_rate, LearningRateSchedule):
             lr = self.learning_rate.initial_rate
         else:
             lr = self.learning_rate
         return torch_optimizer.Lamb(params,
-                                lr=lr,
-                                betas=(self.beta1, self.beta2),
-                                eps=self.epsilon,
-                                weight_decay=self.weight_decay)
+                                    lr=lr,
+                                    betas=(self.beta1, self.beta2),
+                                    eps=self.epsilon,
+                                    weight_decay=self.weight_decay)
