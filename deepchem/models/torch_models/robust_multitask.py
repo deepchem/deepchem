@@ -34,7 +34,7 @@ class RobustMultitaskClassifier(TorchModel):
     def __init__(self,
                  n_tasks: int,
                  n_features: int,
-                 layer_sizes: OneOrMany[int] = [1000],
+                 layer_sizes: SequenceCollection[int] = [1000],
                  weight_init_stddevs: OneOrMany[float] = 0.02,
                  bias_init_consts: OneOrMany[float] = 1.0,
                  weight_decay_penalty: float = 0.0,
@@ -42,7 +42,7 @@ class RobustMultitaskClassifier(TorchModel):
                  dropouts: OneOrMany[float] = 0.5,
                  activation_fns: OneOrMany[ActivationFn] = nn.ReLU(),
                  n_classes: int = 2,
-                 bypass_layer_sizes: OneOrMany[int] = [100],
+                 bypass_layer_sizes: SequenceCollection[int] = [100],
                  bypass_weight_init_stddevs: OneOrMany[float] = [0.02],
                  bypass_bias_init_consts: OneOrMany[float] = [1.0],
                  bypass_dropouts: OneOrMany[float] = [0.5],
@@ -143,14 +143,14 @@ class RobustMultitaskRegressor(TorchModel):
     def __init__(self,
                  n_tasks: int,
                  n_features: int,
-                 layer_sizes: OneOrMany[int] = [1000],
+                 layer_sizes: SequenceCollection[int] = [1000],
                  weight_init_stddevs: OneOrMany[float] = 0.02,
                  bias_init_consts: OneOrMany[float] = 1.0,
                  weight_decay_penalty: float = 0.0,
                  weight_decay_penalty_type: str = "l2",
                  dropouts: OneOrMany[float] = 0.5,
                  activation_fns: OneOrMany[ActivationFn] = nn.ReLU(),
-                 bypass_layer_sizes: OneOrMany[int] = [100],
+                 bypass_layer_sizes: SequenceCollection[int] = [100],
                  bypass_weight_init_stddevs: OneOrMany[float] = [.02],
                  bypass_bias_init_consts: OneOrMany[float] = [1.0],
                  bypass_dropouts: OneOrMany[float] = [0.5],
@@ -247,9 +247,9 @@ class RobustMultitask(nn.Module):
     """
 
     def __init__(self,
-                 n_tasks,
-                 n_features,
-                 layer_sizes=[1000],
+                 n_tasks: int,
+                 n_features: int,
+                 layer_sizes: SequenceCollection[int] = [1000],
                  mode: Literal['regression', 'classification'] = 'regression',
                  weight_init_stddevs: OneOrMany[float] = 0.02,
                  bias_init_consts: OneOrMany[float] = 1.0,
@@ -258,7 +258,7 @@ class RobustMultitask(nn.Module):
                  activation_fns: OneOrMany[ActivationFn] = nn.ReLU(),
                  dropouts: OneOrMany[float] = 0.5,
                  n_classes: int = 2,
-                 bypass_layer_sizes: OneOrMany[int] = [100],
+                 bypass_layer_sizes: SequenceCollection[int] = [100],
                  bypass_weight_init_stddevs: OneOrMany[float] = [.02],
                  bypass_bias_init_consts: OneOrMany[float] = [1.0],
                  bypass_dropouts: OneOrMany[float] = [0.5],
@@ -269,11 +269,11 @@ class RobustMultitask(nn.Module):
         self.n_classes: int = n_classes
         self.mode: Literal['regression', 'classification'] = mode
         self.layer_sizes: SequenceCollection[int] = layer_sizes
-        self.bypass_layer_sizes: SequenceCollection[int] = bypass_layer_sizes
+        self.bypass_layer_sizes: SequenceCollection[int] = ([bypass_layer_sizes] if isinstance(bypass_layer_sizes, int) else bypass_layer_sizes)
         self.weight_decay_penalty: float = weight_decay_penalty
         self.weight_decay_penalty_type: Literal['l1', 'l2'] = weight_decay_penalty_type
-        n_layers = len(layer_sizes)
-        n_bypass_layers = len(bypass_layer_sizes)
+        n_layers: int = len(layer_sizes)
+        n_bypass_layers: int = len(bypass_layer_sizes)
 
         if not isinstance(weight_init_stddevs, SequenceCollection):
             weight_init_stddevs = [weight_init_stddevs] * n_layers
@@ -304,12 +304,12 @@ class RobustMultitask(nn.Module):
         self.shared_layers: nn.Sequential = self._build_layers(n_features, layer_sizes, self.activation_fns, dropouts)
         
         # Add task-specific bypass layers
-        self.bypass_layers = nn.ModuleList(
+        self.bypass_layers: nn.ModuleList[nn.Sequential] = nn.ModuleList(
             [self._build_layers(n_features, bypass_layer_sizes, self.bypass_activation_fns, dropouts) 
                                             for _ in range(n_tasks)])
         
         # Output layers for each task
-        self.output_layers = nn.ModuleList(
+        self.output_layers: nn.ModuleList[nn.Linear] = nn.ModuleList(
             [nn.Linear(layer_sizes[-1] + bypass_layer_sizes[-1], n_classes)
                                             for _ in range(n_tasks)])
 
