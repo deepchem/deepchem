@@ -189,14 +189,9 @@ class BAMFeaturizer(Featurizer):
         for record in datapoint:
             initial_position = datapoint.tell()
             feature_vector = [
-                record.query_name,
-                record.query_sequence,
-                record.query_length,
-                record.reference_name,
-                record.reference_start,
-                record.cigar,
-                record.mapping_quality,
-                record.is_reverse,
+                record.query_name, record.query_sequence, record.query_length,
+                record.reference_name, record.reference_start, record.cigar,
+                record.mapping_quality, record.is_reverse,
                 np.array(record.query_qualities)
             ]
 
