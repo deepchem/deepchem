@@ -327,7 +327,7 @@ class RobustMultitask(nn.Module):
             self.weight_init_stddevs, self.bias_init_consts)
 
         # Add task-specific bypass layers
-        self.bypass_layers: nn.ModuleList[nn.Sequential] = nn.ModuleList([
+        self.bypass_layers: nn.ModuleList = nn.ModuleList([
             self._build_layers(n_features, bypass_layer_sizes,
                                self.bypass_activation_fns, bypass_dropouts,
                                self.bypass_weight_init_stddevs,
@@ -336,7 +336,7 @@ class RobustMultitask(nn.Module):
         ])
 
         # Output layers for each task
-        self.output_layers: nn.ModuleList[nn.Linear] = nn.ModuleList([
+        self.output_layers: nn.ModuleList = nn.ModuleList([
             nn.Linear(layer_sizes[-1] + bypass_layer_sizes[-1], n_classes)
             for _ in range(n_tasks)
         ])
