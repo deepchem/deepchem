@@ -26,6 +26,7 @@ class RobustMultitaskClassifier(TorchModel):
 
     .. [1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
     """
+
     def __init__(self,
                  n_tasks: int,
                  n_features: int,
@@ -84,7 +85,9 @@ class RobustMultitaskClassifier(TorchModel):
             same requirements as dropouts
         """
         if not isinstance(activation_fns, nn.Module):
-            logger.warning("Warning: Activation functions should be of type nn.Module. Using default activation function: ReLU.")
+            logger.warning(
+                "Warning: Activation functions should be of type nn.Module. Using default activation function: ReLU."
+            )
             activation_fns = nn.ReLU()
 
         # The labels are not one-hot encoded.
@@ -108,8 +111,7 @@ class RobustMultitaskClassifier(TorchModel):
             bypass_layer_sizes=bypass_layer_sizes,
             bypass_weight_init_stddevs=bypass_weight_init_stddevs,
             bypass_bias_init_consts=bypass_bias_init_consts,
-            bypass_dropouts=bypass_dropouts
-        )
+            bypass_dropouts=bypass_dropouts)
         self.activation_fns = model.activation_fns
         self.dropouts = model.dropouts
         self.shared_layers = model.shared_layers
@@ -117,7 +119,11 @@ class RobustMultitaskClassifier(TorchModel):
         self.output_layers = model.output_layers
 
         super(RobustMultitaskClassifier,
-              self).__init__(model, loss, output_types=output_types, regularization_loss=model.regularization_loss, **kwargs)
+              self).__init__(model,
+                             loss,
+                             output_types=output_types,
+                             regularization_loss=model.regularization_loss,
+                             **kwargs)
 
 
 class RobustMultitaskRegressor(TorchModel):
@@ -135,6 +141,7 @@ class RobustMultitaskRegressor(TorchModel):
     .. [1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
 
     """
+
     def __init__(self,
                  n_tasks: int,
                  n_features: int,
@@ -195,7 +202,9 @@ class RobustMultitaskRegressor(TorchModel):
         n_classes = 1
 
         if not isinstance(activation_fns, nn.Module):
-            logger.warning("Warning: Activation functions should be of type nn.Module. Using default activation function: ReLU.")
+            logger.warning(
+                "Warning: Activation functions should be of type nn.Module. Using default activation function: ReLU."
+            )
             activation_fns = nn.ReLU()
 
         model = RobustMultitask(
@@ -213,8 +222,7 @@ class RobustMultitaskRegressor(TorchModel):
             bypass_layer_sizes=bypass_layer_sizes,
             bypass_weight_init_stddevs=bypass_weight_init_stddevs,
             bypass_bias_init_consts=bypass_bias_init_consts,
-            bypass_dropouts=bypass_dropouts
-        )
+            bypass_dropouts=bypass_dropouts)
         self.activation_fns = model.activation_fns
         self.dropouts = model.dropouts
         self.shared_layers = model.shared_layers
@@ -222,7 +230,11 @@ class RobustMultitaskRegressor(TorchModel):
         self.output_layers = model.output_layers
 
         super(RobustMultitaskRegressor,
-              self).__init__(model, loss, output_types=output_types, regularization_loss=model.regularization_loss, **kwargs)
+              self).__init__(model,
+                             loss,
+                             output_types=output_types,
+                             regularization_loss=model.regularization_loss,
+                             **kwargs)
 
 
 class RobustMultitask(nn.Module):
@@ -264,9 +276,12 @@ class RobustMultitask(nn.Module):
         self.n_classes: int = n_classes
         self.mode: Literal['regression', 'classification'] = mode
         self.layer_sizes: SequenceCollection[int] = layer_sizes
-        self.bypass_layer_sizes: SequenceCollection[int] = ([bypass_layer_sizes] if isinstance(bypass_layer_sizes, int) else bypass_layer_sizes)
+        self.bypass_layer_sizes: SequenceCollection[int] = ([
+            bypass_layer_sizes
+        ] if isinstance(bypass_layer_sizes, int) else bypass_layer_sizes)
         self.weight_decay_penalty: float = weight_decay_penalty
-        self.weight_decay_penalty_type: Literal['l1', 'l2'] = weight_decay_penalty_type
+        self.weight_decay_penalty_type: Literal[
+            'l1', 'l2'] = weight_decay_penalty_type
         n_layers: int = len(layer_sizes)
         n_bypass_layers: int = len(bypass_layer_sizes)
 
@@ -277,36 +292,47 @@ class RobustMultitask(nn.Module):
         if not isinstance(dropouts, SequenceCollection):
             dropouts = [dropouts] * n_layers
         if not isinstance(bypass_weight_init_stddevs, SequenceCollection):
-            bypass_weight_init_stddevs = [bypass_weight_init_stddevs] * n_bypass_layers
+            bypass_weight_init_stddevs = [bypass_weight_init_stddevs
+                                         ] * n_bypass_layers
         if not isinstance(bypass_bias_init_consts, SequenceCollection):
-            bypass_bias_init_consts = [bypass_bias_init_consts] * n_bypass_layers
+            bypass_bias_init_consts = [bypass_bias_init_consts
+                                      ] * n_bypass_layers
         if not isinstance(bypass_dropouts, SequenceCollection):
             bypass_dropouts = [bypass_dropouts] * n_bypass_layers
-        if isinstance(activation_fns, str) or not isinstance(activation_fns, SequenceCollection):
+        if isinstance(
+                activation_fns,
+                str) or not isinstance(activation_fns, SequenceCollection):
             activation_fns = [activation_fns] * n_layers
 
         self.activation_fns: SequenceCollection[ActivationFn] = [
             self._get_activation_class(f) for f in activation_fns
         ]
-        self.weight_init_stddevs: SequenceCollection[float] = weight_init_stddevs
+        self.weight_init_stddevs: SequenceCollection[
+            float] = weight_init_stddevs
         self.bias_init_consts: SequenceCollection[float] = bias_init_consts
         self.dropouts: SequenceCollection[float] = dropouts
-        self.bypass_activation_fns: SequenceCollection[ActivationFn] = [self.activation_fns[0]] * n_bypass_layers
+        self.bypass_activation_fns: SequenceCollection[ActivationFn] = [
+            self.activation_fns[0]
+        ] * n_bypass_layers
 
         super(RobustMultitask, self).__init__()
 
         # Add shared layers
-        self.shared_layers: nn.Sequential = self._build_layers(n_features, layer_sizes, self.activation_fns, dropouts)
+        self.shared_layers: nn.Sequential = self._build_layers(
+            n_features, layer_sizes, self.activation_fns, dropouts)
 
         # Add task-specific bypass layers
-        self.bypass_layers: nn.ModuleList[nn.Sequential] = nn.ModuleList(
-            [self._build_layers(n_features, bypass_layer_sizes, self.bypass_activation_fns, dropouts)
-                                            for _ in range(n_tasks)])
+        self.bypass_layers: nn.ModuleList[nn.Sequential] = nn.ModuleList([
+            self._build_layers(n_features, bypass_layer_sizes,
+                               self.bypass_activation_fns, dropouts)
+            for _ in range(n_tasks)
+        ])
 
         # Output layers for each task
-        self.output_layers: nn.ModuleList[nn.Linear] = nn.ModuleList(
-            [nn.Linear(layer_sizes[-1] + bypass_layer_sizes[-1], n_classes)
-                                            for _ in range(n_tasks)])
+        self.output_layers: nn.ModuleList[nn.Linear] = nn.ModuleList([
+            nn.Linear(layer_sizes[-1] + bypass_layer_sizes[-1], n_classes)
+            for _ in range(n_tasks)
+        ])
 
     def _build_layers(self, input_size, layer_sizes, activation_fns, dropouts):
         """Helper function to build layers with activations and dropout"""
@@ -323,12 +349,16 @@ class RobustMultitask(nn.Module):
             try:
                 layers.append(activation_fns[i])
             except IndexError:
-                logger.warning("Warning: Mismatch in number of activation functions and layers detected.")
+                logger.warning(
+                    "Warning: Mismatch in number of activation functions and layers detected."
+                )
                 pass
             try:
                 layers.append(nn.Dropout(dropouts[i]))
             except IndexError:
-                logger.warning("Warning: Mismatch in number of dropouts and layers detected.")
+                logger.warning(
+                    "Warning: Mismatch in number of dropouts and layers detected."
+                )
                 pass
 
             prev_size = size
@@ -420,4 +450,6 @@ class RobustMultitask(nn.Module):
         elif isinstance(activation_name, nn.Module):
             return activation_name
         else:
-            raise ValueError(f"Invalid activation function: {activation_name}. Only activations of type nn.Module")
+            raise ValueError(
+                f"Invalid activation function: {activation_name}. Only activations of type nn.Module"
+            )
