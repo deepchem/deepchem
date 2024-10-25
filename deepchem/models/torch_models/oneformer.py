@@ -12,7 +12,7 @@ from deepchem.utils.typing import LossFn, OneOrMany
 
 try:
     import torch
-    from deepchem.models.torch_models import HuggingFaceModel
+    from deepchem.models.torch_models.hf_models import HuggingFaceModel
     from transformers import AutoProcessor, AutoModelForUniversalSegmentation, OneFormerConfig
 except ImportError:
     raise ImportError(
