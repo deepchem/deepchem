@@ -324,7 +324,7 @@ class RobustMultitask(nn.Module):
         # Add task-specific bypass layers
         self.bypass_layers: nn.ModuleList[nn.Sequential] = nn.ModuleList([
             self._build_layers(n_features, bypass_layer_sizes,
-                               self.bypass_activation_fns, dropouts)
+                               self.bypass_activation_fns, bypass_dropouts)
             for _ in range(n_tasks)
         ])
 
