@@ -276,8 +276,8 @@ class _Realigner(object):
 
     def fetchreads(
             self, bamfiles: List[Tuple[str, Any, int, str, int, Any, int,
-                                       Any]], chrom: str, start: int, end: int
-    ) -> List[Tuple[str, Any, int, str, int, Any, int, int, Any]]:
+                                       Any]], chrom: str, start: int,
+            end: int) -> List[Tuple[str, Any, int, str, int, Any, int, Any]]:
         """
         Fetch reads from BAM files for a specific chromosome and region.
         This function extracts reads from BAM files that overlap with the
@@ -303,7 +303,7 @@ class _Realigner(object):
             List of reads that overlap with the specified chromosome
             and region.
         """
-        reads: List[Tuple[str, Any, int, str, int, Any, int, int, Any]] = []
+        reads: List[Tuple[str, Any, int, str, int, Any, int, Any]] = []
         for bamfile in bamfiles:
             refname = bamfile[3]
             refstart = bamfile[4]
@@ -315,7 +315,7 @@ class _Realigner(object):
 
     def build_debruijn_graph(
         self, ref: str, reads: List[Tuple[str, Any, int, str, int, Any, int,
-                                          int, Any]], k: int
+                                          Any]], k: int
     ) -> Tuple[Optional[Any], Optional[Dict[str, int]], Optional[Dict[int,
                                                                       str]]]:
         """
@@ -477,8 +477,8 @@ class _Realigner(object):
 
     def assign_reads_to_regions(
         self, assembled_regions: List[Dict[str, Any]],
-        reads: List[Tuple[str, Any, int, str, int, Any, int, int, Any]]
-    ) -> List[Tuple[str, Any, int, str, int, Any, int, int, Any]]:
+        reads: List[Tuple[str, Any, int, str, int, Any, int, Any]]
+    ) -> List[Tuple[str, Any, int, str, int, Any, int, Any]]:
         """
         Assign reads to regions based on maximum overlap with haplotypes.
 
@@ -498,7 +498,8 @@ class _Realigner(object):
 
         """
         regions = [(0, len(ar["haplotypes"][0])) for ar in assembled_regions]
-        unassigned_reads: List[Tuple[str, Any, int, str, int, Any, int, int, Any]] = []
+        unassigned_reads: List[Tuple[str, Any, int, str, int, Any, int,
+                                     Any]] = []
         for read in reads:
             read_start = read[4]
             read_end = read_start + read[2]
