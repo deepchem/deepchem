@@ -350,8 +350,26 @@ class RobustMultitask(nn.Module):
 
         for i, size in enumerate(layer_sizes):
             layer = nn.Linear(prev_size, size)
-            nn.init.trunc_normal_(layer.weight, std=weight_init_stddevs[i])
-            nn.init.constant_(layer.bias, bias_init_consts[i])
+            try:
+                nn.init.trunc_normal_(layer.weight, std=weight_init_stddevs[i])
+            except IndexError:
+                logger.warning(
+                    "Warning: Wrong number of weight_init_stddevs specified. When passing weight_init_stddevs as a list, the length of the list should be equal to the number of layers."
+                )
+                logger.warning(
+                    "Using default weight initialization: truncated normal with std=0.02"
+                )
+                nn.init.trunc_normal_(layer.weight, std=0.02)
+            try:
+                nn.init.constant_(layer.bias, bias_init_consts[i])
+            except IndexError:
+                logger.warning(
+                    "Warning: Wrong number of bias_init_consts specified. When passing bias_init_consts as a list, the length of the list should be equal to the number of layers."
+                )
+                logger.warning(
+                    "Using default bias initialization: constant=1.0")
+                nn.init.constant_(layer.bias, 1.0)
+
             layers.append(layer)
 
             try:
