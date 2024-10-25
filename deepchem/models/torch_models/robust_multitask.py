@@ -314,17 +314,24 @@ class RobustMultitask(nn.Module):
         self.bypass_activation_fns: SequenceCollection[ActivationFn] = [
             self.activation_fns[0]
         ] * n_bypass_layers
+        self.bypass_weight_init_stddevs: SequenceCollection[
+            float] = bypass_weight_init_stddevs
+        self.bypass_bias_init_consts: SequenceCollection[
+            float] = bypass_bias_init_consts
 
         super(RobustMultitask, self).__init__()
 
         # Add shared layers
         self.shared_layers: nn.Sequential = self._build_layers(
-            n_features, layer_sizes, self.activation_fns, dropouts)
+            n_features, layer_sizes, self.activation_fns, dropouts,
+            self.weight_init_stddevs, self.bias_init_consts)
 
         # Add task-specific bypass layers
         self.bypass_layers: nn.ModuleList[nn.Sequential] = nn.ModuleList([
             self._build_layers(n_features, bypass_layer_sizes,
-                               self.bypass_activation_fns, bypass_dropouts)
+                               self.bypass_activation_fns, bypass_dropouts,
+                               self.bypass_weight_init_stddevs,
+                               self.bypass_bias_init_consts)
             for _ in range(n_tasks)
         ])
 
@@ -334,7 +341,8 @@ class RobustMultitask(nn.Module):
             for _ in range(n_tasks)
         ])
 
-    def _build_layers(self, input_size, layer_sizes, activation_fns, dropouts):
+    def _build_layers(self, input_size, layer_sizes, activation_fns, dropouts,
+                      weight_init_stddevs, bias_init_consts):
         """Helper function to build layers with activations and dropout"""
 
         prev_size = input_size
@@ -342,8 +350,8 @@ class RobustMultitask(nn.Module):
 
         for i, size in enumerate(layer_sizes):
             layer = nn.Linear(prev_size, size)
-            nn.init.trunc_normal_(layer.weight, std=self.weight_init_stddevs[i])
-            nn.init.constant_(layer.bias, self.bias_init_consts[i])
+            nn.init.trunc_normal_(layer.weight, std=weight_init_stddevs[i])
+            nn.init.constant_(layer.bias, bias_init_consts[i])
             layers.append(layer)
 
             try:
