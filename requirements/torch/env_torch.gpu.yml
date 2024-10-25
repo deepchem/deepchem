@@ -6,6 +6,7 @@ dependencies:
     - dgl
     - torch==2.2.1+cu118
     - torch-geometric
+    - torch_optimizer
     - lightning
     - pydantic
     - -f https://data.pyg.org/whl/torch-2.2.1+cu118.html

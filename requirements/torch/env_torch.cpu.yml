@@ -8,6 +8,7 @@ dependencies:
     - dgl<2.2.1
     - torch==2.2.1+cpu
     - torch-geometric
+    - torch_optimizer
     - lightning
     - pydantic
     - -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
