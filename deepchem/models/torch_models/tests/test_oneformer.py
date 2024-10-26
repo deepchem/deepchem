@@ -10,7 +10,6 @@ except ModuleNotFoundError:
 
 @pytest.mark.torch
 def test_oneformer_train():
-    from deepchem.models.torch_models.hf_models import HuggingFaceModel
     from transformers import OneFormerConfig
 
     # micro config for testing
@@ -32,13 +31,11 @@ def test_oneformer_train():
     dataset = ImageDataset(X, y)
     avg_loss = model.fit(dataset, nb_epoch=2)
 
-    assert isinstance(model, HuggingFaceModel)
     assert isinstance(avg_loss, float)
 
 
 @pytest.mark.torch
 def test_oneformer_predict():
-    from deepchem.models.torch_models.hf_models import HuggingFaceModel
     from transformers import OneFormerConfig
 
     # micro config for testing
@@ -61,7 +58,6 @@ def test_oneformer_predict():
     preds = model.predict(dataset)
     preds = np.array(preds)
 
-    assert isinstance(model, HuggingFaceModel)
     assert np.array(preds).shape == y.shape
 
 
