@@ -10,13 +10,9 @@ from deepchem.models.optimizers import LearningRateSchedule
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
 
-try:
-    import torch
-    from deepchem.models.torch_models.hf_models import HuggingFaceModel
-    from transformers import AutoProcessor, AutoModelForUniversalSegmentation, OneFormerConfig
-except ImportError:
-    raise ImportError(
-        "This module requires the `transformers` and the `torch` packages.")
+import torch
+from deepchem.models.torch_models.hf_models import HuggingFaceModel
+from transformers import AutoProcessor, AutoModelForUniversalSegmentation, OneFormerConfig
 
 logger = logging.getLogger(__name__)
 
