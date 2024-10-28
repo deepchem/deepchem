@@ -157,7 +157,7 @@ class _Realigner(object):
         for x in bamfiles:
             chrom = x[3]  # Reference name
 
-            pileup_info = x[7] if len(x) > 7 else None
+            pileup_info = x[9] if len(x) > 9 else None
             if pileup_info is None:
                 continue
             for pileupcolumn in pileup_info:
@@ -274,9 +274,10 @@ class _Realigner(object):
 
         return candidate_regions
 
-    def fetchreads(self, bamfiles: List[Tuple[str, Any, int, str, int, Any, int,
-                                              Any]], chrom: str, start: int,
-                   end: int) -> List[Tuple[str, Any, int, str, int, Any, int]]:
+    def fetchreads(
+            self, bamfiles: List[Tuple[str, Any, int, str, int, Any, int,
+                                       Any]], chrom: str, start: int,
+            end: int) -> List[Tuple[str, Any, int, str, int, Any, int, Any]]:
         """
         Fetch reads from BAM files for a specific chromosome and region.
         This function extracts reads from BAM files that overlap with the
@@ -302,19 +303,19 @@ class _Realigner(object):
             List of reads that overlap with the specified chromosome
             and region.
         """
-        reads: List[Tuple[str, Any, int, str, int, Any, int]] = []
+        reads: List[Tuple[str, Any, int, str, int, Any, int, Any]] = []
         for bamfile in bamfiles:
             refname = bamfile[3]
             refstart = bamfile[4]
             refend = refstart + bamfile[2]
 
             if refname == chrom and refstart < end and refend > start:
-                reads.append(bamfile[0:7])
+                reads.append(bamfile[0:9])
         return reads
 
     def build_debruijn_graph(
-        self, ref: str, reads: List[Tuple[str, Any, int, str, int, Any,
-                                          int]], k: int
+        self, ref: str, reads: List[Tuple[str, Any, int, str, int, Any, int,
+                                          Any]], k: int
     ) -> Tuple[Optional[Any], Optional[Dict[str, int]], Optional[Dict[int,
                                                                       str]]]:
         """
@@ -476,8 +477,8 @@ class _Realigner(object):
 
     def assign_reads_to_regions(
         self, assembled_regions: List[Dict[str, Any]],
-        reads: List[Tuple[str, Any, int, str, int, Any, int]]
-    ) -> List[Tuple[str, Any, int, str, int, Any, int]]:
+        reads: List[Tuple[str, Any, int, str, int, Any, int, Any]]
+    ) -> List[Tuple[str, Any, int, str, int, Any, int, Any]]:
         """
         Assign reads to regions based on maximum overlap with haplotypes.
 
@@ -497,7 +498,8 @@ class _Realigner(object):
 
         """
         regions = [(0, len(ar["haplotypes"][0])) for ar in assembled_regions]
-        unassigned_reads: List[Tuple[str, Any, int, str, int, Any, int]] = []
+        unassigned_reads: List[Tuple[str, Any, int, str, int, Any, int,
+                                     Any]] = []
         for read in reads:
             read_start = read[4]
             read_end = read_start + read[2]

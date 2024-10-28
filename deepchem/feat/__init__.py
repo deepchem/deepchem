@@ -88,6 +88,7 @@ except ImportError as e:
     )
 
 from deepchem.feat.deepvariant_featurizer import RealignerFeaturizer
+from deepchem.feat.deepvariant_pileup_featurizer import PileupFeaturizer
 
 # tokenizers
 try:
