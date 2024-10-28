@@ -44,7 +44,8 @@ def test_robustmultitask_forward():
                                   mode='classification')
 
     weights = np.load(
-        f"{base_dir}/models/torch_models/tests/assets/tensorflow_robust_multitask_classifier_weights.npz")
+        f"{base_dir}/models/torch_models/tests/assets/tensorflow_robust_multitask_classifier_weights.npz"
+    )
 
     move_weights(torch_model, weights)
 
