@@ -1,7 +1,6 @@
 """Optimizers and related classes for use with TensorGraph."""
 
 import math
-import torch_optimizer
 from functools import partial
 from typing import Dict, Union, Optional
 
@@ -847,6 +846,10 @@ class Lamb(Optimizer):
         self.weight_decay = weight_decay
 
     def _create_pytorch_optimizer(self, params):
+        try:
+            import torch_optimizer
+        except ModuleNotFoundError:
+            raise Exception('This optimizer requires torch-optimizer module.')
         if isinstance(self.learning_rate, LearningRateSchedule):
             lr = self.learning_rate.initial_rate
         else:
