@@ -389,6 +389,13 @@ RealignerFeaturizer
   :members:
   :inherited-members:
 
+PileupFeaturizer
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.PileupFeaturizer
+  :members:
+  :inherited-members:
+
 
 Molecule Tokenizers
 -------------------

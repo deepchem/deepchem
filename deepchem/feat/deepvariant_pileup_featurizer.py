@@ -8,6 +8,29 @@ class PileupFeaturizer(Featurizer):
     """
     Generates Pileup Images from haplotype windows.
 
+    PileupFeaturizer generates pileup images from DNA sequence
+    data in a specific genomic window. Each image encodes sequence
+    information across multiple channels, representing features
+    like base identity, base quality, mapping quality, strand
+    orientation, variant support, and differences from the
+    reference sequence. This featurizer decodes one-hot encoded
+    reference sequences, aligns haplotypes, and calculates intensity
+    values for each feature in the pileup image. The generated images
+    are used for downstream tasks, such as variant calling.
+
+    Examples
+    --------
+    >>> from deepchem.feat import RealignerFeaturizer, PileupFeaturizer
+    >>> bamfile_path = 'deepchem/data/tests/example.bam'
+    >>> reference_path = 'deepchem/data/tests/sample.fa'
+    >>> realigner_feat = RealignerFeaturizer()
+    >>> windows_haplotypes = realigner_feat.featurize((bamfile_path, reference_path))
+    >>> pileup_feat = PileupFeaturizer()
+    >>> features = pileup_feat.featurize((windows_haplotypes, reference_path))
+    >>> features
+    <ImageDataset X.shape: (15, 100, 221, 6), y.shape: (15,), w.shape: (15,), ids: [0 1 2 ... 12 13 14], task_names: [0]>
+
+
     """
 
     def decode_one_hot(self,
