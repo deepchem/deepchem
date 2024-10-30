@@ -13,10 +13,12 @@ except ImportError:
 class _Realigner(object):
     """
     A private class for realigning sequencing reads to a reference sequence.
+    Realignment adds haplotype awareness to the variant calling process.
     This class provides methods for left-aligning indels, processing pileup
     information, generating pileups and reads, selecting candidate regions,
-    fetching reads, building De Bruijn graphs, pruning graphs, and generating
-    candidate haplotypes.
+    fetching reads, building De Bruijn graphs, pruning graphs, generating
+    candidate haplotypes, assigning reads to regions, aligning reads using
+    Smith Waterman algorithm, and processing candidate windows.
 
     """
 
@@ -128,7 +130,7 @@ class _Realigner(object):
             allele_counts[(pileupcolumn['name'], pos)] = allele_count
 
     def generate_pileup_and_reads(
-        self, bamfiles, reference_seq_dict
+        self, bamfiles: List[Any], reference_seq_dict: Dict[str, str]
     ) -> Tuple[Dict[Tuple[str, int], Dict[str, Any]], List[Any]]:
         """
         Generate pileup and reads from BAM and reference FASTA files. This
@@ -139,10 +141,10 @@ class _Realigner(object):
         Parameters
         ----------
 
-        bamfile_path : str
-            Path to the BAM file.
-        reference_path : str
-            Path to the reference FASTA file.
+        bamfiles : List[Any]
+            List of BAM file data.
+        reference_seq_dict : Dict[str, str]
+            Dictionary with chromosome names as keys and reference
 
         Returns
         -------
@@ -275,8 +277,7 @@ class _Realigner(object):
         return candidate_regions
 
     def fetchreads(
-            self, bamfiles: List[Tuple[str, Any, int, str, int, Any, int,
-                                       Any]], chrom: str, start: int,
+            self, bamfiles: List[Any], chrom: str, start: int,
             end: int) -> List[Tuple[str, Any, int, str, int, Any, int, Any]]:
         """
         Fetch reads from BAM files for a specific chromosome and region.
@@ -286,7 +287,7 @@ class _Realigner(object):
         Parameters
         ----------
 
-        bamfiles : List[Tuple[str, Any, int, str, int, Any, int, Any]]
+        bamfiles : List[Any]
             List of BAM file records, where each record is a tuple containing
             information about reads in the BAM file.
         chrom : str
@@ -488,12 +489,12 @@ class _Realigner(object):
             List of dictionaries, where each dictionary contains
             information about a region, including its haplotypes
             and reads.
-        reads : List[Tuple[str, Any, int, str, int, Any, int]]
+        reads : List[Tuple[str, Any, int, str, int, Any, int, Any]]
             List of reads.
 
         Returns
         -------
-        List[Tuple[str, Any, int, str, int, Any, int]]
+        List[Tuple[str, Any, int, str, int, Any, int, Any]]
             List of reads that couldn't be assigned to any region.
 
         """
@@ -714,9 +715,23 @@ class _Realigner(object):
 
 class RealignerFeaturizer(Featurizer):
     """
-    Realigns reads and generates candidate regions for variant calling.
+    Realigns reads and generates haplotype windows for variant calling.
+    Realignment adds haplotype awareness. A BAM file and a reference FASTA
+    get processed to generate allele counts and reads. Candidate regions
+    are selected based on allele counts. Reads are assigned to regions
+    based on maximum overlap with haplotypes. Smith-Waterman algorithm is
+    used to align reads to haplotypes. Candidate windows are processed to
+    generate window haplotypes with realigned reads.
 
-    More features can be added to this class in the future.
+    Examples
+    --------
+    >>> from deepchem.feat import RealignerFeaturizer
+    >>> bamfile_path = 'deepchem/data/tests/example.bam'
+    >>> reference_path = 'deepchem/data/tests/sample.fa'
+    >>> featurizer = RealignerFeaturizer()
+    >>> features = featurizer.featurize((bamfile_path, reference_path))
+    >>> type(features[0]['span'])
+    <class 'tuple'>
 
     Note
     ----

@@ -13,16 +13,19 @@ class TestRealignerFeaturizer(unittest.TestCase):
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
         self.featurizer = dc.feat.RealignerFeaturizer()
 
-    def test_candidate_windows(self):
+    def test_windows_haplotypes(self):
+        """
+        Tests haplotype windows generation from a BAM file and a reference genome.
+        """
         bam_file_path = os.path.join(self.current_dir, "example.bam")
         fasta_file_path = os.path.join(self.current_dir, "sample.fa")
         datapoint = (bam_file_path, fasta_file_path)
-        candidate_windows = self.featurizer._featurize(datapoint)
+        windows_haplotypes = self.featurizer._featurize(datapoint)
 
         # Assert the number of reads
-        self.assertEqual(len(candidate_windows), 53)
-        self.assertEqual(candidate_windows[0]['span'], ('chr1', 3, 5))
-        self.assertEqual(candidate_windows[1]['span'], ('chr1', 9, 20))
+        self.assertEqual(len(windows_haplotypes), 53)
+        self.assertEqual(windows_haplotypes[0]['span'], ('chr1', 3, 5))
+        self.assertEqual(windows_haplotypes[1]['span'], ('chr1', 9, 20))
 
 
 if __name__ == "__main__":
