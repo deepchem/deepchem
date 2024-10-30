@@ -11,8 +11,6 @@ except ModuleNotFoundError:
     has_torch = False
     pass
 
-base_dir = os.getcwd()
-
 
 @pytest.mark.torch
 def test_robustmultitask_construction():
@@ -44,8 +42,8 @@ def test_robustmultitask_forward():
                                   mode='classification')
 
     weights = np.load(
-        f"{base_dir}/models/torch_models/tests/assets/tensorflow_robust_multitask_classifier_weights.npz"
-    )
+        os.path.join(os.path.dirname(__file__), "assets",
+                     "tensorflow_robust_multitask_classifier_weights.npz"))
 
     move_weights(torch_model, weights)
 
