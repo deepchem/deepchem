@@ -167,6 +167,9 @@ def test_protbert_overfit():
                               cls_name="FFN",
                               batch_size=1,
                               learning_rate=1e-5)
+    for param in finetune_model.model.bert.parameters():
+        param.requires_grad = False
+
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
     finetune_model.fit(dataset, nb_epoch=20)
     eval_score = finetune_model.evaluate(dataset, [classification_metric])
