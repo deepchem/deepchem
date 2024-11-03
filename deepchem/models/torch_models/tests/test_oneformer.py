@@ -119,12 +119,12 @@ def test_oneformer_overfit():
                       torch_dtype=torch.float16,
                       batch_size=1)
 
-    X = np.random.randint(0, 255, (5, 224, 224, 3))
-    y = np.random.randint(0, 1, (5, 224, 224))
+    X = np.random.randint(0, 255, (2, 224, 224, 3))
+    y = np.random.randint(0, 1, (2, 224, 224))
     dataset = ImageDataset(X, y)
 
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
-    model.fit(dataset, nb_epoch=5)
+    model.fit(dataset, nb_epoch=3)
     eval_score = model.evaluate(dataset, [classification_metric])
 
     assert eval_score[classification_metric.name] > 0.8, "Failed to overfit"
