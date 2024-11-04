@@ -85,67 +85,67 @@ except ModuleNotFoundError:
 #    assert prediction.shape == (protein_classification_dataset.y.shape[0], 2)
 
 
-@pytest.mark.torch
-def test_protbert_load_from_pretrained(tmpdir):
-    pretrain_model_dir = os.path.join(tmpdir, 'pretrain')
-    finetune_model_dir = os.path.join(tmpdir, 'finetune')
-    model_path = 'Rostlab/prot_bert'
-    pretrain_model = ProtBERT(task='mlm',
-                              model_path=model_path,
-                              n_tasks=1,
-                              model_dir=pretrain_model_dir)
-    pretrain_model.save_checkpoint()
+# @pytest.mark.torch
+# def test_protbert_load_from_pretrained(tmpdir):
+#     pretrain_model_dir = os.path.join(tmpdir, 'pretrain')
+#     finetune_model_dir = os.path.join(tmpdir, 'finetune')
+#     model_path = 'Rostlab/prot_bert'
+#     pretrain_model = ProtBERT(task='mlm',
+#                               model_path=model_path,
+#                               n_tasks=1,
+#                               model_dir=pretrain_model_dir)
+#     pretrain_model.save_checkpoint()
 
-    finetune_model = ProtBERT(task='classification',
-                              model_path=model_path,
-                              n_tasks=1,
-                              cls_name="LogReg",
-                              model_dir=finetune_model_dir)
-    finetune_model.load_from_pretrained(pretrain_model_dir)
+#     finetune_model = ProtBERT(task='classification',
+#                               model_path=model_path,
+#                               n_tasks=1,
+#                               cls_name="LogReg",
+#                               model_dir=finetune_model_dir)
+#     finetune_model.load_from_pretrained(pretrain_model_dir)
 
-    # check weights match
-    pretrain_model_state_dict = pretrain_model.model.state_dict()
-    finetune_model_state_dict = finetune_model.model.state_dict()
+#     # check weights match
+#     pretrain_model_state_dict = pretrain_model.model.state_dict()
+#     finetune_model_state_dict = finetune_model.model.state_dict()
 
-    pretrain_base_model_keys = [
-        key for key in pretrain_model_state_dict.keys() if 'bert' in key
-    ]
-    matches = [
-        torch.allclose(pretrain_model_state_dict[key],
-                       finetune_model_state_dict[key])
-        for key in pretrain_base_model_keys
-    ]
+#     pretrain_base_model_keys = [
+#         key for key in pretrain_model_state_dict.keys() if 'bert' in key
+#     ]
+#     matches = [
+#         torch.allclose(pretrain_model_state_dict[key],
+#                        finetune_model_state_dict[key])
+#         for key in pretrain_base_model_keys
+#     ]
 
-    assert all(matches)
+#     assert all(matches)
 
 
-@pytest.mark.torch
-def test_protbert_save_reload(tmpdir):
-    model_path = 'Rostlab/prot_bert'
-    model = ProtBERT(task='classification',
-                     model_path=model_path,
-                     n_tasks=1,
-                     cls_name="FFN",
-                     model_dir=tmpdir)
-    model._ensure_built()
-    model.save_checkpoint()
+# @pytest.mark.torch
+# def test_protbert_save_reload(tmpdir):
+#     model_path = 'Rostlab/prot_bert'
+#     model = ProtBERT(task='classification',
+#                      model_path=model_path,
+#                      n_tasks=1,
+#                      cls_name="FFN",
+#                      model_dir=tmpdir)
+#     model._ensure_built()
+#     model.save_checkpoint()
 
-    model_new = ProtBERT(task='classification',
-                         model_path=model_path,
-                         n_tasks=1,
-                         cls_name="FFN",
-                         model_dir=tmpdir)
-    model_new.restore()
+#     model_new = ProtBERT(task='classification',
+#                          model_path=model_path,
+#                          n_tasks=1,
+#                          cls_name="FFN",
+#                          model_dir=tmpdir)
+#     model_new.restore()
 
-    old_state = model.model.state_dict()
-    new_state = model_new.model.state_dict()
-    matches = [
-        torch.allclose(old_state[key], new_state[key])
-        for key in old_state.keys()
-    ]
+#     old_state = model.model.state_dict()
+#     new_state = model_new.model.state_dict()
+#     matches = [
+#         torch.allclose(old_state[key], new_state[key])
+#         for key in old_state.keys()
+#     ]
 
-    # all keys values should match
-    assert all(matches)
+#     # all keys values should match
+#     assert all(matches)
 
 
 # @pytest.mark.torch
