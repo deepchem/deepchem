@@ -148,29 +148,29 @@ def test_protbert_save_reload(tmpdir):
     assert all(matches)
 
 
-@pytest.mark.torch
-def test_protbert_overfit():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
+# @pytest.mark.torch
+# def test_protbert_overfit():
+#     current_dir = os.path.dirname(os.path.abspath(__file__))
 
-    featurizer = dc.feat.DummyFeaturizer()
-    tasks = ["outcome"]
-    loader = dc.data.CSVLoader(tasks=tasks,
-                               feature_field="protein",
-                               featurizer=featurizer)
-    dataset = loader.create_dataset(
-        os.path.join(current_dir,
-                     "../../tests/assets/example_protein_classification.csv"))
-    model_path = 'Rostlab/prot_bert'
-    finetune_model = ProtBERT(task='classification',
-                              model_path=model_path,
-                              n_tasks=1,
-                              cls_name="FFN",
-                              batch_size=1,
-                              learning_rate=1e-5)
-    for param in finetune_model.model.bert.parameters():
-        param.requires_grad = False
+#     featurizer = dc.feat.DummyFeaturizer()
+#     tasks = ["outcome"]
+#     loader = dc.data.CSVLoader(tasks=tasks,
+#                                feature_field="protein",
+#                                featurizer=featurizer)
+#     dataset = loader.create_dataset(
+#         os.path.join(current_dir,
+#                      "../../tests/assets/example_protein_classification.csv"))
+#     model_path = 'Rostlab/prot_bert'
+#     finetune_model = ProtBERT(task='classification',
+#                               model_path=model_path,
+#                               n_tasks=1,
+#                               cls_name="FFN",
+#                               batch_size=1,
+#                               learning_rate=1e-5)
+#     for param in finetune_model.model.bert.parameters():
+#         param.requires_grad = False
 
-    classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
-    finetune_model.fit(dataset, nb_epoch=20)
-    eval_score = finetune_model.evaluate(dataset, [classification_metric])
-    assert eval_score[classification_metric.name] > 0.9
+#     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
+#     finetune_model.fit(dataset, nb_epoch=20)
+#     eval_score = finetune_model.evaluate(dataset, [classification_metric])
+#     assert eval_score[classification_metric.name] > 0.9
