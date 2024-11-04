@@ -16,9 +16,11 @@ def test_oneformer_train():
     config = OneFormerConfig().from_pretrained(
         'shi-labs/oneformer_ade20k_swin_tiny', is_training=True)
     config.encoder_layers = 2
+    config.text_encoder_num_layers = 2
     config.decoder_layers = 2
     config.num_attention_heads = 2
-    config.dim_feedforward = 128
+    config.encoder_feedforward_dim = 32
+    config.dim_feedforward = 32
 
     model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
                       model_config=config,
@@ -42,9 +44,11 @@ def test_oneformer_predict():
     config = OneFormerConfig().from_pretrained(
         'shi-labs/oneformer_ade20k_swin_tiny', is_training=True)
     config.encoder_layers = 2
+    config.text_encoder_num_layers = 2
     config.decoder_layers = 2
     config.num_attention_heads = 2
-    config.dim_feedforward = 128
+    config.encoder_feedforward_dim = 32
+    config.dim_feedforward = 32
 
     model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
                       model_config=config,
@@ -68,9 +72,11 @@ def test_oneformer_save_reload(tmpdir):
     config = OneFormerConfig().from_pretrained(
         'shi-labs/oneformer_ade20k_swin_tiny', is_training=True)
     config.encoder_layers = 2
+    config.text_encoder_num_layers = 2
     config.decoder_layers = 2
     config.num_attention_heads = 2
-    config.dim_feedforward = 128
+    config.encoder_feedforward_dim = 32
+    config.dim_feedforward = 32
 
     model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
                       model_config=config,
@@ -109,9 +115,11 @@ def test_oneformer_overfit():
     config = OneFormerConfig().from_pretrained(
         'shi-labs/oneformer_ade20k_swin_tiny', is_training=True)
     config.encoder_layers = 2
+    config.text_encoder_num_layers = 2
     config.decoder_layers = 2
     config.num_attention_heads = 2
-    config.dim_feedforward = 128
+    config.encoder_feedforward_dim = 32
+    config.dim_feedforward = 32
 
     model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
                       model_config=config,
@@ -119,8 +127,8 @@ def test_oneformer_overfit():
                       torch_dtype=torch.float16,
                       batch_size=1)
 
-    X = np.random.randint(0, 255, (2, 224, 224, 3))
-    y = np.random.randint(0, 1, (2, 224, 224))
+    X = np.random.randint(0, 255, (3, 224, 224, 3))
+    y = np.random.randint(0, 1, (3, 224, 224))
     dataset = ImageDataset(X, y)
 
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
