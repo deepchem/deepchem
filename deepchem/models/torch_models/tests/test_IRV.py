@@ -114,7 +114,7 @@ def compare_tf_and_torch_output():
                                              batch_size=n_samples)    
      
     tf_weights_dir = os.path.join(os.path.dirname(__file__), "assets",
-                                "tf_weights.pickle")
+                                "IRV_tf_weights.pickle")
     # Load tensorflow weights
     with open(tf_weights_dir,'rb') as f:
         data=pickle.load(f)
@@ -133,7 +133,7 @@ def compare_tf_and_torch_output():
             param.data.fill_(data[3][0])
     
     tf_output_dir = os.path.join(os.path.dirname(__file__), "assets",
-                                "tf_output.pickle")
+                                "IRV_tf_output.pickle")
     # Load tensorflow output for comparison
     with open(tf_output_dir,'rb') as f:
         tf_output=pickle.load(f)
