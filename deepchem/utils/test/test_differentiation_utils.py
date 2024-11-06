@@ -1106,7 +1106,13 @@ def test_explicit_rk_cpu():
     steps = 100
     t = torch.linspace(t_start, t_end, steps)
     params = torch.tensor([1.1, 0.4, 0.1, 0.4])
-    sol = explicit_rk(rk4_tableau, lotka_volterra, y0, t, params, batch_size=1, device="cpu")
+    sol = explicit_rk(rk4_tableau,
+                      lotka_volterra,
+                      y0,
+                      t,
+                      params,
+                      batch_size=1,
+                      device="cpu")
 
     def lotka_volterra(t, z, *params):
         y1, y2 = z
@@ -1119,6 +1125,7 @@ def test_explicit_rk_cpu():
     assert torch.allclose(sol[-1][0],
                           torch.tensor(sol_scipy.y[0][-1], dtype=torch.float32),
                           0.01, 0.001)
+
 
 @pytest.mark.torch
 def test_explicit_rk_gpu():
@@ -1137,7 +1144,13 @@ def test_explicit_rk_gpu():
     steps = 100
     t = torch.linspace(t_start, t_end, steps)
     params = torch.tensor([1.1, 0.4, 0.1, 0.4])
-    sol = explicit_rk(rk4_tableau, lotka_volterra, y0, t, params, batch_size=1, device="cuda")
+    sol = explicit_rk(rk4_tableau,
+                      lotka_volterra,
+                      y0,
+                      t,
+                      params,
+                      batch_size=1,
+                      device="cuda")
 
     def lotka_volterra(t, z, *params):
         y1, y2 = z

@@ -153,7 +153,7 @@ def explicit_rk(tableau: _Tableau,
         yt_list.append(y)
 
     yt = torch.stack(yt_list)
-    if yt.shape[1]==1:
+    if yt.shape[1] == 1:
         yt = yt.squeeze(1)
     return yt
 
