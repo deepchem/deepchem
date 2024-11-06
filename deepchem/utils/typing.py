@@ -1,7 +1,8 @@
 """Type annotations that are widely used in DeepChem"""
 
-from typing import Any, Callable, List, Sequence, Tuple, TypeVar, Union
+from typing import Any, Callable, List, Sequence, Tuple, TypeVar, Union, Iterable, Dict, Optional
 import numpy as np
+from torch import Tensor
 
 T = TypeVar("T")
 
@@ -29,3 +30,11 @@ RDKitBond = Any
 # type of Pymatgen object
 PymatgenStructure = Any
 PymatgenComposition = Any
+
+Params = Union[Iterable[Tensor], Iterable[Dict[str, Any]]]
+LossClosure = Callable[[], float]
+OptLossClosure = Optional[LossClosure]
+Betas2 = Tuple[float, float]
+State = Dict[str, Any]
+OptFloat = Optional[float]
+Nus2 = Tuple[float, float]
