@@ -659,7 +659,13 @@ DeepAbLLM
 
 .. autoclass:: deepchem.models.torch_models.antibody_modeling.DeepAbLLM
   :members:
-  
+
+OneFormer
+---------
+
+.. autoclass:: deepchem.models.torch_models.oneformer.OneFormer
+  :members:
+
 Trainer
 =======
 
