@@ -34,6 +34,7 @@ from deepchem.models.torch_models.flows import Flow, Affine, MaskedAffineFlow, A
 from deepchem.models.torch_models.unet import UNet, UNetModel
 from deepchem.models.torch_models.graphconvmodel import _GraphConvTorchModel
 from deepchem.models.torch_models.smiles2vec import Smiles2Vec
+from deepchem.models.torch_models.IRV import MultitaskIRVClassifier 
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
     from deepchem.models.torch_models.gnn import GNN, GNNHead, GNNModular
