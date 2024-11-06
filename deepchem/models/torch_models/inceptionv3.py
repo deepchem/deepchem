@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import deepchem as dc
-from deepchem.models.torch_models.modular import TorchModel
+from deepchem.models.torch_models import TorchModel
 from deepchem.data import ImageDataset
 from deepchem.models.optimizers import RMSProp
 

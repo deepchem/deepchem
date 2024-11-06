@@ -594,6 +594,12 @@ MXMNet
 .. autoclass:: deepchem.models.torch_models.MXMNet
   :members:
 
+InceptionV3Model
+----------------
+
+.. autoclass:: deepchem.models.torch_models.InceptionV3Model
+  :members:
+
 PyTorch Lightning Models
 ========================
 
