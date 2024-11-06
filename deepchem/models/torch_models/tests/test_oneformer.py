@@ -19,8 +19,8 @@ def test_oneformer_train():
     config.text_encoder_num_layers = 2
     config.decoder_layers = 2
     config.num_attention_heads = 2
-    config.encoder_feedforward_dim = 32
-    config.dim_feedforward = 32
+    config.encoder_feedforward_dim = 16
+    config.dim_feedforward = 16
 
     model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
                       model_config=config,
@@ -47,8 +47,8 @@ def test_oneformer_predict():
     config.text_encoder_num_layers = 2
     config.decoder_layers = 2
     config.num_attention_heads = 2
-    config.encoder_feedforward_dim = 32
-    config.dim_feedforward = 32
+    config.encoder_feedforward_dim = 16
+    config.dim_feedforward = 16
 
     model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
                       model_config=config,
@@ -75,8 +75,8 @@ def test_oneformer_save_reload(tmpdir):
     config.text_encoder_num_layers = 2
     config.decoder_layers = 2
     config.num_attention_heads = 2
-    config.encoder_feedforward_dim = 32
-    config.dim_feedforward = 32
+    config.encoder_feedforward_dim = 16
+    config.dim_feedforward = 16
 
     model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
                       model_config=config,
@@ -118,8 +118,8 @@ def test_oneformer_overfit():
     config.text_encoder_num_layers = 2
     config.decoder_layers = 2
     config.num_attention_heads = 2
-    config.encoder_feedforward_dim = 32
-    config.dim_feedforward = 32
+    config.encoder_feedforward_dim = 16
+    config.dim_feedforward = 16
 
     model = OneFormer(model_path='shi-labs/oneformer_ade20k_swin_tiny',
                       model_config=config,

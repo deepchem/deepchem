@@ -41,8 +41,8 @@ class OneFormer(HuggingFaceModel):
     >> from deepchem.metrics import Metric, mean_absolute_error, jaccaard_index
 
     >> # Prepare the dataset
-    >> X = np.random.randint(0, 255, (5, 512, 512, 3))
-    >> y = np.random.randint(0, 1, (5, 512, 512))
+    >> X = np.random.randint(0, 255, (3, 512, 512, 3))
+    >> y = np.random.randint(0, 1, (3, 512, 512))
     >> dataset = ImageDataset(X, y)
     >> id2label = {0: "label-A", 1: "label-B"}
 
@@ -51,7 +51,7 @@ class OneFormer(HuggingFaceModel):
     ...                  id2label=id2label, torch_dtype=torch.float16, batch_size=2)
 
     >> # Train the model
-    >> avg_loss = model.fit(dataset, nb_epoch=5)
+    >> avg_loss = model.fit(dataset, nb_epoch=3)
 
     >> # Predict the model
     >> preds = model.predict(dataset)
