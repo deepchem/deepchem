@@ -54,7 +54,7 @@ def explicit_rk(tableau: _Tableau,
                 y0: torch.Tensor,
                 t: torch.Tensor,
                 params: Sequence[torch.Tensor],
-                batch_size: int = 10,
+                batch_size: int = 1,
                 device="cpu"):
     """The family of explicit Runge–Kutta methods is a generalization
     of the RK4 method mentioned above.
@@ -66,7 +66,7 @@ def explicit_rk(tableau: _Tableau,
     ...     a, b, c, d = params
     ...     return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
     >>> t = torch.linspace(0, 50, 100)
-    >>> y_init = torch.rand(batch_size, 2)
+    >>> y_init = torch.rand(2)
     >>> solver_param = [rk4_tableau,
     ...                 lotka_volterra,
     ...                 t,
@@ -75,6 +75,23 @@ def explicit_rk(tableau: _Tableau,
     >>> sol = explicit_rk(*solver_param)
     >>> sol[-1]
     tensor([[0.7171, 2.9394]])
+
+    For solving multiple ODEs, we can use the GPU and feed in multiple initial conditions
+    >>> def lotka_volterra(t, y, params):
+    ...     y1, y2 = y
+    ...     a, b, c, d = params
+    ...     return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+    >>> t = torch.linspace(0, 50, 100)
+    >>> batch_size = 10
+    >>> y_init = torch.rand(batch_size, 2)
+    >>> solver_param = [rk4_tableau,
+    ...                 lotka_volterra,
+    ...                 t,
+    ...                 y_init,
+    ...                 torch.tensor([1.1, 0.4, 0.1, 0.4])]
+    >>> sol = explicit_rk(*solver_param, batch_size=batch_size, device='cuda')
+    >>> print(sol.shape)
+    torch.Size([100, 10, 2])
 
     Parameters
     ----------
@@ -88,7 +105,7 @@ def explicit_rk(tableau: _Tableau,
     params: list
         List of input parameters for the function `fcn`.
     batch_size: int
-        The batch size to compute the RK method. Default is 10.
+        The batch size to compute the RK method. Default is 1.
     device: str
         The device to compute the RK method. Default is "cpu".
 
@@ -114,6 +131,8 @@ def explicit_rk(tableau: _Tableau,
         tableau.a, device=device), torch.tensor(tableau.b, device=device)
     t = torch.tensor(t, device=device).clone()
     y0 = torch.tensor(y0, device=device).clone()
+    if len(y0.shape) == 1:
+        y0 = y0.unsqueeze(0)
     s = len(c)
     num_steps = len(t)
     yt_list = [y0]
@@ -128,12 +147,14 @@ def explicit_rk(tableau: _Tableau,
         for i in range(s):
             y_sum = y + h * torch.sum(
                 a[i, :i].unsqueeze(-1).unsqueeze(-1) * k[:i], dim=0)
-            k[i] = fcn(t0 + c[i] * h, y_sum, params)
+            k[i] = fcn(t0 + c[i] * h, y_sum[0], params)
 
         y = y + h * torch.sum(b.unsqueeze(-1).unsqueeze(-1) * k, dim=0)
         yt_list.append(y)
 
     yt = torch.stack(yt_list)
+    if yt.shape[1]==1:
+        yt = yt.squeeze(1)
     return yt
 
 
