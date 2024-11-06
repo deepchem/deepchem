@@ -813,7 +813,7 @@ class KFAC(Optimizer):
 
 class Lamb(Optimizer):
     """The Lamb optimization algorithm.
-    
+
     It has been proposed in `Large Batch Optimization for Deep Learning:
     Training BERT in 76 minutes`__.
     """
@@ -839,6 +839,22 @@ class Lamb(Optimizer):
         weight_decay: float
             L2 penalty - a parameter of the Lamb algorithm
 
+        Examples
+        --------
+        >>> import deepchem as dc
+        >>> from deepchem.models import GCNModel
+        >>> # preparing dataset
+        >>> smiles = ["C1CCC1", "CCC"]
+        >>> labels = [0., 1.]
+        >>> featurizer = dc.feat.MolGraphConvFeaturizer()
+        >>> X = featurizer.featurize(smiles)
+        >>> dataset = dc.data.NumpyDataset(X=X, y=labels)
+        >>> # training model
+        >>> model = GCNModel(mode='classification', n_tasks=1,
+        ...                  batch_size=16, learning_rate=0.001,
+        ...                  optimizers=optimizers.Lamb(learning_rate=0.01))
+        >>> loss = model.fit(dataset, nb_epoch=5)
+
         References
         ----------
         Yang You and Jing Li and Sashank Reddi, et, al., "Large Batch Optimization for Deep Learning: Training BERT in 76 minutes", 2020,
@@ -856,7 +872,7 @@ class Lamb(Optimizer):
         else:
             lr = self.learning_rate
         return LambOptimizer(params,
-                    lr=lr,
-                    betas=(self.beta1, self.beta2),
-                    eps=self.epsilon,
-                    weight_decay=self.weight_decay)
+                             lr=lr,
+                             betas=(self.beta1, self.beta2),
+                             eps=self.epsilon,
+                             weight_decay=self.weight_decay)
