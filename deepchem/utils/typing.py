@@ -2,7 +2,6 @@
 
 from typing import Any, Callable, List, Sequence, Tuple, TypeVar, Union, Iterable, Dict, Optional
 import numpy as np
-from torch import Tensor
 
 T = TypeVar("T")
 
@@ -31,7 +30,7 @@ RDKitBond = Any
 PymatgenStructure = Any
 PymatgenComposition = Any
 
-Params = Union[Iterable[Tensor], Iterable[Dict[str, Any]]]
+Params = Union[Any, Iterable[Dict[str, Any]]]
 LossClosure = Callable[[], float]
 OptLossClosure = Optional[LossClosure]
 Betas2 = Tuple[float, float]
