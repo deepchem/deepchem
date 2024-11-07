@@ -85,7 +85,7 @@ except ModuleNotFoundError:
 #    assert prediction.shape == (protein_classification_dataset.y.shape[0], 2)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_protbert_load_from_pretrained(tmpdir):
     pretrain_model_dir = os.path.join(tmpdir, 'pretrain')
     finetune_model_dir = os.path.join(tmpdir, 'finetune')
@@ -119,7 +119,7 @@ def test_protbert_load_from_pretrained(tmpdir):
     assert all(matches)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_protbert_save_reload(tmpdir):
     model_path = 'Rostlab/prot_bert'
     model = ProtBERT(task='classification',
@@ -148,7 +148,7 @@ def test_protbert_save_reload(tmpdir):
     assert all(matches)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_protbert_overfit():
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
