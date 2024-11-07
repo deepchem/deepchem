@@ -87,7 +87,7 @@ class LambOptimizer(Optimizer):
     def step(
         self,
         closure: Optional[OptLossClosure] = None
-    ) -> OptFloat:  # type: ignore[override]
+    ) -> OptFloat:  # type: ignore
         r"""Performs a single optimization step.
 
         Arguments:
