@@ -10,7 +10,7 @@ except ModuleNotFoundError:
     pass
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_chemberta_pretraining(smiles_regression_dataset,
                                smiles_multitask_regression_dataset):
     # Pretraining in MLM mode
@@ -28,7 +28,7 @@ def test_chemberta_pretraining(smiles_regression_dataset,
     assert loss
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_chemberta_finetuning(smiles_regression_dataset,
                               smiles_multitask_regression_dataset):
     # test regression
@@ -69,7 +69,7 @@ def test_chemberta_finetuning(smiles_regression_dataset,
     assert prediction.shape == (dataset.y.shape[0], 2)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_chemberta_load_from_pretrained(tmpdir, smiles_regression_dataset):
     pretrain_model_dir = os.path.join(tmpdir, 'pretrain')
     finetune_model_dir = os.path.join(tmpdir, 'finetune')
@@ -100,7 +100,7 @@ def test_chemberta_load_from_pretrained(tmpdir, smiles_regression_dataset):
     assert all(matches)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_chemberta_save_reload(tmpdir):
     tokenizer_path = 'seyonec/PubChem10M_SMILES_BPE_60k'
     model = Chemberta(task='regression',
@@ -125,7 +125,7 @@ def test_chemberta_save_reload(tmpdir):
     assert all(matches)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_chemberta_load_weights_from_hf_hub():
     pretrained_model_path = 'DeepChem/ChemBERTa-77M-MLM'
     tokenizer_path = 'DeepChem/ChemBERTa-77M-MLM'

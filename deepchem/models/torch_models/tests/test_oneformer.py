@@ -8,7 +8,7 @@ except ModuleNotFoundError:
     pass
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_oneformer_train():
     from transformers import OneFormerConfig
 
@@ -36,7 +36,7 @@ def test_oneformer_train():
     assert isinstance(avg_loss, float)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_oneformer_predict():
     from transformers import OneFormerConfig
 
@@ -65,7 +65,7 @@ def test_oneformer_predict():
     assert np.array(preds).shape == y.shape
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_oneformer_save_reload(tmpdir):
     from transformers import OneFormerConfig
     # micro config for testing
@@ -106,7 +106,7 @@ def test_oneformer_save_reload(tmpdir):
     assert all(matches)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_oneformer_overfit():
     from transformers import OneFormerConfig
     import deepchem as dc
