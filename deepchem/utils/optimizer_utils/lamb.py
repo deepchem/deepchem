@@ -84,7 +84,10 @@ class LambOptimizer(Optimizer):
 
         super(LambOptimizer, self).__init__(params, defaults)
 
-    def step(self, closure: OptLossClosure = None) -> OptFloat: # type: ignore[override]
+    def step(
+            self,
+            closure: OptLossClosure = None
+    ) -> OptFloat:  # type: ignore[override]
         r"""Performs a single optimization step.
 
         Arguments:
