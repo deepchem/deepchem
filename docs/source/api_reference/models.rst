@@ -540,10 +540,16 @@ WeaveModel
 .. autoclass:: deepchem.models.torch_models.WeaveModel
   :members:
 
-ProgressiveMultitaskModel
+ProgressiveMultitaskClassifier
 -------------------------
 
-.. autoclass:: deepchem.models.torch_models.ProgressiveMultitaskModel
+.. autoclass:: deepchem.models.torch_models.ProgressiveMultitaskClassifier
+  :members:
+
+ProgressiveMultitaskRegressor
+-------------------------
+
+.. autoclass:: deepchem.models.torch_models.ProgressiveMultitaskRegressor
   :members:
 
 Density Functional Theory Model - XCModel
