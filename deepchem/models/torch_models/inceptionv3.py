@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 from deepchem.models.losses import CategoricalCrossEntropy
 from deepchem.models.torch_models import TorchModel
 from deepchem.data import Dataset
@@ -401,7 +400,8 @@ class InceptionV3Model(TorchModel):
             deterministic: bool = False,
             restore: bool = False,
             variables: Optional[List[Any]] = None,
-            loss: Optional[Callable[[List[Any], List[Any], List[Any]], Any]] = None,
+            loss: Optional[Callable[[List[Any], List[Any], List[Any]],
+                                    Any]] = None,
             callbacks: Callable[..., Any] | List[Callable[..., Any]] = [],
             all_losses: Optional[List[float]] = None) -> float:
         """
@@ -440,24 +440,24 @@ class InceptionV3Model(TorchModel):
 
         for epoch in range(nb_epoch):
             self.current_step = epoch
-            self.adjust_learning_rate()  # Adjust learning rate before each epoch
-   
+            self.adjust_learning_rate(
+            )  # Adjust learning rate before each epoch
+
             epoch_loss = super(InceptionV3Model, self).fit(
-                    dataset,
-                    nb_epoch=1,
-                    max_checkpoints_to_keep=max_checkpoints_to_keep,
-                    checkpoint_interval=checkpoint_interval,
-                    deterministic=deterministic,
-                    restore=restore,
-                    variables=variables,
-                    loss=loss,
-                    callbacks=callbacks,
-                    all_losses=all_losses
-            )
+                dataset,
+                nb_epoch=1,
+                max_checkpoints_to_keep=max_checkpoints_to_keep,
+                checkpoint_interval=checkpoint_interval,
+                deterministic=deterministic,
+                restore=restore,
+                variables=variables,
+                loss=loss,
+                callbacks=callbacks,
+                all_losses=all_losses)
             all_losses.append(epoch_loss)
 
         return all_losses[-1] if all_losses else 0.0
-    
+
     def save(self):
         """Saves model to disk using joblib."""
         save_to_disk(self.model, self.get_model_filename(self.model_dir))
