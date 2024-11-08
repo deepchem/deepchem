@@ -1,11 +1,13 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 from deepchem.models.losses import CategoricalCrossEntropy
 from deepchem.models.torch_models import TorchModel
 from deepchem.data import Dataset
 from deepchem.models.optimizers import RMSProp
 from typing import Optional, List, Callable, Any
+from deepchem.utils.data_utils import load_from_disk, save_to_disk
 
 
 class InceptionV3(nn.Module):
@@ -341,7 +343,7 @@ class InceptionV3Model(TorchModel):
 
     def __init__(self, input_shape=(6, 100, 221), **kwargs):
         # Fixed hyperparameters
-        learning_rate = 0.001
+        learning_rate = 1e-6
         decay_steps = 2  # epochs per decay
         decay_rate = 0.947
         warmup_steps = 10000
@@ -391,69 +393,75 @@ class InceptionV3Model(TorchModel):
 
         self.optimizer.learning_rate = lr
 
+    def fit(self,
+            dataset: Dataset,
+            nb_epoch: int = 1,
+            max_checkpoints_to_keep: int = 5,
+            checkpoint_interval: int = 1000,
+            deterministic: bool = False,
+            restore: bool = False,
+            variables: Optional[List[Any]] = None,
+            loss: Optional[Callable[[List[Any], List[Any], List[Any]], Any]] = None,
+            callbacks: Callable[..., Any] | List[Callable[..., Any]] = [],
+            all_losses: Optional[List[float]] = None) -> float:
+        """
+        Trains the model on the given dataset, adjusting learning rate with warmup and decay.
 
-def fit(self,
-        dataset: Dataset,
-        nb_epoch: int = 1,
-        max_checkpoints_to_keep: int = 5,
-        checkpoint_interval: int = 1000,
-        deterministic: bool = False,
-        restore: bool = False,
-        variables: Optional[List] = None,
-        loss: Optional[Callable[[List[Any], List[Any], List[Any]], Any]] = None,
-        callbacks: Optional[List[Callable[..., Any]]] = None,
-        all_losses: Optional[List[float]] = None) -> float:
-    """
-    Trains the model on the given dataset, adjusting learning rate with warmup and decay.
+        Parameters
+        ----------
+        dataset: Dataset
+            Dataset to be used for training.
+        nb_epoch: int, optional (default 1)
+            Number of epochs to train the model.
+        max_checkpoints_to_keep: int, optional
+            Number of checkpoints to keep.
+        checkpoint_interval: int, optional
+            Interval for saving checkpoints.
+        deterministic: bool, optional
+            If True, runs in deterministic mode.
+        restore: bool, optional
+            If True, restores the model from the last checkpoint.
+        variables: list, optional
+            List of parameters to train.
+        loss: callable, optional
+            Custom loss function.
+        callbacks: callable or list of callables, optional
+            Callbacks to run during training.
+        all_losses: list of floats, optional
+            List to store all losses during training.
 
-    Parameters
-    ----------
-    dataset: Dataset
-        Dataset to be used for training.
-    nb_epoch: int, optional (default 1)
-        Number of epochs to train the model.
-    max_checkpoints_to_keep: int, optional
-        Number of checkpoints to keep.
-    checkpoint_interval: int, optional
-        Interval for saving checkpoints.
-    deterministic: bool, optional
-        If True, runs in deterministic mode.
-    restore: bool, optional
-        If True, restores the model from the last checkpoint.
-    variables: list, optional
-        List of parameters to train.
-    loss: callable, optional
-        Custom loss function.
-    callbacks: list of callables, optional
-        Custom callbacks.
-    all_losses: list, optional (default None)
-        List to store all losses during training.
+        Returns
+        -------
+        float
+            The final loss value after training.
+        """
+        if all_losses is None:
+            all_losses = []
 
-    Returns
-    -------
-    float
-        The final loss value after training.
-    """
-    if all_losses is None:
-        all_losses = []
+        for epoch in range(nb_epoch):
+            self.current_step = epoch
+            self.adjust_learning_rate()  # Adjust learning rate before each epoch
+   
+            epoch_loss = super(InceptionV3Model, self).fit(
+                    dataset,
+                    nb_epoch=1,
+                    max_checkpoints_to_keep=max_checkpoints_to_keep,
+                    checkpoint_interval=checkpoint_interval,
+                    deterministic=deterministic,
+                    restore=restore,
+                    variables=variables,
+                    loss=loss,
+                    callbacks=callbacks,
+                    all_losses=all_losses
+            )
+            all_losses.append(epoch_loss)
 
-    for epoch in range(nb_epoch):
-        self.current_step = epoch
-        self.adjust_learning_rate()  # Adjust learning rate before each epoch
+        return all_losses[-1] if all_losses else 0.0
+    
+    def save(self):
+        """Saves model to disk using joblib."""
+        save_to_disk(self.model, self.get_model_filename(self.model_dir))
 
-        # Perform one epoch of training
-        epoch_loss = super(InceptionV3Model, self).fit(
-            dataset,
-            nb_epoch=1,
-            max_checkpoints_to_keep=max_checkpoints_to_keep,
-            checkpoint_interval=checkpoint_interval,
-            deterministic=deterministic,
-            restore=restore,
-            variables=variables,
-            loss=loss,
-            callbacks=callbacks)
-
-        # Store the numeric loss from this epoch
-        all_losses.append(epoch_loss)
-
-    return all_losses[-1] if all_losses else 0.0
+    def reload(self):
+        """Loads model from joblib file on disk."""
+        self.model = load_from_disk(self.get_model_filename(self.model_dir))
