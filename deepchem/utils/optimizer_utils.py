@@ -1,7 +1,7 @@
 import math
 import torch
 from torch.optim import Optimizer
-from typing import Betas2, Params, Optional, Callable, Any
+from deepchem.utils.typing import Betas2, Params, Optional, Callable, Any
 
 
 class LambOptimizer(Optimizer):
