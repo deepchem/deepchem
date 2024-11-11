@@ -1,6 +1,6 @@
 import deepchem as dc
 import deepchem.models.optimizers as optimizers
-from deepchem.utils.optimizer_utils.lamb import LambOptimizer
+from deepchem.utils.optimizer_utils import LambOptimizer
 import unittest
 import pytest
 
