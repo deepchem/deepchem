@@ -1,11 +1,10 @@
 import numpy as np
-from deepchem.models.torch_models import RobustMultitask
 import pytest
 import os
 try:
     import torch
     import torch.nn as nn
-
+    from deepchem.models.torch_models import RobustMultitask
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
