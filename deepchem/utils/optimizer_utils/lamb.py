@@ -1,7 +1,7 @@
 import math
 import torch
 from torch.optim.optimizer import Optimizer
-from deepchem.utils.typing import Betas2, OptFloat, OptLossClosure, Params, Optional
+from deepchem.utils.typing import Betas2, Params, Optional, Callable
 
 
 class LambOptimizer(Optimizer):
@@ -84,10 +84,8 @@ class LambOptimizer(Optimizer):
 
         super(LambOptimizer, self).__init__(params, defaults)
 
-    def step(
-        self,
-        closure: Optional[OptLossClosure] = None
-    ) -> OptFloat:  # type: ignore
+    def step(self,
+             closure: Optional[Callable[[], float]] = None) -> Optional[float]:
         r"""Performs a single optimization step.
 
         Arguments:
