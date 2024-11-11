@@ -761,7 +761,15 @@ class HuggingFaceModel(TorchModel):
                     pad_batches=False):
                 for i, x in enumerate(X_b):
                     length = len(x)
-                    item = (X_b[i], y_b[i], w_b[i])
+                    item = [X_b[i]]
+                    if y_b is not None:
+                        item.append(y_b[i])
+                    else:
+                        item.append(None)
+                    if w_b is not None:
+                        item.append(w_b[i])
+                    else:
+                        item.append(None)
                     if length > min_data_length and length < mode_data_length:
                         if len(bucket0) < b0_max:
                             bucket0.append(item)
