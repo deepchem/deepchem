@@ -2,7 +2,7 @@
 
 import math
 from functools import partial
-from deepchem.utils.optimizer_utils.lamb import LambOptimizer
+from deepchem.utils.optimizer_utils import LambOptimizer
 from typing import Dict, Union, Optional
 
 
