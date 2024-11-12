@@ -1,6 +1,9 @@
 import math
-import torch
-from torch.optim import Optimizer
+try:
+    import torch
+    from torch.optim import Optimizer
+except:
+    pass
 from deepchem.utils.typing import Betas2, Params, Optional, Callable, Any
 
 
