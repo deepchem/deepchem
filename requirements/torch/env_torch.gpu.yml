@@ -1,5 +1,3 @@
-channels:
-  - pyscf
 dependencies:
   - pylibxc
   - pip:
