@@ -1,4 +1,7 @@
+channels:
+  - pyscf
 dependencies:
+  - pyscf
   - pip:
     - -f https://download.pytorch.org/whl/cpu/torch_stable.html
     # - -f https://data.dgl.ai/wheels/repo.html
@@ -15,5 +18,4 @@ dependencies:
     - git+https://github.com/diffqc/dqclibs.git
     - git+https://gitlab.com/libxc/libxc.git@6.0.0
     - basis-set-exchange
-    - pyscf
     - h5py

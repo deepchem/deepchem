@@ -1,4 +1,7 @@
+channels:
+  - pyscf
 dependencies:
+  - pyscf
   - pylibxc
   - pip:
     - -f https://download.pytorch.org/whl/cu118/torch_stable.html
@@ -12,5 +15,4 @@ dependencies:
     - torch-cluster
     - git+https://github.com/diffqc/dqclibs.git
     - basis-set-exchange
-    - pyscf
     - h5py
