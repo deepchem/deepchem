@@ -2,6 +2,7 @@ name: deepchem
 channels:
   - conda-forge
   - defaults
+  - pyscf
 dependencies:
   - openmm
   - mdtraj
