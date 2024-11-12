@@ -1,6 +1,5 @@
 import deepchem as dc
 import deepchem.models.optimizers as optimizers
-from deepchem.utils.optimizer_utils import LambOptimizer
 import unittest
 import pytest
 
@@ -18,6 +17,7 @@ except:
 
 try:
     import torch
+    from deepchem.utils.optimizer_utils import LambOptimizer
     has_pytorch = True
 except:
     has_pytorch = False
