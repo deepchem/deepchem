@@ -15,7 +15,7 @@ def igbert_tokenizer():
     return tokenizer
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_init(igbert_tokenizer):
     from deepchem.models.torch_models.antibody_modeling import DeepAbLLM
     from deepchem.models.torch_models.hf_model import HuggingFaceModel
@@ -25,7 +25,7 @@ def test_init(igbert_tokenizer):
     assert anti_model.n_tasks == 1
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_load_from_pretrained(tmpdir):
     pretrain_model_dir = os.path.join(tmpdir, 'pretrain')
     finetune_model_dir = os.path.join(tmpdir, 'finetune')
@@ -57,7 +57,7 @@ def test_load_from_pretrained(tmpdir):
     assert all(matches)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_initialize_new_config():
     model_path = 'Rostlab/prot_bert'
     config = {"num_attention_heads": 8, "num_hidden_layers": 6}
@@ -72,7 +72,7 @@ def test_initialize_new_config():
     assert model.model.config['num_hidden_layers'] == 6
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_save_reload(tmpdir):
     model_path = 'Exscientia/IgBert'
     anti_model = DeepAbLLM(task='mlm',
@@ -99,7 +99,7 @@ def test_save_reload(tmpdir):
     assert all(matches)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_mask_seq_pos(igbert_tokenizer):
     from deepchem.models.torch_models.antibody_modeling import DeepAbLLM
     anti_model = DeepAbLLM(model_path='facebook/esm2_t6_8M_UR50D',
@@ -114,7 +114,7 @@ def test_mask_seq_pos(igbert_tokenizer):
     assert masked_test_string.split(' ')[10] == anti_model.tokenizer.mask_token
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_redesign_residue():
     from Levenshtein import distance
     from deepchem.models.torch_models.antibody_modeling import DeepAbLLM
@@ -139,7 +139,7 @@ def test_redesign_residue():
         assert abs(item[2]) <= 1
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_optimize_sequence():
     from Levenshtein import distance
     from deepchem.models.torch_models.antibody_modeling import DeepAbLLM
