@@ -191,7 +191,7 @@ class RobustMultitask(nn.Module):
             This is only returned when self.mode = `classification`, the output consists of the
             logits for classes before softmax.
         """
-        task_outputs: List[torch.Tensor] = []        
+        task_outputs: List[torch.Tensor] = []
 
         # Shared layers
         shared_output = self.shared_layers(x)
@@ -365,6 +365,7 @@ class RobustMultitaskClassifier(TorchModel):
                              output_types=output_types,
                              regularization_loss=model.regularization_loss,
                              **kwargs)
+
     def default_generator(self,
                           dataset,
                           epochs=1,
