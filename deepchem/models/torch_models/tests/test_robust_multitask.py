@@ -1,13 +1,12 @@
 import numpy as np
-from deepchem.models.torch_models import RobustMultitask, RobustMultitaskClassifier
-import deepchem as dc
 import pytest
 import tempfile
 import os
 try:
     import torch
     import torch.nn as nn
-    from deepchem.models.torch_models import RobustMultitask
+    import deepchem as dc
+    from deepchem.models.torch_models import RobustMultitask, RobustMultitaskClassifier
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
@@ -17,6 +16,7 @@ except ModuleNotFoundError:
 n_tasks_tf = 3
 n_features_tf = 100
 layer_sizes_tf = [512, 1024]
+
 
 @pytest.mark.torch
 def test_robustmultitask_construction():
@@ -131,16 +131,21 @@ def move_weights(torch_model, weights):
     torch_model.shared_layers[0].weight = torch_weights["shared-layers-dense-w"]
     torch_model.shared_layers[0].bias = torch_weights["shared-layers-dense-b"]
 
-    torch_model.shared_layers[3].weight = torch_weights["shared-layers-dense_1-w"]
+    torch_model.shared_layers[3].weight = torch_weights[
+        "shared-layers-dense_1-w"]
     torch_model.shared_layers[3].bias = torch_weights["shared-layers-dense_1-b"]
 
     # Bypass layers for each tasks
     for i in range(n_tasks_tf):
-        torch_model.bypass_layers[i][0].weight = torch_weights[f"bypass-layers-dense_{2 + i * 2}-w"]
-        torch_model.bypass_layers[i][0].bias = torch_weights[f"bypass-layers-dense_{2 + i * 2}-b"]
+        torch_model.bypass_layers[i][0].weight = torch_weights[
+            f"bypass-layers-dense_{2 + i * 2}-w"]
+        torch_model.bypass_layers[i][0].bias = torch_weights[
+            f"bypass-layers-dense_{2 + i * 2}-b"]
 
-        torch_model.output_layers[i].weight = torch_weights[f"bypass-layers-dense_{3 + i * 2}-w"]
-        torch_model.output_layers[i].bias = torch_weights[f"bypass-layers-dense_{3 + i * 2}-b"]
+        torch_model.output_layers[i].weight = torch_weights[
+            f"bypass-layers-dense_{3 + i * 2}-w"]
+        torch_model.output_layers[i].bias = torch_weights[
+            f"bypass-layers-dense_{3 + i * 2}-b"]
 
 
 @pytest.mark.torch
