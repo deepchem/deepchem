@@ -653,8 +653,9 @@ class HuggingFaceModel(TorchModel):
             If specified, all logged losses are appended into this list. Note that
             you can call `fit()` repeatedly with the same list and losses will
             continue to be appended.
-        enable_bucketing: bool
-            If True, adaptive bucketing is used.
+        enable_bucketing: bool, default=False
+            If True, enables adaptive bucketing based on sequence length, useful for handling
+            variable-length sequences efficiently in training.
 
         Returns
         -------
@@ -676,14 +677,36 @@ class HuggingFaceModel(TorchModel):
             max_checkpoints_to_keep, checkpoint_interval, restore, variables,
             loss, callbacks, all_losses)
 
-    def _bucket_prepare_batch(self, buckets):
+    def _bucket_prepare_batch(
+            self,
+            buckets) -> List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+        """
+        Prepare batches of data for each bucket by converting lists of arrays
+        into tensors suitable for model input. This method processes non-empty buckets by stacking arrays in each bucket
+        into numpy arrays, which are then converted into PyTorch tensors
+        for model input.
+
+        Parameters
+        ----------
+        buckets: List[List[Tuple[np.ndarray, np.ndarray, np.ndarray]]]
+            A list of buckets, where each bucket is a list of tuples. Each tuple
+            contains three numpy arrays: input features, labels, and weights
+            for a batch.
+
+        Returns
+        -------
+        List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]
+            A list of tuples, each containing input tensors, label tensors, and
+            weight tensors for a batch in each bucket.
+
+        """
         out = []
         for bucket in buckets:
             if bucket:
                 X_b, y_b, w_b = [list(x) for x in zip(*bucket)]
                 X_b = [np.asarray(X_b)]
-                y_b = np.vstack(y_b)
-                w_b = np.vstack(w_b)
+                y_b = np.vstack(y_b)  # type: ignore
+                w_b = np.vstack(w_b)  # type: ignore
                 input_tensors, label_tensors, weight_tensors = self._prepare_batch(
                     (X_b, y_b, w_b))
                 out.append((input_tensors, label_tensors, weight_tensors))
@@ -704,32 +727,40 @@ class HuggingFaceModel(TorchModel):
                          mode: str = 'fit',
                          deterministic: bool = True,
                          pad_batches: bool = True):
-        """Create a bucket generator that iterates batches for a dataset.
+        """Create a bucket generator that iterates over batches of a dataset, organizing them into predefined buckets based on the length of the data samples.
+        This generator organizes data samples into four buckets based on their lengths:
+        - Bucket 0: Samples with length >= `min_data_length` and < `level1` (minimum of mode and average data length).
+        - Bucket 1: Samples with length >= `level1` and < `level2` (maximum of mode and average data length).
+        - Bucket 2: Samples with length >= `level2` and < `tail_length`.
+        - Bucket 3: Samples with length >= `tail_length` and <= `max_data_length`.
+
+        The generator yields these buckets after processing each batch from the dataset.
 
         Parameters
         ----------
-        dataset: Dataset
-            the data to iterate
-        mode_data_length: float
-            mode length of the data
-        avg_data_length: float
-            average length of the data
-        max_data_length: float
-            max length of the data
-        min_data_length: float
-            min length of the data
-        tail_length: float
-            extent and density of extreme values at either end of a data distribution
-        b0_max: int
-            max data size first bucket can hold
-        b1_max: int
-            max data size second bucket can hold
-        b2_max: int
-            max data size third bucket can hold
-        b3_max: int
-            max data size fourth bucket can hold
-        epochs: int
-            the number of times to iterate over the full dataset
+        dataset : Dataset
+            The dataset to iterate over for generating batches.
+        mode_data_length : float
+            The mode (most frequent) length of the data samples.
+        avg_data_length : float
+            The average length of the data samples.
+        max_data_length : float
+            The maximum length of the data samples.
+        min_data_length : float
+            The minimum length of the data samples.
+        tail_length : float
+            The length threshold defining the tail of the data distribution. Must be
+            greater than or equal to both `mode_data_length` and `avg_data_length`.
+        b0_max : int
+            Maximum number of samples the first bucket can hold.
+        b1_max : int
+            Maximum number of samples the second bucket can hold.
+        b2_max : int
+            Maximum number of samples the third bucket can hold.
+        b3_max : int
+            Maximum number of samples the fourth bucket can hold.
+        epochs : int, default=1
+            The number of epochs to iterate over the entire dataset.
         mode: str
             allowed values are 'fit' (called during training), 'predict' (called
             during prediction), and 'uncertainty' (called during uncertainty
@@ -740,11 +771,36 @@ class HuggingFaceModel(TorchModel):
         pad_batches: bool
             whether to pad each batch up to this model's preferred batch size
 
-        Returns
-        -------
-        the bucket_generator returns four buckets where each bucket is in the form of list and each item in the bucket is a 
-        tuple of ([inputs], [outputs], [weights])
+        Yields
+        ------
+        Tuple[
+            List[Tuple[List[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]]],
+            List[Tuple[List[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]]],
+            List[Tuple[List[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]]],
+            List[Tuple[List[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]]]
+        ]
+
+        A tuple containing four lists (buckets). Each list corresponds to a bucket and contains
+        tuples of the form ([inputs], [outputs], [weights]). If `outputs` or `weights` are not
+        applicable, they may be `None`.
+
+        Raises
+        ------
+        AssertionError
+            If `tail_length` is less than `mode_data_length` or `avg_data_length`.
+            If `min_data_length` is not the minimum of all length parameters.
+            If `max_data_length` is not the maximum of all length parameters.
         """
+        level1 = min(mode_data_length, avg_data_length)
+        level2 = max(mode_data_length, avg_data_length)
+        assert tail_length >= level1, "tail length should be >= mode or average data length"
+        assert tail_length >= level2, "tail length should be >= mode or average data length"
+        assert min_data_length == min(
+            mode_data_length, avg_data_length, max_data_length, min_data_length,
+            tail_length), "min length should be minimum of all parameters"
+        assert max_data_length == max(
+            mode_data_length, avg_data_length, max_data_length, min_data_length,
+            tail_length), "max length should be maximum of all parameters"
         b0_cache: Deque = collections.deque()
         b1_cache: Deque = collections.deque()
         b2_cache: Deque = collections.deque()
@@ -770,19 +826,19 @@ class HuggingFaceModel(TorchModel):
                         item.append(w_b[i])
                     else:
                         item.append(None)
-                    if length > min_data_length and length < mode_data_length:
+                    if length >= min_data_length and length < level1:
                         if len(bucket0) < b0_max:
                             bucket0.append(item)
                         else:
                             b0_cache.append(item)
-                    elif length >= mode_data_length and length < avg_data_length:
+                    elif length >= level1 and length < level2:
                         if len(bucket1) < b1_max:
                             bucket1.append(item)
                         else:
                             b1_cache.append(item)
-                    elif length >= avg_data_length and length < tail_length:
+                    elif length >= level2 and length < tail_length:
                         b2_cache.append(item)
-                    elif length >= tail_length and length < max_data_length:
+                    elif length >= tail_length and length <= max_data_length:
                         b3_cache.append(item)
 
                 if len(bucket0) < b0_max and len(b0_cache) > 0:
@@ -819,12 +875,41 @@ class HuggingFaceModel(TorchModel):
                     outbucket3 = [b3_cache.pop() for i in range(range3)]
                 else:
                     outbucket3 = []
-                print(len(outbucket0), len(outbucket1), len(outbucket2),
-                      len(outbucket3))
+                yield outbucket0, outbucket1, outbucket2, outbucket3
+
+            while len(b0_cache) + len(b1_cache) + len(b2_cache) + len(
+                    b3_cache) != 0:
+                if len(b0_cache) < b0_max:
+                    outbucket0 = [
+                        b0_cache.pop() for item in range(len(b0_cache))
+                    ]
+                else:
+                    outbucket0 = [b0_cache.pop() for item in range(b0_max)]
+
+                if len(b1_cache) < b1_max:
+                    outbucket1 = [
+                        b1_cache.pop() for item in range(len(b1_cache))
+                    ]
+                else:
+                    outbucket1 = [b1_cache.pop() for item in range(b1_max)]
+
+                if len(b2_cache) < b2_max:
+                    outbucket2 = [
+                        b2_cache.pop() for item in range(len(b2_cache))
+                    ]
+                else:
+                    outbucket2 = [b2_cache.pop() for item in range(b2_max)]
+
+                if len(b3_cache) < b3_max:
+                    outbucket3 = [
+                        b3_cache.pop() for item in range(len(b3_cache))
+                    ]
+                else:
+                    outbucket3 = [b3_cache.pop() for item in range(b3_max)]
                 yield outbucket0, outbucket1, outbucket2, outbucket3
 
     def bucket_fit_generator(self,
-                             generator: Iterable[Tuple[Any, Any, Any]],
+                             generator,
                              max_checkpoints_to_keep: int = 5,
                              checkpoint_interval: int = 1000,
                              restore: bool = False,
@@ -835,7 +920,8 @@ class HuggingFaceModel(TorchModel):
                              callbacks: Union[Callable, List[Callable]] = [],
                              all_losses: Optional[List[float]] = None) -> float:
         """Train this model on data from a generator. Gradients are accumulated and losses are averaged over non-empty
-        the buckets sent to the respective training steps.
+        the buckets sent to the respective training steps. This function handles dynamic bucketing. Batches are formed within buckets
+        based on length-based grouping, and gradient accumulation stabilizes updates.
 
         Parameters
         ----------
@@ -903,14 +989,12 @@ class HuggingFaceModel(TorchModel):
                 self.restore()
                 restore = False
             buckets = self._bucket_prepare_batch(batch)
-            # print("len buckets: ", len(buckets))
-            batch_loss = 0   # type: ignore
+            batch_loss = 0  # type: ignore
             optimizer.zero_grad()
             for b_id, bucket in enumerate(buckets):
                 inputs, labels, weights = bucket
                 outputs = self.model(**inputs)
                 bucket_loss = outputs.get("loss")
-                print(type(bucket_loss))
                 # scale loss
                 bucket_loss = bucket_loss / len(buckets)
                 if b_id < len(buckets) - 1:
@@ -918,8 +1002,7 @@ class HuggingFaceModel(TorchModel):
                     batch_loss += bucket_loss.detach()
                 else:
                     batch_loss += bucket_loss
-            # print("avg bucket loss: ", batch_loss)
-            batch_loss.backward()
+            batch_loss.backward()  # type: ignore
             optimizer.step()
             if lr_schedule is not None:
                 lr_schedule.step()
