@@ -7,6 +7,7 @@ from typing import Sequence as SequenceCollection
 from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models import losses
 from deepchem.utils.typing import OneOrMany, ActivationFn
+from deepchem.metrics import to_one_hot
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +191,7 @@ class RobustMultitask(nn.Module):
             This is only returned when self.mode = `classification`, the output consists of the
             logits for classes before softmax.
         """
-        task_outputs: List[torch.Tensor] = []
+        task_outputs: List[torch.Tensor] = []        
 
         # Shared layers
         shared_output = self.shared_layers(x)
@@ -207,7 +208,6 @@ class RobustMultitask(nn.Module):
             task_outputs.append(task_output)
 
         output = torch.stack(task_outputs, dim=1)
-
         if self.mode == 'classification':
             if self.n_tasks == 1:
                 logits = output.view(-1, self.n_classes)
@@ -258,16 +258,13 @@ class RobustMultitask(nn.Module):
 class RobustMultitaskClassifier(TorchModel):
     """
     Implements a neural network for robust multitasking.
-
     The key idea of this model is to have bypass layers that feed
     directly from features to task output. This might provide some
     flexibility toroute around challenges in multitasking with
     destructive interference.
-
     References
     ----------
     This technique was introduced in [1]_
-
     .. [1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
     """
 
@@ -334,14 +331,14 @@ class RobustMultitaskClassifier(TorchModel):
             )
             activation_fns = nn.ReLU()
 
-        # The labels are not one-hot encoded.
-        # Hence, SparseSoftmaxCE is being used because it takes integer encoded labels which is the default usually.
-        loss = losses.SparseSoftmaxCrossEntropy()
+        # The labels are one-hot encoded.
+        loss = losses.SoftmaxCrossEntropy()
         output_types = ['prediction', 'loss']
-        n_classes = n_classes
+        self.n_classes = n_classes
+        self.n_tasks = n_tasks
 
         model = RobustMultitask(
-            n_tasks=n_tasks,
+            n_tasks=self.n_tasks,
             n_features=n_features,
             layer_sizes=layer_sizes,
             mode='classification',
@@ -351,7 +348,7 @@ class RobustMultitaskClassifier(TorchModel):
             weight_decay_penalty_type=weight_decay_penalty_type,
             activation_fns=activation_fns,
             dropouts=dropouts,
-            n_classes=n_classes,
+            n_classes=self.n_classes,
             bypass_layer_sizes=bypass_layer_sizes,
             bypass_weight_init_stddevs=bypass_weight_init_stddevs,
             bypass_bias_init_consts=bypass_bias_init_consts,
@@ -368,3 +365,18 @@ class RobustMultitaskClassifier(TorchModel):
                              output_types=output_types,
                              regularization_loss=model.regularization_loss,
                              **kwargs)
+    def default_generator(self,
+                          dataset,
+                          epochs=1,
+                          mode='fit',
+                          deterministic=True,
+                          pad_batches=True):
+        for epoch in range(epochs):
+            for (X_b, y_b, w_b,
+                 ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                               deterministic=deterministic,
+                                               pad_batches=pad_batches):
+                if y_b is not None:
+                    y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
+                        -1, self.n_tasks, self.n_classes)
+                yield ([X_b], [y_b], [w_b])
