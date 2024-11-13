@@ -4,13 +4,6 @@ import torch
 import torch.nn as nn
 from typing import Callable, Optional
 
-if torch.cuda.is_available():
-    device = torch.device('cuda')
-elif torch.backends.mps.is_available():
-    device = torch.device('mps')
-else:
-    device = torch.device('cpu')
-
 
 class IRVLayer(nn.Module):
     """
@@ -68,7 +61,7 @@ class IRVLayer(nn.Module):
     https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2750043/
     """
 
-    def __init__(self, n_tasks: int, K, penalty: int):
+    def __init__(self, n_tasks: int, K, penalty: int, device: Optional[torch.device] = torch.device('cpu')):
         """
         Parameters
         ----------
@@ -83,6 +76,7 @@ class IRVLayer(nn.Module):
         self.n_tasks = n_tasks
         self.K = K
         self.penalty = penalty
+        self.device = device
 
         # Initialize weights and biases
         self.V = nn.Parameter(torch.tensor([0.01, 1.], dtype=torch.float32))
@@ -103,7 +97,7 @@ class IRVLayer(nn.Module):
 
             # Relevance
             R = self.b + self.W[0] * similarity + self.W[1] * torch.arange(
-                1, K + 1, dtype=torch.float32, device=device)
+                1, K + 1, dtype=torch.float32, device=self.device)
             R = torch.sigmoid(R)
 
             # Influence = Relevance * Vote
@@ -115,7 +109,7 @@ class IRVLayer(nn.Module):
         logits = []
         outputs = []
         for task in range(self.n_tasks):
-            task_output = Slice(task, 1)(predictions)
+            task_output = Slice(task, 1, device=self.device)(predictions)
             sigmoid = torch.sigmoid(task_output)
             logits.append(task_output)
             outputs.append(sigmoid)
@@ -134,7 +128,7 @@ class Slice(nn.Module):
     output f(x) = x[:, slice_num:slice_num+1]
     """
 
-    def __init__(self, slice_num: int, axis=1):
+    def __init__(self, slice_num: int, axis=1, device: Optional[torch.device] = torch.device('cpu')):
         """
         Parameters
         ----------
@@ -151,7 +145,7 @@ class Slice(nn.Module):
         slice_num = self.slice_num
         axis = self.axis
         return inputs.index_select(axis, torch.tensor([slice_num],
-                                                      device=device))
+                                                      device=self.device))
 
 
 class MultitaskIRVClassifier(TorchModel):
@@ -161,6 +155,7 @@ class MultitaskIRVClassifier(TorchModel):
                  K=10,
                  penalty=0.0,
                  mode="classification",
+                 device: Optional[torch.device] = None,
                  **kwargs):
         """Initialize MultitaskIRVClassifier
 
@@ -173,6 +168,16 @@ class MultitaskIRVClassifier(TorchModel):
         penalty: float
             Amount of penalty (l2 or l1 applied)
         """
+        if device is None:
+            if torch.cuda.is_available():
+                self.device = torch.device('cuda')
+            elif torch.backends.mps.is_available():
+                self.device = torch.device('mps')
+            else:
+                self.device = torch.device('cpu')
+        else:
+            self.device = device
+
         self.n_tasks = n_tasks
         self.K = K
         self.n_features = 2 * self.K * self.n_tasks
@@ -194,4 +199,5 @@ class MultitaskIRVClassifier(TorchModel):
                              loss=SigmoidCrossEntropy(),
                              output_types=['prediction', 'loss'],
                              regularization_loss=regularization_loss,
+                             device=self.device,
                              **kwargs)
