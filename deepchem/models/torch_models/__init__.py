@@ -34,7 +34,7 @@ from deepchem.models.torch_models.flows import Flow, Affine, MaskedAffineFlow, A
 from deepchem.models.torch_models.unet import UNet, UNetModel
 from deepchem.models.torch_models.graphconvmodel import _GraphConvTorchModel, GraphConvModel
 from deepchem.models.torch_models.smiles2vec import Smiles2Vec, Smiles2VecModel
-from deepchem.models.torch_models.robust_multitask import RobustMultitask
+from deepchem.models.torch_models.robust_multitask import RobustMultitask, RobustMultitaskRegressor
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
     from deepchem.models.torch_models.gnn import GNN, GNNHead, GNNModular
