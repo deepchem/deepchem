@@ -2,6 +2,10 @@
 
 import math
 from functools import partial
+try:
+    from deepchem.utils.optimizer_utils import LambOptimizer
+except:
+    pass
 from typing import Dict, Union, Optional
 
 
@@ -808,3 +812,70 @@ class KFAC(Optimizer):
         else:
             self.kwargs['lr'] = self.learning_rate
         return KFACOptimizer([self.kwargs])
+
+
+class Lamb(Optimizer):
+    """The Lamb optimization algorithm.
+
+    It has been proposed in `Large Batch Optimization for Deep Learning:
+    Training BERT in 76 minutes`__.
+    """
+
+    def __init__(self,
+                 learning_rate: Union[float, LearningRateSchedule] = 0.001,
+                 beta1: float = 0.9,
+                 beta2: float = 0.999,
+                 epsilon: float = 1e-08,
+                 weight_decay: float = 0):
+        """Construct an Adam optimizer.
+
+        Parameters
+        ----------
+        learning_rate: float or LearningRateSchedule
+            the learning rate to use for optimization
+        beta1: float
+            a parameter of the Lamb algorithm
+        beta2: float
+            a parameter of the Lamb algorithm
+        epsilon: float
+            a parameter of the Lamb algorithm
+        weight_decay: float
+            L2 penalty - a parameter of the Lamb algorithm
+
+        Examples
+        --------
+        >>> import deepchem as dc
+        >>> from deepchem.models import GCNModel
+        >>> # preparing dataset
+        >>> smiles = ["C1CCC1", "CCC"]
+        >>> labels = [0., 1.]
+        >>> featurizer = dc.feat.MolGraphConvFeaturizer()
+        >>> X = featurizer.featurize(smiles)
+        >>> dataset = dc.data.NumpyDataset(X=X, y=labels)
+        >>> # training model
+        >>> model = GCNModel(mode='classification', n_tasks=1,
+        ...                  batch_size=16, learning_rate=0.001,
+        ...                  optimizers=optimizers.Lamb(learning_rate=0.01))
+        >>> loss = model.fit(dataset, nb_epoch=5)
+
+        References
+        ----------
+        Yang You and Jing Li and Sashank Reddi, et, al., "Large Batch Optimization for Deep Learning: Training BERT in 76 minutes", 2020,
+        https://arxiv.org/abs/1904.00962
+        """
+        super(Lamb, self).__init__(learning_rate)
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.epsilon = epsilon
+        self.weight_decay = weight_decay
+
+    def _create_pytorch_optimizer(self, params):
+        if isinstance(self.learning_rate, LearningRateSchedule):
+            lr = self.learning_rate.initial_rate
+        else:
+            lr = self.learning_rate
+        return LambOptimizer(params,
+                             lr=lr,
+                             betas=(self.beta1, self.beta2),
+                             eps=self.epsilon,
+                             weight_decay=self.weight_decay)

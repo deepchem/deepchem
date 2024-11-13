@@ -17,6 +17,7 @@ except:
 
 try:
     import torch
+    from deepchem.utils.optimizer_utils import LambOptimizer
     has_pytorch = True
 except:
     has_pytorch = False
@@ -311,3 +312,11 @@ class TestOptimizers(unittest.TestCase):
         # Eval model on train
         scores = model.evaluate(dataset, [metric])
         assert scores[metric.name] > 0.9
+
+    @pytest.mark.torch
+    def test_lamb_pytorch(self):
+        """Test creating an Lamb optimizer."""
+        opt = optimizers.Lamb(learning_rate=0.01)
+        params = [torch.nn.Parameter(torch.Tensor([1.0]))]
+        torchopt = opt._create_pytorch_optimizer(params)
+        assert isinstance(torchopt, LambOptimizer)
