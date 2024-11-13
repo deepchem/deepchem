@@ -246,12 +246,19 @@ class RobustMultitask(nn.Module):
             The activation function class.
         """
         if isinstance(activation_name, str):
+            if isinstance(activation_name, nn.functional):
+                logger.warning(
+                    f"Invalid activation function: {activation_name}. Only activations of type torch.nn.Module (torch.nn.functional activations are not supported yet)"
+                )
+                logger.warning(
+                    "Using default activation function: nn.ReLU() activation")
+
             return getattr(nn, activation_name)
         elif isinstance(activation_name, nn.Module):
             return activation_name
         else:
             raise ValueError(
-                f"Invalid activation function: {activation_name}. Only activations of type nn.Module"
+                f"Invalid activation function: {activation_name}. Only activations of type torch.nn.Module (torch.nn.functional activations are not supported yet)"
             )
 
 
@@ -280,7 +287,7 @@ class RobustMultitaskRegressor(TorchModel):
                  weight_decay_penalty: float = 0.0,
                  weight_decay_penalty_type: str = "l2",
                  dropouts: OneOrMany[float] = 0.5,
-                 activation_fns: OneOrMany[ActivationFn] = 'relu',
+                 activation_fns: OneOrMany[ActivationFn] = nn.ReLU(),
                  bypass_layer_sizes=[100],
                  bypass_weight_init_stddevs=[.02],
                  bypass_bias_init_consts=[1.0],
