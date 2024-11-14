@@ -5,9 +5,8 @@ import os
 try:
     import torch
     import torch.nn as nn
-    from deepchem.models.torch_models import RobustMultitask
-    from deepchem.models.torch_models import RobustMultitask, RobustMultitaskRegressor
     import deepchem as dc
+    from deepchem.models.torch_models import RobustMultitask, RobustMultitaskRegressor
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
@@ -20,7 +19,7 @@ layer_sizes_tf = [512, 1024]
 
 
 @pytest.mark.torch
-def test_robustmultitask_construction():
+def test_robust_multitask_construction():
     """Test that RobustMultiTask Model can be constructed without crash.
     """
 
@@ -35,11 +34,7 @@ def test_robustmultitask_construction():
 
 
 @pytest.mark.torch
-def test_robustmultitask_forward():
-    """Test that the forward pass of RobustMultiTask Model can be executed without crash
-    and that the output has the correct value.
-    """
-
+def test_robust_multitask_forward():
     n_tasks = n_tasks_tf
     n_features = n_features_tf
     layer_sizes = layer_sizes_tf
@@ -54,13 +49,12 @@ def test_robustmultitask_forward():
                      "tensorflow_robust_multitask_classifier_weights.npz"))
 
     move_weights(torch_model, weights)
+    input_x = weights['input']
+    output = weights['output']
 
-    input_x = weights["input"]
-    output = weights["output"]
-
-    torch_out = torch_model(torch.from_numpy(input_x).float())[0]
-    torch_out = torch_out.cpu().detach().numpy()
-    assert np.allclose(output, torch_out,
+    torch_model.eval()  # Disable dropout for deterministic output
+    torch_out = torch_model(torch.tensor(input_x).float())[0]
+    assert np.allclose(output, torch_out.detach().numpy(),
                        atol=1e-4), "Predictions are not close"
 
 
@@ -98,7 +92,7 @@ def move_weights(torch_model, weights):
             f"bypass-layers-dense_{3 + i * 2}-b"]
 
 
-def test_robustmultitask_regressor_construction():
+def test_robust_multitask_regressor_construction():
     """Test that RobustMultiTaskRegressor Model can be constructed without crash.
     """
 
