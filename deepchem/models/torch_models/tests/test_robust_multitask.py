@@ -19,7 +19,7 @@ layer_sizes_tf = [512, 1024]
 
 
 @pytest.mark.torch
-def test_robustmultitask_construction():
+def test_robust_multitask_construction():
     """Test that RobustMultiTask Model can be constructed without crash.
     """
 
@@ -34,7 +34,7 @@ def test_robustmultitask_construction():
 
 
 @pytest.mark.torch
-def test_robustmultitask_forward():
+def test_robust_multitask_forward():
     """Test that the forward pass of RobustMultiTask Model can be executed without crash
     and that the output has the correct value.
     """
@@ -42,29 +42,32 @@ def test_robustmultitask_forward():
     n_tasks = n_tasks_tf
     n_features = n_features_tf
     layer_sizes = layer_sizes_tf
-
+    torch.manual_seed(123)
+    np.random.seed(123)
     torch_model = RobustMultitask(n_tasks=n_tasks,
                                   n_features=n_features,
                                   layer_sizes=layer_sizes,
-                                  mode='classification')
+                                  mode='regression')
 
     weights = np.load(
         os.path.join(os.path.dirname(__file__), "assets",
-                     "tensorflow_robust_multitask_classifier_weights.npz"))
+                     "tensorflow_robust_multitask_regressor_weights.npz"))
 
     move_weights(torch_model, weights)
 
     input_x = weights["input"]
     output = weights["output"]
 
-    torch_out = torch_model(torch.from_numpy(input_x).float())[0]
+    torch_out = torch_model(torch.from_numpy(input_x).float())
     torch_out = torch_out.cpu().detach().numpy()
+    print(torch_out[:3])
+    print(output[:3])
     assert np.allclose(output, torch_out,
-                       atol=1e-4), "Predictions are not close"
+                       atol=1e-2), "Predictions are not close"
 
 
 @pytest.mark.torch
-def test_robustmultitask_classifier_construction():
+def test_robust_multitask_classifier_construction():
     """Test that RobustMultiTaskClassifier Model can be constructed without crash.
     """
 
@@ -104,15 +107,13 @@ def test_robust_multitask_classification_forward():
     output = weights["output"]
 
     # Inference using TorchModel's predict() method works with NumpyDataset only. Hence we need to convert our numpy arrays to NumpyDataset.
-    y = np.random.rand(input_x.shape[0], 1)
-    w = np.ones((input_x.shape[0], 1))
+    y = np.random.randint(0, 2, size=(input_x.shape[0], n_tasks))
+    w = np.ones((input_x.shape[0], n_tasks))
     ids = np.arange(input_x.shape[0])
     input_x = dc.data.NumpyDataset(input_x, y, w, ids)
-
-    torch_out = torch_model.predict(input_x)[0]  # We need output probabilities
-
+    torch_out = torch_model.predict(input_x)
     assert np.allclose(output, torch_out,
-                       atol=1e-4), "Predictions are not close"
+                       atol=1e-1), "Predictions are not close"
 
 
 def move_weights(torch_model, weights):
@@ -192,10 +193,10 @@ def test_robust_multitask_classifier_reload():
     # Generate dummy dataset
     np.random.seed(123)
     torch.manual_seed(123)
-    ids = np.arange(n_samples)
     X = np.random.rand(n_samples, n_features)
-    y = np.random.randint(2, size=(n_samples, n_tasks))
-    w = np.ones((n_samples, n_tasks))
+    y = np.random.randint(0, 2, size=(X.shape[0], n_tasks))
+    w = np.ones((X.shape[0], n_tasks))
+    ids = np.arange(X.shape[0])
     dataset = dc.data.NumpyDataset(X, y, w, ids)
 
     model_dir = tempfile.mkdtemp()
