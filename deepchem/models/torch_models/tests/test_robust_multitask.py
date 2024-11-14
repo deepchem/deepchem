@@ -35,35 +35,27 @@ def test_robust_multitask_construction():
 
 @pytest.mark.torch
 def test_robust_multitask_forward():
-    """Test that the forward pass of RobustMultiTask Model can be executed without crash
-    and that the output has the correct value.
-    """
-
     n_tasks = n_tasks_tf
     n_features = n_features_tf
     layer_sizes = layer_sizes_tf
-    torch.manual_seed(123)
-    np.random.seed(123)
+
     torch_model = RobustMultitask(n_tasks=n_tasks,
                                   n_features=n_features,
                                   layer_sizes=layer_sizes,
-                                  mode='regression')
+                                  mode='classification')
 
     weights = np.load(
         os.path.join(os.path.dirname(__file__), "assets",
-                     "tensorflow_robust_multitask_regressor_weights.npz"))
+                     "tensorflow_robust_multitask_classifier_weights.npz"))
 
     move_weights(torch_model, weights)
+    input_x = weights['input']
+    output = weights['output']
 
-    input_x = weights["input"]
-    output = weights["output"]
-
-    torch_out = torch_model(torch.from_numpy(input_x).float())
-    torch_out = torch_out.cpu().detach().numpy()
-    print(torch_out[:3])
-    print(output[:3])
-    assert np.allclose(output, torch_out,
-                       atol=1e-2), "Predictions are not close"
+    torch_model.eval()  # Disable dropout for deterministic output
+    torch_out = torch_model(torch.tensor(input_x).float())[0]
+    assert np.allclose(output, torch_out.detach().numpy(),
+                       atol=1e-4), "Predictions are not close"
 
 
 @pytest.mark.torch
@@ -186,7 +178,7 @@ def test_robust_multitask_classifier_overfit():
 def test_robust_multitask_classifier_reload():
     """Test that the model can be reloaded from disk."""
 
-    n_samples = 20
+    n_samples = 60
     n_features = 5
     n_tasks = 3
 
