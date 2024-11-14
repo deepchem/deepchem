@@ -14,11 +14,11 @@ dependencies:
     - biopython
     - dgllife
     - lightgbm
-    - git+https://github.com/hackingmaterials/matminer.gitrequirements/env_common.yml
+    - git+https://github.com/hackingmaterials/matminer.git
     - mordred
     - networkx
     - pillow
-    - pubchempyrequirements/env_common.yml
+    - pubchempy
     - pyGPGO
     - pymatgen
     - simdna
