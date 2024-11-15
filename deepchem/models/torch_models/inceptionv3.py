@@ -16,48 +16,77 @@ class InceptionV3(nn.Module):
                  num_classes=1000,
                  aux_logits=True,
                  transform_input: bool = False,
+                 in_channels=6,
                  dropout_rate=0.5):
         super(InceptionV3, self).__init__()
         self.aux_logits = aux_logits
 
-        # Initial layers
-        self.Conv2d_1a_3x3 = BasicConv2d(6, 32, kernel_size=3, stride=2)
-        self.Conv2d_2a_3x3 = BasicConv2d(32, 32, kernel_size=3)
-        self.Conv2d_2b_3x3 = BasicConv2d(32, 64, kernel_size=3, padding=1)
-        self.maxpool1 = nn.MaxPool2d(kernel_size=3, stride=2)
+        self.Conv2d_1a_3x3 = BasicConv2d(in_channels,
+                                         32,
+                                         kernel_size=(3, 3),
+                                         stride=(2, 2),
+                                         padding=(0, 0))
+        self.Conv2d_2a_3x3 = BasicConv2d(32,
+                                         32,
+                                         kernel_size=(3, 3),
+                                         stride=(1, 1),
+                                         padding=(0, 0))
+        self.Conv2d_2b_3x3 = BasicConv2d(32,
+                                         64,
+                                         kernel_size=(3, 3),
+                                         stride=(1, 1),
+                                         padding=(1, 1))
+        self.maxpool1 = nn.MaxPool2d((3, 3), (2, 2))
+        self.Conv2d_3b_1x1 = BasicConv2d(64,
+                                         80,
+                                         kernel_size=(1, 1),
+                                         stride=(1, 1),
+                                         padding=(0, 0))
+        self.Conv2d_4a_3x3 = BasicConv2d(80,
+                                         192,
+                                         kernel_size=(3, 3),
+                                         stride=(1, 1),
+                                         padding=(0, 0))
+        self.maxpool2 = nn.MaxPool2d((3, 3), (2, 2))
 
-        # Additional convolutional layers
-        self.Conv2d_3b_1x1 = BasicConv2d(64, 80, kernel_size=1)
-        self.Conv2d_4a_3x3 = BasicConv2d(80, 192, kernel_size=3)
-        self.maxpool2 = nn.MaxPool2d(kernel_size=3, stride=2)
-
-        # Inception blocks
-        self.Mixed_5b = InceptionA(192, pool_features=32)
-        self.Mixed_5c = InceptionA(256, pool_features=64)
-        self.Mixed_5d = InceptionA(288, pool_features=64)
+        self.Mixed_5b = InceptionA(192, 32)
+        self.Mixed_5c = InceptionA(256, 64)
+        self.Mixed_5d = InceptionA(288, 64)
 
         self.Mixed_6a = InceptionB(288)
-        self.Mixed_6b = InceptionC(768, channels_7x7=128)
-        self.Mixed_6c = InceptionC(768, channels_7x7=160)
-        self.Mixed_6d = InceptionC(768, channels_7x7=160)
-        self.Mixed_6e = InceptionC(768, channels_7x7=192)
+
+        self.Mixed_6b = InceptionC(768, 128)
+        self.Mixed_6c = InceptionC(768, 160)
+        self.Mixed_6d = InceptionC(768, 160)
+        self.Mixed_6e = InceptionC(768, 192)
 
         # Auxiliary classifier (only used during training)
         if aux_logits:
             self.AuxLogits = InceptionAux(768, num_classes)
 
-        # Final Inception blocks
         self.Mixed_7a = InceptionD(768)
         self.Mixed_7b = InceptionE(1280)
         self.Mixed_7c = InceptionE(2048)
 
-        # Classification head
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.dropout = nn.Dropout(p=dropout_rate)
+        self.dropout = nn.Dropout(dropout_rate, True)
         self.fc = nn.Linear(2048, num_classes)
 
+        for module in self.modules():
+            if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
+                stddev = float(module.stddev) if hasattr(module,
+                                                         "stddev") else 0.1
+                torch.nn.init.trunc_normal_(module.weight,
+                                            mean=0.0,
+                                            std=stddev,
+                                            a=-2,
+                                            b=2)
+            elif isinstance(module, nn.BatchNorm2d):
+                nn.init.constant_(module.weight, 1)
+                nn.init.constant_(module.bias, 0)
+
     def forward(self, x):
-        # N x 3 x 299 x 299
+        # N x 6 x 299 x 299
         x = self.Conv2d_1a_3x3(x)
         # N x 32 x 149 x 149
         x = self.Conv2d_2a_3x3(x)
@@ -102,12 +131,12 @@ class InceptionV3(nn.Module):
         # Adaptive average pooling
         x = self.avgpool(x)
         # N x 2048 x 1 x 1
-        x = self.dropout(x)
-        # N x 2048 x 1 x 1
         x = torch.flatten(x, 1)
+        # N x 2048 x 1 x 1
+        x = self.dropout(x)
         # N x 2048
         x = self.fc(x)
-        # N x 1000 (num_classes)
+        # N x 3 (num_classes)
 
         if self.aux_logits and self.training:
             return x, aux
@@ -117,23 +146,52 @@ class InceptionV3(nn.Module):
 
 # Helper layers
 class BasicConv2d(nn.Module):
+    """
+    A basic convolutional layer with Conv2d, BatchNorm2d, and ReLU activation.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.torch_models.inceptionv3 import BasicConv2d
+    >>> layer = BasicConv2d(6, 32, kernel_size=3, stride=2)
+    >>> x = torch.randn(5, 6, 299, 299)
+    >>> output = layer(x)
+    >>> output.shape
+    torch.Size([5, 32, 149, 149])
+    """
 
     def __init__(self, in_channels: int, out_channels: int,
                  **kwargs: Any) -> None:
         super(BasicConv2d, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, bias=False, **kwargs)
         self.bn = nn.BatchNorm2d(out_channels, eps=0.001)
-        self.relu = nn.ReLU(True)
 
-    def forward(self, x):
-        out = self.conv(x)
-        out = self.bn(out)
-        out = self.relu(out)
-
-        return out
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass for the BasicConv2d layer.
+        """
+        x = self.conv(x)
+        x = self.bn(x)
+        return F.relu(x, inplace=True)
 
 
 class InceptionA(nn.Module):
+    """
+    An InceptionA module as part of the InceptionV3 network architecture.
+    This module performs parallel convolutions on the input using 1x1,
+    5x5, and double 3x3 kernel sizes, as well as an average pooling layer,
+    before concatenating the results along the channel dimension.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.torch_models.inceptionv3 import InceptionA
+    >>> layer = InceptionA(192, pool_features=32)
+    >>> x = torch.randn(5, 192, 35, 35)
+    >>> output = layer(x)
+    >>> output.shape
+    torch.Size([5, 256, 35, 35])
+    """
 
     def __init__(
         self,
@@ -179,9 +237,24 @@ class InceptionA(nn.Module):
                                        kernel_size=(1, 1),
                                        stride=(1, 1),
                                        padding=(0, 0))
-        self.avgpool = nn.AvgPool2d((3, 3), (1, 1), (1, 1))
+        # self.avgpool = nn.AvgPool2d((3, 3), (1, 1), (1, 1))
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass for the InceptionA module.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (N, in_channels, H, W).
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (N, out_channels, H, W),
+            where out_channels is the total number of output channels
+            from all branches combined.
+        """
         branch1x1 = self.branch1x1(x)
 
         branch5x5 = self.branch5x5_1(x)
@@ -191,16 +264,32 @@ class InceptionA(nn.Module):
         branch3x3dbl = self.branch3x3dbl_2(branch3x3dbl)
         branch3x3dbl = self.branch3x3dbl_3(branch3x3dbl)
 
-        branch_pool = self.avgpool(x)
+        branch_pool = F.avg_pool2d(x, kernel_size=3, stride=1, padding=1)
         branch_pool = self.branch_pool(branch_pool)
 
         out = [branch1x1, branch5x5, branch3x3dbl, branch_pool]
-        out = torch.cat(out, 1)
+        output = torch.cat(out, 1)
 
-        return out
+        return output
 
 
 class InceptionB(nn.Module):
+    """
+    An InceptionB module as part of the InceptionV3 network architecture.
+    This module performs parallel operations on the input, including a
+    3x3 convolution, a double 3x3 convolution, and a max-pooling layer,
+    before concatenating the results along the channel dimension.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.torch_models.inceptionv3 import InceptionB
+    >>> layer = InceptionB(288)
+    >>> x = torch.randn(5, 288, 35, 35)
+    >>> output = layer(x)
+    >>> output.shape
+    torch.Size([5, 768, 17, 17])
+    """
 
     def __init__(
         self,
@@ -230,24 +319,56 @@ class InceptionB(nn.Module):
                                           stride=(2, 2),
                                           padding=(0, 0))
 
-        self.maxpool = nn.MaxPool2d((3, 3), (2, 2))
+        # self.maxpool = nn.MaxPool2d((3, 3), (2, 2))
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass for the InceptionB module.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (N, in_channels, H, W).
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (N, out_channels, H, W),
+            where out_channels is the total number of output channels
+            from all branches combined.
+        """
         branch3x3 = self.branch3x3(x)
 
         branch3x3dbl = self.branch3x3dbl_1(x)
         branch3x3dbl = self.branch3x3dbl_2(branch3x3dbl)
         branch3x3dbl = self.branch3x3dbl_3(branch3x3dbl)
 
-        branch_pool = self.maxpool(x)
+        branch_pool = F.max_pool2d(x, kernel_size=3, stride=2)
 
         out = [branch3x3, branch3x3dbl, branch_pool]
-        out = torch.cat(out, 1)
+        output = torch.cat(out, 1)
 
-        return out
+        return output
 
 
 class InceptionC(nn.Module):
+    """
+    An InceptionC module as part of the InceptionV3 network
+    architecture. This module performs parallel operations on the
+    input, including 1x1, 7x7, double 7x7 convolutions, and an
+    average pooling layer, before concatenating the results along
+    the channel dimension.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.torch_models.inceptionv3 import InceptionC
+    >>> layer = InceptionC(768, channels_7x7=128)
+    >>> x = torch.randn(5, 768, 17, 17)
+    >>> output = layer(x)
+    >>> output.shape
+    torch.Size([5, 768, 17, 17])
+    """
 
     def __init__(
         self,
@@ -255,6 +376,7 @@ class InceptionC(nn.Module):
         channels_7x7: int,
     ) -> None:
         super(InceptionC, self).__init__()
+
         self.branch1x1 = BasicConv2d(in_channels, 192, kernel_size=1)
 
         self.branch7x7_1 = BasicConv2d(in_channels,
@@ -297,14 +419,29 @@ class InceptionC(nn.Module):
                                           stride=(1, 1),
                                           padding=(0, 3))
 
-        self.avgpool = nn.AvgPool2d((3, 3), (1, 1), (1, 1))
+        # self.avgpool = nn.AvgPool2d((3, 3), (1, 1), (1, 1))
         self.branch_pool = BasicConv2d(in_channels,
                                        192,
                                        kernel_size=(1, 1),
                                        stride=(1, 1),
                                        padding=(0, 0))
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass for the InceptionC module.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (N, in_channels, H, W).
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (N, out_channels, H, W),
+            where out_channels is the total number of output channels
+            from all branches combined.
+        """
         branch1x1 = self.branch1x1(x)
 
         branch7x7 = self.branch7x7_1(x)
@@ -317,16 +454,32 @@ class InceptionC(nn.Module):
         branch7x7dbl = self.branch7x7dbl_4(branch7x7dbl)
         branch7x7dbl = self.branch7x7dbl_5(branch7x7dbl)
 
-        branch_pool = self.avgpool(x)
+        branch_pool = F.avg_pool2d(x, kernel_size=3, stride=1, padding=1)
         branch_pool = self.branch_pool(branch_pool)
 
         out = [branch1x1, branch7x7, branch7x7dbl, branch_pool]
-        out = torch.cat(out, 1)
+        output = torch.cat(out, 1)
 
-        return out
+        return output
 
 
 class InceptionD(nn.Module):
+    """
+    An InceptionD module as part of the InceptionV3 network
+    architecture. This module performs parallel operations on the input,
+    including 3x3, 7x7x3 convolutions, and a max-pooling layer, before
+    concatenating the results along the channel dimension.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.torch_models.inceptionv3 import InceptionD
+    >>> layer = InceptionD(768)
+    >>> x = torch.randn(5, 768, 17, 17)
+    >>> output = layer(x)
+    >>> output.shape
+    torch.Size([5, 1280, 8, 8])
+    """
 
     def __init__(
         self,
@@ -365,9 +518,24 @@ class InceptionD(nn.Module):
                                          stride=(2, 2),
                                          padding=(0, 0))
 
-        self.maxpool = nn.MaxPool2d((3, 3), (2, 2))
+        # self.maxpool = nn.MaxPool2d((3, 3), (2, 2))
 
     def forward(self, x):
+        """
+        Forward pass for the InceptionD module.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (N, in_channels, H, W).
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (N, out_channels, H, W),
+            where out_channels is the total number of output channels
+            from all branches combined.
+        """
         branch3x3 = self.branch3x3_1(x)
         branch3x3 = self.branch3x3_2(branch3x3)
 
@@ -376,15 +544,32 @@ class InceptionD(nn.Module):
         branch7x7x3 = self.branch7x7x3_3(branch7x7x3)
         branch7x7x3 = self.branch7x7x3_4(branch7x7x3)
 
-        branch_pool = self.maxpool(x)
+        branch_pool = F.max_pool2d(x, kernel_size=3, stride=2)
 
         out = [branch3x3, branch7x7x3, branch_pool]
-        out = torch.cat(out, 1)
+        output = torch.cat(out, 1)
 
-        return out
+        return output
 
 
 class InceptionE(nn.Module):
+    """
+    InceptionE module as part of the InceptionV3 architecture.
+    This module performs parallel operations on the input,
+    including 1x1, 3x3, and double 3x3 convolutions, along with an
+    average pooling branch, then concatenates the results along the
+    channel dimension.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.torch_models.inceptionv3 import InceptionE
+    >>> layer = InceptionE(1280)
+    >>> x = torch.randn(5,1280, 8, 8)
+    >>> output = layer(x)
+    >>> output.shape
+    torch.Size([5, 2048, 8, 8])
+    """
 
     def __init__(
         self,
@@ -434,10 +619,25 @@ class InceptionE(nn.Module):
                                            stride=(1, 1),
                                            padding=(1, 0))
 
-        self.avgpool = nn.AvgPool2d((3, 3), (1, 1), (1, 1))
+        # self.avgpool = nn.AvgPool2d((3, 3), (1, 1), (1, 1))
         self.branch_pool = BasicConv2d(in_channels, 192, kernel_size=1)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass for the InceptionE module.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (N, in_channels, H, W).
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (N, out_channels, H, W),
+            where out_channels is the total number of output channels
+            from all branches combined.
+        """
         branch1x1 = self.branch1x1(x)
 
         branch3x3 = self.branch3x3_1(x)
@@ -452,16 +652,31 @@ class InceptionE(nn.Module):
             self.branch3x3dbl_3b(branch3x3dbl)
         ], 1)
 
-        branch_pool = self.avgpool(x)
+        branch_pool = F.avg_pool2d(x, kernel_size=3, stride=1, padding=1)
         branch_pool = self.branch_pool(branch_pool)
 
         out = [branch1x1, branch3x3, branch3x3dbl, branch_pool]
-        out = torch.cat(out, 1)
+        output = torch.cat(out, 1)
 
-        return out
+        return output
 
 
 class InceptionAux(nn.Module):
+    """
+    An auxiliary classifier module used in the InceptionV3 architecture.
+    This module is intended to provide an auxiliary output for
+    intermediate supervision during training.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.torch_models.inceptionv3 import InceptionAux
+    >>> layer = InceptionAux(768, num_classes=3)
+    >>> x = torch.randn(5, 768, 17, 17)
+    >>> output = layer(x)
+    >>> output.shape
+    torch.Size([5, 3])
+    """
 
     def __init__(
         self,
@@ -469,7 +684,7 @@ class InceptionAux(nn.Module):
         num_classes: int,
     ) -> None:
         super().__init__()
-        self.avgpool1 = nn.AvgPool2d((5, 5), (3, 3))
+        # self.avgpool1 = nn.AvgPool2d((5, 5), (3, 3))
         self.conv0 = BasicConv2d(in_channels,
                                  128,
                                  kernel_size=(1, 1),
@@ -480,39 +695,86 @@ class InceptionAux(nn.Module):
                                  kernel_size=(5, 5),
                                  stride=(1, 1),
                                  padding=(0, 0))
-        self.avgpool2 = nn.AdaptiveAvgPool2d((1, 1))
+        self.conv1.stddev = 0.01  # type: ignore[assignment]
+        # self.avgpool2 = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(768, num_classes)
+        self.fc.stddev = 0.001  # type: ignore[assignment]
 
-        self.conv1.stddev = 0.01
-        self.fc.stddev = 0.001
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass for the InceptionAux module.
 
-    def forward(self, x):
-        out = self.avgpool1(x)
-        out = self.conv0(out)
-        out = self.conv1(out)
-        out = self.avgpool2(out)
-        out = torch.flatten(out, 1)
-        out = self.fc(out)
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (N, in_channels, H, W).
 
-        return out
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (N, num_classes) representing class
+            scores for each input.
+        """
+        # N x 768 x 17 x 17
+        x = F.avg_pool2d(x, kernel_size=5, stride=3)
+        # N x 768 x 5 x 5
+        x = self.conv0(x)
+        # N x 128 x 5 x 5
+        x = self.conv1(x)
+        # N x 768 x 1 x 1
+        x = F.adaptive_avg_pool2d(x, (1, 1))
+        # N x 768 x 1 x 1
+        x = torch.flatten(x, 1)
+        # N x 768
+        x = self.fc(x)
+        # N x 3 (num_classes)
+
+        return x
 
 
 class InceptionV3Model(TorchModel):
     """
-    InceptionV3 model adapted for variant calling with DeepVariant configuration settings.
+    Implementation of the InceptionV3 model architecture for image
+    classification, modified for use with the DeepVariant framework
+    in DeepChem.
 
-    Parameters
-    ----------
-    input_shape: tuple
-        Shape of the input image, here set to (6, 100, 221) for DeepVariant.
+    It builds on the original Inception design by utilizing a
+    network-in-network approach, where convolutional filters of various
+    sizes (e.g., 1x1, 3x3, 5x5) are applied in parallel within each module.
+    This enables the model to capture features at multiple scales.
+    InceptionV3 has factorized convolutions (breaking down larger
+    convolutions into smaller ones, like 3x3 into 1x3 and 3x1)
+    and the use of auxiliary classifiers that assist the model’s training
+    by acting as regularizers. It uses dimensionality reduction to control
+    the computational complexity.This model supports custom learning rate
+    schedules with warmup and decay steps, utilizing the RMSProp optimizer.
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models import InceptionV3Model
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> model = InceptionV3Model()
+    >>> input_shape = (5, 6, 299, 299)
+    >>> input_samples = np.random.randn(*input_shape).astype(np.float32)
+    >>> output_samples = np.random.randint(0, 3, (5,)).astype(np.int64)
+    >>> one_hot_output_samples = np.eye(3)[output_samples]
+    >>> dataset = dc.data.ImageDataset(input_samples, one_hot_output_samples)
+    >>> loss = model.fit(dataset, nb_epoch=1)
+    >>> predictions = model.predict(dataset)
+    >>> predictions.shape
+    (5, 3)
+
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self,
+                 in_channels=6,
+                 warmup_steps=10000,
+                 learning_rate=0.001,
+                 **kwargs):
         # Fixed hyperparameters
-        learning_rate = 0.001
         decay_steps = 2  # epochs per decay
         decay_rate = 0.947
-        warmup_steps = 10000
         rho = 0.9
         momentum = 0.9
         epsilon = 1.0
@@ -520,9 +782,10 @@ class InceptionV3Model(TorchModel):
         dropout_rate = 0.2
 
         # Initialize the InceptionV3 model architecture
-        model = InceptionV3(
-            num_classes=3, aux_logits=False, dropout_rate=dropout_rate
-        )  # Set aux_logits to False to disable auxiliary output
+        model = InceptionV3(num_classes=3,
+                            in_channels=in_channels,
+                            aux_logits=False,
+                            dropout_rate=dropout_rate)
 
         loss = CategoricalCrossEntropy()
 
@@ -571,7 +834,8 @@ class InceptionV3Model(TorchModel):
             callbacks: Union[Callable, List[Callable]] = [],
             all_losses: Optional[List[float]] = None) -> float:
         """
-        Trains the model on the given dataset, adjusting learning rate with warmup and decay.
+        Trains the model on the given dataset, adjusting learning rate
+        with warmup and decay.
 
         Parameters
         ----------
@@ -605,7 +869,7 @@ class InceptionV3Model(TorchModel):
             all_losses = []
 
         for epoch in range(nb_epoch):
-            print(f"Epoch {epoch + 1}/{nb_epoch}")
+
             self.current_step = epoch
             self.adjust_learning_rate(
             )  # Adjust learning rate before each epoch

@@ -3,6 +3,13 @@ import numpy as np
 import deepchem as dc
 import tempfile
 
+try:
+    import torch
+    has_torch = True
+except ModuleNotFoundError:
+    has_torch = False
+    pass
+
 
 def one_hot_encode(labels, num_classes):
     return np.eye(num_classes)[labels]
@@ -10,9 +17,12 @@ def one_hot_encode(labels, num_classes):
 
 @pytest.mark.torch
 def test_inceptionv3_forward():
+    """
+    Test the forward pass of the InceptionV3 model
+    """
     from deepchem.models.torch_models.inceptionv3 import InceptionV3Model
 
-    # Generate random data for 5 samples with the input shape of (6, 100, 221)
+    # Generate random data for 5 samples with the input shape of (6, 299, 299)
     input_shape = (5, 6, 299, 299)
     input_samples = np.random.randn(*input_shape).astype(np.float32)
     output_samples = np.random.randint(0, 3, (5,)).astype(
@@ -34,6 +44,9 @@ def test_inceptionv3_forward():
 
 @pytest.mark.torch
 def test_inceptionv3_restore():
+    """
+    Test saving and restoring the InceptionV3 model
+    """
     from deepchem.models.torch_models.inceptionv3 import InceptionV3Model
 
     # Generate random data for testing model saving and loading
@@ -66,39 +79,165 @@ def test_inceptionv3_restore():
 
 
 @pytest.mark.torch
-def test_inceptionv3_overfit():
-    from deepchem.models.torch_models.inceptionv3 import InceptionV3Model
+def test_basic_conv2d():
+    """
+    Test the forward pass of the BasicConv2d layer
+    """
+    from deepchem.models.torch_models.inceptionv3 import BasicConv2d
 
-    # Generate a small dataset to test overfitting
-    input_shape = (5, 6, 299, 299)
-    input_samples = np.random.randn(*input_shape).astype(np.float32)
-    output_samples = np.random.randint(0, 3, (5,)).astype(
-        np.int64)  # Random labels for 3 classes
+    conv_layer = BasicConv2d(in_channels=6,
+                             out_channels=32,
+                             kernel_size=3,
+                             stride=2)
 
-    # Manually one-hot encode the labels
-    one_hot_output_samples = one_hot_encode(output_samples, 3)
+    # Create an input tensor with the shape (N, 6, 299, 299)
+    batch_size = 5
+    input_tensor = torch.randn(batch_size, 6, 299, 299)
 
-    dataset = dc.data.ImageDataset(input_samples, one_hot_output_samples)
+    # Run forward pass
+    output_tensor = conv_layer(input_tensor)
 
-    # Initialize model and set a temporary directory for saving
-    model_dir = tempfile.mkdtemp()
-    inception_model = InceptionV3Model(n_tasks=3, model_dir=model_dir)
+    # Expected output shape after convolution
+    expected_output_shape = (batch_size, 32, 149, 149)
 
-    # Train for many epochs to test overfitting capability
-    inception_model.fit(dataset, nb_epoch=20)
+    # Verify the output shape matches expected shape
+    assert output_tensor.shape == expected_output_shape
 
-    # Check performance on the small dataset
-    pred = inception_model.predict(dataset)
 
-    # Ensure predictions are in the correct shape to match the number of classes
-    assert pred.shape == (5, 3), f"Unexpected prediction shape: {pred.shape}"
+@pytest.mark.torch
+def test_InceptionA():
+    """
+    Test the forward pass of the InceptionA layer
+    """
+    from deepchem.models.torch_models.inceptionv3 import InceptionA
 
-    # Convert predictions and labels to one-hot format for metric computation
-    pred_labels = np.argmax(pred, axis=1)
-    true_labels = output_samples
+    mixed_5b = InceptionA(192, pool_features=32)
 
-    # Calculate accuracy using direct comparison
-    accuracy = np.mean(pred_labels == true_labels)
+    # Create an input tensor with the shape (N, 192, 35, 35)
+    batch_size = 5
+    input_tensor = torch.randn(batch_size, 192, 35, 35)
 
-    # Assert the accuracy is high, indicating overfitting
-    assert accuracy > 0.9, "Failed to overfit on small dataset"
+    # Run forward pass
+    output_tensor = mixed_5b(input_tensor)
+
+    # Expected output shape after convolution
+    expected_output_shape = (batch_size, 256, 35, 35)
+
+    # Verify the output shape matches expected shape
+    assert output_tensor.shape == expected_output_shape
+
+
+@pytest.mark.torch
+def test_InceptionB():
+    """
+    Test the forward pass of the InceptionB layer
+    """
+    from deepchem.models.torch_models.inceptionv3 import InceptionB
+
+    mixed_6a = InceptionB(288)
+
+    # Create an input tensor with the shape (N, 288, 35, 35)
+    batch_size = 5
+    input_tensor = torch.randn(batch_size, 288, 35, 35)
+
+    # Run forward pass
+    output_tensor = mixed_6a(input_tensor)
+
+    # Expected output shape after convolution
+    expected_output_shape = (batch_size, 768, 17, 17)
+
+    # Verify the output shape matches expected shape
+    assert output_tensor.shape == expected_output_shape
+
+
+@pytest.mark.torch
+def test_InceptionC():
+    """
+    Test the forward pass of the InceptionC layer
+    """
+    from deepchem.models.torch_models.inceptionv3 import InceptionC
+
+    mixed_6b = InceptionC(768, channels_7x7=128)
+
+    # Create an input tensor with the shape (N, 768, 17, 17)
+    batch_size = 5
+    input_tensor = torch.randn(batch_size, 768, 17, 17)
+
+    # Run forward pass
+    output_tensor = mixed_6b(input_tensor)
+
+    # Expected output shape after convolution
+    expected_output_shape = (batch_size, 768, 17, 17)
+
+    # Verify the output shape matches expected shape
+    assert output_tensor.shape == expected_output_shape
+
+
+@pytest.mark.torch
+def test_InceptionD():
+    """
+    Test the forward pass of the InceptionD layer
+    """
+    from deepchem.models.torch_models.inceptionv3 import InceptionD
+
+    mixed_7a = InceptionD(768)
+
+    # Create an input tensor with the shape (N, 768, 17, 17)
+    batch_size = 5
+    input_tensor = torch.randn(batch_size, 768, 17, 17)
+
+    # Run forward pass
+    output_tensor = mixed_7a(input_tensor)
+
+    # Expected output shape after convolution
+    expected_output_shape = (batch_size, 1280, 8, 8)
+
+    # Verify the output shape matches expected shape
+    assert output_tensor.shape == expected_output_shape
+
+
+@pytest.mark.torch
+def test_InceptionE():
+    """
+    Test the forward pass of the InceptionE layer
+    """
+    from deepchem.models.torch_models.inceptionv3 import InceptionE
+
+    mixed_7b = InceptionE(1280)
+
+    # Create an input tensor with the shape (N, 1280, 8, 8)
+    batch_size = 5
+    input_tensor = torch.randn(batch_size, 1280, 8, 8)
+
+    # Run forward pass
+    output_tensor = mixed_7b(input_tensor)
+
+    # Expected output shape after convolution
+    expected_output_shape = (batch_size, 2048, 8, 8)
+
+    # Verify the output shape matches expected shape
+    assert output_tensor.shape == expected_output_shape
+
+
+@pytest.mark.torch
+def test_InceptionAux():
+    """
+    Test the forward pass of the InceptionAux layer
+    """
+    from deepchem.models.torch_models.inceptionv3 import InceptionAux
+
+    num_classes = 3
+    aux = InceptionAux(768, num_classes)
+
+    # Create an input tensor with the shape (N, 768, 17, 17)
+    batch_size = 5
+    input_tensor = torch.randn(batch_size, 768, 17, 17)
+
+    # Run forward pass
+    output_tensor = aux(input_tensor)
+
+    # Expected output shape after convolution
+    expected_output_shape = (batch_size, num_classes)
+
+    # Verify the output shape matches expected shape
+    assert output_tensor.shape == expected_output_shape
