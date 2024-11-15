@@ -24,7 +24,7 @@ conda install -c conda-forge conda-merge
 dir="$PWD/requirements"
 if [ "$2" = "gpu" ];
 then
-    # We expect the CUDA vesion is 10.1.
+    # We expect the CUDA vesion is 11.8.
     conda-merge $dir/env_common.yml $dir/torch/env_torch.gpu.yml $dir/env_test.yml $dir/jax/env_jax.gpu.yml > $PWD/env.yml
     echo "Installing DeepChem in the GPU environment"
 else

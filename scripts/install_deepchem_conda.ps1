@@ -37,7 +37,7 @@ if($Type -eq "gpu")
 }
 else
 {
-    $torch_cpu = Join-Path (pwd).PATH "requirements/torch/env_torch.cpu.yml"
+    $torch_cpu = Join-Path (pwd).PATH "requirements/torch/env_torch.win.cpu.yml"
     conda-merge $common $torch_cpu $test > $out
     echo "Installing DeepChem in the CPU environment"
 }
