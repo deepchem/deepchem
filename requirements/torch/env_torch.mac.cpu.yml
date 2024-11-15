@@ -10,7 +10,7 @@ dependencies:
     - lightning
     - pydantic
     - torch-cluster
-    - dqclibs
+    - git+https://github.com/diffqc/dqclibs.git
     - basis-set-exchange
     - pyscf
     - h5py

@@ -10,7 +10,7 @@ dependencies:
     - pydantic
     - -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
     - torch-cluster
-    - dqclibs
+    - git+https://github.com/diffqc/dqclibs.git
     - pylibxc2
     - basis-set-exchange
     - h5py
