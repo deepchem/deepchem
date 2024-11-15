@@ -114,7 +114,7 @@ def test_mask_seq_pos(igbert_tokenizer):
     assert masked_test_string.split(' ')[10] == anti_model.tokenizer.mask_token
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_redesign_residue():
     from Levenshtein import distance
     from deepchem.models.torch_models.antibody_modeling import DeepAbLLM
@@ -139,7 +139,7 @@ def test_redesign_residue():
         assert abs(item[2]) <= 1
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_optimize_sequence():
     from Levenshtein import distance
     from deepchem.models.torch_models.antibody_modeling import DeepAbLLM
