@@ -1,18 +1,18 @@
-# import os
-# import pytest
+import os
+import pytest
 
-# try:
-#     import torch
-#     from deepchem.models.torch_models.antibody_modeling import DeepAbLLM
-# except ModuleNotFoundError:
-#     pass
+try:
+    import torch
+    from deepchem.models.torch_models.antibody_modeling import DeepAbLLM
+except ModuleNotFoundError:
+    pass
 
 
-# @pytest.fixture
-# def igbert_tokenizer():
-#     from tokenizers import AutoTokenizer
-#     tokenizer = AutoTokenizer.from_pretrained('Exscientia/IgBert')
-#     return tokenizer
+@pytest.fixture
+def igbert_tokenizer():
+    from tokenizers import AutoTokenizer
+    tokenizer = AutoTokenizer.from_pretrained('Exscientia/IgBert')
+    return tokenizer
 
 
 @pytest.mark.hf
@@ -36,25 +36,25 @@ def test_load_from_pretrained(tmpdir):
                                model_dir=pretrain_model_dir)
     pretrain_model.save_checkpoint()
 
-#     finetune_model = DeepAbLLM(task='mlm',
-#                                model_path=model_path,
-#                                n_tasks=1,
-#                                model_dir=finetune_model_dir)
-#     finetune_model.load_from_pretrained(pretrain_model_dir)
+    finetune_model = DeepAbLLM(task='mlm',
+                               model_path=model_path,
+                               n_tasks=1,
+                               model_dir=finetune_model_dir)
+    finetune_model.load_from_pretrained(pretrain_model_dir)
 
-#     # check weights match
-#     pretrain_model_state_dict = pretrain_model.model.state_dict()
-#     finetune_model_state_dict = finetune_model.model.state_dict()
+    # check weights match
+    pretrain_model_state_dict = pretrain_model.model.state_dict()
+    finetune_model_state_dict = finetune_model.model.state_dict()
 
-#     pretrain_base_model_keys = [
-#         key for key in pretrain_model_state_dict.keys() if 'bert' in key
-#     ]
-#     matches = [
-#         torch.allclose(pretrain_model_state_dict[key],
-#                        finetune_model_state_dict[key])
-#         for key in pretrain_base_model_keys
-#     ]
-#     assert all(matches)
+    pretrain_base_model_keys = [
+        key for key in pretrain_model_state_dict.keys() if 'bert' in key
+    ]
+    matches = [
+        torch.allclose(pretrain_model_state_dict[key],
+                       finetune_model_state_dict[key])
+        for key in pretrain_base_model_keys
+    ]
+    assert all(matches)
 
 
 @pytest.mark.hf
@@ -68,8 +68,8 @@ def test_initialize_new_config():
         config=config,
     )
 
-#     assert model.model.config['num_attention_heads'] == 8
-#     assert model.model.config['num_hidden_layers'] == 6
+    assert model.model.config['num_attention_heads'] == 8
+    assert model.model.config['num_hidden_layers'] == 6
 
 
 @pytest.mark.hf
@@ -82,21 +82,21 @@ def test_save_reload(tmpdir):
     anti_model._ensure_built()
     anti_model.save_checkpoint()
 
-#     anti_model2 = DeepAbLLM(task='classification',
-#                             model_path=model_path,
-#                             n_tasks=1,
-#                             model_dir=tmpdir)
-#     anti_model2.restore()
+    anti_model2 = DeepAbLLM(task='classification',
+                            model_path=model_path,
+                            n_tasks=1,
+                            model_dir=tmpdir)
+    anti_model2.restore()
 
-#     old_state = anti_model.model.state_dict()
-#     new_state = anti_model2.model.state_dict()
-#     matches = [
-#         torch.allclose(old_state[key], new_state[key])
-#         for key in old_state.keys()
-#     ]
+    old_state = anti_model.model.state_dict()
+    new_state = anti_model2.model.state_dict()
+    matches = [
+        torch.allclose(old_state[key], new_state[key])
+        for key in old_state.keys()
+    ]
 
-#     # all keys values should match
-#     assert all(matches)
+    # all keys values should match
+    assert all(matches)
 
 
 @pytest.mark.hf
@@ -108,13 +108,13 @@ def test_mask_seq_pos(igbert_tokenizer):
                            device=torch.device('cpu'))
     anti_model._ensure_built()
 
-#     test_string = "VQLAQSGSELRKPGASVKVSCDTSGHSFTSNAIHWVRQAPGQGLEWMGWINTDTGTPTYAQGFTGRFVFSLDTSARTAYLQISSLKADDTAVFYCARERDYSDYFFDYWGQGTLVTVSS"
-#     masked_test_string = anti_model._mask_seq_pos(test_string, idx=10)
-#     assert isinstance(masked_test_string, str)
-#     assert masked_test_string.split(' ')[10] == anti_model.tokenizer.mask_token
+    test_string = "VQLAQSGSELRKPGASVKVSCDTSGHSFTSNAIHWVRQAPGQGLEWMGWINTDTGTPTYAQGFTGRFVFSLDTSARTAYLQISSLKADDTAVFYCARERDYSDYFFDYWGQGTLVTVSS"
+    masked_test_string = anti_model._mask_seq_pos(test_string, idx=10)
+    assert isinstance(masked_test_string, str)
+    assert masked_test_string.split(' ')[10] == anti_model.tokenizer.mask_token
 
 
-@pytest.mark.hf
+@pytest.mark.torch
 def test_redesign_residue():
     from Levenshtein import distance
     from deepchem.models.torch_models.antibody_modeling import DeepAbLLM
@@ -139,7 +139,7 @@ def test_redesign_residue():
         assert abs(item[2]) <= 1
 
 
-@pytest.mark.hf
+@pytest.mark.torch
 def test_optimize_sequence():
     from Levenshtein import distance
     from deepchem.models.torch_models.antibody_modeling import DeepAbLLM
