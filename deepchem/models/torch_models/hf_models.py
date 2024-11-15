@@ -42,6 +42,35 @@ class HuggingFaceModel(TorchModel):
     tokenization algorithms and other utilities like data collation, random masking of tokens
     for masked language model training etc.
 
+    ### Dynamic Bucketing
+    This class also supports dynamic bucketing for efficient training on datasets with varying
+    sequence lengths. Samples are divided into predefined buckets based on their lengths:
+    - **Bucket 0**: Samples with length >= `min_data_length` and < `level1` (minimum of mode and average length).
+    - **Bucket 1**: Samples with length >= `level1` and < `level2` (maximum of mode and average length).
+    - **Bucket 2**: Samples with length >= `level2` and < `tail_length`.
+    - **Bucket 3**: Samples with length >= `tail_length` and <= `max_data_length`.
+
+    These buckets ensure efficient utilization of computational resources during training,
+    especially for datasets with highly variable sequence lengths.
+
+    Assuming:
+    - `min_data_length = 1`
+    - `level1 = 42`
+    - `level2 = 66`
+    - `tail_length = 122`
+    - `max_data_length = 200`
+
+    The buckets would look like:
+    - **Bucket 0**: Sequences with lengths `[1, 42)`
+    - **Bucket 1**: Sequences with lengths `[42, 66)`
+    - **Bucket 2**: Sequences with lengths `[66, 122)`
+    - **Bucket 3**: Sequences with lengths `[122, 200]`
+
+    #### How It Works:
+    - Each sequence from the dataset is assigned to one of the buckets based on its length.
+    - Training batches are constructed by sampling sequences from each bucket. This reduces padding
+      and ensures computational efficiency, particularly for datasets with highly variable sequence lengths.
+    - Bucketing is dynamically updated during training, allowing flexible dataset handling.
 
     Parameters
     ----------
@@ -735,6 +764,10 @@ class HuggingFaceModel(TorchModel):
         - Bucket 3: Samples with length >= `tail_length` and <= `max_data_length`.
 
         The generator yields these buckets after processing each batch from the dataset.
+
+        Each sequence is assigned to a bucket based on its length. Training batches are sampled from these
+        buckets to minimize padding and improve computational efficiency. Buckets are dynamically updated
+        during training for flexible dataset handling.
 
         Parameters
         ----------
