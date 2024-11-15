@@ -249,29 +249,25 @@ def test_progressivemultitask_reload():
 
     model_dir = tempfile.mkdtemp()
 
-    orig_model = dc.models.torch_models.ProgressiveMultitaskModel(
-        n_tasks,
-        n_features,
-        layer_sizes=[128, 256],
-        dropouts=0.2,
-        alpha_init_stddevs=0.02,
-        weight_init_stddevs=0.02,
-        bias_init_consts=0.0,
-        mode='classification',
-        model_dir=model_dir)
+    orig_model = ProgressiveMultitaskClassifier(n_tasks,
+                                                n_features,
+                                                layer_sizes=[128, 256],
+                                                dropouts=0.2,
+                                                alpha_init_stddevs=0.02,
+                                                weight_init_stddevs=0.02,
+                                                bias_init_consts=0.0,
+                                                model_dir=model_dir)
 
     orig_model.fit(dataset, nb_epoch=200)
 
-    reloaded_model = dc.models.torch_models.ProgressiveMultitaskModel(
-        n_tasks,
-        n_features,
-        layer_sizes=[128, 256],
-        dropouts=0.2,
-        alpha_init_stddevs=0.02,
-        weight_init_stddevs=0.02,
-        bias_init_consts=0.0,
-        mode='classification',
-        model_dir=model_dir)
+    reloaded_model = ProgressiveMultitaskClassifier(n_tasks,
+                                                    n_features,
+                                                    layer_sizes=[128, 256],
+                                                    dropouts=0.2,
+                                                    alpha_init_stddevs=0.02,
+                                                    weight_init_stddevs=0.02,
+                                                    bias_init_consts=0.0,
+                                                    model_dir=model_dir)
 
     reloaded_model.restore()
 
