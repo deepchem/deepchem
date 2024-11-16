@@ -113,7 +113,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip;
         pip install conda-merge;
-        conda-merge requirements/env_common.yml requirements/torch/env_torch.cpu.yml requirements/env_test.yml > env.yml
+        if [ "$(uname)" == 'Linux' ]; then
+          conda-merge requirements/env_common.yml requirements/torch/env_torch.cpu.yml requirements/env_test.yml > env.yml
+        elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
+          conda-merge requirements/env_common.yml requirements/torch/env_torch.win.cpu.yml requirements/env_test.yml > env.yml
+        fi
     - name: Create env.yml for python 3.8
       shell: bash
       # A special case of environment creation for python 3.8 which includes an older version of matminer 
