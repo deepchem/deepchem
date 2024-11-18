@@ -28,7 +28,7 @@ from deepchem.models.torch_models.readout import GroverReadout
 from deepchem.models.torch_models.dtnn import DTNN, DTNNModel
 from deepchem.models.torch_models.seqtoseq import SeqToSeq, SeqToSeqModel
 from deepchem.models.torch_models.acnn import AtomConvModel
-from deepchem.models.torch_models.progressive_multitask import ProgressiveMultitask, ProgressiveMultitaskModel
+from deepchem.models.torch_models.progressive_multitask import ProgressiveMultitask, ProgressiveMultitaskModel, ProgressiveMultitaskClassifier, ProgressiveMultitaskRegressor
 from deepchem.models.torch_models.text_cnn import TextCNNModel
 from deepchem.models.torch_models.flows import Flow, Affine, MaskedAffineFlow, ActNorm, ClampExp, ConstScaleLayer, MLPFlow, NormalizingFlow, NormalizingFlowModel
 from deepchem.models.torch_models.unet import UNet, UNetModel
