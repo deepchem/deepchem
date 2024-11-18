@@ -399,3 +399,24 @@ Density Functional Theory Layers
 
 .. autoclass:: deepchem.models.dft.dftxc.DFTXC
    :members:
+
+InceptionV3 Layers
+------------------
+
+.. autoclass:: deepchem.models.torch_models.inception_v3.InceptionA
+   :members:
+
+.. autoclass:: ddeepchem.models.torch_models.inception_v3.InceptionB
+   :members:
+
+.. autoclass:: deepchem.models.torch_models.inception_v3.InceptionC
+   :members:
+
+.. autoclass:: deepchem.models.torch_models.inception_v3.InceptionD
+   :members:
+
+.. autoclass:: deepchem.models.torch_models.inception_v3.InceptionE
+   :members:
+
+.. autoclass:: deepchem.models.torch_models.inception_v3.InceptionAux
+   :members:
