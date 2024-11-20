@@ -552,6 +552,18 @@ RobustMultitaskRegressor
 .. autoclass:: deepchem.models.torch_models.RobustMultitaskRegressor
   :members:
 
+RobustMultitaskClassifier
+-------------------------
+
+.. autoclass:: deepchem.models.torch_models.RobustMultitaskClassifier
+  :members:
+
+RobustMultitaskRegressor
+------------------------
+
+.. autoclass:: deepchem.models.torch_models.RobustMultitaskRegressor
+  :members:
+  
 Density Functional Theory Model - XCModel
 -----------------------------------------
 
