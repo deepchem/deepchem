@@ -34,7 +34,7 @@ from deepchem.models.torch_models.flows import Flow, Affine, MaskedAffineFlow, A
 from deepchem.models.torch_models.unet import UNet, UNetModel
 from deepchem.models.torch_models.graphconvmodel import _GraphConvTorchModel, GraphConvModel
 from deepchem.models.torch_models.smiles2vec import Smiles2Vec, Smiles2VecModel
-from deepchem.models.torch_models.robust_multitask import RobustMultitask
+from deepchem.models.torch_models.robust_multitask import RobustMultitask, RobustMultitaskClassifier
 from deepchem.models.torch_models.inceptionv3 import InceptionV3Model, InceptionA, InceptionB, InceptionC, InceptionD, InceptionE, InceptionAux, BasicConv2d
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
