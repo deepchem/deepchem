@@ -20,7 +20,7 @@ materials science, quantum chemistry, and biology.
 - [Installation](#installation)
   - [Stable version](#stable-version)
   - [Nightly build version](#nightly-build-version)
-  - [Dock](#docker)
+  - [Docker](#docker)
   - [From source](#from-source)
   - [From source lightweight](#from-source-lightweight)
 - [Getting Started](#getting-started)
