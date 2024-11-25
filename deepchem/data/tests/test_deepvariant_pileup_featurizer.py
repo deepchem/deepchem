@@ -27,7 +27,7 @@ class TestPileupFeaturizer(unittest.TestCase):
 
         # Assert the number of reads
         self.assertEqual(len(image_dataset), 15)
-        self.assertEqual(image_dataset.X[0].shape, (100, 221, 6))
+        self.assertEqual(image_dataset.X[0].shape, (299, 299, 6))
 
 
 if __name__ == "__main__":

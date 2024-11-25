@@ -241,3 +241,51 @@ def test_InceptionAux():
 
     # Verify the output shape matches expected shape
     assert output_tensor.shape == expected_output_shape
+
+
+@pytest.mark.torch
+def test_inceptionv3_overfit():
+    """
+    Test the InceptionV3 model's ability to overfit on a small dataset
+    """
+    from sklearn.metrics import accuracy_score
+    from deepchem.models.torch_models.inceptionv3 import InceptionV3Model
+
+    # Generate a small dataset to test overfitting
+    input_shape = (3, 3, 299, 299)
+    input_samples = np.random.randn(*input_shape).astype(np.float32)
+    output_samples = np.array([0, 1,
+                               2]).astype(np.int64)  # One sample per class
+    one_hot_output_samples = one_hot_encode(output_samples, 3)
+
+    dataset = dc.data.ImageDataset(input_samples, one_hot_output_samples)
+
+    # Initialize model and set a temporary directory for saving
+    model_dir = tempfile.mkdtemp()
+    inception_model = InceptionV3Model(n_tasks=3,
+                                       in_channels=3,
+                                       warmup_steps=0,
+                                       learning_rate=0.1,
+                                       decay_rate=1,
+                                       dropout_rate=0.0,
+                                       model_dir=model_dir)
+
+    # Train for many epochs to test overfitting capability
+    inception_model.fit(dataset, nb_epoch=100)
+
+    # Check performance on the small dataset
+    pred = inception_model.predict(dataset)
+
+    # Ensure predictions are in the correct shape to match the number
+    # of classes
+    assert pred.shape == (3, 3), f"Unexpected prediction shape: {pred.shape}"
+
+    # Convert predictions and labels to one-hot format for metric computation
+    pred_labels = np.argmax(pred, axis=1)
+    true_labels = output_samples
+
+    # Calculate accuracy using direct comparison
+    accuracy = accuracy_score(true_labels, pred_labels)
+
+    # Assert the accuracy is high, indicating overfitting
+    assert accuracy > 0.9, "Failed to overfit on small dataset"

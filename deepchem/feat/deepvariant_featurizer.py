@@ -6,6 +6,7 @@ from typing import List, Dict, Tuple, Any, Optional
 try:
     import dgl
     import torch
+    import pysam
 except ImportError:
     pass
 
@@ -606,8 +607,8 @@ class _Realigner(object):
 
     def fast_pass_aligner(self, assembled_region: Dict[str, Any]) -> List[Any]:
         """
-        Align reads to the haplotype of the assembled region using Striped Smith
-        Waterman algorithm.
+        Align reads to the haplotype of the assembled region using Striped
+        Smith Waterman algorithm.
 
         Parameters
         ----------
@@ -807,7 +808,8 @@ class RealignerFeaturizer(Featurizer):
             decoded_sequences.append(decoded_seq)
 
         # Map the sequences to chrom names
-        chrom_names = ["chr1", "chr2"]
+        with pysam.FastaFile(reference_file_path) as fasta_file:
+            chrom_names = fasta_file.references
 
         reference_seq_dict = {
             chrom_names[i]: seq for i, seq in enumerate(decoded_sequences)
