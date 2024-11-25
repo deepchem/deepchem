@@ -245,3 +245,54 @@ def get_option(name: str, s: K, options: Mapping[K, T]) -> T:
         raise ValueError(
             f"Unknown {name}: {s}. The available options are: {str(list(options.keys()))}"
         )
+
+def levenshtein_distance(s1, s2, weights=(1,1,1)):
+    """Get Levenshtein distance between two strings.
+    
+    Parameters
+    ----------
+    s1: str
+        The first string.
+    s2: str
+        The second string.
+    weights: Tuple[int, int, int]
+        The weights for deletion, insertion and substitution respectively.
+    
+    Returns
+    -------
+    int
+        The Levenshtein distance between s1 and s2.
+    
+    Usage Example
+    -------------
+    >>> from deepchem.utils import levenshtein_distance
+    >>> levenshtein_distance("kitten", "sitting")
+    3
+    """
+    deletion_cost=weights[0]
+    insertion_cost=weights[1]
+    substitution_cost=weights[2]
+
+    # Create a matrix to store distances
+    m, n = len(s1), len(s2)
+    dp = [[0] * (n + 1) for _ in range(m + 1)]
+
+    # Initialize the base cases with weights
+    for i in range(m + 1):
+        dp[i][0] = i * deletion_cost
+    for j in range(n + 1):
+        dp[0][j] = j * insertion_cost
+
+    # Compute distances using dynamic programming
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            if s1[i - 1] == s2[j - 1]:
+                dp[i][j] = dp[i - 1][j - 1]  # No cost for a match
+            else:
+                dp[i][j] = min(
+                    dp[i - 1][j] + deletion_cost,            # Deletion
+                    dp[i][j - 1] + insertion_cost,           # Insertion
+                    dp[i - 1][j - 1] + substitution_cost     # Substitution
+                )
+
+    return dp[m][n]
