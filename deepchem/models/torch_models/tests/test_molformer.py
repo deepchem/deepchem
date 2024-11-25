@@ -10,7 +10,7 @@ except ModuleNotFoundError:
     pass
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_molformer_pretraining(smiles_regression_dataset,
                                smiles_multitask_regression_dataset):
     # Pretraining in MLM mode
@@ -26,7 +26,7 @@ def test_molformer_pretraining(smiles_regression_dataset,
     assert loss
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_molformer_finetuning(smiles_regression_dataset,
                               smiles_multitask_regression_dataset):
 
@@ -70,7 +70,7 @@ def test_molformer_finetuning(smiles_regression_dataset,
     assert prediction.shape == (dataset.y.shape[0], 2)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_molformer_load_from_pretrained(tmpdir, smiles_regression_dataset):
     pretrain_model_dir = os.path.join(tmpdir, 'pretrain')
     finetune_model_dir = os.path.join(tmpdir, 'finetune')
@@ -95,7 +95,7 @@ def test_molformer_load_from_pretrained(tmpdir, smiles_regression_dataset):
     assert all(matches)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_molformer_save_reload(tmpdir):
     model = MoLFormer(task='regression', model_dir=tmpdir)
     model._ensure_built()

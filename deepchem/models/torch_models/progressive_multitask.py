@@ -426,6 +426,18 @@ class ProgressiveMultitaskModel(TorchModel):
         super(ProgressiveMultitaskModel,
               self).__init__(model, loss, output_types=output_types, **kwargs)
 
+    @property
+    def layers(self):
+        return self.model.layers
+
+    @property
+    def adapters(self):
+        return self.model.adapters
+
+    @property
+    def alphas(self):
+        return self.model.alphas
+
     def fit(self,
             dataset: Dataset,
             nb_epoch: int = 10,
@@ -523,3 +535,180 @@ class ProgressiveMultitaskModel(TorchModel):
                            loss=loss,
                            callbacks=callbacks,
                            all_losses=all_losses)
+
+
+class ProgressiveMultitaskRegressor(ProgressiveMultitaskModel):
+    """Implements a progressive multitask neural network for regression.
+
+    Progressive Networks: https://arxiv.org/pdf/1606.04671v3.pdf
+
+    Progressive networks allow for multitask learning where each task
+    gets a new column of weights. As a result, there is no exponential
+    forgetting where previous tasks are ignored.
+
+    References
+    ----------
+    See [1]_ for a full description of the progressive architecture
+
+    .. [1] Rusu, Andrei A., et al. "Progressive neural networks." arXiv preprint
+        arXiv:1606.04671 (2016).
+    """
+
+    def __init__(self,
+                 n_tasks,
+                 n_features,
+                 layer_sizes=[1000],
+                 alpha_init_stddevs=0.02,
+                 weight_init_stddevs=0.02,
+                 bias_init_consts=1.0,
+                 weight_decay_penalty=0.0,
+                 weight_decay_penalty_type="l2",
+                 activation_fns='relu',
+                 dropouts=0.5,
+                 n_outputs=1,
+                 n_classes=1,
+                 **kwargs):
+        """Creates a progressive network.
+
+        Only listing parameters specific to progressive networks here.
+
+        Parameters
+        ----------
+        n_tasks: int
+            Number of tasks
+        n_features: int
+            Number of input features
+        alpha_init_stddevs: list
+            List of standard-deviations for alpha in adapter layers.
+        layer_sizes: list
+            the size of each dense layer in the network.  The length of this list determines the number of layers.
+        weight_init_stddevs: list or float
+            the standard deviation of the distribution to use for weight initialization of each layer.  The length
+            of this list should equal len(layer_sizes)+1.  The final element corresponds to the output layer.
+            Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
+        bias_init_consts: list or float
+            the value to initialize the biases in each layer to.  The length of this list should equal len(layer_sizes)+1.
+            The final element corresponds to the output layer.  Alternatively this may be a single value instead of a list,
+            in which case the same value is used for every layer.
+        weight_decay_penalty: float
+            the magnitude of the weight decay penalty to use
+        weight_decay_penalty_type: str
+            the type of penalty to use for weight decay, either 'l1' or 'l2'
+        dropouts: list or float
+            the dropout probablity to use for each layer.  The length of this list should equal len(layer_sizes).
+            Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
+        activation_fns: list or object
+            the Tensorflow activation function to apply to each layer.  The length of this list should equal
+            len(layer_sizes).  Alternatively this may be a single value instead of a list, in which case the
+            same value is used for every layer.
+        """
+
+        if not isinstance(activation_fns, str):
+            logger.warning(
+                "Activation function should be a string matching an attribute in torch.nn.functional corresponding to an activation function. Using 'relu' as default."
+            )
+            activation_fns = 'relu'
+
+        super().__init__(n_tasks=n_tasks,
+                         n_features=n_features,
+                         layer_sizes=layer_sizes,
+                         mode='regression',
+                         alpha_init_stddevs=alpha_init_stddevs,
+                         weight_init_stddevs=weight_init_stddevs,
+                         bias_init_consts=bias_init_consts,
+                         weight_decay_penalty=weight_decay_penalty,
+                         weight_decay_penalty_type=weight_decay_penalty_type,
+                         activation_fns=activation_fns,
+                         dropouts=dropouts,
+                         n_outputs=n_outputs,
+                         n_classes=n_classes,
+                         **kwargs)
+
+
+class ProgressiveMultitaskClassifier(ProgressiveMultitaskModel):
+    """Implements a progressive multitask neural network for classification.
+
+    Progressive Networks: https://arxiv.org/pdf/1606.04671v3.pdf
+
+    Progressive networks allow for multitask learning where each task
+    gets a new column of weights. As a result, there is no exponential
+    forgetting where previous tasks are ignored.
+
+
+    References
+    ----------
+    See [1]_ for a full description of the progressive architecture
+
+    .. [1] Rusu, Andrei A., et al. "Progressive neural networks." arXiv preprint
+        arXiv:1606.04671 (2016).
+    """
+
+    def __init__(self,
+                 n_tasks,
+                 n_features,
+                 layer_sizes=[1000],
+                 alpha_init_stddevs=0.02,
+                 weight_init_stddevs=0.02,
+                 bias_init_consts=1.0,
+                 weight_decay_penalty=0.0,
+                 weight_decay_penalty_type="l2",
+                 activation_fns='relu',
+                 dropouts=0.5,
+                 n_outputs=2,
+                 n_classes=2,
+                 **kwargs):
+        """Creates a progressive network.
+
+        Only listing parameters specific to progressive networks here.
+
+        Parameters
+        ----------
+        n_tasks: int
+            Number of tasks
+        n_features: int
+            Number of input features
+        alpha_init_stddevs: list
+            List of standard-deviations for alpha in adapter layers.
+        layer_sizes: list
+            the size of each dense layer in the network.  The length of this list determines the number of layers.
+        weight_init_stddevs: list or float
+            the standard deviation of the distribution to use for weight initialization of each layer.  The length
+            of this list should equal len(layer_sizes)+1.  The final element corresponds to the output layer.
+            Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
+        bias_init_consts: list or float
+            the value to initialize the biases in each layer to.  The length of this list should equal len(layer_sizes)+1.
+            The final element corresponds to the output layer.  Alternatively this may be a single value instead of a list,
+            in which case the same value is used for every layer.
+        weight_decay_penalty: float
+            the magnitude of the weight decay penalty to use
+        weight_decay_penalty_type: str
+            the type of penalty to use for weight decay, either 'l1' or 'l2'
+        dropouts: list or float
+            the dropout probablity to use for each layer.  The length of this list should equal len(layer_sizes).
+            Alternatively this may be a single value instead of a list, in which case the same value is used for every layer.
+        activation_fns: list or object
+            the Tensorflow activation function to apply to each layer.  The length of this list should equal
+            len(layer_sizes).  Alternatively this may be a single value instead of a list, in which case the
+            same value is used for every layer.
+        """
+
+        if not isinstance(activation_fns, str):
+            logger.warning(
+                "Activation function should be a string matching an attribute in torch.nn.functional corresponding to an activation function. Using 'relu' as default."
+            )
+            activation_fns = 'relu'
+
+        super().__init__(n_tasks=n_tasks,
+                         n_features=n_features,
+                         layer_sizes=layer_sizes,
+                         mode='classification',
+                         alpha_init_stddevs=alpha_init_stddevs,
+                         weight_init_stddevs=weight_init_stddevs,
+                         bias_init_consts=bias_init_consts,
+                         weight_decay_penalty=weight_decay_penalty,
+                         weight_decay_penalty_type=weight_decay_penalty_type,
+                         activation_fns=activation_fns,
+                         dropouts=dropouts,
+                         n_outputs=n_outputs,
+                         n_classes=n_classes,
+                         **kwargs)

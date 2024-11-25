@@ -2,7 +2,7 @@ dependencies:
   - pylibxc
   - pip:
     - -f https://download.pytorch.org/whl/cu118/torch_stable.html
-    - -f https://data.dgl.ai/wheels/repo.html
+    - -f https://data.dgl.ai/wheels/torch-2.2/cu118/repo.html
     - dgl
     - torch==2.2.1+cu118
     - torch-geometric
@@ -12,5 +12,5 @@ dependencies:
     - torch-cluster
     - git+https://github.com/diffqc/dqclibs.git
     - basis-set-exchange
-    - pyscf
     - h5py
+    - pyscf
