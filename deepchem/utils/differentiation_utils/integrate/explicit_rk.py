@@ -62,9 +62,11 @@ def explicit_rk(tableau: _Tableau,
     Examples
     --------
     >>> def lotka_volterra(t, y, params):
-    ...     y1, y2 = y
-    ...     a, b, c, d = params
-    ...     return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+    ...     X, Y = y
+    ...     alpha, beta, delta, gamma = params
+    ...     dx_dt = alpha * X - beta * X * Y
+    ...     dy_dt = delta * X * Y - gamma * Y
+    ...     return torch.stack([dx_dt, dy_dt])
     >>> t = torch.linspace(0, 50, 100)
     >>> y_init = torch.rand(2)
     >>> solver_param = [rk4_tableau,
@@ -78,20 +80,23 @@ def explicit_rk(tableau: _Tableau,
 
     For solving multiple ODEs, we can use the GPU and feed in multiple initial conditions
     >>> def lotka_volterra(t, y, params):
-    ...     y1, y2 = y
-    ...     a, b, c, d = params
-    ...     return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+    ...     X, Y = y
+    ...     alpha, beta, delta, gamma = params
+    ...     dx_dt = alpha * X - beta * X * Y
+    ...     dy_dt = delta * X * Y - gamma * Y
+    ...     return torch.stack([dx_dt, dy_dt])
     >>> t = torch.linspace(0, 50, 100)
     >>> batch_size = 10
-    >>> y_init = torch.rand(batch_size, 2)
+    >>> y_init = torch.rand(2, batch_size)
+    >>> params = torch.rand(2, batch_size)
     >>> solver_param = [rk4_tableau,
     ...                 lotka_volterra,
     ...                 t,
     ...                 y_init,
-    ...                 torch.tensor([1.1, 0.4, 0.1, 0.4])]
+    ...                 params]
     >>> sol = explicit_rk(*solver_param, batch_size=batch_size, device='cuda')
     >>> print(sol.shape)
-    torch.Size([100, 10, 2])
+    torch.Size([100, 2, 10])
 
     Parameters
     ----------
@@ -111,8 +116,8 @@ def explicit_rk(tableau: _Tableau,
 
     Returns
     -------
-    yt: list of torch.Tensor (nt,*ny)
-        The value of `y` at the given time `t`
+    yt: list of torch.Tensor (nt, *ny, batch_size)
+        The value of `y` at the given time `t` for each batch.
 
     Notes
     -----
@@ -129,8 +134,10 @@ def explicit_rk(tableau: _Tableau,
     """
     c, a, b = torch.tensor(tableau.c, device=device), torch.tensor(
         tableau.a, device=device), torch.tensor(tableau.b, device=device)
-    t = torch.tensor(t, device=device).clone()
-    y0 = torch.tensor(y0, device=device).clone()
+    t = t.clone().detach().to(device)
+    y0 = y0.clone().detach().to(device)
+    if params is not None:
+        params = params.to(device)
     if len(y0.shape) == 1:
         y0 = y0.unsqueeze(0)
     s = len(c)
@@ -147,20 +154,21 @@ def explicit_rk(tableau: _Tableau,
         for i in range(s):
             y_sum = y + h * torch.sum(
                 a[i, :i].unsqueeze(-1).unsqueeze(-1) * k[:i], dim=0)
-            k[i] = fcn(t0 + c[i] * h, y_sum[0], params)
-
+            # if len(y0.shape) == 1:
+            y_sum = y_sum.squeeze(0)
+            # print("device", device)
+            k[i] = fcn(t=t0 + c[i] * h, y=y_sum.to(device), params=params)
         y = y + h * torch.sum(b.unsqueeze(-1).unsqueeze(-1) * k, dim=0)
         yt_list.append(y)
 
     yt = torch.stack(yt_list)
-    if yt.shape[1] == 1:
-        yt = yt.squeeze(1)
     return yt
 
 
 # list of methods
 def rk38_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor,
-             t: torch.Tensor, params: Sequence[torch.Tensor], **kwargs):
+             t: torch.Tensor, params: Sequence[torch.Tensor], batch_size: int = 1,
+            device="cpu", **kwargs):
     """A slight variation of "the" Runge–Kutta method is also due to
     Kutta in 1901 and is called the 3/8-rule.[19] The primary advantage
     this method has is that almost all of the error coefficients are
@@ -202,11 +210,12 @@ def rk38_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor,
         The value of `y` at the given time `t`
 
     """
-    return explicit_rk(rk38_tableau, fcn, y0, t, params)
+    return explicit_rk(rk38_tableau, fcn, y0, t, params, batch_size, device)
 
 
 def fwd_euler_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor,
-                  t: torch.Tensor, params: Sequence[torch.Tensor], **kwargs):
+                  t: torch.Tensor, params: Sequence[torch.Tensor], batch_size: int = 1,
+            device="cpu",**kwargs):
     """However, the simplest Runge–Kutta method is the (forward) Euler method,
     given by the formula $y_{n+1} = y_{n} + hf(t_{n}, y_{n}). This is the only
     consistent explicit Runge–Kutta method with one stage.
@@ -246,11 +255,12 @@ def fwd_euler_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor,
         The value of `y` at the given time `t`
 
     """
-    return explicit_rk(fwd_euler_tableau, fcn, y0, t, params)
+    return explicit_rk(fwd_euler_tableau, fcn, y0, t, params, batch_size, device)
 
 
 def rk4_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor, t: torch.Tensor,
-            params: Sequence[torch.Tensor], **kwargs):
+            params: Sequence[torch.Tensor], batch_size: int = 1,
+            device="cpu",**kwargs):
     """The most commonly used Runge Kutta method to find the solution
     of a differential equation is the RK4 method, i.e., the fourth-order
     Runge-Kutta method. The Runge-Kutta method provides the approximate
@@ -292,11 +302,12 @@ def rk4_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor, t: torch.Tensor,
         The value of `y` at the given time `t`
 
     """
-    return explicit_rk(rk4_tableau, fcn, y0, t, params)
+    return explicit_rk(rk4_tableau, fcn, y0, t, params, batch_size, device)
 
 
 def mid_point_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor,
-                  t: torch.Tensor, params: Sequence[torch.Tensor], **kwargs):
+                  t: torch.Tensor, params: Sequence[torch.Tensor], batch_size: int = 1,
+            device="cpu",**kwargs):
     """The explicit midpoint method is sometimes also known as the
     modified Euler method, the implicit method is the most simple
     collocation method, and, applied to Hamiltonian dynamics, a
@@ -337,4 +348,4 @@ def mid_point_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor,
         The value of `y` at the given time `t`
 
     """
-    return explicit_rk(midpoint_fableau, fcn, y0, t, params)
+    return explicit_rk(midpoint_fableau, fcn, y0, t, params, batch_size, device)
