@@ -306,6 +306,49 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.xc.base_xc.MulBaseXC
   :members:
 
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc_wrapper.CalcLDALibXCPol
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc_wrapper.CalcLDALibXCUnpol
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc_wrapper.CalcGGALibXCUnpol
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc_wrapper.CalcGGALibXCPol
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc_wrapper.CalcMGGALibXCUnpol
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc_wrapper.CalcMGGALibXCPol
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc.LibXCLDA
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc.LibXCGGA
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.libxc.LibXCMGGA
+  :members:
+
+.. autofunction:: deepchem.utils.dft_utils.api.getxc.get_libxc
+
+.. autofunction:: deepchem.utils.dft_utils.api.getxc.get_xc
+
+.. autofunction:: deepchem.utils.dft_utils.api.loadbasis.loadbasis
+
+.. autofunction:: deepchem.utils.dft_utils.api.loadbasis._read_float
+
+.. autofunction:: deepchem.utils.dft_utils.api.loadbasis._get_basis_file
+
+.. autofunction:: deepchem.utils.dft_utils.api.loadbasis._normalize_basisname
+
+.. autofunction:: deepchem.utils.dft_utils.api.loadbasis._download_basis
+
+.. autofunction:: deepchem.utils.dft_utils.api.loadbasis._expand_angmoms
+
 .. autoclass:: deepchem.utils.dft_utils.BaseGrid
   :members:
 
@@ -314,6 +357,74 @@ The utilites here are used to create an object that contains information about a
 
 .. autoclass:: deepchem.utils.dft_utils.hamilton.base_hamilton.BaseHamilton
   :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.lcintwrap.LibcintWrapper
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.lcintwrap.SubsetLibcintWrapper
+  :members:
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.int1e
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.int2c2e
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.int3c2e
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.int2e
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.overlap
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.kinetic
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.nuclattr
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.elrep
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.coul2c
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor.coul3c
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor._check_and_set
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor._get_intgl_optimizer
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor._get_integrals
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor._transpose
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor._swap_list
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor._gather_at_dims
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.molintor._get_uniqueness
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.molintor._Int2cFunction
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.molintor._Int3cFunction
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.molintor._Int4cFunction
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.molintor._cintoptHandler
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.molintor.Intor
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.symmetry.BaseSymmetry
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.symmetry.S1Symmetry
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.symmetry.S4Symmetry
+  :members:
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.utils.np2ctypes
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.utils.int2ctypes
 
 .. autoclass:: deepchem.utils.dftutils.KSCalc
   :members:
@@ -369,6 +480,27 @@ The utilites here are used to create an object that contains information about a
   :members:
 
 .. autoclass:: deepchem.utils.dft_utils.grid.radial_grid.get_grid_transform
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.hf.HF
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.hf.HFEngine
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.base_qccalc.BaseQCCalc
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.scf_qccalc.SCF_QCCalc
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.scf_qccalc.BaseSCFEngine
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.ks.KS
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.qccalc.ks.KSEngine
   :members:
 
 .. autoclass:: deepchem.utils.differentiation_utils.editable_module.EditableModule
@@ -549,6 +681,19 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.optimize.rootfinder._get_minimizer_default_method
 
+.. autoclass:: deepchem.utils.differentiation_utils.integrate.explicit_rk._Tableau
+  :members:
+
+.. autofunction:: deepchem.utils.differentiation_utils.integrate.explicit_rk.explicit_rk
+
+.. autofunction:: deepchem.utils.differentiation_utils.integrate.explicit_rk.rk38_ivp
+
+.. autofunction:: deepchem.utils.differentiation_utils.integrate.explicit_rk.fwd_euler_ivp
+
+.. autofunction:: deepchem.utils.differentiation_utils.integrate.explicit_rk.rk4_ivp
+
+.. autofunction:: deepchem.utils.differentiation_utils.integrate.explicit_rk.mid_point_ivp
+
 Attribute Utilities
 -------------------
 
@@ -561,6 +706,47 @@ The utilities here are used to modify the attributes of the classes. Used by dif
   :members:
 
 .. autoclass:: deepchem.utils.attribute_utils.del_attr
+  :members:
+
+Polymer Weighted Directed Graph Data Utilities
+-----------------------------------------
+
+These classes and functions are required to handle converstion of string data to graph data 
+and validation of the same.
+
+.. autofunction:: deepchem.utils.poly_wd_graph_utils.handle_hydrogen 
+
+.. autofunction:: deepchem.utils.poly_wd_graph_utils.make_polymer_mol
+
+.. autofunction:: deepchem.utils.poly_wd_graph_utils.parse_polymer_rules
+
+.. autofunction:: deepchem.utils.poly_wd_graph_utils.tag_atoms_in_repeating_unit
+
+.. autofunction:: deepchem.utils.poly_wd_graph_utils.onek_encoding_unk
+
+.. autofunction:: deepchem.utils.poly_wd_graph_utils.remove_wildcard_atoms
+
+Polymer Weighted Directed Graph String Validator
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This class validates the input string representation for graphical conversion of polymer data.
+It splits the input strings, validates their order and values. Upon recieving error it can return
+meaningful error message to the user indicating the type of error that hinders the conversion process.
+
+The format is an extended string representation that is used as input format for Weighted Directed Message Passing Neural Network (wDMPNN) implementation
+using :code:`polymer-chemprop` python module. For more information and understanding, visit the `github repo <https://github.com/coleygroup/polymer-chemprop>`.
+The format development and implementation is done by Matteo Aldeghi and Connor W. Coley for their 
+work on "A graph representation of molecular ensembles for polymer property prediction". 
+
+The :code:`dc.utils.PolyWDGStringValidator` class is explicitly useful for validating a Weighted Directed
+Graph Representaion within a string data for polymers. It validates atom notations in monomer, valid Fragment
+weights for monomers, and valid polymer rules within the string representation.
+
+References:
+
+- `Aldeghi M, Coley CW. A graph representation of molecular ensembles for polymer property prediction. Chemical Science. 2022;13(35):10486-98.`_
+
+.. autoclass:: deepchem.utils.poly_wd_graph_utils.PolyWDGStringValidator
   :members:
 
 Pytorch Utilities
@@ -583,6 +769,8 @@ Pytorch Utilities
 .. autofunction:: deepchem.utils.pytorch_utils.to_fortran_order
 
 .. autofunction:: deepchem.utils.pytorch_utils.get_np_dtype
+
+.. autofunction:: deepchem.utils.pytorch_utils.unsorted_segment_max
 
 Batch Utilities
 ---------------
@@ -634,6 +822,8 @@ Initial usecases are for improving the printing format of __repr__.
 .. autofunction:: deepchem.utils.misc_utils.indent
 
 .. autofunction:: deepchem.utils.misc_utils.shape2str
+
+.. autofunction:: deepchem.utils.misc_utils.memoize_method
 
 .. autoclass:: deepchem.utils.misc_utils.UnimplementedError
   :members:

@@ -139,6 +139,16 @@ DeepChem has a number of "soft" requirements.
 |                                |               | :code:`dc.models.data_loader`                     |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
+| `pylibxc`_                     | latest        | :code:`dc.utils.dft_utils.api.getxc`              |
+|                                |               | :code:`dc.utils.dft_utils.xc.libxc_wrapper`       |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
+| `dqclibs`_                     | latest        | :code:`dc.utils.dft_utils.hamilton.intor.utils`   |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
+| `basis-set-exchange`_          | latest        | :code:`deepchem.utils.dft_utils.api.loadbasis`    |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
 
 
 .. _`joblib`: https://pypi.python.org/pypi/joblib
@@ -176,3 +186,6 @@ DeepChem has a number of "soft" requirements.
 .. _`HuggingFace Tokenizers`: https://huggingface.co/docs/tokenizers/index
 .. _`pySCF`: https://pyscf.org/install.html
 .. _`pysam`: https://pysam.readthedocs.io/en/latest/api.html
+.. _`pylibxc`: https://gitlab.com/libxc/libxc/
+.. _`dqclibs`: https://github.com/diffqc/dqclibs
+.. _`basis-set-exchange`: https://www.basissetexchange.org/

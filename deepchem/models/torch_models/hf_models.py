@@ -2,7 +2,7 @@ import logging
 import time
 from collections.abc import Sequence as SequenceCollection
 from typing import (TYPE_CHECKING, Any, Callable, Iterable, List, Optional,
-                    Tuple, Union)
+                    Tuple, Union, Dict)
 
 import numpy as np
 import torch
@@ -11,7 +11,7 @@ from deepchem.models.torch_models import TorchModel
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
 from transformers.data.data_collator import DataCollatorForLanguageModeling
-from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM
+from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM, AutoModelForUniversalSegmentation
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +189,19 @@ class HuggingFaceModel(TorchModel):
         >>> finetune_model = HuggingFaceModel(model=model, task='classification', tokenizer=tokenizer, model_dir='model-dir')
 
         >>> finetune_model.load_from_pretrained()
+
+        Note
+        ----
+        1. Use `load_from_pretrained` method only to load a pretrained model - a
+            model trained on a different task like Masked Language Modeling or
+            Multitask Regression. To `restore` a model, use the `restore` method.
+
+        2. A pretrain model has different number of target tasks for pretraining and a finetune
+            model has different number of target tasks for finetuning. Thus, they both have different
+            number of projection outputs in the last layer. To avoid a mismatch
+            in the weights of the output projection layer (last layer) between
+            the pretrain model and current model, we delete the projection
+            layers weights.
         """
         if model_dir is None:
             model_dir = self.model_dir
@@ -203,6 +216,9 @@ class HuggingFaceModel(TorchModel):
             elif self.task in ['mtr', 'regression', 'classification']:
                 self.model = AutoModelForSequenceClassification.from_pretrained(
                     model_dir)
+            elif self.task == "universal_segmentation":
+                self.model = AutoModelForUniversalSegmentation.from_pretrained(
+                    model_dir)
             else:
                 self.model = AutoModel.from_pretrained(model_dir)
         elif not from_hf_checkpoint:
@@ -212,6 +228,18 @@ class HuggingFaceModel(TorchModel):
             else:
                 checkpoint = checkpoints[0]
                 data = torch.load(checkpoint, map_location=self.device)
+                # Delete keys of output projection layer (last layer) as the number of
+                # tasks (projections) in pretrain model and the current model
+                # might vary.
+                keys = data['model_state_dict'].keys()
+                if 'classifier.out_proj.weight' in keys:
+                    del data['model_state_dict']['classifier.out_proj.weight']
+                if 'classifier.out_proj.bias' in keys:
+                    del data['model_state_dict']['classifier.out_proj.bias']
+                if 'classifier.dense.bias' in keys:
+                    del data['model_state_dict']['classifier.dense.bias']
+                if 'classifier.dense.weight' in keys:
+                    del data['model_state_dict']['classifier.dense.weight']
                 self.model.load_state_dict(data['model_state_dict'],
                                            strict=False)
 
@@ -277,8 +305,8 @@ class HuggingFaceModel(TorchModel):
             for each batch.  If None (the default), the model's standard loss function
             is used.
         callbacks: function or list of functions
-            one or more functions of the form f(model, step) that will be invoked after
-            every step.  This can be used to perform validation, logging, etc.
+            one or more functions of the form f(model, step, **kwargs) that will be invoked
+            after every step.  This can be used to perform validation, logging, etc.
         all_losses: Optional[List[float]], optional (default None)
             If specified, all logged losses are appended into this list. Note that
             you can call `fit()` repeatedly with the same list and losses will
@@ -358,7 +386,13 @@ class HuggingFaceModel(TorchModel):
             if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
                 self.save_checkpoint(max_checkpoints_to_keep)
             for c in callbacks:
-                c(self, current_step)
+                try:
+                    # NOTE In DeepChem > 2.8.0, callback signature is updated to allow
+                    # variable arguments.
+                    c(self, current_step, iteration_loss=batch_loss)
+                except TypeError:
+                    # DeepChem <= 2.8.0, the callback should have this signature.
+                    c(self, current_step)
             if self.tensorboard and should_log:
                 self._log_scalar_to_tensorboard('loss', batch_loss,
                                                 current_step)
@@ -496,3 +530,77 @@ class HuggingFaceModel(TorchModel):
             return final_results[0]
         else:
             return np.array(final_results)
+
+    def fill_mask(self,
+                  inputs: Union[str, List[str]],
+                  top_k: int = 5) -> Union[List[Dict], List[List[Dict]]]:
+        """Implements the HuggingFace 'fill_mask' pipeline from HuggingFace.
+        https://huggingface.co/docs/transformers/main_classes/pipelines
+
+        Takes as input a sequence or list of sequences where each sequence
+        containts a single masked position and returns a list of dictionaries per sequence
+        containing the filled sequence, the token, and the score for that token.
+
+        Parameters
+        ----------
+        inputs : Union[str, List[str]]
+            One or several texts (or one list of texts) with masked tokens.
+        top_k : int, optional
+            The number of predictions to return for each mask. Default is 5.
+
+        Returns
+        -------
+        Union[List[Dict], List[List[Dict]]]
+            A list or a list of list of dictionaries with the following keys:
+            - sequence (str): The corresponding input with the mask token prediction.
+            - score (float): The corresponding probability.
+            - token (int): The predicted token id (to replace the masked one).
+            - token_str (str): The predicted token (to replace the masked one)
+        """
+
+        # First make sure tha the model is successfully loaded, then set to eval mode.
+        self._ensure_built()
+        self.model.eval()
+
+        # Ensure that the inputs are made into a list of len() >= 1.
+        if isinstance(inputs, str):
+            inputs = [inputs]
+
+        results = []
+        # Iterate over the input sequences (NOTE: DO NOT Parallelize)
+        for text in inputs:
+            encoded_input = self.tokenizer(text,
+                                           return_tensors='pt').to(self.device)
+            # Find all the occurrences where the mask token idx is used
+            mask_token_index = torch.where(
+                encoded_input["input_ids"] == self.tokenizer.mask_token_id)[1]
+            # Ensure that the masked token index appears EXACTLY once.
+            assert mask_token_index.numel(
+            ) == 1, f"Sequence has masked indices at: {list(mask_token_index)}. Please ensure that only one position is masked in the sequence."
+
+            with torch.no_grad():
+                output = self.model(**encoded_input)
+
+            # Grab the logits and take distribution at the masked token idx
+            # Then take the top_k indices (which correspond to the token)
+            logits = output.logits
+            mask_token_logits = logits[0, mask_token_index, :]
+            top_k_tokens = torch.topk(mask_token_logits, top_k,
+                                      dim=1).indices[0].tolist()
+
+            # Decode the sequence with each of the top_k tokens inserted
+            # Calculate the score as the probability of that token in the sequence.
+            text_results = []
+            for token in top_k_tokens:
+                token_str = self.tokenizer.decode([token])
+                filled_text = text.replace(self.tokenizer.mask_token, token_str)
+                score = torch.softmax(mask_token_logits, dim=1)[0, token].item()
+                text_results.append({
+                    'sequence': filled_text,
+                    'score': score,
+                    'token': token,
+                    'token_str': token_str
+                })
+            results.append(text_results)
+
+        return results[0] if len(results) == 1 else results

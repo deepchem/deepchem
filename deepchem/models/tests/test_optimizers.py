@@ -17,6 +17,7 @@ except:
 
 try:
     import torch
+    from deepchem.utils.optimizer_utils import LambOptimizer
     has_pytorch = True
 except:
     has_pytorch = False
@@ -184,6 +185,17 @@ class TestOptimizers(unittest.TestCase):
         torchopt = opt._create_pytorch_optimizer(params)
         _ = rate._create_pytorch_schedule(torchopt)
 
+    @pytest.mark.torch
+    def test_lambda_lr_with_warmup(self):
+        opt = optimizers.Adam(learning_rate=5e-5)
+        lr_schedule = optimizers.LambdaLRWithWarmup(initial_rate=5e-5,
+                                                    num_training_steps=100_000 *
+                                                    10,
+                                                    num_warmup_steps=10_000)
+        params = [torch.nn.Parameter(torch.Tensor([1.0]))]
+        torchopt = opt._create_pytorch_optimizer(params)
+        _ = lr_schedule._create_pytorch_schedule(torchopt)
+
     @pytest.mark.jax
     def test_exponential_decay_jax(self):
         """Test creating an optimizer with an exponentially decaying learning rate."""
@@ -300,3 +312,11 @@ class TestOptimizers(unittest.TestCase):
         # Eval model on train
         scores = model.evaluate(dataset, [metric])
         assert scores[metric.name] > 0.9
+
+    @pytest.mark.torch
+    def test_lamb_pytorch(self):
+        """Test creating an Lamb optimizer."""
+        opt = optimizers.Lamb(learning_rate=0.01)
+        params = [torch.nn.Parameter(torch.Tensor([1.0]))]
+        torchopt = opt._create_pytorch_optimizer(params)
+        assert isinstance(torchopt, LambOptimizer)

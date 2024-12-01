@@ -1,0 +1,16 @@
+name: Dispatch trigger for deepchem website re-build
+on:
+  push: # ci work when pushing to master branch
+    branches:
+      - master
+jobs:
+  website-rebuild-trigger-dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.WEBSITE_REPO_PAT }}
+          repository: deepchem/deepchem.github.io
+          event-type: rebuild-website
+           

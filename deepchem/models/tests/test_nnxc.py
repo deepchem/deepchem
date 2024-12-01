@@ -1,12 +1,10 @@
 import pytest
+import warnings
 try:
     import torch
-    from deepchem.models.dft.nnxc import NNLDA, HybridXC
     import torch.nn as nn
-    from dqc.utils.datastruct import ValGrad
-    has_dqc = True
-except ModuleNotFoundError:
-    has_dqc = False
+except Exception as e:
+    warnings.warn("Could not import torch. Skipping tests. Error is: " + str(e))
 
 
 @pytest.mark.dqc
@@ -27,6 +25,8 @@ def dummymodel():
 
 @pytest.mark.dqc
 def test_nnlda():
+    from dqc.utils.datastruct import ValGrad
+    from deepchem.models.dft.nnxc import NNLDA
     torch.manual_seed(42)
     # https://github.com/diffqc/dqc/blob/742eb2576418464609f942def4fb7c3bbdc0cd82/dqc/test/test_xc.py#L15
     n = 2
@@ -41,6 +41,8 @@ def test_nnlda():
 
 @pytest.mark.dqc
 def test_hybridxc():
+    from dqc.utils.datastruct import ValGrad
+    from deepchem.models.dft.nnxc import HybridXC
     torch.manual_seed(42)
     n = 2
     nnmodel = dummymodel()

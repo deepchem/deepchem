@@ -46,3 +46,21 @@ def smiles_multitask_regression_dataset():
                                featurizer=dc.feat.DummyFeaturizer())
     dataset = loader.create_dataset(input_file)
     return dataset
+
+
+@pytest.fixture
+def protein_classification_dataset(tmpdir):
+    protein = [
+        "M G L P V S W A P P A L W V L G C C A L L L S L W A",
+        "M E V L E E P A P G P G G A D A A E R R G L R R L"
+    ]
+    labels = [0, 1]
+    df = pd.DataFrame(list(zip(protein, labels)), columns=["protein", "task1"])
+    filepath = os.path.join(tmpdir, 'protein.csv')
+    df.to_csv(filepath)
+
+    loader = dc.data.CSVLoader(["task1"],
+                               feature_field="protein",
+                               featurizer=dc.feat.DummyFeaturizer())
+    dataset = loader.create_dataset(filepath)
+    return dataset

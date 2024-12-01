@@ -1,17 +1,17 @@
-try:
-    from deepchem.data.data_loader import DFTYamlLoader
-    from deepchem.models.dft.scf import XCNNSCF
-    import torch
-    from deepchem.models.dft.nnxc import HybridXC
-    has_dqc = True
-except ModuleNotFoundError:
-    has_dqc = False
 import pytest
+import warnings
 import numpy as np
+try:
+    import torch
+except Exception as e:
+    warnings.warn("Could not import torch. Skipping tests. Error is: " + str(e))
 
 
 @pytest.mark.dqc
 def test_multiatom():
+    from deepchem.data.data_loader import DFTYamlLoader
+    from deepchem.models.dft.scf import XCNNSCF
+    from deepchem.models.dft.nnxc import HybridXC
     inputs = 'deepchem/models/tests/assets/test_beh2.yaml'
     k = DFTYamlLoader()
     data = k.create_dataset(inputs)

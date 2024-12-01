@@ -377,6 +377,26 @@ CRAMFeaturizer
   :inherited-members:
 
 
+DeepVariant Featurizers
+-----------------------
+
+These featurizers are used in DeepVariant
+
+RealignerFeaturizer
+^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.RealignerFeaturizer
+  :members:
+  :inherited-members:
+
+PileupFeaturizer
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.PileupFeaturizer
+  :members:
+  :inherited-members:
+
+
 Molecule Tokenizers
 -------------------
 
@@ -414,7 +434,7 @@ a Byte-Piece Encoder, which can be found `here.`_
 
 .. _`(transformers.PreTrainedTokenizer)`: https://huggingface.co/transformers/main_classes/tokenizer.html#transformers.PreTrainedTokenizer
 .. _`HuggingFace tokenizers docs`: https://huggingface.co/transformers/main_classes/tokenizer.html
-.. _`here.`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/22_Transfer_Learning_With_HuggingFace_tox21.ipynb
+.. _`here.`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/Transfer_Learning_With_ChemBERTa_Transformers.ipynb
 
 SmilesTokenizer
 ^^^^^^^^^^^^^^^
@@ -546,7 +566,7 @@ DummyFeaturizer
   :inherited-members:
 
 
-Base Featurizers (for develop)
+Base Featurizers (for developers)
 ------------------------------
 
 Featurizer
@@ -594,6 +614,16 @@ you will want to inherit from the abstract :code:`ComplexFeaturizer` base class.
 This featurizer can take a pair of PDB or SDF files which contain ligand molecules and proteins.
 
 .. autoclass:: deepchem.feat.ComplexFeaturizer
+  :members:
+
+PolymerFeaturizer
+^^^^^^^^^^^^^^^^^
+
+If you're creating a new featurizer that featurizes polymer material,
+you will want to inherit from the abstract :code:`PolymerFeaturizer` base class.
+This featurizer can take a single string representation or datapoints of the same.
+
+.. autoclass:: deepchem.feat.PolymerFeaturizer
   :members:
 
 VocabularyBuilder

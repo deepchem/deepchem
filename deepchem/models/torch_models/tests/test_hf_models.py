@@ -38,7 +38,7 @@ def hf_tokenizer(tmpdir):
     return tokenizer
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_pretraining(hf_tokenizer, smiles_regression_dataset):
     from deepchem.models.torch_models.hf_models import HuggingFaceModel
     from transformers.models.roberta import RobertaConfig, RobertaForMaskedLM
@@ -55,7 +55,7 @@ def test_pretraining(hf_tokenizer, smiles_regression_dataset):
     assert loss
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_hf_model_regression(hf_tokenizer, smiles_regression_dataset):
     from transformers.models.roberta import (RobertaConfig,
                                              RobertaForSequenceClassification)
@@ -77,7 +77,7 @@ def test_hf_model_regression(hf_tokenizer, smiles_regression_dataset):
     assert score
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_hf_model_classification(hf_tokenizer, smiles_regression_dataset):
     y = np.random.choice([0, 1], size=smiles_regression_dataset.y.shape)
     dataset = dc.data.NumpyDataset(X=smiles_regression_dataset.X,
@@ -102,7 +102,7 @@ def test_hf_model_classification(hf_tokenizer, smiles_regression_dataset):
     assert score
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_load_from_pretrained(tmpdir, hf_tokenizer):
     # Create pretrained model
     from transformers.models.roberta import (RobertaConfig, RobertaForMaskedLM,
@@ -147,7 +147,7 @@ def test_load_from_pretrained(tmpdir, hf_tokenizer):
     assert all(matches)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_model_save_reload(tmpdir, hf_tokenizer):
     from transformers.models.roberta import (RobertaConfig,
                                              RobertaForSequenceClassification)
@@ -181,7 +181,7 @@ def test_model_save_reload(tmpdir, hf_tokenizer):
     assert all(matches)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_load_from_hf_checkpoint():
     from transformers.models.t5 import T5Config, T5Model
     config = T5Config()
@@ -201,3 +201,81 @@ def test_load_from_hf_checkpoint():
 
     # keys should not match
     assert all(not_matches)
+
+
+@pytest.mark.hf
+def test_fill_mask_IO(tmpdir, hf_tokenizer):
+    from transformers import (RobertaConfig, RobertaForMaskedLM)
+
+    config = RobertaConfig(vocab_size=hf_tokenizer.vocab_size)
+    model = RobertaForMaskedLM(config)
+    hf_model = HuggingFaceModel(model=model,
+                                tokenizer=hf_tokenizer,
+                                task='mlm',
+                                model_dir=tmpdir,
+                                device=torch.device('cpu'))
+    hf_model._ensure_built()
+
+    test_string = "CN(c1ccccc1)c1ccccc1C(=O)NCC1(O)CCOCC1"
+    tokenized_test_string = hf_tokenizer(test_string)
+    tokenized_test_string.input_ids[1] = hf_tokenizer.mask_token_id
+    masked_test_string = hf_tokenizer.decode(tokenized_test_string.input_ids)
+
+    results = hf_model.fill_mask([masked_test_string, masked_test_string])
+
+    # Test 1. Ensure that the correct number of filled items comes out.
+    assert len(results) == 2
+
+    # Test 2. Ensure the types are the expected types
+    assert isinstance(results, list)
+    assert isinstance(results[0], list)
+    assert isinstance(results[0][0], dict)
+
+
+@pytest.mark.hf
+def test_fill_mask_fidelity(tmpdir, hf_tokenizer):
+    from transformers import (RobertaConfig, RobertaForMaskedLM)
+
+    config = RobertaConfig(vocab_size=hf_tokenizer.vocab_size)
+    model = RobertaForMaskedLM(config)
+    hf_model = HuggingFaceModel(model=model,
+                                tokenizer=hf_tokenizer,
+                                task='mlm',
+                                model_dir=tmpdir,
+                                device=torch.device('cpu'))
+    hf_model._ensure_built()
+
+    test_string = "CN(c1ccccc1)c1ccccc1C(=O)NCC1(O)CCOCC1"
+    tokenized_test_string = hf_tokenizer(test_string)
+    tokenized_test_string.input_ids[1] = hf_tokenizer.mask_token_id
+    masked_test_string = hf_tokenizer.decode(tokenized_test_string.input_ids)
+
+    results = hf_model.fill_mask([masked_test_string, masked_test_string])
+
+    for result in results:
+        for filled in result:
+            # Test 1. Check that the right keys exist
+            assert 'sequence' in filled
+            assert 'score' in filled
+            assert 'token' in filled
+            assert 'token_str' in filled
+
+            # Test 2. Check that the scores are probabilities
+            assert filled['score'] < 1
+            assert filled['score'] >= 0
+
+            # Test 3. Check that the infilling went to the right spot
+            assert filled['sequence'].startswith(f'<s>{filled["token_str"]}')
+
+
+@pytest.mark.hf
+def test_load_from_pretrained_with_diff_task(tmpdir):
+    # Tests loading a pretrained model where the weight shape in last layer
+    # (the final projection layer) of the pretrained model does not match
+    # with the weight shape in new model.
+    from deepchem.models.torch_models import Chemberta
+    model = Chemberta(task='mtr', n_tasks=10, model_dir=tmpdir)
+    model.save_checkpoint()
+
+    model = Chemberta(task='regression', n_tasks=20)
+    model.load_from_pretrained(model_dir=tmpdir)

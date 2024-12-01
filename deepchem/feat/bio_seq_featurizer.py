@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Optional
 from deepchem.feat import Featurizer
 
 
@@ -102,11 +103,11 @@ class BAMFeaturizer(Featurizer):
     """
     Featurizes BAM files, that are compressed binary representations of SAM
     (Sequence Alignment Map) files. This class extracts Query Name, Query
-    Sequence, Query Length, Reference Name, Reference Start, CIGAR and Mapping
-    Quality of the alignment in the BAM file.
+    Sequence, Query Length, Reference Name, Reference Start, CIGAR, Mapping
+    Quality, is_reverse and Query Qualities of the alignment in the BAM file.
 
-    This is the default featurizer used by BAMLoader, and it extracts the following
-    fields from each read in each BAM file in the given order:-
+    This is the default featurizer used by BAMLoader, and it extracts the
+    following fields from each read in each BAM file in the given order:-
     - Column 0: Query Name
     - Column 1: Query Sequence
     - Column 2: Query Length
@@ -114,6 +115,24 @@ class BAMFeaturizer(Featurizer):
     - Column 4: Reference Start
     - Column 5: CIGAR
     - Column 6: Mapping Quality
+    - Column 7: is_reverse
+    - Column 8: Query Quality Scores
+    - Column 9: Pileup Information (if get_pileup=True)
+
+    Additionally, we can also get pileups from BAM files by setting
+    get_pileup=True.A pileup is a summary of the alignment of reads
+    at each position in a reference sequence. Specifically, it
+    provides information on the position on the reference genome,
+    the depth of coverage (i.e., the number of reads aligned to that
+    position), and the actual bases from the aligned reads at that
+    position, along with their quality scores. This data structure
+    is useful for identifying variations, such as single nucleotide
+    polymorphisms (SNPs), insertions, and deletions by comparing the
+    aligned reads to the reference genome. A pileup can be visualized
+    as a vertical stack of aligned sequences, showing how each read
+    matches or mismatches the reference at each position.
+    In DeepVariant, pileups are utilized during the initial stages to
+    select candidate windows for further analysis.
 
     Examples
     --------
@@ -132,7 +151,7 @@ class BAMFeaturizer(Featurizer):
 
     """
 
-    def __init__(self, max_records=None):
+    def __init__(self, max_records=None, get_pileup: Optional[bool] = False):
         """
         Initialize BAMFeaturizer.
 
@@ -141,9 +160,13 @@ class BAMFeaturizer(Featurizer):
         max_records : int or None, optional
             The maximum number of records to extract from the BAM file. If None, all
             records will be extracted.
+        get_pileup : bool, optional
+            If True, pileup information will be extracted from the BAM file.
+            This is used in DeepVariant. False by default.
 
         """
         self.max_records = max_records
+        self.get_pileup = get_pileup
 
     def _featurize(self, datapoint):
         """
@@ -166,18 +189,36 @@ class BAMFeaturizer(Featurizer):
         record_count = 0
 
         for record in datapoint:
+            initial_position = datapoint.tell()
             feature_vector = [
-                record.query_name,
-                record.query_sequence,
-                record.query_length,
-                record.reference_name,
-                record.reference_start,
-                record.cigar,
-                record.mapping_quality,
+                record.query_name, record.query_sequence, record.query_length,
+                record.reference_name, record.reference_start, record.cigar,
+                record.mapping_quality, record.is_reverse,
+                np.array(record.query_qualities)
             ]
+
+            if (self.get_pileup):
+                pileup_columns = []
+                for pileupcolumn in datapoint.pileup():
+                    pileup_info = {
+                        "name":
+                            pileupcolumn.reference_name,
+                        "pos":
+                            pileupcolumn.reference_pos,
+                        "depth":
+                            pileupcolumn.nsegments,
+                        "reads": [[
+                            pileupread.alignment.query_sequence,
+                            pileupread.query_position, pileupread.is_del,
+                            pileupread.is_refskip, pileupread.indel
+                        ] for pileupread in pileupcolumn.pileups]
+                    }
+                    pileup_columns.append(pileup_info)
+                feature_vector.append(pileup_columns)
 
             features.append(feature_vector)
             record_count += 1
+            datapoint.seek(initial_position)
 
             # Break the loop if max_records is set
             if self.max_records is not None and record_count >= self.max_records:

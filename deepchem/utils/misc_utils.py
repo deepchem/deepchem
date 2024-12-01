@@ -1,7 +1,8 @@
 """
 Utilities for miscellaneous tasks.
 """
-from typing import Dict, List, Optional
+import functools
+from typing import Dict, List, Mapping, Optional, Callable, TypeVar, Any
 
 
 def indent(s, nspace):
@@ -166,3 +167,81 @@ class Uniquifier(object):
         if self.all_unique:
             return uniqueobjs
         return [uniqueobjs[idx] for idx in self.nonunique_map_idxs]
+
+
+T = TypeVar('T')
+K = TypeVar('K')
+
+
+def memoize_method(fcn: Callable[[Any], T]) -> Callable[[Any], T]:
+    """Memoize a method without any arguments using a cache in the object
+
+    Examples
+    --------
+    >>> class A:
+    ...     @memoize_method
+    ...     def foo(self):
+    ...         print("foo")
+    ...         return 1
+    >>> a = A()
+    >>> a.foo()
+    foo
+    1
+    >>> a.foo()
+    1
+
+    Parameters
+    ----------
+    fcn: callable
+        Function to memoize
+
+    Returns
+    -------
+    callable
+        Memoized function
+
+    """
+    cachename = "__cch_" + fcn.__name__
+
+    @functools.wraps(fcn)
+    def new_fcn(self) -> T:
+        if cachename in self.__dict__:
+            return self.__dict__[cachename]
+        else:
+            res = fcn(self)
+            self.__dict__[cachename] = res
+            return res
+
+    return new_fcn
+
+
+def get_option(name: str, s: K, options: Mapping[K, T]) -> T:
+    """Get the value from dictionary of options, if not found, then raise an error
+
+    Examples
+    --------
+    >>> from deepchem.utils import get_option
+    >>> options = {"a": 1, "b": 2}
+    >>> get_option("name", "a", options)
+    1
+
+    Parameters
+    ----------
+    name : str
+        Name of the option
+    s : K
+        Key to be searched
+    options : Mapping[K, T]
+        Dictionary of options
+
+    Returns
+    -------
+    T
+        Value of the option
+    """
+    if s in options:
+        return options[s]
+    else:
+        raise ValueError(
+            f"Unknown {name}: {s}. The available options are: {str(list(options.keys()))}"
+        )

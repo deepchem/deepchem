@@ -13,6 +13,8 @@ from deepchem.utils.misc_utils import GetSetParamsError
 from deepchem.utils.misc_utils import ConvergenceWarning
 from deepchem.utils.misc_utils import MathWarning
 from deepchem.utils.misc_utils import Uniquifier
+from deepchem.utils.misc_utils import memoize_method
+from deepchem.utils.misc_utils import get_option
 
 from deepchem.utils.batch_utils import batch_coulomb_matrix_features
 
@@ -128,6 +130,16 @@ from deepchem.utils.voxel_utils import voxelize
 from deepchem.utils.sequence_utils import hhblits
 from deepchem.utils.sequence_utils import hhsearch
 
+from deepchem.utils.poly_wd_graph_utils import handle_hydrogen
+from deepchem.utils.poly_wd_graph_utils import make_polymer_mol
+from deepchem.utils.poly_wd_graph_utils import parse_polymer_rules
+from deepchem.utils.poly_wd_graph_utils import tag_atoms_in_repeating_unit
+from deepchem.utils.poly_wd_graph_utils import onek_encoding_unk
+from deepchem.utils.poly_wd_graph_utils import remove_wildcard_atoms
+
+# Polymer Weighted Directed Graph Featurization Utilities
+from deepchem.utils.poly_wd_graph_utils import PolyWDGStringValidator
+
 try:
     from deepchem.utils.periodic_table_utils import get_atomz
     from deepchem.utils.periodic_table_utils import get_atom_mass
@@ -142,6 +154,9 @@ try:
     from deepchem.utils.pytorch_utils import tallqr
     from deepchem.utils.pytorch_utils import to_fortran_order
     from deepchem.utils.pytorch_utils import get_np_dtype
+    from deepchem.utils.pytorch_utils import unsorted_segment_max
+    from deepchem.utils.pytorch_utils import estimate_ovlp_rcut
+    from deepchem.utils.pytorch_utils import get_dtype_memsize
 
     from deepchem.utils.safeops_utils import safepow
     from deepchem.utils.safeops_utils import safenorm

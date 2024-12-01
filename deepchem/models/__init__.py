@@ -56,6 +56,8 @@ except ModuleNotFoundError as e:
 try:
     from deepchem.models.torch_models import HuggingFaceModel
     from deepchem.models.torch_models import Chemberta
+    from deepchem.models.torch_models import MoLFormer
+    from deepchem.models.torch_models import OneFormer
 except ImportError as e:
     logger.warning(e)
 
@@ -63,7 +65,7 @@ except ImportError as e:
 try:
     # TODO We should clean up DMPNN and remove torch_geometric dependency during import
     from deepchem.models.torch_models import MEGNetModel
-    from deepchem.models.torch_models import DMPNN, DMPNNModel, GNNModular
+    from deepchem.models.torch_models import DMPNN, DMPNNModel, GNNModular, MXMNet
 except ImportError as e:
     logger.warning(
         f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'
