@@ -68,15 +68,15 @@ def explicit_rk(tableau: _Tableau,
     ...     dy_dt = delta * X * Y - gamma * Y
     ...     return torch.stack([dx_dt, dy_dt])
     >>> t = torch.linspace(0, 50, 100)
-    >>> y_init = torch.rand(2)
+    >>> y_init = torch.rand(2, 1)
     >>> solver_param = [rk4_tableau,
     ...                 lotka_volterra,
-    ...                 t,
     ...                 y_init,
+    ...                 t,
     ...                 torch.tensor([1.1, 0.4, 0.1, 0.4])]
     >>> sol = explicit_rk(*solver_param)
     >>> sol[-1]
-    tensor([[0.7171, 2.9394]])
+    tensor([[0.0567], [2.3627]])
 
     For solving multiple ODEs, we can use the GPU and feed in multiple initial conditions
     >>> def lotka_volterra(t, y, params):
@@ -88,11 +88,11 @@ def explicit_rk(tableau: _Tableau,
     >>> t = torch.linspace(0, 50, 100)
     >>> batch_size = 10
     >>> y_init = torch.rand(2, batch_size)
-    >>> params = torch.rand(2, batch_size)
+    >>> params = torch.rand(4, batch_size)
     >>> solver_param = [rk4_tableau,
     ...                 lotka_volterra,
-    ...                 t,
     ...                 y_init,
+    ...                 t,
     ...                 params]
     >>> sol = explicit_rk(*solver_param, batch_size=batch_size, device='cuda')
     >>> print(sol.shape)
@@ -154,9 +154,8 @@ def explicit_rk(tableau: _Tableau,
         for i in range(s):
             y_sum = y + h * torch.sum(
                 a[i, :i].unsqueeze(-1).unsqueeze(-1) * k[:i], dim=0)
-            # if len(y0.shape) == 1:
-            y_sum = y_sum.squeeze(0)
-            # print("device", device)
+            if len(y0.shape) == 1:
+                y_sum = y_sum.squeeze(0)
             k[i] = fcn(t=t0 + c[i] * h, y=y_sum.to(device), params=params)
         y = y + h * torch.sum(b.unsqueeze(-1).unsqueeze(-1) * k, dim=0)
         yt_list.append(y)
