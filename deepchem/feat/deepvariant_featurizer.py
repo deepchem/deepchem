@@ -428,8 +428,7 @@ class _Realigner(object):
         return subgraph
 
     def candidate_haplotypes(self, G: Any, k: int,
-                             id_to_kmer: Optional[Dict[int, str]]
-                             ) -> List[str]:
+                             id_to_kmer: Optional[Dict[int, str]]) -> List[str]:
         """
         Generate candidate haplotypes from the De Bruijn graph. This function
         traverses the De Bruijn graph to generate potential haplotypes by
@@ -590,8 +589,7 @@ class _Realigner(object):
             E[:, 1:] = torch.max(H[i - 1, :-1] + gap_open,
                                  E[:, 1:] + gap_extend)
 
-            H[i, 1:] = torch.max(torch.tensor([0]),
-                                 torch.max(H_diag, E[i, 1:]))
+            H[i, 1:] = torch.max(torch.tensor([0]), torch.max(H_diag, E[i, 1:]))
 
             # Track the max score and its position
             if H[i, 1:].max().item() > max_score:
