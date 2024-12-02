@@ -165,9 +165,13 @@ def explicit_rk(tableau: _Tableau,
 
 
 # list of methods
-def rk38_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor,
-             t: torch.Tensor, params: Sequence[torch.Tensor], batch_size: int = 1,
-            device="cpu", **kwargs):
+def rk38_ivp(fcn: Callable[..., torch.Tensor],
+             y0: torch.Tensor,
+             t: torch.Tensor,
+             params: Sequence[torch.Tensor],
+             batch_size: int = 1,
+             device="cpu",
+             **kwargs):
     """A slight variation of "the" Runge–Kutta method is also due to
     Kutta in 1901 and is called the 3/8-rule.[19] The primary advantage
     this method has is that almost all of the error coefficients are
@@ -176,17 +180,20 @@ def rk38_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor,
 
     Examples
     --------
-    >>> def lotka_volterra(y, x, params):
-    ...     y1, y2 = y
-    ...     a, b, c, d = params
-    ...     return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+    >>> def lotka_volterra(t, y, params):
+    ...     X, Y = y
+    ...     alpha, beta, delta, gamma = params
+    ...     dx_dt = alpha * X - beta * X * Y
+    ...     dy_dt = delta * X * Y - gamma * Y
+    ...     return torch.stack([dx_dt, dy_dt])
     >>> t = torch.linspace(0, 50, 100)
+    >>> y_init = torch.rand(2, 1)
     >>> solver_param = [lotka_volterra,
-    ...                 torch.tensor([10., 1.]),
+    ...                 y_init,
     ...                 t,
     ...                 torch.tensor([1.1, 0.4, 0.1, 0.4])]
     >>> sol = rk38_ivp(*solver_param)
-    >>> sol[-1]
+    >>> print(sol[-1])
     tensor([0.3483, 3.2585])
 
     Parameters
@@ -200,6 +207,10 @@ def rk38_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor,
         The list of initial values
     params: list
         List of any other parameters
+    batch_size: int
+        The batch size to compute the RK method. Default is 1.
+    device: str
+        The device to compute the RK method. Default is "cpu".
     **kwargs: dict
         Any other keyword arguments
 
@@ -212,27 +223,34 @@ def rk38_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor,
     return explicit_rk(rk38_tableau, fcn, y0, t, params, batch_size, device)
 
 
-def fwd_euler_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor,
-                  t: torch.Tensor, params: Sequence[torch.Tensor], batch_size: int = 1,
-            device="cpu",**kwargs):
+def fwd_euler_ivp(fcn: Callable[..., torch.Tensor],
+                  y0: torch.Tensor,
+                  t: torch.Tensor,
+                  params: Sequence[torch.Tensor],
+                  batch_size: int = 1,
+                  device="cpu",
+                  **kwargs):
     """However, the simplest Runge–Kutta method is the (forward) Euler method,
     given by the formula $y_{n+1} = y_{n} + hf(t_{n}, y_{n}). This is the only
     consistent explicit Runge–Kutta method with one stage.
 
     Examples
     --------
-    >>> def lotka_volterra(y, x, params):
-    ...     y1, y2 = y
-    ...     a, b, c, d = params
-    ...     return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+    >>> def lotka_volterra(t, y, params):
+    ...     X, Y = y
+    ...     alpha, beta, delta, gamma = params
+    ...     dx_dt = alpha * X - beta * X * Y
+    ...     dy_dt = delta * X * Y - gamma * Y
+    ...     return torch.stack([dx_dt, dy_dt])
     >>> t = torch.linspace(0, 50, 1000)
+    >>> y_init = torch.randn(2, 1)
     >>> solver_param = [lotka_volterra,
-    ...                 torch.tensor([10., 1.]),
+    ...                 y_init,
     ...                 t,
     ...                 torch.tensor([1.1, 0.4, 0.1, 0.4])]
     >>> sol = fwd_euler_ivp(*solver_param)
-    >>> sol[-1]
-    tensor([4.7419, 0.2445])
+    >>> print(sol[-1])
+    tensor([[4.6852], [0.5726]])
 
     Parameters
     ----------
@@ -245,6 +263,10 @@ def fwd_euler_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor,
         The list of initial values
     params: list
         List of any other parameters
+    batch_size: int
+        The batch size to compute the RK method. Default is 1.
+    device: str
+        The device to compute the RK method. Default is "cpu".
     **kwargs: dict
         Any other keyword arguments
 
@@ -254,12 +276,17 @@ def fwd_euler_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor,
         The value of `y` at the given time `t`
 
     """
-    return explicit_rk(fwd_euler_tableau, fcn, y0, t, params, batch_size, device)
+    return explicit_rk(fwd_euler_tableau, fcn, y0, t, params, batch_size,
+                       device)
 
 
-def rk4_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor, t: torch.Tensor,
-            params: Sequence[torch.Tensor], batch_size: int = 1,
-            device="cpu",**kwargs):
+def rk4_ivp(fcn: Callable[..., torch.Tensor],
+            y0: torch.Tensor,
+            t: torch.Tensor,
+            params: Sequence[torch.Tensor],
+            batch_size: int = 1,
+            device="cpu",
+            **kwargs):
     """The most commonly used Runge Kutta method to find the solution
     of a differential equation is the RK4 method, i.e., the fourth-order
     Runge-Kutta method. The Runge-Kutta method provides the approximate
@@ -268,17 +295,20 @@ def rk4_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor, t: torch.Tensor,
 
     Examples
     --------
-    >>> def lotka_volterra(y, x, params):
-    ...     y1, y2 = y
-    ...     a, b, c, d = params
-    ...     return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+    >>> def lotka_volterra(t, y, params):
+    ...     X, Y = y
+    ...     alpha, beta, delta, gamma = params
+    ...     dx_dt = alpha * X - beta * X * Y
+    ...     dy_dt = delta * X * Y - gamma * Y
+    ...     return torch.stack([dx_dt, dy_dt])
     >>> t = torch.linspace(0, 50, 100)
+    >>> y_init = torch.rand(2, 1)
     >>> solver_param = [lotka_volterra,
-    ...                 torch.tensor([10., 1.]),
+    ...                 y_init,
     ...                 t,
     ...                 torch.tensor([1.1, 0.4, 0.1, 0.4])]
     >>> sol = rk4_ivp(*solver_param)
-    >>> sol[-1]
+    >>> print(sol[-1])
     tensor([0.3459, 3.2954])
 
     Parameters
@@ -292,6 +322,10 @@ def rk4_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor, t: torch.Tensor,
         The list of initial values
     params: list
         List of any other parameters
+    batch_size: int
+        The batch size to compute the RK method. Default is 1.
+    device: str
+        The device to compute the RK method. Default is "cpu".
     **kwargs: dict
         Any other keyword arguments
 
@@ -304,9 +338,13 @@ def rk4_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor, t: torch.Tensor,
     return explicit_rk(rk4_tableau, fcn, y0, t, params, batch_size, device)
 
 
-def mid_point_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor,
-                  t: torch.Tensor, params: Sequence[torch.Tensor], batch_size: int = 1,
-            device="cpu",**kwargs):
+def mid_point_ivp(fcn: Callable[..., torch.Tensor],
+                  y0: torch.Tensor,
+                  t: torch.Tensor,
+                  params: Sequence[torch.Tensor],
+                  batch_size: int = 1,
+                  device="cpu",
+                  **kwargs):
     """The explicit midpoint method is sometimes also known as the
     modified Euler method, the implicit method is the most simple
     collocation method, and, applied to Hamiltonian dynamics, a
@@ -314,13 +352,16 @@ def mid_point_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor,
 
     Examples
     --------
-    >>> def lotka_volterra(y, x, params):
-    ...     y1, y2 = y
-    ...     a, b, c, d = params
-    ...     return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+    >>> def lotka_volterra(t, y, params):
+    ...     X, Y = y
+    ...     alpha, beta, delta, gamma = params
+    ...     dx_dt = alpha * X - beta * X * Y
+    ...     dy_dt = delta * X * Y - gamma * Y
+    ...     return torch.stack([dx_dt, dy_dt])
     >>> t = torch.linspace(0, 50, 100)
+    >>> y_init = torch.rand(2, 1)
     >>> solver_param = [lotka_volterra,
-    ...                 torch.tensor([10., 1.]),
+    ...                 y_init,
     ...                 t,
     ...                 torch.tensor([1.1, 0.4, 0.1, 0.4])]
     >>> sol = rk4_ivp(*solver_param)
@@ -338,6 +379,10 @@ def mid_point_ivp(fcn: Callable[..., torch.Tensor], y0: torch.Tensor,
         The list of initial values
     params: list
         List of any other parameters
+    batch_size: int
+        The batch size to compute the RK method. Default is 1.
+    device: str
+        The device to compute the RK method. Default is "cpu".
     **kwargs: dict
         Any other keyword arguments
 
