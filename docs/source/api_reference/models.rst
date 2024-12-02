@@ -594,6 +594,12 @@ MXMNet
 .. autoclass:: deepchem.models.torch_models.MXMNet
   :members:
 
+MultitaskIRVClassifier
+----------------------
+
+.. autoclass:: deepchem.models.torch_models.MultitaskIRVClassifier
+  :members:
+
 PyTorch Lightning Models
 ========================
 
