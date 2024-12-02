@@ -53,7 +53,7 @@ def explicit_rk(tableau: _Tableau,
                 fcn: Callable[..., torch.Tensor],
                 y0: torch.Tensor,
                 t: torch.Tensor,
-                params: Sequence[torch.Tensor],
+                params: torch.Tensor,
                 batch_size: int = 1,
                 device="cpu"):
     """The family of explicit Runge–Kutta methods is a generalization
