@@ -618,6 +618,12 @@ InceptionV3Model
 .. autoclass:: deepchem.models.torch_models.InceptionV3Model
   :members:
 
+MultitaskIRVClassifier
+----------------
+
+.. autoclass:: deepchem.models.torch_models.MultitaskIRVClassifier
+  :members:
+
 PyTorch Lightning Models
 ========================
 
