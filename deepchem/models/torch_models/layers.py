@@ -6477,3 +6477,355 @@ class GraphGather(nn.Module):
         if self.activation_fn is not None:
             mol_features = self.activation_fn(mol_features)
         return mol_features
+
+
+class EquivariantLinear(nn.Module):
+    """
+    An equivariant linear layer for transforming feature tensors.
+
+    This layer is designed for 3D atomic or molecular data, handling per-atom features
+    such as charges or embeddings. It ensures transformations respect equivariance
+    properties, making it suitable for tasks involving atomic coordinates and related
+    features.
+
+    Parameters
+    ----------
+    in_features: int
+        Number of input features.
+    out_features: int
+        Number of output features.
+
+    Example
+    -------
+    >>> layer = EquivariantLinear(4, 8)
+    >>> x = torch.randn(3, 4)  # Default dtype is torch.float32
+    >>> y = layer(x)
+    >>> y.shape
+    torch.Size([3, 8])
+    """
+
+    def __init__(self, in_features: int, out_features: int) -> None:
+        """
+        Initialize the equivariant linear layer.
+
+        Parameters
+        ----------
+        in_features: int
+            Number of input features.
+        out_features: int
+            Number of output features.
+        """
+        super(EquivariantLinear, self).__init__()
+        self.weight = nn.Parameter(
+            torch.randn(in_features, out_features) * 0.01)
+        self.bias = nn.Parameter(torch.zeros(out_features))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Apply a linear transformation.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input feature tensor of shape `(B, N, in_features)`.
+
+        Returns
+        -------
+        output: torch.Tensor
+            Transformed feature tensor of shape `(B, N, out_features)`.
+        """
+        # Current implementation work for int features (dist)
+        output = torch.matmul(x, self.weight) + self.bias
+        return output
+
+
+class SphericalHarmonics:
+    """
+    Custom computation of spherical harmonics up to a specified degree.
+
+    Spherical harmonics are implemented to capture rotationally equivariant features
+    based on interatomic relative positions.
+
+    Parameters
+    ----------
+    max_degree: int
+        Maximum degree of the spherical harmonics.
+
+    Example
+    -------
+    >>> sh = SphericalHarmonics(max_degree=2)
+    >>> relative_positions = torch.randn(3, 5, 5, 3)
+    >>> result = sh.compute(relative_positions)
+    >>> result.shape
+    torch.Size([3, 5, 5, 9])
+    """
+
+    def __init__(self, max_degree: int) -> None:
+        """
+        Initialize the custom spherical harmonics calculator.
+
+        Parameters
+        ----------
+        max_degree: int
+            Maximum degree of the spherical harmonics.
+        """
+        self.max_degree = max_degree
+
+    def compute_legendre_polynomials(self, l: int, m: int,
+                                     x: torch.Tensor) -> torch.Tensor:
+        """
+        Compute the associated Legendre polynomial.
+
+        Parameters
+        ----------
+        l: int
+            Degree of the polynomial.
+        m: int
+            Order of the polynomial.
+        x: torch.Tensor
+            Input tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            Computed Legendre polynomial values.
+
+        Example
+        -------
+        >>> sh = SphericalHarmonics(max_degree=2)
+        >>> x = torch.tensor(0.5)
+        >>> sh.compute_legendre_polynomials(1, 0, x)
+        tensor(0.5000)
+        """
+        l_tensor = torch.tensor(l, dtype=x.dtype, device=x.device)
+        m_tensor = torch.tensor(m, dtype=x.dtype, device=x.device)
+
+        if m == 0:
+            return (x**l_tensor)
+        elif m > 0:
+            return ((1 - x**2).sqrt()**
+                    m_tensor) * self.compute_legendre_polynomials(l, m - 1, x)
+        else:
+            return (-1)**m * self.compute_legendre_polynomials(l, -m, x)
+
+    def compute_spherical_harmonics(self, l: int, m: int, theta: torch.Tensor,
+                                    phi: torch.Tensor) -> torch.Tensor:
+        """
+        Compute the spherical harmonics Y_l^m(theta, phi).
+
+        Parameters
+        ----------
+        l: int
+            Degree of the spherical harmonics.
+        m: int
+            Order of the spherical harmonics.
+        theta: torch.Tensor
+            Polar angles in radians.
+        phi: torch.Tensor
+            Azimuthal angles in radians.
+
+        Returns
+        -------
+        torch.Tensor
+            Spherical harmonics values.
+
+        Example
+        -------
+        >>> sh = SphericalHarmonics(max_degree=2)
+        >>> theta = torch.tensor(0.5)
+        >>> phi = torch.tensor(1.0)
+        >>> sh.compute_spherical_harmonics(1, 0, theta, phi)
+        tensor(0.4288+0.j)
+        """
+        l_tensor = torch.tensor(l, dtype=theta.dtype, device=theta.device)
+        m_tensor = torch.tensor(m, dtype=theta.dtype, device=theta.device)
+
+        legendre = self.compute_legendre_polynomials(l, m, torch.cos(theta))
+
+        normalization = torch.sqrt(
+            (2 * l_tensor + 1) /
+            (4 * torch.tensor(math.pi, dtype=theta.dtype, device=theta.device))
+            * torch.exp(
+                torch.lgamma(l_tensor - torch.abs(m_tensor) + 1) -
+                torch.lgamma(l_tensor + torch.abs(m_tensor) + 1)))
+        return normalization * legendre * torch.exp(1j * m_tensor * phi)
+
+    def compute(self, relative_positions: torch.Tensor) -> torch.Tensor:
+        """
+        Compute all spherical harmonics for relative positions.
+
+        Parameters
+        ----------
+        relative_positions: torch.Tensor
+            Tensor of shape `(B, N, N, 3)` representing relative positions.
+
+        Returns
+        -------
+        torch.Tensor
+            Spherical harmonics tensor of shape `(B, N, N, SH_dim)`.
+
+        Example
+        -------
+        >>> sh = SphericalHarmonics(max_degree=1)
+        >>> rel_positions = torch.randn(1, 3, 3, 3)
+        >>> sh.compute(rel_positions).shape
+        torch.Size([1, 3, 3, 4])
+        """
+        r = relative_positions.norm(dim=-1, keepdim=True) + 1e-6
+        theta = torch.acos(
+            torch.clamp(relative_positions[..., 2] / r.squeeze(-1), -1.0, 1.0))
+        phi = torch.atan2(relative_positions[..., 1], relative_positions[...,
+                                                                         0])
+
+        spherical_harmonics = []
+        for l in range(self.max_degree + 1):
+            for m in range(-l, l + 1):
+                sh_lm = self.compute_spherical_harmonics(l, m, theta, phi)
+                spherical_harmonics.append(sh_lm.real)
+
+        return torch.stack(spherical_harmonics,
+                           dim=-1).reshape(*relative_positions.shape[:-1], -1)
+
+
+class SE3Attention(nn.Module):
+    """
+    SE(3) Attention Module with Spherical Harmonics.
+    
+    This module is designed for 3D atomic or molecular data, using spherical harmonics
+    to compute rotationally equivariant attention based on interatomic distances and
+    relative positions. It ensures SE(3)-equivariance for both feature and coordinate updates.
+
+    Parameters
+    ----------
+    embed_dim: int
+        Dimensionality of feature embeddings.
+    num_heads: int
+        Number of attention heads.
+    sh_max_degree: int
+        Maximum degree of spherical harmonics.
+
+    Example
+    -------
+    >>> layer = SE3Attention(embed_dim=64, num_heads=4, sh_max_degree=2)
+    >>> x = torch.randn(1, 10, 64)  # Default dtype torch.float32
+    >>> coords = torch.randn(1, 10, 3)  # Default dtype torch.float32
+    >>> features, coords = layer(x, coords)
+    >>> features.shape, coords.shape
+    (torch.Size([1, 10, 64]), torch.Size([1, 10, 3]))
+    """
+
+    def __init__(self,
+                 embed_dim: int,
+                 num_heads: int,
+                 sh_max_degree: int = 2) -> None:
+        """
+        Initialize the SE(3) Attention Module.
+
+        Parameters
+        ----------
+        embed_dim: int
+            Dimensionality of feature embeddings.
+        num_heads: int
+            Number of attention heads.
+        sh_max_degree: int, optional
+            Maximum degree of spherical harmonics. Default is 2.
+        """
+        super(SE3Attention, self).__init__()
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.sh_max_degree = sh_max_degree
+
+        # Linear transformations
+        self.query = EquivariantLinear(embed_dim, embed_dim)
+        self.key = EquivariantLinear(embed_dim, embed_dim)
+        self.value = EquivariantLinear(embed_dim, embed_dim)
+        self.out = EquivariantLinear(embed_dim, embed_dim)
+        self.coord_linear = EquivariantLinear(embed_dim, 3)
+
+        # Spherical harmonics
+        self.sh_computer = SphericalHarmonics(max_degree=sh_max_degree)
+        self.sh_projection = nn.Linear((sh_max_degree + 1)**2,
+                                       embed_dim // num_heads)
+
+    def compute_spherical_harmonics(
+            self, coords: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Compute distances and spherical harmonics for relative positions.
+
+        Parameters
+        ----------
+        coords: torch.Tensor
+            Input coordinates tensor of shape `(B, N, 3)`.
+
+        Returns
+        -------
+        Tuple[torch.Tensor, torch.Tensor]
+            Pairwise distances of shape `(B, N, N, 1)` and spherical harmonics of shape `(B, N, N, SH_dim)`.
+
+        Example
+        -------
+        >>> coords = torch.randn(1, 10, 3)
+        >>> layer = SE3Attention(embed_dim=64, num_heads=4, sh_max_degree=2)
+        >>> dist, sh = layer.compute_spherical_harmonics(coords)
+        >>> dist.shape, sh.shape
+        (torch.Size([1, 10, 10, 1]), torch.Size([1, 10, 10, 16]))
+        """
+        relative_positions = coords.unsqueeze(2) - coords.unsqueeze(1)
+        dist = relative_positions.norm(dim=-1, keepdim=True)
+        sh = self.sh_computer.compute(relative_positions)
+
+        sh = self.sh_projection(sh)
+        return dist, sh
+
+    def forward(self, x: torch.Tensor,
+                coords: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Perform attention computation and coordinate updates.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input feature tensor of shape `(B, N, embed_dim)`.
+        coords: torch.Tensor
+            Input coordinate tensor of shape `(B, N, 3)`.
+
+        Returns
+        -------
+        Tuple[torch.Tensor, torch.Tensor]
+            Updated feature tensor of shape `(B, N, embed_dim)` and updated coordinate tensor of shape `(B, N, 3)`.
+
+        Example
+        -------
+        >>> layer = SE3Attention(embed_dim=64, num_heads=4, sh_max_degree=2)
+        >>> x = torch.randn(1, 10, 64)
+        >>> coords = torch.randn(1, 10, 3)
+        >>> features, coords = layer(x, coords)
+        >>> features.shape, coords.shape
+        (torch.Size([1, 10, 64]), torch.Size([1, 10, 3]))
+        """
+        dist, sh = self.compute_spherical_harmonics(coords)
+
+        B, N, _ = x.shape
+        q = self.query(x).view(B, N, self.num_heads, -1)
+        k = self.key(x).view(B, N, self.num_heads, -1)
+        v = self.value(x).view(B, N, self.num_heads, -1)
+
+        # attention weights
+        attn_weights = torch.einsum('bnm,bnhd,bmhd->bhnm', dist.squeeze(-1), q,
+                                    k)
+        sh_weights = torch.einsum('bnmd,bnhd->bhnm', sh, q)
+        attn_weights += sh_weights
+
+        attn_weights = F.softmax(attn_weights, dim=-1)
+
+        context = torch.einsum('bhnm,bmhd->bnhd', attn_weights,
+                               v).reshape(B, N, -1)
+        x = self.out(context)
+
+        # update coordinates
+        coords_update = self.coord_linear(context)
+        coords_update = coords_update / (
+            coords_update.norm(dim=-1, keepdim=True) + 1e-6)
+        coords = coords + 0.01 * coords_update
+
+        return x, coords

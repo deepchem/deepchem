@@ -540,12 +540,30 @@ WeaveModel
 .. autoclass:: deepchem.models.torch_models.WeaveModel
   :members:
 
-ProgressiveMultitaskModel
+ProgressiveMultitaskClassifier
 -------------------------
 
-.. autoclass:: deepchem.models.torch_models.ProgressiveMultitaskModel
+.. autoclass:: deepchem.models.torch_models.ProgressiveMultitaskClassifier
   :members:
 
+ProgressiveMultitaskRegressor
+-------------------------
+
+.. autoclass:: deepchem.models.torch_models.ProgressiveMultitaskRegressor
+  :members:
+
+RobustMultitaskClassifier
+-------------------------
+
+.. autoclass:: deepchem.models.torch_models.RobustMultitaskClassifier
+  :members:
+
+RobustMultitaskRegressor
+------------------------
+
+.. autoclass:: deepchem.models.torch_models.RobustMultitaskRegressor
+  :members:
+  
 Density Functional Theory Model - XCModel
 -----------------------------------------
 
@@ -594,10 +612,10 @@ MXMNet
 .. autoclass:: deepchem.models.torch_models.MXMNet
   :members:
 
-MultitaskIRVClassifier
-----------------------
+InceptionV3Model
+----------------
 
-.. autoclass:: deepchem.models.torch_models.MultitaskIRVClassifier
+.. autoclass:: deepchem.models.torch_models.InceptionV3Model
   :members:
 
 PyTorch Lightning Models

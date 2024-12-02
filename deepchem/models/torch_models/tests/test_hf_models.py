@@ -38,7 +38,7 @@ def hf_tokenizer(tmpdir):
     return tokenizer
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_pretraining(hf_tokenizer, smiles_regression_dataset):
     from deepchem.models.torch_models.hf_models import HuggingFaceModel
     from transformers.models.roberta import RobertaConfig, RobertaForMaskedLM
@@ -55,7 +55,7 @@ def test_pretraining(hf_tokenizer, smiles_regression_dataset):
     assert loss
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_hf_model_regression(hf_tokenizer, smiles_regression_dataset):
     from transformers.models.roberta import (RobertaConfig,
                                              RobertaForSequenceClassification)
@@ -77,7 +77,7 @@ def test_hf_model_regression(hf_tokenizer, smiles_regression_dataset):
     assert score
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_hf_model_classification(hf_tokenizer, smiles_regression_dataset):
     y = np.random.choice([0, 1], size=smiles_regression_dataset.y.shape)
     dataset = dc.data.NumpyDataset(X=smiles_regression_dataset.X,
@@ -102,7 +102,7 @@ def test_hf_model_classification(hf_tokenizer, smiles_regression_dataset):
     assert score
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_load_from_pretrained(tmpdir, hf_tokenizer):
     # Create pretrained model
     from transformers.models.roberta import (RobertaConfig, RobertaForMaskedLM,
@@ -147,7 +147,7 @@ def test_load_from_pretrained(tmpdir, hf_tokenizer):
     assert all(matches)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_model_save_reload(tmpdir, hf_tokenizer):
     from transformers.models.roberta import (RobertaConfig,
                                              RobertaForSequenceClassification)
@@ -181,7 +181,7 @@ def test_model_save_reload(tmpdir, hf_tokenizer):
     assert all(matches)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_load_from_hf_checkpoint():
     from transformers.models.t5 import T5Config, T5Model
     config = T5Config()
@@ -203,7 +203,7 @@ def test_load_from_hf_checkpoint():
     assert all(not_matches)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_fill_mask_IO(tmpdir, hf_tokenizer):
     from transformers import (RobertaConfig, RobertaForMaskedLM)
 
@@ -232,7 +232,7 @@ def test_fill_mask_IO(tmpdir, hf_tokenizer):
     assert isinstance(results[0][0], dict)
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_fill_mask_fidelity(tmpdir, hf_tokenizer):
     from transformers import (RobertaConfig, RobertaForMaskedLM)
 
@@ -268,7 +268,7 @@ def test_fill_mask_fidelity(tmpdir, hf_tokenizer):
             assert filled['sequence'].startswith(f'<s>{filled["token_str"]}')
 
 
-@pytest.mark.torch
+@pytest.mark.hf
 def test_load_from_pretrained_with_diff_task(tmpdir):
     # Tests loading a pretrained model where the weight shape in last layer
     # (the final projection layer) of the pretrained model does not match
