@@ -3,7 +3,7 @@ from deepchem.models.losses import SigmoidCrossEntropy
 import torch
 import torch.nn as nn
 from typing import Callable, Optional, List
-import numpy as np
+from torch import Tensor
 
 
 class IRVLayer(nn.Module):
@@ -96,7 +96,7 @@ class IRVLayer(nn.Module):
         self.b = nn.Parameter(torch.tensor([0.01], dtype=torch.float32))
         self.b2 = nn.Parameter(torch.tensor([0.01], dtype=torch.float32))
 
-    def forward(self, inputs: List[torch.Tensor]) -> np.ndarray:
+    def forward(self, inputs: Tensor) -> List[Tensor]:
         """Build the model."""
 
         K = self.K
