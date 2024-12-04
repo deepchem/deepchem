@@ -4,7 +4,7 @@ import deepchem as dc
 from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.losses import L2Loss
 from typing import Tuple, Iterable, List
-from deepchem.models.torch_models.layers import SE3Attention, EquivariantLinear
+from deepchem.models.torch_models.layers import SE3Attention
 
 
 class SE3TransformerLayers(nn.Module):
@@ -134,9 +134,10 @@ class SE3TransformerModel(TorchModel):
     >>> model = SE3TransformerModel(embed_dim=embed_dim, num_heads=num_heads, num_layers=num_layers, batch_size=batch_size)
     >>> X = np.random.rand(100, 10, embed_dim + 3).astype(np.float32)  # Features + coordinates
     >>> y = np.random.rand(100, 1).astype(np.float32)  # Target values
-    >>> w = np.ones((100, 1)).astype(np.float32)       # Uniform weights
+    >>> w = np.ones((100, 1)).astype(np.float32)
     >>> train_dataset = dc.data.NumpyDataset(X=X, y=y, w=w)
-    >>> model.fit(train_dataset, nb_epoch=10)
+    >>> _ = model.fit(train_dataset, nb_epoch=10)
+    >>> preds = model.predict(train_dataset)
     """
 
     def __init__(self,
@@ -182,7 +183,6 @@ class SE3TransformerModel(TorchModel):
                     batch_size=self.batch_size,
                     deterministic=deterministic,
                     pad_batches=pad_batches):
-                y_b = torch.tensor(y_b, dtype=torch.float32).reshape(-1, 1)
-                X_b = torch.tensor(X_b, dtype=torch.float32)
-                w_b = torch.tensor(w_b, dtype=torch.float32).reshape(-1, 1)
+                y_b = y_b.reshape(-1, 1)
+                w_b = w_b.reshape(-1, 1)
                 yield ([X_b], [y_b], [w_b])
