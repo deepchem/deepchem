@@ -179,7 +179,8 @@ class Slice(nn.Module):
         slice_num = self.slice_num
         axis = self.axis
         device = inputs.device  # Get the device of the input tensor
-        return inputs.index_select(axis, torch.tensor([slice_num], device=device))
+        return inputs.index_select(axis, torch.tensor([slice_num],
+                                                      device=device))
 
 
 class MultitaskIRVClassifier(TorchModel):
