@@ -5462,8 +5462,9 @@ class FerminetElectronFeature(torch.nn.Module):
                 f: torch.Tensor = torch.cat((one_electron[:, i, :], g_one_up,
                                              g_one_down, g_two_up, g_two_down),
                                             dim=1)
-                if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
-                        self.n_two[l] != self.n_two[l - 1]):
+                if l == 0 or (self.n_one[l]
+                              != self.n_one[l - 1]) or (self.n_two[l]
+                                                        != self.n_two[l - 1]):
                     one_electron_tmp.append((torch.tanh(self.v[l](f))) +
                                             self.projection_module[0]
                                             (one_electron[:, i, :]))
@@ -6674,8 +6675,8 @@ class SphericalHarmonics:
         r = relative_positions.norm(dim=-1, keepdim=True) + 1e-6
         theta = torch.acos(
             torch.clamp(relative_positions[..., 2] / r.squeeze(-1), -1.0, 1.0))
-        phi = torch.atan2(relative_positions[..., 1], relative_positions[...,
-                                                                         0])
+        phi = torch.atan2(relative_positions[..., 1],
+                          torch.clamp(relative_positions[..., 0], min=1e-6))
 
         spherical_harmonics = []
         for l in range(self.max_degree + 1):

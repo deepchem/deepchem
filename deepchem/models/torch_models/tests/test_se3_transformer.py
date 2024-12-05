@@ -167,6 +167,9 @@ def test_deepchem_se3_model_fit_and_predict():
 
     from deepchem.models.torch_models import SE3TransformerModel
     from deepchem.data import NumpyDataset
+    import deepchem as dc
+
+    metric = dc.metrics.Metric(dc.metrics.pearson_r2_score)
 
     X = np.random.rand(100, N, embed_dim + 3).astype(np.float32)
     y = np.random.rand(100, 1).astype(np.float32)
@@ -179,8 +182,9 @@ def test_deepchem_se3_model_fit_and_predict():
                                 batch_size=B)
 
     model.fit(train_dataset, nb_epoch=200)
-
+    score = model.evaluate(train_dataset, [metric])
     preds = model.predict(train_dataset)
 
+    assert score["pearson_r2_score"] > 0.9
     assert preds.shape == y.shape
     assert np.allclose(y, preds, atol=0.1)

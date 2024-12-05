@@ -113,7 +113,11 @@ class SE3Transformer(nn.Module):
 
 class SE3TransformerModel(TorchModel):
     """
-    SE(3) Transformer wrapper.
+    SE(3) Transformer wrapper. This model employs SE(3) equivariant layers to predict
+    molecular properties by learning features that respect the 3D spatial structure of
+    molecules. Inspired by [equi1], the model leverages SE(3)-equivariant architectures
+    to address 3D spatial symmetries, with the potential to further integrate graph-based
+    molecular representations to capture relational and topological data effectively.
 
     Parameters
     ----------
@@ -125,6 +129,12 @@ class SE3TransformerModel(TorchModel):
         Number of SE(3) Attention layers.
     mode: str
         Mode of operation ('fit', 'predict', or 'evaluate').
+
+    References
+    ----------
+    .. [equi1] Ganea, O. E., Grote, A., & Barzilay, R. (2021).
+    Independent SE(3)-Equivariant Models for End-to-End Rigid Protein Docking.
+    arXiv preprint arXiv:2006.10503.
 
     Example
     -------
