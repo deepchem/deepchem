@@ -231,6 +231,14 @@ class HuggingFaceModel(TorchModel):
                 # Delete keys of output projection layer (last layer) as the number of
                 # tasks (projections) in pretrain model and the current model
                 # might vary.
+
+                # When using Distributed Data Parallel (DDP) for training models, PyTorch automatically 
+                # wraps model parameters in a module. prefix. This can cause issues when loading or 
+                # saving model states because the key names in state_dict differ from their original 
+                # single-GPU counterparts. To address this, model_state_dict is updated by removing 
+                # the "module." prefix when saving or loading models.
+
+                data['model_state_dict'] = {key.replace("module.", ""): value for key, value in data['model_state_dict'].items()}
                 keys = data['model_state_dict'].keys()
                 if 'classifier.out_proj.weight' in keys:
                     del data['model_state_dict']['classifier.out_proj.weight']
