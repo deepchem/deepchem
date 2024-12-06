@@ -101,7 +101,6 @@ class IRVLayer(nn.Module):
 
         K = self.K
         predictions = []
-
         for count in range(self.n_tasks):
 
             # Similarity values
@@ -119,19 +118,17 @@ class IRVLayer(nn.Module):
             z = torch.sum(R * self.V[ys], dim=1) + self.b2
             predictions.append(z.view(-1, 1))
 
-        predictions = torch.cat(predictions, dim=1)
-
         logits = []
         outputs = []
         for task in range(self.n_tasks):
-            task_output = Slice(task, 1)(predictions)
+            task_output = Slice(task, 1)(torch.cat(predictions, dim=1))
             sigmoid = torch.sigmoid(task_output)
             logits.append(task_output)
             outputs.append(sigmoid)
-        outputs = torch.stack(outputs, dim=1)
-        outputs2 = 1 - outputs
+        outputs_stacked = torch.stack(outputs, dim=1)
+        outputs2 = 1 - outputs_stacked
         outputs = [
-            torch.cat([outputs2, outputs], dim=2),
+            torch.cat([outputs2, outputs_stacked], dim=2),
             logits[0] if len(logits) == 1 else torch.cat(logits, dim=1)
         ]
         return outputs
