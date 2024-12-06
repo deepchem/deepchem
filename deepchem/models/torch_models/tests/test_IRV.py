@@ -1,10 +1,14 @@
 import deepchem as dc
-import torch
 import numpy as np
 import tempfile
 import pickle
 import os
 import pytest
+
+try:
+    import torch
+except ModuleNotFoundError:
+    pass
 
 
 @pytest.mark.torch
