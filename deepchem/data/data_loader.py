@@ -2026,7 +2026,7 @@ class BAMLoader(DataLoader):
         get_pileup: bool, optional (default: False)
             If True, the pileup of reads at each position is
             returned, to be used in DeepVariant.
-        
+
        """
 
         # Set attributes

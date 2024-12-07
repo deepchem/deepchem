@@ -1,6 +1,6 @@
 """Type annotations that are widely used in DeepChem"""
 
-from typing import Any, Callable, List, Sequence, Tuple, TypeVar, Union, Iterable, Dict, Optional
+from typing import Any, Callable, List, Sequence, Tuple, TypeVar, Union, Iterable, Dict
 import numpy as np
 
 T = TypeVar("T")

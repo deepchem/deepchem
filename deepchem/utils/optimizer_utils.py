@@ -4,7 +4,8 @@ try:
     from torch.optim import Optimizer
 except:
     pass
-from deepchem.utils.typing import Betas2, Params, Optional, Callable, Any
+from deepchem.utils.typing import Betas2, Params, Callable, Any
+from typing import Optional
 
 
 class LambOptimizer(Optimizer):
