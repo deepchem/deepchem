@@ -136,3 +136,21 @@ def test_chemberta_load_weights_from_hf_hub():
     # new model's model attribute is an entirely new model initiated by AutoModel.load_from_pretrained
     # and hence it should have a different identifier
     assert old_model_id != new_model_id
+
+
+@pytest.mark.hf
+def test_chemberta_finetuning_multitask_classification():
+    # test multitask classification
+    loader = dc.molnet.load_tox21(featurizer=dc.feat.DummyFeaturizer())
+    tasks, dataset, transformers = loader
+    train, val, test = dataset
+
+    model = Chemberta(task='classification', n_tasks=len(tasks))
+    loss = model.fit(train, nb_epoch=1)
+    eval_score = model.evaluate(test,
+                                metrics=dc.metrics.Metric(
+                                    dc.metrics.recall_score))
+    assert eval_score, loss
+    prediction = model.predict(dataset)
+    # logit scores
+    assert prediction.shape == (dataset.y.shape[0], len(tasks))
