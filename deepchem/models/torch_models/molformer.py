@@ -74,38 +74,31 @@ class MoLFormer(HuggingFaceModel):
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_path,
                                                   trust_remote_code=True)
         molformer_config = AutoConfig.from_pretrained(
-            "ibm/MoLFormer-XL-both-10pct",
-            deterministic_eval=True,
-            trust_remote_code=True)
+            "ibm/MoLFormer-XL-both-10pct", trust_remote_code=True)
         if task == 'mlm':
             model = AutoModelForMaskedLM.from_config(molformer_config,
                                                      trust_remote_code=True)
         elif task == 'mtr':
             problem_type = 'regression'
-            model = AutoModelForSequenceClassification.from_pretrained(
-                "ibm/MoLFormer-XL-both-10pct",
-                problem_type=problem_type,
-                num_labels=n_tasks,
-                deterministic_eval=True,
-                trust_remote_code=True)
+            molformer_config.problem_type = 'regression'
+            molformer_config.num_labels = n_tasks
+            model = AutoModelForSequenceClassification.from_config(
+                config=molformer_config, trust_remote_code=True)
         elif task == 'regression':
             problem_type = 'regression'
-            model = AutoModelForSequenceClassification.from_pretrained(
-                "ibm/MoLFormer-XL-both-10pct",
-                problem_type=problem_type,
-                num_labels=n_tasks,
-                deterministic_eval=True,
-                trust_remote_code=True)
+            molformer_config.problem_type = 'regression'
+            molformer_config.num_labels = n_tasks
+            model = AutoModelForSequenceClassification.from_config(
+                config=molformer_config, trust_remote_code=True)
         elif task == 'classification':
             if n_tasks == 1:
                 problem_type = 'single_label_classification'
             else:
+                molformer_config.num_labels = n_tasks
                 problem_type = 'multi_label_classification'
-            model = AutoModelForSequenceClassification.from_pretrained(
-                "ibm/MoLFormer-XL-both-10pct",
-                problem_type=problem_type,
-                deterministic_eval=True,
-                trust_remote_code=True)
+            molformer_config.problem_type = problem_type
+            model = AutoModelForSequenceClassification.from_config(
+                molformer_config, trust_remote_code=True)
         else:
             raise ValueError('invalid task specification')
 
