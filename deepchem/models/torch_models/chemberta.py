@@ -107,6 +107,7 @@ class Chemberta(HuggingFaceModel):
                 chemberta_config.problem_type = 'single_label_classification'
             else:
                 chemberta_config.problem_type = 'multi_label_classification'
+                chemberta_config.num_labels = n_tasks
             model = RobertaForSequenceClassification(chemberta_config)
         else:
             raise ValueError('invalid task specification')
