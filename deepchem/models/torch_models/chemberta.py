@@ -105,7 +105,6 @@ class Chemberta(HuggingFaceModel):
         elif task == 'classification':
             if n_tasks == 1:
                 chemberta_config.problem_type = 'single_label_classification'
-                chemberta_config.num_labels = n_tasks
             else:
                 chemberta_config.problem_type = 'multi_label_classification'
                 chemberta_config.num_labels = n_tasks
