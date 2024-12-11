@@ -113,3 +113,21 @@ def test_molformer_save_reload(tmpdir):
 
     # all keys values should match
     assert all(matches)
+
+
+@pytest.mark.hf
+def test_molformer_finetuning_multitask_classification():
+    # test multitask classification
+    loader = dc.molnet.load_tox21(featurizer=dc.feat.DummyFeaturizer())
+    tasks, dataset, transformers = loader
+    train, val, test = dataset
+
+    model = MoLFormer(task='classification', n_tasks=len(tasks))
+    loss = model.fit(train, nb_epoch=1)
+    eval_score = model.evaluate(test,
+                                metrics=dc.metrics.Metric(
+                                    dc.metrics.roc_auc_score))
+    assert eval_score, loss
+    prediction = model.predict(dataset)
+    # logit scores
+    assert prediction.shape == (dataset.y.shape[0], len(tasks))
