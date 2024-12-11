@@ -22,7 +22,11 @@ class TestPileupFeaturizer(unittest.TestCase):
                                                "windows_haplotypes.npy")
         windows_haplotypes = np.load(windows_haplotypes_path, allow_pickle=True)
         fasta_file_path = os.path.join(self.current_dir, "sample.fa")
-        datapoint = (windows_haplotypes, fasta_file_path)
+        height = 299
+        width = 299
+        num_channels = 6
+        datapoint = (windows_haplotypes, fasta_file_path, height, width,
+                     num_channels)
         image_dataset = self.featurizer._featurize(datapoint)
 
         # Assert the number of reads
