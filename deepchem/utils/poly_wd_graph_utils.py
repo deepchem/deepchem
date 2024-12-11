@@ -343,8 +343,8 @@ class PolyWDGStringValidator():
 
     References
     ----------
-    .. [1] Aldeghi, Matteo, and Connor W. Coley. "A graph representation of molecular 
-        ensembles for polymer property prediction." Chemical Science 13.35 (2022): 10486-10498. 
+    .. [1] Aldeghi, Matteo, and Connor W. Coley. "A graph representation of molecular
+        ensembles for polymer property prediction." Chemical Science 13.35 (2022): 10486-10498.
     """
 
     @staticmethod
@@ -398,13 +398,13 @@ class PolyWDGStringValidator():
 
     def _validate_fragments(self, datapoint: str):
         """
-        This method validate the number of fragments match 
+        This method validate the number of fragments match
         the number of monomers.
 
         Parameters
         ----------
         datapoint : str
-            The datapoint string to validate 
+            The datapoint string to validate
 
         Raises
         ------
@@ -437,7 +437,7 @@ class PolyWDGStringValidator():
 
     def _validate_wildcards(self, datapoint: str):
         """
-        This method validates the presence of wildcards in the polymer 
+        This method validates the presence of wildcards in the polymer
         molecules string and ensures that the sequence of the wildcard
         notation is proper.
 
@@ -449,7 +449,7 @@ class PolyWDGStringValidator():
         Raises
         ------
         ValueError
-            If the wildcards are not present in the sequce the maximum 
+            If the wildcards are not present in the sequce the maximum
             wildcard value, ValueError is raised.
         """
         monomer_mols, _, _ = self.get_parsed_vals(datapoint)
@@ -515,12 +515,12 @@ class PolyWDGStringValidator():
         directed graph data. To validate the string format
         it checks for following conditions:
 
-        1. The number of fragments and the number of monomer 
+        1. The number of fragments and the number of monomer
            molecules should match.
-        2. The wild card indexes should be present in the monomer 
+        2. The wild card indexes should be present in the monomer
            molecules string and should be in the correct sequence.
         3. The polymer rules should be in the correct format.
-        4. The atom indexes in the polymer rules should be valid 
+        4. The atom indexes in the polymer rules should be valid
            and present in the monomer molecules string.
 
         It raises ValueError if the string format is invalid.
@@ -533,7 +533,7 @@ class PolyWDGStringValidator():
         Returns
         -------
         bool
-            True if the string format is valid, None otherwise 
+            True if the string format is valid, None otherwise
             (Error will be raised otherwise)
         """
         self._validate_fragments(datapoint)
