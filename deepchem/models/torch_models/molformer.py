@@ -1,5 +1,10 @@
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
 from transformers import AutoTokenizer, AutoModelForMaskedLM, AutoConfig, AutoModelForSequenceClassification
+try:
+    import torch
+    has_torch = True
+except:
+    has_torch = False
 
 
 class MoLFormer(HuggingFaceModel):
@@ -103,3 +108,35 @@ class MoLFormer(HuggingFaceModel):
                                         task=task,
                                         tokenizer=tokenizer,
                                         **kwargs)
+
+    def _prepare_batch(self, batch):
+        smiles_batch, y, w = batch
+        tokens = self.tokenizer(smiles_batch[0].tolist(),
+                                padding=True,
+                                return_tensors="pt")
+
+        if self.task == 'mlm':
+            inputs, labels = self.data_collator.torch_mask_tokens(
+                tokens['input_ids'])
+            inputs = {
+                'input_ids': inputs.to(self.device),
+                'labels': labels.to(self.device),
+                'attention_mask': tokens['attention_mask'].to(self.device),
+            }
+            return inputs, None, w
+        elif self.task in ['regression', 'classification', 'mtr']:
+            if y is not None:
+                # y is None during predict
+                y = torch.from_numpy(y[0])
+                if self.task == 'regression' or self.task == 'mtr':
+                    y = y.float().to(self.device)
+                elif self.task == 'classification':
+                    if self.n_tasks == 1:
+                        y = y.long().to(self.device)
+                    else:
+                        y = y.float().to(self.device)
+            for key, value in tokens.items():
+                tokens[key] = value.to(self.device)
+
+            inputs = {**tokens, 'labels': y}
+            return inputs, y, w
