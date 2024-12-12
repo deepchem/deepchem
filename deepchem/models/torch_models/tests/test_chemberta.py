@@ -141,16 +141,41 @@ def test_chemberta_load_weights_from_hf_hub():
 @pytest.mark.hf
 def test_chemberta_finetuning_multitask_classification():
     # test multitask classification
-    loader = dc.molnet.load_tox21(featurizer=dc.feat.DummyFeaturizer())
+    loader = dc.molnet.load_clintox(featurizer=dc.feat.DummyFeaturizer())
     tasks, dataset, transformers = loader
     train, val, test = dataset
 
+    train_sample = train.select(range(10))
+    test_sample = test.select(range(10))
     model = Chemberta(task='classification', n_tasks=len(tasks))
-    loss = model.fit(train, nb_epoch=1)
-    eval_score = model.evaluate(test,
+    loss = model.fit(train_sample, nb_epoch=1)
+    eval_score = model.evaluate(test_sample,
                                 metrics=dc.metrics.Metric(
-                                    dc.metrics.recall_score))
+                                    dc.metrics.roc_auc_score))
     assert eval_score, loss
-    prediction = model.predict(dataset)
+    prediction = model.predict(test_sample)
     # logit scores
-    assert prediction.shape == (dataset.y.shape[0], len(tasks))
+    assert prediction.shape == (test_sample.y.shape[0], len(tasks))
+
+
+@pytest.mark.hf
+def test_chemberta_finetuning_multitask_regression():
+    # test multitask regression
+
+    cwd = os.path.dirname(os.path.abspath(__file__))
+    input_file = os.path.join(cwd,
+                              '../../tests/assets/multitask_regression.csv')
+
+    loader = dc.data.CSVLoader(tasks=['task0', 'task1'],
+                               feature_field='smiles',
+                               featurizer=dc.feat.DummyFeaturizer())
+    dataset = loader.create_dataset(input_file)
+    model = Chemberta(task='regression', n_tasks=2)
+    loss = model.fit(dataset, nb_epoch=1)
+    eval_score = model.evaluate(dataset,
+                                metrics=dc.metrics.Metric(
+                                    dc.metrics.mean_absolute_error))
+
+    assert loss, eval_score
+    prediction = model.predict(dataset)
+    assert prediction.shape == dataset.y.shape
