@@ -1,4 +1,5 @@
 import os
+import random
 import deepchem as dc
 import numpy as np
 import pytest
@@ -131,3 +132,41 @@ def test_molformer_finetuning_multitask_classification():
     prediction = model.predict(dataset)
     # logit scores
     assert prediction.shape == (dataset.y.shape[0], len(tasks))
+
+
+def set_seed(seed=42):
+
+    random.seed(seed)  # Python random module
+    np.random.seed(seed)  # NumPy
+    torch.manual_seed(seed)  # PyTorch CPU
+    torch.cuda.manual_seed(seed)  # PyTorch GPU
+    torch.cuda.manual_seed_all(seed)  # All GPUs (if using multi-GPU)
+
+    # Ensures reproducibility in convolution operations
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+@pytest.mark.hf
+def test_random_weight_initialization_regression():
+    # test model initialization for regression
+
+    set_seed(10)
+    model1 = MoLFormer(task='classification', n_tasks=2)
+
+    set_seed(25)
+    model2 = MoLFormer(task='classification', n_tasks=2)
+
+    model1_state_dict = model1.model.state_dict()
+    model2_state_dict = model2.model.state_dict()
+
+    model1_keys = [
+        key for key in model1_state_dict.keys() if 'molformer' in key
+    ]
+    matches = [
+        torch.allclose(model1_state_dict[key],
+                       model2_state_dict[key])
+        for key in model1_keys
+    ]
+    print(matches)
+    assert not all(matches)

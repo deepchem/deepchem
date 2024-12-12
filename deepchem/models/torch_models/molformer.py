@@ -79,24 +79,21 @@ class MoLFormer(HuggingFaceModel):
             model = AutoModelForMaskedLM.from_config(molformer_config,
                                                      trust_remote_code=True)
         elif task == 'mtr':
-            problem_type = 'regression'
             molformer_config.problem_type = 'regression'
             molformer_config.num_labels = n_tasks
             model = AutoModelForSequenceClassification.from_config(
                 config=molformer_config, trust_remote_code=True)
         elif task == 'regression':
-            problem_type = 'regression'
             molformer_config.problem_type = 'regression'
             molformer_config.num_labels = n_tasks
             model = AutoModelForSequenceClassification.from_config(
                 config=molformer_config, trust_remote_code=True)
         elif task == 'classification':
             if n_tasks == 1:
-                problem_type = 'single_label_classification'
+                molformer_config.problem_type = 'single_label_classification'
             else:
                 molformer_config.num_labels = n_tasks
-                problem_type = 'multi_label_classification'
-            molformer_config.problem_type = problem_type
+                molformer_config.problem_type = 'multi_label_classification'
             model = AutoModelForSequenceClassification.from_config(
                 molformer_config, trust_remote_code=True)
         else:
