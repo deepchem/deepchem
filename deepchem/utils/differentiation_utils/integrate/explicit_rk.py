@@ -1,4 +1,4 @@
-from typing import List, Callable, Sequence, NamedTuple
+from typing import List, Callable, NamedTuple
 import torch
 
 
@@ -133,7 +133,8 @@ def explicit_rk(tableau: _Tableau,
 
     """
 
-    assert y0.shape[-1] == batch_size, "Number of initial conditions should match the batch size"
+    assert y0.shape[
+        -1] == batch_size, "Number of initial conditions should match the batch size"
 
     c, a, b = torch.tensor(tableau.c, device=device), torch.tensor(
         tableau.a, device=device), torch.tensor(tableau.b, device=device)
