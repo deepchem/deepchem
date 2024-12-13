@@ -119,7 +119,7 @@ def test_molformer_save_reload(tmpdir):
 @pytest.mark.hf
 def test_molformer_finetuning_multitask_classification():
     # test multitask classification
-    loader = dc.molnet.load_tox21(featurizer=dc.feat.DummyFeaturizer())
+    loader = dc.molnet.load_clintox(featurizer=dc.feat.DummyFeaturizer())
     tasks, dataset, transformers = loader
     train, val, test = dataset
     train_sample = train.select(range(10))
