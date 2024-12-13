@@ -123,6 +123,16 @@ class Chemberta(HuggingFaceModel):
                                         **kwargs)
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
+        """
+        Prepares a batch of data for the model based on the specified task. It overrides the _prepare_batch
+        of parent class for the following condition:-
+
+        - When n_task == 1 and task == 'classification', CrossEntropyLoss is used which takes input in
+        long int format.
+        - When n_task > 1 and task == 'classification', BCEWithLogitsLoss is used which takes input in
+        float format.
+        """
+
         smiles_batch, y, w = batch
         tokens = self.tokenizer(smiles_batch[0].tolist(),
                                 padding=True,
