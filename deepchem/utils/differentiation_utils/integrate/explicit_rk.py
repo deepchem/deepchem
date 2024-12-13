@@ -132,12 +132,15 @@ def explicit_rk(tableau: _Tableau,
     [1].. https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
 
     """
+
+    assert y0.shape[-1] == batch_size, "Number of initial conditions should match the batch size"
+
     c, a, b = torch.tensor(tableau.c, device=device), torch.tensor(
         tableau.a, device=device), torch.tensor(tableau.b, device=device)
-    t = t.clone().detach().to(device)
-    y0 = y0.clone().detach().to(device)
+    t = torch.tensor(t).clone().detach().to(device)
+    y0 = torch.tensor(y0).clone().detach().to(device)
     if params is not None:
-        params = params.to(device)
+        params = torch.tensor(params).to(device)
     if len(y0.shape) == 1:
         y0 = y0.unsqueeze(0)
     s = len(c)

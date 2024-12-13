@@ -1098,9 +1098,9 @@ def test_explicit_rk_cpu():
     def lotka_volterra(t, y, params):
         y1, y2 = y
         a, b, c, d = params
-        return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+        return torch.stack([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
 
-    y0 = torch.tensor([10, 1])
+    y0 = torch.tensor([[10], [1]])
     t_start = 0
     t_end = 10
     steps = 100
@@ -1136,9 +1136,9 @@ def test_explicit_rk_gpu():
     def lotka_volterra(t, y, params):
         y1, y2 = y
         a, b, c, d = params
-        return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+        return torch.stack([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
 
-    y0 = torch.tensor([10, 1])
+    y0 = torch.tensor([[10], [1]])
     t_start = 0
     t_end = 10
     steps = 100
@@ -1165,6 +1165,34 @@ def test_explicit_rk_gpu():
                           0.01, 0.001)
 
 
+def test_explicit_rk_multi_ode():
+    from deepchem.utils.differentiation_utils import explicit_rk
+    from deepchem.utils.differentiation_utils.integrate.explicit_rk import rk4_tableau
+
+    def lotka_volterra(t, y, params):
+        y1, y2 = y
+        a, b, c, d = params
+        return torch.stack([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+
+    batch_size = 3
+    y0 = torch.randn(2, batch_size)
+    t_start = 0
+    t_end = 10
+    steps = 100
+    t = torch.linspace(t_start, t_end, steps)
+    params = torch.randn(4, batch_size)
+
+    sol = explicit_rk(rk4_tableau,
+                      lotka_volterra,
+                      y0,
+                      t,
+                      params,
+                      batch_size=batch_size,
+                      device="cpu")
+
+    assert sol.shape == (steps, 2, batch_size)
+
+
 @pytest.mark.torch
 def test_rk38_ivp():
     from deepchem.utils.differentiation_utils import rk38_ivp
@@ -1173,9 +1201,9 @@ def test_rk38_ivp():
     def lotka_volterra(t, y, params):
         y1, y2 = y
         a, b, c, d = params
-        return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+        return torch.stack([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
 
-    y0 = torch.tensor([10., 1.])
+    y0 = torch.tensor([[10.], [1.]])
     t_start = 0
     t_end = 10
     steps = 100
@@ -1204,9 +1232,9 @@ def test_rk4_ivp():
     def lotka_volterra(t, y, params):
         y1, y2 = y
         a, b, c, d = params
-        return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+        return torch.stack([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
 
-    y0 = torch.tensor([10., 1.])
+    y0 = torch.tensor([[10.], [1.]])
     t_start = 0
     t_end = 10
     steps = 100
@@ -1235,9 +1263,9 @@ def test_euler():
     def lotka_volterra(t, y, params):
         y1, y2 = y
         a, b, c, d = params
-        return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+        return torch.stack([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
 
-    y0 = torch.tensor([10, 1])
+    y0 = torch.tensor([[10], [1]])
     t_start = 0
     t_end = 10
     # Euler method performs poorly with large steps hence the increased resolution
@@ -1267,9 +1295,9 @@ def test_midpoint():
     def lotka_volterra(t, y, params):
         y1, y2 = y
         a, b, c, d = params
-        return torch.tensor([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
+        return torch.stack([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
 
-    y0 = torch.tensor([10., 1.])
+    y0 = torch.tensor([[10.], [1.]])
     t_start = 0
     t_end = 10
     steps = 100
