@@ -1560,12 +1560,19 @@ def test_torch_cosine_dist():
     assert torch.abs(torch.sum(diff)) < 1e-5  # True
 
     identity_tensor = torch.eye(
-        512, dtype=torch.float32)  # identity matrix of shape (512,512)
-    x1 = identity_tensor[0:256, :]
-    x2 = identity_tensor[256:512, :]
+        16, dtype=torch.float32)  # identity matrix of shape (512,512)
+    x1 = identity_tensor[0:8, :]  # first half of the identity matrix
+    x2 = identity_tensor[8:16, :]  # second half of the identity matrix
     # each row in x1 is orthogonal to each row in x2
     # the pairwise inner product of the rows in x1 and x2 will always be 0
     # the output tensor will be of shape (256,256)
     cos_sim_orth = torch_layers.cosine_dist(x1, x2)
     assert torch.abs(torch.sum(cos_sim_orth)) < 1e-5  # True
-    assert all([cos_sim_orth.shape[dim] == 256 for dim in range(2)])  # True
+    assert all([cos_sim_orth.shape[dim] == 8 for dim in range(2)])  # True
+
+    x3 = torch.tensor([[1.0, 2.0], [3.0, 4.0]], dtype=torch.float32)
+    x4 = torch.tensor([[2.0, 1.0], [0.0, -1.0]], dtype=torch.float32)
+    pre_calculated_value = torch.tensor([[0.79999995, -0.8944272],
+                                         [0.8944272, -0.8]])
+    result = torch_layers.cosine_dist(x3, x4)
+    assert torch.allclose(result, pre_calculated_value, atol=1e-4)
