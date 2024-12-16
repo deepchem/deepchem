@@ -1547,10 +1547,9 @@ def test_torch_graph_gather():
 
 
 @pytest.mark.torch
-def test_cosine_dist():
+def test_torch_cosine_dist():
     """Test invoking cosine_dist."""
 
-    
     x = torch.ones((5, 4), dtype=torch.float32)
     y_same = torch.ones((5, 4), dtype=torch.float32)
     # x and y are the same tensor (equivalent at every element)
@@ -1560,7 +1559,8 @@ def test_cosine_dist():
     diff = cos_sim_same - torch.ones((5, 5), dtype=torch.float32)
     assert torch.abs(torch.sum(diff)) < 1e-5  # True
 
-    identity_tensor = torch.eye(512, dtype=torch.float32)  # identity matrix of shape (512,512)
+    identity_tensor = torch.eye(
+        512, dtype=torch.float32)  # identity matrix of shape (512,512)
     x1 = identity_tensor[0:256, :]
     x2 = identity_tensor[256:512, :]
     # each row in x1 is orthogonal to each row in x2

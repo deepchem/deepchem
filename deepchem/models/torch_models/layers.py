@@ -6830,6 +6830,7 @@ class SE3Attention(nn.Module):
 
         return x, coords
 
+
 def cosine_dist(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     """
     Compute the cosine similarity (inner product) between two tensors.
@@ -6893,10 +6894,9 @@ def cosine_dist(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     torch.Size([256, 256])
 
     """
-    
+
     x_norm = torch.nn.functional.normalize(x, p=2, dim=-1)
     y_norm = torch.nn.functional.normalize(y, p=2, dim=-1)
 
-   
     cosine_similarity = torch.matmul(x_norm, y_norm.transpose(-1, -2))
     return cosine_similarity
