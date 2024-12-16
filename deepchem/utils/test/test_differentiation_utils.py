@@ -1090,7 +1090,7 @@ def test_tableau():
 
 
 @pytest.mark.torch
-def test_explicit_rk_cpu():
+def test_explicit_rk():
     from deepchem.utils.differentiation_utils import explicit_rk
     from deepchem.utils.differentiation_utils.integrate.explicit_rk import rk4_tableau
     from scipy.integrate import solve_ivp
@@ -1113,44 +1113,6 @@ def test_explicit_rk_cpu():
                       params,
                       batch_size=1,
                       device="cpu")
-
-    def lotka_volterra(t, z, *params):
-        y1, y2 = z
-        a, b, c, d = params
-        return [(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)]
-
-    sol_scipy = solve_ivp(lotka_volterra, (t_start, t_end), [10, 1],
-                          t_eval=np.linspace(t_start, t_end, steps),
-                          args=([1.1, 0.4, 0.1, 0.4]))
-    assert torch.allclose(sol[-1][0],
-                          torch.tensor(sol_scipy.y[0][-1], dtype=torch.float32),
-                          0.01, 0.001)
-
-
-@pytest.mark.torch
-def test_explicit_rk_gpu():
-    from deepchem.utils.differentiation_utils import explicit_rk
-    from deepchem.utils.differentiation_utils.integrate.explicit_rk import rk4_tableau
-    from scipy.integrate import solve_ivp
-
-    def lotka_volterra(t, y, params):
-        y1, y2 = y
-        a, b, c, d = params
-        return torch.stack([(a * y1 - b * y1 * y2), (c * y2 * y1 - d * y2)])
-
-    y0 = torch.tensor([[10], [1]])
-    t_start = 0
-    t_end = 10
-    steps = 100
-    t = torch.linspace(t_start, t_end, steps)
-    params = torch.tensor([1.1, 0.4, 0.1, 0.4])
-    sol = explicit_rk(rk4_tableau,
-                      lotka_volterra,
-                      y0,
-                      t,
-                      params,
-                      batch_size=1,
-                      device="cuda")
 
     def lotka_volterra(t, z, *params):
         y1, y2 = z

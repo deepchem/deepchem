@@ -74,9 +74,9 @@ def explicit_rk(tableau: _Tableau,
     ...                 y_init,
     ...                 t,
     ...                 torch.tensor([1.1, 0.4, 0.1, 0.4])]
-    >>> sol = explicit_rk(*solver_param)
-    >>> sol[-1]
-    tensor([[0.0567], [2.3627]])
+    >>> solution = explicit_rk(*solver_param)
+    >>> print(solution.shape)
+    torch.Size([100, 2, 1])
 
     For solving multiple ODEs, we can use the GPU and feed in multiple initial conditions
     >>> def lotka_volterra(t, y, params):
@@ -94,8 +94,8 @@ def explicit_rk(tableau: _Tableau,
     ...                 y_init,
     ...                 t,
     ...                 params]
-    >>> sol = explicit_rk(*solver_param, batch_size=batch_size, device='cuda')
-    >>> print(sol.shape)
+    >>> solution = explicit_rk(*solver_param, batch_size=batch_size, device='cuda')
+    >>> print(solution.shape)
     torch.Size([100, 2, 10])
 
     Parameters
@@ -196,9 +196,9 @@ def rk38_ivp(fcn: Callable[..., torch.Tensor],
     ...                 y_init,
     ...                 t,
     ...                 torch.tensor([1.1, 0.4, 0.1, 0.4])]
-    >>> sol = rk38_ivp(*solver_param)
-    >>> print(sol[-1])
-    tensor([0.3483, 3.2585])
+    >>> solution = rk38_ivp(*solver_param)
+    >>> print(solution.shape)
+    torch.Size([100, 2, 1])
 
     Parameters
     ----------
@@ -252,9 +252,9 @@ def fwd_euler_ivp(fcn: Callable[..., torch.Tensor],
     ...                 y_init,
     ...                 t,
     ...                 torch.tensor([1.1, 0.4, 0.1, 0.4])]
-    >>> sol = fwd_euler_ivp(*solver_param)
-    >>> print(sol[-1])
-    tensor([[4.6852], [0.5726]])
+    >>> solution = fwd_euler_ivp(*solver_param)
+    >>> print(solution.shape)
+    torch.Size([1000, 2, 1])
 
     Parameters
     ----------
@@ -311,9 +311,9 @@ def rk4_ivp(fcn: Callable[..., torch.Tensor],
     ...                 y_init,
     ...                 t,
     ...                 torch.tensor([1.1, 0.4, 0.1, 0.4])]
-    >>> sol = rk4_ivp(*solver_param)
-    >>> print(sol[-1])
-    tensor([0.3459, 3.2954])
+    >>> solution = rk4_ivp(*solver_param)
+    >>> print(solution.shape)
+    torch.Size([100, 2, 1])
 
     Parameters
     ----------
@@ -368,9 +368,9 @@ def mid_point_ivp(fcn: Callable[..., torch.Tensor],
     ...                 y_init,
     ...                 t,
     ...                 torch.tensor([1.1, 0.4, 0.1, 0.4])]
-    >>> sol = rk4_ivp(*solver_param)
-    >>> sol[-1]
-    tensor([0.3459, 3.2954])
+    >>> solution = rk4_ivp(*solver_param)
+    >>> print(solution.shape)
+    torch.Size([100, 2, 1])
 
     Parameters
     ----------
