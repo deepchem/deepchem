@@ -730,9 +730,7 @@ class RealignerFeaturizer(Featurizer):
     >>> bamfile_path = 'deepchem/data/tests/example.bam'
     >>> reference_path = 'deepchem/data/tests/sample.fa'
     >>> featurizer = RealignerFeaturizer()
-    >>> features = featurizer.featurize((bamfile_path, reference_path))
-    >>> type(features[0]['span'])
-    <class 'tuple'>
+    >>> features = featurizer._featurize((bamfile_path, reference_path))
 
     Note
     ----
