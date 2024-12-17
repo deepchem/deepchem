@@ -776,12 +776,11 @@ class InceptionV3Model(TorchModel):
                  learning_rate=0.064,
                  dropout_rate=0.2,
                  decay_rate=0.94,
+                 decay_steps=2,
+                 rho=0.9,
+                 momentum=0.9,
+                 epsilon=1.0,
                  **kwargs):
-        # Fixed hyperparameters
-        decay_steps = 2  # epochs per decay
-        rho = 0.9
-        momentum = 0.9
-        epsilon = 1.0
         # weight_decay = 0.00004
 
         # Initialize the InceptionV3 model architecture

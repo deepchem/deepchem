@@ -774,7 +774,7 @@ class RealignerFeaturizer(Featurizer):
             decoded_seq.append(charset[idx])
         return ''.join(decoded_seq)
 
-    def _featurize(self, datapoint):
+    def featurize(self, datapoint):
         """
         Featurizes a datapoint by generating candidate regions and reads.
 
