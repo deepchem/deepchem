@@ -279,3 +279,42 @@ def test_load_from_pretrained_with_diff_task(tmpdir):
 
     model = Chemberta(task='regression', n_tasks=20)
     model.load_from_pretrained(model_dir=tmpdir)
+
+
+@pytest.mark.hf
+def test_modify_model_keys(tmpdir):
+    # tests if the load_from_pretrained method is compatible with the models trained with DDP.
+
+    from deepchem.models.torch_models import Chemberta
+    model = Chemberta(task='mlm', n_tasks=10, model_dir=tmpdir)
+    model.save_checkpoint()
+    temp_file_path = os.path.join(tmpdir, 'checkpoint1.pt')
+    assert not any(
+        key.startswith("module.") for key in model.model.state_dict().keys())
+
+    # Adds the "module." prefix to the keys in the model_state_dict to align with the
+    # format used by models trained with Distributed Data Parallel (DDP).
+    data = torch.load(temp_file_path)
+    new_state_dict = {
+        "model_state_dict": {
+            f"module.{key}": value
+            for key, value in data["model_state_dict"].items()
+        }
+    }
+    # Update the original data with the new state_dict asserts all keys starts with "module." prefix.
+    data["model_state_dict"] = new_state_dict["model_state_dict"]
+
+    # Save the modified checkpoint to a new file
+    modified_file_path = os.path.join(tmpdir, "checkpoint1.pt")
+    torch.save(data, modified_file_path)
+
+    # load and asserts that all the state_dict keys starts with "module." prefix.
+    data = torch.load(modified_file_path)
+    assert all(
+        key.startswith("module.") for key in data["model_state_dict"].keys())
+
+    # initializes a Chemberta model and load from pretrained is used
+    model = Chemberta(task='regression', n_tasks=20)
+    model.load_from_pretrained(model_dir=tmpdir)
+    assert not any(
+        key.startswith("module.") for key in model.model.state_dict().keys())
