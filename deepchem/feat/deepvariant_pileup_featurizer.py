@@ -29,9 +29,9 @@ class PileupFeaturizer(Featurizer):
     >>> bamfile_path = 'deepchem/data/tests/example.bam'
     >>> reference_path = 'deepchem/data/tests/sample.fa'
     >>> realign = RealignerFeaturizer()
-    >>> datapoint = (bamfile_path, reference_path, 299, 299, 6)
     >>> windows_haplotypes = realign.featurize((bamfile_path, reference_path))
     >>> pileup_feat = PileupFeaturizer()
+    >>> datapoint = (windows_haplotypes, reference_path, 299, 299, 6)
     >>> features = pileup_feat.featurize(datapoint)
 
     Note
