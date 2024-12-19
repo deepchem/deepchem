@@ -855,7 +855,7 @@ class Lamb(Optimizer):
         >>> # training model
         >>> model = GCNModel(mode='classification', n_tasks=1,
         ...                  batch_size=16, learning_rate=0.001,
-        ...                  optimizers=optimizers.Lamb(learning_rate=0.01))
+        ...                  optimizers=dc.models.optimizers.Lamb(learning_rate=0.01))
         >>> loss = model.fit(dataset, nb_epoch=5)
 
         References
