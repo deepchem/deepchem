@@ -78,7 +78,7 @@ def explicit_rk(tableau: _Tableau,
     >>> print(solution.shape)
     torch.Size([100, 2, 1])
 
-    For solving multiple ODEs, we can use the GPU and feed in multiple initial conditions
+    For solving multiple ODEs, we can feed in multiple initial conditions and parameters
     >>> def lotka_volterra(t, y, params):
     ...     X, Y = y
     ...     alpha, beta, delta, gamma = params
@@ -94,7 +94,7 @@ def explicit_rk(tableau: _Tableau,
     ...                 y_init,
     ...                 t,
     ...                 params]
-    >>> solution = explicit_rk(*solver_param, batch_size=batch_size, device='cuda')
+    >>> solution = explicit_rk(*solver_param, batch_size=batch_size, device='cpu')
     >>> print(solution.shape)
     torch.Size([100, 2, 10])
 
