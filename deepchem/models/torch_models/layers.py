@@ -11,6 +11,7 @@ try:
     import torch.nn as nn
     import torch.nn.functional as F
     from deepchem.models.torch_models.flows import Affine
+    from deepchem.utils import scatter_reduce
 except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
 
@@ -6829,3 +6830,58 @@ class SE3Attention(nn.Module):
         coords = coords + 0.01 * coords_update
 
         return x, coords
+
+
+class WeightedAttentionPooling(nn.Module):
+    """
+    Weighted attention pooling layer.
+
+    Parameters
+    ----------
+    gate_nn: nn.Module
+        Neural network to calculate attention scalars.
+    message_nn: nn.Module
+        Neural network to evaluate message updates.
+    """
+
+    def __init__(self, gate_nn: nn.Module, message_nn: nn.Module) -> None:
+        """Initialize softmax attention layer.
+
+        Parameters
+        ----------
+        gate_nn: nn.Module
+            Neural network to calculate attention scalars.
+        message_nn: nn.Module
+            Neural network to evaluate message updates.
+        """
+        super().__init__()
+        self.gate_nn = gate_nn
+        self.message_nn = message_nn
+        self.pow = torch.nn.Parameter(torch.randn(1))
+
+    def forward(self, x: torch.Tensor, index: torch.Tensor,
+                weights: torch.Tensor) -> torch.Tensor:
+        """Forward pass.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input features for nodes
+        index: torch.Tensor
+            The indices for scatter operation over nodes
+        weights: torch.Tensor
+            The weights to assign to nodes
+
+        Returns
+        -------
+        torch.Tensor
+            Output features for nodes
+        """
+        gate = self.gate_nn(x)
+
+        gate -= scatter_reduce(gate, index, dim=0, reduce="amax")[index]
+        gate = (weights**self.pow) * gate.exp()
+        gate /= scatter_reduce(gate, index, dim=0, reduce="sum")[index] + 1e-10
+
+        x = self.message_nn(x)
+        return scatter_reduce(gate * x, index, dim=0, reduce="sum")
