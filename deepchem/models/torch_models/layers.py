@@ -6829,3 +6829,74 @@ class SE3Attention(nn.Module):
         coords = coords + 0.01 * coords_update
 
         return x, coords
+
+
+def cosine_dist(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the cosine similarity (inner product) between two tensors.
+
+    Parameters
+    ----------
+    x: torch.Tensor
+        Input tensor of shape `(B, N, P)` representing the first set of vectors.
+    y: torch.Tensor
+        Input tensor of shape `(B, M, P)` representing the second set of vectors.
+
+    Returns
+    -------
+    torch.Tensor
+        Cosine similarity tensor of shape `(B, N, M)` where each entry represents the cosine similarity
+        between vectors from `x` and `y`.
+
+    Examples
+    --------
+    The cosine similarity between two equivalent vectors will be 1. The cosine
+    similarity between two equivalent tensors (tensors where all the elements are
+    the same) will be a tensor of 1s. In this scenario, if the input tensors `x` and
+    `y` are each of shape `(n,p)`, where each element in `x` and `y` is the same, then
+    the output tensor would be a tensor of shape `(n,n)` with 1 in every entry.
+
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> import deepchem.models.torch_models.layers as torch_layers
+    >>> x = torch.ones((6, 4), dtype=torch.float32)
+    >>> y_same = torch.ones((6, 4), dtype=torch.float32)
+    >>> cos_sim_same = torch_layers.cosine_dist(x, y_same)
+
+    `x` and `y_same` are the same tensor (equivalent at every element, in this
+    case 1). As such, the pairwise inner product of the rows in `x` and `y` will
+    always be 1. The output tensor will be of shape (6,6).
+
+    >>> diff = cos_sim_same - torch.ones((6, 6), dtype=torch.float32)
+    >>> np.allclose(0.0, diff.sum().item(), atol=1e-05)
+    True
+    >>> cos_sim_same.shape
+    torch.Size([6, 6])
+
+    The cosine similarity between two orthogonal vectors will be 0 (by definition).
+    If every row in `x` is orthogonal to every row in `y`, then the output will be a
+    tensor of 0s. In the following example, each row in the tensor `x1` is orthogonal
+    to each row in `x2` because they are halves of an identity matrix.
+
+    >>> identity_tensor = torch.eye(512, dtype=torch.float32)
+    >>> x1 = identity_tensor[0:256,:]
+    >>> x2 = identity_tensor[256:512,:]
+    >>> cos_sim_orth = torch_layers.cosine_dist(x1, x2)
+
+    Each row in `x1` is orthogonal to each row in `x2`. As such, the pairwise inner
+    product of the rows in `x1` and `x2` will always be 0. Furthermore, because the
+    shape of the input tensors are both of shape `(256,512)`, the output tensor will
+    be of shape `(256,256)`.
+
+    >>> np.allclose(0.0, cos_sim_orth.sum().item(), atol=1e-05)
+    True
+    >>> cos_sim_orth.shape
+    torch.Size([256, 256])
+
+    """
+
+    x_norm = torch.nn.functional.normalize(x, p=2, dim=-1)
+    y_norm = torch.nn.functional.normalize(y, p=2, dim=-1)
+
+    cosine_similarity = torch.matmul(x_norm, y_norm.transpose(-1, -2))
+    return cosine_similarity
