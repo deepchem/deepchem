@@ -284,9 +284,12 @@ def test_load_from_pretrained_with_diff_task(tmpdir):
 @pytest.mark.hf
 def test_modify_model_keys(tmpdir):
     # tests if the load_from_pretrained method is compatible with the models trained with DDP.
+    # It also tests if the weights of the first key of the state_dict are same after loading from pretrained model.
 
     from deepchem.models.torch_models import Chemberta
-    model = Chemberta(task='mlm', n_tasks=10, model_dir=tmpdir)
+    model = Chemberta(task='mlm', model_dir=tmpdir)
+    pretrained_weights = model.model.state_dict(
+    )['roberta.embeddings.word_embeddings.weight']
     model.save_checkpoint()
     temp_file_path = os.path.join(tmpdir, 'checkpoint1.pt')
     assert not any(
@@ -316,5 +319,8 @@ def test_modify_model_keys(tmpdir):
     # initializes a Chemberta model and load from pretrained is used
     model = Chemberta(task='regression', n_tasks=20)
     model.load_from_pretrained(model_dir=tmpdir)
+    loaded_weights = model.model.state_dict(
+    )['roberta.embeddings.word_embeddings.weight']
+    assert torch.allclose(pretrained_weights, loaded_weights, atol=1e-4)
     assert not any(
         key.startswith("module.") for key in model.model.state_dict().keys())
