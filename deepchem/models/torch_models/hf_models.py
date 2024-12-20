@@ -1,11 +1,13 @@
 import logging
 import time
+import torch
+import datetime
+import numpy as np
+import collections
 from collections.abc import Sequence as SequenceCollection
 from typing import (TYPE_CHECKING, Any, Callable, Iterable, List, Optional,
-                    Tuple, Union, Dict)
-
-import numpy as np
-import torch
+                    Tuple, Union, Dict, Deque)
+from deepchem.data import Dataset
 from deepchem.models.optimizers import LearningRateSchedule
 from deepchem.models.torch_models import TorchModel
 from deepchem.trans import Transformer, undo_transforms
@@ -40,6 +42,35 @@ class HuggingFaceModel(TorchModel):
     tokenization algorithms and other utilities like data collation, random masking of tokens
     for masked language model training etc.
 
+    ### Dynamic Bucketing
+    This class also supports dynamic bucketing for efficient training on datasets with varying
+    sequence lengths. Samples are divided into predefined buckets based on their lengths:
+    - **Bucket 0**: Samples with length >= `min_data_length` and < `level1` (minimum of mode and average length).
+    - **Bucket 1**: Samples with length >= `level1` and < `level2` (maximum of mode and average length).
+    - **Bucket 2**: Samples with length >= `level2` and < `tail_length`.
+    - **Bucket 3**: Samples with length >= `tail_length` and <= `max_data_length`.
+
+    These buckets ensure efficient utilization of computational resources during training,
+    especially for datasets with highly variable sequence lengths.
+
+    Assuming:
+    - `min_data_length = 1`
+    - `level1 = 42`
+    - `level2 = 66`
+    - `tail_length = 122`
+    - `max_data_length = 200`
+
+    The buckets would look like:
+    - **Bucket 0**: Sequences with lengths `[1, 42)`
+    - **Bucket 1**: Sequences with lengths `[42, 66)`
+    - **Bucket 2**: Sequences with lengths `[66, 122)`
+    - **Bucket 3**: Sequences with lengths `[122, 200]`
+
+    #### How It Works:
+    - Each sequence from the dataset is assigned to one of the buckets based on its length.
+    - Training batches are constructed by sampling sequences from each bucket. This reduces padding
+      and ensures computational efficiency, particularly for datasets with highly variable sequence lengths.
+    - Bucketing is dynamically updated during training, allowing flexible dataset handling.
 
     Parameters
     ----------
@@ -604,3 +635,458 @@ class HuggingFaceModel(TorchModel):
             results.append(text_results)
 
         return results[0] if len(results) == 1 else results
+
+    def fit(self,
+            dataset: Dataset,
+            nb_epoch: int = 10,
+            max_checkpoints_to_keep: int = 5,
+            checkpoint_interval: int = 1000,
+            deterministic: bool = False,
+            restore: bool = False,
+            variables: Optional[List[torch.nn.Parameter]] = None,
+            loss: Optional[LossFn] = None,
+            callbacks: Union[Callable, List[Callable]] = [],
+            all_losses: Optional[List[float]] = None,
+            enable_bucketing: bool = False,
+            **kwargs) -> float:
+        """Train this model on a dataset.
+
+        Parameters
+        ----------
+        dataset: Dataset
+            the Dataset to train on
+        nb_epoch: int
+            the number of epochs to train for
+        max_checkpoints_to_keep: int
+            the maximum number of checkpoints to keep.  Older checkpoints are discarded.
+        checkpoint_interval: int
+            the frequency at which to write checkpoints, measured in training steps.
+            Set this to 0 to disable automatic checkpointing.
+        deterministic: bool
+            if True, the samples are processed in order.  If False, a different random
+            order is used for each epoch.
+        restore: bool
+            if True, restore the model from the most recent checkpoint and continue training
+            from there.  If False, retrain the model from scratch.
+        variables: list of torch.nn.Parameter
+            the variables to train.  If None (the default), all trainable variables in
+            the model are used.
+        loss: function
+            a function of the form f(outputs, labels, weights) that computes the loss
+            for each batch.  If None (the default), the model's standard loss function
+            is used.
+        callbacks: function or list of functions
+            one or more functions of the form f(model, step, **kwargs) that will be invoked after
+            every step.  This can be used to perform validation, logging, etc.
+        all_losses: Optional[List[float]], optional (default None)
+            If specified, all logged losses are appended into this list. Note that
+            you can call `fit()` repeatedly with the same list and losses will
+            continue to be appended.
+        enable_bucketing: bool, default=False
+            If True, enables adaptive bucketing based on sequence length, useful for handling
+            variable-length sequences efficiently in training.
+
+        Returns
+        -------
+        The average loss over the most recent checkpoint interval
+        """
+        if enable_bucketing:
+            return self.bucket_fit_generator(
+                self.bucket_generator(dataset,
+                                      epochs=nb_epoch,
+                                      deterministic=deterministic,
+                                      **kwargs), max_checkpoints_to_keep,
+                checkpoint_interval, restore, variables, loss, callbacks,
+                all_losses)
+
+        return self.fit_generator(
+            self.default_generator(dataset,
+                                   epochs=nb_epoch,
+                                   deterministic=deterministic),
+            max_checkpoints_to_keep, checkpoint_interval, restore, variables,
+            loss, callbacks, all_losses)
+
+    def _bucket_prepare_batch(
+            self,
+            buckets) -> List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+        """
+        Prepare batches of data for each bucket by converting lists of arrays
+        into tensors suitable for model input. This method processes non-empty buckets by stacking arrays in each bucket
+        into numpy arrays, which are then converted into PyTorch tensors
+        for model input.
+
+        Parameters
+        ----------
+        buckets: List[List[Tuple[np.ndarray, np.ndarray, np.ndarray]]]
+            A list of buckets, where each bucket is a list of tuples. Each tuple
+            contains three numpy arrays: input features, labels, and weights
+            for a batch.
+
+        Returns
+        -------
+        List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]
+            A list of tuples, each containing input tensors, label tensors, and
+            weight tensors for a batch in each bucket.
+
+        """
+        out = []
+        for bucket in buckets:
+            if bucket:
+                X_b, y_b, w_b = [list(x) for x in zip(*bucket)]
+                X_b = [np.asarray(X_b)]
+                y_b = np.vstack(y_b)  # type: ignore
+                w_b = np.vstack(w_b)  # type: ignore
+                input_tensors, label_tensors, weight_tensors = self._prepare_batch(
+                    (X_b, y_b, w_b))
+                out.append((input_tensors, label_tensors, weight_tensors))
+        return out
+
+    def bucket_generator(self,
+                         dataset: Dataset,
+                         mode_data_length: float,
+                         avg_data_length: float,
+                         max_data_length: float,
+                         min_data_length: float,
+                         tail_length: float,
+                         b0_max: int,
+                         b1_max: int,
+                         b2_max: int,
+                         b3_max: int,
+                         epochs: int = 1,
+                         mode: str = 'fit',
+                         deterministic: bool = True,
+                         pad_batches: bool = True):
+        """Create a bucket generator that iterates over batches of a dataset, organizing them into predefined buckets based on the length of the data samples.
+        This generator organizes data samples into four buckets based on their lengths:
+        - Bucket 0: Samples with length >= `min_data_length` and < `level1` (minimum of mode and average data length).
+        - Bucket 1: Samples with length >= `level1` and < `level2` (maximum of mode and average data length).
+        - Bucket 2: Samples with length >= `level2` and < `tail_length`.
+        - Bucket 3: Samples with length >= `tail_length` and <= `max_data_length`.
+
+        The generator yields these buckets after processing each batch from the dataset.
+
+        Each sequence is assigned to a bucket based on its length. Training batches are sampled from these
+        buckets to minimize padding and improve computational efficiency. Buckets are dynamically updated
+        during training for flexible dataset handling.
+
+        Parameters
+        ----------
+        dataset : Dataset
+            The dataset to iterate over for generating batches.
+        mode_data_length : float
+            The mode (most frequent) length of the data samples.
+        avg_data_length : float
+            The average length of the data samples.
+        max_data_length : float
+            The maximum length of the data samples.
+        min_data_length : float
+            The minimum length of the data samples.
+        tail_length : float
+            The length threshold defining the tail of the data distribution. Must be
+            greater than or equal to both `mode_data_length` and `avg_data_length`.
+        b0_max : int
+            Maximum number of samples the first bucket can hold.
+        b1_max : int
+            Maximum number of samples the second bucket can hold.
+        b2_max : int
+            Maximum number of samples the third bucket can hold.
+        b3_max : int
+            Maximum number of samples the fourth bucket can hold.
+        epochs : int, default=1
+            The number of epochs to iterate over the entire dataset.
+        mode: str
+            allowed values are 'fit' (called during training), 'predict' (called
+            during prediction), and 'uncertainty' (called during uncertainty
+            prediction)
+        deterministic: bool
+            whether to iterate over the dataset in order, or randomly shuffle the
+            data for each epoch
+        pad_batches: bool
+            whether to pad each batch up to this model's preferred batch size
+
+        Yields
+        ------
+        Tuple[
+            List[Tuple[List[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]]],
+            List[Tuple[List[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]]],
+            List[Tuple[List[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]]],
+            List[Tuple[List[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]]]
+        ]
+
+        A tuple containing four lists (buckets). Each list corresponds to a bucket and contains
+        tuples of the form ([inputs], [outputs], [weights]). If `outputs` or `weights` are not
+        applicable, they may be `None`.
+
+        Raises
+        ------
+        AssertionError
+            If `tail_length` is less than `mode_data_length` or `avg_data_length`.
+            If `min_data_length` is not the minimum of all length parameters.
+            If `max_data_length` is not the maximum of all length parameters.
+        """
+        level1 = min(mode_data_length, avg_data_length)
+        level2 = max(mode_data_length, avg_data_length)
+        assert tail_length >= level1, "tail length should be >= mode or average data length"
+        assert tail_length >= level2, "tail length should be >= mode or average data length"
+        assert min_data_length == min(
+            mode_data_length, avg_data_length, max_data_length, min_data_length,
+            tail_length), "min length should be minimum of all parameters"
+        assert max_data_length == max(
+            mode_data_length, avg_data_length, max_data_length, min_data_length,
+            tail_length), "max length should be maximum of all parameters"
+        b0_cache: Deque = collections.deque()
+        b1_cache: Deque = collections.deque()
+        b2_cache: Deque = collections.deque()
+        b3_cache: Deque = collections.deque()
+        bucket0: Deque = collections.deque()
+        bucket1: Deque = collections.deque()
+        for epoch in range(epochs):
+            logger.info("Starting training for epoch %d at %s" %
+                        (epoch, datetime.datetime.now().ctime()))
+
+            for X_b, y_b, w_b, ids_b in dataset.iterbatches(
+                    batch_size=self.batch_size,
+                    deterministic=deterministic,
+                    pad_batches=False):
+                for i, x in enumerate(X_b):
+                    length = len(x)
+                    item = [X_b[i]]
+                    if y_b is not None:
+                        item.append(y_b[i])
+                    else:
+                        item.append(None)
+                    if w_b is not None:
+                        item.append(w_b[i])
+                    else:
+                        item.append(None)
+                    if length >= min_data_length and length < level1:
+                        if len(bucket0) < b0_max:
+                            bucket0.append(item)
+                        else:
+                            b0_cache.append(item)
+                    elif length >= level1 and length < level2:
+                        if len(bucket1) < b1_max:
+                            bucket1.append(item)
+                        else:
+                            b1_cache.append(item)
+                    elif length >= level2 and length < tail_length:
+                        b2_cache.append(item)
+                    elif length >= tail_length and length <= max_data_length:
+                        b3_cache.append(item)
+
+                if len(bucket0) < b0_max and len(b0_cache) > 0:
+                    cache_size = len(b0_cache)
+                    max_margin = b0_max - len(bucket0)
+                    range0 = min(cache_size, max_margin)
+                    outbucket0 = [
+                        bucket0.pop() for item in range(len(bucket0))
+                    ] + [b0_cache.pop() for i in range(range0)]
+
+                else:
+                    outbucket0 = [bucket0.pop() for item in range(len(bucket0))]
+                if len(bucket1) < b1_max and len(b1_cache) > 0:
+                    cache_size = len(b1_cache)
+                    max_margin = b1_max - len(bucket1)
+                    range1 = min(cache_size, max_margin)
+                    outbucket1 = [
+                        bucket1.pop() for item in range(len(bucket1))
+                    ] + [b1_cache.pop() for i in range(range1)]
+                else:
+                    outbucket1 = [bucket1.pop() for item in range(len(bucket1))]
+
+                if len(b2_cache) > b2_max:
+                    cache_size = len(b2_cache)
+                    max_margin = b2_max
+                    range2 = min(cache_size, max_margin)
+                    outbucket2 = [b2_cache.pop() for i in range(range2)]
+                else:
+                    outbucket2 = []
+                if len(b3_cache) > b3_max:
+                    cache_size = len(b3_cache)
+                    max_margin = b3_max
+                    range3 = min(cache_size, max_margin)
+                    outbucket3 = [b3_cache.pop() for i in range(range3)]
+                else:
+                    outbucket3 = []
+                yield outbucket0, outbucket1, outbucket2, outbucket3
+
+            while len(b0_cache) + len(b1_cache) + len(b2_cache) + len(
+                    b3_cache) != 0:
+                if len(b0_cache) < b0_max:
+                    outbucket0 = [
+                        b0_cache.pop() for item in range(len(b0_cache))
+                    ]
+                else:
+                    outbucket0 = [b0_cache.pop() for item in range(b0_max)]
+
+                if len(b1_cache) < b1_max:
+                    outbucket1 = [
+                        b1_cache.pop() for item in range(len(b1_cache))
+                    ]
+                else:
+                    outbucket1 = [b1_cache.pop() for item in range(b1_max)]
+
+                if len(b2_cache) < b2_max:
+                    outbucket2 = [
+                        b2_cache.pop() for item in range(len(b2_cache))
+                    ]
+                else:
+                    outbucket2 = [b2_cache.pop() for item in range(b2_max)]
+
+                if len(b3_cache) < b3_max:
+                    outbucket3 = [
+                        b3_cache.pop() for item in range(len(b3_cache))
+                    ]
+                else:
+                    outbucket3 = [b3_cache.pop() for item in range(b3_max)]
+                yield outbucket0, outbucket1, outbucket2, outbucket3
+
+    def bucket_fit_generator(self,
+                             generator,
+                             max_checkpoints_to_keep: int = 5,
+                             checkpoint_interval: int = 1000,
+                             restore: bool = False,
+                             variables: Optional[
+                                 Union[List[torch.nn.Parameter],
+                                       torch.nn.ParameterList]] = None,
+                             loss: Optional[LossFn] = None,
+                             callbacks: Union[Callable, List[Callable]] = [],
+                             all_losses: Optional[List[float]] = None) -> float:
+        """Train this model on data from a generator. Gradients are accumulated and losses are averaged over non-empty
+        the buckets sent to the respective training steps. This function handles dynamic bucketing. Batches are formed within buckets
+        based on length-based grouping, and gradient accumulation stabilizes updates.
+
+        Parameters
+        ----------
+        generator: generator
+            this should generate batches, each represented as a tuple of the form
+            (inputs, labels, weights).
+        max_checkpoints_to_keep: int
+            the maximum number of checkpoints to keep.  Older checkpoints are discarded.
+        checkpoint_interval: int
+            the frequency at which to write checkpoints, measured in training steps.
+            Set this to 0 to disable automatic checkpointing.
+        restore: bool
+            if True, restore the model from the most recent checkpoint and continue training
+            from there.  If False, retrain the model from scratch.
+        variables: list of torch.nn.Parameter or torch.nn.ParameterList
+            the variables to train.  If None (the default), all trainable variables in
+            the model are used.
+            ParameterList can be used like a regular Python list, but Tensors that are
+            `Parameter` are properly registered, and will be visible by all `Module` methods.
+        loss: function
+            a function of the form f(outputs, labels, weights) that computes the loss
+            for each batch.  If None (the default), the model's standard loss function
+            is used.
+        callbacks: function or list of functions
+            one or more functions of the form f(model, step) that will be invoked after
+            every step.  This can be used to perform validation, logging, etc.
+        all_losses: Optional[List[float]], optional (default None)
+            If specified, all logged losses are appended into this list. Note that
+            you can call `fit()` repeatedly with the same list and losses will
+            continue to be appended.
+
+        Returns
+        -------
+        The average loss over the most recent checkpoint interval
+        """
+
+        if not isinstance(callbacks, SequenceCollection):
+            callbacks = [callbacks]
+        self._ensure_built()
+        self.model.train()
+        avg_loss = 0.0
+        last_avg_loss = 0.0
+        averaged_batches = 0
+        if variables is None:
+            optimizer = self._pytorch_optimizer
+            lr_schedule = self._lr_schedule
+        else:
+            var_key = tuple(variables)
+            if var_key in self._optimizer_for_vars:
+                optimizer, lr_schedule = self._optimizer_for_vars[var_key]
+            else:
+                optimizer = self.optimizer._create_pytorch_optimizer(variables)
+                if isinstance(self.optimizer.learning_rate,
+                              LearningRateSchedule):
+                    lr_schedule = self.optimizer.learning_rate._create_pytorch_schedule(
+                        optimizer)
+                else:
+                    lr_schedule = None
+                self._optimizer_for_vars[var_key] = (optimizer, lr_schedule)
+        time1 = time.time()
+
+        # Main training loop.
+        for batch in generator:
+            if restore:
+                self.restore()
+                restore = False
+            buckets = self._bucket_prepare_batch(batch)
+            batch_loss = 0  # type: ignore
+            optimizer.zero_grad()
+            for b_id, bucket in enumerate(buckets):
+                inputs, labels, weights = bucket
+                outputs = self.model(**inputs)
+                bucket_loss = outputs.get("loss")
+                # scale loss
+                bucket_loss = bucket_loss / len(buckets)
+                if b_id < len(buckets) - 1:
+                    bucket_loss.backward()
+                    batch_loss += bucket_loss.detach()
+                else:
+                    batch_loss += bucket_loss
+            batch_loss.backward()  # type: ignore
+            optimizer.step()
+            if lr_schedule is not None:
+                lr_schedule.step()
+            self._global_step += 1
+            current_step = self._global_step
+
+            avg_loss += batch_loss
+
+            # Report progress and write checkpoints.
+            averaged_batches += 1
+            should_log = (current_step % self.log_frequency == 0)
+            if should_log:
+                avg_loss = float(avg_loss) / averaged_batches
+                logger.info('Ending global_step %d: Average loss %g' %
+                            (current_step, avg_loss))
+                if all_losses is not None:
+                    all_losses.append(avg_loss)
+                # Capture the last avg_loss in case of return since we're resetting to 0 now
+                last_avg_loss = avg_loss
+                avg_loss = 0.0
+                averaged_batches = 0
+
+            if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
+                self.save_checkpoint(max_checkpoints_to_keep)
+            for c in callbacks:
+                try:
+                    # NOTE In DeepChem > 2.8.0, callback signature is updated to allow
+                    # variable arguments.
+                    c(self, current_step, iteration_loss=batch_loss)
+                except TypeError:
+                    # DeepChem <= 2.8.0, the callback should have this signature.
+                    c(self, current_step)
+            if self.tensorboard and should_log:
+                self._log_scalar_to_tensorboard('loss', batch_loss,
+                                                current_step)
+            if (self.wandb_logger is not None) and should_log:
+                all_data = dict({'train/loss': batch_loss})
+                self.wandb_logger.log_data(all_data, step=current_step)
+
+        # Report final results.
+        if averaged_batches > 0:
+            avg_loss = float(avg_loss) / averaged_batches
+            logger.info('Ending global_step %d: Average loss %g' %
+                        (current_step, avg_loss))
+            if all_losses is not None:
+                all_losses.append(avg_loss)
+            last_avg_loss = avg_loss
+
+        if checkpoint_interval > 0:
+            self.save_checkpoint(max_checkpoints_to_keep)
+
+        time2 = time.time()
+        logger.info("TIMING: model fitting took %0.3f s" % (time2 - time1))
+        return last_avg_loss
