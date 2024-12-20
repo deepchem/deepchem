@@ -156,6 +156,7 @@ def test_get_dtype_memsize():
     assert get_dtype_memsize(torch.tensor(1, dtype=torch.float32)) == 4
     assert get_dtype_memsize(torch.tensor(1, dtype=torch.float64)) == 8
 
+
 @pytest.mark.torch
 def test_scatter_reduce_sum():
     from deepchem.utils.pytorch_utils import scatter_reduce

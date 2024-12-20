@@ -593,7 +593,7 @@ def get_dtype_memsize(a: torch.Tensor) -> int:
 def scatter_reduce(src: torch.Tensor,
                    index: torch.Tensor,
                    dim: int = -1,
-                   dim_size: int = None,
+                   dim_size: int = 0,
                    reduce: str = "sum") -> torch.Tensor:
     """Performs a scatter-reduce operation on the input tensor.
 
@@ -610,7 +610,7 @@ def scatter_reduce(src: torch.Tensor,
     dim: int, optional
         The axis along which to index. Defaults to -1.
     dim_size: int, optional
-        The size of the output tensor's dimension `dim`. If None, it's inferred as index.max().item() + 1. Defaults to None.
+        The size of the output tensor's dimension `dim`. If 0, it's inferred as index.max().item() + 1. Defaults to 0.
     reduce: str, optional
         The reduction operation to perform. Options: "sum", "mean", "amax", "max", "amin", "min", "prod". Defaults to "sum".
 
@@ -627,7 +627,7 @@ def scatter_reduce(src: torch.Tensor,
     >>> scatter_reduce(src, index, dim=0, reduce="sum")
     tensor([4., 6., 5.])
     """
-    if dim_size is None:
+    if dim_size == 0:
         dim_size = index.max().item() + 1
 
     # Prepare the output tensor shape
