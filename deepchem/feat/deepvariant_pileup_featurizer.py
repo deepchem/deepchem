@@ -29,10 +29,12 @@ class PileupFeaturizer(Featurizer):
     >>> bamfile_path = 'deepchem/data/tests/example.bam'
     >>> reference_path = 'deepchem/data/tests/sample.fa'
     >>> realign = RealignerFeaturizer()
-    >>> windows_haplotypes = realign.featurize((bamfile_path, reference_path))
+    >>> datapoint = (bamfile_path, reference_path)
+    >>> features = realign.featurize([datapoint])
+    >>> windows_haplotypes = features[0]
     >>> pileup_feat = PileupFeaturizer()
     >>> datapoint = (windows_haplotypes, reference_path, 299, 299, 6)
-    >>> features = pileup_feat.featurize(datapoint)
+    >>> features = pileup_feat.featurize([datapoint])
 
     Note
     ----
@@ -71,17 +73,22 @@ class PileupFeaturizer(Featurizer):
             decoded_seq.append(charset[idx])
         return ''.join(decoded_seq)
 
-    def featurize(self, datapoint):
+    def _featurize(self, datapoint):
         """
         Featurizes a datapoint by generating pileup images.
 
-        Args:
-            datapoint (Tuple[List[Any], str]): A tuple containing
-            haplotypes, reference file path, height, width, and
-            num_channels.
+        Parameters
+        ----------
 
-        Returns:
-            ImageDataset: An ImageDataset containing the images and labels.
+        datapoint : Tuple[List[Any], str]
+            A tuple containing haplotypes, reference file path,
+            height, width, and num_channels.
+
+        Returns
+        -------
+
+        ImageDataset
+            An ImageDataset containing the images and labels.
 
         """
         windows_haplotypes = datapoint[0]

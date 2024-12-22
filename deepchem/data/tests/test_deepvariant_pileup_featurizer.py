@@ -27,7 +27,8 @@ class TestPileupFeaturizer(unittest.TestCase):
         num_channels = 6
         datapoint = (windows_haplotypes, fasta_file_path, height, width,
                      num_channels)
-        image_dataset = self.featurizer.featurize(datapoint)
+        features = self.featurizer.featurize([datapoint])
+        image_dataset = features[0]
 
         # Assert the number of reads
         self.assertEqual(len(image_dataset), 15)

@@ -730,7 +730,8 @@ class RealignerFeaturizer(Featurizer):
     >>> bamfile_path = 'deepchem/data/tests/example.bam'
     >>> reference_path = 'deepchem/data/tests/sample.fa'
     >>> featurizer = RealignerFeaturizer()
-    >>> features = featurizer.featurize((bamfile_path, reference_path))
+    >>> datapoint = (bamfile_path, reference_path)
+    >>> features = featurizer.featurize([datapoint])
     >>> type(features[0]['span'])
     <class 'tuple'>
 
@@ -774,17 +775,21 @@ class RealignerFeaturizer(Featurizer):
             decoded_seq.append(charset[idx])
         return ''.join(decoded_seq)
 
-    def featurize(self, datapoint):
+    def _featurize(self, datapoint):
         """
         Featurizes a datapoint by generating candidate regions and reads.
 
-        Args:
-            datapoint (Tuple[str, str]): A tuple containing two strings
-            representing allele counts and reads.
+        Parameters
+        ----------
 
-        Returns:
-            Tuple[List[Tuple[str, int, int, int]], List[Any]]: A tuple
-            containing the candidate regions and reads.
+        datapoint : Tuple[str, str]
+            A tuple containing two strings representing allele counts and reads.
+
+        Returns
+        -------
+
+        Tuple[List[Tuple[str, int, int, int]], List[Any]]
+            A tuple containing the candidate regions and reads.
 
         """
         bamfile_path = datapoint[0]
