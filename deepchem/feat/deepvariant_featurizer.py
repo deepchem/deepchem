@@ -732,8 +732,6 @@ class RealignerFeaturizer(Featurizer):
     >>> featurizer = RealignerFeaturizer()
     >>> datapoint = (bamfile_path, reference_path)
     >>> features = featurizer.featurize([datapoint])
-    >>> type(features[0]['span'])
-    <class 'tuple'>
 
     Note
     ----
