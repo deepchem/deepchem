@@ -11,7 +11,6 @@ try:
     import torch.nn as nn
     import torch.nn.functional as F
     from deepchem.models.torch_models.flows import Affine
-    from deepchem.utils import scatter_reduce
 except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
 
@@ -24,7 +23,7 @@ except ModuleNotFoundError:
     pass
 
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
-from deepchem.utils.pytorch_utils import get_activation, segment_sum, unsorted_segment_sum, unsorted_segment_max
+from deepchem.utils.pytorch_utils import get_activation, segment_sum, unsorted_segment_sum, unsorted_segment_max, scatter_reduce
 from torch.nn import init as initializers
 
 
@@ -6885,3 +6884,90 @@ class WeightedAttentionPooling(nn.Module):
 
         x = self.message_nn(x)
         return scatter_reduce(gate * x, index, dim=0, reduce="sum")
+
+
+class ResidualNetwork(nn.Module):
+    """
+    This class implements a simple feed-forward neural network with residual connections in each layer.
+    Please note that this is not interchangable with the MLP class as the skip connections in the MLP are
+    only from the input to the output layer.
+    
+    Usage Example
+    --------
+    >>> model = ResidualNetwork(input_dim=10, output_dim=2, hidden_layer_dims=(2, 3), activation_fn='relu', batch_norm=True)
+    >>> x = torch.ones(2, 10)
+    >>> out = model(x)
+    >>> print(out.shape)
+    torch.Size([2, 2])
+    """
+
+    def __init__(self,
+                 input_dim: int,
+                 output_dim: int,
+                 hidden_layer_dims: Sequence[int],
+                 activation_fn: Union[Callable, str] = 'relu',
+                 batch_norm: bool = False) -> None:
+        """
+        Initialize the ResidualNetwork.
+
+        Parameters
+        ----------
+        input_dim: int
+            The dimension of the input layer
+        output_dim: int
+            The dimension of the output layer
+        hidden_layer_dims: Sequence[int]
+            The dimensions of the hidden layers
+        activation_fn: Union[Callable, str]
+            The activation function to use for the hidden layers. Default is 'relu'.
+        batch_norm: bool
+            Whether to use batch normalization. Default is False.
+        """
+        super(MultilayerPerceptron, self).__init__()
+
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.hidden_layer_dims = hidden_layer_dims
+        self.activation = get_activation(activation_fn)
+        self.batch_norm = batch_norm
+        self.model = nn.Sequential(*self.build_layers())
+
+    def build_layers(self) -> List[nn.Module]:
+        """
+        Build the layers of the model by iterating through the hidden dimensions to produce a list of layers.
+        """
+
+        dims = [self.input_dim, *list(self.hidden_layer_dims)]
+
+        layer_list = []
+        self.fc_layers = nn.ModuleList(
+            nn.Linear(dims[i], dims[i + 1]) for i in range(len(dims) - 1))
+
+        if self.batch_norm:
+            self.batch_norm_layers = nn.ModuleList(
+                nn.BatchNorm1d(dims[i + 1] for i in range(len(dims) - 1)))
+        else:
+            self.batch_norm_layers = nn.ModuleList(
+                nn.Identity() for i in range(len(dims) - 1))
+
+        self.residual_fc_layers = nn.ModuleList(
+            nn.Linear(dims[i], dims[i + 1], bias=False) if (
+                dims[i] != dims[i + 1]) else nn.Identity()
+            for i in range(len(dims) - 1))
+
+        self.activation_layers = nn.ModuleList(
+            self.activation for i in range(len(dims) - 1))
+
+        self.output_fc_layer = nn.Linear(dims[-1], self.output_dim)
+
+    def forward(self, x: torch.Tensor):
+        """
+        Forward pass of the model.
+        """
+
+        for fc, bn, res_fc, act in zip(self.fc_layers, self.batch_norm_layers,
+                                       self.residual_fc_layers,
+                                       self.activation_layers):
+            x = act(bn(fc(x)) + res_fc(x))
+
+        return self.output_fc_layer(x)
