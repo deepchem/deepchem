@@ -6879,6 +6879,16 @@ class ResidualNetwork(nn.Module):
     def forward(self, x: torch.Tensor):
         """
         Forward pass of the model.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The input tensor.
+        
+        Returns
+        -------
+        torch.Tensor
+            The output tensor.
         """
 
         dims = [self.input_dim, *list(self.hidden_layer_dims)]

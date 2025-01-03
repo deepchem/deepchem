@@ -71,7 +71,18 @@ class MessageLayer(nn.Module):
         msg_net_layers: Sequence[int],
     ) -> None:
         """
-        Initialize the MessageLayer.
+        Initialize the MessageLayer, consisting of a weighted attention pooling layer with MLPs for the gate and message networks.
+
+        Parameters
+        ----------
+        msg_feature_len: int
+            The length of the message features
+        num_msg_heads: int
+            The number of attention heads
+        msg_gate_layers: Sequence[int]
+            The number of hidden units in the message gate network
+        msg_net_layers: Sequence[int]
+            The number of hidden units in the message network
         """
         self.msg_feature_len = msg_feature_len
         self.num_msg_heads = num_msg_heads
