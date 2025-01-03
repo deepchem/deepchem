@@ -23,7 +23,7 @@ except ModuleNotFoundError:
     pass
 
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
-from deepchem.utils.pytorch_utils import get_activation, segment_sum, unsorted_segment_sum, unsorted_segment_max, scatter_reduce
+from deepchem.utils.pytorch_utils import get_activation, segment_sum, unsorted_segment_sum, unsorted_segment_max
 from torch.nn import init as initializers
 
 
@@ -6831,61 +6831,6 @@ class SE3Attention(nn.Module):
         return x, coords
 
 
-class WeightedAttentionPooling(nn.Module):
-    """
-    Weighted attention pooling layer.
-
-    Parameters
-    ----------
-    gate_nn: nn.Module
-        Neural network to calculate attention scalars.
-    message_nn: nn.Module
-        Neural network to evaluate message updates.
-    """
-
-    def __init__(self, gate_nn: nn.Module, message_nn: nn.Module) -> None:
-        """Initialize softmax attention layer.
-
-        Parameters
-        ----------
-        gate_nn: nn.Module
-            Neural network to calculate attention scalars.
-        message_nn: nn.Module
-            Neural network to evaluate message updates.
-        """
-        super().__init__()
-        self.gate_nn = gate_nn
-        self.message_nn = message_nn
-        self.pow = torch.nn.Parameter(torch.randn(1))
-
-    def forward(self, x: torch.Tensor, index: torch.Tensor,
-                weights: torch.Tensor) -> torch.Tensor:
-        """Forward pass.
-
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input features for nodes
-        index: torch.Tensor
-            The indices for scatter operation over nodes
-        weights: torch.Tensor
-            The weights to assign to nodes
-
-        Returns
-        -------
-        torch.Tensor
-            Output features for nodes
-        """
-        gate = self.gate_nn(x)
-
-        gate -= scatter_reduce(gate, index, dim=0, reduce="amax")[index]
-        gate = (weights**self.pow) * gate.exp()
-        gate /= scatter_reduce(gate, index, dim=0, reduce="sum")[index] + 1e-10
-
-        x = self.message_nn(x)
-        return scatter_reduce(gate * x, index, dim=0, reduce="sum")
-
-
 class ResidualNetwork(nn.Module):
     """
     This class implements a simple feed-forward neural network with residual connections in each layer.
@@ -6923,23 +6868,21 @@ class ResidualNetwork(nn.Module):
         batch_norm: bool
             Whether to use batch normalization. Default is False.
         """
-        super(MultilayerPerceptron, self).__init__()
+        super(ResidualNetwork, self).__init__()
 
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.hidden_layer_dims = hidden_layer_dims
         self.activation = get_activation(activation_fn)
         self.batch_norm = batch_norm
-        self.model = nn.Sequential(*self.build_layers())
 
-    def build_layers(self) -> List[nn.Module]:
+    def forward(self, x: torch.Tensor):
         """
-        Build the layers of the model by iterating through the hidden dimensions to produce a list of layers.
+        Forward pass of the model.
         """
 
         dims = [self.input_dim, *list(self.hidden_layer_dims)]
 
-        layer_list = []
         self.fc_layers = nn.ModuleList(
             nn.Linear(dims[i], dims[i + 1]) for i in range(len(dims) - 1))
 
@@ -6956,14 +6899,9 @@ class ResidualNetwork(nn.Module):
             for i in range(len(dims) - 1))
 
         self.activation_layers = nn.ModuleList(
-            self.activation for i in range(len(dims) - 1))
+            self.activation for _ in range(len(dims) - 1))
 
         self.output_fc_layer = nn.Linear(dims[-1], self.output_dim)
-
-    def forward(self, x: torch.Tensor):
-        """
-        Forward pass of the model.
-        """
 
         for fc, bn, res_fc, act in zip(self.fc_layers, self.batch_norm_layers,
                                        self.residual_fc_layers,
