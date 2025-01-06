@@ -74,6 +74,13 @@ MolGraphConvFeaturizer
   :members:
   :inherited-members:
 
+SE3TransformerFeaturizer
+**********************
+
+.. autoclass:: deepchem.feat.SE3TransformerFeaturizer
+  :members:
+  :inherited-members:
+
 PagtnMolGraphFeaturizer
 ***********************
 
@@ -288,6 +295,8 @@ AtomicConvFeaturizer
 .. autoclass:: deepchem.feat.AtomicConvFeaturizer
   :members:
   :inherited-members:
+
+
 
 
 Inorganic Crystal Featurizers
