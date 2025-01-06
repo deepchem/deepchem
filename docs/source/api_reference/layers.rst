@@ -437,7 +437,7 @@ Roost Layers
 ------------
 
 .. autoclass:: deepchem.models.torch_models.roost_layers.WeightedAttentionPooling
-  :members:
+   :members:
 
 .. autoclass:: deepchem.models.torch_models.roost_layers.MessageLayer
-  :members:
+   :members:
