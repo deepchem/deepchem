@@ -6898,7 +6898,7 @@ class ResidualNetwork(nn.Module):
 
         if self.batch_norm:
             self.batch_norm_layers = nn.ModuleList(
-                nn.BatchNorm1d(dims[i + 1] for i in range(len(dims) - 1)))
+                nn.BatchNorm1d(dims[i + 1]) for i in range(len(dims) - 1))
         else:
             self.batch_norm_layers = nn.ModuleList(
                 nn.Identity() for i in range(len(dims) - 1))

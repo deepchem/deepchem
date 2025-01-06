@@ -90,13 +90,14 @@ class MessageLayer(nn.Module):
         self.msg_net_layers = msg_net_layers
 
         self.pooling = nn.ModuleList(
-            WeightedAttentionPooling(
-                gate_nn=MultilayerPerceptron(d_input=2 * msg_feature_len,
-                                             d_output=1,
-                                             d_hidden=msg_gate_layers),
-                message_nn=MultilayerPerceptron(d_input=2 * msg_feature_len,
-                                                d_output=msg_feature_len,
-                                                d_hidden=msg_net_layers)))
+            WeightedAttentionPooling(gate_nn=MultilayerPerceptron(
+                d_input=2 * msg_feature_len,
+                d_output=1,
+                d_hidden=tuple(msg_gate_layers)),
+                                     message_nn=MultilayerPerceptron(
+                                         d_input=2 * msg_feature_len,
+                                         d_output=msg_feature_len,
+                                         d_hidden=tuple(msg_net_layers))))
 
     def forward(self, node_weights: Tensor, node_prev_features: Tensor,
                 self_idx: torch.LongTensor,
