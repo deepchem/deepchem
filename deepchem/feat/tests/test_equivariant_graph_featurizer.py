@@ -22,7 +22,7 @@ class TestEquivariantGraphFeaturizer(unittest.TestCase):
         Test featurization with bonded edges.
         """
         featurizer = EquivariantGraphFeaturizer(fully_connected=False,
-                                              embeded=True)
+                                                embeded=True)
         graphs = featurizer.featurize([self.mol])
 
         assert len(graphs) == 1
@@ -39,7 +39,7 @@ class TestEquivariantGraphFeaturizer(unittest.TestCase):
         Test featurization with fully connected edges.
         """
         featurizer = EquivariantGraphFeaturizer(fully_connected=True,
-                                              embeded=True)
+                                                embeded=True)
         graphs = featurizer.featurize([self.mol])
         assert len(graphs) == 1
 
@@ -69,7 +69,7 @@ class TestEquivariantGraphFeaturizer(unittest.TestCase):
         Test discretization of edge weights.
         """
         featurizer = EquivariantGraphFeaturizer(weight_bins=[1.0, 2.0, 3.0],
-                                              embeded=True)
+                                                embeded=True)
 
         graphs = featurizer.featurize([self.mol])
         assert len(graphs) == 1
@@ -88,7 +88,7 @@ class TestEquivariantGraphFeaturizer(unittest.TestCase):
         smiles_list = ['CCO', 'CCC']
         mols = [Chem.MolFromSmiles(smiles) for smiles in smiles_list]
         featurizer = EquivariantGraphFeaturizer(fully_connected=False,
-                                              embeded=True)
+                                                embeded=True)
         graphs = featurizer.featurize(mols)
         assert len(graphs) == len(smiles_list)
 

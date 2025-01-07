@@ -8,7 +8,7 @@ from deepchem.feat import MolecularFeaturizer
 from rdkit import Chem
 from rdkit.Chem import AllChem
 import logging
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Any
 from deepchem.utils.typing import RDKitMol, ArrayLike
 
 logger = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ class EquivariantGraphFeaturizer(MolecularFeaturizer):
 
     def __init__(self,
                  fully_connected: bool = False,
-                 weight_bins: list = None,
+                 weight_bins: Optional[list[Any]] = None,
                  embeded: bool = False):
         """
         Parameters
