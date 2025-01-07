@@ -52,7 +52,7 @@ class EquivariantGraphFeaturizer(MolecularFeaturizer):
 
     def __init__(self,
                  fully_connected: bool = False,
-                 weight_bins: Optional[list[Any]] = None,
+                 weight_bins: Optional[List[Any]] = None,
                  embeded: bool = False):
         """
         Parameters
