@@ -1,13 +1,13 @@
 import unittest
 from rdkit import Chem
-from deepchem.feat import SE3TransformerFeaturizer
+from deepchem.feat import EquivariantGraphFeaturizer
 from deepchem.feat.graph_data import GraphData
 import numpy as np
 
 
-class TestSE3TransformerFeaturizer(unittest.TestCase):
+class TestEquivariantGraphFeaturizer(unittest.TestCase):
     """
-    Tests for SE3TransformerFeaturizer.
+    Tests for EquivariantGraphFeaturizer.
     """
 
     def setUp(self):
@@ -21,7 +21,7 @@ class TestSE3TransformerFeaturizer(unittest.TestCase):
         """
         Test featurization with bonded edges.
         """
-        featurizer = SE3TransformerFeaturizer(fully_connected=False,
+        featurizer = EquivariantGraphFeaturizer(fully_connected=False,
                                               embeded=True)
         graphs = featurizer.featurize([self.mol])
 
@@ -38,7 +38,7 @@ class TestSE3TransformerFeaturizer(unittest.TestCase):
         """
         Test featurization with fully connected edges.
         """
-        featurizer = SE3TransformerFeaturizer(fully_connected=True,
+        featurizer = EquivariantGraphFeaturizer(fully_connected=True,
                                               embeded=True)
         graphs = featurizer.featurize([self.mol])
         assert len(graphs) == 1
@@ -55,7 +55,7 @@ class TestSE3TransformerFeaturizer(unittest.TestCase):
         """
         Test featurization with embedded 3D coordinates.
         """
-        featurizer = SE3TransformerFeaturizer(embeded=True)
+        featurizer = EquivariantGraphFeaturizer(embeded=True)
         graphs = featurizer.featurize([self.mol])
         assert len(graphs) == 1
 
@@ -68,7 +68,7 @@ class TestSE3TransformerFeaturizer(unittest.TestCase):
         """
         Test discretization of edge weights.
         """
-        featurizer = SE3TransformerFeaturizer(weight_bins=[1.0, 2.0, 3.0],
+        featurizer = EquivariantGraphFeaturizer(weight_bins=[1.0, 2.0, 3.0],
                                               embeded=True)
 
         graphs = featurizer.featurize([self.mol])
@@ -87,7 +87,7 @@ class TestSE3TransformerFeaturizer(unittest.TestCase):
         """
         smiles_list = ['CCO', 'CCC']
         mols = [Chem.MolFromSmiles(smiles) for smiles in smiles_list]
-        featurizer = SE3TransformerFeaturizer(fully_connected=False,
+        featurizer = EquivariantGraphFeaturizer(fully_connected=False,
                                               embeded=True)
         graphs = featurizer.featurize(mols)
         assert len(graphs) == len(smiles_list)
