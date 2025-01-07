@@ -74,10 +74,10 @@ MolGraphConvFeaturizer
   :members:
   :inherited-members:
 
-SE3TransformerFeaturizer
+EquivariantGraphFeaturizer
 **********************
 
-.. autoclass:: deepchem.feat.SE3TransformerFeaturizer
+.. autoclass:: deepchem.feat.EquivariantGraphFeaturizer
   :members:
   :inherited-members:
 

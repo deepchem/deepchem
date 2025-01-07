@@ -14,12 +14,12 @@ from deepchem.utils.typing import RDKitMol, ArrayLike
 logger = logging.getLogger(__name__)
 
 
-class SE3TransformerFeaturizer(MolecularFeaturizer):
-    """Featurizer for SE(3)-equivariant Graph Neural Networks.
+class EquivariantGraphFeaturizer(MolecularFeaturizer):
+    """Featurizer for Equivariant Graph Neural Networks.
 
     This featurizer constructs graph representations of molecular structures,
     capturing atomic features, pairwise distances, and spatial positions. These
-    features are tailored for use in SE(3)-equivariant models with QM9 dataset
+    features are tailored for use in Equivariant models with QM9 dataset
     as described in [1]_.
 
     Features include:
@@ -33,8 +33,8 @@ class SE3TransformerFeaturizer(MolecularFeaturizer):
     >>> from rdkit import Chem
     >>> import deepchem as dc
     >>> mol = Chem.MolFromSmiles('CCO')
-    >>> featurizer = dc.feat.SE3TransformerFeaturizer(fully_connected=True, embeded=True)
-    >>> features = featurizer.featurize([mol])[0]
+    >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
+    >>> features = featurizer.featurize([mol])
     >>> type(features[0])
     <class 'deepchem.feat.graph_data.GraphData'>
     >>> features[0].node_features.shape  # (N, F)
@@ -70,8 +70,7 @@ class SE3TransformerFeaturizer(MolecularFeaturizer):
             1.0, 2.0, 3.0, 4.0
         ]
 
-    def _featurize(self, datapoint: RDKitMol,
-                   **kwargs) -> np.ndarray[GraphData]:
+    def _featurize(self, datapoint: RDKitMol, **kwargs) -> GraphData:
         """Featurizes molecules into GraphData objects.
 
         Parameters
@@ -84,7 +83,6 @@ class SE3TransformerFeaturizer(MolecularFeaturizer):
         np.ndarray of GraphData
             List of GraphData objects for the molecule.
         """
-        graph_data_l = []
 
         if self.embeded:
             datapoint = Chem.AddHs(datapoint)
@@ -92,6 +90,7 @@ class SE3TransformerFeaturizer(MolecularFeaturizer):
             datapoint = Chem.RemoveHs(datapoint)
 
         node_features, positions = self._get_node_features(datapoint)
+        positions = np.array(positions, dtype=np.float32)
 
         if self.fully_connected:
             src, dst, edge_features, edge_weights = self._get_fully_connected_edges(
@@ -101,15 +100,14 @@ class SE3TransformerFeaturizer(MolecularFeaturizer):
                 datapoint, positions)
 
         edge_weights = self._discretize_and_one_hot(edge_weights)
+        node_features = np.array(node_features, dtype=np.float32)
+        edge_features = np.array(edge_features, dtype=np.float32)
 
-        graph_data = GraphData(node_features=node_features,
-                               edge_index=np.array([src, dst]),
-                               edge_features=edge_features,
-                               edge_weights=edge_weights,
-                               positions=positions)
-        graph_data_l.append(graph_data)
-
-        return graph_data_l
+        return GraphData(node_features=node_features,
+                         edge_index=np.array([src, dst]),
+                         edge_features=edge_features,
+                         edge_weights=edge_weights,
+                         positions=positions)
 
     def _get_node_features(self, mol: RDKitMol) -> Tuple[ArrayLike, ArrayLike]:
         """Generates node features and positions.
@@ -135,8 +133,6 @@ class SE3TransformerFeaturizer(MolecularFeaturizer):
             pos = mol.GetConformer().GetAtomPosition(atom.GetIdx())
             positions.append([pos.x, pos.y, pos.z])
 
-        positions = np.array(positions, dtype=np.float32)
-        atom_features = np.array(atom_features, dtype=np.float32)
         return atom_features, positions
 
     def _get_bonded_edges(
@@ -222,7 +218,7 @@ class SE3TransformerFeaturizer(MolecularFeaturizer):
         one_hot_weights[np.arange(len(digitized)), digitized] = 1
         return one_hot_weights
 
-    def _one_hot(self, value: int, allowable_set: List) -> np.ndarray[int]:
+    def _one_hot(self, value: int, allowable_set: List) -> List[int]:
         """Generates a one-hot encoding for a value.
 
         Parameters

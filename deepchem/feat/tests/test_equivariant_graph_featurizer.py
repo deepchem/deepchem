@@ -28,11 +28,11 @@ class TestSE3TransformerFeaturizer(unittest.TestCase):
         assert len(graphs) == 1
         graph = graphs[0]
 
-        assert isinstance(graph[0], GraphData)
+        assert isinstance(graph, GraphData)
 
-        assert graph[0].node_features.shape[0] == self.mol.GetNumAtoms()
-        assert graph[0].positions.shape[0] == self.mol.GetNumAtoms()
-        assert graph[0].edge_index.shape[1] > 0
+        assert graph.node_features.shape[0] == self.mol.GetNumAtoms()
+        assert graph.positions.shape[0] == self.mol.GetNumAtoms()
+        assert graph.edge_index.shape[1] > 0
 
     def test_fully_connected_graph_featurization(self):
         """
@@ -44,12 +44,12 @@ class TestSE3TransformerFeaturizer(unittest.TestCase):
         assert len(graphs) == 1
 
         graph = graphs[0]
-        assert isinstance(graph[0], GraphData)
+        assert isinstance(graph, GraphData)
 
         num_atoms = self.mol.GetNumAtoms()
 
         expected_edges = num_atoms * (num_atoms - 1)  # Fully connected graph
-        assert graph[0].edge_index.shape[1] == expected_edges
+        assert graph.edge_index.shape[1] == expected_edges
 
     def test_embedded_coordinates(self):
         """
@@ -60,9 +60,9 @@ class TestSE3TransformerFeaturizer(unittest.TestCase):
         assert len(graphs) == 1
 
         graph = graphs[0]
-        assert isinstance(graph[0], GraphData)
+        assert isinstance(graph, GraphData)
         # 3D positions
-        assert graph[0].positions.shape[1] == 3
+        assert graph.positions.shape[1] == 3
 
     def test_edge_weight_discretization(self):
         """
@@ -74,9 +74,9 @@ class TestSE3TransformerFeaturizer(unittest.TestCase):
         graphs = featurizer.featurize([self.mol])
         assert len(graphs) == 1
         graph = graphs[0]
-        assert isinstance(graph[0], GraphData)
+        assert isinstance(graph, GraphData)
 
-        one_hot_weights = graph[0].edge_weights
+        one_hot_weights = graph.edge_weights
         assert one_hot_weights.shape[1] == len(
             featurizer.weight_bins) + 1  # Bin count + 1
         assert np.all(np.sum(one_hot_weights, axis=1) == 1)
@@ -93,4 +93,4 @@ class TestSE3TransformerFeaturizer(unittest.TestCase):
         assert len(graphs) == len(smiles_list)
 
         for graph, mol in zip(graphs, mols):
-            assert graph[0].node_features.shape[0] == mol.GetNumAtoms()
+            assert graph.node_features.shape[0] == mol.GetNumAtoms()
