@@ -293,6 +293,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.flows.ConstScaleLayer
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.ResidualLayer
+  :members:
+
 Flow Layers
 ^^^^^^^^^^^
 
@@ -428,4 +431,13 @@ InceptionV3 Layers
    :members:
 
 .. autoclass:: deepchem.models.torch_models.inception_v3.InceptionAux
+   :members:
+
+Roost Layers
+------------
+
+.. autoclass:: deepchem.models.torch_models.roost_layers.WeightedAttentionPooling
+   :members:
+
+.. autoclass:: deepchem.models.torch_models.roost_layers.MessageLayer
    :members:
