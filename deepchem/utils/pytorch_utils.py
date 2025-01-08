@@ -628,7 +628,7 @@ def scatter_reduce(src: torch.Tensor,
     tensor([4., 6., 5.])
     """
     if dim_size == 0:
-        dim_size = index.max().item() + 1
+        dim_size = int(index.max().item() + 1)
 
     # Prepare the output tensor shape
     shape = list(src.shape)

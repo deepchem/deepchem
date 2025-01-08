@@ -162,5 +162,5 @@ def test_scatter_reduce_sum():
     from deepchem.utils.pytorch_utils import scatter_reduce
     src = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
     index = torch.tensor([0, 1, 0, 1, 2])
-    result = scatter_reduce(src, index, 'sum')
+    result = scatter_reduce(src, index, dim=0, reduce='sum')
     assert torch.allclose(result, torch.tensor([4.0, 6.0, 5.0]))
