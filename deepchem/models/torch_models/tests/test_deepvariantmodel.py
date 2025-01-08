@@ -40,7 +40,7 @@ def test_deepvariant_vcf():
         with open(fname) as f:
             lines = f.readlines()
             assert any("##fileformat=VCFv4.2" in line for line in lines)
-            assert sum(1 for line in lines if not line.startswith("#")
-                       ) == n_samples
+            assert sum(
+                1 for line in lines if not line.startswith("#")) == n_samples
     finally:
         os.unlink(fname)
