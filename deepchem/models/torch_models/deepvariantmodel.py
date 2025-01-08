@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List, Any, Optional, Tuple
+from typing import Any, Optional, Tuple
 from deepchem.models.torch_models.inceptionv3 import InceptionV3Model
 from deepchem.data import Dataset
 
@@ -7,10 +7,10 @@ from deepchem.data import Dataset
 class DeepVariant(InceptionV3Model):
     """
     DeepVariant model for genomic variant calling using InceptionV3 architecture.
-    
+
     This model extends DeepChem's InceptionV3Model to add variant calling
     capabilities.
-    
+
     The model expects input data in the form of pileup images with 6 channels:
     - Base identity
     - Base quality
@@ -43,7 +43,21 @@ class DeepVariant(InceptionV3Model):
 
     def _calculate_genotype_quality(
             self, probabilities: np.ndarray) -> Tuple[int, str]:
-        """Calculate genotype quality scores from probabilities."""
+        """
+        Calculate genotype quality scores from probabilities.
+
+        Parameters
+        ----------
+        probabilities : np.ndarray
+            An array of probabilities for each genotype.
+
+        Returns
+        -------
+        quality : int
+            The calculated genotype quality score.
+        genotype : str
+            The genotype with the highest probability.
+        """
         max_prob_idx = np.argmax(probabilities)
         genotypes = ['0/0', '0/1', '1/1']
         genotype = genotypes[max_prob_idx]
@@ -57,13 +71,38 @@ class DeepVariant(InceptionV3Model):
         return quality, genotype
 
     def _calculate_PL_scores(self, probabilities: np.ndarray) -> str:
-        """Calculate Phred-scaled genotype likelihoods."""
+        """
+        Calculate Phred-scaled genotype likelihoods.
+
+        Parameters
+        ----------
+        probabilities : np.ndarray
+            An array of probabilities for each genotype.
+
+        Returns
+        -------
+        str
+            A comma-separated string of Phred-scaled genotype likelihoods.
+        """
         pl_scores = [-10 * np.log10(p) if p > 0 else 999 for p in probabilities]
-        pl_scores = np.array(pl_scores) - min(pl_scores)
+        pl_scores = list(np.array(pl_scores) - min(pl_scores))
         return ','.join(map(str, map(int, pl_scores)))
 
     def _write_vcf_header(self, vcf_file: Any, sample_name: str) -> None:
-        """Write VCF header information."""
+        """
+        Write VCF header information.
+
+        Parameters
+        ----------
+        vcf_file : Any
+            The file object where the VCF header will be written.
+        sample_name : str
+            The name of the sample to be included in the VCF header.
+
+        Returns
+        -------
+        None
+        """
         vcf_file.write("##fileformat=VCFv4.2\n")
         vcf_file.write("##source=DeepChemVariant\n")
 
@@ -94,17 +133,35 @@ class DeepVariant(InceptionV3Model):
             f"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{sample_name}\n"
         )
 
-    def call_variants(self,
-                      dataset: Dataset,
-                      output_path: str,
-                      sample_name: Optional[str] = None,
-                      transformers: List = []) -> str:
-        """Call variants and write results to VCF."""
+    def call_variants(
+        self,
+        dataset: Dataset,
+        output_path: str,
+        sample_name: Optional[str] = None,
+    ) -> str:
+        """
+        Call variants and write results to VCF.
+
+        Parameters
+        ----------
+        dataset : Dataset
+            The dataset containing the variant information.
+        output_path : str
+            The path where the VCF file will be written.
+        sample_name : Optional[str], optional
+            The name of the sample, by default None.
+
+
+        Returns
+        -------
+        str
+            The path to the output VCF file.
+        """
         if sample_name is None:
             sample_name = "SAMPLE"
 
         # Get predictions
-        predictions = self.predict(dataset, transformers=transformers)
+        predictions = self.predict(dataset)
         variant_info = dataset.y
 
         # Write VCF
