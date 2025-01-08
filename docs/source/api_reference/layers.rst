@@ -293,6 +293,8 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.flows.ConstScaleLayer
   :members:
 
+.. autofunction:: deepchem.models.torch_models.layers.cosine_dist
+
 Flow Layers
 ^^^^^^^^^^^
 
@@ -363,7 +365,7 @@ The following layers are used for implementing GROVER model as described in the 
 
 .. autoclass:: deepchem.models.torch_models.grover.SphericalHarmonics
   :members:
-
+ 
 Attention Layers
 ^^^^^^^^^^^^^^^^
 
