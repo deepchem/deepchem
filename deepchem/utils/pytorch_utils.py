@@ -5,6 +5,16 @@ import numpy as np
 from typing import Any, Callable, Sequence, Union, List, Generator, Tuple
 
 
+def get_complex_dtype(dtype: torch.dtype) -> torch.dtype:
+    # return the corresponding complex type given the real floating point datatype
+    if dtype == torch.float64:
+        return torch.complex128
+    elif dtype == torch.float32:
+        return torch.complex64
+    else:
+        raise TypeError("Unsupported datatype %s for conversion to complex" % dtype)
+
+
 def get_activation(fn: Union[Callable, str]):
     """Get a PyTorch activation function, specified either directly or as a string.
 

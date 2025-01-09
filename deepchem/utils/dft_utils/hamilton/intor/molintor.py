@@ -1771,3 +1771,19 @@ def _get_uniqueness(a: List) -> List[int]:
             res.append(i)
             i += 1
     return res
+
+
+def _get_intgl_optimizer(opname: str,
+                         atm: np.ndarray, bas: np.ndarray, env: np.ndarray)\
+                         -> ctypes.c_void_p:
+    # get the optimizer of the integrals
+    # setup the optimizer
+    cintopt = ctypes.POINTER(ctypes.c_void_p)()
+    optname = opname.replace("_cart", "").replace("_sph", "") + "_optimizer"
+    copt = getattr(CINT(), optname)
+    copt(ctypes.byref(cintopt),
+         np2ctypes(atm), int2ctypes(atm.shape[0]),
+         np2ctypes(bas), int2ctypes(bas.shape[0]),
+         np2ctypes(env))
+    opt = ctypes.cast(cintopt, _cintoptHandler)
+    return opt
