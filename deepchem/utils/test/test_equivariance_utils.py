@@ -203,7 +203,7 @@ class TestEquivarianceUtils(unittest.TestCase):
                                                                         col2])
                     self.assertAlmostEqual(dot_product.item(), 0.0, places=5)
 
-    @unittest.skipIf(not torch, "torch is not available")
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_semifactorial(self) -> None:
         # Test base cases
         self.assertEqual(equivariance_utils.semifactorial(0), 1.0)
@@ -214,7 +214,7 @@ class TestEquivarianceUtils(unittest.TestCase):
         self.assertEqual(equivariance_utils.semifactorial(6),
                          48.0)  # 6!! = 6 * 4 * 2
 
-    @unittest.skipIf(not torch, "torch is not available")
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_pochhammer_base_case(self) -> None:
         # Test k=0 (should return 1.0)
         self.assertEqual(equivariance_utils.pochhammer(3, 0), 1.0)
@@ -224,7 +224,7 @@ class TestEquivarianceUtils(unittest.TestCase):
         self.assertEqual(equivariance_utils.pochhammer(5, 2),
                          30.0)  # (5)_2 = 5 * 6
 
-    @unittest.skipIf(not torch, "torch is not available")
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_lpmv(self) -> None:
         x = torch.tensor([0.5])
         # Test P_2^1(x)
@@ -242,7 +242,7 @@ class TestEquivarianceUtils(unittest.TestCase):
         expected = torch.tensor([3 * (1 - 0.5**2)])
         self.assertTrue(torch.allclose(result, expected, atol=1e-4))
 
-    @unittest.skipIf(not torch, "torch is not available")
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_spherical_harmonics(self) -> None:
         theta = torch.tensor([0.0, math.pi / 2])
         phi = torch.tensor([0.0, math.pi])
@@ -264,8 +264,7 @@ class TestEquivarianceUtils(unittest.TestCase):
                                  [0.0000, -0.0000, 0.4886]])
         self.assertTrue(torch.allclose(result, expected, atol=1e-4))
 
-    unittest.skipIf(not has_torch, "torch is not available")
-
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_irr_repr(self) -> None:
         # Test irreducible representation of SO3.
         order = 1
