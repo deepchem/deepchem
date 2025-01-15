@@ -32,6 +32,7 @@ class DAG(nn.Module):
                  n_classes=2,
                  uncertainty=False,
                  batch_size=100,
+                 device='cpu',
                  **kwargs):
         """
         Parameters
@@ -86,14 +87,16 @@ class DAG(nn.Module):
                                   max_atoms=self.max_atoms,
                                   layer_sizes=layer_sizes,
                                   dropout=dropout,
-                                  batch_size=batch_size)
+                                  batch_size=batch_size,
+                                  device=device)
 
         # Gather layer
         self.dag_gather = DAGGather(n_graph_feat=self.n_graph_feat,
                                     n_outputs=self.n_outputs,
                                     max_atoms=self.max_atoms,
                                     layer_sizes=layer_sizes_gather,
-                                    dropout=dropout)
+                                    dropout=dropout,
+                                    device=device)
 
         # Output layers
         if self.mode == 'classification':
@@ -146,6 +149,7 @@ class DAGModel(TorchModel):
                  n_classes=2,
                  uncertainty=False,
                  batch_size=100,
+                 device='cpu',
                  **kwargs):
         """
         Parameters
@@ -172,6 +176,10 @@ class DAGModel(TorchModel):
             the number of classes to predict (only used in classification mode)
         uncertainty: bool, optional
             if True, include extra outputs to enable uncertainty prediction
+        batch_size: int, optional
+            the batch size to use during training
+        device: str, optional
+            the device to run the model on
         """
         self.model = DAG(n_tasks=n_tasks,
                          max_atoms=max_atoms,
@@ -184,7 +192,8 @@ class DAGModel(TorchModel):
                          mode=mode,
                          n_classes=n_classes,
                          uncertainty=uncertainty,
-                         batch_size=batch_size)
+                         batch_size=batch_size,
+                         device=device)
         self.n_tasks = n_tasks
         self.mode = mode
         self.max_atoms = max_atoms
@@ -195,7 +204,6 @@ class DAGModel(TorchModel):
             self.loss = SoftmaxCrossEntropy()
         else:
             if uncertainty:
-                self.log_var = nn.Linear(n_outputs, n_tasks)
                 self.output_types = ['prediction', 'variance', 'loss', 'loss']
 
                 def loss(outputs, labels, weights):
@@ -225,6 +233,7 @@ class DAGModel(TorchModel):
                                        loss=self.loss,
                                        output_types=self.output_types,
                                        batch_size=batch_size,
+                                       device=device,
                                        **kwargs)
 
     def default_generator(self,

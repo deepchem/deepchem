@@ -6859,6 +6859,7 @@ class DAGLayer(nn.Module):
             activation='relu',
             dropout=None,
             batch_size=64,
+            device='cpu',
             **kwargs):
         """
         Parameters
@@ -6881,6 +6882,8 @@ class DAGLayer(nn.Module):
             Dropout probability in hidden layer(s).
         batch_size: int, optional
             number of molecules in a batch.
+        device: str, optional
+            Device used for computation
         """
 
         super(DAGLayer, self).__init__(**kwargs)
@@ -6896,6 +6899,7 @@ class DAGLayer(nn.Module):
         self.n_graph_feat = n_graph_feat
         self.n_outputs = n_graph_feat
         self.n_atom_feat = n_atom_feat
+        self.device = device
 
         # Initialize weights and biases for layers
         self.layers = nn.ModuleList()
@@ -6954,22 +6958,25 @@ class DAGLayer(nn.Module):
         graph_features = torch.zeros(
             (self.batch_size * self.max_atoms, self.max_atoms + 1,
              self.n_graph_feat
-            ))  # (batch_size * max_atoms, max_atoms + 1, n_graph_feat)
+            )).to(self.device)  # (batch_size * max_atoms, max_atoms + 1, n_graph_feat)
 
         # convert to tensor (some torch functions do not support numpy arrays)
         atom_features = torch.tensor(
-            atom_features, dtype=torch.float32) if not isinstance(
+            atom_features, dtype=torch.float32, device=self.device) if not isinstance(
                 atom_features, torch.Tensor) else atom_features
-        parents = torch.tensor(parents, dtype=torch.int32) if not isinstance(
+        
+        parents = torch.tensor(parents, dtype=torch.int32, device=self.device) if not isinstance(
             parents, torch.Tensor) else parents
+        
         calculation_orders = torch.tensor(
-            calculation_orders, dtype=torch.int32) if not isinstance(
+            calculation_orders, dtype=torch.int32, device=self.device) if not isinstance(
                 calculation_orders, torch.Tensor) else calculation_orders
+        
         calculation_masks = torch.tensor(
-            calculation_masks, dtype=torch.bool) if not isinstance(
+            calculation_masks, dtype=torch.bool, device=self.device) if not isinstance(
                 calculation_masks, torch.Tensor) else calculation_masks
-        n_atoms = torch.tensor(n_atoms, dtype=torch.int32) if not isinstance(
-            n_atoms, torch.Tensor) else n_atoms
+        
+        arange = torch.arange(int(n_atoms), device=self.device)
 
         for count in range(self.max_atoms):
             # Extract mask for current step
@@ -6981,7 +6988,7 @@ class DAGLayer(nn.Module):
 
             # Generate indices for graph features used in inputs
             stack1 = torch.repeat_interleave(
-                torch.masked_select(torch.arange(n_atoms), mask),
+                torch.masked_select(arange, mask),
                 self.max_atoms - 1)
             stack2 = torch.masked_select(parents[:, count, 1:],
                                          mask.unsqueeze(-1)).view(
@@ -7007,14 +7014,15 @@ class DAGLayer(nn.Module):
                                            training=training)
 
             # Update graph features for target atoms
-            target_index = parents[:, count, 0][mask]
-            graph_features[current_round, target_index] = batch_outputs
+            target_index = torch.stack([arange, parents[:, count, 0]], dim=1)
+            target_index = target_index[mask]
+            graph_features[target_index[:, 0], target_index[:, 1]] = batch_outputs
 
         return batch_outputs
 
 
 class DAGGather(nn.Module):
-    """DAG vector gathering layer"""
+    """DAG vector gathering layer in PyTorch"""
 
     def __init__(self,
                  n_graph_feat=30,
@@ -7024,6 +7032,7 @@ class DAGGather(nn.Module):
                  init='glorot_uniform',
                  activation='relu',
                  dropout=None,
+                 device='cpu',
                  **kwargs):
         """
         Parameters
@@ -7044,6 +7053,8 @@ class DAGGather(nn.Module):
             Activation function applied.
         dropout: float, optional
             Dropout probability in the hidden layer(s).
+        device: str, optional
+            Device used for computation
         """
         super(DAGGather, self).__init__(**kwargs)
 
@@ -7055,6 +7066,7 @@ class DAGGather(nn.Module):
         self.activation = activation
         self.dropout = dropout
         self.activation_fn = getattr(F, activation)
+        self.device = device
 
         # Build layers dynamically
         self.layers = nn.ModuleList()
@@ -7116,10 +7128,12 @@ class DAGGather(nn.Module):
         atom_features, membership = inputs
 
         membership = torch.tensor(membership,
-                                  dtype=torch.long) if not isinstance(
+                                  dtype=torch.long, device=self.device) if not isinstance(
                                       membership, torch.Tensor) else membership
-        atom_features = torch.tensor(atom_features) if not isinstance(
+        
+        atom_features = torch.tensor(atom_features, dtype=torch.float32, device=self.device) if not isinstance(
             atom_features, torch.Tensor) else atom_features
+        
         # Aggregate atom features by molecule using scatter_add
         graph_features = torch.zeros(
             (membership.max() + 1, atom_features.shape[1]), dtype=torch.float32)
