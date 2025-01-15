@@ -5462,8 +5462,9 @@ class FerminetElectronFeature(torch.nn.Module):
                 f: torch.Tensor = torch.cat((one_electron[:, i, :], g_one_up,
                                              g_one_down, g_two_up, g_two_down),
                                             dim=1)
-                if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
-                        self.n_two[l] != self.n_two[l - 1]):
+                if l == 0 or (self.n_one[l]
+                              != self.n_one[l - 1]) or (self.n_two[l]
+                                                        != self.n_two[l - 1]):
                     one_electron_tmp.append((torch.tanh(self.v[l](f))) +
                                             self.projection_module[0]
                                             (one_electron[:, i, :]))
@@ -6829,3 +6830,323 @@ class SE3Attention(nn.Module):
         coords = coords + 0.01 * coords_update
 
         return x, coords
+
+
+def _DAGgraph_step(batch_inputs,
+                   layers,
+                   activation_fn,
+                   dropouts,
+                   training=True):
+    outputs = batch_inputs
+    for i, layer in enumerate(layers):
+        outputs = layer(outputs)
+        outputs = activation_fn(outputs)
+        if dropouts[i] is not None and training:
+            outputs = dropouts[i](outputs)
+    return outputs
+
+
+class DAGLayer(nn.Module):
+    """DAG computation layer implemented in PyTorch."""
+
+    def __init__(
+            self,
+            n_graph_feat=30,
+            n_atom_feat=75,
+            max_atoms=50,
+            layer_sizes=[100],
+            init='xavier_uniform',  ##
+            activation='relu',
+            dropout=None,
+            batch_size=64,
+            device='cpu',
+            **kwargs):
+        """
+        Parameters
+        ----------
+        n_graph_feat: int, optional
+            Number of features for each node(and the whole grah).
+        n_atom_feat: int, optional
+            Number of features listed per atom.
+        max_atoms: int, optional
+            Maximum number of atoms in molecules.
+        layer_sizes: list of int, optional(default=[100])
+            List of hidden layer size(s):
+            length of this list represents the number of hidden layers,
+            and each element is the width of corresponding hidden layer.
+        init: str, optional
+            Weight initialization for filters.
+        activation: str, optional
+            Activation function applied.
+        dropout: float, optional
+            Dropout probability in hidden layer(s).
+        batch_size: int, optional
+            number of molecules in a batch.
+        device: str, optional
+            Device used for computation
+        """
+
+        super(DAGLayer, self).__init__(**kwargs)
+
+        self.init = init
+        self.activation = activation
+        self.activation_fn = getattr(F, activation)
+        self.layer_sizes = layer_sizes
+        self.dropout = dropout
+        self.max_atoms = max_atoms
+        self.batch_size = batch_size
+        self.n_inputs = n_atom_feat + (self.max_atoms - 1) * n_graph_feat
+        self.n_graph_feat = n_graph_feat
+        self.n_outputs = n_graph_feat
+        self.n_atom_feat = n_atom_feat
+        self.device = device
+
+        # Initialize weights and biases for layers
+        self.layers = nn.ModuleList()
+        self.dropouts = []
+        prev_layer_size = self.n_inputs
+
+        for layer_size in self.layer_sizes:
+            self.layers.append(nn.Linear(prev_layer_size, layer_size))
+            self.dropouts.append(
+                nn.Dropout(p=self.dropout) if self.dropout else None)
+            prev_layer_size = layer_size
+
+        self.layers.append(nn.Linear(prev_layer_size, self.n_outputs))
+        self.dropouts.append(
+            nn.Dropout(p=self.dropout) if self.dropout else None)
+
+        # Initialize weights
+        self._initialize_weights()
+
+    def get_config(self):
+        config = super(DAGLayer, self).get_config()
+        config['n_graph_feat'] = self.n_graph_feat
+        config['n_atom_feat'] = self.n_atom_feat
+        config['max_atoms'] = self.max_atoms
+        config['layer_sizes'] = self.layer_sizes
+        config['init'] = self.init
+        config['activation'] = self.activation
+        config['dropout'] = self.dropout
+        config['batch_size'] = self.batch_size
+        return config
+
+    def _initialize_weights(self):
+        for layer in self.layers:
+            if self.init == 'xavier_uniform' or self.init == 'glorot_uniform':
+                nn.init.xavier_uniform_(layer.weight)
+            elif self.init == 'xavier_normal':
+                nn.init.xavier_normal_(layer.weight)
+            else:
+                raise ValueError(
+                    f"Unsupported initialization method: {self.init}")
+            if layer.bias is not None:
+                nn.init.zeros_(layer.bias)
+
+    def forward(self, inputs, training=True):
+        """
+        Perform a forward pass through the DAGLayer.
+
+        Parameters
+        ----------
+        inputs: tuple
+            atom_features, parents, calculation_orders, calculation_masks, n_atoms
+        """
+        atom_features, parents, calculation_orders, calculation_masks, n_atoms = inputs
+        n_atoms = n_atoms.squeeze()
+
+        graph_features = torch.zeros(
+            (self.batch_size * self.max_atoms, self.max_atoms + 1,
+             self.n_graph_feat
+            )).to(self.device)  # (batch_size * max_atoms, max_atoms + 1, n_graph_feat)
+
+        # convert to tensor (some torch functions do not support numpy arrays)
+        atom_features = torch.tensor(
+            atom_features, dtype=torch.float32, device=self.device) if not isinstance(
+                atom_features, torch.Tensor) else atom_features
+        
+        parents = torch.tensor(parents, dtype=torch.int32, device=self.device) if not isinstance(
+            parents, torch.Tensor) else parents
+        
+        calculation_orders = torch.tensor(
+            calculation_orders, dtype=torch.int32, device=self.device) if not isinstance(
+                calculation_orders, torch.Tensor) else calculation_orders
+        
+        calculation_masks = torch.tensor(
+            calculation_masks, dtype=torch.bool, device=self.device) if not isinstance(
+                calculation_masks, torch.Tensor) else calculation_masks
+        
+        arange = torch.arange(int(n_atoms), device=self.device)
+
+        for count in range(self.max_atoms):
+            # Extract mask for current step
+            mask = calculation_masks[:, count]
+            current_round = torch.masked_select(calculation_orders[:, count],
+                                                mask)
+            batch_atom_features = torch.index_select(atom_features, 0,
+                                                     current_round)
+
+            # Generate indices for graph features used in inputs
+            stack1 = torch.repeat_interleave(
+                torch.masked_select(arange, mask),
+                self.max_atoms - 1)
+            stack2 = torch.masked_select(parents[:, count, 1:],
+                                         mask.unsqueeze(-1)).view(
+                                             -1, self.max_atoms - 1).flatten()
+
+            index = torch.stack([stack1, stack2], dim=1)
+
+            # Extract graph features for parent atoms and flatten
+            batch_graph_features = graph_features[index[:, 0],
+                                                  index[:, 1]].reshape(
+                                                      -1, (self.max_atoms - 1) *
+                                                      self.n_graph_feat)
+
+            # Concatenate atom and graph features
+            batch_inputs = torch.cat(
+                [batch_atom_features, batch_graph_features], dim=1)
+
+            # Pass through the DAG computation step (helper func)
+            batch_outputs = _DAGgraph_step(batch_inputs,
+                                           self.layers,
+                                           self.activation_fn,
+                                           self.dropouts,
+                                           training=training)
+
+            # Update graph features for target atoms
+            target_index = torch.stack([arange, parents[:, count, 0]], dim=1)
+            target_index = target_index[mask]
+            graph_features[target_index[:, 0], target_index[:, 1]] = batch_outputs
+
+        return batch_outputs
+
+
+class DAGGather(nn.Module):
+    """DAG vector gathering layer in PyTorch"""
+
+    def __init__(self,
+                 n_graph_feat=30,
+                 n_outputs=30,
+                 max_atoms=50,
+                 layer_sizes=[100],
+                 init='glorot_uniform',
+                 activation='relu',
+                 dropout=None,
+                 device='cpu',
+                 **kwargs):
+        """
+        Parameters
+        ----------
+        n_graph_feat: int, optional
+            Number of features for each atom.
+        n_outputs: int, optional
+            Number of features for each molecule.
+        max_atoms: int, optional
+            Maximum number of atoms in molecules.
+        layer_sizes: list of int, optional
+            List of hidden layer size(s):
+            length of this list represents the number of hidden layers,
+            and each element is the width of corresponding hidden layer.
+        init: str, optional
+            Weight initialization for filters.
+        activation: str, optional
+            Activation function applied.
+        dropout: float, optional
+            Dropout probability in the hidden layer(s).
+        device: str, optional
+            Device used for computation
+        """
+        super(DAGGather, self).__init__(**kwargs)
+
+        self.n_graph_feat = n_graph_feat
+        self.n_outputs = n_outputs
+        self.max_atoms = max_atoms
+        self.layer_sizes = layer_sizes
+        self.init = init
+        self.activation = activation
+        self.dropout = dropout
+        self.activation_fn = getattr(F, activation)
+        self.device = device
+
+        # Build layers dynamically
+        self.layers = nn.ModuleList()
+        prev_layer_size = n_graph_feat
+
+        for layer_size in layer_sizes:
+            self.layers.append(nn.Linear(prev_layer_size, layer_size))
+            prev_layer_size = layer_size
+
+        self.layers.append(nn.Linear(prev_layer_size, n_outputs))
+
+        # Dropouts
+        self.dropouts = [
+            nn.Dropout(dropout) if dropout else None
+            for _ in range(len(self.layers))
+        ]
+
+        # Initialize weights
+        self._initialize_weights()
+
+    def get_config(self):
+        config = super(DAGGather, self).get_config()
+        config['n_graph_feat'] = self.n_graph_feat
+        config['n_outputs'] = self.n_outputs
+        config['max_atoms'] = self.max_atoms
+        config['layer_sizes'] = self.layer_sizes
+        config['init'] = self.init
+        config['activation'] = self.activation
+        config['dropout'] = self.dropout
+        return config
+
+    def _initialize_weights(self):
+        for layer in self.layers:
+            if self.init == 'glorot_uniform':
+                nn.init.xavier_uniform_(layer.weight)
+            elif self.init == 'glorot_normal':
+                nn.init.xavier_normal_(layer.weight)
+            else:
+                raise ValueError(f"Unsupported init: {self.init}")
+            nn.init.zeros_(layer.bias)
+
+    def forward(self, inputs, training=True):
+        """
+        Forward pass for DAGGather.
+
+        Parameters
+        ----------
+        atom_features:
+            Features of the atoms (shape: [num_atoms, n_graph_feat]).
+        membership:
+            Membership indices for each atom, indicating which molecule it belongs to
+            (shape: [num_atoms]).
+
+        Returns
+        -------
+        torch.Tensor
+            Aggregated molecule features (shape: [num_molecules, n_outputs]).
+        """
+        atom_features, membership = inputs
+
+        membership = torch.tensor(membership,
+                                  dtype=torch.long, device=self.device) if not isinstance(
+                                      membership, torch.Tensor) else membership
+        
+        atom_features = torch.tensor(atom_features, dtype=torch.float32, device=self.device) if not isinstance(
+            atom_features, torch.Tensor) else atom_features
+        
+        # Aggregate atom features by molecule using scatter_add
+        graph_features = torch.zeros(
+            (membership.max() + 1, atom_features.shape[1]), dtype=torch.float32)
+        graph_features = graph_features.scatter_add(
+            0,
+            membership.unsqueeze(-1).expand(-1, atom_features.shape[1]),
+            atom_features)
+
+        # Apply feed-forward layers using the helper function
+        outputs = _DAGgraph_step(graph_features,
+                                 self.layers,
+                                 self.activation_fn,
+                                 self.dropouts,
+                                 training=training)
+
+        return outputs
