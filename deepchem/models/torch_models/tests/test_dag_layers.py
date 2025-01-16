@@ -46,8 +46,6 @@ def test_DAG_layer():
 @pytest.mark.torch
 def test_DAG_gather():
     """Test invoking DAGGather."""
-    # TODO(rbharath): We need more documentation about why
-    # these numbers work.
     np.random.seed(123)
     batch_size = 10
     n_graph_feat = 30
