@@ -6865,6 +6865,10 @@ class DAGLayer(nn.Module):
     >>> calc_masks = np.random.randint(0, 2, (batch_size, max_atoms))
     >>> n_atoms = batch_size
     >>> outputs = layer([atom_features, parents, calc_orders, calc_masks, np.array(n_atoms)])
+
+    References
+    ----------
+    .. [1] Lusci Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575. https://pmc.ncbi.nlm.nih.gov/articles/PMC3739985
     """
 
     def __init__(
@@ -7056,6 +7060,10 @@ class DAGGather(nn.Module):
     >>> atom_features = np.random.rand(batch_size, n_atom_feat)
     >>> membership = np.sort(np.random.randint(0, batch_size, size=(batch_size)))
     >>> outputs = layer([atom_features, membership])
+
+    References
+    ----------
+    .. [1] Lusci Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575. https://pmc.ncbi.nlm.nih.gov/articles/PMC3739985
     """
 
     def __init__(
