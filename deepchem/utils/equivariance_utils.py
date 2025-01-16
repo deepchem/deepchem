@@ -132,6 +132,11 @@ class SphericalHarmonics:
     A class for computing real tesseral spherical harmonics, including
     the Condon-Shortley phase.
 
+    This implementation is inspired by the SE(3)-Transformer library by Fabian Fuchs,
+    which provides efficient computation of spherical harmonics and related transformations.
+    For more details, see the SE(3)-Transformer repository:
+    https://github.com/FabianFuchsML/se3-transformer-public
+
     Methods
     -------
     get_element(l, m, theta, phi)
@@ -236,6 +241,11 @@ def irr_repr(order: int,
 
     This function computes the Wigner D-matrix for the given order and angles (alpha, beta, gamma).
     It is compatible with composition and spherical harmonics computations.
+
+    The output is a 2D tensor of shape `(2*order + 1, 2*order + 1)` where each element represents
+    the transformation coefficients of the Wigner D-matrix. The values correspond to the rotational
+    components for the given order and Euler angles. If `dtype` is specified, the tensor is converted
+    to the desired data type; otherwise, it defaults to the computation’s precision (e.g., `float32` or `float64`).
 
     Parameters
     ----------
