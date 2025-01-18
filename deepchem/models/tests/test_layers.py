@@ -1577,6 +1577,7 @@ def test_torch_cosine_dist():
     result = torch_layers.cosine_dist(x3, x4)
     assert torch.allclose(result, pre_calculated_value, atol=1e-4)
 
+
 @pytest.mark.torch
 def test_torch_attn_lstm_embedding():
     """Test invoking AttnLSTMEmbedding."""
