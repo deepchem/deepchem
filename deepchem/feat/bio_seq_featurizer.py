@@ -190,6 +190,12 @@ class BAMFeaturizer(Featurizer):
 
         pileup_columns = []
         initial_position = datapoint.tell()
+
+        # This is more efficient as instead of iterating over the
+        # whole file for each record, we iterate over the file once
+        # and store the pileup information in a list that is
+        # appended for every record.
+
         if self.get_pileup:
             for pileupcolumn in datapoint.pileup():
                 pileup_info = {
