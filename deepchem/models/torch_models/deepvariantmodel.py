@@ -2,6 +2,7 @@ import numpy as np
 from typing import Any, Optional, Tuple
 from deepchem.models.torch_models.inceptionv3 import InceptionV3Model
 from deepchem.data import Dataset
+from deepchem.utils.data_utils import load_from_disk, save_to_disk
 
 
 class DeepVariant(InceptionV3Model):
@@ -18,6 +19,15 @@ class DeepVariant(InceptionV3Model):
     - Strand orientation
     - Variant support
     - Differences from reference
+
+    The model outputs probabilities for each of the three possible genotypes
+    (0/0, 0/1, 1/1).
+    
+    Reference
+    ---------
+    .. Poplin, R., Chang, PC., Alexander, D. et al. A universal SNP and small-indel
+        variant caller using deep neural networks. Nat Biotechnol 36, 983–987 (2018).
+        https://doi.org/10.1038/nbt.4235
     """
 
     def __init__(self,
@@ -142,6 +152,23 @@ class DeepVariant(InceptionV3Model):
         """
         Call variants and write results to VCF.
 
+        Examples
+        --------
+        >>> import deepchem as dc
+        >>> import numpy as np
+        >>> pileup_imgs = np.zeros((2, 6, 299, 299), dtype=np.float32)
+        >>> pileup_imgs[:, 0:4, 150:160, 150:160] = 0.8  
+        >>> # Create labels (homozygous ref [1,0,0], heterozygous [0,1,0])
+        >>> labels = np.array([[1,0,0], [0,1,0]])
+        >>> train_dataset = dc.data.ImageDataset(pileup_imgs, labels)
+        >>> model = dc.models.DeepVariant(n_tasks=3)
+        >>> loss = model.fit(train_dataset, nb_epoch=1)
+        >>> variant_info = [{'chrom': 'chr1', 'pos': 1000, 
+        ...                  'ref_allele': 'A', 'alt_allele': 'T', 'depth': 30}]
+        >>> test_imgs = pileup_imgs[0:1]  # Use first image
+        >>> test_dataset = dc.data.ImageDataset(test_imgs, variant_info)
+        >>> vcf_path = model.call_variants(test_dataset, "variants.vcf", "sample1")
+
         Parameters
         ----------
         dataset : Dataset
@@ -183,3 +210,11 @@ class DeepVariant(InceptionV3Model):
                     f"{format_str}\t{sample_data}\n")
 
         return output_path
+
+    def save(self):
+        """Saves model to disk using joblib."""
+        save_to_disk(self.model, self.get_model_filename(self.model_dir))
+
+    def reload(self):
+        """Loads model from joblib file on disk."""
+        self.model = load_from_disk(self.get_model_filename(self.model_dir))
