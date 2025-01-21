@@ -6,7 +6,7 @@ import torch
 def semifactorial(x: int) -> float:
     """
     Compute the semifactorial function x!!, defined as:
-    x!! = x * (x-2) * (x-4) * ...
+    x!! = x * (x-2) * (x-4) * ....
 
     Parameters
     ----------
