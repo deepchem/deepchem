@@ -68,12 +68,14 @@ class LSTMNeuralNet(nn.Module):
 
 
 class LSTMGenerator(TorchModel):
-    """LSTM Generator.
+    """LSTM Generator
 
-    This class implements an LSTM-based [1]_ generator for token generation tasks [2]_.
+    This class implements an LSTM-based [1]_ generator for token generation tasks.
     The generator is trained on a list of sequences and can be used to generate 
     new sequences of tokens. The model is implemented using PyTorch and can be useful
     to generate SMILES, PSMILES and Weighted Graph strings for generation tasks.
+    The code is used in the Open-source Polymer Generative Pipeline [2]_ to generate 
+    hypothetical polymers using PSMILES and Weighted Directed Graph representations.
 
     References
     ----------
