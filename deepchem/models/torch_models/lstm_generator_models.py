@@ -2,6 +2,7 @@ import torch.nn as nn
 from torch import Tensor
 from transformers import PreTrainedTokenizer, BertTokenizer
 from torch.nn.utils.rnn import pad_sequence
+from torch.nn.modules.loss import _Loss
 from deepchem.models.losses import Loss
 from deepchem.models.torch_models import TorchModel
 from deepchem.models.optimizers import Optimizer, Adam
@@ -35,37 +36,41 @@ class LSTMNeuralNet(nn.Module):
 
 class LSTMGenerator(TorchModel):
 
-    def __init__(self,
-                 loss: Loss = SparseSoftmaxCrossEntropy(),
-                 batch_size: int = 8,
-                 embedding_dim: int = 128,
-                 hidden_dim: int = 256,
-                 num_layers: int = 2,
-                 tokenizer: PreTrainedTokenizer | None = None,
-                 learning_rate: Union[float] = 0.001,
-                 optimizer: Optional[Optimizer] = None,
-                 model_dir: str = "lstm_generator_model",
-                 device: str = "cpu") -> None:
+    def __init__(
+            self,
+            loss: Union[Loss, _Loss] = nn.CrossEntropyLoss(),
+            # There is a problem with deepchem's SparseSoftmaxCrossEntropy.
+            # The reduction='none' kwarg is not allowing backpropagation gradients
+            batch_size: int = 8,
+            embedding_dim: int = 128,
+            hidden_dim: int = 256,
+            num_layers: int = 2,
+            tokenizer: PreTrainedTokenizer | None = None,
+            learning_rate: Union[float] = 0.001,
+            optimizer: Optional[Optimizer] = None,
+            model_dir: str = "lstm_generator_model",
+            device: str = "cpu") -> None:
         self.tokenizer = BertTokenizer.from_pretrained(
             'bert-base-cased') if tokenizer is None else tokenizer
+        self.embedding_dim = embedding_dim
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
         model = LSTMNeuralNet(vocab_size=self.tokenizer.vocab_size,
                               embedding_dim=embedding_dim,
                               hidden_dim=hidden_dim,
                               num_layers=num_layers)
         model = model.to(device)
         optimizer = optimizer if optimizer else Adam(
-            learning_rate=learning_rate)._create_pytorch_optimizer(model.parameters())
+            learning_rate=learning_rate)
         super(LSTMGenerator, self).__init__(model=model,
-                                            loss=loss._create_pytorch_loss(),
+                                            loss=loss,
                                             batch_size=batch_size,
                                             model_dir=model_dir,
                                             optimizer=optimizer,
                                             device=device,
                                             learning_rate=learning_rate)
 
-    def default_generator(self,
-                          input: list,
-                          num_epochs: int = 1) -> Iterator:
+    def default_generator(self, input: list, num_epochs: int = 1) -> Iterator:
         sequences = []
         for sequence in input:
             # Tokenize the sequence and add special tokens
@@ -83,37 +88,44 @@ class LSTMGenerator(TorchModel):
 
         for epoch in range(num_epochs):
             for i in range(0, len(padded_sequences), self.batch_size):
-                batch = padded_sequences[i:min(i +
-                                      self.batch_size, len(padded_sequences))]
+                batch = padded_sequences[
+                    i:min(i + self.batch_size, len(padded_sequences))]
                 inputs = batch[:, :-1]
                 targets = batch[:, 1:]
                 inputs.to(self.device)
                 targets.to(self.device)
                 yield inputs, targets
 
-    def fit(self, input: list, verbose: bool = False):
+    def fit(self,
+            input: list,
+            nb_epoch: int = 1,
+            checkpoint_interval: int = 1000,
+            max_checkpoints_to_keep: int = 5,
+            verbose: bool = False):
 
-        return self.fit_generator(self.default_generator(input),
-                                  verbose)
+        return self.fit_generator(self.default_generator(input, num_epochs=nb_epoch),
+                                  checkpoint_interval=checkpoint_interval,
+                                  max_checkpoints_to_keep=max_checkpoints_to_keep,
+                                  verbose=verbose)
 
     def fit_generator(self,
                       generator: Iterator,
                       checkpoint_interval: int = 1000,
                       max_checkpoints_to_keep: int = 5,
                       verbose: bool = False):
-        current_step = 1 
+        current_step = 1
         loss_float = 0.0
         least_loss = float('inf')
+        optimizer = self.optimizer._create_pytorch_optimizer(
+                self.model.parameters())
         for inputs, targets in generator:
             outputs = self.model(inputs)
-            # loss_val = self.loss(outputs.reshape(-1, self.tokenizer.vocab_size),
-            #                      targets.reshape(-1))
-            loss_val = nn.CrossEntropyLoss()(outputs.reshape(-1, self.tokenizer.vocab_size),
+            loss_val = self.loss(outputs.reshape(-1, self.tokenizer.vocab_size),
                                  targets.reshape(-1))
             # Backward and optimize
-            self.optimizer.zero_grad()
+            optimizer.zero_grad()
             loss_val.backward()
-            self.optimizer.step()
+            optimizer.step()
 
             if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
                 self.save_checkpoint(max_checkpoints_to_keep)
@@ -129,8 +141,8 @@ class LSTMGenerator(TorchModel):
         return avg_loss, least_loss
 
     def restore(self,
-                checkpoint: Optional[str] = None,
                 model_dir: Optional[str] = None,
+                checkpoint: Optional[str] = None,
                 strict: Optional[bool] = True) -> None:
         """Reload the values of all variables from a checkpoint file.
 
@@ -147,6 +159,7 @@ class LSTMGenerator(TorchModel):
             Whether or not to strictly enforce that the keys in checkpoint match
             the keys returned by this model's get_variable_scope() method.
         """
+        self._ensure_built()
         if checkpoint is None:
             checkpoints = sorted(self.get_checkpoints(model_dir))
             if len(checkpoints) == 0:
@@ -161,93 +174,36 @@ class LSTMGenerator(TorchModel):
     def load_from_pretrained(self,
                              model_dir: Optional[str] = None,
                              checkpoint: Optional[str] = None) -> None:
+        self._ensure_built()
         self.restore(model_dir=model_dir, checkpoint=checkpoint)
         self.model = self.model.to(self.device)
+
+    def _predict(self, input_tensor: Tensor, temperature: float = 1.0) -> Tensor:
+        input_tensor = input_tensor.to(self.device)
+        output = self.model(input_tensor)
+        logits = output[:, -1, :] / temperature
+        prbos = torch.softmax(logits, dim=-1)
+        predicted_tokens = torch.multinomial(prbos, num_samples=1).item()
+        return predicted_tokens
+
+    def _single_sample(self, max_len: int = 600, temperature: float = 1.0) -> str:
+        generated_sequence = [self.tokenizer.cls_token_id]
+        for _ in range(max_len):
+            input_tensor = torch.tensor(generated_sequence).unsqueeze(0)
+            output_tensor = self._predict(input_tensor, temperature)
+            generated_sequence.append(output_tensor)
+            if output_tensor == self.tokenizer.sep_token_id:
+                break  
+        generated_sequence = self.tokenizer.decode(generated_sequence,
+                                                    skip_special_tokens=True)
+        generated_sequence = generated_sequence.replace(" ", "")
+        return generated_sequence
+
+    def sample(self, num_gen: int = 100, max_len: int = 600, temperature: float = 1.0) -> list:
         self.model.eval()
-
-    # def generate_sample(self,
-    #                     max_len: int = 600,
-    #                     temperature: int = 1.0) -> str:
-    #     generated_sequence = [self.tokenizer.cls_token_id]
-    #     for _ in range(max_len):
-    #         input_tensor = torch.tensor(generated_sequence).unsqueeze(0)
-    #         input_tensor = input_tensor.to(self.device)
-    #         output = self.model(input_tensor)
-    #         logits = output[:, -1, :] / temperature
-    #         prbos = torch.softmax(logits, dim=-1)
-
-    #         predicted_tokens = torch.multinomial(prbos, num_samples=1).item()
-    #         generated_sequence.append(predicted_tokens)
-    #         if predicted_tokens == self.tokenizer.sep_token_id:
-    #             break
-    #     generated_sequence = self.tokenizer.decode(generated_sequence,
-    #                                                skip_special_tokens=True)
-    #     generated_sequence = generated_sequence.replace(" ", "")
-    #     return generated_sequence
-
-    # def generate(self,
-    #              number_of_seq: int = 100,
-    #              max_len: int = 600,
-    #              temperature: int = 1.0) -> list:
-    #     if self.model == None:
-    #         raise ValueError(
-    #             "The model first requries to train or load before generating samples!"
-    #         )
-    #     self.model.eval()
-    #     results = []
-    #     for i in range(number_of_seq):
-    #         generated_sequence = self.generate_sample(max_len=max_len,
-    #                                                   temperature=temperature)
-    #         results.append(generated_sequence)
-    #     return results
-
-    # def train(self,
-    #           input_sequences,
-    #           batch_size,
-    #           num_epochs: int,
-    #           learning_rate: float,
-    #           device: str = "cpu",
-    #           criterion: any = None,
-    #           optimizer: any = None,
-    #           verbose: bool = False):
-    #     criterion = criterion if criterion else nn.CrossEntropyLoss()
-    #     optimizer = optimizer if optimizer else torch.optim.Adam(
-    #         self.model.parameters(), lr=learning_rate)
-    #     if device == "auto":
-    #         device = "cuda" if torch.cuda.is_available() else "cpu"
-    #     dataset = self.prepare_dataset(input_sequences)
-    #     criterion = criterion.to(device)
-    #     dataset = dataset.to(device)
-    #     self.model = self.model.to(device)
-    #     for epoch in range(num_epochs):
-    #         for i in range(0, len(dataset), batch_size):
-    #             batch = dataset[i:min(i + batch_size, len(dataset))]
-    #             # Inputs and targets
-    #             inputs = batch[:, :-1]
-    #             targets = batch[:, 1:]
-    #             inputs.to(device)
-    #             targets.to(device)
-
-    #             # Forward pass
-    #             outputs = self.model(inputs)
-    #             loss = criterion(outputs.reshape(-1, self.tokenizer.vocab_size),
-    #                              targets.reshape(-1))
-
-    #             # Backward and optimize
-    #             optimizer.zero_grad()
-    #             loss.backward()
-    #             optimizer.step()
-
-    #             if verbose:
-    #                 print(
-    #                     f'Epoch [{epoch+1}/{num_epochs}], Step [{i}/{len(dataset)}], Loss: {loss.item():.4f}'
-    #                 )
-
-    #     self.is_trained = True
-
-    # def save_model(self, save_path: str):
-    #     if self.is_trained == False:
-    #         raise ValueError(
-    #             "The model is not trained yet, train the model first to save it !"
-    #         )
-    #     torch.save(self.model.state_dict(), save_path)
+        results = []
+        for i in range(num_gen):
+            generated_sequence = self._single_sample(max_len=max_len,
+                                                     temperature=temperature)
+            results.append(generated_sequence)
+        return results
