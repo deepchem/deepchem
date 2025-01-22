@@ -17,66 +17,47 @@ def test_load_lstmneuralnet():
 
     _ = model(x)
 
+@pytest.mark.torch
+def test_default_generator():
+    from deepchem.models.torch_models.lstm_generator_models import LSTMGenerator
+    import torch
+
+    generator = LSTMGenerator()
+
+    gen_iter = generator.default_generator(["CCC"])
+    value = list(gen_iter)[0]
+    assert torch.equal(value[0], torch.Tensor([[101, 21362, 1658]]))
+    assert torch.equal(value[1], torch.Tensor([[21362, 1658, 102]]))
 
 @pytest.mark.torch
-def test_lstm_trainer_prepare_dataset():
-    from deepchem.models.torch_models.lstm_generator_models import LSTMTrainer
-    from transformers import BertTokenizer
+def test_fit_model():
+    from deepchem.models.torch_models.lstm_generator_models import LSTMGenerator
+    import torch
 
-    tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
+    generator = LSTMGenerator(model_dir="./assets/lstm_generator")
 
-    trainer = LSTMTrainer(tokenizer=tokenizer,
-                          embedding_dim=8,
-                          hidden_dim=4,
-                          num_layers=1)
-
-    # initiating without any input params
-    _ = LSTMTrainer()
-
-    samples = ["CCCC", "CCCCCC"]
-    tensors = trainer.prepare_dataset(samples)
-    assert tensors.shape == (2, 5)
-
-    trainer.train(samples,
-                  batch_size=1,
-                  num_epochs=1,
-                  learning_rate=0.01,
-                  device="auto")
-
+    loss1, loss2 = generator.fit(["CCC"], checkpoint_interval=1)
+    assert type(loss1) == float 
+    assert type(loss2) == float 
 
 @pytest.mark.torch
-def test_fail_model_save():
-    from deepchem.models.torch_models.lstm_generator_models import LSTMTrainer
-    from transformers import BertTokenizer
+def test_load_pretrained():
+    from deepchem.models.torch_models.lstm_generator_models import LSTMGenerator
+    import torch
 
-    tokenizer = BertTokenizer.from_pretrained("bert-base-cased")
+    generator = LSTMGenerator()
 
-    trainer = LSTMTrainer(tokenizer=tokenizer,
-                          embedding_dim=8,
-                          hidden_dim=4,
-                          num_layers=1)
-
-    with pytest.raises(ValueError):
-        trainer.save_model("test.pth")
-
+    generator.load_from_pretrained("./assets/lstm_generator")
+    assert generator._built
 
 @pytest.mark.torch
-def test_lstm_sampler():
-    from deepchem.models.torch_models.lstm_generator_models import LSTMSampler
-    sampler = LSTMSampler(embedding_dim=8, hidden_dim=4, num_layers=1)
-    sampler.load_model_from_ckpt("./assets/lstm_sampler.pth")
+def test_sampling():
+    from deepchem.models.torch_models.lstm_generator_models import LSTMGenerator
+    import torch
 
-    results = sampler.generate(number_of_seq=2, max_len=5)
-    assert len(results) == 2
+    generator = LSTMGenerator()
 
-@pytest.mark.torch
-def test_fail_lstm_sampler():
-    from deepchem.models.torch_models.lstm_generator_models import LSTMSampler
-    sampler = LSTMSampler(embedding_dim=8, hidden_dim=4, num_layers=1)
-    with pytest.raises(ValueError):
-        sampler.load_model_from_ckpt("./assets/lstm_sampler.pth")
-        sampler.load_model_from_ckpt("./assets/something.pth")
+    generator.load_from_pretrained("./assets/lstm_generator")
+    random_gens = generator.sample(3, max_len=10)
+    assert len(random_gens) == 3 
 
-    with pytest.raises(ValueError):
-        sampler_alt = LSTMSampler(embedding_dim=8, hidden_dim=4, num_layers=1)
-        sampler_alt.generate(number_of_seq=2, max_len=5)
