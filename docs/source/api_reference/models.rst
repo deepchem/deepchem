@@ -618,6 +618,12 @@ MXMNet
 .. autoclass:: deepchem.models.torch_models.MXMNet
   :members:
 
+LSTMGenerator
+-------------
+
+.. autoclass:: deepchem.models.torch_models.LSTMGenerator
+  :members:
+
 InceptionV3Model
 ----------------
 
