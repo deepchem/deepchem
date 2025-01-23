@@ -36,7 +36,7 @@ def test_fit_model():
 
     generator = LSTMGenerator(model_dir="./assets/lstm_generator")
 
-    loss1, loss2 = generator.fit(["CCC"], checkpoint_interval=1)
+    loss1, loss2 = generator.fit(["CCC"], checkpoint_interval=1, max_checkpoints_to_keep=1)
     assert type(loss1) == float 
     assert type(loss2) == float 
 
