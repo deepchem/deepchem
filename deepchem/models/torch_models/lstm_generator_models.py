@@ -103,7 +103,7 @@ class LSTMGenerator(TorchModel):
             embedding_dim: int = 128,
             hidden_dim: int = 256,
             num_layers: int = 2,
-            tokenizer: PreTrainedTokenizer | None = None,
+            tokenizer: Optional[PreTrainedTokenizer] = None,
             learning_rate: Union[float] = 0.001,
             optimizer: Optional[Optimizer] = None,
             model_dir: str = "lstm_generator_model",
