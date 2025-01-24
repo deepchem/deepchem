@@ -14,7 +14,7 @@ except ModuleNotFoundError:
 try:
     import torch
     import torch.nn as nn
-    import deepchem.models.torch_models.layers as torch_layers
+    from deepchem.models.torch_models import layers as torch_layers
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
