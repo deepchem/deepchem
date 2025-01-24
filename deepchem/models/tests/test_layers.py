@@ -1576,3 +1576,37 @@ def test_torch_cosine_dist():
                                          [0.8944272, -0.8]])
     result = torch_layers.cosine_dist(x3, x4)
     assert torch.allclose(result, pre_calculated_value, atol=1e-4)
+
+
+@pytest.mark.torch
+def test_torch_attn_lstm_embedding():
+    """Test invoking AttnLSTMEmbedding."""
+    max_depth = 1
+    n_test = 2
+    n_support = 2
+    n_feat = 2
+    layer = torch_layers.AttnLSTMEmbedding(n_test, n_support, n_feat, max_depth)
+    layer.lstm.W = torch.tensor(
+        [[0.1176, -0.2190, -0.1507, -0.1404, -0.1086, -0.5792, -0.3434, 0.5012],
+         [-0.2889, -0.3653, -0.6611, 0.0941, -0.0522, -0.6324, -0.5890, 0.6702],
+         [-0.5032, 0.3087, 0.4474, -0.6913, -0.6126, -0.1161, -0.2429, 0.2467],
+         [-0.1015, -0.0189, 0.2767, 0.2200, 0.0982, 0.4481, -0.3125, -0.6141]],
+        dtype=torch.float32)
+    layer.lstm.U = torch.tensor(
+        [[-0.0489, 0.2893, 0.1057, -0.2195, -0.2986, 0.8476, -0.1714, 0.1328],
+         [0.9190, -0.1611, -0.0390, 0.2520, 0.0389, 0.1962, -0.0821, -0.1335]],
+        dtype=torch.float32)
+    layer.lstm.b = torch.tensor([0., 0., 1., 1., 0., 0., 0., 0.],
+                                dtype=torch.float32)
+
+    test = np.array([[0.06616174, 0.8224941], [0.43049398, 0.9574964]],
+                    dtype=np.float32)
+    support = np.array([[0.52633643, 0.727206], [0.13802947, 0.5601545]],
+                       dtype=np.float32)
+    test_out_tf = torch.tensor([[0.0357, 0.8789], [0.4014, 1.0137]],
+                               dtype=torch.float32)
+    test_out, support_out = layer([test, support])
+    assert test_out.shape == (n_test, n_feat)
+    assert support_out.shape == (n_support, n_feat)
+    assert torch.allclose(test_out_tf, test_out, atol=1e-04)
+    assert torch.allclose(torch.tensor(support), support_out, atol=1e-04)
