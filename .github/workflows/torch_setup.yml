@@ -114,6 +114,8 @@ jobs:
         python -m pip install --upgrade pip;
         pip install conda-merge;
         if [ "$(uname)" == 'Linux' ]; then
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev liblapack-dev libhdf5-dev
           conda-merge requirements/env_common.yml requirements/torch/env_torch.cpu.yml requirements/env_test.yml > env.yml
         elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
           conda-merge requirements/env_common.yml requirements/torch/env_torch.win.cpu.yml requirements/env_test.yml > env.yml
@@ -124,6 +126,9 @@ jobs:
       if: ${{ matrix.python-version == '3.8' }}
       run: |
         python -m pip install --upgrade pip;
+        if [ "$(uname)" == 'Linux' ]; then
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev liblapack-dev libhdf5-dev
         pip install conda-merge;
         conda-merge requirements/env_common_3_8.yml requirements/torch/env_torch.cpu.yml requirements/env_test.yml > env.yml
     - name: Install all dependencies
