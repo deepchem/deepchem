@@ -15,9 +15,16 @@ from typing import Iterator, Optional, Union, Tuple, List
 class LSTMNeuralNet(nn.Module):
     """
     An LSTM-based neural network for token generation or classification tasks.
-
     This class contains an embedding layer, an LSTM layer, and a fully connected
     layer to translate hidden states into vocabulary tokens.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.torch_models.lstm_generator_models import LSTMNeuralNet
+    >>> model = LSTMNeuralNet(vocab_size=12, embedding_dim=8, hidden_dim=4, num_layers=1)
+    >>> x = torch.randint(0, 12, (2, 10))
+    >>> output = model(x)
     """
 
     def __init__(self,
