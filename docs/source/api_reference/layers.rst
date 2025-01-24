@@ -293,6 +293,8 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.flows.ConstScaleLayer
   :members:
 
+.. autofunction:: deepchem.models.torch_models.layers.cosine_dist
+
 Flow Layers
 ^^^^^^^^^^^
 
@@ -358,6 +360,12 @@ The following layers are used for implementing GROVER model as described in the 
 .. autoclass:: deepchem.models.torch_models.grover.GroverFinetune
   :members:
 
+.. autoclass:: deepchem.models.torch_models.grover.EquivariantLinear
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.grover.SphericalHarmonics
+  :members:
+ 
 Attention Layers
 ^^^^^^^^^^^^^^^^
 
@@ -366,6 +374,9 @@ Attention Layers
 
 .. autoclass:: deepchem.models.torch_models.attention.SelfAttention
   :members:
+
+.. autoclass:: deepchem.models.torch_models.attention.SE3Attention
+  :members:  
 
 Readout Layers
 ^^^^^^^^^^^^^^
@@ -398,4 +409,25 @@ Density Functional Theory Layers
    :members:
 
 .. autoclass:: deepchem.models.dft.dftxc.DFTXC
+   :members:
+
+InceptionV3 Layers
+------------------
+
+.. autoclass:: deepchem.models.torch_models.inception_v3.InceptionA
+   :members:
+
+.. autoclass:: ddeepchem.models.torch_models.inception_v3.InceptionB
+   :members:
+
+.. autoclass:: deepchem.models.torch_models.inception_v3.InceptionC
+   :members:
+
+.. autoclass:: deepchem.models.torch_models.inception_v3.InceptionD
+   :members:
+
+.. autoclass:: deepchem.models.torch_models.inception_v3.InceptionE
+   :members:
+
+.. autoclass:: deepchem.models.torch_models.inception_v3.InceptionAux
    :members:

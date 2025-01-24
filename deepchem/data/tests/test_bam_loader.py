@@ -30,7 +30,7 @@ class TestBAMLoader(unittest.TestCase):
         loader = dc.data.BAMLoader()
         dataset = loader.create_dataset(bam_file_path)
 
-        assert dataset.X.shape == (396, 7)
+        assert dataset.X.shape == (396, 9)
 
     def test_bam_loader_with_multiple_files(self):
         """
@@ -43,7 +43,7 @@ class TestBAMLoader(unittest.TestCase):
         loader = dc.data.BAMLoader()
         dataset = loader.create_dataset(bam_files)
 
-        assert dataset.X.shape == (792, 7)
+        assert dataset.X.shape == (792, 9)
 
     def test_bam_featurizer(self):
         """
@@ -54,7 +54,7 @@ class TestBAMLoader(unittest.TestCase):
         bamfile = pysam.AlignmentFile(bam_file_path, "rb")
         dataset = bam_featurizer._featurize(bamfile)
 
-        assert dataset.shape == (5, 7)
+        assert dataset.shape == (5, 9)
 
     def test_bam_featurizer_with_pileup(self):
         """
@@ -65,7 +65,7 @@ class TestBAMLoader(unittest.TestCase):
         bamfile = pysam.AlignmentFile(bam_file_path, "rb")
         dataset = bam_featurizer._featurize(bamfile)
 
-        assert dataset.shape == (4, 8)
+        assert dataset.shape == (5, 10)
 
 
 if __name__ == "__main__":

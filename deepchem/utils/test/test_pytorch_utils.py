@@ -139,3 +139,19 @@ def test_unsorted_segment_max():
         np.array(result),
         np.load("deepchem/utils/test/assets/result_segment_max.npy"),
         atol=1e-04)
+
+
+@pytest.mark.torch
+def test_estimate_ovlp_rcut():
+    from deepchem.utils import estimate_ovlp_rcut
+    precision = 1e-6
+    coeffs = torch.tensor([1.0, 2.0, 3.0])
+    alphas = torch.tensor([1.0, 2.0, 3.0])
+    assert estimate_ovlp_rcut(precision, coeffs, alphas) == 6.7652716636657715
+
+
+@pytest.mark.torch
+def test_get_dtype_memsize():
+    from deepchem.utils.pytorch_utils import get_dtype_memsize
+    assert get_dtype_memsize(torch.tensor(1, dtype=torch.float32)) == 4
+    assert get_dtype_memsize(torch.tensor(1, dtype=torch.float64)) == 8

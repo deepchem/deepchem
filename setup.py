@@ -12,9 +12,9 @@ else:
 # Environment-specific dependencies.
 extras = {
     'jax': ['jax', 'jaxlib', 'dm-haiku', 'optax'],
-    'torch': ['torch', 'torchvision', 'pytorch-lightning', 'dgl', 'dgllife'],
+    'torch': ['torch==2.2.1', 'torchvision', 'pytorch-lightning', 'dgl<2.2.1', 'dgllife'],
     'tensorflow': ['tensorflow', 'tensorflow_probability', 'tensorflow_addons'],
-    'dqc': ['dqc', 'xitorch', 'torch', 'pylibxc2']
+    'dqc': ['dqc', 'xitorch', 'torch==2.2.1', 'pylibxc2']
 }
 
 

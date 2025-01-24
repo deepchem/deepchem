@@ -76,6 +76,9 @@ tutorials discuss about using DeepChem for specific applications.
 * [1 Protein Deep Learning](Protein_Deep_Learning.ipynb)
 * [2 Antibody Design via Protein Language Models and Directed Evolution](DeepChem_AntibodyTutorial_Simplified.ipynb)
 * [3 Protein Structure Prediction with ESMFold](Protein_Structure_Prediction_with_ESMFold.ipynb)
+* [4 Introduction to ProtBERT](Introduction_to_ProtBERT.ipynb)
+* [5 Protein Language Models (Intuition)](ProteinLM_Tutorial0.ipynb)
+
 ### Protein Ligand Modeling
 * [1 Modeling Protein Ligand Interactions](Modeling_Protein_Ligand_Interactions.ipynb)
 * [2 Modeling Protein Ligand Interactions with Atomic Convolutions](Modeling_Protein_Ligand_Interactions_With_Atomic_Convolutions.ipynb)
@@ -115,3 +118,10 @@ tutorials discuss about using DeepChem for specific applications.
 
 ### PROTACs
 * [1 Introduction to PROTACs](Introduction_to_PROTACs.ipynb)
+
+### Polymers
+* [1 An Introduction to the Polymers and Their Representation](An_Introduction_to_the_Polymers_and_Their_Representation.ipynb)
+* [2 Utilizing Deepchem Molecular Models for Crystalization Tendency Regression of Polymers](crystallization_tendency_regression.ipynb)
+* [3 Introduction to Polymer SMILES](Introduction_to_Polymer_SMILES.ipynb)
+* [4 Understanding Weighted Directed Graphs for Polymer Implementations](Understanding_Weighted_Directed_Graphs_for_Polymer_Implimentations.ipynb)
+* [5 PolyBERT: Introduction to Chemical Language Models for Fingerprint Generation](PolyBERT___Introduction_to_Chemical_Language_Models_for_Fingerprint_Generation.ipynb)

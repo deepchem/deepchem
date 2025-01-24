@@ -1,13 +1,13 @@
 import numpy as np
 import deepchem as dc
 import tempfile
-
 import pytest
+import os
 
 try:
     import torch
     import torch.nn as nn
-
+    from deepchem.models.torch_models import ProgressiveMultitaskRegressor, ProgressiveMultitaskClassifier
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
@@ -44,9 +44,8 @@ def test_progressivemultitask_regression_forward():
     n_tasks = 2
     n_features = 12
 
-    torch_model = dc.models.torch_models.ProgressiveMultitask(
+    torch_model = ProgressiveMultitaskRegressor(
         n_tasks=n_tasks,
-        mode='regression',
         n_features=n_features,
         layer_sizes=[128, 256],
         alpha_init_stddevs=0.02,
@@ -55,15 +54,21 @@ def test_progressivemultitask_regression_forward():
     )
 
     weights = np.load(
-        "deepchem/models/torch_models/tests/assets/progressive-multitask-regressor-sample-weights.npz"
-    )
+        os.path.join(os.path.dirname(__file__), "assets",
+                     "progressive-multitask-regressor-sample-weights.npz"))
 
     move_weights(torch_model, weights)
 
     input_x = weights["input"]
     output = weights["output"]
-    torch_out = torch_model(
-        torch.from_numpy(input_x).float()).cpu().detach().numpy()
+
+    # Inference using TorchModel's predict() method works with NumpyDataset only. Hence we need to convert our numpy arrays to NumpyDataset.
+    y = np.random.rand(input_x.shape[0], 1)
+    w = np.ones((input_x.shape[0], 1))
+    ids = np.arange(input_x.shape[0])
+    input_x = dc.data.NumpyDataset(input_x, y, w, ids)
+
+    torch_out = torch_model.predict(input_x)
 
     assert np.allclose(output, torch_out,
                        atol=1e-4), "Predictions are not close"
@@ -78,30 +83,32 @@ def test_progressivemultitask_classification_forward():
     n_tasks = 2
     n_features = 12
 
-    torch_model = dc.models.torch_models.ProgressiveMultitask(
-        n_tasks=n_tasks,
-        mode='classification',
-        n_features=n_features,
-        layer_sizes=[128, 256],
-        alpha_init_stddevs=0.02,
-        weight_init_stddevs=0.02,
-        dropouts=0,
-        n_classes=2)
+    torch_model = ProgressiveMultitaskClassifier(n_tasks=n_tasks,
+                                                 n_features=n_features,
+                                                 layer_sizes=[128, 256],
+                                                 alpha_init_stddevs=0.02,
+                                                 weight_init_stddevs=0.02,
+                                                 dropouts=0,
+                                                 n_classes=2)
 
     weights = np.load(
-        "deepchem/models/torch_models/tests/assets/progressive-multitask-classifier-sample-weights.npz"
-    )
+        os.path.join(os.path.dirname(__file__), "assets",
+                     "progressive-multitask-classifier-sample-weights.npz"))
 
     move_weights(torch_model, weights)
 
     input_x = weights["input"]
     output = weights["output"]
 
-    torch_out = torch_model(
-        torch.from_numpy(input_x).float())[0]  # We need output probabilities
+    # Inference using TorchModel's predict() method works with NumpyDataset only. Hence we need to convert our numpy arrays to NumpyDataset.
+    y = np.random.rand(input_x.shape[0], 1)
+    w = np.ones((input_x.shape[0], 1))
+    ids = np.arange(input_x.shape[0])
+    input_x = dc.data.NumpyDataset(input_x, y, w, ids)
 
-    torch_out = torch_out.cpu().detach().numpy()
-
+    torch_out = torch_model.predict(input_x)  # We need output probabilities
+    print(torch_out)
+    print(output)
     assert np.allclose(output, torch_out,
                        atol=1e-4), "Predictions are not close"
 
@@ -171,7 +178,7 @@ def test_progressivemultitask_regression_overfit():
                                           task_averager=np.mean,
                                           mode="regression")
 
-    model = dc.models.torch_models.ProgressiveMultitaskModel(
+    model = ProgressiveMultitaskRegressor(
         n_tasks,
         n_features,
         layer_sizes=[128, 256],
@@ -179,7 +186,6 @@ def test_progressivemultitask_regression_overfit():
         alpha_init_stddevs=0.02,
         weight_init_stddevs=0.02,
         bias_init_consts=0.0,
-        mode='regression',
     )
 
     model.fit(dataset, nb_epoch=200)
@@ -206,7 +212,7 @@ def test_progressivemultitask_classification_overfit():
 
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
 
-    model = dc.models.torch_models.ProgressiveMultitaskModel(
+    model = ProgressiveMultitaskClassifier(
         n_tasks,
         n_features,
         layer_sizes=[128, 256],
@@ -214,7 +220,6 @@ def test_progressivemultitask_classification_overfit():
         alpha_init_stddevs=0.02,
         weight_init_stddevs=0.02,
         bias_init_consts=0.0,
-        mode='classification',
     )
 
     model.fit(dataset, nb_epoch=200)
@@ -243,29 +248,25 @@ def test_progressivemultitask_reload():
 
     model_dir = tempfile.mkdtemp()
 
-    orig_model = dc.models.torch_models.ProgressiveMultitaskModel(
-        n_tasks,
-        n_features,
-        layer_sizes=[128, 256],
-        dropouts=0.2,
-        alpha_init_stddevs=0.02,
-        weight_init_stddevs=0.02,
-        bias_init_consts=0.0,
-        mode='classification',
-        model_dir=model_dir)
+    orig_model = ProgressiveMultitaskClassifier(n_tasks,
+                                                n_features,
+                                                layer_sizes=[128, 256],
+                                                dropouts=0.2,
+                                                alpha_init_stddevs=0.02,
+                                                weight_init_stddevs=0.02,
+                                                bias_init_consts=0.0,
+                                                model_dir=model_dir)
 
     orig_model.fit(dataset, nb_epoch=200)
 
-    reloaded_model = dc.models.torch_models.ProgressiveMultitaskModel(
-        n_tasks,
-        n_features,
-        layer_sizes=[128, 256],
-        dropouts=0.2,
-        alpha_init_stddevs=0.02,
-        weight_init_stddevs=0.02,
-        bias_init_consts=0.0,
-        mode='classification',
-        model_dir=model_dir)
+    reloaded_model = ProgressiveMultitaskClassifier(n_tasks,
+                                                    n_features,
+                                                    layer_sizes=[128, 256],
+                                                    dropouts=0.2,
+                                                    alpha_init_stddevs=0.02,
+                                                    weight_init_stddevs=0.02,
+                                                    bias_init_consts=0.0,
+                                                    model_dir=model_dir)
 
     reloaded_model.restore()
 

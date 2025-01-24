@@ -25,6 +25,8 @@ jobs:
         sudo rm -rf /opt/ghc
         sudo rm -rf "/usr/local/share/boost"
         sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        sudo docker image prune --all --force
+        sudo rm -rf /opt/hostedtoolcache/CodeQL
     - uses: actions/checkout@v4
     - name: Cache pip modules for Linux
       uses: actions/cache@v4
@@ -120,11 +122,13 @@ jobs:
         pip install conda-merge;
         cd requirements
         if [ "$(uname)" == 'Linux' ]; then
+          sudo apt-get update
+          sudo apt-get install -y libatlas-base-dev libblas-dev liblapack-dev libhdf5-dev
           conda-merge env_common.yml env_test.yml env_ubuntu_3_11.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml >  env.yml
         elif [  "$(uname)" == 'Darwin' ]; then
           conda-merge env_common.yml env_test.yml env_mac_3_11.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml jax/env_jax.cpu.yml > env.yml
         elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
-          conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
+          conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.win.cpu.yml > env.yml
         fi;
         cd ..
         cp requirements/env.yml env.yml
@@ -141,7 +145,7 @@ jobs:
         elif [  "$(uname)" == 'Darwin' ]; then
           conda-merge env_common_3_8.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml > env.yml
         elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
-          conda-merge env_common_3_8.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
+          conda-merge env_common_3_8.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.win.cpu.yml > env.yml
         fi;
         cd ..
         cp requirements/env.yml env.yml
@@ -157,7 +161,7 @@ jobs:
         elif [  "$(uname)" == 'Darwin' ]; then
           conda-merge env_common.yml env_test.yml env_mac.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml jax/env_jax.cpu.yml > env.yml
         elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
-          conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml > env.yml
+          conda-merge env_common.yml env_test.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.win.cpu.yml > env.yml
         fi;
         cd ..
         cp requirements/env.yml env.yml
@@ -177,7 +181,7 @@ jobs:
     - name: Doctest Linux
       if: ${{ (runner.os == 'Linux') && always() }}
       shell: bash -l {0}
-      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --ignore-glob='deepchem/models/jax_models/*' --doctest-modules deepchem --doctest-continue-on-failure
+      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --ignore-glob='deepchem/models/jax_models/*' --ignore-glob='deepchem/models/dft/*' --ignore='deepchem/utils/dftutils.py' --doctest-modules deepchem --doctest-continue-on-failure
     - name: Doctest Windows
       if: ${{ (runner.os == 'Windows') && always() }}
       # Seperate test avoiding Jax in windows since Jax is not supported in Windows

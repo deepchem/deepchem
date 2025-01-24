@@ -2,7 +2,7 @@ Model,Reference,Classifier/Regressor,Acceptable Featurizers,Backend,Comment
 CNN,,Classifier/ Regressor,,Keras,
 MultitaskClassifier,,Classifier,CircularFingerprint RDKitDescriptors CoulombMatrixEig RdkitGridFeaturizer BindingPocketFeaturizer ElementPropertyFingerprint,PyTorch,
 MultitaskFitTransformRegressor,,Regressor,CircularFingerprint RDKitDescriptors CoulombMatrixEig RdkitGridFeaturizer BindingPocketFeaturizer ElementPropertyFingerprint,PyTorch,any :code:`Transformer` can be used
-MultitaskIRVClassifier,,Classifier,CircularFingerprint RDKitDescriptors CoulombMatrixEig RdkitGridFeaturizer BindingPocketFeaturizer ElementPropertyFingerprint,Keras,use :code:`IRVTransformer`
+MultitaskIRVClassifier,,Classifier,CircularFingerprint RDKitDescriptors CoulombMatrixEig RdkitGridFeaturizer BindingPocketFeaturizer ElementPropertyFingerprint,Keras/PyTorch,use :code:`IRVTransformer`
 MultitaskRegressor,,Regressor,CircularFingerprint RDKitDescriptors CoulombMatrixEig RdkitGridFeaturizer BindingPocketFeaturizer ElementPropertyFingerprint,Torch,
 ProgressiveMultitaskClassifier,`ref <https://arxiv.org/abs/1606.04671>`_,Classifier,CircularFingerprint RDKitDescriptors CoulombMatrixEig RdkitGridFeaturizer BindingPocketFeaturizer ElementPropertyFingerprint,Keras,
 ProgressiveMultitaskRegressor,`ref <https://arxiv.org/abs/1606.04671>`_,Regressor,CircularFingerprint RDKitDescriptors CoulombMatrixEig RdkitGridFeaturizer BindingPocketFeaturizer ElementPropertyFingerprint,Keras,

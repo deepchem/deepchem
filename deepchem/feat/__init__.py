@@ -47,6 +47,7 @@ from deepchem.feat.molecule_featurizers import GroverFeaturizer
 from deepchem.feat.molecule_featurizers import SNAPFeaturizer
 from deepchem.feat.molecule_featurizers import RDKitConformerFeaturizer
 from deepchem.feat.molecule_featurizers import MXMNetFeaturizer
+from deepchem.feat.molecule_featurizers import EquivariantGraphFeaturizer
 
 # complex featurizers
 from deepchem.feat.complex_featurizers import RdkitGridFeaturizer
@@ -84,8 +85,11 @@ try:
     from deepchem.feat.bio_seq_featurizer import CRAMFeaturizer
 except ImportError as e:
     logger.warning(
-        f'Skipped loading biological sequence featurized, missing a dependency. {e}'
+        f'Skipped loading biological sequence featurizer, missing a dependency. {e}'
     )
+
+from deepchem.feat.deepvariant_featurizer import RealignerFeaturizer
+from deepchem.feat.deepvariant_pileup_featurizer import PileupFeaturizer
 
 # tokenizers
 try:

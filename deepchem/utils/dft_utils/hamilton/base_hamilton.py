@@ -415,11 +415,12 @@ class BaseHamilton(EditableModule):
     # free parameters for variational method
     @abstractmethod
     def ao_orb_params2dm(
-            self,
-            ao_orb_params: torch.Tensor,
-            ao_orb_coeffs: torch.Tensor,
-            orb_weight: torch.Tensor,
-            with_penalty: Optional[float] = None) -> List[torch.Tensor]:
+        self,
+        ao_orb_params: torch.Tensor,
+        ao_orb_coeffs: torch.Tensor,
+        orb_weight: torch.Tensor,
+        with_penalty: Optional[float] = None
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """
         Convert the atomic orbital free parameters (parametrized in such a way
         so it is not bounded) to the density matrix.
@@ -456,8 +457,9 @@ class BaseHamilton(EditableModule):
         pass
 
     @abstractmethod
-    def dm2ao_orb_params(self, dm: torch.Tensor,
-                         norb: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def dm2ao_orb_params(
+            self, dm: torch.Tensor, norb: int
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """
         Convert from the density matrix to the orbital parameters.
         The map is not one-to-one, but instead one-to-many where there might

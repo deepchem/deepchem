@@ -117,7 +117,7 @@ class LibcintWrapper(object):
 
             # then construct the basis
             for shell in atombasis.bases:
-                assert shell.alphas.shape == shell.coeffs.shape and shell.alphas.ndim == 1,\
+                assert shell.alphas.shape == shell.coeffs.shape and shell.alphas.ndim == 1, \
                     "Please report this bug in Github"
                 shell.wfnormalize_()
                 ngauss = len(shell.alphas)

@@ -103,8 +103,8 @@ class BAMFeaturizer(Featurizer):
     """
     Featurizes BAM files, that are compressed binary representations of SAM
     (Sequence Alignment Map) files. This class extracts Query Name, Query
-    Sequence, Query Length, Reference Name, Reference Start, CIGAR and Mapping
-    Quality of the alignment in the BAM file.
+    Sequence, Query Length, Reference Name, Reference Start, CIGAR, Mapping
+    Quality, is_reverse and Query Qualities of the alignment in the BAM file.
 
     This is the default featurizer used by BAMLoader, and it extracts the
     following fields from each read in each BAM file in the given order:-
@@ -115,7 +115,9 @@ class BAMFeaturizer(Featurizer):
     - Column 4: Reference Start
     - Column 5: CIGAR
     - Column 6: Mapping Quality
-    - Column 7: Pileup Information (if get_pileup=True)
+    - Column 7: is_reverse
+    - Column 8: Query Quality Scores
+    - Column 9: Pileup Information (if get_pileup=True)
 
     Additionally, we can also get pileups from BAM files by setting
     get_pileup=True.A pileup is a summary of the alignment of reads
@@ -187,22 +189,17 @@ class BAMFeaturizer(Featurizer):
         record_count = 0
 
         for record in datapoint:
+            initial_position = datapoint.tell()
             feature_vector = [
-                record.query_name,
-                record.query_sequence,
-                record.query_length,
-                record.reference_name,
-                record.reference_start,
-                record.cigar,
-                record.mapping_quality,
+                record.query_name, record.query_sequence, record.query_length,
+                record.reference_name, record.reference_start, record.cigar,
+                record.mapping_quality, record.is_reverse,
+                np.array(record.query_qualities)
             ]
 
             if (self.get_pileup):
                 pileup_columns = []
-                for pileupcolumn in datapoint.pileup(
-                        reference=record.reference_name,
-                        start=record.reference_start,
-                        end=record.reference_end):
+                for pileupcolumn in datapoint.pileup():
                     pileup_info = {
                         "name":
                             pileupcolumn.reference_name,
@@ -221,6 +218,7 @@ class BAMFeaturizer(Featurizer):
 
             features.append(feature_vector)
             record_count += 1
+            datapoint.seek(initial_position)
 
             # Break the loop if max_records is set
             if self.max_records is not None and record_count >= self.max_records:

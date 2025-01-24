@@ -74,6 +74,13 @@ MolGraphConvFeaturizer
   :members:
   :inherited-members:
 
+EquivariantGraphFeaturizer
+**********************
+
+.. autoclass:: deepchem.feat.EquivariantGraphFeaturizer
+  :members:
+  :inherited-members:
+
 PagtnMolGraphFeaturizer
 ***********************
 
@@ -290,6 +297,8 @@ AtomicConvFeaturizer
   :inherited-members:
 
 
+
+
 Inorganic Crystal Featurizers
 -----------------------------
 
@@ -377,6 +386,26 @@ CRAMFeaturizer
   :inherited-members:
 
 
+DeepVariant Featurizers
+-----------------------
+
+These featurizers are used in DeepVariant
+
+RealignerFeaturizer
+^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.RealignerFeaturizer
+  :members:
+  :inherited-members:
+
+PileupFeaturizer
+^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.PileupFeaturizer
+  :members:
+  :inherited-members:
+
+
 Molecule Tokenizers
 -------------------
 
@@ -414,7 +443,7 @@ a Byte-Piece Encoder, which can be found `here.`_
 
 .. _`(transformers.PreTrainedTokenizer)`: https://huggingface.co/transformers/main_classes/tokenizer.html#transformers.PreTrainedTokenizer
 .. _`HuggingFace tokenizers docs`: https://huggingface.co/transformers/main_classes/tokenizer.html
-.. _`here.`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/22_Transfer_Learning_With_HuggingFace_tox21.ipynb
+.. _`here.`: https://github.com/deepchem/deepchem/blob/master/examples/tutorials/Transfer_Learning_With_ChemBERTa_Transformers.ipynb
 
 SmilesTokenizer
 ^^^^^^^^^^^^^^^

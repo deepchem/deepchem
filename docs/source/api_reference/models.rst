@@ -540,12 +540,30 @@ WeaveModel
 .. autoclass:: deepchem.models.torch_models.WeaveModel
   :members:
 
-ProgressiveMultitaskModel
+ProgressiveMultitaskClassifier
 -------------------------
 
-.. autoclass:: deepchem.models.torch_models.ProgressiveMultitaskModel
+.. autoclass:: deepchem.models.torch_models.ProgressiveMultitaskClassifier
   :members:
 
+ProgressiveMultitaskRegressor
+-------------------------
+
+.. autoclass:: deepchem.models.torch_models.ProgressiveMultitaskRegressor
+  :members:
+
+RobustMultitaskClassifier
+-------------------------
+
+.. autoclass:: deepchem.models.torch_models.RobustMultitaskClassifier
+  :members:
+
+RobustMultitaskRegressor
+------------------------
+
+.. autoclass:: deepchem.models.torch_models.RobustMultitaskRegressor
+  :members:
+  
 Density Functional Theory Model - XCModel
 -----------------------------------------
 
@@ -570,10 +588,40 @@ _GraphConvTorchModel
 .. autoclass:: deepchem.models.torch_models._GraphConvTorchModel
   :members:
 
+GraphConvModel
+--------------------
+
+.. autoclass:: deepchem.models.torch_models.GraphConvModel
+  :members:
+
 Smiles2Vec
 --------------------
 
 .. autoclass:: deepchem.models.torch_models.Smiles2Vec
+  :members:
+
+Smiles2VecModel
+--------------------
+
+.. autoclass:: deepchem.models.torch_models.Smiles2VecModel
+  :members:
+
+MXMNet
+------
+
+.. autoclass:: deepchem.models.torch_models.MXMNet
+  :members:
+
+InceptionV3Model
+----------------
+
+.. autoclass:: deepchem.models.torch_models.InceptionV3Model
+  :members:
+
+MultitaskIRVClassifier
+----------------
+
+.. autoclass:: deepchem.models.torch_models.MultitaskIRVClassifier
   :members:
 
 PyTorch Lightning Models
@@ -618,16 +666,34 @@ HuggingFace models from the `transformers <https://huggingface.co/models>`_ libr
 .. autoclass:: deepchem.models.torch_models.hf_models.HuggingFaceModel
   :members:
 
-Chemberta
+
 ---------
 
 .. autoclass:: deepchem.models.torch_models.chemberta.Chemberta
+  :members:
+
+MoLFormer
+---------
+
+.. autoclass:: deepchem.models.torch_models.molformer.MoLFormer
   :members:
 
 ProtBERT
 ---------
 
 .. autoclass:: deepchem.models.torch_models.prot_bert.ProtBERT
+  :members:
+
+DeepAbLLM
+---------
+
+.. autoclass:: deepchem.models.torch_models.antibody_modeling.DeepAbLLM
+  :members:
+
+OneFormer
+---------
+
+.. autoclass:: deepchem.models.torch_models.oneformer.OneFormer
   :members:
 
 Trainer

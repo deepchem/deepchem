@@ -34,6 +34,7 @@ def testHuggingFaceVocabularyBuilder():
         '[UNK]', 'd', 'e', 'h', 'l', 'o', 'r', 'w', 'el', 'hel', 'ld', 'lo',
         'or', 'wor', 'hello', 'world'
     ]
-    assert data['model']['merges'] == [
-        'e l', 'h el', 'l d', 'l o', 'o r', 'w or', 'hel lo', 'wor ld'
-    ]
+    print(data['model']['merges'])
+    assert data['model']['merges'] == [['e', 'l'], ['h', 'el'], ['l', 'd'],
+                                       ['l', 'o'], ['o', 'r'], ['w', 'or'],
+                                       ['hel', 'lo'], ['wor', 'ld']]
