@@ -6854,11 +6854,11 @@ def _DAGgraph_step(batch_inputs: torch.Tensor,
     >>> outputs = _DAGgraph_step(batch_inputs, layers, bias, activation_fn, dropouts)
     """
     outputs = batch_inputs
-    for i, (w, b) in enumerate(zip(W_layers, b_layers)):
+    for i, (d, w, b) in enumerate(zip(dropouts, W_layers, b_layers)):
         outputs = torch.matmul(outputs, w) + b
         outputs = activation_fn(outputs)
-        if dropouts[i] is not None and training:
-            outputs = dropouts[i](outputs)
+        if d is not None and training:
+            outputs = d(outputs)
     return outputs
 
 
