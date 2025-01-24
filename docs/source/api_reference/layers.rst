@@ -295,6 +295,9 @@ Torch Layers
 
 .. autofunction:: deepchem.models.torch_models.layers.cosine_dist
 
+.. autoclass:: deepchem.models.torch_models.layers.AttnLSTMEmbedding
+  :members:
+
 Flow Layers
 ^^^^^^^^^^^
 
