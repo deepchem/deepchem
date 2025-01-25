@@ -8,6 +8,7 @@ from deepchem.models.torch_models import TorchModel
 from deepchem.models.optimizers import Optimizer, Adam
 from deepchem.models.losses import Loss, SparseSoftmaxCrossEntropy
 from deepchem.utils.typing import LossFn
+from deepchem.data import Dataset
 import torch
 from typing import Iterator, Optional, Union, Tuple, List
 
@@ -162,14 +163,14 @@ class LSTMGenerator(TorchModel):
                                             device=device,
                                             learning_rate=learning_rate)
 
-    def default_generator(self, input: list, num_epochs: int = 1) -> Iterator:
+    def default_generator(self, dataset: Dataset, num_epochs: int = 1) -> Iterator:
         """
         Generates a default generator for the input sequences.
 
         Parameters
         ----------
-        input: list
-            List of input sequences to tokenize.
+        dataset: Dataset 
+            Dataset of input sequences to tokenize.
         num_epochs: int, default 1
             Number of epochs to train the model.
 
@@ -179,10 +180,11 @@ class LSTMGenerator(TorchModel):
             Generator that yields input and target tensors for training the model.
         """
         sequences = []
-        for sequence in input:
+        for (X_, _, _, _) in dataset.iterbatches(batch_size=self.batch_size):
             # Tokenize the sequence and add special tokens
-            tokens = self.tokenizer.encode(sequence, add_special_tokens=True)
-            sequences.append(tokens)
+            for sequence in  list(X_):
+                tokens = self.tokenizer.encode(sequence, add_special_tokens=True)
+                sequences.append(tokens)
 
         # Convert the list of sequences into tensors and pad them
         padded_sequences = pad_sequence(
@@ -204,7 +206,7 @@ class LSTMGenerator(TorchModel):
                 yield inputs, targets
 
     def fit(self,
-            input: list,
+            dataset: Dataset,
             nb_epoch: int = 1,
             checkpoint_interval: int = 1000,
             max_checkpoints_to_keep: int = 5,
@@ -214,8 +216,8 @@ class LSTMGenerator(TorchModel):
 
         Parameters
         ----------
-        input: list
-            List of input sequences to train the model.
+        dataset: Dataset 
+            Dataset of input sequences to train the model.
         nb_epoch: int, default 1
             Number of epochs to train the model.
         checkpoint_interval: int, default 1000
@@ -231,7 +233,7 @@ class LSTMGenerator(TorchModel):
             Average loss and least loss during training.
         """
         return self.fit_generator(
-            self.default_generator(input, num_epochs=nb_epoch),
+            self.default_generator(dataset=dataset, num_epochs=nb_epoch),
             checkpoint_interval=checkpoint_interval,
             max_checkpoints_to_keep=max_checkpoints_to_keep,
             verbose=verbose)

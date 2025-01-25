@@ -20,11 +20,12 @@ def test_load_lstmneuralnet():
 @pytest.mark.torch
 def test_default_generator():
     from deepchem.models.torch_models.lstm_generator_models import LSTMGenerator
+    from deepchem.data import NumpyDataset
     import torch
 
     generator = LSTMGenerator()
-
-    gen_iter = generator.default_generator(["CCC"])
+    dataset = NumpyDataset(["CCC"])
+    gen_iter = generator.default_generator(dataset)
     value = list(gen_iter)[0]
     assert torch.equal(value[0], torch.Tensor([[101, 21362, 1658]]))
     assert torch.equal(value[1], torch.Tensor([[21362, 1658, 102]]))
@@ -32,11 +33,12 @@ def test_default_generator():
 @pytest.mark.torch
 def test_fit_model():
     from deepchem.models.torch_models.lstm_generator_models import LSTMGenerator
+    from deepchem.data import NumpyDataset
     import torch
 
     generator = LSTMGenerator(model_dir="./assets/lstm_generator")
-
-    loss1, loss2 = generator.fit(["CCC"], checkpoint_interval=1, max_checkpoints_to_keep=1)
+    dataset = NumpyDataset(["CCC"])
+    loss1, loss2 = generator.fit(dataset, checkpoint_interval=1, max_checkpoints_to_keep=1)
     assert type(loss1) == float 
     assert type(loss2) == float 
 
