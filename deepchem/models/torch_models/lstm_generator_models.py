@@ -97,8 +97,10 @@ class LSTMGenerator(TorchModel):
     Examples
     --------
     >>> from deepchem.models.torch_models import LSTMGenerator
+    >>> from deepchem.data import NumpyDataset
     >>> generator = LSTMGenerator()
-    >>> average_loss, least_loss = generator.fit(["CCC"], nb_epoch=1)
+    >>> dataset = NumpyDataset(["CCC"])
+    >>> average_loss, least_loss = generator.fit(dataset, nb_epoch=1)
     >>> new_sequences = generator.sample(num_gen=10, max_len=10, temperature=1.0)
     """
 
