@@ -114,7 +114,7 @@ jobs:
         python -m pip install --upgrade pip;
         if [ "$(uname)" == 'Linux' ]; then
           sudo apt-get update;
-          sudo apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev liblapack-dev libhdf5-dev;
+          sudo apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev liblapack-dev libhdf5-dev
         pip install conda-merge;
         conda-merge requirements/env_common_3_8.yml requirements/env_test.yml requirements/tensorflow/env_tensorflow.cpu.yml > env.yml
     - name: Create env.yml for python 3.9+
@@ -125,7 +125,7 @@ jobs:
         pip install conda-merge;
         if [ "$(uname)" == 'Linux' ]; then
           sudo apt-get update;
-          sudo apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev liblapack-dev libhdf5-dev;
+          sudo apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev liblapack-dev libhdf5-dev
         conda-merge requirements/env_common.yml requirements/env_test.yml requirements/tensorflow/env_tensorflow.cpu.yml > env.yml
     - name: Install all dependencies
       uses: conda-incubator/setup-miniconda@v3
