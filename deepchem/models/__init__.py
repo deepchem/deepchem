@@ -103,3 +103,6 @@ try:
     from deepchem.models.IRV import TensorflowMultitaskIRVClassifier
 except ModuleNotFoundError:
     pass
+
+# Chemistry Models
+from deepchem.models.brics_generator import BRICSGenerator
