@@ -6,12 +6,13 @@ from typing import Tuple
 
 
 class BRICSGenerator():
-    """BRICS-based molecule generator for organic candidates, polymers and dendrimers.
+    """BRICSGenerator
     
+    BRICS-based molecule generator for organic candidates, polymers and dendrimers.
     This class implements BRICS (Breaking Retrosynthetically Interesting Chemical Substructures)
     fragmentation and recombination to generate new molecular structures, with special support
     for polymers and dendrimers [1]_. The generator is explicitly used for polymer generation
-    purposes denoted in the research paper "Open-source Polymer Generative Pipeline" [2]_.
+    purposes mentioned in the research paper "Open-source Polymer Generative Pipeline" [2]_.
 
     References
     ----------
