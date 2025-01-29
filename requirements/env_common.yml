@@ -9,6 +9,7 @@ dependencies:
   - pip
   - pip:
     - numpy<1.26
+    - pymc>=5.10
     - rdkit==2023.09.5
     - pre-commit
     - biopython
