@@ -13,7 +13,6 @@ try:
     from deepchem.models.torch_models.flows import Affine
 except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
-
 try:
     from torch_geometric.utils import scatter
     from torch_geometric.nn import MessagePassing
