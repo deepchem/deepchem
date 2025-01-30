@@ -64,6 +64,60 @@ class PINNModel(TorchModel):
         >>>                 boundary_loss += torch.mean(torch.square(pred - values))
         >>>     return data_loss + pde_loss + 10 * boundary_loss
 
+    Examples
+    --------
+    Here's an example of using PINNModel to solve the 1D steady-state heat equation:
+
+    >>> import torch
+    >>> import deepchem as dc
+    >>>
+    >>> # Define the neural network architecture
+    >>> class HeatNet(torch.nn.Module):
+    ...     def __init__(self):
+    ...         super(HeatNet, self).__init__()
+    ...         self.net = torch.nn.Sequential(
+    ...             torch.nn.Linear(1, 64),
+    ...             torch.nn.Tanh(),
+    ...             torch.nn.Linear(64, 64),
+    ...             torch.nn.Tanh(),
+    ...             torch.nn.Linear(64, 1)
+    ...         )
+    ...
+    ...     def forward(self, x):
+    ...         if not isinstance(x, torch.Tensor):
+    ...             x = torch.tensor(x, dtype=torch.float32)
+    ...         return self.net(x)
+    >>>
+    >>> def heat_equation_residual(model, x):
+    ...     x.requires_grad_(True)
+    ...     u = model(x)
+    ...     du_dx = torch.autograd.grad(u.sum(), x, create_graph=True, retain_graph=True)[0]
+    ...     d2u_dx2 = torch.autograd.grad(du_dx.sum(), x, create_graph=True, retain_graph=True)[0]
+    ...     return du_dx - d2u_dx2  # Let alpha be 1.0
+    >>>
+    >>> x_interior = torch.linspace(0, 1, 2000)[1:-1].reshape(-1, 1)
+    >>> x_boundary = torch.tensor([[0.0], [1.0]])
+    >>> x = torch.cat([x_interior, x_boundary], dim=0)
+    >>> y = x.clone()
+    >>> dataset = dc.data.NumpyDataset(X=x.numpy(), y=y.numpy())
+    >>>
+    >>> boundary_data = {
+    ...     'dirichlet': {
+    ...         'points': torch.tensor([[0.0], [1.0]], dtype=torch.float32),
+    ...         'values': torch.tensor([[0.0], [1.0]], dtype=torch.float32)
+    ...     }
+    ... }
+    >>>
+    >>> model = HeatNet()
+    >>> pinn = PINNModel(
+    ...     model=model,
+    ...     pde_fn=lambda u, x: heat_equation_residual(model, x),
+    ...     boundary_data=boundary_data,
+    ...     learning_rate=0.001,
+    ...     batch_size=32
+    ... )
+    >>> pinn.fit(dataset, nb_epoch=100)
+
     References
     ----------
     [1] Raissi et al. "Physics-informed neural networks: A deep learning framework for solving
