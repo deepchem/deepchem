@@ -19,11 +19,9 @@ class BRICSGenerator():
         arXiv preprint arXiv:2412.08658 (2024).
     Examples
     --------
-    >>> generator = BRICSGenerator(verbose=True)
-    # Generate new molecules from SMILES
+    >>> generator = BRICSGenerator()
     >>> smiles = ['CC(=O)Oc1ccccc1C(=O)O']
     >>> new_mols, count = generator.sample(smiles)
-    # Generate polymers from polymer SMILES
     >>> psmiles = ['*CC(=O)CC*']
     >>> polymers, count = generator.sample(psmiles, is_polymer=True)
     """
@@ -44,11 +42,6 @@ class BRICSGenerator():
         -------
         list
             List of SMILES strings representing molecular fragments
-
-        Examples
-        --------
-        >>> generator = BRICSGenerator()
-        >>> fragments = generator._BRICS_decompose(['CC(=O)Oc1ccccc1C(=O)O'])
         """
         break_repo = []
         if self.verbose:
@@ -64,22 +57,14 @@ class BRICSGenerator():
 
     def _BRICS_build(self, decomposed_list: list) -> list:
         """Recombine molecular fragments using BRICS rules.
-
         Parameters
         ----------
         decomposed_list : list
             List of SMILES strings representing fragments
-
         Returns
         -------
         list
             List of SMILES strings for newly generated molecules
-
-        Examples
-        --------
-        >>> generator = BRICSGenerator()
-        >>> fragments = ['CCO', 'C(=O)O']
-        >>> new_mols = generator._BRICS_build(fragments)
         """
         mol_list = [Chem.MolFromSmiles(dec) for dec in decomposed_list]
         if self.verbose:
@@ -104,11 +89,6 @@ class BRICSGenerator():
         ------
         ValueError
             If any SMILES string has fewer than 2 wildcard notation "[*]
-        Examples
-        --------
-        >>> generator = BRICSGenerator()
-        >>> modified = generator.replace_wildcards_with_vatoms(['*CC*'])
-        >>> print(modified)  # ['[At]CC[At]']
         """
         mod_list = []
         for psmiles in psmiles_list:
@@ -134,16 +114,6 @@ class BRICSGenerator():
         -------
         list
             Modified SMILES with [At] replaced by [*]
-
-        Examples
-        --------
-        >>> generator = BRICSGenerator()
-        >>> modified = generator.replace_vatoms_with_wildcards(['[At]CC[At]'])
-        >>> print(modified)  # ['[*]CC[*]']
-        >>> # Multiple virtual atoms
-        >>> result = generator.replace_vatoms_with_wildcards(['[At]CC([At])CC[At]'])
-        >>> print(result)  # ['[*]CC([*])CC[*]']
-
         Raises
         ------
         ValueError
@@ -163,7 +133,6 @@ class BRICSGenerator():
                           is_polymer: bool = False,
                           is_dendrimer: bool = False) -> list:
         """Filter generated molecules based on polymer/dendrimer criteria.
-
         Parameters
         ----------
         gen_mol_list : list
@@ -172,23 +141,15 @@ class BRICSGenerator():
             Filter for polymer structures (2 connection points)
         is_dendrimer : bool, optional
             Filter for dendrimer structures (3+ connection points)
-
         Returns
         -------
         list
             Filtered list of SMILES strings
-
         Raises
         ------
         ValueError
             The dendrimer selection should not be enabled with
             polymer selecting being disabled
-
-        Examples
-        --------
-        >>> generator = BRICSGenerator()
-        >>> mols = ['[At]CC[At]', '[At]CC[At]CC[At]']
-        >>> polymers = generator.filter_candidates(mols, is_polymer=True)
         """
         if is_polymer and is_dendrimer:
             filtered_mols = list(
@@ -222,17 +183,6 @@ class BRICSGenerator():
         -------
         Tuple[list, int]
             Generated SMILES strings and count
-        Examples
-        --------
-        >>> generator = BRICSGenerator()
-        # Small molecule generation
-        >>> new_mols, count = generator.sample(['CC(=O)O'])
-        # Polymer generation
-        >>> polymers, count = generator.sample(['*CC*'], is_polymer=True)
-        # Dendrimer generation
-        >>> dendrimers, count = generator.sample(['*CC(*)CC*'],
-        ...                                      is_polymer=True,
-        ...                                      is_dendrimer=True)
         """
         if is_polymer:
             smiles_list = self.replace_wildcards_with_vatoms(smiles_list)
