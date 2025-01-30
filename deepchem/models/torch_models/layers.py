@@ -7215,7 +7215,7 @@ class DAGGather(nn.Module):
                                          dtype=torch.float32,
                                          device=self.device)
 
-        graph_features = torch.zeros(membership.max().int() + 1,
+        graph_features = torch.zeros(membership.max().item() + 1,
                                      atom_features.shape[1])
 
         graph_features = graph_features.scatter_add_(
