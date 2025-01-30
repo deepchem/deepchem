@@ -6,9 +6,9 @@ from torch.nn.modules.loss import _Loss
 from deepchem.models.losses import Loss
 from deepchem.models.torch_models import TorchModel
 from deepchem.models.optimizers import Optimizer, Adam
-from deepchem.data import Dataset
+from deepchem.data import Dataset, NumpyDataset
 import torch
-from typing import Iterable, Optional, Union, Tuple, List
+from typing import Iterable, Optional, Union, Tuple, List, Any
 
 
 class LSTMNeuralNet(nn.Module):
@@ -275,6 +275,8 @@ class LSTMGenerator(TorchModel):
             target_val = targets[0]
             target_val = target_val.to(self.device)
             output = self.model(input_val)
+            if type(self.loss) is Loss:
+                self.loss = self.loss._create_pytorch_loss()
             loss_val = self.loss(output.reshape(-1, self.tokenizer.vocab_size),
                                  target_val.reshape(-1))
 
@@ -319,13 +321,17 @@ class LSTMGenerator(TorchModel):
         self.model = LSTMNeuralNet(self.tokenizer.vocab_size,
                                    self.embedding_dim, self.hidden_dim,
                                    self.num_layers)
-        self.model.load_state_dict(data['model_state_dict'], strict=strict)
+        if strict is not None:
+            self.model.load_state_dict(data['model_state_dict'], strict=strict)
+            return
+        self.model.load_state_dict(data['model_state_dict'])
 
-    def load_from_pretrained(self,
-                             checkpoint: Optional[str] = None,
-                             model_dir: Optional[str] = None,
-                             *args,
-                             **kwargs) -> None:
+    def load_from_pretrained(
+            self,
+            checkpoint: Optional[str] = None,
+            model_dir: Optional[str] = None,
+            *args: Any,  # type: ignore[override]
+            **kwargs: Any) -> None:
         """
         Load the model from a pretrained model.
 
@@ -342,11 +348,8 @@ class LSTMGenerator(TorchModel):
         self.restore(model_dir=model_dir, checkpoint=checkpoint)
         self.model = self.model.to(self.device)
 
-    def _predict(self,
-                 input_tensor: Tensor,
-                 temperature: float = 1.0,
-                 *args,
-                 **kwargs) -> Tensor:
+    def _predict(self, generator: Iterable[Tuple[Any, Any, Any]], *args: Any,
+                 **kwargs: Any):
         """
         Predict the next token in the sequence.
 
@@ -356,8 +359,13 @@ class LSTMGenerator(TorchModel):
             Input tensor of token ids.
         temperature: float, default 1.0
             Temperature to use for sampling.
-
-       """
+        """
+        if "temperature" in kwargs:
+            temperature: float = kwargs["temperature"]
+        else:
+            temperature: float = 1.0
+        input_tensors, _, _, _ = generator
+        input_tensor = torch.tensor(input_tensors)
         input_tensor = input_tensor.to(self.device)
         output = self.model(input_tensor)
         logits = output[:, -1, :] / temperature
@@ -383,17 +391,22 @@ class LSTMGenerator(TorchModel):
         str
             Detokenized Generated sequence as str.
         """
-        generated_sequence = [self.tokenizer.cls_token_id]
+        generated_sequence: list = [self.tokenizer.cls_token_id]
         for _ in range(max_len):
             input_tensor = torch.tensor(generated_sequence).unsqueeze(0)
-            output_tensor = self._predict(input_tensor, temperature)
-            generated_sequence.append(output_tensor)
-            if output_tensor == self.tokenizer.sep_token_id:
-                break
-        generated_sequence = self.tokenizer.decode(generated_sequence,
-                                                   skip_special_tokens=True)
-        generated_sequence = generated_sequence.replace(" ", "")
-        return generated_sequence
+            generators = NumpyDataset([input_tensor])
+            output_tensors = []
+            for generator in generators.itersamples():
+                output_tensor = self._predict(generator,
+                                              temperature=temperature)
+                generated_sequence.append(output_tensor)
+            if len(output_tensors) > 0:
+                if output_tensors[0] == self.tokenizer.sep_token_id:
+                    break
+        generated_sequence_str: str = self.tokenizer.decode(
+            generated_sequence, skip_special_tokens=True)
+        generated_sequence_str = generated_sequence_str.replace(" ", "")
+        return generated_sequence_str
 
     def sample(self,
                num_gen: int = 100,
