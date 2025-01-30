@@ -277,8 +277,13 @@ class LSTMGenerator(TorchModel):
             output = self.model(input_val)
             if type(self.loss) is Loss:
                 self.loss = self.loss._create_pytorch_loss()
-            loss_val = self.loss(output.reshape(-1, self.tokenizer.vocab_size),
-                                 target_val.reshape(-1))
+                loss_val = self.loss(
+                    output.reshape(-1, self.tokenizer.vocab_size),
+                    target_val.reshape(-1))
+            elif type(self.loss) is _Loss:
+                loss_val = self.loss(
+                    output.reshape(-1, self.tokenizer.vocab_size),
+                    target_val.reshape(-1))
 
             # Backward and optimize
             optimizer.zero_grad()
@@ -328,6 +333,7 @@ class LSTMGenerator(TorchModel):
 
     def load_from_pretrained(
             self,
+            source_model: TorchModel = None,
             checkpoint: Optional[str] = None,
             model_dir: Optional[str] = None,
             *args: Any,  # type: ignore[override]
@@ -337,6 +343,8 @@ class LSTMGenerator(TorchModel):
 
         Parameters
         ----------
+        source_model: TorchModel, default None
+            The source model to load the weights for.
         checkpoint: str, default None
             the path to the checkpoint file to load.  If this is None, the most recent
             checkpoint will be chosen automatically.  Call get_checkpoints() to get a
@@ -348,8 +356,8 @@ class LSTMGenerator(TorchModel):
         self.restore(model_dir=model_dir, checkpoint=checkpoint)
         self.model = self.model.to(self.device)
 
-    def _predict(self, generator: Iterable[Tuple[Any, Any, Any]], *args: Any,
-                 **kwargs: Any):
+    def _predict(self, generator: Iterable[Tuple[Any, Any, Any, Any]], *args:
+                 Any, **kwargs: Any):
         """
         Predict the next token in the sequence.
 
@@ -361,9 +369,9 @@ class LSTMGenerator(TorchModel):
             Temperature to use for sampling.
         """
         if "temperature" in kwargs:
-            temperature: float = kwargs["temperature"]
+            temperature = kwargs["temperature"]
         else:
-            temperature: float = 1.0
+            temperature = 1.0
         input_tensors, _, _, _ = generator
         input_tensor = torch.tensor(input_tensors)
         input_tensor = input_tensor.to(self.device)
@@ -395,7 +403,7 @@ class LSTMGenerator(TorchModel):
         for _ in range(max_len):
             input_tensor = torch.tensor(generated_sequence).unsqueeze(0)
             generators = NumpyDataset([input_tensor])
-            output_tensors = []
+            output_tensors: list = []
             for generator in generators.itersamples():
                 output_tensor = self._predict(generator,
                                               temperature=temperature)
