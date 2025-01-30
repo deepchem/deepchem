@@ -6,11 +6,9 @@ from torch.nn.modules.loss import _Loss
 from deepchem.models.losses import Loss
 from deepchem.models.torch_models import TorchModel
 from deepchem.models.optimizers import Optimizer, Adam
-from deepchem.models.losses import Loss, SparseSoftmaxCrossEntropy
-from deepchem.utils.typing import LossFn
 from deepchem.data import Dataset
 import torch
-from typing import Iterator, Optional, Union, Tuple, List
+from typing import Iterable, Optional, Union, Tuple, List
 
 
 class LSTMNeuralNet(nn.Module):
@@ -79,19 +77,18 @@ class LSTMGenerator(TorchModel):
     """LSTM Generator
 
     This class implements an LSTM-based [1]_ generator for token generation tasks.
-    The generator is trained on a list of sequences and can be used to generate 
+    The generator is trained on a list of sequences and can be used to generate
     new sequences of tokens. The model is implemented using PyTorch and can be useful
     to generate SMILES, PSMILES and Weighted Graph strings for generation tasks.
-    The code is used in the Open-source Polymer Generative Pipeline [2]_ to generate 
+    The code is used in the Open-source Polymer Generative Pipeline [2]_ to generate
     hypothetical polymers using PSMILES and Weighted Directed Graph representations.
 
     References
     ----------
     .. [1] Staudemeyer, Ralf C., and Eric Rothstein Morris. "Understanding LSTM
-        --a tutorial into long short-term memory recurrent neural networks." 
+        --a tutorial into long short-term memory recurrent neural networks."
         arXiv preprint arXiv:1909.09586 (2019).
-    
-    .. [2] Mohanty, Debasish, et al. "Open-source Polymer Generative Pipeline." 
+    .. [2] Mohanty, Debasish, et al. "Open-source Polymer Generative Pipeline."
         arXiv preprint arXiv:2412.08658 (2024).
 
     Examples
@@ -117,7 +114,7 @@ class LSTMGenerator(TorchModel):
             learning_rate: Union[float] = 0.001,
             optimizer: Optional[Optimizer] = None,
             model_dir: str = "lstm_generator_model",
-            device: str = "cpu") -> None:
+            device: Optional[torch.device] = None) -> None:
         """
         Initializes the LSTMGenerator model.
 
@@ -141,8 +138,8 @@ class LSTMGenerator(TorchModel):
             Optimizer to use for training the model. If None, Adam optimizer is used.
         model_dir: str, default "lstm_generator_model"
             Directory to save the model files.
-        device: str, default "cpu"
-            Device to use for training the model. Should be "cpu" or "cuda".
+        device: torch.device, default None
+            Device to use for training the model.
         """
 
         self.tokenizer = BertTokenizer.from_pretrained(
@@ -154,9 +151,12 @@ class LSTMGenerator(TorchModel):
                               embedding_dim=embedding_dim,
                               hidden_dim=hidden_dim,
                               num_layers=num_layers)
-        model = model.to(device)
         optimizer = optimizer if optimizer else Adam(
             learning_rate=learning_rate)
+        if device is None:
+            device = torch.device(
+                'cuda' if torch.cuda.is_available() else 'cpu')
+        model = model.to(device)
         super(LSTMGenerator, self).__init__(model=model,
                                             loss=loss,
                                             batch_size=batch_size,
@@ -165,27 +165,33 @@ class LSTMGenerator(TorchModel):
                                             device=device,
                                             learning_rate=learning_rate)
 
-    def default_generator(self, dataset: Dataset, num_epochs: int = 1) -> Iterator:
+    def default_generator(self,
+                          dataset: Dataset,
+                          epochs: int = 1,
+                          *args,
+                          **kwargs) -> Iterable[Tuple[List, List, List]]:
         """
         Generates a default generator for the input sequences.
 
         Parameters
         ----------
-        dataset: Dataset 
+        dataset: Dataset
             Dataset of input sequences to tokenize.
-        num_epochs: int, default 1
+        epochs: int, default 1
             Number of epochs to train the model.
 
         Returns
         -------
-        Iterator
-            Generator that yields input and target tensors for training the model.
+        Iterable
+            Generator that yields input, target and zero weight
+            as a tuple of tensors for training the model.
         """
         sequences = []
         for (X_, _, _, _) in dataset.iterbatches(batch_size=self.batch_size):
             # Tokenize the sequence and add special tokens
-            for sequence in  list(X_):
-                tokens = self.tokenizer.encode(sequence, add_special_tokens=True)
+            for sequence in list(X_):
+                tokens = self.tokenizer.encode(sequence,
+                                               add_special_tokens=True)
                 sequences.append(tokens)
 
         # Convert the list of sequences into tensors and pad them
@@ -197,83 +203,81 @@ class LSTMGenerator(TorchModel):
             pad_token_id  # Use BERT's padding token ID
         )
 
-        for epoch in range(num_epochs):
+        for epoch in range(epochs):
             for i in range(0, len(padded_sequences), self.batch_size):
                 batch = padded_sequences[
                     i:min(i + self.batch_size, len(padded_sequences))]
                 inputs = batch[:, :-1]
                 targets = batch[:, 1:]
-                inputs.to(self.device)
-                targets.to(self.device)
-                yield inputs, targets
+                weights = torch.ones(inputs.shape[0], device=self.device)
+                yield ([inputs], [targets], [weights])
 
     def fit(self,
             dataset: Dataset,
             nb_epoch: int = 1,
-            checkpoint_interval: int = 1000,
             max_checkpoints_to_keep: int = 5,
-            verbose: bool = False) -> Tuple[float, float]:
+            checkpoint_interval: int = 1000,
+            *args,
+            **kwargs) -> float:
         """
         Fits the model on the input sequences.
 
         Parameters
         ----------
-        dataset: Dataset 
+        dataset: Dataset
             Dataset of input sequences to train the model.
         nb_epoch: int, default 1
             Number of epochs to train the model.
-        checkpoint_interval: int, default 1000
-            Interval at which to save model checkpoints.
         max_checkpoints_to_keep: int, default 5
             Maximum number of checkpoints to keep.
-        verbose: bool, default False
-            Whether to print training progress.
+        checkpoint_interval: int, default 1000
+            Interval at which to save model checkpoints.
 
         Returns
         -------
-        Tuple[float, float]
-            Average loss and least loss during training.
+        float
+            Average loss of most recent checkpoint
         """
         return self.fit_generator(
-            self.default_generator(dataset=dataset, num_epochs=nb_epoch),
+            self.default_generator(dataset=dataset, epochs=nb_epoch),
             checkpoint_interval=checkpoint_interval,
-            max_checkpoints_to_keep=max_checkpoints_to_keep,
-            verbose=verbose)
+            max_checkpoints_to_keep=max_checkpoints_to_keep)
 
     def fit_generator(self,
-                      generator: Iterator,
-                      checkpoint_interval: int = 1000,
+                      generator: Iterable,
                       max_checkpoints_to_keep: int = 5,
-                      verbose: bool = False) -> Tuple[float, float]:
+                      checkpoint_interval: int = 1000,
+                      *args,
+                      **kwargs) -> float:
         """
         Fits the model on the input sequences using a generator.
 
         Parameters
         ----------
-        generator: Iterator
-            Generator that yields input and target tensors for training the model.
-        checkpoint_interval: int, default 1000
-            Interval at which to save model checkpoints.
+        generator: Iterable
+            Generator that yields input, target and zero weight tensors for training the model.
         max_checkpoints_to_keep: int, default 5
             Maximum number of checkpoints to keep.
-        verbose: bool, default False
-            Whether to print training progress.
-
-
+        checkpoint_interval: int, default 1000
+            Interval at which to save model checkpoints.
         Returns
         -------
-        Tuple[float, float]
-            Average loss and least loss during training
+        float
+            Average loss of most recent checkpoint
         """
-        current_step = 1
         loss_float = 0.0
-        least_loss = float('inf')
+        current_step = 0
         optimizer = self.optimizer._create_pytorch_optimizer(
             self.model.parameters())
-        for inputs, targets in generator:
-            outputs = self.model(inputs)
-            loss_val = self.loss(outputs.reshape(-1, self.tokenizer.vocab_size),
-                                 targets.reshape(-1))
+        for inputs, targets, _ in generator:
+            input_val = inputs[0]
+            input_val = input_val.to(self.device)
+            target_val = targets[0]
+            target_val = target_val.to(self.device)
+            output = self.model(input_val)
+            loss_val = self.loss(output.reshape(-1, self.tokenizer.vocab_size),
+                                 target_val.reshape(-1))
+
             # Backward and optimize
             optimizer.zero_grad()
             loss_val.backward()
@@ -281,22 +285,16 @@ class LSTMGenerator(TorchModel):
 
             if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
                 self.save_checkpoint(max_checkpoints_to_keep)
-            loss_float += loss_val.item()
-            least_loss = min(least_loss, loss_val.item())
-            if verbose:
-                print(
-                    f'Epoch [{epoch+1}/{num_epochs}], Step [{i}/{len(dataset)}], Loss: {loss.item():.4f}'
-                )
+            loss_float = loss_val.item()
             current_step += 1
 
-        avg_loss = loss_float / current_step
-        return avg_loss, least_loss
+        return float(loss_float)
 
     def restore(self,
-                model_dir: Optional[str] = None,
                 checkpoint: Optional[str] = None,
+                model_dir: Optional[str] = None,
                 strict: Optional[bool] = True) -> None:
-        """Reload the values of all variables from a checkpoint file.
+        """Restore the values of all variables from a checkpoint file.
 
         Parameters
         ----------
@@ -324,19 +322,21 @@ class LSTMGenerator(TorchModel):
         self.model.load_state_dict(data['model_state_dict'], strict=strict)
 
     def load_from_pretrained(self,
+                             checkpoint: Optional[str] = None,
                              model_dir: Optional[str] = None,
-                             checkpoint: Optional[str] = None) -> None:
+                             *args,
+                             **kwargs) -> None:
         """
         Load the model from a pretrained model.
 
         Parameters
         ----------
-        model_dir: str, default None
-            Directory to restore checkpoint from. If None, use self.model_dir.
         checkpoint: str, default None
             the path to the checkpoint file to load.  If this is None, the most recent
             checkpoint will be chosen automatically.  Call get_checkpoints() to get a
             list of all available checkpoints.
+        model_dir: str, default None
+            Directory to restore checkpoint from. If None, use self.model_dir.
         """
         self._ensure_built()
         self.restore(model_dir=model_dir, checkpoint=checkpoint)
@@ -344,7 +344,9 @@ class LSTMGenerator(TorchModel):
 
     def _predict(self,
                  input_tensor: Tensor,
-                 temperature: float = 1.0) -> Tensor:
+                 temperature: float = 1.0,
+                 *args,
+                 **kwargs) -> Tensor:
         """
         Predict the next token in the sequence.
 
@@ -355,11 +357,7 @@ class LSTMGenerator(TorchModel):
         temperature: float, default 1.0
             Temperature to use for sampling.
 
-        Returns
-        -------
-        Tensor
-            Predicted token in pytorch tensor type
-        """
+       """
         input_tensor = input_tensor.to(self.device)
         output = self.model(input_tensor)
         logits = output[:, -1, :] / temperature
@@ -411,8 +409,7 @@ class LSTMGenerator(TorchModel):
         max_len: int, default 600
             Maximum length of the generated sequence.
         temperature: float, default 1.0
-            Temperature to use for sampling. 
-        
+            Temperature to use for sampling.
         Returns
         -------
         List[str]
