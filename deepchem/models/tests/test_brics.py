@@ -1,6 +1,5 @@
 import pytest
-from deepchem.models.brics_genrator import BRICSGenerator
-from rdkit import Chem
+from deepchem.models import BRICSGenerator
 
 
 @pytest.fixture
