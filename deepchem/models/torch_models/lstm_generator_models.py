@@ -333,12 +333,11 @@ class LSTMGenerator(TorchModel):
             return
         self.model.load_state_dict(data['model_state_dict'])
 
-    def load_from_pretrained(
-            self,
-            source_model: "TorchModel",            checkpoint: Optional[str] = None,
-            model_dir: Optional[str] = None,
-            *args: Any,  # type: ignore[override]
-            **kwargs: Any) -> None:
+    def load_from_pretrained(self,
+                             source_model: "TorchModel",
+                             checkpoint: Optional[str] = None,
+                             model_dir: Optional[str] = None,
+                             **kwargs: Any) -> None:
         """
         Load the model from a pretrained model.
 
@@ -374,15 +373,14 @@ class LSTMGenerator(TorchModel):
             temperature = kwargs["temperature"]
         else:
             temperature = 1.0
-        predicted_tokens = []
         for gen in generator:
             input_tensors, _, _ = gen
-            input_tensor = torch.tensor(input_tensors[0])
-            input_tensor = input_tensor.to(self.device)
-            output = self.model(input_tensor)
-            logits = output[:, -1, :] / temperature
-            prbos = torch.softmax(logits, dim=-1)
-            predicted_tokens = torch.multinomial(prbos, num_samples=1).item()
+        input_tensor = torch.tensor(input_tensors[0])
+        input_tensor = input_tensor.to(self.device)
+        output = self.model(input_tensor)
+        logits = output[:, -1, :] / temperature
+        prbos = torch.softmax(logits, dim=-1)
+        predicted_tokens = torch.multinomial(prbos, num_samples=1).item()
         return predicted_tokens
 
     def _single_sample(self,
