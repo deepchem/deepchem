@@ -275,15 +275,17 @@ class LSTMGenerator(TorchModel):
             target_val = targets[0]
             target_val = target_val.to(self.device)
             output = self.model(input_val)
-            if type(self.loss) is Loss:
+            if isinstance(self.loss, Loss):
                 self.loss = self.loss._create_pytorch_loss()
                 loss_val = self.loss(
                     output.reshape(-1, self.tokenizer.vocab_size),
                     target_val.reshape(-1))
-            elif type(self.loss) is _Loss:
+            elif isinstance(self.loss, _Loss):
                 loss_val = self.loss(
                     output.reshape(-1, self.tokenizer.vocab_size),
                     target_val.reshape(-1))
+            else:
+                raise ValueError('Invalid loss type')
 
             # Backward and optimize
             optimizer.zero_grad()
