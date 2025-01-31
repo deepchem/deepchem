@@ -295,7 +295,14 @@ Torch Layers
 
 .. autofunction:: deepchem.models.torch_models.layers.cosine_dist
 
+<<<<<<< HEAD
 .. autoclass:: deepchem.models.torch_models.AttnLSTMEmbedding
+=======
+.. autoclass:: deepchem.models.torch_models.layers.DAGLayer
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.DAGGather
+>>>>>>> 79609e37f (Dag layers ported (#4238))
   :members:
 
 Flow Layers
