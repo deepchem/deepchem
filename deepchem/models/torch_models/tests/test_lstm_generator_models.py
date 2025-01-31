@@ -49,7 +49,9 @@ def test_load_pretrained():
 
     generator = LSTMGenerator()
 
-    generator.load_from_pretrained(model_dir="./assets/lstm_generator")
+    generator.load_from_pretrained(
+        source_model=LSTMGenerator(),
+        model_dir="./assets/lstm_generator")
     assert generator._built
 
 
@@ -59,7 +61,9 @@ def test_sampling():
 
     generator = LSTMGenerator()
 
-    generator.load_from_pretrained(model_dir="./assets/lstm_generator")
+    generator.load_from_pretrained(
+        source_model=LSTMGenerator(),
+        model_dir="./assets/lstm_generator")
     random_gens = generator.sample(3, max_len=10)
     print('random_gens:', random_gens)
     assert len(random_gens) == 3
