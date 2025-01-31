@@ -23,11 +23,11 @@ class PINNModel(TorchModel):
         the PINNModel computes the PDE residuals. The function should follow this format:
 
         >>> def heat_equation_residual(model, x):
-        >>>     x.requires_grad_(True)
-        >>>     u = model(x)
-        >>>     du_dx = torch.autograd.grad(u.sum(), x, create_graph=True, retain_graph=True)[0]
-        >>>     d2u_dx2 = torch.autograd.grad(du_dx.sum(), x, create_graph=True, retain_graph=True)[0]
-        >>>     return d2u_dx2
+        ...     x.requires_grad_(True)
+        ...     u = model(x)
+        ...     du_dx = torch.autograd.grad(u.sum(), x, create_graph=True, retain_graph=True)[0]
+        ...     d2u_dx2 = torch.autograd.grad(du_dx.sum(), x, create_graph=True, retain_graph=True)[0]
+        ...     return d2u_dx2
 
         Here, `model` is the neural network being trained, and `x` is the input.
 
@@ -35,11 +35,11 @@ class PINNModel(TorchModel):
         A dictionary containing the boundary condition data. It should have the following format:
 
         >>> boundary_data = {
-        >>>     'dirichlet': {
-        >>>         'points': torch.tensor([[0.0], [1.0]], dtype=torch.float32),
-        >>>         'values': torch.tensor([[0.0], [1.0]], dtype=torch.float32)
-        >>>     }
-        >>> }
+        ...     'dirichlet': {
+        ...         'points': torch.tensor([[0.0], [1.0]], dtype=torch.float32),
+        ...         'values': torch.tensor([[0.0], [1.0]], dtype=torch.float32)
+        ...     }
+        ... }
 
         - `points`: Tensor of input points where boundary conditions are defined.
         - `values`: Tensor of target values at the boundary points.
@@ -49,29 +49,27 @@ class PINNModel(TorchModel):
         An example is shown below:
 
         >>> def custom_loss(outputs, labels, weights=None):
-        >>>     outputs = outputs[0]
-        >>>     labels = labels[0]
-        >>>     data_loss = torch.mean(torch.square(outputs - labels))
-        >>>     pde_residuals = heat_equation_residual(model, labels)
-        >>>     pde_loss = torch.mean(torch.abs(pde_residuals))
-        >>>     boundary_loss = 0.0
-        >>>     for _, value in boundary_data.items():
-        >>>         if isinstance(value, dict):
-        >>>             points = value.get('points')
-        >>>             values = value.get('values')
-        >>>             if points is not None and values is not None:
-        >>>                 pred = model(points)
-        >>>                 boundary_loss += torch.mean(torch.square(pred - values))
-        >>>     return data_loss + pde_loss + 10 * boundary_loss
+        ...     outputs = outputs[0]
+        ...     labels = labels[0]
+        ...     data_loss = torch.mean(torch.square(outputs - labels))
+        ...     pde_residuals = heat_equation_residual(model, labels)
+        ...     pde_loss = torch.mean(torch.abs(pde_residuals))
+        ...     boundary_loss = 0.0
+        ...     for _, value in boundary_data.items():
+        ...         if isinstance(value, dict):
+        ...             points = value.get('points')
+        ...             values = value.get('values')
+        ...             if points is not None and values is not None:
+        ...                 pred = model(points)
+        ...                 boundary_loss += torch.mean(torch.square(pred - values))
+        ...     return data_loss + pde_loss + 10 * boundary_loss
 
-    Examples
-    --------
+    Usage Example
+    -------------
     Here's an example of using PINNModel to solve the 1D steady-state heat equation:
 
     >>> import torch
     >>> import deepchem as dc
-    >>>
-    >>> # Define the neural network architecture
     >>> class HeatNet(torch.nn.Module):
     ...     def __init__(self):
     ...         super(HeatNet, self).__init__()
@@ -82,32 +80,27 @@ class PINNModel(TorchModel):
     ...             torch.nn.Tanh(),
     ...             torch.nn.Linear(64, 1)
     ...         )
-    ...
     ...     def forward(self, x):
     ...         if not isinstance(x, torch.Tensor):
     ...             x = torch.tensor(x, dtype=torch.float32)
     ...         return self.net(x)
-    >>>
     >>> def heat_equation_residual(model, x):
     ...     x.requires_grad_(True)
     ...     u = model(x)
     ...     du_dx = torch.autograd.grad(u.sum(), x, create_graph=True, retain_graph=True)[0]
     ...     d2u_dx2 = torch.autograd.grad(du_dx.sum(), x, create_graph=True, retain_graph=True)[0]
     ...     return du_dx - d2u_dx2  # Let alpha be 1.0
-    >>>
     >>> x_interior = torch.linspace(0, 1, 2000)[1:-1].reshape(-1, 1)
     >>> x_boundary = torch.tensor([[0.0], [1.0]])
     >>> x = torch.cat([x_interior, x_boundary], dim=0)
     >>> y = x.clone()
     >>> dataset = dc.data.NumpyDataset(X=x.numpy(), y=y.numpy())
-    >>>
     >>> boundary_data = {
     ...     'dirichlet': {
     ...         'points': torch.tensor([[0.0], [1.0]], dtype=torch.float32),
     ...         'values': torch.tensor([[0.0], [1.0]], dtype=torch.float32)
     ...     }
     ... }
-    >>>
     >>> model = HeatNet()
     >>> pinn = PINNModel(
     ...     model=model,
