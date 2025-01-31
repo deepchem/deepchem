@@ -188,6 +188,32 @@ class BAMFeaturizer(Featurizer):
         features = []
         record_count = 0
 
+        pileup_columns = []
+        initial_position = datapoint.tell()
+
+        # This is more efficient as instead of iterating over the
+        # whole file for each record, we iterate over the file once
+        # and store the pileup information in a list that is
+        # appended for every record.
+
+        if self.get_pileup:
+            for pileupcolumn in datapoint.pileup():
+                pileup_info = {
+                    "name":
+                        pileupcolumn.reference_name,
+                    "pos":
+                        pileupcolumn.reference_pos,
+                    "depth":
+                        pileupcolumn.nsegments,
+                    "reads": [[
+                        pileupread.alignment.query_sequence,
+                        pileupread.query_position, pileupread.is_del,
+                        pileupread.is_refskip, pileupread.indel
+                    ] for pileupread in pileupcolumn.pileups]
+                }
+                pileup_columns.append(pileup_info)
+        datapoint.seek(initial_position)
+
         for record in datapoint:
             initial_position = datapoint.tell()
             feature_vector = [
@@ -198,22 +224,6 @@ class BAMFeaturizer(Featurizer):
             ]
 
             if (self.get_pileup):
-                pileup_columns = []
-                for pileupcolumn in datapoint.pileup():
-                    pileup_info = {
-                        "name":
-                            pileupcolumn.reference_name,
-                        "pos":
-                            pileupcolumn.reference_pos,
-                        "depth":
-                            pileupcolumn.nsegments,
-                        "reads": [[
-                            pileupread.alignment.query_sequence,
-                            pileupread.query_position, pileupread.is_del,
-                            pileupread.is_refskip, pileupread.indel
-                        ] for pileupread in pileupcolumn.pileups]
-                    }
-                    pileup_columns.append(pileup_info)
                 feature_vector.append(pileup_columns)
 
             features.append(feature_vector)
