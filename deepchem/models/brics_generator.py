@@ -3,7 +3,7 @@ from typing import Tuple
 from rdkit import Chem
 
 
-class BRICSGenerator():
+class BRICSGenerator:
     """BRICSGenerator
     BRICS-based molecule generator for organic candidates, polymers and dendrimers.
     This class implements BRICS (Breaking Retrosynthetically Interesting Chemical Substructures)
@@ -32,7 +32,6 @@ class BRICSGenerator():
 
     def _BRICS_decompose(self, smiles_list: list) -> list:
         """Decompose input molecules using BRICS fragmentation rules.
-
         Parameters
         ----------
         smiles_list : list
@@ -170,7 +169,6 @@ class BRICSGenerator():
                is_polymer: bool = False,
                is_dendrimer: bool = False) -> Tuple[list, int]:
         """Generate new molecules through BRICS decomposition and recombination.
-
         Parameters
         ----------
         smiles_list : list
