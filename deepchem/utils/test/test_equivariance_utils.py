@@ -203,7 +203,6 @@ class TestEquivarianceUtils(unittest.TestCase):
                                                                         col2])
                     self.assertAlmostEqual(dot_product.item(), 0.0, places=5)
 
-
     @unittest.skipIf(not has_torch, "torch is not available")
     def test_semifactorial(self) -> None:
         # Test base cases
