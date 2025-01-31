@@ -335,7 +335,9 @@ class LSTMGenerator(TorchModel):
 
     def load_from_pretrained(
             self,
-            source_model: TorchModel = None,
+            source_model: "TorchModel" = TorchModel(model=LSTMNeuralNet(
+                vocab_size=12, embedding_dim=8, hidden_dim=4, num_layers=1),
+                                                    loss=nn.CrossEntropyLoss()),
             checkpoint: Optional[str] = None,
             model_dir: Optional[str] = None,
             *args: Any,  # type: ignore[override]
@@ -345,7 +347,7 @@ class LSTMGenerator(TorchModel):
 
         Parameters
         ----------
-        source_model: TorchModel, default None
+        source_model: TorchModel, default TorchModel with LSTMNeuralNet
             The source model to load the weights for.
         checkpoint: str, default None
             the path to the checkpoint file to load.  If this is None, the most recent
@@ -358,29 +360,32 @@ class LSTMGenerator(TorchModel):
         self.restore(model_dir=model_dir, checkpoint=checkpoint)
         self.model = self.model.to(self.device)
 
-    def _predict(self, generator: Iterable[Tuple[Any, Any, Any, Any]], *args:
-                 Any, **kwargs: Any):
+    def _predict(self, generator: Iterable[Tuple[Any, Any, Any]], *args: Any,
+                 **kwargs: Any):
         """
         Predict the next token in the sequence.
 
         Parameters
         ----------
-        input_tensor: Tensor
+        generator: Iterable
             Input tensor of token ids.
         temperature: float, default 1.0
+            (passed as keyword argument)
             Temperature to use for sampling.
         """
         if "temperature" in kwargs:
             temperature = kwargs["temperature"]
         else:
             temperature = 1.0
-        input_tensors, _, _, _ = generator
-        input_tensor = torch.tensor(input_tensors)
-        input_tensor = input_tensor.to(self.device)
-        output = self.model(input_tensor)
-        logits = output[:, -1, :] / temperature
-        prbos = torch.softmax(logits, dim=-1)
-        predicted_tokens = torch.multinomial(prbos, num_samples=1).item()
+        predicted_tokens = []
+        for gen in generator:
+            input_tensors, _, _ = gen
+            input_tensor = torch.tensor(input_tensors[0])
+            input_tensor = input_tensor.to(self.device)
+            output = self.model(input_tensor)
+            logits = output[:, -1, :] / temperature
+            prbos = torch.softmax(logits, dim=-1)
+            predicted_tokens = torch.multinomial(prbos, num_samples=1).item()
         return predicted_tokens
 
     def _single_sample(self,
@@ -404,12 +409,17 @@ class LSTMGenerator(TorchModel):
         generated_sequence: list = [self.tokenizer.cls_token_id]
         for _ in range(max_len):
             input_tensor = torch.tensor(generated_sequence).unsqueeze(0)
-            generators = NumpyDataset([input_tensor])
+            dataset = NumpyDataset([input_tensor])
             output_tensors: list = []
-            for generator in generators.itersamples():
-                output_tensor = self._predict(generator,
-                                              temperature=temperature)
-                generated_sequence.append(output_tensor)
+
+            def get_generator():
+                for (X_, _, _,
+                     _) in dataset.iterbatches(batch_size=self.batch_size):
+                    yield X_, _, _
+
+            output_tensor = self._predict(get_generator(),
+                                          temperature=temperature)
+            generated_sequence.append(output_tensor)
             if len(output_tensors) > 0:
                 if output_tensors[0] == self.tokenizer.sep_token_id:
                     break
