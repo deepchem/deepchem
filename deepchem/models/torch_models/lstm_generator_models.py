@@ -335,10 +335,7 @@ class LSTMGenerator(TorchModel):
 
     def load_from_pretrained(
             self,
-            source_model: "TorchModel" = TorchModel(model=LSTMNeuralNet(
-                vocab_size=12, embedding_dim=8, hidden_dim=4, num_layers=1),
-                                                    loss=nn.CrossEntropyLoss()),
-            checkpoint: Optional[str] = None,
+            source_model: "TorchModel",            checkpoint: Optional[str] = None,
             model_dir: Optional[str] = None,
             *args: Any,  # type: ignore[override]
             **kwargs: Any) -> None:
@@ -434,7 +431,6 @@ class LSTMGenerator(TorchModel):
                temperature: float = 1.0) -> List[str]:
         """
         Generate sequences by repeated sampling.
-
         Parameters
         ----------
         num_gen: int, default 100
