@@ -32,7 +32,8 @@ class PINNModel(TorchModel):
         Here, `model` is the neural network being trained, and `x` is the input.
 
     boundary_data : dict
-        A dictionary containing the boundary condition data. It should have the following format:
+        A dictionary containing the boundary condition data. The PINNModel supports three boundary data types: Dirichlet, Neumann and Robin.
+        The following format must be followed:
 
         >>> boundary_data = {
         ...     'dirichlet': {
