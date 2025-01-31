@@ -61,4 +61,5 @@ def test_sampling():
 
     generator.load_from_pretrained(model_dir="./assets/lstm_generator")
     random_gens = generator.sample(3, max_len=10)
+    print('random_gens:', random_gens)
     assert len(random_gens) == 3
