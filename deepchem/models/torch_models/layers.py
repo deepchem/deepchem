@@ -6199,9 +6199,11 @@ class GraphConv(nn.Module):
         split_features: Tuple[torch.Tensor,
                               ...] = torch.split(atom_features,
                                                  (deg_slice[:, 1]).tolist())
+        device = atom_features.device
         for deg in range(1, self.max_degree + 1):
             # Obtain relevant atoms for this degree
-            rel_atoms: torch.Tensor = torch.from_numpy(deg_summed[deg - 1])
+            rel_atoms: torch.Tensor = torch.from_numpy(deg_summed[deg -
+                                                                  1]).to(device)
 
             # Get self atoms
             self_atoms: torch.Tensor = split_features[deg - self.min_degree]
@@ -6213,7 +6215,7 @@ class GraphConv(nn.Module):
                 self_atoms.type(torch.float32), next(W)) + next(b)
             out: torch.Tensor = rel_out + self_out
             new_rel_atoms_collection.append(
-                torch.from_numpy(out.detach().numpy()))
+                torch.from_numpy(out.detach().cpu().numpy()).to(device))
 
         # Determine the min_deg=0 case
         if self.min_degree == 0:
@@ -6223,7 +6225,8 @@ class GraphConv(nn.Module):
             out = torch.matmul(self_atoms.type(torch.float32),
                                next(W)) + next(b)
             new_rel_atoms_collection.insert(
-                0, torch.from_numpy(out.detach().numpy()))
+                0,
+                torch.from_numpy(out.detach().cpu().numpy()).to(device))
 
         # Combine all atoms back into the list
         atom_features = torch.concat(new_rel_atoms_collection, 0)
@@ -6241,7 +6244,7 @@ class GraphConv(nn.Module):
             gathered_atoms: torch.Tensor = atoms[deg_adj_lists[deg - 1]]
             # Sum along neighbors as well as self, and store
             summed_atoms: torch.Tensor = torch.sum(gathered_atoms, 1)
-            deg_summed.append(summed_atoms.detach().numpy())
+            deg_summed.append(summed_atoms.detach().cpu().numpy())
 
         return deg_summed
 
@@ -6339,6 +6342,7 @@ class GraphPool(nn.Module):
         split_features: Tuple[torch.Tensor,
                               ...] = torch.split(atom_features,
                                                  (deg_slice[:, 1]).tolist())
+        device = atom_features.device
         for deg in range(1, self.max_degree + 1):
             # Get self atoms
             self_atoms: torch.Tensor = split_features[deg - self.min_degree]
@@ -6364,7 +6368,7 @@ class GraphPool(nn.Module):
             self_atoms = split_features[0]
             deg_maxed.insert(0, self_atoms)
 
-        return torch.concat(deg_maxed, 0)
+        return torch.cat([d.to(device) for d in deg_maxed], dim=0)
 
 
 class GraphGather(nn.Module):
@@ -6465,13 +6469,13 @@ class GraphGather(nn.Module):
 
         # Extract graph topology
         membership: torch.Tensor = inputs[2].to(torch.int64)
-
+        device = atom_features.device
         assert self.batch_size > 1, "graph_gather requires batches larger than 1"
 
         sparse_reps: torch.Tensor = unsorted_segment_sum(
-            atom_features, membership, self.batch_size)
-        max_reps: torch.Tensor = unsorted_segment_max(atom_features, membership,
-                                                      self.batch_size)
+            atom_features.cpu(), membership.cpu(), self.batch_size).to(device)
+        max_reps: torch.Tensor = unsorted_segment_max(
+            atom_features.cpu(), membership.cpu(), self.batch_size).to(device)
         mol_features: torch.Tensor = torch.concat([sparse_reps, max_reps], 1)
 
         if self.activation_fn is not None:
