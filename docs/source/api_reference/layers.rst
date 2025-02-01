@@ -305,6 +305,9 @@ Torch Layers
 >>>>>>> 79609e37f (Dag layers ported (#4238))
   :members:
 
+.. autoclass:: deepchem.models.torch_models.AttnLSTMEmbedding
+  :members:
+
 Flow Layers
 ^^^^^^^^^^^
 
