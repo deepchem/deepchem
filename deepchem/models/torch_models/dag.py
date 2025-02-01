@@ -15,7 +15,8 @@ except ModuleNotFoundError:
 
 
 class _DAG(nn.Module):
-    """Directed Acyclic Graph models for molecular property prediction.
+    """
+    Directed Acyclic Graph models for molecular property prediction.
 
     PyTorch implementation of the DAG model described in:
     Lusci, Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in
@@ -63,6 +64,10 @@ class _DAG(nn.Module):
             the number of classes to predict (only used in classification mode)
         uncertainty: bool
             if True, include extra outputs to enable uncertainty prediction
+        batch_size: int, optional
+            the batch size to use during training
+        device: str, optional
+            the device to run the model on
         """
         super(_DAG, self).__init__()
 
@@ -180,6 +185,32 @@ class DAGModel(TorchModel):
     As a note, performance of this model can be a little
     sensitive to initialization. It might be worth training a few
     different instantiations to get a stable set of parameters.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models import DAGModel
+    >>> from deepchem.molnet import load_bace_classification
+    >>> from deepchem.data import NumpyDataset
+    >>> from deepchem.trans import DAGTransformer
+    >>> n_tasks = 1
+    >>> n_features = 75
+    >>> n_classes = 2
+    >>> n_samples = 10
+    >>> tasks, all_dataset, transformers = load_bace_classification("GraphConv", reload=False)
+    >>> train_dataset, valid_dataset, test_dataset = all_dataset
+    >>> dataset = NumpyDataset(train_dataset.X[:n_samples], train_dataset.y[:n_samples], train_dataset.w[:n_samples], train_dataset.ids[:n_samples])
+    >>> max_atoms = max([mol.get_num_atoms() for mol in dataset.X])
+    >>> transformer = DAGTransformer(max_atoms=max_atoms)
+    >>> dataset = transformer.transform(dataset)
+    >>> model = DAGModel(n_tasks=n_tasks, max_atoms=max_atoms, mode='classification', n_classes=n_classes)
+    >>> # train a model
+    >>> _ = model.fit(dataset)
+    >>> # inferencing
+    >>> _ = model.predict(dataset)
+
+
     """
 
     def __init__(self,
@@ -291,7 +322,8 @@ class DAGModel(TorchModel):
             mode: str = 'fit',
             deterministic: bool = True,
             pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
-        """Convert a dataset into the tensors needed for learning.
+        """
+        Convert a dataset into the tensors needed for learning.
 
         Parameters
         ----------
@@ -299,6 +331,8 @@ class DAGModel(TorchModel):
             The dataset to iterate over
         epochs : int, optional
             Number of epochs to iterate
+        mode : str, optional
+            The mode of the generator. One of 'fit', 'predict', 'uncertainty'
         deterministic : bool, optional
             Whether to iterate over the dataset deterministically
         pad_batches : bool, optional
