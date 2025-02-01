@@ -7301,3 +7301,225 @@ def cosine_dist(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
 
     cosine_similarity = torch.matmul(x_norm, y_norm.transpose(-1, -2))
     return cosine_similarity
+
+
+def _DAGgraph_step(batch_inputs, W_list, b_list, activation_fn, dropouts):
+    outputs = batch_inputs
+    for dropout, W, b in zip(dropouts, W_list, b_list):
+        # Apply linear transformation (matrix multiplication + bias addition)
+        outputs = torch.matmul(outputs, W) + b
+        # Apply activation function
+        outputs = activation_fn(outputs)
+        # Apply dropout if it is not None
+        if dropout is not None:
+            outputs = dropout(outputs)
+    return outputs
+
+
+class DAGLayer(nn.Module):
+    def __init__(self,
+                 n_graph_feat=30,
+                 n_atom_feat=75,
+                 max_atoms=50,
+                 layer_sizes=[100],
+                 initializer='xavier_uniform_',
+                 activation='relu',
+                 dropout=None,
+                 batch_size=64,
+                 **kwargs):
+        super(DAGLayer, self).__init__(**kwargs)
+        
+        # Initialize module parameters
+           # Set weight initializer
+        self.initializer = initializer
+        self.n_graph_feat = n_graph_feat
+        self.n_atom_feat = n_atom_feat
+        self.max_atoms = max_atoms
+        self.layer_sizes = layer_sizes
+        self.batch_size = batch_size
+        self.dropout = dropout if dropout is not None else 0.0
+        self.activation = activation
+        self.activation_fn = get_activation(self.activation)
+
+        # number of inputs each step
+        self.n_inputs = n_atom_feat + (self.max_atoms - 1) * n_graph_feat
+        self.n_outputs = n_graph_feat
+        self.W_list = nn.ParameterList()
+        self.b_list = nn.ParameterList()
+        self.dropouts = nn.ModuleList()
+
+        init_func: Callable = getattr(initializers, self.initializer)
+
+        prev_layer_size = self.n_inputs
+        for i, layer_size in enumerate(self.layer_sizes):
+            self.W_list.append(
+                nn.Parameter(
+                    init_func(torch.empty([prev_layer_size, layer_size]))))
+            self.b_list.append(nn.Parameter(torch.zeros(size=[
+                layer_size,
+            ])))
+            prev_layer_size = layer_size
+            if self.dropout is not None and self.dropout > 0.0:
+                self.dropouts.append(nn.Dropout(self.dropout))
+            else:
+                self.dropouts.append(None)
+        self.W_list.append(
+            nn.Parameter(
+                init_func(torch.empty([prev_layer_size, self.n_outputs]))))
+        self.b_list.append(nn.Parameter(torch.zeros(size=[
+            self.n_outputs,
+        ])))
+        if self.dropout is not None and self.dropout > 0.0:
+                self.dropouts.append(nn.Dropout(self.dropout))
+        else:
+            self.dropouts.append(None)
+  
+    def forward(self, inputs):
+        atom_features = inputs[0]
+
+        # each atom corresponds to a graph, which is represented by the `max_atoms*max_atoms` int32 matrix of index
+        # each gragh include `max_atoms` of steps(corresponding to rows) of calculating graph features
+        parents = inputs[1].to(torch.int32)
+
+        # target atoms for each step: (batch_size*max_atoms) * max_atoms
+        calculation_orders = inputs[2]
+        calculation_masks = inputs[3]
+
+        device = atom_features.device
+        n_atoms = inputs[4].squeeze()
+        graph_features = torch.zeros((self.max_atoms * self.batch_size,
+                                   self.max_atoms + 1, self.n_graph_feat)).to(device)
+
+        for count in range(self.max_atoms):
+            # `count`-th step
+            # extracting atom features of target atoms: (batch_size*max_atoms) * n_atom_features
+            mask = calculation_masks[:, count]
+
+            current_round = calculation_orders[:, count][mask]
+
+            batch_atom_features = atom_features[current_round]
+
+            # Generating index for graph features used in the inputs
+            stack1 = torch.reshape(torch.stack([torch.arange(n_atoms,device=device)[mask]]*(self.max_atoms - 1),dim=1),[-1]).to(device)
+
+            stack2 = torch.reshape(parents[:, count, 1:][mask],[-1])
+
+            index = torch.stack([stack1, stack2], dim=1)
+            
+            # Extracting graph features for parents of the target atoms, then flatten
+            # Shape: (batch_size * max_atoms) * [(max_atoms - 1) * n_graph_features]
+            batch_graph_features = torch.reshape(graph_features[index[:, 0], index[:, 1]],(-1, (self.max_atoms - 1) * self.n_graph_feat))
+
+            # concat into the input tensor: (batch_size*max_atoms) * n_inputs
+            batch_inputs = torch.cat(
+                tensors=[batch_atom_features, batch_graph_features],dim=1)
+    
+            # DAGgraph_step maps from batch_inputs to a batch of graph_features
+            # of shape: (batch_size*max_atoms) * n_graph_features
+            # representing the graph features of target atoms in each graph
+            batch_outputs = _DAGgraph_step(batch_inputs,self.W_list,self.b_list,self.activation_fn,self.dropouts)
+            # index for targe atoms
+
+            range_tensor = torch.arange(n_atoms, device=graph_features.device)
+            target_index = torch.stack([range_tensor, parents[:, count, 0]], dim=1)
+
+            target_index = target_index[mask]
+            
+            for i, idx in enumerate(target_index):
+                graph_features[idx[0], idx[1]] = batch_outputs[i]
+        return batch_outputs
+
+
+class DAGGather(nn.Module):
+
+    def __init__(self,
+                 n_graph_feat=30,
+                 n_outputs=30,
+                 max_atoms=50,
+                 layer_sizes=[100],
+                 initializer='xavier_uniform_',
+                 activation='relu',
+                 dropout=None,
+                 **kwargs):
+        """DAG vector gathering layer
+
+        Parameters
+        ----------
+        n_graph_feat: int, optional
+            Number of features for each atom.
+        n_outputs: int, optional
+            Number of features for each molecule.
+        max_atoms: int, optional
+            Maximum number of atoms in molecules.
+        layer_sizes: list of int, optional
+            List of hidden layer size(s):
+            length of this list represents the number of hidden layers,
+            and each element is the width of corresponding hidden layer.
+        init: str, optional
+            Weight initialization for filters.
+        activation: str, optional
+            Activation function applied.
+        dropout: float, optional
+            Dropout probability in the hidden layer(s).
+        """
+        super(DAGGather, self).__init__(**kwargs)
+        self.initializer = initializer  # Set weight initialization
+        self.activation = activation  # Get activations
+        self.activation_fn = get_activation(self.activation)
+        self.layer_sizes = layer_sizes
+        self.dropout = dropout
+        self.max_atoms = max_atoms
+        self.n_graph_feat = n_graph_feat
+        self.n_outputs = n_outputs
+        self.activation = activation
+
+        prev_layer_size = self.n_graph_feat
+        self.W_list = nn.ParameterList()
+        self.b_list = nn.ParameterList()
+        self.dropouts = nn.ModuleList()
+        self.activation_fn = get_activation(self.activation)
+
+        init_func: Callable = getattr(initializers, self.initializer)
+
+        for i, layer_size in enumerate(self.layer_sizes):
+            self.W_list.append(
+                nn.Parameter(
+                    init_func(torch.empty([prev_layer_size, layer_size]))))
+            self.b_list.append(nn.Parameter(torch.zeros(size=[
+                layer_size,
+            ])))
+            prev_layer_size = layer_size
+            if self.dropout is not None and self.dropout > 0.0:
+                self.dropouts.append(nn.Dropout(self.dropout))
+            else:
+                self.dropouts.append(None)
+    
+        self.W_list.append(
+            nn.Parameter(
+                init_func(torch.empty([prev_layer_size, self.n_outputs]))))
+        self.b_list.append(nn.Parameter(torch.zeros(size=[
+            self.n_outputs,
+        ])))
+        if self.dropout is not None and self.dropout > 0.0:
+                self.dropouts.append(nn.Dropout(self.dropout))
+        else:
+            self.dropouts.append(None)
+
+    def forward(self, inputs):
+        """
+        parent layers: atom_features, membership
+        """
+        atom_features = inputs[0]
+        membership = inputs[1]
+        # Extract atom_features
+        num_segments = membership.max() + 1  # Assuming membership indices start at 0
+
+        # Initialize the output tensor with zeros
+        graph_features = torch.zeros(num_segments, atom_features.size(1),device=atom_features.device)
+
+        # Use scatter_add to sum the features
+        graph_features = graph_features.scatter_add(0, membership.unsqueeze(1).expand(-1, atom_features.size(1)), atom_features)
+        # sum all graph outputs
+        output = _DAGgraph_step(graph_features,self.W_list,self.b_list,self.activation_fn,self.dropouts)
+
+        return output
