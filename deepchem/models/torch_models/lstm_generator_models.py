@@ -8,7 +8,7 @@ from deepchem.models.torch_models import TorchModel
 from deepchem.models.optimizers import Optimizer, Adam
 from deepchem.data import Dataset, NumpyDataset
 import torch
-from typing import Iterable, Optional, Union, Tuple, List, Any
+from typing import Iterable, Optional, Union, Tuple, List, Any, Dict, Sequence
 
 
 class LSTMNeuralNet(nn.Module):
@@ -276,18 +276,20 @@ class LSTMGenerator(TorchModel):
             target_val = target_val.to(self.device)
             output = self.model(input_val)
             if isinstance(self.loss, Loss):
-                self.loss = self.loss._create_pytorch_loss()
-                loss_val = self.loss(
+                # Convert DeepChem Loss to a PyTorch callable
+                loss_fn = self.loss._create_pytorch_loss()
+                loss_val = loss_fn(
                     output.reshape(-1, self.tokenizer.vocab_size),
                     target_val.reshape(-1))
             elif isinstance(self.loss, _Loss):
+                # Already a PyTorch loss
                 loss_val = self.loss(
                     output.reshape(-1, self.tokenizer.vocab_size),
                     target_val.reshape(-1))
             else:
-                raise ValueError('Invalid loss type')
+                raise ValueError("Invalid loss type")
 
-            # Backward and optimize
+            # Backpropagation and optimize
             optimizer.zero_grad()
             loss_val.backward()
             optimizer.step()
@@ -334,23 +336,33 @@ class LSTMGenerator(TorchModel):
         self.model.load_state_dict(data['model_state_dict'])
 
     def load_from_pretrained(self,
-                             source_model: "TorchModel",
+                             source_model: TorchModel,
+                             assignment_map: Optional[Dict[Any, Any]] = None,
+                             value_map: Optional[Dict[Any, Any]] = None,
                              checkpoint: Optional[str] = None,
                              model_dir: Optional[str] = None,
+                             include_top: bool = True,
+                             inputs: Optional[Sequence[Any]] = None,
                              **kwargs: Any) -> None:
         """
-        Load the model from a pretrained model.
+        Load model from a pretrained checkpoint.
 
         Parameters
         ----------
-        source_model: TorchModel, default TorchModel with LSTMNeuralNet
-            The source model to load the weights for.
-        checkpoint: str, default None
-            the path to the checkpoint file to load.  If this is None, the most recent
-            checkpoint will be chosen automatically.  Call get_checkpoints() to get a
-            list of all available checkpoints.
-        model_dir: str, default None
-            Directory to restore checkpoint from. If None, use self.model_dir.
+        source_model: TorchModel
+            The source model to load from.
+        assignment_map: dict, optional
+            Parameter assignment (unused here).
+        value_map: dict, optional
+            Parameter assignment (unused here).
+        checkpoint: str, optional
+            Checkpoint file path.
+        model_dir: str, optional
+            Directory from which to restore the checkpoint.
+        include_top: bool
+            Whether to load the top layers (unused here).
+        inputs: Sequence[Any], optional
+            Input placeholders (unused here).
         """
         self._ensure_built()
         self.restore(model_dir=model_dir, checkpoint=checkpoint)
