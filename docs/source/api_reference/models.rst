@@ -666,6 +666,12 @@ LNN
 .. autoclass:: deepchem.models.torch_models.LNN
   :members:
 
+DAGModel
+--------
+
+.. autoclass:: deepchem.models.torch_models.DAGModel
+  :members:
+
 PyTorch Lightning Models
 ========================
 

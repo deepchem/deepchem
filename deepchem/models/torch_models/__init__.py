@@ -42,6 +42,7 @@ from deepchem.models.torch_models.mobilenetv2 import MobileNetV2Model, InvertedR
 from deepchem.models.torch_models.robust_multitask import RobustMultitask, RobustMultitaskClassifier, RobustMultitaskRegressor
 from deepchem.models.torch_models.IRV import IRVLayer, MultitaskIRVClassifier
 from deepchem.models.torch_models.pinns_model import PINNModel
+from deepchem.models.torch_models.dag import DAGModel
 from deepchem.models.torch_models.chemnet_layers import Stem
 from deepchem.models.torch_models.chemnet_layers import InceptionResnetA
 from deepchem.models.torch_models.chemnet_layers import InceptionResnetB
