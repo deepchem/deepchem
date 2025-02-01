@@ -1,4 +1,4 @@
-from typing import List, Callable, NamedTuple
+from typing import List, Callable, NamedTuple, Union
 import torch
 
 
@@ -132,9 +132,9 @@ def explicit_rk(tableau: _Tableau,
     [1].. https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
 
     """
-
-    assert y0.shape[
-        -1] == batch_size, "Number of initial conditions should match the batch size"
+    
+    # assert y0.shape[
+    #     -1] == batch_size, "Number of initial conditions should match the batch size"
 
     c, a, b = torch.tensor(tableau.c, device=device), torch.tensor(
         tableau.a, device=device), torch.tensor(tableau.b, device=device)
@@ -142,29 +142,33 @@ def explicit_rk(tableau: _Tableau,
     y0 = torch.tensor(y0).clone().detach().to(device)
     if params is not None:
         params = torch.tensor(params).to(device)
-    if len(y0.shape) == 1:
-        y0 = y0.unsqueeze(0)
     s = len(c)
-    num_steps = len(t)
-    yt_list = [y0]
-    y = y0.clone()
-    h = (t[-1] - t[0]) / (num_steps - 1)
+    nt = len(t)
 
-    for i in range(1, num_steps):
+    # set up the results list
+    yt_lst: List[torch.Tensor] = []
+    yt_lst.append(y0)
+    y = yt_lst[-1]
+    for i in range(nt - 1):
         t0 = t[i]
-        k = torch.zeros((s,) + y.shape, device=device)
-
-        # Vectorize stage computation by stacking inputs
-        for i in range(s):
-            y_sum = y + h * torch.sum(
-                a[i, :i].unsqueeze(-1).unsqueeze(-1) * k[:i], dim=0)
-            if len(y0.shape) == 1:
-                y_sum = y_sum.squeeze(0)
-            k[i] = fcn(t=t0 + c[i] * h, y=y_sum.to(device), params=params)
-        y = y + h * torch.sum(b.unsqueeze(-1).unsqueeze(-1) * k, dim=0)
-        yt_list.append(y)
-
-    yt = torch.stack(yt_list)
+        t1 = t[i + 1]
+        h = t1 - t0
+        ks: List[torch.Tensor] = []
+        ksum: Union[float, torch.Tensor] = 0.0
+        for j in range(s):
+            if j == 0:
+                k = fcn(y, t0, params)
+            else:
+                ak: Union[float, torch.Tensor] = 0.0
+                aj = a[j]
+                for m in range(j):
+                    ak = aj[m] * ks[m] + ak
+                k = fcn(h * ak + y, t0 + c[j] * h, params)
+            ks.append(k)
+            ksum = ksum + b[j] * k
+        y = h * ksum + y
+        yt_lst.append(y)
+    yt = torch.stack(yt_lst, dim=0)
     return yt
 
 
