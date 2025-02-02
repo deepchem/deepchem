@@ -67,6 +67,8 @@ class LSTMNeuralNet(nn.Module):
         Tensor
             Raw logits of shape [batch_size, sequence_length, vocab_size].
         """
+        if x.dim() == 1:
+            x = x.unsqueeze(0)
         embedded = self.embedding(x)
         output, _ = self.rnn(embedded)
         output = self.fc(output)
