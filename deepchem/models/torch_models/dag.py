@@ -1,8 +1,9 @@
-from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy
+from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy, Loss
 import deepchem as dc
 import numpy as np
 from deepchem.metrics import to_one_hot
-from typing import List, Tuple, Optional, Any, Iterable
+from typing import List, Tuple, Optional, Any, Iterable, Union
+from deepchem.utils.typing import LossFn
 try:
     import torch
     import torch.nn as nn
@@ -280,12 +281,13 @@ class DAGModel(TorchModel):
         self.n_classes = n_classes
         if mode == 'classification':
             self.output_types = ['prediction', 'loss']
-            self.loss = SoftmaxCrossEntropy()
+            self.loss: Union[Loss, LossFn] = SoftmaxCrossEntropy()
         else:
             if uncertainty:
                 self.output_types = ['prediction', 'variance', 'loss', 'loss']
 
-                def loss(outputs: List, labels: List, weights: List) -> float:
+                def loss(outputs: List, labels: List,
+                         weights: List) -> torch.Tensor:
                     # Ensure outputs and labels are shape-consistent
                     output, labels = _make_pytorch_shapes_consistent(
                         outputs[0], labels[0])
@@ -301,13 +303,13 @@ class DAGModel(TorchModel):
                         w = w.view(*shape,
                                    *([1] * (len(losses.shape) - len(w.shape))))
 
-                    # Compute the weighted mean loss and add model-specific losses
-                    return torch.mean(losses * w).item()
+                    # Compute the weighted mean loss
+                    return torch.mean(losses * w)
 
-                self.loss = loss
+                self.loss: Union[Loss, LossFn] = loss
             else:
                 self.output_types = ['prediction']
-                self.loss = L2Loss()
+                self.loss: Union[Loss, LossFn] = L2Loss()
         super(DAGModel, self).__init__(self.model,
                                        loss=self.loss,
                                        output_types=self.output_types,
