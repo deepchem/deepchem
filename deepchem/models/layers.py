@@ -208,6 +208,7 @@ class GraphConv(tf.keras.layers.Layer):
             gathered_atoms = tf.gather(atoms, deg_adj_lists[deg - 1])
             # Sum along neighbors as well as self, and store
             summed_atoms = tf.reduce_sum(gathered_atoms, 1)
+            summed_atoms = tf.identify(summed_atoms)
             deg_summed[deg - 1] = summed_atoms
 
         return deg_summed
@@ -911,7 +912,7 @@ class LSTMStep(tf.keras.layers.Layer):
         self.b = tf.Variable(np.hstack(
             (np.zeros(self.output_dim), np.ones(self.output_dim),
              np.zeros(self.output_dim), np.zeros(self.output_dim))),
-                             dtype=tf.float32)
+            dtype=tf.float32)
         self.built = True
 
     def call(self, inputs):
@@ -1922,7 +1923,8 @@ class AtomicConvolution(tf.keras.layers.Layer):
         else:
             sym = []
             for j in range(len(self.atom_types)):
-                cond = tf.cast(tf.equal(Nbrs_Z, self.atom_types[j]), tf.float32)
+                cond = tf.cast(
+                    tf.equal(Nbrs_Z, self.atom_types[j]), tf.float32)
                 cond = tf.reshape(cond, (1, -1, N, M))
                 sym.append(tf.reduce_sum(cond * rsf, 3))
             layer = tf.concat(sym, 0)
@@ -2243,7 +2245,7 @@ class ANIFeat(tf.keras.layers.Layer):
             tf.cast(tf.expand_dims(atom_numbers, 2), tf.float32), radial_sym,
             angular_sym
         ],
-                         axis=2)
+            axis=2)
 
     def distance_matrix(self, coordinates, flags):
         """ Generate distance matrix """
@@ -2299,7 +2301,7 @@ class ANIFeat(tf.keras.layers.Layer):
             for atom_type in self.atom_cases:
                 selected_atoms = tf.expand_dims(tf.expand_dims(
                     atom_numbers_embedded[:, :, atom_type], axis=1),
-                                                axis=3)
+                    axis=3)
                 out_tensors.append(tf.reduce_sum(out * selected_atoms, axis=2))
             return tf.concat(out_tensors, axis=2)
         else:
@@ -2333,7 +2335,7 @@ class ANIFeat(tf.keras.layers.Layer):
         f_R_ik = tf.stack([d_cutoff] * max_atoms, axis=2)
 
         # Define angle theta = arccos(R_ij(Vector) dot R_ik(Vector)/R_ij(distance)/R_ik(distance))
-        vector_mul = tf.reduce_sum(tf.stack([vector_distances] * max_atoms, axis=3) * \
+        vector_mul = tf.reduce_sum(tf.stack([vector_distances] * max_atoms, axis=3) *
                                    tf.stack([vector_distances] * max_atoms, axis=2), axis=4)
         vector_mul = vector_mul * tf.sign(f_R_ij) * tf.sign(f_R_ik)
         theta = tf.acos(tf.math.divide(vector_mul, R_ij * R_ik + 1e-5))
@@ -2345,17 +2347,19 @@ class ANIFeat(tf.keras.layers.Layer):
         theta = tf.stack([theta] * length, axis=4)
 
         out_tensor = tf.pow((1. + tf.cos(theta - thetas)) / 2., zeta) * \
-                     tf.exp(-ita * tf.square((R_ij + R_ik) / 2. - Rs)) * f_R_ij * f_R_ik * 2
+            tf.exp(-ita * tf.square((R_ij + R_ik) / 2. - Rs)) * \
+            f_R_ij * f_R_ik * 2
 
         if self.atomic_number_differentiated:
             out_tensors = []
             for id_j, atom_type_j in enumerate(self.atom_cases):
                 for atom_type_k in self.atom_cases[id_j:]:
                     selected_atoms = tf.stack([atom_numbers_embedded[:, :, atom_type_j]] * max_atoms, axis=2) * \
-                                     tf.stack([atom_numbers_embedded[:, :, atom_type_k]] * max_atoms, axis=1)
+                        tf.stack(
+                            [atom_numbers_embedded[:, :, atom_type_k]] * max_atoms, axis=1)
                     selected_atoms = tf.expand_dims(tf.expand_dims(
                         selected_atoms, axis=1),
-                                                    axis=4)
+                        axis=4)
                     out_tensors.append(
                         tf.reduce_sum(out_tensor * selected_atoms, axis=(2, 3)))
             return tf.concat(out_tensors, axis=2)
@@ -2455,7 +2459,8 @@ class GraphEmbedPoolLayer(tf.keras.layers.Layer):
     def softmax_factors(self, V, axis=1):
         max_value = tf.reduce_max(V, axis=axis, keepdims=True)
         exp = tf.exp(tf.subtract(V, max_value))
-        prob = tf.math.divide(exp, tf.reduce_sum(exp, axis=axis, keepdims=True))
+        prob = tf.math.divide(exp, tf.reduce_sum(
+            exp, axis=axis, keepdims=True))
         return prob
 
 
@@ -2513,13 +2518,13 @@ class GraphCNN(tf.keras.layers.Layer):
         self.W = tf.Variable(tf.random.truncated_normal(
             [no_features * no_A, self.num_filters],
             stddev=np.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
-                             name='weights',
-                             dtype=tf.float32)
+            name='weights',
+            dtype=tf.float32)
         self.W_I = tf.Variable(tf.random.truncated_normal(
             [no_features, self.num_filters],
             stddev=np.sqrt(1.0 / (no_features * (no_A + 1) * 1.0))),
-                               name='weights_I',
-                               dtype=tf.float32)
+            name='weights_I',
+            dtype=tf.float32)
         self.b = tf.Variable(tf.constant(0.1), name='bias', dtype=tf.float32)
         self.built = True
 
@@ -2540,7 +2545,8 @@ class GraphCNN(tf.keras.layers.Layer):
         no_A = A.get_shape()[2]
         no_features = V.get_shape()[2]
         A_shape = tf.shape(A)
-        A_reshape = tf.reshape(A, tf.stack([-1, A_shape[1] * no_A, A_shape[1]]))
+        A_reshape = tf.reshape(A, tf.stack(
+            [-1, A_shape[1] * no_A, A_shape[1]]))
         n = tf.matmul(A_reshape, V)
         return tf.reshape(n, [-1, A_shape[1], no_A, no_features])
 
@@ -3133,7 +3139,8 @@ class WeaveGather(tf.keras.layers.Layer):
         dist = [
             tfp.distributions.Normal(p[0], p[1]) for p in gaussian_memberships
         ]
-        dist_max = [dist[i].prob(gaussian_memberships[i][0]) for i in range(11)]
+        dist_max = [dist[i].prob(gaussian_memberships[i][0])
+                    for i in range(11)]
         outputs = [dist[i].prob(x) / dist_max[i] for i in range(11)]
         outputs = tf.stack(outputs, axis=2)
         outputs = outputs / tf.reduce_sum(outputs, axis=2, keepdims=True)
@@ -3847,7 +3854,7 @@ class SetGather(tf.keras.layers.Layer):
         self.b = tf.Variable(np.concatenate(
             (np.zeros(self.n_hidden), np.ones(self.n_hidden),
              np.zeros(self.n_hidden), np.zeros(self.n_hidden))),
-                             dtype=tf.float32)
+            dtype=tf.float32)
         self.built = True
 
     def call(self, inputs):
