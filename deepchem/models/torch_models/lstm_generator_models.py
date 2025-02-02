@@ -67,8 +67,6 @@ class LSTMNeuralNet(nn.Module):
         Tensor
             Raw logits of shape [batch_size, sequence_length, vocab_size].
         """
-        if x.dim() == 1:
-            x = x.unsqueeze(0)
         embedded = self.embedding(x)
         output, _ = self.rnn(embedded)
         output = self.fc(output)
@@ -389,7 +387,7 @@ class LSTMGenerator(TorchModel):
             temperature = 1.0
         for gen in generator:
             input_tensors, _, _ = gen
-        input_tensor = torch.tensor(input_tensors[0])
+        input_tensor = torch.tensor(input_tensors)
         input_tensor = input_tensor.to(self.device)
         output = self.model(input_tensor)
         logits = output[:, -1, :] / temperature
@@ -418,7 +416,7 @@ class LSTMGenerator(TorchModel):
         generated_sequence: list = [self.tokenizer.cls_token_id]
         for _ in range(max_len):
             input_tensor = torch.tensor(generated_sequence).unsqueeze(0)
-            dataset = NumpyDataset([input_tensor])
+            dataset = NumpyDataset(input_tensor)
             output_tensors: list = []
 
             def get_generator():
