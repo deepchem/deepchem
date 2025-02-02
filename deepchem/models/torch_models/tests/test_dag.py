@@ -1,5 +1,8 @@
 import pytest
-import torch
+try:
+    import torch
+except (ModuleNotFoundError, ImportError):
+    pass
 import numpy as np
 import deepchem as dc
 import tempfile

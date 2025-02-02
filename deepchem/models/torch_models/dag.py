@@ -10,7 +10,7 @@ try:
     from deepchem.models.losses import _make_pytorch_shapes_consistent
     from deepchem.models.torch_models import DAGLayer, DAGGather
     from deepchem.models.torch_models.torch_model import TorchModel
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     pass
 
 
@@ -37,7 +37,7 @@ class _DAG(nn.Module):
                  n_classes: int = 2,
                  uncertainty: Optional[bool] = False,
                  batch_size: int = 100,
-                 device: str = None,
+                 device: torch.device = None,
                  **kwargs: Any) -> None:
         """
         Parameters
@@ -80,7 +80,6 @@ class _DAG(nn.Module):
         if uncertainty and (dropout is None or dropout == 0.0):
             raise ValueError('Dropout must be included to predict uncertainty')
 
-        self.losses = []
         self.n_tasks = n_tasks
         self.max_atoms = max_atoms
         self.n_atom_feat = n_atom_feat
@@ -226,7 +225,7 @@ class DAGModel(TorchModel):
                  n_classes: int = 2,
                  uncertainty: bool = False,
                  batch_size: int = 100,
-                 device: Optional[str] = None,
+                 device: Optional[torch.device] = None,
                  **kwargs: Any) -> None:
         """
         Parameters
@@ -259,7 +258,8 @@ class DAGModel(TorchModel):
             the device to run the model on
         """
         if device is None:
-            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            device = torch.device(
+                'cuda' if torch.cuda.is_available() else 'cpu')
         self.model = _DAG(n_tasks=n_tasks,
                           max_atoms=max_atoms,
                           n_atom_feat=n_atom_feat,
@@ -302,7 +302,7 @@ class DAGModel(TorchModel):
                                    *([1] * (len(losses.shape) - len(w.shape))))
 
                     # Compute the weighted mean loss and add model-specific losses
-                    return torch.mean(losses * w) + sum(self.model.losses)
+                    return torch.mean(losses * w)
 
                 self.loss = loss
             else:
