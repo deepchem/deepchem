@@ -37,7 +37,7 @@ class _DAG(nn.Module):
                  n_classes: int = 2,
                  uncertainty: Optional[bool] = False,
                  batch_size: int = 100,
-                 device: torch.device = None,
+                 device: Optional[torch.device] = None,
                  **kwargs: Any) -> None:
         """
         Parameters
@@ -285,7 +285,7 @@ class DAGModel(TorchModel):
             if uncertainty:
                 self.output_types = ['prediction', 'variance', 'loss', 'loss']
 
-                def loss(outputs, labels, weights):
+                def loss(outputs: List, labels: List, weights: List) -> float:
                     # Ensure outputs and labels are shape-consistent
                     output, labels = _make_pytorch_shapes_consistent(
                         outputs[0], labels[0])
@@ -302,7 +302,7 @@ class DAGModel(TorchModel):
                                    *([1] * (len(losses.shape) - len(w.shape))))
 
                     # Compute the weighted mean loss and add model-specific losses
-                    return torch.mean(losses * w)
+                    return torch.mean(losses * w).item()
 
                 self.loss = loss
             else:
