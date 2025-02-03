@@ -166,10 +166,6 @@ class DAGModel(TorchModel):
     """
     Directed Acyclic Graph models for molecular property prediction.
 
-    This model is based on the following paper:
-
-    Lusci, Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575.
-
     The basic idea for this paper is that a molecule is usually
     viewed as an undirected graph. However, you can convert it to
     a series of directed graphs. The idea is that for each atom,
@@ -210,7 +206,9 @@ class DAGModel(TorchModel):
     >>> # inferencing
     >>> _ = model.predict(dataset)
 
-
+    References
+    ----------
+    .. [1] Lusci Alessandro, Gianluca Pollastri, and Pierre Baldi."Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules."Journal of chemoinformatics and modeling 53.7 (2013):1563-1575.https://pmc.ncbi.nlm.nih.gov/articles/PMC3739985
     """
 
     def __init__(self,
