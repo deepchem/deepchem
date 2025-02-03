@@ -1,12 +1,12 @@
 import pytest
 try:
     import torch
+    from deepchem.models.torch_models.dag import DAGModel
 except (ModuleNotFoundError, ImportError):
     pass
 import numpy as np
 import deepchem as dc
 import tempfile
-from deepchem.models.torch_models.dag import DAGModel
 from deepchem.trans.transformers import DAGTransformer
 from deepchem.metrics import Metric, roc_auc_score, mean_absolute_error
 from deepchem.molnet import load_bace_classification, load_delaney
