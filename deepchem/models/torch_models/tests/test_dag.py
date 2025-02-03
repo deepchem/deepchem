@@ -6,8 +6,8 @@ except (ModuleNotFoundError, ImportError):
 import numpy as np
 import deepchem as dc
 import tempfile
-from deepchem.models.torch_models import DAGModel
-from deepchem.trans import DAGTransformer
+from deepchem.models.torch_models.dag import DAGModel
+from deepchem.trans.transformers import DAGTransformer
 from deepchem.metrics import Metric, roc_auc_score, mean_absolute_error
 from deepchem.molnet import load_bace_classification, load_delaney
 from deepchem.data import NumpyDataset
@@ -195,9 +195,11 @@ def test_DAG_singletask_regression_overfit():
     # Load mini log-solubility dataset.
     featurizer = dc.feat.ConvMolFeaturizer()
     tasks = ["outcome"]
-    print(current_dir)
-    input_file = os.path.join(current_dir.replace('\\torch_models\\', '\\'),
-                              "assets/example_regression.csv")
+
+    input_file = os.path.join(
+        current_dir.replace(r'/torch_models/',
+                            '/').replace('\\torch_models\\', '\\'), "assets",
+        "example_regression.csv")
     loader = dc.data.CSVLoader(tasks=tasks,
                                feature_field="smiles",
                                featurizer=featurizer)
