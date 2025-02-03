@@ -6241,7 +6241,7 @@ class GraphConv(nn.Module):
             gathered_atoms: torch.Tensor = atoms[deg_adj_lists[deg - 1]]
             # Sum along neighbors as well as self, and store
             summed_atoms: torch.Tensor = torch.sum(gathered_atoms, 1)
-            deg_summed.append(summed_atoms.detach().numpy())
+            deg_summed.append(summed_atoms.cpu().detach().numpy())
 
         return deg_summed
 
