@@ -256,37 +256,53 @@ def test_DAG_correctness():
                      device='cpu')
 
     def create_weight(shape):
+        """
+        Creates a weight matrix of a given shape.
+        """
         return np.random.normal(0, 0.1, size=shape)
 
+    # Expected output for the first 2 samples obtained from the keras version of DAG
     expected_output = torch.tensor([[[0.74370146, 0.25629854]],
                                     [[0.6930733, 0.30692676]]])
 
     with torch.no_grad():
-        # dag layers
+        # class daglayers has 2 sets of weights and biases
+        # W_layers[0] initializes the weights for the first layer
         model.model.dag_layer.W_layers[0].copy_(
             torch.from_numpy(
                 create_weight(
                     (75 + (max_atoms - 1) * 30, 100)).astype(np.float32)))
+
+        # b_layers[0] initializes the biases for the first layer
         model.model.dag_layer.b_layers[0].copy_(
             torch.from_numpy(create_weight((100,)).astype(np.float32)))
 
+        # W_layers[1] initializes the weights for the second layer
         model.model.dag_layer.W_layers[1].copy_(
             torch.from_numpy(create_weight((100, 30)).astype(np.float32)))
+
+        # b_layers[1] initializes the biases for the second layer
         model.model.dag_layer.b_layers[1].copy_(
             torch.from_numpy(create_weight((30,)).astype(np.float32)))
 
-        # dag gather
+        # class daggather has 2 sets of weights and biases
+        # W_layers[0] initializes the weights for the first layer
         model.model.dag_gather.W_layers[0].copy_(
             torch.from_numpy(create_weight((30, 100)).astype(np.float32)))
+
+        # b_layers[0] initializes the biases for the first layer
         model.model.dag_gather.b_layers[0].copy_(
             torch.from_numpy(create_weight((100,)).astype(np.float32)))
 
+        # W_layers[1] initializes the weights for the second layer
         model.model.dag_gather.W_layers[1].copy_(
             torch.from_numpy(create_weight((100, 30)).astype(np.float32)))
+
+        # b_layers[1] initializes the biases for the second layer
         model.model.dag_gather.b_layers[1].copy_(
             torch.from_numpy(create_weight((30,)).astype(np.float32)))
 
-        # linear layers
+        # linear layers in the class _DAG
         model.model.dense.weight.copy_(
             torch.from_numpy(create_weight((30, 2)).astype(np.float32).T))
         model.model.dense.bias.copy_(
