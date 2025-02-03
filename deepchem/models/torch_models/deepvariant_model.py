@@ -96,8 +96,7 @@ class DeepVariant(InceptionV3Model):
         str
             A comma-separated string of Phred-scaled genotype likelihoods.
         """
-        pl_scores = [-10 * np.log10(p) if p > 0 else 999 for p in
-                     probabilities]
+        pl_scores = [-10 * np.log10(p) if p > 0 else 999 for p in probabilities]
         pl_scores = list(np.array(pl_scores) - min(pl_scores))
         return ','.join(map(str, map(int, pl_scores)))
 
@@ -121,39 +120,28 @@ class DeepVariant(InceptionV3Model):
 
         # Write format descriptions
         vcf_file.write(
-            '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n'
-        )
+            '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n')
+        vcf_file.write('##FORMAT=<ID=GQ,Number=1,Type=Integer,'
+                       'Description="Genotype Quality">\n')
         vcf_file.write(
-            '##FORMAT=<ID=GQ,Number=1,Type=Integer,'
-            'Description="Genotype Quality">\n'
-        )
-        vcf_file.write(
-            '##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read Depth">\n'
-        )
+            '##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read Depth">\n')
         vcf_file.write(
             '##FORMAT=<ID=PL,Number=G,Type=Integer,Description="Phred-scaled '
-            'genotype likelihoods">\n'
-        )
+            'genotype likelihoods">\n')
 
         # Write FILTER descriptions
-        vcf_file.write(
-            '##FILTER=<ID=PASS,Description="All filters passed">\n'
-        )
-        vcf_file.write(
-            f'##FILTER=<ID=LowQual,Description="Quality below '
-            f'{self.min_qual}">\n'
-        )
+        vcf_file.write('##FILTER=<ID=PASS,Description="All filters passed">\n')
+        vcf_file.write(f'##FILTER=<ID=LowQual,Description="Quality below '
+                       f'{self.min_qual}">\n')
 
         # Write INFO descriptions
         vcf_file.write(
-            '##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">\n'
-        )
+            '##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">\n')
 
         # Write column headers
         vcf_file.write(
             f"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t"
-            f"{sample_name}\n"
-        )
+            f"{sample_name}\n")
 
     def call_variants(
         self,

@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 import deepchem as dc
 import tempfile
-from deepchem.models.torch_models.deepvariantmodel import DeepVariant
+from deepchem.models.torch_models.deepvariant_model import DeepVariant
 
 
 def one_hot_encode(labels, num_classes):
