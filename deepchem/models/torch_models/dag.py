@@ -306,10 +306,10 @@ class DAGModel(TorchModel):
                     # Compute the weighted mean loss
                     return torch.mean(losses * w)
 
-                self.loss: Union[Loss, LossFn] = loss
+                self.loss = loss
             else:
                 self.output_types = ['prediction']
-                self.loss: Union[Loss, LossFn] = L2Loss()
+                self.loss = L2Loss()
         super(DAGModel, self).__init__(self.model,
                                        loss=self.loss,
                                        output_types=self.output_types,
