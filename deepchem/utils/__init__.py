@@ -140,7 +140,7 @@ from deepchem.utils.poly_wd_graph_utils import remove_wildcard_atoms
 # Polymer Weighted Directed Graph Featurization Utilities
 from deepchem.utils.poly_wd_graph_utils import PolyWDGStringValidator
 
-from deepchem.utils.poly_converters import PSMILES2WDGConverter, WDG2PSMILESConverter 
+from deepchem.utils.poly_converters import PSMILES2WDGConverter, WDG2PSMILESConverter
 try:
     from deepchem.utils.periodic_table_utils import get_atomz
     from deepchem.utils.periodic_table_utils import get_atom_mass

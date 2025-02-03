@@ -213,7 +213,9 @@ class PSMILES2WDGConverter:
             mod_smiles = self.convert_smiles_to_MOD_SMARTS(smile_part)
         return mod_smiles + "|" + metadata["residue"]
 
-    def convert(self, psmiles_string: str, metadata: Optional[dict]) -> list:
+    def convert(self,
+                psmiles_string: str,
+                metadata: Optional[dict] = None) -> list:
         """
         This function is used to convert the PSMILES string to a WDGraph string.
 
@@ -239,7 +241,9 @@ class PSMILES2WDGConverter:
                 converted.append(intro + midtro + outro)
         return converted
 
-    def __call__(self, psmiles_list: list, metadata_list=None) -> list:
+    def __call__(self,
+                 psmiles_list: list,
+                 metadata_list: Optional[list] = None) -> list:
         """
         This function is used to call the conversion process.
 
@@ -330,6 +334,7 @@ class WDG2PSMILESConverter:
                 return i, i + 1
             elif atom == "*":
                 found = True
+        return -1, -1
 
     def convert_smiles_part(self, smiles: str) -> Tuple[str, int, int, int]:
         """
