@@ -37,9 +37,9 @@ class PSMILES2WDGConverter:
     ...     "smiles_type": "SMARTS"
     ... }
     >>> converter = PSMILES2WDGConverter()
-    >>> result = converter(psmiles, metadata)
+    >>> result = converter([psmiles], [metadata])
     >>> print(result)
-    ['[*:1]CC[*:2].[*:3]CC[*:4]|0.5|0.5|<1-3:0.5:0.5<1-4:0.5:0.5<2-3:0.5:0.5<2-4:0.5:0.5']
+    [['[*:1]CC.[*:2]C[*:3][*:4]C|0.5|0.5|']]
     """
 
     def __init__(self, conversion_types: list = ["alternate"]) -> None:
@@ -203,6 +203,8 @@ class PSMILES2WDGConverter:
         str
             The composed WDGraph string.
         """
+        print("type of metadata >>", type(metadata))
+        print("metadata >>", metadata)
         w_idx_psmiles = self.add_indicies_to_smiles_from_meta(
             psmiles, metadata["seq_index"])
         smile_part = self.make_wdgraph_string_from_meta(w_idx_psmiles,
@@ -292,10 +294,12 @@ class WDG2PSMILESConverter:
     >>> from rdkit import Chem
     >>> from deepchem.utils.poly_converters import WDG2PSMILESConverter
     >>> wd_graph_string = "[*:1]CC[*:2].[*:3]CC[*:4]|0.5|0.5|<1-3:0.5:0.5<1-4:0.5:0.5<2-3:0.5:0.5<2-4:0.5:0.5"
-    >>> converter = WDG2PSMILESConverter(return_metadata: bool = False)
-    >>> result, _ = converter(wd_graph_string)
+    >>> converter = WDG2PSMILESConverter(return_metadata = True)
+    >>> result, meta = converter([wd_graph_string])
     >>> print(result)
     ['*CCCC*']
+    >>> print(meta)
+    [{'indicies': [3, 4], 'seq_index': 3, 'residue': '0.5|0.5|<1-3:0.5:0.5<1-4:0.5:0.5<2-3:0.5:0.5<2-4:0.5:0.5', 'smiles_type': 'SMARTS'}]
     """
 
     def __init__(self, return_metadata: bool = True) -> None:
