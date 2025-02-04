@@ -6897,7 +6897,7 @@ class DAGLayer(nn.Module):
                  activation: str = 'relu',
                  dropout: Optional[float] = None,
                  batch_size: int = 64,
-                 device: Optional[torch.device] = torch.device('cpu'),
+                 device: str = 'cpu',
                  **kwargs: Any) -> None:
         """
         Parameters
@@ -6935,7 +6935,7 @@ class DAGLayer(nn.Module):
         self.n_graph_feat: int = n_graph_feat
         self.n_outputs: int = n_graph_feat
         self.n_atom_feat: int = n_atom_feat
-        self.device: Optional[torch.device] = device
+        self.device: str = device
         self.W_layers: nn.ParameterList = nn.ParameterList()
         self.b_layers: nn.ParameterList = nn.ParameterList()
         self.dropouts: List[Optional[nn.Dropout]] = []
@@ -7108,7 +7108,7 @@ class DAGGather(nn.Module):
                  init: str = 'glorot_uniform',
                  activation: str = 'relu',
                  dropout: Optional[float] = None,
-                 device: Optional[torch.device] = torch.device('cpu'),
+                 device: str = 'cpu',
                  **kwargs: Any) -> None:
         """
         Parameters
@@ -7141,7 +7141,7 @@ class DAGGather(nn.Module):
         self.activation: str = activation
         self.dropout: Optional[float] = dropout
         self.activation_fn: Callable[..., torch.Tensor] = getattr(F, activation)
-        self.device: Optional[torch.device] = device
+        self.device: str = device
         self.W_layers: nn.ParameterList = nn.ParameterList()
         self.b_layers: nn.ParameterList = nn.ParameterList()
         self.dropouts: List[Optional[nn.Dropout]] = []
@@ -7217,8 +7217,7 @@ class DAGGather(nn.Module):
                                          device=self.device)
 
         graph_features = torch.zeros(
-            int(membership.max().item()) + 1,
-            int(atom_features.shape[1])).to(self.device)
+            int(membership.max().item()) + 1, int(atom_features.shape[1]))
 
         graph_features = graph_features.scatter_add_(
             0,
