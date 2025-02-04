@@ -203,8 +203,6 @@ class PSMILES2WDGConverter:
         str
             The composed WDGraph string.
         """
-        print("type of metadata >>", type(metadata))
-        print("metadata >>", metadata)
         w_idx_psmiles = self.add_indicies_to_smiles_from_meta(
             psmiles, metadata["seq_index"])
         smile_part = self.make_wdgraph_string_from_meta(w_idx_psmiles,
