@@ -292,7 +292,7 @@ class GAN(nn.Module):
         # Forward pass through generators
         generator_outputs = [
             gen(_list_or_tensor([noise_input] + self.conditional_input_layers
-                                )) 
+                                ))
             for gen in self.generators
         ]
 
