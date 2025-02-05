@@ -8,6 +8,7 @@ try:
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
+    from deepchem.models.torch_models import GAN, GANModel
 
     # helper classes that depend on torch, they need to be in the try/catch block
     class Generator(nn.Module):
@@ -134,7 +135,7 @@ try:
             output = self.dense2(output)
             return output
 
-    class ExampleGAN(dc.models.torch_models.GAN):
+    class ExampleGAN(GAN):
         """A simple GAN for testing."""
 
         def get_noise_input_shape(self):
@@ -168,7 +169,7 @@ try:
             return nn.Sequential(
                 Discriminator(data_input_shape, conditional_input_shape))
 
-    class ExampleGAN_NoC(dc.models.torch_models.GAN):
+    class ExampleGAN_NoC(GAN):
         """A simple GAN for testing without conditional inputs."""
 
         def get_noise_input_shape(self):
@@ -185,7 +186,7 @@ try:
             data_input_shape = self.get_data_input_shapes()[0]
             return nn.Sequential(Discriminator_NoC(data_input_shape))
 
-    class ExampleGANModel(dc.models.torch_models.GANModel):
+    class ExampleGANModel(GANModel):
         """A simple GAN for testing."""
 
         def get_noise_input_shape(self):
@@ -219,7 +220,7 @@ try:
             return nn.Sequential(
                 Discriminator(data_input_shape, conditional_input_shape))
 
-    class ExampleGANModel_NoC(dc.models.torch_models.GANModel):
+    class ExampleGANModel_NoC(GANModel):
         """A simple GAN for testing without conditional inputs."""
 
         def get_noise_input_shape(self):
