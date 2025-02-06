@@ -189,6 +189,7 @@ class BRICSGenerator:
         if is_polymer or is_dendrimer:
             filtered_mols = self.filter_candidates(composed_candidates,
                                                    is_polymer, is_dendrimer)
+            filtered_mols = self.replace_vatoms_with_wildcards(filtered_mols)
         else:
             filtered_mols = composed_candidates
         if self.verbose:
