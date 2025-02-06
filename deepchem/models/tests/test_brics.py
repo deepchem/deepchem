@@ -117,8 +117,8 @@ def test_sample_dendrimer(brics_generator, sample_psmiles_dendrimers):
     assert isinstance(count, int)
     assert count == len(results)
     assert all(isinstance(x, str) for x in results)
-    assert all(x.count('[At]') >= 2 for x in results)
-    assert len([x for x in results if x.count('[At]') > 2]) == 8
+    assert all(x.count('[*]') >= 2 for x in results)
+    assert len([x for x in results if x.count('[*]') > 2]) == 8
 
 
 def test_verbose_output(capsys):
