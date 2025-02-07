@@ -936,11 +936,11 @@ class FASTALoader(DataLoader):
     >>> loader = FASTALoader(None, False, False) # one-hot encoding
     >>> dataset = loader.create_dataset(fasta_file)
     >>> dataset.X.shape
-    (396, 75, 5)
+    (3, 58, 5)
     >>> loader = FASTALoader(None, False, False, True) # raw sequences
     >>> dataset = loader.create_dataset(fasta_file)
     >>> dataset.X.shape
-    (396, 2)
+    (3, 2)
 
     """
 
