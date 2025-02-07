@@ -2746,7 +2746,7 @@ class AtomicConv(nn.Module):
                 layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
                 activation_fns):
             layer = self.prev_layer
-            if next_activation is not None:
+            if next_activation is not None and callable(next_activation):
                 layer = next_activation(layer)
             linear = nn.Linear(prev_size, size)
             nn.init.trunc_normal_(linear.weight, std=weight_stddev)
