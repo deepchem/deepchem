@@ -1,21 +1,16 @@
-==================
 Model Cheatsheet
-==================
+======================
 
-If you're just getting started with DeepChem, you're probably interested in the basics.  
-This "model cheatsheet" provides an overview of various custom DeepChem models.  
-Some wrappers, such as ``SklearnModel`` and ``GBDTModel``, which integrate external ML libraries, are excluded.  
-Otherwise, this table provides a complete list of DeepChem models.
+If you're just getting started with DeepChem, you're probably interested in the basics. The place to get started is this "model cheatsheet" that lists various types of custom DeepChem models. Note that some wrappers like `SklearnModel` and `GBDTModel`, which wrap external machine learning libraries, are excluded, but this table should otherwise be complete.
 
-To use these models, ensure that the required backend (Keras/TensorFlow, PyTorch, or JAX) is installed.  
-Each row in the tables below describes what's needed to invoke a given model, including required transformers, featurizers, and fit methods.
+Each row describes what's needed to invoke a given model. Some models must be applied with given `Transformer` or `Featurizer` objects. Most models can be trained by calling `model.fit()`, otherwise, the required fit method is mentioned in the Comment column.
 
+To run the models, ensure the appropriate backend (Keras/TensorFlow, PyTorch, or JAX) is installed. You can read off what's needed to train the model from the tables below.
 
 
 General Purpose Models
 ======================
 
-These models are versatile and can be applied to a wide range of tasks.
 
 .. list-table:: General Purpose Models
    :widths: 25 20 20 20 30
@@ -48,12 +43,11 @@ These models are versatile and can be applied to a wide range of tasks.
      - Wrapper for JAX models.
 
 
-
 Molecular Models
 ================
 
-Many DeepChem models are designed for small to medium-sized organic molecules, such as drug-like compounds.  
-If your data includes "exotic" elements or cannot be represented well using SMILES (e.g., metal complexes, crystals), additional adaptations may be needed.
+Many models implemented in DeepChem were designed for small to medium-sized organic molecules, most often drug-like compounds. If your data is very different (e.g., molecules contain 'exotic' elements not present in the original dataset) or cannot be represented well using SMILES (e.g., metal complexes, crystals), some adaptations to the featurization and/or model might be needed to get reasonable results.
+
 
 .. list-table:: Molecular Models
    :widths: 25 20 20 20 30
@@ -101,11 +95,11 @@ If your data includes "exotic" elements or cannot be represented well using SMIL
      - Directed message-passing neural network.
 
 
-
 Material Models
 ===============
 
-These models are designed specifically for (inorganic) materials, such as crystals and alloys.
+The following models were designed specifically for (inorganic) materials.
+
 
 .. list-table:: Material Models
    :widths: 25 20 20 20 30
@@ -138,13 +132,9 @@ These models are designed specifically for (inorganic) materials, such as crysta
      - Lattice convolutional neural network.
 
 
-
 Notes
 =====
 
 1. **Transformers and Featurizers**: Some models require specific transformers or featurizers to preprocess the data. Ensure these are applied before training.
 2. **Fit Methods**: Most models use the ``fit()`` method for training. If a different method is required, it will be noted in the "Fit Method" column.
 3. **Backend Requirements**: Ensure the appropriate backend (Keras/TensorFlow, PyTorch, or JAX) is installed for the model you intend to use.
-
-
-
