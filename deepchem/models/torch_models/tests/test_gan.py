@@ -83,6 +83,58 @@ try:
             output = self.dense2(output)
             return output
 
+    class Generator_NoC(nn.Module):
+        """A simple generator for testing without conditional inputs."""
+
+        def __init__(self, noise_input_shape):
+            super(Generator_NoC, self).__init__()
+            self.noise_input_shape = noise_input_shape
+            self.noise_dim = noise_input_shape[1:]
+            self.output = nn.Linear(sum(self.noise_dim), 1)
+
+        def forward(self, noise_input):
+            output = self.output(noise_input)
+            return output
+
+    class Discriminator_NoC(nn.Module):
+        """A simple discriminator for testing without conditonal inputs."""
+
+        def __init__(self, data_input_shape):
+            super(Discriminator_NoC, self).__init__()
+            self.data_input_shape = data_input_shape
+            data_dim = data_input_shape[1:]
+            input_dim = sum(data_dim)
+
+            # Define the dense layers
+            self.dense1 = nn.Linear(input_dim, 10)
+            self.dense2 = nn.Linear(10, 1)
+
+        def forward(self, data_input):
+            x = F.relu(self.dense1(data_input))
+            a = self.dense2(x)
+            output = torch.sigmoid(a)
+            return output
+
+    class Discriminator_WGAN_NoC(nn.Module):
+        """A simple discriminator for testing without conditional input."""
+
+        def __init__(self, data_input_shape):
+            super(Discriminator_WGAN_NoC, self).__init__()
+            self.data_input_shape = data_input_shape
+
+            data_dim = data_input_shape[1:]  # Extracting the actual data dimension
+            input_dim = sum(data_dim)
+
+            # Define the dense layers
+            self.dense1 = nn.Linear(input_dim, 10)
+            self.dense2 = nn.Linear(10, 1)
+
+        def forward(self, data_input):
+            # Forward pass without conditional input
+            output = F.relu(self.dense1(data_input))
+            output = self.dense2(output)
+            return output
+
     class ExampleGAN(GAN):
         """A simple GAN for testing."""
 
@@ -116,6 +168,23 @@ try:
 
             return nn.Sequential(
                 Discriminator(data_input_shape, conditional_input_shape))
+
+    class ExampleGAN_NoC(GAN):
+        """A simple GAN for testing without conditional inputs."""
+
+        def get_noise_input_shape(self):
+            return (16, 2)
+
+        def get_data_input_shapes(self):
+            return [(16, 1)]
+
+        def create_generator(self):
+            noise_dim = self.get_noise_input_shape()
+            return nn.Sequential(Generator_NoC(noise_dim))
+
+        def create_discriminator(self):
+            data_input_shape = self.get_data_input_shapes()[0]
+            return nn.Sequential(Discriminator_NoC(data_input_shape))
 
     class ExampleGANModel(GANModel):
         """A simple GAN for testing."""
@@ -151,6 +220,22 @@ try:
             return nn.Sequential(
                 Discriminator(data_input_shape, conditional_input_shape))
 
+    class ExampleGANModel_NoC(GANModel):
+        """A simple GAN for testing without conditional inputs."""
+
+        def get_noise_input_shape(self):
+            return (100, 2)
+
+        def get_data_input_shapes(self):
+            return [(100, 1)]
+
+        def create_generator(self):
+            noise_dim = self.get_noise_input_shape()
+            return nn.Sequential(Generator_NoC(noise_dim))
+
+        def create_discriminator(self):
+            data_input_shape = self.get_data_input_shapes()[0]
+            return nn.Sequential(Discriminator_NoC(data_input_shape))
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
@@ -250,6 +335,21 @@ def generate_data(gan, batches, batch_size):
         yield batch
 
 
+@pytest.mark.torch
+def generate_batch_NoC(batch_size):
+    """Draw training data from a Gaussian distribution."""
+    values = np.random.normal(loc=0.0, scale=2.0, size=[batch_size, 1])
+    return values
+
+
+@pytest.mark.torch
+def generate_data_NoC(gan, batches, batch_size):
+    for _ in range(batches):
+        values = generate_batch_NoC(batch_size)
+        batch = {gan.data_inputs[0]: values}
+        yield batch
+
+
 @flaky
 @pytest.mark.torch
 def test_cgan():
@@ -293,6 +393,20 @@ def test_cgan_reload():
         noise_input=noise_input, conditional_inputs=[means])
 
     assert np.all(values == reloaded_values)
+
+
+@pytest.mark.torch
+def test_gan():
+    """Test fitting a GAN without conditional inputs."""
+
+    gan = ExampleGANModel_NoC(learning_rate=0.01)
+    data = generate_data_NoC(gan, 500, 100)
+    gan.fit_gan(data, generator_steps=0.5, checkpoint_interval=0)
+
+    # Check if the generator produces reasonable outputs
+    values = gan.predict_gan_generator()
+    assert abs(np.mean(values)) < 3.0
+    assert gan.get_global_step() == 500
 
 
 @flaky
@@ -406,6 +520,45 @@ def test_wgan():
     deltas = values - means
 
     assert abs(np.mean(deltas)) < 1.0
+    assert np.std(deltas) > 1.0
+
+
+@flaky
+@pytest.mark.torch
+def test_wgan_NoC():
+    """Test fitting a WGAN without conditional inputs."""
+
+    class ExampleWGAN_NoC(dc.models.torch_models.WGANModel):
+
+        def get_noise_input_shape(self):
+            return (
+                100,
+                2,
+            )
+
+        def get_data_input_shapes(self):
+            return [(
+                100,
+                1,
+            )]
+
+        def create_generator(self):
+            noise_dim = self.get_noise_input_shape()
+
+            return nn.Sequential(Generator_NoC(noise_dim))
+
+        def create_discriminator(self):
+            data_input_shape = self.get_data_input_shapes()[0]
+
+            return nn.Sequential(Discriminator_WGAN_NoC(data_input_shape))
+
+    # We have to set the gradient penalty very small because the generator's
+    # output is only a single number, so the default penalty would constrain
+    # it far too much.
+    gan = ExampleWGAN_NoC(learning_rate=0.01, gradient_penalty=0.1)
+    gan.fit_gan(generate_data_NoC(gan, 1000, 100), generator_steps=0.1)
+    values = gan.predict_gan_generator()
+    deltas = values
     assert np.std(deltas) > 1.0
 
 
