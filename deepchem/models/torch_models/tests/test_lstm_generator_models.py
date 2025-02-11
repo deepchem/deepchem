@@ -22,7 +22,7 @@ def test_default_generator():
     from deepchem.data import NumpyDataset
     import torch
 
-    generator = LSTMGenerator()
+    generator = LSTMGenerator(model_dir="./assets/lstm_generator")
     dataset = NumpyDataset(["CCC"])
     gen_iter = generator.default_generator(dataset)
     value = list(gen_iter)[0]
