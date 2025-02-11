@@ -1,12 +1,18 @@
 import pytest
-import torch
 import numpy as np
-from deepchem.models.torch_models.pinns_model import PINNModel
 import deepchem as dc
+
+try:
+    import torch
+    has_torch = True
+except ModuleNotFoundError:
+    has_torch = False
+    pass
 
 
 @pytest.mark.torch
 def test_pinns_overfit():
+    from deepchem.models.torch_models import PINNModel
     model = torch.nn.Sequential(torch.nn.Linear(1, 64), torch.nn.Tanh(),
                                 torch.nn.Linear(64, 64), torch.nn.Tanh(),
                                 torch.nn.Linear(64, 1))
@@ -28,6 +34,7 @@ def test_pinns_overfit():
 @pytest.mark.torch
 def test_pinn_default_model():
     """Test if default model works correctly"""
+    from deepchem.models.torch_models import PINNModel
     x = torch.tensor([[1.0, 0.0], [0.0, 1.0]])
     pinn = PINNModel(in_features=x.shape[1])
 
@@ -40,6 +47,7 @@ def test_pinn_default_model():
 @pytest.mark.torch
 def test_pinn_custom_eval():
     """Test if custom evaluation function works correctly"""
+    from deepchem.models.torch_models import PINNModel
     model = torch.nn.Linear(1, 1)
 
     def custom_eval(x):
@@ -65,6 +73,7 @@ def test_pinn_heat_equation():
     u(0) = 0
     u(1) = 1
     """
+    from deepchem.models.torch_models import PINNModel
 
     class HeatNet(torch.nn.Module):
 
