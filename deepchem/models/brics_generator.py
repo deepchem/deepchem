@@ -9,7 +9,8 @@ class BRICSGenerator:
     This class implements BRICS (Breaking Retrosynthetically Interesting Chemical Substructures)
     fragmentation and recombination to generate new molecular structures, with special support
     for polymers and dendrimers [1]_. The generator is explicitly used for polymer generation
-    purposes mentioned in the research paper "Open-source Polymer Generative Pipeline" [2]_.
+    purposes mentioned in our research paper "Open-source Polymer Generative Pipeline" [2]_.
+
     References
     ----------
     [1] Liu, Tairan, et al. "Break down in order to build up: decomposing small
@@ -17,8 +18,10 @@ class BRICSGenerator:
         information and modeling 57.4 (2017): 627-631.
     [2] Mohanty, Debasish, et al. "Open-source Polymer Generative Pipeline."
         arXiv preprint arXiv:2412.08658 (2024).
+
     Examples
     --------
+    >>> from deepchem.models.brics_generator import BRICSGenerator
     >>> generator = BRICSGenerator()
     >>> smiles = ['CC(=O)Oc1ccccc1C(=O)O']
     >>> new_mols, count = generator.sample(smiles)
@@ -32,6 +35,7 @@ class BRICSGenerator:
 
     def _BRICS_decompose(self, smiles_list: list) -> list:
         """Decompose input molecules using BRICS fragmentation rules.
+
         Parameters
         ----------
         smiles_list : list
@@ -56,10 +60,12 @@ class BRICSGenerator:
 
     def _BRICS_build(self, decomposed_list: list) -> list:
         """Recombine molecular fragments using BRICS rules.
+
         Parameters
         ----------
         decomposed_list : list
             List of SMILES strings representing fragments
+
         Returns
         -------
         list
@@ -80,10 +86,12 @@ class BRICSGenerator:
         ----------
         psmiles_list : list
             List of polymer SMILES containing wildcards
+
         Returns
         -------
         list
             Modified SMILES with [At] replacing *
+
         Raises
         ------
         ValueError
@@ -105,14 +113,17 @@ class BRICSGenerator:
         """Replace virtual atoms ([At]) with wildcards (*) in polymer SMILES.
         This method converts internal virtual atom representation back to standard
         polymer SMILES notation with wildcards.
+
         Parameters
         ----------
         psmiles_list : list
             List of SMILES strings containing [At] virtual atoms
+
         Returns
         -------
         list
             Modified SMILES with [At] replaced by [*]
+
         Raises
         ------
         ValueError
@@ -132,6 +143,7 @@ class BRICSGenerator:
                           is_polymer: bool = False,
                           is_dendrimer: bool = False) -> list:
         """Filter generated molecules based on polymer/dendrimer criteria.
+
         Parameters
         ----------
         gen_mol_list : list
@@ -140,10 +152,12 @@ class BRICSGenerator:
             Filter for polymer structures (2 connection points)
         is_dendrimer : bool, optional
             Filter for dendrimer structures (3+ connection points)
+
         Returns
         -------
         list
             Filtered list of SMILES strings
+
         Raises
         ------
         ValueError
@@ -169,6 +183,7 @@ class BRICSGenerator:
                is_polymer: bool = False,
                is_dendrimer: bool = False) -> Tuple[list, int]:
         """Generate new molecules through BRICS decomposition and recombination.
+
         Parameters
         ----------
         smiles_list : list
@@ -177,6 +192,7 @@ class BRICSGenerator:
             Process as polymer SMILES
         is_dendrimer : bool, optional
             Generate dendrimer structures
+
         Returns
         -------
         Tuple[list, int]
