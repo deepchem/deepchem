@@ -7794,26 +7794,24 @@ class AttnLSTMEmbedding(nn.Module):
         )
 
     def forward(self, inputs: List[torch.Tensor]) -> List[torch.Tensor]:
-        """
-        Forward pass for AttnLSTMEmbedding.
+        """Execute this layer on input tensors.
 
         Parameters
         ----------
-        inputs : List[torch.Tensor]
-            A list containing:
-            1. Test set tensor of shape `(n_test, n_feat)`.
-            2. Support set tensor of shape `(n_support, n_feat)`.
-
+        inputs: list
+            List of two tensors (X, Xp). X should be of shape (n_test,
+            n_feat) and Xp should be of shape (n_support, n_feat)
+        
         Returns
         -------
-        List[torch.Tensor]
-            A list containing the transformed test and support set tensors
-            with shapes `(n_test, n_feat)` and `(n_support, n_feat)`, respectively.
+        List
+            Returns two tensors of same shape as input. Namely the output
+            shape will be [(n_test, n_feat), (n_support, n_feat)]
         """
 
         if len(inputs) != 2:
             raise ValueError(
-                "AttnLSTMEmbedding requires exactly two input tensors.")
+                "AttnLSTMEmbedding layer must have exactly two parents")
 
         # x is test set, xp is support set.
         x, xp = inputs
@@ -7823,15 +7821,14 @@ class AttnLSTMEmbedding(nn.Module):
         q = self.q_init
         states = self.states_init
 
-        for _ in range(self.max_depth):
+        for d in range(self.max_depth):
             # Process using attention
             # Eqn (4), appendix A.1 of Matching Networks paper
-            e = torch.nn.functional.cosine_similarity(x + q, xp, dim=-1)
+            e = cosine_dist(x + q, xp)
             a = torch.softmax(e, dim=-1)
             r = torch.matmul(a, xp)
 
             # Generate new attention states
             y = torch.cat([q, r], dim=1)
-            q, *states = self.lstm([y] + states)
-
+            q, states = self.lstm([y] + states)
         return [x + q, xp]
