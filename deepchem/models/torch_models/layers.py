@@ -7792,21 +7792,24 @@ class AttnLSTMEmbedding(nn.Module):
             f'{self.__class__.__name__}(n_test={self.n_test}, n_support={self.n_support}, n_feat={self.n_feat}, max_depth={self.max_depth})'
         )
 
-    def forward(self, inputs):
+    def forward(
+        self, inputs: Tuple[Union[torch.Tensor, np.ndarray], Union[torch.Tensor,
+                                                                   np.ndarray]]
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Execute this layer on input tensors.
 
         Parameters
         ----------
-        inputs: list
-            List of two tensors (X, Xp). X should be of shape (n_test,
-            n_feat) and Xp should be of shape (n_support, n_feat)
+        inputs : Tuple[Union[torch.Tensor, np.ndarray], Union[torch.Tensor, np.ndarray]]
+        A tuple containing:
+            1. Test set tensor of shape `(n_test, n_feat)`
+            2. Support set tensor of shape `(n_support, n_feat)`
         
         Returns
         -------
-        List
-            Returns two tensors of same shape as input. Namely the output
-            shape will be [(n_test, n_feat), (n_support, n_feat)]
-        """
+        Tuple[torch.Tensor, torch.Tensor]
+           The transformed test and support set tensors with shapes `(n_test, n_feat)` and `(n_support, n_feat)`.
+    """
 
         if len(inputs) != 2:
             raise ValueError(
