@@ -743,6 +743,35 @@ class RealignerFeaturizer(Featurizer):
     def __init__(self):
         self.realigner = _Realigner()
 
+    def decode_one_hot(self,
+                        one_hot_vector: List[np.ndarray],
+                       charset: List[str] = ["A", "C", "T", "G", "N"]) -> str:
+        """
+        Decode a one-hot encoded sequence into a string of
+        nucleotides.
+
+        This function is not used and retained only for backward
+        compatibility with previous versions of the code.
+
+        Parameters
+        ----------
+        one_hot_vector : List[np.ndarray]
+            List of one-hot encoded vectors.
+        charset : Optional[List[str]]
+            List of characters corresponding to the encoding.
+            Default is ["A", "C", "T", "G", "N"].
+
+        Returns
+        -------
+        str
+            Decoded sequence as a string.
+        """
+        decoded_seq = []
+        for vector in one_hot_vector:
+            idx = np.argmax(vector)
+            decoded_seq.append(charset[idx])
+        return ''.join(decoded_seq)
+
     def _featurize(self, datapoint):
         """
         Featurizes a datapoint by generating candidate regions and reads.

@@ -334,25 +334,29 @@ class CRAMFeaturizer(Featurizer):
 
 class FASTAFeaturizer(Featurizer):
     """
-        Featurizes FASTA files by extracting the sequence names and sequences.
-        Each sequence in the FASTA file is represented as a list containing the
-        sequence name and the sequence itself.
+    Featurizes FASTA files by extracting the sequence names and sequences.
+    Each sequence in the FASTA file is represented as a list containing the
+    sequence name and the raw sequence itself.
 
-        Examples
-        --------
-        >>> from deepchem.feat import FASTAFeaturizer
-        >>> featurizer = FASTAFeaturizer()
-        >>> fasta_file = 'deepchem/data/tests/example.fasta'
-        >>> features = featurizer.featurize([fasta_file])
+    Examples
+    --------
+    >>> from deepchem.feat import FASTAFeaturizer
+    >>> featurizer = FASTAFeaturizer()
+    >>> fasta_file = 'deepchem/data/tests/example.fasta'
+    >>> features = featurizer.featurize([fasta_file])
+    >>> type(features[0])
+    <class 'numpy.ndarray'>
+    >>> features[0].shape
+    (3, 2)
 
-        Note
-        ----
-        This class requires pysam to be installed. Pysam can be used with Linux or MacOS X.
-        To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
+    Note
+    ----
+    This class requires pysam to be installed. Pysam can be used with Linux or MacOS X.
+    To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
 
     """
 
-    def _featurize(self, datapoint):
+    def _featurize(self, datapoint: str, **kwargs) -> np.ndarray:
         """
         Extract features from a FASTA file.
 
