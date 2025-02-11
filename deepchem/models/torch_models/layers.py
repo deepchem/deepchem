@@ -7758,7 +7758,8 @@ class AttnLSTMEmbedding(nn.Module):
    
     """
 
-    def __init__(self, n_test, n_support, n_feat, max_depth, **kwargs):
+    def __init__(self, n_test: int, n_support: int, n_feat: int, max_depth: int,
+                 **kwargs: Any) -> None:
         """
         Parameters
         ----------  
@@ -7783,7 +7784,7 @@ class AttnLSTMEmbedding(nn.Module):
         self.states_init = self.lstm.get_initial_states([self.n_test, n_feat])
         self.built = True
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Returns a string representation of the AttnLSTMEmbedding layer's configuration.
            Includes n_test, n_support, n_feat, and max_depth.
         """
@@ -7792,28 +7793,27 @@ class AttnLSTMEmbedding(nn.Module):
             f'{self.__class__.__name__}(n_test={self.n_test}, n_support={self.n_support}, n_feat={self.n_feat}, max_depth={self.max_depth})'
         )
 
-    def forward(
-        self, inputs: Tuple[Union[torch.Tensor, np.ndarray], Union[torch.Tensor,
-                                                                   np.ndarray]]
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Execute this layer on input tensors.
+    def forward(self, inputs: List[torch.Tensor]) -> List[torch.Tensor]:
+        """
+        Forward pass for AttnLSTMEmbedding.
 
         Parameters
         ----------
-        inputs : Tuple[Union[torch.Tensor, np.ndarray], Union[torch.Tensor, np.ndarray]]
-        A tuple containing:
-            1. Test set tensor of shape `(n_test, n_feat)`
-            2. Support set tensor of shape `(n_support, n_feat)`
-        
+        inputs : List[torch.Tensor]
+            A list containing:
+            1. Test set tensor of shape `(n_test, n_feat)`.
+            2. Support set tensor of shape `(n_support, n_feat)`.
+
         Returns
         -------
-        Tuple[torch.Tensor, torch.Tensor]
-           The transformed test and support set tensors with shapes `(n_test, n_feat)` and `(n_support, n_feat)`.
-    """
+        List[torch.Tensor]
+            A list containing the transformed test and support set tensors
+            with shapes `(n_test, n_feat)` and `(n_support, n_feat)`, respectively.
+        """
 
         if len(inputs) != 2:
             raise ValueError(
-                "AttnLSTMEmbedding layer must have exactly two parents")
+                "AttnLSTMEmbedding requires exactly two input tensors.")
 
         # x is test set, xp is support set.
         x, xp = inputs
@@ -7823,14 +7823,15 @@ class AttnLSTMEmbedding(nn.Module):
         q = self.q_init
         states = self.states_init
 
-        for d in range(self.max_depth):
+        for _ in range(self.max_depth):
             # Process using attention
             # Eqn (4), appendix A.1 of Matching Networks paper
-            e = cosine_dist(x + q, xp)
+            e = torch.nn.functional.cosine_similarity(x + q, xp, dim=-1)
             a = torch.softmax(e, dim=-1)
             r = torch.matmul(a, xp)
 
             # Generate new attention states
-            y = torch.concatenate([q, r], axis=1)
-            q, states = self.lstm([y] + states)
-        return x + q, xp
+            y = torch.cat([q, r], dim=1)
+            q, *states = self.lstm([y] + states)
+
+        return [x + q, xp]
