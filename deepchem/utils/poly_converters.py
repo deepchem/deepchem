@@ -18,7 +18,7 @@ class PSMILES2WDGConverter:
         3. The fragments are converted to SMILES strings.
         4. The SMILES strings are combined with the residue to form the final WDGraph string.
     This specific mechanism is utilized to convert a PSMILES string to a WDGraph string such that the representational
-    varition is tested with neural network architectural differences in paper "Open-Source Polymer Generative Pipeline" [1]_.
+    variation is tested with neural network architectural differences in our research paper "Open-Source Polymer Generative Pipeline" [1]_.
 
     References
     ----------
@@ -77,7 +77,6 @@ class PSMILES2WDGConverter:
         -------
         str
             The indexed PSMILES string.
-
         """
         counter = 1
         mod_psmiles = ""
@@ -148,6 +147,7 @@ class PSMILES2WDGConverter:
         ----------
         smiles_string: str
             The SMILES string to be converted.
+
         Returns
         -------
         str
@@ -225,6 +225,7 @@ class PSMILES2WDGConverter:
             The PSMILES string to be converted.
         metadata: dict
             The metadata containing the indices of the atoms to be bonded, the residue, and the type of SMILES string.
+
         Returns
         -------
         list
@@ -253,6 +254,7 @@ class PSMILES2WDGConverter:
             The list of PSMILES strings to be converted.
         metadata_list: list
             The list of metadata containing the indices of the atoms to be bonded, the residue, and the type of SMILES string.
+
         Returns
         -------
         list
@@ -281,12 +283,13 @@ class WDG2PSMILESConverter:
         3. The PSMILES part is converted to a single molecule keeping the bond breaking indicies as metadata.
         4. The final PSMILES is returned with the metadata of the bond breaking indices and initial residue.
     This specific mechanism is utilized to convert a PSMILES string to a WDGraph string such that the representational
-    varition is tested with neural network architectural differences in paper "Open-Source Polymer Generative Pipeline" [1]_.
+    variation is tested with neural network architectural differences in our research paper "Open-Source Polymer Generative Pipeline" [1]_.
 
     References
     ----------
     .. [1] Mohanty, Debasish, et al. "Open-source Polymer Generative Pipeline."
         arXiv preprint arXiv:2412.08658 (2024).
+
     Examples
     --------
     >>> from rdkit import Chem
@@ -318,6 +321,7 @@ class WDG2PSMILESConverter:
         ----------
         combined_psmiles: str
             The combined PSMILES string.
+
         Returns
         -------
         Tuple(int, int)
@@ -346,6 +350,7 @@ class WDG2PSMILESConverter:
         ----------
         smiles: str
             The SMILES part of the WDG string.
+
         Returns
         -------
         Tuple(str, int, int, int)
@@ -406,6 +411,7 @@ class WDG2PSMILESConverter:
         ----------
         smiles: str
             The SMILES string to be modified.
+
         Returns
         -------
         str
@@ -441,6 +447,7 @@ class WDG2PSMILESConverter:
         ----------
         wdg_graph_string: str
             The WDGraph string to be converted.
+
         Returns
         -------
         Tuple(str, dict)
@@ -480,6 +487,7 @@ class WDG2PSMILESConverter:
         ----------
         wd_graph_list: list
             The list of WDGraph strings to be converted.
+
         Returns
         -------
         Tuple(list, list)
