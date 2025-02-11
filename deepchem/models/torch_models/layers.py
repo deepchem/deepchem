@@ -7833,4 +7833,4 @@ class AttnLSTMEmbedding(nn.Module):
             # Generate new attention states
             y = torch.concatenate([q, r], axis=1)
             q, states = self.lstm([y] + states)
-        return [x + q, xp]
+        return x + q, xp
