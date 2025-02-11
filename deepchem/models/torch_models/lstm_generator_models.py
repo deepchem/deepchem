@@ -80,7 +80,7 @@ class LSTMGenerator(TorchModel):
     The generator is trained on a list of sequences and can be used to generate
     new sequences of tokens. The model is implemented using PyTorch and can be useful
     to generate SMILES, PSMILES and Weighted Graph strings for generation tasks.
-    The code is used in the Open-source Polymer Generative Pipeline [2]_ to generate
+    The generator is used in our research paper "Open-source Polymer Generative Pipeline" [2]_ to generate
     hypothetical polymers using PSMILES and Weighted Directed Graph representations.
 
     References
