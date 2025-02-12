@@ -559,9 +559,8 @@ def test_wgan_NoC():
     # it far too much.
     gan = ExampleWGAN_NoC(learning_rate=0.01, gradient_penalty=0.1)
     gan.fit_gan(generate_data_NoC(gan, 1000, 100), generator_steps=0.1)
-    values = gan.predict_gan_generator()
-    deltas = values
-    assert np.std(deltas) > 1.0
+    values = gan.predict_gan_generator(batch_size = 100)
+    assert np.std(values) > 1.0
 
 
 @flaky
