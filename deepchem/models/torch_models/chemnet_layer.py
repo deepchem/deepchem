@@ -20,7 +20,7 @@ class Stem(nn.Module):
         num_filters: int,
             Number of convolutional filters.
         """
-        super(Stem, self).__init__()
+        super(Stem, self).__init__( **kwargs)
         self.conv_layer = nn.Conv2d(in_channels=1,
                                     out_channels=num_filters,
                                     kernel_size=4,
