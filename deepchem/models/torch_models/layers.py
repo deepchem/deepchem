@@ -2746,7 +2746,7 @@ class AtomicConv(nn.Module):
                 layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
                 activation_fns):
             layer = self.prev_layer
-            if next_activation is not None:
+            if next_activation is not None and callable(next_activation):
                 layer = next_activation(layer)
             linear = nn.Linear(prev_size, size)
             nn.init.trunc_normal_(linear.weight, std=weight_stddev)
@@ -6896,7 +6896,7 @@ class DAGLayer(nn.Module):
                  activation: str = 'relu',
                  dropout: Optional[float] = None,
                  batch_size: int = 64,
-                 device: str = 'cpu',
+                 device: Optional[torch.device] = torch.device('cpu'),
                  **kwargs: Any) -> None:
         """
         Parameters
@@ -6934,7 +6934,7 @@ class DAGLayer(nn.Module):
         self.n_graph_feat: int = n_graph_feat
         self.n_outputs: int = n_graph_feat
         self.n_atom_feat: int = n_atom_feat
-        self.device: str = device
+        self.device: Optional[torch.device] = device
         self.W_layers: nn.ParameterList = nn.ParameterList()
         self.b_layers: nn.ParameterList = nn.ParameterList()
         self.dropouts: List[Optional[nn.Dropout]] = []
@@ -7107,7 +7107,7 @@ class DAGGather(nn.Module):
                  init: str = 'glorot_uniform',
                  activation: str = 'relu',
                  dropout: Optional[float] = None,
-                 device: str = 'cpu',
+                 device: Optional[torch.device] = torch.device('cpu'),
                  **kwargs: Any) -> None:
         """
         Parameters
@@ -7140,7 +7140,7 @@ class DAGGather(nn.Module):
         self.activation: str = activation
         self.dropout: Optional[float] = dropout
         self.activation_fn: Callable[..., torch.Tensor] = getattr(F, activation)
-        self.device: str = device
+        self.device: Optional[torch.device] = device
         self.W_layers: nn.ParameterList = nn.ParameterList()
         self.b_layers: nn.ParameterList = nn.ParameterList()
         self.dropouts: List[Optional[nn.Dropout]] = []
@@ -7216,7 +7216,8 @@ class DAGGather(nn.Module):
                                          device=self.device)
 
         graph_features = torch.zeros(
-            int(membership.max().item()) + 1, int(atom_features.shape[1]))
+            int(membership.max().item()) + 1,
+            int(atom_features.shape[1])).to(self.device)
 
         graph_features = graph_features.scatter_add_(
             0,
