@@ -38,8 +38,9 @@ class PileupFeaturizer(Featurizer):
     Linux(WSL).
 
     """
+
     def decode_one_hot(self,
-                        one_hot_vector: List[np.ndarray],
+                       one_hot_vector: List[np.ndarray],
                        charset: List[str] = ["A", "C", "T", "G", "N"]) -> str:
         """
         Decode a one-hot encoded sequence into a string of
