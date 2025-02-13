@@ -23,7 +23,7 @@ class Stem(nn.Module):
             - For `img_spec="std"`, use input_shape=(H, W, 1)  (Grayscale image)
             - For `img_spec="engd"`, use input_shape=(H, W, 4)  (Multi-channel image)
         """
-        super(Stem, self).__init__()
+        super(Stem, self).__init__(**kwargs)
         in_channels = input_shape[-1]  # Extracts channels from (H, W, C)
 
         self.conv_layer = nn.Conv2d(in_channels=in_channels,
