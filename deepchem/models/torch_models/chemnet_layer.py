@@ -24,7 +24,7 @@ class Stem(nn.Module):
             - For `img_spec="engd"`, use input_shape=(H, W, 4)  (Multi-channel image)
         """
         super(Stem, self).__init__(**kwargs)
-        in_channels = input_shape[-1]  # Extracts channels from (H, W, C)
+        in_channels = input_shape[0]  # Extracts channels from (C, H, W)
 
         self.conv_layer = nn.Conv2d(in_channels=in_channels,
                                     out_channels=num_filters,
