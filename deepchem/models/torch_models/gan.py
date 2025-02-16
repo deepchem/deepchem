@@ -1,12 +1,14 @@
 """Generative Adversarial Networks."""
 import numpy as np
+
 try:
     import torch
     import torch.nn as nn
 except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
 import time
-from typing import Callable, Any, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
+
 from deepchem.models.torch_models.torch_model import TorchModel
 
 
@@ -285,8 +287,8 @@ class GAN(nn.Module):
 
         # Forward pass through generators
         generator_outputs = [
-            gen(_list_or_tensor([[noise_input] + self.conditional_input_layers
-                                ])) for gen in self.generators
+            gen(_list_or_tensor([noise_input] + self.conditional_input_layers
+                                )) for gen in self.generators
         ]
 
         # Forward pass through discriminators
