@@ -11,28 +11,25 @@ class Stem(nn.Module):
     This layer downsamples the image to reduce computational complexity before passing it to deeper layers.
     """
 
-    def __init__(self: "Stem", num_filters: int, input_shape: tuple,
-                 **kwargs) -> None:
+    def __init__(self, in_channels: int, out_channels: int) -> None:
         """
         Parameters
         ----------
-        num_filters: int
-            Number of convolutional filters.
-        input_shape: tuple
-            Shape of the input image in (C, H, W) format.
-                - For `img_spec="std"`, use (1, H, W)  (Grayscale image).
-                - For `img_spec="engd"`, use (4, H, W)  (Multi-channel image).
+        in_channels: int
+            Number of input channels
+        out_channels: int
+            Number of output channels.
+
         """
-        super(Stem, self).__init__(**kwargs)
-        in_channels = input_shape[0]  # Extracts channels from (C, H, W)
+        super(Stem, self).__init__()
 
         self.conv_layer = nn.Conv2d(in_channels=in_channels,
-                                    out_channels=num_filters,
+                                    out_channels=out_channels,
                                     kernel_size=4,
                                     stride=2)
         self.activation_layer = nn.ReLU()
 
-    def forward(self: "Stem", inputs: torch.Tensor) -> torch.Tensor:
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """
         Forward pass of the Stem layer.
         """
