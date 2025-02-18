@@ -1,11 +1,37 @@
 import pytest
 import numpy as np
+import deepchem as dc
 
 try:
     import torch
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
+    pass
+
+
+def test_bn_layer():
+    from deepchem.models.torch_models.layers import BN
+    batch_size, num_channels = 10, 30
+    layer = BN(num_channels)
+    x = torch.randn(batch_size, num_channels)
+    output = layer(x)
+
+    assert output.shape == x.shape
+    assert torch.allclose(output.mean(dim=-1),
+                          torch.zeros(batch_size),
+                          atol=1e-5)
+
+
+@pytest.mark.parametrize("num_freq, in_dim, out_dim, edge_dim", [(5, 10, 15, 3),
+                                                                 (2, 8, 16, 2)])
+def test_radial_func(num_freq, in_dim, out_dim, edge_dim):
+    from deepchem.models.torch_models.layers import RadialFunc
+    layer = RadialFunc(num_freq, in_dim, out_dim, edge_dim)
+    x = torch.randn(8, edge_dim + 1)
+    output = layer(x)
+
+    assert output.shape == (8, out_dim, 1, in_dim, 1, num_freq)
 
 
 def rotation_matrix(axis, angle):
@@ -20,6 +46,86 @@ def rotation_matrix(axis, angle):
     ], [
         2 * (b * d - a * c), 2 * (c * d + a * b), a * a + d * d - b * b - c * c
     ]])
+
+
+def apply_rotation(x, axis, angle):
+    """Apply a 3D rotation to the positions."""
+    R = rotation_matrix(axis, angle)
+    return torch.tensor(np.dot(x.numpy(), R), dtype=torch.float32)
+
+
+def get_equivariant_basis(G, max_degree):
+    """Compute SE(3) equivariant basis for molecular graph G."""
+    from deepchem.utils.equivariance_utils import get_spherical_from_cartesian, precompute_sh, basis_transformation_Q_J
+    distances = G.edata['d']
+    r_ij = get_spherical_from_cartesian(distances)
+    Y = precompute_sh(r_ij, 2 * max_degree)
+
+    basis = {}
+
+    for d_in in range(max_degree + 1):
+        for d_out in range(max_degree + 1):
+            K_Js = []
+            for J in range(abs(d_in - d_out), d_in + d_out + 1):
+                Q_J = basis_transformation_Q_J(J, d_in, d_out).float().T
+                K_J = torch.matmul(Y[J], Q_J)
+                K_Js.append(K_J)
+            size = (-1, 1, 2 * d_out + 1, 1, 2 * d_in + 1,
+                    2 * min(d_in, d_out) + 1)
+            basis[f"{d_in},{d_out}"] = torch.stack(K_Js, -1).view(*size)
+
+    return basis
+
+
+@pytest.mark.parametrize("max_degree, nc_in, nc_out, edge_dim",
+                         [(3, 32, 128, 5)])
+def test_pairwiseconv_equivariance(max_degree, nc_in, nc_out, edge_dim):
+    """Test SE(3) equivariance of PairwiseConv using a real molecular graph (CCO)."""
+    from rdkit import Chem
+    import dgl
+    from deepchem.models.torch_models.layers import PairwiseConv
+    mol = Chem.MolFromSmiles("CCO")
+    featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True,
+                                                    embeded=True)
+    features = featurizer.featurize([mol])[0]
+    G = dgl.graph((features.edge_index[0], features.edge_index[1]))
+
+    G.ndata['f'] = torch.tensor(features.node_features,
+                                dtype=torch.float32).unsqueeze(-1)
+    G.ndata['x'] = torch.tensor(features.positions,
+                                dtype=torch.float32)  # Atomic positions
+    G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)
+    G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
+
+    # Compute SE(3) equivariant basis
+    basis = get_equivariant_basis(G, max_degree)
+
+    # Compute input features
+    r = torch.sqrt(torch.sum(G.edata['d']**2, -1, keepdim=True))
+    feat = torch.cat([G.edata['w'], r], -1) if "w" in G.edata.keys() else r
+
+    pairwise_conv = PairwiseConv(degree_in=0,
+                                 nc_in=nc_in,
+                                 degree_out=0,
+                                 nc_out=nc_out,
+                                 edge_dim=edge_dim)
+
+    # test SE(3) translation invariance
+    output_original = pairwise_conv(feat, basis)
+    G.ndata['x'] += torch.tensor([10.0, -5.0, 7.0])  # Apply translation
+    output_translated = pairwise_conv(feat, basis)
+    assert torch.allclose(output_original, output_translated,
+                          atol=1e-5), "Translation invariance failed!"
+
+    # test SE(3) rotation equivariance
+    axis = np.array([1.0, 1.0, 1.0])  # Rotate around (1,1,1) axis
+    angle = np.pi / 4  # 45-degree rotation
+    G.ndata['x'] = apply_rotation(G.ndata['x'], axis, angle)  # Apply rotation
+    basis_rotated = get_equivariant_basis(
+        G, max_degree)  # Compute new basis (spherical harmonics, irreps)
+    output_rotated = pairwise_conv(feat, basis_rotated)
+
+    assert not torch.allclose(output_original, output_rotated, atol=1e-5)
 
 
 @pytest.mark.torch

@@ -366,12 +366,21 @@ The following layers are used for implementing GROVER model as described in the 
 .. autoclass:: deepchem.models.torch_models.grover.GroverFinetune
   :members:
 
-.. autoclass:: deepchem.models.torch_models.grover.EquivariantLinear
+.. autoclass:: deepchem.models.torch_models.layers.EquivariantLinear
   :members:
 
-.. autoclass:: deepchem.models.torch_models.grover.SphericalHarmonics
+.. autoclass:: deepchem.models.torch_models.layers.SphericalHarmonics
   :members:
- 
+
+.. autoclass:: deepchem.models.torch_models.layers.BN
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.RadialFunc
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.PairwiseConv
+  :members:
+
 Attention Layers
 ^^^^^^^^^^^^^^^^
 
@@ -381,7 +390,7 @@ Attention Layers
 .. autoclass:: deepchem.models.torch_models.attention.SelfAttention
   :members:
 
-.. autoclass:: deepchem.models.torch_models.attention.SE3Attention
+.. autoclass:: deepchem.models.torch_models.layers.SE3Attention
   :members:  
 
 Readout Layers
