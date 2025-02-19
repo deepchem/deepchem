@@ -7456,7 +7456,7 @@ class PairwiseConv(nn.Module):
     """
     SE(3)-equivariant convolution between two single-type features.
 
-    This layer implements a learnable convolution operation** that preserves SE(3) equivariance
+    This layer implements a learnable convolution operation that preserves SE(3) equivariance
     by operating on pairwise interactions using a basis defined by spherical harmonics.
     Instead of standard convolution (which is translation-invariant), this operation ensures
     equivariance to rotations and translations in 3D space.

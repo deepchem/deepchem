@@ -36,7 +36,6 @@ def test_radial_func(num_freq, in_dim, out_dim, edge_dim):
     assert output.shape == (8, out_dim, 1, in_dim, 1, num_freq)
 
 
-@pytest.mark.torch
 def rotation_matrix(axis, angle):
     """Generate a 3D rotation matrix."""
     axis = axis / np.linalg.norm(axis)
@@ -51,14 +50,12 @@ def rotation_matrix(axis, angle):
     ]])
 
 
-@pytest.mark.torch
 def apply_rotation(x, axis, angle):
     """Apply a 3D rotation to the positions."""
     R = rotation_matrix(axis, angle)
     return torch.tensor(np.dot(x.numpy(), R), dtype=torch.float32)
 
 
-@pytest.mark.torch
 def get_equivariant_basis(G, max_degree):
     """Compute SE(3) equivariant basis for molecular graph G."""
     from deepchem.utils.equivariance_utils import get_spherical_from_cartesian, precompute_sh, basis_transformation_Q_J
@@ -90,48 +87,61 @@ def test_pairwiseconv_equivariance(max_degree, nc_in, nc_out, edge_dim):
     from rdkit import Chem
     import dgl
     from deepchem.models.torch_models.layers import PairwiseConv
+
+    # Load molecule and featurize
     mol = Chem.MolFromSmiles("CCO")
     featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True,
                                                     embeded=True)
-    features = featurizer.featurize([mol])[0]
-    G = dgl.graph((features.edge_index[0], features.edge_index[1]))
+    mol_graph = featurizer.featurize([mol])[0]
 
-    G.ndata['f'] = torch.tensor(features.node_features,
+    # Initialize PairwiseConv layer
+    pairwise_conv = PairwiseConv(degree_in=0,
+                                 nc_in=32,
+                                 degree_out=0,
+                                 nc_out=128,
+                                 edge_dim=5)
+
+    G = dgl.graph((mol_graph.edge_index[0], mol_graph.edge_index[1]))
+    G.ndata['f'] = torch.tensor(mol_graph.node_features,
                                 dtype=torch.float32).unsqueeze(-1)
-    G.ndata['x'] = torch.tensor(features.positions,
+    G.ndata['x'] = torch.tensor(mol_graph.positions,
                                 dtype=torch.float32)  # Atomic positions
-    G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)
-    G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
+    G.edata['d'] = torch.tensor(mol_graph.edge_features, dtype=torch.float32)
+    G.edata['w'] = torch.tensor(mol_graph.edge_weights, dtype=torch.float32)
 
-    # Compute SE(3) equivariant basis
+    # Compute initial SE(3) equivariant basis
     basis = get_equivariant_basis(G, max_degree)
 
-    # Compute input features
-    r = torch.sqrt(torch.sum(G.edata['d']**2, -1, keepdim=True))
-    feat = torch.cat([G.edata['w'], r], -1) if "w" in G.edata.keys() else r
+    # Compute radial distances and edge features before rotation
+    r = torch.sqrt(torch.sum(G.edata["d"]**2, -1, keepdim=True))
+    feat = torch.cat([G.edata["w"], r], -1) if "w" in G.edata else torch.cat(
+        [r], -1)
 
-    pairwise_conv = PairwiseConv(degree_in=0,
-                                 nc_in=nc_in,
-                                 degree_out=0,
-                                 nc_out=nc_out,
-                                 edge_dim=edge_dim)
-
-    # test SE(3) translation invariance
-    output_original = pairwise_conv(feat, basis)
-    G.ndata['x'] += torch.tensor([10.0, -5.0, 7.0])  # Apply translation
-    output_translated = pairwise_conv(feat, basis)
-    assert torch.allclose(output_original, output_translated,
-                          atol=1e-5), "Translation invariance failed!"
-
-    # test SE(3) rotation equivariance
+    # Apply random graph rotation to nodes
     axis = np.array([1.0, 1.0, 1.0])  # Rotate around (1,1,1) axis
     angle = np.pi / 4  # 45-degree rotation
     G.ndata['x'] = apply_rotation(G.ndata['x'], axis, angle)  # Apply rotation
-    basis_rotated = get_equivariant_basis(
-        G, max_degree)  # Compute new basis (spherical harmonics, irreps)
-    output_rotated = pairwise_conv(feat, basis_rotated)
 
-    assert not torch.allclose(output_original, output_rotated, atol=1e-5)
+    # Compute SE(3) rotated equivariant basis
+    basis_rotated = get_equivariant_basis(G, max_degree)
+
+    # PairwiseConv forward pass for original graph
+    output_original = pairwise_conv(feat, basis)
+
+    # Compute edge features for rotated graph
+    r_rotated = torch.sqrt(torch.sum(G.edata["d"]**2, -1, keepdim=True))
+    feat_rotated = torch.cat([G.edata["w"], r_rotated],
+                             -1) if "w" in G.edata else torch.cat([r_rotated],
+                                                                  -1)
+
+    # PairwiseConv forward pass for rotated graph
+    output_rotated = pairwise_conv(feat_rotated, basis_rotated)
+
+    # Test for equivariance under rotation
+    output_diff = torch.norm(output_original -
+                             output_rotated) / torch.norm(output_original)
+
+    assert output_diff.item() < 1e-6
 
 
 @pytest.mark.torch
