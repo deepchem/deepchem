@@ -391,7 +391,9 @@ def get_matrix_kernel(A: torch.Tensor, eps: float = 1e-10) -> torch.Tensor:
     kernel = v.t()[s < eps]
     return kernel
 
-def get_matrices_kernel(As: List[torch.Tensor], eps: float = 1e-10) -> torch.Tensor:
+
+def get_matrices_kernel(As: List[torch.Tensor],
+                        eps: float = 1e-10) -> torch.Tensor:
     """
     Compute the common kernel of all the input matrices.
 
@@ -410,6 +412,7 @@ def get_matrices_kernel(As: List[torch.Tensor], eps: float = 1e-10) -> torch.Ten
         A matrix where each row is a basis vector of the common kernel.
     """
     return get_matrix_kernel(torch.cat(As, dim=0), eps)
+
 
 def basis_transformation_Q_J(J: int,
                              order_in: int,
@@ -462,6 +465,7 @@ def basis_transformation_Q_J(J: int,
     """
     original_dtype = torch.get_default_dtype()
     torch.set_default_dtype(torch.float64)
+
     def _R_tensor(a: float, b: float, c: float) -> torch.Tensor:
         """
         Compute the Kronecker product of irreducible representations.
@@ -531,7 +535,8 @@ def basis_transformation_Q_J(J: int,
                                       random_angle_higher,
                                       size=(num_samples, 3))
 
-    null_space = get_matrices_kernel([_sylvester_submatrix(J, a, b, c) for a, b, c in random_angles])
+    null_space = get_matrices_kernel(
+        [_sylvester_submatrix(J, a, b, c) for a, b, c in random_angles])
     Q_J = null_space[0]
     Q_J = Q_J.view((2 * order_out + 1) * (2 * order_in + 1), 2 * J + 1)
     torch.set_default_dtype(original_dtype)

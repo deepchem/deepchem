@@ -10,6 +10,7 @@ except ModuleNotFoundError:
     pass
 
 
+@pytest.mark.torch
 def test_bn_layer():
     from deepchem.models.torch_models.layers import BN
     batch_size, num_channels = 10, 30
@@ -23,6 +24,7 @@ def test_bn_layer():
                           atol=1e-5)
 
 
+@pytest.mark.torch
 @pytest.mark.parametrize("num_freq, in_dim, out_dim, edge_dim", [(5, 10, 15, 3),
                                                                  (2, 8, 16, 2)])
 def test_radial_func(num_freq, in_dim, out_dim, edge_dim):
@@ -34,6 +36,7 @@ def test_radial_func(num_freq, in_dim, out_dim, edge_dim):
     assert output.shape == (8, out_dim, 1, in_dim, 1, num_freq)
 
 
+@pytest.mark.torch
 def rotation_matrix(axis, angle):
     """Generate a 3D rotation matrix."""
     axis = axis / np.linalg.norm(axis)
@@ -48,12 +51,14 @@ def rotation_matrix(axis, angle):
     ]])
 
 
+@pytest.mark.torch
 def apply_rotation(x, axis, angle):
     """Apply a 3D rotation to the positions."""
     R = rotation_matrix(axis, angle)
     return torch.tensor(np.dot(x.numpy(), R), dtype=torch.float32)
 
 
+@pytest.mark.torch
 def get_equivariant_basis(G, max_degree):
     """Compute SE(3) equivariant basis for molecular graph G."""
     from deepchem.utils.equivariance_utils import get_spherical_from_cartesian, precompute_sh, basis_transformation_Q_J
@@ -77,6 +82,7 @@ def get_equivariant_basis(G, max_degree):
     return basis
 
 
+@pytest.mark.torch
 @pytest.mark.parametrize("max_degree, nc_in, nc_out, edge_dim",
                          [(3, 32, 128, 5)])
 def test_pairwiseconv_equivariance(max_degree, nc_in, nc_out, edge_dim):
