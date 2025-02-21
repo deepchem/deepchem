@@ -46,6 +46,7 @@ cd deepchem
 
 &nbsp;&nbsp;&nbsp;&nbsp; 1.1. If you already have DeepChem from source, update it by running
 ```bash
+git remote add upstream https://github.com/deepchem/deepchem
 git fetch upstream
 git rebase upstream/master
 ```
