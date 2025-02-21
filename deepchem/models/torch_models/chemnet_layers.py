@@ -9,6 +9,20 @@ class Stem(nn.Module):
     """
     Implements Stem Layer as defined in https://arxiv.org/abs/1710.02238.
     This layer downsamples the image to reduce computational complexity before passing it to deeper layers.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import torch
+    >>> import deepchem.models.torch_models.chemnet_layers as layers
+    >>> in_channels = 3
+    >>> out_channels = 4
+    >>> input_tensor = np.random.rand(1, in_channels, 32, 32).astype(np.float32)  # (Batch, Channels, Height, Width)
+    >>> input_tensor_torch = torch.tensor(input_tensor)
+    >>> layer = layers.Stem(in_channels, out_channels)
+    >>> output_tensor = layer(input_tensor_torch)
+    >>> output_tensor.shape
+    torch.Size([1, 4, 15, 15])
     """
 
     def __init__(self, in_channels: int, out_channels: int) -> None:
