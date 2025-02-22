@@ -813,6 +813,24 @@ for additional information regarding equivariance and Deepchem's support for equ
 
 .. autofunction:: deepchem.utils.equivariance_utils.wigner_D
 
+.. autofunction:: deepchem.utils.equivariance_utils.semifactorial
+
+.. autofunction:: deepchem.utils.equivariance_utils.pochhammer
+
+.. autofunction:: deepchem.utils.equivariance_utils.lpmv
+
+.. autofunction:: deepchem.utils.equivariance_utils.SphericalHarmonics
+
+.. autofunction:: deepchem.utils.equivariance_utils.get_matrix_kernel
+
+.. autofunction:: deepchem.utils.equivariance_utils.basis_transformation_Q_J
+
+.. autofunction:: deepchem.utils.equivariance_utils.get_spherical_from_cartesian
+
+.. autofunction:: deepchem.utils.equivariance_utils.kron
+
+.. autofunction:: deepchem.utils.equivariance_utils.precompute_sh
+
 Miscellaneous Utilities
 -----------------------
 
