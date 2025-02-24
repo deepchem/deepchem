@@ -4,6 +4,7 @@ from deepchem.models.torch_models.hf_models import HuggingFaceModel
 from typing import Union
 import torch
 
+
 class ProtBERT(HuggingFaceModel):
     """
     ProtBERT model[1].
@@ -57,7 +58,7 @@ class ProtBERT(HuggingFaceModel):
     >>> feat_extractor_model = ProtBERT(task='feature_extractor', HG_model_path=model_path, n_tasks=1)
     >>> protein = "M G L P V S W A P P A L W V L G C C A L L L S L W A"
     >>> tokenized_data = feat_extractor_model.tokenizer(protein,return_tensors='pt')
-    >>> protbert_feats = feat_extractor_model.get_feat(tokenized_data['input_ids'],tokenized_data['attention_mask'])  
+    >>> protbert_feats = feat_extractor_model.get_feat(tokenized_data['input_ids'],tokenized_data['attention_mask'])
 
     References
     ----------
@@ -102,7 +103,7 @@ class ProtBERT(HuggingFaceModel):
             pretrained_model_name_or_path=model_path,
             vocab_size=tokenizer.vocab_size)
         self.config = protbert_config
-        model: Union[BertForMaskedLM, BertForSequenceClassification]
+        model: Union[BertForMaskedLM, BertForSequenceClassification, BertModel]
         if task == "mlm":
             model = BertForMaskedLM.from_pretrained(model_path)
         elif task == "classification":
@@ -128,14 +129,15 @@ class ProtBERT(HuggingFaceModel):
                 model_path, config=protbert_config)
             model.classifier = cls_head
         elif task == "feature_extractor":
-            model = BertModel.from_pretrained(
-                model_path, config=protbert_config)
+            model = BertModel.from_pretrained(model_path,
+                                              config=protbert_config)
 
         else:
             raise ValueError('Invalid task specification')
         super().__init__(model=model, task=task, tokenizer=tokenizer, **kwargs)
 
-    def get_feat(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+    def get_feat(self, input_ids: torch.Tensor,
+                 attention_mask: torch.Tensor) -> torch.Tensor:
         """
         Extracts the last hidden state from the model output.
 

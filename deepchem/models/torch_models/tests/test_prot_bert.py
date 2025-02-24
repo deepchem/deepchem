@@ -172,15 +172,18 @@ def test_protbert_overfit():
     eval_score = finetune_model.evaluate(dataset, [classification_metric])
     assert eval_score[classification_metric.name] > 0.9
 
+
 @pytest.mark.hf
 def test_protbert_feats():
     protein = "M G L P V S W A P P A L W V L G C C A L L L S L W A"
     model_path = 'Rostlab/prot_bert'
     protbert_feature_extractor = ProtBERT(task='feature_extractor',
-                              model_path=model_path,
-                              n_tasks=1,
-                              batch_size=1)
+                                          model_path=model_path,
+                                          n_tasks=1,
+                                          batch_size=1)
 
-    tokenized_data = protbert_feature_extractor.tokenizer(protein,return_tensors='pt')
-    protbert_feats = protbert_feature_extractor.get_feat(tokenized_data['input_ids'],tokenized_data['attention_mask'])
-    assert list(protbert_feats.shape) == [1,1024]
+    tokenized_data = protbert_feature_extractor.tokenizer(protein,
+                                                          return_tensors='pt')
+    protbert_feats = protbert_feature_extractor.get_feat(
+        tokenized_data['input_ids'], tokenized_data['attention_mask'])
+    assert list(protbert_feats.shape) == [1, 1024]
