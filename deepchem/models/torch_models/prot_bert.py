@@ -1,8 +1,8 @@
-from transformers import BertForMaskedLM, BertForSequenceClassification, BertTokenizer, BertConfig
+from transformers import BertForMaskedLM, BertForSequenceClassification, BertTokenizer, BertConfig, BertModel
 import torch.nn as nn
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
 from typing import Union
-
+import torch
 
 class ProtBERT(HuggingFaceModel):
     """
@@ -54,6 +54,11 @@ class ProtBERT(HuggingFaceModel):
     >>> result = finetune_model.predict(dataset)
     >>> eval_results = finetune_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.accuracy_score))
 
+    >>> feat_extractor_model = ProtBERT(task='feature_extractor', HG_model_path=model_path, n_tasks=1)
+    >>> protein = "M G L P V S W A P P A L W V L G C C A L L L S L W A"
+    >>> tokenized_data = feat_extractor_model.tokenizer(protein,return_tensors='pt')
+    >>> protbert_feats = feat_extractor_model.get_feat(tokenized_data['input_ids'],tokenized_data['attention_mask'])  
+
     References
     ----------
     .. [1] Elnaggar, Ahmed, et al. "Prottrans: Toward understanding the language of life through self-supervised learning." IEEE transactions on pattern analysis and machine intelligence 44.10 (2021): 7112-7127.
@@ -76,6 +81,7 @@ class ProtBERT(HuggingFaceModel):
             The task defines the type of learning task in the model. The supported tasks are
             - `mlm` - masked language modeling commonly used in pretraining
             - `classification` - use it for classification tasks
+            - `feature_extractor` - use it along side the get_feat() method to extract features from a protein sequence
         model_path: str
             Path to the HuggingFace model
             - 'Rostlab/prot_bert' - Pretrained on Uniref100 dataset
@@ -95,6 +101,7 @@ class ProtBERT(HuggingFaceModel):
         protbert_config: BertConfig = BertConfig.from_pretrained(
             pretrained_model_name_or_path=model_path,
             vocab_size=tokenizer.vocab_size)
+        self.config = protbert_config
         model: Union[BertForMaskedLM, BertForSequenceClassification]
         if task == "mlm":
             model = BertForMaskedLM.from_pretrained(model_path)
@@ -120,7 +127,29 @@ class ProtBERT(HuggingFaceModel):
             model = BertForSequenceClassification.from_pretrained(
                 model_path, config=protbert_config)
             model.classifier = cls_head
+        elif task == "feature_extractor":
+            model = BertModel.from_pretrained(
+                model_path, config=protbert_config)
 
         else:
             raise ValueError('Invalid task specification')
         super().__init__(model=model, task=task, tokenizer=tokenizer, **kwargs)
+
+    def get_feat(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+        """
+        Extracts the last hidden state from the model output.
+
+        Parameters
+        ----------
+        input_ids : torch.Tensor
+            Tensor containing tokenized input sequences.
+        attention_mask : torch.Tensor
+            Tensor indicating which positions should be attended to.
+
+        Returns
+        -------
+        torch.Tensor
+            The last hidden state of the model.
+        """
+
+        return self.model(input_ids, attention_mask).last_hidden_state[:, 0, :]
