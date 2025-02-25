@@ -9267,6 +9267,44 @@ class SpectralConv(nn.Module):
     keeps only a specified number of Fourier modes (for each spatial dimension),
     applies a learned complex multiplication, and returns to physical space
     via the inverse FFT.
+    
+    Usage Example
+    -------
+    >>> from deepchem.models.torch_models.layers import SpectralConv
+    >>> import torch
+    >>> class FourierNet(nn.Module):
+    ...     def __init__(self):
+    ...         super(FourierNet, self).__init__()
+    ...         self.spectral1 = SpectralConv(1, 32, 12, dims=2)
+    ...         self.spectral2 = SpectralConv(32, 32, 12, dims=2)
+    ...         self.linear = nn.Linear(32, 1)
+    ...         self.activation = nn.GELU()
+    ...     def forward(self, x):
+    ...         x = self.spectral1(x)
+    ...         x = self.activation(x)
+    ...         x = self.spectral2(x)
+    ...         x = self.activation(x)
+    ...         # x shape: (batch, channels, height, width)
+    ...         x = x.permute(0, 2, 3, 1)  # -> (batch, height, width, channels)
+    ...         x = self.linear(x)         # -> (batch, height, width, new_channels)
+    ...         x = x.permute(0, 3, 1, 2)  # -> (batch, new_channels, height, width)
+    ...         return x
+    >>> model = FourierNet()
+    >>> loss_fn = nn.MSELoss()
+    >>> optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    >>> x = torch.randn(100, 1, 64, 64)  # 100 samples of 64x64 single-channel images
+    >>> y = x.clone()
+    >>> dataset = torch.utils.data.TensorDataset(x, y)
+    >>> dataloader = torch.utils.data.DataLoader(dataset, batch_size=16)
+    >>> for epoch in range(100):
+    ...     model.train()
+    ...     for batch_x, batch_y in dataloader:
+    ...         optimizer.zero_grad()
+    ...         output = model(batch_x)
+    ...         loss = loss_fn(output, batch_y)
+    ...         loss.backward()
+    ...         optimizer.step()
+    >>> 
     """
 
     def __init__(self, in_channels, out_channels, modes, dims=2):
@@ -9304,8 +9342,12 @@ class SpectralConv(nn.Module):
         Returns:
             Output tensor of shape (batch, out_channels, *spatial_dims).
         """
-        x_ft = torch.fft.rfftn(x, dim=range(
-            2, x.ndim))  # Applied only to the spatial channels
+
+        if not x.ndim == self.dims + 2:
+            raise ValueError(f"Input tensor must have {self.dims} spatial dimensions, but got {x.ndim} dimensions including batch and channels")
+
+        x_ft = torch.fft.rfftn(x, dim=tuple(range(
+            2, x.ndim)))  # Applied only to the spatial channels
 
         out_ft = torch.zeros(x.shape[0],
                              self.out_channels,
@@ -9324,5 +9366,5 @@ class SpectralConv(nn.Module):
             "b i ... , i o ... -> b o ...",
             x_ft[(slice(None), slice(None)) + slices], self.weights)
 
-        x_out = torch.fft.irfftn(out_ft, s=x.shape[2:], dim=range(2, x.ndim))
+        x_out = torch.fft.irfftn(out_ft, s=x.shape[2:], dim=tuple(range(2, x.ndim)))
         return x_out
