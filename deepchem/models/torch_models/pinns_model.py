@@ -107,7 +107,7 @@ class PINNModel(TorchModel):
     ...     pde_fn=heat_equation_residual,
     ...     boundary_data=boundary_data,
     ... )
-    >>> pinn.fit(dataset, nb_epoch=100)
+    >>> loss = pinn.fit(dataset, nb_epoch=100)
 
     References
     ----------
