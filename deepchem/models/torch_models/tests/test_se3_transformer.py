@@ -137,3 +137,52 @@ def test_se3_attention_equivariance():
     assert torch.allclose(out_coords_original, recovered_coords, atol=1e-2)
 
     assert torch.allclose(out_x_original, out_x_rotated, atol=1e-2)
+
+
+def test_fiber_initialization_from_degrees_channels():
+    """Test Fiber initialization with num_degrees and num_channels."""
+    from deepchem.models.torch_models.layers import Fiber
+    fiber = Fiber(num_degrees=3, num_channels=16)
+    expected_structure = [(16, 0), (16, 1), (16, 2)]
+    assert fiber.structure == expected_structure
+    assert fiber.n_features == np.sum(
+        [i[0] * (2 * i[1] + 1) for i in expected_structure])
+
+
+def test__fiber_initialization_from_dictionary():
+    """Test Fiber initialization with a dictionary input."""
+    from deepchem.models.torch_models.layers import Fiber
+    fiber = Fiber(dictionary={0: 16, 1: 8, 2: 4})
+    expected_structure = [(16, 0), (8, 1), (4, 2)]
+    assert fiber.structure == expected_structure
+
+
+def test_combine_fiber():
+    """Test Fiber.combine() for correct summation of multiplicities."""
+    from deepchem.models.torch_models.layers import Fiber
+    fiber1 = Fiber(dictionary={0: 16, 1: 8})
+    fiber2 = Fiber(dictionary={1: 8, 2: 4})
+    combined = Fiber.combine(fiber1, fiber2)
+    expected_structure = [(16, 0), (16, 1), (4, 2)]
+    assert combined.structure == expected_structure
+
+
+def test_combine_max_fiber():
+    """Test Fiber.combine_max() for correct max operation on multiplicities."""
+    from deepchem.models.torch_models.layers import Fiber
+    fiber1 = Fiber(dictionary={0: 16, 1: 8})
+    fiber2 = Fiber(dictionary={1: 12, 2: 4})
+    combined_max = Fiber.combine_max(fiber1, fiber2)
+    expected_structure = [(16, 0), (12, 1), (4, 2)]
+    assert combined_max.structure == expected_structure
+
+
+def test_feature_indices_fiber():
+    """Test that feature indices are calculated correctly."""
+    from deepchem.models.torch_models.layers import Fiber
+    fiber = Fiber(dictionary={0: 2, 1: 2})
+    expected_indices = {
+        0: (0, 0 + 2 * (2 * 0 + 1)),
+        1: (2, 2 + 2 * (2 * 1 + 1))
+    }
+    assert fiber.feature_indices == expected_indices
