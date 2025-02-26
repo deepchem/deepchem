@@ -7302,3 +7302,155 @@ def cosine_dist(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
 
     cosine_similarity = torch.matmul(x_norm, y_norm.transpose(-1, -2))
     return cosine_similarity
+
+
+class Fiber(object):
+    """
+    Data Structure for Fibers in SE(3)-Transformers.
+    
+    Fibers represent structured feature spaces used in equivariant neural networks,
+    particularly in SE(3)-Transformer models. This class provides utilities for
+    defining, manipulating, and combining fiber structures.
+    
+    Example
+    -------
+    >>> from deepchem.models.torch_models.layers import Fiber
+    >>> fiber1 = Fiber(num_degrees=3, num_channels=16)
+    >>> fiber2 = Fiber(dictionary={0: 16, 1: 8, 2: 4})
+    >>> combined_fiber = Fiber.combine(fiber1, fiber2)
+    >>> combined_fiber.structure
+    [(32, 0), (24, 1), (20, 2)]
+    >>> combined_fiber.multiplicities
+    (32, 24, 20)
+    
+    References
+    ----------
+    .. [1] Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling.
+           "SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks."
+           NeurIPS 2020. https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self,
+                 num_degrees: Optional[int] = None,
+                 num_channels: Optional[int] = None,
+                 structure: Optional[List[Tuple[int, int]]] = None,
+                 dictionary: Optional[Dict[int, int]] = None) -> None:
+        """
+        Initialize a Fiber structure.
+        
+        Parameters
+        ----------
+        num_degrees : int, optional
+            Maximum degree of fiber representation.
+        num_channels : int, optional
+            Number of channels per degree.
+        structure : List[Tuple[int, int]], optional
+            Custom fiber structure as (num_channels, degree) pairs.
+        dictionary : dict, optional
+            Dictionary representation {degree: num_channels}.
+        """
+        if structure:
+            self.structure = structure
+        elif dictionary:
+            self.structure = [
+                (dictionary[o], o) for o in sorted(dictionary.keys())
+            ]
+        elif num_degrees is not None and num_channels is not None:  # Ensure valid values
+            self.structure = [(num_channels, i) for i in range(num_degrees)]
+        else:
+            raise ValueError(
+                "Either 'structure', 'dictionary', or both 'num_degrees' and 'num_channels' must be provided."
+            )
+
+        self.multiplicities, self.degrees = zip(*self.structure)
+        self.max_degree = max(self.degrees)
+        self.min_degree = min(self.degrees)
+        self.structure_dict = {k: v for v, k in self.structure}
+        self.n_features = np.sum(
+            [i[0] * (2 * i[1] + 1) for i in self.structure])
+
+        self.feature_indices = {}
+        lengths = [
+            num_channels * (2 * d + 1) for num_channels, d in self.structure
+        ]
+        indices = [0] + list(itertools.accumulate(lengths))
+        self.feature_indices = {
+            d: (indices[i], indices[i + 1])
+            for i, (_, d) in enumerate(self.structure)
+        }
+
+    @staticmethod
+    def combine(f1: "Fiber", f2: "Fiber") -> "Fiber":
+        """
+        This method takes two Fiber instances and merges their structures by adding the number 
+        of channels (multiplicities) for degrees that appear in both fibers.
+        
+        Parameters
+        ----------
+        f1 : Fiber
+            First fiber to combine.
+        f2 : Fiber
+            Second fiber to combine.
+
+        Returns
+        -------
+        Fiber
+            A new fiber with combined structure.
+
+        Example
+        -------
+        >>> from deepchem.models.torch_models.layers import Fiber
+        >>> fiber1 = Fiber(dictionary={0: 16, 1: 8})
+        >>> fiber2 = Fiber(dictionary={1: 8, 2: 4})
+        >>> combined = Fiber.combine(fiber1, fiber2)
+        >>> combined.structure
+        [(16, 0), (16, 1), (4, 2)]
+        >>> combined.multiplicities
+        (16, 16, 4)
+        """
+        f1_dict = f1.structure_dict.copy()
+        for k, m in f2.structure_dict.items():
+            if k in f1_dict:
+                f1_dict[k] += m
+            else:
+                f1_dict[k] = m
+        structure = [(f1_dict[k], k) for k in sorted(f1_dict.keys())]
+        return Fiber(structure=structure)
+
+    @staticmethod
+    def combine_max(f1: "Fiber", f2: "Fiber") -> "Fiber":
+        """   
+        This method merges two `Fiber` instances by taking the maximum number of 
+        channels (multiplicities) for degrees that appear in both fibers.
+
+        Parameters
+        ----------
+        f1 : Fiber
+            First fiber to combine.
+        f2 : Fiber
+            Second fiber to combine.
+        
+        Returns
+        -------
+        Fiber
+            A new fiber with maximum multiplicities for each degree.
+        
+        Example
+        -------
+        >>> from deepchem.models.torch_models.layers import Fiber
+        >>> fiber1 = Fiber(dictionary={0: 16, 1: 8})
+        >>> fiber2 = Fiber(dictionary={1: 12, 2: 4})
+        >>> combined_max = Fiber.combine_max(fiber1, fiber2)
+        >>> combined_max.structure
+        [(16, 0), (12, 1), (4, 2)]
+        >>> combined_max.multiplicities
+        (16, 12, 4)
+        """
+        f1_dict = f1.structure_dict.copy()
+        for k, m in f2.structure_dict.items():
+            if k in f1_dict:
+                f1_dict[k] = max(m, f1_dict[k])
+            else:
+                f1_dict[k] = m
+        structure = [(f1_dict[k], k) for k in sorted(f1_dict.keys())]
+        return Fiber(structure=structure)
