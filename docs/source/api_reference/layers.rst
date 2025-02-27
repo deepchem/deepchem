@@ -393,7 +393,7 @@ Attention Layers
 .. autoclass:: deepchem.models.torch_models.layers.SE3PairwiseConv
   :members:
 
-.. autoclass:: deepchem.models.torch_models.grover.Fiber
+.. autoclass:: deepchem.models.torch_models.layers.Fiber
   :members:
 
 Readout Layers
