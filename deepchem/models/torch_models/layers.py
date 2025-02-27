@@ -7304,7 +7304,7 @@ def cosine_dist(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     return cosine_similarity
 
 
-class BN(nn.Module):
+class SE3LayerNorm(nn.Module):
     """
     SE(3)-equivariant layer normalization.
     
@@ -7319,9 +7319,9 @@ class BN(nn.Module):
     Example
     -------
     >>> import torch
-    >>> from deepchem.models.torch_models.layers import BN
+    >>> from deepchem.models.torch_models.layers import SE3LayerNorm
     >>> batch_size, num_channels = 10, 30
-    >>> layer = BN(num_channels)
+    >>> layer = SE3LayerNorm(num_channels)
     >>> x = torch.randn(batch_size, num_channels)
     >>> output = layer(x)
     >>> output.shape
@@ -7364,7 +7364,7 @@ class BN(nn.Module):
         return self.bn(x)
 
 
-class RadialFunc(nn.Module):
+class SE3RadialFunc(nn.Module):
     """
     Defines the radial profile used in SE(3)-equivariant kernels.
 
@@ -7384,9 +7384,9 @@ class RadialFunc(nn.Module):
     Example
     -------
     >>> import torch
-    >>> from deepchem.models.torch_models.layers import RadialFunc
+    >>> from deepchem.models.torch_models.layers import SE3RadialFunc
     >>> num_freq, in_dim, out_dim, edge_dim = 5, 10, 15, 3
-    >>> layer = RadialFunc(num_freq, in_dim, out_dim, edge_dim)
+    >>> layer = SE3RadialFunc(num_freq, in_dim, out_dim, edge_dim)
     >>> x = torch.randn(8, edge_dim + 1)
     >>> output = layer(x)
     >>> output.shape
@@ -7424,8 +7424,9 @@ class RadialFunc(nn.Module):
         self.edge_dim = edge_dim
 
         self.net = nn.Sequential(
-            nn.Linear(self.edge_dim + 1, self.mid_dim), BN(self.mid_dim),
-            nn.ReLU(), nn.Linear(self.mid_dim, self.mid_dim), BN(self.mid_dim),
+            nn.Linear(self.edge_dim + 1, self.mid_dim),
+            SE3LayerNorm(self.mid_dim), nn.ReLU(),
+            nn.Linear(self.mid_dim, self.mid_dim), SE3LayerNorm(self.mid_dim),
             nn.ReLU(), nn.Linear(self.mid_dim,
                                  self.num_freq * in_dim * out_dim))
 
@@ -7452,7 +7453,7 @@ class RadialFunc(nn.Module):
         return y.view(-1, self.out_dim, 1, self.in_dim, 1, self.num_freq)
 
 
-class PairwiseConv(nn.Module):
+class SE3PairwiseConv(nn.Module):
     """
     SE(3)-equivariant convolution between two single-type features.
 
@@ -7477,7 +7478,7 @@ class PairwiseConv(nn.Module):
     >>> from rdkit import Chem
     >>> import dgl
     >>> import deepchem as dc
-    >>> from deepchem.models.torch_models.layers import PairwiseConv
+    >>> from deepchem.models.torch_models.layers import SE3PairwiseConv
     >>> from deepchem.utils.equivariance_utils import get_spherical_from_cartesian, precompute_sh, basis_transformation_Q_J
     >>> mol = Chem.MolFromSmiles('CCO')
     >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
@@ -7514,7 +7515,7 @@ class PairwiseConv(nn.Module):
     ...     feat = torch.cat([w, r], -1)
     ... else:
     ...     feat = torch.cat([r], -1)
-    >>> pairwise_conv = PairwiseConv(degree_in=0, nc_in=32, degree_out=0, nc_out=128, edge_dim=5)
+    >>> pairwise_conv = SE3PairwiseConv(degree_in=0, nc_in=32, degree_out=0, nc_out=128, edge_dim=5)
     >>> output = pairwise_conv(feat, basis)
     >>> output.shape
     torch.Size([6, 128, 32])
@@ -7554,7 +7555,7 @@ class PairwiseConv(nn.Module):
         self.num_freq = 2 * min(degree_in, degree_out) + 1
         self.d_out = 2 * degree_out + 1
         self.edge_dim = edge_dim
-        self.rp = RadialFunc(self.num_freq, nc_in, nc_out, self.edge_dim)
+        self.rp = SE3RadialFunc(self.num_freq, nc_in, nc_out, self.edge_dim)
 
     def forward(self, feat: torch.Tensor, basis: dict) -> torch.Tensor:
         """

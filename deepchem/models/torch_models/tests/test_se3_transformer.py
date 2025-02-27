@@ -11,10 +11,11 @@ except ModuleNotFoundError:
 
 
 @pytest.mark.torch
-def test_bn_layer():
-    from deepchem.models.torch_models.layers import BN
+def test_se3_layer_norm():
+    """Test SE3LayerNorm layer."""
+    from deepchem.models.torch_models.layers import SE3LayerNorm
     batch_size, num_channels = 10, 30
-    layer = BN(num_channels)
+    layer = SE3LayerNorm(num_channels)
     x = torch.randn(batch_size, num_channels)
     output = layer(x)
 
@@ -27,9 +28,9 @@ def test_bn_layer():
 @pytest.mark.torch
 @pytest.mark.parametrize("num_freq, in_dim, out_dim, edge_dim", [(5, 10, 15, 3),
                                                                  (2, 8, 16, 2)])
-def test_radial_func(num_freq, in_dim, out_dim, edge_dim):
-    from deepchem.models.torch_models.layers import RadialFunc
-    layer = RadialFunc(num_freq, in_dim, out_dim, edge_dim)
+def test_se3radial_func(num_freq, in_dim, out_dim, edge_dim):
+    from deepchem.models.torch_models.layers import SE3RadialFunc
+    layer = SE3RadialFunc(num_freq, in_dim, out_dim, edge_dim)
     x = torch.randn(8, edge_dim + 1)
     output = layer(x)
 
@@ -82,11 +83,11 @@ def get_equivariant_basis(G, max_degree):
 @pytest.mark.torch
 @pytest.mark.parametrize("max_degree, nc_in, nc_out, edge_dim",
                          [(3, 32, 128, 5)])
-def test_pairwiseconv_equivariance(max_degree, nc_in, nc_out, edge_dim):
-    """Test SE(3) equivariance of PairwiseConv using a real molecular graph (CCO)."""
+def test_se3pairwiseconv_equivariance(max_degree, nc_in, nc_out, edge_dim):
+    """Test SE(3) equivariance of SE3PairwiseConv using a real molecular graph (CCO)."""
     from rdkit import Chem
     import dgl
-    from deepchem.models.torch_models.layers import PairwiseConv
+    from deepchem.models.torch_models.layers import SE3PairwiseConv
 
     # Load molecule and featurize
     mol = Chem.MolFromSmiles("CCO")
@@ -94,12 +95,12 @@ def test_pairwiseconv_equivariance(max_degree, nc_in, nc_out, edge_dim):
                                                     embeded=True)
     mol_graph = featurizer.featurize([mol])[0]
 
-    # Initialize PairwiseConv layer
-    pairwise_conv = PairwiseConv(degree_in=0,
-                                 nc_in=32,
-                                 degree_out=0,
-                                 nc_out=128,
-                                 edge_dim=5)
+    # Initialize SE3PairwiseConv layer
+    pairwise_conv = SE3PairwiseConv(degree_in=0,
+                                    nc_in=32,
+                                    degree_out=0,
+                                    nc_out=128,
+                                    edge_dim=5)
 
     G = dgl.graph((mol_graph.edge_index[0], mol_graph.edge_index[1]))
     G.ndata['f'] = torch.tensor(mol_graph.node_features,
