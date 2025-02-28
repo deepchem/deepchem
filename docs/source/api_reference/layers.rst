@@ -301,6 +301,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.DAGGather
   :members:
 
+.. autoclass:: deepchem.models.torch_models.chemnet_layers.Stem
+  :members:
+
 Flow Layers
 ^^^^^^^^^^^
 
