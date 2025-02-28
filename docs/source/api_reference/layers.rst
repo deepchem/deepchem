@@ -371,7 +371,10 @@ The following layers are used for implementing GROVER model as described in the 
 
 .. autoclass:: deepchem.models.torch_models.grover.SphericalHarmonics
   :members:
- 
+
+.. autoclass:: deepchem.models.torch_models.grover.Fiber
+  :members:
+
 Attention Layers
 ^^^^^^^^^^^^^^^^
 
