@@ -51,8 +51,7 @@ class Stem(nn.Module):
         self.conv_layer = nn.Conv2d(in_channels=in_channels,
                                     out_channels=out_channels,
                                     kernel_size=4,
-                                    stride=2,
-                                    padding=1)
+                                    stride=2)
 
         self.activation_layer = nn.ReLU(inplace=True)
 
