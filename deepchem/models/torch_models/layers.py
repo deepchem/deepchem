@@ -7536,6 +7536,7 @@ class SE3RadialFunc(nn.Module):
     >>> output = layer(x)
     >>> output.shape
     torch.Size([8, 15, 1, 10, 1, 5])
+
     References
     ----------
     .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
@@ -7659,6 +7660,7 @@ class SE3PairwiseConv(nn.Module):
     >>> output = pairwise_conv(feat, basis)
     >>> output.shape
     torch.Size([6, 128, 32])
+
     References
     ----------
     .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
