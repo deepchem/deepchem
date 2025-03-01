@@ -3,6 +3,11 @@ from deepchem.feat import Featurizer
 from deepchem.data import ImageDataset
 from typing import List
 
+try:
+    import pysam
+except ImportError:
+    pass
+
 
 class PileupFeaturizer(Featurizer):
     """
@@ -23,13 +28,19 @@ class PileupFeaturizer(Featurizer):
     >>> from deepchem.feat import RealignerFeaturizer, PileupFeaturizer
     >>> bamfile_path = 'deepchem/data/tests/example.bam'
     >>> reference_path = 'deepchem/data/tests/sample.fa'
-    >>> realigner_feat = RealignerFeaturizer()
-    >>> windows_haplotypes = realigner_feat.featurize((bamfile_path, reference_path))
+    >>> realign = RealignerFeaturizer()
+    >>> datapoint = (bamfile_path, reference_path)
+    >>> features = realign.featurize([datapoint])
+    >>> windows_haplotypes = features[0]
     >>> pileup_feat = PileupFeaturizer()
-    >>> features = pileup_feat.featurize((windows_haplotypes, reference_path))
-    >>> features
-    <ImageDataset X.shape: (15, 100, 221, 6), y.shape: (15,), w.shape: (15,), ids: [0 1 2 ... 12 13 14], task_names: [0]>
+    >>> datapoint = (windows_haplotypes, reference_path, 299, 299, 6)
+    >>> features = pileup_feat.featurize([datapoint])
 
+    Note
+    ----
+    This class requires pysam to be installed. Pysam can be used with
+    Linux or MacOS X. To use Pysam on Windows, use Windows Subsystem for
+    Linux(WSL).
 
     """
 
@@ -66,12 +77,18 @@ class PileupFeaturizer(Featurizer):
         """
         Featurizes a datapoint by generating pileup images.
 
-        Args:
-            datapoint (Tuple[List[Any], str]): A tuple containing
-            haplotypes and reference file path.
+        Parameters
+        ----------
 
-        Returns:
-            ImageDataset: An ImageDataset containing the images and labels.
+        datapoint : Tuple[List[Any], str]
+            A tuple containing haplotypes, reference file path,
+            height, width, and num_channels.
+
+        Returns
+        -------
+
+        ImageDataset
+            An ImageDataset containing the images and labels.
 
         """
         windows_haplotypes = datapoint[0]
@@ -91,7 +108,8 @@ class PileupFeaturizer(Featurizer):
             decoded_sequences.append(decoded_seq)
 
         # Map the sequences to chrom names
-        chrom_names = ["chr1", "chr2"]
+        with pysam.FastaFile(reference_file_path) as fasta_file:
+            chrom_names = fasta_file.references
 
         reference_seq_dict = {
             chrom_names[i]: seq for i, seq in enumerate(decoded_sequences)
@@ -132,9 +150,9 @@ class PileupFeaturizer(Featurizer):
         def get_diff_from_ref_intensity(base, ref_base):
             return 1.0 if base != ref_base else 0.25
 
-        height = 221
-        width = 100
-        num_channels = 6
+        height = datapoint[2]  # 299
+        width = datapoint[3]  # 299
+        num_channels = datapoint[4]  # 6
 
         images = []
         labels = []

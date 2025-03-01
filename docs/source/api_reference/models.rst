@@ -558,6 +558,12 @@ RobustMultitaskClassifier
 .. autoclass:: deepchem.models.torch_models.RobustMultitaskClassifier
   :members:
 
+RobustMultitaskRegressor
+------------------------
+
+.. autoclass:: deepchem.models.torch_models.RobustMultitaskRegressor
+  :members:
+  
 Density Functional Theory Model - XCModel
 -----------------------------------------
 
@@ -568,6 +574,12 @@ TextCNNModel
 ------------
 
 .. autoclass:: deepchem.models.torch_models.TextCNNModel
+  :members:
+
+PINNModel
+---------
+
+.. autoclass:: deepchem.models.torch_models.PINNModel
   :members:
 
 UNetModel
@@ -610,6 +622,12 @@ InceptionV3Model
 ----------------
 
 .. autoclass:: deepchem.models.torch_models.InceptionV3Model
+  :members:
+
+MultitaskIRVClassifier
+----------------
+
+.. autoclass:: deepchem.models.torch_models.MultitaskIRVClassifier
   :members:
 
 PyTorch Lightning Models

@@ -6,6 +6,7 @@ from typing import List, Dict, Tuple, Any, Optional
 try:
     import dgl
     import torch
+    import pysam
 except ImportError:
     pass
 
@@ -606,8 +607,8 @@ class _Realigner(object):
 
     def fast_pass_aligner(self, assembled_region: Dict[str, Any]) -> List[Any]:
         """
-        Align reads to the haplotype of the assembled region using Striped Smith
-        Waterman algorithm.
+        Align reads to the haplotype of the assembled region using Striped
+        Smith Waterman algorithm.
 
         Parameters
         ----------
@@ -729,9 +730,8 @@ class RealignerFeaturizer(Featurizer):
     >>> bamfile_path = 'deepchem/data/tests/example.bam'
     >>> reference_path = 'deepchem/data/tests/sample.fa'
     >>> featurizer = RealignerFeaturizer()
-    >>> features = featurizer.featurize((bamfile_path, reference_path))
-    >>> type(features[0]['span'])
-    <class 'tuple'>
+    >>> datapoint = (bamfile_path, reference_path)
+    >>> features = featurizer.featurize([datapoint])
 
     Note
     ----
@@ -777,13 +777,17 @@ class RealignerFeaturizer(Featurizer):
         """
         Featurizes a datapoint by generating candidate regions and reads.
 
-        Args:
-            datapoint (Tuple[str, str]): A tuple containing two strings
-            representing allele counts and reads.
+        Parameters
+        ----------
 
-        Returns:
-            Tuple[List[Tuple[str, int, int, int]], List[Any]]: A tuple
-            containing the candidate regions and reads.
+        datapoint : Tuple[str, str]
+            A tuple containing two strings representing allele counts and reads.
+
+        Returns
+        -------
+
+        Tuple[List[Tuple[str, int, int, int]], List[Any]]
+            A tuple containing the candidate regions and reads.
 
         """
         bamfile_path = datapoint[0]
@@ -807,7 +811,8 @@ class RealignerFeaturizer(Featurizer):
             decoded_sequences.append(decoded_seq)
 
         # Map the sequences to chrom names
-        chrom_names = ["chr1", "chr2"]
+        with pysam.FastaFile(reference_file_path) as fasta_file:
+            chrom_names = fasta_file.references
 
         reference_seq_dict = {
             chrom_names[i]: seq for i, seq in enumerate(decoded_sequences)

@@ -4,9 +4,9 @@ import torch.nn.functional as F
 import logging
 from typing import List, Tuple, Callable, Literal, Union
 from typing import Sequence as SequenceCollection
+from deepchem.utils.typing import OneOrMany, ActivationFn
 from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models import losses
-from deepchem.utils.typing import OneOrMany, ActivationFn
 from deepchem.metrics import to_one_hot
 import datetime
 
@@ -209,6 +209,7 @@ class RobustMultitask(nn.Module):
             task_outputs.append(task_output)
 
         output = torch.stack(task_outputs, dim=1)
+
         if self.mode == 'classification':
             if self.n_tasks == 1:
                 logits = output.view(-1, self.n_classes)
@@ -252,7 +253,7 @@ class RobustMultitask(nn.Module):
             return activation_name
         else:
             raise ValueError(
-                f"Invalid activation function: {activation_name}. Only activations of type nn.Module"
+                f"Invalid activation function: {activation_name}. Only activations of type torch.nn.Module (torch.nn.functional activations are not supported yet!!)"
             )
 
 
@@ -410,3 +411,68 @@ class RobustMultitaskClassifier(TorchModel):
                     y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
                         -1, self.n_tasks, self.n_classes)
                 yield ([X_b], [y_b], [w_b])
+
+
+class RobustMultitaskRegressor(TorchModel):
+    """Implements a neural network for robust multitasking.
+
+    The key idea of this model is to have bypass layers that feed
+    directly from features to task output. This might provide some
+    flexibility toroute around challenges in multitasking with
+    destructive interference.
+
+    References
+    ----------
+    This technique was introduced in [1]_
+
+    .. [1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
+
+    """
+
+    def __init__(self,
+                 n_tasks,
+                 n_features,
+                 layer_sizes=[1000],
+                 weight_init_stddevs: OneOrMany[float] = 0.02,
+                 bias_init_consts: OneOrMany[float] = 1.0,
+                 weight_decay_penalty: float = 0.0,
+                 weight_decay_penalty_type: str = "l2",
+                 dropouts: OneOrMany[float] = 0.5,
+                 activation_fns: OneOrMany[ActivationFn] = nn.ReLU(),
+                 bypass_layer_sizes=[100],
+                 bypass_weight_init_stddevs=[.02],
+                 bypass_bias_init_consts=[1.0],
+                 bypass_dropouts=[0.5],
+                 **kwargs):
+
+        loss = losses.L2Loss()
+        output_types = ['prediction']
+        n_classes = 1
+
+        model = RobustMultitask(
+            n_tasks=n_tasks,
+            n_features=n_features,
+            layer_sizes=layer_sizes,
+            mode='regression',
+            weight_init_stddevs=weight_init_stddevs,
+            bias_init_consts=bias_init_consts,
+            weight_decay_penalty=weight_decay_penalty,
+            weight_decay_penalty_type=weight_decay_penalty_type,
+            activation_fns=activation_fns,
+            dropouts=dropouts,
+            n_classes=n_classes,
+            bypass_layer_sizes=bypass_layer_sizes,
+            bypass_weight_init_stddevs=bypass_weight_init_stddevs,
+            bypass_bias_init_consts=bypass_bias_init_consts,
+            bypass_dropouts=bypass_dropouts)
+
+        self.shared_layers = model.shared_layers
+        self.bypass_layers = model.bypass_layers
+        self.output_layers = model.output_layers
+
+        super(RobustMultitaskRegressor,
+              self).__init__(model,
+                             loss,
+                             output_types=output_types,
+                             regularization_loss=model.regularization_loss,
+                             **kwargs)

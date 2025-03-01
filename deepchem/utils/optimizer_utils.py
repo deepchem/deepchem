@@ -4,7 +4,8 @@ try:
     from torch.optim import Optimizer
 except:
     pass
-from deepchem.utils.typing import Betas2, Params, Optional, Callable, Any
+from deepchem.utils.typing import Betas2, Params, Callable, Any
+from typing import Optional
 
 
 class LambOptimizer(Optimizer):
@@ -35,7 +36,7 @@ class LambOptimizer(Optimizer):
     Example
     -------
     >>> import deepchem as dc
-    >>> from deepchem.utils.optimizer_utils.lamb import LambOptimizer
+    >>> from deepchem.utils.optimizer_utils import LambOptimizer
     >>> import torch.nn as nn
     >>> model = nn.Sequential(nn.Linear(10, 1))
     >>> input = torch.randn((5, 10))

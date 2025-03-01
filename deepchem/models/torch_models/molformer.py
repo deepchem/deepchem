@@ -1,5 +1,10 @@
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
 from transformers import AutoTokenizer, AutoModelForMaskedLM, AutoConfig, AutoModelForSequenceClassification
+try:
+    import torch
+    has_torch = True
+except:
+    has_torch = False
 
 
 class MoLFormer(HuggingFaceModel):
@@ -74,38 +79,28 @@ class MoLFormer(HuggingFaceModel):
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_path,
                                                   trust_remote_code=True)
         molformer_config = AutoConfig.from_pretrained(
-            "ibm/MoLFormer-XL-both-10pct",
-            deterministic_eval=True,
-            trust_remote_code=True)
+            "ibm/MoLFormer-XL-both-10pct", trust_remote_code=True)
         if task == 'mlm':
             model = AutoModelForMaskedLM.from_config(molformer_config,
                                                      trust_remote_code=True)
         elif task == 'mtr':
-            problem_type = 'regression'
-            model = AutoModelForSequenceClassification.from_pretrained(
-                "ibm/MoLFormer-XL-both-10pct",
-                problem_type=problem_type,
-                num_labels=n_tasks,
-                deterministic_eval=True,
-                trust_remote_code=True)
+            molformer_config.problem_type = 'regression'
+            molformer_config.num_labels = n_tasks
+            model = AutoModelForSequenceClassification.from_config(
+                config=molformer_config, trust_remote_code=True)
         elif task == 'regression':
-            problem_type = 'regression'
-            model = AutoModelForSequenceClassification.from_pretrained(
-                "ibm/MoLFormer-XL-both-10pct",
-                problem_type=problem_type,
-                num_labels=n_tasks,
-                deterministic_eval=True,
-                trust_remote_code=True)
+            molformer_config.problem_type = 'regression'
+            molformer_config.num_labels = n_tasks
+            model = AutoModelForSequenceClassification.from_config(
+                config=molformer_config, trust_remote_code=True)
         elif task == 'classification':
             if n_tasks == 1:
-                problem_type = 'single_label_classification'
+                molformer_config.problem_type = 'single_label_classification'
             else:
-                problem_type = 'multi_label_classification'
-            model = AutoModelForSequenceClassification.from_pretrained(
-                "ibm/MoLFormer-XL-both-10pct",
-                problem_type=problem_type,
-                deterministic_eval=True,
-                trust_remote_code=True)
+                molformer_config.num_labels = n_tasks
+                molformer_config.problem_type = 'multi_label_classification'
+            model = AutoModelForSequenceClassification.from_config(
+                molformer_config, trust_remote_code=True)
         else:
             raise ValueError('invalid task specification')
 
@@ -113,3 +108,44 @@ class MoLFormer(HuggingFaceModel):
                                         task=task,
                                         tokenizer=tokenizer,
                                         **kwargs)
+
+    def _prepare_batch(self, batch):
+        """
+        Prepares a batch of data for the model based on the specified task. It overrides the _prepare_batch
+        of parent class for the following condition:-
+
+        - When n_task == 1 and task == 'classification', CrossEntropyLoss is used which takes input in
+        long int format.
+        - When n_task > 1 and task == 'classification', BCEWithLogitsLoss is used which takes input in
+        float format.
+        """
+        smiles_batch, y, w = batch
+        tokens = self.tokenizer(smiles_batch[0].tolist(),
+                                padding=True,
+                                return_tensors="pt")
+
+        if self.task == 'mlm':
+            inputs, labels = self.data_collator.torch_mask_tokens(
+                tokens['input_ids'])
+            inputs = {
+                'input_ids': inputs.to(self.device),
+                'labels': labels.to(self.device),
+                'attention_mask': tokens['attention_mask'].to(self.device),
+            }
+            return inputs, None, w
+        elif self.task in ['regression', 'classification', 'mtr']:
+            if y is not None:
+                # y is None during predict
+                y = torch.from_numpy(y[0])
+                if self.task == 'regression' or self.task == 'mtr':
+                    y = y.float().to(self.device)
+                elif self.task == 'classification':
+                    if self.n_tasks == 1:
+                        y = y.long().to(self.device)
+                    else:
+                        y = y.float().to(self.device)
+            for key, value in tokens.items():
+                tokens[key] = value.to(self.device)
+
+            inputs = {**tokens, 'labels': y}
+            return inputs, y, w

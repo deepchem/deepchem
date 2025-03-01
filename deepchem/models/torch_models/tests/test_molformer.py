@@ -1,4 +1,5 @@
 import os
+import random
 import deepchem as dc
 import numpy as np
 import pytest
@@ -113,3 +114,155 @@ def test_molformer_save_reload(tmpdir):
 
     # all keys values should match
     assert all(matches)
+
+
+@pytest.mark.hf
+def test_molformer_finetuning_multitask_classification():
+    # test multitask classification
+    loader = dc.molnet.load_clintox(featurizer=dc.feat.DummyFeaturizer())
+    tasks, dataset, transformers = loader
+    train, val, test = dataset
+    train_sample = train.select(range(10))
+    test_sample = test.select(range(10))
+
+    model = MoLFormer(task='classification', n_tasks=len(tasks))
+    loss = model.fit(train_sample, nb_epoch=1)
+    eval_score = model.evaluate(test_sample,
+                                metrics=dc.metrics.Metric(
+                                    dc.metrics.roc_auc_score))
+    assert eval_score, loss
+    prediction = model.predict(test_sample)
+    # logit scores
+    assert prediction.shape == (test_sample.y.shape[0], len(tasks))
+
+
+@pytest.mark.hf
+def test_molformer_finetuning_multitask_regression():
+    # test multitask regression
+
+    cwd = os.path.dirname(os.path.abspath(__file__))
+    input_file = os.path.join(cwd,
+                              '../../tests/assets/multitask_regression.csv')
+
+    loader = dc.data.CSVLoader(tasks=['task0', 'task1'],
+                               feature_field='smiles',
+                               featurizer=dc.feat.DummyFeaturizer())
+    dataset = loader.create_dataset(input_file)
+    model = MoLFormer(task='regression', n_tasks=2)
+    loss = model.fit(dataset, nb_epoch=1)
+    eval_score = model.evaluate(dataset,
+                                metrics=dc.metrics.Metric(
+                                    dc.metrics.mean_absolute_error))
+
+    assert loss, eval_score
+    prediction = model.predict(dataset)
+    assert prediction.shape == dataset.y.shape
+
+
+def set_seed(seed=42):
+
+    random.seed(seed)  # Python random module
+    np.random.seed(seed)  # NumPy
+    torch.manual_seed(seed)  # PyTorch CPU
+    torch.cuda.manual_seed(seed)  # PyTorch GPU
+    torch.cuda.manual_seed_all(seed)  # All GPUs (if using multi-GPU)
+
+    # Ensures reproducibility in convolution operations
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+@pytest.mark.hf
+def test_random_weight_initialization_regression():
+    # test model initialization for regression
+
+    set_seed(10)
+    model1 = MoLFormer(task='regression', n_tasks=2)
+
+    set_seed(25)
+    model2 = MoLFormer(task='regression', n_tasks=2)
+
+    model1_state_dict = model1.model.state_dict()
+    model2_state_dict = model2.model.state_dict()
+
+    model1_keys = [
+        key for key in model1_state_dict.keys() if 'molformer' in key
+    ]
+    matches = [
+        torch.allclose(model1_state_dict[key], model2_state_dict[key])
+        for key in model1_keys
+    ]
+    print(matches)
+    assert not all(matches)
+
+
+@pytest.mark.hf
+def test_random_weight_initialization_mlm():
+    # test model initialization for mlm
+
+    set_seed(10)
+    model1 = MoLFormer(task='mlm', n_tasks=2)
+
+    set_seed(25)
+    model2 = MoLFormer(task='mlm', n_tasks=2)
+
+    model1_state_dict = model1.model.state_dict()
+    model2_state_dict = model2.model.state_dict()
+
+    model1_keys = [
+        key for key in model1_state_dict.keys() if 'molformer' in key
+    ]
+    matches = [
+        torch.allclose(model1_state_dict[key], model2_state_dict[key])
+        for key in model1_keys
+    ]
+    print(matches)
+    assert not all(matches)
+
+
+@pytest.mark.hf
+def test_random_weight_initialization_mtr():
+    # test model initialization for mtr
+
+    set_seed(10)
+    model1 = MoLFormer(task='mtr', n_tasks=2)
+
+    set_seed(25)
+    model2 = MoLFormer(task='mtr', n_tasks=2)
+
+    model1_state_dict = model1.model.state_dict()
+    model2_state_dict = model2.model.state_dict()
+
+    model1_keys = [
+        key for key in model1_state_dict.keys() if 'molformer' in key
+    ]
+    matches = [
+        torch.allclose(model1_state_dict[key], model2_state_dict[key])
+        for key in model1_keys
+    ]
+    print(matches)
+    assert not all(matches)
+
+
+@pytest.mark.hf
+def test_random_weight_initialization_classification():
+    # test model initialization for classification
+
+    set_seed(10)
+    model1 = MoLFormer(task='classification', n_tasks=2)
+
+    set_seed(25)
+    model2 = MoLFormer(task='classification', n_tasks=2)
+
+    model1_state_dict = model1.model.state_dict()
+    model2_state_dict = model2.model.state_dict()
+
+    model1_keys = [
+        key for key in model1_state_dict.keys() if 'molformer' in key
+    ]
+    matches = [
+        torch.allclose(model1_state_dict[key], model2_state_dict[key])
+        for key in model1_keys
+    ]
+    print(matches)
+    assert not all(matches)

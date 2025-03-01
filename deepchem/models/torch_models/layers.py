@@ -1201,7 +1201,7 @@ class GraphNetwork(torch.nn.Module):
             global_features: Tensor,
             batch: Optional[Tensor] = None) -> Tuple[Tensor, Tensor, Tensor]:
         """Output computation for a GraphNetwork
-
+        
         Parameters
         ----------
         node_features: torch.Tensor
@@ -2746,7 +2746,7 @@ class AtomicConv(nn.Module):
                 layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
                 activation_fns):
             layer = self.prev_layer
-            if next_activation is not None:
+            if next_activation is not None and callable(next_activation):
                 layer = next_activation(layer)
             linear = nn.Linear(prev_size, size)
             nn.init.trunc_normal_(linear.weight, std=weight_stddev)
@@ -6829,3 +6829,628 @@ class SE3Attention(nn.Module):
         coords = coords + 0.01 * coords_update
 
         return x, coords
+
+
+def _DAGgraph_step(batch_inputs: torch.Tensor,
+                   W_layers: nn.ParameterList,
+                   b_layers: nn.ParameterList,
+                   activation_fn: Callable[[torch.Tensor], torch.Tensor],
+                   dropouts: List[Optional[nn.Dropout]],
+                   training: bool = True) -> torch.Tensor:
+    """
+    Perform a single step of computation in the DAG graph.
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models.layers import _DAGgraph_step
+    >>> batch_size, n_graph_feat, n_atom_feat, max_atoms = 10, 30, 75, 50
+    >>> layer_sizes = [100]
+    >>> layers = [nn.Parameter(torch.randn(n_atom_feat, layer_sizes[0]))]
+    >>> bias = [nn.Parameter(torch.randn(layer_sizes[0]))]
+    >>> dropouts = [None]
+    >>> activation_fn = torch.nn.ReLU()
+    >>> batch_inputs = torch.randn(batch_size, n_atom_feat)
+    >>> outputs = _DAGgraph_step(batch_inputs, layers, bias, activation_fn, dropouts)
+    """
+    outputs = batch_inputs
+    for i, (d, w, b) in enumerate(zip(dropouts, W_layers, b_layers)):
+        outputs = torch.matmul(outputs, w) + b
+        outputs = activation_fn(outputs)
+        if d is not None and training:
+            outputs = d(outputs)
+    return outputs
+
+
+class DAGLayer(nn.Module):
+    """
+    DAG computation layer implemented in PyTorch.
+    It is used to compute graph features for each atom with it's neighbors recursively.
+    
+    Example
+    -------
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models.layers import DAGLayer
+    >>> np.random.seed(123)
+    >>> batch_size, n_graph_feat, n_atom_feat, max_atoms = 10, 30, 75, 50
+    >>> layer_sizes = [100]
+    >>> layer = DAGLayer(n_graph_feat, n_atom_feat, max_atoms, layer_sizes)
+    >>> atom_features = np.random.rand(batch_size, n_atom_feat)
+    >>> parents = np.random.randint(0, max_atoms, (batch_size, max_atoms, max_atoms))
+    >>> calc_orders = np.random.randint(0, batch_size, (batch_size, max_atoms))
+    >>> calc_masks = np.random.randint(0, 2, (batch_size, max_atoms))
+    >>> n_atoms = batch_size
+    >>> outputs = layer([atom_features, parents, calc_orders, calc_masks, np.array(n_atoms)])
+
+    References
+    ----------
+    .. [1] Lusci Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575. https://pmc.ncbi.nlm.nih.gov/articles/PMC3739985
+    """
+
+    def __init__(self,
+                 n_graph_feat: int = 30,
+                 n_atom_feat: int = 75,
+                 max_atoms: int = 50,
+                 layer_sizes: List[int] = [100],
+                 init: str = 'xavier_uniform',
+                 activation: str = 'relu',
+                 dropout: Optional[float] = None,
+                 batch_size: int = 64,
+                 device: Optional[torch.device] = torch.device('cpu'),
+                 **kwargs: Any) -> None:
+        """
+        Parameters
+        ----------
+        n_graph_feat: int, optional
+            Number of features for each node(and the whole grah).
+        n_atom_feat: int, optional
+            Number of features listed per atom.
+        max_atoms: int, optional
+            Maximum number of atoms in molecules.
+        layer_sizes: list of int, optional(default=[100])
+            List of hidden layer size(s):
+            length of this list represents the number of hidden layers,
+            and each element is the width of corresponding hidden layer.
+        init: str, optional
+            Weight initialization for filters.
+        activation: str, optional
+            Activation function applied.
+        dropout: float, optional
+            Dropout probability in hidden layer(s).
+        batch_size: int, optional
+            number of molecules in a batch.
+        device: str, optional
+            Device used for computation
+        """
+        super(DAGLayer, self).__init__(**kwargs)
+        self.init: str = init
+        self.activation: str = activation
+        self.activation_fn: Callable[..., torch.Tensor] = getattr(F, activation)
+        self.layer_sizes: List[int] = layer_sizes
+        self.dropout: Optional[float] = dropout
+        self.max_atoms: int = max_atoms
+        self.batch_size: int = batch_size
+        self.n_inputs: int = n_atom_feat + (self.max_atoms - 1) * n_graph_feat
+        self.n_graph_feat: int = n_graph_feat
+        self.n_outputs: int = n_graph_feat
+        self.n_atom_feat: int = n_atom_feat
+        self.device: Optional[torch.device] = device
+        self.W_layers: nn.ParameterList = nn.ParameterList()
+        self.b_layers: nn.ParameterList = nn.ParameterList()
+        self.dropouts: List[Optional[nn.Dropout]] = []
+
+        prev_layer_size: int = self.n_inputs
+        for layer_size in self.layer_sizes:
+            self.W_layers.append(
+                nn.Parameter(torch.randn(prev_layer_size, layer_size)))
+            self.b_layers.append(nn.Parameter(torch.zeros(layer_size)))
+            self.dropouts.append(
+                nn.Dropout(p=self.dropout) if self.dropout else None)
+            prev_layer_size = layer_size
+        self.W_layers.append(
+            nn.Parameter(torch.randn(prev_layer_size, self.n_outputs)))
+        self.b_layers.append(nn.Parameter(torch.zeros(self.n_outputs)))
+        self.dropouts.append(
+            nn.Dropout(p=self.dropout) if self.dropout else None)
+        self._initialize_weights()
+
+    def get_config(self) -> Dict[str, Any]:
+        """
+        Get the configuration of the DAGLayer.
+        """
+        config: Dict[str, Any] = {}
+        config['n_graph_feat'] = self.n_graph_feat
+        config['n_atom_feat'] = self.n_atom_feat
+        config['max_atoms'] = self.max_atoms
+        config['layer_sizes'] = self.layer_sizes
+        config['init'] = self.init
+        config['activation'] = self.activation
+        config['dropout'] = self.dropout
+        config['batch_size'] = self.batch_size
+        return config
+
+    def _initialize_weights(self) -> None:
+        for w, b in zip(self.W_layers, self.b_layers):
+            if self.init in ['glorot_uniform', "xavier_uniform"]:
+                nn.init.xavier_uniform_(w)
+                nn.init.zeros_(b)
+            elif self.init == ['glorot_normal', "xavier_normal"]:
+                nn.init.xavier_normal_(w)
+                nn.init.zeros_(b)
+            else:
+                raise ValueError(f"Unsupported init: {self.init}")
+
+    def forward(self,
+                inputs: Tuple[Union[torch.Tensor, np.ndarray],
+                              Union[torch.Tensor,
+                                    np.ndarray], Union[torch.Tensor,
+                                                       np.ndarray],
+                              Union[torch.Tensor,
+                                    np.ndarray], Union[torch.Tensor,
+                                                       np.ndarray]],
+                training: bool = True) -> torch.Tensor:
+        """
+        Parameters
+        ----------
+        inputs : List[Union[torch.Tensor, np.ndarray]]
+            A list of tensors containing:
+            1. atom_features of shape `(batch_size, n_atom_feat)`
+            2. parents of shape `(batch_size, max_atoms, max_atoms)`
+            3. calculation_orders of shape `(batch_size, max_atoms)`
+            4. calculation_masks of shape `(batch_size, max_atoms)`
+            5. n_atoms (scalar value representing number of atoms)
+        training : bool, optional
+            Whether the model is training or not, by default True
+
+        Returns
+        -------
+        torch.Tensor
+            Output feature tensor of shape `(number of max_atom-th target atoms, n_outputs)`.
+        """
+        atom_features, parents, calculation_orders, calculation_masks, n_atoms = inputs
+        # each atom corresponds to a graph, which is represented by the `max_atoms*max_atoms` int32 matrix of index
+        # each gragh include `max_atoms` of steps(corresponding to rows) of calculating graph features
+
+        n_atoms = n_atoms.squeeze()
+        graph_features = torch.zeros((self.batch_size * self.max_atoms,
+                                      self.max_atoms + 1, self.n_graph_feat),
+                                     device=self.device)
+
+        if not isinstance(atom_features, torch.Tensor):
+            atom_features = torch.tensor(atom_features,
+                                         dtype=torch.float32,
+                                         device=self.device)
+        if not isinstance(parents, torch.Tensor):
+            parents = torch.tensor(parents,
+                                   dtype=torch.int32,
+                                   device=self.device)
+        if not isinstance(calculation_orders, torch.Tensor):
+            calculation_orders = torch.tensor(calculation_orders,
+                                              dtype=torch.int32,
+                                              device=self.device)
+        if not isinstance(calculation_masks, torch.Tensor):
+            calculation_masks = torch.tensor(calculation_masks,
+                                             dtype=torch.bool,
+                                             device=self.device)
+        arange = torch.arange(int(n_atoms), device=self.device)
+
+        batch_outputs = torch.zeros(0, device=self.device)
+        for count in range(self.max_atoms):
+            # extracting atom features of target atoms: (batch_size*max_atoms) * n_atom_features
+            mask = calculation_masks[:, count]
+            current_round = torch.masked_select(calculation_orders[:, count],
+                                                mask)
+            batch_atom_features = torch.index_select(atom_features, 0,
+                                                     current_round)
+            # generating index for graph features used in the inputs
+            stack1 = torch.repeat_interleave(torch.masked_select(arange, mask),
+                                             self.max_atoms - 1)
+            stack2 = torch.masked_select(parents[:, count, 1:],
+                                         mask.unsqueeze(-1)).view(
+                                             -1, self.max_atoms - 1).flatten()
+            index = torch.stack([stack1, stack2], dim=1)
+            # extracting graph features for parents of the target atoms, then flatten
+            # shape: (batch_size*max_atoms) * [(max_atoms-1)*n_graph_features]
+            batch_graph_features = graph_features[index[:, 0],
+                                                  index[:, 1]].reshape(
+                                                      -1, (self.max_atoms - 1) *
+                                                      self.n_graph_feat)
+            # concat into the input tensor: (batch_size*max_atoms) * n_inputs
+            batch_inputs = torch.cat(
+                [batch_atom_features, batch_graph_features], dim=1)
+            # DAGgraph_step maps from batch_inputs to a batch of graph_features
+            # of shape: (batch_size*max_atoms) * n_graph_features
+            # representing the graph features of target atoms in each graph
+            batch_outputs = _DAGgraph_step(batch_inputs,
+                                           self.W_layers,
+                                           self.b_layers,
+                                           self.activation_fn,
+                                           self.dropouts,
+                                           training=training)
+            # index for target atoms
+            target_index = torch.stack([arange, parents[:, count, 0]], dim=1)
+            target_index = target_index[mask]
+            graph_features[target_index[:, 0], target_index[:,
+                                                            1]] = batch_outputs
+
+        return batch_outputs
+
+
+class DAGGather(nn.Module):
+    """
+    DAG vector gathering layer in PyTorch.
+    It is used to gather graph features and combine them based on their membership.
+    
+    Example
+    -------
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models.layers import DAGGather
+    >>> np.random.seed(123)
+    >>> batch_size, n_graph_feat, n_atom_feat, n_outputs = 10, 30, 30, 75
+    >>> max_atoms = 50
+    >>> layer_sizes = [100]
+    >>> layer = DAGGather(n_graph_feat, n_outputs, max_atoms, layer_sizes)
+    >>> atom_features = np.random.rand(batch_size, n_atom_feat)
+    >>> membership = np.sort(np.random.randint(0, batch_size, size=(batch_size)))
+    >>> outputs = layer([atom_features, membership])
+
+    References
+    ----------
+    .. [1] Lusci Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575. https://pmc.ncbi.nlm.nih.gov/articles/PMC3739985
+    """
+
+    def __init__(self,
+                 n_graph_feat: int = 30,
+                 n_outputs: int = 30,
+                 max_atoms: int = 50,
+                 layer_sizes: List[int] = [100],
+                 init: str = 'glorot_uniform',
+                 activation: str = 'relu',
+                 dropout: Optional[float] = None,
+                 device: Optional[torch.device] = torch.device('cpu'),
+                 **kwargs: Any) -> None:
+        """
+        Parameters
+        ----------
+        n_graph_feat: int, optional
+            Number of features for each atom.
+        n_outputs: int, optional
+            Number of features for each molecule.
+        max_atoms: int, optional
+            Maximum number of atoms in molecules.
+        layer_sizes: list of int, optional
+            List of hidden layer size(s):
+            length of this list represents the number of hidden layers,
+            and each element is the width of corresponding hidden layer.
+        init: str, optional
+            Weight initialization for filters.
+        activation: str, optional
+            Activation function applied.
+        dropout: float, optional
+            Dropout probability in the hidden layer(s).
+        device: str, optional
+            Device used for computation
+        """
+        super(DAGGather, self).__init__(**kwargs)
+        self.n_graph_feat: int = n_graph_feat
+        self.n_outputs: int = n_outputs
+        self.max_atoms: int = max_atoms
+        self.layer_sizes: List[int] = layer_sizes
+        self.init: str = init
+        self.activation: str = activation
+        self.dropout: Optional[float] = dropout
+        self.activation_fn: Callable[..., torch.Tensor] = getattr(F, activation)
+        self.device: Optional[torch.device] = device
+        self.W_layers: nn.ParameterList = nn.ParameterList()
+        self.b_layers: nn.ParameterList = nn.ParameterList()
+        self.dropouts: List[Optional[nn.Dropout]] = []
+
+        prev_layer_size: int = n_graph_feat
+        for layer_size in self.layer_sizes:
+            self.W_layers.append(
+                nn.Parameter(torch.randn(prev_layer_size, layer_size)))
+            self.b_layers.append(nn.Parameter(torch.zeros(layer_size)))
+            self.dropouts.append(
+                nn.Dropout(p=self.dropout) if self.dropout else None)
+            prev_layer_size = layer_size
+        self.W_layers.append(
+            nn.Parameter(torch.randn(prev_layer_size, self.n_outputs)))
+        self.b_layers.append(nn.Parameter(torch.zeros(self.n_outputs)))
+        self.dropouts.append(
+            nn.Dropout(p=self.dropout) if self.dropout else None)
+        self._initialize_weights()
+
+    def get_config(self) -> Dict[str, Any]:
+        """
+        Returns a dictionary containing the configuration of the layer.
+        """
+        config: Dict[str, Any] = {}
+        config['n_graph_feat'] = self.n_graph_feat
+        config['n_outputs'] = self.n_outputs
+        config['max_atoms'] = self.max_atoms
+        config['layer_sizes'] = self.layer_sizes
+        config['init'] = self.init
+        config['activation'] = self.activation
+        config['dropout'] = self.dropout
+        return config
+
+    def _initialize_weights(self) -> None:
+        for w, b in zip(self.W_layers, self.b_layers):
+            if self.init in ['glorot_uniform', "xavier_uniform"]:
+                nn.init.xavier_uniform_(w)
+                nn.init.zeros_(b)
+            elif self.init == ['glorot_normal', "xavier_normal"]:
+                nn.init.xavier_normal_(w)
+                nn.init.zeros_(b)
+            else:
+                raise ValueError(f"Unsupported init: {self.init}")
+
+    def forward(self,
+                inputs: Tuple[Union[torch.Tensor, np.ndarray],
+                              Union[torch.Tensor, np.ndarray]],
+                training: bool = True) -> torch.Tensor:
+        """
+        Parameters
+        ----------
+        inputs : List[Union[torch.Tensor, np.ndarray]]
+            A list of tensors containing:
+            1. atom_features of shape `(batch_size, n_graph_feat)`
+            2. membership of shape `(batch_size,)` with sorted membership indices
+        training : bool, optional
+            Whether the model is training or not, by default True
+
+        Returns
+        -------
+        torch.Tensor
+            Output feature tensor of shape `(membership.max() + 1, n_outputs)`.
+        """
+        atom_features, membership = inputs
+
+        if not isinstance(membership, torch.Tensor):
+            membership = torch.tensor(membership,
+                                      dtype=torch.long,
+                                      device=self.device)
+        if not isinstance(atom_features, torch.Tensor):
+            atom_features = torch.tensor(atom_features,
+                                         dtype=torch.float32,
+                                         device=self.device)
+
+        graph_features = torch.zeros(
+            int(membership.max().item()) + 1,
+            int(atom_features.shape[1])).to(self.device)
+
+        graph_features = graph_features.scatter_add_(
+            0,
+            membership.unsqueeze(-1).expand(-1, atom_features.shape[1]),
+            atom_features)
+
+        outputs = _DAGgraph_step(graph_features,
+                                 self.W_layers,
+                                 self.b_layers,
+                                 self.activation_fn,
+                                 self.dropouts,
+                                 training=training)
+        return outputs
+
+
+def cosine_dist(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the cosine similarity (inner product) between two tensors.
+
+    Parameters
+    ----------
+    x: torch.Tensor
+        Input tensor of shape `(B, N, P)` representing the first set of vectors.
+    y: torch.Tensor
+        Input tensor of shape `(B, M, P)` representing the second set of vectors.
+
+    Returns
+    -------
+    torch.Tensor
+        Cosine similarity tensor of shape `(B, N, M)` where each entry represents the cosine similarity
+        between vectors from `x` and `y`.
+
+    Examples
+    --------
+    The cosine similarity between two equivalent vectors will be 1. The cosine
+    similarity between two equivalent tensors (tensors where all the elements are
+    the same) will be a tensor of 1s. In this scenario, if the input tensors `x` and
+    `y` are each of shape `(n,p)`, where each element in `x` and `y` is the same, then
+    the output tensor would be a tensor of shape `(n,n)` with 1 in every entry.
+
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> import deepchem.models.torch_models.layers as torch_layers
+    >>> x = torch.ones((6, 4), dtype=torch.float32)
+    >>> y_same = torch.ones((6, 4), dtype=torch.float32)
+    >>> cos_sim_same = torch_layers.cosine_dist(x, y_same)
+
+    `x` and `y_same` are the same tensor (equivalent at every element, in this
+    case 1). As such, the pairwise inner product of the rows in `x` and `y` will
+    always be 1. The output tensor will be of shape (6,6).
+
+    >>> diff = cos_sim_same - torch.ones((6, 6), dtype=torch.float32)
+    >>> np.allclose(0.0, diff.sum().item(), atol=1e-05)
+    True
+    >>> cos_sim_same.shape
+    torch.Size([6, 6])
+
+    The cosine similarity between two orthogonal vectors will be 0 (by definition).
+    If every row in `x` is orthogonal to every row in `y`, then the output will be a
+    tensor of 0s. In the following example, each row in the tensor `x1` is orthogonal
+    to each row in `x2` because they are halves of an identity matrix.
+
+    >>> identity_tensor = torch.eye(512, dtype=torch.float32)
+    >>> x1 = identity_tensor[0:256,:]
+    >>> x2 = identity_tensor[256:512,:]
+    >>> cos_sim_orth = torch_layers.cosine_dist(x1, x2)
+
+    Each row in `x1` is orthogonal to each row in `x2`. As such, the pairwise inner
+    product of the rows in `x1` and `x2` will always be 0. Furthermore, because the
+    shape of the input tensors are both of shape `(256,512)`, the output tensor will
+    be of shape `(256,256)`.
+
+    >>> np.allclose(0.0, cos_sim_orth.sum().item(), atol=1e-05)
+    True
+    >>> cos_sim_orth.shape
+    torch.Size([256, 256])
+
+    """
+
+    x_norm = torch.nn.functional.normalize(x, p=2, dim=-1)
+    y_norm = torch.nn.functional.normalize(y, p=2, dim=-1)
+
+    cosine_similarity = torch.matmul(x_norm, y_norm.transpose(-1, -2))
+    return cosine_similarity
+
+
+class Fiber(object):
+    """
+    Data Structure for Fibers in SE(3)-Transformers.
+    
+    Fibers represent structured feature spaces used in equivariant neural networks,
+    particularly in SE(3)-Transformer models. This class provides utilities for
+    defining, manipulating, and combining fiber structures.
+    
+    Example
+    -------
+    >>> from deepchem.models.torch_models.layers import Fiber
+    >>> fiber1 = Fiber(num_degrees=3, num_channels=16)
+    >>> fiber2 = Fiber(dictionary={0: 16, 1: 8, 2: 4})
+    >>> combined_fiber = Fiber.combine(fiber1, fiber2)
+    >>> combined_fiber.structure
+    [(32, 0), (24, 1), (20, 2)]
+    >>> combined_fiber.multiplicities
+    (32, 24, 20)
+    
+    References
+    ----------
+    .. [1] Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling.
+           "SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks."
+           NeurIPS 2020. https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self,
+                 num_degrees: Optional[int] = None,
+                 num_channels: Optional[int] = None,
+                 structure: Optional[List[Tuple[int, int]]] = None,
+                 dictionary: Optional[Dict[int, int]] = None) -> None:
+        """
+        Initialize a Fiber structure.
+        
+        Parameters
+        ----------
+        num_degrees : int, optional
+            Maximum degree of fiber representation.
+        num_channels : int, optional
+            Number of channels per degree.
+        structure : List[Tuple[int, int]], optional
+            Custom fiber structure as (num_channels, degree) pairs.
+        dictionary : dict, optional
+            Dictionary representation {degree: num_channels}.
+        """
+        if structure:
+            self.structure = structure
+        elif dictionary:
+            self.structure = [
+                (dictionary[o], o) for o in sorted(dictionary.keys())
+            ]
+        elif num_degrees is not None and num_channels is not None:  # Ensure valid values
+            self.structure = [(num_channels, i) for i in range(num_degrees)]
+        else:
+            raise ValueError(
+                "Either 'structure', 'dictionary', or both 'num_degrees' and 'num_channels' must be provided."
+            )
+
+        self.multiplicities, self.degrees = zip(*self.structure)
+        self.max_degree = max(self.degrees)
+        self.min_degree = min(self.degrees)
+        self.structure_dict = {k: v for v, k in self.structure}
+        self.n_features = np.sum(
+            [i[0] * (2 * i[1] + 1) for i in self.structure])
+
+        self.feature_indices = {}
+        lengths = [
+            num_channels * (2 * d + 1) for num_channels, d in self.structure
+        ]
+        indices = [0] + list(itertools.accumulate(lengths))
+        self.feature_indices = {
+            d: (indices[i], indices[i + 1])
+            for i, (_, d) in enumerate(self.structure)
+        }
+
+    @staticmethod
+    def combine(f1: "Fiber", f2: "Fiber") -> "Fiber":
+        """
+        This method takes two Fiber instances and merges their structures by adding the number 
+        of channels (multiplicities) for degrees that appear in both fibers.
+        
+        Parameters
+        ----------
+        f1 : Fiber
+            First fiber to combine.
+        f2 : Fiber
+            Second fiber to combine.
+
+        Returns
+        -------
+        Fiber
+            A new fiber with combined structure.
+
+        Example
+        -------
+        >>> from deepchem.models.torch_models.layers import Fiber
+        >>> fiber1 = Fiber(dictionary={0: 16, 1: 8})
+        >>> fiber2 = Fiber(dictionary={1: 8, 2: 4})
+        >>> combined = Fiber.combine(fiber1, fiber2)
+        >>> combined.structure
+        [(16, 0), (16, 1), (4, 2)]
+        >>> combined.multiplicities
+        (16, 16, 4)
+        """
+        f1_dict = f1.structure_dict.copy()
+        for k, m in f2.structure_dict.items():
+            if k in f1_dict:
+                f1_dict[k] += m
+            else:
+                f1_dict[k] = m
+        structure = [(f1_dict[k], k) for k in sorted(f1_dict.keys())]
+        return Fiber(structure=structure)
+
+    @staticmethod
+    def combine_max(f1: "Fiber", f2: "Fiber") -> "Fiber":
+        """   
+        This method merges two `Fiber` instances by taking the maximum number of 
+        channels (multiplicities) for degrees that appear in both fibers.
+
+        Parameters
+        ----------
+        f1 : Fiber
+            First fiber to combine.
+        f2 : Fiber
+            Second fiber to combine.
+        
+        Returns
+        -------
+        Fiber
+            A new fiber with maximum multiplicities for each degree.
+        
+        Example
+        -------
+        >>> from deepchem.models.torch_models.layers import Fiber
+        >>> fiber1 = Fiber(dictionary={0: 16, 1: 8})
+        >>> fiber2 = Fiber(dictionary={1: 12, 2: 4})
+        >>> combined_max = Fiber.combine_max(fiber1, fiber2)
+        >>> combined_max.structure
+        [(16, 0), (12, 1), (4, 2)]
+        >>> combined_max.multiplicities
+        (16, 12, 4)
+        """
+        f1_dict = f1.structure_dict.copy()
+        for k, m in f2.structure_dict.items():
+            if k in f1_dict:
+                f1_dict[k] = max(m, f1_dict[k])
+            else:
+                f1_dict[k] = m
+        structure = [(f1_dict[k], k) for k in sorted(f1_dict.keys())]
+        return Fiber(structure=structure)

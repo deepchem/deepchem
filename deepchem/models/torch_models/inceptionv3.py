@@ -11,13 +11,16 @@ from deepchem.utils.typing import LossFn
 
 
 class InceptionV3(nn.Module):
+    """
+    InceptionV3 model architecture for image classification.
+    """
 
     def __init__(self,
-                 num_classes=1000,
-                 aux_logits=True,
+                 num_classes: int = 1000,
+                 aux_logits: bool = True,
                  transform_input: bool = False,
-                 in_channels=6,
-                 dropout_rate=0.5):
+                 in_channels: int = 6,
+                 dropout_rate: float = 0.5) -> None:
         super(InceptionV3, self).__init__()
         self.aux_logits = aux_logits
 
@@ -85,7 +88,7 @@ class InceptionV3(nn.Module):
                 nn.init.constant_(module.weight, 1)
                 nn.init.constant_(module.bias, 0)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         # N x 6 x 299 x 299
         x = self.Conv2d_1a_3x3(x)
         # N x 32 x 149 x 149
@@ -770,16 +773,15 @@ class InceptionV3Model(TorchModel):
     def __init__(self,
                  in_channels=6,
                  warmup_steps=10000,
-                 learning_rate=0.001,
+                 learning_rate=0.064,
+                 dropout_rate=0.2,
+                 decay_rate=0.94,
+                 decay_steps=2,
+                 rho=0.9,
+                 momentum=0.9,
+                 epsilon=1.0,
                  **kwargs):
-        # Fixed hyperparameters
-        decay_steps = 2  # epochs per decay
-        decay_rate = 0.947
-        rho = 0.9
-        momentum = 0.9
-        epsilon = 1.0
         # weight_decay = 0.00004
-        dropout_rate = 0.2
 
         # Initialize the InceptionV3 model architecture
         model = InceptionV3(num_classes=3,

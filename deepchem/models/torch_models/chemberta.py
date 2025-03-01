@@ -1,10 +1,15 @@
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
 from transformers.models.roberta.modeling_roberta import (
     RobertaConfig, RobertaForMaskedLM, RobertaForSequenceClassification)
 from transformers.models.roberta.tokenization_roberta_fast import \
     RobertaTokenizerFast
 from transformers.modeling_utils import PreTrainedModel
+try:
+    import torch
+    has_torch = True
+except:
+    has_torch = False
 
 
 class Chemberta(HuggingFaceModel):
@@ -107,6 +112,7 @@ class Chemberta(HuggingFaceModel):
                 chemberta_config.problem_type = 'single_label_classification'
             else:
                 chemberta_config.problem_type = 'multi_label_classification'
+                chemberta_config.num_labels = n_tasks
             model = RobertaForSequenceClassification(chemberta_config)
         else:
             raise ValueError('invalid task specification')
@@ -115,3 +121,45 @@ class Chemberta(HuggingFaceModel):
                                         task=task,
                                         tokenizer=tokenizer,
                                         **kwargs)
+
+    def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
+        """
+        Prepares a batch of data for the model based on the specified task. It overrides the _prepare_batch
+        of parent class for the following condition:-
+
+        - When n_task == 1 and task == 'classification', CrossEntropyLoss is used which takes input in
+        long int format.
+        - When n_task > 1 and task == 'classification', BCEWithLogitsLoss is used which takes input in
+        float format.
+        """
+
+        smiles_batch, y, w = batch
+        tokens = self.tokenizer(smiles_batch[0].tolist(),
+                                padding=True,
+                                return_tensors="pt")
+
+        if self.task == 'mlm':
+            inputs, labels = self.data_collator.torch_mask_tokens(
+                tokens['input_ids'])
+            inputs = {
+                'input_ids': inputs.to(self.device),
+                'labels': labels.to(self.device),
+                'attention_mask': tokens['attention_mask'].to(self.device),
+            }
+            return inputs, None, w
+        elif self.task in ['regression', 'classification', 'mtr']:
+            if y is not None:
+                # y is None during predict
+                y = torch.from_numpy(y[0])
+                if self.task == 'regression' or self.task == 'mtr':
+                    y = y.float().to(self.device)
+                elif self.task == 'classification':
+                    if self.n_tasks == 1:
+                        y = y.long().to(self.device)
+                    else:
+                        y = y.float().to(self.device)
+            for key, value in tokens.items():
+                tokens[key] = value.to(self.device)
+
+            inputs = {**tokens, 'labels': y}
+            return inputs, y, w

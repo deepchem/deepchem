@@ -20,7 +20,8 @@ class TestRealignerFeaturizer(unittest.TestCase):
         bam_file_path = os.path.join(self.current_dir, "example.bam")
         fasta_file_path = os.path.join(self.current_dir, "sample.fa")
         datapoint = (bam_file_path, fasta_file_path)
-        windows_haplotypes = self.featurizer._featurize(datapoint)
+        features = self.featurizer.featurize([datapoint])
+        windows_haplotypes = features[0]
 
         # Assert the number of reads
         self.assertEqual(len(windows_haplotypes), 53)
