@@ -749,6 +749,17 @@ References:
 .. autoclass:: deepchem.utils.poly_wd_graph_utils.PolyWDGStringValidator
   :members:
 
+Polymer Conversion Utilities
+----------------------------
+
+These classes and functions are required to handle converstion of PSMILES string data format to WDG string data format and vice versa.
+
+.. autoclass:: deepchem.utils.poly_converters.PSMILES2WDGConverter
+  :members:
+
+.. autoclass:: deepchem.utils.poly_converters.WDG2PSMILESConverter
+  :members:
+
 Pytorch Utilities
 -----------------
 
