@@ -14,8 +14,9 @@ import tempfile
 try:
     import torch  # noqa
     PYTORCH_IMPORT_FAILED = False
-except ImportError:
+except ImportError as e:
     PYTORCH_IMPORT_FAILED = True
+    logger.error(f"PyTorch is not installed. Some tests will be skipped. {e}")
 
 
 def load_solubility_data():

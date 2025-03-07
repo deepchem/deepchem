@@ -351,8 +351,8 @@ class VinaPoseGenerator(PoseGenerator):
 
         try:
             from vina import Vina  # type: ignore
-        except ModuleNotFoundError:
-            raise ImportError("This function requires vina to be installed")
+        except ModuleNotFoundError as e:
+            raise ImportError(f"This function requires vina to be installed: {e}")
 
         if out_dir is None:
             out_dir = tempfile.mkdtemp()

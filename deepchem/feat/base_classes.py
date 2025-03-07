@@ -190,10 +190,10 @@ class ComplexFeaturizer(Featurizer):
             try:
                 features.append(self._featurize(point, **kwargs))
                 successes.append(idx)
-            except:
+            except Exception as e:
                 logger.warning(
-                    "Failed to featurize datapoint %i. Appending empty array." %
-                    idx)
+                    "Failed to featurize datapoint %i. Appending empty array. Exception: %s" % (idx, e)
+                )
                 features.append(np.zeros(1))
                 failures.append(idx)
 
@@ -203,7 +203,8 @@ class ComplexFeaturizer(Featurizer):
             dtype = features[i].dtype
             shape = features[i].shape
             dummy_array = np.zeros(shape, dtype=dtype)
-        except AttributeError:
+        except AttributeError as e:
+            logger.warning("Failed to find a successful featurization. Exception: %s" % e)
             dummy_array = features[successes[0]]
 
         # Replace failed featurizations with appropriate array
@@ -272,8 +273,8 @@ molecule.
             from rdkit.Chem import rdmolfiles
             from rdkit.Chem import rdmolops
             from rdkit.Chem.rdchem import Mol
-        except ModuleNotFoundError:
-            raise ImportError("This class requires RDKit to be installed.")
+        except ModuleNotFoundError as e:
+            raise ImportError(f"This class requires RDKit to be installed: {e}")
 
         if 'molecules' in kwargs:
             datapoints = kwargs.get("molecules")
@@ -314,9 +315,8 @@ molecule.
                 if isinstance(mol, Chem.rdchem.Mol):
                     mol = Chem.MolToSmiles(mol)
                 logger.warning(
-                    "Failed to featurize datapoint %d, %s. Appending empty array",
-                    i, mol)
-                logger.warning("Exception message: {}".format(e))
+                    "Failed to featurize datapoint %d, %s. Appending empty array. Exception: %s" % (i, mol, e)
+                )
                 features.append(np.array([]))
         try:
             return np.asarray(features)
@@ -372,8 +372,8 @@ class MaterialStructureFeaturizer(Featurizer):
         """
         try:
             from pymatgen.core import Structure
-        except ModuleNotFoundError:
-            raise ImportError("This class requires pymatgen to be installed.")
+        except ModuleNotFoundError as e:
+            raise ImportError(f"This class requires pymatgen to be installed: {e}")
 
         if 'structures' in kwargs:
             datapoints = kwargs.get("structures")
@@ -395,10 +395,10 @@ class MaterialStructureFeaturizer(Featurizer):
                 if isinstance(structure, Dict):
                     structure = Structure.from_dict(structure)
                 features.append(self._featurize(structure, **kwargs))
-            except:
+            except Exception as e:
                 logger.warning(
-                    "Failed to featurize datapoint %i. Appending empty array" %
-                    idx)
+                    "Failed to featurize datapoint %i. Appending empty array. Exception: %s" % (idx, e)
+                )
                 features.append(np.array([]))
 
         return np.asarray(features)
@@ -448,8 +448,8 @@ class MaterialCompositionFeaturizer(Featurizer):
         """
         try:
             from pymatgen.core import Composition
-        except ModuleNotFoundError:
-            raise ImportError("This class requires pymatgen to be installed.")
+        except ModuleNotFoundError as e:
+            raise ImportError(f"This class requires pymatgen to be installed: {e}")
 
         if 'compositions' in kwargs and datapoints is None:
             datapoints = kwargs.get("compositions")
@@ -468,10 +468,10 @@ class MaterialCompositionFeaturizer(Featurizer):
             try:
                 c = Composition(composition)
                 features.append(self._featurize(c, **kwargs))
-            except:
+            except Exception as e:
                 logger.warning(
-                    "Failed to featurize datapoint %i. Appending empty array" %
-                    idx)
+                    "Failed to featurize datapoint %i. Appending empty array. Exception: %s" % (idx, e)
+                )
                 features.append(np.array([]))
 
         return np.asarray(features)

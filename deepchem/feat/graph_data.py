@@ -144,9 +144,9 @@ class GraphData:
         try:
             import torch
             from torch_geometric.data import Data
-        except ModuleNotFoundError:
+        except ModuleNotFoundError as e:
             raise ImportError(
-                "This function requires PyTorch Geometric to be installed.")
+                f"This function requires PyTorch Geometric to be installed. {e}")
 
         edge_features = self.edge_features
         if edge_features is not None:
