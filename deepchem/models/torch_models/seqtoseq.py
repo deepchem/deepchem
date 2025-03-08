@@ -382,6 +382,22 @@ class SeqToSeqModel(TorchModel):
                              output_types=['prediction', 'embedding'],
                              batch_size=self.batch_size,
                              **kwargs)
+        self.name = "seqtoseq"
+        self.config = {
+            "name" : self.name,
+            "input_tokens" : input_tokens,
+            "output_tokens": output_tokens,
+            "max_output_length" : max_output_length,
+            "encoder_layers" : encoder_layers,
+            "decoder_layers" : decoder_layers,
+            "batch_size" : batch_size,
+            "embedding_dimension" : embedding_dimension,
+            "dropout" : dropout,
+            "reverse_input" : reverse_input,
+            "variational" : variational,
+            "annealing_start_step" : annealing_start_step,
+            "annealing_final_step" : annealing_final_step
+        }
 
     def _create_loss(self):
         """Create loss function for model."""

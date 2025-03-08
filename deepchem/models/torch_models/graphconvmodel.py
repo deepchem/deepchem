@@ -16,7 +16,10 @@ import deepchem.models.torch_models.layers as torch_layers
 from deepchem.utils.pytorch_utils import get_activation
 from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy
-
+import os 
+import json
+import inspect
+from typing import Optional
 
 class TrimGraphOutput(nn.Module):
     """Trim the output to the correct number of samples.
@@ -125,6 +128,7 @@ class _GraphConvTorchModel(nn.Module):
         self.n_classes: int = n_classes
         self.mode: str = mode
         self.uncertainty: bool = uncertainty
+        self.num_input_features: List =  number_input_features
 
         if not isinstance(dropout, SequenceCollection):
             dropout = [dropout] * (len(graph_conv_layers) + 1)
@@ -335,6 +339,9 @@ class GraphConvModel(TorchModel):
         self.n_classes: int = n_classes
         self.batch_size: int = batch_size
         self.uncertainty: bool = uncertainty
+        self.number_input_features: List = number_input_features
+        self.best = 120
+
         model = _GraphConvTorchModel(
             n_tasks,
             graph_conv_layers=graph_conv_layers,
@@ -378,6 +385,25 @@ class GraphConvModel(TorchModel):
                                              output_types=output_types,
                                              batch_size=batch_size,
                                              **kwargs)
+        self.name: str = "graph-conv"
+        self.number_input_features = number_input_features
+        self.config = {
+            "n_tasks" : n_tasks,
+            "number_input_features" : number_input_features,
+            "graph_conv_layers" : graph_conv_layers,
+            "dense_layer_size" : dense_layer_size,
+            "dropout" : dropout,
+            "mode" : mode,
+            "number_atom_features" : number_atom_features,
+            "n_classes" : n_classes,
+            "batch_size" : batch_size,
+            "batch_normalize" : batch_normalize,
+            "uncertainty" : uncertainty
+        }
+        self.dict_kwargs = kwargs
+        self.config.update(self.dict_kwargs)
+        # self.config= {k: v for k, v in locals().items() if k != 'self'}
+
 
     def default_generator(self,
                           dataset: Dataset,

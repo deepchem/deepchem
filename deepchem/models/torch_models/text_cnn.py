@@ -115,7 +115,7 @@ class TextCNN(nn.Module):
         """
 
         super(TextCNN, self).__init__()
-
+        self.name: str = "text-cnn"
         self.n_tasks = n_tasks
         self.char_dict = char_dict
         self.seq_length = max(seq_length, max(kernel_sizes))
@@ -288,6 +288,18 @@ class TextCNNModel(TorchModel):
                                            loss=loss,
                                            output_types=output_types,
                                            **kwargs)
+        self.name = "text-CNN"
+        self.config = {
+            "name" : self.name,
+            "n_tasks" : n_tasks,
+            "char_dict" : char_dict,
+            "seq_length" : seq_length,
+            "n_embedding" : n_embedding,
+            "kernel_sizes" : kernel_sizes,
+            "num_filters" : num_filters,
+            "dropout" : dropout,
+            "mode" : mode
+        }
 
     # Below functions were taken from DeepChem TextCNN tensorflow implementation
 

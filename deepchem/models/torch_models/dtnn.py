@@ -242,6 +242,19 @@ class DTNNModel(TorchModel):
             raise ValueError("Only 'regression' mode is currently supported")
         super(DTNNModel, self).__init__(model, L2Loss(), ["prediction"],
                                         **kwargs)
+        self.name = "DTNN"
+        self.config = {
+            "n_tasks" : n_tasks,
+            "n_embedding" : n_embedding,
+            "n_hidden" : n_hidden,
+            "n_distance" : n_distance,
+            "distance_min" : distance_min,
+            "distance_max" : distance_max,
+            "output_activation" : output_activation,
+            "mode" : mode,
+            "dropout" : dropout,
+            "n_steps" : n_steps
+        }
 
     def default_generator(self,
                           dataset: Dataset,

@@ -1,5 +1,7 @@
 import numpy as np
 import torch
+import inspect
+import json
 try:
     import torch.utils.tensorboard
     _has_tensorboard = True
@@ -22,6 +24,7 @@ from collections.abc import Sequence as SequenceCollection
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 from deepchem.utils.typing import LossFn, OneOrMany
 from deepchem.models.wandblogger import WandbLogger
+from deepchem.configuration import DeepChemConfig
 
 try:
     import wandb
@@ -128,6 +131,7 @@ class TorchModel(Model):
                  device: Optional[torch.device] = None,
                  regularization_loss: Optional[Callable] = None,
                  wandb_logger: Optional[WandbLogger] = None,
+                 name: Optional[str] = "name",
                  **kwargs) -> None:
         """Create a new TorchModel.
 
@@ -175,6 +179,7 @@ class TorchModel(Model):
         super(TorchModel, self).__init__(model=model,
                                          model_dir=model_dir,
                                          **kwargs)
+        self.name = name 
         self.loss = loss  # not used
         self.learning_rate = learning_rate
         self.output_types = output_types  # not used
@@ -189,6 +194,9 @@ class TorchModel(Model):
             self.optimizer = optimizer
         self.tensorboard = tensorboard
         self.regularization_loss = regularization_loss
+        self.config = {
+            "deepchem" : "deepchem"
+        }
 
         # Select a device.
 
@@ -993,6 +1001,28 @@ class TorchModel(Model):
                                                pad_batches=pad_batches):
                 yield ([X_b], [y_b], [w_b])
 
+    def save_pretrained(self,
+                        model_dir: Optional[str] = None):
+        self._ensure_built()
+        if model_dir is None:
+            model_dir = self.model_dir
+        if not os.path.exists(model_dir):
+            os.makedirs(model_dir)
+        config_file_path = os.path.join(model_dir,'config.json')
+        print(self.config)
+        serialized_config = DeepChemConfig.serialize(self.config)
+        with open(config_file_path,'w') as f:
+            json.dump(serialized_config,f,indent=4)
+        data = {
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self._pytorch_optimizer.state_dict(),
+            'global_step': self._global_step
+        }
+        
+        temp_file = os.path.join(model_dir, 'model_weights.pt')
+        torch.save(data, temp_file)
+
+
     def save_checkpoint(self,
                         max_checkpoints_to_keep: int = 5,
                         model_dir: Optional[str] = None) -> None:
@@ -1088,7 +1118,9 @@ class TorchModel(Model):
         self.model.load_state_dict(data['model_state_dict'], strict=strict)
         self._pytorch_optimizer.load_state_dict(data['optimizer_state_dict'])
         self._global_step = data['global_step']
+    
 
+  
     def compile(self,
                 fullgraph: bool = False,
                 dynamic: Union[None, bool] = None,

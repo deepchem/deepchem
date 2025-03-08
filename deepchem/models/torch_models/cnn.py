@@ -181,6 +181,29 @@ class CNN(TorchModel):
                                   output_types=output_types,
                                   regularization_loss=regularization_loss,
                                   **kwargs)
+        self.name = "CNN"
+        self.config = {
+                "name" : self.name,
+                "n_tasks": n_tasks,
+                "n_features": n_features,
+                "dims": dims,
+                "layer_filters": layer_filters,
+                "kernel_size": kernel_size,
+                "strides": strides,
+                "weight_init_stddevs": weight_init_stddevs,
+                "bias_init_consts": bias_init_consts,
+                "weight_decay_penalty": weight_decay_penalty,
+                "weight_decay_penalty_type": weight_decay_penalty_type,
+                "dropouts": dropouts,
+                "activation_fns": activation_fns,
+                "pool_type": pool_type,
+                "mode": mode,
+                "n_classes": n_classes,
+                "uncertainty": uncertainty,
+                "residual": residual,
+                "padding": padding,
+                }
+
 
     def default_generator(self,
                           dataset,
