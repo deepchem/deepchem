@@ -1,5 +1,5 @@
 import math
-from typing import Optional
+from typing import Optional, List
 import torch
 import numpy as np
 
@@ -245,7 +245,7 @@ def irr_repr(order: int,
         The irreducible representation matrix of SO(3) for the specified order and angles.
     Examples
     --------
-    >>> irr_repr(1, torch.tensor(0.1), torch.tensor(0.2), torch.tensor(0.3))
+    >>> irr_repr(1, 0.1, 0.2, 0.3)
     tensor([[ 0.9216,  0.0587,  0.3836],
             [ 0.0198,  0.9801, -0.1977],
             [-0.3875,  0.1898,  0.9021]])
@@ -392,6 +392,28 @@ def get_matrix_kernel(A: torch.Tensor, eps: float = 1e-10) -> torch.Tensor:
     return kernel
 
 
+def get_matrices_kernel(As: List[torch.Tensor],
+                        eps: float = 1e-10) -> torch.Tensor:
+    """
+    Compute the common kernel of all the input matrices.
+
+    This function computes the shared null space of a collection of matrices.
+
+    Parameters
+    ----------
+    As : List[torch.Tensor]
+        List of input matrices.
+    eps : float, optional
+        Tolerance for singular values considered as zero (default is 1e-10).
+
+    Returns
+    -------
+    torch.Tensor
+        A matrix where each row is a basis vector of the common kernel.
+    """
+    return get_matrix_kernel(torch.cat(As, dim=0), eps)
+
+
 def basis_transformation_Q_J(J: int,
                              order_in: int,
                              order_out: int,
@@ -441,6 +463,8 @@ def basis_transformation_Q_J(J: int,
     >>> basis_transformation_Q_J(1, 1, 1).shape
     torch.Size([9, 3])
     """
+    original_dtype = torch.get_default_dtype()
+    torch.set_default_dtype(torch.float64)
 
     def _R_tensor(a: float, b: float, c: float) -> torch.Tensor:
         """
@@ -511,13 +535,11 @@ def basis_transformation_Q_J(J: int,
                                       random_angle_higher,
                                       size=(num_samples, 3))
 
-    null_space = get_matrix_kernel(
-        torch.cat(
-            [_sylvester_submatrix(J, a, b, c) for a, b, c in random_angles],
-            dim=0), eps)
-
+    null_space = get_matrices_kernel(
+        [_sylvester_submatrix(J, a, b, c) for a, b, c in random_angles])
     Q_J = null_space[0]
     Q_J = Q_J.view((2 * order_out + 1) * (2 * order_in + 1), 2 * J + 1)
+    torch.set_default_dtype(original_dtype)
 
     return Q_J
 
