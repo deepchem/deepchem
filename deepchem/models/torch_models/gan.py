@@ -276,17 +276,23 @@ class GAN(nn.Module):
 
         n_generators = self.n_generators
         n_discriminators = self.n_discriminators
-        noise_input, data_input_layers, conditional_input_layers = inputs[
-            0], inputs[1], inputs[2]
+        noise_input, data_input_layers = inputs[0], inputs[1]
+        if (len(inputs) == 3):
+            conditional_input_layers = inputs[2]
+        else:
+            conditional_input_layers = []
 
         self.noise_input.data = noise_input
-        self.conditional_input_layers = [conditional_input_layers]
+        if (len(conditional_input_layers) != 0):
+            self.conditional_input_layers = [conditional_input_layers]
+        else:
+            self.conditional_input_layers = []
         self.data_input_layers = [data_input_layers]
 
         # Forward pass through generators
         generator_outputs = [
-            gen(_list_or_tensor([[noise_input] + self.conditional_input_layers
-                                ])) for gen in self.generators
+            gen(_list_or_tensor([noise_input] + self.conditional_input_layers))
+            for gen in self.generators
         ]
 
         # Forward pass through discriminators
