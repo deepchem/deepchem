@@ -97,8 +97,8 @@ class BindingPocketFeaturizer(Featurizer):
         """
         try:
             import mdtraj
-        except ModuleNotFoundError:
-            raise ImportError("This class requires mdtraj to be installed.")
+        except ModuleNotFoundError as e:
+            raise ImportError(f"This class requires mdtraj to be installed: {e}")
 
         protein_coords = load_molecule(protein_file,
                                        add_hydrogens=False,

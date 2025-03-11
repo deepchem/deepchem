@@ -5,6 +5,9 @@ Tests for hyperparam optimization.
 import unittest
 import sklearn
 import deepchem as dc
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TestHyperparamOpt(unittest.TestCase):
@@ -23,6 +26,7 @@ class TestHyperparamOpt(unittest.TestCase):
 
         try:
             _ = dc.hyper.HyperparamOpt(rf_model_builder)
-        except ValueError:
+        except ValueError as e:
             initialized = False
+            logger.warning(f"ValueError encountered during HyperparamOpt initialization: {e}")
         assert not initialized

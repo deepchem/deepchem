@@ -192,12 +192,15 @@ class RandomHyperparamOpt(HyperparamOpt):
             try:
                 model.fit(train_dataset, nb_epoch=nb_epoch)  # type: ignore
             # Not all models have nb_epoch
-            except TypeError:
+            except TypeError as e:
+                logger.warning(f"TypeError encountered during model fitting: {e}")
                 model.fit(train_dataset)
+
             try:
                 model.save()
             # Some models autosave
-            except NotImplementedError:
+            except NotImplementedError as e:
+                logger.warning(f"NotImplementedError encountered during model saving: {e}")
                 pass
 
             multitask_scores = model.evaluate(valid_dataset, [metric],

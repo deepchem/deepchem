@@ -98,8 +98,10 @@ try:
     from deepchem.feat.bert_tokenizer import BertFeaturizer
     from deepchem.feat.roberta_tokenizer import RobertaFeaturizer
     from deepchem.feat.reaction_featurizer import RxnFeaturizer
-except ModuleNotFoundError:
-    pass
+except ModuleNotFoundError as e:
+    logger.warning(
+        f'Skipped loading some tokenizers, missing a dependency. {e}'
+    )
 
 from deepchem.feat.vocabulary_builders import HuggingFaceVocabularyBuilder
 

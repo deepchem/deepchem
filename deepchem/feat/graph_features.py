@@ -110,7 +110,8 @@ def safe_index(l, e):
     """
     try:
         return l.index(e)
-    except ValueError:
+    except ValueError as e:
+        logger.warning(f"Value not found in list: {e}")
         return len(l)
 
 
@@ -384,9 +385,9 @@ def atom_features(atom,
                 results = results + one_of_k_encoding_unk(
                     atom.GetProp('_CIPCode'),
                     ['R', 'S']) + [atom.HasProp('_ChiralityPossible')]
-            except:
-                results = results + [False, False
-                                    ] + [atom.HasProp('_ChiralityPossible')]
+            except KeyError as e:
+                results = results + [False, False] + [atom.HasProp('_ChiralityPossible')]
+                logger.warning(f"Failed to get chirality property: {e}")
 
         return np.array(results)
 

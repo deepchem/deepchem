@@ -2162,10 +2162,14 @@ class CRAMLoader(DataLoader):
 
         def shard_generator():  # TODO Enable sharding with shard size parameter
             for input_file in input_files:
-                cramfile = pysam.AlignmentFile(input_file, "rc")
-                X = self.featurizer._featurize(cramfile)
-                ids = np.ones(len(X))
-                # (X, y, w, ids)
-                yield X, None, None, ids
+                try:
+                    cramfile = pysam.AlignmentFile(input_file, "rc")
+                    X = self.featurizer._featurize(cramfile)
+                    ids = np.ones(len(X))
+                    # (X, y, w, ids)
+                    yield X, None, None, ids
+                except Exception as e:
+                    logger.error(f"Error processing file {input_file}: {e}")
+                    continue
 
         return DiskDataset.create_dataset(shard_generator(), data_dir)

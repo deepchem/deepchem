@@ -5,8 +5,8 @@ from typing import List
 
 try:
     import pysam
-except ImportError:
-    pass
+except ImportError as e:
+    raise ImportError(f"Required libraries are not installed: {e}")
 
 
 class PileupFeaturizer(Featurizer):

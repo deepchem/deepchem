@@ -236,8 +236,8 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
             from pyGPGO.acquisition import Acquisition
             from pyGPGO.surrogates.GaussianProcess import GaussianProcess
             from pyGPGO.GPGO import GPGO
-        except ModuleNotFoundError:
-            raise ImportError("This class requires pyGPGO to be installed.")
+        except ModuleNotFoundError as e:
+            raise ImportError(f"This class requires pyGPGO to be installed: {e}")
 
         # Specify logfile
         log_file = None
@@ -308,10 +308,10 @@ class GaussianProcessHyperparamOpt(HyperparamOpt):
                 logger.info("model_dir is %s" % model_dir)
                 try:
                     os.makedirs(model_dir)
-                except OSError:
+                except OSError as e:
                     if not os.path.isdir(model_dir):
                         logger.info(
-                            "Error creating model_dir, using tempfile directory"
+                            f"Error creating model_dir, using tempfile directory: {e}"
                         )
                         model_dir = tempfile.mkdtemp()
             else:

@@ -2,9 +2,9 @@ from deepchem.feat import Featurizer
 from typing import List
 try:
     from transformers import BertTokenizerFast
-except ModuleNotFoundError:
+except ModuleNotFoundError as e:
     raise ImportError(
-        'Transformers must be installed for BertFeaturizer to be used!')
+        f'Transformers must be installed for BertFeaturizer to be used: {e}')
     pass
 
 
