@@ -145,6 +145,92 @@ def test_se3pairwiseconv_equivariance(max_degree, nc_in, nc_out, edge_dim):
     assert output_diff.item() < 1e-6
 
 
+@pytest.mark.parametrize("batch_size, num_nodes, channels_0, channels_1", [
+    (4, 10, 16, 32),
+    (2, 5, 8, 16),
+])
+def test_se3_sum_layer(batch_size, num_nodes, channels_0, channels_1):
+    """Test SE3Sum layer."""
+    from deepchem.models.torch_models.layers import SE3Sum, Fiber
+    f_x = Fiber(dictionary={0: channels_0, 1: channels_1})
+    f_y = Fiber(dictionary={0: channels_0, 1: channels_1})
+    gsum = SE3Sum(f_x, f_y)
+    x = {
+        '0': torch.randn(batch_size, num_nodes, channels_0, 1),
+        '1': torch.randn(batch_size, num_nodes, channels_1, 3)
+    }
+    y = {
+        '0': torch.randn(batch_size, num_nodes, channels_0, 1),
+        '1': torch.randn(batch_size, num_nodes, channels_1, 3)
+    }
+    output = gsum(x, y)
+    assert '0' in output and '1' in output
+    assert output['0'].shape == x['0'].shape
+    assert output['1'].shape == x['1'].shape
+    assert torch.allclose(output['0'], x['0'] + y['0'])
+    assert torch.allclose(output['1'], x['1'] + y['1'])
+
+
+@pytest.mark.parametrize("batch_size, num_nodes, channels_0, channels_1", [
+    (4, 10, 16, 32),
+    (2, 5, 8, 16),
+])
+def test_se3_cat_layer(batch_size, num_nodes, channels_0, channels_1):
+    """Test SE3Sum layer."""
+    from deepchem.models.torch_models.layers import SE3Cat, Fiber
+    f_x = Fiber(dictionary={0: channels_0, 1: channels_1})
+    f_y = Fiber(dictionary={0: channels_0, 1: channels_1})
+    gcat = SE3Cat(f_x, f_y)
+    x = {
+        '0': torch.randn(batch_size, num_nodes, channels_0, 1),
+        '1': torch.randn(batch_size, num_nodes, channels_1, 3)
+    }
+    y = {
+        '0': torch.randn(batch_size, num_nodes, channels_0, 1),
+        '1': torch.randn(batch_size, num_nodes, channels_1, 3)
+    }
+    output = gcat(x, y)
+    assert '0' in output and '1' in output
+    assert output['0'].shape == (batch_size, 2 * num_nodes, channels_0, 1)
+    assert output['1'].shape == (batch_size, 2 * num_nodes, channels_1, 3)
+
+
+@pytest.mark.parametrize("batch_size, num_nodes, channels_0, channels_1", [
+    (4, 10, 16, 32),
+    (2, 6, 8, 16),
+])
+def test_se3_avgpooling_layer(batch_size, num_nodes, channels_0, channels_1):
+    """Test SE3AvgPooling with scalar (degree 0) and vector (degree 1) features."""
+    from deepchem.models.torch_models.layers import SE3AvgPooling
+    import dgl
+
+    # Create DGL graph
+    G = dgl.graph(([0, 1, 2], [3, 4, 5]), num_nodes=num_nodes)
+
+    # Random features
+    features = {
+        '0': torch.randn(num_nodes, channels_0),  # Scalars (Degree 0)
+        '1':
+            torch.randn(num_nodes, channels_1, 3)  # Vectors (Degree 1)
+    }
+
+    # Initialize Pooling Layers
+    pool_0 = SE3AvgPooling(pooling_type='0')  # Scalars
+    pool_1 = SE3AvgPooling(pooling_type='1')  # Vectors
+
+    # Apply Pooling
+    pooled_0 = pool_0(features, G)  # Scalar pooling
+    pooled_1 = pool_1(features, G)  # Vector pooling
+
+    # Expected output shapes
+    expected_shape_0 = torch.randn(1).shape  # Adjust dynamically
+    expected_shape_1 = torch.randn(1, channels_1, 3).shape  # Adjust dynamically
+
+    assert pooled_0.shape == expected_shape_0
+
+    assert pooled_1['1'].shape == expected_shape_1
+
+
 @pytest.mark.torch
 def test_equivariant_linear_module():
     """Test the EquivariantLinear layer transformations."""

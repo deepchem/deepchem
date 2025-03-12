@@ -1,7 +1,216 @@
 import math
-from typing import Optional, List
+from typing import Optional, List, Dict, Tuple
 import torch
 import numpy as np
+import dgl
+
+
+def get_basis(G: dgl.DGLGraph,
+              max_degree: int,
+              compute_gradients: bool = False) -> Dict[str, torch.Tensor]:
+    """
+    Precompute the SE(3)-equivariant weight basis, \( W_J^{lk}(x) \).
+
+    This function computes the equivariant weight basis used in SE(3)-equivariant
+    convolutions, enabling the model to learn **rotation-equivariant filters.
+
+    It is **called internally** by `get_basis_and_r()`, which computes **both**:
+    - **Equivariant weight basis** \( W_J^{lk}(x) \).
+    - **Inter-nodal distances** \( r_{ij} \) (used in attention & convolution).
+
+    ---
+    ### **Mathematical Background**
+    This function follows Equation (8) from [SE(3)-Transformer paper](https://arxiv.org/pdf/2006.10503.pdf):
+
+    \[
+    W_J^{lk}(x) = Q_J \cdot Y_J(x)
+    \]
+
+    - \( Y_J(x) \): **Spherical Harmonic Basis**
+    - \( Q_J \): **Basis transformation matrix**
+    - \( J \): **Angular momentum index**
+    - \( d_{in}, d_{out} \): **Feature degrees**
+
+    This function precomputes basis functions for SE(3)-equivariant convolutions by calcutating spherical harmonic projections.
+
+    Parameters
+    ----------
+    G:  dgl.DGLGraph
+        DGL graph where `G.edata['d']` stores edge displacement vectors.
+    max_degree: int
+        Maximum degree (`l_max`) of equivariant tensors.
+    compute_gradients: `bool`, optional, default=`False`
+        If `True`: Enables gradient tracking for backpropagation.
+        If `False`: Uses `torch.no_grad()` for efficiency.
+
+    Returns
+    -------
+    basis: Dict[str, torch.Tensor]
+        Dictionary mapping `'<d_in>,<d_out>'`: precomputed basis tensor.
+        Shape: `(batch_size, 1, 2*d_out+1, 1, 2*d_in+1, num_bases)`
+
+    Example
+    -------
+
+    >>> import torch
+    >>> import dgl
+    >>> from deepchem.utils.equivariance_utils import get_basis
+    >>> from rdkit import Chem
+    >>> import deepchem as dc
+    >>> mol = Chem.MolFromSmiles('CCO')
+    >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
+    >>> features = featurizer.featurize([mol])[0]
+    >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]))
+    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
+    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)
+    >>> G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)
+    >>> G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
+    >>> basis = get_basis(G, max_degree=2)
+    >>> print(basis.keys())
+    dict_keys(['0,0', '0,1', '0,2', '1,0', '1,1', '1,2', '2,0', '2,1', '2,2'])
+    """
+    # Disable gradients unless explicitly enabled
+    context = torch.enable_grad() if compute_gradients else torch.no_grad()
+
+    with context:
+        cloned_d = torch.clone(G.edata['d'])
+        if G.edata['d'].requires_grad:
+            cloned_d.requires_grad_()
+
+        # Compute relative positional encodings in spherical coordinates
+        r_ij = get_spherical_from_cartesian(cloned_d)
+
+        # Compute Spherical Harmonics (Y_J) for all degrees up to 2*max_degree
+        Y = precompute_sh(r_ij, 2 * max_degree)
+        device = Y[0].device
+
+        basis = {}
+        for d_in in range(max_degree + 1):
+            for d_out in range(max_degree + 1):
+                K_Js = []
+                for J in range(abs(d_in - d_out), d_in + d_out + 1):
+                    # Compute basis transformation matrix Q_J
+                    Q_J = basis_transformation_Q_J(J, d_in,
+                                                   d_out).float().T.to(device)
+
+                    # Apply projection using spherical harmonics
+                    K_J = torch.matmul(Y[J], Q_J)
+                    K_Js.append(K_J)
+
+                # Reshape for broadcasting
+                size = (-1, 1, 2 * d_out + 1, 1, 2 * d_in + 1,
+                        2 * min(d_in, d_out) + 1)
+                basis[f"{d_in},{d_out}"] = torch.stack(K_Js, -1).view(*size)
+
+        return basis
+
+
+def get_r(G: dgl.DGLGraph) -> torch.Tensor:
+    """
+    Compute inter-nodal distances for a given DGL graph.
+
+    This function computes the Euclidean distance between connected nodes
+    based on edge feature `d`, which represents relative displacements.
+
+    Parameters
+    ----------
+    G : dgl.DGLGraph
+        The input graph where `G.edata['d']` contains edge displacement vectors.
+
+    Returns
+    -------
+    torch.Tensor
+        A tensor containing the computed inter-nodal distances for each edge,
+        with shape `(num_edges, 1)`.
+
+    Example
+    -------
+    >>> import torch
+    >>> import dgl
+    >>> from deepchem.utils.equivariance_utils import get_r
+    >>> from rdkit import Chem
+    >>> import deepchem as dc
+    >>> mol = Chem.MolFromSmiles('CCO')
+    >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
+    >>> features = featurizer.featurize([mol])[0]
+    >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]))
+    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
+    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)
+    >>> G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)
+    >>> G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
+    >>> # Compute internodal distances
+    >>> r = get_r(G)
+    >>> print(r.shape)  # (num_edges, 1)
+    torch.Size([6, 1])
+    >>> print(r)
+    tensor([[1.5284],
+            [2.3611],
+            [1.5284],
+            [1.3791],
+            [2.3611],
+            [1.3791]])
+    """
+    cloned_d = torch.clone(G.edata['d'])
+    if G.edata['d'].requires_grad:
+        cloned_d.requires_grad_()
+    return torch.sqrt(torch.sum(cloned_d**2, -1, keepdim=True))
+
+
+def get_basis_and_r(
+    G: dgl.DGLGraph,
+    max_degree: int,
+    compute_gradients: bool = False
+) -> Tuple[Dict[str, torch.Tensor], torch.Tensor]:
+    """
+    Compute equivariant weight basis and inter-nodal distances for SE(3)-Transformers.
+
+    This function computes:
+    1. **Equivariant weight basis**: Required for SE(3)-equivariant convolutions.
+    2. **Inter-nodal distances**: Used in attention mechanisms and basis function computation.
+
+    This should be **called once per forward pass** to compute shared equivariant representations.
+
+    Parameters
+    ----------
+    G : dgl.DGLGraph
+        A DGL graph containing edge features.
+    max_degree : int
+        The maximum degree of the SE(3) tensor representation.
+    compute_gradients : bool, optional (default=False)
+        If True, enables gradient computation for the basis.
+
+    Returns
+    -------
+    Tuple[Dict[str, torch.Tensor], torch.Tensor]
+        - **basis (dict[str, torch.Tensor])**: Dictionary of equivariant bases,
+          indexed by `'<d_in><d_out>'`, where `d_in` and `d_out` are feature degrees.
+        - **r (torch.Tensor)**: Inter-nodal distance tensor with shape `(num_edges, 1)`.
+
+    Example
+    -------
+    >>> import torch
+    >>> import dgl
+    >>> from deepchem.utils.equivariance_utils import get_basis_and_r
+    >>> from rdkit import Chem
+    >>> import deepchem as dc
+    >>> mol = Chem.MolFromSmiles('CCO')
+    >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
+    >>> features = featurizer.featurize([mol])[0]
+    >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]))
+    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
+    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)
+    >>> G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)
+    >>> G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
+    >>> # Compute basis and distances
+    >>> basis, r = get_basis_and_r(G, max_degree=2)
+    >>> print(r.shape)  # Expected: (num_edges, 1)
+    torch.Size([6, 1])
+    >>> print(basis.keys())  # Expected: dict
+    dict_keys(['0,0', '0,1', '0,2', '1,0', '1,1', '1,2', '2,0', '2,1', '2,2'])
+    """
+    basis = get_basis(G, max_degree, compute_gradients)
+    r = get_r(G)
+    return basis, r
 
 
 def semifactorial(x: int) -> float:

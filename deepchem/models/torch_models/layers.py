@@ -22,6 +22,12 @@ try:
 except ModuleNotFoundError:
     pass
 
+try:
+    import dgl
+    from dgl.nn.pytorch.glob import AvgPooling
+except ModuleNotFoundError:
+    raise ImportError('These classes require DGL to be installed.')
+
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
 from deepchem.utils.pytorch_utils import get_activation, segment_sum, unsorted_segment_sum, unsorted_segment_max
 from torch.nn import init as initializers
@@ -7707,6 +7713,7 @@ class SE3PairwiseConv(nn.Module):
             Input tensor of shape (..., edge_dim + 1).
         basis : dict
             Dictionary containing basis functions with keys formatted as 'degree_in, degree_out'.
+
         Returns
         -------
         torch.Tensor
@@ -7715,3 +7722,292 @@ class SE3PairwiseConv(nn.Module):
         R = self.rp(feat)
         kernel = torch.sum(R * basis[f'{self.degree_in},{self.degree_out}'], -1)
         return kernel.view(kernel.shape[0], self.d_out * self.nc_out, -1)
+
+
+class SE3Sum(nn.Module):
+    """
+    SE(3)-Equivariant Graph Residual Sum Function (SE3Sum).
+
+    This layer performs element-wise summation of SE(3)-equivariant 
+    node features. It enables skip connections by summing residual 
+    features in SE(3)-Transformers**.
+
+    Given two feature representations:
+    - **x**: SE(3)-equivariant feature tensor.
+    - **y**: Another SE(3)-equivariant feature tensor.
+
+    This layer computes:
+    \[
+    h_{out}[d] = h_x[d] + h_y[d]
+    \]
+    - The summation is performed separately for each degree `d`.
+
+    If the number of feature channels differs, `zero-padding` is applied.
+
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.models.torch_models.layers import Fiber, SE3Sum
+    >>> # Define Fiber Representations
+    >>> # Scalars (0) & vectors (1)
+    >>> f_x = Fiber(dictionary={0: 16, 1: 32})  # Scalars (0) & vectors (1)
+    >>> f_y = Fiber(dictionary={0: 16, 1: 32})
+    >>> # Initialize SE(3)-Equivariant Summation Layer
+    >>> se3_sum = SE3Sum(f_x, f_y)
+    >>> # Create Random Feature Inputs
+    >>> x = {'0': torch.randn(10, 16, 1), '1': torch.randn(10, 32, 3)}
+    >>> y = {'0': torch.randn(10, 16, 1), '1': torch.randn(10, 32, 3)}
+    >>> # Apply `SE3Sum` Layer
+    >>> output = se3_sum(x, y)
+    >>> for key, tensor in output.items():
+    ...     print(tensor.shape)
+    torch.Size([10, 16, 1])
+    torch.Size([10, 32, 3])
+    """
+
+    def __init__(self, f_x: Fiber, f_y: Fiber):
+        """
+        Initializes the SE(3)-equivariant summation layer.
+
+        Parameters
+        ----------
+        f_x: Fiber
+            structure for the first input.
+        f_y: Fiber
+            structure for the second input.
+        """
+        super().__init__()
+        self.f_x = f_x
+        self.f_y = f_y
+        self.f_out = Fiber.combine_max(f_x, f_y)
+
+    def forward(self, x: Dict[str, torch.Tensor],
+                y: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        """
+        Forward pass of the residual summation layer.
+
+        Parameters
+        ----------
+        x: Dict[str, torch.Tensor]
+            Input feature dictionary (first tensor).
+        y: Dict[str, torch.Tensor]
+            Input feature dictionary (second tensor).
+
+        Returns
+        -------
+        out: Dict[str, torch.Tensor]
+            Summed feature dictionary.
+        """
+        out = {}
+        for k in self.f_out.degrees:
+            k = str(k)
+            if (k in x) and (k in y):
+                if x[k].shape[1] > y[k].shape[1]:
+                    diff = x[k].shape[1] - y[k].shape[1]
+                    zeros = torch.zeros(x[k].shape[0], diff,
+                                        x[k].shape[2]).to(y[k].device)
+                    y[k] = torch.cat([y[k], zeros], 1)
+                elif x[k].shape[1] < y[k].shape[1]:
+                    diff = y[k].shape[1] - x[k].shape[1]
+                    zeros = torch.zeros(x[k].shape[0], diff,
+                                        x[k].shape[2]).to(y[k].device)
+                    x[k] = torch.cat([x[k], zeros], 1)
+
+                out[k] = x[k] + y[k]
+            elif k in x:
+                out[k] = x[k]
+            elif k in y:
+                out[k] = y[k]
+        return out
+
+
+class SE3Cat(nn.Module):
+    """
+    SE(3)-Equivariant Graph Feature Concatenation (SE3Cat).
+
+    This layer concatenates features from two SE(3)-equivariant fiber representations. 
+    Unlike `SE3Sum`, which adds feature tensors, `SE3Cat` stacks them along the channel dimension.
+    This operation is useful for combining features from different representations while preserving
+    SE(3) equivariance.
+
+    Given two feature tensors:
+    - x[d]: Input feature tensor of degree `d`.
+    - y[d]: Another input feature tensor of degree `d`.
+
+    This layer computes:
+    \[
+    h_{out}[d] = \text{Concat} \left( h_x[d], h_y[d] \right)
+    \]
+    The concatenation is performed separately for each degree `d`.
+    If a feature degree exists only in x (but not in y), x is used.
+    Concatenation is performed only for degrees in `f_x`.
+
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.models.torch_models.layers import Fiber, SE3Cat
+    >>> # Define Fiber Representations
+    >>> # Scalars (0) & vectors (1)
+    >>> f_x = Fiber(dictionary={0: 16, 1: 32})
+    >>> f_y = Fiber(dictionary={0: 16, 1: 32})
+    >>> # Initialize SE(3)-Equivariant Concatenation Layer
+    >>> se3cat = SE3Cat(f_x, f_y)
+    >>> # Create Random Feature Inputs
+    >>> x = {'0': torch.randn(4, 10, 16, 1), '1': torch.randn(4, 10, 32, 3)}
+    >>> y = {'0': torch.randn(4, 10, 16, 1), '1': torch.randn(4, 10, 32, 3)}
+    >>> # Apply `SE3Cat` Layer
+    >>> output = se3cat(x, y)
+    >>> for key, tensor in output.items():
+    ...     print(tensor.shape)
+    torch.Size([4, 20, 16, 1])
+    torch.Size([4, 20, 32, 3])
+    """
+
+    def __init__(self, f_x: Fiber, f_y: Fiber):
+        """
+        Initializes the SE(3)-equivariant concatenation layer.
+
+        Parameters
+        ----------
+        f_x: 
+            Fiber structure for the first input.
+        f_y:
+            Fiber structure for the second input.
+        """
+        super().__init__()
+        self.f_x = f_x
+        self.f_y = f_y
+        f_out = {}
+        for k in f_x.degrees:
+            f_out[k] = f_x.structure_dict[k]
+            if k in f_y.degrees:
+                f_out[k] += f_y.structure_dict[k]
+        self.f_out = Fiber(dictionary=f_out)
+
+    def forward(
+        self, x: (Dict[str, torch.Tensor]), y: (Dict[str, torch.Tensor])
+    ) -> (Dict[str, torch.Tensor]):
+        """
+        Forward pass of the concatenation layer.
+
+        Parameters
+        ----------
+        x: Dict[str, torch.Tensor]
+            Input feature dictionary (first tensor).
+        y: Dict[str, torch.Tensor]
+            Input feature dictionary (second tensor).
+
+        Returns:
+        output: Dict[str, torch.Tensor]
+            Concatenated feature dictionary.
+        """
+        out = {}
+        for k in self.f_out.degrees:
+            k = str(k)
+            if k in y:
+                out[k] = torch.cat([x[k], y[k]], 1)
+            else:
+                out[k] = x[k]
+        return out
+
+
+class SE3AvgPooling(nn.Module):
+    """
+    SE(3)-Equivariant Graph Average Pooling Module (SE3AvgPooling).
+
+    This layer **performs average pooling over graph nodes while preserving SE(3) equivariance.
+
+    Given a set of **node features** \( h_i \) over a graph \( G \), 
+    the average pooling operation computes:
+
+    \[
+    h_{\text{out}} = \frac{1}{|V|} \sum_{i \in V} h_i
+    \]
+    
+    where \( V \) is the set of nodes in the graph.
+
+    For SE(3)-equivariant features, this layer performs:
+    - Degree 0 (scalars): Standard average pooling.
+    - Degree 1 (vectors): Applies average pooling **component-wise**.
+
+    Example
+    -------
+    >>> import torch
+    >>> import dgl
+    >>> from deepchem.models.torch_models.layers import SE3AvgPooling, Fiber
+    >>> # Create a DGL Graph
+    >>> G = dgl.graph(([0, 1, 2], [3, 4, 5]), num_nodes=6)
+    >>> # Define Node Features
+    >>> features = {
+    ...     '0': torch.randn(6, 16, 1),  # Scalar features (Degree 0)
+    ...     '1': torch.randn(6, 32, 3)   # Vector features (Degree 1)
+    ... }
+    >>>
+    >>> # Initialize SE(3)-Equivariant Average Pooling Layer
+    >>> pool_0 = SE3AvgPooling(pooling_type='0')  # For scalars
+    >>> pool_1 = SE3AvgPooling(pooling_type='1')  # For vectors
+    >>> # Apply Pooling
+    >>> pooled_0 = pool_0(features, G)
+    >>> pooled_1 = pool_1(features, G)
+    >>> print(pooled_0.shape)
+    torch.Size([1, 16])
+    >>> print(pooled_1['1'].shape)
+    torch.Size([1, 32, 3])
+    """
+
+    def __init__(self, pooling_type: str = '0'):
+        """
+        Initializes the SE(3)-equivariant average pooling layer.
+
+        Parameters
+        ----------
+        type (str): Type of pooling.
+            - `'0'`: Applies standard average pooling for scalar (degree 0) features.
+            - `'1'`: Applies component-wise average pooling for vector (degree 1) features.
+        """
+        super().__init__()
+        self.pool = AvgPooling()
+        self.pooling_type = pooling_type
+
+    def forward(self, features: Dict[str, torch.Tensor], G: dgl.DGLGraph,
+                **kwargs) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
+        """
+        Forward pass of SE(3)-equivariant graph pooling.
+
+        Parameters
+        ----------
+        features: Dict[str, torch.Tensor]
+            Node features dictionary.
+        G: dgl.DGLGraph
+            DGL graph structure.
+
+        Returns
+        -------
+        Union[torch.Tensor, Dict[str, torch.Tensor]]: Pooled features
+        """
+        if self.pooling_type == '0':
+            # Apply standard average pooling to scalars (degree 0)
+            h = features['0'][..., -1]
+            pooled = self.pool(G, h)
+        elif self.pooling_type == '1':
+            # Apply component-wise average pooling to vectors (degree 1)
+            # pooled = []
+            # for i in range(3):
+            #     h_i = features['1'][..., i]
+            #     pooled.append(self.pool(G, h_i).unsqueeze(-1))
+            # pooled = torch.cat(pooled, axis=-1)
+            # pooled = {'1': pooled}
+            # Apply component-wise average pooling to vectors (degree 1)
+            pooled_list: List[torch.Tensor] = [
+                self.pool(G, features['1'][..., i]).unsqueeze(-1)
+                for i in range(3)
+            ]
+
+            # 🔹 Fix: Explicitly cast `pooled_list` to `List[torch.Tensor]`
+            pooled_tensor = torch.cat(pooled_list, dim=-1)
+            pooled = {'1': pooled_tensor}
+        else:
+            raise NotImplementedError(
+                "SE3AvgPooling for type > 1 is not implemented.")
+
+        return pooled
