@@ -7990,20 +7990,12 @@ class SE3AvgPooling(nn.Module):
             h = features['0'][..., -1]
             pooled = self.pool(G, h)
         elif self.pooling_type == '1':
-            # Apply component-wise average pooling to vectors (degree 1)
-            # pooled = []
-            # for i in range(3):
-            #     h_i = features['1'][..., i]
-            #     pooled.append(self.pool(G, h_i).unsqueeze(-1))
-            # pooled = torch.cat(pooled, axis=-1)
-            # pooled = {'1': pooled}
-            # Apply component-wise average pooling to vectors (degree 1)
+
             pooled_list: List[torch.Tensor] = [
                 self.pool(G, features['1'][..., i]).unsqueeze(-1)
                 for i in range(3)
             ]
 
-            # 🔹 Fix: Explicitly cast `pooled_list` to `List[torch.Tensor]`
             pooled_tensor = torch.cat(pooled_list, dim=-1)
             pooled = {'1': pooled_tensor}
         else:

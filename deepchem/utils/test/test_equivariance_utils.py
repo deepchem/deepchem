@@ -476,7 +476,7 @@ class TestEquivarianceUtils(unittest.TestCase):
 
     def test_translation_equivariance(sample_graph):
         """Check that translating node positions does not change basis functions or relative distances."""
-        from deepchem.utils.equivariance_utils import get_basis_and_r  # ✅ Ensures proper function scope
+        from deepchem.utils.equivariance_utils import get_basis_and_r
 
         G = sample_graph
         basis_original, r_original = get_basis_and_r(G,
