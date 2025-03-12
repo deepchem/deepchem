@@ -7454,3 +7454,264 @@ class Fiber(object):
                 f1_dict[k] = m
         structure = [(f1_dict[k], k) for k in sorted(f1_dict.keys())]
         return Fiber(structure=structure)
+
+
+class SE3LayerNorm(nn.Module):
+    """
+    SE(3)-equivariant layer normalization.
+    
+    Layer Normalization is applied to SE(3)-equivariant atomic features. Unlike batch normalization, 
+    which normalizes across the batch dimension, `LayerNorm` normalizes each feature channel independently.  
+    This makes it suitable for graph-based and transformer architectures where batch statistics are not stable.
+    Layer normalization ensures that each feature maintains zero mean and unit variance, improving  
+    training stability and preserving SE(3) equivariance, since normalization is applied per feature  
+    rather than per batch.
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.models.torch_models.layers import SE3LayerNorm
+    >>> batch_size, num_channels = 10, 30
+    >>> layer = SE3LayerNorm(num_channels)
+    >>> x = torch.randn(batch_size, num_channels)
+    >>> output = layer(x)
+    >>> output.shape
+    torch.Size([10, 30])
+    
+    References
+    ----------
+    .. [1] Ba, Jimmy Lei, Jamie Ryan Kiros, and Geoffrey E. Hinton. "Layer normalization."
+           arXiv preprint arXiv:1607.06450 (2016).
+    .. [2] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self, num_channels: int, **kwargs: Any) -> None:
+        """
+        Parameters
+        ----------
+        num_channels : int
+            Number of output channels for normalization.
+        """
+        super().__init__(**kwargs)
+        self.bn = nn.LayerNorm(num_channels)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Apply Layer Normalization.
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (..., num_channels)
+        
+        Returns
+        -------
+        torch.Tensor
+            Normalized tensor with the same shape as input.
+        """
+        return self.bn(x)
+
+
+class SE3RadialFunc(nn.Module):
+    """
+    Defines the radial profile used in SE(3)-equivariant kernels.
+    The radial function serves as a filter that modulates the interaction  
+    strength between features based on their relative distance. It transforms  
+    edge features while preserving the angular components, ensuring  
+    SE(3) equivariance.
+    The function is implemented using a fully connected network (MLP) with multiple linear layers,  
+    which allows the model to learn flexible representations of distance-based interactions.  
+    ReLU activations introduce non-linearity, enabling the network to capture complex relationships.
+    To improve training stability and feature scaling, BN layer is applied after
+    intermediate transformations. The final output is then projected into the spherical harmonics basis,
+    ensuring that the learned transformations remain SE(3)-equivariant and can be effectively combined  
+    with angular basis functions for SE(3)-equivariant message passing.
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.models.torch_models.layers import SE3RadialFunc
+    >>> num_freq, in_dim, out_dim, edge_dim = 5, 10, 15, 3
+    >>> layer = SE3RadialFunc(num_freq, in_dim, out_dim, edge_dim)
+    >>> x = torch.randn(8, edge_dim + 1)
+    >>> output = layer(x)
+    >>> output.shape
+    torch.Size([8, 15, 1, 10, 1, 5])
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self,
+                 num_freq: int,
+                 in_dim: int,
+                 out_dim: int,
+                 edge_dim: int = 0) -> None:
+        """
+        Parameters
+        ----------
+        num_freq : int
+            Number of frequency components.
+        in_dim : int
+            Input feature dimension.
+        out_dim : int
+            Output feature dimension.
+        edge_dim : int, optional
+            Number of edge dimensions (default is 0).
+        """
+        super().__init__()
+        self.num_freq = num_freq
+        self.in_dim = in_dim
+        self.mid_dim = 32
+        self.out_dim = out_dim
+        self.edge_dim = edge_dim
+
+        self.net = nn.Sequential(
+            nn.Linear(self.edge_dim + 1, self.mid_dim),
+            SE3LayerNorm(self.mid_dim), nn.ReLU(),
+            nn.Linear(self.mid_dim, self.mid_dim), SE3LayerNorm(self.mid_dim),
+            nn.ReLU(), nn.Linear(self.mid_dim,
+                                 self.num_freq * in_dim * out_dim))
+
+        nn.init.kaiming_uniform_(self.net[0].weight)
+        nn.init.kaiming_uniform_(self.net[3].weight)
+        nn.init.kaiming_uniform_(self.net[6].weight)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the RadialFunc layer.
+        
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (..., edge_dim + 1)
+        
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (-1, out_dim, 1, in_dim, 1, num_freq)
+        """
+        x = x.cuda() if torch.cuda.is_available() else x.cpu()
+        y = self.net(x)
+        return y.view(-1, self.out_dim, 1, self.in_dim, 1, self.num_freq)
+
+
+class SE3PairwiseConv(nn.Module):
+    """
+    SE(3)-equivariant convolution between two single-type features.
+    This layer implements a learnable convolution operation that preserves SE(3) equivariance
+    by operating on pairwise interactions using a basis defined by spherical harmonics.
+    Instead of standard convolution (which is translation-invariant), this operation ensures
+    equivariance to rotations and translations in 3D space.
+    The convolution is defined using SE(3)-equivariant kernels, where the coefficients
+    are learned via `RadialFunc`. The kernel operates on pairwise feature interactions,
+    ensuring that feature transformations respect the underlying geometric symmetries
+    of the data.
+    This is achieved by decomposing interactions into radial and angular components:
+    - The radial component (distance-dependent) is learned via `RadialFunc`, capturing
+      how feature strength varies with distance.
+    - The angular component (orientation-dependent) is handled via a spherical harmonics basis,
+      ensuring that rotations affect the output in a structured manner.
+    Example
+    -------
+    >>> from rdkit import Chem
+    >>> import dgl
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models.layers import SE3PairwiseConv
+    >>> from deepchem.utils.equivariance_utils import get_spherical_from_cartesian, precompute_sh, basis_transformation_Q_J
+    >>> mol = Chem.MolFromSmiles('CCO')
+    >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
+    >>> features = featurizer.featurize([mol])[0]
+    >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]))
+    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1) 
+    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)
+    >>> G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)
+    >>> G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
+    >>> max_degree = 3
+    >>> distances = G.edata['d']
+    >>> r_ij = get_spherical_from_cartesian(distances)
+    >>> Y = precompute_sh(r_ij, 2*max_degree)
+    >>> basis = {}
+    >>> # Compute SE(3) basis for different (d_in, d_out) degrees
+    >>> for d_in in range(max_degree + 1):
+    ...     for d_out in range(max_degree + 1):
+    ...         K_Js = []
+    ...         for J in range(abs(d_in - d_out), d_in + d_out + 1):
+    ...             # Get spherical harmonic projection matrices
+    ...             Q_J = basis_transformation_Q_J(J, d_in, d_out)
+    ...             Q_J = Q_J.float().T
+    ...             # Create kernel from spherical harmonics
+    ...             K_J = torch.matmul(Y[J], Q_J)
+    ...             K_Js.append(K_J)    
+    ...         # Reshape so can take linear combinations with a dot product
+    ...         size = (-1, 1, 2 * d_out + 1, 1, 2 * d_in + 1, 2 * min(d_in, d_out) + 1)
+    ...         basis[f"{d_in},{d_out}"] = torch.stack(K_Js, -1).view(*size)
+    >>> # Compute radial distances
+    >>> r = torch.sqrt(torch.sum(distances**2, -1, keepdim=True))
+    >>> # Add edge features
+    >>> if "w" in G.edata.keys():
+    ...     w = G.edata["w"]
+    ...     feat = torch.cat([w, r], -1)
+    ... else:
+    ...     feat = torch.cat([r], -1)
+    >>> pairwise_conv = SE3PairwiseConv(degree_in=0, nc_in=32, degree_out=0, nc_out=128, edge_dim=5)
+    >>> output = pairwise_conv(feat, basis)
+    >>> output.shape
+    torch.Size([6, 128, 32])
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self,
+                 degree_in: int,
+                 nc_in: int,
+                 degree_out: int,
+                 nc_out: int,
+                 edge_dim: int = 0) -> None:
+        """
+        Parameters
+        ----------
+        degree_in : int
+            Degree of the input feature.
+        nc_in : int
+            Number of channels in the input feature.
+        degree_out : int
+            Degree of the output feature.
+        nc_out : int
+            Number of channels in the output feature.
+        edge_dim : int, optional
+            Number of edge dimensions, default is 0.
+        """
+        super().__init__()
+        self.degree_in = degree_in
+        self.degree_out = degree_out
+        self.nc_in = nc_in
+        self.nc_out = nc_out
+        self.num_freq = 2 * min(degree_in, degree_out) + 1
+        self.d_out = 2 * degree_out + 1
+        self.edge_dim = edge_dim
+        self.rp = SE3RadialFunc(self.num_freq, nc_in, nc_out, self.edge_dim)
+
+    def forward(self, feat: torch.Tensor, basis: dict) -> torch.Tensor:
+        """
+        Forward pass of the PairwiseConv layer.
+        Parameters
+        ----------
+        feat : torch.Tensor
+            Input tensor of shape (..., edge_dim + 1).
+        basis : dict
+            Dictionary containing basis functions with keys formatted as 'degree_in, degree_out'.
+        Returns
+        -------
+        torch.Tensor
+            Convolved tensor of shape (batch_size, d_out * nc_out, -1).
+        """
+        R = self.rp(feat)
+        kernel = torch.sum(R * basis[f'{self.degree_in},{self.degree_out}'], -1)
+        return kernel.view(kernel.shape[0], self.d_out * self.nc_out, -1)
