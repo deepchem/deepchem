@@ -22,12 +22,6 @@ try:
 except ModuleNotFoundError:
     pass
 
-try:
-    import dgl
-    from dgl.nn.pytorch.glob import AvgPooling
-except ModuleNotFoundError:
-    raise ImportError('These classes require DGL to be installed.')
-
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
 from deepchem.utils.pytorch_utils import get_activation, segment_sum, unsorted_segment_sum, unsorted_segment_max
 from torch.nn import init as initializers
@@ -7965,11 +7959,15 @@ class SE3AvgPooling(nn.Module):
             - `'0'`: Applies standard average pooling for scalar (degree 0) features.
             - `'1'`: Applies component-wise average pooling for vector (degree 1) features.
         """
+        try:
+            from dgl.nn.pytorch.glob import AvgPooling
+        except ModuleNotFoundError:
+            raise ImportError('These classes require DGL to be installed.')
         super().__init__()
         self.pool = AvgPooling()
         self.pooling_type = pooling_type
 
-    def forward(self, features: Dict[str, torch.Tensor], G: dgl.DGLGraph,
+    def forward(self, features: Dict[str, torch.Tensor], G,
                 **kwargs) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
         """
         Forward pass of SE(3)-equivariant graph pooling.

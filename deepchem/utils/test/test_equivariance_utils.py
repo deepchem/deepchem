@@ -456,7 +456,7 @@ class TestEquivarianceUtils(unittest.TestCase):
         R = torch.tensor(rotation_matrix(axis, angle), dtype=torch.float32)
         return torch.matmul(x, R.T)
 
-    def sample_graph():
+    def sample_graph(self):
         """Create a test graph with SE(3) features using the SMILES 'CCO'."""
         import dgl
         from rdkit import Chem
