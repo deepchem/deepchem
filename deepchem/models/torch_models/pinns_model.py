@@ -85,9 +85,8 @@ class PINNModel(TorchModel):
     ...         if not isinstance(x, torch.Tensor):
     ...             x = torch.tensor(x, dtype=torch.float32)
     ...         return self.net(x)
-    >>> def heat_equation_residual(model, x):
+    >>> def heat_equation_residual(u, x):
     ...     x.requires_grad_(True)
-    ...     u = model(x)
     ...     du_dx = torch.autograd.grad(u.sum(), x, create_graph=True, retain_graph=True)[0]
     ...     d2u_dx2 = torch.autograd.grad(du_dx.sum(), x, create_graph=True, retain_graph=True)[0]
     ...     return du_dx - d2u_dx2  # Let alpha be 1.0
@@ -105,12 +104,10 @@ class PINNModel(TorchModel):
     >>> model = HeatNet()
     >>> pinn = PINNModel(
     ...     model=model,
-    ...     pde_fn=lambda u, x: heat_equation_residual(model, x),
+    ...     pde_fn=heat_equation_residual,
     ...     boundary_data=boundary_data,
-    ...     learning_rate=0.001,
-    ...     batch_size=32
     ... )
-    >>> pinn.fit(dataset, nb_epoch=100)
+    >>> loss = pinn.fit(dataset, nb_epoch=100)
 
     References
     ----------
@@ -292,6 +289,29 @@ class PINNModel(TorchModel):
         with torch.no_grad():
             return self.model(x)
 
+    def _prepare_batch(self, batch):
+        """
+        Overrides the parent class's method to save the input tensors for later use.
+
+        Parameters
+        ----------
+        batch : dict
+            A dictionary containing the batch data, which includes inputs,
+            labels, and optionally weights for the loss calculation.
+
+        Returns
+        -------
+        tuple
+            A tuple containing:
+            - input_tensors (torch.Tensor): The input data for the model.
+            - label_tensors (torch.Tensor): The ground truth values corresponding to the inputs.
+            - weight_tensors (torch.Tensor or None): Optional weights for the loss terms, if provided.
+        """
+        input_tensors, label_tensors, weight_tensors = super()._prepare_batch(
+            batch)
+        self._inputs = input_tensors
+        return input_tensors, label_tensors, weight_tensors
+
     def _loss_fn(self, outputs: list, labels: list,
                  weights: list) -> torch.Tensor:
         """
@@ -317,8 +337,10 @@ class PINNModel(TorchModel):
 
         outputs = outputs[0]
         labels = labels[0]
+        inputs = self._inputs[0]
+
         data_loss = self.data_loss_fn(outputs, labels)
-        physics_loss = self._compute_pde_loss(torch.Tensor(outputs))
+        physics_loss = self._compute_pde_loss(inputs)
         boundary_loss = self._compute_boundary_loss()
 
         total_loss = self.data_weight * data_loss + self.physics_weight * physics_loss + boundary_loss
