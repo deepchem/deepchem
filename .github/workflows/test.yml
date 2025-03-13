@@ -124,7 +124,7 @@ jobs:
         if [ "$(uname)" == 'Linux' ]; then
           sudo apt-get update
           sudo apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev liblapack-dev libhdf5-dev
-          conda-merge env_common_3_8.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml > env.yml
+          conda-merge env_common_3_8.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml env_dqc.yml >  env.yml
         elif [  "$(uname)" == 'Darwin' ]; then
           conda-merge env_common.yml env_test.yml env_mac_3_11.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.mac.cpu.yml jax/env_jax.cpu.yml > env.yml
         elif [[  "$(uname)" == "MINGW64_NT"* ]]; then

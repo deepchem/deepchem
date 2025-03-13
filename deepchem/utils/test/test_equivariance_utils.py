@@ -1,6 +1,7 @@
 import unittest
 import math
 import numpy as np
+import deepchem as dc
 try:
     import torch
     has_torch = True
@@ -11,7 +12,50 @@ if has_torch:
     from deepchem.utils import equivariance_utils
 
 
+def rotation_matrix(axis, angle):
+    """Generate a 3D rotation matrix."""
+    axis = axis / np.linalg.norm(axis)
+    a = np.cos(angle / 2.0)
+    b, c, d = -axis * np.sin(angle / 2.0)
+    return np.array([[
+        a * a + b * b - c * c - d * d, 2 * (b * c - a * d), 2 * (b * d + a * c)
+    ], [
+        2 * (b * c + a * d), a * a + c * c - b * b - d * d, 2 * (c * d - a * b)
+    ], [
+        2 * (b * d - a * c), 2 * (c * d + a * b), a * a + d * d - b * b - c * c
+    ]])
+
+
+def apply_rotation(x, axis, angle):
+    """Apply a 3D rotation to the positions."""
+    from deepchem.utils.test.test_equivariance_utils import rotation_matrix
+    R = torch.tensor(rotation_matrix(axis, angle), dtype=torch.float32)
+    return torch.matmul(x, R.T)
+
+
 class TestEquivarianceUtils(unittest.TestCase):
+    """Test cases for the equivariance utilities."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        import dgl
+        from rdkit import Chem
+        # Create a sample graph for testing
+        # Load molecule and featurize
+        mol = Chem.MolFromSmiles("CCO")
+        featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True,
+                                                        embeded=True)
+        mol_graph = featurizer.featurize([mol])[0]
+
+        self.G = dgl.graph((mol_graph.edge_index[0], mol_graph.edge_index[1]))
+        self.G.ndata['f'] = torch.tensor(mol_graph.node_features,
+                                         dtype=torch.float32).unsqueeze(-1)
+        self.G.ndata['x'] = torch.tensor(
+            mol_graph.positions, dtype=torch.float32)  # Atomic positions
+        self.G.edata['d'] = torch.tensor(mol_graph.edge_features,
+                                         dtype=torch.float32)
+        self.G.edata['w'] = torch.tensor(mol_graph.edge_weights,
+                                         dtype=torch.float32)
 
     @unittest.skipIf(not has_torch, "torch is not available")
     def test_su2_generators_shape(self) -> None:
@@ -432,30 +476,6 @@ class TestEquivarianceUtils(unittest.TestCase):
             expected_last_dim = 2 * J + 1
             self.assertEqual(result[J].shape[-1], expected_last_dim)
 
-    def rotation_matrix(axis, angle):
-        """Generate a 3D rotation matrix."""
-        axis = axis / np.linalg.norm(axis)
-        a = np.cos(angle / 2.0)
-        b, c, d = -axis * np.sin(angle / 2.0)
-        return np.array([[
-            a * a + b * b - c * c - d * d, 2 * (b * c - a * d),
-            2 * (b * d + a * c)
-        ],
-                         [
-                             2 * (b * c + a * d), a * a + c * c - b * b - d * d,
-                             2 * (c * d - a * b)
-                         ],
-                         [
-                             2 * (b * d - a * c), 2 * (c * d + a * b),
-                             a * a + d * d - b * b - c * c
-                         ]])
-
-    def apply_rotation(x, axis, angle):
-        """Apply a 3D rotation to the positions."""
-        from deepchem.utils.test.test_equivariance_utils import rotation_matrix
-        R = torch.tensor(rotation_matrix(axis, angle), dtype=torch.float32)
-        return torch.matmul(x, R.T)
-
     def sample_graph(self):
         """Create a test graph with SE(3) features using the SMILES 'CCO'."""
         import dgl
@@ -474,23 +494,22 @@ class TestEquivarianceUtils(unittest.TestCase):
 
         return G
 
-    def test_translation_equivariance(sample_graph):
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_translation_equivariance(self):
         """Check that translating node positions does not change basis functions or relative distances."""
-        from deepchem.utils.equivariance_utils import get_basis_and_r
+        from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
 
-        G = sample_graph
-        basis_original, r_original = get_basis_and_r(G,
-                                                     max_degree=2,
-                                                     compute_gradients=False)
+        basis_original, r_original = get_equivariant_basis_and_r(
+            self.G, max_degree=2, compute_gradients=False)
 
         # Apply random translation
         translation = torch.randn(1, 3)
-        G_translated = G.clone()
+        G_translated = self.G.clone()
         G_translated.ndata['x'] += translation
         G_translated.edata['d'] = G_translated.ndata['x'][G_translated.edges(
         )[1]] - G_translated.ndata['x'][G_translated.edges()[0]]
 
-        basis_translated, r_translated = get_basis_and_r(
+        basis_translated, r_translated = get_equivariant_basis_and_r(
             G_translated, max_degree=2, compute_gradients=False)
 
         for key in basis_original:
@@ -502,27 +521,25 @@ class TestEquivarianceUtils(unittest.TestCase):
         # r should be unchanged under translation
         assert torch.allclose(r_original, r_translated, atol=1e-5)
 
-    def test_rotation_equivariance(sample_graph, apply_rotation):
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_rotation_equivariance(self):
         """Check that rotating node positions results in equivalent basis transformations and correct `r` behavior."""
-        from deepchem.utils.equivariance_utils import get_basis_and_r
+        from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
 
-        G = sample_graph
-        basis_original, r_original = get_basis_and_r(G,
-                                                     max_degree=2,
-                                                     compute_gradients=False)
+        basis_original, r_original = get_equivariant_basis_and_r(
+            self.G, max_degree=2, compute_gradients=False)
 
         # Apply rotation
         axis = torch.randn(3)
         angle = torch.rand(1).item() * 2 * np.pi
 
-        G_rotated = G.clone()
-        G_rotated.ndata['x'] = apply_rotation(G.ndata['x'], axis, angle)
+        G_rotated = self.G.clone()
+        G_rotated.ndata['x'] = apply_rotation(self.G.ndata['x'], axis, angle)
         G_rotated.edata['d'] = G_rotated.ndata['x'][
             G_rotated.edges()[1]] - G_rotated.ndata['x'][G_rotated.edges()[0]]
 
-        basis_rotated, r_rotated = get_basis_and_r(G_rotated,
-                                                   max_degree=2,
-                                                   compute_gradients=False)
+        basis_rotated, r_rotated = get_equivariant_basis_and_r(
+            G_rotated, max_degree=2, compute_gradients=False)
 
         for key in basis_original:
             if key == '0,0':

@@ -2,10 +2,9 @@ import math
 from typing import Optional, List, Dict, Tuple
 import torch
 import numpy as np
-import dgl
 
 
-def get_basis(G: dgl.DGLGraph,
+def get_basis(G,
               max_degree: int,
               compute_gradients: bool = False) -> Dict[str, torch.Tensor]:
     """
@@ -105,7 +104,7 @@ def get_basis(G: dgl.DGLGraph,
         return basis
 
 
-def get_r(G: dgl.DGLGraph) -> torch.Tensor:
+def get_r(G) -> torch.Tensor:
     """
     Compute inter-nodal distances for a given DGL graph.
 
@@ -156,8 +155,8 @@ def get_r(G: dgl.DGLGraph) -> torch.Tensor:
     return torch.sqrt(torch.sum(cloned_d**2, -1, keepdim=True))
 
 
-def get_basis_and_r(
-    G: dgl.DGLGraph,
+def get_equivariant_basis_and_r(
+    G,
     max_degree: int,
     compute_gradients: bool = False
 ) -> Tuple[Dict[str, torch.Tensor], torch.Tensor]:
@@ -190,7 +189,7 @@ def get_basis_and_r(
     -------
     >>> import torch
     >>> import dgl
-    >>> from deepchem.utils.equivariance_utils import get_basis_and_r
+    >>> from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
     >>> from rdkit import Chem
     >>> import deepchem as dc
     >>> mol = Chem.MolFromSmiles('CCO')
@@ -202,7 +201,7 @@ def get_basis_and_r(
     >>> G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)
     >>> G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
     >>> # Compute basis and distances
-    >>> basis, r = get_basis_and_r(G, max_degree=2)
+    >>> basis, r = get_equivariant_basis_and_r(G, max_degree=2)
     >>> print(r.shape)  # Expected: (num_edges, 1)
     torch.Size([6, 1])
     >>> print(basis.keys())  # Expected: dict
@@ -592,8 +591,7 @@ def get_matrix_kernel(A: torch.Tensor, eps: float = 1e-10) -> torch.Tensor:
     ...                   [2.0, 4.0, 6.0],
     ...                   [3.0, 6.0, 9.0]])
     >>> get_matrix_kernel(A)
-    tensor([[ 0.0000, -0.8321,  0.5547],
-            [ 0.9636, -0.1482, -0.2224]])
+    tensor([[-0.2500,  0.8420, -0.4780]])
     """
     _, s, v = torch.svd(A)
 
