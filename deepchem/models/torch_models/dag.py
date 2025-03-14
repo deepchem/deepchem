@@ -19,10 +19,33 @@ class _DAG(nn.Module):
     """
     Directed Acyclic Graph models for molecular property prediction.
 
-    PyTorch implementation of the DAG model described in:
-    Lusci, Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in
-    chemoinformatics: the prediction of aqueous solubility for drug-like molecules."
-    Journal of chemical information and modeling 53.7 (2013): 1563-1575.
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models.dag import _DAG, DAGModel
+    >>> from deepchem.molnet import load_bace_classification
+    >>> from deepchem.data import NumpyDataset
+    >>> from deepchem.trans import DAGTransformer
+    >>> n_tasks = 1
+    >>> n_features = 75
+    >>> n_classes = 2
+    >>> n_samples = 10
+    >>> tasks, all_dataset, transformers = load_bace_classification("GraphConv", reload=False)
+    >>> train_dataset, valid_dataset, test_dataset = all_dataset
+    >>> dataset = NumpyDataset(train_dataset.X[:n_samples], train_dataset.y[:n_samples], train_dataset.w[:n_samples], train_dataset.ids[:n_samples])
+    >>> max_atoms = max([mol.get_num_atoms() for mol in dataset.X])
+    >>> transformer = DAGTransformer(max_atoms=max_atoms)
+    >>> dataset = transformer.transform(dataset)
+    >>> base_mod = DAGModel(n_tasks=n_tasks, max_atoms=max_atoms, mode='classification', n_classes=n_classes, batch_size=2, device='cpu')
+    >>> X,_,_ = base_mod._prepare_batch(next(base_mod.default_generator(dataset)))
+    >>> model = _DAG(n_tasks=n_tasks, max_atoms=max_atoms, mode='classification', n_classes=n_classes, device='cpu', batch_size=2)
+    >>> # forward pass
+    >>> _ = model(X)
+
+    References
+    ----------
+    .. [1] Lusci Alessandro, Gianluca Pollastri, and Pierre Baldi."Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules."Journal of chemoinformatics and modeling 53.7 (2013):1563-1575.https://pmc.ncbi.nlm.nih.gov/articles/PMC3739985
     """
 
     def __init__(self,
