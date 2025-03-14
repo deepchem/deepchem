@@ -142,12 +142,12 @@ def get_r(G) -> torch.Tensor:
     >>> print(r.shape)  # (num_edges, 1)
     torch.Size([6, 1])
     >>> print(r)
-    tensor([[1.5284],
-            [2.3611],
-            [1.5284],
-            [1.3791],
-            [2.3611],
-            [1.3791]])
+    tensor([[1.5317],
+            [2.3267],
+            [1.5317],
+            [1.4096],
+            [2.3267],
+            [1.4096]])
     """
     cloned_d = torch.clone(G.edata['d'])
     if G.edata['d'].requires_grad:
@@ -591,7 +591,8 @@ def get_matrix_kernel(A: torch.Tensor, eps: float = 1e-10) -> torch.Tensor:
     ...                   [2.0, 4.0, 6.0],
     ...                   [3.0, 6.0, 9.0]])
     >>> get_matrix_kernel(A)
-    tensor([[-0.2500,  0.8420, -0.4780]])
+    tensor([[ 0.0000, -0.8321,  0.5547],
+            [ 0.9636, -0.1482, -0.2224]])
     """
     _, s, v = torch.svd(A)
 
