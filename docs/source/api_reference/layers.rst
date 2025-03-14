@@ -393,6 +393,15 @@ Attention Layers
 .. autoclass:: deepchem.models.torch_models.layers.SE3PairwiseConv
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.SE3Sum
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3Cat
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3AvgPooling
+  :members:
+
 Readout Layers
 ^^^^^^^^^^^^^^
 
