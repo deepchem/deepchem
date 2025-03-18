@@ -624,6 +624,12 @@ InceptionV3Model
 .. autoclass:: deepchem.models.torch_models.InceptionV3Model
   :members:
 
+DeepVariantModel
+----------------
+
+.. autoclass:: deepchem.models.torch_models.DeepVariantModel
+  :members:
+
 MultitaskIRVClassifier
 ----------------
 
