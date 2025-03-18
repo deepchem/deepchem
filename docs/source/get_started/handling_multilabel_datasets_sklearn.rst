@@ -122,9 +122,11 @@ Metrics such as accuracy and F1-score can be computed separately for each task a
 Conclusion
 ----------
 This tutorial demonstrated how DeepChem processes multilabel datasets with missing labels by:
-- Splitting datasets into single-task versions.
-- Training separate models for each task.
-- Predicting and evaluating performance efficiently.
+
+- **Splitting** datasets into single-task versions.
+- **Training** separate models for each task.
+- **Predicting and evaluating** performance efficiently.
+
 
 This method ensures compatibility with Scikit-learn estimators and maintains robust model performance across multiple labels.
 
