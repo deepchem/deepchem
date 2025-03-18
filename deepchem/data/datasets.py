@@ -3088,11 +3088,7 @@ class Databag(object):
             Generator which yields a dictionary {key: dataset.X[batch]}
         """
         key_order = [x for x in self.datasets.keys()]
-        if "epochs" in kwargs:
-            epochs = kwargs['epochs']
-            del kwargs['epochs']
-        else:
-            epochs = 1
+        epochs = 1
         kwargs['deterministic'] = True
         for epoch in range(epochs):
             iterators = [
