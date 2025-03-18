@@ -630,6 +630,12 @@ MultitaskIRVClassifier
 .. autoclass:: deepchem.models.torch_models.MultitaskIRVClassifier
   :members:
 
+DAGModel
+--------
+
+.. autoclass:: deepchem.models.torch_models.DAGModel
+  :members:
+
 PyTorch Lightning Models
 ========================
 
