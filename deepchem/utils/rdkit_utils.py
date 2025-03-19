@@ -2677,6 +2677,35 @@ class DescriptorsNormalizationParameters:
 
 
 def cif_to_mol(cif_file, cutoff):
+    """
+    Convert a CIF (Crystallographic Information File) to an RDKit molecule.
+
+    This function reads a CIF file, extracts atomic positions, and constructs an RDKit molecule.
+    Atoms are added based on the CIF structure, and bonds are created if the interatomic 
+    distance is below a specified cutoff.
+
+    Parameters:
+    -----------
+    cif_file : str
+        Path to the CIF file to be converted.
+    cutoff : float
+        Distance threshold for adding bonds between atoms.
+
+    Returns:
+    --------
+    mol : rdkit.Chem.rdchem.RWMol
+        RDKit editable molecule representing the CIF structure.
+
+    Raises:
+    -------
+    ValueError
+        If the provided file is not a valid CIF file.
+
+    Example:
+    --------
+    >>> mol = cif_to_mol("example.cif", 1.5)
+    >>> print(mol.GetNumAtoms())
+    """
 
     if not cif_file.endswith(".cif"):
         raise ValueError(
