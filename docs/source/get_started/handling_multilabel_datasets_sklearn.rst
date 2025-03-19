@@ -14,15 +14,15 @@ This tutorial explains how to:
 DeepChem Approach
 -------------------
 
-### Dataset Preparation:
+**Dataset Preparation**
 - A multilabel dataset is loaded, and missing labels (NaN) are identified.
 - The dataset is split into multiple single-task datasets, each corresponding to a label.
 
-### Training Process:
+**Training Process**
 - Each label (task) is treated as a separate binary classification problem.
 - Models like `RandomForestClassifier` (or other Scikit-learn models) are trained separately for each task.
 
-### Prediction & Evaluation:
+**Prediction & Evaluation**
 - Each model predicts its respective task.
 - Predictions are concatenated to form the final multilabel output.
 - Metrics (e.g., accuracy, F1-score) are computed separately for each task and then averaged.
@@ -44,7 +44,8 @@ Additionally, install Scikit-learn if not already available:
 Working with Multilabel Datasets
 --------------------------------
 
-### Step 1: Load a Multilabel Dataset
+Step 1: Load a Multilabel Dataset
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 DeepChem provides utilities to load datasets. Here, we demonstrate loading a sample multilabel dataset:
 
@@ -61,7 +62,8 @@ DeepChem provides utilities to load datasets. Here, we demonstrate loading a sam
    # Convert dataset to NumPy for easier manipulation
    X_train, y_train, w_train = train_dataset.X, train_dataset.y, train_dataset.w
 
-### Step 2: Handle Missing Labels
+Step 2: Handle Missing Labels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Since many Scikit-learn models do not support NaN values in labels, we need to process them:
 
@@ -77,7 +79,8 @@ Since many Scikit-learn models do not support NaN values in labels, we need to p
 
    single_task_datasets = split_into_single_task_datasets(X_train, y_train, tasks)
 
-### Step 3: Train Separate Models for Each Task
+Step 3: Train Separate Models for Each Task
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Each task will have its own classifier:
 
@@ -91,7 +94,8 @@ Each task will have its own classifier:
        model.fit(task_X, task_y)
        models.append(model)
 
-### Step 4: Predict on New Data
+Step 4: Predict on New Data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To predict for new samples, we concatenate predictions from all task models:
 
@@ -103,7 +107,8 @@ To predict for new samples, we concatenate predictions from all task models:
 
    multilabel_predictions = predict_multilabel(models, X_train)
 
-### Step 5: Evaluate Model Performance
+Step 5: Evaluate Model Performance
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Metrics such as accuracy and F1-score can be computed separately for each task and averaged:
 
