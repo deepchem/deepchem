@@ -14,7 +14,7 @@ except ModuleNotFoundError:
 try:
     import torch
     import torch.nn as nn
-    import deepchem.models.torch_models.layers as torch_layers
+    from deepchem.models.torch_models import layers as torch_layers
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
@@ -1544,3 +1544,35 @@ def test_torch_graph_gather():
         np.load("deepchem/models/tests/assets/graphgatherlayer_result.npy"),
         atol=1e-4)
     assert result.shape == (batch_size, 2 * n_features)
+
+
+@pytest.mark.torch
+def test_torch_cosine_dist():
+    """Test invoking cosine_dist."""
+
+    x = torch.ones((5, 4), dtype=torch.float32)
+    y_same = torch.ones((5, 4), dtype=torch.float32)
+    # x and y are the same tensor (equivalent at every element)
+    # the pairwise inner product of the rows in x and y will always be 1
+    # the output tensor will be of shape (5,5)
+    cos_sim_same = torch_layers.cosine_dist(x, y_same)
+    diff = cos_sim_same - torch.ones((5, 5), dtype=torch.float32)
+    assert torch.abs(torch.sum(diff)) < 1e-5  # True
+
+    identity_tensor = torch.eye(
+        16, dtype=torch.float32)  # identity matrix of shape (16,16)
+    x1 = identity_tensor[0:8, :]  # first half of the identity matrix
+    x2 = identity_tensor[8:16, :]  # second half of the identity matrix
+    # each row in x1 is orthogonal to each row in x2
+    # the pairwise inner product of the rows in x1 and x2 will always be 0
+    # the output tensor will be of shape (8,8)
+    cos_sim_orth = torch_layers.cosine_dist(x1, x2)
+    assert torch.abs(torch.sum(cos_sim_orth)) < 1e-5  # True
+    assert all([cos_sim_orth.shape[dim] == 8 for dim in range(2)])  # True
+
+    x3 = torch.tensor([[1.0, 2.0], [3.0, 4.0]], dtype=torch.float32)
+    x4 = torch.tensor([[2.0, 1.0], [0.0, -1.0]], dtype=torch.float32)
+    pre_calculated_value = torch.tensor([[0.79999995, -0.8944272],
+                                         [0.8944272, -0.8]])
+    result = torch_layers.cosine_dist(x3, x4)
+    assert torch.allclose(result, pre_calculated_value, atol=1e-4)

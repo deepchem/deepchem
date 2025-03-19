@@ -59,6 +59,8 @@ jobs:
         sudo rm -rf "/usr/local/share/boost"
         sudo rm -rf "$AGENT_TOOLSDIRECTORY"
         sudo rm -rf /usr/local/lib/android
+        sudo docker image prune --all --force
+        sudo rm -rf /opt/hostedtoolcache/CodeQL
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
@@ -111,7 +113,13 @@ jobs:
       run: |
         python -m pip install --upgrade pip;
         pip install conda-merge;
-        conda-merge requirements/env_common.yml requirements/torch/env_torch.cpu.yml requirements/env_test.yml > env.yml
+        if [ "$(uname)" == 'Linux' ]; then
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev liblapack-dev libhdf5-dev
+          conda-merge requirements/env_common.yml requirements/torch/env_torch.cpu.yml requirements/env_test.yml > env.yml
+        elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
+          conda-merge requirements/env_common.yml requirements/torch/env_torch.win.cpu.yml requirements/env_test.yml > env.yml
+        fi
     - name: Create env.yml for python 3.8
       shell: bash
       # A special case of environment creation for python 3.8 which includes an older version of matminer 
@@ -119,6 +127,10 @@ jobs:
       run: |
         python -m pip install --upgrade pip;
         pip install conda-merge;
+        if [ "$(uname)" == 'Linux' ]; then
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev liblapack-dev libhdf5-dev
+        fi;
         conda-merge requirements/env_common_3_8.yml requirements/torch/env_torch.cpu.yml requirements/env_test.yml > env.yml
     - name: Install all dependencies
       uses: conda-incubator/setup-miniconda@v3
