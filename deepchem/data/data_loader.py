@@ -1997,8 +1997,6 @@ class BAMLoader(DataLoader):
     Here, we extract Query Name, Query Sequence, Query Length, Reference Name,
     Reference Start, CIGAR and Mapping Quality of each read in the BAM file.
     This class provides methods to load and featurize data from BAM files.
-    Additionally, we can also get pileups from BAM files by setting
-    get_pileup=True.
 
     Examples
     --------
@@ -2014,18 +2012,13 @@ class BAMLoader(DataLoader):
     or MacOS X. To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
     """
 
-    def __init__(self,
-                 featurizer: Optional[Featurizer] = None,
-                 get_pileup: Optional[bool] = False):
+    def __init__(self, featurizer: Optional[Featurizer] = None):
         """Initialize BAMLoader.
 
         Parameters
         ----------
         featurizer: Featurizer (default: None)
             The Featurizer to be used for the loaded BAM data.
-        get_pileup: bool, optional (default: False)
-            If True, the pileup of reads at each position is
-            returned, to be used in DeepVariant.
 
        """
 
@@ -2038,10 +2031,7 @@ class BAMLoader(DataLoader):
             self.user_specified_features = featurizer.feature_fields
         elif featurizer is None:  # Default featurizer
             from deepchem.feat import BAMFeaturizer
-            if get_pileup:
-                featurizer = BAMFeaturizer(max_records=None, get_pileup=True)
-            else:
-                featurizer = BAMFeaturizer(max_records=None)
+            featurizer = BAMFeaturizer(max_records=None)
 
         # Set self.featurizer
         self.featurizer = featurizer
