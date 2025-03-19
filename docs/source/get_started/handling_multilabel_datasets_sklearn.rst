@@ -15,14 +15,17 @@ DeepChem Approach
 -------------------
 
 **Dataset Preparation**
+
 - A multilabel dataset is loaded, and missing labels (NaN) are identified.
 - The dataset is split into multiple single-task datasets, each corresponding to a label.
 
 **Training Process**
+
 - Each label (task) is treated as a separate binary classification problem.
 - Models like `RandomForestClassifier` (or other Scikit-learn models) are trained separately for each task.
 
 **Prediction & Evaluation**
+
 - Each model predicts its respective task.
 - Predictions are concatenated to form the final multilabel output.
 - Metrics (e.g., accuracy, F1-score) are computed separately for each task and then averaged.
