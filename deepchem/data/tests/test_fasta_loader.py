@@ -37,6 +37,13 @@ class TestFASTALoader(unittest.TestCase):
 
         assert sequences.X.shape == (3, 58, 5)
 
+    def test_fasta_raw(self):
+        input_file = os.path.join(self.current_dir, "example.fasta")
+        loader = dc.data.FASTALoader(legacy=False, use_raw_fasta=True)
+        sequences = loader.create_dataset(input_file)
+
+        assert sequences.X.shape == (3, 2)
+
     def test_fasta_one_hot_big(self):
         protein = [
             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
