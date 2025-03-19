@@ -141,11 +141,12 @@ def apply_pdbfixer(
             fixer.removeHeterogens(False)
 
         hydrogenated_io = StringIO()
-        openmm.app.PDBFile.writeFile(fixer.topology, fixer.positions, hydrogenated_io)
+        openmm.app.PDBFile.writeFile(fixer.topology, fixer.positions,
+                                     hydrogenated_io)
         hydrogenated_io.seek(0)
-        return Chem.MolFromPDBBlock(
-            hydrogenated_io.read(), sanitize=False, removeHs=False
-        )
+        return Chem.MolFromPDBBlock(hydrogenated_io.read(),
+                                    sanitize=False,
+                                    removeHs=False)
     except ValueError as e:
         logger.warning("Unable to add hydrogens %s", e)
         raise MoleculeLoadException(e)
@@ -277,17 +278,23 @@ def load_molecule(
 
     from_pdb = False
     if ".mol2" in molecule_file:
-        my_mol = Chem.MolFromMol2File(molecule_file, sanitize=False, removeHs=False)
+        my_mol = Chem.MolFromMol2File(molecule_file,
+                                      sanitize=False,
+                                      removeHs=False)
     elif ".sdf" in molecule_file:
         suppl = Chem.SDMolSupplier(str(molecule_file), sanitize=False)
         # TODO: This is wrong. Should return all molecules
         my_mol = suppl[0]
     elif ".pdbqt" in molecule_file:
         pdb_block = pdbqt_to_pdb(molecule_file)
-        my_mol = Chem.MolFromPDBBlock(str(pdb_block), sanitize=False, removeHs=False)
+        my_mol = Chem.MolFromPDBBlock(str(pdb_block),
+                                      sanitize=False,
+                                      removeHs=False)
         from_pdb = True
     elif ".pdb" in molecule_file:
-        my_mol = Chem.MolFromPDBFile(str(molecule_file), sanitize=False, removeHs=False)
+        my_mol = Chem.MolFromPDBFile(str(molecule_file),
+                                     sanitize=False,
+                                     removeHs=False)
         from_pdb = True  # noqa: F841
     else:
         raise ValueError("Unrecognized file type for %s" % str(molecule_file))
@@ -296,15 +303,16 @@ def load_molecule(
         raise ValueError("Unable to read non None Molecule Object")
 
     if add_hydrogens or calc_charges:
-        my_mol = apply_pdbfixer(
-            my_mol, hydrogenate=add_hydrogens, is_protein=is_protein
-        )
+        my_mol = apply_pdbfixer(my_mol,
+                                hydrogenate=add_hydrogens,
+                                is_protein=is_protein)
     if sanitize:
         try:
             Chem.SanitizeMol(my_mol)
         # TODO: Ideally we should catch AtomValenceException but Travis seems to choke on it for some reason.
         except:
-            logger.warning("Mol %s failed sanitization" % Chem.MolToSmiles(my_mol))
+            logger.warning("Mol %s failed sanitization" %
+                           Chem.MolToSmiles(my_mol))
     if calc_charges:
         # This updates in place
         compute_charges(my_mol)
@@ -395,9 +403,9 @@ def merge_molecules(molecules):
         return combined
 
 
-def compute_all_ecfp(
-    mol: RDKitMol, indices: Optional[Set[int]] = None, degree: int = 2
-) -> Dict[int, str]:
+def compute_all_ecfp(mol: RDKitMol,
+                     indices: Optional[Set[int]] = None,
+                     degree: int = 2) -> Dict[int, str]:
     """Obtain molecular fragment for all atoms emanating outward to given degree.
 
     For each fragment, compute SMILES string (for now) and hash to
@@ -454,11 +462,14 @@ def compute_ecfp_features(mol, ecfp_degree=2, ecfp_power=11):
     """
     from rdkit.Chem import AllChem
 
-    bv = AllChem.GetMorganFingerprintAsBitVect(mol, ecfp_degree, nBits=2**ecfp_power)
+    bv = AllChem.GetMorganFingerprintAsBitVect(mol,
+                                               ecfp_degree,
+                                               nBits=2**ecfp_power)
     return np.array(bv)
 
 
-def compute_contact_centroid(molecular_complex: Any, cutoff: float = 4.5) -> np.ndarray:
+def compute_contact_centroid(molecular_complex: Any,
+                             cutoff: float = 4.5) -> np.ndarray:
     """Computes the (x,y,z) centroid of the contact regions of this molecular complex.
 
     For a molecular complex, it's necessary for various featurizations
@@ -482,7 +493,8 @@ def compute_contact_centroid(molecular_complex: Any, cutoff: float = 4.5) -> np.
     return centroid
 
 
-def reduce_molecular_complex_to_contacts(fragments: List, cutoff: float = 4.5) -> List:
+def reduce_molecular_complex_to_contacts(fragments: List,
+                                         cutoff: float = 4.5) -> List:
     """Reduce a molecular complex to only those atoms near a contact.
 
     Molecular complexes can get very large. This can make it unwieldy to
@@ -650,7 +662,8 @@ def compute_ring_normal(mol, ring_indices):
     return normal
 
 
-def compute_all_pairs_shortest_path(mol) -> Dict[Tuple[int, int], Tuple[int, int]]:
+def compute_all_pairs_shortest_path(
+        mol) -> Dict[Tuple[int, int], Tuple[int, int]]:
     """Computes the All pair shortest between every pair of nodes
     in terms of Rdkit Atom indexes.
 
@@ -671,9 +684,7 @@ def compute_all_pairs_shortest_path(mol) -> Dict[Tuple[int, int], Tuple[int, int
     n_atoms = mol.GetNumAtoms()
     paths_dict = {
         (i, j): Chem.rdmolops.GetShortestPath(mol, i, j)
-        for i in range(n_atoms)
-        for j in range(n_atoms)
-        if i < j
+        for i in range(n_atoms) for j in range(n_atoms) if i < j
     }
     return paths_dict
 
@@ -1415,7 +1426,8 @@ class DescriptorsNormalizationParameters:
         ),
         "VSA_EState7": (
             "loggamma",
-            (0.00016582407490511742, 4.690543031567471e-07, 5.38971779436177e-08),
+            (0.00016582407490511742, 4.690543031567471e-07,
+             5.38971779436177e-08),
             -0.23935820315780676,
             0.0,
             -2.393749594049651e-06,
@@ -1502,7 +1514,8 @@ class DescriptorsNormalizationParameters:
         ),
         "NumAromaticHeterocycles": (
             "halfgennorm",
-            (0.19057145504745865, -1.897689882032624e-17, 2.1261316374019246e-05),
+            (0.19057145504745865, -1.897689882032624e-17,
+             2.1261316374019246e-05),
             0,
             33,
             0.9458862120348425,
@@ -1534,7 +1547,8 @@ class DescriptorsNormalizationParameters:
         ),
         "NumSaturatedRings": (
             "halfgennorm",
-            (0.23246838885007082, -2.4267394888596534e-25, 0.00026458005932038795),
+            (0.23246838885007082, -2.4267394888596534e-25,
+             0.00026458005932038795),
             0,
             22,
             0.711269788885222,
@@ -1697,7 +1711,8 @@ class DescriptorsNormalizationParameters:
         ),
         "fr_barbitur": (
             "genhalflogistic",
-            (0.0020825723750872178, -0.0014169372235491489, 0.005286684885304822),
+            (0.0020825723750872178, -0.0014169372235491489,
+             0.005286684885304822),
             0,
             2,
             0.0014100987069094837,
@@ -1721,7 +1736,8 @@ class DescriptorsNormalizationParameters:
         ),
         "fr_azo": (
             "genhalflogistic",
-            (0.00040002675029834824, -2.796838513658869e-05, 0.0031033294350019196),
+            (0.00040002675029834824, -2.796838513658869e-05,
+             0.0031033294350019196),
             0,
             2,
             0.0006700469032832298,
@@ -1737,7 +1753,8 @@ class DescriptorsNormalizationParameters:
         ),
         "fr_aniline": (
             "halfgennorm",
-            (0.1049174054668825, -0.0004210957634456598, 2.0561338188621596e-11),
+            (0.1049174054668825, -0.0004210957634456598,
+             2.0561338188621596e-11),
             0,
             17,
             0.6701569109837688,
@@ -1844,7 +1861,8 @@ class DescriptorsNormalizationParameters:
         ),
         "NumAliphaticCarbocycles": (
             "halfgennorm",
-            (0.39096958306392793, -4.260236992450893e-24, 0.0012095685496975065),
+            (0.39096958306392793, -4.260236992450893e-24,
+             0.0012095685496975065),
             0,
             9,
             0.22409568669806887,
@@ -1860,7 +1878,8 @@ class DescriptorsNormalizationParameters:
         ),
         "fr_nitroso": (
             "genhalflogistic",
-            (2.1084981882574176e-07, -4.9280506479729835e-05, 0.0027110708397517554),
+            (2.1084981882574176e-07, -4.9280506479729835e-05,
+             0.0027110708397517554),
             0,
             2,
             0.00014000980068604803,
@@ -2025,7 +2044,8 @@ class DescriptorsNormalizationParameters:
         ),
         "fr_N_O": (
             "exponnorm",
-            (5045.039118637744, -2.4181865220268798e-05, 5.7188007391269775e-06),
+            (5045.039118637744, -2.4181865220268798e-05,
+             5.7188007391269775e-06),
             0,
             6,
             0.028882021741521907,
@@ -2352,7 +2372,8 @@ class DescriptorsNormalizationParameters:
         ),
         "fr_isocyan": (
             "genhalflogistic",
-            (2.176451524678801e-10, -8.586837508181029e-13, 0.003318792604734705),
+            (2.176451524678801e-10, -8.586837508181029e-13,
+             0.003318792604734705),
             0,
             1,
             0.00011000770053903773,
@@ -2360,7 +2381,8 @@ class DescriptorsNormalizationParameters:
         ),
         "fr_phos_ester": (
             "genhalflogistic",
-            (3.2594653253264924e-11, -0.0012483281868383108, 0.02952659923331233),
+            (3.2594653253264924e-11, -0.0012483281868383108,
+             0.02952659923331233),
             0,
             22,
             0.007020491434400408,
@@ -2408,7 +2430,8 @@ class DescriptorsNormalizationParameters:
         ),
         "EState_VSA11": (
             "genhalflogistic",
-            (0.0010872264517366357, -4.398093849911524e-07, 0.31899977022818193),
+            (0.0010872264517366357, -4.398093849911524e-07,
+             0.31899977022818193),
             0.0,
             163.01426425844207,
             0.11426916104059913,
@@ -2609,7 +2632,8 @@ class DescriptorsNormalizationParameters:
         ),
         "fr_phos_acid": (
             "genhalflogistic",
-            (3.2594653253264924e-11, -0.0012483281868383108, 0.02952659923331233),
+            (3.2594653253264924e-11, -0.0012483281868383108,
+             0.02952659923331233),
             0,
             22,
             0.007130499134939446,
@@ -2617,7 +2641,8 @@ class DescriptorsNormalizationParameters:
         ),
         "fr_piperdine": (
             "halfgennorm",
-            (0.4238794287379706, -1.2796542653568352e-22, 0.0018770831152461857),
+            (0.4238794287379706, -1.2796542653568352e-22,
+             0.0018770831152461857),
             0,
             6,
             0.14572020041402897,
@@ -2625,7 +2650,8 @@ class DescriptorsNormalizationParameters:
         ),
         "fr_isothiocyan": (
             "genhalflogistic",
-            (8.886662035991823e-09, -0.0008924947259535538, 0.002685293974604489),
+            (8.886662035991823e-09, -0.0008924947259535538,
+             0.002685293974604489),
             0,
             2,
             0.0002300161011270789,
