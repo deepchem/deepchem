@@ -385,6 +385,13 @@ CRAMFeaturizer
   :members:
   :inherited-members:
 
+FASTAFeaturizer
+^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.FASTAFeaturizer
+  :members:
+  :inherited-members:
+
 
 DeepVariant Featurizers
 -----------------------
