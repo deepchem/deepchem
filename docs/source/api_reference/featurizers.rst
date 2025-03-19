@@ -74,6 +74,13 @@ MolGraphConvFeaturizer
   :members:
   :inherited-members:
 
+EquivariantGraphFeaturizer
+**********************
+
+.. autoclass:: deepchem.feat.EquivariantGraphFeaturizer
+  :members:
+  :inherited-members:
+
 PagtnMolGraphFeaturizer
 ***********************
 
@@ -288,6 +295,8 @@ AtomicConvFeaturizer
 .. autoclass:: deepchem.feat.AtomicConvFeaturizer
   :members:
   :inherited-members:
+
+
 
 
 Inorganic Crystal Featurizers

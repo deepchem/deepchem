@@ -1201,7 +1201,7 @@ class GraphNetwork(torch.nn.Module):
             global_features: Tensor,
             batch: Optional[Tensor] = None) -> Tuple[Tensor, Tensor, Tensor]:
         """Output computation for a GraphNetwork
-
+        
         Parameters
         ----------
         node_features: torch.Tensor
@@ -2746,7 +2746,7 @@ class AtomicConv(nn.Module):
                 layer_sizes, weight_init_stddevs, bias_init_consts, dropouts,
                 activation_fns):
             layer = self.prev_layer
-            if next_activation is not None:
+            if next_activation is not None and callable(next_activation):
                 layer = next_activation(layer)
             linear = nn.Linear(prev_size, size)
             nn.init.trunc_normal_(linear.weight, std=weight_stddev)
@@ -6829,3 +6829,1175 @@ class SE3Attention(nn.Module):
         coords = coords + 0.01 * coords_update
 
         return x, coords
+
+
+def _DAGgraph_step(batch_inputs: torch.Tensor,
+                   W_layers: nn.ParameterList,
+                   b_layers: nn.ParameterList,
+                   activation_fn: Callable[[torch.Tensor], torch.Tensor],
+                   dropouts: List[Optional[nn.Dropout]],
+                   training: bool = True) -> torch.Tensor:
+    """
+    Perform a single step of computation in the DAG graph.
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models.layers import _DAGgraph_step
+    >>> batch_size, n_graph_feat, n_atom_feat, max_atoms = 10, 30, 75, 50
+    >>> layer_sizes = [100]
+    >>> layers = [nn.Parameter(torch.randn(n_atom_feat, layer_sizes[0]))]
+    >>> bias = [nn.Parameter(torch.randn(layer_sizes[0]))]
+    >>> dropouts = [None]
+    >>> activation_fn = torch.nn.ReLU()
+    >>> batch_inputs = torch.randn(batch_size, n_atom_feat)
+    >>> outputs = _DAGgraph_step(batch_inputs, layers, bias, activation_fn, dropouts)
+    """
+    outputs = batch_inputs
+    for i, (d, w, b) in enumerate(zip(dropouts, W_layers, b_layers)):
+        outputs = torch.matmul(outputs, w) + b
+        outputs = activation_fn(outputs)
+        if d is not None and training:
+            outputs = d(outputs)
+    return outputs
+
+
+class DAGLayer(nn.Module):
+    """
+    DAG computation layer implemented in PyTorch.
+    It is used to compute graph features for each atom with it's neighbors recursively.
+    
+    Example
+    -------
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models.layers import DAGLayer
+    >>> np.random.seed(123)
+    >>> batch_size, n_graph_feat, n_atom_feat, max_atoms = 10, 30, 75, 50
+    >>> layer_sizes = [100]
+    >>> layer = DAGLayer(n_graph_feat, n_atom_feat, max_atoms, layer_sizes)
+    >>> atom_features = np.random.rand(batch_size, n_atom_feat)
+    >>> parents = np.random.randint(0, max_atoms, (batch_size, max_atoms, max_atoms))
+    >>> calc_orders = np.random.randint(0, batch_size, (batch_size, max_atoms))
+    >>> calc_masks = np.random.randint(0, 2, (batch_size, max_atoms))
+    >>> n_atoms = batch_size
+    >>> outputs = layer([atom_features, parents, calc_orders, calc_masks, np.array(n_atoms)])
+
+    References
+    ----------
+    .. [1] Lusci Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575. https://pmc.ncbi.nlm.nih.gov/articles/PMC3739985
+    """
+
+    def __init__(self,
+                 n_graph_feat: int = 30,
+                 n_atom_feat: int = 75,
+                 max_atoms: int = 50,
+                 layer_sizes: List[int] = [100],
+                 init: str = 'xavier_uniform',
+                 activation: str = 'relu',
+                 dropout: Optional[float] = None,
+                 batch_size: int = 64,
+                 device: Optional[torch.device] = torch.device('cpu'),
+                 **kwargs: Any) -> None:
+        """
+        Parameters
+        ----------
+        n_graph_feat: int, optional
+            Number of features for each node(and the whole grah).
+        n_atom_feat: int, optional
+            Number of features listed per atom.
+        max_atoms: int, optional
+            Maximum number of atoms in molecules.
+        layer_sizes: list of int, optional(default=[100])
+            List of hidden layer size(s):
+            length of this list represents the number of hidden layers,
+            and each element is the width of corresponding hidden layer.
+        init: str, optional
+            Weight initialization for filters.
+        activation: str, optional
+            Activation function applied.
+        dropout: float, optional
+            Dropout probability in hidden layer(s).
+        batch_size: int, optional
+            number of molecules in a batch.
+        device: str, optional
+            Device used for computation
+        """
+        super(DAGLayer, self).__init__(**kwargs)
+        self.init: str = init
+        self.activation: str = activation
+        self.activation_fn: Callable[..., torch.Tensor] = getattr(F, activation)
+        self.layer_sizes: List[int] = layer_sizes
+        self.dropout: Optional[float] = dropout
+        self.max_atoms: int = max_atoms
+        self.batch_size: int = batch_size
+        self.n_inputs: int = n_atom_feat + (self.max_atoms - 1) * n_graph_feat
+        self.n_graph_feat: int = n_graph_feat
+        self.n_outputs: int = n_graph_feat
+        self.n_atom_feat: int = n_atom_feat
+        self.device: Optional[torch.device] = device
+        self.W_layers: nn.ParameterList = nn.ParameterList()
+        self.b_layers: nn.ParameterList = nn.ParameterList()
+        self.dropouts: List[Optional[nn.Dropout]] = []
+
+        prev_layer_size: int = self.n_inputs
+        for layer_size in self.layer_sizes:
+            self.W_layers.append(
+                nn.Parameter(torch.randn(prev_layer_size, layer_size)))
+            self.b_layers.append(nn.Parameter(torch.zeros(layer_size)))
+            self.dropouts.append(
+                nn.Dropout(p=self.dropout) if self.dropout else None)
+            prev_layer_size = layer_size
+        self.W_layers.append(
+            nn.Parameter(torch.randn(prev_layer_size, self.n_outputs)))
+        self.b_layers.append(nn.Parameter(torch.zeros(self.n_outputs)))
+        self.dropouts.append(
+            nn.Dropout(p=self.dropout) if self.dropout else None)
+        self._initialize_weights()
+
+    def get_config(self) -> Dict[str, Any]:
+        """
+        Get the configuration of the DAGLayer.
+        """
+        config: Dict[str, Any] = {}
+        config['n_graph_feat'] = self.n_graph_feat
+        config['n_atom_feat'] = self.n_atom_feat
+        config['max_atoms'] = self.max_atoms
+        config['layer_sizes'] = self.layer_sizes
+        config['init'] = self.init
+        config['activation'] = self.activation
+        config['dropout'] = self.dropout
+        config['batch_size'] = self.batch_size
+        return config
+
+    def _initialize_weights(self) -> None:
+        for w, b in zip(self.W_layers, self.b_layers):
+            if self.init in ['glorot_uniform', "xavier_uniform"]:
+                nn.init.xavier_uniform_(w)
+                nn.init.zeros_(b)
+            elif self.init == ['glorot_normal', "xavier_normal"]:
+                nn.init.xavier_normal_(w)
+                nn.init.zeros_(b)
+            else:
+                raise ValueError(f"Unsupported init: {self.init}")
+
+    def forward(self,
+                inputs: Tuple[Union[torch.Tensor, np.ndarray],
+                              Union[torch.Tensor,
+                                    np.ndarray], Union[torch.Tensor,
+                                                       np.ndarray],
+                              Union[torch.Tensor,
+                                    np.ndarray], Union[torch.Tensor,
+                                                       np.ndarray]],
+                training: bool = True) -> torch.Tensor:
+        """
+        Parameters
+        ----------
+        inputs : List[Union[torch.Tensor, np.ndarray]]
+            A list of tensors containing:
+            1. atom_features of shape `(batch_size, n_atom_feat)`
+            2. parents of shape `(batch_size, max_atoms, max_atoms)`
+            3. calculation_orders of shape `(batch_size, max_atoms)`
+            4. calculation_masks of shape `(batch_size, max_atoms)`
+            5. n_atoms (scalar value representing number of atoms)
+        training : bool, optional
+            Whether the model is training or not, by default True
+
+        Returns
+        -------
+        torch.Tensor
+            Output feature tensor of shape `(number of max_atom-th target atoms, n_outputs)`.
+        """
+        atom_features, parents, calculation_orders, calculation_masks, n_atoms = inputs
+        # each atom corresponds to a graph, which is represented by the `max_atoms*max_atoms` int32 matrix of index
+        # each gragh include `max_atoms` of steps(corresponding to rows) of calculating graph features
+
+        n_atoms = n_atoms.squeeze()
+        graph_features = torch.zeros((self.batch_size * self.max_atoms,
+                                      self.max_atoms + 1, self.n_graph_feat),
+                                     device=self.device)
+
+        if not isinstance(atom_features, torch.Tensor):
+            atom_features = torch.tensor(atom_features,
+                                         dtype=torch.float32,
+                                         device=self.device)
+        if not isinstance(parents, torch.Tensor):
+            parents = torch.tensor(parents,
+                                   dtype=torch.int32,
+                                   device=self.device)
+        if not isinstance(calculation_orders, torch.Tensor):
+            calculation_orders = torch.tensor(calculation_orders,
+                                              dtype=torch.int32,
+                                              device=self.device)
+        if not isinstance(calculation_masks, torch.Tensor):
+            calculation_masks = torch.tensor(calculation_masks,
+                                             dtype=torch.bool,
+                                             device=self.device)
+        arange = torch.arange(int(n_atoms), device=self.device)
+
+        batch_outputs = torch.zeros(0, device=self.device)
+        for count in range(self.max_atoms):
+            # extracting atom features of target atoms: (batch_size*max_atoms) * n_atom_features
+            mask = calculation_masks[:, count]
+            current_round = torch.masked_select(calculation_orders[:, count],
+                                                mask)
+            batch_atom_features = torch.index_select(atom_features, 0,
+                                                     current_round)
+            # generating index for graph features used in the inputs
+            stack1 = torch.repeat_interleave(torch.masked_select(arange, mask),
+                                             self.max_atoms - 1)
+            stack2 = torch.masked_select(parents[:, count, 1:],
+                                         mask.unsqueeze(-1)).view(
+                                             -1, self.max_atoms - 1).flatten()
+            index = torch.stack([stack1, stack2], dim=1)
+            # extracting graph features for parents of the target atoms, then flatten
+            # shape: (batch_size*max_atoms) * [(max_atoms-1)*n_graph_features]
+            batch_graph_features = graph_features[index[:, 0],
+                                                  index[:, 1]].reshape(
+                                                      -1, (self.max_atoms - 1) *
+                                                      self.n_graph_feat)
+            # concat into the input tensor: (batch_size*max_atoms) * n_inputs
+            batch_inputs = torch.cat(
+                [batch_atom_features, batch_graph_features], dim=1)
+            # DAGgraph_step maps from batch_inputs to a batch of graph_features
+            # of shape: (batch_size*max_atoms) * n_graph_features
+            # representing the graph features of target atoms in each graph
+            batch_outputs = _DAGgraph_step(batch_inputs,
+                                           self.W_layers,
+                                           self.b_layers,
+                                           self.activation_fn,
+                                           self.dropouts,
+                                           training=training)
+            # index for target atoms
+            target_index = torch.stack([arange, parents[:, count, 0]], dim=1)
+            target_index = target_index[mask]
+            graph_features[target_index[:, 0], target_index[:,
+                                                            1]] = batch_outputs
+
+        return batch_outputs
+
+
+class DAGGather(nn.Module):
+    """
+    DAG vector gathering layer in PyTorch.
+    It is used to gather graph features and combine them based on their membership.
+    
+    Example
+    -------
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models.layers import DAGGather
+    >>> np.random.seed(123)
+    >>> batch_size, n_graph_feat, n_atom_feat, n_outputs = 10, 30, 30, 75
+    >>> max_atoms = 50
+    >>> layer_sizes = [100]
+    >>> layer = DAGGather(n_graph_feat, n_outputs, max_atoms, layer_sizes)
+    >>> atom_features = np.random.rand(batch_size, n_atom_feat)
+    >>> membership = np.sort(np.random.randint(0, batch_size, size=(batch_size)))
+    >>> outputs = layer([atom_features, membership])
+
+    References
+    ----------
+    .. [1] Lusci Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575. https://pmc.ncbi.nlm.nih.gov/articles/PMC3739985
+    """
+
+    def __init__(self,
+                 n_graph_feat: int = 30,
+                 n_outputs: int = 30,
+                 max_atoms: int = 50,
+                 layer_sizes: List[int] = [100],
+                 init: str = 'glorot_uniform',
+                 activation: str = 'relu',
+                 dropout: Optional[float] = None,
+                 device: Optional[torch.device] = torch.device('cpu'),
+                 **kwargs: Any) -> None:
+        """
+        Parameters
+        ----------
+        n_graph_feat: int, optional
+            Number of features for each atom.
+        n_outputs: int, optional
+            Number of features for each molecule.
+        max_atoms: int, optional
+            Maximum number of atoms in molecules.
+        layer_sizes: list of int, optional
+            List of hidden layer size(s):
+            length of this list represents the number of hidden layers,
+            and each element is the width of corresponding hidden layer.
+        init: str, optional
+            Weight initialization for filters.
+        activation: str, optional
+            Activation function applied.
+        dropout: float, optional
+            Dropout probability in the hidden layer(s).
+        device: str, optional
+            Device used for computation
+        """
+        super(DAGGather, self).__init__(**kwargs)
+        self.n_graph_feat: int = n_graph_feat
+        self.n_outputs: int = n_outputs
+        self.max_atoms: int = max_atoms
+        self.layer_sizes: List[int] = layer_sizes
+        self.init: str = init
+        self.activation: str = activation
+        self.dropout: Optional[float] = dropout
+        self.activation_fn: Callable[..., torch.Tensor] = getattr(F, activation)
+        self.device: Optional[torch.device] = device
+        self.W_layers: nn.ParameterList = nn.ParameterList()
+        self.b_layers: nn.ParameterList = nn.ParameterList()
+        self.dropouts: List[Optional[nn.Dropout]] = []
+
+        prev_layer_size: int = n_graph_feat
+        for layer_size in self.layer_sizes:
+            self.W_layers.append(
+                nn.Parameter(torch.randn(prev_layer_size, layer_size)))
+            self.b_layers.append(nn.Parameter(torch.zeros(layer_size)))
+            self.dropouts.append(
+                nn.Dropout(p=self.dropout) if self.dropout else None)
+            prev_layer_size = layer_size
+        self.W_layers.append(
+            nn.Parameter(torch.randn(prev_layer_size, self.n_outputs)))
+        self.b_layers.append(nn.Parameter(torch.zeros(self.n_outputs)))
+        self.dropouts.append(
+            nn.Dropout(p=self.dropout) if self.dropout else None)
+        self._initialize_weights()
+
+    def get_config(self) -> Dict[str, Any]:
+        """
+        Returns a dictionary containing the configuration of the layer.
+        """
+        config: Dict[str, Any] = {}
+        config['n_graph_feat'] = self.n_graph_feat
+        config['n_outputs'] = self.n_outputs
+        config['max_atoms'] = self.max_atoms
+        config['layer_sizes'] = self.layer_sizes
+        config['init'] = self.init
+        config['activation'] = self.activation
+        config['dropout'] = self.dropout
+        return config
+
+    def _initialize_weights(self) -> None:
+        for w, b in zip(self.W_layers, self.b_layers):
+            if self.init in ['glorot_uniform', "xavier_uniform"]:
+                nn.init.xavier_uniform_(w)
+                nn.init.zeros_(b)
+            elif self.init == ['glorot_normal', "xavier_normal"]:
+                nn.init.xavier_normal_(w)
+                nn.init.zeros_(b)
+            else:
+                raise ValueError(f"Unsupported init: {self.init}")
+
+    def forward(self,
+                inputs: Tuple[Union[torch.Tensor, np.ndarray],
+                              Union[torch.Tensor, np.ndarray]],
+                training: bool = True) -> torch.Tensor:
+        """
+        Parameters
+        ----------
+        inputs : List[Union[torch.Tensor, np.ndarray]]
+            A list of tensors containing:
+            1. atom_features of shape `(batch_size, n_graph_feat)`
+            2. membership of shape `(batch_size,)` with sorted membership indices
+        training : bool, optional
+            Whether the model is training or not, by default True
+
+        Returns
+        -------
+        torch.Tensor
+            Output feature tensor of shape `(membership.max() + 1, n_outputs)`.
+        """
+        atom_features, membership = inputs
+
+        if not isinstance(membership, torch.Tensor):
+            membership = torch.tensor(membership,
+                                      dtype=torch.long,
+                                      device=self.device)
+        if not isinstance(atom_features, torch.Tensor):
+            atom_features = torch.tensor(atom_features,
+                                         dtype=torch.float32,
+                                         device=self.device)
+
+        graph_features = torch.zeros(
+            int(membership.max().item()) + 1,
+            int(atom_features.shape[1])).to(self.device)
+
+        graph_features = graph_features.scatter_add_(
+            0,
+            membership.unsqueeze(-1).expand(-1, atom_features.shape[1]),
+            atom_features)
+
+        outputs = _DAGgraph_step(graph_features,
+                                 self.W_layers,
+                                 self.b_layers,
+                                 self.activation_fn,
+                                 self.dropouts,
+                                 training=training)
+        return outputs
+
+
+def cosine_dist(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the cosine similarity (inner product) between two tensors.
+
+    Parameters
+    ----------
+    x: torch.Tensor
+        Input tensor of shape `(B, N, P)` representing the first set of vectors.
+    y: torch.Tensor
+        Input tensor of shape `(B, M, P)` representing the second set of vectors.
+
+    Returns
+    -------
+    torch.Tensor
+        Cosine similarity tensor of shape `(B, N, M)` where each entry represents the cosine similarity
+        between vectors from `x` and `y`.
+
+    Examples
+    --------
+    The cosine similarity between two equivalent vectors will be 1. The cosine
+    similarity between two equivalent tensors (tensors where all the elements are
+    the same) will be a tensor of 1s. In this scenario, if the input tensors `x` and
+    `y` are each of shape `(n,p)`, where each element in `x` and `y` is the same, then
+    the output tensor would be a tensor of shape `(n,n)` with 1 in every entry.
+
+    >>> import deepchem as dc
+    >>> import numpy as np
+    >>> import deepchem.models.torch_models.layers as torch_layers
+    >>> x = torch.ones((6, 4), dtype=torch.float32)
+    >>> y_same = torch.ones((6, 4), dtype=torch.float32)
+    >>> cos_sim_same = torch_layers.cosine_dist(x, y_same)
+
+    `x` and `y_same` are the same tensor (equivalent at every element, in this
+    case 1). As such, the pairwise inner product of the rows in `x` and `y` will
+    always be 1. The output tensor will be of shape (6,6).
+
+    >>> diff = cos_sim_same - torch.ones((6, 6), dtype=torch.float32)
+    >>> np.allclose(0.0, diff.sum().item(), atol=1e-05)
+    True
+    >>> cos_sim_same.shape
+    torch.Size([6, 6])
+
+    The cosine similarity between two orthogonal vectors will be 0 (by definition).
+    If every row in `x` is orthogonal to every row in `y`, then the output will be a
+    tensor of 0s. In the following example, each row in the tensor `x1` is orthogonal
+    to each row in `x2` because they are halves of an identity matrix.
+
+    >>> identity_tensor = torch.eye(512, dtype=torch.float32)
+    >>> x1 = identity_tensor[0:256,:]
+    >>> x2 = identity_tensor[256:512,:]
+    >>> cos_sim_orth = torch_layers.cosine_dist(x1, x2)
+
+    Each row in `x1` is orthogonal to each row in `x2`. As such, the pairwise inner
+    product of the rows in `x1` and `x2` will always be 0. Furthermore, because the
+    shape of the input tensors are both of shape `(256,512)`, the output tensor will
+    be of shape `(256,256)`.
+
+    >>> np.allclose(0.0, cos_sim_orth.sum().item(), atol=1e-05)
+    True
+    >>> cos_sim_orth.shape
+    torch.Size([256, 256])
+
+    """
+
+    x_norm = torch.nn.functional.normalize(x, p=2, dim=-1)
+    y_norm = torch.nn.functional.normalize(y, p=2, dim=-1)
+
+    cosine_similarity = torch.matmul(x_norm, y_norm.transpose(-1, -2))
+    return cosine_similarity
+
+
+class Fiber(object):
+    """
+    Data Structure for Fibers in SE(3)-Transformers.
+    
+    Fibers represent structured feature spaces used in equivariant neural networks,
+    particularly in SE(3)-Transformer models. This class provides utilities for
+    defining, manipulating, and combining fiber structures.
+    
+    Example
+    -------
+    >>> from deepchem.models.torch_models.layers import Fiber
+    >>> fiber1 = Fiber(num_degrees=3, num_channels=16)
+    >>> fiber2 = Fiber(dictionary={0: 16, 1: 8, 2: 4})
+    >>> combined_fiber = Fiber.combine(fiber1, fiber2)
+    >>> combined_fiber.structure
+    [(32, 0), (24, 1), (20, 2)]
+    >>> combined_fiber.multiplicities
+    (32, 24, 20)
+    
+    References
+    ----------
+    .. [1] Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling.
+           "SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks."
+           NeurIPS 2020. https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self,
+                 num_degrees: Optional[int] = None,
+                 num_channels: Optional[int] = None,
+                 structure: Optional[List[Tuple[int, int]]] = None,
+                 dictionary: Optional[Dict[int, int]] = None) -> None:
+        """
+        Initialize a Fiber structure.
+        
+        Parameters
+        ----------
+        num_degrees : int, optional
+            Maximum degree of fiber representation.
+        num_channels : int, optional
+            Number of channels per degree.
+        structure : List[Tuple[int, int]], optional
+            Custom fiber structure as (num_channels, degree) pairs.
+        dictionary : dict, optional
+            Dictionary representation {degree: num_channels}.
+        """
+        if structure:
+            self.structure = structure
+        elif dictionary:
+            self.structure = [
+                (dictionary[o], o) for o in sorted(dictionary.keys())
+            ]
+        elif num_degrees is not None and num_channels is not None:  # Ensure valid values
+            self.structure = [(num_channels, i) for i in range(num_degrees)]
+        else:
+            raise ValueError(
+                "Either 'structure', 'dictionary', or both 'num_degrees' and 'num_channels' must be provided."
+            )
+
+        self.multiplicities, self.degrees = zip(*self.structure)
+        self.max_degree = max(self.degrees)
+        self.min_degree = min(self.degrees)
+        self.structure_dict = {k: v for v, k in self.structure}
+        self.n_features = np.sum(
+            [i[0] * (2 * i[1] + 1) for i in self.structure])
+
+        self.feature_indices = {}
+        lengths = [
+            num_channels * (2 * d + 1) for num_channels, d in self.structure
+        ]
+        indices = [0] + list(itertools.accumulate(lengths))
+        self.feature_indices = {
+            d: (indices[i], indices[i + 1])
+            for i, (_, d) in enumerate(self.structure)
+        }
+
+    @staticmethod
+    def combine(f1: "Fiber", f2: "Fiber") -> "Fiber":
+        """
+        This method takes two Fiber instances and merges their structures by adding the number 
+        of channels (multiplicities) for degrees that appear in both fibers.
+        
+        Parameters
+        ----------
+        f1 : Fiber
+            First fiber to combine.
+        f2 : Fiber
+            Second fiber to combine.
+
+        Returns
+        -------
+        Fiber
+            A new fiber with combined structure.
+
+        Example
+        -------
+        >>> from deepchem.models.torch_models.layers import Fiber
+        >>> fiber1 = Fiber(dictionary={0: 16, 1: 8})
+        >>> fiber2 = Fiber(dictionary={1: 8, 2: 4})
+        >>> combined = Fiber.combine(fiber1, fiber2)
+        >>> combined.structure
+        [(16, 0), (16, 1), (4, 2)]
+        >>> combined.multiplicities
+        (16, 16, 4)
+        """
+        f1_dict = f1.structure_dict.copy()
+        for k, m in f2.structure_dict.items():
+            if k in f1_dict:
+                f1_dict[k] += m
+            else:
+                f1_dict[k] = m
+        structure = [(f1_dict[k], k) for k in sorted(f1_dict.keys())]
+        return Fiber(structure=structure)
+
+    @staticmethod
+    def combine_max(f1: "Fiber", f2: "Fiber") -> "Fiber":
+        """   
+        This method merges two `Fiber` instances by taking the maximum number of 
+        channels (multiplicities) for degrees that appear in both fibers.
+
+        Parameters
+        ----------
+        f1 : Fiber
+            First fiber to combine.
+        f2 : Fiber
+            Second fiber to combine.
+        
+        Returns
+        -------
+        Fiber
+            A new fiber with maximum multiplicities for each degree.
+        
+        Example
+        -------
+        >>> from deepchem.models.torch_models.layers import Fiber
+        >>> fiber1 = Fiber(dictionary={0: 16, 1: 8})
+        >>> fiber2 = Fiber(dictionary={1: 12, 2: 4})
+        >>> combined_max = Fiber.combine_max(fiber1, fiber2)
+        >>> combined_max.structure
+        [(16, 0), (12, 1), (4, 2)]
+        >>> combined_max.multiplicities
+        (16, 12, 4)
+        """
+        f1_dict = f1.structure_dict.copy()
+        for k, m in f2.structure_dict.items():
+            if k in f1_dict:
+                f1_dict[k] = max(m, f1_dict[k])
+            else:
+                f1_dict[k] = m
+        structure = [(f1_dict[k], k) for k in sorted(f1_dict.keys())]
+        return Fiber(structure=structure)
+
+
+class SE3LayerNorm(nn.Module):
+    """
+    SE(3)-equivariant layer normalization.
+    
+    Layer Normalization is applied to SE(3)-equivariant atomic features. Unlike batch normalization, 
+    which normalizes across the batch dimension, `LayerNorm` normalizes each feature channel independently.  
+    This makes it suitable for graph-based and transformer architectures where batch statistics are not stable.
+    Layer normalization ensures that each feature maintains zero mean and unit variance, improving  
+    training stability and preserving SE(3) equivariance, since normalization is applied per feature  
+    rather than per batch.
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.models.torch_models.layers import SE3LayerNorm
+    >>> batch_size, num_channels = 10, 30
+    >>> layer = SE3LayerNorm(num_channels)
+    >>> x = torch.randn(batch_size, num_channels)
+    >>> output = layer(x)
+    >>> output.shape
+    torch.Size([10, 30])
+    
+    References
+    ----------
+    .. [1] Ba, Jimmy Lei, Jamie Ryan Kiros, and Geoffrey E. Hinton. "Layer normalization."
+           arXiv preprint arXiv:1607.06450 (2016).
+    .. [2] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self, num_channels: int, **kwargs: Any) -> None:
+        """
+        Parameters
+        ----------
+        num_channels : int
+            Number of output channels for normalization.
+        """
+        super().__init__(**kwargs)
+        self.bn = nn.LayerNorm(num_channels)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Apply Layer Normalization.
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (..., num_channels)
+        
+        Returns
+        -------
+        torch.Tensor
+            Normalized tensor with the same shape as input.
+        """
+        return self.bn(x)
+
+
+class SE3RadialFunc(nn.Module):
+    """
+    Defines the radial profile used in SE(3)-equivariant kernels.
+    The radial function serves as a filter that modulates the interaction  
+    strength between features based on their relative distance. It transforms  
+    edge features while preserving the angular components, ensuring  
+    SE(3) equivariance.
+    The function is implemented using a fully connected network (MLP) with multiple linear layers,  
+    which allows the model to learn flexible representations of distance-based interactions.  
+    ReLU activations introduce non-linearity, enabling the network to capture complex relationships.
+    To improve training stability and feature scaling, BN layer is applied after
+    intermediate transformations. The final output is then projected into the spherical harmonics basis,
+    ensuring that the learned transformations remain SE(3)-equivariant and can be effectively combined  
+    with angular basis functions for SE(3)-equivariant message passing.
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.models.torch_models.layers import SE3RadialFunc
+    >>> num_freq, in_dim, out_dim, edge_dim = 5, 10, 15, 3
+    >>> layer = SE3RadialFunc(num_freq, in_dim, out_dim, edge_dim)
+    >>> x = torch.randn(8, edge_dim + 1)
+    >>> output = layer(x)
+    >>> output.shape
+    torch.Size([8, 15, 1, 10, 1, 5])
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self,
+                 num_freq: int,
+                 in_dim: int,
+                 out_dim: int,
+                 edge_dim: int = 0) -> None:
+        """
+        Parameters
+        ----------
+        num_freq : int
+            Number of frequency components.
+        in_dim : int
+            Input feature dimension.
+        out_dim : int
+            Output feature dimension.
+        edge_dim : int, optional
+            Number of edge dimensions (default is 0).
+        """
+        super().__init__()
+        self.num_freq = num_freq
+        self.in_dim = in_dim
+        self.mid_dim = 32
+        self.out_dim = out_dim
+        self.edge_dim = edge_dim
+
+        self.net = nn.Sequential(
+            nn.Linear(self.edge_dim + 1, self.mid_dim),
+            SE3LayerNorm(self.mid_dim), nn.ReLU(),
+            nn.Linear(self.mid_dim, self.mid_dim), SE3LayerNorm(self.mid_dim),
+            nn.ReLU(), nn.Linear(self.mid_dim,
+                                 self.num_freq * in_dim * out_dim))
+
+        nn.init.kaiming_uniform_(self.net[0].weight)
+        nn.init.kaiming_uniform_(self.net[3].weight)
+        nn.init.kaiming_uniform_(self.net[6].weight)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the RadialFunc layer.
+        
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (..., edge_dim + 1)
+        
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (-1, out_dim, 1, in_dim, 1, num_freq)
+        """
+        x = x.cuda() if torch.cuda.is_available() else x.cpu()
+        y = self.net(x)
+        return y.view(-1, self.out_dim, 1, self.in_dim, 1, self.num_freq)
+
+
+class SE3PairwiseConv(nn.Module):
+    """
+    SE(3)-equivariant convolution between two single-type features.
+    This layer implements a learnable convolution operation that preserves SE(3) equivariance
+    by operating on pairwise interactions using a basis defined by spherical harmonics.
+    Instead of standard convolution (which is translation-invariant), this operation ensures
+    equivariance to rotations and translations in 3D space.
+    The convolution is defined using SE(3)-equivariant kernels, where the coefficients
+    are learned via `RadialFunc`. The kernel operates on pairwise feature interactions,
+    ensuring that feature transformations respect the underlying geometric symmetries
+    of the data.
+    This is achieved by decomposing interactions into radial and angular components:
+    - The radial component (distance-dependent) is learned via `RadialFunc`, capturing
+      how feature strength varies with distance.
+    - The angular component (orientation-dependent) is handled via a spherical harmonics basis,
+      ensuring that rotations affect the output in a structured manner.
+    Example
+    -------
+    >>> from rdkit import Chem
+    >>> import dgl
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models.layers import SE3PairwiseConv
+    >>> from deepchem.utils.equivariance_utils import get_spherical_from_cartesian, precompute_sh, basis_transformation_Q_J
+    >>> mol = Chem.MolFromSmiles('CCO')
+    >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
+    >>> features = featurizer.featurize([mol])[0]
+    >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]))
+    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1) 
+    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)
+    >>> G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)
+    >>> G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
+    >>> max_degree = 3
+    >>> distances = G.edata['d']
+    >>> r_ij = get_spherical_from_cartesian(distances)
+    >>> Y = precompute_sh(r_ij, 2*max_degree)
+    >>> basis = {}
+    >>> # Compute SE(3) basis for different (d_in, d_out) degrees
+    >>> for d_in in range(max_degree + 1):
+    ...     for d_out in range(max_degree + 1):
+    ...         K_Js = []
+    ...         for J in range(abs(d_in - d_out), d_in + d_out + 1):
+    ...             # Get spherical harmonic projection matrices
+    ...             Q_J = basis_transformation_Q_J(J, d_in, d_out)
+    ...             Q_J = Q_J.float().T
+    ...             # Create kernel from spherical harmonics
+    ...             K_J = torch.matmul(Y[J], Q_J)
+    ...             K_Js.append(K_J)    
+    ...         # Reshape so can take linear combinations with a dot product
+    ...         size = (-1, 1, 2 * d_out + 1, 1, 2 * d_in + 1, 2 * min(d_in, d_out) + 1)
+    ...         basis[f"{d_in},{d_out}"] = torch.stack(K_Js, -1).view(*size)
+    >>> # Compute radial distances
+    >>> r = torch.sqrt(torch.sum(distances**2, -1, keepdim=True))
+    >>> # Add edge features
+    >>> if "w" in G.edata.keys():
+    ...     w = G.edata["w"]
+    ...     feat = torch.cat([w, r], -1)
+    ... else:
+    ...     feat = torch.cat([r], -1)
+    >>> pairwise_conv = SE3PairwiseConv(degree_in=0, nc_in=32, degree_out=0, nc_out=128, edge_dim=5)
+    >>> output = pairwise_conv(feat, basis)
+    >>> output.shape
+    torch.Size([6, 128, 32])
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self,
+                 degree_in: int,
+                 nc_in: int,
+                 degree_out: int,
+                 nc_out: int,
+                 edge_dim: int = 0) -> None:
+        """
+        Parameters
+        ----------
+        degree_in : int
+            Degree of the input feature.
+        nc_in : int
+            Number of channels in the input feature.
+        degree_out : int
+            Degree of the output feature.
+        nc_out : int
+            Number of channels in the output feature.
+        edge_dim : int, optional
+            Number of edge dimensions, default is 0.
+        """
+        super().__init__()
+        self.degree_in = degree_in
+        self.degree_out = degree_out
+        self.nc_in = nc_in
+        self.nc_out = nc_out
+        self.num_freq = 2 * min(degree_in, degree_out) + 1
+        self.d_out = 2 * degree_out + 1
+        self.edge_dim = edge_dim
+        self.rp = SE3RadialFunc(self.num_freq, nc_in, nc_out, self.edge_dim)
+
+    def forward(self, feat: torch.Tensor, basis: dict) -> torch.Tensor:
+        """
+        Forward pass of the PairwiseConv layer.
+        Parameters
+        ----------
+        feat : torch.Tensor
+            Input tensor of shape (..., edge_dim + 1).
+        basis : dict
+            Dictionary containing basis functions with keys formatted as 'degree_in, degree_out'.
+
+        Returns
+        -------
+        torch.Tensor
+            Convolved tensor of shape (batch_size, d_out * nc_out, -1).
+        """
+        R = self.rp(feat)
+        kernel = torch.sum(R * basis[f'{self.degree_in},{self.degree_out}'], -1)
+        return kernel.view(kernel.shape[0], self.d_out * self.nc_out, -1)
+
+
+class SE3Sum(nn.Module):
+    """
+    SE(3)-Equivariant Graph Residual Sum Function (SE3Sum).
+
+    This layer performs element-wise summation of SE(3)-equivariant 
+    node features. It enables skip connections by summing residual 
+    features in SE(3)-Transformers**.
+
+    Given two feature representations:
+    - **x**: SE(3)-equivariant feature tensor.
+    - **y**: Another SE(3)-equivariant feature tensor.
+
+    This layer computes:
+    \[
+    h_{out}[d] = h_x[d] + h_y[d]
+    \]
+    - The summation is performed separately for each degree `d`.
+
+    If the number of feature channels differs, `zero-padding` is applied.
+
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.models.torch_models.layers import Fiber, SE3Sum
+    >>> # Define Fiber Representations
+    >>> # Scalars (0) & vectors (1)
+    >>> f_x = Fiber(dictionary={0: 16, 1: 32})  # Scalars (0) & vectors (1)
+    >>> f_y = Fiber(dictionary={0: 16, 1: 32})
+    >>> # Initialize SE(3)-Equivariant Summation Layer
+    >>> se3_sum = SE3Sum(f_x, f_y)
+    >>> # Create Random Feature Inputs
+    >>> x = {'0': torch.randn(10, 16, 1), '1': torch.randn(10, 32, 3)}
+    >>> y = {'0': torch.randn(10, 16, 1), '1': torch.randn(10, 32, 3)}
+    >>> # Apply `SE3Sum` Layer
+    >>> output = se3_sum(x, y)
+    >>> for key, tensor in output.items():
+    ...     print(tensor.shape)
+    torch.Size([10, 16, 1])
+    torch.Size([10, 32, 3])
+    """
+
+    def __init__(self, f_x: Fiber, f_y: Fiber):
+        """
+        Initializes the SE(3)-equivariant summation layer.
+
+        Parameters
+        ----------
+        f_x: Fiber
+            structure for the first input.
+        f_y: Fiber
+            structure for the second input.
+        """
+        super().__init__()
+        self.f_x = f_x
+        self.f_y = f_y
+        self.f_out = Fiber.combine_max(f_x, f_y)
+
+    def forward(self, x: Dict[str, torch.Tensor],
+                y: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        """
+        Forward pass of the residual summation layer.
+
+        Parameters
+        ----------
+        x: Dict[str, torch.Tensor]
+            Input feature dictionary (first tensor).
+        y: Dict[str, torch.Tensor]
+            Input feature dictionary (second tensor).
+
+        Returns
+        -------
+        out: Dict[str, torch.Tensor]
+            Summed feature dictionary.
+        """
+        out = {}
+        for k in self.f_out.degrees:
+            k = str(k)
+            if (k in x) and (k in y):
+                if x[k].shape[1] > y[k].shape[1]:
+                    diff = x[k].shape[1] - y[k].shape[1]
+                    zeros = torch.zeros(x[k].shape[0], diff,
+                                        x[k].shape[2]).to(y[k].device)
+                    y[k] = torch.cat([y[k], zeros], 1)
+                elif x[k].shape[1] < y[k].shape[1]:
+                    diff = y[k].shape[1] - x[k].shape[1]
+                    zeros = torch.zeros(x[k].shape[0], diff,
+                                        x[k].shape[2]).to(y[k].device)
+                    x[k] = torch.cat([x[k], zeros], 1)
+
+                out[k] = x[k] + y[k]
+            elif k in x:
+                out[k] = x[k]
+            elif k in y:
+                out[k] = y[k]
+        return out
+
+
+class SE3Cat(nn.Module):
+    """
+    SE(3)-Equivariant Graph Feature Concatenation (SE3Cat).
+
+    This layer concatenates features from two SE(3)-equivariant fiber representations. 
+    Unlike `SE3Sum`, which adds feature tensors, `SE3Cat` stacks them along the channel dimension.
+    This operation is useful for combining features from different representations while preserving
+    SE(3) equivariance.
+
+    Given two feature tensors:
+    - x[d]: Input feature tensor of degree `d`.
+    - y[d]: Another input feature tensor of degree `d`.
+
+    This layer computes:
+    \[
+    h_{out}[d] = \text{Concat} \left( h_x[d], h_y[d] \right)
+    \]
+    The concatenation is performed separately for each degree `d`.
+    If a feature degree exists only in x (but not in y), x is used.
+    Concatenation is performed only for degrees in `f_x`.
+
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.models.torch_models.layers import Fiber, SE3Cat
+    >>> # Define Fiber Representations
+    >>> # Scalars (0) & vectors (1)
+    >>> f_x = Fiber(dictionary={0: 16, 1: 32})
+    >>> f_y = Fiber(dictionary={0: 16, 1: 32})
+    >>> # Initialize SE(3)-Equivariant Concatenation Layer
+    >>> se3cat = SE3Cat(f_x, f_y)
+    >>> # Create Random Feature Inputs
+    >>> x = {'0': torch.randn(4, 10, 16, 1), '1': torch.randn(4, 10, 32, 3)}
+    >>> y = {'0': torch.randn(4, 10, 16, 1), '1': torch.randn(4, 10, 32, 3)}
+    >>> # Apply `SE3Cat` Layer
+    >>> output = se3cat(x, y)
+    >>> for key, tensor in output.items():
+    ...     print(tensor.shape)
+    torch.Size([4, 20, 16, 1])
+    torch.Size([4, 20, 32, 3])
+    """
+
+    def __init__(self, f_x: Fiber, f_y: Fiber):
+        """
+        Initializes the SE(3)-equivariant concatenation layer.
+
+        Parameters
+        ----------
+        f_x: 
+            Fiber structure for the first input.
+        f_y:
+            Fiber structure for the second input.
+        """
+        super().__init__()
+        self.f_x = f_x
+        self.f_y = f_y
+        f_out = {}
+        for k in f_x.degrees:
+            f_out[k] = f_x.structure_dict[k]
+            if k in f_y.degrees:
+                f_out[k] += f_y.structure_dict[k]
+        self.f_out = Fiber(dictionary=f_out)
+
+    def forward(
+        self, x: (Dict[str, torch.Tensor]), y: (Dict[str, torch.Tensor])
+    ) -> (Dict[str, torch.Tensor]):
+        """
+        Forward pass of the concatenation layer.
+
+        Parameters
+        ----------
+        x: Dict[str, torch.Tensor]
+            Input feature dictionary (first tensor).
+        y: Dict[str, torch.Tensor]
+            Input feature dictionary (second tensor).
+
+        Returns:
+        output: Dict[str, torch.Tensor]
+            Concatenated feature dictionary.
+        """
+        out = {}
+        for k in self.f_out.degrees:
+            k = str(k)
+            if k in y:
+                out[k] = torch.cat([x[k], y[k]], 1)
+            else:
+                out[k] = x[k]
+        return out
+
+
+class SE3AvgPooling(nn.Module):
+    """
+    SE(3)-Equivariant Graph Average Pooling Module (SE3AvgPooling).
+
+    This layer **performs average pooling over graph nodes while preserving SE(3) equivariance.
+
+    Given a set of **node features** \( h_i \) over a graph \( G \), 
+    the average pooling operation computes:
+
+    \[
+    h_{\text{out}} = \frac{1}{|V|} \sum_{i \in V} h_i
+    \]
+    
+    where \( V \) is the set of nodes in the graph.
+
+    For SE(3)-equivariant features, this layer performs:
+    - Degree 0 (scalars): Standard average pooling.
+    - Degree 1 (vectors): Applies average pooling **component-wise**.
+
+    Example
+    -------
+    >>> import torch
+    >>> import dgl
+    >>> from deepchem.models.torch_models.layers import SE3AvgPooling, Fiber
+    >>> # Create a DGL Graph
+    >>> G = dgl.graph(([0, 1, 2], [3, 4, 5]), num_nodes=6)
+    >>> # Define Node Features
+    >>> features = {
+    ...     '0': torch.randn(6, 16, 1),  # Scalar features (Degree 0)
+    ...     '1': torch.randn(6, 32, 3)   # Vector features (Degree 1)
+    ... }
+    >>>
+    >>> # Initialize SE(3)-Equivariant Average Pooling Layer
+    >>> pool_0 = SE3AvgPooling(pooling_type='0')  # For scalars
+    >>> pool_1 = SE3AvgPooling(pooling_type='1')  # For vectors
+    >>> # Apply Pooling
+    >>> pooled_0 = pool_0(features, G)
+    >>> pooled_1 = pool_1(features, G)
+    >>> print(pooled_0.shape)
+    torch.Size([1, 16])
+    >>> print(pooled_1['1'].shape)
+    torch.Size([1, 32, 3])
+    """
+
+    def __init__(self, pooling_type: str = '0'):
+        """
+        Initializes the SE(3)-equivariant average pooling layer.
+
+        Parameters
+        ----------
+        type (str): Type of pooling.
+            - `'0'`: Applies standard average pooling for scalar (degree 0) features.
+            - `'1'`: Applies component-wise average pooling for vector (degree 1) features.
+        """
+        try:
+            from dgl.nn.pytorch.glob import AvgPooling
+        except ModuleNotFoundError:
+            raise ImportError('These classes require DGL to be installed.')
+        super().__init__()
+        self.pool = AvgPooling()
+        self.pooling_type = pooling_type
+
+    def forward(self, features: Dict[str, torch.Tensor], G,
+                **kwargs) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
+        """
+        Forward pass of SE(3)-equivariant graph pooling.
+
+        Parameters
+        ----------
+        features: Dict[str, torch.Tensor]
+            Node features dictionary.
+        G: dgl.DGLGraph
+            DGL graph structure.
+
+        Returns
+        -------
+        Union[torch.Tensor, Dict[str, torch.Tensor]]: Pooled features
+        """
+        if self.pooling_type == '0':
+            # Apply standard average pooling to scalars (degree 0)
+            h = features['0'][..., -1]
+            pooled = self.pool(G, h)
+        elif self.pooling_type == '1':
+
+            pooled_list: List[torch.Tensor] = [
+                self.pool(G, features['1'][..., i]).unsqueeze(-1)
+                for i in range(3)
+            ]
+
+            pooled_tensor = torch.cat(pooled_list, dim=-1)
+            pooled = {'1': pooled_tensor}
+        else:
+            raise NotImplementedError(
+                "SE3AvgPooling for type > 1 is not implemented.")
+
+        return pooled

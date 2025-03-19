@@ -36,7 +36,7 @@ class LambOptimizer(Optimizer):
     Example
     -------
     >>> import deepchem as dc
-    >>> from deepchem.utils.optimizer_utils.lamb import LambOptimizer
+    >>> from deepchem.utils.optimizer_utils import LambOptimizer
     >>> import torch.nn as nn
     >>> model = nn.Sequential(nn.Linear(10, 1))
     >>> input = torch.randn((5, 10))
