@@ -399,11 +399,11 @@ def test_feature_indices_fiber():
 
 @pytest.mark.torch
 @pytest.mark.parametrize("smiles, n_heads, feature_dims", [
-    ("CCO", 5, 10, 4, {
+    ("CCO", 4, {
         0: 16,
         1: 32
     }),
-    ("CCC", 10, 30, 8, {
+    ("CCC", 8, {
         0: 32,
         1: 64
     }),
@@ -445,11 +445,11 @@ def test_se3_multi_head_attention_forward(smiles, n_heads, feature_dims):
 
 @pytest.mark.torch
 @pytest.mark.parametrize("smiles, n_heads, feature_dims", [
-    ("CCO", 5, 10, 4, {
+    ("CCO", 4, {
         0: 16,
         1: 32
     }),
-    ("CCC", 10, 30, 8, {
+    ("CCC", 8, {
         0: 32,
         1: 64
     }),

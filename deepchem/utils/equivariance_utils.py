@@ -5,7 +5,10 @@ import numpy as np
 from deepchem.models.torch_models.layers import Fiber
 
 
-def fiber2head(F: Dict[str, torch.Tensor], h: int, structure: Fiber, squeeze: bool = False) -> torch.Tensor:
+def fiber2head(F: Dict[str, torch.Tensor],
+               h: int,
+               structure: Fiber,
+               squeeze: bool = False) -> torch.Tensor:
     """
     Converts SE(3)-equivariant features into multi-head format for attention.
 
@@ -86,19 +89,24 @@ def fiber2head(F: Dict[str, torch.Tensor], h: int, structure: Fiber, squeeze: bo
             raise KeyError(f"Degree {key} missing in input dictionary F")
 
         tensor = F[key]
-        
+
         if squeeze:
-            reshaped = tensor.view(*tensor.shape[:-2], h, -1)  # [batch, nodes, heads, channels_per_head]
+            reshaped = tensor.view(
+                *tensor.shape[:-2], h,
+                -1)  # [batch, nodes, heads, channels_per_head]
             fibers_list.append(reshaped)
         else:
-            reshaped = tensor.view(*tensor.shape[:-2], h, -1, 1)  # [batch, nodes, heads, channels_per_head, 1]
+            reshaped = tensor.view(
+                *tensor.shape[:-2], h, -1,
+                1)  # [batch, nodes, heads, channels_per_head, 1]
             fibers_list.append(reshaped)
 
     if not fibers_list:
         raise ValueError("No valid tensors found in F to concatenate")
 
     if squeeze:
-        return torch.cat(fibers_list, dim=-1)  # Concatenate along last feature dimension
+        return torch.cat(fibers_list,
+                         dim=-1)  # Concatenate along last feature dimension
     else:
         return torch.cat(fibers_list, dim=-2)
 

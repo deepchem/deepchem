@@ -8140,11 +8140,10 @@ class SE3MultiHeadAttention(nn.Module):
 
         return fnc
 
-    def forward(self,
-                v,
-                k: Dict = None,
-                q: Dict = None,
-                G=None,
+    def forward(self, v: Dict[Any,
+                              torch.Tensor], k: Optional[Dict[Any,
+                                                              torch.Tensor]],
+                q: Optional[Dict[Any, torch.Tensor]], G,
                 **kwargs) -> Dict[str, torch.Tensor]:
         """
         Forward pass of SE(3)-equivariant multi-headed attention.
