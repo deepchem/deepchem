@@ -121,22 +121,6 @@ class BAMFeaturizer(Featurizer):
     - Column 6: Mapping Quality
     - Column 7: is_reverse
     - Column 8: Query Quality Scores
-    - Column 9: Pileup Information (if get_pileup=True)
-
-    Additionally, we can also get pileups from BAM files by setting
-    get_pileup=True.A pileup is a summary of the alignment of reads
-    at each position in a reference sequence. Specifically, it
-    provides information on the position on the reference genome,
-    the depth of coverage (i.e., the number of reads aligned to that
-    position), and the actual bases from the aligned reads at that
-    position, along with their quality scores. This data structure
-    is useful for identifying variations, such as single nucleotide
-    polymorphisms (SNPs), insertions, and deletions by comparing the
-    aligned reads to the reference genome. A pileup can be visualized
-    as a vertical stack of aligned sequences, showing how each read
-    matches or mismatches the reference at each position.
-    In DeepVariant, pileups are utilized during the initial stages to
-    select candidate windows for further analysis.
 
     Examples
     --------
@@ -155,7 +139,7 @@ class BAMFeaturizer(Featurizer):
 
     """
 
-    def __init__(self, max_records=None, get_pileup: Optional[bool] = False):
+    def __init__(self, max_records=None):
         """
         Initialize BAMFeaturizer.
 
@@ -170,7 +154,6 @@ class BAMFeaturizer(Featurizer):
 
         """
         self.max_records = max_records
-        self.get_pileup = get_pileup
 
     def _featurize(self, datapoint):
         """
@@ -192,32 +175,6 @@ class BAMFeaturizer(Featurizer):
         features = []
         record_count = 0
 
-        pileup_columns = []
-        initial_position = datapoint.tell()
-
-        # This is more efficient as instead of iterating over the
-        # whole file for each record, we iterate over the file once
-        # and store the pileup information in a list that is
-        # appended for every record.
-
-        if self.get_pileup:
-            for pileupcolumn in datapoint.pileup():
-                pileup_info = {
-                    "name":
-                        pileupcolumn.reference_name,
-                    "pos":
-                        pileupcolumn.reference_pos,
-                    "depth":
-                        pileupcolumn.nsegments,
-                    "reads": [[
-                        pileupread.alignment.query_sequence,
-                        pileupread.query_position, pileupread.is_del,
-                        pileupread.is_refskip, pileupread.indel
-                    ] for pileupread in pileupcolumn.pileups]
-                }
-                pileup_columns.append(pileup_info)
-        datapoint.seek(initial_position)
-
         for record in datapoint:
             initial_position = datapoint.tell()
             feature_vector = [
@@ -226,9 +183,6 @@ class BAMFeaturizer(Featurizer):
                 record.mapping_quality, record.is_reverse,
                 np.array(record.query_qualities)
             ]
-
-            if (self.get_pileup):
-                feature_vector.append(pileup_columns)
 
             features.append(feature_vector)
             record_count += 1
@@ -330,51 +284,3 @@ class CRAMFeaturizer(Featurizer):
         datapoint.close()
 
         return np.array(features, dtype="object")
-
-
-class FASTAFeaturizer(Featurizer):
-    """
-    Featurizes FASTA files by extracting the sequence names and sequences.
-    Each sequence in the FASTA file is represented as a list containing the
-    sequence name and the raw sequence itself.
-
-    Examples
-    --------
-    >>> from deepchem.feat import FASTAFeaturizer
-    >>> featurizer = FASTAFeaturizer()
-    >>> fasta_file = 'deepchem/data/tests/example.fasta'
-    >>> features = featurizer.featurize([fasta_file])
-    >>> type(features[0])
-    <class 'numpy.ndarray'>
-    >>> features[0].shape
-    (3, 2)
-
-    Note
-    ----
-    This class requires pysam to be installed. Pysam can be used with Linux or MacOS X.
-    To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
-
-    """
-
-    def _featurize(self, datapoint: str, **kwargs) -> np.ndarray:
-        """
-        Extract features from a FASTA file.
-
-        Parameters
-        ----------
-        datapoint : str
-            Path to the FASTA file to be featurized.
-
-        Returns
-        -------
-        np.ndarray
-            A numpy array of shape (n, 2) where n is the number of sequences in the FASTA
-            file. Each element is a list containing the sequence name and the sequence
-            itself. The first element of each list is the sequence name (str) and the
-            second element is the sequence (str).
-        """
-        data = []
-        with pysam.FastxFile(datapoint) as fasta:
-            for entry in fasta:
-                data.append([entry.name, entry.sequence])
-        return np.array(data, dtype=object)
