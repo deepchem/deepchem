@@ -37,6 +37,28 @@ def test_se3radial_func(num_freq, in_dim, out_dim, edge_dim):
     assert output.shape == (8, out_dim, 1, in_dim, 1, num_freq)
 
 
+def create_test_graph(smiles):
+    """Helper function to create a test molecular graph from SMILES."""
+    from rdkit import Chem
+    import deepchem as dc
+    import dgl
+
+    mol = Chem.MolFromSmiles(smiles)
+    featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True,
+                                                    embeded=True)
+    features = featurizer.featurize([mol])[0]
+
+    G = dgl.graph((features.edge_index[0], features.edge_index[1]),
+                  num_nodes=len(features.node_features))
+    G.ndata['f'] = torch.tensor(features.node_features,
+                                dtype=torch.float32).unsqueeze(-1)
+    G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)
+    G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)
+    G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
+
+    return G, features
+
+
 def rotation_matrix(axis, angle):
     """Generate a 3D rotation matrix."""
     axis = axis / np.linalg.norm(axis)
@@ -373,3 +395,192 @@ def test_feature_indices_fiber():
         1: (2, 2 + 2 * (2 * 1 + 1))
     }
     assert fiber.feature_indices == expected_indices
+
+
+@pytest.mark.torch
+@pytest.mark.parametrize("smiles, n_heads, feature_dims", [
+    ("CCO", 5, 10, 4, {
+        0: 16,
+        1: 32
+    }),
+    ("CCC", 10, 30, 8, {
+        0: 32,
+        1: 64
+    }),
+])
+def test_se3_multi_head_attention_forward(smiles, n_heads, feature_dims):
+    """Test forward pass and shape consistency of SE3MultiHeadAttention layer."""
+    from deepchem.models.torch_models.layers import SE3MultiHeadAttention, Fiber
+
+    G, _ = create_test_graph(smiles)
+
+    # Fiber representation
+    f_value = Fiber(dictionary={0: feature_dims[0], 1: feature_dims[1]})
+    f_key = Fiber(dictionary={0: feature_dims[0] * 2, 1: feature_dims[1] * 2})
+
+    # Initialize SE3MultiHeadAttention
+    gmab = SE3MultiHeadAttention(f_value, f_key, n_heads)
+
+    # Create value, key, query tensors
+    v = {
+        str(d): torch.randn(G.num_edges(), f_value.structure_dict[d], 2 * d + 1)
+        for d in f_value.structure_dict
+    }
+    k = {
+        str(d): torch.randn(G.num_edges(), f_key.structure_dict[d], 2 * d + 1)
+        for d in f_key.structure_dict
+    }
+    q = {
+        str(d): torch.randn(G.num_nodes(), f_key.structure_dict[d], 2 * d + 1)
+        for d in f_key.structure_dict
+    }
+
+    # Apply `SE3MultiHeadAttention` Layer (SE(3)-Equivariant Attention)
+    output = gmab(v, k=k, q=q, G=G)
+    # Check output shapes
+    for d in feature_dims:
+        assert output[str(d)].shape == (G.num_nodes(), feature_dims[d],
+                                        2 * d + 1)
+
+
+@pytest.mark.torch
+@pytest.mark.parametrize("smiles, n_heads, feature_dims", [
+    ("CCO", 5, 10, 4, {
+        0: 16,
+        1: 32
+    }),
+    ("CCC", 10, 30, 8, {
+        0: 32,
+        1: 64
+    }),
+])
+def test_se3_multi_head_attention_equivariance(smiles, n_heads, feature_dims):
+    """Test SE(3) equivariance by applying random rotation."""
+    from deepchem.models.torch_models.layers import SE3MultiHeadAttention, Fiber
+
+    G, _ = create_test_graph(smiles)
+
+    # Fiber representation
+    f_value = Fiber(dictionary={0: feature_dims[0], 1: feature_dims[1]})
+    f_key = Fiber(dictionary={0: feature_dims[0] * 2, 1: feature_dims[1] * 2})
+
+    gmab = SE3MultiHeadAttention(f_value, f_key, n_heads)
+
+    v = {
+        str(d): torch.randn(G.num_edges(), feature_dims[d], 2 * d + 1)
+        for d in feature_dims
+    }
+    k = {
+        str(d): torch.randn(G.num_edges(), feature_dims[d], 2 * d + 1)
+        for d in feature_dims
+    }
+    q = {
+        str(d): torch.randn(G.num_nodes(), feature_dims[d], 2 * d + 1)
+        for d in feature_dims
+    }
+
+    output_original = gmab(v, k=k, q=q, G=G)
+
+    # Apply random rotation
+    axis = np.array([1.0, 0.0, 0.0])  # Rotate around x-axis
+    angle = np.pi / 4  # 45-degree rotation
+    G.ndata['x'] = apply_rotation(G.ndata['x'], axis, angle)
+
+    # Compute output with rotation
+    output_rotated = gmab(v, k=k, q=q, G=G)
+
+    # Test for equivariance
+    for d in feature_dims:
+        assert torch.allclose(output_original[str(d)],
+                              output_rotated[str(d)],
+                              atol=1e-5)
+
+
+@pytest.mark.torch
+@pytest.mark.parametrize(
+    "smiles, f_in_dict, f_out_dict",
+    [
+        ("CCO", {
+            0: 16,
+            1: 32
+        }, {
+            0: 32,
+            1: 64
+        }),  # Standard case
+        ("CCO", {
+            0: 8,
+            1: 16
+        }, {
+            0: 16,
+            1: 32
+        }),  # Smaller fiber sizes
+        ("CCO", {
+            0: 32,
+            1: 64
+        }, {
+            0: 64,
+            1: 128
+        }),  # Larger fiber sizes
+    ])
+def test_gattentive_selfint(smiles, f_in_dict, f_out_dict):
+    """Test SE3AttentiveSelfInteraction with various input/output fibers."""
+    from deepchem.models.torch_models.layers import SE3AttentiveSelfInteraction, Fiber
+    G, _ = create_test_graph(smiles)
+    f_in = Fiber(dictionary=f_in_dict)
+    f_out = Fiber(dictionary=f_out_dict)
+
+    g_att = SE3AttentiveSelfInteraction(f_in, f_out)
+    h = {
+        str(d): torch.randn(G.num_nodes(), f_in_dict[d], 2 * d + 1)
+        for d in f_in_dict
+    }
+    output = g_att(h)
+
+    for d in f_out_dict:
+        assert output[str(d)].shape == (G.num_nodes(), f_out_dict[d], 2 * d + 1)
+
+
+@pytest.mark.torch
+@pytest.mark.parametrize("smiles, f_in_dict, f_out_dict", [("CCO", {
+    0: 16,
+    1: 32
+}, {
+    0: 32,
+    1: 64
+}), ("CCC", {
+    0: 8,
+    1: 16
+}, {
+    0: 16,
+    1: 32
+})])
+def test_se3_self_interaction(smiles, f_in_dict, f_out_dict):
+    """Test SE3SelfInteraction with various input/output fibers."""
+    from deepchem.models.torch_models.layers import SE3SelfInteraction, Fiber
+    G, _ = create_test_graph(smiles)
+    f_in = Fiber(dictionary=f_in_dict)
+    f_out = Fiber(dictionary=f_out_dict)
+    g1x1 = SE3SelfInteraction(f_in, f_out)
+
+    h = {
+        str(d): torch.randn(G.num_nodes(), f_in.structure_dict[d], 2 * d + 1)
+        for d in f_in.structure_dict
+    }
+    output = g1x1(h)
+
+    # Shape validation
+    for d in f_out_dict:
+        assert output[str(d)].shape == (G.num_nodes(), f_out_dict[d], 2 * d + 1)
+
+        # Output type validation
+        assert isinstance(output[str(d)], torch.Tensor)
+
+        # Value properties (ensure non-zero values in output)
+        assert torch.any(output[str(d)] != 0)
+
+        # SE(3) Equivariance Check
+        transformed_input = {k: v * 2 for k, v in h.items()}
+        transformed_output = g1x1(transformed_input)
+        assert torch.allclose(output[str(d)] * 2,
+                              transformed_output[str(d)],
+                              atol=1e-5)

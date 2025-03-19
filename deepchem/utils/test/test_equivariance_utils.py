@@ -549,3 +549,40 @@ class TestEquivarianceUtils(unittest.TestCase):
 
         # Check if the norm of `r` is unchanged under rotation
         assert torch.allclose(r_original[..., 0], r_rotated[..., 0], atol=1e-5)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_fiber2head(self):
+        """Check that fiber2head correctly reshapes and concatenates SE(3)-equivariant features into a multi-head format."""
+        from equivariance_utils import fiber2head
+        from deepchem.models.torch_models.layers import Fiber
+
+        fiber_structure = Fiber(dictionary={0: 16, 1: 32})  # Scalars & Vectors
+
+        B, N = 10, 5  # Batch size, Number of nodes
+        F = {
+            '0': torch.randn(B, N, 16, 1),  # Degree 0 features (scalars)
+            '1':
+                torch.randn(B, N, 32, 3)  # Degree 1 features (vectors)
+        }
+
+        num_heads = 4  # Define number of attention heads
+        output = fiber2head(F, num_heads, fiber_structure, squeeze=False)
+
+        # Validate output shape
+        expected_channels_0 = 16 // num_heads
+        expected_channels_1 = 32 // num_heads
+
+        expected_shape = (B, N, num_heads,
+                          expected_channels_0 + expected_channels_1 * 3, 1)
+        assert output.shape == expected_shape
+
+        # Ensure reshaped output preserves original values per head
+        reshaped_F0 = F['0'].view(B, N, num_heads, -1, 1)
+        reshaped_F1 = F['1'].view(B, N, num_heads, -1, 1)
+
+        assert torch.allclose(output[..., :expected_channels_0, :],
+                              reshaped_F0,
+                              atol=1e-6)
+        assert torch.allclose(output[..., expected_channels_0:, :],
+                              reshaped_F1,
+                              atol=1e-6)
