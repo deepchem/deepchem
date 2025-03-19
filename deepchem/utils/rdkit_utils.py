@@ -11,6 +11,7 @@ import os
 import logging
 import itertools
 import numpy as np
+import rdkit as Chem
 from io import StringIO
 from deepchem.utils.pdbqt_utils import pdbqt_to_pdb
 from deepchem.utils.pdbqt_utils import convert_mol_to_pdbqt
@@ -21,6 +22,7 @@ from deepchem.utils.fragment_utils import MolecularFragment
 from deepchem.utils.fragment_utils import MoleculeLoadException
 from typing import Any, List, Sequence, Tuple, Set, Optional, Dict, Union
 from deepchem.utils.typing import OneOrMany, RDKitMol
+from pymatgen.core import Structure
 
 logger = logging.getLogger(__name__)
 
@@ -1395,3 +1397,34 @@ class DescriptorsNormalizationParameters:
         'fr_methoxy': ('gibrat', (-0.01550907507397075, 0.042866902160229356),
                        0, 8, 0.31338193673557146, 0.6523713877037112)
     }
+
+def cif_to_mol(cif_file, cutoff):
+
+    if not cif_file.endswith('.cif'):
+        raise ValueError(f"The provided file '{cif_file}' is not a CIF file. Please provide a valid CIF file.")
+    
+    structure = Structure.from_file(cif_file)
+
+    mol = Chem.RWMol()  # Create an editable molecule in RDKit
+
+    for site in structure:
+        element = site.specie.symbol 
+        atom = Chem.Atom(element) 
+        mol.AddAtom(atom) 
+
+    for i in range(len(structure)):
+        for j in range(i + 1, len(structure)):
+            dist = structure.get_distance(i, j)
+            if dist < cutoff:  
+                if mol.GetBondBetweenAtoms(i, j) is None:  
+                    mol.AddBond(i, j, Chem.BondType.SINGLE) 
+
+    conf = Chem.Conformer(mol.GetNumAtoms()) 
+
+    for idx, site in enumerate(structure):
+        coord = site.coords 
+        conf.SetAtomPosition(idx, coord) 
+
+    mol.AddConformer(conf) 
+
+    return mol
