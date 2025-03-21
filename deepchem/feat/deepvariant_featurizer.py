@@ -807,8 +807,8 @@ class RealignerFeaturizer(Featurizer):
         # Create dictionary directly from the pairs
         reference_seq_dict = {pair[0]: pair[1] for pair in name_seq_pairs}
 
-        allele_counts = self.realigner.process_pileup(
-            bamfile_path, reference_seq_dict)
+        allele_counts = self.realigner.process_pileup(bamfile_path,
+                                                      reference_seq_dict)
         candidate_regions = self.realigner.select_candidate_regions(
             allele_counts)
         windows_haplotypes = self.realigner.process_candidate_windows(
