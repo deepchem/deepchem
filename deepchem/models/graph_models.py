@@ -36,7 +36,7 @@ class WeaveModel(KerasModel):
     from [1]_.
 
     The biggest difference between WeaveModel style convolutions
-    and GraphConvModel style convolutions is that Weave
+    and GraphConvModel style convolutions is that Wave
     convolutions model bond features explicitly. This has the
     side effect that it needs to construct a NxN matrix
     explicitly to model bond interactions. This may cause
@@ -124,7 +124,7 @@ class WeaveModel(KerasModel):
             this list determines the number of layers.
         conv_weight_init_stddevs: list or float (default 0.03)
             The standard deviation of the distribution to use for weight
-            initialization of each convolutional layer. The length of this lisst
+            initialization of each convolutional layer. The length of this list
             should equal `n_weave`. Alternatively, this may be a single value instead
             of a list, in which case the same value is used for each layer.
         weight_init_stddevs: list or float (default 0.01)
@@ -142,11 +142,11 @@ class WeaveModel(KerasModel):
         weight_decay_penalty_type: str (default "l2")
             The type of penalty to use for weight decay, either 'l1' or 'l2'
         dropouts: list or float (default 0.25)
-            The dropout probablity to use for each fully connected layer.  The length of this list
+            The dropout probability to use for each fully connected layer.  The length of this list
             should equal len(layer_sizes).  Alternatively this may be a single value
             instead of a list, in which case the same value is used for every layer.
         final_conv_activation_fn: Optional[ActivationFn] (default `tf.nn.tanh`)
-            The Tensorflow activation funcntion to apply to the final
+            The Tensorflow activation function to apply to the final
             convolution at the end of the weave convolutions. If `None`, then no
             activate is applied (hence linear).
         activation_fns: list or object (default `tf.nn.relu`)
@@ -804,7 +804,7 @@ class _GraphConvKerasModel(tf.keras.Model):
                  batch_size=100):
         """An internal keras model class.
 
-        The graph convolutions use a nonstandard control flow so the
+        The graph convolutions uses a nonstandard control flow so the
         standard Keras functional API can't support them. We instead
         use the imperative "subclassing" API to implement the graph
         convolutions.
@@ -935,7 +935,7 @@ class GraphConvModel(KerasModel):
 
         Note that since the underlying _GraphConvKerasModel class is
         specified using imperative subclassing style, this model
-        cannout make predictions for arbitrary outputs.
+        cannot make predictions for arbitrary outputs.
 
         Parameters
         ----------
