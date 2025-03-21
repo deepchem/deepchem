@@ -72,6 +72,21 @@ class _Realigner(object):
         processes each pileup column to count the occurrences of each
         allele at each position, updating the allele counts dictionary.
 
+        This algorithm iterates through each position (pileup column) in
+        the alignment file, obtaining the reference position and chromosome
+        name, and skips positions not in the reference or out of bounds.
+        For each read covering a position, it handles different scenarios:
+        if the read has a deletion at this position (is_del), it counts it
+        as '-'; if it has a reference skip (is_refskip), it counts it as
+        'N'; otherwise, it processes any insertions (positive indels) by
+        capturing the inserted sequence or deletions (negative indels) by
+        recording the deletion length, and then left-aligns these indels
+        for standardized representation. For standard bases (A, C, G, T),
+        it counts them with or without their associated indels. The final
+        output is a dictionary mapping each genomic position to its
+        reference base, the count of each observed allele, and the total
+        coverage at that position.
+
         Parameters
         ----------
         input_file : str
