@@ -1,11 +1,13 @@
 import numpy as np
 from collections import defaultdict
 from deepchem.feat import Featurizer
-from typing import List, Dict, Tuple, Any, Optional
+from typing import List, Dict, Tuple, Any, Optional, cast
 
 try:
     import dgl
     import torch
+    import pysam
+    from pysam.libcalignedsegment import PileupRead, PileupColumn
 except ImportError:
     pass
 
@@ -55,125 +57,121 @@ class _Realigner(object):
             return pos, f"+{len(indel_seq)}{indel_seq}"
         elif indel.startswith('-'):
             del_len = int(indel[1:])
-            while pos > 0 and seq[pos - 1] == seq[pos + del_len - 1]:
+            # Check if the indices are within bounds before accessing
+            while (pos > 0 and pos + del_len - 1 < len(seq) and
+                   seq[pos - 1] == seq[pos + del_len - 1]):
                 pos -= 1
             return pos, f"-{del_len}"
         return pos, indel
 
     def process_pileup(
-            self, pileup_info: List[Dict[str,
-                                         Any]], reference_seq_dict: Dict[str,
-                                                                         str],
-            allele_counts: Dict[Tuple[str, int], Dict[str, Any]]) -> None:
+        self, input_file: str, reference_seq_dict: Dict[str, str]
+    ) -> Dict[Tuple[str, int], Dict[str, Any]]:
         """
         Process pileup information to extract allele counts. This function
         processes each pileup column to count the occurrences of each
         allele at each position, updating the allele counts dictionary.
 
+        This algorithm iterates through each position (pileup column) in
+        the alignment file, obtaining the reference position and chromosome
+        name, and skips positions not in the reference or out of bounds.
+        For each read covering a position, it handles different scenarios:
+        if the read has a deletion at this position (is_del), it counts it
+        as '-'; if it has a reference skip (is_refskip), it counts it as
+        'N'; otherwise, it processes any insertions (positive indels) by
+        capturing the inserted sequence or deletions (negative indels) by
+        recording the deletion length, and then left-aligns these indels
+        for standardized representation. For standard bases (A, C, G, T),
+        it counts them with or without their associated indels. The final
+        output is a dictionary mapping each genomic position to its
+        reference base, the count of each observed allele, and the total
+        coverage at that position.
+
         Parameters
         ----------
-
-        pileup_info : List[Dict[str, Any]]
-            List of dictionaries containing pileup information.
+        input_file : str
+            Path to the input BAM file.
         reference_seq_dict : Dict[str, str]
             Dictionary with chromosome names as keys and reference
             sequences as values.
-        allele_counts : Dict[Tuple[str, int], Dict[str, Any]]
-            Dictionary to store allele counts.
+
+        Returns
+        -------
+        Dict[Tuple[str, int], Dict[str, Any]]
+            Dictionary of allele counts.
 
         """
-        for pileupcolumn in pileup_info:
-            ref_base = reference_seq_dict[pileupcolumn['name']][
-                pileupcolumn['pos']]
+        allele_counts: Dict[Tuple[str, int], Dict[str, Any]] = {}
+        datapoint = pysam.AlignmentFile(input_file, "rb")
+        for pileup_item in datapoint.pileup():
+            pileupcolumn = cast(PileupColumn, pileup_item)
+            ref_pos = pileupcolumn.reference_pos
+            ref_name = pileupcolumn.reference_name
+            # Skip if reference sequence is not available
+            if ref_name not in reference_seq_dict:
+                continue
+
+            # Skip if position is out of bounds
+            if ref_pos >= len(reference_seq_dict[ref_name]):
+                continue
+
+            ref_base: str = reference_seq_dict[ref_name][ref_pos]
+
             allele_count: Dict[str, Any] = {
                 "reference_base": ref_base,
                 "read_alleles": defaultdict(int),
                 "coverage": 0
             }
-            for read_seq in pileupcolumn['reads']:
-                if read_seq[2]:
+            for pileup_read_item in pileupcolumn.pileups:
+                pileupread = cast(PileupRead, pileup_read_item)
+                read_info: List[Optional[Any]] = [
+                    pileupread.alignment.query_sequence,
+                    pileupread.query_position, pileupread.is_del,
+                    pileupread.is_refskip, pileupread.indel
+                ]
+                if read_info[2]:  # is_del
                     base = '-'
-                    print(allele_count)
                     allele_count["read_alleles"][base] += 1
                     allele_count["coverage"] += 1
-                elif read_seq[3]:
+                elif read_info[3]:  # is_refskip
                     base = 'N'
                     allele_count["read_alleles"][base] += 1
                     allele_count["coverage"] += 1
                 else:
                     indel = ""
-                    if read_seq[4] > 0:
-                        indel_seq = read_seq[0][read_seq[2]:read_seq[2] +
-                                                read_seq[4]]
-                        indel = f"+{read_seq[4]}{indel_seq}"
+                    if read_info[4] is not None and read_info[
+                            0] is not None and read_info[
+                                4] > 0:  # positive indel (insertion)
+                        indel_seq = read_info[0][read_info[1]:read_info[1] +
+                                                 read_info[4]]
+                        indel = f"+{read_info[4]}{indel_seq}"
                         new_pos, indel = self.left_align_indel(
-                            reference_seq_dict[pileupcolumn['name']]
-                            [0:pileupcolumn['pos'] + read_seq[4] + 1],
-                            pileupcolumn['pos'], indel)
-                    elif read_seq[4] < 0:
-                        indel = f"{read_seq[4]}"
+                            reference_seq_dict[ref_name][0:ref_pos +
+                                                         read_info[4] + 1],
+                            ref_pos, indel)
+                    elif read_info[4] is not None and read_info[
+                            0] is not None and read_info[
+                                4] < 0:  # negative indel (deletion)
+                        indel = f"{read_info[4]}"
                         new_pos, indel = self.left_align_indel(
-                            reference_seq_dict[pileupcolumn['name']]
-                            [0:pileupcolumn['pos'] + read_seq[4] + 1],
-                            pileupcolumn['pos'], indel)
+                            reference_seq_dict[ref_name][0:ref_pos +
+                                                         read_info[4] + 1],
+                            ref_pos, indel)
 
-                    base = read_seq[0][read_seq[1]]
+                    if read_info[1] is not None and read_info[0] is not None:
+                        base = read_info[0][read_info[1]]
 
-                    if base in {'A', 'C', 'G', 'T'}:
-                        if indel:
-                            allele_count["read_alleles"][base + indel] += 1
-                            allele_count["coverage"] += 1
-                        else:
-                            allele_count["read_alleles"][base] += 1
-                            allele_count["coverage"] += 1
-            pos = pileupcolumn['pos'] + 1
-            allele_counts[(pileupcolumn['name'], pos)] = allele_count
-
-    def generate_pileup_and_reads(
-        self, bamfiles: List[Any], reference_seq_dict: Dict[str, str]
-    ) -> Tuple[Dict[Tuple[str, int], Dict[str, Any]], List[Any]]:
-        """
-        Generate pileup and reads from BAM and reference FASTA files. This
-        function generates pileup information and reads from the provided
-        BAM files and reference sequences, returning both allele counts
-        and reads.
-
-        Parameters
-        ----------
-
-        bamfiles : List[Any]
-            List of BAM file data.
-        reference_seq_dict : Dict[str, str]
-            Dictionary with chromosome names as keys and reference
-
-        Returns
-        -------
-
-        Tuple[Dict[Tuple[str, int], Dict[str, Any]], List[Any]]
-            Dictionary of allele counts and list of reads.
-
-        """
-        allele_counts: Dict[Tuple[str, int], Dict[str, Any]] = {}
-        reads = []
-
-        for x in bamfiles:
-            chrom = x[3]  # Reference name
-
-            pileup_info = x[9] if len(x) > 9 else None
-            if pileup_info is None:
-                continue
-            for pileupcolumn in pileup_info:
-                for read_seq in pileupcolumn['reads']:
-                    reads.append(read_seq)
-
-            if chrom not in reference_seq_dict:
-                continue
-
-            if pileup_info:
-                self.process_pileup(pileup_info, reference_seq_dict,
-                                    allele_counts)
-
-        return allele_counts, reads
+                        if base in {'A', 'C', 'G', 'T'}:
+                            if indel:
+                                allele_count["read_alleles"][base + indel] += 1
+                                allele_count["coverage"] += 1
+                            else:
+                                allele_count["read_alleles"][base] += 1
+                                allele_count["coverage"] += 1
+            pos = ref_pos + 1
+            allele_counts[(ref_name, pos)] = allele_count
+        datapoint.close()
+        return allele_counts
 
     def update_counts(self, count: int, start: int, end: int,
                       window_counts: Dict[int, int]) -> None:
@@ -786,7 +784,8 @@ class RealignerFeaturizer(Featurizer):
         -------
 
         Tuple[List[Tuple[str, int, int, int]], List[Any]]
-            A tuple containing the candidate regions and reads.
+            A tuple containing two strings representing path to bam file
+            and reference file.
 
         """
         bamfile_path = datapoint[0]
@@ -794,7 +793,7 @@ class RealignerFeaturizer(Featurizer):
 
         from deepchem.data import BAMLoader, FASTALoader
 
-        bam_loader = BAMLoader(get_pileup=True)
+        bam_loader = BAMLoader()
         bam_dataset = bam_loader.create_dataset(bamfile_path)
         bamfiles = bam_dataset.X
 
@@ -808,8 +807,8 @@ class RealignerFeaturizer(Featurizer):
         # Create dictionary directly from the pairs
         reference_seq_dict = {pair[0]: pair[1] for pair in name_seq_pairs}
 
-        allele_counts, reads = self.realigner.generate_pileup_and_reads(
-            bamfiles, reference_seq_dict)
+        allele_counts = self.realigner.process_pileup(
+            bamfile_path, reference_seq_dict)
         candidate_regions = self.realigner.select_candidate_regions(
             allele_counts)
         windows_haplotypes = self.realigner.process_candidate_windows(
