@@ -569,18 +569,24 @@ class UserDefinedFeaturizer(Featurizer):
         self.feature_fields = feature_fields
 
 class DummyFeaturizer(Featurizer):
-    """A no-op featurizer that optionally canonicalizes SMILES strings.
+    """
+    A no-op featurizer that optionally canonicalizes SMILES strings.
+
+    This featurizer simply returns the input data unchanged unless
+    the 'canonicalize' flag is set to True. In that case, each SMILES string
+    is converted to its canonical form using RDKit.
 
     Examples
     --------
     >>> import deepchem as dc
-    >>> smi_map = [["N#C[S-].O=C(CBr)c1ccc(C(F)(F)F)cc1>CCO.[K+]", "N#CSCC(=O)c1ccc(C(F)(F)F)cc1"],
-    ...            ["C1COCCN1.FCC(Br)c1cccc(Br)n1>CCN(C(C)C)C(C)C.CN(C)C=O.O", "FCC(c1cccc(Br)n1)N1CCOCC1"]]
+    >>> # Using valid SMILES strings: benzene and acetic acid.
+    >>> smi_map = [["C1=CC=CC=C1", "O=C(O)C"], ["CC(=O)O", "C1=CC=CC=C1"]]
     >>> featurizer = dc.feat.DummyFeaturizer(canonicalize=True)
     >>> featurizer.featurize(smi_map)
-    array([[<canonical SMILES>, <canonical SMILES>],
-           [<canonical SMILES>, <canonical SMILES>]])
+    array([['C1=CC=CC=C1', 'CC(=O)O'],
+           ['CC(=O)O', 'C1=CC=CC=C1']], dtype='<U9')
     """
+
     def __init__(self, canonicalize: bool = False, **kwargs):
         """
         Parameters
