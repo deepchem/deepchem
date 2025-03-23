@@ -583,8 +583,9 @@ class DummyFeaturizer(Featurizer):
     >>> smi_map = [["C1=CC=CC=C1", "O=C(O)C"], ["CC(=O)O", "C1=CC=CC=C1"]]
     >>> featurizer = dc.feat.DummyFeaturizer(canonicalize=True)
     >>> featurizer.featurize(smi_map)
-    array([['C1=CC=CC=C1', 'CC(=O)O'],
-           ['CC(=O)O', 'C1=CC=CC=C1']], dtype='<U9')
+    array([['c1ccccc1', 'CC(=O)O'],
+           ['CC(=O)O', 'c1ccccc1']], dtype='<U8')
+ 
     """
 
     def __init__(self, canonicalize: bool = False, **kwargs):
