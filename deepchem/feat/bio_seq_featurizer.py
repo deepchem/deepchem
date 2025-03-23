@@ -1,6 +1,10 @@
 import numpy as np
 from typing import Optional
 from deepchem.feat import Featurizer
+try:
+    import pysam
+except ImportError:
+    pass
 
 
 class SAMFeaturizer(Featurizer):
@@ -326,3 +330,51 @@ class CRAMFeaturizer(Featurizer):
         datapoint.close()
 
         return np.array(features, dtype="object")
+
+
+class FASTAFeaturizer(Featurizer):
+    """
+    Featurizes FASTA files by extracting the sequence names and sequences.
+    Each sequence in the FASTA file is represented as a list containing the
+    sequence name and the raw sequence itself.
+
+    Examples
+    --------
+    >>> from deepchem.feat import FASTAFeaturizer
+    >>> featurizer = FASTAFeaturizer()
+    >>> fasta_file = 'deepchem/data/tests/example.fasta'
+    >>> features = featurizer.featurize([fasta_file])
+    >>> type(features[0])
+    <class 'numpy.ndarray'>
+    >>> features[0].shape
+    (3, 2)
+
+    Note
+    ----
+    This class requires pysam to be installed. Pysam can be used with Linux or MacOS X.
+    To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
+
+    """
+
+    def _featurize(self, datapoint: str, **kwargs) -> np.ndarray:
+        """
+        Extract features from a FASTA file.
+
+        Parameters
+        ----------
+        datapoint : str
+            Path to the FASTA file to be featurized.
+
+        Returns
+        -------
+        np.ndarray
+            A numpy array of shape (n, 2) where n is the number of sequences in the FASTA
+            file. Each element is a list containing the sequence name and the sequence
+            itself. The first element of each list is the sequence name (str) and the
+            second element is the sequence (str).
+        """
+        data = []
+        with pysam.FastxFile(datapoint) as fasta:
+            for entry in fasta:
+                data.append([entry.name, entry.sequence])
+        return np.array(data, dtype=object)

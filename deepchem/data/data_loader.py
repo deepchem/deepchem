@@ -925,13 +925,30 @@ class FASTALoader(DataLoader):
     FASTA files are commonly used to hold sequence data. This
     class provides convenience files to lead FASTA data and
     one-hot encode the genomic sequences for use in downstream
-    learning tasks.
+    learning tasks. It supports both traditional parsing with
+    sequence annotations and raw FASTA parsing using pysam,
+    which returns raw sequences with their names.
+
+    Examples
+    --------
+    >>> from deepchem.data.data_loader import FASTALoader
+    >>> fasta_file = 'deepchem/data/tests/example.fasta'
+    >>> loader = FASTALoader(None, False, False) # one-hot encoding
+    >>> dataset = loader.create_dataset(fasta_file)
+    >>> dataset.X.shape
+    (3, 58, 5)
+    >>> loader = FASTALoader(None, False, False, True) # raw sequences
+    >>> dataset = loader.create_dataset(fasta_file)
+    >>> dataset.X.shape
+    (3, 2)
+
     """
 
     def __init__(self,
                  featurizer: Optional[Featurizer] = None,
                  auto_add_annotations: bool = False,
-                 legacy: bool = True):
+                 legacy: bool = True,
+                 use_raw_fasta: bool = False):
         """Initialize FASTALoader.
 
         Parameters
@@ -959,6 +976,20 @@ class FASTALoader(DataLoader):
             (number of FASTA sequences, number of channels + 1, max length, 1).
 
             Legacy mode is only tested for ACTGN charsets, and will be deprecated.
+
+        use_raw_fasta: bool (default False)
+            Whether to use FASTAFeaturizer for parsing. If True, uses pysam to extract 
+            sequences directly from FASTA files, returning a numpy array of shape 
+            (n_sequences, 2) where each row contains [sequence_name, sequence].
+            This is useful for handling large FASTA files efficiently and when raw
+            sequence data with headers is needed.
+
+        Note
+        ----
+        This class requires pysam to be installed if use_raw_fasta = True. Pysam can be
+        used with Linux or MacOS X. To use Pysam on Windows, use Windows Subsystem for
+        Linux(WSL).
+
        """
 
         # Process legacy toggle
@@ -983,9 +1014,14 @@ class FASTALoader(DataLoader):
 
         self.user_specified_features = None
 
+        self.use_raw_fasta = use_raw_fasta
+
         # Handle special featurizer cases
-        if isinstance(featurizer,
-                      UserDefinedFeaturizer):  # User defined featurizer
+        if use_raw_fasta:
+            from deepchem.feat import FASTAFeaturizer
+            featurizer = FASTAFeaturizer()
+        elif isinstance(featurizer,
+                        UserDefinedFeaturizer):  # User defined featurizer
             self.user_specified_features = featurizer.feature_fields
         elif featurizer is None:  # Default featurizer
             featurizer = OneHotFeaturizer(charset=["A", "C", "T", "G"],
@@ -1025,6 +1061,8 @@ class FASTALoader(DataLoader):
             for input_file in input_files:
                 if self.legacy:
                     X = encode_bio_sequence(input_file)
+                elif self.use_raw_fasta:
+                    X = self.featurizer._featurize(input_file)
                 else:
                     sequences = _read_file(input_file)
                     X = self.featurizer(sequences)
