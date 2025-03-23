@@ -4,6 +4,8 @@ Feature calculations.
 import inspect
 import logging
 import numpy as np
+from rdkit import Chem 
+
 from typing import Any, Dict, Iterable, Optional, Tuple, Union, cast
 
 from deepchem.utils import get_print_threshold
@@ -566,41 +568,70 @@ class UserDefinedFeaturizer(Featurizer):
         """Creates user-defined-featurizer."""
         self.feature_fields = feature_fields
 
-
 class DummyFeaturizer(Featurizer):
-    """Class that implements a no-op featurization.
-    This is useful when the raw dataset has to be used without featurizing the
-    examples. The Molnet loader requires a featurizer input and such datasets
-    can be used in their original form by passing the raw featurizer.
+    """A no-op featurizer that optionally canonicalizes SMILES strings.
 
     Examples
     --------
     >>> import deepchem as dc
-    >>> smi_map = [["N#C[S-].O=C(CBr)c1ccc(C(F)(F)F)cc1>CCO.[K+]", "N#CSCC(=O)c1ccc(C(F)(F)F)cc1"], ["C1COCCN1.FCC(Br)c1cccc(Br)n1>CCN(C(C)C)C(C)C.CN(C)C=O.O", "FCC(c1cccc(Br)n1)N1CCOCC1"]]
-    >>> Featurizer = dc.feat.DummyFeaturizer()
-    >>> smi_feat = Featurizer.featurize(smi_map)
-    >>> smi_feat
-    array([['N#C[S-].O=C(CBr)c1ccc(C(F)(F)F)cc1>CCO.[K+]',
-            'N#CSCC(=O)c1ccc(C(F)(F)F)cc1'],
-           ['C1COCCN1.FCC(Br)c1cccc(Br)n1>CCN(C(C)C)C(C)C.CN(C)C=O.O',
-            'FCC(c1cccc(Br)n1)N1CCOCC1']], dtype='<U55')
+    >>> smi_map = [["N#C[S-].O=C(CBr)c1ccc(C(F)(F)F)cc1>CCO.[K+]", "N#CSCC(=O)c1ccc(C(F)(F)F)cc1"],
+    ...            ["C1COCCN1.FCC(Br)c1cccc(Br)n1>CCN(C(C)C)C(C)C.CN(C)C=O.O", "FCC(c1cccc(Br)n1)N1CCOCC1"]]
+    >>> featurizer = dc.feat.DummyFeaturizer(canonicalize=True)
+    >>> featurizer.featurize(smi_map)
+    array([[<canonical SMILES>, <canonical SMILES>],
+           [<canonical SMILES>, <canonical SMILES>]])
     """
+    def __init__(self, canonicalize: bool = False, **kwargs):
+        """
+        Parameters
+        ----------
+        canonicalize : bool, default False
+            If True, canonicalize the input SMILES strings.
+        """
+        self.canonicalize = canonicalize
+        super().__init__(**kwargs)
 
     def featurize(self,
                   datapoints: Iterable[Any],
                   log_every_n: int = 1000,
                   **kwargs) -> np.ndarray:
-        """Passes through dataset, and returns the datapoint.
+        """
+        Pass through dataset and optionally canonicalize SMILES strings.
 
         Parameters
-        ----
-        datapoints: Iterable[Any]
-            A sequence of objects that you'd like to featurize.
+        ----------
+        datapoints : Iterable[Any]
+            A sequence of objects (e.g., SMILES strings) to featurize.
 
         Returns
-        ----
-        datapoints: np.ndarray
-            A numpy array containing a featurized representation of
-            the datapoints.
+        -------
+        np.ndarray
+            A NumPy array containing the (possibly canonicalized) datapoints.
         """
-        return np.asarray(datapoints)
+        arr = np.asarray(datapoints)
+        if not self.canonicalize:
+            return arr
+        vectorized_canonicalize = np.vectorize(self._canonicalize_smiles)
+        return vectorized_canonicalize(arr)
+
+    def _canonicalize_smiles(self, smiles: str) -> str:
+        """
+        Convert a SMILES string to its canonical form using RDKit.
+
+        Parameters
+        ----------
+        smiles : str
+            The original SMILES string.
+
+        Returns
+        -------
+        str
+            The canonicalized SMILES string.
+        """
+        if not isinstance(smiles, str):
+            return smiles
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            raise ValueError(f"Invalid SMILES string provided: {smiles}")
+        return Chem.MolToSmiles(mol, canonical=True)
+
