@@ -60,3 +60,4 @@ try:
 
 except ModuleNotFoundError as e:
     logger.warning(f'Skipped loading modules with transformers dependency. {e}')
+from deepchem.models.torch_models.protac_model import DeepPROTAC

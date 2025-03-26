@@ -26,6 +26,42 @@ from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
 from deepchem.utils.pytorch_utils import get_activation, segment_sum, unsorted_segment_sum, unsorted_segment_max
 from torch.nn import init as initializers
 
+from torch_geometric.nn import GCNConv, global_max_pool
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+
+class GraphConv(nn.Module):
+    def __init__(self, num_embeddings):
+        super().__init__()
+        self.embed = nn.Embedding(num_embeddings, embedding_dim = 64)
+        self.gcn1 = GCNConv(64, 128)
+        self.gcn2 = GCNConv(128, 64)
+
+    def forward(self, data):
+        x, edge_index, batch = data.x, data.edge_index, data.batch
+        edge_attr = data.edge_attr.to(torch.float)
+        x = self.embed(x)
+        x = self.gcn1(x, edge_index, edge_attr)
+        x = F.relu(x)
+        x = self.gcn2(x, edge_index, edge_attr)
+        x = global_max_pool(x, batch)
+        return x
+
+class SmilesNet(nn.Module):
+    def __init__(self, batch_size = 1):
+        super().__init__()
+        self.batch_size = batch_size
+        self.embed = nn.Embedding(41, 64, padding_idx=0)
+        self.lstm = nn.LSTM(64, 64, batch_first=True, bidirectional=True)
+        self.fc = nn.Linear(128, 64)
+
+    def forward(self, x, s):
+        x = self.embed(x)
+        x = pack_padded_sequence(x, s, batch_first=True, enforce_sorted=False)
+        out, (h, c) = self.lstm(x, None)
+        out, _ = pad_packed_sequence(out, batch_first=True)
+        y = self.fc(out[:,-1,:])
+        return y
+
 
 class MultilayerPerceptron(nn.Module):
     """A simple fully connected feed-forward network, otherwise known as a multilayer perceptron (MLP).
