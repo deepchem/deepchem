@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def randomize_arrays(array_list):
-    # assumes that every array is of the same dimension
+    """assumes that every array is of the same dimension"""
     num_rows = array_list[0].shape[0]
     perm = np.random.permutation(num_rows)
     permuted_arrays = []
