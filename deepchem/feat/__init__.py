@@ -83,7 +83,6 @@ try:
     from deepchem.feat.bio_seq_featurizer import SAMFeaturizer
     from deepchem.feat.bio_seq_featurizer import BAMFeaturizer
     from deepchem.feat.bio_seq_featurizer import CRAMFeaturizer
-    from deepchem.feat.bio_seq_featurizer import FASTAFeaturizer
 except ImportError as e:
     logger.warning(
         f'Skipped loading biological sequence featurizer, missing a dependency. {e}'

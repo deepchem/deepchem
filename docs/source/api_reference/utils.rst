@@ -831,12 +831,6 @@ for additional information regarding equivariance and Deepchem's support for equ
 
 .. autofunction:: deepchem.utils.equivariance_utils.precompute_sh
 
-.. autofunction:: deepchem.utils.equivariance_utils.get_basis
-
-.. autofunction:: deepchem.utils.equivariance_utils.get_r
-
-.. autofunction:: deepchem.utils.equivariance_utils.get_basis_and_r  
-
 Miscellaneous Utilities
 -----------------------
 

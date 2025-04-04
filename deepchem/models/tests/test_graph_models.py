@@ -9,7 +9,7 @@ from deepchem.molnet import load_bace_classification, load_delaney
 from deepchem.feat import ConvMolFeaturizer
 from deepchem.metrics import Metric, roc_auc_score, mean_absolute_error
 from deepchem.utils.data_utils import download_url, get_data_dir
-
+from deepchem import deepchemmap
 try:
     import tensorflow as tf
     from deepchem.models import GraphConvModel, DAGModel, MPNNModel, DTNNModel
@@ -60,6 +60,29 @@ def test_graph_conv_model():
     model.fit(dataset, nb_epoch=20)
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
+
+# @flaky
+# @pytest.mark.tensorflow
+# def test_graph_conv_model_save():
+#     tasks, dataset, transformers, metric = get_dataset('classification',
+#                                                        'GraphConv')
+
+#     batch_size = 10
+#     model = GraphConvModel(len(tasks),
+#                            batch_size=batch_size,
+#                            batch_normalize=False,
+#                            mode='classification')
+
+#     model.fit(dataset, nb_epoch=20)
+#     scores = model.evaluate(dataset, [metric], transformers)
+#     assert scores['mean-roc_auc_score'] >= 0.9
+#     model.save_pretrained("save_Graph")
+#     model_1 = deepchemmap.Map.load_from_pretrained("save_graph")
+#     scores_1 = model_1.evaluate(dataset, [metric], transformers)
+
+#     assert scores_1['mean-roc_auc_score'] >= 0.9
+
+
 
 
 @pytest.mark.tensorflow

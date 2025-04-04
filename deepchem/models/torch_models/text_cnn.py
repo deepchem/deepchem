@@ -289,7 +289,7 @@ class TextCNNModel(TorchModel):
                                            output_types=output_types,
                                            **kwargs)
         self.name = "text-CNN"
-        self.config = {
+        self.param_dict = {
             "name" : self.name,
             "n_tasks" : n_tasks,
             "char_dict" : char_dict,

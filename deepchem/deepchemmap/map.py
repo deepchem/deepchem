@@ -1,11 +1,18 @@
 import json
 import os
-from deepchem.configuration import DeepChemConfig
-from models.torch_models.graphconvmodel import GraphConvModel
-from models.torch_models.cnn import CNN
-from models.torch_models.text_cnn import TextCNNModel
-from models.torch_models.torch_model import TorchModel
-from models.torch_models.dtnn import DTNNModel
+# from deepchem.configuration import DeepChemConfig
+from deepchem import models
+from deepchem.models.torch_models.graphconvmodel import GraphConvModel
+from deepchem.models.torch_models.cnn import CNN
+from deepchem.models.torch_models.text_cnn import TextCNNModel
+from deepchem.models.torch_models.torch_model import TorchModel
+from deepchem.models.torch_models.dtnn import DTNNModel
+from deepchem.models.optimizers import (AdaGrad, Adam, SparseAdam, AdamW,
+                                        RMSProp, ExponentialDecay,
+                                        LambdaLRWithWarmup, PolynomialDecay,
+                                        LinearCosineDecay,
+                                        PiecewiseConstantSchedule, KFAC, Lamb)
+from deepchem.models.losses import L1Loss, L2Loss, HuberLoss, HingeLoss, SquaredHingeLoss
 
 # Model mapping dictionary
 mapping_models_torch = {
@@ -16,78 +23,143 @@ mapping_models_torch = {
     "DTNN": DTNNModel
 }
 
+# Optimizer mapping dictionary
+optimizers_map = {
+    "AdaGrad": AdaGrad,
+    "Adam": Adam,
+    "SparseAdam": SparseAdam,
+    "AdamW": AdamW,
+    "RMSProp": RMSProp,
+    "ExponentialDecay": ExponentialDecay,
+    "LambdaLRWithWarmup": LambdaLRWithWarmup,
+    "PolynomialDecay": PolynomialDecay,
+    "LinearCosineDecay": LinearCosineDecay,
+    "PiecewiseConstantSchedule": PiecewiseConstantSchedule,
+    "KFAC": KFAC,
+    "Lamb": Lamb
+}
+
+# Loss function mapping dictionary
+losses_map = {
+    "L1Loss": L1Loss,
+    "L2Loss": L2Loss,
+    "HuberLoss": HuberLoss,
+    "HingeLoss": HingeLoss,
+    "SquaredHingeLoss": SquaredHingeLoss
+}
+
+
 class Map:
-    mapping_models_torch = mapping_models_torch  # Store the model mapping
+
+    """
+    Utility class for loading DeepChem models from saved configurations.
+
+    The `Map` class provides static methods to streamline the loading of DeepChem Torch models
+    using JSON-based configuration files. It supports deserializing model parameters, instantiating
+    models from configurations, and restoring models from saved weights.
+
+    Mappings:
+        - `mapping_models_torch`: Maps model name strings to DeepChem model classes.
+        - `optimizers_map`: Maps optimizer name strings to DeepChem optimizer classes.
+        - `losses_map`: Maps loss function names to DeepChem loss classes.
+
+    Methods:
+        - `load_param_dict(json_file)`: Loads a parameter dictionary from a JSON file.
+        - `load_from_config(directory)`: Instantiates a model from a configuration directory.
+        - `load_from_pretrained(directory, strict=True)`: Loads and restores a pretrained model.
+
+    Example:
+        model = Map.load_from_pretrained("saved_model_dir")
+    """
+    
+    @staticmethod
+    def load_param_dict(json_file):
+        """
+        Loads a parameter dictionary from a JSON file.
+
+        Args:
+            json_file (str): Path to the JSON file containing model parameters.
+
+        Returns:
+            dict: A deserialized dictionary containing the model parameters.
+
+        Raises:
+            FileNotFoundError: If the specified JSON file does not exist.
+            ValueError: If the model name is not found in the mapping dictionary.
+            AttributeError: If the model class lacks a `deserialize_dict` method.
+        """
+        if not os.path.exists(json_file):
+            raise FileNotFoundError(f"Parameter file not found: {json_file}")
+
+        with open(json_file, "r") as f:
+            data = json.load(f)
+
+        model_name = data["name"]["__value__"]
+        if model_name not in mapping_models_torch:
+            raise ValueError(f"Model '{model_name}' not found in model map")
+
+        model_class = mapping_models_torch[model_name]
+
+        if not hasattr(model_class, "deserialize_dict"):
+            raise AttributeError(
+                f"Model class '{model_name}' is missing 'deserialize_dict' method."
+            )
+
+        return model_class.deserialize_dict(data)
 
     @staticmethod
-    def load_config(model_dir):
-        """Loads the configuration from config.json."""
-        config_path = os.path.join(model_dir, 'config.json')
+    def load_from_config(directory):
+        """
+        Loads a model from the configuration file in a directory.
 
-        if not os.path.exists(config_path):
-            raise FileNotFoundError(f"Config file not found: {config_path}")
+        Args:
+            directory (str): The directory containing the `parameters.json` file.
 
-        with open(config_path, 'r', encoding='utf-8') as f:
-            serialized_config = json.load(f)
-        config = DeepChemConfig.deserialize(serialized_config)
-        return config
+        Returns:
+            torch.nn.Module: The instantiated model based on the configuration.
+
+        Raises:
+            FileNotFoundError: If `parameters.json` is missing.
+            ValueError: If the model name is unknown.
+        """
+        param_path = os.path.join(directory, "parameters.json")
+        if not os.path.exists(param_path):
+            raise FileNotFoundError(f"Parameter file not found: {param_path}")
+
+        deserialized_params = Map.load_param_dict(param_path)
+        model_name = deserialized_params['name']
+
+        if model_name not in mapping_models_torch:
+            raise ValueError(
+                f"Unknown model name '{model_name}' in parameters.json")
+
+        model_class = mapping_models_torch[model_name]
+        return model_class(**deserialized_params)
 
     @staticmethod
-    def save_config(model_dir, config):
-        """Saves the configuration to config.json."""
-        config_path = os.path.join(model_dir, 'config.json')
-        with open(config_path, 'w', encoding='utf-8') as f:
-            json.dump(config, f, indent=4)
-        print(f"Configuration saved at {config_path}")
+    def load_from_pretrained(directory, strict=True):
+        """
+        Loads a pretrained model from a specified directory.
 
-    @staticmethod
-    def load_model(model_dir):
-        """Loads the model and restores its weights."""
-        if not os.path.exists(model_dir):
-            raise FileNotFoundError(f"Model directory not found: {model_dir}")
+        Args:
+            directory (str): Path to the directory containing model weights and configurations.
+            strict (bool, optional): Whether to enforce strict loading of weights. Defaults to True.
 
-        config = Map.load_config(model_dir)
-        model_name = config.get("name")
+        Returns:
+            torch.nn.Module: A restored model instance.
 
-        model_class = Map.mapping_models_torch.get(model_name)
-        if model_class is None:
-            raise ValueError(f"Unknown model name '{model_name}' in config")
+        Raises:
+            FileNotFoundError: If the directory or model weights file is missing.
+        """
+        if not os.path.exists(directory):
+            raise FileNotFoundError(f"Model directory not found: {directory}")
 
-        # Instantiate the model with config parameters
-        deserialized_config = DeepChemConfig.deserialize(config)
-        model = model_class(**deserialized_config)
+        model = Map.load_from_config(directory)
 
-        # Load weights
-        weights_path = os.path.join(model_dir, 'model_weights.pt')
+        weights_path = os.path.join(directory, "model_weights.pt")
         if os.path.exists(weights_path):
-            model.restore(weights_path)  # Assuming model has restore() method
+            model.restore(weights_path)  # Keep DeepChem's restore method
         else:
             raise FileNotFoundError(f"Model weights not found: {weights_path}")
 
         return model
-
-    @staticmethod
-    def save_model_weights(model, model_dir):
-        """Saves the model weights to model_weights.pt."""
-        if not os.path.exists(model_dir):
-            os.makedirs(model_dir)
-
-        weights_path = os.path.join(model_dir, 'model_weights.pt')
-        model.save(weights_path)  # Assuming model has save() method
-        print(f"Model weights saved at {weights_path}")
-
-    @staticmethod
-    def list_available_models():
-        """Returns a list of supported model names."""
-        return list(Map.mapping_models_torch.keys())
-
-    @staticmethod
-    def check_model_directory(model_dir):
-        """Checks if the required files exist in the model directory."""
-        required_files = ['config.json', 'model_weights.pt']
-        missing_files = [file for file in required_files if not os.path.exists(os.path.join(model_dir, file))]
-
-        if missing_files:
-            raise FileNotFoundError(f"Missing required files in model directory: {', '.join(missing_files)}")
-        print("Model directory structure is valid.")
-

@@ -15,11 +15,38 @@ from deepchem.utils.typing import OneOrMany
 import deepchem.models.torch_models.layers as torch_layers
 from deepchem.utils.pytorch_utils import get_activation
 from deepchem.models.torch_models.torch_model import TorchModel
-from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy
-import os 
-import json
-import inspect
-from typing import Optional
+from deepchem.models.optimizers import Optimizer
+from deepchem.models.losses import Loss
+from deepchem.models.optimizers import (AdaGrad, Adam, SparseAdam, AdamW,
+                                        RMSProp, ExponentialDecay,
+                                        LambdaLRWithWarmup, PolynomialDecay,
+                                        LinearCosineDecay,
+                                        PiecewiseConstantSchedule, KFAC, Lamb)
+from deepchem.models.losses import L1Loss, L2Loss, HuberLoss, HingeLoss, SquaredHingeLoss, SoftmaxCrossEntropy
+
+optimizers_map = {
+    "AdaGrad": AdaGrad,
+    "Adam": Adam,
+    "SparseAdam": SparseAdam,
+    "AdamW": AdamW,
+    "RMSProp": RMSProp,
+    "ExponentialDecay": ExponentialDecay,
+    "LambdaLRWithWarmup": LambdaLRWithWarmup,
+    "PolynomialDecay": PolynomialDecay,
+    "LinearCosineDecay": LinearCosineDecay,
+    "PiecewiseConstantSchedule": PiecewiseConstantSchedule,
+    "KFAC": KFAC,
+    "Lamb": Lamb
+}
+
+losses_map = {
+    "L1Loss": L1Loss,
+    "L2Loss": L2Loss,
+    "HuberLoss": HuberLoss,
+    "HingeLoss": HingeLoss,
+    "SquaredHingeLoss": SquaredHingeLoss
+}
+
 
 class TrimGraphOutput(nn.Module):
     """Trim the output to the correct number of samples.
@@ -128,7 +155,7 @@ class _GraphConvTorchModel(nn.Module):
         self.n_classes: int = n_classes
         self.mode: str = mode
         self.uncertainty: bool = uncertainty
-        self.num_input_features: List =  number_input_features
+        self.num_input_features: List = number_input_features
 
         if not isinstance(dropout, SequenceCollection):
             dropout = [dropout] * (len(graph_conv_layers) + 1)
@@ -385,25 +412,23 @@ class GraphConvModel(TorchModel):
                                              output_types=output_types,
                                              batch_size=batch_size,
                                              **kwargs)
-        self.name: str = "graph-conv"
-        self.number_input_features = number_input_features
-        self.config = {
-            "n_tasks" : n_tasks,
-            "number_input_features" : number_input_features,
-            "graph_conv_layers" : graph_conv_layers,
-            "dense_layer_size" : dense_layer_size,
-            "dropout" : dropout,
-            "mode" : mode,
-            "number_atom_features" : number_atom_features,
-            "n_classes" : n_classes,
-            "batch_size" : batch_size,
-            "batch_normalize" : batch_normalize,
-            "uncertainty" : uncertainty
+        self.param_dict = {
+            "n_tasks": n_tasks,
+            "number_input_features": number_input_features,
+            "graph_conv_layers": graph_conv_layers,
+            "dense_layer_size": dense_layer_size,
+            "dropout": dropout,
+            "mode": mode,
+            "number_atom_features": number_atom_features,
+            "n_classes": n_classes,
+            "batch_size": batch_size,
+            "batch_normalize": batch_normalize,
+            "uncertainty": uncertainty,
+            "name": "graph-conv"
         }
         self.dict_kwargs = kwargs
-        self.config.update(self.dict_kwargs)
+        self.param_dict.update(self.dict_kwargs)
         # self.config= {k: v for k, v in locals().items() if k != 'self'}
-
 
     def default_generator(self,
                           dataset: Dataset,
@@ -446,3 +471,71 @@ class GraphConvModel(TorchModel):
                 for i in range(1, len(multiConvMol.get_deg_adjacency_lists())):
                     inputs.append(multiConvMol.get_deg_adjacency_lists()[i])
                 yield (inputs, [y_b], [w_b])
+
+    @staticmethod
+    def serialize(obj):
+        """
+        Serializes an object into a dictionary format.
+
+        Args:
+            obj: The object to serialize (str, int, list, float, bool, None, torch.device, Optimizer, or Loss).
+
+        Returns:
+            dict: A dictionary representing the serialized object.
+
+        Raises:
+            TypeError: If the object type is not supported for serialization.
+        """
+
+        if isinstance(obj, (str, int, list, float, bool, type(None))):
+            return {"__type__": type(obj).__name__, "__value__": obj}
+        if isinstance(obj, torch.device):
+            return {"__type__": "torch_device", "__value__": str(obj)}
+        if isinstance(obj, Optimizer):
+            return {
+                "__type__": "deepchem_optimizer",
+                "__name__": obj.__class__.__name__,
+                "params": obj.__dict__
+            }
+        if isinstance(obj, Loss):
+            return {
+                "__type__": "deepchem_loss",
+                "__name__": obj.__class__.__name__,
+                "params": obj.__dict__
+            }
+        raise TypeError(
+            f"Object of type {type(obj).__name__} is not JSON serializable")
+
+    @staticmethod
+    def deserialize(obj):
+        """
+        Deserializes an object from its dictionary representation.
+
+        Args:
+            obj (dict): The serialized object dictionary.
+
+        Returns:
+            The original object reconstructed from its serialized form.
+
+        Raises:
+            ValueError: If the object type is unsupported for deserialization.
+        """
+
+        obj_type = obj["__type__"]
+        normal_types = {"int", "list", "str", "float", "bool", "NoneType"}
+
+        if obj_type in normal_types:
+            return obj["__value__"]
+
+        if obj_type == "torch_device":
+            return torch.device(obj["__value__"])
+
+        if obj_type == "deepchem_optimizer":
+            optimizer_class = optimizers_map[obj["__name__"]]
+            return optimizer_class(**obj["params"])
+
+        if obj_type == "deepchem_loss":
+            loss_class = losses_map[obj["__name__"]]
+            return loss_class(**obj["params"])
+
+        raise ValueError(f"Unsupported type: {obj_type}")
