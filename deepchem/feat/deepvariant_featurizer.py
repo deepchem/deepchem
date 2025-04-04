@@ -6,7 +6,6 @@ from typing import List, Dict, Tuple, Any, Optional
 try:
     import dgl
     import torch
-    import pysam
 except ImportError:
     pass
 
@@ -751,9 +750,11 @@ class RealignerFeaturizer(Featurizer):
         Decode a one-hot encoded sequence into a string of
         nucleotides.
 
+        This function is not used and retained only for backward
+        compatibility with previous versions of the code.
+
         Parameters
         ----------
-
         one_hot_vector : List[np.ndarray]
             List of one-hot encoded vectors.
         charset : Optional[List[str]]
@@ -762,10 +763,8 @@ class RealignerFeaturizer(Featurizer):
 
         Returns
         -------
-
         str
             Decoded sequence as a string.
-
         """
         decoded_seq = []
         for vector in one_hot_vector:
@@ -799,24 +798,15 @@ class RealignerFeaturizer(Featurizer):
         bam_dataset = bam_loader.create_dataset(bamfile_path)
         bamfiles = bam_dataset.X
 
-        fasta_loader = FASTALoader(None, False, False)
+        # Load the reference FASTA file with raw fasta sequences
+        fasta_loader = FASTALoader(None, False, False, True)
         fasta_dataset = fasta_loader.create_dataset(reference_file_path)
 
-        one_hot_encoded_sequences = fasta_dataset.X
-        decoded_sequences = []
+        # The X array contains [name, sequence] pairs
+        name_seq_pairs = fasta_dataset.X
 
-        # Convert the one-hot encoded sequences to strings
-        for seq in one_hot_encoded_sequences:
-            decoded_seq = self.decode_one_hot(seq)
-            decoded_sequences.append(decoded_seq)
-
-        # Map the sequences to chrom names
-        with pysam.FastaFile(reference_file_path) as fasta_file:
-            chrom_names = fasta_file.references
-
-        reference_seq_dict = {
-            chrom_names[i]: seq for i, seq in enumerate(decoded_sequences)
-        }
+        # Create dictionary directly from the pairs
+        reference_seq_dict = {pair[0]: pair[1] for pair in name_seq_pairs}
 
         allele_counts, reads = self.realigner.generate_pileup_and_reads(
             bamfiles, reference_seq_dict)
