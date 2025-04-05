@@ -1,23 +1,18 @@
 from typing import List
-
 import torch.nn as nn
 import torch
-
-from deepchem.models.losses import L2Loss
 from deepchem.models.torch_models import layers
 from deepchem.models.torch_models import TorchModel
 from deepchem.data.datasets import Dataset
 from deepchem.utils import batch_coulomb_matrix_features
-
-from deepchem.models.optimizers import Optimizer, LearningRateSchedule
+from deepchem.models.optimizers import Optimizer
 from deepchem.models.losses import Loss
 from deepchem.models.optimizers import (AdaGrad, Adam, SparseAdam, AdamW,
                                         RMSProp, ExponentialDecay,
                                         LambdaLRWithWarmup, PolynomialDecay,
                                         LinearCosineDecay,
                                         PiecewiseConstantSchedule, KFAC, Lamb)
-from deepchem.models.losses import L1Loss, L2Loss, HuberLoss, HingeLoss, SquaredHingeLoss, SoftmaxCrossEntropy
-# from deepchem.deepchemmap import optimizers_map,losses_map
+from deepchem.models.losses import L1Loss, L2Loss, HuberLoss, HingeLoss, SquaredHingeLoss
 
 optimizers_map = {
     "AdaGrad": AdaGrad,

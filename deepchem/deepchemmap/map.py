@@ -1,7 +1,5 @@
 import json
 import os
-# from deepchem.configuration import DeepChemConfig
-from deepchem import models
 from deepchem.models.torch_models.graphconvmodel import GraphConvModel
 from deepchem.models.torch_models.cnn import CNN
 from deepchem.models.torch_models.text_cnn import TextCNNModel

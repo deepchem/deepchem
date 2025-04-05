@@ -15,6 +15,7 @@ except ModuleNotFoundError:
     pass
 from deepchem.models.optimizers import AdamW
 
+
 @pytest.mark.torch
 def test_dtnn():
     """Tests DTNN for Shape and trainable parameter count.
@@ -81,6 +82,7 @@ def test_dmpnn_model_reload():
     reloaded_predict = reloaded_model.predict(data)
     assert np.all(orignal_predict == reloaded_predict)
 
+
 @pytest.mark.torch
 def test_dtnn_model_save():
     """Tests DTNN Model for Shape and prediction.
@@ -119,6 +121,7 @@ def test_dtnn_model_save():
     assert mean_rel_error < 0.5
     assert pred.shape == data.y.shape
 
+
 @pytest.mark.torch
 def test_dtnn_model_save_load_optimizer():
     """Tests DTNN Model for Shape and prediction.
@@ -138,7 +141,7 @@ def test_dtnn_model_save_load_optimizer():
                       n_distance=100,
                       learning_rate=0.8,
                       mode="regression",
-                      optimizer = optimizer)
+                      optimizer=optimizer)
     model.fit(data, nb_epoch=1000)
 
     # Eval model on train
