@@ -1,5 +1,7 @@
 import numpy as np
 import torch
+import inspect
+import json
 try:
     import torch.utils.tensorboard
     _has_tensorboard = True
@@ -128,6 +130,7 @@ class TorchModel(Model):
                  device: Optional[torch.device] = None,
                  regularization_loss: Optional[Callable] = None,
                  wandb_logger: Optional[WandbLogger] = None,
+                 name: Optional[str] = "name",
                  **kwargs) -> None:
         """Create a new TorchModel.
 
@@ -175,6 +178,7 @@ class TorchModel(Model):
         super(TorchModel, self).__init__(model=model,
                                          model_dir=model_dir,
                                          **kwargs)
+        self.name = name
         self.loss = loss  # not used
         self.learning_rate = learning_rate
         self.output_types = output_types  # not used
@@ -189,6 +193,7 @@ class TorchModel(Model):
             self.optimizer = optimizer
         self.tensorboard = tensorboard
         self.regularization_loss = regularization_loss
+        self.param_dict = {"deepchem": "deepchem"}
 
         # Select a device.
 
@@ -992,6 +997,90 @@ class TorchModel(Model):
                                                deterministic=deterministic,
                                                pad_batches=pad_batches):
                 yield ([X_b], [y_b], [w_b])
+
+    def serialize_dict(self, params_dict):
+        """
+        Serializes a dictionary of parameters.
+
+        Args:
+            params_dict (dict): A dictionary containing parameters to serialize.
+
+        Returns:
+            dict: A dictionary with serialized values.
+
+        Raises:
+            TypeError: If the input is not a dictionary.
+        """
+        if not isinstance(params_dict, dict):
+            raise TypeError("Expected a dictionary of parameters")
+        return {
+            key: self.serialize(value) for key, value in params_dict.items()
+        }
+
+    def deserialize(obj):
+        "This shall be overwritten"
+        raise NotImplementedError("Subclasses must implement this")
+
+    @classmethod
+    def deserialize_dict(cls, serialized_dict):
+        """
+        Deserializes a dictionary of serialized parameters.
+
+        Args:
+            serialized_dict (dict): A dictionary containing serialized parameters.
+
+        Returns:
+            dict: A dictionary with deserialized values.
+
+        Raises:
+            TypeError: If the input is not a dictionary.
+        """
+        if not isinstance(serialized_dict, dict):
+            raise TypeError("Expected a dictionary of serialized parameters")
+        return {
+            key: cls.deserialize(value)
+            for key, value in serialized_dict.items()
+        }
+
+    def save_pretrained(self, model_dir: Optional[str] = None):
+        """
+        Saves the trained model's parameters, optimizer state, and global step to the specified directory.
+
+        This method ensures that the model is built before saving. If `model_dir` is not provided,
+        it defaults to `self.model_dir`. The method creates the directory if it does not exist and
+        saves the model's parameters as a JSON file and the model and optimizer states as a PyTorch
+        checkpoint.
+
+        Args:
+            model_dir (Optional[str]): The directory where the model and its state should be saved.
+                                       If None, the default `self.model_dir` is used.
+
+        Saves:
+            - `parameters.json`: A JSON file containing the serialized model configuration.
+            - `model_weights.pt`: A PyTorch checkpoint containing:
+                - `model_state_dict`: The state dictionary of the model.
+                - `optimizer_state_dict`: The state dictionary of the optimizer.
+                - `global_step`: The current training step.
+        """
+        self._ensure_built()
+        if model_dir is None:
+            model_dir = self.model_dir
+        if not os.path.exists(model_dir):
+            os.makedirs(model_dir)
+
+        param_file_path = os.path.join(model_dir, 'parameters.json')
+        serialized_config = self.serialize_dict(self.param_dict)
+        with open(param_file_path, 'w') as f:
+            json.dump(serialized_config, f, indent=4)
+
+        data = {
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self._pytorch_optimizer.state_dict(),
+            'global_step': self._global_step
+        }
+
+        temp_file = os.path.join(model_dir, 'model_weights.pt')
+        torch.save(data, temp_file)
 
     def save_checkpoint(self,
                         max_checkpoints_to_keep: int = 5,
