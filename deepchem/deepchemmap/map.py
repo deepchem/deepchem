@@ -50,13 +50,17 @@ losses_map = {
 
 
 class Map:
-
     """
-    Utility class for loading DeepChem models from saved configurations.
-
-    The `Map` class provides static methods to streamline the loading of DeepChem Torch models
-    using JSON-based configuration files. It supports deserializing model parameters, instantiating
-    models from configurations, and restoring models from saved weights.
+    Example:
+        >>> import deepchem as dc
+        >>> tasks, datasets, transformers = dc.molnet.load_tox21(featurizer='GraphConv')
+        >>> train_dataset, valid_dataset, test_dataset = datasets
+        >>> n_tasks = len(tasks)
+        >>> num_features = train_dataset.X[0].get_atom_features().shape[1]
+        >>> model = dc.models.torch_models.GraphConvModel(n_tasks, mode='classification', number_input_features=[num_features, 64])
+        >>> model.fit(train_dataset, nb_epoch=50)
+        >>> model.save_pretrained("save_graph")  # Saving the model
+        >>> model_reload = deepchem.deepchemmap.Map.load_from_pretrained("save_graph")  # The model gets loaded
 
     Mappings:
         - `mapping_models_torch`: Maps model name strings to DeepChem model classes.
@@ -67,11 +71,8 @@ class Map:
         - `load_param_dict(json_file)`: Loads a parameter dictionary from a JSON file.
         - `load_from_config(directory)`: Instantiates a model from a configuration directory.
         - `load_from_pretrained(directory, strict=True)`: Loads and restores a pretrained model.
-
-    Example:
-        model = Map.load_from_pretrained("saved_model_dir")
     """
-    
+
     @staticmethod
     def load_param_dict(json_file):
         """
