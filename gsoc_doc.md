@@ -5,11 +5,11 @@ This prototype is an implementation of the project for two models: GraphConvMode
 
 The following are done:
 
-- Implementation of save_pretrained in Torch_model class  
-- Implementation of serialize_dict and deserialize_dict in Torch_model class  
-- Implementation of serialize and deserialize in graphconvmodel.py and dtnn.py in torch_model  
-- Implementation of deepchemmap  
-- Unit tests are added in test_graph_conv.py and test_dtnn.py  
+- Implementation of save_pretrained in [Torch_model class](deepchem/models/torch_models/torch_model.py)  
+- Implementation of serialize_dict and deserialize_dict in [Torch_model class](deepchem/models/torch_models/torch_model.py)  
+- Implementation of serialize and deserialize in  [graphconvmodel.py](deepchem/models/torch_models/graphconvmodel.py) and  in torch_model [dtnn.py](deepchem/models/torch_models/dtnn.py) 
+- Implementation of deepchemmap  [Map class](deepchem/deepchemmap/map.py)
+- Unit tests are added in [test_graph_conv.py](deepchem/models/tests/test_graph_conv.py) and [test_dtnn.py](deepchem/models/tests/test_dtnn.py) and [test_deepchemmap.py](deepchem/deepchemmap/test_deepchemmap.py)
 - Documentation of deepchemmap is added  
 
 ## Example
