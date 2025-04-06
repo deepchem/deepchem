@@ -9,6 +9,7 @@ try:
     import torch
     from torch import Tensor
     import torch.nn as nn
+    import torch.nn.init as initializers 
     import torch.nn.functional as F
     from deepchem.models.torch_models.flows import Affine
 except ModuleNotFoundError:
@@ -3940,7 +3941,7 @@ class DTNNGather(nn.Module):
         self.W_list = nn.ParameterList()
         self.b_list = nn.ParameterList()
 
-        init_func: Callable = getattr(initializers, self.initializer)
+        init_func = getattr(initializers, self.initializer)
 
         prev_layer_size = self.n_embedding
         for i, layer_size in enumerate(self.layer_sizes):
