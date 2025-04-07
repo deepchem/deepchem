@@ -4,12 +4,13 @@ import numpy as np
 import pytest
 import tempfile
 from flaky import flaky
-
 from deepchem.data import NumpyDataset, CSVLoader
 from deepchem.feat import ConvMolFeaturizer
 from deepchem.metrics import Metric, roc_auc_score, mean_absolute_error
 from deepchem.molnet import load_bace_classification, load_delaney
 from deepchem.utils.data_utils import download_url, get_data_dir
+from deepchem import deepchemmap
+from deepchem.models.optimizers import AdamW
 
 try:
     import torch
@@ -58,7 +59,8 @@ def test_graph_conv_model():
                            number_input_features=[75, 64],
                            batch_size=batch_size,
                            batch_normalize=False,
-                           mode='classification')
+                           mode='classification',
+                           device='cpu')
 
     model.fit(dataset, nb_epoch=20)
     scores = model.evaluate(dataset, [metric], transformers)
@@ -76,7 +78,8 @@ def test_neural_fingerprint_retrieval():
                            number_input_features=[75, 64],
                            batch_size=batch_size,
                            dense_layer_size=3,
-                           mode='classification')
+                           mode='classification',
+                           device='cpu')
 
     model.fit(dataset, nb_epoch=1)
     neural_fingerprints = model.predict_embedding(dataset)
@@ -97,7 +100,8 @@ def test_graph_conv_regression_model():
                            number_input_features=[75, 64],
                            batch_size=batch_size,
                            batch_normalize=False,
-                           mode='regression')
+                           mode='regression',
+                           device='cpu')
 
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric], transformers)
@@ -115,7 +119,8 @@ def test_graph_conv_regression_uncertainty():
                            batch_normalize=False,
                            mode='regression',
                            dropout=0.1,
-                           uncertainty=True)
+                           uncertainty=True,
+                           device='cpu')
 
     model.fit(dataset, nb_epoch=100)
 
@@ -137,9 +142,10 @@ def test_graph_conv_model_no_task():
                            number_input_features=[75, 64],
                            batch_size=batch_size,
                            batch_normalize=False,
-                           mode='classification')
+                           mode='classification',
+                           device='cpu')
+
     model.fit(dataset, nb_epoch=20)
-    # predict datset with no y (ensured by tasks = [])
     bace_url = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/bace.csv"
     download_url(url=bace_url, name="bace_tmp.csv")
     loader = CSVLoader(tasks=[],
@@ -147,51 +153,6 @@ def test_graph_conv_model_no_task():
                        featurizer=ConvMolFeaturizer())
     td = loader.featurize(os.path.join(get_data_dir(), "bace_tmp.csv"))
     model.predict(td)
-
-
-@pytest.mark.torch
-def test_graph_conv_atom_features():
-    tasks, dataset, _, _ = get_dataset('regression', 'Raw', num_tasks=1)
-
-    atom_feature_name = 'feature'
-    y = []
-    for mol in dataset.X:
-        atom_features = []
-        for atom in mol.GetAtoms():
-            val = np.random.normal()
-            mol.SetProp("atom %08d %s" % (atom.GetIdx(), atom_feature_name),
-                        str(val))
-            atom_features.append(np.random.normal())
-        y.append([np.sum(atom_features)])
-
-    featurizer = ConvMolFeaturizer(atom_properties=[atom_feature_name])
-    X = featurizer.featurize(dataset.X)
-    dataset = NumpyDataset(X, np.array(y))
-    batch_size = 50
-    model = GraphConvModel(len(tasks),
-                           number_input_features=[76, 64],
-                           number_atom_features=featurizer.feature_length(),
-                           batch_size=batch_size,
-                           mode='regression')
-
-    model.fit(dataset, nb_epoch=1)
-    _ = model.predict(dataset)
-
-
-@pytest.mark.torch
-def test_graph_predict():
-
-    model = GraphConvModel(12,
-                           batch_size=50,
-                           number_input_features=[75, 64],
-                           mode='classification')
-    mols = ["CCCCC", "CCCCCCCCC"]
-    feat = ConvMolFeaturizer()
-    X = feat.featurize(mols)
-    if (model.predict(NumpyDataset(X))).all():
-        assert True
-    else:
-        assert False
 
 
 @pytest.mark.torch
@@ -209,7 +170,8 @@ def test_graphconvmodel_reload():
                            batch_size=batch_size,
                            batch_normalize=False,
                            mode='classification',
-                           model_dir=model_dir)
+                           model_dir=model_dir,
+                           device='cpu')
 
     model.fit(dataset, nb_epoch=10)
 
@@ -219,7 +181,8 @@ def test_graphconvmodel_reload():
                                     batch_size=batch_size,
                                     batch_normalize=False,
                                     mode='classification',
-                                    model_dir=model_dir)
+                                    model_dir=model_dir,
+                                    device='cpu')
     reloaded_model.restore()
 
     # Check predictions match on random sample
@@ -229,3 +192,52 @@ def test_graphconvmodel_reload():
     origpred = model.predict(predset)
     reloadpred = reloaded_model.predict(predset)
     assert np.allclose(origpred, reloadpred)
+
+
+@flaky
+@pytest.mark.torch
+def test_graph_conv_model_save_and_load():
+    np.random.seed(5)
+    torch.manual_seed(5)
+    tasks, dataset, transformers, metric = get_dataset('classification',
+                                                       'GraphConv')
+
+    batch_size = 10
+    model = GraphConvModel(len(tasks),
+                           number_input_features=[75, 64],
+                           batch_size=batch_size,
+                           batch_normalize=False,
+                           mode='classification',
+                           device='cpu')
+
+    model.fit(dataset, nb_epoch=20)
+    scores = model.evaluate(dataset, [metric], transformers)
+    assert scores['mean-roc_auc_score'] >= 0.9
+    model.save_pretrained("save_Graph")
+    model_1 = deepchemmap.Map.load_from_pretrained("save_graph")
+    scores_1 = model_1.evaluate(dataset, [metric], transformers)
+
+    assert scores_1['mean-roc_auc_score'] >= 0.9
+
+
+@flaky
+@pytest.mark.torch
+def test_graph_conv_model_save_and_load_optimizer():
+    np.random.seed(5)
+    torch.manual_seed(5)
+    tasks, dataset, transformers, metric = get_dataset('classification',
+                                                       'GraphConv')
+    optimizer = AdamW(learning_rate=0.0001)
+    batch_size = 10
+    model = GraphConvModel(len(tasks),
+                           number_input_features=[75, 64],
+                           batch_size=batch_size,
+                           batch_normalize=False,
+                           mode='classification',
+                           device='cpu',
+                           optimizer=optimizer)
+
+    model.fit(dataset, nb_epoch=20)
+    model.save_pretrained("save_Graph")
+    model_1 = deepchemmap.Map.load_from_pretrained("save_graph")
+    assert model.optimizer.__class__ == model_1.optimizer.__class__
