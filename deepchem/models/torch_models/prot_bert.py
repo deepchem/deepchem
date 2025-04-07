@@ -124,3 +124,4 @@ class ProtBERT(HuggingFaceModel):
         else:
             raise ValueError('Invalid task specification')
         super().__init__(model=model, task=task, tokenizer=tokenizer, **kwargs)
+        

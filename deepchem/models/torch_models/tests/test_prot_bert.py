@@ -171,3 +171,4 @@ def test_protbert_overfit():
     finetune_model.fit(dataset, nb_epoch=20)
     eval_score = finetune_model.evaluate(dataset, [classification_metric])
     assert eval_score[classification_metric.name] > 0.9
+    
