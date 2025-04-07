@@ -58,7 +58,7 @@ class ProtBERT(HuggingFaceModel):
     >>> feat_extractor_model = ProtBERT(task='feature_extractor', HG_model_path=model_path, n_tasks=1)
     >>> protein = "M G L P V S W A P P A L W V L G C C A L L L S L W A"
     >>> tokenized_data = feat_extractor_model.tokenizer(protein,return_tensors='pt')
-    >>> protbert_feats = feat_extractor_model.get_feat(tokenized_data['input_ids'],tokenized_data['attention_mask'])
+    >>> protbert_feats = feat_extractor_model.predict_embedding(tokenized_data['input_ids'],tokenized_data['attention_mask'])
 
     References
     ----------
@@ -82,7 +82,7 @@ class ProtBERT(HuggingFaceModel):
             The task defines the type of learning task in the model. The supported tasks are
             - `mlm` - masked language modeling commonly used in pretraining
             - `classification` - use it for classification tasks
-            - `feature_extractor` - use it along side the get_feat() method to extract features from a protein sequence
+            - `feature_extractor` - use it along side the predict_embedding() method to extract features from a protein sequence
         model_path: str
             Path to the HuggingFace model
             - 'Rostlab/prot_bert' - Pretrained on Uniref100 dataset
@@ -136,8 +136,8 @@ class ProtBERT(HuggingFaceModel):
             raise ValueError('Invalid task specification')
         super().__init__(model=model, task=task, tokenizer=tokenizer, **kwargs)
 
-    def get_feat(self, input_ids: torch.Tensor,
-                 attention_mask: torch.Tensor) -> torch.Tensor:
+    def predict_embedding(self, input_ids: torch.Tensor,
+                          attention_mask: torch.Tensor) -> torch.Tensor:
         """
         Extracts the last hidden state from the model output.
 

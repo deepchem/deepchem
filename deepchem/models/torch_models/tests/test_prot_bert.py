@@ -184,6 +184,6 @@ def test_protbert_feats():
 
     tokenized_data = protbert_feature_extractor.tokenizer(protein,
                                                           return_tensors='pt')
-    protbert_feats = protbert_feature_extractor.get_feat(
+    protbert_feats = protbert_feature_extractor.predict_embedding(
         tokenized_data['input_ids'], tokenized_data['attention_mask'])
     assert list(protbert_feats.shape) == [1, 1024]
