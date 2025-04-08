@@ -1770,7 +1770,8 @@ class RealNVPLayer(nn.Module):
 
         """
         super(RealNVPLayer, self).__init__()
-        self.mask = nn.Parameter(mask, requires_grad=False)
+        self.register_buffer('mask', mask)
+        #self.mask = nn.Parameter(mask, requires_grad=False)
         self.dim = len(mask)
 
         self.s_func = nn.Sequential(
@@ -1780,7 +1781,7 @@ class RealNVPLayer(nn.Module):
             nn.LeakyReLU(),
             nn.Linear(in_features=hidden_size, out_features=self.dim))
 
-        self.scale = nn.Parameter(torch.Tensor(self.dim))
+        self.scale = nn.Parameter(torch.zeros(self.dim))
 
         self.t_func = nn.Sequential(
             nn.Linear(in_features=self.dim, out_features=hidden_size),
@@ -1789,11 +1790,11 @@ class RealNVPLayer(nn.Module):
             nn.LeakyReLU(),
             nn.Linear(in_features=hidden_size, out_features=self.dim))
 
-    def forward(self, x: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward pass.
 
         This particular transformation is represented by the following function:
-        y = x + (1 - x) * exp( s(x)) + t(x), where t and s needs an activation
+        y = x_mask + (1 - mask) * (x * exp(s(x_mask)) + t(x_mask)), where t and s needs an activation
         function. This class also returns the logarithm of the jacobians
         determinant which is useful when invert a transformation and compute
         the probability of the transformation.
@@ -1822,11 +1823,11 @@ class RealNVPLayer(nn.Module):
         log_det_jacobian = ((1 - self.mask) * s).sum(-1)
         return y, log_det_jacobian
 
-    def inverse(self, y: Sequence) -> Tuple[torch.Tensor, torch.Tensor]:
+    def inverse(self, y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """ Inverse pass
 
-        This class performs the inverse of the previous method (formward).
-        Also, this metehod returns the logarithm of the jacobians determinant
+        This class performs the inverse of the previous method (forward).
+        Also, this method returns the logarithm of the jacobian's determinant
         which is useful to compute the learneable features of target distribution.
 
         Parameters
