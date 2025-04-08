@@ -1016,6 +1016,10 @@ class TorchModel(Model):
             key: self.serialize(value) for key, value in params_dict.items()
         }
 
+    def serialize(obj):
+        "This shall be overwritten"
+        raise NotImplementedError("Subclasses must implement this")
+
     def deserialize(obj):
         "This shall be overwritten"
         raise NotImplementedError("Subclasses must implement this")
