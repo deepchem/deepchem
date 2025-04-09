@@ -136,7 +136,7 @@ class ProtBERT(HuggingFaceModel):
             raise ValueError('Invalid task specification')
         super().__init__(model=model, task=task, tokenizer=tokenizer, **kwargs)
 
-    def predict_embedding(self, input_ids: torch.Tensor,
+    def get_last_hidden_state(self, input_ids: torch.Tensor,
                           attention_mask: torch.Tensor) -> torch.Tensor:
         """
         Extracts the last hidden state from the model output.
