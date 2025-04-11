@@ -137,7 +137,7 @@ class ProtBERT(HuggingFaceModel):
         super().__init__(model=model, task=task, tokenizer=tokenizer, **kwargs)
 
     def get_last_hidden_state(self, input_ids: torch.Tensor,
-                          attention_mask: torch.Tensor) -> torch.Tensor:
+                              attention_mask: torch.Tensor) -> torch.Tensor:
         """
         Extracts the last hidden state from the model output.
 
