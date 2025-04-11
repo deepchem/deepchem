@@ -60,7 +60,7 @@ class MACCSKeysFingerprint(MolecularFeaturizer):
 
         if self.calculator is None:
             try:
-                from rdkit.Chem.AllChem import GetMACCSKeysFingerprint
+                from rdkit.Chem.AllChem import GetMACCSKeysFingerprint#type: ignore
                 self.calculator = GetMACCSKeysFingerprint
             except ModuleNotFoundError:
                 raise ImportError("This class requires RDKit to be installed.")

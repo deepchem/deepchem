@@ -1060,7 +1060,6 @@ class MATGenerator(nn.Module):
 
         return self.proj(out_avg_pooling)
 
-
 class GraphNetwork(torch.nn.Module):
     """Graph Networks
 
@@ -1098,7 +1097,7 @@ class GraphNetwork(torch.nn.Module):
     References
     ----------
     .. [1] Battaglia et al, Relational inductive biases, deep learning, and graph networks. https://arxiv.org/abs/1806.01261 (2018)
-  """
+    """
 
     def __init__(self,
                  n_node_features: int = 32,
@@ -1113,40 +1112,36 @@ class GraphNetwork(torch.nn.Module):
         self.is_undirected = is_undirected
         self.residual_connection = residual_connection
 
-        self.edge_models, self.node_models, self.global_models = torch.nn.ModuleList(
-        ), torch.nn.ModuleList(), torch.nn.ModuleList()
-        self.edge_models.append(
-            nn.Linear(in_features=n_node_features * 2 + n_edge_features +
-                      n_global_features,
-                      out_features=32))
-        self.node_models.append(
-            nn.Linear(in_features=n_node_features + n_edge_features +
-                      n_global_features,
-                      out_features=32))
-        self.global_models.append(
-            nn.Linear(in_features=n_node_features + n_edge_features +
-                      n_global_features,
-                      out_features=32))
+        self.edge_models = torch.nn.ModuleList()
+        self.node_models = torch.nn.ModuleList()
+        self.global_models = torch.nn.ModuleList()
 
-        # Used for converting edges back to their original shape
-        self.edge_dense = nn.Linear(in_features=32,
-                                    out_features=n_edge_features)
-        self.node_dense = nn.Linear(in_features=32,
-                                    out_features=n_node_features)
-        self.global_dense = nn.Linear(in_features=32,
-                                      out_features=n_global_features)
+        self.edge_models.append(
+            nn.Linear(in_features=n_node_features * 2 + n_edge_features + n_global_features, out_features=32)
+        )
+        self.node_models.append(
+            nn.Linear(in_features=n_node_features + n_edge_features + n_global_features, out_features=32)
+        )
+        self.global_models.append(
+            nn.Linear(in_features=n_node_features + n_edge_features + n_global_features, out_features=32)
+        )
+
+        # Used for converting edges, nodes, globals back to original dimensions
+        self.edge_dense = nn.Linear(in_features=32, out_features=n_edge_features)
+        self.node_dense = nn.Linear(in_features=32, out_features=n_node_features)
+        self.global_dense = nn.Linear(in_features=32, out_features=n_global_features)
 
     def reset_parameters(self) -> None:
         self.edge_dense.reset_parameters()
         self.node_dense.reset_parameters()
         self.global_dense.reset_parameters()
-        for i in range(0, len(self.edge_models)):
-            self.edge_models[i].reset_parameters()
-        for i in range(0, len(self.node_models)):
-            self.node_models[i].reset_parameters()
-        for i in range(0, len(self.global_models)):
-            self.global_models[i].reset_parameters()
 
+        for model in self.edge_models:
+            model.reset_parameters()
+        for model in self.node_models:
+            model.reset_parameters()
+        for model in self.global_models:
+            model.reset_parameters()
     def _update_edge_features(self, node_features, edge_index, edge_features,
                               global_features, batch):
         src_index, dst_index = edge_index
@@ -1771,8 +1766,8 @@ class RealNVPLayer(nn.Module):
         """
         super(RealNVPLayer, self).__init__()
         self.register_buffer('mask', mask)
-        #self.mask = nn.Parameter(mask, requires_grad=False)
-        self.dim = len(mask)
+        self.mask = nn.Parameter(mask, requires_grad=False)
+        self.dim = mask.shape[-1]
 
         self.s_func = nn.Sequential(
             nn.Linear(in_features=self.dim, out_features=hidden_size),
@@ -1824,6 +1819,7 @@ class RealNVPLayer(nn.Module):
         return y, log_det_jacobian
 
     def inverse(self, y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+         
         """ Inverse pass
 
         This class performs the inverse of the previous method (forward).
@@ -1851,8 +1847,7 @@ class RealNVPLayer(nn.Module):
 
         x = y_mask + (1 - self.mask) * (y - t) * torch.exp(-s)
 
-        inverse_log_det_jacobian = ((1 - self.mask) * -s).sum(-1)
-
+        inverse_log_det_jacobian = ((1 - self.mask) * -s).sum(dim=-1)
         return x, inverse_log_det_jacobian
 
 
@@ -5385,47 +5380,77 @@ class FerminetElectronFeature(torch.nn.Module):
         self.total_electron = total_electron
         self.spin = spin
 
-        self.v: torch.nn.ModuleList = torch.nn.ModuleList()
-        self.w: torch.nn.ModuleList = torch.nn.ModuleList()
-        self.layer_size: int = len(self.n_one)
+        self.v = torch.nn.ModuleList()
+        self.w = torch.nn.ModuleList()
+        self.layer_size = len(self.n_one)
 
-        # Initializing the first layer (first layer has different dims than others)
-        self.v.append(
-            nn.Linear(8 + 3 * 4 * self.no_of_atoms, self.n_one[0], bias=True))
-        #filling the weights with xavier uniform method for the linear weights and random assignment for the bias
-        torch.nn.init.xavier_uniform_(self.v[0].weight)
-        self.v[0].bias.data = (torch.randn(size=(self.v[0].weight.shape[0],)))
+        first_v = nn.Linear(8 + 3 * 4 * self.no_of_atoms, self.n_one[0], bias=True)
+        torch.nn.init.xavier_uniform_(first_v.weight)
+        first_v.bias.data = torch.randn(first_v.bias.shape)
+        self.v.append(first_v)
 
-        self.w.append(nn.Linear(4, self.n_two[0], bias=True))
-        torch.nn.init.xavier_uniform_(self.w[0].weight)
-        self.w[0].bias.data = (torch.randn(size=(self.w[0].weight.shape[0],)))
+        first_w = nn.Linear(4, self.n_two[0], bias=True)
+        torch.nn.init.xavier_uniform_(first_w.weight)
+        first_w.bias.data = torch.randn(first_w.bias.shape)
+        self.w.append(first_w)
 
         for i in range(1, self.layer_size):
-            self.v.append(
-                nn.Linear(3 * self.n_one[i - 1] + 2 * self.n_two[i - 1],
-                          n_one[i],
-                          bias=True))
-            torch.nn.init.xavier_uniform_(self.v[i].weight)
-            self.v[i].bias.data = (torch.randn(
-                size=(self.v[i].weight.shape[0],)))
+            vi = nn.Linear(3 * self.n_one[i - 1] + 2 * self.n_two[i - 1], self.n_one[i], bias=True)
+            torch.nn.init.xavier_uniform_(vi.weight)
+            vi.bias.data = torch.randn(vi.bias.shape)
+            self.v.append(vi)
 
-            self.w.append(nn.Linear(self.n_two[i - 1], self.n_two[i],
-                                    bias=True))
-            torch.nn.init.xavier_uniform_(self.w[i].weight)
-            self.w[i].bias.data = (torch.randn(
-                size=(self.w[i].weight.shape[0],)))
+            wi = nn.Linear(self.n_two[i - 1], self.n_two[i], bias=True)
+            torch.nn.init.xavier_uniform_(wi.weight)
+            wi.bias.data = torch.randn(wi.bias.shape)
+            self.w.append(wi)
 
         self.projection_module = nn.ModuleList()
-        self.projection_module.append(
-            nn.Linear(
-                4 * self.no_of_atoms,
-                n_one[0],
-                bias=False,
-            ))
-        self.projection_module.append(nn.Linear(4, n_two[0], bias=False))
-        torch.nn.init.xavier_uniform_(self.projection_module[0].weight)
+        proj0 = nn.Linear(4 * self.no_of_atoms, self.n_one[0], bias=False)
+        proj1 = nn.Linear(4, self.n_two[0], bias=False)
 
-        torch.nn.init.xavier_uniform_(self.projection_module[1].weight)
+        torch.nn.init.xavier_uniform_(proj0.weight)
+        torch.nn.init.xavier_uniform_(proj1.weight)
+
+        self.projection_module.append(proj0)
+        self.projection_module.append(proj1)
+        # # Initializing the first layer (first layer has different dims than others)
+        # self.v.append(
+        #     nn.Linear(8 + 3 * 4 * self.no_of_atoms, self.n_one[0], bias=True))
+        # #filling the weights with xavier uniform method for the linear weights and random assignment for the bias
+        # torch.nn.init.xavier_uniform_(self.v[0].weight)
+        # self.v[0].bias.data = (torch.randn(size=(self.v[0].weight.shape[0],)))
+
+        # self.w.append(nn.Linear(4, self.n_two[0], bias=True))
+        # torch.nn.init.xavier_uniform_(self.w[0].weight)
+        # self.w[0].bias.data = (torch.randn(size=(self.w[0].weight.shape[0],)))
+
+        # for i in range(1, self.layer_size):
+        #     self.v.append(
+        #         nn.Linear(3 * self.n_one[i - 1] + 2 * self.n_two[i - 1],
+        #                   n_one[i],
+        #                   bias=True))
+        #     torch.nn.init.xavier_uniform_(self.v[i].weight)
+        #     self.v[i].bias.data = (torch.randn(
+        #         size=(self.v[i].weight.shape[0],)))
+
+        #     self.w.append(nn.Linear(self.n_two[i - 1], self.n_two[i],
+        #                             bias=True))
+        #     torch.nn.init.xavier_uniform_(self.w[i].weight)
+        #     self.w[i].bias.data = (torch.randn(
+        #         size=(self.w[i].weight.shape[0],)))
+
+        # self.projection_module = nn.ModuleList()
+        # self.projection_module.append(
+        #     nn.Linear(
+        #         4 * self.no_of_atoms,
+        #         n_one[0],
+        #         bias=False,
+        #     ))
+        # self.projection_module.append(nn.Linear(4, n_two[0], bias=False))
+        # torch.nn.init.xavier_uniform_(self.projection_module[0].weight)
+
+        # torch.nn.init.xavier_uniform_(self.projection_module[1].weight)
 
     def forward(self, one_electron: torch.Tensor, two_electron: torch.Tensor):
         """

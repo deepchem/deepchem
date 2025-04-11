@@ -111,7 +111,7 @@ class SmilesToImage(MolecularFeaturizer):
 
         cmol = Chem.Mol(datapoint.ToBinary())
         cmol.ComputeGasteigerCharges()
-        AllChem.Compute2DCoords(cmol)
+        AllChem.Compute2DCoords(cmol)# type: ignore
         atom_coords = cmol.GetConformer(0).GetPositions()
 
         if self.img_spec == "std":

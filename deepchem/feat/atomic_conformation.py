@@ -173,7 +173,7 @@ class AtomicConformationFeaturizer(Featurizer):
             mol = Chem.rdmolops.RenumberAtoms(mol, new_order)
             # Add hydrogens and generate a conformation.
             mol = Chem.AddHs(mol)
-            AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
+            AllChem.EmbedMolecule(mol, AllChem.ETKDGv3()) #type: ignore
             mols = [mol]
 
         # Record properties of the molecules.
@@ -182,7 +182,7 @@ class AtomicConformationFeaturizer(Featurizer):
         properties = []
         for mol in mols:
             positions.append(mol.GetConformer(0).GetPositions())
-            AllChem.ComputeGasteigerCharges(mol)
+            AllChem.ComputeGasteigerCharges(mol) #type: ignore
             for atom in mol.GetAtoms():
                 atomic_num = atom.GetAtomicNum()
                 formal_charge = atom.GetFormalCharge()

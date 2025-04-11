@@ -77,11 +77,11 @@ class MATFeaturizer(MolecularFeaturizer):
             pass
         try:
             mol = Chem.AddHs(mol)
-            AllChem.EmbedMolecule(mol, maxAttempts=5000)
-            AllChem.UFFOptimizeMolecule(mol)
+            AllChem.EmbedMolecule(mol, maxAttempts=5000) # type: ignore
+            AllChem.UFFOptimizeMolecule(mol)# type: ignore
             mol = Chem.RemoveHs(mol)
         except ValueError:
-            AllChem.Compute2DCoords(mol)
+            AllChem.Compute2DCoords(mol) # type: ignore
 
         return mol
 
