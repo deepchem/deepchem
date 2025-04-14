@@ -11,12 +11,12 @@ def fiber2head(F: Dict[str, torch.Tensor],
                squeeze: bool = False) -> torch.Tensor:
     """
     Converts SE(3)-equivariant features into multi-head format for attention.
-    This function reshapes and concatenates fiber-based features into a format 
+    This function reshapes and concatenates fiber-based features into a format
     suitable for multi-head attention.
 
     - Input Fiber Representation:
       $$ F[d] \in \mathbb{R}^{B \times N \times M_d \times (2d+1)} $$
-    - After Multi-Head Transformation: 
+    - After Multi-Head Transformation:
       $$ F[d] \in \mathbb{R}^{B \times N \times H \times (M_d / H) \times (2d+1)} $$
 
     where:
@@ -29,19 +29,19 @@ def fiber2head(F: Dict[str, torch.Tensor],
 
     Parameters
     ----------
-    - F (Dict[str, torch.Tensor]):  
+    - F (Dict[str, torch.Tensor]):
       Dictionary of SE(3)-equivariant features, where keys are **degrees (`d`).
-    - h (int):  
+    - h (int):
       Number of attention heads.
-    - structure (Fiber):  
+    - structure (Fiber):
       Fiber representation defining feature multiplicities and degrees.
-    - squeeze (bool, optional, default=`False`):  
+    - squeeze (bool, optional, default=`False`):
       - If `True`: Concatenates along last feature dimension.
       - If `False`: Concatenates along second-last dimension.
 
     Returns
     -------
-    - torch.Tensor:  
+    - torch.Tensor:
       - Reshaped tensor with multi-head representation.
       - Shape: `(batch, num_nodes, num_heads, channels_per_head, 2d+1)`
 
