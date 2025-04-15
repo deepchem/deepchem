@@ -9307,12 +9307,24 @@ class SpectralConv(nn.Module):
 
     def __init__(self, in_channels, out_channels, modes, dims=2):
         """
-        Args:
-            in_channels: number of input channels.
-            out_channels: number of output channels.
-            modes: either an int (same number of modes in every dimension)
-                   or a tuple of ints (number of modes per spatial dimension).
-            dims: number of spatial dimensions (typically 1, 2, or 3).
+        Parameters
+        ----------
+        in_channels: int
+            Number of input channels.
+        out_channels: int
+            Number of output channels.
+        modes: int or tuple of ints
+            Either an int (same number of modes in every dimension)
+            or a tuple of ints (number of modes per spatial dimension).
+        dims: int, default 2
+            Number of spatial dimensions (typically 1, 2, or 3).
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (batch_size, out_channels, *spatial_dims).
+            The tensor contains the result of applying spectral convolution 
+            in the Fourier domain and transforming back to the spatial domain.
         """
         super(SpectralConv, self).__init__()
         self.in_channels = in_channels
