@@ -9347,9 +9347,14 @@ class SpectralConv(nn.Module):
 
     def forward(self, x):
         """
-        Args:
-            x: Input tensor of shape (batch, in_channels, *spatial_dims).
-        Returns:
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input tensor of shape (batch, in_channels, *spatial_dims).
+        
+        Returns
+        -------
+        torch.Tensor
             Output tensor of shape (batch, out_channels, *spatial_dims).
         """
 
