@@ -148,7 +148,7 @@ class OneFormer(HuggingFaceModel):
 
         super().__init__(model=self.model,
                          task=self.task,
-                         tokenizer=None,
+                         tokenizer=None,  # type: ignore[arg-type]
                          **kwargs)
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):

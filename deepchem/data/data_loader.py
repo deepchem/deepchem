@@ -978,8 +978,8 @@ class FASTALoader(DataLoader):
             Legacy mode is only tested for ACTGN charsets, and will be deprecated.
 
         use_raw_fasta: bool (default False)
-            Whether to use FASTAFeaturizer for parsing. If True, uses pysam to extract 
-            sequences directly from FASTA files, returning a numpy array of shape 
+            Whether to use FASTAFeaturizer for parsing. If True, uses pysam to extract
+            sequences directly from FASTA files, returning a numpy array of shape
             (n_sequences, 2) where each row contains [sequence_name, sequence].
             This is useful for handling large FASTA files efficiently and when raw
             sequence data with headers is needed.

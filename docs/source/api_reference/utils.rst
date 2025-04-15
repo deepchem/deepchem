@@ -835,7 +835,9 @@ for additional information regarding equivariance and Deepchem's support for equ
 
 .. autofunction:: deepchem.utils.equivariance_utils.get_r
 
-.. autofunction:: deepchem.utils.equivariance_utils.get_basis_and_r  
+.. autofunction:: deepchem.utils.equivariance_utils.get_equivariant_basis_and_r
+
+.. autofunction:: deepchem.utils.equivariance_utils.fiber2head
 
 Miscellaneous Utilities
 -----------------------
