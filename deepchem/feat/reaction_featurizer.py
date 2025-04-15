@@ -96,14 +96,14 @@ class RxnFeaturizer(Featurizer):
 
         source_encoding = np.asarray(
             list(
-                self.tokenizer(source,
+                self.tokenizer(source,  # type: ignore
                                padding='max_length',
                                truncation=True,
                                max_length=self.max_length,
                                **kwargs).values()))
         target_encoding = np.asarray(
             list(
-                self.tokenizer(target,
+                self.tokenizer(target,  # type: ignore
                                padding='max_length',
                                truncation=True,
                                max_length=self.max_length,

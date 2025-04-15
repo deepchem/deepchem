@@ -106,7 +106,7 @@ class SmilesTokenizer(BertTokenizer):
     def vocab_list(self):
         return list(self.vocab.keys())
 
-    def _tokenize(self, text: str, max_seq_length: int = 512, **kwargs):
+    def _tokenize(self, text: str, max_seq_length: int = 512, **kwargs):  # type: ignore
         """Tokenize a string into a list of tokens.
 
         Parameters
