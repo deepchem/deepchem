@@ -9265,46 +9265,44 @@ class SpectralConv(nn.Module):
 
     It applies an n-dimensional FFT on the spatial dimensions,
     keeps only a specified number of Fourier modes (for each spatial dimension),
-    applies a learned complex multiplication, and returns to physical space
+    applies a learned complex multiplication (einsum), and returns to physical space
     via the inverse FFT.
     
     Usage Example
     -------
     >>> from deepchem.models.torch_models.layers import SpectralConv
     >>> import torch
+    >>> import torch.nn as nn
+    >>> # Define a network that uses SpectralConv
     >>> class FourierNet(nn.Module):
     ...     def __init__(self):
     ...         super(FourierNet, self).__init__()
     ...         self.spectral1 = SpectralConv(1, 32, 12, dims=2)
     ...         self.spectral2 = SpectralConv(32, 32, 12, dims=2)
-    ...         self.linear = nn.Linear(32, 1)
     ...         self.activation = nn.GELU()
+    ...         # Add a global average pooling to reduce spatial dimensions
+    ...         self.global_pool = nn.AdaptiveAvgPool2d(1)
+    ...         # Apply linear layer to the channel dimension after pooling
+    ...         self.linear = nn.Linear(32, 1)
     ...     def forward(self, x):
     ...         x = self.spectral1(x)
     ...         x = self.activation(x)
     ...         x = self.spectral2(x)
     ...         x = self.activation(x)
-    ...         # x shape: (batch, channels, height, width)
-    ...         x = x.permute(0, 2, 3, 1)  # -> (batch, height, width, channels)
-    ...         x = self.linear(x)         # -> (batch, height, width, new_channels)
-    ...         x = x.permute(0, 3, 1, 2)  # -> (batch, new_channels, height, width)
+    ...         # Reduce spatial dimensions with global pooling
+    ...         x = self.global_pool(x)  # -> (batch, channels, 1, 1)
+    ...         # Flatten to (batch, channels)
+    ...         x = x.view(x.size(0), -1)
+    ...         # Apply linear layer
+    ...         x = self.linear(x)  # -> (batch, 1)
     ...         return x
     >>> model = FourierNet()
     >>> loss_fn = nn.MSELoss()
     >>> optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-    >>> x = torch.randn(100, 1, 64, 64)  # 100 samples of 64x64 single-channel images
-    >>> y = x.clone()
-    >>> dataset = torch.utils.data.TensorDataset(x, y)
-    >>> dataloader = torch.utils.data.DataLoader(dataset, batch_size=16)
-    >>> for epoch in range(100):
-    ...     model.train()
-    ...     for batch_x, batch_y in dataloader:
-    ...         optimizer.zero_grad()
-    ...         output = model(batch_x)
-    ...         loss = loss_fn(output, batch_y)
-    ...         loss.backward()
-    ...         optimizer.step()
-    >>> 
+    >>> x = torch.randn(16, 1, 32, 32)  # 16 samples of 32x32 single-channel images
+    >>> y = torch.randn(16, 1)  # Target values
+    >>> output = model(x)  # Shape: (16, 1)
+    >>> loss = loss_fn(output, y)
     """
 
     def __init__(self, in_channels, out_channels, modes, dims=2):
@@ -9361,7 +9359,8 @@ class SpectralConv(nn.Module):
         # self.weights has shape (in_channels, out_channels, *self.modes)
         # "b i ... , i o ... -> b o ..." will multiply each in_channel with weights corresponding to every out_channel
         # and then sum over in_channels to get a weighted sum
-        # This is for transforming the input frequency components into output channels by multiplying the input feature components with the learned weights.
+        # This is for transforming the input frequency components into output channels
+        # by multiplying the input feature components with the learned weights.
         out_ft[(slice(None), slice(None)) + slices] = torch.einsum(
             "b i ... , i o ... -> b o ...",
             x_ft[(slice(None), slice(None)) + slices], self.weights)
