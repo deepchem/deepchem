@@ -1,6 +1,4 @@
 import pytest
-import numpy as np
-import deepchem as dc
 from deepchem.models.torch_models.layers import SpectralConv
 
 try:
@@ -19,6 +17,7 @@ def test_spectral_conv_output_shape():
     y = conv(x)
     assert y.shape == (2, 8, 64, 64)
 
+
 @pytest.mark.torch
 def test_spectral_conv_gradient_flow():
     """Test if gradients flow through spectral convolution"""
@@ -28,6 +27,7 @@ def test_spectral_conv_gradient_flow():
     loss = y.mean()
     loss.backward()
     assert x.grad is not None
+
 
 @pytest.mark.parametrize("dims,input_shape", [
     (1, (2, 4, 128)),
