@@ -402,6 +402,15 @@ Attention Layers
 .. autoclass:: deepchem.models.torch_models.layers.SE3AvgPooling
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.SE3MultiHeadAttention
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3AttentiveSelfInteraction
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3SelfInteraction
+  :members:
+
 Readout Layers
 ^^^^^^^^^^^^^^
 
