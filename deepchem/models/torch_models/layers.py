@@ -5463,8 +5463,9 @@ class FerminetElectronFeature(torch.nn.Module):
                 f: torch.Tensor = torch.cat((one_electron[:, i, :], g_one_up,
                                              g_one_down, g_two_up, g_two_down),
                                             dim=1)
-                if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
-                        self.n_two[l] != self.n_two[l - 1]):
+                if l == 0 or (self.n_one[l]
+                              != self.n_one[l - 1]) or (self.n_two[l]
+                                                        != self.n_two[l - 1]):
                     one_electron_tmp.append((torch.tanh(self.v[l](f))) +
                                             self.projection_module[0]
                                             (one_electron[:, i, :]))
@@ -9256,3 +9257,72 @@ class SE3ResidualAttention(nn.Module):
             z = self.add(z, features)
 
         return z
+
+
+class SpectralConv(nn.Module):
+    """
+    n-Dimensional Fourier layer.
+
+    It applies an n-dimensional FFT on the spatial dimensions,
+    keeps only a specified number of Fourier modes (for each spatial dimension),
+    applies a learned complex multiplication, and returns to physical space
+    via the inverse FFT.
+    """
+
+    def __init__(self, in_channels, out_channels, modes, dims=2):
+        """
+        Args:
+            in_channels: number of input channels.
+            out_channels: number of output channels.
+            modes: either an int (same number of modes in every dimension)
+                   or a tuple of ints (number of modes per spatial dimension).
+            dims: number of spatial dimensions (typically 1, 2, or 3).
+        """
+        super(SpectralConv, self).__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.dims = dims
+
+        if isinstance(modes, int):
+            self.modes = (modes,) * dims
+        elif isinstance(modes, (tuple, list)):
+            if len(modes) != dims:
+                raise ValueError("Length of modes must equal dims.")
+            self.modes = tuple(modes)
+        else:
+            raise ValueError("modes must be int or tuple/list of ints.")
+
+        weight_shape = (in_channels, out_channels) + self.modes
+        self.scale = 1 / (in_channels * out_channels)
+        self.weights = nn.Parameter(
+            self.scale * torch.rand(*weight_shape, dtype=torch.cfloat))
+
+    def forward(self, x):
+        """
+        Args:
+            x: Input tensor of shape (batch, in_channels, *spatial_dims).
+        Returns:
+            Output tensor of shape (batch, out_channels, *spatial_dims).
+        """
+        x_ft = torch.fft.rfftn(x, dim=range(
+            2, x.ndim))  # Applied only to the spatial channels
+
+        out_ft = torch.zeros(x.shape[0],
+                             self.out_channels,
+                             *x_ft.shape[2:],
+                             dtype=torch.cfloat,
+                             device=x.device)
+
+        slices = tuple(slice(0, m) for m in self.modes)
+
+        # x_ft[:, :, slices] has shape (batch, in_channels, *self.modes)
+        # self.weights has shape (in_channels, out_channels, *self.modes)
+        # "b i ... , i o ... -> b o ..." will multiply each in_channel with weights corresponding to every out_channel
+        # and then sum over in_channels to get a weighted sum
+        # This is for transforming the input frequency components into output channels by multiplying the input feature components with the learned weights.
+        out_ft[(slice(None), slice(None)) + slices] = torch.einsum(
+            "b i ... , i o ... -> b o ...",
+            x_ft[(slice(None), slice(None)) + slices], self.weights)
+
+        x_out = torch.fft.irfftn(out_ft, s=x.shape[2:], dim=range(2, x.ndim))
+        return x_out
