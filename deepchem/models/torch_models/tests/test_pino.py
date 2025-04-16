@@ -126,9 +126,7 @@ class TestPINO(unittest.TestCase):
     def test_physics_compliance(self):
         self.debug_print("test_physics_compliance started.")
         model = PINO(**self.common_args)
-        loss_history = model.fit(
-            self.dataset, nb_epoch=3,
-            phys_lr=1e-2)  
+        loss_history = model.fit(self.dataset, nb_epoch=3, phys_lr=1e-2)
         self.assertTrue(
             len(loss_history) > 0, "Loss history should not be empty.")
         self.assertGreater(len(loss_history), 0)

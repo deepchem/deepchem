@@ -5,11 +5,6 @@ This module implements a PINO model for solving PDEs (e.g. Burgers' equation) us
 based neural operators combined with physics-informed loss terms. The model inherits from TorchModel
 and integrates additional loss terms for physics residuals and boundary enforcement.
 
-Example:
-    >>> from deepchem.models.torch_models.pino import PINO
-    >>> model = PINO(in_channels=2, modes=16, width=64, pde_fn=my_pde_fn, ...)
-    >>> model.fit(dataset, nb_epoch=100)
-
 References:
     https://arxiv.org/abs/2111.03794
 """
@@ -36,6 +31,25 @@ if not logger.handlers:
 
 # --------------------- Model Components ---------------------
 class ActNorm(nn.Module):
+    """
+    Activation normalization layer that applies learnable scaling and bias.
+
+    The layer applies the transformation:
+        y = scale * x + bias
+
+    Parameters
+    ----------
+    num_features : int
+        Number of features/channels in the input.
+
+    Examples
+    --------
+    >>> norm = ActNorm(dim=64)
+    >>> x = torch.randn(10, 1, 64)
+    >>> y = norm(x)
+    >>> print(y.shape)
+    torch.Size([10, 1, 64])
+    """
 
     def __init__(self, dim: int):
         super().__init__()
@@ -48,6 +62,26 @@ class ActNorm(nn.Module):
 
 
 class FourierBlock1D(nn.Module):
+    """
+    Single 1D Fourier block that performs a spectral convolution followed by a linear transformation.
+
+    Parameters
+    ----------
+    in_channels : int
+        Number of input channels.
+    out_channels : int
+        Number of output channels.
+    modes : int
+        Number of Fourier modes to retain in the frequency domain.
+
+    Examples
+    --------
+    >>> block = FourierBlock1D(in_channels=64, out_channels=64, modes=16)
+    >>> x = torch.randn(10, 64, 128)
+    >>> y = block(x)
+    >>> print(y.shape)
+    torch.Size([10, 128, 64])
+    """
 
     def __init__(self, in_channels: int, out_channels: int, modes: int):
         super().__init__()
@@ -92,6 +126,53 @@ class FourierBlock1D(nn.Module):
 
 # --------------------- PINO Model ---------------------
 class PINO(TorchModel):
+    """
+    Physics-Informed Neural Operator (PINO) model for solving PDEs.
+
+    This class implements a 1D Fourier Neural Operator augmented with physics-informed loss
+    terms to solve partial differential equations such as Burgers' equation. The model integrates
+    data, boundary, and physics losses and supports learnable PDE parameters.
+
+    Parameters
+    ----------
+    in_channels: int, default 1
+        Number of input channels (e.g., 2 for (x, t) coordinates).
+    param_dim: int, default 0
+        Dimension of the learnable PDE parameter input.
+    modes: int, default 16
+        Number of Fourier modes to retain.
+    width: int, default 64
+        Width of the hidden layers in the Fourier network.
+    pde_fn: Callable
+        A function that defines the PDE residual. Must accept (inputs, outputs, phys_params).
+    boundary_data: Dict, default {}
+        Dictionary containing boundary condition data used for computing boundary loss.
+    boundary_weight: float, default 50.0
+        Weight multiplier for the boundary loss term.
+    data_weight: float, default 1.0
+        Weight multiplier for the supervised data loss term.
+    physics_weight: float, default 100
+        Weight multiplier for the physics loss (PDE residual).
+    hi_res: Tuple[int], default (256,)
+        High-resolution grid shape used during training to estimate physics loss.
+    **kwargs:
+        Additional keyword arguments passed to the TorchModel base class.
+
+    Examples
+    --------
+    (note that `dataset` here is only illustrative)
+    >>> import torch
+    >>> import numpy as np
+    >>> from deepchem.models.torch_models.pino import PINO
+    >>> # Define a dummy PDE function for testing:
+    >>> def burgers_pde(inputs, outputs, phys_params): return outputs - inputs  # dummy residual function
+    >>> # Create a dummy PINO model.
+    >>> model = PINO(in_channels=2, modes=16, width=64, pde_fn=burgers_pde, phys_params={"alpha": torch.tensor(np.log(0.01))})
+    >>> # The following line is commented out as it requires a valid dataset.
+    >>> # model.fit(dataset, nb_epoch=100)
+    >>> model is not None
+    True
+    """
 
     def __init__(
             self,
@@ -134,6 +215,29 @@ class PINO(TorchModel):
         return all_params
 
     class FNO1D(nn.Module):
+        """
+        1D Fourier Neural Operator model consisting of a stack of Fourier layers.
+
+        Parameters
+        ----------
+        in_channels : int
+            Number of input channels.
+        out_channels : int
+            Number of output channels.
+        modes : int
+            Number of Fourier modes to retain.
+        width : int
+            Width of the hidden representation.
+
+        Examples
+        --------
+        >>> from deepchem.models.torch_models.pino import PINO
+        >>> model = PINO.FNO1D(in_channels=2, param_dim=0, modes=16, width=64)
+        >>> x = torch.randn(10, 128, 2)
+        >>> y = model(x)
+        >>> print(y.shape)
+        torch.Size([10, 128, 1])
+        """
 
         def __init__(self, in_channels, param_dim, modes, width):
             super().__init__()
@@ -213,6 +317,25 @@ class PINO(TorchModel):
         return total_loss
 
     def fit(self, dataset, nb_epoch=10, **kwargs):
+        """
+        Trains the PINO model using data, physics, and boundary losses.
+
+        Parameters
+        ----------
+        dataset : deepchem.data.Dataset
+            Dataset containing input tensors and target tensors.
+        nb_epoch : int, default 10
+            Number of training epochs.
+        **kwargs:
+            Additional keyword arguments. Supports:
+            - phys_lr: float, default 1e-3
+                Learning rate for physical parameters (e.g., viscosity `nu`).
+
+        Returns
+        -------
+        List[float]
+            List containing average loss for each epoch.
+        """
         self._is_training = True
         loss_history = []
         phys_lr = kwargs.get("phys_lr", 1e-3)
@@ -257,6 +380,21 @@ class PINO(TorchModel):
         return loss_history
 
     def _prepare_batch(self, batch):
+        """
+        Converts a batch from DeepChem Dataset to torch tensors.
+
+        Parameters
+        ----------
+        batch : Tuple[np.ndarray, np.ndarray]
+            A tuple of (X, y), where:
+            - X is the input array of shape (batch, spatial, features)
+            - y is the output array of shape (batch, spatial, 1)
+
+        Returns
+        -------
+        Tuple[torch.Tensor, torch.Tensor]
+            Tuple containing input and output tensors suitable for the model.
+        """
         if isinstance(batch, list) and isinstance(batch[0], dict):
             inputs = torch.stack([d["input"] for d in batch], dim=0)
             labels = torch.stack([d["label"] for d in batch], dim=0)
@@ -320,6 +458,33 @@ class PINO(TorchModel):
 
     def _compute_pde_loss(self, inputs: torch.Tensor,
                           _unused: torch.Tensor) -> torch.Tensor:
+        """
+        Computes the physics-informed loss from the PDE residual given the input data.
+
+        This method evaluates the residual for the PDE of the form:
+            u_t + u * u_x - ν * u_xx = 0,
+        where:
+        - u is the model output computed from the inputs.
+        - u_t and u_x are the temporal and spatial gradients of u (computed via autograd).
+        - u_xx is the second spatial derivative.
+        - ν (nu) is obtained as the exponential of a learnable parameter `alpha`.
+
+        The loss is defined as the mean squared error of the residual scaled by 1e4.
+
+        Parameters
+        ----------
+        inputs : torch.Tensor
+            Input tensor of shape (batch, spatial, features). This tensor will be set to require gradients
+            if it does not already.
+        _unused : torch.Tensor
+            Placeholder parameter for interface compatibility. Its value is not used in the loss calculation.
+
+        Returns
+        -------
+        torch.Tensor
+            A scalar tensor representing the mean squared PDE residual loss.
+        """
+
         logger.debug("[_compute_pde_loss] Computing PDE loss...")
         if not inputs.requires_grad:
             inputs.requires_grad_(True)
@@ -386,6 +551,21 @@ class PINO(TorchModel):
         return pde_loss
 
     def _compute_boundary_loss(self) -> torch.Tensor:
+        """
+        Computes the loss associated with enforcing boundary conditions.
+
+        For each boundary condition specification in `self.boundary_data`, if both `points`
+        and `values` are provided, the method computes the model prediction at the given
+        boundary points and then calculates the mean squared error between these predictions
+        and the specified boundary values. The losses from individual boundary sets are summed
+        to obtain the final boundary loss.
+
+        Returns
+        -------
+        torch.Tensor
+            A scalar tensor representing the boundary loss. If no boundary data is provided,
+            a zero loss is returned.
+        """
         logger.debug("[_compute_boundary_loss] Computing boundary loss...")
         if not self.boundary_data:
             device = next(self.model.parameters()).device
