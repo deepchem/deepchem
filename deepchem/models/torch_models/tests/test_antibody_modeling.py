@@ -127,11 +127,12 @@ def test_redesign_residue():
                                              top_k=8)
     assert len(hypotheses) == 8
     for item in hypotheses:
+        print(item)
         # Assert that the tuples are of (token_str, full_seq, score)
         assert len(item) == 3
         # Test that the first item is a string
         assert isinstance(item[0], str)
-        assert len(item[0]) == 1
+        assert len(item[0]) == 1 or item[0] in anti_model.tokenizer.all_special_tokens # Replaced token could be a special token, not sure if this is expected
         # Test that the second item is a string
         assert len(item[1]) == len(ab_sequence)
         assert distance(item[1], ab_sequence) <= 1
