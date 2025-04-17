@@ -179,7 +179,6 @@ class DeepAbLLM(HuggingFaceModel):
            vocab_size=tokenizer.vocab_size)
        model_config.update(config)
        self.is_esm_variant: bool = is_esm_variant
-       # model: Union[AutoModel, AutoModelForMaskedLM]
        model: PreTrainedModel
        if task == "mlm":
            model = AutoModelForMaskedLM.from_config(model_config)

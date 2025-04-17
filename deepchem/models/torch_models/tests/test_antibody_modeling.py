@@ -10,8 +10,8 @@ except ModuleNotFoundError:
 
 @pytest.fixture
 def igbert_tokenizer():
-    from transformers import AutoTokenizer
-    tokenizer = AutoTokenizer.from_pretrained('Exscientia/IgBert')
+    from transformers import BertTokenizer
+    tokenizer = BertTokenizer.from_pretrained('Exscientia/IgBert', do_lower_case=False)
     return tokenizer
 
 
@@ -20,8 +20,10 @@ def test_init(igbert_tokenizer):
     from deepchem.models.torch_models.antibody_modeling import DeepAbLLM
     from deepchem.models.torch_models.hf_models import HuggingFaceModel
     anti_model = DeepAbLLM(task='mlm', model_path='Exscientia/IgBert')
-    assert isinstance(anti_model, HuggingFaceModel)
-    assert anti_model.tokenizer == igbert_tokenizer
+    assert isinstance(anti_model, DeepAbLLM)
+    assert type(anti_model.tokenizer) == type(igbert_tokenizer)
+    assert anti_model.tokenizer.get_vocab() == igbert_tokenizer.get_vocab()
+    assert anti_model.tokenizer.init_kwargs == igbert_tokenizer.init_kwargs
     assert anti_model.n_tasks == 1
 
 
