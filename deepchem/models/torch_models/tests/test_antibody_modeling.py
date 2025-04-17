@@ -76,7 +76,7 @@ def test_initialize_new_config():
 @pytest.mark.hf
 def test_save_reload(tmpdir):
     model_path = 'Exscientia/IgBert'
-    anti_model = DeepAbLLM(task='mlm',
+    anti_model = DeepAbLLM(task='classification',
                            model_path=model_path,
                            n_tasks=1,
                            model_dir=tmpdir)
