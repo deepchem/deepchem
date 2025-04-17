@@ -112,7 +112,7 @@ def test_mask_seq_pos(igbert_tokenizer):
     test_string = "VQLAQSGSELRKPGASVKVSCDTSGHSFTSNAIHWVRQAPGQGLEWMGWINTDTGTPTYAQGFTGRFVFSLDTSARTAYLQISSLKADDTAVFYCARERDYSDYFFDYWGQGTLVTVSS"
     masked_test_string = anti_model._mask_seq_pos(test_string, idx=10)
     assert isinstance(masked_test_string, str)
-    assert masked_test_string.split(' ')[10] == anti_model.tokenizer.mask_token
+    assert masked_test_string[10:16] == anti_model.tokenizer.mask_token
 
 
 @pytest.mark.hf
