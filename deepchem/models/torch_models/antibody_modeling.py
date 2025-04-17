@@ -1,12 +1,12 @@
 from transformers import AutoModel, AutoModelForMaskedLM, BertTokenizer, BertConfig, PretrainedConfig
 from tqdm import tqdm
 from deepchem.models.torch_models import HuggingFaceModel
-from typing import Union, Dict, Any
+from typing import Dict, Any
 from transformers.modeling_utils import PreTrainedModel
 
 
 class DeepAbLLM(HuggingFaceModel):
-   """Flexible Antibody Language Model for Re-Design of Ab Residues.
+    """Flexible Antibody Language Model for Re-Design of Ab Residues.
 
 
    DeepAbLLM is a wrapper class that leverage large language model's (LLMs) learned sequence
@@ -145,15 +145,14 @@ class DeepAbLLM(HuggingFaceModel):
    >>> # (0,'Q','QSETQDPAVSVALGQTVRITCQGDSLRNYYASWYQQKPRQAPVLVFYGKNNRPSGIPDRFSGSSSGNTASLTISGAQAEDEADYYCNSRDSSSNHLVFGGGTKLTVLSQ',0.7314766049385071)
    """
 
-
-   def __init__(self,
-                task: str = "mlm",
-                model_path: str = 'Rostlab/prot_bert',
-                n_tasks: int = 1,
-                is_esm_variant: bool = False,
-                config: Dict[Any, Any] = {},
-                **kwargs) -> None:
-       """
+    def __init__(self,
+                 task: str = "mlm",
+                 model_path: str = 'Rostlab/prot_bert',
+                 n_tasks: int = 1,
+                 is_esm_variant: bool = False,
+                 config: Dict[Any, Any] = {},
+                 **kwargs) -> None:
+        """
        Parameters
        ----------
        task: str
@@ -171,28 +170,27 @@ class DeepAbLLM(HuggingFaceModel):
            Dictionary of HuggingFace AutoConfig hyper-parameters to update the
            default pretrained model.
        """
-       self.n_tasks: int = n_tasks
-       tokenizer: BertTokenizer = BertTokenizer.from_pretrained(
-           model_path, do_lower_case=False)
-       model_config: PretrainedConfig = BertConfig.from_pretrained(
-           pretrained_model_name_or_path=model_path,
-           vocab_size=tokenizer.vocab_size)
-       model_config.update(config)
-       self.is_esm_variant: bool = is_esm_variant
-       model: PreTrainedModel
-       if task == "mlm":
-           model = AutoModelForMaskedLM.from_config(model_config)
-       else:
-           model = AutoModel.from_config(model_config)
-       super().__init__(model=model, task=task, tokenizer=tokenizer, **kwargs)
+        self.n_tasks: int = n_tasks
+        tokenizer: BertTokenizer = BertTokenizer.from_pretrained(
+            model_path, do_lower_case=False)
+        model_config: PretrainedConfig = BertConfig.from_pretrained(
+            pretrained_model_name_or_path=model_path,
+            vocab_size=tokenizer.vocab_size)
+        model_config.update(config)
+        self.is_esm_variant: bool = is_esm_variant
+        model: PreTrainedModel
+        if task == "mlm":
+            model = AutoModelForMaskedLM.from_config(model_config)
+        else:
+            model = AutoModel.from_config(model_config)
+        super().__init__(model=model, task=task, tokenizer=tokenizer, **kwargs)
 
-
-   def _mask_seq_pos(
-       self,
-       sequence: str,
-       idx: int,
-   ):
-       '''Given an arbitrary antibody sequence with and a seqeunce index,
+    def _mask_seq_pos(
+        self,
+        sequence: str,
+        idx: int,
+    ):
+        '''Given an arbitrary antibody sequence with and a seqeunce index,
        convert the residue at that index into the mask token.
 
 
@@ -210,34 +208,32 @@ class DeepAbLLM(HuggingFaceModel):
            A nearly identical sequence to the input sequence with the token
            at position idx+1 being the mask token.
        '''
-       assert isinstance(idx,
-                         int), f"Index must be an int, got type {type(idx)}"
-       assert abs(idx) < len(sequence), f"Zero-indexed idx needs to \
+        assert isinstance(idx,
+                          int), f"Index must be an int, got type {type(idx)}"
+        assert abs(idx) < len(sequence), f"Zero-indexed idx needs to \
            be less than {len(sequence)-1} for sequence of length {len(sequence)}."
 
+        cleaned_sequence = sequence.replace(
+            ' ', '')  # Get ride of extraneous spaces if any
+        temp_sequence = list(cleaned_sequence)  # Turn the sequence into a list
+        temp_sequence[idx] = '*'  # Mask the sequence at idx
+        if not self.is_esm_variant:
+            masked_sequence = ' '.join(
+                temp_sequence
+            )  # ProtBERT based models expect 'A M I N O A C I D'
+        else:
+            masked_sequence = ''.join(
+                temp_sequence)  # ESM models expect 'AMINOACID'
+        masked_sequence = masked_sequence.replace('*',
+                                                  self.tokenizer.mask_token)
+        return masked_sequence
 
-       cleaned_sequence = sequence.replace(
-           ' ', '')  # Get ride of extraneous spaces if any
-       temp_sequence = list(cleaned_sequence)  # Turn the sequence into a list
-       temp_sequence[idx] = '*'  # Mask the sequence at idx
-       if not self.is_esm_variant:
-           masked_sequence = ' '.join(
-               temp_sequence
-           )  # ProtBERT based models expect 'A M I N O A C I D'
-       else:
-           masked_sequence = ''.join(
-               temp_sequence)  # ESM models expect 'AMINOACID'
-       masked_sequence = masked_sequence.replace('*',
-                                                 self.tokenizer.mask_token)
-       return masked_sequence
-
-
-   def redesign_residue(self,
-                        sequence: str,
-                        residue_index: int,
-                        top_k: int = 10,
-                        verbose: bool = False):
-       '''Given a sequence and a residue index, mask and subsequently
+    def redesign_residue(self,
+                         sequence: str,
+                         residue_index: int,
+                         top_k: int = 10,
+                         verbose: bool = False):
+        '''Given a sequence and a residue index, mask and subsequently
        unmask that position, returning the proposed residues and their
        respective scores.
 
@@ -263,35 +259,32 @@ class DeepAbLLM(HuggingFaceModel):
 
 
        '''
-       masked_sequence = self._mask_seq_pos(sequence, residue_index)
-       results = self.fill_mask(masked_sequence,
-                                top_k=top_k)  # List of dictionaries
+        masked_sequence = self._mask_seq_pos(sequence, residue_index)
+        results = self.fill_mask(masked_sequence,
+                                 top_k=top_k)  # List of dictionaries
 
+        sequence_tuples = [(result.get('token_str',
+                                       ''), result.get('sequence',
+                                                       '').replace(' ', ''),
+                            result.get('score', None))
+                           for result in results
+                           if isinstance(result, dict)]
+        if verbose:
+            print(
+                f"Original Residue at Position {residue_index}: {sequence[residue_index]}\n"
+            )
+            for i, st in enumerate(sequence_tuples):
+                print(f"Redesigned residue {i+1}: {st[0]}, score: {st[-1]}")
 
-       sequence_tuples = [(result.get('token_str',
-                                      ''), result.get('sequence',
-                                                      '').replace(' ', ''),
-                           result.get('score', None))
-                          for result in results
-                          if isinstance(result, dict)]
-       if verbose:
-           print(
-               f"Original Residue at Position {residue_index}: {sequence[residue_index]}\n"
-           )
-           for i, st in enumerate(sequence_tuples):
-               print(f"Redesigned residue {i+1}: {st[0]}, score: {st[-1]}")
+        return sequence_tuples
 
-
-       return sequence_tuples
-
-
-   def _optimize_residue_pos(self,
-                             sequence: str,
-                             residue_index: int,
-                             verbose: bool = False,
-                             threshold: float = 0.0,
-                             **kwargs):
-       '''This is a function to return the optimized residues, as defined
+    def _optimize_residue_pos(self,
+                              sequence: str,
+                              residue_index: int,
+                              verbose: bool = False,
+                              threshold: float = 0.0,
+                              **kwargs):
+        '''This is a function to return the optimized residues, as defined
        as the proposed residues that are above a given threshold in probability
        using the masking and unmasking approach. Defualt behaviour returns sequences
        with higher scores than the original sequence.
@@ -319,35 +312,32 @@ class DeepAbLLM(HuggingFaceModel):
            Returns list of tuples (token, sequence, score) with higher scores
            than the original and the sequence threshold specified.
        '''
-       assert (threshold >= 0) and (
-           threshold <=
-           1), "Threshold on probability scores should be between 0,1."
-       # Sorted List (by score) of redesigned residues
-       redesigned_residues = self.redesign_residue(
-           sequence, residue_index,
-           kwargs['top_k']) if 'top_k' in kwargs else self.redesign_residue(
-               sequence, residue_index)
+        assert (threshold >= 0) and (
+            threshold <=
+            1), "Threshold on probability scores should be between 0,1."
+        # Sorted List (by score) of redesigned residues
+        redesigned_residues = self.redesign_residue(
+            sequence, residue_index,
+            kwargs['top_k']) if 'top_k' in kwargs else self.redesign_residue(
+                sequence, residue_index)
 
+        original_token_str = sequence[residue_index]
+        optimized_sequences = []
+        for (token_string, full_sequence, score) in redesigned_residues:
+            # Check that the token_string is not the same as the original
+            if token_string != original_token_str:
+                # If it is above a certain probability threshold, append it
+                if score > threshold:
+                    optimized_sequences += [(token_string, full_sequence, score)
+                                           ]
+            else:
+                # Once the original token is reached break the loop
+                break
 
-       original_token_str = sequence[residue_index]
-       optimized_sequences = []
-       for (token_string, full_sequence, score) in redesigned_residues:
-           # Check that the token_string is not the same as the original
-           if token_string != original_token_str:
-               # If it is above a certain probability threshold, append it
-               if score > threshold:
-                   optimized_sequences += [(token_string, full_sequence, score)
-                                          ]
-           else:
-               # Once the original token is reached break the loop
-               break
+        return optimized_sequences
 
-
-       return optimized_sequences
-
-
-   def redesign_sequence(self, sequence: str, **kwargs):
-       '''Applies the _optimize_residue_pos function to all sequence positions.
+    def redesign_sequence(self, sequence: str, **kwargs):
+        '''Applies the _optimize_residue_pos function to all sequence positions.
 
 
        Parameters
@@ -374,13 +364,11 @@ class DeepAbLLM(HuggingFaceModel):
 
 
        '''
-       redesigned_sequences = []
-       for i in tqdm(range(len(sequence)),
-                     desc='Redesigning each residue position'):
-           redesigned_sequences += [
-               (i,) + x
-               for x in self._optimize_residue_pos(sequence, i, **kwargs)
-           ]
-       return redesigned_sequences
-
-
+        redesigned_sequences = []
+        for i in tqdm(range(len(sequence)),
+                      desc='Redesigning each residue position'):
+            redesigned_sequences += [
+                (i,) + x
+                for x in self._optimize_residue_pos(sequence, i, **kwargs)
+            ]
+        return redesigned_sequences
