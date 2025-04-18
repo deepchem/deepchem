@@ -274,7 +274,7 @@ class ProgressiveMultitask(nn.Module):
                 layer_outputs.append(x_)
 
             out_layer_idx = len(self.layer_sizes)
-            x_ = self.layers[task][out_layer_idx](x_)
+            x_ = self.layers[task][out_layer_idx](x_)  # type: ignore
             if task > 0:
                 adapter_out = self._get_lateral_contrib(layer_logits, task,
                                                         out_layer_idx)

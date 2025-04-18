@@ -146,10 +146,11 @@ class OneFormer(HuggingFaceModel):
         self.model_processor.image_processor.num_text = self.model.config.num_queries - self.model.config.text_encoder_n_ctx
         assert self.model_processor.image_processor.num_text == self.model.config.num_queries - self.model.config.text_encoder_n_ctx
 
-        super().__init__(model=self.model,
-                         task=self.task,
-                         tokenizer=None,
-                         **kwargs)
+        super().__init__(
+            model=self.model,
+            task=self.task,
+            tokenizer=None,  # type: ignore
+            **kwargs)
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
         """
