@@ -5462,8 +5462,9 @@ class FerminetElectronFeature(torch.nn.Module):
                 f: torch.Tensor = torch.cat((one_electron[:, i, :], g_one_up,
                                              g_one_down, g_two_up, g_two_down),
                                             dim=1)
-                if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
-                        self.n_two[l] != self.n_two[l - 1]):
+                if l == 0 or (self.n_one[l]
+                              != self.n_one[l - 1]) or (self.n_two[l]
+                                                        != self.n_two[l - 1]):
                     one_electron_tmp.append((torch.tanh(self.v[l](f))) +
                                             self.projection_module[0]
                                             (one_electron[:, i, :]))
@@ -8001,3 +8002,130 @@ class SE3AvgPooling(nn.Module):
                 "SE3AvgPooling for type > 1 is not implemented.")
 
         return pooled
+
+
+class SpectralConv(nn.Module):
+    """
+    n-Dimensional Fourier layer.
+
+    It applies an n-dimensional FFT on the spatial dimensions,
+    keeps only a specified number of Fourier modes (for each spatial dimension),
+    applies a learned complex multiplication (einsum), and returns to physical space
+    via the inverse FFT.
+    
+    Usage Example
+    -------
+    >>> from deepchem.models.torch_models.layers import SpectralConv
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> # Define a network that uses SpectralConv
+    >>> class FourierNet(nn.Module):
+    ...     def __init__(self):
+    ...         super(FourierNet, self).__init__()
+    ...         self.spectral1 = SpectralConv(1, 32, 12, dims=2)
+    ...         self.spectral2 = SpectralConv(32, 32, 12, dims=2)
+    ...         self.activation = nn.GELU()
+    ...         # Add a global average pooling to reduce spatial dimensions
+    ...         self.global_pool = nn.AdaptiveAvgPool2d(1)
+    ...         # Apply linear layer to the channel dimension after pooling
+    ...         self.linear = nn.Linear(32, 1)
+    ...     def forward(self, x):
+    ...         x = self.spectral1(x)
+    ...         x = self.activation(x)
+    ...         x = self.spectral2(x)
+    ...         x = self.activation(x)
+    ...         # Reduce spatial dimensions with global pooling
+    ...         x = self.global_pool(x)  # -> (batch, channels, 1, 1)
+    ...         # Flatten to (batch, channels)
+    ...         x = x.view(x.size(0), -1)
+    ...         # Apply linear layer
+    ...         x = self.linear(x)  # -> (batch, 1)
+    ...         return x
+    >>> model = FourierNet()
+    >>> loss_fn = nn.MSELoss()
+    >>> optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    >>> x = torch.randn(16, 1, 32, 32)  # 16 samples of 32x32 single-channel images
+    >>> y = torch.randn(16, 1)  # Target values
+    >>> output = model(x)  # Shape: (16, 1)
+    >>> loss = loss_fn(output, y)
+    """
+
+    def __init__(self, in_channels, out_channels, modes, dims=2):
+        """
+        Parameters
+        ----------
+        in_channels: int
+            Number of input channels.
+        out_channels: int
+            Number of output channels.
+        modes: int or tuple of ints
+            Either an int (same number of modes in every dimension)
+            or a tuple of ints (number of modes per spatial dimension).
+        dims: int, default 2
+            Number of spatial dimensions (typically 1, 2, or 3).
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (batch_size, out_channels, *spatial_dims).
+            The tensor contains the result of applying spectral convolution 
+            in the Fourier domain and transforming back to the spatial domain.
+        """
+        super(SpectralConv, self).__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.dims = dims
+
+        if isinstance(modes, int):
+            self.modes = (modes,) * dims
+        elif isinstance(modes, (tuple, list)):
+            if len(modes) != dims:
+                raise ValueError("Length of modes must equal dims.")
+            self.modes = tuple(modes)
+        else:
+            raise ValueError("modes must be int or tuple/list of ints.")
+
+        weight_shape = (in_channels, out_channels) + self.modes
+        self.scale = 1 / (in_channels * out_channels)
+        self.weights = nn.Parameter(
+            self.scale * torch.rand(*weight_shape, dtype=torch.cfloat))
+
+    def forward(self, x):
+        """
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input tensor of shape (batch, in_channels, *spatial_dims).
+        
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (batch, out_channels, *spatial_dims).
+        """
+
+        if not x.ndim == self.dims + 2:
+            raise ValueError(f"Input tensor must have {self.dims} spatial dimensions, but got {x.ndim} dimensions including batch and channels")
+
+        x_ft = torch.fft.rfftn(x, dim=tuple(range(
+            2, x.ndim)))  # Applied only to the spatial channels
+
+        out_ft = torch.zeros(x.shape[0],
+                             self.out_channels,
+                             *x_ft.shape[2:],
+                             dtype=torch.cfloat,
+                             device=x.device)
+
+        slices = tuple(slice(0, m) for m in self.modes)
+
+        # x_ft[:, :, slices] has shape (batch, in_channels, *self.modes)
+        # self.weights has shape (in_channels, out_channels, *self.modes)
+        # "b i ... , i o ... -> b o ..." will multiply each in_channel with weights corresponding to every out_channel
+        # and then sum over in_channels to get a weighted sum
+        # This is for transforming the input frequency components into output channels
+        # by multiplying the input feature components with the learned weights.
+        out_ft[(slice(None), slice(None)) + slices] = torch.einsum(
+            "b i ... , i o ... -> b o ...",
+            x_ft[(slice(None), slice(None)) + slices], self.weights)
+
+        x_out = torch.fft.irfftn(out_ft, s=x.shape[2:], dim=tuple(range(2, x.ndim)))
+        return x_out
