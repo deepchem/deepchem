@@ -12,6 +12,9 @@ from deepchem.utils import TensorNonTensorSeparator
 
 __all__ = ["equilibrium", "rootfinder", "minimize"]
 
+broyden1: Callable[[Callable[..., torch.Tensor], torch.Tensor, Sequence[Any], Mapping[str, Any]], torch.Tensor]
+broyden2: Callable[[Callable[..., torch.Tensor], torch.Tensor, Sequence[Any], Mapping[str, Any]], torch.Tensor]
+
 _RF_METHODS = {
     "broyden1": broyden1,
     "broyden2": broyden2,

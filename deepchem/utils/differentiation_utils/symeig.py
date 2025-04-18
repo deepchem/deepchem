@@ -348,7 +348,7 @@ class symeig_torchfcn(torch.autograd.Function):
         return evals, evecs
 
     @staticmethod
-    def backward(ctx, grad_evals, grad_evecs):
+    def backward(ctx, grad_evals: torch.Tensor, grad_evecs: torch.Tensor) -> Tuple[Optional[torch.Tensor]]:
         """Calculate the gradient of the eigenvalues and eigenvectors of a linear operator
 
         Parameters
@@ -367,8 +367,8 @@ class symeig_torchfcn(torch.autograd.Function):
         params = amparams[:na]
         mparams = amparams[na:]
 
-        M = ctx.M
-        A = ctx.A
+        M: Optional[LinearOperator] = ctx.M
+        A: LinearOperator = ctx.A
         degen_atol: Optional[float] = ctx.bck_alg_config[
             "degen_atol"]  # type: ignore
         degen_rtol: Optional[float] = ctx.bck_alg_config[
