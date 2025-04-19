@@ -154,15 +154,19 @@ class DeepAbLLM(HuggingFaceModel):
             model_path, do_lower_case=False)
         model_config: AutoConfig = AutoConfig.from_pretrained(
             pretrained_model_name_or_path=model_path,
-            vocab_size=tokenizer.vocab_size)
-        model_config.update(config)
+            vocab_size=tokenizer.vocab_size)  # type: ignore
+        model_config.update(config)  # type: ignore
         self.is_esm_variant: bool = is_esm_variant
         model: Union[AutoModel, AutoModelForMaskedLM]
         if task == "mlm":
             model = AutoModelForMaskedLM.from_config(model_config)
         else:
             model = AutoModel.from_config(model_config)
-        super().__init__(model=model, task=task, tokenizer=tokenizer, **kwargs)
+        super().__init__(
+            model=model,  # type: ignore
+            task=task,
+            tokenizer=tokenizer,  # type: ignore
+            **kwargs)
 
     def _mask_seq_pos(
         self,

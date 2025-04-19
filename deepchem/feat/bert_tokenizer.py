@@ -53,5 +53,6 @@ class BertFeaturizer(Featurizer):
         """
 
         # the encoding is natively a dictionary with keys 'input_ids', 'token_type_ids', and 'attention_mask'
-        encoding = list(self.tokenizer(datapoint, **kwargs).values())
+        encoding = list(self.tokenizer(datapoint,
+                                       **kwargs).values())  # type: ignore
         return encoding
