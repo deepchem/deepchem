@@ -78,6 +78,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [3 Protein Structure Prediction with ESMFold](Protein_Structure_Prediction_with_ESMFold.ipynb)
 * [4 Introduction to ProtBERT](Introduction_to_ProtBERT.ipynb)
 * [5 Protein Language Models (Intuition)](ProteinLM_Tutorial0.ipynb)
+* [6 Protein Generation](Protein_Generation.ipynb)
 
 ### Protein Ligand Modeling
 * [1 Modeling Protein Ligand Interactions](Modeling_Protein_Ligand_Interactions.ipynb)
