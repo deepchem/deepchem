@@ -145,7 +145,6 @@ class Ferminet(torch.nn.Module):
         self.ferminet_layer[0].batch_size = self.batch_size  # type: ignore
         self.ferminet_layer_envelope[
             0].batch_size = self.batch_size  # type: ignore
-        self.ferminet_layer_envelope[0].batch_size = self.batch_size
         one_electron, _ = self.ferminet_layer[0].forward(
             one_electron.to(torch.float32), two_electron.to(torch.float32))
         self.psi, self.psi_up, self.psi_down = self.ferminet_layer_envelope[
