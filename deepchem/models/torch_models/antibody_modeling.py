@@ -162,7 +162,11 @@ class DeepAbLLM(HuggingFaceModel):
             model = AutoModelForMaskedLM.from_config(model_config)
         else:
             model = AutoModel.from_config(model_config)
-        super().__init__(model=model, task=task, tokenizer=tokenizer, **kwargs)  # type: ignore
+        super().__init__(
+            model=model,  # type: ignore
+            task=task,
+            tokenizer=tokenizer,  # type: ignore
+            **kwargs)
 
     def _mask_seq_pos(
         self,

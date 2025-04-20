@@ -96,18 +96,20 @@ class RxnFeaturizer(Featurizer):
 
         source_encoding = np.asarray(
             list(
-                self.tokenizer(source,  # type: ignore
-                               padding='max_length',
-                               truncation=True,
-                               max_length=self.max_length,
-                               **kwargs).values()))
+                self.tokenizer(
+                    source,  # type: ignore
+                    padding='max_length',
+                    truncation=True,
+                    max_length=self.max_length,
+                    **kwargs).values()))
         target_encoding = np.asarray(
             list(
-                self.tokenizer(target,  # type: ignore
-                               padding='max_length',
-                               truncation=True,
-                               max_length=self.max_length,
-                               **kwargs).values()))
+                self.tokenizer(
+                    target,  # type: ignore
+                    padding='max_length',
+                    truncation=True,
+                    max_length=self.max_length,
+                    **kwargs).values()))
         return [source_encoding, target_encoding]
 
     def __call__(self, *args, **kwargs) -> np.ndarray:

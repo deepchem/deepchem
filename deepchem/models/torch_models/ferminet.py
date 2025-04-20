@@ -143,7 +143,9 @@ class Ferminet(torch.nn.Module):
                                                                    3).float()
         # setting the fermient layer and fermient envelope layer batch size to be that of the current batch size of the model. This enables for vectorized calculations of hessians and jacobians.
         self.ferminet_layer[0].batch_size = self.batch_size  # type: ignore
-        self.ferminet_layer_envelope[0].batch_size = self.batch_size  # type: ignore
+        self.ferminet_layer_envelope[
+            0].batch_size = self.batch_size  # type: ignore
+        self.ferminet_layer_envelope[0].batch_size = self.batch_size
         one_electron, _ = self.ferminet_layer[0].forward(
             one_electron.to(torch.float32), two_electron.to(torch.float32))
         self.psi, self.psi_up, self.psi_down = self.ferminet_layer_envelope[
@@ -580,7 +582,7 @@ class FerminetModel(TorchModel):
             hook function to modify the gradients
             """
             # using non-local variables as a means of parameter passing
-            nonlocal energy_local, energy_mean  # noqa: E824
+            nonlocal energy_local, energy_mean  # noqa: F824
             new_grad = (2 / random_walk_steps) * (
                 (energy_local - energy_mean) * grad)
             return new_grad.float()
