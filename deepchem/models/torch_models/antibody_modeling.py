@@ -140,20 +140,20 @@ class DeepAbLLM(HuggingFaceModel):
                  config: Dict[Any, Any] = {},
                  **kwargs) -> None:
         """
-       Parameters
-       ----------
-       task: str
+        Parameters
+        ----------
+        task: str
            The task defines the type of learning task in the model. The supported tasks are
            - `mlm` - masked language modeling commonly used in pretraining
            - `classification` - use it for classification tasks
-       model_path: str
+        model_path: str
            Path to the HuggingFace model; HF Model Hub or local
            - ex: 'Rostlab/prot_bert'
-       n_tasks: int
+        n_tasks: int
            Number of prediction targets for a multitask learning model
-       is_esm_variant: bool
+        is_esm_variant: bool
            Flag for proper tokenization (S E Q U E N C E vs SEQUENCE).
-       config: dict
+        config: dict
            Dictionary of HuggingFace AutoConfig hyper-parameters to update the
            default pretrained model.
        """
@@ -178,20 +178,20 @@ class DeepAbLLM(HuggingFaceModel):
         idx: int,
     ):
         '''Given an arbitrary antibody sequence with and a seqeunce index,
-       convert the residue at that index into the mask token.
+        convert the residue at that index into the mask token.
 
-       Parameters
-       ----------
-       sequence: str
-           The sequence to be masked at a sepcific residue
-       idx: int
-           The 0-indexed integer index in which into mask the sequence
+        Parameters
+        ----------
+        sequence: str
+            The sequence to be masked at a sepcific residue
+        idx: int
+            The 0-indexed integer index in which into mask the sequence
 
-       Returns
-       -------
-       masked_sequence: str
-           A nearly identical sequence to the input sequence with the token
-           at position idx+1 being the mask token.
+        Returns
+        -------
+        masked_sequence: str
+            A nearly identical sequence to the input sequence with the token
+            at position idx+1 being the mask token.
        '''
         assert isinstance(idx,
                           int), f"Index must be an int, got type {type(idx)}"
@@ -219,26 +219,26 @@ class DeepAbLLM(HuggingFaceModel):
                          top_k: int = 10,
                          verbose: bool = False):
         '''Given a sequence and a residue index, mask and subsequently
-       unmask that position, returning the proposed residues and their
-       respective scores.
+        unmask that position, returning the proposed residues and their
+        respective scores.
 
-       Parameters
-       ----------
-       sequence: str
-           The antibody sequence to redesign.
-       residue_index: int
-           The residue index to mask and unmask.
-       top_k: int
-           The top_k logits to return. Defaults to 10.
-       verbose: bool
-           If verbose, prints the original sequence and the residue at residue_index
-           before designing. Useful for running scripts on clusters.
+        Parameters
+        ----------
+        sequence: str
+            The antibody sequence to redesign.
+        residue_index: int
+            The residue index to mask and unmask.
+        top_k: int
+            The top_k logits to return. Defaults to 10.
+        verbose: bool
+            If verbose, prints the original sequence and the residue at residue_index
+            before designing. Useful for running scripts on clusters.
 
-       Returns
-       -------
-       sequence_tuples: List[tuple]
-           Returns a list of tuples containing the
-           (replacement token, full sequence, score) for each unmasked token.
+        Returns
+        -------
+        sequence_tuples: List[tuple]
+            Returns a list of tuples containing the
+            (replacement token, full sequence, score) for each unmasked token.
 
 
        '''
@@ -268,30 +268,30 @@ class DeepAbLLM(HuggingFaceModel):
                               threshold: float = 0.0,
                               **kwargs):
         '''This is a function to return the optimized residues, as defined
-       as the proposed residues that are above a given threshold in probability
-       using the masking and unmasking approach. Defualt behaviour returns sequences
-       with higher scores than the original sequence.
+        as the proposed residues that are above a given threshold in probability
+        using the masking and unmasking approach. Defualt behaviour returns sequences
+        with higher scores than the original sequence.
 
-       Parameters
-       ----------
-       sequence: str
-           Antibody sequence to be optimized at particular index.
-       residue_index: int
-           Index to optimize input antibody sequence.
-       verbose: bool
+        Parameters
+        ----------
+        sequence: str
+            Antibody sequence to be optimized at particular index.
+        residue_index: int
+            Index to optimize input antibody sequence.
+        verbose: bool
 
-       Optional:
-           top_k: int
-               Top K logits to be returned by the redesign_residue method
-           threshold: float
-               Threshold for probability score
+        Optional:
+            top_k: int
+                Top K logits to be returned by the redesign_residue method
+            threshold: float
+                Threshold for probability score
 
-       Returns
-       -------
-       optimized_sequences: List[tuple]
-           Returns list of tuples (token, sequence, score) with higher scores
-           than the original and the sequence threshold specified.
-       '''
+        Returns
+        -------
+        optimized_sequences: List[tuple]
+            Returns list of tuples (token, sequence, score) with higher scores
+            than the original and the sequence threshold specified.
+        '''
         assert (threshold >= 0) and (
             threshold <=
             1), "Threshold on probability scores should be between 0,1."
@@ -319,26 +319,25 @@ class DeepAbLLM(HuggingFaceModel):
     def redesign_sequence(self, sequence: str, **kwargs):
         '''Applies the _optimize_residue_pos function to all sequence positions.
 
-       Parameters
-       ----------
-       sequence: str
-           Antibody sequence to be optimized
+        Parameters
+        ----------
+        sequence: str
+            Antibody sequence to be optimized
 
-       Optional:
-           top_k: int
-               Top K logits to be returned by the redesign_residue method
-           threshold: float
-               Threshold for probability score
-           verbose: bool
-               Flag to print original and redesigned tokens to the stdout.
+        Optional:
+            top_k: int
+                Top K logits to be returned by the redesign_residue method
+            threshold: float
+                Threshold for probability score
+            verbose: bool
+                Flag to print original and redesigned tokens to the stdout.
 
-       Returns
-       -------
-       redesigned_sequences: List[tuple]
-           Returns list of tuples (index, token, sequence, score)
-           that have higher scores than the original and are higher than the
-           sequence threshold specified.
-
+        Returns
+        -------
+        redesigned_sequences: List[tuple]
+            Returns list of tuples (index, token, sequence, score)
+            that have higher scores than the original and are higher than the
+            sequence threshold specified.
 
        '''
         redesigned_sequences = []
