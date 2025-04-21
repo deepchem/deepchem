@@ -5,6 +5,7 @@ import os
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
+from deepchem.molnet.featurizers import get_featurizer
 from typing import List, Optional, Tuple, Union
 
 MPFORME_URL = 'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/mp_formation_energy.tar.gz'
@@ -21,10 +22,15 @@ class _MPFormationLoader(_MolnetLoader):
                 dc.utils.data_utils.download_url(url=MPFORME_URL,
                                                  dest_dir=self.data_dir)
             dc.utils.data_utils.untargz_file(targz_file, self.data_dir)
+        featurizer = self.featurizer
+        if isinstance(featurizer, str):
+            featurizer = get_featurizer(featurizer)
+        assert isinstance(featurizer, dc.feat.Featurizer) 
+
         loader = dc.data.JsonLoader(tasks=self.tasks,
                                     feature_field="structure",
                                     label_field="formation_energy",
-                                    featurizer=self.featurizer)
+                                    featurizer=featurizer)
         return loader.create_dataset(dataset_file)
 
 

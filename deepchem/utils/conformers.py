@@ -135,7 +135,7 @@ class ConformerGenerator(object):
 
         mol = Chem.AddHs(mol)  # add hydrogens
         n_confs = self.max_conformers * self.pool_multiplier
-        AllChem.EmbedMultipleConfs(mol, numConfs=n_confs, pruneRmsThresh=-1.)
+        AllChem.EmbedMultipleConfs(mol, numConfs=n_confs, pruneRmsThresh=-1.)#type: ignore
         return mol
 
     def get_molecule_force_field(self,
@@ -165,12 +165,13 @@ class ConformerGenerator(object):
             raise ImportError("This function requires RDKit to be installed.")
 
         if self.force_field == 'uff':
-            ff = AllChem.UFFGetMoleculeForceField(mol, confId=conf_id, **kwargs)
+            ff = AllChem.UFFGetMoleculeForceField(mol,#type: ignore
+             confId=conf_id, **kwargs)
         elif self.force_field.startswith('mmff'):
-            AllChem.MMFFSanitizeMolecule(mol)
-            mmff_props = AllChem.MMFFGetMoleculeProperties(
+            AllChem.MMFFSanitizeMolecule(mol)#type: ignore
+            mmff_props = AllChem.MMFFGetMoleculeProperties( #type: ignore
                 mol, mmffVariant=self.force_field)
-            ff = AllChem.MMFFGetMoleculeForceField(mol,
+            ff = AllChem.MMFFGetMoleculeForceField(mol, #type: ignore
                                                    mmff_props,
                                                    confId=conf_id,
                                                    **kwargs)
@@ -298,7 +299,7 @@ class ConformerGenerator(object):
             for j, fit_conf in enumerate(mol.GetConformers()):
                 if i >= j:
                     continue
-                rmsd[i, j] = AllChem.GetBestRMS(mol, mol, ref_conf.GetId(),
+                rmsd[i, j] = AllChem.GetBestRMS(mol, mol, ref_conf.GetId(),#type: ignore
                                                 fit_conf.GetId())
                 rmsd[j, i] = rmsd[i, j]
         return rmsd

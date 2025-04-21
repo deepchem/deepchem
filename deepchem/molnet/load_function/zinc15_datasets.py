@@ -4,6 +4,7 @@ ZINC15 commercially-available compounds for virtual screening.
 import os
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
+from deepchem.molnet.featurizers import get_featurizer
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
@@ -45,10 +46,16 @@ class _Zinc15Loader(_MolnetLoader):
                                       dest_dir=self.data_dir)
             dc.utils.untargz_file(os.path.join(self.data_dir, compressed_file),
                                   self.data_dir)
+
+        featurizer = self.featurizer
+        if isinstance(featurizer, str):
+            featurizer = get_featurizer(featurizer)
+            assert isinstance(featurizer, dc.feat.Featurizer)
+            
         loader = dc.data.CSVLoader(tasks=self.tasks,
                                    feature_field="smiles",
                                    id_field="zinc_id",
-                                   featurizer=self.featurizer)
+                                   featurizer=featurizer)
         return loader.create_dataset(dataset_file, shard_size=8192)
 
 

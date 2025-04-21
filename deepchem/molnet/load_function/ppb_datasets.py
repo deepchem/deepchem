@@ -5,6 +5,7 @@ import os
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
+from deepchem.molnet.featurizers import get_featurizer
 from typing import List, Optional, Tuple, Union
 
 PPB_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/PPB.csv"
@@ -18,9 +19,14 @@ class _PPBLoader(_MolnetLoader):
         if not os.path.exists(dataset_file):
             dc.utils.data_utils.download_url(url=PPB_URL,
                                              dest_dir=self.data_dir)
+        featurizer = self.featurizer
+        if isinstance(featurizer, str):
+            featurizer = get_featurizer(featurizer)
+        assert isinstance(featurizer, dc.feat.Featurizer) 
+                                    
         loader = dc.data.CSVLoader(tasks=self.tasks,
                                    feature_field="smiles",
-                                   featurizer=self.featurizer)
+                                   featurizer=featurizer)
         return loader.create_dataset(dataset_file, shard_size=8192)
 
 
@@ -57,6 +63,7 @@ def load_ppb(
     save_dir: str
         a directory to save the dataset in
     """
+    
     loader = _PPBLoader(featurizer, splitter, transformers, PPB_TASKS, data_dir,
                         save_dir, **kwargs)
     return loader.load_dataset('ppb', reload)

@@ -8,6 +8,7 @@ import pandas as pd
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
+from deepchem.molnet.featurizers import get_featurizer
 from typing import List, Optional, Tuple, Union
 
 DATASETS_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/"
@@ -55,7 +56,12 @@ class _PDBBindLoader(_MolnetLoader):
         protein_files, ligand_files, labels, pdbs = self._process_pdbs()
 
         # load and featurize each complex
-        features = self.featurizer.featurize(
+        featurizer = self.featurizer
+        if isinstance(featurizer, str):
+            featurizer = get_featurizer(featurizer)
+        assert isinstance(featurizer, dc.feat.Featurizer) 
+
+        features = featurizer.featurize(
             list(zip(ligand_files, protein_files)))
         dataset = dc.data.DiskDataset.from_numpy(features, y=labels, ids=pdbs)
 

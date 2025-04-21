@@ -6,6 +6,7 @@ import os
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
+from deepchem.molnet.featurizers import get_featurizer
 from typing import List, Optional, Tuple, Union
 
 PLATINUM_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/Platinum_adsorption.tar.gz"
@@ -41,10 +42,15 @@ class _PtAdsorptionLoader(_MolnetLoader):
             dc.utils.data_utils.untargz_file(
                 os.path.join(self.data_dir, 'Platinum_adsorption.tar.gz'),
                 self.data_dir)
+        featurizer = self.featurizer
+        if isinstance(featurizer, str):
+            featurizer = get_featurizer(featurizer)
+        assert isinstance(featurizer, dc.feat.Featurizer) 
+        
         loader = dc.data.JsonLoader(tasks=PLATINUM_TASKS,
                                     feature_field="Structures",
                                     label_field="Formation Energy",
-                                    featurizer=self.featurizer,
+                                    featurizer=featurizer,
                                     **self.args)
         return loader.create_dataset(dataset_file)
 

@@ -4,6 +4,7 @@ TOXCAST dataset loader.
 import os
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
+from deepchem.molnet.featurizers import get_featurizer
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
@@ -236,6 +237,7 @@ TOXCAST_TASKS = [
 ]
 
 
+
 class _ToxcastLoader(_MolnetLoader):
 
     def create_dataset(self) -> Dataset:
@@ -243,13 +245,18 @@ class _ToxcastLoader(_MolnetLoader):
         if not os.path.exists(dataset_file):
             dc.utils.data_utils.download_url(url=TOXCAST_URL,
                                              dest_dir=self.data_dir)
+
+        # Convert string featurizer to Featurizer object if necessary
+        featurizer = self.featurizer
+        if isinstance(featurizer, str):
+            featurizer = get_featurizer(featurizer)
+        assert isinstance(featurizer, dc.feat.Featurizer) 
+
         loader = dc.data.CSVLoader(tasks=self.tasks,
                                    feature_field="smiles",
-                                   featurizer=self.featurizer)
+                                   featurizer=featurizer)
         return loader.create_dataset(dataset_file, shard_size=8192)
-
-
-def load_toxcast(
+def load_toxcast( 
     featurizer: Union[dc.feat.Featurizer, str] = 'ECFP',
     splitter: Union[dc.splits.Splitter, str, None] = 'scaffold',
     transformers: List[Union[TransformerGenerator, str]] = ['balancing'],

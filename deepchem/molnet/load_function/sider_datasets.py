@@ -5,6 +5,7 @@ import os
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
+from depchem.molnet.featurizers import get_featurizer
 from typing import List, Optional, Tuple, Union
 
 SIDER_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/sider.csv.gz"
@@ -35,9 +36,14 @@ class _SiderLoader(_MolnetLoader):
         if not os.path.exists(dataset_file):
             dc.utils.data_utils.download_url(url=SIDER_URL,
                                              dest_dir=self.data_dir)
+        featurizer = self.featurizer
+        if isinstance(featurizer, str):
+            featurizer = get_featurizer(featurizer)
+        assert isinstance(featurizer, dc.feat.Featurizer) 
+                                    
         loader = dc.data.CSVLoader(tasks=self.tasks,
                                    feature_field="smiles",
-                                   featurizer=self.featurizer)
+                                   featurizer=featurizer)
         return loader.create_dataset(dataset_file, shard_size=8192)
 
 
