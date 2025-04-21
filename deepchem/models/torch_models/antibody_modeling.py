@@ -8,7 +8,6 @@ from transformers.modeling_utils import PreTrainedModel
 class DeepAbLLM(HuggingFaceModel):
     """Flexible Antibody Language Model for Re-Design of Ab Residues.
 
-
     DeepAbLLM is a wrapper class that leverage large language model's (LLMs) learned sequence
     co-dependencies to aid in the (re)-designing anitbody sequences. It supports the instantiation
     of an arbitrary HuggingFace transformer-style model trained on Antibody sequences for the antibody
@@ -65,12 +64,13 @@ class DeepAbLLM(HuggingFaceModel):
         Returns optimized sequences over each residue position with better
         scores than the original sequence.
 
+
     Notes
     -----
     (Currently Implements):
     1. Light or Heavy Chain Re-Design at Arbitrary Point
     2. Agnostic to Light or Heavy Chain (Depending on if the specified
-                                            model correctly accounts for this)
+                                         model correctly accounts for this)
     (WIP)
     3. Model consumes both epitope and receptor information to influence logits
     (Planned)
@@ -79,45 +79,38 @@ class DeepAbLLM(HuggingFaceModel):
     References
     ----------
     .. [1] Hie, B.L., Shanker, V.R., Xu, D. et al. Efficient evolution of human antibodies
-            from general protein language models. Nat Biotechnol 42, 275–283 (2024).
-            https://doi.org/10.1038/s41587-023-01763-2
-
+           from general protein language models. Nat Biotechnol 42, 275–283 (2024).
+           https://doi.org/10.1038/s41587-023-01763-2
 
     .. [2] Elnaggar, Ahmed, et al. "Prottrans: Toward understanding the language
-            of life through self-supervised learning." IEEE transactions on pattern
-            analysis and machine intelligence 44.10 (2021): 7112-7127.
-
+           of life through self-supervised learning." IEEE transactions on pattern
+           analysis and machine intelligence 44.10 (2021): 7112-7127.
 
     .. [3] Tobias H Olsen, Iain H Moal, Charlotte M Deane, AbLang: an antibody language
-            model for completing antibody sequences, Bioinformatics Advances, Volume 2,
-            Issue 1, 2022, vbac046, https://doi.org/10.1093/bioadv/vbac046
-
+           model for completing antibody sequences, Bioinformatics Advances, Volume 2,
+           Issue 1, 2022, vbac046, https://doi.org/10.1093/bioadv/vbac046
 
     .. [4] Kenlay, H., Dreyer, F. A., Kovaltsuk, A., Miketa, D., Pires, D.,
-            & Deane, C. M. (2024). Large scale paired antibody language models.
-            arXiv [q-Bio.BM]. Retrieved from http://arxiv.org/abs/2403.17889
-
+           & Deane, C. M. (2024). Large scale paired antibody language models.
+           arXiv [q-Bio.BM]. Retrieved from http://arxiv.org/abs/2403.17889
 
     .. [5] Rives A, Meier J, Sercu T, Goyal S, Lin Z, Liu J, Guo D, Ott M, Zitnick CL,
-            Ma J, Fergus R. Biological structure and function emerge from scaling
-            unsupervised learning to 250 million protein sequences. Proc Natl Acad Sci USA.
-            2021 Apr 13;118(15):e2016239118. doi: 10.1073/pnas.2016239118. PMID: 33876751
-
+           Ma J, Fergus R. Biological structure and function emerge from scaling
+           unsupervised learning to 250 million protein sequences. Proc Natl Acad Sci USA.
+           2021 Apr 13;118(15):e2016239118. doi: 10.1073/pnas.2016239118. PMID: 33876751
 
     .. [6] Meier, J., Rao, R., Verkuil, R., Liu, J., Sercu, T., & Rives, A. (2021).
-            Language models enable zero-shot prediction of the effects of mutations
-            on protein function. bioRxiv. doi:10.1101/2021.07.09.450648
-
+           Language models enable zero-shot prediction of the effects of mutations
+           on protein function. bioRxiv. doi:10.1101/2021.07.09.450648
 
     .. [7] Zeming Lin et al., Evolutionary-scale prediction of atomic-level
-            protein structure with a language model.Science379,1123-1130(2023).
-            DOI:10.1126/science.ade2574
-
+           protein structure with a language model.Science379,1123-1130(2023).
+           DOI:10.1126/science.ade2574
 
     .. [8] Gururangan, S., Marasović, A., Swayamdipta, S., Lo, K., Beltagy, I.,
-            Downey, D., & Smith, N. A. (2020). Don’t Stop Pretraining: Adapt
-            Language Models to Domains and Tasks. arXiv [Cs.CL].
-            Retrieved from http://arxiv.org/abs/2004.10964
+           Downey, D., & Smith, N. A. (2020). Don’t Stop Pretraining: Adapt
+           Language Models to Domains and Tasks. arXiv [Cs.CL].
+           Retrieved from http://arxiv.org/abs/2004.10964
 
 
     Example Usage:
@@ -239,7 +232,6 @@ class DeepAbLLM(HuggingFaceModel):
         sequence_tuples: List[tuple]
             Returns a list of tuples containing the
             (replacement token, full sequence, score) for each unmasked token.
-
 
         '''
         masked_sequence = self._mask_seq_pos(sequence, residue_index)
