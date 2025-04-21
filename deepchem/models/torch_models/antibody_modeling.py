@@ -180,14 +180,12 @@ class DeepAbLLM(HuggingFaceModel):
         '''Given an arbitrary antibody sequence with and a seqeunce index,
        convert the residue at that index into the mask token.
 
-
        Parameters
        ----------
        sequence: str
            The sequence to be masked at a sepcific residue
        idx: int
            The 0-indexed integer index in which into mask the sequence
-
 
        Returns
        -------
@@ -224,7 +222,6 @@ class DeepAbLLM(HuggingFaceModel):
        unmask that position, returning the proposed residues and their
        respective scores.
 
-
        Parameters
        ----------
        sequence: str
@@ -236,7 +233,6 @@ class DeepAbLLM(HuggingFaceModel):
        verbose: bool
            If verbose, prints the original sequence and the residue at residue_index
            before designing. Useful for running scripts on clusters.
-
 
        Returns
        -------
@@ -276,7 +272,6 @@ class DeepAbLLM(HuggingFaceModel):
        using the masking and unmasking approach. Defualt behaviour returns sequences
        with higher scores than the original sequence.
 
-
        Parameters
        ----------
        sequence: str
@@ -285,13 +280,11 @@ class DeepAbLLM(HuggingFaceModel):
            Index to optimize input antibody sequence.
        verbose: bool
 
-
        Optional:
            top_k: int
                Top K logits to be returned by the redesign_residue method
            threshold: float
                Threshold for probability score
-
 
        Returns
        -------
@@ -326,12 +319,10 @@ class DeepAbLLM(HuggingFaceModel):
     def redesign_sequence(self, sequence: str, **kwargs):
         '''Applies the _optimize_residue_pos function to all sequence positions.
 
-
        Parameters
        ----------
        sequence: str
            Antibody sequence to be optimized
-
 
        Optional:
            top_k: int
@@ -340,7 +331,6 @@ class DeepAbLLM(HuggingFaceModel):
                Threshold for probability score
            verbose: bool
                Flag to print original and redesigned tokens to the stdout.
-
 
        Returns
        -------
