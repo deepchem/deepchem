@@ -2,6 +2,111 @@ import math
 from typing import Optional, List, Dict, Tuple
 import torch
 import numpy as np
+from deepchem.models.torch_models.layers import Fiber
+
+
+def fiber2head(F: Dict[str, torch.Tensor],
+               h: int,
+               structure: Fiber,
+               squeeze: bool = False) -> torch.Tensor:
+    """
+    Converts SE(3)-equivariant features into multi-head format for attention.
+    This function reshapes and concatenates fiber-based features into a format
+    suitable for multi-head attention.
+
+    - Input Fiber Representation:
+      $$ F[d] \in \mathbb{R}^{B \times N \times M_d \times (2d+1)} $$
+    - After Multi-Head Transformation:
+      $$ F[d] \in \mathbb{R}^{B \times N \times H \times (M_d / H) \times (2d+1)} $$
+
+    where:
+    - `B`: Batch size.
+    - `N`: Number of nodes.
+    - `M_d`: Multiplicity (number of channels for degree `d`).
+    - `2d+1`: Number of components in degree `d`.
+    - `H`: Number of attention heads.
+    - `M_d / H`: Channels per head.
+
+    Parameters
+    ----------
+    - F (Dict[str, torch.Tensor]):
+      Dictionary of SE(3)-equivariant features, where keys are **degrees (`d`).
+    - h (int):
+      Number of attention heads.
+    - structure (Fiber):
+      Fiber representation defining feature multiplicities and degrees.
+    - squeeze (bool, optional, default=`False`):
+      - If `True`: Concatenates along last feature dimension.
+      - If `False`: Concatenates along second-last dimension.
+
+    Returns
+    -------
+    - torch.Tensor:
+      - Reshaped tensor with multi-head representation.
+      - Shape: `(batch, num_nodes, num_heads, channels_per_head, 2d+1)`
+
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.models.torch_models.layers import Fiber
+    >>> from deepchem.utils.equivariance_utils import fiber2head
+
+    # Create Fiber Structure
+    >>> fiber_structure = Fiber(dictionary={0: 16, 1: 32})  # Scalars & Vectors
+
+    # Create Input Feature Dictionary
+    >>> F = {
+    ...    '0': torch.randn(10, 16, 1),   # Degree 0 features (scalars)
+    ...    '1': torch.randn(10, 32, 3)    # Degree 1 features (vectors)
+    ... }
+
+    #  Define Number of Attention Heads
+    >>> num_heads = 4
+    >>> output = fiber2head(F, num_heads, fiber_structure, squeeze=True)
+    >>> print(output.shape)
+    torch.Size([10, 4, 28])
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
+    """
+    if h <= 0:
+        raise ValueError("Number of attention heads (h) must be > 0")
+    if not isinstance(F, dict):
+        raise TypeError("F must be a dictionary of tensors")
+    if not isinstance(structure, Fiber):
+        raise TypeError("structure must be an instance of Fiber")
+
+    fibers_list = []
+
+    for degree in structure.degrees:
+        key = str(degree)
+        if key not in F:
+            raise KeyError(f"Degree {key} missing in input dictionary F")
+
+        tensor = F[key]
+
+        if squeeze:
+            reshaped = tensor.view(
+                *tensor.shape[:-2], h,
+                -1)  # [batch, nodes, heads, channels_per_head]
+            fibers_list.append(reshaped)
+        else:
+            reshaped = tensor.view(
+                *tensor.shape[:-2], h, -1,
+                1)  # [batch, nodes, heads, channels_per_head, 1]
+            fibers_list.append(reshaped)
+
+    if not fibers_list:
+        raise ValueError("No valid tensors found in F to concatenate")
+
+    if squeeze:
+        return torch.cat(fibers_list,
+                         dim=-1)  # Concatenate along last feature dimension
+    else:
+        return torch.cat(fibers_list, dim=-2)
 
 
 def get_basis(G,
