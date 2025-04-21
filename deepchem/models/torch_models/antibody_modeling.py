@@ -14,12 +14,9 @@ class DeepAbLLM(HuggingFaceModel):
    of an arbitrary HuggingFace transformer-style model trained on Antibody sequences for the antibody
    sequence redesign, extending an approach introduced in Hie et al's 2023 Nature Biotech paper [1].
 
-
    This means the functionality of DeepAbLLM is model architecture-agnostic.
 
-
    Currently supports a variety of HuggingFace Protein and Antibody Specific Language Models, including:
-
 
    [2] ProtTrans Models (ProtBERT, ProtT5, etc.)
    [3] AbLang
@@ -27,7 +24,6 @@ class DeepAbLLM(HuggingFaceModel):
    [5] ESM1b
    [6] ESM1v
    [7] ESM-2
-
 
    The model uses single amino acid tokenization to create input tokens for the models from the
    antibody sequences. While most protein models expect spaces in the protein sequences:
@@ -37,12 +33,10 @@ class DeepAbLLM(HuggingFaceModel):
    Both tokenization schemes are supported by DeepAbLLM by setting the is_esm_variant flag to the
    appropriate value.
 
-
    The model supports general pretraining via masked language modeling, domain-adaptive pretraining [8]
    - an additional pretraining step applied to general purpose protein language models for antibody sequences,
    and the finetuning of pre-trained models for regression/classification. To pretrain via masked language
    modeling task, use task = `mlm`, 'regression', or `classification` during initialization.
-
 
    Attributes
    ----------
@@ -54,7 +48,6 @@ class DeepAbLLM(HuggingFaceModel):
        Number of tasks for a given model. Default: 1
    is_esm_variant: bool
        Boolean flag to indicate the tokenization scheme.
-
 
    Methods
    -------
@@ -72,9 +65,6 @@ class DeepAbLLM(HuggingFaceModel):
        Returns optimized sequences over each residue position with better
        scores than the original sequence.
 
-
-
-
    Notes
    -----
    (Currently Implements):
@@ -85,7 +75,6 @@ class DeepAbLLM(HuggingFaceModel):
    3. Model consumes both epitope and receptor information to influence logits
    (Planned)
    4. Conditional Generation (Auto-Regressive/Iterative Unmasking)
-
 
    References
    ----------
@@ -129,8 +118,6 @@ class DeepAbLLM(HuggingFaceModel):
           Downey, D., & Smith, N. A. (2020). Don’t Stop Pretraining: Adapt
           Language Models to Domains and Tasks. arXiv [Cs.CL].
           Retrieved from http://arxiv.org/abs/2004.10964
-
-
 
 
    Example Usage:
