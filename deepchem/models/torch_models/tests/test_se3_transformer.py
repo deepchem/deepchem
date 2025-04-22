@@ -584,3 +584,251 @@ def test_se3_self_interaction(smiles, f_in_dict, f_out_dict):
         assert torch.allclose(output[str(d)] * 2,
                               transformed_output[str(d)],
                               atol=1e-5)
+
+
+@pytest.mark.torch
+def test_se3_gconv_layer_initialization():
+    """Tests whether SE3GraphConv initializes correctly with given fiber dimensions."""
+    from deepchem.models.torch_models.layers import SE3GraphConv, Fiber
+    f_in = Fiber(dictionary={0: 16, 1: 32})
+    f_out = Fiber(dictionary={0: 32, 1: 64})
+    layer = SE3GraphConv(f_in, f_out, self_interaction=True, edge_dim=5)
+
+    assert isinstance(layer, SE3GraphConv)
+    assert layer.f_in.structure_dict[0] == 16
+    assert layer.f_out.structure_dict[1] == 64
+
+
+@pytest.mark.torch
+def test_se3_gconv_forward_pass():
+    """Tests whether SE3GraphConv performs a forward pass correctly."""
+    from deepchem.models.torch_models.layers import SE3GraphConv, Fiber
+    from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
+
+    G, _ = create_test_graph("CCO")
+    r, basis = get_equivariant_basis_and_r(G, max_degree=1)
+    f_in = Fiber(dictionary={0: 16, 1: 32})
+    f_out = Fiber(dictionary={0: 32, 1: 64})
+
+    layer = SE3GraphConv(f_in, f_out, self_interaction=True, edge_dim=5)
+    h = {
+        str(d): torch.randn(G.num_nodes(), f_in.structure_dict[d], 2 * d + 1)
+        for d in f_in.structure_dict
+    }
+
+    output = layer(h, G=G, r=r, basis=basis)
+
+    assert '0' in output and '1' in output
+    assert output['0'].shape == (G.num_nodes(), 32, 1)
+    assert output['1'].shape == (G.num_nodes(), 64, 3)
+
+
+@pytest.mark.torch
+def test_se3_gconv_equivariance():
+    """Tests whether SE3GraphConv respects SE(3) equivariance."""
+    from deepchem.models.torch_models.layers import SE3GraphConv, Fiber
+    from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
+
+    G, _ = create_test_graph("CCO")
+    r, basis = get_equivariant_basis_and_r(G, max_degree=1)
+    f_in = Fiber(dictionary={0: 16, 1: 32})
+    f_out = Fiber(dictionary={0: 32, 1: 64})
+
+    layer = SE3GraphConv(f_in, f_out, self_interaction=True, edge_dim=5)
+    h = {
+        str(d): torch.randn(G.num_nodes(), f_in.structure_dict[d], 2 * d + 1)
+        for d in f_in.structure_dict
+    }
+
+    R = torch.tensor([[0, -1, 0], [1, 0, 0], [0, 0, 1]], dtype=torch.float32)
+    G.ndata['x'] = G.ndata['x'] @ R.T
+
+    output_rotated = layer(h, G=G, r=r, basis=basis)
+    output_original = layer(h, G=G, r=r, basis=basis)
+
+    rotated_vectors = output_rotated['1'] @ R.T
+
+    assert torch.allclose(torch.sort(torch.abs(rotated_vectors), dim=-1)[0],
+                          torch.sort(torch.abs(output_original['1']),
+                                     dim=-1)[0],
+                          atol=1e-4)
+    assert torch.allclose(output_rotated['0'], output_original['0'], atol=1e-4)
+
+
+@pytest.mark.torch
+def test_se3graphnorm_forward_pass():
+    """Tests whether SE3GraphNorm correctly normalizes scalar and vector features."""
+    from deepchem.models.torch_models.layers import SE3GraphNorm, Fiber
+
+    G, _ = create_test_graph("CCO")
+    f_in = Fiber(dictionary={0: 16, 1: 32})
+    norm_layer = SE3GraphNorm(f_in)
+    h = {
+        "0": torch.randn(G.num_nodes(), 16, 1),
+        "1": torch.randn(G.num_nodes(), 32, 3)
+    }
+    output = norm_layer(h, G=G)
+
+    assert '0' in output and '1' in output
+    assert output['0'].shape == h['0'].shape
+    assert output['1'].shape == h['1'].shape
+
+
+@pytest.mark.torch
+def test_se3graphnorm_equivariance():
+    """Tests whether SE3GraphNorm respects SE(3) equivariance."""
+    from deepchem.models.torch_models.layers import SE3GraphNorm, Fiber
+
+    G, _ = create_test_graph("CCO")
+    f_in = Fiber(dictionary={0: 16, 1: 32})
+    norm_layer = SE3GraphNorm(f_in)
+    h = {
+        "0": torch.randn(G.num_nodes(), 16, 1),
+        "1": torch.randn(G.num_nodes(), 32, 3)
+    }
+    R = torch.tensor([[0, -1, 0], [1, 0, 0], [0, 0, 1]], dtype=torch.float32)
+    G.ndata['x'] = G.ndata['x'] @ R.T
+
+    output_rotated = norm_layer(h, G=G)
+    rotated_vectors = output_rotated['1'] @ R.T
+    output_original = norm_layer(h, G=G)
+
+    assert torch.allclose(torch.sort(torch.abs(rotated_vectors), dim=-1)[0],
+                          torch.sort(torch.abs(output_original['1']),
+                                     dim=-1)[0],
+                          atol=1e-4)
+    assert torch.allclose(output_rotated['0'], output_original['0'], atol=1e-4)
+
+
+@pytest.mark.torch
+def test_se3partialedgeconv_forward_pass():
+    """Tests forward pass of SE3PartialEdgeConv."""
+    from deepchem.models.torch_models.layers import SE3PartialEdgeConv, Fiber
+
+    G, _ = create_test_graph("CCO")
+    r, basis = G.ndata["r"], G.ndata["basis"]
+
+    f_in = Fiber({0: 16, 1: 32})
+    f_out = Fiber({0: 32, 1: 64})
+    conv = SE3PartialEdgeConv(f_in=f_in, f_out=f_out, edge_dim=5, x_ij='cat')
+
+    h = {
+        "0": torch.randn(G.num_nodes(), 16, 1),
+        "1": torch.randn(G.num_nodes(), 32, 3)
+    }
+
+    out = conv(h, G=G, r=r, basis=basis)
+
+    assert set(out.keys()) == {"0", "1"}
+    assert out["0"].shape == (G.num_edges(), 32, 1)
+    assert out["1"].shape == (G.num_edges(), 64, 3)
+
+
+@pytest.mark.torch
+def test_se3partialedgeconv_equivariance():
+    """Tests SE3PartialEdgeConv for equivariance."""
+    from deepchem.models.torch_models.layers import SE3PartialEdgeConv, Fiber
+
+    G, _ = create_test_graph("CCO")
+    r, basis = G.ndata["r"], G.ndata["basis"]
+
+    f_in = Fiber({0: 16, 1: 32})
+    f_out = Fiber({0: 32, 1: 64})
+    conv = SE3PartialEdgeConv(f_in=f_in, f_out=f_out, edge_dim=5, x_ij='cat')
+
+    h = {
+        "0": torch.randn(G.num_nodes(), 16, 1),
+        "1": torch.randn(G.num_nodes(), 32, 3)
+    }
+
+    R = torch.tensor([[0, -1, 0], [1, 0, 0], [0, 0, 1]], dtype=torch.float32)
+    G.ndata["x"] = G.ndata["x"] @ R.T
+
+    out_rotated = conv(h, G=G, r=r, basis=basis)
+    rotated_vectors = out_rotated["1"] @ R.T
+    out_original = conv(h, G=G, r=r, basis=basis)
+
+    assert torch.allclose(torch.sort(torch.abs(rotated_vectors), dim=-1)[0],
+                          torch.sort(torch.abs(out_original["1"]), dim=-1)[0],
+                          atol=1e-4)
+    assert torch.allclose(out_rotated["0"], out_original["0"], atol=1e-4)
+
+
+@pytest.mark.torch
+def test_se3residualattention_forward_pass():
+    """Tests forward pass on SE3ResidualAttention."""
+    from deepchem.models.torch_models.layers import SE3ResidualAttention, Fiber
+
+    G, _ = create_test_graph("CCO")
+    r, basis = G.ndata["r"], G.ndata["basis"]
+
+    atom_dim = 6
+    deg = 3
+    ch = 32
+
+    fibers = {
+        "in": Fiber(1, atom_dim),
+        "mid": Fiber(deg, ch),
+        "out": Fiber(1, deg * ch)
+    }
+
+    h = {"0": G.ndata["f"]}
+
+    conv = SE3ResidualAttention(fibers["in"],
+                                fibers["mid"],
+                                edge_dim=5,
+                                div=4,
+                                n_heads=8)
+    out = conv(h, G=G, r=r, basis=basis)
+
+    assert isinstance(out, dict)
+    for d, t in out.items():
+        d_int = int(d)
+        expected = (G.num_nodes(), fibers["mid"].structure_dict[d_int],
+                    2 * d_int + 1)
+        assert t.shape == expected
+
+
+@pytest.mark.torch
+def test_se3residualattention_equivariance():
+    """Tests SE3ResidualAttention for equivariance under SO(3) rotations."""
+    from deepchem.models.torch_models.layers import SE3ResidualAttention, Fiber
+
+    G, _ = create_test_graph("CCO")
+    r, basis = G.ndata["r"], G.ndata["basis"]
+
+    atom_dim = 6
+    deg = 3
+    ch = 32
+
+    fibers = {
+        "in": Fiber(1, atom_dim),
+        "mid": Fiber(deg, ch),
+        "out": Fiber(1, deg * ch)
+    }
+
+    h = {"0": G.ndata["f"]}
+
+    axis = np.random.randn(3)
+    angle = np.random.uniform(0, 2 * np.pi)
+    R_np = rotation_matrix(axis, angle)
+    R = torch.tensor(R_np, dtype=torch.float32)
+
+    G.ndata["x"] = G.ndata["x"] @ R.T
+
+    conv = SE3ResidualAttention(fibers["in"],
+                                fibers["mid"],
+                                edge_dim=5,
+                                div=4,
+                                n_heads=8)
+
+    out_rot = conv(h, G=G, r=r, basis=basis)
+    G.ndata["x"] = G.ndata["x"] @ R  # Revert to original
+    out_ref = conv(h, G=G, r=r, basis=basis)
+
+    assert torch.allclose(out_rot["0"], out_ref["0"], atol=1e-4)
+    for d, t in out_ref.items():
+        d_int = int(d)
+        expected = (G.num_nodes(), fibers["mid"].structure_dict[d_int],
+                    2 * d_int + 1)
+        assert t.shape == expected
