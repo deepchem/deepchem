@@ -10,6 +10,7 @@ try:
 except ModuleNotFoundError:
     pass
 
+
 @pytest.fixture
 def hf_tokenizer(tmpdir):
     filepath = os.path.join(tmpdir, 'smiles.txt')
@@ -36,6 +37,7 @@ def hf_tokenizer(tmpdir):
     tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_path)
     return tokenizer
 
+
 @pytest.mark.hf
 def test_pretraining(hf_tokenizer, smiles_regression_dataset):
     from deepchem.models.torch_models.hf_models import HuggingFaceModel
@@ -51,6 +53,7 @@ def test_pretraining(hf_tokenizer, smiles_regression_dataset):
     loss = hf_model.fit(smiles_regression_dataset, nb_epoch=1)
 
     assert loss
+
 
 @pytest.mark.hf
 def test_hf_model_regression(hf_tokenizer, smiles_regression_dataset):
@@ -72,6 +75,7 @@ def test_hf_model_regression(hf_tokenizer, smiles_regression_dataset):
     score = hf_model.evaluate(smiles_regression_dataset,
                               metrics=dc.metrics.Metric(dc.metrics.mae_score))
     assert score
+
 
 @pytest.mark.hf
 def test_hf_model_classification(hf_tokenizer, smiles_regression_dataset):
@@ -96,6 +100,7 @@ def test_hf_model_classification(hf_tokenizer, smiles_regression_dataset):
     score = hf_model.evaluate(dataset,
                               metrics=dc.metrics.Metric(dc.metrics.f1_score))
     assert score
+
 
 @pytest.mark.hf
 def test_load_from_pretrained(tmpdir, hf_tokenizer):
@@ -141,6 +146,7 @@ def test_load_from_pretrained(tmpdir, hf_tokenizer):
 
     assert all(matches)
 
+
 @pytest.mark.hf
 def test_model_save_reload(tmpdir, hf_tokenizer):
     from transformers.models.roberta import (RobertaConfig,
@@ -174,6 +180,7 @@ def test_model_save_reload(tmpdir, hf_tokenizer):
     # all keys should match
     assert all(matches)
 
+
 @pytest.mark.hf
 def test_load_from_hf_checkpoint():
     from transformers.models.t5 import T5Config, T5Model
@@ -194,6 +201,7 @@ def test_load_from_hf_checkpoint():
 
     # keys should not match
     assert all(not_matches)
+
 
 @pytest.mark.hf
 def test_fill_mask_IO(tmpdir, hf_tokenizer):
@@ -222,6 +230,7 @@ def test_fill_mask_IO(tmpdir, hf_tokenizer):
     assert isinstance(results, list)
     assert isinstance(results[0], list)
     assert isinstance(results[0][0], dict)
+
 
 @pytest.mark.hf
 def test_fill_mask_fidelity(tmpdir, hf_tokenizer):
@@ -258,6 +267,7 @@ def test_fill_mask_fidelity(tmpdir, hf_tokenizer):
             # Test 3. Check that the infilling went to the right spot
             assert filled['sequence'].startswith(f'<s>{filled["token_str"]}')
 
+
 @pytest.mark.hf
 def test_load_from_pretrained_with_diff_task(tmpdir):
     # Tests loading a pretrained model where the weight shape in last layer
@@ -269,6 +279,7 @@ def test_load_from_pretrained_with_diff_task(tmpdir):
 
     model = Chemberta(task='regression', n_tasks=20)
     model.load_from_pretrained(model_dir=tmpdir)
+
 
 @pytest.mark.hf
 def test_modify_model_keys(tmpdir):
@@ -313,6 +324,7 @@ def test_modify_model_keys(tmpdir):
     assert torch.allclose(pretrained_weights, loaded_weights, atol=1e-4)
     assert not any(
         key.startswith("module.") for key in model.model.state_dict().keys())
+
 
 @pytest.mark.hf
 def test_load_moformer_model_from_hf_checkpoint(tmpdir):
