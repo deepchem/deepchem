@@ -96,6 +96,15 @@ class BRICSGenerator:
         ------
         ValueError
             If any SMILES string has fewer than 2 wildcard notation "[*]
+
+        Examples
+        --------
+        >>> from deepchem.utils import BRICSGenerator
+        >>> brics_gen = BRICSGenerator()
+        >>> psmiles = ['*CC*', '*CCN*']
+        >>> result = brics_gen.replace_wildcards_with_vatoms(psmiles)
+        >>> print(result)
+        ['[At]CC[At]', '[At]CCN[At]']
         """
         mod_list = []
         for psmiles in psmiles_list:
@@ -128,6 +137,15 @@ class BRICSGenerator:
         ------
         ValueError
             If any SMILES string has fewer than 2 virtual atoms
+
+        Examples
+        --------
+        >>> from deepchem.utils import BRICSGenerator
+        >>> brics_gen = BRICSGenerator()
+        >>> psmiles = ['[At]CC[At]', '[At]CCN[At]']
+        >>> result = brics_gen.replace_vatoms_with_wildcards(psmiles)
+        >>> print(result)
+        ['[*]CC[*]', '[*]CCN[*]']
         """
         mod_list = []
         for psmiles in psmiles_list:
@@ -163,6 +181,18 @@ class BRICSGenerator:
         ValueError
             The dendrimer selection should not be enabled with
             polymer selecting being disabled
+        
+        Examples
+        --------
+        >>> from deepchem.utils import BRICSGenerator
+        >>> brics_gen = BRICSGenerator()
+        >>> gen_mol_list = ['CC[At]CC[At]', 'CC[At]CC', 'CC[At]CC[At]CC[At]']
+        >>> filtered_mols = brics_gen.filter_candidates(gen_mol_list, is_polymer=True)
+        >>> print(filtered_mols)
+        ['CC[At]CC[At]']
+        >>> filtered_mols = brics_gen.filter_candidates(gen_mol_list, is_polymer=True, is_dendrimer=True)
+        >>> print(filtered_mols)
+        ['CC[At]CC[At]', 'CC[At]CC[At]CC[At]']
         """
         if is_polymer and is_dendrimer:
             filtered_mols = list(

@@ -733,14 +733,3 @@ DistributedTrainer
 
 .. autoclass:: deepchem.trainer.DistributedTrainer
   :members:
-
-Chemistry Models
-====================
-
-A `Chemistry` model is a model that utilizes chemistry simulations to complete property prediction or candidate generation tasks.
-
-BRICSGenerator
---------------
-
-.. autoclass:: deepchem.models.BRICSGenerator
-  :members:
