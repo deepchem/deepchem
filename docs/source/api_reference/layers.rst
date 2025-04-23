@@ -464,3 +464,9 @@ InceptionV3 Layers
 
 .. autoclass:: deepchem.models.torch_models.inception_v3.InceptionAux
    :members:
+
+MobileNetV2 Layers
+------------------
+
+.. autoclass:: deepchem.models.torch_models.mobilenetv2.InvertedResidual
+   :members:
