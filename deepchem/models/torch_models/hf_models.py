@@ -57,6 +57,13 @@ class HuggingFaceModel(TorchModel):
         the last hidden states.
     tokenizer: transformers.tokenization_utils.PreTrainedTokenizer
         Tokenizer
+    config: dict, (optional, default None)
+        A dictionary of model configuration parameters that will be passed to the Hugging Face
+        `AutoModel` classes via `**kwargs` when loading from the hf_checkpoint. These parameters
+        are typically used to customize the behavior and architecture of the underlying transformer
+        model (e.g., number of layers, hidden size, dropout rates, etc.). If any keys in `config`
+        match configuration attributes supported by the specific Hugging Face `AutoModel` being
+        used, they will override the default settings for that model.
 
     Example
     -------
