@@ -11,7 +11,7 @@ else:
 
 # Environment-specific dependencies.
 extras = {
-    'jax': ['jax', 'jaxlib', 'dm-haiku==0.0.13', 'optax'],
+    'jax': ['jax==0.4.30', 'jaxlib==0.4.30', 'dm-haiku==0.0.13', 'optax'],
     'torch': [
         'torch==2.2.1', 'torchvision', 'pytorch-lightning', 'dgl<2.2.1',
         'dgllife'
