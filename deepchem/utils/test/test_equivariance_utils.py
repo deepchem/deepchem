@@ -553,7 +553,7 @@ class TestEquivarianceUtils(unittest.TestCase):
     @unittest.skipIf(not has_torch, "torch is not available")
     def test_fiber2head(self):
         """Check that fiber2head correctly reshapes and concatenates SE(3)-equivariant features into a multi-head format."""
-        from equivariance_utils import fiber2head
+        from deepchem.utils.equivariance_utils import fiber2head
         from deepchem.models.torch_models.layers import Fiber
 
         fiber_structure = Fiber(dictionary={0: 16, 1: 32})  # Scalars & Vectors

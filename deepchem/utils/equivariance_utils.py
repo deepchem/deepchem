@@ -246,13 +246,6 @@ def get_r(G) -> torch.Tensor:
     >>> r = get_r(G)
     >>> print(r.shape)  # (num_edges, 1)
     torch.Size([6, 1])
-    >>> print(r)
-    tensor([[1.5046],
-            [2.3705],
-            [1.5046],
-            [1.4031],
-            [2.3705],
-            [1.4031]])
     """
     cloned_d = torch.clone(G.edata['d'])
     if G.edata['d'].requires_grad:

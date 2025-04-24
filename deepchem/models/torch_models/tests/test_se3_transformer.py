@@ -42,6 +42,7 @@ def create_test_graph(smiles):
     from rdkit import Chem
     import deepchem as dc
     import dgl
+    from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
 
     mol = Chem.MolFromSmiles(smiles)
     featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True,
@@ -56,7 +57,9 @@ def create_test_graph(smiles):
     G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)
     G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
 
-    return G, features
+    basis, r = get_equivariant_basis_and_r(G, max_degree=3)
+
+    return G, basis, r
 
 
 def rotation_matrix(axis, angle):
@@ -412,7 +415,7 @@ def test_se3_multi_head_attention_forward(smiles, n_heads, feature_dims):
     """Test forward pass and shape consistency of SE3MultiHeadAttention layer."""
     from deepchem.models.torch_models.layers import SE3MultiHeadAttention, Fiber
 
-    G, _ = create_test_graph(smiles)
+    G, _, _ = create_test_graph(smiles)
 
     # Fiber representation
     f_value = Fiber(dictionary={0: feature_dims[0], 1: feature_dims[1]})
@@ -458,7 +461,7 @@ def test_se3_multi_head_attention_equivariance(smiles, n_heads, feature_dims):
     """Test SE(3) equivariance by applying random rotation."""
     from deepchem.models.torch_models.layers import SE3MultiHeadAttention, Fiber
 
-    G, _ = create_test_graph(smiles)
+    G, _, _ = create_test_graph(smiles)
 
     # Fiber representation
     f_value = Fiber(dictionary={0: feature_dims[0], 1: feature_dims[1]})
@@ -525,7 +528,7 @@ def test_se3_multi_head_attention_equivariance(smiles, n_heads, feature_dims):
 def test_gattentive_selfint(smiles, f_in_dict, f_out_dict):
     """Test SE3AttentiveSelfInteraction with various input/output fibers."""
     from deepchem.models.torch_models.layers import SE3AttentiveSelfInteraction, Fiber
-    G, _ = create_test_graph(smiles)
+    G, _, _ = create_test_graph(smiles)
     f_in = Fiber(dictionary=f_in_dict)
     f_out = Fiber(dictionary=f_out_dict)
 
@@ -557,7 +560,7 @@ def test_gattentive_selfint(smiles, f_in_dict, f_out_dict):
 def test_se3_self_interaction(smiles, f_in_dict, f_out_dict):
     """Test SE3SelfInteraction with various input/output fibers."""
     from deepchem.models.torch_models.layers import SE3SelfInteraction, Fiber
-    G, _ = create_test_graph(smiles)
+    G, _, _ = create_test_graph(smiles)
     f_in = Fiber(dictionary=f_in_dict)
     f_out = Fiber(dictionary=f_out_dict)
     g1x1 = SE3SelfInteraction(f_in, f_out)
@@ -603,10 +606,8 @@ def test_se3_gconv_layer_initialization():
 def test_se3_gconv_forward_pass():
     """Tests whether SE3GraphConv performs a forward pass correctly."""
     from deepchem.models.torch_models.layers import SE3GraphConv, Fiber
-    from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
 
-    G, _ = create_test_graph("CCO")
-    r, basis = get_equivariant_basis_and_r(G, max_degree=1)
+    G, basis, r = create_test_graph("CCO")
     f_in = Fiber(dictionary={0: 16, 1: 32})
     f_out = Fiber(dictionary={0: 32, 1: 64})
 
@@ -627,10 +628,8 @@ def test_se3_gconv_forward_pass():
 def test_se3_gconv_equivariance():
     """Tests whether SE3GraphConv respects SE(3) equivariance."""
     from deepchem.models.torch_models.layers import SE3GraphConv, Fiber
-    from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
 
-    G, _ = create_test_graph("CCO")
-    r, basis = get_equivariant_basis_and_r(G, max_degree=1)
+    G, basis, r = create_test_graph("CCO")
     f_in = Fiber(dictionary={0: 16, 1: 32})
     f_out = Fiber(dictionary={0: 32, 1: 64})
 
@@ -660,7 +659,7 @@ def test_se3graphnorm_forward_pass():
     """Tests whether SE3GraphNorm correctly normalizes scalar and vector features."""
     from deepchem.models.torch_models.layers import SE3GraphNorm, Fiber
 
-    G, _ = create_test_graph("CCO")
+    G, _, _ = create_test_graph("CCO")
     f_in = Fiber(dictionary={0: 16, 1: 32})
     norm_layer = SE3GraphNorm(f_in)
     h = {
@@ -679,7 +678,7 @@ def test_se3graphnorm_equivariance():
     """Tests whether SE3GraphNorm respects SE(3) equivariance."""
     from deepchem.models.torch_models.layers import SE3GraphNorm, Fiber
 
-    G, _ = create_test_graph("CCO")
+    G, _, _ = create_test_graph("CCO")
     f_in = Fiber(dictionary={0: 16, 1: 32})
     norm_layer = SE3GraphNorm(f_in)
     h = {
@@ -705,11 +704,10 @@ def test_se3partialedgeconv_forward_pass():
     """Tests forward pass of SE3PartialEdgeConv."""
     from deepchem.models.torch_models.layers import SE3PartialEdgeConv, Fiber
 
-    G, _ = create_test_graph("CCO")
-    r, basis = G.ndata["r"], G.ndata["basis"]
+    G, basis, r = create_test_graph("CCO")
 
-    f_in = Fiber({0: 16, 1: 32})
-    f_out = Fiber({0: 32, 1: 64})
+    f_in = Fiber(dictionary={0: 16, 1: 32})
+    f_out = Fiber(dictionary={0: 32, 1: 64})
     conv = SE3PartialEdgeConv(f_in=f_in, f_out=f_out, edge_dim=5, x_ij='cat')
 
     h = {
@@ -729,11 +727,10 @@ def test_se3partialedgeconv_equivariance():
     """Tests SE3PartialEdgeConv for equivariance."""
     from deepchem.models.torch_models.layers import SE3PartialEdgeConv, Fiber
 
-    G, _ = create_test_graph("CCO")
-    r, basis = G.ndata["r"], G.ndata["basis"]
+    G, basis, r = create_test_graph("CCO")
 
-    f_in = Fiber({0: 16, 1: 32})
-    f_out = Fiber({0: 32, 1: 64})
+    f_in = Fiber(dictionary={0: 16, 1: 32})
+    f_out = Fiber(dictionary={0: 32, 1: 64})
     conv = SE3PartialEdgeConv(f_in=f_in, f_out=f_out, edge_dim=5, x_ij='cat')
 
     h = {
@@ -759,8 +756,7 @@ def test_se3residualattention_forward_pass():
     """Tests forward pass on SE3ResidualAttention."""
     from deepchem.models.torch_models.layers import SE3ResidualAttention, Fiber
 
-    G, _ = create_test_graph("CCO")
-    r, basis = G.ndata["r"], G.ndata["basis"]
+    G, basis, r = create_test_graph("CCO")
 
     atom_dim = 6
     deg = 3
@@ -794,8 +790,7 @@ def test_se3residualattention_equivariance():
     """Tests SE3ResidualAttention for equivariance under SO(3) rotations."""
     from deepchem.models.torch_models.layers import SE3ResidualAttention, Fiber
 
-    G, _ = create_test_graph("CCO")
-    r, basis = G.ndata["r"], G.ndata["basis"]
+    G, basis, r = create_test_graph("CCO")
 
     atom_dim = 6
     deg = 3
