@@ -1,5 +1,5 @@
 dependencies:
   - pip:
     - -f https://storage.googleapis.com/jax-releases/jax_releases.html
-    - jax==0.4.30
-    - jaxlib==0.4.30
+    - jax
+    - jaxlib

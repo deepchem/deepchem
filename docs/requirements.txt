@@ -10,7 +10,7 @@ transformers>=4.34.1
 torch==2.2.1 --extra-index-url https://download.pytorch.org/whl/cpu
 lightning
 jax
-dm-haiku
+dm-haiku==0.0.13
 optax
 rdkit
 torch_geometric
