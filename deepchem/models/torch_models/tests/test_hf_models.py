@@ -327,7 +327,7 @@ def test_modify_model_keys(tmpdir):
 
 
 @pytest.mark.hf
-def test_load_moformer_model_from_hf_checkpoint(tmpdir):
+def test_load_molformer_model_from_hf_checkpoint(tmpdir):
     """ Test loading a MoLFormer model from a Hugging Face-style checkpoint for different tasks.
     The following task configurations are tested: mlm, classification (single-label and multi-label),
     and regression.
