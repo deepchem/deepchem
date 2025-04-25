@@ -21,7 +21,7 @@ class BRICSGenerator:
 
     Examples
     --------
-    >>> from deepchem.models.brics_generator import BRICSGenerator
+    >>> from deepchem.utils import BRICSGenerator
     >>> generator = BRICSGenerator()
     >>> smiles = ['CC(=O)Oc1ccccc1C(=O)O']
     >>> new_mols, count = generator.sample(smiles)
