@@ -14,7 +14,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from deepchem.models.torch_models.torch_model import TorchModel
-from typing import Callable, Dict, Tuple
+from deepchem.data import Dataset
+from deepchem.trans import Transformer
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple
 import logging
 
 # Configure logger for this module
@@ -180,7 +182,7 @@ class PINO(TorchModel):
             param_dim: int = 0,
             modes: int = 16,
             width: int = 64,
-            pde_fn: Callable = None,
+            pde_fn: Optional[Callable[..., Any]] = None,
             boundary_data: Dict = {},
             boundary_weight: float = 50.0,
             data_weight: float = 1.0,
@@ -253,7 +255,7 @@ class PINO(TorchModel):
 
         def forward(self,
                     x: torch.Tensor,
-                    params: torch.Tensor = None) -> torch.Tensor:
+                    params: Optional[torch.Tensor] = None) -> torch.Tensor:
             if x.dim() == 2:
                 x = x.unsqueeze(1)
             if self.param_encoder is not None:
@@ -593,7 +595,15 @@ class PINO(TorchModel):
                               u: torch.Tensor) -> torch.Tensor:
         return self._compute_pde_loss(inputs, u)
 
-    def predict(self, dataset, params: np.ndarray = None):
+    def predict(
+        self,
+        dataset: Dataset,
+        transformers: list[Transformer] | None = None,
+        output_types: list[str] | None = None,
+        *,
+        params: Optional[np.ndarray[Any, Any]] = None
+    ) -> np.ndarray[Any, Any] | Sequence[np.ndarray[Any, Any]]:
+        """Override TorchModel.predict to accept a `params` kwarg."""
         logger.debug("[predict] Starting prediction...")
         self.model.eval()
         preds = []
@@ -605,14 +615,13 @@ class PINO(TorchModel):
                                                     dtype=torch.float32,
                                                     device=inputs.device)
                     logger.debug(
-                        f"[predict] Using provided params with shape: {params_tensor.shape}"
+                        f"[predict] Using params with shape {params_tensor.shape}"
                     )
                 else:
                     params_tensor = None
                     logger.debug("[predict] No params provided.")
-                output = self.model(inputs, params_tensor)
-                logger.debug(f"[predict] Output shape: {output.shape}")
-                preds.append(output)
-        final_preds = torch.cat(preds, dim=0)
-        logger.debug(f"[predict] Final predictions shape: {final_preds.shape}")
-        return final_preds
+                out = self.model(inputs, params_tensor)
+                preds.append(out)
+        final = torch.cat(preds, dim=0).cpu().numpy()
+        logger.debug(f"[predict] Final preds shape: {final.shape}")
+        return final
