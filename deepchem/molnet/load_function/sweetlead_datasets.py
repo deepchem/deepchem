@@ -12,7 +12,11 @@ SWEETLEAD_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/sweet.
 SWEETLEAD_TASKS = ["task"]
 
 
-class _SweetLoader(_MolnetLoader):
+class _SweetLoader (_MolnetLoader):
+    def __init__(self, featurizer, *args, **kwargs):
+        super(_SweetLoader, self).__init__(*args, **kwargs)
+        self.featurizer = featurizer
+            
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "sweet.csv.gz")
@@ -21,7 +25,7 @@ class _SweetLoader(_MolnetLoader):
                                              dest_dir=self.data_dir)
         featurizer = self.featurizer
         if isinstance(featurizer, str):
-            featurizer = get_featurizer(featurizer)
+            featurizer = self.featurizer
         assert isinstance(featurizer, dc.feat.Featurizer) 
 
         loader = dc.data.CSVLoader(tasks=self.tasks,

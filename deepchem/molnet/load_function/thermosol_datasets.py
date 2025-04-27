@@ -5,7 +5,6 @@ import os
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
-from deepchem.molnet.featurizers import get_featurizer
 from typing import List, Optional, Tuple, Union
 
 THERMOSOL_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/thermosol.csv"
@@ -13,20 +12,19 @@ THERMOSOL_TASKS = ["target"]  # Task is solubility in pH 7.4 buffer
 
 
 class _ThermosolLoader(_MolnetLoader):
+    def __init__(self, featurizer, *args, **kwargs):
+        super(_ThermosolLoader, self).__init__(*args, **kwargs)
+        self.featurizer = featurizer
+            
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "thermosol.csv")
         if not os.path.exists(dataset_file):
             dc.utils.data_utils.download_url(url=THERMOSOL_URL,
                                              dest_dir=self.data_dir)
-        featurizer = self.featurizer
-        if isinstance(self.featurizer, str):
-            featurizer = get_featurizer(faturizer)
-        assert isinstance(featurizer, dc.feat.Featurizer)
-
         loader = dc.data.CSVLoader(tasks=self.tasks,
                                    feature_field="smile",
-                                   featurizer=featurizer)
+                                   featurizer=self.featurizer)
         return loader.create_dataset(dataset_file, shard_size=8192)
 
 

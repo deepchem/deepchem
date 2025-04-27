@@ -4,7 +4,6 @@ ChEMBL dataset loader, for training ChemNet
 import os
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
-from deepchem.molnet.featurizers import get_featurizer
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
@@ -44,7 +43,7 @@ class _Chembl25Loader(_MolnetLoader):
 
         featurizer = self.featurizer
         if isinstance(featurizer, str):
-            featurizer = get_featurizer(featurizer)
+            featurizer = self.featurizer
         assert isinstance(featurizer, dc.feat.Featurizer)
         loader = dc.data.CSVLoader(tasks=self.tasks,
                                    feature_field="smiles",

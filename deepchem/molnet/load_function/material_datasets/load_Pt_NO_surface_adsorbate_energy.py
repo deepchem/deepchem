@@ -6,7 +6,6 @@ import os
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
-from deepchem.molnet.featurizers import get_featurizer
 from typing import List, Optional, Tuple, Union
 
 PLATINUM_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/Platinum_adsorption.tar.gz"
@@ -33,6 +32,10 @@ PRIMITIVE_CELL_INF0 = {
 
 
 class _PtAdsorptionLoader(_MolnetLoader):
+    def __init__(self, featurizer, *args, **kwargs):
+        super(_PtAdsorptionLoader, self).__init__(*args, **kwargs)
+        self.featurizer = featurizer
+            
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, 'Platinum_adsorption.json')
@@ -44,7 +47,7 @@ class _PtAdsorptionLoader(_MolnetLoader):
                 self.data_dir)
         featurizer = self.featurizer
         if isinstance(featurizer, str):
-            featurizer = get_featurizer(featurizer)
+            featurizer = self.featurizer
         assert isinstance(featurizer, dc.feat.Featurizer) 
         
         loader = dc.data.JsonLoader(tasks=PLATINUM_TASKS,

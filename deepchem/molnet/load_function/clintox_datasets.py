@@ -14,6 +14,10 @@ CLINTOX_TASKS = ['FDA_APPROVED', 'CT_TOX']
 
 
 class _ClintoxLoader(_MolnetLoader):
+    def __init__(self, featurizer, *args, **kwargs):
+        super(_ClintoxLoader, self).__init__(*args, **kwargs)
+        self.featurizer = featurizer
+            
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "clintox.csv.gz")
@@ -22,7 +26,7 @@ class _ClintoxLoader(_MolnetLoader):
                                              dest_dir=self.data_dir)
         featurizer = self.featurizer
         if isinstance(featurizer, str):
-            featurizer = get_featurizer(featurizer)
+            featurizer = self.featurizer
         assert isinstance(featurizer, dc.feat.Featurizer) 
                                     
         loader = dc.data.CSVLoader(tasks=self.tasks,

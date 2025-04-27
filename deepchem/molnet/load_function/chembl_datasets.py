@@ -26,7 +26,7 @@ class _ChemblLoader(_MolnetLoader):
                                              dest_dir=self.data_dir)
         loader = dc.data.CSVLoader(tasks=self.tasks,
                                    feature_field="smiles",
-                                   featurizer=featurizer)
+                                   featurizer= self.featurizer)
         return loader.create_dataset(dataset_file, shard_size=8192)
 
 

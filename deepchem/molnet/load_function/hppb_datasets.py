@@ -4,7 +4,6 @@ HPPB Dataset Loader.
 import os
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
-from deepchem.molnet.featurizers import get_featurizer
 from deepchem.data import Dataset
 from deepchem.utils import remove_missing_entries
 from typing import List, Optional, Tuple, Union
@@ -14,6 +13,10 @@ HPPB_TASKS = ["target"]  # Task is solubility in pH 7.4 buffer
 
 
 class _HPPBLoader(_MolnetLoader):
+    def __init__(self, featurizer, *args, **kwargs):
+        super(_HPPBLoader, self).__init__(*args, **kwargs)
+        self.featurizer = featurizer
+            
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "hppb.csv")
@@ -22,7 +25,7 @@ class _HPPBLoader(_MolnetLoader):
                                              dest_dir=self.data_dir)
         featurizer = self.featurizer
         if isinstance(featurizer, str):
-            featurizer = get_featurizer(featurizer)
+            featurizer = self.featurizer
         assert isinstance (featurizer, dc.feat.Featurizer)
 
         loader = dc.data.CSVLoader(tasks=self.tasks,

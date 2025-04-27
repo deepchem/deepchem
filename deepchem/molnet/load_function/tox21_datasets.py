@@ -25,7 +25,7 @@ class _Tox21Loader(_MolnetLoader):
 
         featurizer = self.featurizer
         if isinstance(featurizer, str):
-            featurizer = get_featurizer(featurizer)
+            featurizer = self.featurizer
         assert isinstance(featurizer, dc.feat.Featurizer)
 
         loader = dc.data.CSVLoader(tasks=self.tasks,

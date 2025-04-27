@@ -8,7 +8,6 @@ import pandas as pd
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
-from deepchem.molnet.featurizers import get_featurizer
 from typing import List, Optional, Tuple, Union
 
 DATASETS_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/"
@@ -58,7 +57,7 @@ class _PDBBindLoader(_MolnetLoader):
         # load and featurize each complex
         featurizer = self.featurizer
         if isinstance(featurizer, str):
-            featurizer = get_featurizer(featurizer)
+            featurizer = self.featurizer
         assert isinstance(featurizer, dc.feat.Featurizer) 
 
         features = featurizer.featurize(

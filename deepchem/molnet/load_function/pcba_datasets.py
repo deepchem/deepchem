@@ -5,7 +5,6 @@ import os
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
-from deepchem.molnet.featurizers import get_featurizer
 from typing import List, Optional, Tuple, Union
 
 PCBA_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/%s"
@@ -60,7 +59,7 @@ class _PCBALoader(_MolnetLoader):
                                              dest_dir=self.data_dir)
         featurizer = self.featurizer
         if isinstance(featurizer, str):
-            featurizer = get_featurizer(featurizer)
+            featurizer = self.featurizer
         assert isinstance(featurizer, dc.feat.Featurizer) 
                                    
         loader = dc.data.CSVLoader(tasks=self.tasks,

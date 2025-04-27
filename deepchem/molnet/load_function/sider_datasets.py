@@ -30,6 +30,10 @@ SIDER_TASKS = [
 
 
 class _SiderLoader(_MolnetLoader):
+    def __init__(self, featurizer, *args, **kwargs):
+        super(_SiderLoader, self).__init__(*args, **kwargs)
+        self.featurizer = featurizer
+            
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "sider.csv.gz")
@@ -38,7 +42,7 @@ class _SiderLoader(_MolnetLoader):
                                              dest_dir=self.data_dir)
         featurizer = self.featurizer
         if isinstance(featurizer, str):
-            featurizer = get_featurizer(featurizer)
+            featurizer = self.featurizer
         assert isinstance(featurizer, dc.feat.Featurizer) 
                                     
         loader = dc.data.CSVLoader(tasks=self.tasks,

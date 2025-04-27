@@ -5,7 +5,6 @@ import os
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
 from deepchem.data import Dataset
-from deepchem.molnet.featurizers import get_featurizer
 from typing import List, Optional, Tuple, Union
 
 QM7_MAT_UTL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/qm7.mat"
@@ -27,7 +26,7 @@ class _QM7Loader(_MolnetLoader):
 
         featurizer = self.featurizer
         if isinstance(featurizer, str):
-            featurizer = get_featurizer(featurizer)
+            featurizer = self.featurizer
         assert isinstance(featurizer, dc.feat.Featurizer) 
        
         loader = dc.data.SDFLoader(tasks=self.tasks,
