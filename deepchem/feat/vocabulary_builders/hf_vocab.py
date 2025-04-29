@@ -61,7 +61,7 @@ class HuggingFaceVocabularyBuilder(VocabularyBuilder):
         """
         from transformers import PreTrainedTokenizerFast
         tokenizer = PreTrainedTokenizerFast(tokenizer_file=fname)
-        return tokenizer
+        return tokenizer  # type: ignore
 
     def save(self, fname: str) -> None:
         """Saves vocabulary to a file
