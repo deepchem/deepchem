@@ -402,6 +402,27 @@ Attention Layers
 .. autoclass:: deepchem.models.torch_models.layers.SE3AvgPooling
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.SE3MultiHeadAttention
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3AttentiveSelfInteraction
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3SelfInteraction
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3GraphConv
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3GraphNorm
+  :members:
+
+  .. autoclass:: deepchem.models.torch_models.layers.SE3PartialEdgeConv
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3ResidualAttention
+  :members:
+
 Readout Layers
 ^^^^^^^^^^^^^^
 
@@ -454,4 +475,10 @@ InceptionV3 Layers
    :members:
 
 .. autoclass:: deepchem.models.torch_models.inception_v3.InceptionAux
+   :members:
+
+MobileNetV2 Layers
+------------------
+
+.. autoclass:: deepchem.models.torch_models.mobilenetv2.InvertedResidual
    :members:

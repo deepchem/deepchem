@@ -5,6 +5,7 @@ import itertools
 import sympy as sym
 from typing import Any, Tuple, Optional, Sequence, List, Union, Callable, Dict, TypedDict
 from collections.abc import Sequence as SequenceCollection
+from packaging import version
 try:
     import torch
     from torch import Tensor
@@ -8001,3 +8002,1257 @@ class SE3AvgPooling(nn.Module):
                 "SE3AvgPooling for type > 1 is not implemented.")
 
         return pooled
+
+
+class SE3MultiHeadAttention(nn.Module):
+    """
+    SE(3)-Equivariant Multi-Headed Self-Attention for Graph Neural Networks.
+    This layer extends multi-head self-attention (MHA) to SE(3)-equivariant 
+    representations. Instead of using dot-product attention in standard Transformers, 
+    this module computes SE(3)-equivariant attention scores over graph edges
+    while preserving SE(3) symmetry.
+    Given a graph G = (V, E), where:
+    - Nodes store queries (q_i ∈ R^m).
+    - Edges store keys (k_ij ∈ R^m) & values (v_ij ∈ R^m).
+    The attention weight is computed using a dot product between the key and 
+    the query followed by a softmax operation:
+    $$
+    a_{ij} = \text{softmax} \left( \frac{k_{ij} \cdot q_i}{\sqrt{d_k}} \right)
+    $$
+    The final node update aggregates weighted values:
+    $$
+    h_i = \sum_{j \in \mathcal{N}(i)} a_{ij} v_{ij}
+    $$
+    SE(3) Equivariance:
+    - The above equations are applied separately for each degree (l) in the SE(3) 
+      representation, ensuring equivariance is preserved across scalar (l=0), vector (l=1), 
+      and higher-degree features.
+   Usage in SE(3)-Transformers:
+    - This layer replaces MHA in SE(3)-Transformers by applying equivariant self-attention 
+      over graph edges.
+    - Used inside `GSE3Res` blocks for message passing.
+    - Preserves SE(3) symmetry when computing interactions.
+    Example
+    -------
+    >>> import torch
+    >>> import dgl
+    >>> import deepchem as dc
+    >>> from rdkit import Chem
+    >>> from deepchem.models.torch_models.layers import Fiber, SE3MultiHeadAttention
+    >>> # Create a molecular graph from SMILES
+    >>> mol = Chem.MolFromSmiles("CCO")
+    >>> # Extract SE(3)-equivariant features
+    >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
+    >>> features = featurizer.featurize([mol])[0]
+    >>> #  Convert features into a DGL graph
+    >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]), num_nodes=len(features.node_features))
+    >>> # Assign SE(3)-equivariant node & edge features
+    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
+    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)  # 3D coordinates
+    >>> G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)  # Edge distances
+    >>> G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)  # Edge weights
+    >>> #  Define Fiber Representations for Input & Output
+    >>> f_value = Fiber(dictionary={0: 16, 1: 32})  # Scalars (degree 0) & Vectors (degree 1)
+    >>> f_key = Fiber(dictionary={0: 16, 1: 32})  # Same as values for attention
+    >>> # Initialize `SE3MultiHeadAttention` (Multi-Headed SE(3)-Equivariant Attention)
+    >>> n_heads = 4
+    >>> gmab = SE3MultiHeadAttention(f_value, f_key, n_heads)
+    >>> # Convert Node Features into the Correct Format
+    >>> v = {str(d): torch.randn(G.num_edges(), f_value.structure_dict[d], 2 * d + 1) for d in f_value.structure_dict}
+    >>> k = {str(d): torch.randn(G.num_edges(), f_key.structure_dict[d], 2 * d + 1) for d in f_key.structure_dict}
+    >>> q = {str(d): torch.randn(G.num_nodes(), f_key.structure_dict[d], 2 * d + 1) for d in f_key.structure_dict}
+    >>> # Apply `SE3MultiHeadAttention` Layer (SE(3)-Equivariant Attention)
+    >>> output = gmab(v, k=k, q=q, G=G)
+    >>> for key, tensor in output.items():
+    ...    print(tensor.shape)
+    torch.Size([3, 16, 1])
+    torch.Size([3, 32, 3])
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self, f_value: Fiber, f_key: Fiber, n_heads: int) -> None:
+        """
+        Initialize the SE(3)-equivariant multi-head self-attention layer.
+        
+        Parameters
+        ----------
+        f_value : Fiber
+            Fiber representation of the values in attention.
+        f_key : Fiber
+            Fiber representation of the keys in attention.
+        n_heads : int
+            Number of attention heads.
+        """
+        import dgl
+
+        super().__init__()
+        self.f_value = f_value
+        self.f_key = f_key
+        self.n_heads = n_heads
+        self.new_dgl = version.parse(dgl.__version__) > version.parse('0.4.4')
+
+    def udf_u_mul_e(self, d_out: int) -> Callable:
+        """
+        Compute the weighted sum for a single output feature type.
+        
+        This function applies the attention weights to the value features 
+        during message passing in the graph.
+        
+        Parameters
+        ----------
+        d_out : int
+            Degree of the output representation in SE(3) space.
+        
+        Returns
+        -------
+        function
+            A function to be used in DGL's message-passing framework.
+        """
+
+        def fnc(edges):
+            attn = edges.data['a']
+            value = edges.data[f'v{d_out}']
+            msg = attn.unsqueeze(-1).unsqueeze(-1) * value
+            return {'m': msg}
+
+        return fnc
+
+    def forward(self, v: Dict[Any,
+                              torch.Tensor], k: Optional[Dict[Any,
+                                                              torch.Tensor]],
+                q: Optional[Dict[Any, torch.Tensor]], G,
+                **kwargs) -> Dict[str, torch.Tensor]:
+        """
+        Forward pass of SE(3)-equivariant multi-headed attention.
+        
+        Applies equivariant self-attention over graph edges, computing 
+        attention scores and updating node features accordingly.
+        
+        Parameters
+        ----------
+        v : Dict
+            Dictionary of value tensors indexed by their degree.
+        k : Dict, optional
+            Dictionary of key tensors indexed by their degree (default: None).
+        q : Dict, optional
+            Dictionary of query tensors indexed by their degree (default: None).
+        G : dgl.DGLGraph
+            Graph object containing node and edge features.
+        
+        Returns
+        -------
+        Dict
+            Dictionary of updated node features indexed by their degree.
+        """
+        from deepchem.utils.equivariance_utils import fiber2head
+        import dgl.function as fn
+        from dgl.nn.functional import edge_softmax
+
+        with G.local_scope():
+            for m, d in self.f_value.structure:
+                G.edata[f'v{d}'] = v[f'{d}'].view(-1, self.n_heads,
+                                                  m // self.n_heads, 2 * d + 1)
+
+            if k is not None:
+                G.edata['k'] = fiber2head(k,
+                                          self.n_heads,
+                                          self.f_key,
+                                          squeeze=True)
+
+            if q is not None:
+                G.ndata['q'] = fiber2head(q,
+                                          self.n_heads,
+                                          self.f_key,
+                                          squeeze=True)
+
+            G.apply_edges(fn.e_dot_v('k', 'q', 'e'))
+            e = G.edata.pop('e')
+
+            if self.new_dgl:
+                n_edges = G.edata['k'].shape[0]
+                e = e.view([n_edges, self.n_heads])
+
+            e = e / np.sqrt(self.f_key.n_features)
+            G.edata['a'] = edge_softmax(G, e)
+
+            for d in self.f_value.degrees:
+                G.update_all(self.udf_u_mul_e(d), fn.sum('m', f'out{d}'))
+
+            output = {
+                f'{d}': G.ndata[f'out{d}'].view(-1, m, 2 * d + 1)
+                for m, d in self.f_value.structure
+            }
+            return output
+
+
+class SE3AttentiveSelfInteraction(nn.Module):
+    """
+    A self-interaction layer with an attention mechanism that preserves SE(3) equivariance.
+    This layer applies learnable self-interactions using attention weights
+    to dynamically control the contribution of different feature components. It enables 
+    adaptive transformation of SE(3)-equivariant features while preserving equivariance.
+    Instead of applying a fixed transformation to each feature type, this layer computes 
+    attention weights based on input feature relationships. These weights determine how 
+    much each feature contributes to the output.
+    Mathematically, this can be expressed as:
+        h_out[d] = softmax(W_d * (h_in[d] ⊗ h_in[d])) * h_in[d]
+    where:
+    - h_in[d]  is the input feature tensor of degree `d`.
+    - W_d      is the learnable attention weight matrix for degree `d`.
+    - ⊗        represents an inner product to compute self-attention scalars.
+    - h_out[d] is the transformed output feature tensor.
+    This method enables a data-dependent feature transformation, which is 
+    particularly useful for learning complex interactions in SE(3)-equivariant models.
+    Parameters
+    ----------
+    f_in : Any
+        The input Fiber structure that defines feature multiplicities and degrees.
+    f_out : Any
+        The output Fiber structure that defines transformed feature dimensions.
+    
+    Example
+    -------
+    >>> from rdkit import Chem
+    >>> import dgl
+    >>> import torch
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models.layers import Fiber, SE3AttentiveSelfInteraction
+    >>> # Create a molecular graph from SMILES
+    >>> mol = Chem.MolFromSmiles("CCO")
+    >>> # Use EquivariantGraphFeaturizer to extract SE(3)-equivariant features
+    >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
+    >>> features = featurizer.featurize([mol])[0]
+    >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]), num_nodes=len(features.node_features))
+    >>> # Assign SE(3)-equivariant node features
+    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)  # Node features
+    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)  # 3D coordinates
+    >>> f_in = Fiber(dictionary={0: 16, 1: 32})  # Input fiber: scalars & vectors
+    >>> f_out = Fiber(dictionary={0: 32, 1: 64})  # Output fiber
+    >>> # Initialize SE(3)-Equivariant Attentive Self-Interaction Layer
+    >>> g_att = SE3AttentiveSelfInteraction(f_in, f_out)
+    >>> # Convert Node Features into the Correct Format
+    >>> h = {str(d): torch.randn(G.num_nodes(), f_in.structure_dict[d], 2 * d + 1) for d in f_in.structure_dict}
+    >>> # Apply `SE3AttentiveSelfInteraction` Layer (SE(3)-Equivariant Self-Interaction with Attention)
+    >>> output = g_att(h)
+    >>> print(output['0'].shape)
+    torch.Size([3, 32, 1])
+    >>> print(output['1'].shape)
+    torch.Size([3, 64, 3])
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self, f_in: Fiber, f_out: Fiber) -> None:
+        """
+        Initializes the SE3AttentiveSelfInteraction layer.
+        Parameters
+        ----------
+        f_in (Fiber):
+            The input fiber structure defining feature multiplicities and degrees.
+        f_out (Fiber):
+            The output fiber structure defining transformed feature dimensions.
+        """
+        super().__init__()
+        self.f_in = f_in
+        self.f_out = f_out
+        self.nonlin = nn.LeakyReLU()
+        self.num_layers = 2
+        self.eps = 1e-12  # Regularization to prevent numerical instability
+
+        # Learnable attention-based transformations for each feature degree
+        self.transform: nn.ModuleDict = nn.ModuleDict()
+        for degree, m_in in self.f_in.structure_dict.items():
+            m_out = self.f_out.structure_dict[degree]
+            self.transform[str(degree)] = self._build_net(m_in, m_out)
+
+    def _build_net(self, m_in: int, m_out: int) -> nn.Sequential:
+        """
+        Constructs a small *fully connected* network to compute attention weights.
+        Parameters
+        ----------
+        m_in : int
+            The input multiplicity for the given degree.
+        m_out : int
+            The output multiplicity for the given degree.
+        Returns
+        -------
+        nn.Sequential
+            A small MLP that predicts attention weights.
+        """
+
+        n_hidden = m_in * m_out
+        cur_inpt = m_in * m_in
+        net: List[nn.Module] = []
+
+        for i in range(1, self.num_layers + 1):
+            net.append(nn.LayerNorm(cur_inpt))
+            net.append(self.nonlin)
+
+            # Linear transformation layer
+            linear_layer = nn.Linear(cur_inpt,
+                                     n_hidden,
+                                     bias=(i == self.num_layers))
+            nn.init.kaiming_uniform_(
+                linear_layer.weight)  # weight initialization
+            net.append(linear_layer)
+
+            cur_inpt = n_hidden  # Update for next layer
+
+        return nn.Sequential(*net)  # Convert layer list to `nn.Sequential`
+
+    def forward(self, features: Dict[str, torch.Tensor],
+                **kwargs: Any) -> Dict[str, torch.Tensor]:
+        """
+        Forward pass of the *SE(3)-equivariant* attentive self-interaction layer.
+        This function applies *self-attention* to modify each feature type using 
+        dynamically learned weights. The transformation for each degree `d` follows:
+            - Compute feature-wise scalar attention weights.
+            - Normalize features using softmax attention.
+            - Apply the learned attention weights to the input.
+        Parameters
+        ----------
+        features : Dict[str, torch.Tensor]
+            Dictionary containing input node features for each feature type.
+        Returns
+        -------
+        Dict[str, torch.Tensor]
+            Dictionary containing transformed node features for each feature type.
+        """
+        output = {}
+        for k, v in features.items():
+            first_dims = v.shape[:-2]
+            m_in = self.f_in.structure_dict[int(k)]
+            m_out = self.f_out.structure_dict[int(k)]
+
+            # Compute self-attention scalars (dot product of input features)
+            scalars = torch.einsum('...ac,...bc->...ab',
+                                   [v, v])  # [..., m_in, m_in]
+            scalars = scalars.view(
+                *first_dims,
+                m_in * m_in)  # Flatten for MLP input [..., m_in*m_in]
+            sign = scalars.sign()
+            scalars = scalars.abs_().clamp_min(
+                self.eps)  # Prevent numerical issues
+            scalars *= sign
+
+            # Compute attention weights
+            att_weights = self.transform[str(k)](scalars)  # [..., m_out * m_in]
+            att_weights = att_weights.view(
+                *first_dims, m_out, m_in)  # Reshape to [..., m_out, m_in]
+            att_weights = F.softmax(input=att_weights,
+                                    dim=-1)  # Normalize with softmax
+
+            # Apply learned attention weights to input
+            output[k] = torch.einsum('...nm,...md->...nd', [att_weights, v])
+
+        return output
+
+
+class SE3SelfInteraction(nn.Module):
+    """
+    A linear SE(3)-equivariant layer, equivalent to a 1x1 convolution.
+    This layer applies independent linear transformations to each feature type 
+    while preserving SE(3) equivariance. It acts as a self-interaction layer 
+    by linearly transforming node features without aggregating information from 
+    neighbors.
+    Mathematically, this operation is similar to a fully connected transformation, 
+    but applied independently to each *feature type (degree)* in the SE(3)-equivariant 
+    representation.
+    This is equivalent to a self-interaction layer in Tensor Field Networks (TFN), 
+    where each SE(3)-invariant or equivariant feature undergoes a learned transformation.
+    
+    Example
+    -------
+    >>> from rdkit import Chem
+    >>> import dgl
+    >>> import torch
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models.layers import Fiber, SE3SelfInteraction
+    >>> # Create a molecular graph from SMILES
+    >>> mol = Chem.MolFromSmiles("CCO")
+    >>> # Use EquivariantGraphFeaturizer to extract SE(3)-equivariant features
+    >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
+    >>> features = featurizer.featurize([mol])[0]
+    >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]), num_nodes=len(features.node_features))
+    >>> # Assign SE(3)-equivariant node features
+    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)  # Node features
+    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)  # 3D coordinates
+    >>> # Define Fiber Representations for Input & Output
+    >>> f_in = Fiber(dictionary={0: 16, 1: 32})  # Input fiber: scalars & vectors
+    >>> f_out = Fiber(dictionary={0: 32, 1: 64})  # Output fiber
+    >>> # Initialize SE(3)-Equivariant 1x1 Convolution Layer
+    >>> g1x1 = SE3SelfInteraction(f_in, f_out)
+    >>> # Convert Node Features into the Correct Format
+    >>> h = {str(d): torch.randn(G.num_nodes(), f_in.structure_dict[d], 2 * d + 1) for d in f_in.structure_dict}
+    >>> # Apply `SE3SelfInteraction` Layer (SE(3)-Equivariant Linear Transformation)
+    >>> output = g1x1(h)
+    >>> print(output['0'].shape)
+    torch.Size([3, 32, 1])
+    >>> print(output['1'].shape)
+    torch.Size([3, 64, 3])
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self,
+                 f_in: Fiber,
+                 f_out: Fiber,
+                 learnable: bool = True) -> None:
+        """
+        Initializes the `SE3SelfInteraction` layer.
+        Parameters
+        ----------
+        f_in : Fiber
+            The input Fiber structure that defines the feature multiplicities and degrees.
+        f_out : Fiber
+            The output Fiber structure that defines the transformed feature dimensions.
+        learnable : bool, optional
+            If True, the transformation matrices are trainable parameters.
+        """
+        super().__init__()
+        self.f_in = f_in
+        self.f_out = f_out
+
+        # Learnable linear transformations for each feature type
+        self.transform = nn.ParameterDict()
+        for m_out, d_out in self.f_out.structure:
+            m_in = self.f_in.structure_dict[d_out]
+            self.transform[str(d_out)] = nn.Parameter(torch.randn(m_out, m_in) /
+                                                      np.sqrt(m_in),
+                                                      requires_grad=learnable)
+
+    def forward(self, features: Dict[str, torch.Tensor],
+                **kwargs: Any) -> Dict[str, torch.Tensor]:
+        """
+        Forward pass of the SE(3)-equivariant 1x1 convolution.
+        This function applies a linear transformation *separately to each 
+        feature type (degree) in the SE(3)-equivariant representation.
+        Mathematically, this operation is performed as:
+            h_out[d] = W_d * h_in[d]
+        where:
+        - h_in[d]  is the input feature tensor of type d.
+        - W_d      is the learned transformation matrix for type d.
+        - h_out[d] is the transformed feature tensor of type d.
+        Parameters
+        ----------
+        features : Dict[str, torch.Tensor]
+            Dictionary containing input node features for each feature type.
+        Returns
+        -------
+        Dict[str, torch.Tensor]
+            Dictionary containing transformed node features for each feature type.
+        """
+        output = {}
+        for k, v in features.items():
+            if str(k) in self.transform.keys():
+                output[k] = torch.matmul(self.transform[str(k)], v)
+        return output
+
+
+class SE3GraphConv(nn.Module):
+    """
+    A graph convolutional layer that is equivariant under SE(3) transformations.
+
+    This layer performs message passing between nodes while ensuring that 
+    the learned representations remain consistent under translations and rotations. 
+    The convolution is defined using a basis derived from spherical harmonics, 
+    which naturally respects SE(3) symmetry.
+
+    The layer updates each node's features by aggregating information from its 
+    neighbors while applying transformation matrices that depend on the relative 
+    positions between nodes. This is similar to standard graph convolution but 
+    adapted to work with SE(3)-equivariant features.
+    
+    Example
+    -------
+    This example demonstrates how to use `SE3GraphConv` for SE(3)-equivariant graph convolutions
+    with molecular graph data.
+
+    >>> from rdkit import Chem
+    >>> import dgl
+    >>> import torch
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models.layers import SE3GraphConv, Fiber
+    >>> from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
+
+    >>> # Create a molecular graph from SMILES
+    >>> mol = Chem.MolFromSmiles('CCO')
+
+    >>> # Use EquivariantGraphFeaturizer to extract SE(3)-equivariant features
+    >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
+    >>> features = featurizer.featurize([mol])[0]
+    >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]), num_nodes=len(features.node_features))
+
+    >>> # Assign SE(3)-equivariant node & edge features
+    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
+    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)  # 3D coordinates
+    >>> G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)  # Edge distances
+    >>> G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)  # Edge weights
+
+    >>> # Define SE(3) Basis & Radial Functions
+    >>> basis, r = get_equivariant_basis_and_r(G, max_degree=2)
+
+    >>> # Add edge features (concatenating radial & weight features)
+    >>> if "w" in G.edata.keys():
+    ...     w = G.edata["w"]
+    ...     feat = torch.cat([w, r], -1)  # Concatenate weight + distance
+    ... else:
+    ...     feat = torch.cat([r], -1)  # Use only radial distances
+
+    >>> # Define Fiber Representations for Input & Output
+    >>> f_in = Fiber(dictionary={0: 16, 1: 32})  # Input fiber: scalars & vectors
+    >>> f_out = Fiber(dictionary={0: 32, 1: 64})  # Output fiber
+
+    >>> # Initialize SE(3)-Equivariant Graph Convolution Layer
+    >>> edge_dim = 5
+    >>> gconv = SE3GraphConv(f_in, f_out, self_interaction=True, edge_dim=edge_dim)
+    >>> h = {str(d): torch.randn(G.num_nodes(), f_in.structure_dict[d], 2*d + 1) for d in f_in.structure_dict}
+    >>> # Apply `SE3GraphConv` Layer (SE(3)-Equivariant Convolution)
+    >>> output = gconv(h, G=G, r=r, basis=basis)
+    >>> print(output['0'].shape)
+    torch.Size([3, 32, 1])
+    >>> print(output['1'].shape)
+    torch.Size([3, 64, 3])
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self,
+                 f_in: Fiber,
+                 f_out: Fiber,
+                 self_interaction: bool = False,
+                 edge_dim: int = 0,
+                 flavor: str = 'skip') -> None:
+        """
+        Parameters
+        ----------
+        f_in : List[Tuple[int, int]]
+            The input features, defined as [(multiplicities, type), ...].
+        f_out : List[Tuple[int, int]]
+            The output features, defined as [(multiplicities, type), ...].
+        self_interaction : bool, optional
+            If True, includes a learnable self-interaction term that allows the 
+            node to retain part of its original information.
+        edge_dim : int, optional
+            Number of edge feature dimensions, affecting how edges influence the 
+            transformation.
+        flavor : str, optional
+            Specifies the variant of convolution:
+            - 'TFN' for Tensor Field Network-style convolution.
+            - 'skip' to include a residual connection.
+        """
+        super().__init__()
+        self.f_in = f_in
+        self.f_out = f_out
+        self.edge_dim = edge_dim
+        self.self_interaction = self_interaction
+        self.flavor = flavor
+
+        self.kernel_unary = nn.ModuleDict()
+        for (mi, di) in self.f_in.structure:
+            for (mo, do) in self.f_out.structure:
+                self.kernel_unary[f'({di},{do})'] = SE3PairwiseConv(
+                    di, mi, do, mo, edge_dim=edge_dim)
+
+        self.kernel_self = nn.ParameterDict()
+        if self_interaction:
+            assert self.flavor in ['TFN', 'skip']
+            if self.flavor == 'TFN':
+                for m_out, d_out in self.f_out.structure:
+                    W = nn.Parameter(
+                        torch.randn(1, m_out, m_out) / np.sqrt(m_out))
+                    self.kernel_self[f'{d_out}'] = W
+            elif self.flavor == 'skip':
+                for m_in, d_in in self.f_in.structure:
+                    if d_in in self.f_out.degrees:
+                        m_out = self.f_out.structure_dict[d_in]
+                        W = nn.Parameter(
+                            torch.randn(1, m_out, m_in) / np.sqrt(m_in))
+                        self.kernel_self[f'{d_in}'] = W
+
+    def udf_u_mul_e(self, d_out: int) -> Callable:
+        """
+        Computes the convolution for a single output feature type.
+
+        This function is designed as a *User Defined Function (UDF)
+        in DGL for performing message passing.
+
+        Parameters
+        ----------
+        d_out : int
+            The degree/type of the output feature.
+
+        Returns
+        -------
+        Callable
+            A function that computes the message-passing operation.
+        """
+        import dgl
+
+        def fnc(edges: dgl.udf.EdgeBatch) -> Dict[str, torch.Tensor]:
+            """
+            Processes message-passing between edges.
+
+            Parameters
+            ----------
+            edges : dgl.udf.EdgeBatch
+                A batch of edges in the graph.
+
+            Returns
+            -------
+            Dict[str, torch.Tensor]
+                Dictionary containing the updated message tensor.
+            """
+
+            msg = torch.tensor(0)
+            # msg = torch.zeros_like(torch.matmul(edge, src))
+            for m_in, d_in in self.f_in.structure:
+                src = edges.src[f'{d_in}'].view(-1, m_in * (2 * d_in + 1), 1)
+                edge = edges.data[f'({d_in},{d_out})']
+                msg = msg + torch.matmul(edge, src)
+            msg = msg.view(msg.shape[0], -1, 2 * d_out + 1)
+
+            # Apply self-interaction (residual connection)
+            if self.self_interaction:
+                if f'{d_out}' in self.kernel_self.keys():
+                    if self.flavor == 'TFN':
+                        W = self.kernel_self[f'{d_out}']
+                        msg = torch.matmul(W, msg)
+                    if self.flavor == 'skip':
+                        dst = edges.dst[f'{d_out}']
+                        W = self.kernel_self[f'{d_out}']
+                        msg = msg + torch.matmul(W, dst)
+
+            return {'msg': msg.view(msg.shape[0], -1, 2 * d_out + 1)}
+
+        return fnc
+
+    def forward(self, h: Dict[str, torch.Tensor], G, r: torch.Tensor,
+                basis: Dict[str, torch.Tensor],
+                **kwargs: Any) -> Dict[str, torch.Tensor]:
+        """
+        Forward pass of the SE(3)-equivariant graph convolution.
+
+        This function updates node features by aggregating messages 
+        from neighboring nodes using equivariant convolutions.
+
+        The convolution operation consists of:
+        1. Computing pairwise convolution kernels based on spherical harmonics.
+        2. Using these kernels to compute messages between connected nodes.
+        3. Applying an optional self-interaction term.
+        4. Aggregating incoming messages using mean pooling.
+
+        Parameters
+        ----------
+        h : Dict[str, torch.Tensor]
+            Dictionary of node feature tensors.
+        G : dgl.DGLGraph
+            Input graph representation.
+        r : torch.Tensor
+            Pairwise distance tensor between nodes.
+        basis : Dict[str, torch.Tensor]
+            Dictionary containing the SE(3)-equivariant convolution basis.
+
+        Returns
+        -------
+        Dict[str, torch.Tensor]
+            Updated node features after convolution.
+        """
+        try:
+            import dgl.function as fn
+        except ModuleNotFoundError:
+            raise ImportError('These classes require DGL to be installed.')
+
+        with G.local_scope():
+            # Store node features in graph
+            for k, v in h.items():
+                G.ndata[k] = v
+
+            # Add edge features
+            if 'w' in G.edata.keys():
+                w = G.edata['w']
+                feat = torch.cat([w, r], -1)
+            else:
+                feat = torch.cat([
+                    r,
+                ], -1)
+
+            # Compute convolution for each feature type
+            for (mi, di) in self.f_in.structure:
+                for (mo, do) in self.f_out.structure:
+                    etype = f'({di},{do})'
+                    G.edata[etype] = self.kernel_unary[etype](feat, basis)
+
+            # Perform message-passing for each output feature type
+            for d in self.f_out.degrees:
+                G.update_all(self.udf_u_mul_e(d), fn.mean('msg', f'out{d}'))
+
+            return {f'{d}': G.ndata[f'out{d}'] for d in self.f_out.degrees}
+
+
+class SE3GraphNorm(nn.Module):
+    """
+    SE(3)-Equivariant Graph Normalization Layer.
+
+    This layer applies graph-based feature normalization while preserving 
+    SE(3) equivariance. It normalizes features per feature type (degree) 
+    while maintaining phase information, allowing nonlinear transformations
+    without breaking symmetry constraints.
+
+    Given a feature tensor h[d] of degree `d`, we decompose it into:
+    
+        h[d] = norm(h[d]) * phase(h[d])
+
+    - norm(h[d]): L2 norm of the feature tensor.
+    - phase(h[d]): The unit-normed feature vector preserving orientation.
+    - f(norm): A learnable function** (MLP) that transforms the norms.
+
+    The transformation is computed as:
+
+        h_out[d] = f(norm(h[d])) * phase(h[d])
+
+    - This ensures that features remain equivariant under SE(3) transformations.
+    - The function f(norm) is learnable, allowing the model to adaptively scale 
+      different feature norms, providing a powerful form of data-dependent nonlinearity.
+
+
+    Example
+    -------
+    >>> import torch
+    >>> import dgl
+    >>> from rdkit import Chem
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models.layers import Fiber, SE3GraphNorm
+    >>> # Create a molecular graph from SMILES
+    >>> mol = Chem.MolFromSmiles("CCO")
+    >>> # Use EquivariantGraphFeaturizer to extract SE(3)-equivariant features
+    >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
+    >>> features = featurizer.featurize([mol])[0]
+    >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]), num_nodes=len(features.node_features))
+    >>> # Assign node features
+    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)  # Node features
+    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)  # 3D coordinates
+    >>> # Define Fiber Representations for Input Features
+    >>> f_in = Fiber(dictionary={0: 16, 1: 32})  # Scalars (degree 0) and vectors (degree 1)
+    >>> 
+    >>> # Initialize SE(3)-Equivariant Graph Normalization Layer
+    >>> gnorm = SE3GraphNorm(f_in)
+    >>> h = {str(d): torch.randn(G.num_nodes(), f_in.structure_dict[d], 2 * d + 1) for d in f_in.structure_dict}
+    >>> # `SE3GraphNorm` Layer (SE(3)-Equivariant Normalization
+    >>> output = gnorm(h)
+    >>> for key, tensor in output.items():
+    ...     print(tensor.shape)
+    torch.Size([3, 16, 1])
+    torch.Size([3, 32, 3])
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self,
+                 fiber: Fiber,
+                 nonlin=nn.ReLU(inplace=True),
+                 num_layers: int = 0) -> None:
+        """
+        Initialize the SE(3)-equivariant normalization layer.
+
+        Parameters
+        ----------
+        fiber : `Fiber`
+            Fiber structure defining feature types and multiplicities.
+        nonlin : `nn.Module`
+            Nonlinearity applied to transformed norms (default: `ReLU`).
+        num_layers : `int`
+            Number of linear transformation layers in `f(norm)`.
+        """
+        super().__init__()
+        self.fiber = fiber
+        self.nonlin = nonlin
+        self.num_layers = num_layers
+
+        # Regularization to prevent numerical instability in phase computations
+        self.eps = 1e-12
+
+        # Learnable transformations applied to feature norms
+        self.transform = nn.ModuleDict()
+        for m, d in self.fiber.structure:
+            self.transform[str(d)] = self._build_net(int(m))
+
+    def _build_net(self, m: int) -> nn.Sequential:
+        """
+        Builds the learnable transformation network applied to feature norms.
+
+        Parameters
+        ----------
+        m : `int`
+            The number of feature channels.
+
+        Returns
+        -------
+        `nn.Sequential`
+            A small MLP for transforming norms.
+        """
+        net: List[nn.Module] = []
+        for i in range(self.num_layers):
+            net.append(SE3LayerNorm(int(m)))  # Normalization per feature type
+            net.append(self.nonlin)  # Apply nonlinearity
+            net.append(nn.Linear(m, m, bias=(i == self.num_layers -
+                                             1)))  # Linear layer
+            nn.init.kaiming_uniform_(net[-1].weight)  # Weight initialization
+        if self.num_layers == 0:
+            net.append(SE3LayerNorm(int(m)))
+            net.append(self.nonlin)
+        return nn.Sequential(*net)
+
+    def forward(self, features: Dict[str, torch.Tensor], **kwargs):
+        """
+        Forward pass of SE(3)-equivariant normalization.
+
+        Parameters
+        ----------
+        features (Dict[str, torch.Tensor]):
+            Dictionary of input node features, where keys represent degrees.
+
+        Returns
+        -------
+        `Dict[str, torch.Tensor]`
+            Dictionary of normalized and transformed node features.
+        """
+        output = {}
+        for k, v in features.items():
+            # Compute norms and normalize feature vectors
+            norm = v.norm(2, -1, keepdim=True).clamp_min(self.eps).expand_as(v)
+            phase = v / norm  # Unit-normed representation
+
+            # Apply learnable transformation to norms
+            transformed = self.transform[str(k)](norm[..., 0]).unsqueeze(-1)
+
+            # Scale phase by transformed norms
+            output[k] = (transformed * phase).view(*v.shape)
+
+        return output
+
+
+class SE3PartialEdgeConv(nn.Module):
+    """
+    Graph SE(3)-equivariant node-to-edge partial convolution layer.
+
+    This layer applies a partial SE(3)-equivariant convolution, mapping 
+    node features to edge features while preserving SE(3) symmetry.
+
+    The operation:
+    - Computes a transformation of node features into edge features.
+    - Unlike `SE3GraphConv`, this does not sum over input channels, making 
+      it useful for computing value embeddings in attention mechanisms.
+    - Optionally integrates relative position embeddings between nodes.
+
+    The partial convolution operation follows:
+
+        e_ij = Σ W_d ( h_i ⊗ h_j )
+
+    where:
+    - `h_i, h_j` are node features of degrees `(d_in)`.
+    - `W_d` is a trainable convolution kernel per degree.
+    - `⊗` represents feature-channel-wise multiplication.
+    - `e_ij` is the output edge feature of degree `(d_out)`.
+
+    This unfolded structure makes it suitable for computing value embeddings
+    in attention-based SE(3)-equivariant models.
+
+    The layer supports injecting relative positions between connected nodes 
+    in the graph, with two modes:
+    - Concatenation (`x_ij='cat'`): Appends relative positions as a new feature.
+    - Addition (`x_ij='add'`): Directly modifies the existing vector feature.
+
+    Example
+    -------
+    >>> import torch
+    >>> import dgl
+    >>> import deepchem as dc
+    >>> from rdkit import Chem
+    >>> from deepchem.models.torch_models.layers import Fiber, SE3PartialEdgeConv
+    >>> from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
+
+    >>> # Create a molecular graph from SMILES
+    >>> mol = Chem.MolFromSmiles("CCO")
+
+    >>> # Extract SE(3)-equivariant features
+    >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
+    >>> features = featurizer.featurize([mol])[0]
+
+    >>> # Convert extracted features into a DGL graph
+    >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]), num_nodes=len(features.node_features))
+
+    >>> # Assign SE(3)-equivariant node & edge features
+    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)  # Node features
+    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)  # 3D coordinates
+    >>> G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)  # Edge distances
+    >>> G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)  # Edge weights
+
+    >>> # Define SE(3) Basis & Radial Functions
+    >>> basis, r = get_equivariant_basis_and_r(G, max_degree=2) 
+
+    >>> # Define Fiber Representations for Input & Output
+    >>> f_in = Fiber(dictionary={0: 16, 1: 32})  # Scalars (degree 0) & Vectors (degree 1)
+    >>> f_out = Fiber(dictionary={0: 32, 1: 64})  # Output transformations
+
+    >>> # Initialize `SE3PartialEdgeConv`
+    >>> edge_dim = 5
+    >>> gconv_partial = SE3PartialEdgeConv(f_in=f_in, f_out=f_out, edge_dim=edge_dim, x_ij='cat')
+
+    >>> # Convert Node Features into the Correct Format
+    >>> h = {str(d): torch.randn(G.num_nodes(), f_in.structure_dict[d], 2 * d + 1) for d in f_in.structure_dict}
+
+    >>> # Apply `SE3PartialEdgeConv` Layer
+    >>> output = gconv_partial(h, G=G, r=r, basis=basis)
+
+    >>> for key, tensor in output.items():
+    ...    print(tensor.shape)
+    torch.Size([6, 32, 1])
+    torch.Size([6, 64, 3])
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self,
+                 f_in: Fiber,
+                 f_out: Fiber,
+                 edge_dim: int = 0,
+                 x_ij=None) -> None:
+        """
+        Parameters
+        ----------
+        f_in (Fiber): 
+            Input fiber structure (multiplicities and types).
+        f_out (Fiber):
+            Output fiber structure.
+        edge_dim (int, optional):
+            Dimensionality of edge features. Default: `0`.
+        x_ij (str, optional):
+            Method to inject relative positions (`'cat'`, `'add'`, `None`).
+        """
+        super().__init__()
+        self.f_out = f_out
+        self.edge_dim = edge_dim
+
+        # Handling relative position embeddings
+        assert x_ij in [None, 'cat', 'add']
+        self.x_ij = x_ij
+        if x_ij == 'cat':
+            self.f_in = Fiber.combine(f_in,
+                                      Fiber(structure=[(1,
+                                                        1)]))  # Append rel-pos
+        else:
+            self.f_in = f_in
+
+        # Initialize convolution kernels
+        self.kernel_unary = nn.ModuleDict()
+        for (mi, di) in self.f_in.structure:
+            for (mo, do) in self.f_out.structure:
+                self.kernel_unary[f'({di},{do})'] = SE3PairwiseConv(
+                    di, mi, do, mo, edge_dim=edge_dim)
+
+    def udf_u_mul_e(self, d_out: int) -> Callable:
+        """Compute the partial convolution for a single output feature type.
+
+        This function is registered as a DGL user-defined function (UDF) for 
+        message passing between nodes and edges.
+
+        Parameters
+        ----------
+        d_out : int
+            Output feature degree.
+
+        Returns
+        -------
+        Function handle
+            The DGL UDF that performs the computation.
+        """
+
+        def fnc(edges):
+            msg = 0
+            for m_in, d_in in self.f_in.structure:
+                if self.x_ij == 'cat' and d_in == 1:
+                    rel = (edges.dst['x'] - edges.src['x']).view(-1, 3, 1)
+                    m_ori = m_in - 1
+                    src = rel if m_ori == 0 else torch.cat([
+                        edges.src[f'{d_in}'].view(-1, m_ori *
+                                                  (2 * d_in + 1), 1), rel
+                    ],
+                                                           dim=1)
+                elif self.x_ij == 'add' and d_in == 1 and m_in > 1:
+                    src = edges.src[f'{d_in}'].view(-1, m_in * (2 * d_in + 1),
+                                                    1)
+                    rel = (edges.dst['x'] - edges.src['x']).view(-1, 3, 1)
+                    src[..., :3, :1] = src[..., :3, :1] + rel
+                else:
+                    src = edges.src[f'{d_in}'].view(-1, m_in * (2 * d_in + 1),
+                                                    1)
+                edge = edges.data[f'({d_in},{d_out})']
+                msg = msg + torch.matmul(edge, src)
+            return {f'out{d_out}': msg.view(msg.shape[0], -1, 2 * d_out + 1)}
+
+        return fnc
+
+    def forward(self, h: Dict[str, torch.Tensor], G, r: torch.Tensor,
+                basis: Dict[str, torch.Tensor],
+                **kwargs: Any) -> Dict[str, torch.Tensor]:
+        """Forward pass of the SE(3)-equivariant partial convolution layer.
+
+        Parameters
+        ----------
+        h (Dict[str, torch.Tensor]):
+            Node features per degree.
+        G (dgl.DGLGraph):
+            Input graph representation.
+        r (torch.Tensor):
+            Pairwise inter-atomic distances.
+        basis (Dict[str, torch.Tensor]):
+            Precomputed SE(3) basis functions.
+
+        Returns
+        -------
+        `Dict[str, torch.Tensor]`
+            Transformed edge features per degree.
+        """
+        with G.local_scope():
+            for k, v in h.items():
+                G.ndata[k] = v
+
+            feat = torch.cat([G.edata['w'], r],
+                             -1) if 'w' in G.edata else torch.cat([r], -1)
+            for (mi, di) in self.f_in.structure:
+                for (mo, do) in self.f_out.structure:
+                    G.edata[f'({di},{do})'] = self.kernel_unary[f'({di},{do})'](
+                        feat, basis)
+
+            for d in self.f_out.degrees:
+                G.apply_edges(self.udf_u_mul_e(d))
+
+            return {f'{d}': G.edata[f'out{d}'] for d in self.f_out.degrees}
+
+
+class SE3ResidualAttention(nn.Module):
+    """
+    SE(3)-Equivariant Residual Attention Block for Graph Neural Networks.
+
+    This layer applies self-attention over SE(3)-equivariant features while preserving
+    rotation and translation equivariance. `SE3ResidualAttention` integrates:
+
+    - SE(3)-equivariant projections** (SE3GraphConvPartial, G1x1SE3)
+    - Multi-head attention** (GMABSE3)
+    - Skip connections** for better gradient flow (GSum, GCat)
+
+    Mathematical Formulation:
+    Given:
+    - `h` as input node features
+    - `G` as the input graph
+    - `W_Q`, `W_K`, `W_V` as projection matrices for queries, keys, and values
+
+    The attention mechanism follows:
+
+        q = W_Q * h  # Query
+        k = W_K * h  # Key
+        v = W_V * h  # Value
+
+        alpha = softmax(q ⋅ kᵀ / sqrt(d))  # Attention weights
+        z = alpha ⋅ v  # Aggregated output
+
+    The final transformation is applied via skip connections:
+
+        output = z + h  (if 'sum' skip connection is used)
+
+    Relevance to SE(3)-Transformers
+    - Maintains SE(3)-equivariance** through equivariant message passing.
+    - Incorporates attention** to adaptively weigh interactions between features.
+    - Uses multi-head attention** to capture multiple geometric relationships.
+
+    Example
+    -------
+    >>> import torch
+    >>> import dgl
+    >>> import deepchem as dc
+    >>> from rdkit import Chem
+    >>> from deepchem.models.torch_models.layers import Fiber, SE3ResidualAttention
+    >>> from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
+    >>> # Create a molecular graph from SMILES
+    >>> mol = Chem.MolFromSmiles("CCO")
+    >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
+    >>> features = featurizer.featurize([mol])[0]
+    >>>
+    >>> # Convert extracted features into a DGL graph
+    >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]), num_nodes=len(features.node_features))
+    >>> G.ndata["f"] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
+    >>> G.ndata["x"] = torch.tensor(features.positions, dtype=torch.float32)
+    >>> G.edata["d"] = torch.tensor(features.edge_features, dtype=torch.float32)
+    >>> G.edata["w"] = torch.tensor(features.edge_weights, dtype=torch.float32)
+    >>>
+    >>> # Define Fiber Representations
+    >>> f_in = Fiber(dictionary={0: 16, 1: 32})
+    >>> f_out = Fiber(dictionary={0: 32, 1: 64})
+    >>>
+    >>> # Define SE(3) Basis & Radial Functions
+    >>> basis, r = get_equivariant_basis_and_r(G, max_degree=2) 
+    >>>
+    >>> # Initialize SE(3)-Equivariant Residual Attention Layer
+    >>> gse3_res = SE3ResidualAttention(f_in, f_out, edge_dim=G.edata["w"].shape[-1], div=4, n_heads=4, skip="sum")
+    >>>
+    >>> # Convert Node Features into the Correct Format
+    >>> h = {str(d): torch.randn(G.num_nodes(), f_in.structure_dict[d], 2 * d + 1) for d in f_in.structure_dict}
+    >>>
+    >>> # Apply `SE3ResidualAttention` Layer (SE(3)-Equivariant Residual Attention)
+    >>> output = gse3_res(h, G, r=r, basis=basis)
+    >>> for key, tensor in output.items():
+    ...     print(tensor.shape)
+    torch.Size([3, 32, 1])
+    torch.Size([3, 64, 3])
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self,
+                 f_in: Fiber,
+                 f_out: Fiber,
+                 edge_dim: int = 0,
+                 div: float = 4,
+                 n_heads: int = 1,
+                 learnable_skip=True,
+                 skip='cat',
+                 selfint='1x1',
+                 x_ij=None) -> None:
+        """
+        Parameters
+        ----------
+        f_in : Fiber
+            Fiber defining the input feature types (multiplicities and degrees).
+        f_out : Fiber
+            Fiber defining the output feature types.
+        edge_dim : int, optional
+            Number of edge feature dimensions (default: `0`).
+        div : float, optional
+            Division factor for hidden dimension scaling (default: `4`).
+        n_heads : int, optional
+            Number of attention heads (default: `1`).
+        learnable_skip : bool, optional
+            Whether to make the skip connection learnable (default: `True`).
+        skip : str, optional
+            Type of skip connection (`'sum'`, `'cat'`, or `None`).
+        selfint : str, optional
+            Type of self-interaction (`'1x1'` or `'att'`).
+        x_ij : str, optional
+            How to handle relative positions (`None`, `'cat'`, or `'add'`).
+        """
+        super().__init__()
+        self.f_in = f_in
+        self.f_out = f_out
+        self.div = div
+        self.n_heads = n_heads
+        self.skip = skip  # valid options: 'cat', 'sum', None
+
+        # Reduce feature dimensions by `div` for attention
+        f_mid_out = {
+            k: int(v // div) for k, v in self.f_out.structure_dict.items()
+        }
+        self.f_mid_out = Fiber(dictionary=f_mid_out)
+
+        # Use only input degrees for key and query projections
+        f_mid_in = {
+            d: m for d, m in f_mid_out.items() if d in self.f_in.degrees
+        }
+        self.f_mid_in = Fiber(dictionary=f_mid_in)
+
+        self.edge_dim = edge_dim
+
+        # Multi-Head Attention Block
+        self.GMAB = nn.ModuleDict()
+
+        # Projection Layers
+        self.GMAB['v'] = SE3PartialEdgeConv(f_in,
+                                            self.f_mid_out,
+                                            edge_dim=edge_dim,
+                                            x_ij=x_ij)
+        self.GMAB['k'] = SE3PartialEdgeConv(f_in,
+                                            self.f_mid_in,
+                                            edge_dim=edge_dim,
+                                            x_ij=x_ij)
+        self.GMAB['q'] = SE3SelfInteraction(f_in, self.f_mid_in)
+
+        # Attention Layer
+        self.GMAB['attn'] = SE3MultiHeadAttention(self.f_mid_out,
+                                                  self.f_mid_in,
+                                                  n_heads=n_heads)
+
+        # Skip Connections
+        if self.skip == 'cat':
+            self.cat = SE3Cat(self.f_mid_out, f_in)
+            self.project = SE3AttentiveSelfInteraction(
+                self.cat.f_out,
+                f_out) if selfint == 'att' else SE3SelfInteraction(
+                    self.cat.f_out, f_out, learnable=learnable_skip)
+        elif self.skip == 'sum':
+            self.project = SE3SelfInteraction(self.f_mid_out,
+                                              f_out,
+                                              learnable=learnable_skip)
+            self.add = SE3Sum(f_out, f_in)
+
+            # Ensure the skip connection does not change the output structure
+            assert self.add.f_out.structure_dict == f_out.structure_dict, "Skip connection alters output structure."
+
+    def forward(self, features: Dict[str, torch.Tensor], G,
+                **kwargs) -> Dict[str, torch.Tensor]:
+        """Forward pass of the SE(3)-equivariant attention block.
+        
+        Parameters
+        ----------
+        features : Dict[str, torch.Tensor]
+            Dictionary of input node features, where keys represent degrees.
+        G : dgl.DGLGraph
+            Input graph representation.
+        
+        Returns
+        -------
+        `Dict[str, torch.Tensor]`
+            Transformed edge features per degree.
+        """
+        v = self.GMAB['v'](features, G=G, **kwargs)
+        k = self.GMAB['k'](features, G=G, **kwargs)
+        q = self.GMAB['q'](features, G=G)
+
+        z = self.GMAB['attn'](v, k=k, q=q, G=G)
+
+        if self.skip == 'cat':
+            z = self.cat(z, features)
+            z = self.project(z)
+        elif self.skip == 'sum':
+            z = self.project(z)
+            z = self.add(z, features)
+
+        return z
