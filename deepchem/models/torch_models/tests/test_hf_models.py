@@ -324,3 +324,43 @@ def test_modify_model_keys(tmpdir):
     assert torch.allclose(pretrained_weights, loaded_weights, atol=1e-4)
     assert not any(
         key.startswith("module.") for key in model.model.state_dict().keys())
+
+
+@pytest.mark.hf
+def test_load_molformer_model_from_hf_checkpoint(tmpdir):
+    """ Test loading a MoLFormer model from a Hugging Face-style checkpoint for different tasks.
+    The following task configurations are tested: mlm, classification (single-label and multi-label),
+    and regression.
+    """
+
+    pretrain_model = dc.models.torch_models.MoLFormer(task='mlm')
+    temp_file_path = os.path.join(tmpdir, 'molformer-test-hf-load')
+    pretrain_model.model.save_pretrained(save_directory=temp_file_path)
+
+    finetune_model = dc.models.torch_models.MoLFormer(task='classification',
+                                                      n_tasks=5)
+    finetune_model.load_from_pretrained(model_dir=temp_file_path,
+                                        from_hf_checkpoint=True)
+    assert finetune_model.model.config.problem_type == 'multi_label_classification'
+    assert finetune_model.model.config.num_labels == 5
+
+    finetune_model = dc.models.torch_models.MoLFormer(task='classification',
+                                                      n_tasks=1)
+    finetune_model.load_from_pretrained(model_dir=temp_file_path,
+                                        from_hf_checkpoint=True)
+    assert finetune_model.model.config.problem_type == 'single_label_classification'
+    assert finetune_model.model.config.num_labels == 2
+
+    finetune_model = dc.models.torch_models.MoLFormer(task='regression',
+                                                      n_tasks=5)
+    finetune_model.load_from_pretrained(model_dir=temp_file_path,
+                                        from_hf_checkpoint=True)
+    assert finetune_model.model.config.problem_type == 'regression'
+    assert finetune_model.model.config.num_labels == 5
+
+    finetune_model = dc.models.torch_models.MoLFormer(task='regression',
+                                                      n_tasks=1)
+    finetune_model.load_from_pretrained(model_dir=temp_file_path,
+                                        from_hf_checkpoint=True)
+    assert finetune_model.model.config.problem_type == 'regression'
+    assert finetune_model.model.config.num_labels == 1

@@ -57,6 +57,14 @@ class HuggingFaceModel(TorchModel):
         the last hidden states.
     tokenizer: transformers.tokenization_utils.PreTrainedTokenizer
         Tokenizer
+    config: dict, (optional, default None)
+        A dictionary of model configuration parameters that will be passed to the Hugging Face
+        `AutoModel` classes via `**kwargs` when loading from the hf_checkpoint. These parameters
+        are typically used to customize the behavior and architecture of the underlying transformer
+        model (e.g., number of layers, hidden size, dropout rates, etc.). When loading from pretrained
+        from hf_checkpoint, If any keys in `config` match configuration attributes supported by
+        the specific Hugging Face `AutoModel` being used, they will override the default settings
+        for that model.
 
     Example
     -------
@@ -133,6 +141,7 @@ class HuggingFaceModel(TorchModel):
             model: 'PreTrainedModel',
             tokenizer: 'transformers.tokenization_utils.PreTrainedTokenizer',
             task: Optional[str] = None,
+            config: Optional[Dict] = None,
             **kwargs):
         self.task = task
         self.tokenizer = tokenizer
@@ -143,6 +152,10 @@ class HuggingFaceModel(TorchModel):
             self.data_collator = None  # type: ignore
         # Ignoring type. For TorchModel, loss is a required argument but HuggingFace computes
         # loss during the forward iteration, removing the need for a loss function.
+        if config:
+            self.config = config
+        else:
+            self.config = {}
         super(HuggingFaceModel, self).__init__(
             model=model,
             loss=None,  # type: ignore
@@ -212,15 +225,18 @@ class HuggingFaceModel(TorchModel):
             # To use `load_from_pretrained` in DeepChem, we need to follow a two step process
             # of initialising class instance and then loading weights via `load_from_pretrained`.
             if self.task == 'mlm':
-                self.model = AutoModelForMaskedLM.from_pretrained(model_dir)
+                self.model = AutoModelForMaskedLM.from_pretrained(
+                    model_dir, trust_remote_code=True, **self.config)
             elif self.task in ['mtr', 'regression', 'classification']:
                 self.model = AutoModelForSequenceClassification.from_pretrained(
-                    model_dir)
+                    model_dir, trust_remote_code=True, **self.config)
             elif self.task == "universal_segmentation":
                 self.model = AutoModelForUniversalSegmentation.from_pretrained(
-                    model_dir)
+                    model_dir, trust_remote_code=True, **self.config)
             else:
-                self.model = AutoModel.from_pretrained(model_dir)
+                self.model = AutoModel.from_pretrained(model_dir,
+                                                       trust_remote_code=True,
+                                                       **self.config)
         elif not from_hf_checkpoint:
             checkpoints = sorted(self.get_checkpoints(model_dir))
             if len(checkpoints) == 0:
