@@ -4,7 +4,6 @@ SWEET dataset loader.
 import os
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
-from deepchem.molnel.featurizers import get_featurizer
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
@@ -35,14 +34,14 @@ class _SweetLoader (_MolnetLoader):
 
 
 def load_sweet(
-    featurizer: Union[dc.feat.Featurizer, str] = 'ECFP',
-    splitter: Union[dc.splits.Splitter, str, None] = 'scaffold',
-    transformers: List[Union[TransformerGenerator, str]] = ['balancing'],
+    featurizer: Union["dc.feat.Featurizer", str] = 'ECFP',
+    splitter: Union["dc.splits.Splitter", str, None] = 'scaffold',
+    transformers: List[Union["TransformerGenerator", str]] = ['balancing'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Load sweet datasets.
 
     Sweetlead is a dataset of chemical structures for approved drugs, chemical isolates

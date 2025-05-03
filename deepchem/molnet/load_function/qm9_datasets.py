@@ -37,14 +37,14 @@ class _QM9Loader(_MolnetLoader):
 
 
 def load_qm9(
-    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.CoulombMatrix(29),
-    splitter: Union[dc.splits.Splitter, str, None] = 'random',
-    transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
+    featurizer: Union["dc.feat.Featurizer", str] = "dc.feat.CoulombMatrix(29)",
+    splitter: Union["dc.splits.Splitter", str, None] = 'random',
+    transformers: List[Union["TransformerGenerator", str]] = ['normalization'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Load QM9 dataset
 
     QM9 is a comprehensive dataset that provides geometric, energetic,

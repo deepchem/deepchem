@@ -4,7 +4,6 @@ Tox21 dataset loader.
 import os
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
-from deepchem.models.featurizers import get_featurizer
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
@@ -35,15 +34,15 @@ class _Tox21Loader(_MolnetLoader):
 
 
 def load_tox21(
-    featurizer: Union[dc.feat.Featurizer, str] = 'ECFP',
-    splitter: Union[dc.splits.Splitter, str, None] = 'scaffold',
-    transformers: List[Union[TransformerGenerator, str]] = ['balancing'],
+    featurizer: Union["dc.feat.Featurizer", str] = 'ECFP',
+    splitter: Union["dc.splits.Splitter", str, None] = 'scaffold',
+    transformers: List[Union["TransformerGenerator", str]] = ['balancing'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     tasks: List[str] = TOX21_TASKS,
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Load Tox21 dataset
 
     The "Toxicology in the 21st Century" (Tox21) initiative created a public

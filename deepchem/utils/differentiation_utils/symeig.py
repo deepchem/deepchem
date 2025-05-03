@@ -1,6 +1,7 @@
 import torch
+from typing import List
 from typing import Optional, Sequence, Tuple, Union, Mapping, Any, Callable
-from deepchem.utils.differentiation_utils import LinearOperator, get_bcasted_dims, MatrixLinearOperator, set_default_option, get_and_pop_keys, dummy_context_manager, get_method, solve  # type: ignore
+from deepchem.utils.differentiation_utils import LinearOperator, get_bcasted_dims, MatrixLinearOperator, set_default_option, get_and_pop_keys, dummy_context_manager, get_method, solve #type: ignore
 import functools
 from deepchem.utils.pytorch_utils import tallqr, to_fortran_order
 import warnings
@@ -348,7 +349,9 @@ class symeig_torchfcn(torch.autograd.Function):
         return evals, evecs
 
     @staticmethod
-    def backward(ctx, grad_evals: torch.Tensor, grad_evecs: torch.Tensor) -> Tuple[Optional[torch.Tensor]]:
+    def backward(ctx: Any, *grad_outputs: Any) -> Tuple[Optional[torch.Tensor], ...]:
+        grad_evals, grad_evecs = grad_outputs
+
         """Calculate the gradient of the eigenvalues and eigenvectors of a linear operator
 
         Parameters
@@ -369,10 +372,8 @@ class symeig_torchfcn(torch.autograd.Function):
 
         M: Optional[LinearOperator] = ctx.M
         A: LinearOperator = ctx.A
-        degen_atol: Optional[float] = ctx.bck_alg_config[
-            "degen_atol"]  # type: ignore
-        degen_rtol: Optional[float] = ctx.bck_alg_config[
-            "degen_rtol"]  # type: ignore
+        degen_atol: Optional[float] = ctx.bck_alg_config["degen_atol"]  
+        degen_rtol: Optional[float] = ctx.bck_alg_config["degen_rtol"]  
 
         # set the default values of degen_*tol
         dtype = evals.dtype
@@ -456,8 +457,8 @@ class symeig_torchfcn(torch.autograd.Function):
             create_graph=torch.is_grad_enabled(),
         )
 
-        grad_mparams = []
-        if ctx.M is not None:
+        grad_mparams : List[Optional[torch.Tensor]] = []
+        if M is not None:
             with torch.enable_grad():
                 mparams = [p.clone().requires_grad_() for p in mparams]
                 with M.uselinopparams(*mparams):
@@ -471,12 +472,12 @@ class symeig_torchfcn(torch.autograd.Function):
                 evecs.conj())).unsqueeze(-2) * evecs  # (*BAM, na, neig)
 
             gaccumM = gevalsM + gevecsM + gevecsM_par
-            grad_mparams = torch.autograd.grad(
+            grad_mparams = list(torch.autograd.grad(
                 outputs=(mloss,),
                 inputs=mparams,
                 grad_outputs=(gaccumM,),
                 create_graph=torch.is_grad_enabled(),
-            )
+            ))
 
         return (None, None, None, None, None, None, None, *grad_params,
                 *grad_mparams)

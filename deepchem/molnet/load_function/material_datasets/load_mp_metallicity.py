@@ -38,14 +38,14 @@ class _MPMetallicityLoader(_MolnetLoader):
 
 
 def load_mp_metallicity(
-    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.SineCoulombMatrix(),
-    splitter: Union[dc.splits.Splitter, str, None] = 'random',
-    transformers: List[Union[TransformerGenerator, str]] = ['balancing'],
+    featurizer: Union["dc.feat.Featurizer", str] = "dc.feat.SineCoulombMatrix()",
+    splitter: Union["dc.splits.Splitter", str, None] = 'random',
+    transformers: List[Union["TransformerGenerator", str]] = ['balancing'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Load mp formation energy dataset.
 
     Contains 106113 inorganic crystal structures from the Materials

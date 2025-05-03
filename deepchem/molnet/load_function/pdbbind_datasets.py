@@ -119,16 +119,16 @@ class _PDBBindLoader(_MolnetLoader):
 
 
 def load_pdbbind(
-    featurizer: dc.feat.ComplexFeaturizer,
-    splitter: Union[dc.splits.Splitter, str, None] = 'random',
-    transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
+    featurizer: "dc.feat.ComplexFeaturizer",
+    splitter: Union["dc.splits.Splitter", str, None] = 'random',
+    transformers: List[Union["TransformerGenerator", str]] = ['normalization'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     pocket: bool = True,
     set_name: str = 'core',
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Load PDBBind dataset.
 
     The PDBBind dataset includes experimental binding affinity data

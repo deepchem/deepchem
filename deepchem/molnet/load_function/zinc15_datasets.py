@@ -59,9 +59,9 @@ class _Zinc15Loader(_MolnetLoader):
 
 
 def load_zinc15(
-    featurizer: Union[dc.feat.Featurizer, str] = 'OneHot',
-    splitter: Union[dc.splits.Splitter, str, None] = 'random',
-    transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
+    featurizer: Union["dc.feat.Featurizer", str] = 'OneHot',
+    splitter: Union["dc.splits.Splitter", str, None] = 'random',
+    transformers: List[Union["TransformerGenerator", str]] = ['normalization'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
@@ -69,7 +69,7 @@ def load_zinc15(
     dataset_dimension: str = '2D',
     tasks: List[str] = ZINC15_TASKS,
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Load zinc15.
 
     ZINC15 is a dataset of over 230 million purchasable compounds for

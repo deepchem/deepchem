@@ -35,14 +35,14 @@ class _FreesolvLoader (_MolnetLoader):
 
 
 def load_freesolv(
-    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.MATFeaturizer(),
-    splitter: Union[dc.splits.Splitter, str, None] = 'random',
-    transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
+    featurizer: Union["dc.feat.Featurizer", str] = "dc.feat.MATFeaturizer()",
+    splitter: Union["dc.splits.Splitter", str, None] = 'random',
+    transformers: List[Union["TransformerGenerator", str]] = ['normalization'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Load Freesolv dataset
 
     The FreeSolv dataset is a collection of experimental and calculated hydration
