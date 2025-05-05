@@ -15,16 +15,16 @@ class SE3Transformer(nn.Module):
     """
     SE(3)-Equivariant Graph Convolutional Network with Attention (SE3Transformer).
 
-    This model is designed for **SE(3)-equivariant learning** on molecular graphs.
-    The core of the model consists of a series of **SE(3)-equivariant layers**, including **residual attention** layers,
+    This model is designed for SE(3)-equivariant learning on molecular graphs.
+    The core of the model consists of a series of SE(3)-equivariant layers, including **residual attention** layers,
     graph convolution layers, and pooling layers. The architecture allows the model to learn representations
-    that are invariant to **rotations and translations** of the molecular structures.
+    that are invariant to rotations and translations of the molecular structures.
 
     The SE3Transformer model consists of:
-    1. **SE(3)-equivariant graph convolution layers** for learning node-level representations.
-    2. **Residual attention layers** to enable better feature learning.
-    3. **Pooling layers** (either max or average pooling) to aggregate node features into a graph-level representation.
-    4. **Fully connected layers** for final output prediction.
+    1. SE(3)-equivariant graph convolution layers** for learning node-level representations.
+    2. Residual attention layers to enable better feature learning.
+    3. Pooling layers (either max or average pooling) to aggregate node features into a graph-level representation.
+    4. Fully connected layers for final output prediction.
 
     Parameters
     ----------
@@ -187,7 +187,6 @@ class SE3Transformer(nn.Module):
         """
         basis, r = get_equivariant_basis_and_r(G, self.num_degrees - 1)
 
-        # encoder (equivariant layers)
         h = {'0': G.ndata['x'].unsqueeze(-1)}
 
         for layer in self.SE3G:
