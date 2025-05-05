@@ -107,7 +107,7 @@ class EquivariantGraphFeaturizer(MolecularFeaturizer):
                          edge_index=np.array([src, dst]),
                          edge_features=edge_features,
                          edge_weights=edge_weights,
-                         positions=positions)
+                         node_pos_features=positions)
 
     def _get_node_features(self, mol: RDKitMol) -> Tuple[ArrayLike, ArrayLike]:
         """Generates node features and positions.

@@ -51,10 +51,12 @@ def create_test_graph(smiles):
 
     G = dgl.graph((features.edge_index[0], features.edge_index[1]),
                   num_nodes=len(features.node_features))
-    G.ndata['f'] = torch.tensor(features.node_features,
+    G.ndata['x'] = torch.tensor(features.node_features,
                                 dtype=torch.float32).unsqueeze(-1)
-    G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)
-    G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)
+    G.ndata['pos'] = torch.tensor(features.node_pos_features,
+                                  dtype=torch.float32)
+    G.edata['edge_attr'] = torch.tensor(features.edge_features,
+                                        dtype=torch.float32)
     G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
 
     basis, r = get_equivariant_basis_and_r(G, max_degree=3)
@@ -82,6 +84,43 @@ def apply_rotation(x, axis, angle):
     return torch.tensor(np.dot(x.numpy(), R), dtype=torch.float32)
 
 
+def create_random_molecular_dataset():
+    """Helper function to create a test molecular graph from SMILES."""
+    from rdkit import Chem
+    import deepchem as dc
+    import numpy as np
+    from deepchem.splits import RandomSplitter
+
+    gd, smiles = [], [
+        "CCO",
+        "CC(=O)O",
+        "C1=CC=CC=C1",
+        "CC(C)O",
+        "CC(C)C(=O)O",
+        "CCC(C)CO",
+        "C1CCCCC1",
+        "C1=CC=CN=C1",
+    ]
+
+    featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True,
+                                                    embeded=True)
+    for m in smiles:
+        mol = Chem.MolFromSmiles(m)
+
+        features = featurizer.featurize([mol])[0]
+        gd.append(features)
+
+    labels = np.random.rand(len(gd), 12)
+    weights = np.ones_like(labels)
+
+    dataset = dc.data.NumpyDataset(X=gd, y=labels, w=weights)
+
+    splitter = RandomSplitter()
+    train_dataset, valid_dataset, test_dataset = splitter.train_valid_test_split(
+        dataset)
+    return train_dataset, valid_dataset, test_dataset
+
+
 @pytest.mark.torch
 @pytest.mark.parametrize("max_degree, nc_in, nc_out, edge_dim",
                          [(3, 32, 128, 5)])
@@ -106,11 +145,12 @@ def test_se3pairwiseconv_equivariance(max_degree, nc_in, nc_out, edge_dim):
                                     edge_dim=5)
 
     G = dgl.graph((mol_graph.edge_index[0], mol_graph.edge_index[1]))
-    G.ndata['f'] = torch.tensor(mol_graph.node_features,
+    G.ndata['x'] = torch.tensor(mol_graph.node_features,
                                 dtype=torch.float32).unsqueeze(-1)
-    G.ndata['x'] = torch.tensor(mol_graph.positions,
-                                dtype=torch.float32)  # Atomic positions
-    G.edata['d'] = torch.tensor(mol_graph.edge_features, dtype=torch.float32)
+    G.ndata['pos'] = torch.tensor(mol_graph.node_pos_features,
+                                  dtype=torch.float32)  # Atomic positions
+    G.edata['edge_attr'] = torch.tensor(mol_graph.edge_features,
+                                        dtype=torch.float32)
     G.edata['w'] = torch.tensor(mol_graph.edge_weights, dtype=torch.float32)
 
     # Compute initial SE(3) equivariant basis and r
@@ -124,7 +164,8 @@ def test_se3pairwiseconv_equivariance(max_degree, nc_in, nc_out, edge_dim):
     # Apply random graph rotation to nodes
     axis = np.array([1.0, 1.0, 1.0])  # Rotate around (1,1,1) axis
     angle = np.pi / 4  # 45-degree rotation
-    G.ndata['x'] = apply_rotation(G.ndata['x'], axis, angle)  # Apply rotation
+    G.ndata['pos'] = apply_rotation(G.ndata['pos'], axis,
+                                    angle)  # Apply rotation
 
     # Compute SE(3) rotated equivariant basis and r
     basis_rotated, r_rotated = get_equivariant_basis_and_r(G, max_degree)
@@ -202,9 +243,10 @@ def test_se3_cat_layer(batch_size, num_nodes, channels_0, channels_1):
     (4, 10, 16, 32),
     (2, 6, 8, 16),
 ])
-def test_se3_avgpooling_layer(batch_size, num_nodes, channels_0, channels_1):
+def test_se3_avg_max_pooling_layer(batch_size, num_nodes, channels_0,
+                                   channels_1):
     """Test SE3AvgPooling with scalar (degree 0) and vector (degree 1) features."""
-    from deepchem.models.torch_models.layers import SE3AvgPooling
+    from deepchem.models.torch_models.layers import SE3AvgPooling, SE3MaxPooling
     import dgl
 
     # Create DGL graph
@@ -218,20 +260,28 @@ def test_se3_avgpooling_layer(batch_size, num_nodes, channels_0, channels_1):
     }
 
     # Initialize Pooling Layers
-    pool_0 = SE3AvgPooling(pooling_type='0')  # Scalars
-    pool_1 = SE3AvgPooling(pooling_type='1')  # Vectors
+    pool_0_avg = SE3AvgPooling(pooling_type='0')  # Scalars
+    pool_1_avg = SE3AvgPooling(pooling_type='1')  # Vectors
+
+    pool_0_max = SE3MaxPooling(pooling_type='0')  # Scalars
+    pool_1_max = SE3MaxPooling(pooling_type='1')  # Vectors
 
     # Apply Pooling
-    pooled_0 = pool_0(features, G)  # Scalar pooling
-    pooled_1 = pool_1(features, G)  # Vector pooling
+    pooled_0_avg = pool_0_avg(features, G)  # Scalar pooling
+    pooled_1_avg = pool_1_avg(features, G)  # Vector pooling
+
+    pooled_0_max = pool_0_max(features, G)  # Scalar pooling
+    pooled_1_max = pool_1_max(features, G)  # Vector pooling
 
     # Expected output shapes
     expected_shape_0 = torch.randn(1).shape  # Adjust dynamically
     expected_shape_1 = torch.randn(1, channels_1, 3).shape  # Adjust dynamically
 
-    assert pooled_0.shape == expected_shape_0
+    assert pooled_0_avg.shape == expected_shape_0
+    assert pooled_0_max.shape == expected_shape_0
 
-    assert pooled_1['1'].shape == expected_shape_1
+    assert pooled_1_avg['1'].shape == expected_shape_1
+    assert pooled_1_max['1'].shape == expected_shape_1
 
 
 @pytest.mark.torch
@@ -487,7 +537,7 @@ def test_se3_multi_head_attention_equivariance(smiles, n_heads, feature_dims):
     # Apply random rotation
     axis = np.array([1.0, 0.0, 0.0])  # Rotate around x-axis
     angle = np.pi / 4  # 45-degree rotation
-    G.ndata['x'] = apply_rotation(G.ndata['x'], axis, angle)
+    G.ndata['pos'] = apply_rotation(G.ndata['pos'], axis, angle)
 
     # Compute output with rotation
     output_rotated = gmab(v, k=k, q=q, G=G)
@@ -640,7 +690,7 @@ def test_se3_gconv_equivariance():
     }
 
     R = torch.tensor([[0, -1, 0], [1, 0, 0], [0, 0, 1]], dtype=torch.float32)
-    G.ndata['x'] = G.ndata['x'] @ R.T
+    G.ndata['pos'] = G.ndata['pos'] @ R.T
 
     output_rotated = layer(h, G=G, r=r, basis=basis)
     output_original = layer(h, G=G, r=r, basis=basis)
@@ -686,7 +736,7 @@ def test_se3graphnorm_equivariance():
         "1": torch.randn(G.num_nodes(), 32, 3)
     }
     R = torch.tensor([[0, -1, 0], [1, 0, 0], [0, 0, 1]], dtype=torch.float32)
-    G.ndata['x'] = G.ndata['x'] @ R.T
+    G.ndata['pos'] = G.ndata['pos'] @ R.T
 
     output_rotated = norm_layer(h, G=G)
     rotated_vectors = output_rotated['1'] @ R.T
@@ -827,3 +877,126 @@ def test_se3residualattention_equivariance():
         expected = (G.num_nodes(), fibers["mid"].structure_dict[d_int],
                     2 * d_int + 1)
         assert t.shape == expected
+
+
+@pytest.mark.torch
+def test_se3_transformers_overfit():
+    """Test SE3TransformerModel overfitting on a small dataset."""
+    from deepchem.models.torch_models import SE3TransformerModel
+    train_dataset, _, _ = create_random_molecular_dataset()
+    model = SE3TransformerModel(
+        n_tasks=1,
+        task='homo',
+        num_layers=5,
+        atom_feature_size=6,
+        num_workers=4,
+        num_channels=32,
+        num_nlayers=1,
+        num_degrees=4,
+        edge_dim=5,
+        pooling='max',
+        n_heads=8,
+        batch_size=4,
+    )
+
+    loss = model.fit(train_dataset, nb_epoch=50)
+    assert loss < 0.3, "Failed to overfit"
+
+
+@pytest.mark.torch
+def test_se3_transformers_reload():
+    """Test SE3TransformerModel model reload."""
+    from deepchem.models.torch_models import SE3TransformerModel
+    import tempfile
+    model_dir = tempfile.mkdtemp()
+    model = SE3TransformerModel(n_tasks=1,
+                                task='homo',
+                                num_layers=2,
+                                atom_feature_size=6,
+                                num_workers=4,
+                                num_channels=32,
+                                num_nlayers=1,
+                                num_degrees=4,
+                                edge_dim=5,
+                                pooling='avg',
+                                n_heads=8,
+                                batch_size=6,
+                                model_dir=model_dir)
+
+    dataset, _, _ = create_random_molecular_dataset()
+    model.fit(dataset, nb_epoch=1)
+    pred_before = model.predict(dataset)
+
+    reloaded_model = SE3TransformerModel(n_tasks=1,
+                                         task='homo',
+                                         num_layers=2,
+                                         atom_feature_size=6,
+                                         num_workers=4,
+                                         num_channels=32,
+                                         num_nlayers=1,
+                                         num_degrees=4,
+                                         edge_dim=5,
+                                         pooling='avg',
+                                         n_heads=8,
+                                         batch_size=6,
+                                         model_dir=model_dir)
+    reloaded_model.restore()
+    pred_after = reloaded_model.predict(dataset)
+    assert np.allclose(pred_before, pred_after, atol=1e-04)
+
+
+@pytest.mark.torch
+def test_se3_transformers_equivariance():
+    from deepchem.feat import EquivariantGraphFeaturizer
+    from deepchem.models.torch_models import SE3TransformerModel
+    from rdkit import Chem
+    import torch
+    import math
+
+    smile = "CCC"
+    mol = Chem.MolFromSmiles(smile)
+
+    featurizer = EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
+    featurized_mol = featurizer.featurize(mol)
+
+    model = SE3TransformerModel(
+        n_tasks=1,
+        task='homo',
+        num_layers=2,
+        atom_feature_size=6,
+        num_workers=4,
+        num_channels=32,
+        num_nlayers=1,
+        num_degrees=4,
+        edge_dim=5,
+        pooling='max',
+        n_heads=8,
+        batch_size=3,
+    )
+
+    dataset, _, _ = create_random_molecular_dataset()
+
+    model.fit(dataset, nb_epoch=2)
+
+    prediction = model.predict_on_batch(featurized_mol)
+
+    x = featurized_mol[0].node_pos_features
+
+    # Define a rotation matrix (90 degrees around Z-axis)
+    theta = math.radians(90)
+    Rz = torch.tensor([[math.cos(theta), -math.sin(theta), 0],
+                       [math.sin(theta), math.cos(theta), 0], [0, 0, 1]])
+
+    alpha = 35
+
+    Ry = torch.tensor([[math.cos(alpha), 0, math.sin(alpha)], [0, 1, 0],
+                       [-math.sin(alpha), 0,
+                        math.cos(alpha)]])
+
+    # Rotate node positions
+    x_rotated = torch.from_numpy(x) @ Rz.T
+    x_rotated = x_rotated @ Ry.T
+    featurized_mol[0].node_pos_features = x_rotated.numpy()
+
+    prediction_rotated = model.predict_on_batch(featurized_mol)
+    assert np.allclose(prediction, prediction_rotated)
