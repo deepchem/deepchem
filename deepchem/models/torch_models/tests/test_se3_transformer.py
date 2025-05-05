@@ -52,7 +52,7 @@ def create_test_graph(smiles):
     G = dgl.graph((features.edge_index[0], features.edge_index[1]),
                   num_nodes=len(features.node_features))
     G.ndata['x'] = torch.tensor(features.node_features,
-                                dtype=torch.float32).unsqueeze(-1)
+                                dtype=torch.float32).squeeze(-1)
     G.ndata['pos'] = torch.tensor(features.node_pos_features,
                                   dtype=torch.float32)
     G.edata['edge_attr'] = torch.tensor(features.edge_features,
@@ -174,7 +174,7 @@ def test_se3pairwiseconv_equivariance(max_degree, nc_in, nc_out, edge_dim):
     output_original = pairwise_conv(feat, basis)
 
     # Compute edge features for rotated graph
-    r_rotated = torch.sqrt(torch.sum(G.edata["d"]**2, -1, keepdim=True))
+    r_rotated = torch.sqrt(torch.sum(G.edata["edge_attr"]**2, -1, keepdim=True))
     feat_rotated = torch.cat([G.edata["w"], r_rotated],
                              -1) if "w" in G.edata else torch.cat([r_rotated],
                                                                   -1)
@@ -753,8 +753,25 @@ def test_se3graphnorm_equivariance():
 def test_se3partialedgeconv_forward_pass():
     """Tests forward pass of SE3PartialEdgeConv."""
     from deepchem.models.torch_models.layers import SE3PartialEdgeConv, Fiber
+    from rdkit import Chem
+    import dgl
+    from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
 
-    G, basis, r = create_test_graph("CCO")
+    mol = Chem.MolFromSmiles('CCO')
+    featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True,
+                                                    embeded=True)
+    features = featurizer.featurize([mol])[0]
+
+    G = dgl.graph((features.edge_index[0], features.edge_index[1]),
+                  num_nodes=len(features.node_features))
+    G.ndata['f'] = torch.tensor(features.node_features,
+                                dtype=torch.float32).unsqueeze(-1)
+    G.ndata['x'] = torch.tensor(features.node_pos_features, dtype=torch.float32)
+    G.edata['edge_attr'] = torch.tensor(features.edge_features,
+                                        dtype=torch.float32)
+    G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
+
+    basis, r = get_equivariant_basis_and_r(G, max_degree=2)
 
     f_in = Fiber(dictionary={0: 16, 1: 32})
     f_out = Fiber(dictionary={0: 32, 1: 64})
@@ -776,9 +793,25 @@ def test_se3partialedgeconv_forward_pass():
 def test_se3partialedgeconv_equivariance():
     """Tests SE3PartialEdgeConv for equivariance."""
     from deepchem.models.torch_models.layers import SE3PartialEdgeConv, Fiber
+    from rdkit import Chem
+    import dgl
+    from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
 
-    G, basis, r = create_test_graph("CCO")
+    mol = Chem.MolFromSmiles('CCO')
+    featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True,
+                                                    embeded=True)
+    features = featurizer.featurize([mol])[0]
 
+    G = dgl.graph((features.edge_index[0], features.edge_index[1]),
+                  num_nodes=len(features.node_features))
+    G.ndata['f'] = torch.tensor(features.node_features,
+                                dtype=torch.float32).unsqueeze(-1)
+    G.ndata['x'] = torch.tensor(features.node_pos_features, dtype=torch.float32)
+    G.edata['edge_attr'] = torch.tensor(features.edge_features,
+                                        dtype=torch.float32)
+    G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
+
+    basis, r = get_equivariant_basis_and_r(G, max_degree=2)
     f_in = Fiber(dictionary={0: 16, 1: 32})
     f_out = Fiber(dictionary={0: 32, 1: 64})
     conv = SE3PartialEdgeConv(f_in=f_in, f_out=f_out, edge_dim=5, x_ij='cat')
@@ -809,7 +842,7 @@ def test_se3residualattention_forward_pass():
     G, basis, r = create_test_graph("CCO")
 
     atom_dim = 6
-    deg = 3
+    deg = 4
     ch = 32
 
     fibers = {
@@ -818,7 +851,7 @@ def test_se3residualattention_forward_pass():
         "out": Fiber(1, deg * ch)
     }
 
-    h = {"0": G.ndata["f"]}
+    h = {'0': G.ndata['x'].unsqueeze(-1)}
 
     conv = SE3ResidualAttention(fibers["in"],
                                 fibers["mid"],
@@ -843,7 +876,7 @@ def test_se3residualattention_equivariance():
     G, basis, r = create_test_graph("CCO")
 
     atom_dim = 6
-    deg = 3
+    deg = 4
     ch = 32
 
     fibers = {
@@ -852,14 +885,14 @@ def test_se3residualattention_equivariance():
         "out": Fiber(1, deg * ch)
     }
 
-    h = {"0": G.ndata["f"]}
+    h = {'0': G.ndata['x'].unsqueeze(-1)}
 
     axis = np.random.randn(3)
     angle = np.random.uniform(0, 2 * np.pi)
     R_np = rotation_matrix(axis, angle)
     R = torch.tensor(R_np, dtype=torch.float32)
 
-    G.ndata["x"] = G.ndata["x"] @ R.T
+    G.ndata["pos"] = G.ndata["pos"] @ R.T
 
     conv = SE3ResidualAttention(fibers["in"],
                                 fibers["mid"],
@@ -868,7 +901,7 @@ def test_se3residualattention_equivariance():
                                 n_heads=8)
 
     out_rot = conv(h, G=G, r=r, basis=basis)
-    G.ndata["x"] = G.ndata["x"] @ R  # Revert to original
+    G.ndata["pos"] = G.ndata["pos"] @ R  # Revert to original
     out_ref = conv(h, G=G, r=r, basis=basis)
 
     assert torch.allclose(out_rot["0"], out_ref["0"], atol=1e-4)

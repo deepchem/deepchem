@@ -1,7 +1,6 @@
 import math
 from typing import Optional, List, Dict, Tuple
 import torch
-import numpy as np
 from deepchem.models.torch_models.layers import Fiber
 
 
@@ -726,9 +725,6 @@ def basis_transformation_Q_J(
     order_out: int,
     eps: float = 1e-10,
     num_samples: int = 5,
-    random_angle_higher: float = 6.2,
-    random_angle_lower: float = 0.2,
-    random_seed: int = 42,
 ) -> torch.Tensor:
     """
     Compute one part of the Q^-1 matrix for the article.
@@ -774,7 +770,6 @@ def basis_transformation_Q_J(
     """
     original_dtype = torch.get_default_dtype()
     torch.set_default_dtype(torch.float64)
-    torch.manual_seed(random_seed)
 
     def _R_tensor(a: float, b: float, c: float) -> torch.Tensor:
         """
@@ -841,9 +836,11 @@ def basis_transformation_Q_J(
         return kron(R_tensor, torch.eye(R_irrep_J.size(0))) - \
                    kron(torch.eye(R_tensor.size(0)), R_irrep_J.t())
 
-    random_angles = np.random.uniform(random_angle_lower,
-                                      random_angle_higher,
-                                      size=(num_samples, 3))
+    random_angles = [[4.41301023, 5.56684102, 4.59384642],
+                     [4.93325116, 6.12697327, 4.14574096],
+                     [0.53878964, 4.09050444, 5.36539036],
+                     [2.16017393, 3.48835314, 5.55174441],
+                     [2.52385107, 0.2908958, 3.90040975]]
 
     null_space = get_matrices_kernel(
         [_sylvester_submatrix(J, a, b, c) for a, b, c in random_angles])
