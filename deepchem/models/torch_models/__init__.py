@@ -35,6 +35,7 @@ from deepchem.models.torch_models.unet import UNet, UNetModel
 from deepchem.models.torch_models.graphconvmodel import _GraphConvTorchModel, GraphConvModel
 from deepchem.models.torch_models.smiles2vec import Smiles2Vec, Smiles2VecModel
 from deepchem.models.torch_models.robust_multitask import RobustMultitask
+from deepchem.models.torch_models.lstm_generator_models import LSTMNeuralNet, LSTMGenerator
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
 from deepchem.models.torch_models.inceptionv3 import InceptionV3Model, InceptionA, InceptionB, InceptionC, InceptionD, InceptionE, InceptionAux, BasicConv2d
 from deepchem.models.torch_models.mobilenetv2 import MobileNetV2Model, InvertedResidual
