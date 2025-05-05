@@ -423,6 +423,9 @@ Attention Layers
 .. autoclass:: deepchem.models.torch_models.layers.SE3ResidualAttention
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.SE3MaxPooling
+  :members:
+
 Readout Layers
 ^^^^^^^^^^^^^^
 

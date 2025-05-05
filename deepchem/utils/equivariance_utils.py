@@ -1,7 +1,6 @@
 import math
 from typing import Optional, List, Dict, Tuple
 import torch
-import numpy as np
 from deepchem.models.torch_models.layers import Fiber
 
 
@@ -140,7 +139,7 @@ def get_basis(G,
     Parameters
     ----------
     G:  dgl.DGLGraph
-        DGL graph where `G.edata['d']` stores edge displacement vectors.
+        DGL graph where `G.edata['edge_attr']` stores edge displacement vectors.
     max_degree: int
         Maximum degree (`l_max`) of equivariant tensors.
     compute_gradients: `bool`, optional, default=`False`
@@ -165,9 +164,9 @@ def get_basis(G,
     >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
     >>> features = featurizer.featurize([mol])[0]
     >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]))
-    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
-    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)
-    >>> G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)
+    >>> G.ndata['x'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
+    >>> G.ndata['pos'] = torch.tensor(features.node_pos_features, dtype=torch.float32)
+    >>> G.edata['edge_attr'] = torch.tensor(features.edge_features, dtype=torch.float32)
     >>> G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
     >>> basis = get_basis(G, max_degree=2)
     >>> print(basis.keys())
@@ -177,8 +176,8 @@ def get_basis(G,
     context = torch.enable_grad() if compute_gradients else torch.no_grad()
 
     with context:
-        cloned_d = torch.clone(G.edata['d'])
-        if G.edata['d'].requires_grad:
+        cloned_d = torch.clone(G.edata['edge_attr'])
+        if G.edata['edge_attr'].requires_grad:
             cloned_d.requires_grad_()
 
         # Compute relative positional encodings in spherical coordinates
@@ -219,7 +218,7 @@ def get_r(G) -> torch.Tensor:
     Parameters
     ----------
     G : dgl.DGLGraph
-        The input graph where `G.edata['d']` contains edge displacement vectors.
+        The input graph where `G.edata['edge_attr']` contains edge displacement vectors.
 
     Returns
     -------
@@ -238,17 +237,17 @@ def get_r(G) -> torch.Tensor:
     >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
     >>> features = featurizer.featurize([mol])[0]
     >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]))
-    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
-    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)
-    >>> G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)
+    >>> G.ndata['x'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
+    >>> G.ndata['pos'] = torch.tensor(features.node_pos_features, dtype=torch.float32)
+    >>> G.edata['edge_attr'] = torch.tensor(features.edge_features, dtype=torch.float32)
     >>> G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
     >>> # Compute internodal distances
     >>> r = get_r(G)
     >>> print(r.shape)  # (num_edges, 1)
     torch.Size([6, 1])
     """
-    cloned_d = torch.clone(G.edata['d'])
-    if G.edata['d'].requires_grad:
+    cloned_d = torch.clone(G.edata['edge_attr'])
+    if G.edata['edge_attr'].requires_grad:
         cloned_d.requires_grad_()
     return torch.sqrt(torch.sum(cloned_d**2, -1, keepdim=True))
 
@@ -294,9 +293,9 @@ def get_equivariant_basis_and_r(
     >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
     >>> features = featurizer.featurize([mol])[0]
     >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]))
-    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
-    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)
-    >>> G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)
+    >>> G.ndata['x'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
+    >>> G.ndata['pos'] = torch.tensor(features.node_pos_features, dtype=torch.float32)
+    >>> G.edata['edge_attr'] = torch.tensor(features.edge_features, dtype=torch.float32)
     >>> G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
     >>> # Compute basis and distances
     >>> basis, r = get_equivariant_basis_and_r(G, max_degree=2)
@@ -720,13 +719,13 @@ def get_matrices_kernel(As: List[torch.Tensor],
     return get_matrix_kernel(torch.cat(As, dim=0), eps)
 
 
-def basis_transformation_Q_J(J: int,
-                             order_in: int,
-                             order_out: int,
-                             eps: float = 1e-10,
-                             num_samples: int = 5,
-                             random_angle_higher: float = 6.2,
-                             random_angle_lower: float = 0.2) -> torch.Tensor:
+def basis_transformation_Q_J(
+    J: int,
+    order_in: int,
+    order_out: int,
+    eps: float = 1e-10,
+    num_samples: int = 5,
+) -> torch.Tensor:
     """
     Compute one part of the Q^-1 matrix for the article.
 
@@ -837,9 +836,11 @@ def basis_transformation_Q_J(J: int,
         return kron(R_tensor, torch.eye(R_irrep_J.size(0))) - \
                    kron(torch.eye(R_tensor.size(0)), R_irrep_J.t())
 
-    random_angles = np.random.uniform(random_angle_lower,
-                                      random_angle_higher,
-                                      size=(num_samples, 3))
+    random_angles = [[4.41301023, 5.56684102, 4.59384642],
+                     [4.93325116, 6.12697327, 4.14574096],
+                     [0.53878964, 4.09050444, 5.36539036],
+                     [2.16017393, 3.48835314, 5.55174441],
+                     [2.52385107, 0.2908958, 3.90040975]]
 
     null_space = get_matrices_kernel(
         [_sylvester_submatrix(J, a, b, c) for a, b, c in random_angles])
