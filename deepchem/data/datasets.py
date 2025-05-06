@@ -40,7 +40,7 @@ def sparsify_features(X: np.ndarray) -> np.ndarray:
     -------
     X_sparse: np.ndarray
         A numpy array with `dtype=object` where `X_sparse[i]` is a
-        typle of `(nonzero_inds, nonzero_vals)` with nonzero indices and
+        tuple of `(nonzero_inds, nonzero_vals)` with nonzero indices and
         values in the i-th sample of `X`.
     """
     n_samples = len(X)
@@ -698,7 +698,7 @@ class Dataset(object):
         return NumpyDataset(X_val, y_val, w_val, ids_val)
 
     def to_csv(self, path: str) -> None:
-        """Write object to a comma-seperated values (CSV) file
+        """Write object to a comma-separated values (CSV) file
 
         Example
         -------
@@ -1222,7 +1222,7 @@ class DiskDataset(Dataset):
         if len(self.metadata_df.columns) == 4 and list(
                 self.metadata_df.columns) == ['ids', 'X', 'y', 'w']:
             logger.info(
-                "Detected legacy metatadata on disk. You can upgrade from legacy metadata "
+                "Detected legacy metadata on disk. You can upgrade from legacy metadata "
                 "to the more efficient current metadata by resharding this dataset "
                 "by calling the reshard() method of this object.")
             self.legacy_metadata = True
@@ -1819,7 +1819,7 @@ class DiskDataset(Dataset):
             If True, use multiple processes to transform the dataset in parallel.
         out_dir: str, optional (default None)
             The directory to save the new dataset in. If this is omitted, a
-            temporary directory is created automaticall.
+            temporary directory is created automatically.
 
         Returns
         -------
@@ -2341,11 +2341,11 @@ class DiskDataset(Dataset):
         ----------
         X: np.ndarray
             Feature array.
-        y: np.ndarray, optioanl (default None)
+        y: np.ndarray, optional (default None)
             Labels array.
-        w: np.ndarray, optioanl (default None)
+        w: np.ndarray, optional (default None)
             Weights array.
-        ids: np.ndarray, optioanl (default None)
+        ids: np.ndarray, optional (default None)
             Identifiers array.
         """
         metadata_rows = self.metadata_df.values.tolist()
@@ -2371,11 +2371,11 @@ class DiskDataset(Dataset):
             Shard index for shard to set new data.
         X: np.ndarray
             Feature array.
-        y: np.ndarray, optioanl (default None)
+        y: np.ndarray, optional (default None)
             Labels array.
-        w: np.ndarray, optioanl (default None)
+        w: np.ndarray, optional (default None)
             Weights array.
-        ids: np.ndarray, optioanl (default None)
+        ids: np.ndarray, optional (default None)
             Identifiers array.
         """
         basename = "shard-%d" % shard_num
@@ -2689,7 +2689,7 @@ class DiskDataset(Dataset):
                     ids_shape[0] += shard_ids_shape[0]
             return tuple(X_shape), tuple(y_shape), tuple(w_shape), tuple(
                 ids_shape)
-        # In absense of shape metadata, fall back to loading data from disk to
+        # In absence of shape metadata, fall back to loading data from disk to
         # find shape.
         else:
             for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
@@ -2857,7 +2857,7 @@ class ImageDataset(Dataset):
                 if not deterministic:
                     sample_perm = np.random.permutation(n_samples)
                 batch_idx = 0
-                num_batches = np.math.ceil(n_samples / batch_size)
+                num_batches = math.ceil(n_samples / batch_size)
                 while batch_idx < num_batches:
                     start = batch_idx * batch_size
                     end = min(n_samples, (batch_idx + 1) * batch_size)
