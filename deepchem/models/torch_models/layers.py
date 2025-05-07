@@ -434,24 +434,65 @@ class ScaleNorm(nn.Module):
 
 class ActNorm(nn.Module):
     """
-    PINO Activation normalization layer that applies learnable scaling and bias.
+    PINO Activation Normalization Layer.
 
-    This layer is a per-channel affine normalization used by the
-    Physics-Informed Neural Operator (PINO) to stabilize spectral
-    block outputs. It applies the learnable transformation:
+    Performs a learnable per-channel affine transformation to stabilize
+    activations coming out of spectral convolution blocks in the Physics-Informed
+    Neural Operator (PINO).
 
-        y = scale * x + bias
+    The transformation is applied independently to each feature channel:
+    
+        y[b, ℓ, d] = scale[d] * x[b, ℓ, d] + bias[d]
+
+    where
+    - b indexes the batch (0 ≤ b < B),
+    - ℓ indexes the sequence or spatial position (0 ≤ ℓ < L),
+    - d indexes the feature channel (0 ≤ d < D).
+
+    Both `scale` and `bias` are initialized so that the layer is identity
+    at the start (scale = 1, bias = 0). They are learned during training to
+    adjust the mean and variance of each channel.
 
     Parameters
     ----------
-    num_features : int
-        Number of features/channels in the input.
+    dim : int
+        Number of channels (features) in the input.  The module creates
+        learnable parameters `scale` and `bias`, each of shape (1, 1, dim),
+        which broadcast across the batch and sequence dimensions.
 
+    Attributes
+    ----------
+    scale : nn.Parameter of shape (1, 1, dim)
+        Multiplicative scaling factors for each channel.
+    bias : nn.Parameter of shape (1, 1, dim)
+        Additive bias terms for each channel.
+
+    Input shape
+    -----------
+    (B, L, D) or (B, 1, D)
+        - B: batch size
+        - L: sequence or spatial length
+        - D: number of feature channels (must equal `dim`)
+
+    Output shape
+    ------------
+    (B, L, D)
+        Same as input shape; channels have been re-scaled and shifted.
+
+    References
+    ----------
+    Kingma, D. P., & Dhariwal, P. (2018). Glow: Generative Flow with Invertible 1×1 Convolutions.  
+    *Advances in Neural Information Processing Systems*, 31. Section 3.1. 
+    https://arxiv.org/abs/1807.03039
+    
     Examples
     --------
+    >>> from deepchem.models.torch_models.layers import ActNorm
     >>> norm = ActNorm(dim=64)
+    >>> # Example input: batch=10, length=1, channels=64
     >>> x = torch.randn(10, 1, 64)
     >>> y = norm(x)
+    >>> # y has same shape as x
     >>> print(y.shape)
     torch.Size([10, 1, 64])
     """
@@ -462,29 +503,71 @@ class ActNorm(nn.Module):
         self.bias = nn.Parameter(torch.zeros(1, 1, dim))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Apply per-channel affine normalization.
+
+        Parameters
+        ----------
+        x : torch.Tensor of shape (B, L, D) or (B, 1, D)
+            - B: batch size  
+            - L: sequence or spatial length  
+            - D: number of feature channels (must match `dim`)
+
+        Returns
+        -------
+        torch.Tensor of shape (B, L, D)
+            The input tensor with each channel d transformed as:
+            
+                y[..., d] = scale[..., d] * x[..., d] + bias[..., d]
+        """
+
         out = x * self.scale + self.bias
         return out
 
 
 class FourierBlock1D(nn.Module):
     """
-    PINO 1D Fourier Spectral Convolution Block
+    PINO 1D Fourier Spectral Convolution Block.
 
-    This block is a core component of the Physics-Informed Neural Operator (PINO).
-    It performs a spectral convolution by:
-      1) transforming the input to the frequency domain using FFT,
-      2) applying learnable complex weights to the lowest-frequency modes,
-      3) transforming back to the spatial domain via inverse FFT,
-      4) and finally normalizing with an ActNorm layer.
+    Implements the Fourier convolution operator from Li et al. (2021) [1]_,
+    (see Definition 3, Eq. 11) :contentReference[oaicite:0]{index=0}, namely
+
+        K[v](x) = F^{-1}(R · F[v])(x),
+
+    where F and F^{-1} are the forward/inverse real-valued 1D FFTs and
+    R ∈ ℂ^{C_in×C_out×modes} are learnable complex weights.
+
+    In the forward pass, the discrete Fourier transform is computed as:
+
+        \hat{x}_{b,c,i} = \sum_{\ell=0}^{L-1} x_{b,c,\ell} \exp(-2\pi i \ell i / L),
+        for i = 0, …, ⌊L/2⌋,
+
+    in code this is implemented with:
+
+        x_ft = torch.fft.rfft(x, dim=-1)
+
+    Internally, the block performs:
+
+      1. Compute real FFT: x_ft = rFFT(x) ∈ ℂ^{B×C_in×F}
+      2. Truncate/multiply low modes by learnable weights:
+         out_ft[:,:,k] = Σ_{c_in} R[c_in,c_out,k] · x_ft[:,c_in,k], for k < modes
+      3. Inverse FFT: y = iFFT(out_ft) ∈ ℝ^{B×C_out×L}
+      4. Permute to (B, L, C_out) and normalize via ActNorm
 
     Parameters
     ----------
     in_channels : int
-        Number of input channels.
+        Number of input channels (C_in).
     out_channels : int
-        Number of output channels.
+        Number of output channels (C_out).
     modes : int
-        Number of Fourier modes to retain in the frequency domain.
+        Number of low-frequency Fourier modes to keep (modes         make html≤ ⌊L/2⌋+1).
+
+    References
+    ----------
+    .. [1] Z. Li, H. Zheng, N. Kovachki, D. Jin, H. Chen, B. Liu, K. Azizzadenesheli, A. Anandkumar,
+           “Physics-Informed Neural Operator for Learning Partial Differential Equations”,
+           *arXiv preprint* arXiv:2111.03794, 2021. https://arxiv.org/abs/2111.03794
 
     Examples
     --------
@@ -506,6 +589,28 @@ class FourierBlock1D(nn.Module):
         self.norm = ActNorm(out_channels)
 
     def compl_mul1d(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+        """
+        Perform complex multiplication of two frequency‐domain tensors.
+
+        This implements element‐wise multiplication in the complex plane:
+
+            (a_real + i a_imag) * (b_real + i b_imag)
+              = (a_real * b_real − a_imag * b_imag)
+              + i (a_real * b_imag + a_imag * b_real)
+
+        Parameters
+        ----------
+        a : torch.Tensor
+            Input frequency coefficients, shape (B, in_channels, modes, 2),
+            where a[..., 0] is the real part and a[..., 1] the imaginary part.
+        b : torch.Tensor
+            Learnable weights in frequency domain, shape (in_channels, out_channels, modes, 2).
+
+        Returns
+        -------
+        torch.Tensor
+            The product in complex form, shape (B, out_channels, modes, 2).
+        """
         real = torch.einsum("bci,oci->boi",
                             a[..., 0], b[..., 0]) - torch.einsum(
                                 "bci,oci->boi", a[..., 1], b[..., 1])
@@ -516,6 +621,39 @@ class FourierBlock1D(nn.Module):
         return result
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Apply the spectral convolution to input x.
+
+        Let x ∈ ℝ^{B×C_in×L}. The steps are:
+
+        1. Compute real FFT:
+             x̂ = F[x] = rFFT(x, dim=-1)  
+             x̂ ∈ ℂ^{B×C_in×F}
+
+        2. Convert to real/imag parts:
+             x̂_ri = view_as_real(x̂)  
+             x̂_ri.shape = (B, C_in, F, 2)
+
+        3. Allocate output in frequency domain:
+             ŷ_ri = zeros(B, C_out, F, 2)
+
+        4. For k = 0,…,modes–1, perform complex multiplication:
+             ŷ_ri[:, :, k] = ∑_{i=1}^{C_in} R[i, :, k] ⋅ x̂_ri[:, i, k]
+             where R[i, :, k] is your learned weight (real+imag).
+
+        5. Inverse FFT back to space:
+             y = F⁻¹( view_as_complex(ŷ_ri) )  
+             y ∈ ℝ^{B×C_out×L}
+
+        6. Permute and normalize:
+             y = y.permute(0, 2, 1)     # → (B, L, C_out)
+             y = ActNorm(y)            # learned scale + bias
+
+        Returns
+        -------
+        torch.Tensor
+            The output tensor y of shape (B, L, C_out).
+        """
         B, C, L = x.shape
         x_ft = torch.fft.rfft(x, dim=-1)
         x_ft = torch.view_as_real(x_ft)
