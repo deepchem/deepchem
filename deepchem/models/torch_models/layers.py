@@ -571,6 +571,7 @@ class FourierBlock1D(nn.Module):
 
     Examples
     --------
+    >>> from deepchem.models.torch_models.layers import FourierBlock1D
     >>> block = FourierBlock1D(in_channels=64, out_channels=64, modes=16)
     >>> x = torch.randn(10, 64, 128)
     >>> y = block(x)
