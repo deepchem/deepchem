@@ -9,6 +9,7 @@ import scipy.linalg
 FLOAT_TYPE = torch.float32
 EPSILON = 1e-8
 
+
 def fiber2head(F: Dict[str, torch.Tensor],
                h: int,
                structure: Fiber,
@@ -1271,9 +1272,9 @@ def get_eijk() -> torch.Tensor:
 
     References:
     -----------
-    "Tensor field networks: Rotation- and translation-equivariant neural networks for 3D point clouds" (https://arxiv.org/abs/1802.08219). 
+    "Tensor field networks: Rotation- and translation-equivariant neural networks for 3D point clouds" (https://arxiv.org/abs/1802.08219).
     Original Tensorflow Implementation: https://github.com/tensorfieldnetworks/tensorfieldnetworks
-
+    
     Returns
     -------
     torch.Tensor of shape [3, 3, 3]
@@ -1495,7 +1496,8 @@ def distance_matrix(geometry: torch.Tensor) -> torch.Tensor:
 
 
 def random_rotation_matrix(
-    numpy_random_state: Optional[np.random.RandomState] = None) -> np.ndarray:
+        numpy_random_state: Optional[np.random.RandomState] = None
+) -> np.ndarray:
     """
     Generates a random 3D rotation matrix.
 

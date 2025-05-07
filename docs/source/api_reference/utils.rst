@@ -850,6 +850,22 @@ for additional information regarding equivariance and Deepchem's support for equ
 
 .. autofunction:: deepchem.utils.equivariance_utils.fiber2head
 
+.. autofunction:: deepchem.utils.equivariance_utils.get_eijk
+
+.. autofunction:: deepchem.utils.equivariance_utils.norm_with_epsilon
+
+.. autofunction:: deepchem.utils.equivariance_utils.ssp
+
+.. autofunction:: deepchem.utils.equivariance_utils.rotation_equivariant_nonlinearity
+
+.. autofunction:: deepchem.utils.equivariance_utils.difference_matrix
+
+.. autofunction:: deepchem.utils.equivariance_utils.distance_matrix
+
+.. autofunction:: deepchem.utils.equivariance_utils.random_rotation_matrix
+  
+.. autofunction:: deepchem.utils.equivariance_utils.rotation_matrix
+
 Miscellaneous Utilities
 -----------------------
 

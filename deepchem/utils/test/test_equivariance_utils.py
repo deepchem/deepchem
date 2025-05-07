@@ -652,23 +652,27 @@ class TestEquivarianceUtils(unittest.TestCase):
         self.assertTrue(torch.allclose(y, ssp(x)))
 
         # Test with l=1 tensor (vector representation)
-        x_vec = torch.tensor([[[1.0, 0.0, 0.0]], [[0.0, 2.0, 0.0]]])  # [2, 1, 3]
+        x_vec = torch.tensor([[[1.0, 0.0, 0.0]], [[0.0, 2.0,
+                                                   0.0]]])  # [2, 1, 3]
         y_vec = rotation_equivariant_nonlinearity(x_vec)
 
         # Instead of comparing norms directly, we check that:
         # 1. The direction (unit vector) is preserved
         x_normalized = x_vec / norm_with_epsilon(x_vec, axis=-1, keep_dims=True)
         y_normalized = y_vec / norm_with_epsilon(y_vec, axis=-1, keep_dims=True)
-        self.assertTrue(torch.allclose(x_normalized, y_normalized, atol=1e-5)) # Added atol for stability
+        self.assertTrue(torch.allclose(x_normalized, y_normalized,
+                                       atol=1e-5))  # Added atol for stability
 
         # 2. The magnitude has been transformed by the nonlinearity
         x_norm = norm_with_epsilon(x_vec, axis=-1)
         y_norm = norm_with_epsilon(y_vec, axis=-1)
         expected_norm = ssp(x_norm)
-        self.assertTrue(torch.allclose(y_norm, expected_norm, atol=1e-5)) # Added atol for stability
+        self.assertTrue(torch.allclose(y_norm, expected_norm,
+                                       atol=1e-5))  # Added atol for stability
 
         # Test that the function respects batch dimensions
-        x_rand = torch.rand(5, 4, 3)  # batch_size=5, channels=4, representation_dim=3
+        x_rand = torch.rand(5, 4,
+                            3)  # batch_size=5, channels=4, representation_dim=3
         y_rand = rotation_equivariant_nonlinearity(x_rand)
         self.assertEqual(y_rand.shape, x_rand.shape)
 
@@ -684,16 +688,17 @@ class TestEquivarianceUtils(unittest.TestCase):
         from deepchem.utils.equivariance_utils import difference_matrix
 
         # Test with simple coordinates
-        coords = torch.tensor([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+        coords = torch.tensor([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0],
+                               [0.0, 1.0, 0.0]])
         diff = difference_matrix(coords)
 
         # Expected differences
         expected = torch.tensor([[[0.0, 0.0, 0.0], [-1.0, 0.0, 0.0],
-                                    [0.0, -1.0, 0.0]],
-                                    [[1.0, 0.0, 0.0], [0.0, 0.0, 0.0],
-                                    [1.0, -1.0, 0.0]],
-                                    [[0.0, 1.0, 0.0], [-1.0, 1.0, 0.0],
-                                    [0.0, 0.0, 0.0]]])
+                                  [0.0, -1.0, 0.0]],
+                                 [[1.0, 0.0, 0.0], [0.0, 0.0, 0.0],
+                                  [1.0, -1.0, 0.0]],
+                                 [[0.0, 1.0, 0.0], [-1.0, 1.0, 0.0],
+                                  [0.0, 0.0, 0.0]]])
         self.assertTrue(torch.allclose(diff, expected))
 
     @unittest.skipIf(not has_torch, "torch is not available")
@@ -702,14 +707,15 @@ class TestEquivarianceUtils(unittest.TestCase):
         from deepchem.utils.equivariance_utils import distance_matrix
 
         # Test with simple coordinates
-        coords = torch.tensor([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+        coords = torch.tensor([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0],
+                               [0.0, 1.0, 0.0]])
         dist = distance_matrix(coords)
 
         sqrt2 = 1.41421356237  # sqrt(2) value
 
         # Expected distances
         expected = torch.tensor([[0.0, 1.0, 1.0], [1.0, 0.0, sqrt2],
-                                    [1.0, sqrt2, 0.0]])
+                                 [1.0, sqrt2, 0.0]])
         self.assertTrue(torch.allclose(dist, expected, atol=1e-3))
 
     @unittest.skipIf(not has_torch, "torch is not available")
@@ -719,7 +725,7 @@ class TestEquivarianceUtils(unittest.TestCase):
 
         # Test with fixed seed
         rng = np.random.RandomState(42)
-        rot_mat = random_rotation_matrix(rng) 
+        rot_mat = random_rotation_matrix(rng)
 
         # Check that it's a valid rotation matrix
         # Determinant should be 1
@@ -727,7 +733,8 @@ class TestEquivarianceUtils(unittest.TestCase):
 
         # Rotation matrix should be orthogonal
         identity = np.eye(3)
-        self.assertTrue(np.allclose(np.dot(rot_mat, rot_mat.T), identity, atol=1e-5))
+        self.assertTrue(
+            np.allclose(np.dot(rot_mat, rot_mat.T), identity, atol=1e-5))
 
     @unittest.skipIf(not has_torch, "torch is not available")
     def test_rotation_matrix(self):
@@ -736,7 +743,7 @@ class TestEquivarianceUtils(unittest.TestCase):
         # Test rotation around z-axis
         axis = np.array([0, 0, 1])
         theta = np.pi / 2  # 90 degrees
-        rot_mat = rotation_matrix(axis, theta) 
+        rot_mat = rotation_matrix(axis, theta)
 
         # Rotating [1, 0, 0] around z by 90 degrees should give [0, 1, 0]
         point = np.array([1, 0, 0])
