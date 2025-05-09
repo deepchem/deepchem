@@ -9,6 +9,7 @@ import tempfile
 import tarfile
 import zipfile
 import logging
+from openbabel import pybel
 from urllib.request import urlretrieve
 from typing import Any, Iterator, List, Optional, Tuple, Union, cast, IO
 
@@ -664,3 +665,16 @@ def remove_missing_entries(dataset):
         w = w[available_rows]
         ids = ids[available_rows]
         dataset.set_shard(i, X, y, w, ids)
+
+
+def convert_xyz_files_to_sdf(xyz_folder_path, sdf_output_file_path):
+
+    output = pybel.Outputfile("sdf", sdf_output_file_path, overwrite=True)
+
+    for filename in sorted(os.listdir(xyz_folder_path)):
+        if filename.endswith(".xyz"):
+            filepath = os.path.join(xyz_folder_path, filename)
+            mol = next(pybel.readfile("xyz", filepath))
+            output.write(mol)
+
+    output.close()
