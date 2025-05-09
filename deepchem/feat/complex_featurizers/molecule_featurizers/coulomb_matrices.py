@@ -139,7 +139,7 @@ class CoulombMatrix(MolecularFeaturizer):
         num_confs = len(mol.GetConformers())
         if num_confs == 0:
             mol = Chem.AddHs(mol)
-            AllChem.EmbedMolecule(mol, AllChem.ETKDG())
+            AllChem.EmbedMolecule(mol, AllChem.ETKDG())# type: ignore
 
         if self.remove_hydrogens:
             mol = Chem.RemoveHs(mol)

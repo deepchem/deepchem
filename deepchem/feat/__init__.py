@@ -23,15 +23,10 @@ from deepchem.feat.graph_data import WeightedDirectedGraphData
 from deepchem.feat.binding_pocket_features import BindingPocketFeaturizer
 
 # molecule featurizers
-from deepchem.feat.molecule_featurizers import AtomicCoordinates
 from deepchem.feat.molecule_featurizers import BPSymmetryFunctionInput
 from deepchem.feat.molecule_featurizers import CircularFingerprint
-from deepchem.feat.molecule_featurizers import CoulombMatrix
-from deepchem.feat.molecule_featurizers import CoulombMatrixEig
-from deepchem.feat.molecule_featurizers import MACCSKeysFingerprint
 from deepchem.feat.molecule_featurizers import MordredDescriptors
 from deepchem.feat.molecule_featurizers import Mol2VecFingerprint
-from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
 from deepchem.feat.molecule_featurizers import PagtnMolGraphFeaturizer
 from deepchem.feat.molecule_featurizers import MolGanFeaturizer
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
@@ -39,7 +34,6 @@ from deepchem.feat.molecule_featurizers import SparseMatrixOneHotFeaturizer
 from deepchem.feat.molecule_featurizers import PubChemFingerprint
 from deepchem.feat.molecule_featurizers import RawFeaturizer
 from deepchem.feat.molecule_featurizers import RDKitDescriptors
-from deepchem.feat.molecule_featurizers import SmilesToImage
 from deepchem.feat.molecule_featurizers import SmilesToSeq, create_char_to_idx
 from deepchem.feat.molecule_featurizers import MATFeaturizer
 from deepchem.feat.molecule_featurizers import DMPNNFeaturizer
@@ -50,6 +44,12 @@ from deepchem.feat.molecule_featurizers import MXMNetFeaturizer
 from deepchem.feat.molecule_featurizers import EquivariantGraphFeaturizer
 
 # complex featurizers
+from deepchem.feat.complex_featurizers.molecule_featurizers.coulomb_matrices import CoulombMatrix
+from deepchem.feat.complex_featurizers.molecule_featurizers.coulomb_matrices import CoulombMatrixEig
+from deepchem.feat.complex_featurizers.molecule_featurizers.maccs_keys_fingerprint import MACCSKeysFingerprint
+from deepchem.feat.complex_featurizers.molecule_featurizers.mol_graph_conv_featurizer import MolGraphConvFeaturizer
+from deepchem.feat.complex_featurizers.molecule_featurizers.smiles_to_image import SmilesToImage
+from deepchem.feat.complex_featurizers.molecule_featurizers.atomic_coordinates import AtomicCoordinates 
 from deepchem.feat.complex_featurizers import RdkitGridFeaturizer
 from deepchem.feat.complex_featurizers import NeighborListAtomicCoordinates
 from deepchem.feat.complex_featurizers import NeighborListComplexAtomicCoordinates
