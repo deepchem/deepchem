@@ -618,10 +618,21 @@ MXMNet
 .. autoclass:: deepchem.models.torch_models.MXMNet
   :members:
 
+LSTMGenerator
+-------------
+
+.. autoclass:: deepchem.models.torch_models.LSTMGenerator
+  :members:
+
 InceptionV3Model
 ----------------
 
 .. autoclass:: deepchem.models.torch_models.InceptionV3Model
+  :members:
+
+MobileNetV2Model
+----------------
+.. autoclass:: deepchem.models.torch_models.MobileNetV2Model
   :members:
 
 MultitaskIRVClassifier
