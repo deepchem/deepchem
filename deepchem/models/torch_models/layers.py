@@ -9268,44 +9268,36 @@ class SpectralConv(nn.Module):
     applies a learned complex multiplication (einsum), and returns to physical space
     via the inverse FFT.
     
-    Usage Example
+    Example
     -------
-    >>> from deepchem.models.torch_models.layers import SpectralConv
     >>> import torch
-    >>> import torch.nn as nn
-    >>> # Define a network that uses SpectralConv
-    >>> class FourierNet(nn.Module):
-    ...     def __init__(self):
-    ...         super(FourierNet, self).__init__()
-    ...         self.spectral1 = SpectralConv(1, 32, 12, dims=2)
-    ...         self.spectral2 = SpectralConv(32, 32, 12, dims=2)
-    ...         self.activation = nn.GELU()
-    ...         # Add a global average pooling to reduce spatial dimensions
-    ...         self.global_pool = nn.AdaptiveAvgPool2d(1)
-    ...         # Apply linear layer to the channel dimension after pooling
-    ...         self.linear = nn.Linear(32, 1)
-    ...     def forward(self, x):
-    ...         x = self.spectral1(x)
-    ...         x = self.activation(x)
-    ...         x = self.spectral2(x)
-    ...         x = self.activation(x)
-    ...         # Reduce spatial dimensions with global pooling
-    ...         x = self.global_pool(x)  # -> (batch, channels, 1, 1)
-    ...         # Flatten to (batch, channels)
-    ...         x = x.view(x.size(0), -1)
-    ...         # Apply linear layer
-    ...         x = self.linear(x)  # -> (batch, 1)
-    ...         return x
-    >>> model = FourierNet()
-    >>> loss_fn = nn.MSELoss()
-    >>> optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-    >>> x = torch.randn(16, 1, 32, 32)  # 16 samples of 32x32 single-channel images
-    >>> y = torch.randn(16, 1)  # Target values
-    >>> output = model(x)  # Shape: (16, 1)
-    >>> loss = loss_fn(output, y)
+    >>> from deepchem.models.torch_models.layers import SpectralConv
+    >>> # Create a 2D spectral convolution layer
+    >>> layer = SpectralConv(in_channels=3, out_channels=16, modes=8, dims=2)
+    >>> # Input: batch_size=2, channels=3, height=32, width=32
+    >>> x = torch.randn(2, 3, 32, 32)
+    >>> # Apply spectral convolution
+    >>> output = layer(x)
+    >>> # Check output shape
+    >>> output.shape
+    torch.Size([2, 16, 32, 32])
+    >>> 
+    >>> # Create a 1D spectral convolution layer
+    >>> layer_1d = SpectralConv(in_channels=4, out_channels=8, modes=10, dims=1)
+    >>> # Input: batch_size=3, channels=4, sequence_length=64
+    >>> x_1d = torch.randn(3, 4, 64)
+    >>> # Apply 1D spectral convolution
+    >>> output_1d = layer_1d(x_1d)
+    >>> # Check output shape
+    >>> output_1d.shape
+    torch.Size([3, 8, 64])
     """
 
-    def __init__(self, in_channels, out_channels, modes, dims=2):
+    def __init__(self,
+                 in_channels: int,
+                 out_channels: int,
+                 modes: Union[int, Tuple[int, ...]],
+                 dims: int = 2):
         """
         Parameters
         ----------
@@ -9337,15 +9329,13 @@ class SpectralConv(nn.Module):
             if len(modes) != dims:
                 raise ValueError("Length of modes must equal dims.")
             self.modes = tuple(modes)
-        else:
-            raise ValueError("modes must be int or tuple/list of ints.")
 
         weight_shape = (in_channels, out_channels) + self.modes
         self.scale = 1 / (in_channels * out_channels)
         self.weights = nn.Parameter(
             self.scale * torch.rand(*weight_shape, dtype=torch.cfloat))
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Parameters
         ----------
@@ -9359,7 +9349,9 @@ class SpectralConv(nn.Module):
         """
 
         if not x.ndim == self.dims + 2:
-            raise ValueError(f"Input tensor must have {self.dims} spatial dimensions, but got {x.ndim} dimensions including batch and channels")
+            raise ValueError(
+                f"Input tensor must have {self.dims} spatial dimensions, but got {x.ndim} dimensions including batch and channels"
+            )
 
         x_ft = torch.fft.rfftn(x, dim=tuple(range(
             2, x.ndim)))  # Applied only to the spatial channels
@@ -9374,13 +9366,15 @@ class SpectralConv(nn.Module):
 
         # x_ft[:, :, slices] has shape (batch, in_channels, *self.modes)
         # self.weights has shape (in_channels, out_channels, *self.modes)
-        # "b i ... , i o ... -> b o ..." will multiply each in_channel with weights corresponding to every out_channel
-        # and then sum over in_channels to get a weighted sum
-        # This is for transforming the input frequency components into output channels
-        # by multiplying the input feature components with the learned weights.
+        # "b i ... , i o ... -> b o ..." will multiply each in_channel with weights corresponding to every out_channel and
+        # then sum over in_channels to get a weighted sum
+        # This transforms the input frequency components into output channels by
+        # multiplying the input feature components with the learned weights.
         out_ft[(slice(None), slice(None)) + slices] = torch.einsum(
             "b i ... , i o ... -> b o ...",
             x_ft[(slice(None), slice(None)) + slices], self.weights)
 
-        x_out = torch.fft.irfftn(out_ft, s=x.shape[2:], dim=tuple(range(2, x.ndim)))
+        x_out = torch.fft.irfftn(out_ft,
+                                 s=x.shape[2:],
+                                 dim=tuple(range(2, x.ndim)))
         return x_out
