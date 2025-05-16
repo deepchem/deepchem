@@ -17,6 +17,29 @@ def test_spectral_conv_output_shape():
     y = conv(x)
     assert y.shape == (2, 8, 64, 64)
 
+@pytest.mark.torch
+def test_spectral_conv_exact_output():
+    """Test the exact output values of spectral convolution with controlled weights"""
+    # Create a small 1D spectral convolution with known weights
+    conv = SpectralConv(in_channels=1, out_channels=1, modes=2, dims=1)
+    
+    # Set weights to a known value for deterministic testing
+    # For simplicity, set all weights to 1.0 (no imaginary part)
+    with torch.no_grad():
+        conv.weights.fill_(1.0)
+    
+    # Create a simple input tensor with known values
+    x = torch.tensor([[[1.0, 2.0, 3.0, 0.0]]], dtype=torch.float32)
+    
+    # Forward pass
+    y = conv(x)
+    
+    # Manual calculation for verification:
+    # 1. np.fft.rfft of [1, 2, 3, 0] gives [ 6.+0.j, -2.-2.j,  2.+0.j]
+    # 2. Multiply only first 2 modes by weights: [ 6.+0.j, -2.-2.j,  2.+0.j]
+    # 3. np.fft.irfft gives: [0.5, 2.5, 2.5, 0.5]
+    expected = torch.tensor([[[0.5, 2.5, 2.5, 0.5]]], dtype=torch.float32)
+    assert torch.allclose(y, expected, rtol=1e-5, atol=1e-5)
 
 @pytest.mark.torch
 def test_spectral_conv_gradient_flow():
