@@ -30,7 +30,7 @@ def test_spectral_conv_exact_output():
     y = conv(x)
 
     # 1. np.fft.rfft of [1, 2, 3, 0] gives [ 6.+0.j, -2.-2.j,  2.+0.j]
-    # 2. Multiply only first 2 modes by weights: [ 6.+0.j, -2.-2.j,  2.+0.j]
+    # 2. Multiply only first 2 modes by weights: [ 6.+0.j, -2.-2.j,  0.+0.j]
     # 3. np.fft.irfft of [6, -2-2j, 2+0j] gives: [0.5, 2.5, 2.5, 0.5]
     expected = torch.tensor([[[0.5, 2.5, 2.5, 0.5]]], dtype=torch.float32)
     assert torch.allclose(y, expected, rtol=1e-5, atol=1e-5)
