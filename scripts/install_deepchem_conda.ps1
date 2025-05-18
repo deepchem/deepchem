@@ -1,4 +1,4 @@
-# This script creates the new deepchem enviroment
+# This script creates the new deepchem environment
 
 
 $CMDNAME = $myInvocation.MyCommand.name

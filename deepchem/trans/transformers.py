@@ -1102,15 +1102,15 @@ class FlatteningTransformer(Transformer):
             Transformed array of ids
         """
         ids = np.repeat(ids, [len(i) for i in X],
-                        axis=0)  # each fragment should recieve parent mol id
+                        axis=0)  # each fragment should receive parent mol id
         if self.transform_y:
             y = np.repeat(
                 y, [len(i) for i in X], axis=0
-            )  # for consistency of shapes each fragment should recieve parent mol y
+            )  # for consistency of shapes each fragment should receive parent mol y
         if self.transform_w:
             w = np.repeat(
                 w, [len(i) for i in X], axis=0
-            )  # for consistency of shapes each fragment should recieve parent mol w
+            )  # for consistency of shapes each fragment should receive parent mol w
         X = np.array([j for i in X for j in i])  # flatten
         return (X, y, w, ids)
 

@@ -16,7 +16,7 @@ also experimenting with adding additional models implemented in `PyTorch`_
 and `JAX`_. Our focus is to facilitate scientific experimentation using
 whatever tools are available at hand.
 
-In the rest of this tutorials, we'll provide a rapid fire overview of DeepChem's API.
+In the rest of this tutorial, we'll provide a rapid fire overview of DeepChem's API.
 DeepChem is a big library so we won't cover everything, but we should give you enough to get started.
 
 .. contents:: Contents
@@ -138,7 +138,7 @@ We'll show you the example about the usage of splitters.
 
 Here, we've used the :code:`RandomSplitter` and splitted the data randomly
 in the ratio of train:valid:test = 3:1:1. But, the random splitting sometimes
-overestimates  model's performance, especially for small data or imbalance data.
+overestimates model's performance, especially for small data or imbalance data.
 Please be careful for model evaluation. The :code:`dc.splits` provides more methods
 and algorithms to evaluate the model's performance appropriately, like cross validation or
 splitting using molecular scaffolds.

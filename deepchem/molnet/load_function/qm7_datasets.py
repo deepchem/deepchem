@@ -102,7 +102,7 @@ def load_qm7(
         108.5 (2012): 058301.
     .. [2] Montavon, Grégoire, et al. "Learning invariant representations of
         molecules for atomization energy prediction." Advances in Neural
-        Information Proccessing Systems. 2012.
+        Information Processing Systems. 2012.
     """
     loader = _QM7Loader(featurizer, splitter, transformers, QM7_TASKS, data_dir,
                         save_dir, **kwargs)

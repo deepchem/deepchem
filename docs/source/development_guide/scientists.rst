@@ -1,5 +1,5 @@
-Contibuting to DeepChem as a Scientist
-======================================
+Contributing to DeepChem as a Scientist
+=======================================
 
 The scientific community in many ways is quite traditional.
 Students typically learn in apprenticeship from advisors who

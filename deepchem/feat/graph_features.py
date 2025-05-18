@@ -756,7 +756,7 @@ class ConvMolFeaturizer(MolecularFeaturizer):
             then no atom-level properties are used.  Properties should be in the
             RDKit mol object should be in the form
             atom XXXXXXXX NAME
-            where XXXXXXXX is a zero-padded 8 digit number coresponding to the
+            where XXXXXXXX is a zero-padded 8 digit number corresponding to the
             zero-indexed atom index of each atom and NAME is the name of the property
             provided in atom_properties.  So "atom 00000000 sasa" would be the
             name of the molecule level property in mol where the solvent
