@@ -127,7 +127,7 @@ class Atom_Wise_Convolution(nn.Module):
             Size of input feature size
         output_feature: int
             Size of output feature size
-        dropout: float, defult 0.2
+        dropout: float, default 0.2
             p value for dropout between 0.0 to 1.0
         UseBN: bool
             Setting it to True will perform Batch Normalisation

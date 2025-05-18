@@ -233,7 +233,7 @@ class MATModel(TorchModel):
                  **kwargs):
         """The wrapper class for the Molecular Attention Transformer.
 
-        Since we are using a custom data class as input (MATEncoding), we have overriden the default_generator function from DiskDataset and customized it to work with a batch of MATEncoding classes.
+        Since we are using a custom data class as input (MATEncoding), we have overridden the default_generator function from DiskDataset and customized it to work with a batch of MATEncoding classes.
 
         Parameters
         ----------

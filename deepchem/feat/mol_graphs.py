@@ -86,7 +86,7 @@ class ConvMol(object):
         for i, deg in enumerate(range(self.min_deg, self.max_deg + 1)):
             self.degree_list.extend([deg] * deg_size[i])
 
-        # Get the the start indices for items in each block
+        # Get the start indices for items in each block
         self.deg_start = cumulative_sum(deg_size)
 
         # Get the node indices when they are reset when the degree changes

@@ -662,7 +662,7 @@ class NormalizingFlow(nn.Module):
     >>> input = distribution.sample(torch.Size((samples, dim)))
     >>> len(model.log_prob(input))
     96
-    >>> # evaluates the the sampling method and its log_prob
+    >>> # evaluates the sampling method and its log_prob
     >>> len(model.sample(samples))
     2
 

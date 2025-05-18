@@ -698,7 +698,7 @@ class Dataset(object):
         return NumpyDataset(X_val, y_val, w_val, ids_val)
 
     def to_csv(self, path: str) -> None:
-        """Write object to a comma-seperated values (CSV) file
+        """Write object to a comma-separated values (CSV) file
 
         Example
         -------
