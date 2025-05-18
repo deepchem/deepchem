@@ -1282,7 +1282,7 @@ def _generate_scaffold(smiles: str,
     rings and the linker atoms between them.
 
     Parameters
-    ---------
+    ----------
     smiles: str
         SMILES
     include_chirality: bool, default False
