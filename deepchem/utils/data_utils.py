@@ -12,10 +12,8 @@ import logging
 from openbabel import pybel
 from urllib.request import urlretrieve
 from typing import Any, Iterator, List, Optional, Tuple, Union, cast, IO
-
 import pandas as pd
 import numpy as np
-
 import deepchem as dc
 
 logger = logging.getLogger(__name__)
@@ -667,7 +665,7 @@ def remove_missing_entries(dataset):
         dataset.set_shard(i, X, y, w, ids)
 
 
-def convert_xyz_files_to_sdf(xyz_folder_path, sdf_output_file_path):
+def convert_xyz_files_to_sdf(xyz_folder_path: str, sdf_output_file_path: str):
 
     output = pybel.Outputfile("sdf", sdf_output_file_path, overwrite=True)
 
