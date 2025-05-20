@@ -1,4 +1,4 @@
-name: deepchem
+0name: deepchem
 channels:
   - conda-forge
   - defaults
@@ -6,6 +6,7 @@ dependencies:
   - openmm
   - mdtraj
   - pdbfixer
+  - openbabel
   - pip
   - pip:
     - numpy<1.26
