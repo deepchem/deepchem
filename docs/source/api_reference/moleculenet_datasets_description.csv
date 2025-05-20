@@ -33,7 +33,7 @@ PDBBIND,Experimental binding affinity data and structures of protein-ligand comp
 PPB,,,,
 QM7,Subset of GDB-13  containing up to 7 heavy atoms CNOS,Molecules ,7 165,`ref <https://pubs.rsc.org/en/content/articlehtml/2018/sc/c7sc02664a>`_
 QM8,Dataset used in a study on modeling quantum mechanical calculations of electronic spectra and excited state energy of small molecules,Molecules,20 000,`ref <https://pubs.rsc.org/en/content/articlehtml/2018/sc/c7sc02664a>`_
-QM9,Dataset that provides geometric/energetic/electronic and thermodynamic properties for a subset of GDB-17 database,Molecules,134 000,`ref <https://pubs.rsc.org/en/content/articlehtml/2018/sc/c7sc02664a>`_
+QM9,Dataset that provides geometric/energetic/electronic and thermodynamic properties for a subset of GDB-17 database,Molecules,134 000,`ref <https://doi.org/10.6084/m9.figshare.978904_D12>`_
 SAMPL,Similat to FreeSolv dataset which provides experimental and calculated hydration free energy of small molecules in water,,,
 SIDER,The Side Effect Resource (SIDER) is a database of marketed drugs and adverse drug reactions (ADR),Molecules,1 427,`ref <https://pubs.rsc.org/en/content/articlehtml/2018/sc/c7sc02664a>`_
 Thermosol,Thermodynamic solubility datasets,,,
