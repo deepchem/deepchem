@@ -9256,3 +9256,124 @@ class SE3ResidualAttention(nn.Module):
             z = self.add(z, features)
 
         return z
+
+
+class SpectralConv(nn.Module):
+    """
+    n-Dimensional Fourier layer.
+
+    It applies an n-dimensional FFT on the spatial dimensions,
+    keeps only a specified number of Fourier modes (for each spatial dimension),
+    applies a learned complex multiplication (einsum), and returns to physical space
+    via the inverse FFT.
+    
+    Example
+    -------
+    >>> import torch
+    >>> from deepchem.models.torch_models.layers import SpectralConv
+    >>> # Create a 2D spectral convolution layer
+    >>> layer = SpectralConv(in_channels=3, out_channels=16, modes=8, dims=2)
+    >>> # Input: batch_size=2, channels=3, height=32, width=32
+    >>> x = torch.randn(2, 3, 32, 32)
+    >>> # Apply spectral convolution
+    >>> output = layer(x)
+    >>> # Check output shape
+    >>> output.shape
+    torch.Size([2, 16, 32, 32])
+    >>> 
+    >>> # Create a 1D spectral convolution layer
+    >>> layer_1d = SpectralConv(in_channels=4, out_channels=8, modes=10, dims=1)
+    >>> # Input: batch_size=3, channels=4, sequence_length=64
+    >>> x_1d = torch.randn(3, 4, 64)
+    >>> # Apply 1D spectral convolution
+    >>> output_1d = layer_1d(x_1d)
+    >>> # Check output shape
+    >>> output_1d.shape
+    torch.Size([3, 8, 64])
+    """
+
+    def __init__(self,
+                 in_channels: int,
+                 out_channels: int,
+                 modes: Union[int, Tuple[int, ...]],
+                 dims: int = 2):
+        """
+        Parameters
+        ----------
+        in_channels: int
+            Number of input channels.
+        out_channels: int
+            Number of output channels.
+        modes: int or tuple of ints
+            Either an int (same number of modes in every dimension)
+            or a tuple of ints (number of modes per spatial dimension).
+        dims: int, default 2
+            Number of spatial dimensions (typically 1, 2, or 3).
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (batch_size, out_channels, *spatial_dims).
+            The tensor contains the result of applying spectral convolution 
+            in the Fourier domain and transforming back to the spatial domain.
+        """
+        super(SpectralConv, self).__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.dims = dims
+
+        if isinstance(modes, int):
+            self.modes = (modes,) * dims
+        elif isinstance(modes, (tuple, list)):
+            if len(modes) != dims:
+                raise ValueError("Length of modes must equal dims.")
+            self.modes = tuple(modes)
+
+        weight_shape = (in_channels, out_channels) + self.modes
+        self.scale = 1 / (in_channels * out_channels)
+        self.weights = nn.Parameter(
+            self.scale * torch.rand(*weight_shape, dtype=torch.cfloat))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input tensor of shape (batch, in_channels, *spatial_dims).
+        
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (batch, out_channels, *spatial_dims).
+        """
+
+        if not x.ndim == self.dims + 2:
+            raise ValueError(
+                f"Input tensor must have {self.dims} spatial dimensions, but got {x.ndim} dimensions including batch and channels"
+            )
+
+        x_ft = torch.fft.rfftn(x, dim=tuple(range(
+            2, x.ndim)))  # Applied only to the spatial channels
+
+        out_ft = torch.zeros(x.shape[0],
+                             self.out_channels,
+                             *x_ft.shape[2:],
+                             dtype=torch.cfloat,
+                             device=x.device)
+
+        slices = tuple(slice(0, m) for m in self.modes)
+
+        # x_ft[:, :, slices] has shape (batch, in_channels, *self.modes)
+        # self.weights has shape (in_channels, out_channels, *self.modes)
+        # "b i ... , i o ... -> b o ..." will multiply each in_channel with weights corresponding to every out_channel and
+        # then sum over in_channels to get a weighted sum
+        # This transforms the input frequency components into output channels by
+        # multiplying the input feature components with the learned weights.
+        out_ft[(slice(None), slice(None)) + slices] = torch.einsum(
+            "b i ... , i o ... -> b o ...",
+            x_ft[(slice(None), slice(None)) + slices], self.weights)
+
+        x_out = torch.fft.irfftn(out_ft,
+                                 s=x.shape[2:],
+                                 dim=tuple(range(2, x.ndim)))
+        return x_out
