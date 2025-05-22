@@ -892,3 +892,12 @@ These are used to avoid NaNs and Infs in the output.
 .. autofunction:: deepchem.utils.safeops_utils.get_floor_and_ceil
 
 .. autofunction:: deepchem.utils.safeops_utils.safe_cdist
+
+BRICSGenerator
+--------------
+
+BRICSGenerator is a class that generates BRICS fragments from a given molecule.
+The usage is extended from simple SMILES strings to Polymer SMILES string representation.
+
+.. autoclass:: deepchem.utils.BRICSGenerator
+  :members:
