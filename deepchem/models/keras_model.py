@@ -509,7 +509,7 @@ class KerasModel(Model):
         separate function for each new set of variables.
         """
 
-        @tf.function(experimental_relax_shapes=True)
+        @tf.function(reduce_retracing=True)
         def apply_gradient_for_batch(inputs, labels, weights, loss):
             with tf.GradientTape() as tape:
                 outputs = self.model(inputs, training=True)
@@ -715,7 +715,7 @@ class KerasModel(Model):
         else:
             return final_results
 
-    @tf.function(experimental_relax_shapes=True)
+    @tf.function(reduce_retracing=True)
     def _compute_model(self, inputs: Sequence):
         """Evaluate the model for a set of inputs."""
         return self.model(inputs, training=False)
