@@ -301,11 +301,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.DAGGather
   :members:
 
-<<<<<<< HEAD
 .. autoclass:: deepchem.models.torch_models.layers.SpectralConv
-=======
+  
 .. autoclass:: deepchem.models.torch_models.chemnet_layers.Stem
->>>>>>> 618acae06 (adding the layer to docs(.rst file) and changing the docstrings)
   :members:
 
 Flow Layers
