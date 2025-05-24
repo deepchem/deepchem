@@ -641,6 +641,12 @@ MultitaskIRVClassifier
 .. autoclass:: deepchem.models.torch_models.MultitaskIRVClassifier
   :members:
 
+SE3-Transformer
+----------------
+
+.. autoclass:: deepchem.models.torch_models.SE3-TransformerModel
+  :members:
+
 PyTorch Lightning Models
 ========================
 

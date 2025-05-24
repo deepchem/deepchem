@@ -7626,12 +7626,12 @@ class SE3PairwiseConv(nn.Module):
     >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True, embeded=True)
     >>> features = featurizer.featurize([mol])[0]
     >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]))
-    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1) 
-    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)
-    >>> G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)
+    >>> G.ndata['x'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1) 
+    >>> G.ndata['pos'] = torch.tensor(features.node_pos_features, dtype=torch.float32)
+    >>> G.edata['edge_attr'] = torch.tensor(features.edge_features, dtype=torch.float32)
     >>> G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
     >>> max_degree = 3
-    >>> distances = G.edata['d']
+    >>> distances = G.edata['edge_attr']
     >>> r_ij = get_spherical_from_cartesian(distances)
     >>> Y = precompute_sh(r_ij, 2*max_degree)
     >>> basis = {}
@@ -7948,6 +7948,12 @@ class SE3AvgPooling(nn.Module):
     torch.Size([1, 16])
     >>> print(pooled_1['1'].shape)
     torch.Size([1, 32, 3])
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
     """
 
     def __init__(self, pooling_type: str = '0'):
@@ -8004,6 +8010,112 @@ class SE3AvgPooling(nn.Module):
         return pooled
 
 
+class SE3MaxPooling(nn.Module):
+    """
+    SE(3)-Equivariant Graph Max Pooling Module (SE3MaxPooling).
+
+    This layer performs max pooling over graph nodes while preserving SE(3) equivariance.
+
+    Given a set of node features \( h_i \) over a graph \( G \), 
+    the max pooling operation computes:
+
+    \[
+    h_{\text{out}} = \max_{i \in V} h_i
+    \]
+
+    where \( V \) is the set of nodes in the graph, and the pooling is applied independently for each node feature component.
+
+    For SE(3)-equivariant features, this layer performs:
+    - Degree 0 (scalars): Standard max pooling.
+    - Degree 1 (vectors): Applies max pooling component-wise for each feature dimension.
+
+    Example
+    -------
+    >>> import torch
+    >>> import dgl
+    >>> from deepchem.models.torch_models.layers import SE3MaxPooling, Fiber
+    >>> # Create a DGL Graph
+    >>> G = dgl.graph(([0, 1, 2], [3, 4, 5]), num_nodes=6)
+    >>> # Define Node Features
+    >>> features = {
+    ...     '0': torch.randn(6, 16, 1),  # Scalar features (Degree 0)
+    ...     '1': torch.randn(6, 32, 3)   # Vector features (Degree 1)
+    ... }
+    >>>
+    >>> # Initialize SE(3)-Equivariant Max Pooling Layer
+    >>> pool_0 = SE3MaxPooling(pooling_type='0')  # For scalars
+    >>> pool_1 = SE3MaxPooling(pooling_type='1')  # For vectors
+    >>> # Apply Pooling
+    >>> pooled_0 = pool_0(features, G)
+    >>> pooled_1 = pool_1(features, G)
+    >>> print(pooled_0.shape)
+    torch.Size([1, 16])
+    >>> print(pooled_1['1'].shape)
+    torch.Size([1, 32, 3])
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self, pooling_type: str = '0'):
+        """
+        Initializes the SE(3)-equivariant max pooling layer.
+
+        Parameters
+        ----------
+        pooling_type : str
+            Type of pooling.
+            - `'0'`: Applies standard max pooling for scalar (degree 0) features.
+            - `'1'`: Applies component-wise max pooling for vector (degree 1) features.
+        """
+        try:
+            from dgl.nn.pytorch.glob import MaxPooling
+        except ModuleNotFoundError:
+            raise ImportError('These classes require DGL to be installed.')
+        super().__init__()
+        self.pool = MaxPooling()
+        self.pooling_type = pooling_type
+
+    def forward(self, features: Dict[str, torch.Tensor], G,
+                **kwargs) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
+        """
+        Forward pass of SE(3)-equivariant graph pooling.
+
+        Parameters
+        ----------
+        features : Dict[str, torch.Tensor]
+            Node features dictionary.
+        G : dgl.DGLGraph
+            DGL graph structure.
+
+        Returns
+        -------
+        Union[torch.Tensor, Dict[str, torch.Tensor]]
+            Pooled features
+        """
+        if self.pooling_type == '0':
+            # Scalars (degree 0)
+            h = features['0'][..., -1]
+            pooled = self.pool(G, h)
+        elif self.pooling_type == '1':
+            # Vectors (degree 1)
+            pooled_list: List[torch.Tensor] = [
+                self.pool(G, features['1'][..., i]).unsqueeze(-1)
+                for i in range(3)
+            ]
+
+            pooled_tensor = torch.cat(pooled_list, dim=-1)
+            pooled = {'1': pooled_tensor}
+        else:
+            raise NotImplementedError(
+                "SE3MaxPooling for type > 1 is not implemented.")
+
+        return pooled
+
+
 class SE3MultiHeadAttention(nn.Module):
     """
     SE(3)-Equivariant Multi-Headed Self-Attention for Graph Neural Networks.
@@ -8047,9 +8159,9 @@ class SE3MultiHeadAttention(nn.Module):
     >>> #  Convert features into a DGL graph
     >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]), num_nodes=len(features.node_features))
     >>> # Assign SE(3)-equivariant node & edge features
-    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
-    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)  # 3D coordinates
-    >>> G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)  # Edge distances
+    >>> G.ndata['x'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
+    >>> G.ndata['pos'] = torch.tensor(features.node_pos_features, dtype=torch.float32)  # 3D coordinates
+    >>> G.edata['edge_attr'] = torch.tensor(features.edge_features, dtype=torch.float32)  # Edge distances
     >>> G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)  # Edge weights
     >>> #  Define Fiber Representations for Input & Output
     >>> f_value = Fiber(dictionary={0: 16, 1: 32})  # Scalars (degree 0) & Vectors (degree 1)
@@ -8229,8 +8341,8 @@ class SE3AttentiveSelfInteraction(nn.Module):
     >>> features = featurizer.featurize([mol])[0]
     >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]), num_nodes=len(features.node_features))
     >>> # Assign SE(3)-equivariant node features
-    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)  # Node features
-    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)  # 3D coordinates
+    >>> G.ndata['x'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)  # Node features
+    >>> G.ndata['pos'] = torch.tensor(features.node_pos_features, dtype=torch.float32)  # 3D coordinates
     >>> f_in = Fiber(dictionary={0: 16, 1: 32})  # Input fiber: scalars & vectors
     >>> f_out = Fiber(dictionary={0: 32, 1: 64})  # Output fiber
     >>> # Initialize SE(3)-Equivariant Attentive Self-Interaction Layer
@@ -8384,8 +8496,8 @@ class SE3SelfInteraction(nn.Module):
     >>> features = featurizer.featurize([mol])[0]
     >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]), num_nodes=len(features.node_features))
     >>> # Assign SE(3)-equivariant node features
-    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)  # Node features
-    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)  # 3D coordinates
+    >>> G.ndata['x'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)  # Node features
+    >>> G.ndata['pos'] = torch.tensor(features.node_pos_features, dtype=torch.float32)  # 3D coordinates
     >>> # Define Fiber Representations for Input & Output
     >>> f_in = Fiber(dictionary={0: 16, 1: 32})  # Input fiber: scalars & vectors
     >>> f_out = Fiber(dictionary={0: 32, 1: 64})  # Output fiber
@@ -8497,9 +8609,9 @@ class SE3GraphConv(nn.Module):
     >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]), num_nodes=len(features.node_features))
 
     >>> # Assign SE(3)-equivariant node & edge features
-    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
-    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)  # 3D coordinates
-    >>> G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)  # Edge distances
+    >>> G.ndata['x'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
+    >>> G.ndata['pos'] = torch.tensor(features.node_pos_features, dtype=torch.float32)  # 3D coordinates
+    >>> G.edata['edge_attr'] = torch.tensor(features.edge_features, dtype=torch.float32)  # Edge distances
     >>> G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)  # Edge weights
 
     >>> # Define SE(3) Basis & Radial Functions
@@ -8747,8 +8859,8 @@ class SE3GraphNorm(nn.Module):
     >>> features = featurizer.featurize([mol])[0]
     >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]), num_nodes=len(features.node_features))
     >>> # Assign node features
-    >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)  # Node features
-    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)  # 3D coordinates
+    >>> G.ndata['x'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)  # Node features
+    >>> G.ndata['pos'] = torch.tensor(features.node_pos_features, dtype=torch.float32)  # 3D coordinates
     >>> # Define Fiber Representations for Input Features
     >>> f_in = Fiber(dictionary={0: 16, 1: 32})  # Scalars (degree 0) and vectors (degree 1)
     >>> 
@@ -8905,8 +9017,8 @@ class SE3PartialEdgeConv(nn.Module):
 
     >>> # Assign SE(3)-equivariant node & edge features
     >>> G.ndata['f'] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)  # Node features
-    >>> G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)  # 3D coordinates
-    >>> G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)  # Edge distances
+    >>> G.ndata['x'] = torch.tensor(features.node_pos_features, dtype=torch.float32)  # 3D coordinates
+    >>> G.edata['edge_attr'] = torch.tensor(features.edge_features, dtype=torch.float32)  # Edge distances
     >>> G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)  # Edge weights
 
     >>> # Define SE(3) Basis & Radial Functions
@@ -9106,9 +9218,9 @@ class SE3ResidualAttention(nn.Module):
     >>>
     >>> # Convert extracted features into a DGL graph
     >>> G = dgl.graph((features.edge_index[0], features.edge_index[1]), num_nodes=len(features.node_features))
-    >>> G.ndata["f"] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
-    >>> G.ndata["x"] = torch.tensor(features.positions, dtype=torch.float32)
-    >>> G.edata["d"] = torch.tensor(features.edge_features, dtype=torch.float32)
+    >>> G.ndata["x"] = torch.tensor(features.node_features, dtype=torch.float32).unsqueeze(-1)
+    >>> G.ndata["pos"] = torch.tensor(features.node_pos_features, dtype=torch.float32)
+    >>> G.edata["edge_attr"] = torch.tensor(features.edge_features, dtype=torch.float32)
     >>> G.edata["w"] = torch.tensor(features.edge_weights, dtype=torch.float32)
     >>>
     >>> # Define Fiber Representations
@@ -9116,7 +9228,7 @@ class SE3ResidualAttention(nn.Module):
     >>> f_out = Fiber(dictionary={0: 32, 1: 64})
     >>>
     >>> # Define SE(3) Basis & Radial Functions
-    >>> basis, r = get_equivariant_basis_and_r(G, max_degree=2) 
+    >>> basis, r = get_equivariant_basis_and_r(G, max_degree=3) 
     >>>
     >>> # Initialize SE(3)-Equivariant Residual Attention Layer
     >>> gse3_res = SE3ResidualAttention(f_in, f_out, edge_dim=G.edata["w"].shape[-1], div=4, n_heads=4, skip="sum")
