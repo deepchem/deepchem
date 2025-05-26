@@ -3,7 +3,6 @@ import unittest
 import deepchem as dc
 import logging
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -26,8 +25,10 @@ class TestCandidateVariantFeaturizer(unittest.TestCase):
 
         # Assert the number of reads
         self.assertEqual(len(candidate_Windows), 222)
-        self.assertEqual(candidate_Windows[0].tolist(), ['chr1', 2, 'N', 'T', 2, 2])
-        self.assertEqual(candidate_Windows[1].tolist(), ['chr1', 3, 'N', 'C', 2, 3])
+        self.assertEqual(candidate_Windows[0].tolist(),
+                         ['chr1', 2, 'N', 'T', 2, 2])
+        self.assertEqual(candidate_Windows[1].tolist(),
+                         ['chr1', 3, 'N', 'C', 2, 3])
 
 
 if __name__ == "__main__":
