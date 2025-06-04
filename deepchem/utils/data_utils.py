@@ -590,7 +590,7 @@ def load_from_disk(filename: str) -> Any:
         try:
             with gzip.open(filename, 'rb') as infs:
                 return np.load(infs, allow_pickle=True)
-        except Exception as e:
+        except Exception:
             raise ValueError("Could not load gzip data from %s" % filename)
     elif extension == ".npy":
         return np.load(filename, allow_pickle=True)
