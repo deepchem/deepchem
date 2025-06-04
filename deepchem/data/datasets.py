@@ -10,6 +10,7 @@ import logging
 import tempfile
 import time
 import shutil
+import gzip
 import multiprocessing
 from multiprocessing.dummy import Pool
 from ast import literal_eval as make_tuple
@@ -21,12 +22,14 @@ import pandas as pd
 
 import deepchem as dc
 from deepchem.utils.typing import OneOrMany, Shape
-from deepchem.utils.data_utils import save_to_disk, load_from_disk, load_image_files
+from deepchem.utils.data_utils import save_to_disk, load_from_disk
 
 Batch = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
 logger = logging.getLogger(__name__)
 
+
+from deepchem.utils.data_utils import load_image_files
 
 def sparsify_features(X: np.ndarray) -> np.ndarray:
     """Extracts a sparse feature representation from dense feature array.
@@ -1240,11 +1243,21 @@ class DiskDataset(Dataset):
         self._cached_shards: Optional[List] = None
         self._memory_cache_size = 20 * (1 << 20)  # 20 MB
         self._cache_used = 0
+        # Assume compression is off; try the first shard and see
+        # if there is any compressed data there.
+        self.compress = False
+        if self.get_number_shards() != 0:
+            row = self.metadata_df.iloc[0]
+            for col in ('ids', 'X', 'y', 'w'):
+                if row[col] is not None and row[col].endswith('.gz'):
+                    self.compress = True
+            
 
     @staticmethod
     def create_dataset(shard_generator: Iterable[Batch],
                        data_dir: Optional[str] = None,
-                       tasks: Optional[ArrayLike] = None) -> "DiskDataset":
+                       tasks: Optional[ArrayLike] = None,
+                       compress: bool = False) -> "DiskDataset":
         """Creates a new DiskDataset
 
         Parameters
@@ -1277,8 +1290,8 @@ class DiskDataset(Dataset):
                         y.shape[1])
             basename = "shard-%d" % shard_num
             metadata_rows.append(
-                DiskDataset.write_data_to_disk(data_dir, basename, X, y, w,
-                                               ids))
+                DiskDataset.write_data_to_disk(data_dir, basename, compress,
+                                               X, y, w, ids))
         metadata_df = DiskDataset._construct_metadata(metadata_rows)
         DiskDataset._save_metadata(metadata_df, data_dir, tasks)
         time2 = time.time()
@@ -1358,6 +1371,7 @@ class DiskDataset(Dataset):
     @staticmethod
     def write_data_to_disk(data_dir: str,
                            basename: str,
+                           compress: bool,
                            X: Optional[np.ndarray] = None,
                            y: Optional[np.ndarray] = None,
                            w: Optional[np.ndarray] = None,
@@ -1370,6 +1384,8 @@ class DiskDataset(Dataset):
         ----------
         data_dir: str
             Data directory to write shard to.
+        compress: bool
+            Whether to compress the shard data.
         basename: str
             Basename for the shard in question.
         X: np.ndarray, optional (default None)
@@ -1388,8 +1404,11 @@ class DiskDataset(Dataset):
             out_X_shape, out_y_shape, out_w_shape]` with filenames of locations to
             disk which these respective arrays were written.
         """
+        compress_ext = ""
+        if compress:
+            compress_ext = ".gz"
         if X is not None:
-            out_X: Optional[str] = "%s-X.npy" % basename
+            out_X: Optional[str] = "%s-X.npy%s" % (basename, compress_ext)
             save_to_disk(X, os.path.join(data_dir, out_X))  # type: ignore
             out_X_shape: Optional[Tuple[int, ...]] = X.shape
         else:
@@ -1397,7 +1416,7 @@ class DiskDataset(Dataset):
             out_X_shape = None
 
         if y is not None:
-            out_y: Optional[str] = "%s-y.npy" % basename
+            out_y: Optional[str] = "%s-y.npy%s" % (basename, compress_ext)
             save_to_disk(y, os.path.join(data_dir, out_y))  # type: ignore
             out_y_shape: Optional[Tuple[int, ...]] = y.shape
         else:
@@ -1405,7 +1424,7 @@ class DiskDataset(Dataset):
             out_y_shape = None
 
         if w is not None:
-            out_w: Optional[str] = "%s-w.npy" % basename
+            out_w: Optional[str] = "%s-w.npy%s" % (basename, compress_ext)
             save_to_disk(w, os.path.join(data_dir, out_w))  # type: ignore
             out_w_shape: Optional[Tuple[int, ...]] = w.shape
         else:
@@ -1413,7 +1432,7 @@ class DiskDataset(Dataset):
             out_w_shape = None
 
         if ids is not None:
-            out_ids: Optional[str] = "%s-ids.npy" % basename
+            out_ids: Optional[str] = "%s-ids.npy%s" % (basename, compress_ext)
             save_to_disk(ids, os.path.join(data_dir, out_ids))  # type: ignore
             out_ids_shape: Optional[Tuple[int, ...]] = ids.shape
         else:
@@ -1558,7 +1577,8 @@ class DiskDataset(Dataset):
 
         resharded_dataset = DiskDataset.create_dataset(generator(),
                                                        data_dir=reshard_dir,
-                                                       tasks=self.tasks)
+                                                       tasks=self.tasks,
+                                                       compress = self.compress)
         shutil.rmtree(self.data_dir)
         shutil.move(reshard_dir, self.data_dir)
         # Should have updated to non-legacy metadata
@@ -1784,7 +1804,10 @@ class DiskDataset(Dataset):
 
         def iterate(dataset):
             for (X_shard, y_shard, w_shard, ids_shard) in dataset.itershards():
-                n_samples = X_shard.shape[0]
+                for field in (X_shard, y_shard, w_shard, ids_shard):
+                    if field is not None:
+                        n_samples = field.shape[0]
+                        break
                 for i in range(n_samples):
 
                     def sanitize(elem):
@@ -1801,6 +1824,7 @@ class DiskDataset(Dataset):
                   transformer: "dc.trans.Transformer",
                   parallel: bool = False,
                   out_dir: Optional[str] = None,
+                  compress: bool = True,
                   **args) -> "DiskDataset":
         """Construct a new dataset by applying a transformation to every sample in this dataset.
 
@@ -1851,8 +1875,9 @@ class DiskDataset(Dataset):
                 ids_file = os.path.join(self.data_dir, row['ids'])
                 results.append(
                     pool.apply_async(DiskDataset._transform_shard,
-                                     (transformer, i, X_file, y_file, w_file,
-                                      ids_file, out_dir, tasks)))
+                                     (transformer, i, X_file, y_file,
+                                      w_file, ids_file, out_dir, tasks,
+                                      compress)))
             pool.close()
             metadata_rows = [r.get() for r in results]
             metadata_df = DiskDataset._construct_metadata(metadata_rows)
@@ -1879,8 +1904,8 @@ class DiskDataset(Dataset):
     @staticmethod
     def _transform_shard(transformer: "dc.trans.Transformer", shard_num: int,
                          X_file: str, y_file: str, w_file: str, ids_file: str,
-                         out_dir: str,
-                         tasks: np.ndarray) -> List[Optional[str]]:
+                         out_dir: str, tasks: np.ndarray,
+                         compress: bool) -> List[Optional[str]]:
         """This is called by transform() to transform a single shard."""
         X = None if X_file is None else np.array(load_from_disk(X_file))
         y = None if y_file is None else np.array(load_from_disk(y_file))
@@ -1888,7 +1913,8 @@ class DiskDataset(Dataset):
         ids = np.array(load_from_disk(ids_file))
         X, y, w, ids = transformer.transform_array(X, y, w, ids)
         basename = "shard-%d" % shard_num
-        return DiskDataset.write_data_to_disk(out_dir, basename, X, y, w, ids)
+        return DiskDataset.write_data_to_disk(out_dir, basename, compress,
+                                              X, y, w, ids)
 
     def make_pytorch_dataset(self,
                              epochs: int = 1,
@@ -2189,8 +2215,8 @@ class DiskDataset(Dataset):
             permutation = np.random.permutation(n)
             X, y, w, ids = (X[permutation], y[permutation], w[permutation],
                             ids[permutation])
-            DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w,
-                                           ids)
+            DiskDataset.write_data_to_disk(self.data_dir, basename, self.compress,
+                                           X, y, w, ids)
         # Reset cache
         self._cached_shards = None
 
@@ -2225,7 +2251,12 @@ class DiskDataset(Dataset):
 
         # We don't, so load it from disk.
         row = self.metadata_df.iloc[i]
-        X = np.array(load_from_disk(os.path.join(self.data_dir, row['X'])))
+        
+        if row['X'] is not None:
+            X: Optional[np.ndarray] = np.array(
+                load_from_disk(os.path.join(self.data_dir, row['X'])))
+        else:
+            X = None
 
         if row['y'] is not None:
             y: Optional[np.ndarray] = np.array(
@@ -2248,8 +2279,12 @@ class DiskDataset(Dataset):
         else:
             w = None
 
-        ids = np.array(load_from_disk(os.path.join(self.data_dir, row['ids'])),
-                       dtype=object)
+        if row['ids'] is not None:
+            ids: Optional[np.ndarray] = np.array(
+                load_from_disk(os.path.join(self.data_dir, row['ids'])),
+                dtype=object)
+        else:
+            ids = None
 
         # Try to cache this shard for later use.  Since the normal usage pattern is
         # a series of passes through the whole dataset, there's no point doing
@@ -2259,11 +2294,15 @@ class DiskDataset(Dataset):
         # as we can and then stop.
 
         shard = _Shard(X, y, w, ids)
-        shard_size = X.nbytes + ids.nbytes
+        shard_size = 0
+        if X is not None:
+            shard_size += X.nbytes
         if y is not None:
             shard_size += y.nbytes
         if w is not None:
             shard_size += w.nbytes
+        if ids is not None:
+            shard_size += ids.nbytes
         if self._cache_used + shard_size < self._memory_cache_size:
             self._cached_shards[i] = shard
             self._cache_used += shard_size
@@ -2352,8 +2391,8 @@ class DiskDataset(Dataset):
         shard_num = len(metadata_rows)
         basename = "shard-%d" % shard_num
         metadata_rows.append(
-            DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w,
-                                           ids))
+            DiskDataset.write_data_to_disk(self.data_dir, basename, self.compress,
+                                           X, y, w, ids))
         self.metadata_df = DiskDataset._construct_metadata(metadata_rows)
         self.save_to_disk()
 
@@ -2379,7 +2418,8 @@ class DiskDataset(Dataset):
             Identifiers array.
         """
         basename = "shard-%d" % shard_num
-        DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w, ids)
+        DiskDataset.write_data_to_disk(self.data_dir, basename, self.compress,
+                                       X, y, w, ids)
         self._cached_shards = None
         self.legacy_metadata = True
 
@@ -2552,6 +2592,14 @@ class DiskDataset(Dataset):
                                               tasks=tasks)
         else:
             X, y, w, ids = next(generator())
+            if len(X) == 0:
+                X = None
+            if len(y) == 0:
+                y = None
+            if len(w) == 0:
+                w = None
+            if len(ids) == 0:
+                ids = None
             return NumpyDataset(X, y, w, ids)
 
     @property

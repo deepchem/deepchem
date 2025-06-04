@@ -485,6 +485,26 @@ def _get_file_type(input_file: str) -> str:
         raise ValueError("Unrecognized extension %s" % file_extension)
 
 
+# def save_to_disk(dataset: Any, filename: str, compress: int = 3):
+#     """Save a dataset to file.
+
+#     Parameters
+#     ----------
+#     dataset: str
+#         A data saved
+#     filename: str
+#         Path to save data.
+#     compress: int, default 3
+#         The compress option when dumping joblib file.
+#     """
+#     if filename.endswith('.joblib'):
+#         joblib.dump(dataset, filename, compress=compress)
+#     elif filename.endswith('.npy'):
+#         np.save(filename, dataset)
+#     else:
+#         raise ValueError("Filename with unsupported extension: %s" % filename)
+
+
 def save_to_disk(dataset: Any, filename: str, compress: int = 3):
     """Save a dataset to file.
 
@@ -501,8 +521,43 @@ def save_to_disk(dataset: Any, filename: str, compress: int = 3):
         joblib.dump(dataset, filename, compress=compress)
     elif filename.endswith('.npy'):
         np.save(filename, dataset)
+    elif filename.endswith('.npy.gz'):
+        with gzip.open(filename, 'wb') as outfs:
+            np.save(outfs, dataset)
     else:
         raise ValueError("Filename with unsupported extension: %s" % filename)
+
+
+# def load_from_disk(filename: str) -> Any:
+#     """Load a dataset from file.
+
+#     Parameters
+#     ----------
+#     filename: str
+#         A filename you want to load data.
+
+#     Returns
+#     -------
+#     Any
+#         A loaded object from file.
+#     """
+#     name = filename
+#     if os.path.splitext(name)[1] == ".gz":
+#         name = os.path.splitext(name)[0]
+#     extension = os.path.splitext(name)[1]
+#     if extension == ".pkl":
+#         return load_pickle_file(filename)
+#     elif extension == ".joblib":
+#         return joblib.load(filename)
+#     elif extension == ".csv":
+#         # First line of user-specified CSV *must* be header.
+#         df = pd.read_csv(filename, header=0)
+#         df = df.replace(np.nan, str(""), regex=True)
+#         return df
+#     elif extension == ".npy":
+#         return np.load(filename, allow_pickle=True)
+#     else:
+#         raise ValueError("Unrecognized filetype for %s" % filename)
 
 
 def load_from_disk(filename: str) -> Any:
@@ -531,6 +586,12 @@ def load_from_disk(filename: str) -> Any:
         df = pd.read_csv(filename, header=0)
         df = df.replace(np.nan, str(""), regex=True)
         return df
+    elif filename.endswith(".npy.gz"):
+        try:
+            with gzip.open(filename, 'rb') as infs:
+                return np.load(infs, allow_pickle=True)
+        except Exception as e:
+            raise ValueError("Could not load gzip data from %s" % filename)
     elif extension == ".npy":
         return np.load(filename, allow_pickle=True)
     else:
