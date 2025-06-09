@@ -20,6 +20,3 @@ def test_fno_overfit():
                                    y=y)
     loss = model.fit(dataset, nb_epoch=300)
     assert loss < 1e-2, "Model can't overfit"
-
-# @pytest.mark.torch
-# def test_fno_heat_equation():
