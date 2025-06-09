@@ -1,8 +1,10 @@
+from rdkit import rdBase
+rdBase.DisableLog('rdApp.warning')
+
 from new_dc_lightning_dataset_module import DCLightningDataModule
 from new_dc_lightning_module import DeepChemLightningModule
 import deepchem as dc
 import lightning as L
-import deepchem as dc
 
 class DeepChemLightningTrainer:
     """
@@ -84,6 +86,8 @@ class DeepChemLightningTrainer:
     def predict(
         self,
         dataset: dc.data.Dataset,
+        transformers  = [],
+        other_output_types = None,
         num_workers: int = 4,
     ):
         """
@@ -111,6 +115,10 @@ class DeepChemLightningTrainer:
         )
         self.lightning_model.eval()
         # Run prediction
+
+        self.lightning_model.transformers = transformers
+        self.lightning_model.other_output_types = other_output_types
+
         predictions = self.trainer.predict(
             self.lightning_model,
             data_module,
@@ -143,7 +151,7 @@ class DeepChemLightningTrainer:
             model=self.model
         )
         return self.lightning_model
-
+from deepchem.trans.transformers import DAGTransformer
 
 # Example usage
 if __name__ == "__main__":
@@ -151,58 +159,108 @@ if __name__ == "__main__":
     L.seed_everything(42)
     
     # Load dataset
-    tasks, datasets, transformers = dc.molnet.load_clintox()
-    train_dataset, _, test_dataset = datasets
+    def test_dag_model():
+        tasks, datasets, transformers = dc.molnet.load_bace_classification(
+                "GraphConv", reload=False)
+        train_dataset, _, test_dataset = datasets
 
-    # Create model
-    model = dc.models.MultitaskClassifier(
-        n_tasks=len(tasks),
-        n_features=1024,
-        layer_sizes=[1000],
-        dropouts=0.2,
-        learning_rate=0.0001,
-        batch_size=32
-    )
-    
-    # Create trainer
-    trainer = DeepChemLightningTrainer(
-        model=model,
-        batch_size=32,
-        max_epochs=10,
-        accelerator="cuda",
-        devices=-1,
-        log_every_n_steps=1,
-        strategy="fsdp",
-        fast_dev_run=True
-    )
-    
-    # Train model
-    trainer.fit(train_dataset)
-    
+        
+        max_atoms = max([mol.get_num_atoms() for mol in train_dataset.X]+[mol.get_num_atoms() for mol in test_dataset.X])
+        transformer = DAGTransformer(max_atoms=max_atoms)
+        dataset = transformer.transform(train_dataset)
+        model = dc.models.torch_models.DAGModel(len(tasks),
+                        max_atoms=max_atoms,
+                        mode='classification',
+                        learning_rate=0.001,
+                        batch_size=32)
+
+        # Create trainer
+        trainer = DeepChemLightningTrainer(
+            model=model,
+            batch_size=32,
+            max_epochs=10,
+            accelerator="cuda",
+            devices=-1,
+            log_every_n_steps=1,
+            strategy="fsdp",
+            fast_dev_run=True
+        )
+        
+        # Train model
+        trainer.fit(train_dataset)
+        
 
 
-    
-    # Save checkpoint
-    trainer.save_checkpoint("deepchem_model.ckpt")
+        
+        # Save checkpoint
+        trainer.save_checkpoint("deepchem_model_dag.ckpt")
 
-    model = dc.models.MultitaskClassifier(
-        n_tasks=len(tasks),
-        n_features=1024,
-        layer_sizes=[1000],
-        dropouts=0.2,
-        learning_rate=0.0001,
-        batch_size=32
-    )
+        
+        transformer = DAGTransformer(max_atoms=max_atoms)
+        dataset = transformer.transform(test_dataset)
+        model = dc.models.torch_models.DAGModel(len(tasks),
+                        max_atoms=max_atoms,
+                        mode='classification',
+                        learning_rate=0.001,
+                        batch_size=32)
+        
+        trainer = DeepChemLightningTrainer(
+            model=model,
+            batch_size=32,
+            max_epochs=10,
+            accelerator="cuda",
+            devices=-1,
+            log_every_n_steps=1,
+            strategy="fsdp",
+        )
 
-    trainer = DeepChemLightningTrainer(
-        model=model,
-        batch_size=32,
-        max_epochs=10,
-        accelerator="cuda",
-        devices=-1,
-        log_every_n_steps=1,
-        strategy="fsdp",
-    )
+        trainer.load_checkpoint("deepchem_model_dag.ckpt")
+        predictions = trainer.predict(test_dataset)
+        print(predictions[0])
 
-    trainer.load_checkpoint("deepchem_model.ckpt")
-    predictions = trainer.predict(test_dataset)
+    def test_multitask_classifier():
+
+
+        tasks, datasets, _ = dc.molnet.load_clintox()
+        _, valid_dataset, _ = datasets
+
+        model = dc.models.MultitaskClassifier(n_tasks=len(tasks),
+                                    n_features=1024,
+                                    layer_sizes=[1000],
+                                    dropouts=0.2,
+                                    learning_rate=0.0001,
+                                    device="cpu")
+        trainer = DeepChemLightningTrainer(
+                model=model,
+                batch_size=32,
+                max_epochs=30,
+                accelerator="cuda",
+                devices=-1,
+                log_every_n_steps=1,
+                strategy="fsdp",
+                # fast_dev_run=True
+            )
+        trainer.fit(valid_dataset)
+        trainer.save_checkpoint("multitask_classifier.ckpt")
+
+        model = dc.models.MultitaskClassifier(n_tasks=len(tasks),
+                                    n_features=1024,
+                                    layer_sizes=[1000],
+                                    dropouts=0.2,
+                                    learning_rate=0.0001,
+                                    device="cpu")
+        trainer = DeepChemLightningTrainer(
+                model=model,
+                batch_size=32,
+                max_epochs=10,
+                accelerator="cuda",
+                devices=-1,
+                log_every_n_steps=1,
+                strategy="fsdp",
+            )
+        trainer.load_checkpoint("multitask_classifier.ckpt")
+        predictions = trainer.predict(valid_dataset)
+        print(predictions[0])
+
+
+    test_multitask_classifier()

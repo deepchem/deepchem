@@ -25,6 +25,8 @@ class DeepChemLightningModule(L.LightningModule):
         self._other_outputs = model._other_outputs
         self._loss_fn = model._loss_fn
         self.uncertainty = False if not hasattr(model, 'uncertainty') else model.uncertainty
+        self._transformers = []
+        self.other_output_types = None
 
     def forward(self, x):
         """Forward pass of the model."""
@@ -44,6 +46,7 @@ class DeepChemLightningModule(L.LightningModule):
         self.log("train_loss", loss.item(), prog_bar=True, sync_dist=True)
         return loss
     
+
     def predict_step(self, batch, batch_idx):
         """Prediction step with support for uncertainties and transformers."""
         results, variances = None, None
@@ -67,7 +70,7 @@ class DeepChemLightningModule(L.LightningModule):
                     'The number of variances must exactly match the number of outputs'
                 )
                 
-        if self.output_types:
+        if self.other_output_types:
             if self._other_outputs is None or len(self._other_outputs) == 0:
                 raise ValueError(
                     'This model cannot compute other outputs since no other output_types were specified.'
@@ -85,7 +88,7 @@ class DeepChemLightningModule(L.LightningModule):
                     variances[i].append(t)
                     
         access_values = []
-        if self.output_types:
+        if self.other_output_types:
             access_values += self._other_outputs
         elif self._prediction_outputs is not None:
             access_values += self._prediction_outputs
@@ -93,14 +96,14 @@ class DeepChemLightningModule(L.LightningModule):
         if len(access_values) > 0:
             output_values = [output_values[i] for i in access_values]
 
-        if len(transformers) > 0:
+        if len(self._transformers) > 0:
             if len(output_values) > 1:
                 raise ValueError(
                     "predict() does not support Transformers for models with multiple outputs."
                 )
             elif len(output_values) == 1:
                 from deepchem.trans import undo_transforms
-                output_values = [undo_transforms(output_values[0], transformers)]
+                output_values = [undo_transforms(output_values[0], self._transformers)]
                 
         if results is None:
             results = [[] for i in range(len(output_values))]

@@ -7,17 +7,6 @@ import logging
 from typing import Optional,Callable
 
 
-
-
-
-# class CustomProgressBar(TQDMProgressBar):
-#     """Custom progress bar that disables the validation tqdm bar."""
-    
-#     def init_validation_tqdm(self):
-#         bar = super().init_validation_tqdm()
-#         bar.disable = True
-#         return bar
-
 def collate_dataset_wrapper(batch, model):
     """
     Collate function for DeepChem datasets to work with PyTorch DataLoader.

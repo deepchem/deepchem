@@ -14,6 +14,7 @@ import multiprocessing
 from multiprocessing.dummy import Pool
 from ast import literal_eval as make_tuple
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
+import bisect
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -2639,7 +2640,7 @@ class DiskDataset(Dataset):
         cumulative_sums = [(current_sum := current_sum + size) for size in self._shard_sizes]
         return cumulative_sums
 
-    def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, index: int):
         """Retrieves the sample at the given index."""
         if not self._have_cumulative_sums:
             self._have_cumulative_sums = True
