@@ -303,6 +303,9 @@ Torch Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.SpectralConv
   :members:
+  
+.. autoclass:: deepchem.models.torch_models.chemnet_layers.Stem
+  :members:
 
 Flow Layers
 ^^^^^^^^^^^
@@ -369,6 +372,7 @@ The following layers are used for implementing GROVER model as described in the 
 .. autoclass:: deepchem.models.torch_models.grover.GroverFinetune
   :members:
 
+
 Attention Layers
 ^^^^^^^^^^^^^^^^
 
@@ -378,6 +382,53 @@ Attention Layers
 .. autoclass:: deepchem.models.torch_models.attention.SelfAttention
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.SphericalHarmonics
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3Attention
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.Fiber
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3LayerNorm
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3RadialFunc
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3PairwiseConv
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3Sum
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3Cat
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3AvgPooling
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3MultiHeadAttention
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3AttentiveSelfInteraction
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3SelfInteraction
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3GraphConv
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3GraphNorm
+  :members:
+
+  .. autoclass:: deepchem.models.torch_models.layers.SE3PartialEdgeConv
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.SE3ResidualAttention
+  :members:
 .. autoclass:: deepchem.models.torch_models.layers.SphericalHarmonics
   :members:
 
