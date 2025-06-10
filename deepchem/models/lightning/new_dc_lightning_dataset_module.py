@@ -26,11 +26,8 @@ def collate_dataset_wrapper(batch, model):
                 Y.append(batch[i][1])
                 W.append(batch[i][2])
                 ids.append(batch[i][3])
-            size = model.batch_size # This helps to make sure that the `default_generator` does not batch the data.
-            model.batch_size = 1
             batch = next(model.default_generator(NumpyDataset(X, Y, W, ids)))
             self.batch_list = model._prepare_batch(batch)
-            model.batch_size = size
     return DeepChemBatch(batch, model).batch_list
 
 class DCLightningDataModule(L.LightningDataModule):
@@ -58,7 +55,7 @@ class DCLightningDataModule(L.LightningDataModule):
         self._model = model
         
         if collate_fn is None and model is not None:
-            self.collate_fn = lambda batch: collate_dataset_wrapper(batch, model)
+            self.collate_fn = lambda batch:collate_dataset_wrapper(batch=batch, model=model)
         else:
             self.collate_fn = collate_fn
             
