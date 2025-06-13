@@ -2,6 +2,7 @@ import torch
 import lightning as L
 from deepchem.models.optimizers import LearningRateSchedule
 import numpy as np
+from deepchem.models.torch_models import TorchModel, ModularTorchModel
 
 
 class DeepChemLightningModule(L.LightningModule):
@@ -25,6 +26,7 @@ class DeepChemLightningModule(L.LightningModule):
         self._other_outputs = model._other_outputs
         self._loss_fn = model._loss_fn
         self.uncertainty = False if not hasattr(model, 'uncertainty') else model.uncertainty
+        self.learning_rate = model.learning_rate
         self._transformers = []
         self.other_output_types = None
 
@@ -38,11 +40,14 @@ class DeepChemLightningModule(L.LightningModule):
         if isinstance(inputs, list) and len(inputs) == 1:
             inputs = inputs[0]
         outputs = self.model(inputs)
-        if isinstance(outputs, torch.Tensor):
-            outputs = [outputs]
-        if self._loss_outputs is not None:
-            outputs = [outputs[i] for i in self._loss_outputs]
-        loss = self._loss_fn(outputs, labels, weights)
+        if isinstance(self.dc_model, ModularTorchModel):
+            loss = self.dc_model.loss_func(inputs, labels, weights)
+        elif isinstance(self.dc_model, TorchModel):
+            if isinstance(outputs, torch.Tensor):
+                outputs = [outputs]
+            if self._loss_outputs is not None:
+                outputs = [outputs[i] for i in self._loss_outputs]
+            loss = self._loss_fn(outputs, labels, weights)
         self.log("train_loss", loss.item(), prog_bar=True, sync_dist=True)
         return loss
     
