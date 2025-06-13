@@ -170,16 +170,38 @@ def test_fno_loss_function():
 def test_fno_reload():
     """Test that FNO model can be reloaded."""
     from deepchem.models.torch_models import FNO
+    import numpy as np
 
-    model = FNO(input_dim=1, output_dim=1, modes=8, width=32, dims=1, depth=2)
-    X = torch.rand(10, 32, 1)
-    y = torch.rand(10, 32, 1)
+    np.random.seed(123)
+    torch.manual_seed(123)
+
+    n_samples = 10
+    n_features = 32
+    X = torch.rand(n_samples, n_features, 1)
+    y = torch.rand(n_samples, n_features, 1)
     dataset = dc.data.NumpyDataset(X=X, y=y)
-    model.fit(dataset, nb_epoch=5)
-    model.save()
 
     model_dir = tempfile.mkdtemp()
-    model.save(model_dir)
-    model.restore(model_dir)
-    predictions = model.predict(dataset)
-    assert predictions.shape == y.shape
+    orig_model = FNO(input_dim=1,
+                     output_dim=1,
+                     modes=8,
+                     width=32,
+                     dims=1,
+                     depth=2,
+                     model_dir=model_dir)
+    orig_model.fit(dataset, nb_epoch=5)
+
+    reloaded_model = FNO(input_dim=1,
+                         output_dim=1,
+                         modes=8,
+                         width=32,
+                         dims=1,
+                         depth=2,
+                         model_dir=model_dir)
+    reloaded_model.restore()
+
+    X_new = torch.rand(n_samples, n_features, 1)
+    orig_preds = orig_model.predict_on_batch(X_new)
+    reloaded_preds = reloaded_model.predict_on_batch(X_new)
+
+    assert np.all(orig_preds == reloaded_preds), "Predictions are not the same"
