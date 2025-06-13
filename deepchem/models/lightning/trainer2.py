@@ -1,8 +1,8 @@
 from rdkit import rdBase
 rdBase.DisableLog('rdApp.warning')
 
-from new_dc_lightning_dataset_module import DCLightningDataModule
-from new_dc_lightning_module import DeepChemLightningModule
+from deepchem.models.lightning.new_dc_lightning_dataset_module import DCLightningDataModule
+from deepchem.models.lightning.new_dc_lightning_module import DeepChemLightningModule
 import deepchem as dc
 import lightning as L
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
