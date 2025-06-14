@@ -185,7 +185,7 @@ class InceptionResnetB(nn.Module):
     torch.Size([1, 64, 28, 28])
     """
 
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels: int, out_channels: int) -> None:
         """
         Initializes the Inception-ResNet-B block.
 
@@ -219,7 +219,7 @@ class InceptionResnetB(nn.Module):
                                      kernel_size=1)
         self.activation = nn.ReLU()
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Forward pass of the Inception-ResNet-B block.
 
