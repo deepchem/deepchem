@@ -26,7 +26,8 @@ class FNOBlock(nn.Module):
     >>> output = block(x)
     """
 
-    def __init__(self, width: int, modes: Union[int, Tuple[int, ...]], dims: int) -> None:
+    def __init__(self, width: int, modes: Union[int, Tuple[int, ...]],
+                 dims: int) -> None:
         """Initialize the FNO block.
 
         Parameters
@@ -95,12 +96,12 @@ class FNOBase(nn.Module):
     >>> output = model(x)
     """
 
-    def __init__(self, 
-                 input_dim: int, 
-                 output_dim: int, 
-                 modes: Union[int, Tuple[int, ...]], 
-                 width: int, 
-                 dims: int, 
+    def __init__(self,
+                 input_dim: int,
+                 output_dim: int,
+                 modes: Union[int, Tuple[int, ...]],
+                 width: int,
+                 dims: int,
                  depth: int = 4) -> None:
         """Initialize the FNO base model.
 
@@ -227,7 +228,7 @@ class FNOModel(TorchModel):
     >>> dataset = dc.data.NumpyDataset(X=x, y=x)
     >>> model = FNOModel(input_dim=1, output_dim=1, modes=8, width=32, dims=2)
     >>> model.fit(dataset)
-    >>> predictions = model.predict(dataset)    
+    >>> predictions = model.predict(dataset)
     """
 
     def __init__(self,
@@ -259,11 +260,13 @@ class FNOModel(TorchModel):
             Additional arguments passed to TorchModel constructor
         """
         model = FNOBase(input_dim, output_dim, modes, width, dims, depth)
-        super(FNOModel, self).__init__(model=model, loss=self._loss_fn, **kwargs)
+        super(FNOModel, self).__init__(model=model,
+                                       loss=self._loss_fn,
+                                       **kwargs)
 
-    def _loss_fn(self, 
-                 outputs: List[torch.Tensor], 
-                 labels: List[torch.Tensor], 
+    def _loss_fn(self,
+                 outputs: List[torch.Tensor],
+                 labels: List[torch.Tensor],
                  weights: Optional[List[torch.Tensor]] = None) -> torch.Tensor:
         """Compute the loss for training.
 
