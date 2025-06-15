@@ -1,7 +1,9 @@
 from deepchem.models.torch_models.layers import SpectralConv
 from deepchem.models.torch_models import TorchModel
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Union, Tuple, Optional, List
 
 
 class FNOBlock(nn.Module):
@@ -14,9 +16,17 @@ class FNOBlock(nn.Module):
 
     The forward pass computes:
     FNO_block(x) = ReLU(SpectralConv(x) + Conv(x))
+
+    Usage Example
+    -------------
+    >>> import torch
+    >>> from deepchem.models.torch_models.fno import FNOBlock
+    >>> block = FNOBlock(width=128, modes=10, dims=2)
+    >>> x = torch.randn(1, 128, 10, 10)
+    >>> output = block(x)
     """
 
-    def __init__(self, width, modes, dims):
+    def __init__(self, width: int, modes: Union[int, Tuple[int, ...]], dims: int) -> None:
         """Initialize the FNO block.
 
         Parameters
@@ -39,7 +49,7 @@ class FNOBlock(nn.Module):
         else:
             raise NotImplementedError(f"Invalid dimension: {dims}")
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass through the FNO block.
 
         Parameters
@@ -75,9 +85,23 @@ class FNOBase(nn.Module):
     This technique was introduced in [1]_
 
     .. [1] Li, Zongyi, et al. "Fourier neural operator for parametric partial differential equations." arXiv preprint arXiv:2010.08895 (2020).
+
+    Usage Example
+    -------------
+    >>> import torch
+    >>> from deepchem.models.torch_models.fno import FNOBase
+    >>> model = FNOBase(input_dim=1, output_dim=1, modes=8, width=32, dims=2)
+    >>> x = torch.randn(1, 16, 16, 1)
+    >>> output = model(x)
     """
 
-    def __init__(self, input_dim, output_dim, modes, width, dims, depth=4):
+    def __init__(self, 
+                 input_dim: int, 
+                 output_dim: int, 
+                 modes: Union[int, Tuple[int, ...]], 
+                 width: int, 
+                 dims: int, 
+                 depth: int = 4) -> None:
         """Initialize the FNO base model.
 
         Parameters
@@ -107,7 +131,7 @@ class FNOBase(nn.Module):
         self.fc1 = nn.Linear(width, 128)
         self.fc2 = nn.Linear(128, output_dim)
 
-    def _ensure_channel_first(self, x):
+    def _ensure_channel_first(self, x: torch.Tensor) -> torch.Tensor:
         """Ensure input tensor has channels in the correct position.
 
         Converts between (batch, *spatial_dims, input_dim) and
@@ -135,7 +159,7 @@ class FNOBase(nn.Module):
                 f"Expected either (batch, input_dim, *spatial_dims) or "
                 f"(batch, *spatial_dims, input_dim), got {tuple(x.shape)}")
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass through the FNO model.
 
         Parameters
@@ -155,14 +179,18 @@ class FNOBase(nn.Module):
 
         x = self._ensure_channel_first(x)
 
+        # Need to permute the channels to the last dimension for the linear layer fc0
         perm_fc0 = (0, *range(2, x.ndim), 1)
         x = x.permute(*perm_fc0).contiguous()
         x = self.fc0(x)
 
+        # Need to permute the channels back to the first dimension (excluding batch dimension) for FNO blocks.
+        # This is because they expect the spatial dimensions to be last.
         perm_back = (0, x.ndim - 1) + tuple(range(1, x.ndim - 1))
         x = x.permute(*perm_back).contiguous()
         x = self.fno_blocks(x)
 
+        # Need to permute the channels back to the last dimension again for the linear layer fc1
         perm_proj = (0, *range(2, x.ndim), 1)
         x = x.permute(*perm_proj).contiguous()
         x = self.fc1(x)
@@ -172,7 +200,7 @@ class FNOBase(nn.Module):
         return x
 
 
-class FNO(TorchModel):
+class FNOModel(TorchModel):
     """Fourier Neural Operator for learning mappings between function spaces.
 
     This is a TorchModel wrapper around FNOBase that provides the DeepChem
@@ -190,17 +218,26 @@ class FNO(TorchModel):
 
     .. [1] Li, Zongyi, et al. "Fourier neural operator for parametric partial differential equations." arXiv preprint arXiv:2010.08895 (2020).
 
-    TODO: Add usage example.
+    Usage Example
+    -------------
+    >>> import torch
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models.fno import FNOModel
+    >>> x = torch.randn(1, 16, 16, 1)
+    >>> dataset = dc.data.NumpyDataset(X=x, y=x)
+    >>> model = FNOModel(input_dim=1, output_dim=1, modes=8, width=32, dims=2)
+    >>> model.fit(dataset)
+    >>> predictions = model.predict(dataset)    
     """
 
     def __init__(self,
-                 input_dim,
-                 output_dim,
-                 modes,
-                 width,
-                 dims,
-                 depth=4,
-                 **kwargs):
+                 input_dim: int,
+                 output_dim: int,
+                 modes: Union[int, Tuple[int, ...]],
+                 width: int,
+                 dims: int,
+                 depth: int = 4,
+                 **kwargs) -> None:
         """Initialize the FNO model.
 
         Parameters
@@ -222,16 +259,19 @@ class FNO(TorchModel):
             Additional arguments passed to TorchModel constructor
         """
         model = FNOBase(input_dim, output_dim, modes, width, dims, depth)
-        super(FNO, self).__init__(model=model, loss=self._loss_fn, **kwargs)
+        super(FNOModel, self).__init__(model=model, loss=self._loss_fn, **kwargs)
 
-    def _loss_fn(self, outputs, labels, weights=None):
+    def _loss_fn(self, 
+                 outputs: List[torch.Tensor], 
+                 labels: List[torch.Tensor], 
+                 weights: Optional[List[torch.Tensor]] = None) -> torch.Tensor:
         """Compute the loss for training.
 
         Parameters
         ----------
-        outputs: torch.Tensor
+        outputs: List[torch.Tensor]
             Model predictions
-        labels: torch.Tensor
+        labels: List[torch.Tensor]
             Ground truth labels
         weights: torch.Tensor, optional
             Sample weights (currently unused)

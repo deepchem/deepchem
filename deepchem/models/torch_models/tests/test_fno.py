@@ -13,9 +13,9 @@ except ModuleNotFoundError:
 @pytest.mark.torch
 def test_fno_construction():
     """Test that FNO Model can be constructed without crash."""
-    from deepchem.models.torch_models import FNO
+    from deepchem.models.torch_models import FNOModel
 
-    model_1d = FNO(input_dim=1,
+    model_1d = FNOModel(input_dim=1,
                    output_dim=1,
                    modes=8,
                    width=32,
@@ -23,7 +23,7 @@ def test_fno_construction():
                    depth=2)
     assert model_1d is not None
 
-    model_2d = FNO(input_dim=2,
+    model_2d = FNOModel(input_dim=2,
                    output_dim=3,
                    modes=8,
                    width=64,
@@ -31,7 +31,7 @@ def test_fno_construction():
                    depth=3)
     assert model_2d is not None
 
-    model_3d = FNO(input_dim=3,
+    model_3d = FNOModel(input_dim=3,
                    output_dim=1,
                    modes=4,
                    width=32,
@@ -43,9 +43,9 @@ def test_fno_construction():
 @pytest.mark.torch
 def test_fno_overfit():
     """Test that FNO model can overfit simple data."""
-    from deepchem.models.torch_models import FNO
+    from deepchem.models.torch_models import FNOModel
 
-    model = FNO(input_dim=1, output_dim=1, modes=8, width=128, dims=1, depth=4)
+    model = FNOModel(input_dim=1, output_dim=1, modes=8, width=128, dims=1, depth=4)
     X = torch.rand(100, 100, 1)
     y = X  # Identity mapping
     dataset = dc.data.NumpyDataset(X=X, y=y)
@@ -56,9 +56,9 @@ def test_fno_overfit():
 @pytest.mark.torch
 def test_fno_overfit_2d():
     """Test that 2D FNO model can overfit simple data."""
-    from deepchem.models.torch_models import FNO
+    from deepchem.models.torch_models import FNOModel
 
-    model = FNO(input_dim=2, output_dim=1, modes=8, width=64, dims=2, depth=3)
+    model = FNOModel(input_dim=2, output_dim=1, modes=8, width=64, dims=2, depth=3)
     X = torch.rand(50, 32, 32, 2)
     y = torch.sum(X, dim=-1, keepdim=True)  # Sum over input channels
     dataset = dc.data.NumpyDataset(X=X, y=y)
@@ -69,9 +69,9 @@ def test_fno_overfit_2d():
 @pytest.mark.torch
 def test_fno_prediction_shape():
     """Test that FNO predictions have correct shape."""
-    from deepchem.models.torch_models import FNO
+    from deepchem.models.torch_models import FNOModel
 
-    model = FNO(input_dim=2, output_dim=3, modes=8, width=32, dims=1, depth=2)
+    model = FNOModel(input_dim=2, output_dim=3, modes=8, width=32, dims=1, depth=2)
     X = torch.rand(10, 50, 2)
     y = torch.rand(10, 50, 3)
     dataset = dc.data.NumpyDataset(X=X, y=y)
@@ -87,7 +87,7 @@ def test_fno_prediction_shape():
 @pytest.mark.torch
 def test_fno_with_different_modes():
     """Test FNO with different numbers of modes."""
-    from deepchem.models.torch_models import FNO
+    from deepchem.models.torch_models import FNOModel
 
     X = torch.rand(10, 32, 1)
     y = torch.rand(10, 32, 1)
@@ -95,7 +95,7 @@ def test_fno_with_different_modes():
 
     # Test with different mode counts
     for modes in [4, 8, 16]:
-        model = FNO(input_dim=1,
+        model = FNOModel(input_dim=1,
                     output_dim=1,
                     modes=modes,
                     width=32,
@@ -109,7 +109,7 @@ def test_fno_with_different_modes():
 @pytest.mark.torch
 def test_fno_with_different_widths():
     """Test FNO with different widths."""
-    from deepchem.models.torch_models import FNO
+    from deepchem.models.torch_models import FNOModel
 
     X = torch.rand(10, 32, 1)
     y = torch.rand(10, 32, 1)
@@ -117,7 +117,7 @@ def test_fno_with_different_widths():
 
     # Test with different widths
     for width in [16, 32, 64]:
-        model = FNO(input_dim=1,
+        model = FNOModel(input_dim=1,
                     output_dim=1,
                     modes=8,
                     width=width,
@@ -131,7 +131,7 @@ def test_fno_with_different_widths():
 @pytest.mark.torch
 def test_fno_with_different_depths():
     """Test FNO with different depths."""
-    from deepchem.models.torch_models import FNO
+    from deepchem.models.torch_models import FNOModel
 
     X = torch.rand(10, 32, 1)
     y = torch.rand(10, 32, 1)
@@ -139,7 +139,7 @@ def test_fno_with_different_depths():
 
     # Test with different depths
     for depth in [1, 2, 4, 6]:
-        model = FNO(input_dim=1,
+        model = FNOModel(input_dim=1,
                     output_dim=1,
                     modes=8,
                     width=32,
@@ -153,9 +153,9 @@ def test_fno_with_different_depths():
 @pytest.mark.torch
 def test_fno_loss_function():
     """Test that FNO loss function works correctly."""
-    from deepchem.models.torch_models import FNO
+    from deepchem.models.torch_models import FNOModel
 
-    model = FNO(input_dim=1, output_dim=1, modes=8, width=32, dims=1, depth=2)
+    model = FNOModel(input_dim=1, output_dim=1, modes=8, width=32, dims=1, depth=2)
 
     # Test loss function directly
     outputs = [torch.rand(10, 32, 1)]
@@ -169,7 +169,7 @@ def test_fno_loss_function():
 @pytest.mark.torch
 def test_fno_reload():
     """Test that FNO model can be reloaded."""
-    from deepchem.models.torch_models import FNO
+    from deepchem.models.torch_models import FNOModel
     import numpy as np
 
     np.random.seed(123)
@@ -182,7 +182,7 @@ def test_fno_reload():
     dataset = dc.data.NumpyDataset(X=X, y=y)
 
     model_dir = tempfile.mkdtemp()
-    orig_model = FNO(input_dim=1,
+    orig_model = FNOModel(input_dim=1,
                      output_dim=1,
                      modes=8,
                      width=32,
@@ -191,7 +191,7 @@ def test_fno_reload():
                      model_dir=model_dir)
     orig_model.fit(dataset, nb_epoch=5)
 
-    reloaded_model = FNO(input_dim=1,
+    reloaded_model = FNOModel(input_dim=1,
                          output_dim=1,
                          modes=8,
                          width=32,
