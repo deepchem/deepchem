@@ -307,6 +307,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.chemnet_layers.Stem
   :members:
 
+.. autoclass:: deepchem.models.torch_models.fno.FNOBlock
+  :members:
+
 Flow Layers
 ^^^^^^^^^^^
 
