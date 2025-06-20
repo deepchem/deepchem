@@ -75,6 +75,7 @@ def test_fno_overfit_2d():
     loss = model.fit(dataset, nb_epoch=200)
     assert loss < 1e-1, "2D FNOModel can't overfit"
 
+
 @pytest.mark.torch
 def test_fno_overfit_nd():
     """Test that ND FNO model can overfit simple data."""
@@ -87,7 +88,7 @@ def test_fno_overfit_nd():
                      width=64,
                      dims=n,
                      depth=3)
-    
+
     X = torch.rand(50, *[32 for _ in range(n)], 2)
     y = torch.sum(X, dim=-1, keepdim=True)  # Sum over input channels
     dataset = dc.data.NumpyDataset(X=X, y=y)
