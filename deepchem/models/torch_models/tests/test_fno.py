@@ -15,24 +15,24 @@ def test_fno_construction():
     """Test that FNO Model can be constructed without crash."""
     from deepchem.models.torch_models import FNOModel
 
-    model_1d = FNOModel(input_dim=1,
-                        output_dim=1,
+    model_1d = FNOModel(in_channels=1,
+                        out_channels=1,
                         modes=8,
                         width=32,
                         dims=1,
                         depth=2)
     assert model_1d is not None
 
-    model_2d = FNOModel(input_dim=2,
-                        output_dim=3,
+    model_2d = FNOModel(in_channels=2,
+                        out_channels=3,
                         modes=8,
                         width=64,
                         dims=2,
                         depth=3)
     assert model_2d is not None
 
-    model_3d = FNOModel(input_dim=3,
-                        output_dim=1,
+    model_3d = FNOModel(in_channels=3,
+                        out_channels=1,
                         modes=4,
                         width=32,
                         dims=3,
@@ -45,8 +45,8 @@ def test_fno_overfit():
     """Test that FNO model can overfit simple data."""
     from deepchem.models.torch_models import FNOModel
 
-    model = FNOModel(input_dim=1,
-                     output_dim=1,
+    model = FNOModel(in_channels=1,
+                     out_channels=1,
                      modes=8,
                      width=128,
                      dims=1,
@@ -55,7 +55,7 @@ def test_fno_overfit():
     y = X  # Identity mapping
     dataset = dc.data.NumpyDataset(X=X, y=y)
     loss = model.fit(dataset, nb_epoch=300)
-    assert loss < 1e-2, "Model can't overfit"
+    assert loss < 1e-2, "1D FNOModel can't overfit"
 
 
 @pytest.mark.torch
@@ -63,8 +63,8 @@ def test_fno_overfit_2d():
     """Test that 2D FNO model can overfit simple data."""
     from deepchem.models.torch_models import FNOModel
 
-    model = FNOModel(input_dim=2,
-                     output_dim=1,
+    model = FNOModel(in_channels=2,
+                     out_channels=1,
                      modes=8,
                      width=64,
                      dims=2,
@@ -73,7 +73,7 @@ def test_fno_overfit_2d():
     y = torch.sum(X, dim=-1, keepdim=True)  # Sum over input channels
     dataset = dc.data.NumpyDataset(X=X, y=y)
     loss = model.fit(dataset, nb_epoch=200)
-    assert loss < 1e-1, "2D Model can't overfit"
+    assert loss < 1e-1, "2D FNOModel can't overfit"
 
 @pytest.mark.torch
 def test_fno_overfit_nd():
@@ -81,19 +81,18 @@ def test_fno_overfit_nd():
     from deepchem.models.torch_models import FNOModel
     import random
     n = random.randint(1, 5)
-    n = 3
-    model = FNOModel(input_dim=2,
-                     output_dim=1,
+    model = FNOModel(in_channels=2,
+                     out_channels=1,
                      modes=8,
                      width=64,
                      dims=n,
                      depth=3)
     
-    X = torch.rand(50, *[32 for i in range(n)], 2)
+    X = torch.rand(50, *[32 for _ in range(n)], 2)
     y = torch.sum(X, dim=-1, keepdim=True)  # Sum over input channels
     dataset = dc.data.NumpyDataset(X=X, y=y)
     loss = model.fit(dataset, nb_epoch=10)
-    assert loss < 1e-1, "ND Model can't overfit"
+    assert loss < 1e-1, f"{n}D FNOModel can't overfit"
 
 
 @pytest.mark.torch
@@ -101,8 +100,8 @@ def test_fno_prediction_shape():
     """Test that FNO predictions have correct shape."""
     from deepchem.models.torch_models import FNOModel
 
-    model = FNOModel(input_dim=2,
-                     output_dim=3,
+    model = FNOModel(in_channels=2,
+                     out_channels=3,
                      modes=8,
                      width=32,
                      dims=1,
@@ -130,8 +129,8 @@ def test_fno_with_different_modes():
 
     # Test with different mode counts
     for modes in [4, 8, 16]:
-        model = FNOModel(input_dim=1,
-                         output_dim=1,
+        model = FNOModel(in_channels=1,
+                         out_channels=1,
                          modes=modes,
                          width=32,
                          dims=1,
@@ -152,8 +151,8 @@ def test_fno_with_different_widths():
 
     # Test with different widths
     for width in [16, 32, 64]:
-        model = FNOModel(input_dim=1,
-                         output_dim=1,
+        model = FNOModel(in_channels=1,
+                         out_channels=1,
                          modes=8,
                          width=width,
                          dims=1,
@@ -174,8 +173,8 @@ def test_fno_with_different_depths():
 
     # Test with different depths
     for depth in [1, 2, 4, 6]:
-        model = FNOModel(input_dim=1,
-                         output_dim=1,
+        model = FNOModel(in_channels=1,
+                         out_channels=1,
                          modes=8,
                          width=32,
                          dims=1,
@@ -190,8 +189,8 @@ def test_fno_loss_function():
     """Test that FNO loss function works correctly."""
     from deepchem.models.torch_models import FNOModel
 
-    model = FNOModel(input_dim=1,
-                     output_dim=1,
+    model = FNOModel(in_channels=1,
+                     out_channels=1,
                      modes=8,
                      width=32,
                      dims=1,
@@ -222,8 +221,8 @@ def test_fno_reload():
     dataset = dc.data.NumpyDataset(X=X, y=y)
 
     model_dir = tempfile.mkdtemp()
-    orig_model = FNOModel(input_dim=1,
-                          output_dim=1,
+    orig_model = FNOModel(in_channels=1,
+                          out_channels=1,
                           modes=8,
                           width=32,
                           dims=1,
@@ -231,8 +230,8 @@ def test_fno_reload():
                           model_dir=model_dir)
     orig_model.fit(dataset, nb_epoch=5)
 
-    reloaded_model = FNOModel(input_dim=1,
-                              output_dim=1,
+    reloaded_model = FNOModel(in_channels=1,
+                              out_channels=1,
                               modes=8,
                               width=32,
                               dims=1,
