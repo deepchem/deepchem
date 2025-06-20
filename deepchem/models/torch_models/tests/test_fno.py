@@ -1,6 +1,4 @@
 import pytest
-import deepchem as dc
-import tempfile
 
 try:
     import torch
@@ -22,6 +20,7 @@ def test_fno_block_construction():
     block = FNOBlock(width=32, modes=8, dims=3)
     assert block is not None
 
+
 @pytest.mark.torch
 def test_fno_block_forward():
     from deepchem.models.torch_models.fno import FNOBlock
@@ -29,6 +28,7 @@ def test_fno_block_forward():
     x = torch.rand(100, 32, 100, 100)
     y = block(x)
     assert y.shape == (100, 32, 100, 100)
+
 
 @pytest.mark.torch
 def test_fno_block_output_shape():

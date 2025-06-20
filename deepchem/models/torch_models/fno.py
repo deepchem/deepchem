@@ -1,9 +1,8 @@
 from deepchem.models.torch_models.layers import SpectralConv
-from deepchem.models.torch_models import TorchModel
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Union, Tuple, Optional, List
+from typing import Union, Tuple
 
 
 class FNOBlock(nn.Module):
