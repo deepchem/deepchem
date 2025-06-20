@@ -75,6 +75,24 @@ def test_fno_overfit_2d():
     loss = model.fit(dataset, nb_epoch=200)
     assert loss < 1e-1, "2D Model can't overfit"
 
+@pytest.mark.torch
+def test_fno_overfit_nd():
+    """Test that ND FNO model can overfit simple data."""
+    from deepchem.models.torch_models import FNOModel
+    import random
+    n = random.randint(1, 5)
+    model = FNOModel(input_dim=n,
+                     output_dim=1,
+                     modes=8,
+                     width=64,
+                     dims=n,
+                     depth=3)
+    X = torch.rand(50, 32, 32, n)
+    y = torch.sum(X, dim=-1, keepdim=True)  # Sum over input channels
+    dataset = dc.data.NumpyDataset(X=X, y=y)
+    loss = model.fit(dataset, nb_epoch=200)
+    assert loss < 1e-1, "ND Model can't overfit"
+
 
 @pytest.mark.torch
 def test_fno_prediction_shape():
