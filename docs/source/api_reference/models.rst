@@ -582,12 +582,6 @@ PINNModel
 .. autoclass:: deepchem.models.torch_models.PINNModel
   :members:
 
-FNOModel
----------
-
-.. autoclass:: deepchem.models.torch_models.FNOModel
-  :members:
-
 UNetModel
 ------------
 
