@@ -178,7 +178,6 @@ class FNOBase(nn.Module):
             )
 
         x = self._ensure_channel_first(x)
-        print("After _ensure_channel_first", x.shape)
         # Need to permute the channels to the last dimension for the linear layer fc0
         perm_fc0 = (0, *range(2, x.ndim), 1)
         x = x.permute(*perm_fc0).contiguous()
