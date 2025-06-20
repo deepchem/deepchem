@@ -91,14 +91,14 @@ class FNOBase(nn.Module):
     -------------
     >>> import torch
     >>> from deepchem.models.torch_models.fno import FNOBase
-    >>> model = FNOBase(input_dim=1, output_dim=1, modes=8, width=32, dims=2)
+    >>> model = FNOBase(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
     >>> x = torch.randn(1, 16, 16, 1)
     >>> output = model(x)
     """
 
     def __init__(self,
-                 input_dim: int,
-                 output_dim: int,
+                 in_channels: int,
+                 out_channels: int,
                  modes: Union[int, Tuple[int, ...]],
                  width: int,
                  dims: int,
@@ -107,9 +107,9 @@ class FNOBase(nn.Module):
 
         Parameters
         ----------
-        input_dim: int
+        in_channels: int
             Dimension of input features
-        output_dim: int
+        out_channels: int
             Dimension of output features
         modes: int or tuple
             Number of Fourier modes to keep in spectral convolution
@@ -122,21 +122,21 @@ class FNOBase(nn.Module):
         """
         super().__init__()
         self.dims = dims
-        self.input_dim = input_dim
-        self.output_dim = output_dim
+        self.in_channels = in_channels
+        self.out_channels = out_channels
         self.width = width
 
-        self.fc0 = nn.Linear(input_dim, width)
+        self.fc0 = nn.Linear(in_channels, width)
         self.fno_blocks = nn.Sequential(
             *[FNOBlock(width, modes, dims=dims) for _ in range(depth)])
         self.fc1 = nn.Linear(width, 128)
-        self.fc2 = nn.Linear(128, output_dim)
+        self.fc2 = nn.Linear(128, out_channels)
 
     def _ensure_channel_first(self, x: torch.Tensor) -> torch.Tensor:
         """Ensure input tensor has channels in the correct position.
 
-        Converts between (batch, *spatial_dims, input_dim) and
-        (batch, input_dim, *spatial_dims) formats.
+        Converts between (batch, *spatial_dims, in_channels) and
+        (batch, in_channels, *spatial_dims) formats.
 
         Parameters
         ----------
@@ -146,17 +146,17 @@ class FNOBase(nn.Module):
         Returns
         -------
         torch.Tensor
-            Tensor with channels in position 1: (batch, input_dim, *spatial_dims)
+            Tensor with channels in position 1: (batch, in_channels, *spatial_dims)
         """
-        if x.shape[-1] == self.input_dim:
+        if x.shape[-1] == self.in_channels:
             perm_dims = range(1, self.dims + 1)
             return x.permute(0, -1, *perm_dims).contiguous()
-        elif x.shape[1] == self.input_dim:
+        elif x.shape[1] == self.in_channels:
             return x
         else:
             raise ValueError(
-                f"Expected either (batch, {self.input_dim}, *spatial_dims) or "
-                f"(batch, *spatial_dims, {self.input_dim}), got {tuple(x.shape)}"
+                f"Expected either (batch, {self.in_channels}, *spatial_dims) or "
+                f"(batch, *spatial_dims, {self.in_channels}), got {tuple(x.shape)}"
             )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -165,16 +165,16 @@ class FNOBase(nn.Module):
         Parameters
         ----------
         x: torch.Tensor
-            Input tensor of shape (batch, *spatial_dims, input_dim)
+            Input tensor of shape (batch, *spatial_dims, in_channels)
 
         Returns
         -------
         torch.Tensor
-            Output tensor of shape (batch, *spatial_dims, output_dim)
+            Output tensor of shape (batch, *spatial_dims, out_channels)
         """
         if x.ndim != self.dims + 2:
             raise ValueError(
-                f"Expected tensor with {self.dims + 2} dims (batch, *spatial_dims, input_dim), got {x.ndim}"
+                f"Expected tensor with {self.dims + 2} dims (batch, *spatial_dims, in_channels), got {x.ndim}"
             )
 
         x = self._ensure_channel_first(x)
@@ -224,14 +224,14 @@ class FNOModel(TorchModel):
     >>> from deepchem.models.torch_models.fno import FNOModel
     >>> x = torch.randn(1, 16, 16, 1)
     >>> dataset = dc.data.NumpyDataset(X=x, y=x)
-    >>> model = FNOModel(input_dim=1, output_dim=1, modes=8, width=32, dims=2)
+    >>> model = FNOModel(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
     >>> model.fit(dataset)
     >>> predictions = model.predict(dataset)
     """
 
     def __init__(self,
-                 input_dim: int,
-                 output_dim: int,
+                 in_channels: int,
+                 out_channels: int,
                  modes: Union[int, Tuple[int, ...]],
                  width: int,
                  dims: int,
@@ -241,9 +241,9 @@ class FNOModel(TorchModel):
 
         Parameters
         ----------
-        input_dim: int
+        in_channels: int
             Dimension of input features at each spatial location
-        output_dim: int
+        out_channels: int
             Dimension of output features at each spatial location
         modes: int or tuple
             Number of Fourier modes to keep in spectral convolution. Higher values
@@ -257,7 +257,7 @@ class FNOModel(TorchModel):
         **kwargs: dict
             Additional arguments passed to TorchModel constructor
         """
-        model = FNOBase(input_dim, output_dim, modes, width, dims, depth)
+        model = FNOBase(in_channels, out_channels, modes, width, dims, depth)
         super(FNOModel, self).__init__(model=model,
                                        loss=self._loss_fn,
                                        **kwargs)
