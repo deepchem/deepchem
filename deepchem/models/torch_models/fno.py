@@ -148,17 +148,16 @@ class FNOBase(nn.Module):
         torch.Tensor
             Tensor with channels in position 1: (batch, input_dim, *spatial_dims)
         """
-        # If x is (batch, *spatial_dims, input_dim) -> permute -> (batch, input_dim, *spatial_dims)
         if x.shape[-1] == self.input_dim:
-            perm = (0, x.ndim - 1) + tuple(range(1, x.ndim - 1))
-            return x.permute(*perm).contiguous()
-        # If x is already (batch, input_dim, *spatial_dims), leave it as it is.
+            perm_dims = range(1, self.dims + 1)
+            return x.permute(0, -1, *perm_dims).contiguous()
         elif x.shape[1] == self.input_dim:
             return x
         else:
             raise ValueError(
-                f"Expected either (batch, input_dim, *spatial_dims) or "
-                f"(batch, *spatial_dims, input_dim), got {tuple(x.shape)}")
+                f"Expected either (batch, {self.input_dim}, *spatial_dims) or "
+                f"(batch, *spatial_dims, {self.input_dim}), got {tuple(x.shape)}"
+            )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass through the FNO model.
@@ -179,7 +178,7 @@ class FNOBase(nn.Module):
             )
 
         x = self._ensure_channel_first(x)
-
+        print("After _ensure_channel_first", x.shape)
         # Need to permute the channels to the last dimension for the linear layer fc0
         perm_fc0 = (0, *range(2, x.ndim), 1)
         x = x.permute(*perm_fc0).contiguous()
