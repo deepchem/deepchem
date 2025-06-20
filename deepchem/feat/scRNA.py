@@ -23,11 +23,17 @@ class ACTINNFeaturizer(Featurizer):
     >>> # train_set.shape = (cells x genes) and train_set['label'] = cell type label 
     >>> train_set = pd.read_csv(train_set.csv)
     >>> train_set.shape
-    >>> (1000,23015)
+    (1000,23015)
+    
     >>> featurizer = dc.feat.ACTINNFeaturizer()
     >>> features = featurizer.featurize(train_set)
     >>> features.shape
-    >>> (1000,18469)
+    (1000,18469)
+    
+    >>> loader = dc.data.CSVLoader(tasks=['label'], feature_field = list(train_set.columns)[1:], featurizer=dc.feat.ACTINNFeaturizer())
+    >>> dataset = loader.create_dataset('dataset/train_set.csv')
+    >>> print(dataset)
+    <DiskDataset X.shape: (np.int64(1000), np.int64(18469)), y.shape: (np.int64(1000), np.int64(1)), w.shape: (np.int64(1000), np.int64(1)), task_names: ['label']>
     
     References:
     -----------
