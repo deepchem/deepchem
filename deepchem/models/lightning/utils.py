@@ -67,8 +67,9 @@ class IndexDiskDatasetWrapper(Dataset):
             shards 0 through `i`.
         """
         self._shard_sizes = [
-            self.dataset._get_shard_shape(i)[0][0]
-            for i in range(self.dataset.get_number_shards())
+            self.dataset._get_shard_shape(i)[0][0]  # type: ignore[attr-defined]
+            for i in range(
+                self.dataset.get_number_shards())  # type: ignore[attr-defined]
         ]
         current_sum = 0
         cumulative_sums = [0] + [
@@ -120,7 +121,8 @@ class IndexDiskDatasetWrapper(Dataset):
         local_index = index - self._cumulative_sums[shard_index]
 
         # Load the shard data
-        shard = self.dataset.get_shard(shard_index)
+        shard = self.dataset.get_shard(  # type: ignore[attr-defined]
+            shard_index)
         X, y, w, ids = shard
 
         # Extract the sample (assuming X and y are present)
