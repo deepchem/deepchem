@@ -36,11 +36,10 @@ class FNOBlock(nn.Module):
         """
         super().__init__()
         self.spectral_conv = SpectralConv(width, width, modes, dims=dims)
-        self.w: Union[nn.Conv1d, nn.Conv2d, nn.Conv3d] = None
+        self.w: Union[nn.Conv1d, nn.Conv2d,
+                      nn.Conv3d] = nn.Conv1d(width, width, 1) # may get overwritten by the if statement below
 
-        if dims == 1:
-            self.w = nn.Conv1d(width, width, 1)
-        elif dims == 2:
+        if dims == 2:
             self.w = nn.Conv2d(width, width, 1)
         elif dims == 3:
             self.w = nn.Conv3d(width, width, 1)
