@@ -16,7 +16,7 @@ class FNOBlock(nn.Module):
     The forward pass computes:
     FNO_block(x) = ReLU(SpectralConv(x) + Conv(x))
 
-    Usage Example
+    Example
     -------------
     >>> import torch
     >>> from deepchem.models.torch_models.fno import FNOBlock
@@ -40,6 +40,8 @@ class FNOBlock(nn.Module):
         """
         super().__init__()
         self.spectral_conv = SpectralConv(width, width, modes, dims=dims)
+        self.w: Union[nn.Conv1d, nn.Conv2d, nn.Conv3d] = None
+
         if dims == 1:
             self.w = nn.Conv1d(width, width, 1)
         elif dims == 2:
