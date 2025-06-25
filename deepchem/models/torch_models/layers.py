@@ -5463,8 +5463,9 @@ class FerminetElectronFeature(torch.nn.Module):
                 f: torch.Tensor = torch.cat((one_electron[:, i, :], g_one_up,
                                              g_one_down, g_two_up, g_two_down),
                                             dim=1)
-                if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
-                        self.n_two[l] != self.n_two[l - 1]):
+                if l == 0 or (self.n_one[l]
+                              != self.n_one[l - 1]) or (self.n_two[l]
+                                                        != self.n_two[l - 1]):
                     one_electron_tmp.append((torch.tanh(self.v[l](f))) +
                                             self.projection_module[0]
                                             (one_electron[:, i, :]))
@@ -9055,6 +9056,7 @@ class SE3PartialEdgeConv(nn.Module):
 
             return {f'{d}': G.edata[f'out{d}'] for d in self.f_out.degrees}
 
+
 class SE3ResidualAttention(nn.Module):
     """
     SE(3)-Equivariant Residual Attention Block for Graph Neural Networks.
@@ -9376,4 +9378,3 @@ class SpectralConv(nn.Module):
                                  s=x.shape[2:],
                                  dim=tuple(range(2, x.ndim)))
         return x_out
-
