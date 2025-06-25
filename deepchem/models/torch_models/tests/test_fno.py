@@ -12,13 +12,13 @@ except ModuleNotFoundError:
 def test_fno_block_construction():
     from deepchem.models.torch_models.fno import FNOBlock
     block = FNOBlock(width=32, modes=8, dims=1)
-    assert block is not None
+    assert block is not None, "1D FNO Block construction failed"
 
     block = FNOBlock(width=32, modes=8, dims=2)
-    assert block is not None
+    assert block is not None, "2D FNO Block construction failed"
 
     block = FNOBlock(width=32, modes=8, dims=3)
-    assert block is not None
+    assert block is not None, "3D FNO Block construction failed"
 
 
 @pytest.mark.torch
