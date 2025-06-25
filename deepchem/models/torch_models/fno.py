@@ -29,6 +29,7 @@ class FNOBlock(nn.Module):
     def __init__(self, width: int, modes: Union[int, Tuple[int, ...]],
                  dims: int) -> None:
         """Initialize the FNO block.
+
         Parameters
         ----------
         width: int
@@ -53,10 +54,12 @@ class FNOBlock(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass through the FNO block.
+
         Parameters
         ----------
         x: torch.Tensor
             Input tensor of shape (batch, width, *spatial_dims)
+
         Returns
         -------
         torch.Tensor
@@ -82,9 +85,7 @@ class FNOBase(nn.Module):
 
     References
     ----------
-    This technique was introduced in [1]_
-
-    .. [1] Li, Zongyi, et al. "Fourier neural operator for parametric partial differential equations." arXiv preprint arXiv:2010.08895 (2020).
+    This technique was introduced in Li, Zongyi, et al. "Fourier neural operator for parametric partial differential equations." arXiv preprint arXiv:2010.08895 (2020).
 
     Example
     -------------
@@ -101,7 +102,8 @@ class FNOBase(nn.Module):
                  modes: Union[int, Tuple[int, ...]],
                  width: int,
                  dims: int,
-                 depth: int = 4) -> None:
+                 depth: int = 4,
+                 positional_encoding: bool = False) -> None:
         """Initialize the FNO base model.
 
         Parameters
@@ -118,18 +120,49 @@ class FNOBase(nn.Module):
             Spatial dimensionality (1, 2, or 3)
         depth: int, default 4
             Number of FNO blocks to stack
+        positional_encoding: bool, default False
+            When enabled, uses meshgrids as positional encodings
         """
         super().__init__()
         self.dims = dims
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.width = width
+        self.positional_encoding = positional_encoding
 
         self.fc0 = nn.Linear(in_channels, width)
         self.fno_blocks = nn.Sequential(
             *[FNOBlock(width, modes, dims=dims) for _ in range(depth)])
         self.fc1 = nn.Linear(width, 128)
         self.fc2 = nn.Linear(128, out_channels)
+
+    def _generate_meshgrid(self, x: torch.Tensor) -> torch.Tensor:
+        """Generate coordinate meshgrids for positional encoding.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input tensor of shape (batch, channels, *spatial_dims) after ensure_channel_first
+
+        Returns
+        -------
+        torch.Tensor
+            Coordinate meshgrids of shape (batch, *spatial_dims, dims)
+        """
+        batch_size = x.shape[0]
+        spatial_shape = x.shape[2:]  # Remove batch and channel dims
+        device = x.device
+        dtype = x.dtype
+
+        coords = torch.meshgrid([
+            torch.linspace(-1, 1, size, device=device, dtype=dtype)
+            for size in spatial_shape
+        ],
+                                indexing='ij')
+        coords_tensor = torch.stack(coords, dim=0)
+        coords_tensor = coords_tensor.unsqueeze(0).expand(
+            batch_size, -1, *[-1] * self.dims)
+        return coords_tensor
 
     def _ensure_channel_first(self, x: torch.Tensor) -> torch.Tensor:
         """Ensure input tensor has channels in the correct position.
@@ -147,6 +180,7 @@ class FNOBase(nn.Module):
         torch.Tensor
             Tensor with channels in position 1: (batch, in_channels, *spatial_dims)
         """
+
         if x.shape[-1] == self.in_channels:
             perm_dims = range(1, self.dims + 1)
             return x.permute(0, -1, *perm_dims).contiguous()
@@ -177,6 +211,10 @@ class FNOBase(nn.Module):
             )
 
         x = self._ensure_channel_first(x)
+
+        if self.positional_encoding:
+            x = torch.cat([x, self._generate_meshgrid(x)], dim=1)
+
         # Need to permute the channels to the last dimension for the linear layer fc0
         perm_fc0 = (0, *range(2, x.ndim), 1)
         x = x.permute(*perm_fc0).contiguous()
@@ -212,9 +250,7 @@ class FNOModel(TorchModel):
 
     References
     ----------
-    This technique was introduced in [1]_
-
-    .. [1] Li, Zongyi, et al. "Fourier neural operator for parametric partial differential equations." arXiv preprint arXiv:2010.08895 (2020).
+    This technique was introduced in Li, Zongyi, et al. "Fourier neural operator for parametric partial differential equations." arXiv preprint arXiv:2010.08895 (2020).
 
     Example
     -------------
