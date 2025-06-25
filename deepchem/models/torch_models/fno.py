@@ -1,8 +1,9 @@
-from deepchem.models.torch_models.layers import SpectralConv
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Union, Tuple
+from deepchem.models.torch_models.layers import SpectralConv
+from deepchem.models.torch_models import TorchModel
+from typing import Union, Tuple, Optional, List
 
 
 class FNOBlock(nn.Module):
@@ -36,8 +37,7 @@ class FNOBlock(nn.Module):
         """
         super().__init__()
         self.spectral_conv = SpectralConv(width, width, modes, dims=dims)
-        self.w: Union[nn.Conv1d, nn.Conv2d,
-                      nn.Conv3d]
+        self.w: Union[nn.Conv1d, nn.Conv2d, nn.Conv3d]
 
         if dims == 1:
             self.w = nn.Conv1d(width, width, 1)
