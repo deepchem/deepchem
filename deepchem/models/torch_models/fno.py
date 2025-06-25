@@ -8,12 +8,15 @@ from typing import Union, Tuple, Optional, List
 
 class FNOBlock(nn.Module):
     """A single Fourier Neural Operator block.
+
     This block combines spectral convolution in Fourier space with a standard
     convolution to learn both global and local features. The spectral convolution
     operates on the Fourier coefficients of the input, while the standard convolution
     provides a residual connection.
+
     The forward pass computes:
     FNO_block(x) = ReLU(SpectralConv(x) + Conv(x))
+
     Example
     -------------
     >>> import torch
@@ -83,7 +86,7 @@ class FNOBase(nn.Module):
 
     .. [1] Li, Zongyi, et al. "Fourier neural operator for parametric partial differential equations." arXiv preprint arXiv:2010.08895 (2020).
 
-    Usage Example
+    Example
     -------------
     >>> import torch
     >>> from deepchem.models.torch_models.fno import FNOBase
@@ -213,7 +216,7 @@ class FNOModel(TorchModel):
 
     .. [1] Li, Zongyi, et al. "Fourier neural operator for parametric partial differential equations." arXiv preprint arXiv:2010.08895 (2020).
 
-    Usage Example
+    Example
     -------------
     >>> import torch
     >>> import deepchem as dc
