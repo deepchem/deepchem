@@ -9,6 +9,12 @@ class HNN(nn.Module):
     """Model for learning hamiltonian dynamics using Hamiltonian Neural
         Network.
 
+    Hamiltonian Neural Networks (HNNs) are a class of physics-informed
+    models that learn the underlying Hamiltonian function of a dynamical
+    system directly from data. Instead of predicting derivatives directly,
+    an HNN learns a scalar-valued Hamiltonian function H(q, p) and computes
+    time evolution using Hamilton's equations.
+
     Parameters
     ----------
     d_input : int, default 2
@@ -21,6 +27,8 @@ class HNN(nn.Module):
 
     Examples
     --------
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models.hnn import HNN
     >>> import torch
     >>> hnn = HNN(d_input=2, d_hidden=(64, 64), activation_fn='tanh')
     >>> # Phase space coordinates [q1, q2, p1, p2]
