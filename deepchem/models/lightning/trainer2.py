@@ -2,52 +2,61 @@ from deepchem.models.lightning.new_dc_lightning_dataset_module import DeepChemLi
 from deepchem.models.lightning.new_dc_lightning_module import DeepChemLightningModule
 from deepchem.models.torch_models import TorchModel
 from rdkit import rdBase
-import deepchem as dc
 import lightning as L
 from typing import List, Optional
 from deepchem.utils.typing import OneOrMany
 from deepchem.trans import Transformer
+from deepchem.data import Dataset
 
 rdBase.DisableLog('rdApp.warning')
 
 
 class DeepChemLightningTrainer:
-    """
-    A wrapper class that handles the training and inference of DeepChem models using Lightning.
+    """A wrapper class that handles the training and inference of DeepChem models using Lightning.
 
-    Args:
-        model: Initialized DeepChem model
-        batch_size: Batch size for training
-        **trainer_kwargs: Keyword arguments for Lightning Trainer
+    This class provides a high-level interface for training and running inference
+    on DeepChem models using PyTorch Lightning's training infrastructure. It wraps
+    DeepChem models in Lightning modules and handles data loading, training loops,
+    and checkpoint management.
 
-    Example:
-        >>> import deepchem as dc
-        >>> import lightning as L
-        >>> from deepchem.models.lightning.trainer2 import DeepChemLightningTrainer
-        >>> tasks, datasets, _ = dc.molnet.load_clintox()
-        >>> _, valid_dataset, _ = datasets
-        >>> model = dc.models.MultitaskClassifier(
-        ...     n_tasks=len(tasks),
-        ...     n_features=1024,
-        ...     layer_sizes=[1000],
-        ...     dropouts=0.2,
-        ...     learning_rate=0.0001,
-        ...     device="cpu",
-        ...     batch_size=16
-        ... )
-        >>> trainer = DeepChemLightningTrainer(
-        ...     model=model,
-        ...     batch_size=16,
-        ...     max_epochs=30,
-        ...     accelerator="cpu",
-        ...     log_every_n_steps=1,
-        ...     fast_dev_run=True
-        ... )
-        >>> trainer.fit(valid_dataset)
-        >>> predictions = trainer.predict(valid_dataset)
-        >>> trainer.save_checkpoint("model.ckpt")
-        >>> # To reload:
-        >>> trainer2 = DeepChemLightningTrainer.load_checkpoint("model.ckpt", model=model)
+    Parameters
+    ----------
+    model: TorchModel
+        Initialized DeepChem model to be trained or used for inference.
+    batch_size: int, default 32
+        Batch size for training and prediction data loaders.
+    **trainer_kwargs
+        Additional keyword arguments passed to the Lightning Trainer.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> import lightning as L
+    >>> from deepchem.models.lightning.trainer2 import DeepChemLightningTrainer
+    >>> tasks, datasets, _ = dc.molnet.load_clintox()
+    >>> _, valid_dataset, _ = datasets
+    >>> model = dc.models.MultitaskClassifier(
+    ...     n_tasks=len(tasks),
+    ...     n_features=1024,
+    ...     layer_sizes=[1000],
+    ...     dropouts=0.2,
+    ...     learning_rate=0.0001,
+    ...     device="cpu",
+    ...     batch_size=16
+    ... )
+    >>> trainer = DeepChemLightningTrainer(
+    ...     model=model,
+    ...     batch_size=16,
+    ...     max_epochs=30,
+    ...     accelerator="cpu",
+    ...     log_every_n_steps=1,
+    ...     fast_dev_run=True
+    ... )
+    >>> trainer.fit(valid_dataset)
+    >>> predictions = trainer.predict(valid_dataset)
+    >>> trainer.save_checkpoint("model.ckpt")
+    >>> # To reload:
+    >>> trainer2 = DeepChemLightningTrainer.load_checkpoint("model.ckpt", model=model)
     """
 
     def __init__(self,
@@ -73,16 +82,20 @@ class DeepChemLightningTrainer:
         # Create the Lightning module
         self.lightning_model = DeepChemLightningModule(model)
 
-    def fit(self, train_dataset: dc.data.Dataset, num_workers: int = 4):
-        """
-        Train the model on the provided dataset.
+    def fit(self, train_dataset: Dataset, num_workers: int = 4):
+        """Train the model on the provided dataset.
 
-        Args:
-            train_dataset: DeepChem dataset for training
-            num_workers: Number of workers for DataLoader
+        Parameters
+        ----------
+        train_dataset: dc.data.Dataset
+            DeepChem dataset for training.
+        num_workers: int, default 4
+            Number of workers for DataLoader.
 
-        Returns:
-            The trainer object after fitting
+        Returns
+        -------
+        None
+            The trainer object is modified in place after fitting.
         """
         # Set log_every_n_steps if not provided
         if 'log_every_n_steps' not in self.trainer_kwargs:
@@ -103,23 +116,30 @@ class DeepChemLightningTrainer:
         self.trainer.fit(self.lightning_model, data_module)
 
     def predict(self,
-                dataset: dc.data.Dataset,
+                dataset: Dataset,
                 transformers: List[Transformer] = [],
                 other_output_types: Optional[OneOrMany[str]] = None,
                 num_workers: int = 4,
                 uncertainty: Optional[bool] = None):
-        """
-        Run inference on the provided dataset.
+        """Run inference on the provided dataset.
 
-        Args:
-            dataset: DeepChem dataset for prediction
-            num_workers: Number of workers for DataLoader
-            uncertainty: Whether to compute uncertainty estimates
-            transformers: List of transformers to apply to predictions
-            other_output_types: List of other output types to compute
+        Parameters
+        ----------
+        dataset: dc.data.Dataset
+            DeepChem dataset for prediction.
+        transformers: List[Transformer], default []
+            List of transformers to apply to predictions.
+        other_output_types: Optional[OneOrMany[str]], default None
+            List of other output types to compute.
+        num_workers: int, default 4
+            Number of workers for DataLoader.
+        uncertainty: Optional[bool], default None
+            Whether to compute uncertainty estimates.
 
-        Returns:
-            Predictions from the model
+        Returns
+        -------
+        List
+            Predictions from the model.
         """
         if not hasattr(self, 'trainer'):
             self.trainer = L.Trainer(**self.trainer_kwargs)
@@ -144,11 +164,17 @@ class DeepChemLightningTrainer:
         return predictions
 
     def save_checkpoint(self, filepath: str):
-        """
-        Save model checkpoint.
+        """Save model checkpoint.
 
-        Args:
-            filepath: Path to save checkpoint
+        Parameters
+        ----------
+        filepath: str
+            Path to save checkpoint.
+
+        Raises
+        ------
+        ValueError
+            If model has not been trained yet.
         """
         if hasattr(self, 'trainer'):
             self.trainer.save_checkpoint(filepath)
@@ -161,17 +187,23 @@ class DeepChemLightningTrainer:
                         model: TorchModel,
                         batch_size: int = 32,
                         **trainer_kwargs):
-        """
-        Load model from checkpoint and create a new trainer instance.
+        """Load model from checkpoint and create a new trainer instance.
 
-        Args:
-            filepath: Path to checkpoint
-            model: DeepChem model instance to load weights into
-            batch_size: Batch size for the trainer/model
-            **trainer_kwargs: Additional trainer arguments
+        Parameters
+        ----------
+        filepath: str
+            Path to checkpoint.
+        model: TorchModel
+            DeepChem model instance to load weights into.
+        batch_size: int, default 32
+            Batch size for the trainer/model.
+        **trainer_kwargs
+            Additional trainer arguments.
 
-        Returns:
-            DeepChemLightningTrainer: New trainer instance with loaded model
+        Returns
+        -------
+        DeepChemLightningTrainer
+            New trainer instance with loaded model.
         """
         # Load the lightning module from checkpoint
         lightning_model = DeepChemLightningModule.load_from_checkpoint(
