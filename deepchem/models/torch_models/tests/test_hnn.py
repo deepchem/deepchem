@@ -2,19 +2,20 @@ import torch
 import pytest
 
 
-@pytest.fixture
+@pytest.mark.torch
 def hnn_model():
     """Initialize an instance of the HNN model"""
     from deepchem.models.torch_models import HNN
     return HNN()
 
 
-@pytest.fixture
+@pytest.mark.torch
 def input_tensor():
     """Provide a sample input tensor for testing"""
     return torch.tensor([[1.0, 2.0]], dtype=torch.float32)
 
 
+@pytest.mark.torch
 def test_forward_eval(hnn_model, input_tensor):
     """Test that the HNN model returns the correct output shape in evaluation mode"""
     hnn_model.eval()
@@ -22,6 +23,7 @@ def test_forward_eval(hnn_model, input_tensor):
     assert output.shape == torch.Size([1])
 
 
+@pytest.mark.torch
 def test_symplectic_gradient_shape(hnn_model, input_tensor):
     """Test that the symplectic gradient output matches the input tensor shape"""
     output = hnn_model.symplectic_gradient(input_tensor)
