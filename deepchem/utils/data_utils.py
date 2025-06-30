@@ -11,8 +11,10 @@ import zipfile
 import logging
 from urllib.request import urlretrieve
 from typing import Any, Iterator, List, Optional, Tuple, Union, cast, IO
+
 import pandas as pd
 import numpy as np
+
 import deepchem as dc
 
 logger = logging.getLogger(__name__)
