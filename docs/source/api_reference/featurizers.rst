@@ -398,10 +398,10 @@ DeepVariant Featurizers
 
 These featurizers are used in DeepVariant
 
-RealignerFeaturizer
+CandidateVariantFeaturizer
 ^^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: deepchem.feat.RealignerFeaturizer
+.. autoclass:: deepchem.feat.CandidateVariantFeaturizer
   :members:
   :inherited-members:
 

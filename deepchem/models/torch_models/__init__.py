@@ -39,6 +39,7 @@ from deepchem.models.torch_models.lstm_generator_models import LSTMNeuralNet, LS
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
 from deepchem.models.torch_models.inceptionv3 import InceptionV3Model, InceptionA, InceptionB, InceptionC, InceptionD, InceptionE, InceptionAux, BasicConv2d
 from deepchem.models.torch_models.mobilenetv2 import MobileNetV2Model, InvertedResidual
+from deepchem.models.torch_models.deepvariant import DeepChemVariant, _DeepChemVariant
 from deepchem.models.torch_models.robust_multitask import RobustMultitask, RobustMultitaskClassifier, RobustMultitaskRegressor
 from deepchem.models.torch_models.IRV import IRVLayer, MultitaskIRVClassifier
 from deepchem.models.torch_models.pinns_model import PINNModel
