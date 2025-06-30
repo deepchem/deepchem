@@ -18,21 +18,17 @@ class TestPileupFeaturizer(unittest.TestCase):
         """
         Tests pileup generation.
         """
-        windows_haplotypes_path = os.path.join(self.current_dir,
-                                               "windows_haplotypes.npy")
-        windows_haplotypes = np.load(windows_haplotypes_path, allow_pickle=True)
+        bam_file_path = os.path.join(self.current_dir, "example.bam")
         fasta_file_path = os.path.join(self.current_dir, "sample.fa")
-        height = 299
-        width = 299
-        num_channels = 6
-        datapoint = (windows_haplotypes, fasta_file_path, height, width,
-                     num_channels)
+        candidate_path = os.path.join(self.current_dir,
+                                      "candidate_variants.npy")
+        candidate_variants = np.load(candidate_path, allow_pickle=True)
+        datapoint = (bam_file_path, fasta_file_path, candidate_variants)
         features = self.featurizer.featurize([datapoint])
         image_dataset = features[0]
 
-        # Assert the number of reads
-        self.assertEqual(len(image_dataset), 15)
-        self.assertEqual(image_dataset.X[0].shape, (299, 299, 6))
+        self.assertEqual(len(image_dataset), len(candidate_variants))
+        self.assertEqual(image_dataset.X[0].shape, (6, 100, 221))
 
 
 if __name__ == "__main__":
