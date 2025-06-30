@@ -730,7 +730,7 @@ Polymer Weighted Directed Graph String Validator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This class validates the input string representation for graphical conversion of polymer data.
-It splits the input strings, validates their order and values. Upon recieving error it can return
+It splits the input strings, validates their order and values. Upon receiving error it can return
 meaningful error message to the user indicating the type of error that hinders the conversion process.
 
 The format is an extended string representation that is used as input format for Weighted Directed Message Passing Neural Network (wDMPNN) implementation

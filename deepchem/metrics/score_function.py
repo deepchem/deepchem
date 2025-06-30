@@ -230,6 +230,6 @@ def concordance_index(y_true: np.ndarray, y_pred: np.ndarray) -> float:
                 else:
                     correct_pairs += true_a > true_b
 
-    assert pairs > 0, 'No pairs for comparision'
+    assert pairs > 0, 'No pairs for comparison'
 
     return correct_pairs / pairs

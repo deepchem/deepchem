@@ -1,4 +1,4 @@
-# This script creates the new deepchem enviroment
+# This script creates the new deepchem environment
 # This script works on only Bash and Zsh
 
 set -e # Exit if any command fails.

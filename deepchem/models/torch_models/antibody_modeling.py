@@ -264,7 +264,7 @@ class DeepAbLLM(HuggingFaceModel):
                               **kwargs):
         '''This is a function to return the optimized residues, as defined
         as the proposed residues that are above a given threshold in probability
-        using the masking and unmasking approach. Defualt behaviour returns sequences
+        using the masking and unmasking approach. Default behaviour returns sequences
         with higher scores than the original sequence.
 
         Parameters

@@ -68,7 +68,7 @@ class Mol2VecFingerprint(MolecularFeaturizer):
 
     The Mol2Vec requires the pretrained model, so we use the model which is put on the mol2vec
     github repository [2]_. The default model was trained on 20 million compounds downloaded
-    from ZINC using the following paramters.
+    from ZINC using the following parameters.
 
     - radius 1
     - UNK to replace all identifiers that appear less than 4 times
