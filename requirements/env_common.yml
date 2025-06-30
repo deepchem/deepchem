@@ -6,7 +6,6 @@ dependencies:
   - openmm
   - mdtraj
   - pdbfixer
-  - openbabel
   - pip
   - pip:
     - numpy<1.26
