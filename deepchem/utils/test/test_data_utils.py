@@ -1,8 +1,9 @@
 import unittest
 import os
 import tempfile
-from openbabel import pybel
-from deepchem.utils.data_utils import load_sdf_files, convert_xyz_files_to_sdf
+import deepchem as dc
+from rdkit import Chem
+from deepchem.utils.data_utils import load_sdf_files
 
 
 class TestFileLoading(unittest.TestCase):
@@ -23,25 +24,32 @@ class TestFileLoading(unittest.TestCase):
 
 
 def test_no_absurd_nitrogen_charges():
-    # Create a temporary output SDF file
-    xyz_folder_path = './assets/xyz_test'
-    with tempfile.NamedTemporaryFile(suffix=".sdf", delete=False) as tmp_sdf:
-        sdf_output_file_path = tmp_sdf.name
+    # Define the URL of the SDF file (update this with actual URL)
+    QM9_SDF_URL = 'https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/qm9_updated.sdf'
+
+    # Create a temporary file with .sdf suffix
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.sdf') as tmp_sdf:
+        sdf_path = tmp_sdf.name
 
     try:
-        # Convert the XYZ files to SDF
-        convert_xyz_files_to_sdf(xyz_folder_path, sdf_output_file_path)
+        # Download SDF file using DeepChem utility
+        dc.utils.data_utils.download_url(url=QM9_SDF_URL,
+                                         dest_dir=os.path.dirname(sdf_path),
+                                         name=os.path.basename(sdf_path))
 
-        # Read the SDF file and validate nitrogen charges
-        for mol in pybel.readfile("sdf", sdf_output_file_path):
-            print()
-            for atom in mol.atoms:
-                print(atom, atom.formalcharge)
-                assert atom.formalcharge == 0
-                if atom.atomicnum == 7:
-                    charge = atom.formalcharge
-                    assert charge < 4, f"Nitrogen atom has absurd charge {charge} in molecule: {mol.title}"
+        # Read SDF file with RDKit
+        # Disable sanitization to preserve original formal charges and avoid auto-corrections
+        suppl = Chem.SDMolSupplier(sdf_path, removeHs=False, sanitize=False)
+        for mol in suppl:
+            if mol is None:
+                continue  # Skip invalid molecules
+            for atom in mol.GetAtoms():
+                assert atom.GetFormalCharge() == 0  # General check
+
+                if atom.GetAtomicNum() == 7:  # Nitrogen
+                    charge = atom.GetFormalCharge()
+                    assert charge < 4, f"Nitrogen atom has absurd charge {charge} in molecule."
 
     finally:
         # Clean up the temporary file
-        os.remove(sdf_output_file_path)
+        os.remove(sdf_path)

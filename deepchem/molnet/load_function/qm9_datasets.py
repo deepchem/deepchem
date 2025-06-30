@@ -9,7 +9,7 @@ from typing import List, Optional, Tuple, Union
 
 GDB9_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/gdb9.tar.gz"
 QM9_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/qm9.csv"
-XYZ_URL = "https://springernature.figshare.com/ndownloader/files/3195389"
+QM9_SDF_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/qm9_updated.sdf"
 QM9_TASKS = [
     "mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv", "u0", "u298",
     "h298", "g298"
@@ -21,14 +21,9 @@ class _QM9Loader(_MolnetLoader):
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "gdb9.sdf")
         if not os.path.exists(dataset_file):
-            dc.utils.data_utils.download_url(url=XYZ_URL,
-                                             dest_dir=self.data_dir,
-                                             name="gdb9.xyz.tar.bz2")
-            dc.utils.data_utils.untargz_file(
-                os.path.join(self.data_dir, "gdb9.xyz.tar.bz2"),
-                os.path.join(self.data_dir, "gdb9"))
-            dc.utils.data_utils.convert_xyz_files_to_sdf(
-                os.path.join(self.data_dir, "gdb9"), dataset_file)
+            dc.utils.data_utils.download_url(url=QM9_SDF_URL,
+                                             dest_dir=dataset_file,
+                                             name="gdb9.sdf")
         loader = dc.data.SDFLoader(tasks=self.tasks,
                                    featurizer=self.featurizer,
                                    sanitize=True)
