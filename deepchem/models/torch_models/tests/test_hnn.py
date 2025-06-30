@@ -1,15 +1,21 @@
-import torch
 import pytest
 
+try:
+    import torch
+    has_torch = True
+except ModuleNotFoundError:
+    has_torch = False
+    pass
 
-@pytest.mark.torch
+
+@pytest.fixture
 def hnn_model():
     """Initialize an instance of the HNN model"""
     from deepchem.models.torch_models import HNN
     return HNN()
 
 
-@pytest.mark.torch
+@pytest.fixture
 def input_tensor():
     """Provide a sample input tensor for testing"""
     return torch.tensor([[1.0, 2.0]], dtype=torch.float32)
