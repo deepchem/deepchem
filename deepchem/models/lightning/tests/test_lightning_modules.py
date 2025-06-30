@@ -21,7 +21,8 @@ try:
 except ImportError:
     gpu_available = False
 
-pytestmark = pytest.mark.skipif(not gpu_available, reason="Tests require a GPU.")
+pytestmark = pytest.mark.skipif(not gpu_available,
+                                reason="Tests require a GPU.")
 
 
 @pytest.fixture(scope="module")
@@ -31,11 +32,13 @@ def gcn_data():
     This runs only once per test module, saving time.
     """
     featurizer = dc.feat.MolGraphConvFeaturizer()
-    tasks, datasets, _ = dc.molnet.load_bace_classification(featurizer=featurizer)
+    tasks, datasets, _ = dc.molnet.load_bace_classification(
+        featurizer=featurizer)
     train_dataset, valid_dataset, _ = datasets
-    
+
     # Using the validation set for faster testing, as in the reference file
     return {"dataset": valid_dataset, "n_tasks": len(tasks)}
+
 
 @pytest.fixture(scope="function")
 def gcn_model(gcn_data):
@@ -43,13 +46,11 @@ def gcn_model(gcn_data):
     Fixture to create a fresh GCNModel for each test function.
     This ensures tests are independent and don't share a trained state.
     """
-    return dc.models.GCNModel(
-        mode='classification',
-        n_tasks=gcn_data["n_tasks"],
-        batch_size=16,
-        learning_rate=0.001,
-        device='cpu'
-    )
+    return dc.models.GCNModel(mode='classification',
+                              n_tasks=gcn_data["n_tasks"],
+                              batch_size=16,
+                              learning_rate=0.001,
+                              device='cpu')
 
 
 def test_gcn_fit_predict_workflow(gcn_model, gcn_data):
@@ -62,7 +63,9 @@ def test_gcn_fit_predict_workflow(gcn_model, gcn_data):
 
     # 1. Setup DataModule and LightningModule
     # The `gcn_model` instance is passed to the DataModule to handle the complex collation
-    data_module = DCLightningDataModule(dataset=dataset, batch_size=16, model=gcn_model)
+    data_module = DeepChemLightningDataModule(dataset=dataset,
+                                              batch_size=16,
+                                              model=gcn_model)
     lightning_model = DeepChemLightningModule(model=gcn_model)
 
     # 2. Setup Trainer
@@ -70,7 +73,7 @@ def test_gcn_fit_predict_workflow(gcn_model, gcn_data):
     trainer = L.Trainer(
         max_epochs=1,
         accelerator="gpu",
-        devices=-1, # use all available GPUs
+        devices=-1,  # use all available GPUs
         logger=False,
         enable_checkpointing=False,
         enable_progress_bar=False,
@@ -80,11 +83,12 @@ def test_gcn_fit_predict_workflow(gcn_model, gcn_data):
     # 3. Test fit
     # This will fail if train_dataloader, collate_fn, or training_step has an issue
     trainer.fit(model=lightning_model, datamodule=data_module)
-    
+
     # 4. Test predict
     # This will fail if predict_dataloader or predict_step has an issue
-    prediction_batches = trainer.predict(model=lightning_model, datamodule=data_module)
-    
+    prediction_batches = trainer.predict(model=lightning_model,
+                                         datamodule=data_module)
+
     # For classification, GCNModel outputs logits of shape (batch, tasks, classes)
     # The trainer returns a list of outputs from each batch, so we concatenate them
     predictions = np.concatenate([p for p in prediction_batches])
@@ -105,16 +109,18 @@ def test_gcn_checkpointing_and_reloading(gcn_model, gcn_data, tmp_path="temp"):
     It verifies that the model state is identical before saving and after loading.
     """
     dataset = gcn_data["dataset"]
-    
+
     # 1. Setup modules and trainer with a temporary directory for checkpoints
-    data_module = DCLightningDataModule(dataset=dataset, batch_size=16, model=gcn_model)
+    data_module = DeepChemLightningDataModule(dataset=dataset,
+                                              batch_size=16,
+                                              model=gcn_model)
     lightning_model = DeepChemLightningModule(model=gcn_model)
 
     trainer = L.Trainer(
         max_epochs=10,
         accelerator="gpu",
-        devices=-1, # use all available GPUs
-        default_root_dir=str(tmp_path), # Save checkpoints to a temp dir
+        devices=-1,  # use all available GPUs
+        default_root_dir=str(tmp_path),  # Save checkpoints to a temp dir
         enable_progress_bar=False,
     )
 
@@ -131,13 +137,15 @@ def test_gcn_checkpointing_and_reloading(gcn_model, gcn_data, tmp_path="temp"):
     # Verify that training actually changed the model's weights
     weight_changed = False
     for key in state_before_training:
-        if not torch.allclose(state_before_training[key].detach().cpu(), state_after_training[key].detach().cpu()):
+        if not torch.allclose(state_before_training[key].detach().cpu(),
+                              state_after_training[key].detach().cpu()):
             weight_changed = True
             break
     assert weight_changed, "Model weights did not change after one epoch of training."
 
     # 5. Find the saved checkpoint file
-    checkpoint_dir = Path(tmp_path) / "lightning_logs" / "version_0" / "checkpoints"
+    checkpoint_dir = Path(
+        tmp_path) / "lightning_logs" / "version_0" / "checkpoints"
     checkpoint_files = list(checkpoint_dir.glob("*.ckpt"))
     assert len(checkpoint_files) > 0, "Checkpoint file was not created."
     ckpt_path = checkpoint_files[0]
@@ -146,8 +154,7 @@ def test_gcn_checkpointing_and_reloading(gcn_model, gcn_data, tmp_path="temp"):
     # This is the standard Lightning way to reload a model
     # We must pass the original `gcn_model` to properly re-initialize the DeepChem-specific parts
     reloaded_model = DeepChemLightningModule.load_from_checkpoint(
-        ckpt_path, model=gcn_model
-    )
+        ckpt_path, model=gcn_model)
     state_reloaded = reloaded_model.model.state_dict()
 
     # --- Correctness Check 2: After Loading ---
@@ -164,8 +171,10 @@ def test_gcn_checkpointing_and_reloading(gcn_model, gcn_data, tmp_path="temp"):
 
     # --- Correctness Check 3: Functional Equivalence ---
     # Predict with both models and compare results to ensure they are identical
-    original_preds_batches = trainer.predict(lightning_model, datamodule=data_module)
-    reloaded_preds_batches = trainer.predict(reloaded_model, datamodule=data_module)
+    original_preds_batches = trainer.predict(lightning_model,
+                                             datamodule=data_module)
+    reloaded_preds_batches = trainer.predict(reloaded_model,
+                                             datamodule=data_module)
 
     original_preds = np.concatenate([p[0] for p in original_preds_batches])
     reloaded_preds = np.concatenate([p[0] for p in reloaded_preds_batches])
