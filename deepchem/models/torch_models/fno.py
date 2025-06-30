@@ -17,8 +17,8 @@ class FNOBlock(nn.Module):
     -------------
     >>> import torch
     >>> from deepchem.models.torch_models.fno import FNOBlock
-    >>> block = FNOBlock(width=128, modes=10, dims=2)
-    >>> x = torch.randn(1, 128, 10, 10)
+    >>> block = FNOBlock(width=128, modes=8, dims=2)
+    >>> x = torch.randn(1, 128, 16, 16)
     >>> output = block(x)
     """
 
