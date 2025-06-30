@@ -1,4 +1,4 @@
-0name: deepchem
+name: deepchem
 channels:
   - conda-forge
   - defaults
