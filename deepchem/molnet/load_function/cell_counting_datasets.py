@@ -16,6 +16,10 @@ CELL_COUNTING_TASKS: List[str] = []
 
 
 class _CellCountingLoader(_MolnetLoader):
+    def __init__(self, featurizer, *args, **kwargs):
+        super(_CellCountingLoader, self).__init__(*args, **kwargs)
+        self.featurizer = featurizer
+            
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "cells.zip")

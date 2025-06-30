@@ -299,8 +299,8 @@ def prepare_inputs(protein: str,
     # Optimize ligand
     if optimize_ligand:
         m = Chem.AddHs(m)  # need hydrogens for optimization
-        AllChem.EmbedMolecule(m)
-        AllChem.MMFFOptimizeMolecule(m)
+        AllChem.EmbedMolecule(m) # type: ignore
+        AllChem.MMFFOptimizeMolecule(m) # type: ignore
 
     if pdb_name:
         Chem.rdmolfiles.MolToPDBFile(p, '%s.pdb' % (pdb_name))
