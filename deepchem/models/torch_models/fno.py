@@ -7,12 +7,31 @@ from typing import Union, Tuple
 
 class FNOBlock(nn.Module):
     """A single Fourier Neural Operator block.
+
     This block combines spectral convolution in Fourier space with a standard
-    convolution to learn both global and local features. The spectral convolution
-    operates on the Fourier coefficients of the input, while the standard convolution
-    provides a residual connection.
+    convolution to learn both global and local features.
+
+    Spectral convolution is a key component of Fourier Neural Operators (FNOs).
+    It leverages the Fourier transform to perform convolution in the frequency
+    domain, which allows it to capture global, long-range dependencies in the
+    input data efficiently. The operation consists of three steps:
+    1. Transform the input to the frequency domain using the Fast Fourier Transform (FFT).
+    2. Apply a linear transformation to a truncated set of lower-frequency modes.
+    3. Transform the result back to the spatial domain using the Inverse FFT.
+
+    By operating in the frequency domain, spectral convolutions can learn global
+    patterns without the large kernels and deep architectures required by
+    traditional CNNs, in contrast to the local convolutions used in CNNs.
+
+    This is because each Fourier mode represents a sinusoidal function that
+    spans the entire spatial domain (meaning the entire input). Their coefficients in the frequency
+    domain contain information about the overall structure of the input. By manipulating the
+    coefficients of these modes in the frequency domain, the spectral convolution can model
+    relationships between distant points in the input, effectively capturing global dependencies.
+
     The forward pass computes:
     FNO_block(x) = ReLU(SpectralConv(x) + Conv(x))
+
     Example
     -------------
     >>> import torch
@@ -25,6 +44,7 @@ class FNOBlock(nn.Module):
     def __init__(self, width: int, modes: Union[int, Tuple[int, ...]],
                  dims: int) -> None:
         """Initialize the FNO block.
+
         Parameters
         ----------
         width: int
@@ -49,10 +69,12 @@ class FNOBlock(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass through the FNO block.
+
         Parameters
         ----------
         x: torch.Tensor
             Input tensor of shape (batch, width, *spatial_dims)
+
         Returns
         -------
         torch.Tensor
