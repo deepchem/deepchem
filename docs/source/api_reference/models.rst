@@ -643,7 +643,6 @@ MultitaskIRVClassifier
 
 HNN
 ----------------
-
 .. autoclass:: deepchem.models.torch_models.HNN
   :members:
 
