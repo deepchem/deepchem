@@ -5,32 +5,26 @@ try:
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
-    pass
-
-
-@pytest.fixture
-def hnn_model():
-    """Initialize an instance of the HNN model"""
-    from deepchem.models.torch_models import HNN
-    return HNN()
-
-
-@pytest.fixture
-def input_tensor():
-    """Provide a sample input tensor for testing"""
-    return torch.tensor([[1.0, 2.0]], dtype=torch.float32)
 
 
 @pytest.mark.torch
-def test_forward_eval(hnn_model, input_tensor):
+@pytest.mark.skipif(not has_torch, reason="PyTorch is not installed")
+def test_forward_eval():
     """Test that the HNN model returns the correct output shape in evaluation mode"""
-    hnn_model.eval()
-    output = hnn_model(input_tensor)
+    from deepchem.models.torch_models import HNN
+    model = HNN()
+    input_tensor = torch.tensor([[1.0, 2.0]], dtype=torch.float32)
+    model.eval()
+    output = model(input_tensor)
     assert output.shape == torch.Size([1])
 
 
 @pytest.mark.torch
-def test_symplectic_gradient_shape(hnn_model, input_tensor):
+@pytest.mark.skipif(not has_torch, reason="PyTorch is not installed")
+def test_symplectic_gradient_shape():
     """Test that the symplectic gradient output matches the input tensor shape"""
-    output = hnn_model.symplectic_gradient(input_tensor)
+    from deepchem.models.torch_models import HNN
+    model = HNN()
+    input_tensor = torch.tensor([[1.0, 2.0]], dtype=torch.float32)
+    output = model.symplectic_gradient(input_tensor)
     assert output.shape == input_tensor.shape
