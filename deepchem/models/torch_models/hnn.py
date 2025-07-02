@@ -159,8 +159,12 @@ class HNN(nn.Module):
         >>> hnn = HNN(d_input=2)
         >>> z = torch.randn(4, 2, requires_grad=True)
         >>> dz_dt = hnn.symplectic_gradient(z)  # Shape: (4, 2)
-        >>> dq_dt = dz_dt[..., :2]
-        >>> dp_dt = dz_dt[..., 2:]
+        >>> dq_dt = dz_dt[..., :1]
+        >>> dq_dt.shape
+        torch.Size([4, 1])
+        >>> dp_dt = dz_dt[..., 1:]
+        >>> dp_dt.shape
+        torch.Size([4, 1])
 
         Notes
         -----
