@@ -1,5 +1,4 @@
 import pytest
-from deepchem.models.torch_models.layers import SpectralConv
 
 try:
     import torch
@@ -12,6 +11,7 @@ except ModuleNotFoundError:
 @pytest.mark.torch
 def test_spectral_conv_output_shape():
     """Test if spectral convolution output shape is correct"""
+    from deepchem.models.torch_models.layers import SpectralConv
     conv = SpectralConv(in_channels=4, out_channels=8, modes=12, dims=2)
     x = torch.randn(2, 4, 64, 64)  # batch=2, channels=4, H=64, W=64
     y = conv(x)
@@ -21,6 +21,7 @@ def test_spectral_conv_output_shape():
 @pytest.mark.torch
 def test_spectral_conv_exact_output():
     """Test the exact output values of spectral convolution with controlled weights"""
+    from deepchem.models.torch_models.layers import SpectralConv
     conv = SpectralConv(in_channels=1, out_channels=1, modes=2, dims=1)
 
     with torch.no_grad():
@@ -39,6 +40,7 @@ def test_spectral_conv_exact_output():
 @pytest.mark.torch
 def test_spectral_conv_gradient_flow():
     """Test if gradients flow through spectral convolution"""
+    from deepchem.models.torch_models.layers import SpectralConv
     conv = SpectralConv(3, 6, modes=10, dims=2)
     x = torch.randn(2, 3, 64, 64, requires_grad=True)
     y = conv(x)
@@ -54,6 +56,7 @@ def test_spectral_conv_gradient_flow():
 ])
 def test_spectral_conv_dims(dims, input_shape):
     """Test if spectral convolution works with different dimensions 1D, 2D, 3D"""
+    from deepchem.models.torch_models.layers import SpectralConv
     conv = SpectralConv(in_channels=4, out_channels=6, modes=8, dims=dims)
     x = torch.randn(*input_shape)
     y = conv(x)
