@@ -641,6 +641,11 @@ MultitaskIRVClassifier
 .. autoclass:: deepchem.models.torch_models.MultitaskIRVClassifier
   :members:
 
+HNN
+----------------
+.. autoclass:: deepchem.models.torch_models.HNN
+  :members:
+
 PyTorch Lightning Models
 ========================
 
