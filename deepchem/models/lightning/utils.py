@@ -250,7 +250,7 @@ class IndexDiskDatasetWrapper(Dataset):
         # Extract the sample (assuming X and y are present)
         X_sample = X[local_index] if X is not None else None
         y_sample = y[local_index] if y is not None else None
-        w_sample = w[local_index] if y is not None else None
+        w_sample = w[local_index] if w is not None else None
         ids_sample = ids[local_index] if ids is not None else None
 
         return (X_sample, y_sample, w_sample, ids_sample)
