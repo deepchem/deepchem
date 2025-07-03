@@ -301,6 +301,17 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.DAGGather
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.SpectralConv
+  
+.. autoclass:: deepchem.models.torch_models.chemnet_layers.Stem
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.chemnet_layers.InceptionResnetA
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.chemnet_layers.InceptionResnetB
+  :members:
+
 Flow Layers
 ^^^^^^^^^^^
 
