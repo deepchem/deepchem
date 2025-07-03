@@ -16,11 +16,9 @@ Relaunched in 2017.09"
 9,Sacituzumab govitecan,Trodelvy,Immunomedics,Trop-2,SN-38,Sacituzumab,Triple-negative breast cancer,CCc1c2c(nc3ccc(O)cc13)-c1cc3c(c(=O)n1C2)COC(=O)C3(O)CC,2020.04
 10,Belantamab mafodotin,Blenrep,GlaxoSmithKline,BCMA,MMAF,Belantamab,Relapsed or refractory multiple myeloma,"CC[C@H](C)[C@@H]([C@@H](CC(=O)N1CCC[C@H]1[C@@H]([C@@H](C)C(=O)N[C@@H](CC2=CC=CC=C2)C(=O)O)OC)OC)N(C)C(=O)[C@H](C(C)C)NC(=O)[C@H](C(C)C)NC
 ",2020.08
-11,Cetuximab saratolacan,Akalux,RakutenMedical,EGFR,IRDye700DX,Cetuximab,Head and neck cancer,"C[Si](C)(CCC[N+](CCCS(=O)(=O)[O-])(CCCS(=O)(=O)[O-])CCCS(=O)(=O)[O-])O[Si]1(N2C3=C4C=CC=CC4=C2N=C5C6=C (C=CC=C6OCCCOC(=O)NCCCCCC(=O)ON7C(=O)CCC7=O)C(=N5)N=C8N1C(=NC9=NC(=N3)C1=CC=CC=C19)C1=CC=CC =C18)O[Si](C)(C)CCC[N+](CCCS(=O)(=O)[O-])(CCCS(=O)(=O)[O-])CCCS(=O)(=O)[O-].[Na+].[Na+].[Na+].[Na+]
-",2020.09
-12,Loncastuximab tesirine-lpyl,Zynlonta,ADC Therapeutics,CD19,SG3199,Loncastuximab,Large B-cell lymphoma,CC1=CN2[C@@H](C1)C=NC3=CC(=C(C=C3C2=O)OC)OCCCCCOC4=C(C=C5C(=C4)N=C[C@@H]6CC(=CN6C5=O)C)OC,2021.04
-13,Disitamab vedotin,Aidixi,RemeGen,HER2,MMAE,Disitamab,HER2+ gastric carcinoma,"CC[C@H](C)[C@@H]([C@@H](CC(=O)N1CCC[C@H]1[C@@H]([C@@H](C)C(=O)N[C@H](C)[C@H](C2=CC=CC=C2)O)OC)OC)N(C)C(=O)[C@H](C(C)C)NC(=O)[C@H](C(C)C)NC
+11,Loncastuximab tesirine-lpyl,Zynlonta,ADC Therapeutics,CD19,SG3199,Loncastuximab,Large B-cell lymphoma,CC1=CN2[C@@H](C1)C=NC3=CC(=C(C=C3C2=O)OC)OCCCCCOC4=C(C=C5C(=C4)N=C[C@@H]6CC(=CN6C5=O)C)OC,2021.04
+12,Disitamab vedotin,Aidixi,RemeGen,HER2,MMAE,Disitamab,HER2+ gastric carcinoma,"CC[C@H](C)[C@@H]([C@@H](CC(=O)N1CCC[C@H]1[C@@H]([C@@H](C)C(=O)N[C@H](C)[C@H](C2=CC=CC=C2)O)OC)OC)N(C)C(=O)[C@H](C(C)C)NC(=O)[C@H](C(C)C)NC
 ",2021.06
-14,Tisotumab vedotin-tftv,Tivdak,Seagen,Tissue factor,MMAE,Tisotumab,Cervical cancer,"CC[C@H](C)[C@@H]([C@@H](CC(=O)N1CCC[C@H]1[C@@H]([C@@H](C)C(=O)N[C@H](C)[C@H](C2=CC=CC=C2)O)OC)OC)N(C)C(=O)[C@H](C(C)C)NC(=O)[C@H](C(C)C)NC
+13,Tisotumab vedotin-tftv,Tivdak,Seagen,Tissue factor,MMAE,Tisotumab,Cervical cancer,"CC[C@H](C)[C@@H]([C@@H](CC(=O)N1CCC[C@H]1[C@@H]([C@@H](C)C(=O)N[C@H](C)[C@H](C2=CC=CC=C2)O)OC)OC)N(C)C(=O)[C@H](C(C)C)NC(=O)[C@H](C(C)C)NC
 ",2021.09
-15,Mirvetuximab soravtansine-gyxn,ELAHERE™,"ImmunoGen, Inc.",Fra,DM4,Mirvetuximab,Ovarian cancer,C[C@@H]1[C@@H]2C[C@]([C@@H](/C=C/C=C(/CC3=CC(=C(C(=C3)OC)Cl)N(C(=O)C[C@@H]([C@]4([C@H]1O4)C)OC(=O)[C@H](C)N(C)C(=O)CCC(C)(C)S)C)\C)OC)(NC(=O)O2)O,2022.11
+14,Mirvetuximab soravtansine-gyxn,ELAHERE™,"ImmunoGen, Inc.",Fra,DM4,Mirvetuximab,Ovarian cancer,C[C@@H]1[C@@H]2C[C@]([C@@H](/C=C/C=C(/CC3=CC(=C(C(=C3)OC)Cl)N(C(=O)C[C@@H]([C@]4([C@H]1O4)C)OC(=O)[C@H](C)N(C)C(=O)CCC(C)(C)S)C)\C)OC)(NC(=O)O2)O,2022.11
