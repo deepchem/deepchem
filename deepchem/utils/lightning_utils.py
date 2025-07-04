@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 def collate_dataset_wrapper(
-    batch: List[Tuple[Any, Any, Any, Any]], model: "TorchModel"
+    batch_data: List[Tuple[Any, Any, Any, Any]], model: "TorchModel"
 ) -> Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]:
     """Collate function for DeepChem datasets to work with PyTorch DataLoader.
 
@@ -19,6 +19,11 @@ def collate_dataset_wrapper(
     it into a format compatible with DeepChem models by wrapping it in a
     DeepChemBatch class that processes the data through the model's default
     generator and batch preparation methods.
+
+    It does 3 important operations:
+    1. Extracts the features (X), labels (Y), weights (W), and ids from the batch and arranges them correctly.
+    2. Creates a NumpyDataset from these components and passes it to the model's default generator.
+    3. Calls the model's `_prepare_batch` method that outputs the processed batch as a tuple of tensors.
 
     Parameters
     ----------
@@ -65,36 +70,15 @@ def collate_dataset_wrapper(
     ...     break
     """
 
-    class DeepChemBatch:
-        """Internal helper class to process batches for DeepChem models.
-
-        This class takes a batch of data from PyTorch DataLoader and converts
-        it into the format expected by DeepChem models by creating a NumpyDataset
-        and processing it through the model's default generator and batch
-        preparation pipeline.
-
-        Parameters
-        ----------
-        batch_data: List[Tuple[Any, Any, Any, Any]]
-            Batch of data containing tuples of (X, y, w, ids).
-        model: TorchModel
-            DeepChem model instance for batch processing.
-        """
-
-        def __init__(self, batch_data: List[Tuple[Any, Any, Any, Any]],
-                     model: "TorchModel"):
-            X, Y, W, ids = [], [], [], []
-            for i in range(len(batch_data)):
-                X.append(batch_data[i][0])
-                Y.append(batch_data[i][1])
-                W.append(batch_data[i][2])
-                ids.append(batch_data[i][3])
-            processed_batch = next(
-                iter(model.default_generator(dc.data.NumpyDataset(X, Y, W,
-                                                                  ids))))
-            self.batch_list = model._prepare_batch(processed_batch)
-
-    return DeepChemBatch(batch, model).batch_list
+    X, Y, W, ids = [], [], [], []
+    for i in range(len(batch_data)):
+        X.append(batch_data[i][0])
+        Y.append(batch_data[i][1])
+        W.append(batch_data[i][2])
+        ids.append(batch_data[i][3])
+    processed_batch = next(
+        iter(model.default_generator(dc.data.NumpyDataset(X, Y, W, ids))))
+    return model._prepare_batch(processed_batch)
 
 
 class IndexDiskDatasetWrapper(TorchDataset):
@@ -110,11 +94,6 @@ class IndexDiskDatasetWrapper(TorchDataset):
     ----------
     dataset: DiskDataset
         The DeepChem DiskDataset to wrap.
-
-    Note
-    ----
-    This wrapper is particularly useful for debugging and logging purposes,
-    as well as for scenarios requiring random access to dataset samples.
 
     Examples
     --------
