@@ -71,11 +71,10 @@ def collate_dataset_wrapper(
     """
 
     X, Y, W, ids = [], [], [], []
-    for i in range(len(batch_data)):
-        X.append(batch_data[i][0])
-        Y.append(batch_data[i][1])
-        W.append(batch_data[i][2])
-        ids.append(batch_data[i][3])
+    X = [item[0] for item in batch_data]
+    Y = [item[1] for item in batch_data]
+    W = [item[2] for item in batch_data]
+    ids = [item[3] for item in batch_data]
     processed_batch = next(
         iter(model.default_generator(dc.data.NumpyDataset(X, Y, W, ids))))
     return model._prepare_batch(processed_batch)
