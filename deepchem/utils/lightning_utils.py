@@ -1,14 +1,17 @@
-from torch.utils.data import Dataset
-from deepchem.data.datasets import NumpyDataset, DiskDataset
-from typing import List, Tuple, Any, Optional
+from torch.utils.data import Dataset as TorchDataset
+from typing import List, Tuple, Any, Optional, TYPE_CHECKING
 import bisect
 import numpy as np
-from deepchem.models.torch_models import TorchModel
 import torch
+import deepchem as dc
+
+if TYPE_CHECKING:
+    from deepchem.models.torch_models import TorchModel
+    from deepchem.data.datasets import DiskDataset
 
 
 def collate_dataset_wrapper(
-    batch: List[Tuple[Any, Any, Any, Any]], model: TorchModel
+    batch: List[Tuple[Any, Any, Any, Any]], model: "TorchModel"
 ) -> Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]:
     """Collate function for DeepChem datasets to work with PyTorch DataLoader.
 
@@ -79,7 +82,7 @@ def collate_dataset_wrapper(
         """
 
         def __init__(self, batch_data: List[Tuple[Any, Any, Any, Any]],
-                     model: TorchModel):
+                     model: "TorchModel"):
             X, Y, W, ids = [], [], [], []
             for i in range(len(batch_data)):
                 X.append(batch_data[i][0])
@@ -87,13 +90,14 @@ def collate_dataset_wrapper(
                 W.append(batch_data[i][2])
                 ids.append(batch_data[i][3])
             processed_batch = next(
-                iter(model.default_generator(NumpyDataset(X, Y, W, ids))))
+                iter(model.default_generator(dc.data.NumpyDataset(X, Y, W,
+                                                                  ids))))
             self.batch_list = model._prepare_batch(processed_batch)
 
     return DeepChemBatch(batch, model).batch_list
 
 
-class IndexDiskDatasetWrapper(Dataset):
+class IndexDiskDatasetWrapper(TorchDataset):
     """A wrapper for diskdataset that returns the index of each item in the dataset.
 
     This wrapper provides random-access indexing for DeepChem datasets,
@@ -144,7 +148,7 @@ class IndexDiskDatasetWrapper(Dataset):
     >>> print(f"Dataset length: {len(wrapped_dataset)}")
     """
 
-    def __init__(self, dataset: DiskDataset):
+    def __init__(self, dataset: "DiskDataset"):
         """Initialize the wrapper with a DeepChem dataset.
 
         Parameters

@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
-import deepchem as dc
-from deepchem.models.lightning.utils import IndexDiskDatasetWrapper
+from torch.utils.data import DataLoader
+from deepchem.data import DiskDataset
+from deepchem.utils.lightning_utils import IndexDiskDatasetWrapper, collate_dataset_wrapper
 
 
 @pytest.fixture(scope="module")
@@ -42,11 +43,11 @@ def dummy_disk_dataset(tmp_path_factory):
 
     # Use the generator to create the DiskDataset and wrap it in IndexDatasetWrapper
     dataset = IndexDiskDatasetWrapper(
-        dc.data.DiskDataset.create_dataset(shard_generator(),
-                                           data_dir=data_dir))
+        DiskDataset.create_dataset(shard_generator(), data_dir=data_dir))
     return dataset
 
 
+@pytest.mark.torch
 def test_cumulative_sum(dummy_disk_dataset):
     """
     Tests the internal _cumulative_sum method to ensure it calculates correctly.
@@ -58,6 +59,7 @@ def test_cumulative_sum(dummy_disk_dataset):
     assert calculated_sums == expected_sums
 
 
+@pytest.mark.torch
 def test_getitem_first_and_last(dummy_disk_dataset):
     """Tests retrieving the very first and very last elements."""
     # --- Test first element (index 0) ---
@@ -73,6 +75,7 @@ def test_getitem_first_and_last(dummy_disk_dataset):
     assert id11 == "id_11"
 
 
+@pytest.mark.torch
 def test_getitem_shard_boundaries(dummy_disk_dataset):
     """
     Tests retrieving elements at the boundaries of shards to ensure correct
@@ -96,6 +99,7 @@ def test_getitem_shard_boundaries(dummy_disk_dataset):
     assert id8 == "id_8"
 
 
+@pytest.mark.torch
 def test_getitem_out_of_bounds(dummy_disk_dataset):
     """Tests that an IndexError is raised for out-of-bounds access."""
     dataset_len = len(dummy_disk_dataset)
@@ -103,3 +107,58 @@ def test_getitem_out_of_bounds(dummy_disk_dataset):
     # Test positive out-of-bounds
     with pytest.raises(IndexError):
         _ = dummy_disk_dataset[dataset_len]
+
+
+@pytest.mark.torch
+def test_collate_dataset_wrapper(dummy_disk_dataset):
+    """
+    Tests the collate_dataset_wrapper function to ensure it processes batches
+    correctly through a DeepChem model.
+    """
+    # Import required modules
+    import torch
+    from deepchem.models.fcnet import MultitaskClassifier
+    from deepchem.molnet import load_clintox
+
+    _, (_, dataset, _), _ = load_clintox()
+
+    # Create a simple model for testing
+    model = MultitaskClassifier(n_tasks=1,
+                                n_features=2,
+                                layer_sizes=[10],
+                                device="cpu",
+                                batch_size=4)
+
+    # Create a DataLoader that uses collate_dataset_wrapper
+    data_loader = DataLoader(
+        IndexDiskDatasetWrapper(dataset),
+        batch_size=4,
+        shuffle=False,
+        collate_fn=lambda batch: collate_dataset_wrapper(batch, model))
+
+    # Get a single batch from the DataLoader
+    batch_result = next(iter(data_loader))
+
+    # The collate function should return a tuple of (inputs, labels, weights)
+    assert isinstance(batch_result, tuple)
+    assert len(batch_result) == 3
+
+    inputs, labels, weights = batch_result
+
+    # Each should be a list of torch tensors
+    assert isinstance(inputs, list)
+    assert isinstance(labels, list)
+    assert isinstance(weights, list)
+
+    # Check that we have processed data (non-empty lists)
+    assert len(inputs) > 0
+    assert len(labels) > 0
+    assert len(weights) > 0
+
+    # Check that elements are torch tensors
+    for tensor in inputs:
+        assert isinstance(tensor, torch.Tensor)
+    for tensor in labels:
+        assert isinstance(tensor, torch.Tensor)
+    for tensor in weights:
+        assert isinstance(tensor, torch.Tensor)
