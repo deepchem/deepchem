@@ -74,7 +74,6 @@ class ACTINNFeaturizer(Featurizer):
             filtered matrix (genes_filtered X cells), float32
         
         """
-        print('inside scale_sets')
         
         # 1) extract gene names & data array
         gene_names = dataset_df.index.to_numpy()
