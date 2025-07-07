@@ -33,7 +33,6 @@ def test_symplectic_gradient_shape():
     assert output.shape == input_tensor.shape
 
 
-
 @pytest.mark.torch
 @pytest.mark.skipif(not has_torch, reason="PyTorch is not installed")
 def test_hnnmodel_train_and_predict():
@@ -52,6 +51,7 @@ def test_hnnmodel_train_and_predict():
     pred = model.predict_on_batch(x)
 
     assert pred.shape == dx.shape
+
 
 @pytest.mark.torch
 @pytest.mark.skipif(not has_torch, reason="PyTorch is not installed")
@@ -80,6 +80,7 @@ def test_hnnmodel_restore():
     assert pred.shape == restored_pred.shape
     assert np.allclose(pred, restored_pred, atol=1e-4)
 
+
 @pytest.mark.torch
 @pytest.mark.skipif(not has_torch, reason="PyTorch is not installed")
 def test_hnnmodel_overfit():
@@ -92,7 +93,8 @@ def test_hnnmodel_overfit():
 
     dataset = dc.data.NumpyDataset(x, dx)
 
-    regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error, mode='regression')
+    regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error,
+                                          mode='regression')
 
     model_dir = tempfile.mkdtemp()
     model = HNNModel(batch_size=5, model_dir=model_dir, learning_rate=1e-2)
