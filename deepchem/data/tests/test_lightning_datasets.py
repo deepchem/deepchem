@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 from torch.utils.data import DataLoader
-from deepchem.data import DiskDataset
-from deepchem.utils.lightning_utils import IndexDiskDatasetWrapper, collate_dataset_wrapper
+from deepchem.data import DiskDataset, IndexDiskDataset, collate_dataset_fn
 
 
 @pytest.fixture(scope="module")
@@ -42,7 +41,7 @@ def dummy_disk_dataset(tmp_path_factory):
             start = end
 
     # Use the generator to create the DiskDataset and wrap it in IndexDatasetWrapper
-    dataset = IndexDiskDatasetWrapper(
+    dataset = IndexDiskDataset(
         DiskDataset.create_dataset(shard_generator(), data_dir=data_dir))
     return dataset
 
@@ -110,9 +109,9 @@ def test_getitem_out_of_bounds(dummy_disk_dataset):
 
 
 @pytest.mark.torch
-def test_collate_dataset_wrapper(dummy_disk_dataset):
+def test_collate_dataset_fn(dummy_disk_dataset):
     """
-    Tests the collate_dataset_wrapper function to ensure it processes batches
+    Tests the collate_dataset_fn function to ensure it processes batches
     correctly through a DeepChem model.
     """
     # Import required modules
@@ -129,12 +128,12 @@ def test_collate_dataset_wrapper(dummy_disk_dataset):
                                 device="cpu",
                                 batch_size=4)
 
-    # Create a DataLoader that uses collate_dataset_wrapper
+    # Create a DataLoader that uses collate_dataset_fn
     data_loader = DataLoader(
-        IndexDiskDatasetWrapper(dataset),
+        IndexDiskDataset(dataset),
         batch_size=4,
         shuffle=False,
-        collate_fn=lambda batch: collate_dataset_wrapper(batch, model))
+        collate_fn=lambda batch: collate_dataset_fn(batch, model))
 
     # Get a single batch from the DataLoader
     batch_result = next(iter(data_loader))

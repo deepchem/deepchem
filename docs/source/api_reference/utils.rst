@@ -892,13 +892,3 @@ These are used to avoid NaNs and Infs in the output.
 .. autofunction:: deepchem.utils.safeops_utils.get_floor_and_ceil
 
 .. autofunction:: deepchem.utils.safeops_utils.safe_cdist
-
-Lightning Utilities
-------------------
-
-The utilities here are used for lightning specific operations.
-
-.. autoclass:: deepchem.utils.lightning_utils.IndexDiskDatasetWrapper
-  :members:
-
-.. autofunction:: deepchem.utils.lightning_utils.collate_dataset_wrapper

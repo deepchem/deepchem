@@ -52,6 +52,16 @@ for convenient processing of image based datasets.
   :members:
   :inherited-members:
 
+IndexDiskDataset
+^^^^^^^^^^^^^^^^
+The :code:`dc.data.IndexDiskDataset` class is a PyTorch Dataset that allows
+for efficient indexable access to large datasets stored on disk.
+It is designed to work with the :code:`dc.data.DiskDataset` class to create a 
+indexable PyTorch DataLoader for lightning wrappers.
+
+.. autoclass:: deepchem.data.IndexDiskDataset
+  :members:
+  :inherited-members:
 
 Data Loaders
 ------------
