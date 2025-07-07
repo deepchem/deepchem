@@ -3,6 +3,8 @@ import torch.nn as nn
 from torch.autograd import grad
 from typing import Tuple
 from deepchem.models.torch_models.layers import MultilayerPerceptron
+from deepchem.models.torch_models.torch_model import TorchModel
+from deepchem.models.losses import L2Loss
 
 
 class HNN(nn.Module):
@@ -188,3 +190,82 @@ class HNN(nn.Module):
         dp_dt = -dH_dq
 
         return torch.cat([dq_dt, dp_dt], dim=-1)
+
+
+class HNNModel(TorchModel):
+    """Hamiltonian Neural Network wrapper model which inherits TorchModel.
+
+    Parameters
+    ----------
+    d_input : int, default 2
+        Dimension of phase space. Must be even for [q, p] coordinates.
+    d_hidden : Tuple[int, ...], default (32, 32)
+        Hidden layer dimensions.
+    activation_fn : str, default 'tanh'
+        Activation function name.
+    """
+
+    def __init__(self,
+                 d_input: int = 2,
+                 d_hidden: Tuple[int, ...] = (32, 32),
+                 activation_fn: str = 'tanh',
+                 **kwargs) -> None:
+        """Initialize HNNModel."""
+        model = HNN(d_input=d_input,
+                    d_hidden=d_hidden,
+                    activation_fn=activation_fn)
+        super().__init__(model, loss=L2Loss(), **kwargs)
+
+    def predict_on_batch(self, X):
+        """Predict time derivatives using Hamilton's equations.
+
+        Parameters
+        ----------
+        X : array-like
+            Phase space coordinates of shape (n_samples, d_input).
+
+        Returns
+        -------
+        np.ndarray
+            Time derivatives of shape (n_samples, d_input).
+        """
+        self.model.eval()
+        X_tensor = torch.tensor(X,
+                                dtype=torch.float32,
+                                device=self.device,
+                                requires_grad=False)
+        predictions = self.model.symplectic_gradient(X_tensor)
+        return predictions.detach().cpu().numpy()
+
+    def predict_hamiltonian(self, X):
+        """Compute Hamiltonian energy values H(q, p).
+
+        Parameters
+        ----------
+        X : array-like
+            Phase space coordinates (q, p)
+
+        Returns
+        -------
+        np.ndarray
+            Hamiltonian values of shape (n_samples,).
+        """
+        self.model.eval()
+        X_tensor = torch.tensor(X, dtype=torch.float32, device=self.device)
+        H = self.model.hamiltonian(X_tensor)
+        return H.detach().cpu().numpy()
+
+    def symplectic_gradient(self, z: torch.Tensor) -> torch.Tensor:
+        """Compute symplectic gradient using Hamilton's equations.
+
+        Parameters
+        ----------
+        z : torch.Tensor
+            Phase space coordinates (q, p)
+
+        Returns
+        -------
+        torch.Tensor
+            Time derivatives of shape (batch_size, d_input).
+        """
+        return self.model.symplectic_gradient(z)
