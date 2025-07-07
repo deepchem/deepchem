@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import numpy as np
 from torch.autograd import grad
 from typing import Tuple
 from deepchem.models.torch_models.layers import MultilayerPerceptron
@@ -195,6 +196,11 @@ class HNN(nn.Module):
 class HNNModel(TorchModel):
     """Hamiltonian Neural Network wrapper model which inherits TorchModel.
 
+    This class wraps the HNN base model and provides a DeepChem-compatible interface
+    for training and evaluation using conservative dynamics. The HNNModel computes
+    the time evolution of a dynamical system by learning the Hamiltonian and using
+    its gradients to derive time derivatives of the phase space variables.
+
     Parameters
     ----------
     d_input : int, default 2
@@ -203,6 +209,27 @@ class HNNModel(TorchModel):
         Hidden layer dimensions.
     activation_fn : str, default 'tanh'
         Activation function name.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models import HNNModel
+    >>> x = np.random.randn(100, 2).astype(np.float32)
+    >>> dx = np.random.randn(100, 2).astype(np.float32)
+    >>> dataset = dc.data.NumpyDataset(x, dx)
+    >>> model = HNNModel(batch_size=32)
+    >>> _ = model.fit(dataset, nb_epoch=100)
+    >>> preds = model.predict_on_batch(x)
+    >>> hamiltonians = model.predict_hamiltonian(x)
+
+    References
+    ----------
+    .. [1] Greydanus, S., Dzamba, M., & Yosinski, J. (2019).
+        "Hamiltonian Neural Networks."
+       Advances in Neural Information Processing Systems (NeurIPS) 32.
+       https://arxiv.org/abs/1906.01563
+
     """
 
     def __init__(self,
@@ -216,13 +243,14 @@ class HNNModel(TorchModel):
                     activation_fn=activation_fn)
         super().__init__(model, loss=L2Loss(), **kwargs)
 
-    def predict_on_batch(self, X):
+    def predict_on_batch(self, X: np.ndarray) -> np.ndarray:
         """Predict time derivatives using Hamilton's equations.
 
         Parameters
         ----------
-        X : array-like
-            Phase space coordinates of shape (n_samples, d_input).
+        X : np.ndarray
+            A NumPy array of phase space coordinates with shape (n_samples, d_input),
+            where each row corresponds to a point in the phase space [q, p].
 
         Returns
         -------
@@ -237,13 +265,14 @@ class HNNModel(TorchModel):
         predictions = self.model.symplectic_gradient(X_tensor)
         return predictions.detach().cpu().numpy()
 
-    def predict_hamiltonian(self, X):
+    def predict_hamiltonian(self, X: np.ndarray) -> np.ndarray:
         """Compute Hamiltonian energy values H(q, p).
 
         Parameters
         ----------
-        X : array-like
-            Phase space coordinates (q, p)
+        X : np.ndarray
+            A NumPy array of phase space coordinates with shape (n_samples, d_input),
+            where each row corresponds to a point in the phase space [q, p].
 
         Returns
         -------
