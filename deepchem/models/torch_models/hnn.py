@@ -2,10 +2,12 @@ import torch
 import torch.nn as nn
 import numpy as np
 from torch.autograd import grad
-from typing import Tuple
+from typing import Tuple, List
 from deepchem.models.torch_models.layers import MultilayerPerceptron
 from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.losses import L2Loss
+from deepchem.models.models import Transformer
+from deepchem.models.torch_models.torch_model import OneOrMany
 
 
 class HNN(nn.Module):
@@ -243,7 +245,10 @@ class HNNModel(TorchModel):
                     activation_fn=activation_fn)
         super().__init__(model, loss=L2Loss(), **kwargs)
 
-    def predict_on_batch(self, X: np.ndarray) -> np.ndarray:
+    def predict_on_batch(
+            self,
+            X: np.typing.ArrayLike,
+            transformers: List[Transformer] = []) -> OneOrMany[np.ndarray]:
         """Predict time derivatives using Hamilton's equations.
 
         Parameters
