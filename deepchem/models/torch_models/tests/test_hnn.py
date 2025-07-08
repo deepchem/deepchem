@@ -87,9 +87,10 @@ def test_hnnmodel_overfit():
     """Test that HNNModel can overfit on a very small dataset."""
     from deepchem.models.torch_models import HNNModel
 
+    np.random.seed(12)
     # small synthetic data (q, p) and their derivatives
-    x = np.random.randn(5, 2).astype(np.float32)
-    dx = np.random.randn(5, 2).astype(np.float32)
+    x = np.random.randn(20, 2).astype(np.float32)
+    dx = np.random.randn(20, 2).astype(np.float32)
 
     dataset = dc.data.NumpyDataset(x, dx)
 
