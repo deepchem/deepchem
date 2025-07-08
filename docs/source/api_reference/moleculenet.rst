@@ -214,7 +214,7 @@ SDF file is uploaded to the Deepchem S3 bucket.
 
 .. _`XYZ files`: https://doi.org/10.6084/m9.figshare.978904_D12
 
-.. _`updated SDF file`: https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/qm9_updated.sdf
+.. _`updated QM9 file`: https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/qm9.tar.gz
 
 .. autofunction:: deepchem.molnet.load_qm9
 
