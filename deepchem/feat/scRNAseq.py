@@ -4,6 +4,7 @@ import pandas as pd
 import logging
 from typing import Any, Iterable
 from deepchem.data import NumpyDataset
+from typing import Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -11,18 +12,22 @@ logger = logging.getLogger(__name__)
 class ACTINNFeaturizer(Featurizer):
     """
     This class is the implementation of all transformations performed to
-    scRNA-seq (Single-cell RNA sequencing) data for cell type identification using the model
-    ACTINN.
+    scRNA-seq (Single-cell RNA sequencing) data for cell type identification
+    using the model ACTINN.
 
     Example:
     --------
 
     >>> import deepchem as dc
     >>> import pandas as pd
-
+    >>> import os
+    
+    >>> dataset = os.path.join(os.path.dirname(__file__), "test",
+                                "data","sc_rna_seq_data")
     >>> # train_set.shape = (cells x genes)
-    >>> train_set = pd.read_hdf('dataset/tma_both_cleaned.h5')
-    >>> test_set = pd.read_hdf('dataset/tma_both_cleaned.h5')
+    >>> train_set = pd.read_hdf('test_data/train_set.h5')
+    >>> Ntest_set = pd.read_hdf('test_data/test_set.h5')
+    >>> train_set,test_set = featurizer.find_common_genes(train_set,test_set)
     >>> train_set.shape
     (1000,23015)
 
@@ -39,7 +44,7 @@ class ACTINNFeaturizer(Featurizer):
     >>> test_dataset
     <NumpyDataset X.shape: (56112, 23013), y.shape: (56112,), w.shape: (56112,), task_names: [0]>
     >>> test_dataset.X = featurizer.filter_genes(test_dataset)
-    >>> test dataset
+    >>> test_dataset
     <NumpyDataset X.shape: (56112, 22099), y.shape: (56112,), w.shape: (56112,), task_names: [0]>
 
     References:
@@ -52,8 +57,8 @@ class ACTINNFeaturizer(Featurizer):
         """
 
         A function to perform data transformations to identify celltypes from scRNA-seq data
-        using ACTINN. Normalised and filters out top and bottom 1% genes based on total expression a
-        nd coefficient of variation across all cells.
+        using ACTINN. Normalised and filters out top and bottom 1% genes based on total expression
+        and coefficient of variation across all cells.
 
         1) Convert once to float32 NumPy array
         2) Library-size normalize to 10,000 counts per cell
@@ -72,7 +77,7 @@ class ACTINNFeaturizer(Featurizer):
             filtered matrix (genes_filtered X cells), float32
 
         """
-
+        print('entered scale sets')
         # 1) extract gene names & data array
         gene_names = dataset_df.index.to_numpy()
         X = np.array(dataset_df, dtype=np.float32)
@@ -185,7 +190,8 @@ class ACTINNFeaturizer(Featurizer):
         NumpyDataset
             A dataset object containing the transformed features and corresponding labels.
         """
-
+        self.labels = labels
+        print('self.labels',self.labels)
         if mode not in ['train', 'test']:
             print("`mode` must be either 'train' or 'test'")
             return None
@@ -195,7 +201,7 @@ class ACTINNFeaturizer(Featurizer):
         except Exception as e:
             logger.warning(f"Failed to featurize data. Error: {e}")
             return None
-        if labels:
+        if self.labels is not None:
             type2label_dict = self.type2label_dict(labels)
             labels = self.convert_type2label(labels, type2label_dict)
 
@@ -218,10 +224,11 @@ class ACTINNFeaturizer(Featurizer):
 
         if mode == 'train':
             scaled_set = self.scale_sets(dataset)
+            print('scale sets fineshed')
         else:
             scaled_set = self.normalise(dataset)
             mask = self.filter_genes()
-            scaled_set = scaled_set[:, mask]
+            scaled_set = scaled_set[mask,:]
 
         # gens x cells --> cells x gens
         dataset = np.transpose(scaled_set)
@@ -265,12 +272,10 @@ class ACTINNFeaturizer(Featurizer):
         """
         Returns a boolean mask to subset the test set and labels
         to include only the genes retained after filtering the training set.
-
         Parameters
         ----------
         data : np.ndarray
             A normalized matrix of shape (cells x genes).
-
         Returns
         -------
         np.ndarray
@@ -282,3 +287,27 @@ class ACTINNFeaturizer(Featurizer):
         else:
             print("Train set hasn't been processed yet.")
             return None
+
+    def find_common_genes(self, train_set: pd.DataFrame, test_set: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """ 
+        Retain only the common genes (rows) in both train and test datasets.
+
+        Parameters
+        ----------
+        train_set : pd.DataFrame
+            A pandas DataFrame (genes x cells) representing the training data, with gene IDs as the index.
+        test_set : pd.DataFrame
+            A pandas DataFrame (genes x cells) representing the testing data, with gene IDs as the index.
+
+        Returns
+        -------
+        Tuple[pd.DataFrame, pd.DataFrame]
+            Filtered train and test DataFrames containing only the common genes.
+        """
+        common_genes = train_set.index.intersection(test_set.index)
+        common_genes = sorted(common_genes)
+
+        train_set = train_set.loc[common_genes]
+        test_set = test_set.loc[common_genes]
+
+        return train_set, test_set
