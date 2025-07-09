@@ -271,6 +271,7 @@ class FNOModel(TorchModel):
                  width: int,
                  dims: int,
                  depth: int = 4,
+                 positional_encoding: bool = False,
                  **kwargs) -> None:
         """Initialize the FNO model.
 
@@ -292,7 +293,8 @@ class FNOModel(TorchModel):
         **kwargs: dict
             Additional arguments passed to TorchModel constructor
         """
-        model = FNOBase(in_channels, out_channels, modes, width, dims, depth)
+        model = FNOBase(in_channels, out_channels, modes, width, dims, depth,
+                        positional_encoding)
         super(FNOModel, self).__init__(model=model,
                                        loss=self._loss_fn,
                                        **kwargs)
