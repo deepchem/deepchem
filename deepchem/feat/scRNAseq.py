@@ -1,10 +1,11 @@
 from deepchem.feat import Featurizer
+from deepchem.data import NumpyDataset
+
 import numpy as np
 import pandas as pd
+
 import logging
-from typing import Any, Iterable
-from deepchem.data import NumpyDataset
-from typing import Tuple
+from typing import Any, Iterable, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -15,42 +16,35 @@ class ACTINNFeaturizer(Featurizer):
     scRNA-seq (Single-cell RNA sequencing) data for cell type identification
     using the model ACTINN.
 
-    Example:
+    References
+    -----------
+    .. [1] https://academic.oup.com/bioinformatics/article/36/2/533/5540320
+
+    Examples
     --------
 
     >>> import deepchem as dc
     >>> import pandas as pd
     >>> import os
-    
     >>> dataset = os.path.join(os.path.dirname(__file__), "test",
-                                "data","sc_rna_seq_data")
+    ...                            "data", "sc_rna_seq_data")
     >>> # train_set.shape = (cells x genes)
-    >>> train_set = pd.read_hdf('test_data/train_set.h5')
-    >>> Ntest_set = pd.read_hdf('test_data/test_set.h5')
-    >>> train_set,test_set = featurizer.find_common_genes(train_set,test_set)
+    >>> train_set = pd.read_hdf(os.path.join(dataset, "train_set.h5"))
+    >>> test_set = pd.read_hdf(os.path.join(dataset, "test_set.h5"))
+    >>> train_set,test_set = featurizer.find_common_genes(train_set, test_set)
     >>> train_set.shape
-    (1000,23015)
-
+    (13883, 1000)
+    >>> test_set.shape
+    (13883, 1000)
     >>> # cell types
-    >>> train_labels = pd.read_csv('dataset/tma_both_cleaned_label.txt',sep='\t',header=None)
-    >>> test_labels = pd.read_csv('dataset/tma_both_cleaned_label.txt',sep='\t',header=None)
-
+    >>> train_labels = pd.read_csv('os.path.join(dataset, "train_label.txt")', sep='\t', header=None)
     >>> featurizer = dc.feat.ACTINNFeaturizer()
-
-    >>> train_dataset = featurizer.featurize(train_set,labels[1])
+    >>> train_dataset = featurizer.featurize(train_set, labels[1])
     >>> train_dataset
-    <NumpyDataset X.shape: (56112, 22099), y.shape: (56112,), w.shape: (56112,), task_names: [0]>
-    >>> test_dataset = featurizer.featurize(train_set,labels=labels[1],mode='test')
+    <NumpyDataset X.shape: (1000, 13389), y.shape: (1000,), w.shape: (1000,), task_names: [0]>
+    >>> test_dataset = featurizer.featurize(train_set, labels=labels[1], mode='test')
     >>> test_dataset
-    <NumpyDataset X.shape: (56112, 23013), y.shape: (56112,), w.shape: (56112,), task_names: [0]>
-    >>> test_dataset.X = featurizer.filter_genes(test_dataset)
-    >>> test_dataset
-    <NumpyDataset X.shape: (56112, 22099), y.shape: (56112,), w.shape: (56112,), task_names: [0]>
-
-    References:
-    -----------
-    [1] https://academic.oup.com/bioinformatics/article/36/2/533/5540320
-
+    <NumpyDataset X.shape: (1000, 13389), y.shape: (1000, 1), w.shape: (1000, 1), task_names: [0]>
     """
 
     def scale_sets(self, dataset_df: pd.DataFrame) -> np.ndarray:
@@ -75,9 +69,8 @@ class ACTINNFeaturizer(Featurizer):
         -------
         X_filtered : np.ndarray
             filtered matrix (genes_filtered X cells), float32
-
         """
-        print('entered scale sets')
+
         # 1) extract gene names & data array
         gene_names = dataset_df.index.to_numpy()
         X = np.array(dataset_df, dtype=np.float32)
@@ -117,20 +110,18 @@ class ACTINNFeaturizer(Featurizer):
 
     def type2label_dict(self, types):
         """
-
         Turn types into labels
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         types: List[str]
             Types of cell present in the data
 
-        Returns:
-        --------
+        Returns
+        -------
         type_to_label_dict: Dict
             A python dictionary mapping cell type strings to
             integer labels
-
         """
 
         all_celltype = list(set(types))
@@ -146,18 +137,17 @@ class ACTINNFeaturizer(Featurizer):
         """
         Convert types to labels
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
             types: List
                 list of cell types
             type_to_label dictionary: Dict
                 dictionary of cell types mapped to integer labels
 
-        Returns:
-        --------
+        Returns
+        -------
             labels:
                 list of integer labels
-
         """
 
         types = list(types)
@@ -176,14 +166,12 @@ class ACTINNFeaturizer(Featurizer):
 
         Parameters
         ----------
-        data : Iterable[Any]
+        data: Iterable[Any]
             A pandas DataFrame or iterable containing raw scRNA-seq data.
-        labels : Iterable[Any]
+        labels: Iterable[Any]
             Cell type labels corresponding to each data point.
-        mode : str, default='train'
+        mode: str, default='train'
             Mode of operation: 'train' or 'test'.
-        **kwargs :
-            Additional arguments passed to the internal `_featurize` function.
 
         Returns
         -------
@@ -191,7 +179,6 @@ class ACTINNFeaturizer(Featurizer):
             A dataset object containing the transformed features and corresponding labels.
         """
         self.labels = labels
-        print('self.labels',self.labels)
         if mode not in ['train', 'test']:
             print("`mode` must be either 'train' or 'test'")
             return None
@@ -209,26 +196,23 @@ class ACTINNFeaturizer(Featurizer):
 
     def _featurize(self, dataset: pd.DataFrame, mode, **kwargs) -> np.ndarray:
         """
-
             Parameters
             ----------
-            train_set :
+            train_set:
                 A pandas dataframe containing the raw scRNA-seq data
 
             Returns
             -------
                 np.ndarray :
                     A numpy array containing the scRNA-seq data after transformation
-
-            """
+        """
 
         if mode == 'train':
             scaled_set = self.scale_sets(dataset)
-            print('scale sets fineshed')
         else:
             scaled_set = self.normalise(dataset)
             mask = self.filter_genes()
-            scaled_set = scaled_set[mask,:]
+            scaled_set = scaled_set[mask, :]
 
         # gens x cells --> cells x gens
         dataset = np.transpose(scaled_set)
@@ -237,21 +221,19 @@ class ACTINNFeaturizer(Featurizer):
 
     def normalise(self, dataset_df: pd.DataFrame, **kwargs) -> np.ndarray:
         """
-
         Normalise scRNA-seq data
         1) Library-size normalize to 10,000 counts per cell
         2) Log2(x+1) transform
 
         Parameters
         ----------
-        dataset_df : pd.DataFrame
+        dataset_df: pd.DataFrame
             genes X cells raw counts, genes as index, cells as columns
 
         Returns
         -------
-        X : np.ndarray
+        X: np.ndarray
             normalised matrix (genes X cells), float32
-
         """
 
         # 1) extract gene names & data array
@@ -272,10 +254,12 @@ class ACTINNFeaturizer(Featurizer):
         """
         Returns a boolean mask to subset the test set and labels
         to include only the genes retained after filtering the training set.
+
         Parameters
         ----------
-        data : np.ndarray
+        data: np.ndarray
             A normalized matrix of shape (cells x genes).
+
         Returns
         -------
         np.ndarray
@@ -285,18 +269,19 @@ class ACTINNFeaturizer(Featurizer):
             mask = np.isin(self.test_genes, self.gene_list)
             return mask
         else:
-            print("Train set hasn't been processed yet.")
             return None
 
-    def find_common_genes(self, train_set: pd.DataFrame, test_set: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        """ 
+    def find_common_genes(
+            self, train_set: pd.DataFrame,
+            test_set: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """
         Retain only the common genes (rows) in both train and test datasets.
 
         Parameters
         ----------
-        train_set : pd.DataFrame
+        train_set: pd.DataFrame
             A pandas DataFrame (genes x cells) representing the training data, with gene IDs as the index.
-        test_set : pd.DataFrame
+        test_set: pd.DataFrame
             A pandas DataFrame (genes x cells) representing the testing data, with gene IDs as the index.
 
         Returns
