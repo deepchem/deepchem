@@ -130,7 +130,9 @@ class FNOBase(nn.Module):
         self.width = width
         self.positional_encoding = positional_encoding
 
-        self.fc0 = nn.Linear(in_channels, width)
+        # Account for additional channels when positional encoding is enabled
+        self.in_channels = in_channels + dims if positional_encoding else in_channels
+        self.fc0 = nn.Linear(self.in_channels, width)
         self.fno_blocks = nn.Sequential(
             *[FNOBlock(width, modes, dims=dims) for _ in range(depth)])
         self.fc1 = nn.Linear(width, 128)
@@ -181,15 +183,21 @@ class FNOBase(nn.Module):
             Tensor with channels in position 1: (batch, in_channels, *spatial_dims)
         """
 
-        if x.shape[-1] == self.in_channels:
+        in_channels_without_grids = self.in_channels
+        # This method is called before the positional encoding is added, if it is enabled.
+        # So, we subtract the number of spatial dimensions (positional encoding) from the number of channels.
+        if self.positional_encoding:
+            in_channels_without_grids = self.in_channels - self.dims
+
+        if x.shape[-1] == in_channels_without_grids:
             perm_dims = range(1, self.dims + 1)
             return x.permute(0, -1, *perm_dims).contiguous()
-        elif x.shape[1] == self.in_channels:
+        elif x.shape[1] == in_channels_without_grids:
             return x
         else:
             raise ValueError(
-                f"Expected either (batch, {self.in_channels}, *spatial_dims) or "
-                f"(batch, *spatial_dims, {self.in_channels}), got {tuple(x.shape)}"
+                f"Expected either (batch, {in_channels_without_grids}, *spatial_dims) or "
+                f"(batch, *spatial_dims, {in_channels_without_grids}), got {tuple(x.shape)}"
             )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
