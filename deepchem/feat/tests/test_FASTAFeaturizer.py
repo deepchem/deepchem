@@ -5,13 +5,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-try:
-    import pysam
-except ImportError as e:
-    logger.warning(
-        f'Skipped loading biological sequence featurizer, missing a dependency. {e}'
-    )
-
 
 class TestFASTAFeaturizer(unittest.TestCase):
 
