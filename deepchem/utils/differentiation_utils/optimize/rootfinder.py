@@ -12,7 +12,7 @@ from deepchem.utils import TensorNonTensorSeparator
 
 __all__ = ["equilibrium", "rootfinder", "minimize"]
 
-_RF_METHODS = {
+_RF_METHODS: dict[str, Callable[..., torch.Tensor]] = {
     "broyden1": broyden1,
     "broyden2": broyden2,
     "linearmixing": linearmixing,
