@@ -601,7 +601,7 @@ class A2C(object):
                     state_arrays[j].append(state[j])
         else:
             state_arrays = [states]
-        state_arrays = [np.stack(s) for s in state_arrays]
+        state_arrays = [[np.stack(s)] for s in state_arrays]
 
         # Build the inputs and apply gradients.
 
