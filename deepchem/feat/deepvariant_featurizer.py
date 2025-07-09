@@ -1,11 +1,11 @@
 import numpy as np
 from deepchem.feat import Featurizer
-from multiprocessing import Pool, cpu_count
 from typing import List, Dict, Tuple, Any, Optional
 
 try:
     import torch
     import pysam
+    from multiprocessing import Pool, cpu_count
 except ImportError:
     pass
 
