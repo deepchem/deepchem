@@ -16,3 +16,4 @@ class TestACTINNFeaturizer(unittest.TestCase):
         featurizer = ACTINNFeaturizer()
         train_dataset = featurizer.featurize(train_set)
         assert np.allclose(train_dataset.X, ref_array, rtol=1e-5, atol=1e-6)
+
