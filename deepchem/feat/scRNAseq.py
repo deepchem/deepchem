@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 import logging
-from typing import Any, Iterable, Tuple
+from typing import Any, Iterable, Tuple, List, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -26,30 +26,34 @@ class ACTINNFeaturizer(Featurizer):
     >>> import deepchem as dc
     >>> import pandas as pd
     >>> import os
+    >>> featurizer = dc.feat.ACTINNFeaturizer()
     >>> dataset = os.path.join(os.path.dirname(__file__), "test",
     ...                            "data", "sc_rna_seq_data")
-    >>> # train_set.shape = (cells x genes)
-    >>> train_set = pd.read_hdf(os.path.join(dataset, "train_set.h5"))
-    >>> test_set = pd.read_hdf(os.path.join(dataset, "test_set.h5"))
+    >>> # train_set.shape = (genes x cells)
+    >>> train_set = pd.read_hdf(os.path.join(dataset, "scRNAseq_sample_1.h5"))
+    >>> train_set.shape
+    (1500, 1000)
+    >>> # test_set.shape = (genes x cells)
+    >>> test_set = pd.read_hdf(os.path.join(dataset, "scRNAseq_sample_2.h5"))
+    >>> test_set.shape
+    (1200, 1000)
     >>> train_set,test_set = featurizer.find_common_genes(train_set, test_set)
     >>> train_set.shape
-    (13883, 1000)
+    (802, 1000)
     >>> test_set.shape
-    (13883, 1000)
-    >>> # cell types
+    (802, 1000)
+    >>> # train_labels.shape = (1000,2). train_label.columns = (cell_id, cell_type)
     >>> train_labels = pd.read_csv('os.path.join(dataset, "train_label.txt")', sep='\t', header=None)
-    >>> featurizer = dc.feat.ACTINNFeaturizer()
-    >>> train_dataset = featurizer.featurize(train_set, labels[1])
+    >>> train_dataset = featurizer.featurize(train_set, labels[1], mode='train')
     >>> train_dataset
-    <NumpyDataset X.shape: (1000, 13389), y.shape: (1000,), w.shape: (1000,), task_names: [0]>
+    <NumpyDataset X.shape: (1000, 768), y.shape: (1000,), w.shape: (1000,), task_names: [0]>
     >>> test_dataset = featurizer.featurize(train_set, labels=labels[1], mode='test')
     >>> test_dataset
-    <NumpyDataset X.shape: (1000, 13389), y.shape: (1000, 1), w.shape: (1000, 1), task_names: [0]>
+    <NumpyDataset X.shape: (1000, 768), y.shape: (1000, 1), w.shape: (1000, 1), task_names: [0]>
     """
 
     def scale_sets(self, dataset_df: pd.DataFrame) -> np.ndarray:
         """
-
         A function to perform data transformations to identify celltypes from scRNA-seq data
         using ACTINN. Normalised and filters out top and bottom 1% genes based on total expression
         and coefficient of variation across all cells.
@@ -62,12 +66,12 @@ class ACTINNFeaturizer(Featurizer):
 
         Parameters
         ----------
-        train_df : pd.DataFrame
+        train_df: pd.DataFrame
             genes X cells raw counts, genes as index, cells as columns
 
         Returns
         -------
-        X_filtered : np.ndarray
+        X_filtered: np.ndarray
             filtered matrix (genes_filtered X cells), float32
         """
 
@@ -108,9 +112,8 @@ class ACTINNFeaturizer(Featurizer):
 
         return X
 
-    def type2label_dict(self, types):
-        """
-        Turn types into labels
+    def type2label_dict(self, types: List[str]) -> Dict[str, int]:
+        """Turn types into labels
 
         Parameters
         ----------
@@ -133,21 +136,22 @@ class ACTINNFeaturizer(Featurizer):
             celltype_to_label_dict[all_celltype[i]] = i
         return celltype_to_label_dict
 
-    def convert_type2label(self, types, type_to_label_dict):
+    def convert_type2label(self, types: List[str],
+                           type_to_label_dict: Dict[str, int]) -> List[int]:
         """
-        Convert types to labels
+        Convert cell types to labels
 
         Parameters
         ----------
-            types: List
-                list of cell types
-            type_to_label dictionary: Dict
-                dictionary of cell types mapped to integer labels
+        types: List
+            list of cell types
+        type_to_label dictionary: Dict
+            dictionary of cell types mapped to integer labels
 
         Returns
         -------
-            labels:
-                list of integer labels
+        labels:
+            list of integer labels
         """
 
         types = list(types)
@@ -192,19 +196,19 @@ class ACTINNFeaturizer(Featurizer):
             type2label_dict = self.type2label_dict(labels)
             labels = self.convert_type2label(labels, type2label_dict)
 
-        return NumpyDataset(features, labels)
+        return NumpyDataset(X=features, y=labels)
 
-    def _featurize(self, dataset: pd.DataFrame, mode, **kwargs) -> np.ndarray:
+    def _featurize(self, dataset: pd.DataFrame, mode) -> np.ndarray:
         """
-            Parameters
-            ----------
-            train_set:
-                A pandas dataframe containing the raw scRNA-seq data
+        Parameters
+        ----------
+        train_set:
+            A pandas dataframe containing the raw scRNA-seq data
 
-            Returns
-            -------
-                np.ndarray :
-                    A numpy array containing the scRNA-seq data after transformation
+        Returns
+        -------
+        np.ndarray:
+            A numpy array containing the scRNA-seq data after transformation
         """
 
         if mode == 'train':
