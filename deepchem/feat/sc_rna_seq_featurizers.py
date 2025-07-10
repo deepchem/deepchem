@@ -22,7 +22,6 @@ class ACTINNFeaturizer(Featurizer):
 
     Examples
     --------
-
     >>> import deepchem as dc
     >>> import pandas as pd
     >>> import os
@@ -66,12 +65,12 @@ class ACTINNFeaturizer(Featurizer):
 
         Parameters
         ----------
-        train_df: pd.DataFrame
+        dataset_df: pd.DataFrame
             genes X cells raw counts, genes as index, cells as columns
 
         Returns
         -------
-        X_filtered: np.ndarray
+        X: np.ndarray
             filtered matrix (genes_filtered X cells), float32
         """
 
@@ -166,7 +165,10 @@ class ACTINNFeaturizer(Featurizer):
                   mode: str = 'train',
                   **kwargs) -> 'NumpyDataset':
         """
-        Override of the base class Featurizer's featurize function.
+        Converts raw scRNA-seq data into model-ready features and labels.
+        It handles preprocessing based on the specified mode (`train` or `test`)
+        and transforms raw data into a deepchem `NumpyDataset` containing feature
+        arrays and optional label arrays.
 
         Parameters
         ----------
@@ -300,4 +302,3 @@ class ACTINNFeaturizer(Featurizer):
         test_set = test_set.loc[common_genes]
 
         return train_set, test_set
-
