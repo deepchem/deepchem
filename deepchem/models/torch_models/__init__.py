@@ -46,6 +46,9 @@ from deepchem.models.torch_models.chemnet_layers import Stem
 from deepchem.models.torch_models.chemnet_layers import InceptionResnetA
 from deepchem.models.torch_models.chemnet_layers import InceptionResnetB
 from deepchem.models.torch_models.hnn import HNN
+from deepchem.models.torch_models.chemnet_layers import InceptionResnetC
+from deepchem.models.torch_models.chemnet_layers import ReductionA
+from deepchem.models.torch_models.chemnet_layers import ReductionB
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
     from deepchem.models.torch_models.gnn import GNN, GNNHead, GNNModular

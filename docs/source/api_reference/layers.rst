@@ -314,6 +314,15 @@ Torch Layers
   :members:
 
 .. autoclass:: deepchem.models.torch_models.fno.FNOBlock
+  :members:  
+
+.. autoclass:: deepchem.models.torch_models.chemnet_layers.InceptionResnetC
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.chemnet_layers.ReductionA
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.chemnet_layers.ReductionB
   :members:
 
 Flow Layers
