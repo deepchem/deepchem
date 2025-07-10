@@ -26,6 +26,11 @@ from deepchem.data.data_loader import FASTQLoader
 from deepchem.data.data_loader import ImageLoader
 from deepchem.data.data_loader import InMemoryLoader
 try:
+    from deepchem.data.pytorch_datasets import IndexDiskDataset
+except ImportError as e:
+    logger.warning(
+        f'Skipped loading IndexDiskDataset, missing a dependency. {e}')
+try:
     from deepchem.data.data_loader import SAMLoader
     from deepchem.data.data_loader import BAMLoader
     from deepchem.data.data_loader import CRAMLoader
