@@ -2,12 +2,10 @@ import torch
 import torch.nn as nn
 import numpy as np
 from torch.autograd import grad
-from typing import Tuple, List
+from typing import Tuple
 from deepchem.models.torch_models.layers import MultilayerPerceptron
 from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.losses import L2Loss
-from deepchem.models.models import Transformer
-from deepchem.models.torch_models.torch_model import OneOrMany
 
 
 class HNN(nn.Module):
@@ -104,17 +102,14 @@ class HNN(nn.Module):
         >>> _ = hnn.eval()
         >>> H = hnn(z)  # Shape: (5,)
         """
-        if self.training:
-            return self.symplectic_gradient(z)
-        else:
-            H = self.net(z).squeeze(-1)
-            return H
+        return self.symplectic_gradient(z)
 
     def hamiltonian(self, z: torch.Tensor) -> torch.Tensor:
         """Compute the Hamiltonian function H(q, p).
 
         This method directly evaluates the learned Hamiltonian function without
         considering the training mode. It always returns the Hamiltonian value.
+        Total energy = Potential energy + Kinetic energy
 
         Parameters
         ----------
@@ -143,6 +138,8 @@ class HNN(nn.Module):
 
         The gradients are computed using automatic differentiation to ensure
         exact computation of the partial derivatives.
+        dq/dt = ∂H/∂p
+        dp/dt = -∂H/∂q
 
         Parameters
         ----------
@@ -244,31 +241,6 @@ class HNNModel(TorchModel):
                     d_hidden=d_hidden,
                     activation_fn=activation_fn)
         super().__init__(model, loss=L2Loss(), **kwargs)
-
-    def predict_on_batch(
-            self,
-            X: np.typing.ArrayLike,
-            transformers: List[Transformer] = []) -> OneOrMany[np.ndarray]:
-        """Predict time derivatives using Hamilton's equations.
-
-        Parameters
-        ----------
-        X : np.ndarray
-            A NumPy array of phase space coordinates with shape (n_samples, d_input),
-            where each row corresponds to a point in the phase space [q, p].
-
-        Returns
-        -------
-        np.ndarray
-            Time derivatives of shape (n_samples, d_input).
-        """
-        self.model.eval()
-        X_tensor = torch.tensor(X,
-                                dtype=torch.float32,
-                                device=self.device,
-                                requires_grad=False)
-        predictions = self.model.symplectic_gradient(X_tensor)
-        return predictions.detach().cpu().numpy()
 
     def predict_hamiltonian(self, X: np.ndarray) -> np.ndarray:
         """Compute Hamiltonian energy values H(q, p).
