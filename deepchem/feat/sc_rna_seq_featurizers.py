@@ -41,7 +41,7 @@ class ACTINNFeaturizer(Featurizer):
     (802, 1000)
     >>> # train_labels.shape = (1000,2). train_label.columns = (cell_id, cell_type)
     >>> train_labels = pd.read_csv('os.path.join(dataset, "train_label.txt")', sep='\t', header=None)
-    >>> train_labels = featurizer.convert_type2label(train_labels.loc[:][1])
+    >>> train_labels = featurizer.convert_type2label(train_labels.iloc[:,1])
     >>> train_set = featurizer.featurize(train_set)
     >>> train_set.shape
     (1000, 768)
