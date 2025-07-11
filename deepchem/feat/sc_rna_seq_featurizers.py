@@ -24,7 +24,7 @@ class ACTINNFeaturizer(Featurizer):
     >>> import pandas as pd
     >>> import os
     >>> featurizer = dc.feat.ACTINNFeaturizer()
-    >>> dataset = os.path.join(os.path.dirname(__file__), "test",
+    >>> dataset = os.path.join(os.path.dirname(__file__), "tests",
     ...                            "data", "sc_rna_seq_data")
     >>> # train_set.shape = (genes x cells)
     >>> train_set = pd.read_hdf(os.path.join(dataset, "scRNAseq_sample_1.h5"))
@@ -40,7 +40,7 @@ class ACTINNFeaturizer(Featurizer):
     >>> test_set.shape
     (802, 1000)
     >>> # train_labels.shape = (1000,2). train_label.columns = (cell_id, cell_type)
-    >>> train_labels = pd.read_csv('os.path.join(dataset, "train_label.txt")', sep='\t', header=None)
+    >>> train_labels = pd.read_csv(os.path.join(dataset, "celltype_label_sample_1.txt"), sep=' ', header=None)
     >>> train_labels = featurizer.convert_type2label(train_labels.iloc[:,1])
     >>> train_set = featurizer.featurize(train_set)
     >>> train_set.shape
