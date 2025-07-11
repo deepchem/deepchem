@@ -108,4 +108,4 @@ from deepchem.feat.vocabulary_builders import HuggingFaceVocabularyBuilder
 from deepchem.feat.molecule_featurizers import GraphMatrix
 
 # single cell rna sequencing data featurizers
-from deepchem.feat.scRNAseq import ACTINNFeaturizer
+from deepchem.feat.sc_rna_seq_featurizers import ACTINNFeaturizer

@@ -15,4 +15,4 @@ class TestACTINNFeaturizer(unittest.TestCase):
         train_set = pd.read_hdf(os.path.join(dataset, 'scRNAseq_sample_1.h5'))
         featurizer = ACTINNFeaturizer()
         train_dataset = featurizer.featurize(train_set)
-        assert np.allclose(train_dataset.X, ref_array, rtol=1e-5, atol=1e-6)
+        assert np.allclose(train_dataset, ref_array, rtol=1e-5, atol=1e-6)
