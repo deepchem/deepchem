@@ -1,8 +1,6 @@
 from deepchem.feat import Featurizer
-
 import numpy as np
 import pandas as pd
-
 import logging
 from typing import Any, Iterable, Tuple, List
 
@@ -214,6 +212,16 @@ class ACTINNFeaturizer(Featurizer):
     def featurize_testset(self, dataset: pd.DataFrame) -> np.ndarray:
         """
         Function to featurize test set after train set featurisation
+
+        Parameters
+        ----------
+        dataset: pd.DataFrame
+            genes X cells raw counts, genes as index, cells as columns
+
+        Returns
+        -------
+        np.ndarray
+            A numpy array containing the scRNA-seq data after transformation
         """
         scaled_set = self.normalise(dataset)
         mask = self.filter_genes()
@@ -237,7 +245,7 @@ class ACTINNFeaturizer(Featurizer):
 
         Returns
         -------
-        X: np.ndarray
+        np.ndarray
             normalised matrix (genes X cells), float32
         """
 
