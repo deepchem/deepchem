@@ -13,10 +13,6 @@ class ACTINNFeaturizer(Featurizer):
     scRNA-seq (Single-cell RNA sequencing) data for cell type identification
     using the model ACTINN.
 
-    References
-    -----------
-    .. [1] https://academic.oup.com/bioinformatics/article/36/2/533/5540320
-
     Examples
     --------
     >>> import deepchem as dc
@@ -25,7 +21,7 @@ class ACTINNFeaturizer(Featurizer):
     >>> import os
     >>> featurizer = dc.feat.ACTINNFeaturizer()
     >>> dataset = os.path.join(os.path.dirname(__file__), "tests",
-    ...                            "data", "sc_rna_seq_data")
+    ...                        "data", "sc_rna_seq_data")
     >>> # train_set.shape = (genes x cells)
     >>> train_set = pd.read_hdf(os.path.join(dataset, "scRNAseq_sample_1.h5"))
     >>> train_set.shape
@@ -50,6 +46,10 @@ class ACTINNFeaturizer(Featurizer):
     (1000, 768)
     >>> train_dataset = dc.data.NumpyDataset(X=train_set,y=train_labels)
     >>> test_dataset = dc.data.NumpyDataset(X=test_set)
+
+    References
+    -----------
+    .. [1] https://academic.oup.com/bioinformatics/article/36/2/533/5540320
     """
 
     def scale_sets(self, dataset_df: pd.DataFrame) -> np.ndarray:
@@ -154,7 +154,8 @@ class ACTINNFeaturizer(Featurizer):
             Returns
             -------
             np.ndarray
-                A numpy array containing a featurized representation of `datapoints`.
+                A numpy array containing a featurized representation of
+                `datapoints`.
         """
         try:
             features = self._featurize(datapoints, **kwargs)
