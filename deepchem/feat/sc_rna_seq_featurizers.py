@@ -45,7 +45,7 @@ class ACTINNFeaturizer(Featurizer):
     >>> train_set = featurizer.featurize(train_set, labels[1], mode='train')
     >>> train_set.shape
     (1000, 768)
-    >>> test_set = featurizer.featurize(train_set, labels=train_labels, mode='test')
+    >>> test_set = featurizer.featurize_testset(train_set, labels=train_labels, mode='test')
     >>> test_set.shape
     (1000, 768)
     >>> train_dataset = dc.data.NumpyDataset(X=train_set,y=train_labels[1])
