@@ -1,0 +1,3 @@
+# flake8: noqa
+from deepchem.models.lightning_new.new_dc_lightning_dataset_module import DeepChemLightningDataModule
+from deepchem.models.lightning_new.new_dc_lightning_module import DeepChemLightningModule
