@@ -302,6 +302,7 @@ Torch Layers
   :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.SpectralConv
+  :members:
   
 .. autoclass:: deepchem.models.torch_models.chemnet_layers.Stem
   :members:
@@ -310,6 +311,9 @@ Torch Layers
   :members:
 
 .. autoclass:: deepchem.models.torch_models.chemnet_layers.InceptionResnetB
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.fno.FNOBlock
   :members:
 
 Flow Layers
