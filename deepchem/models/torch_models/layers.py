@@ -5463,9 +5463,8 @@ class FerminetElectronFeature(torch.nn.Module):
                 f: torch.Tensor = torch.cat((one_electron[:, i, :], g_one_up,
                                              g_one_down, g_two_up, g_two_down),
                                             dim=1)
-                if l == 0 or (self.n_one[l]
-                              != self.n_one[l - 1]) or (self.n_two[l]
-                                                        != self.n_two[l - 1]):
+                if l == 0 or (self.n_one[l] != self.n_one[l - 1]) or (
+                        self.n_two[l] != self.n_two[l - 1]):
                     one_electron_tmp.append((torch.tanh(self.v[l](f))) +
                                             self.projection_module[0]
                                             (one_electron[:, i, :]))
@@ -9296,7 +9295,7 @@ class SpectralConv(nn.Module):
     def __init__(self,
                  in_channels: int,
                  out_channels: int,
-                 modes: Union[int, Tuple[int, ...]],
+                 modes: Union[int, Tuple[int, ...], List[int]],
                  dims: int = 2):
         """
         Parameters
