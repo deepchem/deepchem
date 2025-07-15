@@ -193,22 +193,12 @@ class _TorchIndexDiskDataset(torch.utils.data.Dataset):
     interface by adding `__getitem__` functionality to datasets that
     typically only support iterator-based access.
 
-    Parameters
-    ----------
-    dataset: DiskDataset
-        The DeepChem DiskDataset to wrap.
-
-    Note
-    ----
-    This wrapper is particularly useful for debugging and logging purposes,
-    as well as for scenarios requiring random access to dataset samples.
-
     Examples
     --------
     >>> import deepchem as dc
     >>> import numpy as np
     >>> from torch.utils.data import DataLoader
-    >>> from deepchem.models.lightning.utils import TorchIndexDiskDataset
+    >>> from deepchem.data import _TorchIndexDiskDataset as TorchIndexDiskDataset
     >>>
     >>> # Create a DiskDataset from numpy arrays
     >>> X = np.random.rand(100, 10)

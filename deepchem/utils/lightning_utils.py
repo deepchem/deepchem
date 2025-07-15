@@ -32,7 +32,8 @@ def collate_dataset_fn(batch_data: List[Tuple[Any, Any, Any, Any]], model):
     >>> import deepchem as dc
     >>> import torch
     >>> from torch.utils.data import DataLoader
-    >>> from deepchem.data import collate_dataset_fn, TorchIndexDiskDataset
+    >>> from deepchem.data import _TorchIndexDiskDataset as TorchIndexDiskDataset
+    >>> from deepchem.utils.lightning_utils import collate_dataset_fn
     >>>
     >>> # Load a dataset and create a model
     >>> tasks, datasets, _ = dc.molnet.load_clintox()
