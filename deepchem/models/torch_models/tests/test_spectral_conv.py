@@ -25,6 +25,7 @@ def test_spectral_conv_exact_output():
 
     with torch.no_grad():
         conv.weights.fill_(1.0)
+        conv.bias.fill_(0.0)
 
     x = torch.tensor([[[1.0, 2.0, 3.0, 0.0]]], dtype=torch.float32)
     y = conv(x)
