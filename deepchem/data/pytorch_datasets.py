@@ -212,7 +212,6 @@ class _TorchIndexDiskDataset(torch.utils.data.Dataset):
     >>>
     >>> # Access individual samples by index
     >>> x_sample, y_sample, w_sample, id_sample = wrapped_dataset[0]
-    >>> print(f"Sample 0 shape: X={x_sample.shape}, y={y_sample.shape}")
     >>>
     >>> # Use with PyTorch DataLoader
     >>> dataloader = DataLoader(wrapped_dataset, batch_size=16, shuffle=True)
@@ -221,8 +220,6 @@ class _TorchIndexDiskDataset(torch.utils.data.Dataset):
     ...     # Process batch data
     ...     break
     >>>
-    >>> # Check dataset length
-    >>> print(f"Dataset length: {len(wrapped_dataset)}")
     """
 
     def __init__(self, dataset: "DiskDataset"):

@@ -1,7 +1,11 @@
 import numpy as np
 import pytest
-from torch.utils.data import DataLoader
-from deepchem.data import DiskDataset, _TorchIndexDiskDataset
+try:
+    from torch.utils.data import DataLoader
+    from deepchem.data import DiskDataset, _TorchIndexDiskDataset
+except ImportError as e:
+    pytest.skip(f"Skipping tests due to missing dependencies: {e}",
+                allow_module_level=True)
 from deepchem.utils.lightning_utils import collate_dataset_fn
 
 
