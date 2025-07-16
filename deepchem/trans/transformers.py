@@ -2663,3 +2663,237 @@ class RxnSplitTransformer(Transformer):
     def untransform(self, z):
         """Not Implemented."""
         raise NotImplementedError("Cannot untransform the source/target split.")
+
+class ACTINNTransformer(Transformer):
+
+    def scale_sets(self, dataset: np.ndarray, labels: Iterable[Any]) -> np.ndarray:
+        """
+        A function to perform data transformations to identify celltypes from scRNA-seq data
+        using ACTINN. Normalised and filters out top and bottom 1% genes based on total expression
+        and coefficient of variation across all cells.
+
+        1) Convert once to float32 NumPy array
+        2) Library-size normalize to 10,000 counts per cell
+        3) Log2(x+1) transform
+        4) Filter genes by total expression (1st–99th percentile)
+        5) Filter genes by coefficient of variation (1st–99th percentile)
+
+        Parameters
+        ----------
+        dataset_df: np.ndarray
+            genes X cells raw counts, genes as index, cells as columns
+
+        Returns
+        -------
+        X: np.ndarray
+            filtered matrix (genes_filtered X cells), float32
+        """
+
+        # 1) extract gene names & data array
+        gene_names = labels
+        #X = np.array(dataset,dtype=np.float32)
+        X = dataset
+
+        # 2) library-size normalize to 10,000 (in-place)
+        col_sums = X.sum(axis=0, keepdims=True)  # shape (1, n_cells)
+        X /= col_sums  # broadcast divide
+        X *= 10000
+
+        # 3) log2(x + 1) transform (in-place)
+        np.log2(X + 1, out=X)
+
+        # 4) filter by total expression
+        expr = X.sum(axis=1)  # total per gene
+        low, high = np.percentile(expr, [1, 99])
+        mask_expr = (expr >= low) & (expr <= high)
+        X = X[mask_expr, :]
+        gene_names = gene_names[mask_expr]
+
+        # remove genes with zero mean
+        mean_expr = X.mean(axis=1)
+        mask_mean = mean_expr > 0
+        X = X[mask_mean, :]
+        gene_names = gene_names[mask_mean]
+
+        # 5) filter by coefficient of variation
+        mean_expr = X.mean(axis=1)
+        cv = X.std(axis=1) / mean_expr
+        low_cv, high_cv = np.percentile(cv, [1, 99])
+        mask_cv = (cv >= low_cv) & (cv <= high_cv)
+        X = X[mask_cv, :]
+        gene_names = gene_names[mask_cv]
+
+        self.train_genes = gene_names
+
+        return X
+
+    def convert_type2label(self, types: Iterable[Any]) -> np.ndarray:
+        """
+        Convert cell types to integer labels
+
+        Parameters
+        ----------
+        types: Iterable
+            list of cell types
+
+        Returns
+        -------
+        labels:
+            list of integer labels
+        """
+        all_celltype = list(set(types))
+        self.n_types = len(all_celltype)
+
+        type_to_label_dict = {}
+
+        for i in range(len(all_celltype)):
+            type_to_label_dict[all_celltype[i]] = i
+
+        types = list(types)
+        labels = list()
+        for type in types:
+            labels.append(type_to_label_dict[type])
+        return np.array(labels)
+
+    def transform(self,
+                  dataset: Dataset,
+                  **kwargs) -> np.ndarray:
+        """ Converts raw scRNA-seq data into model-ready features and labels.
+
+            Parameters
+            ----------
+            datapoints: Iterable[Any]
+                Pandas Dataframe containing the dataset
+
+            Returns
+            -------
+            np.ndarray
+                A numpy array containing a featurized representation of
+                `datapoints`.
+        """
+        if 'mode' in kwargs:
+            mode = kwargs.get('mode')
+            if mode not in ['train', 'test']:
+                raise "'mode' can only take values 'train' and 'test'"
+        else:
+            mode = 'train'
+
+        if mode == 'train':
+            try:
+                labels = dataset.y
+                dataset = self.scale_sets(dataset.X, dataset.ids)
+                dataset = np.transpose(dataset)
+            except Exception as e:
+                print('Error',e)
+                logger.warning(
+                    "Failed to transform dataset %d. Returning empty array")
+                dataset = np.array([])
+        else:
+            try:
+                self.test_genes = dataset.ids
+                scaled_set = self.normalise(dataset.X)
+                mask = self.filter_genes()
+                scaled_set = scaled_set[mask, :]
+
+                # gens x cells --> cells x gens
+                dataset = np.transpose(scaled_set)
+
+            except:
+                logger.warning(
+                    "Failed to transform dataset %d. Returning empty array")
+                dataset = np.array([])
+
+        if 'label' in kwargs:
+            label = kwargs.get('label')
+            if label not in [True, False]:
+                raise ("'label' can only take boolean values")
+        else:
+            label = False
+
+        if label:
+            labels = self.convert_type2label(labels)
+            labels = labels.reshape(labels.shape[0],1)
+            print('labels',labels.shape,labels)
+            return NumpyDataset(X=dataset, y=labels)
+
+        return NumpyDataset(X=dataset)
+
+    def normalise(self, dataset: np.ndarray, **kwargs) -> np.ndarray:
+        """
+        Normalise scRNA-seq data
+        1) Library-size normalize to 10,000 counts per cell
+        2) Log2(x+1) transform
+
+        Parameters
+        ----------
+        dataset_df: np.ndarray
+            genes X cells raw counts, genes as index, cells as columns
+
+        Returns
+        -------
+        np.ndarray
+            normalised matrix (genes X cells), float32
+        """
+
+        # 1) extract gene names & data array
+        X = np.array(dataset, dtype=np.float32)
+
+        # 2) library-size normalize to 10,000 (in-place)
+        col_sums = X.sum(axis=0, keepdims=True)  # shape (1, n_cells)
+        X /= col_sums  # broadcast divide
+        X *= 10000
+
+        # 3) log2(x + 1) transform (in-place)
+        np.log2(X + 1, out=X)
+
+        return X
+
+    def filter_genes(self) -> np.ndarray:
+        """
+        Returns a boolean mask to subset the test set to include only
+        the genes retained after filtering the training set.
+
+        Parameters
+        ----------
+        data: np.ndarray
+            A normalized matrix of shape (cells x genes).
+
+        Returns
+        -------
+        np.ndarray
+            A subset of the input DataFrame containing only the filtered genes.
+        """
+        if hasattr(self, "train_genes") and self.train_genes.size > 0 and self.test_genes.size > 0:
+            mask = np.isin(self.test_genes, self.train_genes)
+            return mask
+        else:
+            raise(
+                "Train set hasn't been transformed yet or gene list is empty"
+            )
+
+    @staticmethod
+    def find_common_genes(
+            train_set: pd.DataFrame,
+            test_set: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Retain only the common genes (rows) in both train and test datasets.
+
+        Parameters
+        ----------
+        train_set: pd.DataFrame
+            A pandas DataFrame (genes x cells) representing the training data, with gene IDs as the index.
+        test_set: pd.DataFrame
+            A pandas DataFrame (genes x cells) representing the testing data, with gene IDs as the index.
+
+        Returns
+        -------
+        Tuple[pd.DataFrame, pd.DataFrame]
+            Filtered train and test DataFrames containing only the common genes.
+        """
+        common_genes = train_set.index.intersection(test_set.index)
+        common_genes = sorted(common_genes)
+
+        train_set = train_set.loc[common_genes]
+        test_set = test_set.loc[common_genes]
+
+        return train_set, test_set
