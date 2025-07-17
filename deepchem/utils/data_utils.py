@@ -255,6 +255,10 @@ def load_sdf_files(input_files: List[str],
     for input_file in input_files:
         # Tasks are either in .sdf.csv file or in the .sdf file itself for QM9 dataset
         has_csv = os.path.isfile(input_file + ".csv")
+        if has_csv:
+            # initialize the csv shard generator
+            csv_shard_generator = load_csv_files([input_file + ".csv"],
+                                                 shard_size=shard_size)
         # Structures are stored in .sdf file
         logger.info("Reading structures from %s." % input_file)
 
@@ -264,29 +268,46 @@ def load_sdf_files(input_files: List[str],
                                    strictParsing=False)
         for ind, mol in enumerate(suppl):
             if mol is None:
-                continue
-            smiles = Chem.MolToSmiles(mol)
-            df_row = [ind, smiles, mol]
-            if not has_csv:  # Get task targets from .sdf file
-                for task in tasks:
-                    df_row.append(mol.GetProp(str(task)))
+                # add place holder for invalid mols to preserve alignment with csv shards
+                logger.warning(
+                    f"Molecule on index (1-based) {ind+1} in {input_file} failed to load."
+                )
+                df_row = [ind, None, None]
+                if not has_csv:
+                    df_row = df_row + [None] * len(tasks)
+                df_row = df_row + [None] * 3
+                df_rows.append(df_row)
+            else:
+                smiles = Chem.MolToSmiles(mol)
+                df_row = [ind, smiles, mol]
+                if not has_csv:  # Get task targets from .sdf file
+                    for task in tasks:
+                        df_row.append(mol.GetProp(str(task)))
 
-            conf = mol.GetConformer()
-            positions = conf.GetPositions()
-            pos_x, pos_y, pos_z = zip(*positions)
-            df_row.append(str(pos_x))
-            df_row.append(str(pos_y))
-            df_row.append(str(pos_z))
-            df_rows.append(df_row)
+                conf = mol.GetConformer()
+                positions = conf.GetPositions()
+                pos_x, pos_y, pos_z = zip(*positions)
+                df_row.append(str(pos_x))
+                df_row.append(str(pos_y))
+                df_row.append(str(pos_z))
+                df_rows.append(df_row)
 
             if shard_size is not None and len(df_rows) == shard_size:
                 if has_csv:
                     mol_df = pd.DataFrame(df_rows,
                                           columns=('mol_id', 'smiles', 'mol',
                                                    'pos_x', 'pos_y', 'pos_z'))
-                    raw_df = next(
-                        load_csv_files([input_file + ".csv"], shard_size=None))
-                    yield pd.concat([mol_df, raw_df], axis=1, join='inner')
+                    raw_df = next(csv_shard_generator)
+
+                    # concat mol_df and raw_df with reset index to avoid index based errors
+                    concatenated_df = pd.concat([
+                        mol_df.reset_index(drop=True),
+                        raw_df.reset_index(drop=True)
+                    ],
+                                                axis=1)
+                    concatenated_df = concatenated_df.dropna(
+                        subset=['mol'])  # remove invalid mols
+                    yield concatenated_df
                 else:
                     # Note: Here, the order of columns is based on the order in which the values
                     # are appended to `df_row`. Since pos_x, pos_y, pos_z are appended after appending
@@ -297,6 +318,8 @@ def load_sdf_files(input_files: List[str],
                                           columns=('mol_id', 'smiles', 'mol') +
                                           tuple(tasks) +
                                           ('pos_x', 'pos_y', 'pos_z'))
+                    mol_df = mol_df.dropna(subset=['mol'
+                                                  ])  # remove invalid mols
                     yield mol_df
                 # Reset aggregator
                 df_rows = []
@@ -307,14 +330,23 @@ def load_sdf_files(input_files: List[str],
                 mol_df = pd.DataFrame(df_rows,
                                       columns=('mol_id', 'smiles', 'mol',
                                                'pos_x', 'pos_y', 'pos_z'))
-                raw_df = next(
-                    load_csv_files([input_file + ".csv"], shard_size=None))
-                yield pd.concat([mol_df, raw_df], axis=1, join='inner')
+                raw_df = next(csv_shard_generator)
+
+                # concat mol_df and raw_df with reset index to avoid index based errors
+                concatenated_df = pd.concat([
+                    mol_df.reset_index(drop=True),
+                    raw_df.reset_index(drop=True)
+                ],
+                                            axis=1)
+                concatenated_df = concatenated_df.dropna(
+                    subset=['mol'])  # remove invalid mols
+                yield concatenated_df
             else:
                 mol_df = pd.DataFrame(df_rows,
                                       columns=('mol_id', 'smiles', 'mol') +
                                       tuple(tasks) +
                                       ('pos_x', 'pos_y', 'pos_z'))
+                mol_df = mol_df.dropna(subset=['mol'])  # remove invalid mols
                 yield mol_df
             df_rows = []
 
