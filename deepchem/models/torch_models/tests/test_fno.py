@@ -42,7 +42,7 @@ def test_fno_base_construction():
     """
     from deepchem.models.torch_models.fno import FNO
     model = FNO(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
-    assert model is not None, "FNOBase construction failed"
+    assert model is not None, "FNO base model construction failed"
 
 @pytest.mark.torch
 def test_fno_base_forward():
