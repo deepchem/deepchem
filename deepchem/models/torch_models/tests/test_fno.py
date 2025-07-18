@@ -192,15 +192,15 @@ def test_fno_prediction_shape():
 def test_fno_prediction_norm():
     """Test that FNO predictions returns predictions in the same range as user input data."""
     from deepchem.models.torch_models import FNOModel
-    
+
     model = FNOModel(in_channels=2,
-                    out_channels=2,
-                    modes=8,
-                    width=32,
-                    dims=1,
-                    depth=2,
-                    normalize_input=True,
-                    normalize_output=True)
+                     out_channels=2,
+                     modes=8,
+                     width=32,
+                     dims=1,
+                     depth=2,
+                     normalize_input=True,
+                     normalize_output=True)
     X = torch.randn(10, 2, 50)
     y = X * 100
     dataset = dc.data.NumpyDataset(X=X, y=y)
@@ -210,8 +210,12 @@ def test_fno_prediction_norm():
 
     # Test prediction shape
     predictions = model.predict(dataset)
-    assert torch.allclose(torch.mean(torch.tensor(predictions)), torch.mean(y), atol=1e-1)
-    assert torch.allclose(torch.std(torch.tensor(predictions)), torch.std(y), atol=1e-1)
+    assert torch.allclose(torch.mean(torch.tensor(predictions)),
+                          torch.mean(y),
+                          atol=1e-1)
+    assert torch.allclose(torch.std(torch.tensor(predictions)),
+                          torch.std(y),
+                          atol=1e-1)
 
 
 @pytest.mark.torch
