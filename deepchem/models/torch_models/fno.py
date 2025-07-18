@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from deepchem.models.torch_models.layers import SpectralConv
 from typing import Union, Tuple, Optional, List
 from deepchem.utils.fno_utils import GaussianNormalizer
+from deepchem.models.torch_models.torch_model import TorchModel
 
 
 class FNOBlock(nn.Module):
@@ -179,19 +180,13 @@ class FNO(nn.Module):
 
     def fit_normalizers(self,
                         x_train: torch.Tensor,
-                        y_train: Optional[torch.Tensor] = None) -> None:
+                        y_train: Optional[torch.Tensor] = None,
+                        device: Optional[torch.device] = None) -> None:
         """Fit normalizers on training data. Called by the fit method of the FNOModel class."""
         if self.normalize_input and self.input_normalizer:
-            self.input_normalizer.fit(x_train)
+            self.input_normalizer.fit(x_train).to(device)
         if self.normalize_output and self.output_normalizer and y_train is not None:
-            self.output_normalizer.fit(y_train)
-
-    def set_normalizers_device(self, device: torch.device) -> None:
-        """Move normalizers to specified device. Called by the fit method of the FNOModel class."""
-        if self.input_normalizer:
-            self.input_normalizer.to(device)
-        if self.output_normalizer:
-            self.output_normalizer.to(device)
+            self.output_normalizer.fit(y_train).to(device)
 
     def _ensure_channel_first(self, x: torch.Tensor) -> torch.Tensor:
         """Ensure input tensor has channels in the correct position."""
@@ -262,3 +257,122 @@ class FNO(nn.Module):
                 x = self.output_normalizer.inverse_transform(x)
 
         return x
+
+
+class FNOModel(TorchModel):
+    """Fourier Neural Operator for learning mappings between function spaces.
+
+    This is a TorchModel wrapper around the nn.Module FNO class that provides the DeepChem
+    interface for training and prediction. FNO is particularly effective for
+    solving partial differential equations (PDEs) and learning operators
+    between infinite-dimensional function spaces.
+
+    The model uses spectral convolutions in Fourier space to capture global
+    dependencies efficiently, making it much more parameter-efficient than
+    traditional convolutional neural networks for PDE solving tasks.
+
+    References
+    ----------
+    This technique was introduced in Li, Zongyi, et al. "Fourier neural operator for parametric partial differential equations." arXiv preprint arXiv:2010.08895 (2020).
+
+    Example
+    -------------
+    >>> import torch
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models.fno import FNOModel
+    >>> x = torch.randn(1, 16, 16, 1)
+    >>> dataset = dc.data.NumpyDataset(X=x, y=x)
+    >>> model = FNOModel(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
+    >>> model.fit(dataset)
+    >>> predictions = model.predict(dataset)
+    """
+
+    def __init__(self,
+                 in_channels: int,
+                 out_channels: int,
+                 modes: Union[int, Tuple[int, ...]],
+                 width: int,
+                 dims: int,
+                 depth: int = 4,
+                 positional_encoding: bool = False,
+                 normalize_input: bool = True,
+                 normalize_output: bool = True,
+                 normalization_dims: Optional[List[int]] = None,
+                 **kwargs) -> None:
+        """Initialize the FNO model.
+        Parameters
+        ----------
+        in_channels: int
+            Dimension of input features at each spatial location
+        out_channels: int
+            Dimension of output features at each spatial location
+        modes: int or tuple
+            Number of Fourier modes to keep in spectral convolution. Higher values
+            capture more high-frequency information but increase computational cost
+        width: int
+            Width of the hidden layers in the FNO blocks. Controls model capacity
+        dims: int
+            Spatial dimensionality of the input data (1, 2, or 3)
+        depth: int, default 4
+            Number of FNO blocks to stack. More blocks can learn more complex mappings
+        positional_encoding: bool, default False
+            When enabled, uses meshgrids as positional encodings
+        normalize_input: bool, default True
+            When enabled, normalizes input data
+        normalize_output: bool, default True
+            When enabled, normalizes output data
+        normalization_dims: List[int], optional
+            Dimensions to normalize over. If None, defaults to batch + spatial dimensions, preserving channels.
+        **kwargs: dict
+            Additional arguments passed to TorchModel constructor
+        """
+
+        model = FNO(in_channels, out_channels, modes, width, dims, depth,
+                    positional_encoding, normalize_input, normalize_output,
+                    normalization_dims)
+
+        self._normalize_input = normalize_input
+        self._normalize_output = normalize_output
+        self._normalizers_fitted = False
+
+        super(FNOModel, self).__init__(model=model,
+                                       loss=self._loss_fn,
+                                       **kwargs)
+
+    def fit(self, dataset, nb_epoch=1, **kwargs):
+        """Fit the model with automatic normalizer fitting."""
+        if (self._normalize_input or
+                self._normalize_output) and not self._normalizers_fitted:
+            self._fit_normalizers_from_dataset(dataset)
+            self._normalizers_fitted = True
+
+        return super().fit(dataset, nb_epoch, **kwargs)
+
+    def _fit_normalizers_from_dataset(self, dataset):
+        """Extract data from dataset and fit normalizers."""
+
+        X_all = torch.tensor(dataset.X, dtype=torch.float32)
+        y_all = torch.tensor(dataset.y, dtype=torch.float32)
+        self.model.fit_normalizers(X_all, y_all, device=self.device)
+
+    def _loss_fn(self,
+                 outputs: List[torch.Tensor],
+                 labels: List[torch.Tensor],
+                 weights: Optional[List[torch.Tensor]] = None) -> torch.Tensor:
+        """Compute the loss for training."""
+        labels_tensor: torch.Tensor = labels[0]
+        outputs_tensor: torch.Tensor = outputs[0]
+
+        # Ensure both tensors have the same shape format
+        # Convert outputs from channels-last to channels-first to match labels
+        if outputs_tensor.shape != labels_tensor.shape:
+            if outputs_tensor.ndim == labels_tensor.ndim and outputs_tensor.shape[
+                    -1] == labels_tensor.shape[1]:
+                outputs_tensor = outputs_tensor.permute(
+                    0, -1, *range(1, outputs_tensor.ndim - 1)).contiguous()
+
+        if self._normalizers_fitted:
+            labels_tensor = self.model.output_normalizer.transform(
+                labels_tensor)
+        loss = nn.MSELoss()(outputs_tensor, labels_tensor)
+        return loss
