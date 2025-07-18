@@ -1,8 +1,9 @@
-from deepchem.models.torch_models.layers import SpectralConv
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Union, Tuple
+from deepchem.models.torch_models.layers import SpectralConv
+from typing import Union, Tuple, Optional, List
+from deepchem.utils.fno_utils import GaussianNormalizer
 
 
 class FNOBlock(nn.Module):
@@ -83,3 +84,181 @@ class FNOBlock(nn.Module):
         x1 = self.spectral_conv(x)
         x2 = self.w(x)
         return F.relu(x1 + x2)
+
+
+class FNO(nn.Module):
+    """Base implementation of Fourier Neural Operator, inheriting from the Torch nn.Module class.
+
+    Fourier Neural Operator (FNO) is a neural network architecture for learning
+    mappings between function spaces. It uses spectral convolutions in Fourier
+    space to capture global dependencies efficiently, making it particularly
+    effective for solving partial differential equations (PDEs).
+
+    The architecture consists of:
+    1. Lifting layer: Maps input to higher-dimensional representation
+    2. Multiple FNO blocks: Perform spectral and local convolutions
+    3. Projection layers: Map back to output space
+
+    References
+    ----------
+    This technique was introduced in Li, Zongyi, et al. "Fourier neural operator for parametric partial differential equations." arXiv preprint arXiv:2010.08895 (2020).
+
+    Example
+    -------------
+    >>> import torch
+    >>> from deepchem.models.torch_models.fno import FNO
+    >>> model = FNO(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
+    >>> x = torch.randn(1, 16, 16, 1)
+    >>> output = model(x)
+    """
+
+    def __init__(self,
+                 in_channels: int,
+                 out_channels: int,
+                 modes: Union[int, Tuple[int, ...]],
+                 width: int,
+                 dims: int,
+                 depth: int = 4,
+                 positional_encoding: bool = False,
+                 normalize_input: bool = True,
+                 normalize_output: bool = True,
+                 normalization_dims: Optional[List[int]] = None) -> None:
+        """Initialize the FNO base model.
+        Parameters
+        ----------
+        in_channels: int
+            Dimension of input features
+        out_channels: int
+            Dimension of output features
+        modes: int or tuple
+            Number of Fourier modes to keep in spectral convolution
+        width: int
+            Width of the hidden layers
+        dims: int
+            Spatial dimensionality (1, 2, or 3)
+        depth: int, default 4
+            Number of FNO blocks to stack
+        positional_encoding: bool, default False
+            When enabled, uses meshgrids as positional encodings. If custom positional encodings, must be set to False.
+        normalize_input: bool, default True
+            When enabled, normalizes input data
+        normalize_output: bool, default True
+            When enabled, normalizes output data
+        normalization_dims: List[int], optional
+            Dimensions to normalize over. If None, defaults to batch + spatial dimensions, preserving channels.
+        """
+        super().__init__()
+        self.dims = dims
+        self.in_channels = in_channels + dims if positional_encoding else in_channels
+        self.out_channels = out_channels
+        self.width = width
+        self.positional_encoding = positional_encoding
+        self.normalize_input = normalize_input
+        self.normalize_output = normalize_output
+
+        # Default normalization dimensions: batch + spatial dimensions, preserve channels
+        # for channels-first format (batch, channels, *spatial_dims)
+        if normalization_dims is None:
+            self.normalization_dims = [0] + list(range(2, dims + 2))
+        else:
+            self.normalization_dims = normalization_dims
+
+        self.input_normalizer = GaussianNormalizer(
+            dim=self.normalization_dims) if normalize_input else None
+        self.output_normalizer = GaussianNormalizer(
+            dim=self.normalization_dims) if normalize_output else None
+
+        self.lifting = nn.Sequential(nn.Linear(self.in_channels, 2 * width),
+                                     nn.GELU(), nn.Linear(2 * width, width))
+
+        self.fno_blocks = nn.Sequential(
+            *[FNOBlock(width, modes, dims=dims) for _ in range(depth)])
+
+        self.projection = nn.Sequential(nn.Linear(width, 2 * width), nn.GELU(),
+                                        nn.Linear(2 * width, out_channels))
+
+    def fit_normalizers(self,
+                        x_train: torch.Tensor,
+                        y_train: Optional[torch.Tensor] = None) -> None:
+        """Fit normalizers on training data. Called by the fit method of the FNOModel class."""
+        if self.normalize_input and self.input_normalizer:
+            self.input_normalizer.fit(x_train)
+        if self.normalize_output and self.output_normalizer and y_train is not None:
+            self.output_normalizer.fit(y_train)
+
+    def set_normalizers_device(self, device: torch.device) -> None:
+        """Move normalizers to specified device. Called by the fit method of the FNOModel class."""
+        if self.input_normalizer:
+            self.input_normalizer.to(device)
+        if self.output_normalizer:
+            self.output_normalizer.to(device)
+
+    def _ensure_channel_first(self, x: torch.Tensor) -> torch.Tensor:
+        """Ensure input tensor has channels in the correct position."""
+        in_ch = self.in_channels
+        if x.shape[-1] == in_ch:
+            perm = (0, -1) + tuple(range(1, self.dims + 1))
+            return x.permute(*perm).contiguous()
+        elif x.shape[1] == in_ch:
+            return x
+        else:
+            raise ValueError(
+                f"Expected either (batch, {in_ch}, *spatial_dims) or "
+                f"(batch, *spatial_dims, {in_ch}), got {tuple(x.shape)}")
+
+    def _generate_meshgrid(self, x: torch.Tensor) -> torch.Tensor:
+        """Generate meshgrid of coordinates for positional encoding."""
+        batch_size = x.shape[0]
+        spatial = x.shape[2:]
+        coords = [
+            torch.linspace(0, 1, steps=s, device=x.device) for s in spatial
+        ]
+        mesh = torch.meshgrid(*coords, indexing='ij')
+        grid = torch.stack(mesh, dim=0)  # shape (dims, *spatial)
+        grid = grid.unsqueeze(0).repeat(batch_size, 1, *([1] * self.dims))
+        return grid
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.ndim != self.dims + 2:
+            raise ValueError(
+                f"Expected tensor with {self.dims + 2} dims (batch, *spatial_dims, in_channels), got {x.ndim}"
+            )
+
+        x = self._ensure_channel_first(x)
+
+        if self.positional_encoding:
+            grid = self._generate_meshgrid(x)
+            x = torch.cat([x, grid], dim=1)
+
+        if self.normalize_input and self.input_normalizer and self.input_normalizer.fitted:
+            if self.input_normalizer.mean is not None and self.input_normalizer.mean.device != x.device:
+                self.input_normalizer.to(x.device)
+            x = self.input_normalizer.transform(x)
+
+        # Lifting: permute channels to last dim, apply lifting, permute back
+        perm_lifting = (0, *range(2, x.ndim), 1)
+        x = x.permute(*perm_lifting).contiguous()
+        x = self.lifting(x)
+
+        # FNO blocks: permute channels to second dim
+        perm_back = (0, x.ndim - 1) + tuple(range(1, x.ndim - 1))
+        x = x.permute(*perm_back).contiguous()
+        x = self.fno_blocks(x)
+
+        # Projection: permute channels to last dim, apply projection
+        perm_proj = (0, *range(2, x.ndim), 1)
+        x = x.permute(*perm_proj).contiguous()
+        x = self.projection(x)
+
+        x = x.permute(0, -1, *range(1, x.ndim - 1)).contiguous(
+        )  # Permute to channels-first format to match expected output format
+
+        if self.normalize_output and self.output_normalizer and self.output_normalizer.fitted:
+            if self.output_normalizer.mean is not None and self.output_normalizer.mean.device != x.device:
+                self.output_normalizer.to(x.device)
+            if self.training:
+                x = self.output_normalizer.transform(x)
+            else:
+                x = self.output_normalizer.inverse_transform(x)
+
+        return x
