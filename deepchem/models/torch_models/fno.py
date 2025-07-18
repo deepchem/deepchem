@@ -195,7 +195,7 @@ class FNO(nn.Module):
 
     def _ensure_channel_first(self, x: torch.Tensor) -> torch.Tensor:
         """Ensure input tensor has channels in the correct position."""
-        in_ch = self.in_channels
+        in_ch = self.in_channels - self.dims if self.positional_encoding else self.in_channels
         if x.shape[-1] == in_ch:
             perm = (0, -1) + tuple(range(1, self.dims + 1))
             return x.permute(*perm).contiguous()
