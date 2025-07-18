@@ -176,8 +176,10 @@ class FNO(nn.Module):
         self.lifting = nn.Sequential(nn.Linear(self.in_channels, 2 * width),
                                      nn.GELU(), nn.Linear(2 * width, width))
 
-        self.fno_blocks = nn.Sequential(
-            *[FNOBlock(self.width, self.modes, dims=self.dims) for _ in range(self.depth)])
+        self.fno_blocks = nn.Sequential(*[
+            FNOBlock(self.width, self.modes, dims=self.dims)
+            for _ in range(self.depth)
+        ])
 
         self.projection = nn.Sequential(nn.Linear(width, 2 * width), nn.GELU(),
                                         nn.Linear(2 * width, out_channels))
@@ -200,13 +202,15 @@ class FNO(nn.Module):
             if device is not None:
                 self.output_normalizer.to(device)
 
-    def _ensure_channel_first(self, x: torch.Tensor, is_output: bool = False) -> torch.Tensor:
+    def _ensure_channel_first(self,
+                              x: torch.Tensor,
+                              is_output: bool = False) -> torch.Tensor:
         """Ensure input tensor has channels in the correct position."""
         if is_output:
             ch = self.out_channels
         else:
             ch = self.in_channels - self.dims if self.positional_encoding else self.in_channels
-        
+
         if x.shape[-1] == ch:
             perm = (0, -1) + tuple(range(1, self.dims + 1))
             return x.permute(*perm).contiguous()
@@ -423,9 +427,10 @@ class FNOModel(TorchModel):
 
         if self._normalizers_fitted and self.model.output_normalizer is not None:
             # Ensure labels are channels-first before transforming
-            labels_tensor = self.model._ensure_channel_first(
-                labels_tensor, is_output=True)
-            labels_tensor = self.model.output_normalizer.transform(labels_tensor)
+            labels_tensor = self.model._ensure_channel_first(labels_tensor,
+                                                             is_output=True)
+            labels_tensor = self.model.output_normalizer.transform(
+                labels_tensor)
 
         loss = nn.MSELoss()(outputs_tensor, labels_tensor)
         return loss
