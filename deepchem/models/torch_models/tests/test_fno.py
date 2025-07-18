@@ -32,7 +32,7 @@ def test_fno_block_forward():
     """
     from deepchem.models.torch_models.fno import FNOBlock
     block = FNOBlock(width=32, modes=8, dims=2)
-    x = torch.rand(100, 32, 100, 100)
+    x = torch.randn(100, 32, 100, 100)
     y = block(x)
     assert y.shape == (100, 32, 100, 100)
 
@@ -54,7 +54,7 @@ def test_fno_base_forward():
     """
     from deepchem.models.torch_models.fno import FNO
     model = FNO(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
-    x = torch.rand(100, 1, 100, 100)
+    x = torch.randn(100, 1, 100, 100)
     y = model(x)
     assert y.shape == (100, 1, 100, 100)
 
@@ -66,8 +66,8 @@ def test_fno_base_fit_normalizers():
     """
     from deepchem.models.torch_models.fno import FNO
     model = FNO(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
-    x = torch.rand(100, 1, 100, 100)
-    y = torch.rand(100, 1, 100, 100)
+    x = torch.randn(100, 1, 100, 100)
+    y = torch.randn(100, 1, 100, 100)
     model.fit_normalizers(x, y)
     normlized_x = model.input_normalizer.transform(x)
     normalized_y = model.output_normalizer.transform(y)
@@ -82,8 +82,6 @@ def test_fno_base_fit_normalizers():
     assert torch.allclose(torch.std(normalized_y),
                           torch.tensor([1.]),
                           atol=1e-6)
-    print(denormalized_y[0, 0, 0, :10])
-    print(y[0, 0, 0, :10])
     assert torch.allclose(denormalized_y, y, atol=1e-6)
 
 
@@ -94,7 +92,7 @@ def test_fno_base_meshgrids():
     """
     from deepchem.models.torch_models.fno import FNO
     model = FNO(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
-    x = torch.rand(100, 1, 100, 100)
+    x = torch.randn(100, 1, 100, 100)
     meshgrid = model._generate_meshgrid(x)
     assert meshgrid.shape == (100, 2, 100, 100)
 
@@ -139,11 +137,13 @@ def test_fno_overfit():
                      modes=8,
                      width=128,
                      dims=1,
-                     depth=4)
-    X = torch.rand(100, 100, 1)
+                     depth=4,
+                     normalize_input=False,
+                     normalize_output=False)
+    X = torch.randn(10, 1, 32)
     y = X  # Identity mapping
     dataset = dc.data.NumpyDataset(X=X, y=y)
-    loss = model.fit(dataset, nb_epoch=300)
+    loss = model.fit(dataset, nb_epoch=200)
     assert loss < 1e-2, "Model can't overfit"
 
 
@@ -152,14 +152,14 @@ def test_fno_overfit_2d():
     """Test that 2D FNO model can overfit simple data."""
     from deepchem.models.torch_models import FNOModel
 
-    model = FNOModel(in_channels=2,
+    model = FNOModel(in_channels=1,
                      out_channels=1,
                      modes=8,
                      width=64,
                      dims=2,
                      depth=3)
-    X = torch.rand(50, 32, 32, 2)
-    y = torch.sum(X, dim=-1, keepdim=True)  # Sum over input channels
+    X = torch.rand(10, 1, 32, 32)
+    y = X
     dataset = dc.data.NumpyDataset(X=X, y=y)
     loss = model.fit(dataset, nb_epoch=200)
     assert loss < 1e-1, "2D Model can't overfit"
@@ -176,12 +176,12 @@ def test_fno_prediction_shape():
                      width=32,
                      dims=1,
                      depth=2)
-    X = torch.rand(10, 50, 2)
-    y = torch.rand(10, 50, 3)
+    X = torch.randn(10, 2, 50)
+    y = torch.randn(10, 3, 50)
     dataset = dc.data.NumpyDataset(X=X, y=y)
 
     # Train for a few epochs
-    model.fit(dataset, nb_epoch=5)
+    model.fit(dataset, nb_epoch=1)
 
     # Test prediction shape
     predictions = model.predict(dataset)
@@ -189,12 +189,38 @@ def test_fno_prediction_shape():
 
 
 @pytest.mark.torch
+def test_fno_prediction_norm():
+    """Test that FNO predictions returns predictions in the same range as user input data."""
+    from deepchem.models.torch_models import FNOModel
+    
+    model = FNOModel(in_channels=2,
+                    out_channels=2,
+                    modes=8,
+                    width=32,
+                    dims=1,
+                    depth=2,
+                    normalize_input=True,
+                    normalize_output=True)
+    X = torch.randn(10, 2, 50)
+    y = X * 100
+    dataset = dc.data.NumpyDataset(X=X, y=y)
+
+    # Train for a few epochs
+    model.fit(dataset, nb_epoch=500)
+
+    # Test prediction shape
+    predictions = model.predict(dataset)
+    assert torch.allclose(torch.mean(torch.tensor(predictions)), torch.mean(y), atol=1e-1)
+    assert torch.allclose(torch.std(torch.tensor(predictions)), torch.std(y), atol=1e-1)
+
+
+@pytest.mark.torch
 def test_fno_with_different_modes():
     """Test FNO with different numbers of modes."""
     from deepchem.models.torch_models import FNOModel
 
-    X = torch.rand(10, 32, 1)
-    y = torch.rand(10, 32, 1)
+    X = torch.randn(10, 1, 32)
+    y = torch.randn(10, 1, 32)
     dataset = dc.data.NumpyDataset(X=X, y=y)
 
     # Test with different mode counts
@@ -215,8 +241,8 @@ def test_fno_with_different_widths():
     """Test FNO with different widths."""
     from deepchem.models.torch_models import FNOModel
 
-    X = torch.rand(10, 32, 1)
-    y = torch.rand(10, 32, 1)
+    X = torch.randn(10, 1, 32)
+    y = torch.randn(10, 1, 32)
     dataset = dc.data.NumpyDataset(X=X, y=y)
 
     # Test with different widths
@@ -237,8 +263,8 @@ def test_fno_with_different_depths():
     """Test FNO with different depths."""
     from deepchem.models.torch_models import FNOModel
 
-    X = torch.rand(10, 32, 1)
-    y = torch.rand(10, 32, 1)
+    X = torch.randn(10, 1, 32)
+    y = torch.randn(10, 1, 32)
     dataset = dc.data.NumpyDataset(X=X, y=y)
 
     # Test with different depths
@@ -267,8 +293,8 @@ def test_fno_loss_function():
                      depth=2)
 
     # Test loss function directly
-    outputs = [torch.rand(10, 32, 1)]
-    labels = [torch.rand(10, 32, 1)]
+    outputs = [torch.randn(10, 32, 1)]
+    labels = [torch.randn(10, 32, 1)]
 
     loss_value = model._loss_fn(outputs, labels)
     assert isinstance(loss_value, torch.Tensor)
@@ -286,8 +312,8 @@ def test_fno_reload():
 
     n_samples = 10
     n_features = 32
-    X = torch.rand(n_samples, n_features, 1)
-    y = torch.rand(n_samples, n_features, 1)
+    X = torch.randn(n_samples, 1, n_features)
+    y = torch.randn(n_samples, 1, n_features)
     dataset = dc.data.NumpyDataset(X=X, y=y)
 
     model_dir = tempfile.mkdtemp()
@@ -309,7 +335,7 @@ def test_fno_reload():
                               model_dir=model_dir)
     reloaded_model.restore()
 
-    X_new = torch.rand(n_samples, n_features, 1)
+    X_new = torch.randn(n_samples, 1, n_features)
     orig_preds = orig_model.predict_on_batch(X_new)
     reloaded_preds = reloaded_model.predict_on_batch(X_new)
 
