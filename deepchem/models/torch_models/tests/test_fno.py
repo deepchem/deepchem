@@ -35,6 +35,7 @@ def test_fno_block_forward():
     y = block(x)
     assert y.shape == (100, 32, 100, 100)
 
+
 @pytest.mark.torch
 def test_fno_base_construction():
     """
@@ -43,6 +44,7 @@ def test_fno_base_construction():
     from deepchem.models.torch_models.fno import FNO
     model = FNO(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
     assert model is not None, "FNO base model construction failed"
+
 
 @pytest.mark.torch
 def test_fno_base_forward():
@@ -54,6 +56,7 @@ def test_fno_base_forward():
     x = torch.rand(100, 1, 100, 100)
     y = model(x)
     assert y.shape == (100, 1, 100, 100)
+
 
 @pytest.mark.torch
 def test_fno_base_fit_normalizers():
@@ -68,13 +71,18 @@ def test_fno_base_fit_normalizers():
     normlized_x = model.input_normalizer.transform(x)
     normalized_y = model.output_normalizer.transform(y)
     denormalized_y = model.output_normalizer.inverse_transform(normalized_y)
-    assert torch.allclose(torch.mean(normlized_x), torch.tensor([0.]), atol=1e-6)
+    assert torch.allclose(torch.mean(normlized_x),
+                          torch.tensor([0.]),
+                          atol=1e-6)
     assert torch.allclose(torch.std(normlized_x), torch.tensor([1.]), atol=1e-6)
-    assert torch.allclose(torch.mean(normalized_y), torch.tensor([0.]), atol=1e-6)
-    assert torch.allclose(torch.std(normalized_y), torch.tensor([1.]), atol=1e-6)
-    print(denormalized_y[0, 0, 0, :10])
-    print(y[0, 0, 0, :10])
+    assert torch.allclose(torch.mean(normalized_y),
+                          torch.tensor([0.]),
+                          atol=1e-6)
+    assert torch.allclose(torch.std(normalized_y),
+                          torch.tensor([1.]),
+                          atol=1e-6)
     assert torch.allclose(denormalized_y, y, atol=1e-6)
+
 
 @pytest.mark.torch
 def test_fno_base_meshgrids():
