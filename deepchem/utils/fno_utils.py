@@ -65,7 +65,10 @@ class GaussianNormalizer:
         """
         if not self.fitted:
             raise ValueError("Normalizer must be fitted before transform")
-        return (data - self.mean) / (self.std + self.eps)
+        if self.std is None or self.mean is None:
+            return data
+        else:
+            return (data - self.mean) / (self.std + self.eps)
 
     def inverse_transform(self, data: torch.Tensor) -> torch.Tensor:
         """Denormalize data back to original scale.
@@ -83,7 +86,10 @@ class GaussianNormalizer:
         if not self.fitted:
             raise ValueError(
                 "Normalizer must be fitted before inverse_transform")
-        return data * (self.std + self.eps) + self.mean
+        if self.std is None or self.mean is None:
+            return data
+        else:
+            return data * (self.std + self.eps) + self.mean
 
     def to(self, device: torch.device) -> 'GaussianNormalizer':
         """Move normalizer to device."""
