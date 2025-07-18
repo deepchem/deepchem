@@ -257,6 +257,46 @@ class FNO(nn.Module):
                 x = self.output_normalizer.inverse_transform(x)
 
         return x
+    
+    def state_dict(self):
+        """Override state_dict to include normalizer statistics."""
+        state = super().state_dict()
+
+        if self.input_normalizer:
+            state['input_normalizer_mean'] = self.input_normalizer.mean
+            state['input_normalizer_std'] = self.input_normalizer.std
+            state['input_normalizer_fitted'] = self.input_normalizer.fitted
+
+        if self.output_normalizer:
+            state['output_normalizer_mean'] = self.output_normalizer.mean
+            state['output_normalizer_std'] = self.output_normalizer.std
+            state['output_normalizer_fitted'] = self.output_normalizer.fitted
+
+        return state
+
+    def load_state_dict(self, state_dict, strict=True):
+        """Override load_state_dict to restore normalizer statistics."""
+        input_normalizer_mean = state_dict.pop('input_normalizer_mean', None)
+        input_normalizer_std = state_dict.pop('input_normalizer_std', None)
+        input_normalizer_fitted = state_dict.pop('input_normalizer_fitted',
+                                                 False)
+
+        output_normalizer_mean = state_dict.pop('output_normalizer_mean', None)
+        output_normalizer_std = state_dict.pop('output_normalizer_std', None)
+        output_normalizer_fitted = state_dict.pop('output_normalizer_fitted',
+                                                  False)
+
+        super().load_state_dict(state_dict, strict)
+
+        if self.input_normalizer and input_normalizer_mean is not None:
+            self.input_normalizer.mean = input_normalizer_mean
+            self.input_normalizer.std = input_normalizer_std
+            self.input_normalizer.fitted = input_normalizer_fitted
+
+        if self.output_normalizer and output_normalizer_mean is not None:
+            self.output_normalizer.mean = output_normalizer_mean
+            self.output_normalizer.std = output_normalizer_std
+            self.output_normalizer.fitted = output_normalizer_fitted
 
 
 class FNOModel(TorchModel):
