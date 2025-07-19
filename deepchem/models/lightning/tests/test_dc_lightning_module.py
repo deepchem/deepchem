@@ -8,8 +8,7 @@ try:
     gpu_available = torch.cuda.is_available() and torch.cuda.device_count() > 0
 except ImportError:
     gpu_available = False
-pytestmark = pytest.mark.skipif(not gpu_available,
-                                reason="No GPU available for testing")
+
 try:
     import lightning as L
     from deepchem.models.lightning.dc_lightning_dataset_module import DCLightningDatasetModule
@@ -18,12 +17,12 @@ try:
 except ImportError:
     PYTORCH_LIGHTNING_IMPORT_FAILED = True
 
-pytestmark = pytest.mark.skipif(PYTORCH_LIGHTNING_IMPORT_FAILED,
-                                reason="PyTorch Lightning is not installed")
-
-np.random.seed(42)
-torch.manual_seed(42)
-L.seed_everything(42)
+pytestmark = [
+    pytest.mark.skipif(not gpu_available,
+                       reason="No GPU available for testing"),
+    pytest.mark.skipif(PYTORCH_LIGHTNING_IMPORT_FAILED,
+                       reason="PyTorch Lightning is not installed")
+]
 
 
 @pytest.fixture(scope="function")

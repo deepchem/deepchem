@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, Any
 import deepchem as dc
 import lightning as L
 import torch
@@ -19,20 +19,20 @@ class DCLightningDatasetModule(L.LightningDataModule):
     """
 
     def __init__(self,
-                 dataset: dc.data.Dataset,
+                 dataset: dc.data.DiskDataset,
                  batch_size: int,
-                 collate_fn: Optional[Callable] = None,
+                 collate_fn: Optional[Callable[[Any], Any]] = None,
                  num_workers: int = 0,
                  model: Optional[TorchModel] = None):
         """Create a new DCLightningDatasetModule.
 
         Parameters
         ----------
-        dataset: dc.data.Dataset
-            A deepchem dataset.
+        dataset: dc.data.DiskDataset
+            A deepchem disk dataset.
         batch_size: int
             Batch size for the dataloader.
-        collate_fn: Optional[Callable], default None
+        collate_fn: Optional[Callable[[Any], Any]], default None
             Custom collate function. If None and model is provided, defaults to collate_dataset_fn.
         num_workers: int
             Number of workers to load data
