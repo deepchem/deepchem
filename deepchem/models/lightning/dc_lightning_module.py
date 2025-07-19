@@ -59,12 +59,7 @@ class DCLightningModule(L.LightningModule):
     >>> # trainer.fit(model=lightning_model, datamodule=data_module)
     >>>
     >>> # Make predictions
-    >>> # prediction_batches = trainer.predict(
-    ... #    model=lightning_model,
-    ... #    datamodule=data_module,
-    ... #    return_predictions=True
-    ... # )
-    >>>
+    >>> # prediction_batches = trainer.predict(model=lightning_model, datamodule=data_module)
 
     Notes
     -----
