@@ -55,8 +55,8 @@ class DCLightningDatasetModule(L.LightningDataModule):
             A deepchem dataset.
         batch_size: int
             Batch size for the dataloader.
-        collate_fn: Callable
-            Method to collate instances across batch.
+        collate_fn: Optional[Callable], default None
+            Custom collate function. If None and model is provided, defaults to collate_dataset_fn.
         num_workers: int
             Number of workers to load data
         model: Optional[TorchModel], Defaults to None

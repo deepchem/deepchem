@@ -146,11 +146,11 @@ class DCLightningModule(L.LightningModule):
 
             if self.dc_model._loss_outputs is not None:
                 outputs = [outputs[i] for i in self.dc_model._loss_outputs]
-            loss = self.loss(outputs, labels, weights)
+            loss = self._loss_fn(outputs, labels, weights)
 
         self.log(
             "train_loss",
-            loss,
+            loss.item(),
             on_epoch=True,
             sync_dist=True,
             reduce_fx="mean",
