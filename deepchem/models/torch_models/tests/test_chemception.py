@@ -27,7 +27,7 @@ def test_chemception_forward():
                         n_tasks=n_tasks,
                         n_classes=n_classes,
                         augment=False,
-                        mode="regression")
+                        mode="classification")
 
     smiles = ['CC(=O)OC1=CC=CC=C1C(=O)O']
     featurizer = dc.feat.SmilesToImage(img_size=80, img_spec='std')
