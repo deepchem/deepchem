@@ -3,7 +3,7 @@ import numpy as np
 import deepchem as dc
 try:
     import torch
-    from deepchem.models.torch_models import ChemCeption
+    from deepchem.models.torch_models.ChemCeption import ChemCeption
     has_torch = True
 except:
     has_torch = False
