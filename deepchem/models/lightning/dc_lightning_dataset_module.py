@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable
 import deepchem as dc
 import lightning as L
 import torch
@@ -21,32 +21,31 @@ class DCLightningDatasetModule(L.LightningDataModule):
     def __init__(self,
                  dataset: dc.data.Dataset,
                  batch_size: int,
-                 collate_fn: Optional[Callable] = None,
-                 num_workers: int = 0,
-                 model: Optional[TorchModel] = None):
+                 model: TorchModel,
+                 collate_fn: Callable = collate_dataset_fn,
+                 num_workers: int = 0):
         """Create a new DCLightningDatasetModule.
 
         Parameters
         ----------
-        dataset: dc.data.Dataset
-            A deepchem dataset.
+        dataset: dc.data.DiskDataset
+            A deepchem disk dataset.
         batch_size: int
             Batch size for the dataloader.
-        collate_fn: Optional[Callable], default None
-            Custom collate function. If None and model is provided, defaults to collate_dataset_fn.
+        model: TorchModel
+            DeepChem model for collate function.
+        collate_fn: Callable
+            Custom collate function. Defaults to collate_dataset_fn.
         num_workers: int
             Number of workers to load data
-        model: Optional[TorchModel], default None
-            DeepChem model for collate function.
         """
         super().__init__()
         self._batch_size = batch_size
-        self._dataset = dc.data._TorchIndexDiskDataset(dataset)
-        if collate_fn is None and model is not None:
-            self.collate_fn = lambda batch: collate_dataset_fn(batch_data=batch,
-                                                               model=model)
-        else:
-            self.collate_fn = collate_fn
+        self._dataset = dc.data._TorchIndexDiskDataset(
+            dataset)  # type: ignore[arg-type]
+
+        self.collate_fn = lambda batch: collate_fn(batch_data=batch,
+                                                   model=model)
         self.num_workers = num_workers
 
     def setup(self, stage):
