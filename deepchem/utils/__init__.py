@@ -169,3 +169,5 @@ try:
 except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
+
+from deepchem.utils.lightning_utils import collate_dataset_fn
