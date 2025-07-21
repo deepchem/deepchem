@@ -33,3 +33,8 @@ except ImportError as e:
     logger.warning(
         f'Skipped loading biological sequence loaders, missing a dependency. {e}'
     )
+try:
+    from deepchem.data.pytorch_datasets import _TorchIndexDiskDataset
+except ImportError as e:
+    logger.warning(
+        f'Skipped loading PyTorch datasets, missing a dependency. {e}')
