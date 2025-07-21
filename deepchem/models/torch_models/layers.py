@@ -9295,7 +9295,7 @@ class SpectralConv(nn.Module):
     def __init__(self,
                  in_channels: int,
                  out_channels: int,
-                 modes: Union[int, Tuple[int, ...]],
+                 modes: Union[int, Tuple[int, ...], List[int]],
                  dims: int = 2):
         """
         Parameters
@@ -9329,10 +9329,18 @@ class SpectralConv(nn.Module):
                 raise ValueError("Length of modes must equal dims.")
             self.modes = tuple(modes)
 
+        modes = list(self.modes)
+        modes[-1] = modes[-1] // 2 + 1
+        self.modes = tuple(modes)
+
         weight_shape = (in_channels, out_channels) + self.modes
-        self.scale = 1 / (in_channels * out_channels)
-        self.weights = nn.Parameter(
-            self.scale * torch.rand(*weight_shape, dtype=torch.cfloat))
+        self.scale = (1 / (in_channels + out_channels))**0.5
+        real = torch.randn(*weight_shape) * self.scale
+        imag = torch.randn(*weight_shape) * self.scale
+        self.weights = nn.Parameter(torch.complex(real, imag))
+        bias_shape = (1, out_channels) + (1,) * self.dims
+        self.bias = nn.Parameter(torch.randn(*bias_shape) *
+                                 self.scale)  # Bias is kept real-valued
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -9352,8 +9360,16 @@ class SpectralConv(nn.Module):
                 f"Input tensor must have {self.dims} spatial dimensions, but got {x.ndim} dimensions including batch and channels"
             )
 
-        x_ft = torch.fft.rfftn(x, dim=tuple(range(
-            2, x.ndim)))  # Applied only to the spatial channels
+        fft_dims = tuple(range(2, x.ndim))
+
+        x_ft = torch.fft.rfftn(
+            x, dim=fft_dims)  # Applied only to the spatial channels
+
+        for num_modes, size in zip(self.modes, x_ft.shape[2:]):
+            if num_modes > size:
+                raise ValueError(
+                    f"Cannot slice {num_modes} modes from {size} frequency bins after FFT."
+                )
 
         out_ft = torch.zeros(x.shape[0],
                              self.out_channels,
@@ -9361,6 +9377,7 @@ class SpectralConv(nn.Module):
                              dtype=torch.cfloat,
                              device=x.device)
 
+        # DC component is always at index 0 after an FFT
         slices = tuple(slice(0, m) for m in self.modes)
 
         # x_ft[:, :, slices] has shape (batch, in_channels, *self.modes)
@@ -9369,11 +9386,11 @@ class SpectralConv(nn.Module):
         # then sum over in_channels to get a weighted sum
         # This transforms the input frequency components into output channels by
         # multiplying the input feature components with the learned weights.
-        out_ft[(slice(None), slice(None)) + slices] = torch.einsum(
-            "b i ... , i o ... -> b o ...",
-            x_ft[(slice(None), slice(None)) + slices], self.weights)
+        idx = (slice(None), slice(None)) + slices
+        out_ft[idx] = torch.einsum("b i ... , i o ... -> b o ...", x_ft[idx],
+                                   self.weights)
 
         x_out = torch.fft.irfftn(out_ft,
                                  s=x.shape[2:],
-                                 dim=tuple(range(2, x.ndim)))
-        return x_out
+                                 dim=tuple(range(2, x.ndim))).real
+        return x_out + self.bias
