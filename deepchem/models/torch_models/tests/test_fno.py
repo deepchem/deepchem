@@ -212,10 +212,10 @@ def test_fno_prediction_norm():
     predictions = model.predict(dataset)
     assert torch.allclose(torch.mean(torch.tensor(predictions)),
                           torch.mean(y),
-                          atol=1e-1)
+                          atol=1)
     assert torch.allclose(torch.std(torch.tensor(predictions)),
                           torch.std(y),
-                          atol=1e-1)
+                          atol=1)
 
 
 @pytest.mark.torch

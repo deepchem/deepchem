@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 from deepchem.models.torch_models.layers import SpectralConv
 from typing import Union, Tuple, Optional, List
 from deepchem.utils.fno_utils import GaussianNormalizer
