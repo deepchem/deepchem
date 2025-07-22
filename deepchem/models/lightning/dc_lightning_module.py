@@ -75,8 +75,9 @@ class DCLightningModule(L.LightningModule):
             TorchModel to be wrapped inside the lightning module.
         """
         super().__init__()
-        self.pt_model = dc_model.model
+        self.save_hyperparameters(ignore=['dc_model'])
         self.dc_model = dc_model
+        self.pt_model = dc_model.model
         self.loss_mod = dc_model.loss
         self.optimizer = dc_model.optimizer
         self.output_types = dc_model.output_types
@@ -122,7 +123,12 @@ class DCLightningModule(L.LightningModule):
         -------
         loss_outputs: outputs of losses.
         """
-        inputs, labels, weights = batch
+        if hasattr(batch, 'batch_list'):
+            # If batch is a DCLightningDatasetBatch, extract the batch list.
+            batch = batch.batch_list
+            inputs, labels, weights = self.dc_model._prepare_batch(batch)
+        else:
+            inputs, labels, weights = batch
 
         if isinstance(inputs, list):
             assert len(inputs) == 1
