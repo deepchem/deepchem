@@ -1,9 +1,25 @@
-from typing import Callable
+from typing import Callable, Optional
 import deepchem as dc
 import lightning as L
 import torch
 from deepchem.utils import collate_dataset_fn
 from deepchem.models.torch_models import TorchModel
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class DCLightningDatasetBatch:
+
+    def __init__(self, batch):
+        X = [batch[0]]
+        y = [batch[1]]
+        w = [batch[2]]
+        self.batch_list = [X, y, w]
+
+
+def collate_dataset_wrapper(batch):
+    return DCLightningDatasetBatch(batch)
 
 
 class DCLightningDatasetModule(L.LightningDataModule):
@@ -21,31 +37,44 @@ class DCLightningDatasetModule(L.LightningDataModule):
     def __init__(self,
                  dataset: dc.data.Dataset,
                  batch_size: int,
-                 model: TorchModel,
-                 collate_fn: Callable = collate_dataset_fn,
-                 num_workers: int = 0):
+                 collate_fn: Callable = collate_dataset_wrapper,
+                 num_workers: int = 0,
+                 model: Optional[TorchModel] = None):
         """Create a new DCLightningDatasetModule.
 
         Parameters
         ----------
-        dataset: dc.data.DiskDataset
-            A deepchem disk dataset.
+        dataset: dc.data.Dataset
+            A deepchem loaded dataset.
         batch_size: int
             Batch size for the dataloader.
-        model: TorchModel
-            DeepChem model for collate function.
         collate_fn: Callable
-            Custom collate function. Defaults to collate_dataset_fn.
+            Custom collate function. Defaults to collate_dataset_wrapper.
         num_workers: int
             Number of workers to load data
+        model: Optional[TorchModel], Defaults to None
+            DeepChem model for collate function, which is used to utilize the model's
+            `_prepare_batch` and `default_generator` method for preparing the batch data.
         """
         super().__init__()
         self._batch_size = batch_size
-        self._dataset = dc.data._TorchIndexDiskDataset(
-            dataset)  # type: ignore[arg-type]
+        if model is None:
+            self._dataset = dataset.make_pytorch_dataset(  # type: ignore[has-type]
+                batch_size=self._batch_size)
 
-        self.collate_fn = lambda batch: collate_fn(batch_data=batch,
-                                                   model=model)
+            self.collate_fn = collate_fn
+            self.DEPRECATED_WORKFLOW = True
+            logger.warning(
+                "Using deprecated workflow. Please provide the respective deepchem model to use the new workflow, this will be removed in future versions."
+            )
+        else:
+            self._dataset = dc.data._TorchIndexDiskDataset(
+                dataset)  # type: ignore[arg-type]
+            if collate_fn == collate_dataset_wrapper:
+                collate_fn = collate_dataset_fn
+            self.collate_fn = lambda batch: collate_fn(batch_data=batch,
+                                                       model=model)
+            self.DEPRECATED_WORKFLOW = False
         self.num_workers = num_workers
 
     def setup(self, stage):
@@ -69,11 +98,19 @@ class DCLightningDatasetModule(L.LightningDataModule):
         DataLoader
             Pytorch DataLoader for train data.
         """
+        # In the newer workflow, batching is handles by DataLoader.
+        if self.DEPRECATED_WORKFLOW:
+            batch_size = None
+            shuffle = False
+        else:
+            batch_size = self._batch_size
+            shuffle = True
+
         dataloader = torch.utils.data.DataLoader(
             self.train_dataset,
-            batch_size=self._batch_size,
+            batch_size=batch_size,
             collate_fn=self.collate_fn,
-            shuffle=True,
+            shuffle=shuffle,
             num_workers=self.num_workers,
         )
         return dataloader
@@ -86,9 +123,14 @@ class DCLightningDatasetModule(L.LightningDataModule):
         DataLoader
             PyTorch DataLoader for prediction data.
         """
+        if self.DEPRECATED_WORKFLOW:
+            batch_size = None
+        else:
+            batch_size = self._batch_size
+
         dataloader = torch.utils.data.DataLoader(
             self.predict_dataset,
-            batch_size=self._batch_size,
+            batch_size=batch_size,
             collate_fn=self.collate_fn,
             shuffle=False,  # Critical: never shuffle during prediction
             num_workers=self.num_workers,
