@@ -2,7 +2,7 @@ from deepchem.feat.huggingface_featurizer import HuggingFaceFeaturizer
 
 
 def testHuggingFaceFeaturizer():
-    # NOTE: The test depends on the the pretrained vocabulary
+    # NOTE: The test depends on the pretrained vocabulary
     # (seyonec/PubChem10M_SMILES_BPE_60k). If the pretrained vocabulary is modified
     # (which can be since it is an external resource), the test might fail.
     from transformers import RobertaTokenizerFast

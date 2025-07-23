@@ -20,7 +20,7 @@ def collate_dataset_wrapper(batch):
 class DCLightningDatasetModule(L.LightningDataModule):
     """DeepChem Lightning Dataset Module to be used with the DCLightningModule and a Lightning trainer.
 
-    This module wraps over the the deepchem pytorch dataset and dataloader providing a generic interface to run training.
+    This module wraps over the deepchem pytorch dataset and dataloader providing a generic interface to run training.
     https://pytorch-lightning.readthedocs.io/en/stable/extensions/datamodules.html
 
     Notes

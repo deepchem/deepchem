@@ -1281,8 +1281,8 @@ def _generate_scaffold(smiles: str,
     They are essentially that part of the molecule consisting of
     rings and the linker atoms between them.
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     smiles: str
         SMILES
     include_chirality: bool, default False

@@ -14,7 +14,7 @@ class DTNN(nn.Module):
     """Deep Tensor Neural Networks
 
     DTNN is based on the many-body Hamiltonian concept, which is a fundamental principle in quantum mechanics.
-    The DTNN recieves a molecule's distance matrix and membership of its atom from its Coulomb Matrix representation.
+    The DTNN receives a molecule's distance matrix and membership of its atom from its Coulomb Matrix representation.
     Then, it iteratively refines the representation of each atom by considering its interactions with neighboring atoms.
     Finally, it predicts the energy of the molecule by summing up the energies of the individual atoms.
 
@@ -154,7 +154,7 @@ class DTNNModel(TorchModel):
     """Implements DTNN models for regression.
 
     DTNN is based on the many-body Hamiltonian concept, which is a fundamental principle in quantum mechanics.
-    DTNN recieves a molecule's distance matrix and membership of its atom from its Coulomb Matrix representation.
+    DTNN receives a molecule's distance matrix and membership of its atom from its Coulomb Matrix representation.
     Then, it iteratively refines the representation of each atom by considering its interactions with neighboring atoms.
     Finally, it predicts the energy of the molecule by summing up the energies of the individual atoms.
 

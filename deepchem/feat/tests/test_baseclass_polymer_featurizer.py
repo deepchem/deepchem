@@ -13,7 +13,7 @@ class DummyPolymerFeatClass(PolymerFeaturizer):
 
     def _featurize(self, datapoint, **kwargs):
         """
-        Returns string object from recieved datapoint as string, int, float, etc
+        Returns string object from received datapoint as string, int, float, etc
         """
         return datapoint
 
@@ -34,7 +34,7 @@ class DummyPolymerFeatObjClass(PolymerFeaturizer):
 
     def _featurize(self, datapoint, **kwargs):
         """
-        Returns string object from recieved datapoint as string, int, float, etc
+        Returns string object from received datapoint as string, int, float, etc
         """
         datapoint = SampleObject(datapoint)
         return datapoint

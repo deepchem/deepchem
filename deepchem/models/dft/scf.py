@@ -92,7 +92,7 @@ class XCNNSCF(torch.nn.Module):
         Kohn Sham Model
         This method runs the Quantum Chemistry calculation (Differentiable
         DFT) of the given system and returns the post-run object. This method
-        starts with an intial density matrix, the new density matrix can be
+        starts with an initial density matrix, the new density matrix can be
         obtained from the post-run object.
 
         Parameters

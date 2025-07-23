@@ -62,7 +62,7 @@ conda install -c conda-forge deepchem
 ```
 
 Deepchem provides support for tensorflow, pytorch, jax and each require
-a individual pip Installation.
+an individual pip Installation.
 
 For using models with tensorflow dependencies, you install using
 
@@ -120,7 +120,7 @@ If you want to know docker usages with deepchem in more detail, please check [th
 
 ### From source
 
-If you try install all soft dependencies at once or contribute to deepchem, we recommend you should install deepchem from source.
+If you try to install all soft dependencies at once or contribute to deepchem, we recommend you should install deepchem from source.
 
 Please check [this introduction](https://deepchem.readthedocs.io/en/latest/installation.html#from-source-with-conda).
 
@@ -128,7 +128,7 @@ Please check [this introduction](https://deepchem.readthedocs.io/en/latest/insta
 
 The DeepChem project maintains an extensive collection of [tutorials](https://github.com/deepchem/deepchem/tree/master/examples/tutorials). All tutorials are designed to be run on Google colab (or locally if you prefer). Tutorials are arranged in a suggested learning sequence which will take you from beginner to proficient at molecular machine learning and computational biology more broadly.
 
-After working through the tutorials, you can also go through other [examples](https://github.com/deepchem/deepchem/tree/master/examples). To apply `deepchem` to a new problem, try starting from one of the existing examples or tutorials and modifying it step by step to work with your new use-case. If you have questions or comments you can raise them on our [gitter](https://gitter.im/deepchem/Lobby).
+After working through the tutorials, you can also go through other [examples](https://github.com/deepchem/deepchem/tree/master/examples). To apply `deepchem` to a new problem, try starting from one of the existing examples or tutorials and modifying it step by step to work with your new use case. If you have questions or comments you can raise them on our [gitter](https://gitter.im/deepchem/Lobby).
 
 ### Supported Integrations
 

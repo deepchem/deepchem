@@ -625,7 +625,7 @@ class JaxModel(Model):
 
     def _get_trainable_params(self):
         """
-        Will be used to seperate freezing parameters while transfer learning
+        Will be used to separate freezing parameters while transfer learning
         """
         return self.params, self.opt_state
 
