@@ -20,7 +20,7 @@ from deepchem.models.wandblogger import WandbLogger
 
 try:
     import wandb
-    wandb.ensure_configured()
+    wandb.ensure_configured()#type: ignore
     if wandb.api.api_key is None:
         _has_wandb = False
         wandb.termwarn(

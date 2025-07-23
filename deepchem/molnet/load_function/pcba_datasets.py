@@ -40,12 +40,11 @@ PCBA_TASKS = [
 class _PCBALoader(_MolnetLoader):
 
     def __init__(self, assay_file_name: str,
-                 featurizer: Union[dc.feat.Featurizer,
-                                   str], splitter: Union[dc.splits.Splitter,
-                                                         str, None],
-                 transformer_generators: List[Union[TransformerGenerator,
-                                                    str]], tasks: List[str],
-                 data_dir: Optional[str], save_dir: Optional[str], **kwargs):
+                 featurizer: Union["dc.feat.Featurizer",str],
+                 splitter: Union["dc.splits.Splitter", str, None],
+                 transformer_generators: List[Union["TransformerGenerator", str]], tasks: List[str],
+                 data_dir: Optional[str], save_dir: Optional[str],
+                  **kwargs):
         super(_PCBALoader,
               self).__init__(featurizer, splitter, transformer_generators,
                              tasks, data_dir, save_dir)
@@ -57,21 +56,26 @@ class _PCBALoader(_MolnetLoader):
             dc.utils.data_utils.download_url(url=PCBA_URL %
                                              self.assay_file_name,
                                              dest_dir=self.data_dir)
+        featurizer = self.featurizer
+        if isinstance(featurizer, str):
+            featurizer = self.featurizer
+        assert isinstance(featurizer, dc.feat.Featurizer) 
+                                   
         loader = dc.data.CSVLoader(tasks=self.tasks,
                                    feature_field="smiles",
-                                   featurizer=self.featurizer)
+                                   featurizer=featurizer)
         return loader.create_dataset(dataset_file)
 
 
 def load_pcba(
-    featurizer: Union[dc.feat.Featurizer, str] = 'ECFP',
-    splitter: Union[dc.splits.Splitter, str, None] = 'scaffold',
-    transformers: List[Union[TransformerGenerator, str]] = ['balancing'],
+    featurizer: Union["dc.feat.Featurizer", str] = 'ECFP',
+    splitter: Union["dc.splits.Splitter", str, None] = 'random',
+    transformers: List[Union["TransformerGenerator", str]] = ['normalization'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Load PCBA dataset
 
     PubChem BioAssay (PCBA) is a database consisting of biological activities of

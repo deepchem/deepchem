@@ -302,6 +302,7 @@ class MaskedAffineFlow(Flow):
             Tensor which represents the information of the deviation of the initial
             and target distribution.
         """
+        self.b = torch.tensor(self.b, device=z.device)
         z = z.to(self.b.device)
         z_masked: torch.Tensor = self.b * z
         scale = self.s(z_masked)

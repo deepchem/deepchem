@@ -25,21 +25,27 @@ class _QM8Loader(_MolnetLoader):
                                              dest_dir=self.data_dir)
             dc.utils.data_utils.untargz_file(
                 os.path.join(self.data_dir, "gdb8.tar.gz"), self.data_dir)
+
+        featurizer = self.featurizer
+        if isinstance(featurizer, str):
+            featurizer = self.featurizer
+        assert isinstance(featurizer, dc.feat.Featurizer) 
+       
         loader = dc.data.SDFLoader(tasks=self.tasks,
-                                   featurizer=self.featurizer,
+                                   featurizer=featurizer,
                                    sanitize=True)
         return loader.create_dataset(dataset_file, shard_size=8192)
 
 
 def load_qm8(
-    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.CoulombMatrix(26),
-    splitter: Union[dc.splits.Splitter, str, None] = 'random',
-    transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
+    featurizer: Union["dc.feat.Featurizer", str] = "dc.feat.CoulombMatrix(26)",
+    splitter: Union["dc.splits.Splitter", str, None] = 'random',
+    transformers: List[Union["TransformerGenerator", str]] = ['normalization'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Load QM8 dataset
 
     QM8 is the dataset used in a study on modeling quantum

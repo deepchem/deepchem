@@ -86,7 +86,7 @@ class EquivariantGraphFeaturizer(MolecularFeaturizer):
 
         if self.embeded:
             datapoint = Chem.AddHs(datapoint)
-            AllChem.EmbedMolecule(datapoint, AllChem.ETKDG())
+            AllChem.EmbedMolecule(datapoint, AllChem.ETKDG())#type: ignore
             datapoint = Chem.RemoveHs(datapoint)
 
         node_features, positions = self._get_node_features(datapoint)
