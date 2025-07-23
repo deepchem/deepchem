@@ -1,7 +1,8 @@
-from transformers import AutoModel, AutoModelForMaskedLM, AutoTokenizer, AutoConfig
+from transformers import AutoModel, AutoModelForMaskedLM, BertTokenizer, BertConfig, PretrainedConfig
 from tqdm import tqdm
 from deepchem.models.torch_models import HuggingFaceModel
-from typing import Union, Dict, Any
+from typing import Dict, Any
+from transformers.modeling_utils import PreTrainedModel
 
 
 class DeepAbLLM(HuggingFaceModel):
@@ -150,23 +151,19 @@ class DeepAbLLM(HuggingFaceModel):
             default pretrained model.
         """
         self.n_tasks: int = n_tasks
-        tokenizer: AutoTokenizer = AutoTokenizer.from_pretrained(
+        tokenizer: BertTokenizer = BertTokenizer.from_pretrained(
             model_path, do_lower_case=False)
-        model_config: AutoConfig = AutoConfig.from_pretrained(
+        model_config: PretrainedConfig = BertConfig.from_pretrained(
             pretrained_model_name_or_path=model_path,
-            vocab_size=tokenizer.vocab_size)  # type: ignore
-        model_config.update(config)  # type: ignore
+            vocab_size=tokenizer.vocab_size)
+        model_config.update(config)
         self.is_esm_variant: bool = is_esm_variant
-        model: Union[AutoModel, AutoModelForMaskedLM]
+        model: PreTrainedModel
         if task == "mlm":
             model = AutoModelForMaskedLM.from_config(model_config)
         else:
             model = AutoModel.from_config(model_config)
-        super().__init__(
-            model=model,  # type: ignore
-            task=task,
-            tokenizer=tokenizer,  # type: ignore
-            **kwargs)
+        super().__init__(model=model, task=task, tokenizer=tokenizer, **kwargs)
 
     def _mask_seq_pos(
         self,
