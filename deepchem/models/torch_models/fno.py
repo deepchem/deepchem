@@ -124,6 +124,7 @@ class FNO(nn.Module):
                  normalize_output: bool = True,
                  normalization_dims: Optional[List[int]] = None) -> None:
         """Initialize the FNO base model.
+
         Parameters
         ----------
         in_channels: int
@@ -180,21 +181,56 @@ class FNO(nn.Module):
     def fit_normalizers(self,
                         x_train: torch.Tensor,
                         y_train: Optional[torch.Tensor] = None) -> None:
-        """Fit normalizers on training data. Called by the fit method of the FNOModel class."""
+        """
+        Fit normalizers on training data. Called by the fit method of the FNOModel class.
+
+        Parameters
+        ----------
+        x_train: torch.Tensor
+            Training input data
+        y_train: torch.Tensor, optional
+            Training output data. If None, only input data is normalized.
+
+        Returns
+        -------
+        None
+        """
         if self.normalize_input and self.input_normalizer:
             self.input_normalizer.fit(x_train)
         if self.normalize_output and self.output_normalizer and y_train is not None:
             self.output_normalizer.fit(y_train)
 
     def set_normalizers_device(self, device: torch.device) -> None:
-        """Move normalizers to specified device. Called by the fit method of the FNOModel class."""
+        """
+        Move normalizers to specified device. Called by the fit method of the FNOModel class.
+
+        Parameters
+        ----------
+        device: torch.device
+            Device to move normalizers to
+
+        Returns
+        -------
+        None
+        """
         if self.input_normalizer:
             self.input_normalizer.to(device)
         if self.output_normalizer:
             self.output_normalizer.to(device)
 
     def _ensure_channel_first(self, x: torch.Tensor) -> torch.Tensor:
-        """Ensure input tensor has channels in the correct position."""
+        """Ensure input tensor has channels in the correct position.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input tensor
+
+        Returns
+        -------
+        torch.Tensor
+            Input tensor with channels in the correct position
+        """
         in_ch = self.in_channels - self.dims if self.positional_encoding else self.in_channels
         if x.shape[-1] == in_ch:
             perm = (0, -1) + tuple(range(1, self.dims + 1))
@@ -207,7 +243,18 @@ class FNO(nn.Module):
                 f"(batch, *spatial_dims, {in_ch}), got {tuple(x.shape)}")
 
     def _generate_meshgrid(self, x: torch.Tensor) -> torch.Tensor:
-        """Generate meshgrid of coordinates for positional encoding."""
+        """Generate meshgrid of coordinates for positional encoding.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input tensor
+
+        Returns
+        -------
+        torch.Tensor
+            Meshgrid of coordinates for positional encoding
+        """
         batch_size = x.shape[0]
         spatial = x.shape[2:]
         coords = [
@@ -235,9 +282,8 @@ class FNO(nn.Module):
                 self.input_normalizer.to(x.device)
             x = self.input_normalizer.transform(x)
 
-        # Lifting: permute channels to last dim, apply lifting, permute back
-        perm_lifting = (0, *range(2, x.ndim), 1)
-        x = x.permute(*perm_lifting).contiguous()
+        # Reshape for lifting layer: (batch, *spatial, channels) -> (batch * spatial, channels)
+        x = x.permute(0, *range(2, x.ndim), 1).contiguous()
         x = self.lifting(x)
 
         # FNO blocks: permute channels to second dim
@@ -245,20 +291,23 @@ class FNO(nn.Module):
         x = x.permute(*perm_back).contiguous()
         x = self.fno_blocks(x)
 
-        # Projection: permute channels to last dim, apply projection
-        perm_proj = (0, *range(2, x.ndim), 1)
-        x = x.permute(*perm_proj).contiguous()
+        # Reshape for projection layer: (batch, *spatial, channels) -> (batch * spatial, channels)
+        x = x.permute(0, *range(2, x.ndim), 1).contiguous()
         x = self.projection(x)
-
-        x = x.permute(0, -1, *range(1, x.ndim - 1)).contiguous(
-        )  # Permute to channels-first format to match expected output format
 
         if self.normalize_output and self.output_normalizer and self.output_normalizer.fitted:
             if self.output_normalizer.mean is not None and self.output_normalizer.mean.device != x.device:
                 self.output_normalizer.to(x.device)
-            if self.training:
-                x = self.output_normalizer.transform(x)
-            else:
+
+            # Permute to channels-first for normalization
+            x = x.permute(0, -1, *range(1, x.ndim - 1)).contiguous()
+
+            if not self.training:
+                # During inference, denormalize the model output to original scale
                 x = self.output_normalizer.inverse_transform(x)
+            # During training, keep the model output as-is (it should be in normalized space)
+        else:
+            # Permute to channels-first for label compatibility if not normalizing
+            x = x.permute(0, -1, *range(1, x.ndim - 1)).contiguous()
 
         return x
