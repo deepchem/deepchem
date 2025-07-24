@@ -3,7 +3,30 @@ from typing import Optional, List
 
 
 class GaussianNormalizer:
-    """Normalizes data to zero mean and unit standard deviation."""
+    """
+    The GaussianNormalizer transforms input data by subtracting the mean and dividing by the standard deviation,
+    resulting in normalized data with zero mean and unit variance. This is also known as standardization or z-score normalization.
+
+    The transformation is:
+        x_norm = (x - mean) / std
+
+    And the inverse transformation is:
+        x = x_norm * std + mean
+
+    The normalizer can compute statistics over specified dimensions (e.g. batch and spatial dims)
+    while preserving others (e.g. channels), which is useful for multi-dimensional data like images
+    or solutions to PDEs.
+
+    Example
+    -------------
+    >>> import torch
+    >>> from deepchem.utils.fno_utils import GaussianNormalizer
+    >>> normalizer = GaussianNormalizer()
+    >>> data = torch.randn(100, 10)
+    >>> normalizer.fit(data)
+    >>> normalized_data = normalizer.transform(data)
+    >>> denormalized_data = normalizer.inverse_transform(normalized_data)
+    """
 
     def __init__(self,
                  mean: Optional[torch.Tensor] = None,
